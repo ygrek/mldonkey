@@ -108,7 +108,7 @@ let reconnect gui value_reader =
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = GuiDecoding.to_gui opcode s in
+            let m = GuiDecoding.to_gui !gui_protocol_used opcode s in
             value_reader gui m
           with e ->
             Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 

@@ -165,18 +165,6 @@ let tab_downloads = gui#tab_downloads
 let tab_friends = gui#tab_friends
 let tab_help = gui#tab_help
   
-
-let is_connected state =
-  match state with
-  | Connected_initiating
-  | Connected_busy
-  | Connected_idle
-  | Connected_queued -> true
-  | NotConnected
-  | Connecting
-  | NewHost
-  | BlackListedHost
-  | RemovedHost -> false
   
   
 let for_selection list f () =
@@ -204,25 +192,25 @@ let string_of_tags tags =
 
 let string_of_state state =
   match state with
-    NotConnected
+  | NotConnected false
   | NewHost -> ""
   | Connecting -> "Connecting"
   | Connected_initiating -> "Initiating"
-  | Connected_busy
-  | Connected_idle -> "Connected"
-  | Connected_queued -> "Queued"
+  | Connected_downloading -> "Downloading"
+  | Connected false -> "Connected"
+  | Connected true -> "Queued"
+  | NotConnected true -> "Queued out"
   | RemovedHost -> "Removed"
   | BlackListedHost -> "Black Listed"
 
 let color_of_state state =
   match state with
-  | Connected_busy
-  | Connected_idle -> Some !!color_connected 
+  | Connected_downloading
+  | Connected _ -> Some !!color_connected 
   | Connecting -> Some !!color_connecting
-  | NotConnected
+  | NotConnected _
   | NewHost
   | Connected_initiating
-  | Connected_queued
   | BlackListedHost
   | RemovedHost -> Some !!color_not_connected
 
@@ -363,18 +351,18 @@ let _ =
 let add_user_to_friends =
   for_selection  clist_server_users (fun u ->
       gui_send (AddUserFriend u.user_num))
-  
-
-  
+    
 let string_of_file_state state =
   match state with
     FileDownloading -> "Downloading"
   | FileCancelled -> "Cancelled"
+  | FileAborted s -> Printf.sprintf "Aborted %s" s
   | FilePaused -> "Paused"
   | FileDownloaded -> "Done"
 (*  | FileRemoved -> "Removed"*)
   | FileNew -> assert false
   | FileShared -> "Shared"
+
       
 let some_is_available f =
   let b = ref false in
@@ -513,8 +501,8 @@ let menu_downloads_file t =
     "Pause/Resume file(s)", for_selection clist_downloads (fun file -> 
         gui_send (SwitchDownload (file.file_num, 
             match file.file_state with
-                FilePaused -> true
-              | _ -> false)));
+            | FilePaused | FileAborted _  -> true
+            | _ -> false)));
     "Verify all chunks file(s)",
     for_selection clist_downloads
       (fun file -> 

@@ -10,10 +10,6 @@
       <hpaned name=hpaned expand="true" fill="true" width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" padding="-1">
         <vbox name=_ width="600" homogeneous="false" expand="true" fill="true" height="-1" border_width="-1" spacing="-1" tab_label="" padding="-1">
           <vpaned name=vpaned expand="true" fill="true" width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" padding="-1">
-            <frame name=downloads width="-1" height="-1" border_width="5" label="%22Running+Downloads%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
-            </frame>
-            <frame name=downloaded width="-1" height="-1" border_width="5" label="%22Completed+Downloads%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
-            </frame>
           </vpaned>
         </vbox>
         <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">

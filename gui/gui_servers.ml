@@ -19,6 +19,7 @@
 
 (** GUI for the list of servers. *)
 
+open Options
 open Gettext
 open CommonGlobals
 open CommonTypes
@@ -40,11 +41,12 @@ let server_key s = s.server_num
 let filter_disconnected_servers = ref true
 
 let is_filtered s =
-  (!filter_disconnected_servers && s.server_state = NotConnected) ||
+  (!filter_disconnected_servers && (match s.server_state with
+        NotConnected _ -> true | _ -> false)) ||
   List.memq s.server_network !G.networks_filtered
 
 class box columns users wl_status =
-  let titles = List.map Gui_columns.Server.string_of_column columns in 
+  let titles = List.map Gui_columns.Server.string_of_column !!columns in 
   object (self)
     inherit [server_info] Gpattern.filtered_plist `EXTENDED titles true (fun s -> s.server_num) as pl
       inherit Gui_servers_base.box () as box
@@ -54,9 +56,48 @@ class box columns users wl_status =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.Server.string_of_column columns);
+      self#set_titles (List.map Gui_columns.Server.string_of_column !!columns);
       self#update
-    
+
+      
+      
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                                                      (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+
+                  
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Server.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Server.column_strings));
+      ]
+
+      
     method box = box#coerce
     
     method compare_by_col col s1 s2 =
@@ -72,7 +113,7 @@ class box columns users wl_status =
     method compare s1 s2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-        try List.nth columns (abs - 1) 
+        try List.nth !!columns (abs - 1) 
         with _ -> Col_server_address
       in
       let res = self#compare_by_col col s1 s2 in
@@ -105,7 +146,7 @@ class box columns users wl_status =
     method content s =
       let strings = List.map 
           (fun col -> P.String (self#content_by_col s col))
-        columns
+        !!columns
       in
       let col_opt = 
         match snd (string_color_of_state s.server_state) with
@@ -381,7 +422,7 @@ class box columns users wl_status =
 class pane_servers () =
   let box_users = new Gui_users.box_users () in
   let wl_status = GMisc.label ~text: "" ~show: true () in
-  let box_servers = new box !!O.servers_columns box_users wl_status in
+  let box_servers = new box O.servers_columns box_users wl_status in
   let box_queries = new Gui_queries.paned () in
 
   object (self)

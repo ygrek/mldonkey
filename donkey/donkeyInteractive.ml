@@ -61,7 +61,7 @@ let reconnect_all file =
   DonkeySources1.S.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
-      | Some sock, (Connected_idle | Connected_busy) ->
+      | Some sock, (Connected _ | Connected_downloading) ->
           s.server_waiting_queries <- file :: s.server_waiting_queries
       | _ -> ()
   ) (connected_servers())
@@ -757,6 +757,9 @@ let _ =
   file_ops.op_file_resume <- (fun file ->
       reconnect_all file;
   );
+  file_ops.op_file_set_priority <- (fun file _ ->
+      DonkeySources1.S.recompute_ready_sources ()     
+  );
   file_ops.op_file_pause <- (fun file -> ()
   );
   file_ops.op_file_commit <- (fun file new_name ->
@@ -828,7 +831,9 @@ let _ =
                   done;
                 end;
               s
+              
             );          
+            P.file_priority = file_priority  file;
             P.file_availability = String2.init file.file_nchunks (fun i ->
                 let n = min file.file_available_chunks.(i) 255 in
                 char_of_int n 
@@ -918,14 +923,14 @@ let _ =
 
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
-        Some sock, (Connected_idle | Connected_busy) ->
+        Some sock, (Connected _ | Connected_downloading) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
-        Some sock, (Connected_idle | Connected_busy) ->
+        Some sock, (Connected _ | Connected_downloading) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      

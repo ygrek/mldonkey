@@ -428,8 +428,9 @@ let commands = [
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
         let s = server_find num in
-        if server_state s <> NotConnected then
-          server_disconnect s;
+        (match server_state s with
+            NotConnected _ -> ()
+          | _ ->   server_disconnect s);
         ""
     ), "<num> :\t\t\t\tdisconnect from server";
     
@@ -468,7 +469,7 @@ let commands = [
             List.iter (fun arg ->
                 try
                   let file = file_find (int_of_string arg) in
-                  set_file_priority file p;
+                  file_set_priority file p;
                   Printf.bprintf buf "Setting priority of %s to %d\n"
                     (file_best_name file) (file_priority file);
                 with _ -> failwith (Printf.sprintf "No file number %s" arg)

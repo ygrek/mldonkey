@@ -227,39 +227,6 @@ used. For example, we can add new web_infos... *)
           print_newline ();
           exit 0), " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
-(*
-      "-dump", Arg.String (fun file -> 
-Files.dump_file file), " <filename> : dump file";
-      "-known", Arg.String (fun file ->
-          let module K = Files.Known in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-      ), " <filename> : print a known.met file";
-      "-part", Arg.String (fun file ->
-          let module K = Files.Part in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-), " <filename> : print a .part.met file";
-      "-server", Arg.String (fun file ->
-          let module K = DonkeyImport.Server in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-          exit 0
-      ), " <filename> : print a server.met file";
-      "-pref", Arg.String (fun file ->
-          let module K = Files.Pref in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-), " <filename> : print a server.met file";
-  *)
       "-format", Arg.String (fun file ->
           let format = CommonMultimedia.get_info file in
           ()), " <filename> : check file format";
@@ -278,7 +245,10 @@ Files.dump_file file), " <filename> : dump file";
       " : display information on the implementations";
       "-find_port", Arg.Set find_other_port, " : find another port when one
       is already used";
-    ] @ !more_args)
+    ] @ 
+      !more_args
+      @
+    !main_options)
     (fun file -> ()
 (*      Files.dump_file file; exit 0 *)
   ) "";

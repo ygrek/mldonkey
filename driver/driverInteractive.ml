@@ -262,9 +262,10 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
               if !min = 0 then "-" else
                 string_of_int (age_to_day !min)));
           
-          (if file.file_state = FilePaused then
-              "Paused"
-            else
+          (match file.file_state with
+              FilePaused ->  "Paused"
+            | FileAborted s -> Printf.sprintf "Aborted %s" s
+            | _ -> 
             if file.file_download_rate < 10.24 then
               "-"
             else
@@ -337,13 +338,15 @@ let simple_print_file_list finished buf files format =
                 if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
               
-            (if file.file_state = FilePaused then
-                "Paused"
-              else
-              if file.file_download_rate < 10.24 then
-                "-"
-              else
-                Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.));
+              (match file.file_state with
+                | FilePaused -> "Paused"
+                | FileAborted s -> Printf.sprintf "Aborted %s" s
+                | _ ->
+                    if file.file_download_rate < 10.24 then
+                      "-"
+                    else
+                      Printf.sprintf "%5.1f" (
+                        file.file_download_rate /. 1024.));
           |]
       ) files)
   else

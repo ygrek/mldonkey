@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Options
 open Md4
 
 open Gettext
@@ -45,7 +46,7 @@ let is_filtered r =
   List.memq r.result_network !Gui_global.networks_filtered
 
 class box s_num columns () =
-  let titles = List.map Gui_columns.Result.string_of_column columns in
+  let titles = List.map Gui_columns.Result.string_of_column !!columns in
   object (self)
     inherit [CommonTypes.result_info] Gpattern.filtered_plist `EXTENDED titles true (fun r -> r.result_num) as pl
     inherit Gui_results_base.box !!O.toolbars_style () as box 
@@ -57,8 +58,47 @@ class box s_num columns () =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.Result.string_of_column columns);
+      self#set_titles (List.map Gui_columns.Result.string_of_column !!columns);
       self#update
+
+      
+      
+      
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                                    (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+
+                  
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Result.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Result.column_strings));
+      ]
 
     method download () = 
       List.iter
@@ -96,7 +136,7 @@ class box s_num columns () =
     method compare r1 r2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth columns (abs - 1) 
+	try List.nth !!columns (abs - 1) 
 	with _ -> Col_result_name
       in
       let res = self#compare_by_col col r1 r2 in
@@ -115,7 +155,7 @@ class box s_num columns () =
     method content r =
       let strings = List.map 
 	  (fun col -> P.String (self#content_by_col col r))
-	  columns
+	  !!columns
       in
       (strings, None)
 
@@ -168,7 +208,7 @@ class search_result_box s_num () =
       () 
   in
   object (self)
-    inherit box s_num !!Gui_options.results_columns  () as box
+    inherit box s_num Gui_options.results_columns  () as box
 
     method filter res = is_filtered res
 
@@ -188,7 +228,7 @@ class search_result_box s_num () =
 
 
 class box_dir_files () =
-  let results = new box (-1) !!O.results_columns () in
+  let results = new box (-1) O.results_columns () in
   object (self)
     inherit Gui_results_base.files ()
 

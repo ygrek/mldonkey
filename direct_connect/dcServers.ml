@@ -181,7 +181,7 @@ let disconnect_server s =
       if !verbose_msg_servers then begin
           Printf.printf "******** NOT CONNECTED *****"; print_newline ();
         end;
-      set_server_state s NotConnected;
+      set_server_state s (NotConnected false);
       connected_servers := List2.removeq s !connected_servers;
       s.server_messages <- 
         (room_new_message (as_room s.server_room) 
@@ -269,7 +269,7 @@ print_newline ()
           if !verbose_msg_servers then begin
               Printf.printf "*****  CONNECTED  ******"; print_newline (); 
             end;
-          set_server_state s Connected_idle;
+          set_server_state s (Connected false);
           set_room_state s RoomOpened;
           connected_servers := s :: !connected_servers;
           let module I = MyINFO in
@@ -467,7 +467,7 @@ and connect_server s =
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             decr nservers;
             s.server_sock <- None;
-            set_server_state s NotConnected;
+            set_server_state s (NotConnected false);
             connection_failed s.server_connection_control
             
 let try_connect_server s =

@@ -235,7 +235,8 @@ let rec iter_write t sock bc =
         ignore (
           Unix.sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
-        bc.remaining_bytes <- bc.remaining_bytes - len;
+        bc.remaining_bytes <- bc.remaining_bytes - (len + !
+          TcpBufferedSocket.ip_packet_size) ;
       with
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
       | e ->
@@ -348,7 +349,8 @@ let new_bandwidth_controler tcp_bc =
     udp_bc.base_time <- udp_bc.base_time + 1;
     if udp_bc.count = 0 then begin
         udp_bc.count <- 10;
-        TcpBufferedSocket.set_lost_bytes tcp_bc udp_bc.remaining_bytes udp_bc.base_time;
+        TcpBufferedSocket.set_lost_bytes tcp_bc udp_bc.remaining_bytes 
+          udp_bc.base_time;
         udp_bc.remaining_bytes <- 0;
       end;
     udp_bc.count <- udp_bc.count - 1;

@@ -194,7 +194,7 @@ let add_user_friend s u =
     else begin
         begin
           match s.server_sock, server_state s with 
-            Some sock, (Connected_idle|Connected_busy) ->
+            Some sock, (Connected _ |Connected_downloading) ->
               query_id s sock u.user_ip None;
           | _ -> ()
         end;

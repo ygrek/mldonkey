@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Options
 open Md4
 
 open Gettext
@@ -33,6 +34,31 @@ module P = Gpattern
 module O = Gui_options
 module G = Gui_global
 
+      
+let preview file () =  Gui_com.send (Preview file.file_num)
+
+  
+let save_menu_items file =
+  List.map
+    (fun name ->
+      `I (name, 
+        (fun _ -> 
+            Gui_com.send (GuiProto.SaveFile (file.file_num, name))
+        )
+      )
+  ) 
+  file.file_names
+
+
+let save_as file () = 
+  let file_opt = GToolbox.input_string ~title: (gettext M.save) 
+    (gettext M.save) in
+  match file_opt with
+    None -> ()
+  | Some name -> 
+      Gui_com.send (GuiProto.SaveFile (file.file_num, name))
+      
+  
 let (!!) = Options.(!!)
 
 let file_first_name f = f.file_name
@@ -45,6 +71,7 @@ let string_of_file_state state =
   | FileDownloaded
   | FileShared  -> (gettext M.dl_done)
   | FileNew -> assert false
+  | FileAborted s -> Printf.sprintf "Aborted: %s" s
       
 let some_is_available f =
   if !!Gui_options.use_relative_availability
@@ -156,18 +183,56 @@ let calc_file_eta f =
   int_of_float eta
   
 class box columns sel_mode () =
-  let titles = List.map Gui_columns.File.string_of_column columns in
+  let titles = List.map Gui_columns.File.string_of_column !!columns in
   object (self)
     inherit [file_info] Gpattern.plist sel_mode titles true (fun f -> f.file_num) as pl
     inherit Gui_downloads_base.box () as box
-
+      
+    
     val mutable columns = columns
 
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.File.string_of_column columns);
+      self#set_titles (List.map Gui_columns.File.string_of_column !!columns);
       self#update
 
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                                                      (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+
+                  
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.file_column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.file_column_strings));
+      ]
+
+      
     method box = box#coerce
     method vbox = box#vbox
 
@@ -198,7 +263,7 @@ class box columns sel_mode () =
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth columns (abs - 1) 
+	try List.nth !!columns (abs - 1) 
 	with _ -> Col_file_name
       in
       let res = self#compare_by_col col f1 f2 in
@@ -247,7 +312,7 @@ class box columns sel_mode () =
     method content f =
       let strings = List.map 
 	  (fun col -> P.String (self#content_by_col f col))
-	  columns 
+	  !!columns 
       in
       let col_opt = 
 	match color_opt_of_file f with
@@ -272,7 +337,7 @@ class box columns sel_mode () =
     
 class box_downloaded wl_status () =
   object (self)
-    inherit box !!O.downloaded_columns `SINGLE () as super
+    inherit box O.downloaded_columns `SINGLE () as super
 
     method update_wl_status : unit =
       wl_status#set_text 
@@ -281,24 +346,10 @@ class box_downloaded wl_status () =
     method content f = 
       (fst (super#content f), Some (`NAME !!O.color_downloaded))
 
-    method save_menu_items f =
-      let items = 
-	List.map
-	  (fun name ->
-	    `I (name, 
-		(fun _ -> 
-                  Gui_com.send (GuiProto.SaveFile (f.file_num, name))
-                )
-	       )
-	  ) 
-	  f.file_names
-      in
-      items
-
     method save ev =
       match self#selection with
 	f :: _ ->
-	  let items = self#save_menu_items f in
+	  let items = save_menu_items f in
 	  GAutoconf.popup_menu ~entries: items ~button: 1 ~time: 0
       |	_ ->
 	  ()
@@ -306,20 +357,6 @@ class box_downloaded wl_status () =
     method save_all () = 
       self#iter	(fun f -> 
           Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
-
-    method save_as () = 
-      match self#selection with
-	file :: _ ->
-	  (
-	   let file_opt = GToolbox.input_string ~title: (gettext M.save) 
-               (gettext M.save) in
-           match file_opt with
-             None -> ()
-           | Some name -> 
-               Gui_com.send (GuiProto.SaveFile (file.file_num, name))
-	  )
-      |	_ ->
-	  ()
 
     method edit_mp3_tags () = 
       match self#selection with
@@ -339,8 +376,10 @@ class box_downloaded wl_status () =
       match self#selection with
 	[] -> [ `I ((gettext M.save_all), self#save_all) ]
       |	file :: _ ->
-	  [ `I ((gettext M.save_as), self#save_as) ;
-	    `M ((gettext M.save), self#save_menu_items file) ;
+          [ 
+            `I ((gettext M.save_as), save_as file) ;
+            `M ((gettext M.save), save_menu_items file) ;
+            `I ((gettext M.preview), preview file) ;
 	  ] @
 	  (match file.file_format with
 	    MP3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
@@ -370,6 +409,11 @@ class box_downloaded wl_status () =
 	Not_found ->
 	  ()
 
+    method save_as () = 
+      match self#selection with 
+      | [] -> ()
+      | file :: _ -> save_as file ()
+          
     initializer
       ignore
 	(wtool#insert_button 
@@ -428,7 +472,7 @@ let redraw_chunks draw_avail file =
         d        
     | Some d -> d
   in
-
+  
   let wx, wy = drawing#size in
   drawing#set_foreground colorWhite;
   drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
@@ -437,52 +481,52 @@ let redraw_chunks draw_avail file =
   let dx = min 3 (wx / nchunks) in
   let offset = (wx - nchunks * dx) / 2 in
   let offset = if offset < 0 then 0 else offset in
-    for i = 0 to nchunks - 1 do
-      if !!Gui_options.use_availability_height
-      then begin
-	if file.file_chunks.[i] = '1'
-	then begin
-	  drawing#set_foreground colorGreen;
-	  drawing#rectangle ~filled: true
-	    ~x:(offset + i*dx) ~y: 0 
-	    ~width: dx ~height:wy ()
-	end
-	else
-	  let h = int_of_char (file.file_availability.[i])
-	  in
-	    if h = 0
-	    then begin
-	      drawing#set_foreground colorRed;
-	      drawing#rectangle ~filled: true
-		~x:(offset + i*dx) ~y: 0
-		~width: dx ~height:wy ();
-	    end
+  for i = 0 to nchunks - 1 do
+    if !!Gui_options.use_availability_height
+    then begin
+        if file.file_chunks.[i] = '1'
+        then begin
+            drawing#set_foreground colorGreen;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0 
+              ~width: dx ~height:wy ()
+          end
+        else
+        let h = int_of_char (file.file_availability.[i])
+        in
+        if h = 0
+        then begin
+            drawing#set_foreground colorRed;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0
+              ~width: dx ~height:wy ();
+          end
         else begin
             let h = min ((wy * h) / !!Gui_options.availability_max) wy in
             drawing#set_foreground colorGray;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: 0
               ~width: dx ~height: (wy - h) ();
-	      
+            
             drawing#set_foreground colorBlue;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: (wy - h)
             ~width: dx ~height:h ();
           end
       end else begin
-	drawing#set_foreground (
-	  if file.file_chunks.[i] = '1' then
-	    colorGreen
-	  else
-	    match int_of_char file.file_availability.[i] with
-		0 -> colorRed
-	      | 1 -> colorBlue
-	      | _ -> colorBlack);
-	drawing#rectangle ~filled: true
-	  ~x:(offset + i*dx) ~y: 0 
-	  ~width: dx ~height:wy ()
+        drawing#set_foreground (
+          if file.file_chunks.[i] = '1' then
+            colorGreen
+          else
+          match int_of_char file.file_availability.[i] with
+            0 -> colorRed
+          | 1 -> colorBlue
+          | _ -> colorBlack);
+        drawing#rectangle ~filled: true
+        ~x:(offset + i*dx) ~y: 0 
+          ~width: dx ~height:wy ()
       end
-    done
+  done
 
 class box_downloads box_locs wl_status () =
   let draw_availability =
@@ -491,89 +535,100 @@ class box_downloads box_locs wl_status () =
   in
   let label_file_info = GMisc.label () in
   object (self)
-    inherit box !!O.downloads_columns `EXTENDED ()
-
+    inherit box O.downloads_columns `EXTENDED ()
+    
     method update_wl_status : unit =
       wl_status#set_text 
-	(Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
-
+        (Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+    
     method cancel () =
       let s = Gui_messages.ask_cancel_download_files
-	  (List.map (fun f -> file_first_name f) self#selection)
+          (List.map (fun f -> file_first_name f) self#selection)
       in
       match GToolbox.question_box (gettext Gui_messages.cancel)
-	  [ gettext Gui_messages.yes ; gettext Gui_messages.no] s 
+        [ gettext Gui_messages.yes ; gettext Gui_messages.no] s 
       with
-	1 ->
-	  List.iter
-	    (fun f -> Gui_com.send (RemoveDownload_query f.file_num))
-	    self#selection
+        1 ->
+          List.iter
+            (fun f -> Gui_com.send (RemoveDownload_query f.file_num))
+          self#selection
       |	_ ->
-	  ()
-
+          ()
+    
     method retry_connect () =
       List.iter
-	(fun f -> Gui_com.send (ConnectAll f.file_num))
-	self#selection
-
+        (fun f -> Gui_com.send (ConnectAll f.file_num))
+      self#selection
+    
     method pause_resume () =
       List.iter
         (fun f -> Gui_com.send (SwitchDownload (f.file_num,
               match f.file_state with
-                FilePaused -> true
+                FilePaused | FileAborted _ -> true
               | _ -> false
             )))
-	self#selection
-
+      self#selection
+    
     method verify_chunks () =
       List.iter
-	(fun f -> Gui_com.send (VerifyAllChunks f.file_num))
-	self#selection
-
-    method preview () =
-      List.iter
-	(fun f -> Gui_com.send (Preview f.file_num))
-	self#selection
-
+        (fun f -> Gui_com.send (VerifyAllChunks f.file_num))
+      self#selection
+    
     method get_format () =
       List.iter
-	(fun f -> Gui_com.send (QueryFormat f.file_num))
-	self#selection
-
+        (fun f -> Gui_com.send (QueryFormat f.file_num))
+      self#selection
+    
+    method set_priority prio () =
+      List.iter
+        (fun f -> Gui_com.send (SetFilePriority (f.file_num, prio)))
+      self#selection
+    
     method menu =
       match self#selection with
-	[] -> []
-      |	_ ->
-	  [ `I ((gettext M.pause_resume_dl), self#pause_resume) ;
-	    `I ((gettext M.retry_connect), self#retry_connect) ;
-	    `I ((gettext M.cancel), self#cancel) ;
-	    `I ((gettext M.verify_chunks), self#verify_chunks) ;
-	    `I ((gettext M.preview), self#preview) ;
-	    `I ((gettext M.get_format), self#get_format) ;
-	  ] 
-          
+        [] -> []
+      |	file :: tail ->
+          `I ((gettext M.pause_resume_dl), self#pause_resume) ::
+          `I ((gettext M.retry_connect), self#retry_connect) ::
+          `I ((gettext M.cancel), self#cancel) ::
+          `I ((gettext M.verify_chunks), self#verify_chunks) ::
+          `M ("Set priority", [
+              `I ("High", self#set_priority 10);
+              `I ("Normal", self#set_priority 0);
+              `I ("Low", self#set_priority (-10));
+            
+            ]) ::
+          `I ((gettext M.get_format), self#get_format) ::
+          (if tail = [] then
+              [
+                `I ((gettext M.preview), preview file) ;
+                `M ((gettext M.save), save_menu_items file) ;
+                `I ((gettext M.save_as), save_as file) ;
+              ]
+            else  [])
+    
     val mutable last_displayed_file = None
-      
+    
     method on_select file =
       label_file_info#set_text 
-	(
-         Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
-	   (file.file_name)
-           (Int64.to_string file.file_size) 
-           (string_of_format file.file_format)
-           ;
-	);
+        (
+        Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
+          (file.file_name)
+        (Int64.to_string file.file_size) 
+        (string_of_format file.file_format)
+        ;
+      );
       redraw_chunks draw_availability file;
       last_displayed_file <- Some file;
       box_locs#update_data_by_file (Some file)
-
+    
     method on_deselect _ =
       box_locs#update_data_by_file None
-      
 
-      
-    (** {2 Handling core messages} *)
 
+
+(** {2 Handling core messages} *)
+    
     method update_file f f_new row =
       f.file_md4 <- f_new.file_md4 ;
       f.file_name <- f_new.file_name ;
@@ -592,40 +647,40 @@ class box_downloads box_locs wl_status () =
       f.file_age <- f_new.file_age;
       f.file_last_seen <- f_new.file_last_seen;
       self#update_row f row;
-
+    
     method h_file_downloaded num dled rate =
       try
-	let (row, f) = self#find_file num in
-	self#update_file f
-	  { f with file_downloaded = dled ; file_download_rate = rate } 
-	  row
+        let (row, f) = self#find_file num in
+        self#update_file f
+          { f with file_downloaded = dled ; file_download_rate = rate } 
+          row
       with
-	Not_found ->
-	  ()
-
+        Not_found ->
+          ()
+    
     method h_paused f =
       try
-	let (row, fi) = self#find_file f.file_num in
-	self#update_file fi f row
+        let (row, fi) = self#find_file f.file_num in
+        self#update_file fi f row
       with
         Not_found ->
           incr ndownloads;
-	  self#update_wl_status ;
-	  self#add_item f
-      
+          self#update_wl_status ;
+          self#add_item f
+    
     method h_cancelled f = 
       try
         let (row, fi) = self#find_file f.file_num in
         decr ndownloads;
-	self#update_wl_status ;
+        self#update_wl_status ;
         self#remove_file fi row
       with
-	Not_found ->
-	  ()
-
+        Not_found ->
+          ()
+    
     method h_downloaded = self#h_cancelled 
     method h_downloading f = self#h_paused f
-
+    
     method h_file_availability file_num client_num avail =      
       try
         let files = Intmap.find client_num !availabilities in
@@ -639,7 +694,7 @@ class box_downloads box_locs wl_status () =
           let _, file = self#find_file file_num in          
           availabilities := Intmap.add client_num
             (ref (Intmap.add file_num (avail,file) Intmap.empty)) !availabilities
-      (*
+(*
       try
         let (row, f) = self#find_file file_num in
         self#update_file f 
@@ -662,29 +717,29 @@ class box_downloads box_locs wl_status () =
                 row
       ) data
 *)
-
+    
     method h_file_age num age =
       try
-	let (row, f) = self#find_file num in
-	  self#update_file f 
-	    { f with file_age = age } 
-	    row
+        let (row, f) = self#find_file num in
+        self#update_file f 
+          { f with file_age = age } 
+          row
       with Not_found -> ()
-	
+    
     method h_file_last_seen num last =
       try
-	let (row, f) = self#find_file num in
-	  self#update_file f 
-	    { f with file_last_seen = last } 
-	    row
+        let (row, f) = self#find_file num in
+        self#update_file f 
+          { f with file_last_seen = last } 
+          row
       with Not_found -> ()
-        
+    
     method h_file_location num src =
       try
 (*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
         let (row, f) = self#find_file num in
         self#update_file f 
-        { f with 
+          { f with 
           file_sources = Some (
             (match f.file_sources with
                 None -> [src]
@@ -693,81 +748,96 @@ class box_downloads box_locs wl_status () =
         } 
           row
       with Not_found -> 
-          (* some sources are sent for shared files in eDonkey. have to fix that *)
+(* some sources are sent for shared files in eDonkey. have to fix that *)
 (*          Printf.printf "No such file %d" num; print_newline () *)
-	()
-
+          ()
+    
     method h_file_remove_location (num:int) (src:int) = ()
-          
+    
+    method preview () =
+      match self#selection with
+        [] -> ()
+      | file :: _ -> preview file ()
+    
     initializer
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.cancel)
-	   ~tooltip: (gettext M.cancel)
-	   ~icon: (Gui_options.pixmap M.o_xpm_cancel)#coerce
-	   ~callback: self#cancel
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: (gettext M.cancel)
+        ~tooltip: (gettext M.cancel)
+        ~icon: (Gui_options.pixmap M.o_xpm_cancel)#coerce
+          ~callback: self#cancel
+          ()
+      );
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.retry_connect)
-	   ~tooltip: (gettext M.retry_connect)
-	   ~icon: (Gui_options.pixmap M.o_xpm_retry_connect)#coerce
-	   ~callback: self#retry_connect
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: (gettext M.retry_connect)
+        ~tooltip: (gettext M.retry_connect)
+        ~icon: (Gui_options.pixmap M.o_xpm_retry_connect)#coerce
+          ~callback: self#retry_connect
+          ()
+      );
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.pause_resume_dl)
-	   ~tooltip: (gettext M.pause_resume_dl)
-	   ~icon: (Gui_options.pixmap M.o_xpm_pause_resume)#coerce
-	   ~callback: self#pause_resume
-	   ()
-	);
-
+        (wtool#insert_button 
+          ~text: (gettext M.pause_resume_dl)
+        ~tooltip: (gettext M.pause_resume_dl)
+        ~icon: (Gui_options.pixmap M.o_xpm_pause_resume)#coerce
+          ~callback: self#pause_resume
+          ()
+      );
+      
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.verify_chunks)
-	   ~tooltip: (gettext M.verify_chunks)
-	   ~icon: (Gui_options.pixmap M.o_xpm_verify_chunks)#coerce
-	   ~callback: self#verify_chunks
-	   ()
-	);
-
+        (wtool#insert_button 
+          ~text: (gettext M.verify_chunks)
+        ~tooltip: (gettext M.verify_chunks)
+        ~icon: (Gui_options.pixmap M.o_xpm_verify_chunks)#coerce
+          ~callback: self#verify_chunks
+          ()
+      );
+      
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.preview)
-	   ~tooltip: (gettext M.preview)
-	   ~icon: (Gui_options.pixmap M.o_xpm_preview)#coerce
-	   ~callback: self#preview
-	   ()
-	);
-
+        (wtool#insert_button 
+          ~text: (gettext M.preview)
+        ~tooltip: (gettext M.preview)
+        ~icon: (Gui_options.pixmap M.o_xpm_preview)#coerce
+          ~callback: self#preview
+          ()
+      );
+      
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.get_format)
-	   ~tooltip: (gettext M.get_format)
-	   ~icon: (Gui_options.pixmap M.o_xpm_get_format)#coerce
-	   ~callback: self#get_format
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: (gettext M.get_format)
+        ~tooltip: (gettext M.get_format)
+        ~icon: (Gui_options.pixmap M.o_xpm_get_format)#coerce
+          ~callback: self#get_format
+          ()
+      );
       ignore (draw_availability#event#connect#expose (fun _ ->
-          match last_displayed_file with
-            None -> true
-          | Some file -> 
-              redraw_chunks draw_availability file; true
-      ));
+            match last_displayed_file with
+              None -> true
+            | Some file -> 
+                redraw_chunks draw_availability file; true
+        ));
       self#vbox#pack ~expand: false ~fill: true label_file_info#coerce ;
       self#vbox#pack ~expand: false ~fill: true draw_availability#coerce
 
-  end
+end
 
 class pane_downloads () =
   let wl_status = GMisc.label ~text: "" ~show: true () in
   let client_info_box = GPack.vbox ~homogeneous:false () in
-  let locs = new Gui_friends.box_list client_info_box in
+  let locs = new Gui_friends.box_list client_info_box false in
   let dled = new box_downloaded wl_status () in
   let dls = new box_downloads locs wl_status () in
+  let downloads_frame =
+    GBin.frame ~border_width:5 ~label:"Running Downloads" ~label_xalign:(-1.0)
+    ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT ()
+  in
+  let downloaded_frame =
+    GBin.frame ~border_width:5 ~label:"Completed Downloads"
+      ~label_xalign:(-1.0) ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+      ()
+  in
+  
   object (self)
     inherit Gui_downloads_base.paned ()
 
@@ -799,7 +869,7 @@ class pane_downloads () =
 	  dled#h_downloaded f
       |	FileShared -> 
           dled#h_removed f
-      |	FilePaused -> 
+      |	FilePaused | FileAborted _ -> 
 	  dls#h_paused f
       | FileDownloading ->
 	  dls#h_downloading f
@@ -833,6 +903,13 @@ class pane_downloads () =
       
       clients_wpane#add1 locs#coerce;
       clients_wpane#add2 client_info_box#coerce;
-      downloaded#add dled#coerce;
-      downloads#add dls#coerce ;
+      downloaded_frame#add dled#coerce;
+      downloads_frame#add dls#coerce ;
+      if !!Gui_options.downloads_up then  begin
+          vpaned#add1 downloads_frame#coerce;
+          vpaned#add2 downloaded_frame#coerce;
+        end else begin
+          vpaned#add2 downloads_frame#coerce;
+          vpaned#add1 downloaded_frame#coerce;
+        end
   end

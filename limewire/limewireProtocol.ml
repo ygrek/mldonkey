@@ -17,6 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
+open LimewireOptions
+open Options
 open Md4
 open CommonGlobals
 open LittleEndian
@@ -631,6 +634,7 @@ let vendors = [
     "HSLG", "Hagelslag" ;
     "LIME", "Limewire" ;
     "MACT", "Mactella" ;
+    "MLDK", "MLDonkey";
     "MMMM", "Morpheus-v2" ;
     "MNAP", "MyNapster" ;
     "MRPH", "Morpheus" ;
@@ -649,4 +653,17 @@ let vendors = [
     "XTLA", "Xtella" ;
     "ZIGA", "Ziga" 
   ]
+
+let add_header_fields header sock trailer =
+  Printf.sprintf "%sUser-Agent: %s\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\n%s"
+    header
+    !!user_agent
+    (Ip.to_string (client_ip (Some sock))) !!client_port
+    trailer
+  
+let add_simplified_header_fields header trailer =
+  Printf.sprintf "%sUser-Agent: %s\r\n%s"
+    header
+    !!user_agent
+    trailer
   

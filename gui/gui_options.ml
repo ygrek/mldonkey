@@ -521,4 +521,9 @@ let copy_messages = define_option mldonkey_gui_ini
   "For bundle binaries, should we directly pass structures between
     the core and the GUI (faster), or copy them (fewer bugs) " bool_option 
   true
+
+let downloads_up = define_option mldonkey_gui_ini
+    ["downloads_up"]
+  "Put the download frame up"
+  bool_option true
   

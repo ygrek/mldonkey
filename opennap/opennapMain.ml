@@ -89,4 +89,4 @@ let _ =
       });
   network.op_network_share <- add_shared;
   CommonInteractive.register_gui_options_panel 
-    "Napster" !!gui_opennap_options_panel;
+    "Napster" gui_opennap_options_panel;

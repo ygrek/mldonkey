@@ -19,6 +19,7 @@
 
 (** The box with uploads info *)
 
+open Options
 open Md4
 
 open Gettext
@@ -39,7 +40,7 @@ let (!!) = Options.(!!)
 class box columns () =
   object (self)
     inherit [GuiTypes.shared_info] Gpattern.plist `SINGLE
-      (List.map C.Shared_files_up.string_of_column columns)
+      (List.map C.Shared_files_up.string_of_column !!columns)
     true  (fun si -> si.shared_num) as pl
       inherit Gui_uploads_base.box () as box
     
@@ -47,8 +48,44 @@ class box columns () =
     method set_columns l =
       columns <- l;
       self#set_titles 
-        (List.map C.Shared_files_up.string_of_column columns);
+        (List.map C.Shared_files_up.string_of_column !!columns);
       self#update
+
+      
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                  
+                  (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Shared_files_up.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Shared_files_up.column_strings));
+      ]
     
     method box = wf_upstats#coerce
     
@@ -66,7 +103,7 @@ class box columns () =
     method compare si1 si2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-        try List.nth columns (abs - 1) 
+        try List.nth !!columns (abs - 1) 
         with _ -> C.Col_shared_file
       in
       let res = self#compare_by_col col si1 si2 in
@@ -84,7 +121,7 @@ class box columns () =
     method content si =
       let strings = List.map 
           (fun col -> P.String (self#content_by_col si col))
-        columns 
+        !!columns 
       in
       (strings, None)
 
@@ -136,7 +173,7 @@ console ???? *)
 
 class upstats_box () =
   let wl_status = GMisc.label ~text: "" ~show: true () in
-  let upstats = new box !!O.shared_files_up_columns () in
+  let upstats = new box O.shared_files_up_columns () in
   object (self)
     inherit Gui_uploads_base.upstats_box () as upsb
 

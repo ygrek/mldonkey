@@ -19,6 +19,7 @@
 
 open Md4
 
+open CommonOptions
 open Options
 open DonkeyOptions
 open CommonTypes
@@ -339,7 +340,7 @@ let parse opcode s =
   try
     match opcode with  
     | 10 -> 
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: CONNECT MESSAGE"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -348,13 +349,13 @@ let parse opcode s =
         let kind = get_int8 s 22 in
         OvernetConnect (md4, ip, port, kind)
     | 11 -> 
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: CONNECT REPLY"; print_newline ();
           end;
         let peers, pos = get_list16 get_peer s 0 in
         OvernetConnectReply peers
     | 12 -> 
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: PUBLICIZE"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -363,12 +364,12 @@ let parse opcode s =
         let kind = get_int8 s 22 in
         OvernetPublicize (md4,ip,port,kind)
     | 13 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: PUBLICIZED"; print_newline ();
           end; 
 	OvernetPublicized
     | 14 -> 
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
           (*Printf.printf "OK: SEARCH MESSAGE"; print_newline ();*)
         end;
         let kind = get_int8 s 0 in
@@ -376,7 +377,7 @@ let parse opcode s =
         OvernetSearch (kind, md4)
     
     | 15 -> 
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: SEARCH REPLY"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -384,7 +385,7 @@ let parse opcode s =
         OvernetSearchReply (md4, peers)
     
     | 16 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: SEARCH GET REPLIES"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -394,7 +395,7 @@ let parse opcode s =
         OvernetGetSearchResults (md4, kind, min, max)  
     
     | 17 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: ONE REPLY"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -403,14 +404,14 @@ let parse opcode s =
         OvernetSearchResult (md4, r_md4, r_tags)
     
     | 18 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: ONE REPLY"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
         OvernetNoResult md4
         
     | 19 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: PUBLISH"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -419,14 +420,14 @@ let parse opcode s =
         OvernetPublish (md4, r_md4, r_tags)
         
     | 20 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: PUBLISHED"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
         OvernetPublished md4
 
     | 24 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: OVERNET FIREWALL CONNECTION"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -434,14 +435,14 @@ let parse opcode s =
         OvernetFirewallConnection(md4,port)
 
     | 25 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: OVERNET FIREWALL CONNECTION ACK"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
         OvernetFirewallConnectionACK(md4)
 
     | 26 ->
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "OK: OVERNET FIREWALL CONNECTION NACK"; print_newline ();
           end;
         let md4 = get_md4 s 0 in
@@ -452,7 +453,7 @@ let parse opcode s =
 	let opcode2 = get_int8 s 1 in	
 	if opcode1 = 54 && opcode2 = 18 then 
 	  begin
-	    if !!verbose_overnet then 
+	    if !verbose_overnet then 
 	      begin
 		Printf.printf "OK: GETMYIP"; 
 		print_newline ();
@@ -461,7 +462,7 @@ let parse opcode s =
 	  end
 	else
 	  begin
-	    if !!verbose_overnet then 
+	    if !verbose_overnet then 
 	      begin
 		Printf.printf "UNKNOWN: opcode %d, opcode1 %d, opcode2 %d " opcode opcode1 opcode2; 
 		print_newline ();
@@ -471,13 +472,13 @@ let parse opcode s =
             OvernetUnknown (opcode, s)
 	  end
     | 28 -> 
-	if !!verbose_overnet then begin
+	if !verbose_overnet then begin
             Printf.printf "OK: GETMYIPRESULT MESSAGE"; print_newline ();
           end;
         let ip = get_ip s 0 in
         OvernetGetMyIPResult (ip)
     | 29 -> 
-	if !!verbose_overnet then begin
+	if !verbose_overnet then begin
             Printf.printf "OK: GETMYIPDONE MESSAGE"; print_newline ();
           end;
         OvernetGetMyIPDone

@@ -74,6 +74,7 @@ type file_info = {
     mutable file_chunks_age : int array;
     mutable file_age : int;
     mutable file_last_seen : int;
+    mutable file_priority : int;
   }
   
 type user_info = {
@@ -223,3 +224,28 @@ type option_widget =
   StringEntry
 | BoolEntry
 | FileEntry
+
+
+let file_info_test = 
+  {
+    file_name = "tratra";
+    file_num = 356;
+    file_network = 873;
+    file_names = ["toto"; "tutu"];
+    file_md4 = Md4.random ();
+    file_size = Int64.of_string "68758765";
+    file_downloaded = Int64.of_string "68758764";
+    file_nlocations = 12;
+    file_nclients = 18;
+    file_state = FileDownloading;
+    file_sources = None;
+    file_download_rate = 2.2;
+    file_chunks = "1010100";
+    file_availability = "";
+    file_format = Unknown_format;
+    file_chunks_age = [| 2 |];
+    file_age = 3;
+    file_last_seen = BasicSocket.last_time ();
+    file_priority = 0;
+  } 
+  

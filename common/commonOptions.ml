@@ -124,6 +124,11 @@ let enable_server = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a server (experimental)"
     bool_option false
 
+let enable_overnet = define_option downloads_ini
+    ["enable_overnet"]
+  "Set to true if you also want mldonkey to run as an overnet client"
+    bool_option true
+
 let enable_donkey = define_option downloads_ini
     ["enable_donkey"]
   "Set to true if you also want mldonkey to run as a donkey client"
@@ -318,7 +323,12 @@ let filter_search_delay = define_option expert_ini ["filter_search_delay"]
 let tcpip_packet_size = define_option expert_ini ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
     14 bytes sometimes, so modify to take that into account)"
-  int_option 40
+    int_option 40
+  
+let _ =
+  option_hook tcpip_packet_size (fun _ ->
+      TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
+  )
 
 let network_update_url = define_option expert_ini ["network_update_url"]
     "URL where mldonkey can download update information on the network"
@@ -393,7 +403,7 @@ let chat_warning_for_downloaded = define_option expert_ini
 
 let max_opened_connections = define_option expert_ini
     ["max_opened_connections"] "Maximal number of opened connections" 
-  int_option MlUnix.max_sockets
+  int_option (min MlUnix.max_sockets 200)
 
   (*
 let web_header = define_option expert_ini
@@ -516,6 +526,7 @@ let verbosity = define_option expert_ini ["verbosity"]
   sm : debug source management
   do : some download warnings
   unk : unknown messages
+  ov : overnet
 "
     string_option ""
 
@@ -526,6 +537,7 @@ let verbose_src_prop = ref false
 let verbose = ref false
 let verbose_download = ref false
 let verbose_unknown_messages = ref false
+let verbose_overnet = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -538,6 +550,7 @@ let _ =
       verbose := false;
       verbose_download := false;
       verbose_unknown_messages := false;
+      verbose_overnet := false;
       
       List.iter (fun s ->
           match s with
@@ -549,6 +562,8 @@ let _ =
           | "sp" -> verbose_src_prop := true
           | "do" -> verbose_download := true
           | "unk" -> verbose_unknown_messages := true
+          | "ov" -> verbose_overnet := true
+              
           | "all" ->
               
               verbose_msg_clients := true;
@@ -559,7 +574,7 @@ let _ =
               verbose := true;
               verbose_download := true;
               verbose_unknown_messages := true;
-              
+              verbose_overnet := true
           | _ -> ()
               
       ) (String2.split_simplify !!verbosity ' ')

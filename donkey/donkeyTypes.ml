@@ -310,19 +310,16 @@ type shared_file_info = {
 open CommonFile
 open CommonClient
 open CommonServer
-open CommonResult
+open CommonResult 
         
 let set_client_state c s =
   let cc = as_client c.client_client in
-  let os = client_state cc in
-  if os <> s then begin
-      (*
-if os = Connected_busy then decr nclients;
-if s = Connected_busy then incr nclients;  
-  *)
-      set_client_state cc s;
-    end
-    
+  set_client_state cc s
+        
+let set_client_disconnected c =
+  let cc = as_client c.client_client in
+  set_client_disconnected cc
+   
 let set_server_state s state =
   let ss = as_server s.server_server in
   if server_state ss <> state then begin

@@ -78,6 +78,12 @@ let query_locations s n_per_round =
           match s.server_waiting_queries with
             [] ->
               begin
+                
+                let files = !current_files in
+                let files = List.sort (fun f1 f2 ->
+                      file_priority f2 - file_priority f1
+                  ) files in
+                
                 s.server_waiting_queries <- !current_files;
                 if s.server_waiting_queries <> [] then
                   let nqueries = ref 0 in
@@ -130,7 +136,7 @@ let disconnect_server s =
       s.server_sock <- None;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
-      set_server_state s NotConnected;
+      set_server_state s (NotConnected false);
       s.server_master <- false;
       remove_connected_server s
       
@@ -213,7 +219,7 @@ let client_to_server s t sock =
           | _ -> ()
       ) s.server_tags;
       printf_char 'S';
-      set_server_state s Connected_idle;
+      set_server_state s (Connected false);
       add_connected_server s;
       
 (* Send localisation queries to the server. We are limited by the maximalù

@@ -207,7 +207,7 @@ let disconnect_client c =
           c.client_has_a_slot <- false;
           c.client_chunks <- [||];
           c.client_sock <- None;
-          set_client_state c NotConnected;
+          set_client_disconnected c;
           let files = c.client_file_queue in
           List.iter (fun (file, chunks) -> 
               remove_client_chunks file chunks)  
@@ -675,7 +675,7 @@ let client_to_client challenge for_files c t sock =
             })
         end;
       
-      set_client_state c Connected_idle;      
+      set_client_state c (Connected false);      
       
       challenge.challenge_md4 <- Md4.random ();
       direct_client_send sock (
@@ -857,7 +857,7 @@ print_newline ();
         | _ -> 
             DonkeyOneFile.start_download c;
             set_rtimeout sock !!queued_timeout;
-            set_client_state c Connected_queued
+            set_client_state c (Connected true)
       end
   
   | M.ReleaseSlotReq _ ->
@@ -1003,15 +1003,16 @@ is checked for the file.
         end;
       
       c.client_rating <- c.client_rating + 10;
-      if file_state file = FilePaused then 
-        (next_file c; raise Not_found);
+      (match file_state file with
+          FilePaused | FileAborted _ -> next_file c; raise Not_found
+        | _ -> ());
       
       let begin_pos = t.Q.start_pos in
       let end_pos = t.Q.end_pos in
       
-      set_client_state c Connected_busy;
+      set_client_state c Connected_downloading;
       let len = Int64.sub end_pos begin_pos in
-      count_download c file len;
+      count_download c file (Int64.of_int (String.length t.Q.bloc_str));
       begin
         match c.client_block with
           None -> 
@@ -1530,7 +1531,7 @@ let read_first_message overnet challenge m sock =
             })
         end;
       
-      set_client_state c Connected_idle;      
+      set_client_state c (Connected false);      
             
       challenge.challenge_md4 <-  Md4.random ();
       direct_client_send sock (
@@ -1643,7 +1644,7 @@ let reconnect_client c =
               (Printexc2.to_string e);
             print_newline ();
             connection_failed c.client_connection_control;
-            set_client_state c NotConnected
+            set_client_disconnected c
 
 let query_id s sock ip file =
   printf_string "[QUERY ID]";
@@ -1712,6 +1713,7 @@ let client_connection_handler overnet t event =
       if can_open_connection () then
 begin
 *)
+      accept_connection_bandwidth download_control upload_control;
       (try
           let c = ref None in
           let sock = 

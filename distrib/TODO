@@ -1,45 +1,57 @@
 TODO list for client
 ====================
 
+Core:
+=====
 * Different login/password for different users.
 * One list of downloading files per user (downloaded common)
 * One list of searches per user
 * Waiting list of files to download: when a file is downloaded, take another
    one from the fifo...
+* SIGSEGV in MD4Transform
 
-For Zoggy:
-----------
-1) Could you move all the licences to GPL instead of QPL ?
-2) In gpattern, could the selection be cleared only when REALLY necessary ?
-3) In gpattern, if an item from the selection is removed, the selection is
+Edonkey + Overnet:
+==================
+* More Emule packets
+
+  OP_REASKFILEPING (0x90) (size=16)
+  OP_QUEUEFULL (0x93)
+  OP_REASKACK (0x91) (size=2)
+  OP_FILENOTFOUND (0x92)
+
+GUI:
+====
+* commonDownloads.ml: functor
+* GUI: strange bug: pausing on one file pause two of them...
+* Give the choice between different source managements
+* In gpattern, if an item from the selection is removed, the selection is
      not updated
-4) Some toolbars are not correctly update between text, text+image, image
+* Some toolbars are not correctly update between text, text+image, image
+* Add an option tab similar to the one of mldonkeywatch
+* Send all the locations to the GUI with their chunks
+* Hide already downloaded files
+* Create ed2k links where possible
 
-2003/01/25: For this week-end
- * Check all networks and update the Development Status table
-    * Opennap: share files
-    * Soulseek: 
-       + Check the protocol for pyslsk page
-       + Directory download in subdir ?
-       + Check that we don't download several times the file list of friends.
-       + Add a button in the tab_result to add to friend a file source (gui
-           protocol -> file sources)
-       + Use (file_name, size) keys for files_by_key, and iter on the table on
-           upload requests to find the correct file.
-       + 
- * GUI: 
-    * Add an option tab similar to the one of mldonkeywatch
-    * Send all the locations to the GUI with their chunks
+Opennap:
+========
+* share files
 
- * Core:
-    * SIGSEGV in MD4Transform
-    * Immediatly remove sources of Cancelled files
-    * Call update_sources when priority/state change
+Soulseek:
+=========
+ + Implement more of the protocol
+ + Directory download in subdir ?
+ + Check that we don't download several times the file list of friends.
+ + Add a button in the tab_result to add to friend a file source (gui
+      protocol -> file sources)
+ + Use (file_name, size) keys for files_by_key, and iter on the table on
+       upload requests to find the correct file.
+ + Very long messages (several Megs) for shared file lists...
+ + Remove all downloads from a given user
 
-Questions:
+Direct-Connects:
+================
 * How do you know your IP in Direct-Connect if you are behind a firewall
 * Send replies to active searches
-
 
 Bugs in unstable-2-02-3:
  * Installer...

@@ -1,9 +1,35 @@
 ChangeLog	
 =========
 
+2003/01/30: Simon (tag unstable-2-02-9, and good week-end)
+  - Net: attempt to take into account TCP/IP packets size in bandwidth control.
+      Seems to work better
+  - GUI: 
+       * Change file priority in GUI
+       * New option 'downloads_up' to permute downloads/downloaded
+       * Click on column titles to sort/add/remove them
+  - Donkey: 
+       * Ask files from server in decreasing priorities order
+       * Should be able to import Emule .part.met files
+  - Mailer: patch from <moumar@netcourrier.com> applied
+
 2003/01/30: Zoggy
   - Changed The License of okey, configwin, mp3tag and mlchat to GPL
   - one tab per list in the column configuration tab (gui/settings)
+
+2003/01/28: Simon 
+  - GUI: 
+       * new protocol 12
+       * New state "Queued out" for sources
+       * New state "Aborted <reason>" for files
+       * Some items copied from the "downloaded" contextual menu to the
+           "Downloading" contextual menu
+  - Donkey:
+       * Sources Management a la 2-02-5 updated (next time, choose your
+           source management depending on an option ?)
+  - Overnet:
+       * New option "enable_overnet" (true by default), accessible from
+          GUI Settings
 
 2003/01/26: Simon (tag unstable-2-02-8) 
   - Added bundle binaries (core + gui with communication via FIFO) to

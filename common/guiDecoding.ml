@@ -277,12 +277,13 @@ let get_message s pos =
 
 let get_file_state s pos =
   match get_int8 s pos with
-  | 0 -> FileDownloading
-  | 1 -> FilePaused
-  | 2 -> FileDownloaded
-  | 3 -> FileShared    
-  | 4 -> FileCancelled
-  | 5 -> FileNew
+  | 0 -> FileDownloading, pos+1
+  | 1 -> FilePaused, pos+1
+  | 2 -> FileDownloaded, pos+1
+  | 3 -> FileShared, pos+1
+  | 4 -> FileCancelled, pos+1
+  | 5 -> FileNew, pos+1
+  | 6 -> let s, pos = get_string s (pos+1) in FileAborted s, pos
   | _ -> assert false
 
 let get_float s pos = 
@@ -293,7 +294,7 @@ let get_int_float s pos =
   let s, pos = get_string s pos in
   BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
 
-let get_file_version_0 s pos = 
+let get_file proto s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
@@ -302,90 +303,38 @@ let get_file_version_0 s pos =
   let downloaded = get_int64_32 s (pos+20) in
   let nlocations = get_int s (pos+24) in
   let nclients = get_int s (pos+28) in
-  let state = get_file_state s (pos+32) in
-  let chunks, pos = get_string s (pos+33) in
+  let state, pos = get_file_state s (pos+32) in
+  let chunks, pos = get_string s pos in
   let availability, pos = get_string s pos in
   let rate, pos = get_float s pos in
   let chunks_age, pos = get_array get_int_float s pos in
   let age, pos = get_int_float s pos in
   let format, pos = get_format s pos in
-  {
-    file_num = num;
-    file_network = net;
-    file_names = names;
-    file_md4 = md4;
-    file_size = size;
-    file_downloaded = downloaded;
-    file_nlocations = nlocations;
-    file_nclients = nclients;
-    file_state = state;
-    file_chunks = chunks;
-    file_availability = availability;
-    file_download_rate = rate;
-    file_chunks_age = chunks_age;
-    file_age = age;
-    file_format = format;
-    file_sources = None;
-    file_name = List.hd names;
-    file_last_seen = BasicSocket.last_time ();
-  }, pos
-
-let get_file_version_8 s pos = 
-  let num = get_int s pos in
-  let net = get_int s (pos+4) in
-  let names, pos = get_list get_string s (pos+8) in
-  let md4 = get_md4 s pos in
-  let size = get_int64_32 s (pos+16) in
-  let downloaded = get_int64_32 s (pos+20) in
-  let nlocations = get_int s (pos+24) in
-  let nclients = get_int s (pos+28) in
-  let state = get_file_state s (pos+32) in
-  let chunks, pos = get_string s (pos+33) in
-  let availability, pos = get_string s pos in
-  let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_int_float s pos in
-  let age, pos = get_int_float s pos in
-  let format, pos = get_format s pos in
-  let name, pos = get_string s pos in
-  {
-    file_num = num;
-    file_network = net;
-    file_names = names;
-    file_md4 = md4;
-    file_size = size;
-    file_downloaded = downloaded;
-    file_nlocations = nlocations;
-    file_nclients = nclients;
-    file_state = state;
-    file_chunks = chunks;
-    file_availability = availability;
-    file_download_rate = rate;
-    file_chunks_age = chunks_age;
-    file_age = age;
-    file_format = format;
-    file_sources = None;
-    file_name = name;
-    file_last_seen = BasicSocket.last_time ();
-  }, pos
-
-let get_file_version_9 s pos = 
-  let num = get_int s pos in
-  let net = get_int s (pos+4) in
-  let names, pos = get_list get_string s (pos+8) in
-  let md4 = get_md4 s pos in
-  let size = get_int64_32 s (pos+16) in
-  let downloaded = get_int64_32 s (pos+20) in
-  let nlocations = get_int s (pos+24) in
-  let nclients = get_int s (pos+28) in
-  let state = get_file_state s (pos+32) in
-  let chunks, pos = get_string s (pos+33) in
-  let availability, pos = get_string s pos in
-  let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_int_float s pos in
-  let age, pos = get_int_float s pos in
-  let format, pos = get_format s pos in
-  let name, pos = get_string s pos in
-  let last_seen = get_int s pos in
+  let name, pos = if proto >= 8 then
+      get_string s pos else List.hd names, pos in
+  let last_seen, pos = if proto >= 9 then 
+      get_int s pos, pos+4 else BasicSocket.last_time (), pos in
+  let priority, pos = if proto >= 12 then
+      get_int s pos, pos+4 else 0, pos in
+  (*
+  assert (num = file_info.file_num);
+  assert (net = file_info.file_network);
+  assert (names = file_info.file_names);
+  assert (md4 = file_info.file_md4);
+  assert (size = file_info.file_size);
+  assert (downloaded = file_info.file_downloaded);
+  assert (nlocations = file_info.file_nlocations);
+  assert (nclients = file_info.file_nclients);
+  assert (state = file_info.file_state);
+  assert (chunks = file_info.file_chunks);
+  assert (availability = file_info.file_availability);
+  assert (rate = file_info.file_download_rate);
+  assert (chunks_age = file_info.file_chunks_age);
+  assert (age = file_info.file_age);
+assert (last_seen = file_info.file_last_seen);
+  assert (name = file_info.file_name);
+assert (priority = file_info.file_priority);
+  *)
   {
     file_num = num;
     file_network = net;
@@ -405,48 +354,23 @@ let get_file_version_9 s pos =
     file_sources = None;
     file_name = name;
     file_last_seen = BasicSocket.last_time () - last_seen;
+    file_priority = priority;
   }, pos
 
 let get_host_state s pos = 
   match get_int8 s pos with
-    0 -> NotConnected
+  | 0 -> NotConnected false
   | 1 -> Connecting
   | 2 -> Connected_initiating
-  | 3 -> Connected_busy
-  | 4 -> Connected_idle
-  | 5 -> Connected_queued
+  | 3 -> Connected_downloading
+  | 4 -> Connected false
+  | 5 -> Connected true
   | 6 -> NewHost
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
+  | 9 -> NotConnected true
   | _ -> assert false
 
-
-let get_server_version_0 s pos =
-  let num = get_int s pos in
-  let net = get_int s (pos+4) in
-  let ip = get_ip s (pos+8) in
-  let port = get_int16 s (pos+12) in
-  let score = get_int s (pos+14) in
-  let tags, pos = get_list get_tag s (pos+18) in
-  let nusers = get_int s pos in
-  let nfiles = get_int s (pos+4) in
-  let state = get_host_state s (pos+8) in
-  let name, pos = get_string s (pos+9) in
-  let description, pos = get_string s pos in
-  {
-    server_num = num;
-    server_network = net;
-    server_addr = new_addr_ip ip;
-    server_port = port;
-    server_score = score;
-    server_tags = tags;
-    server_nusers = nusers;
-    server_nfiles = nfiles;
-    server_state = state;
-    server_name = name;
-    server_description = description;
-    server_users = None;
-  }, pos
 
 let get_addr s pos =
   match get_int8 s pos with
@@ -458,10 +382,14 @@ let get_addr s pos =
       new_addr_name name, pos
   | _ -> assert false
 
-let get_server_version_2 s pos =
+let get_server proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
-  let addr,pos = get_addr s (pos+8) in
+  let addr, pos = if proto < 2 then
+      new_addr_ip (get_ip s (pos+8)), pos+12
+    else 
+      get_addr s (pos+8)      
+  in
   let port = get_int16 s pos in
   let score = get_int s (pos+2) in
   let tags, pos = get_list get_tag s (pos+6) in
@@ -485,7 +413,6 @@ let get_server_version_2 s pos =
     server_users = None;
   }, pos
 
-
 let get_client_type s pos = 
   match get_int8 s pos with
     0 -> NormalClient
@@ -505,7 +432,7 @@ let get_kind s pos =
       Indirect_location (name, md4), pos+16
   | _ -> assert false
 
-let get_client s pos =
+let get_client proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let kind, pos = get_kind s (pos+8) in
@@ -526,7 +453,7 @@ let get_client s pos =
     client_rating = rating;
     client_chat_port = chat_port;
     client_files = None;
-  }, pos+8
+  }, pos
 
 let get_network s pos =
   let num = get_int s pos in
@@ -570,27 +497,12 @@ let get_room_state s pos =
   | 2 -> RoomPaused
   | _ -> assert false
 
-let get_room_version_0 s pos =
+let get_room proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
   let state = get_room_state s pos in
-  {
-    room_num = num;
-    room_network = net;
-    room_name = name;
-    room_state = state;
-    room_users = [];
-    room_messages = [];
-    room_nusers = 0;
-  }, pos + 1 
-
-let get_room_version_3 s pos =
-  let num = get_int s pos in
-  let net = get_int s (pos+4) in
-  let name, pos = get_string s (pos+8) in
-  let state = get_room_state s pos in
-  let nusers = get_int s (pos+1) in
+  let nusers,pos = if proto >= 3 then get_int s (pos+1), pos+5 else 0, pos+1 in
   {
     room_num = num;
     room_network = net;
@@ -599,7 +511,7 @@ let get_room_version_3 s pos =
     room_users = [];
     room_messages = [];
     room_nusers = nusers;
-  }, pos + 5 
+  }, pos + 1 
 
 let get_shared_info s pos =
   let num = get_int s pos in
@@ -643,204 +555,213 @@ let get_shared_info_version_10 s pos =
 ****************)
 
 let from_gui opcode s =
-  match opcode with
-    0 -> GuiProtocol (get_int s 2)
-  
-  | 1 -> ConnectMore_query
-  | 2 -> CleanOldServers
-  | 3 -> KillServer
-  | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
-  | 5 -> let pass,_ = get_string s 2 in Password pass
-  | 6 -> 
-      let local = get_bool s 2 in
-      let search, pos = get_search_version_0 s 3 in
-      search.search_type <- if local then LocalSearch else RemoteSearch;
-      Search_query search
-  | 7 -> 
-      let list, pos = get_list get_string s 2 in
-      let result_num = get_int s pos in
-      Download_query (list, result_num, false)
-  
-  | 8 -> let string, pos = get_string s 2 in
-      Url string
-  | 9 -> let int = get_int s 2 in RemoveServer_query int
-  | 10 ->
-      let list, pos = get_list (fun s pos ->
-            let s1, pos = get_string s pos in
-            let s2, pos = get_string s pos in
-            (s1,s2), pos) s 2 in
-      SaveOptions_query list
-  
-  | 11 ->
-      let int = get_int s 2 in 
-      RemoveDownload_query  int
-  
-  | 12 -> 
-      let int = get_int s 2 in 
-      ServerUsers_query  int
-  
-  | 13 ->
-      let int = get_int s 2 in 
-      let s, pos = get_string s 6 in
-      SaveFile (int, s)
-  
-  | 14 ->
-      let int = get_int s 2 in 
-      AddClientFriend  int
-  
-  | 15 ->          
-      let int = get_int s 2 in 
-      AddUserFriend  int
-  
-  | 16 ->
-      let int = get_int s 2 in 
-      RemoveFriend  int
-  
-  | 17 -> RemoveAllFriends
-  
-  | 18 -> 
-      let string, pos = get_string s 2 in
-      FindFriend string
-  
-  | 19 -> 
-      let int = get_int s 2 in 
-      ViewUsers  int
-  
-  | 20 -> 
-      let int = get_int s 2 in 
-      ConnectAll  int
-  
-  | 21 ->
-      let int = get_int s 2 in 
-      ConnectServer  int
-  
-  | 22 -> 
-      let int = get_int s 2 in 
-      DisconnectServer  int
-  
-  | 23 ->
-      let int = get_int s 2 in 
-      let bool = get_bool s 6 in
-      SwitchDownload  (int, bool) 
-  
-  | 24 ->
-      let int = get_int s 2 in 
-      VerifyAllChunks  int
-  
-  | 25 ->
-      let int = get_int s 2 in 
-      QueryFormat  int
-  
-  | 26 ->
-      let int = get_int s 2 in
-      let tag, pos = get_mp3 s 6 in
-      ModifyMp3Tags (int, tag)
-  
-  | 27 ->
-      let int = get_int s 2 in 
-      ForgetSearch  int
-  
-  | 28 ->
-      let s1, pos = get_string s 2 in
-      let s2, pos = get_string s pos in
-      SetOption (s1, s2)
-  
-  | 29 ->
-      let s1, pos = get_string s 2 in
-      Command s1
-  
-  | 30 ->
-      let int = get_int s 2 in 
-      Preview  int
-  
-  | 31 ->
-      let int = get_int s 2 in 
-      ConnectFriend  int
-  
-  | 32 ->
-      let int = get_int s 2 in 
-      GetServer_users  int
-  
-  | 33 ->
-      let int = get_int s 2 in 
-      GetClient_files  int
-  
-  | 34 ->
-      let int = get_int s 2 in 
-      GetFile_locations  int
-  
-  | 35 ->
-      let int = get_int s 2 in 
-      GetServer_info  int
-  
-  | 36 ->
-      let int = get_int s 2 in 
-      GetClient_info  int
-  
-  | 37 ->
-      let int = get_int s 2 in 
-      GetFile_info  int
-  
-  | 38 ->
-      let int = get_int s 2 in 
-      GetUser_info  int
-  
-  | 39 ->
-      let int = get_int s 2 in 
-      let room_message, pos = get_message s 6 in
-      
-      let msg = SendMessage (int, room_message) in
-  
-      begin
-        match msg with
+  try
+    match opcode with
+      0 -> GuiProtocol (get_int s 2)
+    
+    | 1 -> ConnectMore_query
+    | 2 -> CleanOldServers
+    | 3 -> KillServer
+    | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
+    | 5 -> let pass,_ = get_string s 2 in Password pass
+    | 6 -> 
+        let local = get_bool s 2 in
+        let search, pos = get_search_version_0 s 3 in
+        search.search_type <- if local then LocalSearch else RemoteSearch;
+        Search_query search
+    | 7 -> 
+        let list, pos = get_list get_string s 2 in
+        let result_num = get_int s pos in
+        Download_query (list, result_num, false)
+    
+    | 8 -> let string, pos = get_string s 2 in
+        Url string
+    | 9 -> let int = get_int s 2 in RemoveServer_query int
+    | 10 ->
+        let list, pos = get_list (fun s pos ->
+              let s1, pos = get_string s pos in
+              let s2, pos = get_string s pos in
+              (s1,s2), pos) s 2 in
+        SaveOptions_query list
+    
+    | 11 ->
+        let int = get_int s 2 in 
+        RemoveDownload_query  int
+    
+    | 12 -> 
+        let int = get_int s 2 in 
+        ServerUsers_query  int
+    
+    | 13 ->
+        let int = get_int s 2 in 
+        let s, pos = get_string s 6 in
+        SaveFile (int, s)
+    
+    | 14 ->
+        let int = get_int s 2 in 
+        AddClientFriend  int
+    
+    | 15 ->          
+        let int = get_int s 2 in 
+        AddUserFriend  int
+    
+    | 16 ->
+        let int = get_int s 2 in 
+        RemoveFriend  int
+    
+    | 17 -> RemoveAllFriends
+    
+    | 18 -> 
+        let string, pos = get_string s 2 in
+        FindFriend string
+    
+    | 19 -> 
+        let int = get_int s 2 in 
+        ViewUsers  int
+    
+    | 20 -> 
+        let int = get_int s 2 in 
+        ConnectAll  int
+    
+    | 21 ->
+        let int = get_int s 2 in 
+        ConnectServer  int
+    
+    | 22 -> 
+        let int = get_int s 2 in 
+        DisconnectServer  int
+    
+    | 23 ->
+        let int = get_int s 2 in 
+        let bool = get_bool s 6 in
+        SwitchDownload  (int, bool) 
+    
+    | 24 ->
+        let int = get_int s 2 in 
+        VerifyAllChunks  int
+    
+    | 25 ->
+        let int = get_int s 2 in 
+        QueryFormat  int
+    
+    | 26 ->
+        let int = get_int s 2 in
+        let tag, pos = get_mp3 s 6 in
+        ModifyMp3Tags (int, tag)
+    
+    | 27 ->
+        let int = get_int s 2 in 
+        ForgetSearch  int
+    
+    | 28 ->
+        let s1, pos = get_string s 2 in
+        let s2, pos = get_string s pos in
+        SetOption (s1, s2)
+    
+    | 29 ->
+        let s1, pos = get_string s 2 in
+        Command s1
+    
+    | 30 ->
+        let int = get_int s 2 in 
+        Preview  int
+    
+    | 31 ->
+        let int = get_int s 2 in 
+        ConnectFriend  int
+    
+    | 32 ->
+        let int = get_int s 2 in 
+        GetServer_users  int
+    
+    | 33 ->
+        let int = get_int s 2 in 
+        GetClient_files  int
+    
+    | 34 ->
+        let int = get_int s 2 in 
+        GetFile_locations  int
+    
+    | 35 ->
+        let int = get_int s 2 in 
+        GetServer_info  int
+    
+    | 36 ->
+        let int = get_int s 2 in 
+        GetClient_info  int
+    
+    | 37 ->
+        let int = get_int s 2 in 
+        GetFile_info  int
+    
+    | 38 ->
+        let int = get_int s 2 in 
+        GetUser_info  int
+    
+    | 39 ->
+        let int = get_int s 2 in 
+        let room_message, pos = get_message s 6 in
+        
+        let msg = SendMessage (int, room_message) in
+        
+        begin
+          match msg with
 (* Change private message from former GUIs to MessageToClient ! *)
-          SendMessage ((-1 | 0), PrivateMessage(num,s)) ->
-            MessageToClient (num,s)
-        | _ -> msg
-      end
-      
-  | 40 ->
-      let int = get_int s 2 in 
-      let bool = get_bool s 6 in 
-      EnableNetwork (int, bool) 
+            SendMessage ((-1 | 0), PrivateMessage(num,s)) ->
+              MessageToClient (num,s)
+          | _ -> msg
+        end
+    
+    | 40 ->
+        let int = get_int s 2 in 
+        let bool = get_bool s 6 in 
+        EnableNetwork (int, bool) 
+    
+    | 41 ->
+        let int = get_int s 2 in 
+        BrowseUser  int
+    | 42 -> let s, pos = get_search_version_2 s 2 in Search_query s
+    | 43 -> 
+        let int = get_int s 2 in 
+        let message, pos = get_string s 6 in
+        MessageToClient (int, message)
+    | 44 -> GetConnectedServers
+    | 45 -> GetDownloadFiles
+    | 46 -> GetDownloadedFiles
+    | 47 -> 
+        let list, pos = get_list (fun s pos -> 
+              (get_int s pos, 1 = get_int8 s (pos+4)), pos+5) s 2 in
+        GuiExtensions list
+    | 48 ->
+        SetRoomState (get_int s 2, get_room_state s 6)
+    
+    | 49 -> RefreshUploadStats
+    
+    | 50 ->
+        let list, pos = get_list get_string s 2 in
+        let result_num = get_int s pos in
+        let force = get_bool s (pos+4) in
+        Download_query (list, result_num, false)
+    
+    | _ -> 
+        Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
+        assert false
   
-  | 41 ->
-      let int = get_int s 2 in 
-      BrowseUser  int
-  | 42 -> let s, pos = get_search_version_2 s 2 in Search_query s
-  | 43 -> 
-      let int = get_int s 2 in 
-      let message, pos = get_string s 6 in
-      MessageToClient (int, message)
-  | 44 -> GetConnectedServers
-  | 45 -> GetDownloadFiles
-  | 46 -> GetDownloadedFiles
-  | 47 -> 
-      let list, pos = get_list (fun s pos -> 
-            (get_int s pos, 1 = get_int8 s (pos+4)), pos+5) s 2 in
-      GuiExtensions list
-  | 48 ->
-      SetRoomState (get_int s 2, get_room_state s 6)
-
-  | 49 -> RefreshUploadStats
-
-  | 50 ->
-      let list, pos = get_list get_string s 2 in
-      let result_num = get_int s pos in
-      let force = get_bool s (pos+4) in
-      Download_query (list, result_num, false)
   
-  | _ -> 
-      Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
-      assert false
+  with e ->
+      Printf.printf "Exception %s while handling message with opcode %d"
+        (Printexc2.to_string e) opcode;
+      print_newline ();
+      raise e
       
 (***************
 
      Decoding of messages from the Core to the GUI 
 
 ****************)
+let to_gui proto opcode s =
+  try
 
-let to_gui opcode s =
   match opcode with
   | 0 -> CoreProtocol (get_int s 2)
   
@@ -874,7 +795,7 @@ let to_gui opcode s =
       Search_waiting (n1,n2)
   
   | 7 -> 
-      let file_info, pos = get_file_version_0 s 2 in
+      let file_info, pos = get_file proto s 2 in
       File_info file_info
   
   | 8 ->
@@ -911,11 +832,11 @@ let to_gui opcode s =
       Server_state (int,host_state)
   
   | 14 ->
-      let server_info, pos = get_server_version_0 s 2 in
+      let server_info, pos = get_server proto s 2 in
       Server_info server_info
   
   | 15 -> 
-      let client_info, pos = get_client s 2 in
+      let client_info, pos = get_client proto s 2 in
       Client_info client_info
   
   | 16 -> 
@@ -947,7 +868,7 @@ let to_gui opcode s =
       User_info user_info
   
   | 22 ->
-      let room_info, pos = get_room_version_0 s 2 in
+      let room_info, pos = get_room proto s 2 in
       Room_info room_info
   
   | 23 ->
@@ -979,26 +900,26 @@ let to_gui opcode s =
         ndownloaded_files = 0;
       }
 
-  | 26 -> let s, pos = get_server_version_2 s 2 in Server_info s
+  | 26 -> let s, pos = get_server proto s 2 in Server_info s
   | 27 -> 
       let int = get_int s 2 in 
       let message, pos = get_string s 6 in
       MessageFromClient (int, message)
       
   | 28 -> 
-      let list, pos = get_list get_server_version_2 s 2 in
+      let list, pos = get_list (get_server proto) s 2 in
       ConnectedServers list
       
   | 29 ->
-      let list, pos = get_list get_file_version_0 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadFiles list
       
   | 30 ->
-      let list, pos = get_list get_file_version_0 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadedFiles list
   
   | 31 ->
-      let room_info, pos = get_room_version_3 s 2 in
+      let room_info, pos = get_room proto s 2 in
       Room_info room_info
 
   | 32 -> 
@@ -1089,29 +1010,29 @@ let to_gui opcode s =
         ndownloading_files = 0;
         ndownloaded_files = 0;
       }
-        
-  |  40 ->
-      let file, pos = get_file_version_8 s 2 in
+
+        |  40 ->
+      let file, pos = get_file proto s 2 in
       File_info file
             
   | 41 ->
-      let list, pos = get_list get_file_version_8 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadFiles list
       
   | 42 ->
-      let list, pos = get_list get_file_version_8 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadedFiles list
 
   | 43 ->
-      let file, pos = get_file_version_9 s 2 in
+      let file, pos = get_file proto s 2 in
       File_info file
             
   | 44 ->
-      let list, pos = get_list get_file_version_9 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadFiles list
       
   | 45 ->
-      let list, pos = get_list get_file_version_9 s 2 in
+      let list, pos = get_list (get_file proto) s 2 in
       DownloadedFiles list
   
   | 46 ->
@@ -1165,4 +1086,9 @@ let to_gui opcode s =
       Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
       assert false
 
-  
+
+  with e ->
+      Printf.printf "Exception %s while handling message with opcode %d"
+        (Printexc2.to_string e) opcode;
+      print_newline ();
+      raise e

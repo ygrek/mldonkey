@@ -33,7 +33,9 @@ open OpenFTGlobals
 open OpenFTComplexOptions
 
 open OpenFTProtocol
-      
+
+  
+  
 let disconnect_client c =
   match c.client_sock with
     None -> ()
@@ -261,13 +263,17 @@ let get_from_client sock (c: client) (file : file) =
   
   write_string sock (Printf.sprintf 
       "GET %s HTTP/1.0\r\nRangeRange: bytes=%Ld-%Ld\r\n\r\n" file.file_name 
-    (file_downloaded file) (file_size file));
-  let d = CommonDownloads.new_download sock 
+      (file_downloaded file) (file_size file));
+  let module M = CommonDownloads.Make( struct
+        let minimal_read = 1
+        let client_disconnected = on_close c
+        let download_finished = on_finished file
+        let subdir_option = commit_in_subdir
+      end) in
+  let d = M.new_download sock 
       (as_client c.client_client)
-    (as_file file.file_file) 1
-    (on_close c) 
-    (on_finished file)
-    commit_in_subdir in
+    (as_file file.file_file) 
+  in
   c.client_file <- Some d;
   set_rtimeout sock 30.;
   d

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open TcpBufferedSocket
 open LittleEndian
 open SlskTypes
@@ -91,7 +92,7 @@ module C2S = struct
             password: string;
             version: int;
           }
-          
+        
         let parse s = 
           let login, pos = get_string s 0 in
           let password, pos = get_string s pos in
@@ -102,53 +103,53 @@ module C2S = struct
           Printf.printf "LOGIN login:%s password:%s version:%d" 
             t.login t.password t.version;
           print_newline () 
-          
+        
         let write buf t =
           buf_string buf t.login;
           buf_string buf t.password;
           buf_int buf t.version
-          
+      
       end
     
     module SetWaitPort = struct
         type t = int
-          
+        
         let parse s =  get_int s 0
-          
+        
         let print t =
           Printf.printf "SETWAITPORT %d" t;
           print_newline () 
-          
+        
         let write buf t =
           buf_int buf t
-          
+      
       end
     
-    module Search = struct
+    module FileSearch = struct
         type t = {
             id : int;
             words : string;
           }
-          
+        
         let parse s =  
           let id = get_int s 0 in
           let s, pos = get_string s 4 in
           { id = id; words = s }
-          
+        
         let print t =
           Printf.printf "SEARCH %d FOR %s" t.id t.words;
           print_newline () 
-          
+        
         let write buf t =
           buf_int buf t.id;
           buf_string buf t.words
-          
+      
       end
     
     type t = 
     | LoginReq of Login.t
     | SetWaitPortReq of SetWaitPort.t
-    | SearchReq of Search.t
+    | FileSearchReq of FileSearch.t
     | GetUserStatsReq of string
     | JoinRoomReq of string
     | AddUserReq of string
@@ -161,7 +162,7 @@ module C2S = struct
     let parse opcode s =
       try
         match opcode with
-          1 -> LoginReq (Login.parse s)
+        | 1 -> LoginReq (Login.parse s)
         | 2 -> SetWaitPortReq (SetWaitPort.parse s)
         | 3 -> 
             let user, _ = get_string s 0 in
@@ -179,10 +180,51 @@ module C2S = struct
         | 15 ->             
             let room, _ = get_string s 0 in
             LeaveRoomReq room
-        | 26 -> SearchReq (Search.parse s)
+(*        | 22 ->
+(* MessageUserReq *)
+            string : username
+              string : message
+*)
+            
+        | 26 -> FileSearchReq (FileSearch.parse s)
+(*
+        | 28 -> 
+(* SetStatus *)
+            int : new status (0=offline,1=away,2=online)
+        
+        | 35 ->
+(* SharedFoldersFiles *)
+            int: folder count
+              int: file count
+*)        
         | 36 -> 
             let user, _ = get_string s 0 in
             GetUserStatsReq user
+(*      
+        | 60 ->
+(* PlaceInLineResponse *)
+            string: username
+              int : token
+              int : place
+        
+        | 67 ->
+(* GlobalUserList *)
+        
+        | 68 ->
+(* TunneledMessage *)
+            string : username
+              int : code
+              int : token
+              int : IP address
+              int : port
+              int : message
+            
+        | 69 ->
+(* PriviledgedUsers *)
+
+        | 92 ->
+(* CheckPrivileges *)
+*)
         | 1001 -> 
             let user, _ = get_string s 0 in
             CantConnectToPeerReq user
@@ -198,7 +240,7 @@ module C2S = struct
       match t with
         | LoginReq t -> Login.print t  
       | SetWaitPortReq t -> SetWaitPort.print t  
-      | SearchReq t -> Search.print t   
+      | FileSearchReq t -> FileSearch.print t   
       | GetUserStatsReq t -> 
           Printf.printf "GetUserStats %s" t; print_newline () 
       | JoinRoomReq t -> 
@@ -219,7 +261,7 @@ module C2S = struct
       match t with
       | LoginReq t -> buf_int buf 1; Login.write buf t  
       | SetWaitPortReq t -> buf_int buf 2; SetWaitPort.write buf t  
-      | SearchReq t -> buf_int buf 26; Search.write buf t  
+      | FileSearchReq t -> buf_int buf 26; FileSearch.write buf t  
       | GetUserStatsReq t -> buf_int buf 36; buf_string buf t
       | JoinRoomReq t -> buf_int buf 14; buf_string buf t
       | LeaveRoomReq t -> buf_int buf 15; buf_string buf t
@@ -474,7 +516,7 @@ ascii: [
     let parse opcode s =
       try
         match opcode with
-          1 -> LoginAckReq (LoginAck.parse s)
+        | 1 -> LoginAckReq (LoginAck.parse s)
         | 3 -> 
             let name, pos = get_string s 0 in
             let ip = get_ip s pos in
@@ -504,9 +546,75 @@ ascii: [
             let room, pos = get_string s 0 in
             let user, pos = get_string s pos in
             UserLeftRoomReq (room, user)
+            
         | 18 -> ConnectToPeerReq (ConnectToPeer.parse s)
+(*            
+        | 22 -> (* Message User *)
+            
+            int: message ID
+            int: timestamp
+              string: username
+            string: message
+            
+        | 23 ->
+(* MessageAcked : otherwise, the server keeps sending *)
+            int : message ID
+            
+        | 36 ->
+(* GetUserStats *)
+            string: username
+            int: avgspeed
+              ...
+            
+        | 40 ->
+(* Queued Downloads *)
+            string : username
+              int : slotsfull
+            
+        | 60 ->
+(* PlaceInLineResponse *)
+            string: username
+              int : token
+            int : place
+
+        | 62 ->
+(* RoomAdded *)
+            string : room name
+            
+        | 63 ->
+(* RoomRemoved *)
+            string : room name
+*)            
         | 64 -> RoomListReq (RoomList.parse s)
+(*
+        | 65 ->
+(* ExactFileSearch *)
+            int : token
+              string : filename
+              string : folder
+              int : size
+              int : checksum
+            string : username
+            
+        | 66 ->
+(* AdminMessage *)
+            string : message
+            
+        | 67 ->
+(* GlobalUserList : comme JoinRoom *)
+*)
+            
+            
         | 69 -> PriviledgedUsersReq (PriviledgedUsers.parse s)
+(*            
+        | 92 ->
+(* CheckPrivileges *)
+            int : number of days left
+
+        | 1001 ->
+(* Cannot connect to peer *)
+            int : token
+*)            
         | _ -> raise Not_found
       with
         e -> 
@@ -698,9 +806,24 @@ module C2C = struct
         | 4 -> GetSharedFileListReq
         | 5 -> SharedFileListReq (SharedFileList.parse s)
         | 9 -> FileSearchResultReq (FileSearchResult.parse s)
+(*        
+        | 15 -> 
+(* UserInfoRequest *)
+        
+        | 16 -> 
+(* UserInfoReply *)
+            string : user description
+              byte: has a picture ?
+              string : present if pic = 1
+                int : user uploads
+                int : total downloads
+                int : queue size
+                int : slots avail
+*)              
         | 36 -> 
             let dir, pos = get_string s 4 in
             FolderContentsReq dir
+            
         | 37 -> FolderContentsReplyReq (FolderContentsReply.parse s)
         | 40 ->
             let download = get_int s 0 = 0 in
@@ -719,10 +842,32 @@ module C2C = struct
             let reason, pos = get_string s 5 in
             TransferFailedReplyReq (req, reason)
 (*
-          | 15 -> UserInfoRequest
-          | 16 -> UserInfoReply
-
-              *)
+        | 42 ->
+(* PlaceholdUpload *)
+            string : filename 
+            
+        | 43 -> 
+(* QueueUpload *)
+            string : filename
+            
+        | 44 -> 
+(* PlaceInQueue *)
+            string : filename
+              int : place
+            
+        | 46 ->
+(* UploalFailed *)
+            string : filename
+            
+        | 50 ->
+(* QueueFailed *)
+            string : filename
+              string : reason
+            
+        | 51 ->
+(* PlaceInQueueRequest *)
+*)            
+            
         | _ -> raise Not_found
       with
         e -> 
@@ -743,10 +888,11 @@ module C2C = struct
               Printf.printf "  Folder: %s" s; print_newline ();
               List.iter (fun (dir, files) ->
                   Printf.printf "    Directory: %s" dir; print_newline ();
+                  (*
                   List.iter (fun file ->
                       Printf.printf "      %50s%Ld" 
                         file.file_name file.file_size; print_newline ();
-                  ) files;
+                  ) files; *)
               ) dirs
           ) folders
       | TransferRequestReq (download, req, file, size) ->
@@ -763,19 +909,21 @@ module C2C = struct
           Printf.printf "FileSearchResultReq for %s token %d" 
             t.FileSearchResult.user t.FileSearchResult.id; 
           print_newline ();
+          (*
           List.iter (fun file ->
               Printf.printf "  %50s%Ld" 
                 file.file_name file.file_size; print_newline ();
           ) t.FileSearchResult.files;
-          
+*)          
       | SharedFileListReq dirs ->
           Printf.printf "SharedFileListReq"; print_newline ();
           List.iter (fun (dir, files) ->
               Printf.printf "    Directory: %s" dir; print_newline ();
+              (*
               List.iter (fun file ->
                   Printf.printf "      %50s%Ld" 
                   file.file_name file.file_size; print_newline ();
-              ) files;
+              ) files; *)
           ) dirs
 
       | UnknownReq (opcode, s) ->  unknown opcode s
@@ -862,20 +1010,28 @@ let client_msg_to_string t =
 
     
 let server_send sock t =
-
-  Printf.printf "SENDING TO SERVER:"; print_newline ();
-  C2S.print t;
   
   let s = server_msg_to_string t in
-  LittleEndian.dump s;
+
+  if !verbose_msg_servers then begin
+      Printf.printf "SENDING TO SERVER:"; print_newline ();
+      C2S.print t;
+      LittleEndian.dump s;
+    end;
+  
   write_string sock s
 
     
 let client_send sock t =
-  Printf.printf "SENDING TO CLIENT:"; print_newline ();
-  C2C.print t;
+
   let s = client_msg_to_string t in
-  LittleEndian.dump s;
+
+  if !verbose_msg_clients then begin
+      Printf.printf "SENDING TO CLIENT:"; print_newline ();
+      C2C.print t;
+      LittleEndian.dump s;
+    end;
+  
   write_string sock s
 
   
@@ -892,8 +1048,10 @@ let init_peer_connection sock login token =
   str_int s 0 len;
   write_string sock s ;
   
-  Printf.printf "INIT PEER CONNECTION:";
-  dump s
+  if !verbose_msg_clients then begin
+      Printf.printf "INIT PEER CONNECTION:"; print_newline ();
+      dump s
+    end
 
 let init_result_connection sock token =
   Buffer.clear buf;
@@ -905,10 +1063,11 @@ let init_result_connection sock token =
   let len = String.length s - 4 in
   str_int s 0 len;
   write_string sock s ;
-  
-  Printf.printf "INIT RESULT CONNECTION:";
-  dump s
 
+  if !verbose_msg_clients then begin
+      Printf.printf "INIT RESULT CONNECTION:"; print_newline ();
+      dump s
+    end
     
 let init_download_connection sock file login req pos =
   Buffer.clear buf;
@@ -917,13 +1076,16 @@ let init_download_connection sock file login req pos =
   buf_string buf login;
   buf_string buf "F";
   buf_int buf 300;
-  Printf.printf "INIT PEER CONNECTION:";
+  if !verbose_msg_clients then begin
+      Printf.printf "INIT DOWNLOAD CONNECTION:"; print_newline ();
+    end;
 
   let s = Buffer.contents buf in
   let len = String.length s - 4 in
   str_int s 0 len;
   write_string sock s ;
-  dump s;  
+  
+  if !verbose_msg_clients then dump s;  
   
   Buffer.clear buf;
   buf_int buf req;
@@ -932,7 +1094,10 @@ let init_download_connection sock file login req pos =
   let s = Buffer.contents buf in
   write_string sock s ;
   
-  dump s
+  if !verbose_msg_clients then begin
+      dump s;
+      print_newline ()
+    end
 
 (*
   
@@ -999,6 +1164,9 @@ Unknown: opcode 36
 ascii: [(10)(0)(0)(0) M O C O N D O D U O(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(217)(1)(0)(0) @(0)(0)(0)]
 dec: [(10)(0)(0)(0)(77)(79)(67)(79)(78)(68)(79)(68)(85)(79)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(217)(1)(0)(0)(64)(0)(0)(0)]
 
+Unknown: opcode 36
+ascii: [(9)(0)(0)(0) t i g u i d e a r(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(5)(0)(0)(0)(2)(0)(0)(0)]
+dec: [(9)(0)(0)(0)(116)(105)(103)(117)(105)(100)(101)(97)(114)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(5)(0)(0)(0)(2)(0)(0)(0)]
 
 
   *)

@@ -55,7 +55,7 @@ and client = {
     mutable client_connection_control : connection_control;
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_user : user;
-    mutable client_file : CommonDownloads.download option;
+    mutable client_file : (file, client) CommonDownloads.download option;
     mutable client_all_files : file list option;
   }
   

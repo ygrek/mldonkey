@@ -380,3 +380,6 @@ let client_type c = client_type (as_client c.client_client)
 
 let set_client_state client state =
   CommonClient.set_client_state (as_client client.client_client) state
+  
+let set_client_disconnected client =
+  CommonClient.set_client_disconnected (as_client client.client_client) 

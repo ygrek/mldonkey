@@ -1,4 +1,4 @@
-(* Copyright 2001, 2002 Maxence Guesdon INRIA *)
+(* Copyright 2001, 2002, 2003 Maxence Guesdon, b52_simon INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -50,7 +50,7 @@ class virtual ['a] filtered_plist
     
     val mutable filtered = Intmap.empty
     val mutable nfiltered = 0
-      
+    
     method box = wscroll#coerce
     method wlist = wlist
     
@@ -115,7 +115,7 @@ class virtual ['a] filtered_plist
         end else begin
           Printf.printf "update_row < 0"; print_newline ();
         end
-        
+    
     method insert ?row d =
       let f_string content =
         match content with
@@ -184,12 +184,11 @@ class virtual ['a] filtered_plist
       ignore (wlist#connect#unselect_row f_unselect_table);
       ignore (wlist#connect#click_column
           (fun c -> 
-            let n = c + 1 in
-            if current_sort = n or (- current_sort) = n then
-              current_sort <- (- current_sort)
-            else
-              current_sort <- n;
-            self#update
+            GToolbox.autosize_clist self#wlist;
+            GAutoconf.popup_menu
+              ~button: 1
+              ~time: 0
+              ~entries: (self#column_menu c); 
         )
       );
 (* connect the press on button 3 for contextual menu *)
@@ -203,40 +202,114 @@ class virtual ['a] filtered_plist
                 ~button: 3
                 ~time: 0
                 ~entries: self#menu;
-             true
+              true
             )
         )
       );
 (*
-      (* Connection bouton droit sur un titre, pour chaque colonne *)
-      for i = 0 to wlist#columns - 1 do
-	let widget = wlist#column_widget i in
-	ignore 
-	  (wlist#event#connect#button_press ~callback:
-	     (
-	      fun ev ->
-		GdkEvent.Button.button ev = 3 &&
-		GdkEvent.get_type ev = `BUTTON_PRESS &&
-		(
-		 GAutoconf.popup_menu
-                   ~button: 3
-                   ~time: 0
-                   ~entries: [`I ("you clicked on the 3rd button", 
-				  fun () -> print_string (wlist#column_title i); print_newline ())
-			     ]; 
-		 true
-		)
-             )
-	  )
-      done;
-*)    
 
+(* Connection bouton droit sur un titre, pour chaque colonne *)
+      Printf.printf "ncols: %d" wlist#columns; print_newline ();
+
+      let col = ref 0 in
+      List.iter (fun button ->
+          let event = new GObj.event_ops button#as_widget in
+          let i = !col in
+          incr col;
+        ignore 
+          (event#connect#button_press ~callback:
+          (
+            fun ev ->
+              
+              if GdkEvent.get_type ev = `BUTTON_PRESS then
+                
+                if GdkEvent.Button.button ev = 1 then
+                    let n = i + 1 in
+                  if current_sort = n || (- current_sort) = n then
+                    current_sort <- (- current_sort)
+                  else
+                    current_sort <- n;
+                  self#update
+                else
+                if GdkEvent.Button.button ev = 3 then                  
+                  GAutoconf.popup_menu
+                    ~button: 3
+                    ~time: 0
+                    ~entries: (self#column_menu i); 
+                true
+            ))
+      ) wlist#children;
+
+          (*
+      for i = 0 to wlist#columns - 1 do
+        Printf.printf " for %d" i; print_newline ();
+        let widget = wlist#column_widget i in
+
+(*
+        let tooltips = GData.tooltips ~delay:  1 () in
+        tooltips#set_tip ~text:"Essay" ~privat: "test" widget;
+*)
+        
+        let button = GButton.button () in
+        wlist#set_column_widget i button#coerce;
+        let _ =
+          GMisc.label ~width:50 ~text: "toto"
+            ~justify:`RIGHT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+          ~packing:button#add ()
+        in
+        Printf.printf "done for %d" i; print_newline ();
+        
+        
+(*        let event = new GObj.event_ops widget#as_widget in*)
+        
+        ignore 
+          (button#event#connect#button_press ~callback:
+          (
+            fun ev ->
+              
+              if GdkEvent.get_type ev = `BUTTON_PRESS then
+                
+                if GdkEvent.Button.button ev = 1 then
+                  let n = i + 1 in
+                  if current_sort = n || (- current_sort) = n then
+                    current_sort <- (- current_sort)
+                  else
+                    current_sort <- n;
+                  self#update
+                else
+                true
+          )
+        )
+      done; *)
+      Printf.printf "ok"; print_newline ();
       self#update
 
+*)
+    
     initializer
       self#connect_events;
       GToolbox.autosize_clist self#wlist
     
+    
+    method resort_column i () =
+      let n = i + 1 in
+      if current_sort = n or (- current_sort) = n then
+        current_sort <- (- current_sort)
+      else
+        current_sort <- n;
+      self#update
+      
+    method column_menu i = 
+      [
+        `I ("sort", self#resort_column i);
+        (*
+        `I ("you clicked on the 3rd button", 
+          fun () -> print_string (wlist#column_title i); print_newline ();
+            Printf.printf "You asked to remove column %d" i;
+            print_newline ();
+        ) *)
+      ]
+      
     method find key =
       let rec iter i len =
         if i = len then (-1, Intmap.find key filtered) else
@@ -249,7 +322,7 @@ class virtual ['a] filtered_plist
       if self#filter i then
         self#add_filtered_item i
       else  begin
-          let pos = nitems in
+         let pos = nitems in
           self#add_hidden_item i;
           self#insert ~row: pos i;
         end 

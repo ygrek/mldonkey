@@ -66,11 +66,11 @@ let sendmail smtp_server smtp_port mail =
       Printf.fprintf oc "HELO %s\r\n" (gethostname ()); flush oc;
       if read_response ic <> 250 then bad_response ();
       
-      Printf.fprintf oc "MAIL FROM:%s\r\n" (canon_addr mail.mail_from); 
+      Printf.fprintf oc "MAIL FROM:<%s>\r\n" (canon_addr mail.mail_from); 
       flush oc;
       if read_response ic <> 250 then bad_response ();
       
-      Printf.fprintf oc "RCPT TO:%s\r\n" (canon_addr mail.mail_to); flush oc;
+      Printf.fprintf oc "RCPT TO:<%s>\r\n" (canon_addr mail.mail_to); flush oc;
       if read_response ic <> 250 then bad_response ();
       
       Printf.fprintf oc "DATA\r\n"; flush oc;

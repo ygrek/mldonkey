@@ -159,7 +159,8 @@ let add_file_location file c =
       CommonFile.file_add_source (CommonFile.as_file file.file_file) 
       (CommonClient.as_client c.client_client);
       match c.client_sock, client_state c with
-        Some sock, (Connected_busy | Connected_idle | Connected_queued) ->
+        Some sock, (Connected_downloading
+          | Connected _) ->
           query_file sock c file
       | _ -> ()
     end
@@ -174,6 +175,7 @@ let purge_requests files =
     | r :: tail ->
         match file_state r.request_file with
         | FileDownloading -> iter true tail (r :: all_files)
+        | FileAborted _
         | FilePaused -> iter downloading tail (r :: all_files)
         | FileNew
         | FileShared
@@ -342,21 +344,48 @@ let useful_client source_of_client reconnect_client c =
               | _ -> ());
           end;
         reconnect_client c; 
-        if client_state c = NotConnected then begin
+        match  client_state c with
+        | NotConnected _ ->
             if !verbose_sources then begin
                 Printf.printf "Connection to source failed"; print_newline ();
               end;
             source_of_client c; false
-          end else begin
+        | _ ->
             outside_queue := Intmap.add  (client_num c) c !outside_queue;
             true
-          end)
+      )
     else raise Not_found
   with _ ->
       source_of_client c;
       false
-  
-  
+
+let rank_level rank =
+  if rank = 0 then 0 else
+  if rank = 1 then 1 else
+  if rank < 10 then 2 else
+  if rank < 50 then 3 else
+  if rank < 100 then 4 else
+  if rank < 200 then 5 else 
+  if rank < 500 then 6 else
+  if rank < 1000 then 7 else
+  if rank < 1500 then 8 else 9
+
+let stats_ranks = ref (Array.create 10 0)
+    
+let keep_client c =
+  client_type c <> NormalClient ||
+  (                
+    List.exists (fun r -> 
+        if r.request_result >= File_chunk then
+          let level = rank_level c.client_rank in
+          !stats_ranks.(level)  <- !stats_ranks.(level) + 1;
+          true
+        else false
+    )
+    c.client_files &&
+    c.client_rank < 300
+  )
+
       
 (**************************************************************
 
@@ -370,7 +399,6 @@ let useful_client source_of_client reconnect_client c =
 taking as many sources as possible from the first before using
 the next one. Maybe a bit unfair... *)
 
-      (*
 module SourceManagement1 = struct  
   
   
@@ -483,13 +511,17 @@ let queue_new_source new_queue last_conn addr file =
   try
     let finder =  { dummy_source with source_addr = addr } in
     let s = H.find sources finder in
-    if not (List.mem_assq file s.source_files) then 
+    if not (has_source_request s file) then 
       let s = reschedule_source s file in
-      s.source_files <- (file, 0) :: s.source_files;
+      s.source_files <- {
+        request_file = file;
+        request_result = File_new_source;
+        request_time = 0;
+      } :: s.source_files;
       s
     else
       s
-      
+  
   with _ ->
       
       let s = { dummy_source with
@@ -499,7 +531,11 @@ let queue_new_source new_queue last_conn addr file =
           source_client = SourceLastConnection (
             new_queue, last_conn, 
             CommonClient.book_client_num ());
-          source_files = [file, 0];
+          source_files = [{
+              request_file = file;
+              request_result = File_new_source;
+              request_time = 0;
+            }];
         }  in
       H.add sources s;
       if !verbose_sources then begin
@@ -566,7 +602,7 @@ let source_of_client c =
       if !verbose_sources then begin
           Printf.printf "Old source %s:%d" (Ip.to_string ip) port; print_newline ();
         end;
-      let (files, downloading) = purge_client_files c.client_files in
+      let (files, downloading) = purge_requests c.client_files in
       c.client_files <- files;
       try
         let new_queue = 
@@ -576,50 +612,42 @@ let source_of_client c =
               H.remove sources s;
               raise Exit
             end else
-          match c.client_score with
-          | Client_not_connected -> c.client_next_queue
-          | Client_has_priority_file
-          | Client_has_file -> concurrent_sources_queue
-          | Client_has_priority_chunk
-          | Client_has_priority_upload
-          | Client_has_chunk
-          | Client_has_upload ->  good_clients_queue 
-(*          | Client_has_ranked num ->
-              if num > 1000 then begin
-                  Printf.printf "Client ranked too far"; print_newline ();
-                  concurrent_sources_queue
-              end else good_clients_queue *)
+          if keep_client c then good_clients_queue  else
+          if List.exists (fun r ->
+                r.request_result > File_new_source 
+            ) c.client_files then concurrent_sources_queue
+          else 
+            c.client_next_queue
         in
-        
         if new_queue <= last_clients_queue then begin
             if !verbose_sources then begin
                 Printf.printf "--> client queue %d" new_queue; print_newline ();
               end;
-          SourcesQueue.put clients_queues.(new_queue) (c, last_time ())          
+            SourcesQueue.put clients_queues.(new_queue) (c, last_time ())          
           end else
           begin
             if !verbose_sources then begin
                 Printf.printf "--> source queue %d" new_queue; print_newline ();
               end;
-            List.iter (fun file -> remove_file_location file c) c.client_files;
+            List.iter (fun r -> 
+                remove_file_location r.request_file c) c.client_files;
             
             s.source_client <- SourceLastConnection (
               new_queue, last_time (), client_num c);
-            s.source_files <- List.map (fun file -> 
-                file, try !(List.assq file c.client_requests) with _ -> 0) 
-            c.client_files;
+            s.source_files <- c.client_files;
             SourcesQueue.put sources_queues.(new_queue) s
           end
       with _ ->
           if !verbose_sources then begin
               Printf.printf "--> removed"; print_newline ();
             end;
-          List.iter (fun file -> remove_file_location file c) c.client_files
+          List.iter (fun r -> remove_file_location 
+              r.request_file c) c.client_files
         
 let reschedule_sources file =
   Array.iter (fun queue ->
       SourcesQueue.iter (fun s ->
-          if List.mem_assq file s.source_files then
+          if has_source_request s file then
             ignore (reschedule_source s file)
       ) queue
   ) sources_queues
@@ -642,7 +670,7 @@ let client_of_source reconnect_client s index client_num =
   if !verbose_sources then begin
       Printf.printf "client_of_source"; print_newline ();
     end;
-  let (files, downloading) = purge_source_files s.source_files in
+  let (files, downloading) = purge_requests s.source_files in
   if !verbose_sources then begin
       Printf.printf "Source for %d files" (List.length files); print_newline ();
     end;
@@ -651,6 +679,11 @@ let client_of_source reconnect_client s index client_num =
       let (ip, port) = s.source_addr in
       let c = DonkeyGlobals.new_client_with_num (Known_location (ip,port))
         client_num in
+      c.client_overnet <- s.source_overnet;
+      if s.source_overnet then begin
+          c.client_brand <- Brand_overnet;
+        end;
+      
       c.client_next_queue <- (
 (* If the connection fails:
 - if the client is a good client, try a new attempt shortly (old_sources_queue)
@@ -673,20 +706,21 @@ let client_of_source reconnect_client s index client_num =
       s.source_client <- SourceClient c;
 
 (* This will be used after the connection to know where to put this client *)
-      c.client_score <- Client_not_connected;
+      c.client_score <- 0;
       
-      List.iter (fun (file, time) ->
-          c.client_requests <- (file, ref time) :: c.client_requests;
-          add_file_location file c) files;
+      List.iter (fun r ->
+          if r.request_result > File_not_found then begin
+              add_file_location r.request_file c;
+              match r.request_result with
+              | File_new_source -> (* new_source := true *) ()
+              | File_chunk | File_upload -> (* good_source := true *) ()
+              | _ -> ()
+            end;
+      ) c.client_files;
       
       useful_client source_of_client reconnect_client c
     else
-      (List.iter (fun (file, _)  ->
-            if !verbose_sources then begin
-                Printf.printf "Adding paused source"; print_newline ();
-              end;
-            Fifo.put file.file_paused_sources (s, index)
-        ) files; false)
+      false
   )
   
 (* This function is called every second *)
@@ -950,7 +984,7 @@ let print_sources buf =
 let check_sources = check_sources2
 
 end
-*)
+
 
 
 (**************************************************************
@@ -998,24 +1032,12 @@ source_score = / basic_score when source_client = SourceClient
     let stats_saved_files = ref Intmap.empty
     let stats_saved_files_size = ref 1
     
-    let stats_ranks = ref (Array.create 10 0)
     let stats_saved_ranks = ref (Array.create 10 0)
     
     let stats_remove_too_old_sources = ref 0
     let stats_remove_old_sources = ref 0
     let stats_remove_useless_sources = ref 0
     let stats_sources = ref 0
-    
-    let rank_level rank =
-      if rank = 0 then 0 else
-      if rank = 1 then 1 else
-      if rank < 10 then 2 else
-      if rank < 50 then 3 else
-      if rank < 100 then 4 else
-      if rank < 200 then 5 else 
-      if rank < 500 then 6 else
-      if rank < 1000 then 7 else
-      if rank < 1500 then 8 else 9
     
     
     let rec stats_register_files list =
@@ -1116,9 +1138,9 @@ source_score = / basic_score when source_client = SourceClient
                 s.source_score <- s.source_score + 
                   (match file_state r.request_file  with
                     FileDownloading -> useful_source := true; 2
-                  | FilePaused -> useful_source := true; 1
+                  | FilePaused | FileAborted _ -> useful_source := true; 1
                   | _ -> 0) *
-                (file_priority r.request_file + 1) *
+                (maxi 1 (file_priority r.request_file + 10)) *
                 (match r.request_result with
                     File_not_found | File_possible -> 0
                   | File_expected -> 1
@@ -1238,22 +1260,8 @@ source_score = / basic_score when source_client = SourceClient
           let (files, downloading) = purge_requests c.client_files in
           c.client_files <- files;
           try
-            let keep_client =
-              client_type c <> NormalClient ||
-              (                
-                List.exists (fun r -> 
-                    if r.request_result >= File_chunk then
-                      let level = rank_level c.client_rank in
-                      !stats_ranks.(level)  <- !stats_ranks.(level) + 1;
-                      true
-                    else false
-                )
-                c.client_files &&
-                c.client_rank < 300
-                )
-            in
             
-            if keep_client then begin
+            if keep_client c then begin
                 if !verbose_sources then begin
                     Printf.printf "%d --> kept" (client_num c); print_newline ();
                   end;
@@ -1649,7 +1657,6 @@ source_score = / basic_score when source_client = SourceClient
           !total_nwaiting_sources);
       
   end
-
 
 module S = SourceManagement2
   

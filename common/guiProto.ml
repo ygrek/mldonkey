@@ -80,6 +80,8 @@ type from_gui =
 (* New messages from protocol 4  *)
 | RefreshUploadStats
   
+| SetFilePriority of int * int
+  
 let gui_extension_poll = 1
   
 type to_gui =
@@ -202,6 +204,7 @@ let from_gui_to_string t =
   | SetRoomState _ -> "CloseRoom"
       
   | RefreshUploadStats -> "RefreshUploadStats"
+  | SetFilePriority _ -> "SetFilePriority"      
       
 let string_of_to_gui t =
   match t with

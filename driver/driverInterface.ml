@@ -486,7 +486,7 @@ Printf.printf "Sending for %s" prefix; print_newline ();
                               | "F" -> FileEntry 
                               | _ -> StringEntry
                             )))
-                      list)
+                      !!list)
                   ! CommonInteractive.gui_options_panels;
                   
                   gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
@@ -609,11 +609,18 @@ search.op_search_end_reply_handlers;
               let s = server_find num in
               server_query_users s
           
+          | P.SetFilePriority (num, prio) ->
+              let file = file_find num in
+              file_set_priority file prio
+              
           | P.SaveFile (num, name) ->
               let file = file_find num in
               set_file_best_name file name;
-              file_save_as file name;
-              file_commit file
+              (match file_state file with
+                  FileDownloaded ->
+                    file_save_as file name;
+                    file_commit file
+                | _ -> ())
           
           | P.Preview num ->
               begin

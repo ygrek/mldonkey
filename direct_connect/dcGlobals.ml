@@ -344,6 +344,9 @@ let remove_client c =
       
 let set_client_state c state =
   set_client_state (as_client c.client_client) state
+
+let set_client_disconnected c =
+  set_client_disconnected (as_client c.client_client)
               
 let login () =
   if !!login = "" then !!CommonOptions.client_name else !!login

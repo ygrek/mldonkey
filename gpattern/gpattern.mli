@@ -57,6 +57,9 @@ class virtual ['a] plist :
     method refresh_item : int -> 'a -> unit
     method refresh_filter : unit
 
+    method resort_column : int -> unit -> unit
+    method column_menu :  int -> GToolbox.menu_entry list
+      
     method iter : ('a -> unit) -> unit
   end
 
@@ -92,5 +95,8 @@ class virtual ['a] filtered_plist :
     method refresh_item : int -> 'a -> unit
     method refresh_filter : unit
 
+    method resort_column : int -> unit -> unit
+    method column_menu :  int -> GToolbox.menu_entry list
+      
     method iter : ('a -> unit) -> unit
   end

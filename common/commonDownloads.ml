@@ -34,91 +34,91 @@ open CommonOptions
 A common function for all networks were the file is got in one single piece,
   and the connection is closed at the end.
 *)
-
-type download = {
-    download_file : file; (* the file being downloaded *)
-    download_client : client;
+  
+type ('file,'client) download = {
+    download_file : 'file; (* the file being downloaded *)
+    download_client : 'client;
+    mutable download_min_read : int;
     mutable download_pos : int64; (* the position in the file *)
     mutable download_sock : TcpBufferedSocket.t option;
-(* the socket for download (often shared in client structure) *)
-    mutable download_on_close : (download -> unit);
-(* function called when
-    the socket is closed (Unix.close is already done) *)
-    download_subdir : string Options.option_record;
-(* The subdir option for the commit *)
-    download_on_finish : (download -> unit);
-(* A function to call when download is finished ! *)
-    
-(* When the data is long enough to be accepted *)
-    mutable download_min_read : int;
   }
 
-let disconnect_download d =
-  match d.download_sock with
-    None -> ()
-  | Some sock ->
-      close sock "";
-      (try d.download_on_close d with _ -> ());
-      Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
-      d.download_sock <- None
-      
-let file_complete d file =
+module Make(M: sig
+      type f
+      type c
+      val file : f -> file
+      val client :   c -> client
+      val client_disconnected :  (f, c) download -> unit
+      val subdir_option : string Options.option_record
+      val download_finished :  (f, c) download -> unit
+    end) = 
+  struct
+    
+    let disconnect_download (d : (M.f, M.c) download) =
+      match d.download_sock with
+        None -> ()
+      | Some sock ->
+          close sock "";
+          (try M.client_disconnected d with _ -> ());
+          Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
+          d.download_sock <- None
+    
+    let file_complete d =
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
 print_newline ();
   *)
-  file_completed file;
-  (try d.download_on_finish d with _ -> ())
-         
-let download_reader d sock nread = 
-  if d.download_sock = None then  raise Exit;
-  let file = d.download_file in
-  if nread >= d.download_min_read then
-    let b = TcpBufferedSocket.buf sock in
-    d.download_min_read <- 1;
-    set_rtimeout sock 120.;
-    set_client_state d.download_client Connected_busy;
-    begin
-      let fd = try
-          Unix32.force_fd (file_fd file) 
-        with e -> 
-            Printf.printf "In Unix32.force_fd"; print_newline ();
-            raise e
-      in
-      let final_pos = Unix32.seek64 (file_fd file) d.download_pos
-        Unix.SEEK_SET in
-      Unix2.really_write fd b.buf b.pos b.len;
-    end;
+      file_completed (M.file d.download_file);
+      (try M.download_finished d with _ -> ())
+    
+    let download_reader d sock nread = 
+      print_char '.'; flush stdout;
+      if d.download_sock = None then  raise Exit;
+      let file = M.file d.download_file in
+      if nread >= d.download_min_read then
+        let b = TcpBufferedSocket.buf sock in
+        d.download_min_read <- 1;
+        set_rtimeout sock 120.;
+        set_client_state (M.client d.download_client) 
+        (Connected_downloading);
+        begin
+          let fd = try
+              Unix32.force_fd (file_fd file) 
+            with e -> 
+                Printf.printf "In Unix32.force_fd"; print_newline ();
+                raise e
+          in
+          let final_pos = Unix32.seek64 (file_fd file) d.download_pos
+              Unix.SEEK_SET in
+          Unix2.really_write fd b.buf b.pos b.len;
+        end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-    d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
+        d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
 (*
       Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
 print_newline ();
   *)
-    TcpBufferedSocket.buf_used sock b.len;
-    if d.download_pos > file_downloaded file then begin
-        (as_file_impl file).impl_file_downloaded <- d.download_pos;
-        file_must_update file;
-      end;
-    if file_downloaded file = file_size file then
-      file_complete d file 
-
+        TcpBufferedSocket.buf_used sock b.len;
+        if d.download_pos > file_downloaded file then begin
+            (as_file_impl file).impl_file_downloaded <- d.download_pos;
+            file_must_update file;
+          end;
+        if file_downloaded file = file_size file then
+          file_complete d
+    
+    
+    let new_download sock (c :M.c) (file : M.f) min_read =
+      let d = {
+          download_client = c;
+          download_file = file;
+          download_sock = Some sock;
+          download_pos = file_downloaded (M.file file);
+          download_min_read = min_read;
+        } in
+      set_closer sock (fun _ _ -> disconnect_download d);
+      TcpBufferedSocket.set_read_controler sock download_control;
+      TcpBufferedSocket.set_write_controler sock upload_control;
+      set_rtimeout sock 30.;
+      d  
       
-let new_download sock c file min_read on_close on_finish subdir_option  =
-  let d = {
-      download_client = c;
-      download_file = file;
-      download_sock = Some sock;
-      download_pos = file_downloaded file;
-      download_on_finish = on_finish;
-      download_on_close = on_close;
-      download_subdir = subdir_option;
-      download_min_read = min_read;
-    } in
-  set_closer sock (fun _ _ -> disconnect_download d);
-  TcpBufferedSocket.set_read_controler sock download_control;
-  TcpBufferedSocket.set_write_controler sock upload_control;
-  set_rtimeout sock 30.;
-  d  
-
-  
+end

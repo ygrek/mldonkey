@@ -361,19 +361,19 @@ let edit_options gui =
         Gui_misc.save_gui_options gui;      
         save_options gui ;
         gui#tab_servers#box_servers#set_columns
-          !!GO.servers_columns;
+          GO.servers_columns;
         gui#tab_downloads#box_downloads#set_columns
-          !!GO.downloads_columns;
+          GO.downloads_columns;
         gui#tab_downloads#box_downloaded#set_columns
-          !!GO.downloaded_columns;
+          GO.downloaded_columns;
         gui#tab_friends#box_friends#set_columns
-          !!GO.friends_columns;
+          GO.friends_columns;
         gui#tab_downloads#box_locations#set_columns
-          !!GO.file_locations_columns;
+          GO.file_locations_columns;
         gui#tab_friends#box_files#box_results#set_columns
-          !!GO.results_columns;
+          GO.results_columns;
         gui#tab_uploads#upstats_box#set_columns
-          !!GO.shared_files_up_columns;
+          GO.shared_files_up_columns;
         
         update_toolbars_style gui
     

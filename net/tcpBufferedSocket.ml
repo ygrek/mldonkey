@@ -36,13 +36,16 @@ type buf = {
   }
 
 type t = {
+    mutable closing : bool;
     mutable sock : BasicSocket.t;
     mutable rbuf : buf;
     mutable wbuf : buf;
     mutable event_handler : handler;
     mutable error : string;
     mutable nread : int;
+    mutable ndown_packets : int;
     mutable nwrite : int;
+    mutable nup_packets : int;
     mutable monitored : bool;
     
     mutable read_control : bandwidth_controler option;
@@ -62,9 +65,44 @@ and bandwidth_controler = {
     mutable remaining_bytes_user : ((* total *) int -> (* remaining *) int -> unit);
     mutable moved_bytes : int64;
     mutable lost_bytes : int array; (* 3600 samples*)
+    mutable forecast_bytes : int;
   }
 
+let ip_packet_size = ref 40
+let mtu_packet_size = ref 2048
+  
+let forecast_download_ip_packet t =
+  match t.read_control with
+    None -> ()
+  | Some bc ->
+      bc.forecast_bytes <- bc.forecast_bytes + !ip_packet_size
+  
+let forecast_upload_ip_packet t =
+  match t.write_control with
+    None -> ()
+  | Some bc ->
+      bc.forecast_bytes <- bc.forecast_bytes + !ip_packet_size
+  
+let download_ip_packets t n =
+  match t.read_control with
+    None -> ()
+  | Some bc ->
+      bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size * n
 
+let remove_ip_packet bc =
+  bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size  
+      
+let upload_ip_packets t n =
+  match t.write_control with
+    None -> ()
+  | Some bc ->
+      bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size * n
+
+let accept_connection_bandwidth rc wc =
+  rc.remaining_bytes <- rc.remaining_bytes - !ip_packet_size;
+  wc.forecast_bytes <- wc.forecast_bytes + !ip_packet_size;
+  rc.forecast_bytes <- rc.forecast_bytes + !ip_packet_size
+      
 let tcp_uploaded_bytes = ref Int64.zero
 let tcp_downloaded_bytes = ref Int64.zero
   
@@ -99,19 +137,25 @@ let close t s =
       Printf.printf "close with %s %s" t.error s; print_newline ();
 end;
 *)
-  begin
-    try
-      delete_string t.rbuf.buf;
-      delete_string t.wbuf.buf;
-      t.rbuf.buf <- "";
-      t.wbuf.buf <- "";
-      close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
-    with e ->
-        Printf.printf "Exception %s in TcpBufferedSocket.close" 
-          (Printexc2.to_string e); print_newline ();
-        raise e
-  end
-  
+  if not t.closing then
+    begin
+      try
+        t.closing <- true;
+        delete_string t.rbuf.buf;
+        delete_string t.wbuf.buf;
+        t.rbuf.buf <- "";
+        t.wbuf.buf <- "";
+        if t.nread > 0 then begin
+            upload_ip_packets t 1;
+            forecast_download_ip_packet t;
+          end;
+        close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
+      with e ->
+          Printf.printf "Exception %s in TcpBufferedSocket.close" 
+            (Printexc2.to_string e); print_newline ();
+          raise e
+    end
+    
 let shutdown t s =
   (*
   if t.monitored then begin
@@ -259,6 +303,10 @@ let write t s pos1 len =
 (*          Printf.printf "try write %d" len; print_newline (); *)
           let fd = fd t.sock in
           let nw = Unix.write fd s pos1 len in
+          
+          upload_ip_packets t (1 + len / !mtu_packet_size);
+          forecast_download_ip_packet t;
+          
 (*          if t.monitored then begin
               Printf.printf "write: direct written %d" nw; print_newline (); 
 end; *)
@@ -336,6 +384,7 @@ let can_read_handler t sock max_len =
     let nread = try
 (*        Printf.printf "try read %d" can_read; print_newline ();*)
         Unix.read (fd sock) b.buf (b.pos + b.len) can_read
+        
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
@@ -353,6 +402,11 @@ let can_read_handler t sock max_len =
           Int64.add bc.moved_bytes (Int64.of_int nread));        
     
     t.nread <- t.nread + nread;
+    if nread > 0 then begin
+        let npackets = 1 + nread / !mtu_packet_size in
+        download_ip_packets t npackets;
+        upload_ip_packets t 1;
+      end;
     if nread = 0 then begin
       close t "closed on read";
     end else begin
@@ -471,14 +525,15 @@ let write_bandwidth_controlers = ref []
       
 let create_read_bandwidth_controler rate = 
   let bc = {
-    remaining_bytes = rate;
-    total_bytes = rate;
-    nconnections = 0;
-    connections = [];
-    allow_io = ref true;
-    remaining_bytes_user = (fun _ _ -> ());
-    moved_bytes = Int64.zero;
-    lost_bytes = Array.create 3600 0;
+      remaining_bytes = rate;
+      total_bytes = rate;
+      nconnections = 0;
+      connections = [];
+      allow_io = ref true;
+      remaining_bytes_user = (fun _ _ -> ());
+      moved_bytes = Int64.zero;
+      lost_bytes = Array.create 3600 0;
+      forecast_bytes = 0;      
   } in
   read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
   bc
@@ -492,11 +547,12 @@ let create_write_bandwidth_controler rate =
       allow_io = ref true;
       remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
-    lost_bytes = Array.create 3600 0;
+      lost_bytes = Array.create 3600 0;
+      forecast_bytes = 0;
     } in
   write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
   bc
-
+  
 let change_rate bc rate =
   bc.total_bytes <- rate
 
@@ -536,13 +592,16 @@ let create name fd handler =
     end;
   MlUnix.set_close_on_exec fd;
   let t = {
+      closing = false;
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
       error = "";
       nread = 0;
+      ndown_packets = 0;
       nwrite = 0;
+      nup_packets = 0;
       monitored = false;
       read_control = None;
       write_control = None;
@@ -563,13 +622,16 @@ let create name fd handler =
 let create_blocking name fd handler =
   MlUnix.set_close_on_exec fd;
   let t = {
+      closing = false;
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
       error = "";
       nread = 0;
+      ndown_packets = 0;
       nwrite = 0;
+      nup_packets = 0;
       monitored = false;
       read_control = None;
       write_control = None;
@@ -592,6 +654,9 @@ let connect name host port handler =
     must_write (sock t) true;
     try
       Unix.connect s (Unix.ADDR_INET(host,port));
+      upload_ip_packets t 1;             (* The TCP SYN packet *)
+      forecast_download_ip_packet t;  (* The TCP ACK packet *)
+      forecast_upload_ip_packet t;    (* The TCP ACK packet *)
       t
     with 
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
@@ -632,23 +697,26 @@ let close_after_write t =
 let set_monitored t =
   t.monitored <- true
   
-let _ =
-  add_infinite_timer 1.0 (fun timer ->
-      List.iter (fun bc ->
-          bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
-          bc.remaining_bytes <- bc.total_bytes;
-          if bc.remaining_bytes > 0 then bc.allow_io := true
+let reset_bandwidth_controlers _ =       
+  List.iter (fun bc ->
+      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
+      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
+      bc.forecast_bytes <- 0;
+      if bc.remaining_bytes > 0 then bc.allow_io := true
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
-      ) !read_bandwidth_controlers;
-      List.iter (fun bc ->
-          bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
-          bc.remaining_bytes <- bc.total_bytes;          
-          if bc.remaining_bytes > 0 then bc.allow_io := true;
-          (*
+  ) !read_bandwidth_controlers;
+  List.iter (fun bc ->
+      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
+      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;          
+      bc.forecast_bytes <- 0;
+      if bc.remaining_bytes > 0 then bc.allow_io := true;
+(*
           Printf.printf "WRITE remaining_bytes: %d" bc.remaining_bytes; 
           print_newline (); *)
-      ) !write_bandwidth_controlers
-  );
+  ) !write_bandwidth_controlers
+  
+let _ =
+  add_infinite_timer 1.0 reset_bandwidth_controlers;
 
   set_before_select_hook (fun _ ->
       List.iter (fun bc ->
@@ -665,7 +733,7 @@ let _ =
               if bc.remaining_bytes > 0 then
                 let nconnections = maxi bc.nconnections 1 in
                 let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
-                let can_read = can_read * t.read_power in
+                let can_read = maxi !ip_packet_size (can_read * t.read_power) in
                 let old_nread = t.nread in
                 (try
                     can_read_handler t t.sock (mini can_read 
@@ -684,7 +752,8 @@ let _ =
               if bc.remaining_bytes > 0 then
                 let nconnections = maxi bc.nconnections 1 in
                 let can_write = maxi 1 (bc.remaining_bytes / nconnections) in
-                let can_write = can_write * t.write_power in
+                let can_write = maxi !ip_packet_size (can_write * t.write_power)
+                in
                 let old_nwrite = t.nwrite in
                 (try
 (*                    Printf.printf "WRITE"; print_newline (); *)

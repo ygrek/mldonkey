@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonDownloads
 open Md4
 open CommonInteractive
 open CommonClient
@@ -38,7 +39,39 @@ open LimewireProtocol
 
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
+
+  
+module Download = CommonDownloads.Make(struct 
       
+      type c = client
+      type f = file
+      
+      let file file = as_file file.file_file
+      let client client = as_client client.client_client
+      let subdir_option = commit_in_subdir
+      
+      
+      let client_disconnected d =
+        let c = d.download_client in
+        if !!verbose_clients > 0 then begin
+            Printf.printf "Disconnected from source"; print_newline ();    
+          end;
+        connection_failed c.client_connection_control;
+        set_client_disconnected c;
+        c.client_sock <- None;
+        c.client_file <- None
+      
+      let download_finished d = 
+        let file = d.download_file in
+        current_files := List2.removeq file !current_files;
+        old_files =:= (file.file_name, file_size file) :: !!old_files;
+        List.iter (fun c ->
+            c.client_downloads <- List.remove_assoc file c.client_downloads
+        ) file.file_clients
+        
+    end)
+
+  
 let disconnect_client c =
   match c.client_sock with
     None -> ()
@@ -48,27 +81,11 @@ let disconnect_client c =
             Printf.printf "Disconnected from source"; print_newline ();    
           end;
         connection_failed c.client_connection_control;
-        set_client_state c NotConnected;
+        set_client_disconnected c;
         close sock "closed";
         c.client_sock <- None
       with _ -> ()
           
-let on_close c d =
-  if !!verbose_clients > 0 then begin
-      Printf.printf "Disconnected from source"; print_newline ();    
-    end;
-  connection_failed c.client_connection_control;
-  set_client_state c NotConnected;
-  c.client_sock <- None;
-  c.client_file <- None
-
-let on_finish file d =
-  current_files := List2.removeq file !current_files;
-  old_files =:= (file.file_name, file_size file) :: !!old_files;
-  List.iter (fun c ->
-      c.client_downloads <- List.remove_assoc file c.client_downloads      
-  ) file.file_clients
-
 let is_http_ok header = 
   let pos = String.index header '\n' in
   match String2.split (String.sub header 0 pos) ' ' with
@@ -150,7 +167,7 @@ let client_parse_header c sock header =
                     print_newline ();
                     raise Exit
                   end;
-                set_client_state c Connected_queued;    
+                set_client_state c (Connected true);    
           end else begin
             if !!verbose_clients > 0 then begin
                 Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
@@ -283,18 +300,16 @@ let get_from_client sock (c: client) (file : file) =
       end;
 
   let new_pos = file_downloaded file in
-  write_string sock (Printf.sprintf 
-      "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%Ld-\r\n\r\n" index file.file_name new_pos);
-  let d = CommonDownloads.new_download sock (as_client c.client_client)
-    (as_file file.file_file) 
-    
-(* Read at least 1000 bytes from the client before accepting the stream *)
+  write_string sock (add_simplified_header_fields
+      (Printf.sprintf "GET /get/%d/%s HTTP/1.0\r\n"
+        index file.file_name) 
+    (Printf.sprintf "Range: bytes=%Ld-\r\n\r\n" new_pos));
+    let d = Download.new_download sock 
+    c
+    file
     (mini
         (Int64.to_int (Int64.sub (file_size file) (file_downloaded file)))
       1000)
-    
-    (on_close c)
-    (on_finish file) commit_in_subdir
   in
   c.client_file <- Some d;
   Printf.printf "Asking %s For Range %Ld" (Md4.to_string c.client_user.user_uid) new_pos; print_newline ();
@@ -347,10 +362,9 @@ an upload request *)
                 set_reader sock (handler !!verbose_clients (friend_parse_header c)
                   (gnutella_handler parse (client_to_client c))
                 );
-                let s = Printf.sprintf 
-                    "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
-                    (Ip.to_string (DO.client_ip (Some sock))) !!client_port
-                    (Ip.to_string ip)
+                let s = add_header_fields 
+                    "GNUTELLA CONNECT/0.6\r\n" sock 
+                    (Printf.sprintf "Remote-IP: %s\r\n\r\n" (Ip.to_string ip))
                 in
 (*
         Printf.printf "SENDING"; print_newline ();
@@ -366,7 +380,7 @@ an upload request *)
                 let d = get_from_client sock c file in
                 set_reader sock (handler !!verbose_clients
                     (client_parse_header c) 
-                  (CommonDownloads.download_reader d));
+                  (Download.download_reader d));
                 
         
           
@@ -464,7 +478,7 @@ let client_reader2 c sock nread =
       match c.client_file with
         None -> assert false
       | Some d ->
-          CommonDownloads.download_reader d sock nread
+          Download.download_reader d sock nread
       
 let listen () =
   try

@@ -59,6 +59,10 @@ let commit_in_subdir = define_option limewire_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "LimeWire"
   
+let user_agent = define_option limewire_ini ["user_agent"]
+  "The User-Agent mldonkey identifies itself as"
+    string_option "MLDonkey 2.02-9"
+  
 
 let max_known_ultrapeers = define_option limewire_ini ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"

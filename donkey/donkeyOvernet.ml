@@ -212,9 +212,13 @@ let gui_overnet_options_panel =
     "Search for keywords", shortname overnet_search_keyword, "B";
     "Search Timeout", shortname overnet_search_timeout, "T";
     "Search Internal Period", shortname overnet_query_peer_period, "T";
-    "Verbose", shortname verbose_overnet, "B";
     "Search Max Hits", shortname overnet_max_search_hits, "T";
   ]
+      
+let overnet_options_version = 
+  define_option downloads_ini ["overnet_options_version"] 
+    "(internal)"
+    int_option 0
   
 let udp_sock = ref None  
 let tcp_sock = ref None
@@ -230,13 +234,13 @@ let udp_send ip port msg =
         buf_int8 buf 227;
         DonkeyProtoOvernet.write buf msg;
         let s = Buffer.contents buf in
-        if !!verbose_overnet then 
+        if !verbose_overnet then 
           begin            
 (*Too much traffic for a correct debug*)
             if (get_int8 s 1) <> 15 && (get_int8 s 1) <> 14 && (get_int8 s 1) <> 19 then
               begin
                 
-                if !!verbose_overnet then begin
+                if !verbose_overnet then begin
                     Printf.printf "Sending UDP to %s:%d type %d (0x%02X)" 
                       (Ip.to_string ip) port (get_int8 s 1) (get_int8 s 1);
                     print_newline ();
@@ -367,7 +371,7 @@ let add_global_peer peer =
 	    end
 	end
       else
-        if !!verbose_overnet then
+        if !verbose_overnet then
         begin
 	      Printf.printf "Tried to add myself as a peer: %s/%s %s/%s\n" 
 	        (Ip.to_string peer.peer_ip) (Ip.to_string (client_ip None))
@@ -398,7 +402,7 @@ let find_new_peers () =
     done
   with _ -> 
       begin
-        if !!verbose_overnet then begin
+        if !verbose_overnet then begin
             Printf.printf "FINDING NEW PEERS"; print_newline ();
           end;
         List.iter (fun a -> udp_send a.peer_ip a.peer_port 
@@ -415,7 +419,7 @@ let automatic_ocl_load force =
       if force || !next_automatic_ocl_load < last_time () then
         begin
           next_automatic_ocl_load := last_time () + 3600;
-          if !!verbose_overnet then begin
+          if !verbose_overnet then begin
               Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
             end;
           List.iter (fun url ->
@@ -552,7 +556,7 @@ let create_keyword_search w =
 let store_published_file md4 file =
   let dist = Md4.xor overnet_md4 md4 in
 
-  if !!verbose_overnet then 
+  if !verbose_overnet then 
     begin
       Printf.printf "PUBLISH at %s (dist=%s)" (Md4.to_string md4) (Md4.to_string dist);
       print_newline ();
@@ -683,7 +687,7 @@ let check_filename q tags =
     | QAndNot (q1, q2) -> (check_iter q1) && (not (check_iter q2))
     | QHasWord s -> 
         begin
-          if !!verbose_overnet then begin
+          if !verbose_overnet then begin
               Printf.printf "%s CONTAINS[%s]" filename s; 
               print_newline ();
             end;
@@ -702,7 +706,7 @@ let udp_client_handler t p =
           peer :: tail ->
             
             let other_ip = ip_of_udp_packet p in
-	    if !!verbose_overnet then begin
+	    if !verbose_overnet then begin
               Printf.printf "sender IP was %s" (Ip.to_string peer.peer_ip); print_newline ();	    
 	    end;
 	    peer.peer_ip <- (change_private_address peer.peer_ip other_ip);
@@ -710,7 +714,7 @@ let udp_client_handler t p =
             peer.peer_last_msg <- last_time ();
 	    add_global_peer peer;
 
-            if !!verbose_overnet then 
+            if !verbose_overnet then 
 	      begin                
                 Printf.printf "Connected to %s:%d" (Ip.to_string peer.peer_ip) peer.peer_port; 
 		print_newline ();
@@ -733,7 +737,7 @@ let udp_client_handler t p =
   | OvernetPublicize (md4, ip, port, kind ) ->
       begin
         let other_ip = ip_of_udp_packet p in
- 	if !!verbose_overnet then
+ 	if !verbose_overnet then
 	  begin
 	    Printf.printf "sender IP was %s - packet was from %s" 
 	      (Ip.to_string ip) (Ip.to_string other_ip); 
@@ -775,7 +779,7 @@ let udp_client_handler t p =
       begin
         let other_ip = ip_of_udp_packet p in
 	let other_port = port_of_udp_packet p in
-	if !!verbose_overnet then 
+	if !verbose_overnet then 
 	  begin
 	    Printf.printf "GET SEARCH RESULT for %s %d %d %d"
 	      (Md4.to_string md4) kind min max;
@@ -812,7 +816,7 @@ let udp_client_handler t p =
 		  else
 		    Printf.printf "BUG: This peer returned results but cannot be found !\n";
 		  
-		  if !!verbose_overnet then 
+		  if !verbose_overnet then 
 		    begin
 		      Printf.printf "SEARCH_PEER(%s): got answer" (Md4.to_string md4);
 		      print_newline ();
@@ -864,7 +868,7 @@ let udp_client_handler t p =
 			  begin
                             match String2.split_simplify bcp2 ':' with
                             | [_;ip;port] ->
-				if !!verbose_overnet then begin
+				if !verbose_overnet then begin
 				  Printf.printf "FIXME: Received a BCP type 2 %s for MD4 %s, port=%d"
 				    bcp (Md4.to_string md4) 4662;
 				  print_newline ();
@@ -956,14 +960,14 @@ let udp_client_handler t p =
 
   | OvernetGetMyIPDone -> ()
   | _ -> 
-      if !!verbose_overnet then begin
+      if !verbose_overnet then begin
 	Printf.printf "UNUSED MESSAGE"; print_newline ()
       end
     
 let query_min_peer s =
   try
     let (d,p) as e = XorSet.min_elt s.search_not_asked_peers in
-    if !!verbose_overnet then 
+    if !verbose_overnet then 
       begin
         Printf.printf "SEARCH(%s): Query a not asked peer at distance %s"
           (Md4.to_string s.search_md4) (Md4.to_string d); 
@@ -1021,7 +1025,7 @@ let query_next_peers () =
         ( (s.search_last_insert + !!overnet_search_timeout < last_time ()) && not_asked_card=0 ) ||
         (  not_asked_card = 0 && asked_card = 0 ) then 
         begin
-          if !!verbose_overnet then begin              
+          if !verbose_overnet then begin              
               Printf.printf "Search for %s finished (%d hits %d results)"
                 (Md4.to_string s.search_md4) s.search_hits s.search_nresults;
               print_newline ();
@@ -1044,7 +1048,7 @@ let do_publish_shared_files () =
       [] -> () 
     | file::tail -> 
         begin
-          if !!verbose_overnet then
+          if !verbose_overnet then
             begin
               Printf.printf "OVERNET: I am publishing a file";
               print_newline ();
@@ -1077,6 +1081,16 @@ let check_curent_downloads () =
     ) !DonkeyGlobals.current_files
 
 let enable enabler = 
+  
+  if !!overnet_options_version < 1 then begin
+  
+      gui_overnet_options_panel =:= 
+        ("Enable Overnet", shortname enable_overnet, "B")
+      :: !!gui_overnet_options_panel;
+  
+      overnet_options_version =:= 1;    
+    end;
+  
   let sock = (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
       (!!overnet_port) (udp_handler udp_client_handler)) in
   udp_sock := Some sock;
@@ -1104,54 +1118,69 @@ let enable enabler =
 
 (* every 3min try a new publish search, if any *)
   add_session_timer enabler 180. (fun _ ->
-      find_new_peers ();
-      do_publish_shared_files ();
+      if !!enable_overnet then begin
+          find_new_peers ();
+          do_publish_shared_files ();
+        end
   );
   
   add_session_timer enabler 1. (fun _ ->
-      match !boot_peers with
-        [] -> ()
-      | _ ->
-          for i = 1 to 5 do
-            match !boot_peers with
-              [] -> ()
-            | (ip, port) :: tail ->
-                boot_peers := tail;
-                udp_send ip port (OvernetConnect(overnet_md4,client_ip None,
-                    !overnet_client_port, 0));
-          done
-          
+      if !!enable_overnet then begin
+          match !boot_peers with
+            [] -> ()
+          | _ ->
+              for i = 1 to 5 do
+                match !boot_peers with
+                  [] -> ()
+                | (ip, port) :: tail ->
+                    boot_peers := tail;
+                    udp_send ip port (OvernetConnect(overnet_md4,client_ip None,
+                        !overnet_client_port, 0));
+              done
+        end
   );
   
-  add_session_option_timer enabler 
-    overnet_query_peer_period query_next_peers;
-
-  (* every 3h for re-publish and cleaning *)
+  add_session_option_timer enabler overnet_query_peer_period  (fun _ ->
+      if !!enable_overnet then begin
+          query_next_peers ();
+        end
+  );
+(* every 3h for re-publish and cleaning *)
   add_session_timer enabler 10800. (fun _ ->
-      remove_old_global_peers ();
-      publish_shared_files ()
+      if !!enable_overnet then begin
+          remove_old_global_peers ();
+          publish_shared_files ()
+        end
   );
 
-  (* every 30min for common operations *)
+(* every 30min for common operations *)
   add_session_timer enabler 1800. (fun _ ->
-      recover_all_files ();
+      if !!enable_overnet then begin
+          recover_all_files ();
+        end
   );
 
-  (* every 15min for light operations *)
+(* every 15min for light operations *)
   add_session_timer enabler 900. (fun _ ->
-      publicize_peers ();
-      check_curent_downloads ();
+      if !!enable_overnet then begin
+          publicize_peers ();
+          check_curent_downloads ();
+        end
   );
 
   (* 1st time timers : we cannot afford waiting too much to get connected *)
   add_timer 50. (fun timer -> 
-    publicize_peers ()
+      if !!enable_overnet then begin
+          publicize_peers ()
+        end
   );
 
   add_timer 20. (fun timer -> 
-    find_new_peers (); 
+      if !!enable_overnet then begin
+          find_new_peers (); 
     (*publish is in fact controled by do_publish_shared_files, every 2 min*)   
-    publish_shared_files ()
+          publish_shared_files ()
+        end
   )
   
 let _ =
@@ -1320,7 +1349,7 @@ let _ =
             name :: port :: _ ->
               let ip = Ip.from_name name in
                 let port = int_of_string port in
-                if !!verbose_overnet then begin
+                if !verbose_overnet then begin
                     Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
                     print_newline ();
                   end;

@@ -239,16 +239,19 @@ module Part = struct
                 absents := (!start_pos, p) :: !absents;
             | _ -> ()
       ) tags;
+      let absents = List.sort (fun (s1,e1) (s2,e2) ->
+            compare s1 s2
+        ) !absents in
       {
         md4 = md4;
         blocks = blocks;
         tags = tags;
-        absents = !absents;
+        absents = absents;
       }
     
     let read s =
       assert (get_int8 s 0 = 224);
-      assert (get_int s 1 = 0);
+      (* assert (get_int s 1 = 0); *)
       read_file s 5
     
     let write buf file =

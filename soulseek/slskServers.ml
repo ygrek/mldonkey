@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open SlskProtocol
 open CommonResult
 open BasicSocket
@@ -44,10 +45,17 @@ let disconnect_server s =
   | Some sock ->
       close sock "";
       s.server_sock <- None;
-      set_server_state s NotConnected;
+      set_server_state s (NotConnected false);
       connected_servers := List2.removeq s !connected_servers
 
 let server_to_client s m sock =
+  
+  if !verbose_msg_servers then begin
+      Printf.printf "Message from server"; print_newline ();
+      S2C.print m;
+      print_newline ();
+    end;
+  
   match m with
   | S2C.LoginAckReq t ->
       set_rtimeout sock 300.;
@@ -64,7 +72,7 @@ let server_to_client s m sock =
         
       end
   | S2C.RoomListReq t ->
-      set_server_state s Connected_idle;
+      set_server_state s (Connected false);
       connected_servers := s :: !connected_servers;
       List.iter (fun (name, nusers) ->
           let room = new_room name in
@@ -164,7 +172,7 @@ let connect_server s =
               (Printexc2.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             s.server_sock <- None;
-            set_server_state s NotConnected;
+            set_server_state s (NotConnected false);
             connection_failed s.server_connection_control
               
 let recover_files () = ()
@@ -187,7 +195,8 @@ let ask_for_file file =
   
 let ask_for_files () =
   Hashtbl.iter (fun _ file ->
-      ask_for_file file
+      if file_state file = FileDownloading then
+        ask_for_file file
   ) files_by_key
 
 let servers_line = "--servers"

@@ -38,7 +38,27 @@ open LimewireComplexOptions
 module DG = CommonGlobals
 module DO = CommonOptions
 
+let bloom_hash_magic = Int32.of_string  "0x4F1BBCDC"
+let bloom_hash_magic_int64 =  Int32ops.int64_of_uint32 bloom_hash_magic
 
+let bloom_hash_fast x bits =
+  let xx = Int32ops.int64_of_uint32 x in
+  let prod = Int64.mul xx bloom_hash_magic_int64 in
+  let ret = Int64.shift_left prod  32 in     (* prod << 32 *)
+  Int64.shift_right_logical ret (32 + (32 - bits))   (* ret >>> (32 + (32 - bits))  *)
+
+let bloom_hash_full s pos len bits =
+  let xor = ref Int32.zero in
+  let j = ref 0 in
+  for i = pos to len - 1 do
+    let b = Int32.of_int (int_of_char (Char.lowercase s.[i])) in
+    let b = Int32.shift_left b (!j * 8) in
+    xor := Int32.logxor !xor b;
+    j := (!j+1) mod 4;
+  done;
+  bloom_hash_fast !xor bits
+  
+let bloom_hash s bits = bloom_hash_full s 0 (String.length s) bits
   
 let send_query min_speed keywords xml_query =
   let module Q = Query in
@@ -205,7 +225,7 @@ print_newline ();
   *)
       close sock "timeout";
       s.server_sock <- None;
-      set_server_state s NotConnected;
+      set_server_state s (NotConnected false);
       decr nservers;
       if List.memq s !connected_servers then begin
           connected_servers := List2.removeq s !connected_servers;
@@ -324,7 +344,7 @@ begin
                   (Ip.to_string s.server_ip) s.server_port;
                 print_newline (); *)
             write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
-            set_server_state s Connected_idle;
+            set_server_state s (Connected false);
             recover_files_from_server sock
       end else 
     if String2.starts_with header gnutella_503_shielded then begin
@@ -478,10 +498,10 @@ let connect_server (ip,port) =
 (*            Printf.printf "CLOSER %s" error; print_newline ();*)
             disconnect_from_server s);
         set_rtimeout sock !!server_connection_timeout;
-        let s = Printf.sprintf 
-          "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
-          (Ip.to_string (DO.client_ip (Some sock))) !!client_port
-            (Ip.to_string s.server_ip)
+        let s = add_header_fields 
+            "GNUTELLA CONNECT/0.6\r\n" sock 
+            (Printf.sprintf "Remote-IP: %s\r\n\r\n"
+              (Ip.to_string s.server_ip))
         in
 (*
         Printf.printf "SENDING"; print_newline ();

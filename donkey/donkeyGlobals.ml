@@ -989,9 +989,10 @@ let _ =
 
 let string_of_file_state s =
   match  s with
-  |  FileDownloading -> "FileDownloading"
-  | FilePaused -> "FilePaused"
-  | FileDownloaded -> "FileDownloaded"
-  | FileShared     -> "FileShared"
-  | FileCancelled -> "FileCancelled"
-  | FileNew -> "FileNew"
+  | FileDownloading -> "File Downloading"
+  | FilePaused -> "File Paused"
+  | FileDownloaded -> "File Downloaded"
+  | FileShared     -> "File Shared"
+  | FileCancelled -> "File Cancelled"
+  | FileNew -> "File New"
+  | FileAborted s -> Printf.sprintf "Aborted: %s" s

@@ -97,4 +97,4 @@ let _ =
       });
   network.op_network_share <- CommonUploads.add_shared;
   CommonInteractive.register_gui_options_panel 
-  "DC" !!gui_dc_options_panel;
+  "DC" gui_dc_options_panel;

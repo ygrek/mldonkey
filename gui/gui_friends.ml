@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Options
 open Gettext
 open CommonTypes
 open GuiTypes
@@ -34,19 +35,21 @@ let (!!) = Options.(!!)
 
 let string_color_of_state state =
   match state with
-  | Connected_busy -> gettext M.downloading, Some !!O.color_downloading 
-  | Connected_idle -> gettext M.connected, Some !!O.color_connected 
+  | Connected_downloading -> gettext M.downloading, Some !!O.color_downloading 
+  | Connected false -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
-  | NotConnected -> "Not connected", None
+  | NotConnected false -> "", None
   | NewHost -> "NEW HOST", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
-  | Connected_queued -> gettext M.queued, Some !!O.color_not_connected
+  | Connected true -> gettext M.queued, Some !!O.color_connected
+  | NotConnected true -> "Queued out",  Some !!O.color_not_connected
   | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
   | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
       
-let string_color_of_client c =
+let string_color_of_client friend_tab c =
   match c.client_files with
-    Some _ -> gettext M.o_col_files_listed, Some !!O.color_downloading 
+    Some _ when friend_tab -> 
+      gettext M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
 let shorten maxlen s =
@@ -101,8 +104,8 @@ class dialog friend =
 
 end
 
-class box columns () =
-  let titles = List.map Gui_columns.Client.string_of_column columns in
+class box columns friend_tab =
+  let titles = List.map Gui_columns.Client.string_of_column !!columns in
   object (self)
     inherit [client_info] Gpattern.plist `EXTENDED titles true (fun c -> c.client_num) as pl
       inherit Gui_friends_base.box () as box
@@ -110,9 +113,46 @@ class box columns () =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.Client.string_of_column columns);
+      self#set_titles (List.map Gui_columns.Client.string_of_column !!columns);
       self#update
-    
+      
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                                                      (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+
+                  
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Client.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Client.column_strings));
+      ]
+
+      
     method coerce = box#vbox#coerce
     
     method compare_by_col col f1 f2 =
@@ -127,7 +167,7 @@ class box columns () =
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-        try List.nth columns (abs - 1) 
+        try List.nth !!columns (abs - 1) 
         with _ -> Col_client_name
       in
       let res = self#compare_by_col col f1 f2 in
@@ -136,7 +176,7 @@ class box columns () =
     method content_by_col f col =
       match col with
         Col_client_name -> shorten !!O.max_client_name_len f.client_name
-      | Col_client_state -> fst (string_color_of_client f)
+      | Col_client_state -> fst (string_color_of_client friend_tab f)
       | Col_client_type -> (match f.client_type with
               FriendClient -> gettext M.friend
             | ContactClient -> gettext M.contact
@@ -150,10 +190,10 @@ class box columns () =
     method content f =
       let strings = List.map 
 	  (fun col -> P.String (self#content_by_col f col))
-	  columns 
+	  !!columns 
       in
       let col_opt = 
-	match snd (string_color_of_client f) with
+	match snd (string_color_of_client friend_tab f) with
 	  None -> Some `BLACK
 	| Some c -> Some (`NAME c)
       in
@@ -172,9 +212,9 @@ let is_filtered c =
   List.memq c.client_network !Gui_global.networks_filtered
 
 
-class box_friends box_files () =
+class box_friends box_files friend_tab =
   object (self)
-    inherit box !!O.friends_columns ()
+    inherit box O.friends_columns friend_tab
     
     method filter = is_filtered    
     
@@ -282,12 +322,12 @@ let colorWhite =`WHITE
 let colorBlack = `BLACK
 
 
-class box_list (client_info_box : GPack.box) =
+class box_list (client_info_box : GPack.box) friend_tab =
   let vbox_list = GPack.vbox () in
   let label_locs = GMisc.label () in
   
   object (self)
-    inherit box !!O.file_locations_columns () as prebox
+    inherit box O.file_locations_columns friend_tab as prebox
     
     method coerce = vbox_list#coerce
     
@@ -503,7 +543,7 @@ done;
 
 class pane_friends () =
   let files = new Gui_results.box_dir_files () in
-  let friends = new box_friends files () in
+  let friends = new box_friends files true in
   let wnote_chat = GPack.notebook () in
   let wpane2 = GPack.paned `VERTICAL () in
   object (self)

@@ -121,3 +121,11 @@ val not_buffer_more : t -> int -> bool
 val nread : t -> int
 val nwritten : t -> int
   
+val accept_connection_bandwidth :
+  bandwidth_controler ->  bandwidth_controler -> unit 
+  
+val ip_packet_size : int ref
+val mtu_packet_size : int ref
+  
+val remove_ip_packet : bandwidth_controler -> unit
+  

@@ -213,7 +213,13 @@ let set_client_state c state =
       impl.impl_client_state <- state;
       client_must_update_state c
     end
-  
+
+let set_client_disconnected c =
+  let impl = as_client_impl c in
+  match impl.impl_client_state with
+    Connected true -> set_client_state c (NotConnected true)
+  | _ ->  set_client_state c (NotConnected false)
+    
 let new_client (client : 'a client_impl) =
   incr client_counter;
   client.impl_client_num <- !client_counter;

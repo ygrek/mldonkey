@@ -265,11 +265,11 @@ let enable () =
         (Printexc2.to_string e); print_newline ()
 
 let _ =
-  
+
 (*  DonkeyFiles.install_hooks (); *)
   DonkeyIndexer.init ();
-  
-  (*
+
+(*
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 
         (DonkeyInteractive.saved_name file);
@@ -288,5 +288,43 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  CommonInteractive.register_gui_options_panel "eDonkey" !!gui_donkey_options_panel;
-  CommonInteractive.register_gui_options_panel "Overnet" !!DonkeyOvernet.gui_overnet_options_panel;
+  CommonInteractive.register_gui_options_panel "eDonkey" gui_donkey_options_panel;
+  CommonInteractive.register_gui_options_panel "Overnet" DonkeyOvernet.gui_overnet_options_panel
+
+  
+let _ =
+  CommonInteractive.add_main_options
+    
+    [
+    "-dump", Arg.String (fun file -> 
+        DonkeyImport.dump_file file), " <filename> : dump file";
+    "-known", Arg.String (fun file ->
+        let module K = DonkeyImport.Known in
+        let s = File.to_string file in
+        let t = K.read s in
+        K.print t;
+        print_newline ();
+    ), " <filename> : print a known.met file";
+    "-part", Arg.String (fun file ->
+        let module K = DonkeyImport.Part in
+        let s = File.to_string file in
+        let t = K.read s in
+        K.print t;
+        print_newline ();
+    ), " <filename> : print a .part.met file";
+    "-server", Arg.String (fun file ->
+        let module K = DonkeyImport.Server in
+        let s = File.to_string file in
+        let t = K.read s in
+        K.print t;
+        print_newline ();
+        exit 0
+    ), " <filename> : print a server.met file";
+    "-pref", Arg.String (fun file ->
+        let module K = DonkeyImport.Pref in
+        let s = File.to_string file in
+        let t = K.read s in
+        K.print t;
+        print_newline ();
+    ), " <filename> : print a server.met file";
+  ]

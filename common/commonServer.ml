@@ -304,7 +304,15 @@ let server_print s o =
 ) info.G.server_tags;
   *)
     Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
-      (if impl.impl_server_state <> NotConnected then "Connected" else "");
+      (match impl.impl_server_state with
+        NotConnected true -> "Queued Out"
+      | Connected  true -> "Queued In"
+      | Connecting -> "Connecting"
+      | Connected_initiating -> "Initiating"
+      | Connected_downloading -> "Downloading"
+      | Connected false -> "Connected"
+      | NotConnected false -> ""
+      | _ -> "");
     Buffer.add_char buf '\n'
   with e -> 
       Printf.printf "Exception %s in CommonServer.server_print"

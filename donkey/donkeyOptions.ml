@@ -229,11 +229,6 @@ let random_order_download =
   "Should we try to download chunks in random order (false = linearly) ?"
     bool_option false
       
-let verbose_overnet = 
-  define_option donkey_ini ["verbose_overnet"] 
-    "Should overnet be verbose ?"
-    bool_option false
-
 let connected_server_timeout = 
   define_option donkey_ini ["connected_server_timeout"]
     "How long can a silent server stay connected"

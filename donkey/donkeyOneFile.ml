@@ -39,10 +39,11 @@ open DonkeyGlobals
   
 let client_state t =
   match t with
-    Connected_queued -> "Queued"
-  | NotConnected -> "Disconnected"
-  | Connected_idle -> "Connected"
-  | Connected_busy -> "Donkeying"
+    Connected false -> "Connected"
+  | NotConnected false -> ""
+  | Connected true -> "Queued"
+  | NotConnected true -> "Queued out"
+  | Connected_downloading -> "Downloading"
   | Connecting -> "Connecting"
   | Connected_initiating -> "Initiating"
   | RemovedHost -> "Removed"
@@ -176,7 +177,7 @@ let query_zones c b =
           | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
-      set_read_power sock (c.client_power + file_priority file);
+      set_read_power sock (c.client_power + maxi 0 (file_priority file));
       if !!max_hard_download_rate <> 0 then begin
 (*          Printf.printf "CLIENT: put in download fifo"; print_newline (); *)
         Fifo.put download_fifo (sock, msg, len)
@@ -609,7 +610,7 @@ and restart_download c =
                 M.QueryChunkMd4Req file.file_md4);
             end;                   
           set_rtimeout sock !!queued_timeout;
-          set_client_state c Connected_queued
+          set_client_state c (Connected true)
 
 and find_client_block c =
 (* find an available block *)

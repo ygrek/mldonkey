@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Options
 open Gettext
 open CommonTypes
 open GuiTypes
@@ -41,7 +42,7 @@ end
 
 class rooms_box columns () =
   
-  let titles = List.map Gui_columns.Room.string_of_column columns in 
+  let titles = List.map Gui_columns.Room.string_of_column !!columns in 
   object (self)
     inherit [GuiTypes.room_info] Gpattern.filtered_plist `SINGLE titles true
     (fun r -> r.room_num) as pl
@@ -50,8 +51,46 @@ class rooms_box columns () =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.Room.string_of_column columns);
+      self#set_titles (List.map Gui_columns.Room.string_of_column !!columns);
       self#update
+
+      
+      
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                                                      (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+
+                  
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Room.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.Room.column_strings));
+      ]
 
     method filter r =
       match r.room_state with
@@ -68,7 +107,7 @@ class rooms_box columns () =
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-        try List.nth columns (abs - 1) 
+        try List.nth !!columns (abs - 1) 
         with _ -> Col_room_name
       in
       let res = self#compare_by_col col f1 f2 in
@@ -83,7 +122,7 @@ class rooms_box columns () =
     method content f =
       let strings = List.map 
           (fun col -> P.String (self#content_by_col f col))
-        columns 
+        !!columns 
       in
       let col_opt = Some `BLACK      in
       (strings, col_opt)
@@ -112,7 +151,7 @@ end
 class opened_rooms_box on_select =
   object (self)
     
-    inherit rooms_box !!O.rooms_columns  () as box_rooms
+    inherit rooms_box O.rooms_columns  () as box_rooms
     
     method add_room room =
       box_rooms#add_room room;
@@ -134,7 +173,7 @@ end
 class paused_rooms_box () =
   object (self)
 
-    inherit rooms_box !!O.rooms_columns  () as box_rooms
+    inherit rooms_box O.rooms_columns  () as box_rooms
     
     method on_double_click room = 
       Gui_com.send (GuiProto.SetRoomState (room.room_num, RoomOpened))      

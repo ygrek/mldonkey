@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Options
 open Gettext
 open CommonTypes
 open GuiTypes
@@ -31,7 +32,7 @@ module O = Gui_options
 let (!!) = Options.(!!)
 
 class box columns () =
-  let titles = List.map Gui_columns.User.string_of_column columns in 
+  let titles = List.map Gui_columns.User.string_of_column !!columns in 
   object (self)
     inherit [GuiTypes.user_info] Gpattern.plist `EXTENDED titles true (fun s -> s.user_num) as pl
       inherit Gui_users_base.box () as box
@@ -39,8 +40,43 @@ class box columns () =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.User.string_of_column columns);
+      self#set_titles (List.map Gui_columns.User.string_of_column !!columns);
       self#update
+    
+    
+    method column_menu  i = 
+      [
+        `I ("Sort", self#resort_column i);
+        `I ("Remove Column",
+          (fun _ -> 
+              match !!columns with
+                _ :: _ :: _ ->
+                  (let l = !!columns in
+                    match List2.cut i l with
+                      l1, _ :: l2 ->
+                        columns =:= l1 @ l2;
+                        self#set_columns columns
+                    | _ -> ())
+              | _ -> ()
+          )
+        );
+        `M ("Add Column After", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut (i+1) !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.User.column_strings));
+        `M ("Add Column Before", (
+            List.map (fun (c,s) ->
+                (`I (s, (fun _ -> 
+                        let c1, c2 = List2.cut i !!columns in
+                        columns =:= c1 @ [c] @ c2;
+                        self#set_columns columns
+                    )))
+            ) Gui_columns.User.column_strings));
+      ]
     
     
     method compare_by_col col f1 f2 =
@@ -53,7 +89,7 @@ class box columns () =
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth columns (abs - 1) 
+	try List.nth !!columns (abs - 1) 
 	with _ -> Col_user_name
       in
       let res = self#compare_by_col col f1 f2 in
@@ -69,7 +105,7 @@ class box columns () =
     method content f =
       let strings = List.map 
 	  (fun col -> P.String (self#content_by_col f col))
-	  columns 
+	  !!columns 
       in
       let col_opt = Some `BLACK      in
       (strings, col_opt)
@@ -110,7 +146,7 @@ class box columns () =
 
 class box_users () =
   object (self)
-    inherit box !!O.users_columns ()
+    inherit box O.users_columns ()
 
     initializer
       ()

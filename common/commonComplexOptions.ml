@@ -500,24 +500,25 @@ MlUnix.fork_and_exec  !!file_completed_cmd
       
 let file_add impl state = 
   try
-  let file = as_file impl in
-  if impl.impl_file_state = FileNew then begin
-      update_file_num impl;
-      (match state with
-          FileDownloaded -> 
-            done_files =:= file :: !!done_files;
-        | FileShared
-        | FileNew
-        | FileCancelled -> ()
-        | FileDownloading
-        | FilePaused -> 
-            files =:= file :: !!files);
-      update_file_state impl state
-    end
+    let file = as_file impl in
+    if impl.impl_file_state = FileNew then begin
+        update_file_num impl;
+        (match state with
+            FileDownloaded -> 
+              done_files =:= file :: !!done_files;
+          | FileShared
+          | FileNew
+          | FileCancelled -> ()
+          | FileAborted _
+          | FileDownloading
+          | FilePaused -> 
+              files =:= file :: !!files);
+        update_file_state impl state
+      end
   with e ->
       Printf.printf "Exception in file_add: %s" (Printexc2.to_string e);
       print_newline ()
-  
+      
 let server_remove server =
   try
     let impl = as_server_impl server in
@@ -536,7 +537,7 @@ let server_add impl =
   if impl.impl_server_state = NewHost then begin
       server_update_num impl;
       servers =:= Intmap.add (server_num server) server !!servers;
-      impl.impl_server_state <- NotConnected;
+      impl.impl_server_state <- NotConnected false
     end
 
 let contacts = ref []

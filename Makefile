@@ -22,11 +22,6 @@ ICONS_CHOICE=kde
 
 ##################################################################
 
-
-GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
-GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
-GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
-
 NO_LIBS_byte=str.cma
 NO_LIBS_opt=str.cmxa
 NO_STATIC_LIBS_opt=str.cmxa
@@ -44,7 +39,7 @@ LIBS_opt= unix.cmxa str.cmxa
 
 SUBDIRS=cdk chat lib net tools common driver mp3tagui config/$(OS_FILES)
 
-INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
+INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
@@ -64,7 +59,8 @@ CDK_SRCS=\
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
-  cdk/heap_c.c cdk/array2.ml cdk/sort2.ml 
+  cdk/heap_c.c cdk/array2.ml cdk/sort2.ml \
+  cdk/xmllex.mll cdk/xmlyacc.mly cdk/xml.ml
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -366,7 +362,12 @@ MLNET_SRCS= \
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += gui gui2 configwin okey gpattern icons/$(ICONS_CHOICE)
+SUBDIRS += gui gui2 configwin okey gpattern icons/$(ICONS_CHOICE) +lablgtk
+
+GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
+GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
+GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
+
 
 CONFIGWIN_SRCS=configwin/configwin_types.ml \
   configwin/configwin_messages.ml \

@@ -45,7 +45,7 @@ let disconnect_client c =
       connection_failed c.client_connection_control;      
       Printf.printf "CLOSE SOCKET"; print_newline ();
       close sock "client close";
-      set_client_state c NotConnected;
+      set_client_disconnected c;
       if c.client_files = [] then
         remove_client c
 

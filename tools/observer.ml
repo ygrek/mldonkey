@@ -68,9 +68,6 @@ char[len]: packets
 let new_servers = ref []
 let new_peers = ref []
 
-let entries = Hashtbl.create 997
-  
-  
   
 let print_record t ip_firewall s =
   let ip = get_ip s 1 in

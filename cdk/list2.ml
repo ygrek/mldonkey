@@ -38,6 +38,18 @@ let rec remove_rec ele list tail =
         
 let remove ele list =
   remove_rec ele list []
+
+let rec remove_one_rec ele list tail =
+  match list with
+    [] -> List.rev tail
+  | e :: list ->
+      if e = ele then 
+        List.rev_append tail list
+      else
+        remove_one_rec ele list (e :: tail)
+        
+let remove_one ele list =
+  remove_rec ele list []
   
 let rec removeq_first ele list =
   match list with

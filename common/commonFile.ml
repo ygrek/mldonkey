@@ -36,7 +36,7 @@ type 'a file_impl = {
     mutable impl_file_last_downloaded : (int64 * int) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
-    mutable impl_file_priority: int;
+    mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
     mutable impl_file_last_seen : int;
   }
 
@@ -62,6 +62,7 @@ it will happen soon. *)
     mutable op_file_recover : ('a -> unit);
     mutable op_file_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
+    mutable op_file_set_priority : ('a -> int -> unit);
   }
 
   
@@ -94,7 +95,7 @@ let dummy_file_impl = {
     impl_file_last_downloaded = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
-    impl_file_priority = 10;
+    impl_file_priority = 0;
     impl_file_last_seen = 0;
   }
   
@@ -190,10 +191,11 @@ let file_pause (file : file) =
 
 let file_resume (file : file) =
   let file = as_file_impl file in
-  if file.impl_file_state = FilePaused then begin
+  match file.impl_file_state with
+    FilePaused | FileAborted _ ->
       update_file_state file FileDownloading;
       file.impl_file_ops.op_file_resume file.impl_file_val
-    end
+  | _ -> ()
 
 let file_best_name (file : file) =
   let file = as_file_impl file in
@@ -242,6 +244,7 @@ let new_file_ops network =
       op_file_set_format = (fun _ -> fni network "file_set_format");
       op_file_sources = (fun _ -> fni network "file_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
+      op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
     }
   in
   let ff = (Obj.magic f : int file_ops) in
@@ -422,6 +425,10 @@ let file_network file =
 let file_priority file = 
   (as_file_impl file).impl_file_priority
   
-let set_file_priority file p = 
-  (as_file_impl file).impl_file_priority <- p
-  
+let file_set_priority file p = 
+  let impl = as_file_impl file in
+  if impl.impl_file_priority <> p then begin
+      impl.impl_file_priority <- p;      
+      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;      
+      file_must_update file
+    end

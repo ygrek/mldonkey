@@ -214,7 +214,7 @@ let value_to_state v =
 
 let state_to_value s = 
   match s with
-  | FilePaused -> StringValue "Paused"
+  | FilePaused | FileAborted _ -> StringValue "Paused"
   | FileDownloaded -> StringValue "Downloaded"
   | _ -> StringValue "Downloading"
 

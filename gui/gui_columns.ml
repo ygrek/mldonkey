@@ -37,6 +37,7 @@ module Make(M: sig
     let strings_column () = 
       List.map (fun (c,s) -> (s,c)) (M.column_strings ())
 *)
+    let column_strings = M.column_strings
     
     let string_of_column c = 
       List.assoc c M.column_strings

@@ -100,7 +100,7 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  CommonInteractive.register_gui_options_panel "LimeWire" !!gui_limewire_options_panel
+  CommonInteractive.register_gui_options_panel "LimeWire" gui_limewire_options_panel
   
   
 let main (toto: int) = ()

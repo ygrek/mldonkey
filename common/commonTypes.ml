@@ -72,16 +72,17 @@ type query_entry =
   
     
 type host_state =
-  NotConnected
+| NotConnected of bool (* Queued or not ... *)
 | Connecting
 | Connected_initiating
-| Connected_busy
-| Connected_idle
-| Connected_queued
+| Connected of bool    (* Queued or not *)
+| Connected_downloading
   
 | NewHost
 | RemovedHost
 | BlackListedHost
+
+  
   
 type connection_control = {
     mutable control_last_ok : int;
@@ -220,6 +221,8 @@ type file_state =
   
 | FileCancelled
 | FileNew
+
+| FileAborted of string
   
 let version = 19
   
@@ -323,4 +326,15 @@ type tagged_file =  {
     f_port: int;
     f_tags: tag list;
   }
+
   
+let is_connected state =
+  match state with
+  | Connected_initiating
+  | Connected_downloading
+  | Connected _ -> true
+  | NotConnected _
+  | Connecting
+  | NewHost
+  | BlackListedHost
+  | RemovedHost -> false

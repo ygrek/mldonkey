@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonFile
 open Md4
 open CommonGlobals
 open CommonTypes
@@ -140,19 +141,32 @@ let buf_tag buf t =
   | Addr ip -> buf_int8 buf 3; buf_ip buf ip
     
 let buf_host_state proto buf t =
-  buf_int8 buf (    
-    match t with
-      NotConnected -> 0
-    | Connecting -> 1
-    | Connected_initiating -> 2
-    | Connected_busy -> 3
-    | Connected_idle -> 4
-    | Connected_queued -> 5
-    | NewHost -> 6
-    | RemovedHost -> 7
-    | BlackListedHost -> if proto < 10 then 0 else 8)
-     
-  
+  if proto < 12 then
+    buf_int8 buf (    
+      match t with
+      | NotConnected _ -> 0
+      | Connecting -> 1
+      | Connected_initiating -> 2
+      | Connected_downloading -> 3
+      | Connected false -> 4
+      | Connected true -> 5
+      | NewHost -> 6
+      | RemovedHost -> 7
+      | BlackListedHost -> if proto < 10 then 0 else 8)
+  else    
+  match t with
+  | NotConnected false -> buf_int8 buf 0
+  | Connecting -> buf_int8 buf  1
+  | Connected_initiating -> buf_int8 buf 2
+  | Connected_downloading -> buf_int8 buf 3
+  | Connected false -> buf_int8 buf 4
+  | Connected true -> buf_int8 buf 5
+  | NewHost -> buf_int8 buf 6
+  | RemovedHost -> buf_int8 buf 7
+  | BlackListedHost -> buf_int8 buf (if proto < 10 then 0 else 8)
+  | NotConnected true -> buf_int8 buf 9
+      
+    
 let buf_client_type buf t =
   buf_int8 buf (match t with
       NormalClient -> 0
@@ -187,16 +201,20 @@ let buf_room_state buf s =
   buf_int8 buf (match s with RoomOpened -> 0 | 
       RoomClosed -> 1 | RoomPaused -> 2 )
 
-let buf_file_state buf s =
-  buf_int8 buf (match s with
-      FileDownloading -> 0
-    | FilePaused -> 1
-    | FileDownloaded -> 2
-    | FileShared -> 3    
-    | FileCancelled -> 4
-    | FileNew -> 5
-  )
+let buf_file_state proto buf s =
+  match s with
+  | FileDownloading ->   buf_int8 buf 0
+  | FilePaused ->   buf_int8 buf 1
+  | FileDownloaded ->   buf_int8 buf 2
+  | FileShared ->  buf_int8 buf 3    
+  | FileCancelled ->  buf_int8 buf 4
+  | FileNew ->  buf_int8 buf 5
   
+  | FileAborted s -> 
+      if proto < 12 then buf_int8 buf 1 (* File Paused *)
+      else
+        (buf_int8 buf 6; buf_string buf s)
+
 let buf_room proto buf r =
   buf_int buf r.room_num;
   buf_int buf r.room_network;
@@ -252,7 +270,7 @@ let buf_file proto buf f =
   buf_int64_32 buf f.file_downloaded;  
   buf_int buf f.file_nlocations;  
   buf_int buf f.file_nclients;  
-  buf_file_state buf f.file_state;  
+  buf_file_state proto buf f.file_state;  
   buf_string buf f.file_chunks;  
   buf_string buf f.file_availability;  
   buf_float buf f.file_download_rate;  
@@ -262,8 +280,15 @@ let buf_file proto buf f =
   buf_format buf f.file_format;
   if proto >= 8 then begin
       buf_string buf f.file_name;
-      if proto >= 9 then 
-        buf_int buf (compute_last_seen f.file_last_seen)
+      if proto >= 9 then begin
+          let ls = compute_last_seen f.file_last_seen in
+          Printf.printf "last seen %d" ls; print_newline ();
+          buf_int buf ls;
+          if proto >= 12 then begin
+              buf_int buf f.file_priority
+              
+            end
+        end
     end
   
 let buf_addr buf addr =
@@ -600,6 +625,7 @@ let to_gui_funs = [|
     to_gui_version_9; 
     to_gui_version_10; 
     to_gui_version_11; 
+    to_gui_version_11; 
   |]
 
 let to_gui proto = to_gui_funs.(proto) proto
@@ -710,6 +736,7 @@ protocol version. Do not send them! *)
   | GetConnectedServers
   | SetRoomState _ 
   | RefreshUploadStats
+  | SetFilePriority _
     -> raise UnsupportedGuiMessage
     
 let from_gui_version_2 proto buf t = 
@@ -749,8 +776,16 @@ let from_gui_version_4 proto buf t  =
 
 let from_gui_version_7 proto buf t  = 
   match t with
-  | Download_query (list, int, force) -> buf_int16 buf 7;
-      buf_list buf buf_string list; buf_int buf int; buf_bool buf force
+  | Download_query (list, int, force) -> 
+      if proto >= 7 then begin
+          buf_int16 buf 7;
+          buf_list buf buf_string list; buf_int buf int; buf_bool buf force
+        end
+        
+  | SetFilePriority (num, prio) ->
+      if proto >= 12 then
+        buf_int16 buf 51; buf_int buf num; buf_int buf prio
+      
   | _ -> from_gui_version_4 proto buf t
         
 let from_gui_funs = [| 
@@ -761,6 +796,7 @@ let from_gui_funs = [|
     from_gui_version_4; 
     from_gui_version_4; 
     from_gui_version_4; 
+    from_gui_version_7;  
     from_gui_version_7;  
     from_gui_version_7;  
     from_gui_version_7;  
@@ -795,45 +831,45 @@ let _ =
       encoder buf msg;
       let s = Buffer.contents buf in
       let opcode = get_int16 s 0 in
-      decoder opcode s = msg
+      let v = decoder opcode s in
+      if (decoder opcode s <> msg) then begin
+          LittleEndian.dump s;
+          let buf = Buffer.create 1000 in
+          encoder buf msg;
+          let s2 = Buffer.contents buf in
+          LittleEndian.dump s2;
+          if s = s2 then
+            (Printf.printf "s = s2"; print_newline (); false)
+          else
+          let len = String.length s in
+          let len2 = String.length s2 in
+          if len <> len2 then
+            (Printf.printf "different lengths"; print_newline (); false)
+          else
+            (for i = 0 to len-1 do
+                if s.[i] <> s2.[i] then
+                  Printf.printf "diff at pos %d(%d)" i
+                    (int_of_char s.[i]); print_newline ();
+              done;
+              false)
+        end else
+      true
+        
     with e ->
         Printf.printf "Exception %s in check" (Printexc2.to_string e);
         print_newline ();
         false
   in
-  let module P = GuiTypes in
-  let file_info = {
-      P.file_name = "tratra";
-      P.file_num = 356;
-      P.file_network = 873;
-      P.file_names = ["toto"; "tutu"];
-      P.file_md4 = Md4.random ();
-      P.file_size = Int64.of_string "68758765";
-      P.file_downloaded = Int64.of_string "68758764";
-      P.file_nlocations = 12;
-      P.file_nclients = 18;
-      P.file_state = FileDownloading;
-      P.file_sources = None;
-      P.file_download_rate = 2.2;
-      P.file_chunks = "1010100";
-      P.file_availability = "012012210";
-      P.file_format = Unknown_format;
-      P.file_chunks_age = [| 2 |];
-      P.file_age = 3;
-      P.file_last_seen = BasicSocket.last_time ();
-    } 
 (* and    server_info = {
       server_num = 1;
 } *)
-  in
-  
-  let to_gui = to_gui 11 in
+  let to_gui = to_gui 12 in
   let check_to_gui = 
-    check to_gui GuiDecoding.to_gui in
+    check to_gui (GuiDecoding.to_gui 12) in
   assert (check_to_gui (MessageFromClient (32, "Hello")));
-  assert (check_to_gui (File_info file_info));
-  assert (check_to_gui (DownloadFiles [file_info]));
-  assert (check_to_gui (DownloadedFiles [file_info]));
+  assert (check_to_gui (File_info file_info_test)); 
+  assert (check_to_gui (DownloadFiles [file_info_test]));
+  assert (check_to_gui (DownloadedFiles [file_info_test]));  
   assert (check_to_gui (ConnectedServers []));    
   assert (check_to_gui (Room_remove_user (5,6)));
   assert (check_to_gui (Shared_file_upload (1, Int64.zero, 32)));
@@ -843,7 +879,7 @@ let _ =
   assert (check_to_gui (Add_plugin_option ("section", "message", "option", StringEntry )));
   
   let check_from_gui = 
-    check (from_gui 11)  GuiDecoding.from_gui in
+    check (from_gui 12)  GuiDecoding.from_gui in
   assert (check_from_gui (MessageToClient (33, "Bye")));
   assert (check_from_gui (GuiExtensions [1, true; 2, false]));
   assert (check_from_gui GetConnectedServers);

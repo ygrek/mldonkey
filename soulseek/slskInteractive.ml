@@ -74,9 +74,9 @@ let _ =
       let words = String2.unsplit !words ' ' in
       Printf.printf "SEARCH COMPUTED"; print_newline ();
       List.iter (fun s ->
-          let msg = C2S.SearchReq {
-              C2S.Search.words = words;
-              C2S.Search.id = !!next_token;
+          let msg = C2S.FileSearchReq {
+              C2S.FileSearch.words = words;
+              C2S.FileSearch.id = !!next_token;
             } in
           match s.server_sock with
             None -> ()
@@ -187,6 +187,7 @@ let _ =
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
+        P.file_priority = file_priority (as_file file.file_file);
       }    
   );
   (*

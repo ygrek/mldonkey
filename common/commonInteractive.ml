@@ -353,7 +353,7 @@ let keywords_of_query query =
   iter query;
   !keywords
 
-let gui_options_panels = ref ([] : (string * (string * string * string) list) list)
+let gui_options_panels = ref ([] : (string * (string * string * string) list option_record) list)
   
 let register_gui_options_panel name panel =
   if not (List.mem_assoc name !gui_options_panels) then
@@ -377,3 +377,9 @@ let search_add_result s r =
     end
   else
     CommonSearch.Filter.add (as_result r)
+
+let main_options = ref ([] : (string * Arg.spec * string) list)
+  
+let add_main_options list =
+  main_options := !main_options @ list
+  

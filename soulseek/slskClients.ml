@@ -18,6 +18,7 @@
 *)
 
 
+open CommonDownloads
 open CommonInteractive
 open SlskComplexOptions
 open CommonOptions
@@ -45,18 +46,7 @@ open SlskProtocol
 
 let requests = ref 0  
 
-  
-let on_close c d =
-  Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
-  c.client_downloads <- List2.removeq d c.client_downloads
-
-let on_finished  file d =
-  current_files := List2.removeq file !current_files;
-  old_files =:= (file_best_name (as_file file.file_file), file_size file) :: !!old_files;
-  List.iter (fun c ->
-      c.client_files <- List.remove_assoc file c.client_files      
-  ) file.file_clients
-  
+    
 let listen () = ()
       
 let disconnect_peer c =
@@ -73,6 +63,32 @@ let disconnect_result c sock =
   close sock "";
   c.client_result_socks <- List2.removeq sock c.client_result_socks
   
+module Download = CommonDownloads.Make(struct 
+      
+      type c = client
+      type f = file
+      
+      let file file = as_file file.file_file
+      let client client = as_client client.client_client        
+      let subdir_option = commit_in_subdir
+        
+      let client_disconnected d =
+        Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
+        let c = d.download_client in
+        c.client_downloads <- List2.removeq d c.client_downloads
+        
+        
+      let download_finished d =
+        let file = d.download_file in
+        current_files := List2.removeq file !current_files;
+        old_files =:= (file_best_name (as_file file.file_file), 
+          file_size file) :: !!old_files;
+        List.iter (fun c ->
+            c.client_files <- List.remove_assoc file c.client_files      
+        ) file.file_clients
+        
+    end)
+  
 let connect_download c file req =
   try
     match c.client_addr with
@@ -83,13 +99,10 @@ let connect_download c file req =
             (Ip.to_inet_addr ip) port
             (fun _ _ -> ())
         in
-        let  d = CommonDownloads.new_download sock 
-            (as_client c.client_client) (as_file file.file_file)
-          1 (on_close c) (on_finished file) 
-          commit_in_subdir in
-        set_reader sock (CommonDownloads.download_reader d);
+        let  d = Download.new_download sock c file 1 in
+        set_reader sock (Download.download_reader d);
         init_download_connection sock file (login()) req 
-        d.CommonDownloads.download_pos;
+        d.download_pos;
   
   with e ->
       Printf.printf "Exception %s while connecting to client" 
@@ -97,9 +110,12 @@ let connect_download c file req =
       print_newline ()
 
 let client_to_client c t sock =
-  Printf.printf "MESSAGE FROM PEER"; print_newline ();
-  C2C.print t;
-  print_newline ();
+  if !verbose_msg_clients then begin
+      Printf.printf "MESSAGE FROM PEER"; print_newline ();
+      C2C.print t;
+      print_newline ();
+    end;
+  
   match t with
   | C2C.FileSearchResultReq t ->
       begin
@@ -178,8 +194,11 @@ let client_to_client c t sock =
         try
           let file = List.assoc req c.client_requests in
           c.client_requests <- List.remove_assoc req c.client_requests;
-          if String.lowercase reason = "queued" then
-            set_client_state c Connected_queued
+          let reason =  String.lowercase reason in
+          if reason = "queued" then
+            set_client_state c (Connected true)
+          else
+            update_file_state (file.file_file) (FileAborted reason)
         with
           Not_found ->
             Printf.printf "req %d not found !" req; print_newline ();
@@ -191,7 +210,9 @@ let client_to_client c t sock =
       print_newline () 
 
 let connect_peer c token msgs =
-  Printf.printf "CONNECT PEER"; print_newline ();
+  if !verbose_msg_clients then begin
+      Printf.printf "CONNECT PEER"; print_newline ();
+    end;
   match c.client_peer_sock with
     Some sock -> 
       List.iter (fun t -> client_send sock t) msgs
@@ -199,18 +220,24 @@ let connect_peer c token msgs =
       try
         match c.client_addr with
           None -> 
-            Printf.printf "NO ADDRESS FOR CLIENT"; print_newline ();
+            if !verbose_msg_clients then begin
+                Printf.printf "NO ADDRESS FOR CLIENT"; print_newline ();
+              end;
             List.iter (fun s ->
                 match s.server_sock with
                   None -> ()
                 | Some sock ->
-                    Printf.printf "ASKING FOR CLIENT IP: %s"  c.client_name;
-                    print_newline ();
+                    if !verbose_msg_servers then begin
+                        Printf.printf "ASKING FOR CLIENT IP: %s"  c.client_name;
+                        print_newline ();
+                      end;
                     server_send sock (C2S.GetPeerAddressReq c.client_name);
             ) !connected_servers
             
         | Some (ip,port) ->
-            Printf.printf "CONNECTING"; print_newline ();
+            if !verbose_msg_clients then begin
+                Printf.printf "CONNECTING"; print_newline ();
+              end;
             connection_try c.client_connection_control;      
             let sock = connect "peer connect" 
                 (Ip.to_inet_addr ip) port
@@ -236,7 +263,9 @@ let connect_result c token =
     match c.client_addr with
       None -> ()
     | Some (ip,port) ->
-        Printf.printf "CONNECTING"; print_newline ();
+        if !verbose_msg_clients then begin
+            Printf.printf "CONNECTING"; print_newline ();
+          end;
         connection_try c.client_connection_control;      
         let sock = connect "peer connect" 
             (Ip.to_inet_addr ip) port
