@@ -4430,7 +4430,7 @@ if test "$BUILD_OCAML" = "yes"; then
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
 
-        $WGET        http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$DOWNLOAD_OCAML".tar.gz
+        $WGET        http://pauillac.inria.fr/caml/distrib/ocaml-3.08/ocaml-"$DOWNLOAD_OCAML".tar.gz
 
 #        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
 #        $WGET  http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
