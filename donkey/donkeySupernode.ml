@@ -118,7 +118,7 @@ let supernode_browse_handler node msg sock =
           ) t;
         with e ->
             Printf.printf "Exception in ViewFilesReply %s"
-              (Printexc.to_string e); print_newline ();
+              (Printexc2.to_string e); print_newline ();
       end;
       node.node_last_browse <- last_time ();
       close sock "browsed"
@@ -192,11 +192,11 @@ let client_connection_handler t event =
                     (client_to_client []));
               
               with e -> Printf.printf "Exception %s in init_connection"
-                    (Printexc.to_string e);
+                    (Printexc2.to_string e);
                   print_newline ());
           with e ->
               Printf.printf "Exception %s in client_connection_handler"
-                (Printexc.to_string e);
+                (Printexc2.to_string e);
               print_newline ();
               Unix.close s
         end      

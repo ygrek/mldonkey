@@ -161,7 +161,7 @@ let update_sizes timer =
           f :: cols, old_desc :: descs ->
             let desc = try f value with
                 e -> 
-                  Printf.printf "Exception %s in desc" (Printexc.to_string e);
+                  Printf.printf "Exception %s in desc" (Printexc2.to_string e);
                   print_newline ();
                   old_desc in
             if desc <> old_desc then

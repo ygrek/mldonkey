@@ -18,10 +18,8 @@
 *)
 type t =  int * int * int * int
 
-external of_string : string -> t  = "ints_of_string"
+external of_string : string -> t  = "ml_ints_of_string"
   
-open Int32ops
-
 let of_inet_addr t = 
   of_string (Unix.string_of_inet_addr t)
 
@@ -75,7 +73,14 @@ let resolve_one t =
       to_fixed_string t
 
 let valid (j,_,_,i) = i != 0 && j != 0 && i != 255 && j < 224
-
+let reachable ip = match ip with
+    192, 168,_,_ -> false
+  | 10, _, _, _ -> false
+  | 172, v, _, _ when v > 15 && v < 32 -> false
+  | 127, 0, 0, 1 -> false
+  | _ -> true
+  
+  
 let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with
     [] -> false
@@ -99,16 +104,39 @@ let rec get_non_local_ip list =
       if ip = (127,0,0,1) then
         get_non_local_ip tail
       else ip
-  
+
+let gethostbyname name = 
+  let h = Unix.gethostbyname name in
+  let list = Array.to_list h.Unix.h_addr_list in
+  get_non_local_ip list        
+
+let ip_cache = Hashtbl.create 13
+let resolve_name name =
+  let current_time = Unix.gettimeofday () in
+  try
+    let (ip, time) = Hashtbl.find ip_cache name in
+    if time < current_time then
+      try
+        let ip = gethostbyname name in
+        Hashtbl.remove ip_cache name;
+        Hashtbl.add ip_cache name (ip, current_time +. 900.);
+        ip
+      with _ -> ip
+    else ip
+  with _ ->
+      let ip = gethostbyname name in
+      Hashtbl.add ip_cache name (ip, current_time +. 900.);
+      ip
+      
+
 let from_name name =
   if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
     of_string name 
   else  try
     Printf.printf "Resolving %s ..." name; flush stdout;
-    let h = Unix.gethostbyname name in
+    let ip = gethostbyname name in
     Printf.printf "done"; print_newline ();
-    let list = Array.to_list h.Unix.h_addr_list in
-    get_non_local_ip list
+    ip
   with _ -> 
       raise Not_found
       

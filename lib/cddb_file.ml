@@ -19,7 +19,7 @@ let read_lines filename =
     with
       e ->
         Printf.printf "Exception %s at pos %d, file %s"
-          (Printexc.to_string e) (Lexing.lexeme_start lexbuf)
+          (Printexc2.to_string e) (Lexing.lexeme_start lexbuf)
         filename; print_newline (); exit 0
   in
   let list = iter [] in

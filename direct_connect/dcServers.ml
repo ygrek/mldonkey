@@ -189,11 +189,10 @@ let server_handler s sock event =
       
       
 let rec client_to_server s m sock = 
-(*
+
   Printf.printf "From %s:%d"
     (server_addr s) s.server_port; print_newline ();
   DcProtocol.print m;
-  *)
   match m with
     LockReq lock ->
       server_send sock (
@@ -360,7 +359,7 @@ and connect_server s =
         with e -> 
             Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
               (string_of_addr s.server_addr) s.server_port
-              (Printexc.to_string e); print_newline ();
+              (Printexc2.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             decr nservers;
             s.server_sock <- None;

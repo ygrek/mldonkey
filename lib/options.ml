@@ -149,7 +149,7 @@ let
           (match option_name with
              [] -> "???"
            | name :: _ -> name);
-        Printf.printf "%s" (Printexc.to_string e);
+        Printf.printf "%s" (Printexc2.to_string e);
         print_newline ();
         default_value
     end;
@@ -314,7 +314,7 @@ let really_load filename options =
               print_newline ();
           | e ->
               Printf.printf "Exception: %s while handling option:"
-                (Printexc.to_string e); 
+                (Printexc2.to_string e); 
               List.iter (fun s -> Printf.printf "%s " s) o.option_name;
               print_newline ();
               Printf.printf "  in %s" filename; print_newline ();
@@ -326,7 +326,7 @@ let really_load filename options =
       list
     with
       e ->
-        Printf.printf "Error %s in %s" (Printexc.to_string e) filename;
+        Printf.printf "Error %s in %s" (Printexc2.to_string e) filename;
         print_newline ();
         []
   with e ->
@@ -494,7 +494,7 @@ let rec convert_list name c2v l res =
           Some (c2v v)
         with e -> 
             Printf.printf "Exception %s in Options.convert_list for %s" (
-              Printexc.to_string e) name;
+              Printexc2.to_string e) name;
             print_newline ();
             None
       with
@@ -712,7 +712,7 @@ let rec save_module indent oc list =
               e -> 
 (*
                 Printf.printf "Exception %s in Options.save_module" 
-		  (Printexc.to_string e); print_newline ();
+		  (Printexc2.to_string e); print_newline ();
 *)
                 let p = ref [] in subm := (m, p) :: !subm; p
           in
@@ -785,7 +785,7 @@ let save opfile =
               Printf.printf "Error while saving option \"%s\": %s"
                 (try List.hd o.option_name with
                   _ -> "???")
-              (Printexc.to_string e);
+              (Printexc2.to_string e);
               print_newline ();
               StringValue ""))
     (List.rev opfile.file_options));
@@ -808,7 +808,7 @@ let save opfile =
             Exit -> ()
           | e -> 
               Printf.printf "Exception %s in Options.save" (
-                Printexc.to_string e); print_newline ())
+                Printexc2.to_string e); print_newline ())
       opfile.file_rc;
     end;
   close_out oc;

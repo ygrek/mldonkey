@@ -431,7 +431,7 @@ class tcp conf =
       |	Failure s ->
 	  raise (Failure s)
       |	e ->
-	  let s = Printexc.to_string e in
+	  let s = Printexc2.to_string e in
 	  raise (Failure s)
 
     initializer

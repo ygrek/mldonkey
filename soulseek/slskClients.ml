@@ -90,7 +90,7 @@ let connect_download c file req =
   
   with e ->
       Printf.printf "Exception %s while connecting to client" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ()
 
 let client_to_client c t sock =
@@ -110,7 +110,7 @@ let client_to_client c t sock =
                 search_add_result q r.result_result
               with e ->
                   Printf.printf "Exception %s for file %s" 
-                    (Printexc.to_string e) file.C2C.file_name;
+                    (Printexc2.to_string e) file.C2C.file_name;
                   print_newline ();
             ) t.SR.files;
             ()
@@ -194,7 +194,7 @@ let connect_peer c token msgs =
             List.iter (fun t -> client_send sock t) msgs
       with e ->
           Printf.printf "Exception %s while connecting to client" 
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
           disconnect_peer c
 
@@ -219,5 +219,5 @@ let connect_result c token =
         init_result_connection sock token
       with e ->
           Printf.printf "Exception %s while connecting to client" 
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ()

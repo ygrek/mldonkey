@@ -73,7 +73,7 @@ and client = {
     mutable client_downloads : CommonDownloads.download list;
     mutable client_result_socks : TcpBufferedSocket.t list;
     client_connection_control : CommonTypes.connection_control;
-    mutable client_files : (file * string) list;
+    mutable client_files : (file * string) list; 
     mutable client_all_files : (string * result) list option;
     mutable client_receiving : int32;
     mutable client_user : user;

@@ -147,7 +147,7 @@ let gui_send t =
 let _ = 
   (try Options.load mldonkey_gui_ini with
       e ->
-        Printf.printf "Exception %s in load options" (Printexc.to_string e);
+        Printf.printf "Exception %s in load options" (Printexc2.to_string e);
         print_newline ();
   );
   let args = Options.simple_args mldonkey_gui_ini in
@@ -990,7 +990,7 @@ end;
         )
   with e ->
       Printf.printf "Exception %s in update file %s"
-        (Printexc.to_string e) (Md4.to_string f.file_md4);
+        (Printexc2.to_string e) (Md4.to_string f.file_md4);
       print_newline () 
       
 let value_reader (gui: gui) t sock =
@@ -1246,5 +1246,5 @@ let value_reader (gui: gui) t sock =
     | Add_plugin_option _
       -> assert false
   with e ->
-      Printf.printf "EXception %s in reader" (Printexc.to_string e);
+      Printf.printf "EXception %s in reader" (Printexc2.to_string e);
       print_newline ()

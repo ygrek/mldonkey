@@ -108,7 +108,7 @@ end;
       close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
     with e ->
         Printf.printf "Exception %s in TcpBufferedSocket.close" 
-          (Printexc.to_string e); print_newline ();
+          (Printexc2.to_string e); print_newline ();
         raise e
   end
   
@@ -119,10 +119,10 @@ let shutdown t s =
 end;
   *)
   (try BasicSocket.shutdown t.sock s with e -> 
-       Printf.printf "exception %s in shutdown" (Printexc.to_string e);
+       Printf.printf "exception %s in shutdown" (Printexc2.to_string e);
         print_newline () );
   (try close t s with  e -> 
-        Printf.printf "exception %s in shutdown" (Printexc.to_string e);
+        Printf.printf "exception %s in shutdown" (Printexc2.to_string e);
         print_newline ())
 
 let buf_create max = 
@@ -274,10 +274,10 @@ end; *)
         with
           Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.EAGAIN | Unix.ENOTCONN), _, _) -> pos1
         | e ->
-            t.error <- Printf.sprintf "Write Error: %s" (Printexc.to_string e);
+            t.error <- Printf.sprintf "Write Error: %s" (Printexc2.to_string e);
             close t t.error;
             
-(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
+(*      Printf.printf "exce %s in read" (Printexc2.to_string e); print_newline (); *)
             raise e
 
       else pos1
@@ -339,10 +339,10 @@ let can_read_handler t sock max_len =
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
-          t.error <- Printf.sprintf "Can Read Error: %s" (Printexc.to_string e);
+          t.error <- Printf.sprintf "Can Read Error: %s" (Printexc2.to_string e);
           close t t.error;
 
-(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
+(*      Printf.printf "exce %s in read" (Printexc2.to_string e); print_newline (); *)
           raise e
     
     in
@@ -366,10 +366,10 @@ let can_read_handler t sock max_len =
       | e ->
 (*                if t.monitored then
    (Printf.printf "Exception in READ DONE"; print_newline ()); *)
-          t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
+          t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc2.to_string e);
           close t t.error;
 
-(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
+(*      Printf.printf "exce %s in read" (Printexc2.to_string e); print_newline (); *)
           raise e
     end
 
@@ -405,10 +405,10 @@ let can_write_handler t sock max_len =
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
-          t.error <- Printf.sprintf "Can Write Error: %s" (Printexc.to_string e);
+          t.error <- Printf.sprintf "Can Write Error: %s" (Printexc2.to_string e);
           close t t.error;
 
-(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
+(*      Printf.printf "exce %s in read" (Printexc2.to_string e); print_newline (); *)
           raise e
     
     end;
@@ -532,9 +532,9 @@ let dump_socket t () =
   
 let create name fd handler =
   if !debug then begin
-      Printf.printf "[fd %d %s]" (Obj.magic fd) name; print_newline ();
+      Printf.printf "[fd %d %s]" (get_fd_num fd) name; print_newline ();
     end;
-  Unix.set_close_on_exec fd;
+  MlUnix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -561,7 +561,7 @@ let create name fd handler =
   t
 
 let create_blocking name fd handler =
-  Unix.set_close_on_exec fd;
+  MlUnix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -601,47 +601,11 @@ let connect name host port handler =
         close t "connect failed";
         raise e
   with e -> 
-      Printf.printf "+++ Exception BEFORE CONNECT %s" (Printexc.to_string e);
+      Printf.printf "+++ Exception BEFORE CONNECT %s" (Printexc2.to_string e);
       print_newline ();
       raise e
       
   
-  
-let exec_command cmd args handler =
-  let (in_read, output) = Unix.pipe() in
-  let (input, out_write) = Unix.pipe() in
-  match Unix.fork() with
-    0 -> begin
-        try
-          match Unix.fork () with
-            0 -> begin
-                try
-                  if input <> Unix.stdin then
-                    begin Unix.dup2 input Unix.stdin; Unix.close input end;
-                  if output <> Unix.stdout then
-                    begin Unix.dup2 output Unix.stdout; Unix.close output end;
-                  Unix.close in_read;
-                  Unix.close out_write;
-                  Unix.execv cmd args;
-                  exit 127
-                with e -> 
-                    Printf.eprintf "Exception %s in exec_command\n"
-                      (Printexc.to_string e) ; 
-                    exit 1
-              end
-          | id -> 
-              exit 2
-        with _ -> 
-            exit 3
-      end
-  | id -> 
-      ignore (snd(Unix.waitpid [] id));
-      Unix.close input;
-      Unix.close output;
-      let t_in = create "pipe_int" in_read handler in
-      let t_out = create "pipe_out" out_write (fun _ _ -> ()) in
-      must_read (sock t_out) false;
-      (t_in, t_out)
   
 let set_max_write_buffer t len =
   t.wbuf.max_buf_size <- len;
@@ -821,3 +785,13 @@ let compute_lost_byte bc =
     sum := Int64.add !sum (Int64.of_int bc.lost_bytes.(i));
   done;
   Int64.to_int (Int64.div !sum (Int64.of_int 3600))
+
+  
+let exec_command cmd args handler = 
+  MlUnix.exec_command cmd args (fun in_read out_write ->
+      let t_in = create "pipe_int" in_read handler in
+      let t_out = create "pipe_out" out_write (fun _ _ -> ()) in
+      must_read (sock t_out) false;
+      (t_in, t_out)
+  )
+  

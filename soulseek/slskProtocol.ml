@@ -510,7 +510,7 @@ ascii: [
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From server (exception %s):" (Printexc.to_string e); 
+          Printf.printf "From server (exception %s):" (Printexc2.to_string e); 
           print_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
@@ -726,7 +726,7 @@ module C2C = struct
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From peer: %s" (Printexc.to_string e); 
+          Printf.printf "From peer: %s" (Printexc2.to_string e); 
           print_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)

@@ -158,7 +158,7 @@ let connect_server s =
         with e -> 
             Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
               (string_of_addr s.server_addr) s.server_port
-              (Printexc.to_string e); print_newline ();
+              (Printexc2.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             s.server_sock <- None;
             set_server_state s NotConnected;
@@ -183,7 +183,7 @@ let ask_for_file file =
             (file_size file))
         ];
       with e ->
-          Printf.printf "Exception %s in ask_for_file" (Printexc.to_string e);
+          Printf.printf "Exception %s in ask_for_file" (Printexc2.to_string e);
           print_newline ();
   ) file.file_clients
   

@@ -81,8 +81,6 @@ val set_write_controler : t -> bandwidth_controler -> unit
 val change_rate : bandwidth_controler -> int -> unit
 
   
-val exec_command : string -> string array -> handler -> t * t
-  
 val my_ip : t -> Ip.t
   
 val stats :  Buffer.t -> t -> unit
@@ -114,4 +112,6 @@ val set_remaining_bytes_user : bandwidth_controler ->
 val set_lost_bytes : bandwidth_controler -> int -> int -> unit
 val compute_lost_byte : bandwidth_controler -> int
   
+  
+val exec_command : string -> string array -> handler -> t * t
   

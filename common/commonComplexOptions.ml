@@ -424,7 +424,7 @@ let file_commit file =
             Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
             set_file_disk_name file new_name
           with e ->
-              Printf.printf "Exception %s in rename" (Printexc.to_string e);
+              Printf.printf "Exception %s in rename" (Printexc2.to_string e);
               print_newline () 
         end;            
         let best_name = file_best_name file in  
@@ -433,7 +433,7 @@ let file_commit file =
       
       end
   with e ->
-      Printf.printf "Exception in file_commit: %s" (Printexc.to_string e);
+      Printf.printf "Exception in file_commit: %s" (Printexc2.to_string e);
       print_newline ()
       
 let file_cancel file =
@@ -446,7 +446,7 @@ let file_cancel file =
       files =:= List2.removeq file !!files;
     end
   with e ->
-      Printf.printf "Exception in file_cancel: %s" (Printexc.to_string e);
+      Printf.printf "Exception in file_cancel: %s" (Printexc2.to_string e);
       print_newline ()
 
         
@@ -486,40 +486,26 @@ let file_completed (file : file) =
             file_best_name file )
           file_name);
         (try mail_for_completed_file file with e ->
-              Printf.printf "Exception %s in sendmail" (Printexc.to_string e);
+              Printf.printf "Exception %s in sendmail" (Printexc2.to_string e);
               print_newline ());
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
         
         if !!file_completed_cmd <> "" then begin
-            match Unix.fork() with
-              0 -> begin
-                  try
-                    match Unix.fork() with
-                      0 -> begin
-                          try
-                            Unix.execv !!file_completed_cmd 
+MlUnix.fork_and_exec  !!file_completed_cmd 
                               [|
                               file_name;
                               file_id;
                               Int32.to_string (file_size file);
                               file_best_name file
-                            |];
-                            exit 0
-                          with e -> 
-                              Printf.printf "Exception %s while starting file_completed_cmd" (Printexc.to_string e); print_newline ();
-                              exit 127
-                        end
-                    | id -> exit 0
-                  with _ -> exit 0
-                end
-            | id -> ignore (snd(Unix.waitpid [] id))
+                            |]
+
           end
           
 
       end
   with e ->
-      Printf.printf "Exception in file_completed: %s" (Printexc.to_string e);
+      Printf.printf "Exception in file_completed: %s" (Printexc2.to_string e);
       print_newline ()
       
 let file_add impl state = 
@@ -539,7 +525,7 @@ let file_add impl state =
       update_file_state impl state
     end
   with e ->
-      Printf.printf "Exception in file_add: %s" (Printexc.to_string e);
+      Printf.printf "Exception in file_add: %s" (Printexc2.to_string e);
       print_newline ()
   
 let server_remove server =
@@ -552,7 +538,7 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      Printf.printf "Exception in server_remove: %s" (Printexc.to_string e);
+      Printf.printf "Exception in server_remove: %s" (Printexc2.to_string e);
       print_newline ()
   
 let server_add impl =
@@ -596,7 +582,7 @@ let friend_remove c =
         
     | _ -> ()
   with e ->
-      Printf.printf "Exception in friend_remove: %s" (Printexc.to_string e);
+      Printf.printf "Exception in friend_remove: %s" (Printexc2.to_string e);
       print_newline ()
   
 let contact_add c =
@@ -620,7 +606,7 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
     | _ -> ()
   with e ->
-      Printf.printf "Exception in contact_remove: %s" (Printexc.to_string e);
+      Printf.printf "Exception in contact_remove: %s" (Printexc2.to_string e);
       print_newline ()
 
       

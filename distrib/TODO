@@ -1,6 +1,13 @@
 TODO list for client
 ====================
 
+* Popup when clicking on a file with stats on sources
+* Active telnet: print the current state of files when it changes
+
+* Command 'master <c>' to set a server as the master
+* Change master server when a new server has more than 5x the number
+ of clients and files than a master server
+
 1) For zoggy (the GUI):
   1) There is a bin as icon for "Find Friend"
   2) New lines in the console are not displayed because the window

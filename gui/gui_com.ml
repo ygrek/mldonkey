@@ -60,13 +60,13 @@ let reconnect gui value_reader =
         h.Unix.h_addr_list.(0)
       with 
         e -> 
-          Printf.printf "Exception %s in gethostbyname" (Printexc.to_string e);
+          Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
           print_newline ();
           try 
             Unix.inet_addr_of_string !!O.hostname
           with e ->
               Printf.printf "Exception %s in inet_addr_of_string" 
-                (Printexc.to_string e);
+                (Printexc2.to_string e);
               print_newline ();
               print_newline ();
               Printf.printf "mldonkey_gui was unable to find the IP address of the host [%s]" !!O.hostname; print_newline ();
@@ -100,14 +100,14 @@ let reconnect gui value_reader =
             let m = GuiDecoding.to_gui opcode s in
             value_reader m sock
           with e ->
-            Printf.printf "Exception %s in decode/exec" (Printexc.to_string e); 
+            Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 
 	    print_newline ();
             raise e
         ));
     gui#label_connect_status#set_text "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
-      Printf.printf "Exception %s in connecting" (Printexc.to_string e);
+      Printf.printf "Exception %s in connecting" (Printexc2.to_string e);
       print_newline ();
       TcpBufferedSocket.close sock "error";
       connection := None

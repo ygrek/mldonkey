@@ -226,7 +226,7 @@ let commands = [
               Options.set_simple_option downloads_ini name value;
               Printf.sprintf "option %s value changed" name
         with e ->
-            Printf.sprintf "Error %s" (Printexc.to_string e)
+            Printf.sprintf "Error %s" (Printexc2.to_string e)
     ), "<option_name> <option_value> :\tchange option value";
     
     "vr", Arg_multiple (fun args o ->
@@ -448,7 +448,7 @@ let commands = [
               server_print s o
             with e ->
                 Printf.printf "Exception %s in server_print"
-                  (Printexc.to_string e); print_newline ();
+                  (Printexc2.to_string e); print_newline ();
         ) !!servers;
         Printf.sprintf "Servers: %d known\n" !nb_servers
         ), ":\t\t\t\t\tlist all known servers";
@@ -493,6 +493,17 @@ let commands = [
         BasicSocket.close_all ();
         "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
+
+    "friends", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        List.iter (fun c ->
+            let i = client_info c in
+            let n = network_find_by_num i.client_network in
+            Printf.bprintf buf "[%s %d] %s" n.network_name
+            i.client_num i.client_name
+        ) !!friends;
+        ""
+    ), ":\t\t\tdisplay all friends";
     
     ]
 

@@ -142,6 +142,7 @@ let client_reader c t sock =
       begin
         match client_type c, c.client_all_files with
         | (FriendClient | ContactClient), None ->
+            Printf.printf "TRY TO DOWNLOAD FILE LIST"; print_newline ();
             debug_server_send sock (GetReq {
                 Get.name = "MyList.DcLst";
                 Get.pos = Int32.one;
@@ -279,7 +280,7 @@ let save_file_as file filename =
       (file_disk_name file) new_name; print_newline ();
     set_file_disk_name file new_name
   with e ->
-      Printf.printf "Exception %s in rename" (Printexc.to_string e);
+      Printf.printf "Exception %s in rename" (Printexc2.to_string e);
       print_newline () 
       *)
 
@@ -354,7 +355,7 @@ Printf.printf "----------------------------------------"; print_newline ();
               ()
             with e ->
                 Printf.printf "Exception %s in parse client files"
-                  (Printexc.to_string e);
+                  (Printexc2.to_string e);
                 ; print_newline ();
           end
     | _ -> assert false
@@ -401,7 +402,7 @@ let listen () =
     ()
   with e ->
       Printf.printf "Exception %s while init DC server" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ()
 
 let connect_client c =
@@ -432,7 +433,7 @@ let connect_client c =
           
   with e ->
       Printf.printf "Exception %s while connecting to client" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ();
       disconnect_client c
 
@@ -450,6 +451,6 @@ let connect_anon s ip port =
           
   with e ->
       Printf.printf "Exception %s while connecting to  anon client" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ()
       

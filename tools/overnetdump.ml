@@ -93,6 +93,6 @@ let _ =
         end
     done
   with e -> 
-      Printf.printf "Exception %s" (Printexc.to_string e);print_newline ();
+      Printf.printf "Exception %s" (Printexc2.to_string e);print_newline ();
       dump !header (Buffer.contents buf)
       

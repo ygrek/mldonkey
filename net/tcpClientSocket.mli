@@ -80,8 +80,6 @@ val set_write_controler : t -> bandwidth_controler -> unit
 val change_rate : bandwidth_controler -> int -> unit
 
   
-val exec_command : string -> string array -> handler -> t * t
-  
 val my_ip : t -> Ip.t
   
 val stats :  Buffer.t -> t -> unit

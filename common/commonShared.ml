@@ -205,7 +205,7 @@ let rec shared_add_directory dirname local_dir =
                 new_shared dirname local_name full_name
             with e -> 
                 Printf.printf "%s will not be shared (exception %s)"
-                  full_name (Printexc.to_string e);
+                  full_name (Printexc2.to_string e);
                 print_newline ();
           with _ -> ()
     ) files

@@ -603,4 +603,146 @@ let udp_walker_timer () =
   | s :: tail ->
       udp_walker_list := tail;
       UdpSocket.write (get_udp_sock ()) udp_ping s.server_ip s.server_port
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+let update_master_servers _ =
+
+  if !!verbose then begin
+      
+      print_newline ();
+      print_newline ();
+    end;
+  
+  let list = List.sort (fun s2 s1 ->
+        s1.server_nusers - s2.server_nusers
+    ) (connected_servers ()) in
+
+(* Now, the servers are sorted in 'list' so that the first ones have the more
+  users. *)
+  
+  let masters = ref [] in
+  List.iter (fun s ->
+      if s.server_master then 
+        match s.server_sock with
+          None -> s.server_master <- false
+        | _ -> 
+            if !!verbose then begin
+                Printf.printf "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
+                print_newline ();
+              end;
+            masters := s :: !masters
+  ) list;
+  let nmasters = ref (List.length !masters) in
+  
+  if !!verbose then begin
+      Printf.printf "MASTER: nmaster %d" !nmasters;
+      print_newline (); print_newline ();
+    end;
+(* The master servers are sorted in 'masters' so that the first ones have
+the fewer users. *)  
+  
+  let make_master s =
+    match s.server_sock with
+      None -> assert false
+    | Some sock ->                
+        if !!verbose then begin
+            Printf.printf "   MASTER: %s" (Ip.to_string s.server_ip); 
+            print_newline ();
+          end;
+        s.server_master <- true;
+        incr nmasters;
+        direct_server_send_share sock (DonkeyShare.all_shared ())        
+  in
+
+  let max_allowed_connected_servers = max_allowed_connected_servers () in
+  let nconnected_servers = ref 0 in
+  
+  let disconnect_old_server s =
+(* disconnect a server we are connected to for too long if we have too many
+connections *)
+    if !nconnected_servers > max_allowed_connected_servers then begin
         
+        if !!verbose then begin
+            Printf.printf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
+            print_newline ();
+          end;
+        
+        nconnected_servers := !nconnected_servers - 3;
+        (match s.server_sock with
+            None -> assert false
+          | Some sock ->
+              (shutdown sock "max allowed"));
+      end
+  in
+  
+  List.iter (fun s ->
+      if s.server_sock <> None then begin
+          incr nconnected_servers;
+          
+          if !!verbose then begin
+              Printf.printf "MASTER: EXAM %s %3.0f" (Ip.to_string s.server_ip)
+              ((last_time ()) -.  connection_last_conn s.server_connection_control)
+              ; 
+              print_newline ();
+            end;
+          
+          if connection_last_conn s.server_connection_control 
+              +. 120. < last_time () && not s.server_master then begin
+(* We have been connected for two minutes to this server, we can disconnect 
+now if needed *)
+              
+              if !nmasters < max_allowed_connected_servers
+(* I Should clearly remove this option now  
+  &&
+                s.server_nusers >= !!master_server_min_users *)
+              then 
+                make_master s
+              else
+                
+              match !masters with 
+                [] -> disconnect_old_server s
+              | ss :: tail ->
+                  if mini (ss.server_nusers + 1000) (ss.server_nusers * 5)
+                    < s.server_nusers then begin
+                      
+                      if !!verbose then begin
+                          Printf.printf
+                            "   MASTER: RAISING %s (%d) instead of %s (%d)" 
+                            (Ip.to_string s.server_ip) s.server_nusers 
+                            (Ip.to_string ss.server_ip) ss.server_nusers
+                          ; print_newline (); 
+                        end;
+                      
+                      ss.server_master <- false;
+                      masters := tail;
+                      make_master s
+                    end else
+                    disconnect_old_server s
+            end
+        end)
+  list;
+  
+  if !!verbose then begin
+      Printf.printf "MASTER: clean %d connected %d masters" 
+        !nconnected_servers !nmasters; print_newline ();
+    end;
+      

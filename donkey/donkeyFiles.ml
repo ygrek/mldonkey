@@ -185,7 +185,7 @@ let check_clients _ =
                   ()
           with e ->
               Printf.printf "Exception %s in check_clients"
-                (Printexc.to_string e); print_newline ()
+                (Printexc2.to_string e); print_newline ()
     done
   with Exit -> ()
     
@@ -394,7 +394,7 @@ let force_check_locations () =
 *)
     
   with e ->
-      Printf.printf "force_check_locations: %s" (Printexc.to_string e);
+      Printf.printf "force_check_locations: %s" (Printexc2.to_string e);
       print_newline ()
       
 let new_friend c =  
@@ -426,7 +426,7 @@ print_newline ();
 
 let add_user_friend s u = 
   let kind = 
-    if Ip.valid u.user_ip then
+    if Ip.valid u.user_ip && Ip.reachable u.user_ip then
       Known_location (u.user_ip, u.user_port)
     else begin
         begin
@@ -577,7 +577,7 @@ module NewUpload = struct
         write_string sock upload_buffer;
 	check_end_upload c sock
       with e -> 
-          Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
+          Printf.printf "Exception %s in send_small_block" (Printexc2.to_string e);
           print_newline () 
     
     let rec send_client_block c sock per_client =
@@ -814,7 +814,7 @@ print_newline (); *)
         write_string sock upload_buffer;
 	check_end_upload c sock
       with e -> 
-          Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
+          Printf.printf "Exception %s in send_small_block" (Printexc2.to_string e);
           print_newline () 
     
     
@@ -942,7 +942,7 @@ end
 let upload_timer () =
   (try download_engine () with e -> 
         Printf.printf "Exception %s in download_engine" 
-          (Printexc.to_string e); print_newline (););
+          (Printexc2.to_string e); print_newline (););
   try
 (*    Printf.printf "upload ?"; print_newline (); *)
     if !!new_upload_system then
@@ -950,7 +950,7 @@ let upload_timer () =
     else
       OldUpload.next_uploads ()
   with e -> 
-      Printf.printf "exc %s in upload" (Printexc.to_string e);
+      Printf.printf "exc %s in upload" (Printexc2.to_string e);
       print_newline () 
       
 let reset_upload_timer _ =

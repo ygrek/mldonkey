@@ -577,7 +577,7 @@ let parse opcode s =
     | _ -> raise Not_found
 
   with e ->
-      Printf.printf "Exception in parse (OPCODE %d): %s" opcode (Printexc.to_string e);
+      Printf.printf "Exception in parse (OPCODE %d): %s" opcode (Printexc2.to_string e);
       print_newline ();
       LittleEndian.dump s;
       UnknownReq (opcode, s)
@@ -840,7 +840,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
     in
     iter begin_pos false
     with e ->
-        Printf.printf "Exception %s in handler" (Printexc.to_string e); 
+        Printf.printf "Exception %s in handler" (Printexc2.to_string e); 
         print_newline ();
         raise e
 

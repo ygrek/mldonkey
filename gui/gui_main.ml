@@ -32,7 +32,7 @@ let (!!) = Options.(!!)
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
       e ->
-        Printf.printf "Exception %s in load options" (Printexc.to_string e);
+        Printf.printf "Exception %s in load options" (Printexc2.to_string e);
         print_newline ();
   );
   let args = 
@@ -475,7 +475,7 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
         "Authorization Failed\nPlease, open the File->Settings menu and
           enter a valid password"
   with e ->
-      Printf.printf "Exception %s in reader" (Printexc.to_string e);
+      Printf.printf "Exception %s in reader" (Printexc2.to_string e);
       print_newline ()
 
 let main () =

@@ -81,7 +81,7 @@ module Server = struct
             (*
             let len = String.length s - pos in
             Printf.printf "Error while reading servers %s (left %d)"
-              (Printexc.to_string e) len; print_newline ();
+              (Printexc2.to_string e) len; print_newline ();
 dump (String.sub s pos len);      
   *)
             None

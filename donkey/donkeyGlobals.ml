@@ -450,7 +450,7 @@ let remove_client_chunks file client_chunks =
   
 let is_black_address ip port =
 (* Printf.printf "is black ="; *)
-  if (List.mem ip !!server_black_list) then begin
+  if not (Ip.reachable ip) || (List.mem ip !!server_black_list) then begin
 (* Printf.printf " addr for %s %d\n" (Ip.to_string ip) port; *)
       true
     end

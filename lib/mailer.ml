@@ -91,5 +91,5 @@ let sendmail smtp_server smtp_port mail =
         raise e
         
   with e ->
-      Printf.printf "Exception %s while sending mail" (Printexc.to_string e);
+      Printf.printf "Exception %s while sending mail" (Printexc2.to_string e);
       print_newline ()

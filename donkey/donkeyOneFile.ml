@@ -1011,7 +1011,7 @@ let remove_file md4 =
     decr nshared_files;
     (try Sys.remove (file_disk_name file) with e -> 
           Printf.printf "Exception %s in remove %s"
-            (Printexc.to_string e) (file_disk_name file);
+            (Printexc2.to_string e) (file_disk_name file);
           print_newline ());
     (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
     remove_file_clients file;

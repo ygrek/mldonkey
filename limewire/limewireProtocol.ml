@@ -414,7 +414,7 @@ let parse pkt =
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
           (UNKNOWN i,pkt.pkt_payload) }
   with e ->
-      Printf.printf "Exception in parse: %s" (Printexc.to_string e);
+      Printf.printf "Exception in parse: %s" (Printexc2.to_string e);
       print_newline ();
       dump pkt.pkt_payload;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }
@@ -571,7 +571,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
       in
       iter begin_pos false
     with e ->
-        Printf.printf "Exception %s in handler" (Printexc.to_string e); 
+        Printf.printf "Exception %s in handler" (Printexc2.to_string e); 
         print_newline ();
         raise e
         

@@ -168,7 +168,7 @@ Printf.printf "UDP sent [%s]" (String.escaped
                 must_write sock true;
             | e ->
                 Printf.printf "Exception %s in sendto"
-                  (Printexc.to_string e);
+                  (Printexc2.to_string e);
                 print_newline ();
                 print_addr addr;
                 raise e
@@ -205,7 +205,7 @@ let rec iter_write_no_bc t sock =
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
       | e ->
           Printf.printf "Exception %s in sendto next"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
     iter_write_no_bc t sock
@@ -240,7 +240,7 @@ let rec iter_write t sock bc =
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
       | e ->
           Printf.printf "Exception %s in sendto next"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
     iter_write t sock bc
@@ -428,5 +428,5 @@ let set_socks_proxy t ss =
     Unix.set_nonblock fd;
   with e -> 
     Printf.printf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
-      (Printexc.to_string e); print_newline ();
+      (Printexc2.to_string e); print_newline ();
     close t "socks proxy error"; raise e

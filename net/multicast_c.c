@@ -9,14 +9,22 @@
 /*                                                                     */
 /***********************************************************************/
 
-#include <sys/ioctl.h>
 #include "caml/mlvalues.h"
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/types.h>
 #include <stdio.h>
+
+#if defined(__MINGW32__)
+typedef unsigned int uint;
+#include <w32api/winsock.h>
+#else
+
+#include <sys/ioctl.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
+
+#endif
 
 
 #define GET_INET_ADDR(v) (*((uint32 *) (v)))

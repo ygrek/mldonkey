@@ -198,7 +198,7 @@ let get t doc =
   let file = List.assoc chunk_size t.store_files in
   let v =  try Weak.get file.file_cache pos 
     with e ->
-        Printf.printf "Exception %s for doc at pos %d (doc %d, combine %d)" (Printexc.to_string e)
+        Printf.printf "Exception %s for doc at pos %d (doc %d, combine %d)" (Printexc2.to_string e)
         pos doc combine; print_newline ();
         raise e
       in

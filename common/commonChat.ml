@@ -50,7 +50,7 @@ let send_paquet_to_mlchat (p : C.packet) =
       prerr_endline (Printf.sprintf "chat_app_host=%s chat_app_port=%d"
 		       !!O.chat_app_host !!O.chat_app_port)
   | e ->
-      prerr_endline (Printexc.to_string e);
+      prerr_endline (Printexc2.to_string e);
       prerr_endline (Printf.sprintf "chat_app_host=%s chat_app_port=%d"
 		       !!O.chat_app_host !!O.chat_app_port)
 

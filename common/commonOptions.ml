@@ -118,6 +118,9 @@ let shared_directories =
     "Directories where files will be shared"
   (list_option string_option) []
 
+let http_realm = 
+  define_option downloads_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
+
 let http_port = 
   define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
 
@@ -182,7 +185,7 @@ let check_connections_delay =
   
 let max_connected_servers = define_option downloads_ini
   ["max_connected_servers"] 
-    "The number of servers you want to stay connected to" int_option 1
+    "The number of servers you want to stay connected to" int_option 3
 
 let max_udp_sends = define_option downloads_ini ["max_udp_sends"] 
     "The number of UDP packets you send every check_client_connections_delay" 
@@ -234,7 +237,7 @@ let verbose = define_option downloads_ini ["verbose"] "Only for debug"
   
 let max_opened_connections = define_option downloads_ini
     ["max_opened_connections"] "Maximal number of opened connections" 
-  int_option (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2))
+  int_option MlUnix.max_sockets
 
 let web_infos = define_option downloads_ini
     ["web_infos"] "A list of lines to download on the WEB: each line has 
@@ -252,6 +255,7 @@ let web_infos = define_option downloads_ini
       tuple3_option (string_option, int_option, string_option)))
   [
     ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");
+    ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
   ]
 
   (*
@@ -638,6 +642,11 @@ let network_update_url = define_option downloads_ini ["network_update_url"]
 let motd_html = define_option downloads_ini ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
     URL directory" string_option "Welcome to MLdonkey"
+  
+let run_as_user = define_option downloads_ini ["run_as_user"]
+  "The login of the user you want mldonkey to run as, after the ports
+  have been bound (can be use not to run with root priviledges when 
+a port < 1024 is needed)" string_option ""
 
 let addr_option  =  define_option_class "Addr" 
     (fun value ->
@@ -719,6 +728,7 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Startup", "Ask for mldonkey_gui start", shortname ask_for_gui, "B";
     "Startup", "Path of mldonkey binaries", shortname mldonkey_bin, "F";
     "Startup", "Name of MLdonkey GUI to start", shortname mldonkey_gui, "F";
+    "Startup", "User MLdonkey should run as", shortname run_as_user, "T";
  ]  
   
 let client_ip sock =

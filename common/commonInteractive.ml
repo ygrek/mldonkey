@@ -35,11 +35,16 @@ let add_web_kind kind f =
   
 let load_url kind url =
   Printf.printf "QUERY URL %s" url; print_newline ();
+  let f = 
+    try 
+      List.assoc kind !file_kinds 
+    with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
+  in 
   try
-    let f = List.assoc kind !file_kinds in 
-    Http_client.wget url f
-  with _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-
+    Http_client.wget url f  
+  with e -> failwith (Printf.sprintf "Exception %s while loading %s"
+          (Printexc2.to_string e) url)
+      
 let days = ref 0      
 let hours = ref 0    
 
@@ -103,7 +108,7 @@ let print_connected_servers o =
       ) list;
       with e ->
           Printf.bprintf  buf "Exception %s in print_connected_servers"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
   )
   
@@ -250,7 +255,7 @@ let send_custom_query buf s args =
   | Exit -> ()
   | e -> 
       Printf.bprintf buf "Error %s while parsing request"
-        (Printexc.to_string e)
+        (Printexc2.to_string e)
 
 let all_simple_options () =
   let options = ref (simple_options downloads_ini) in

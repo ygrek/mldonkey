@@ -120,7 +120,7 @@ let client_parse_header c sock header =
                 with 
                 | e ->
                     Printf.printf "Exception %s for range [%s]" 
-                      (Printexc.to_string e) range;
+                      (Printexc2.to_string e) range;
                     print_newline ();
                     raise e
               with Not_found -> Int32.zero
@@ -138,7 +138,7 @@ let client_parse_header c sock header =
         disconnect_client c
       end
   with e ->
-      Printf.printf "Exception %s in client_parse_header" (Printexc.to_string e);
+      Printf.printf "Exception %s in client_parse_header" (Printexc2.to_string e);
       print_newline ();
       LittleEndian.dump header;      
       disconnect_client c
@@ -327,7 +327,7 @@ an upload request *)
    
   with e ->
       Printf.printf "Exception %s while connecting to client" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ();
       disconnect_client c
       
@@ -394,7 +394,7 @@ let push_handler cc sock header =
               get_from_client sock c file
             with e ->
                 Printf.printf "Exception %s during client connection"
-                  (Printexc.to_string e);
+                  (Printexc2.to_string e);
                 print_newline ();
                 disconnect_client c
       end
@@ -461,7 +461,7 @@ let listen () =
     ()
   with e ->
       Printf.printf "Exception %s while init openft server" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ();
 
 (*

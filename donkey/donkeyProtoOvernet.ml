@@ -490,7 +490,7 @@ let parse opcode s =
         print_newline ();
         OvernetUnknown (opcode, s)
   with e ->
-      Printf.printf "Error %s while parsing opcode %d" (Printexc.to_string e)
+      Printf.printf "Error %s while parsing opcode %d" (Printexc2.to_string e)
       opcode; print_newline ();
       dump s;
       print_newline ();
@@ -517,7 +517,7 @@ let udp_handler f sock event =
               end
           with e ->
               Printf.printf "Error %s in udp_handler"
-                (Printexc.to_string e); print_newline () 
+                (Printexc2.to_string e); print_newline () 
       );
   | _ -> ()
       

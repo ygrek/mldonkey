@@ -89,3 +89,4 @@ val start_time : float
   
 external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
   
+external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"

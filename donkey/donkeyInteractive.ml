@@ -92,7 +92,7 @@ Unix2.safe_mkdir (Filename.dirname real_name);
       change_hardname file new_name
     with e -> 
         Printf.eprintf "Error in rename %s (src [%s] dst [%s])"
-          (Printexc.to_string e) old_name real_name; 
+          (Printexc2.to_string e) old_name real_name; 
         print_newline ();
   )
   ;
@@ -129,7 +129,7 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      Printf.printf "Exception %s while loading %s" (Printexc.to_string e)
+      Printf.printf "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       print_newline ();
       0
@@ -163,7 +163,7 @@ let really_query_download filenames size md4 location old_file absents =
               Unix.chmod temp_file 0o644;
               with e -> 
                 Printf.printf "Could not rename %s to %s: exception %s"
-                  filename temp_file (Printexc.to_string e);
+                  filename temp_file (Printexc2.to_string e);
                 print_newline () );        
   end;
   
@@ -279,7 +279,7 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      Printf.printf "Exception %s while loading %s" (Printexc.to_string e)
+      Printf.printf "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       print_newline ();
       [], []
@@ -517,7 +517,7 @@ let commands = [
           "config loaded"
         with e ->
             Printf.sprintf "error %s while loading config" (
-              Printexc.to_string e)
+              Printexc2.to_string e)
     ), "<dirname> :\t\t\timport the config from dirname";
     
     "import_temp", Arg_one (fun dirname o ->
@@ -527,7 +527,7 @@ let commands = [
           "temp files loaded"
         with e ->
             Printf.sprintf "error %s while loading temp files" (
-              Printexc.to_string e)
+              Printexc2.to_string e)
     ), "<temp_dir> :\t\timport the old edonkey temp directory";
     
     "load_old_history", Arg_none (fun o ->
@@ -542,7 +542,7 @@ let commands = [
           let n = load_server_met filename in
           Printf.sprintf "%d servers loaded" n
         with e -> 
-            Printf.sprintf "error %s while loading file" (Printexc.to_string e)
+            Printf.sprintf "error %s while loading file" (Printexc2.to_string e)
     ), "<filename> :\t\t\tadd the servers from a server.met file";
     
     
@@ -614,7 +614,7 @@ let commands = [
                     query_download names size md4 None None None true
               with e ->
                   Printf.printf "exception %s in recover_temp"
-                    (Printexc.to_string e); print_newline ();
+                    (Printexc2.to_string e); print_newline ();
         ) files;
         "done"
     ), ":\t\t\t\trecover lost files from temp directory";
@@ -665,7 +665,7 @@ let commands = [
             try
               make_xs (CommonSearch.search_find !xs_last_search);
               "extended search done"
-            with e -> Printf.sprintf "Error %s" (Printexc.to_string e)
+            with e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
           end else "No previous extended search"),
     ":\t\t\t\t\textended search";
     
@@ -905,7 +905,7 @@ let _ =
       (try  Sys.remove (file_disk_name file)  with e -> 
             Printf.printf "Sys.remove %s exception %s" 
             (file_disk_name file)
-            (Printexc.to_string e); print_newline ());
+            (Printexc2.to_string e); print_newline ());
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;

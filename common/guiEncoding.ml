@@ -782,7 +782,7 @@ let _ =
       let opcode = get_int16 s 0 in
       decoder opcode s = msg
     with e ->
-        Printf.printf "Exception %s in check" (Printexc.to_string e);
+        Printf.printf "Exception %s in check" (Printexc2.to_string e);
         print_newline ();
         false
   in

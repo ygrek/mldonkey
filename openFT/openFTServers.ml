@@ -295,7 +295,7 @@ let connect_to_redirector () =
         write_string sock "GNUTELLA CONNECT/0.4\n\n";
       with e ->
           Printf.printf "Exception in connect_to_redirector: %s"
-            (Printexc.to_string e); print_newline ();
+            (Printexc2.to_string e); print_newline ();
           redirector_connected := false
           
 let add_peers headers =
@@ -320,7 +320,7 @@ let add_peers headers =
           with _ -> ()
       ) (String2.split up ',');    
     with e -> 
-        Printf.printf "add_ulta_peers : %s" (Printexc.to_string e);
+        Printf.printf "add_ulta_peers : %s" (Printexc2.to_string e);
         print_newline () );
   (try
       let up = List.assoc "x-try" headers in
@@ -437,7 +437,7 @@ let server_parse_header s sock header =
       disconnect_from_server s
   | e -> 
 (*
-      Printf.printf "DISCONNECT WITH EXCEPTION %s" (Printexc.to_string e);
+      Printf.printf "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e);
 print_newline ();
   *)
       disconnect_from_server s

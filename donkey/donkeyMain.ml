@@ -163,7 +163,7 @@ let enable () =
             end
         with e ->
             Printf.printf "Exception %s while recovering download %s"
-              (Printexc.to_string e) (file_disk_name file); print_newline ();
+              (Printexc2.to_string e) (file_disk_name file); print_newline ();
     ) files_by_md4;
     let list = ref [] in
 (* Normally, we should check that downloaded files are still there.
@@ -193,7 +193,7 @@ let enable () =
         UdpSocket.set_write_controler sock udp_write_controler
       with e ->
           Printf.printf "Exception %s while binding UDP socket"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
     
@@ -256,7 +256,7 @@ let enable () =
 
   with e ->
       Printf.printf "Error: Exception %s during startup"
-        (Printexc.to_string e); print_newline ()
+        (Printexc2.to_string e); print_newline ()
 
 let _ =
   

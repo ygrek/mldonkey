@@ -61,50 +61,6 @@ value md4_unsafe_file (value digest_v, value filename_v)
   return Val_unit;
 }
 
-#ifdef HAS_UNISTD
-#include <unistd.h>
-#else
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
-#endif
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
-unsigned char hash_buffer[HASH_BUFFER_LEN];
-
-value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
-{
-  int fd = Int_val(fd_v);
-  long pos = Int32_val(pos_v);
-  long len = Int32_val(len_v);
-  unsigned char *digest = String_val(digest_v);
-  MD4_CTX context;
-  int nread;
-
-  MD4Init (&context);
-  lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = read (fd, hash_buffer, max_nread);
-
-    if(nread == 0){
-      MD4Final (digest, &context);
-
-      return Val_unit;
-    }
-
-    MD4Update (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  MD4Final (digest, &context);
-
-  return Val_unit;
-}
-
 value md4_xor(value m1_v, value m2_v, value m3_v) 
 {
   char *m1 = String_val(m1_v);

@@ -378,5 +378,5 @@ let edit_options gui =
     
     | Return_cancel -> ()
   with e ->
-      Printf.printf "Exception %s in edit_options" (Printexc.to_string e);
+      Printf.printf "Exception %s in edit_options" (Printexc2.to_string e);
       print_newline ();

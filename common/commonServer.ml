@@ -301,5 +301,5 @@ let server_print s o =
     Buffer.add_char buf '\n'
   with e -> 
       Printf.printf "Exception %s in CommonServer.server_print"
-        (Printexc.to_string e); print_newline () 
+        (Printexc2.to_string e); print_newline () 
       

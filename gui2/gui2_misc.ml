@@ -213,13 +213,13 @@ let reconnect gui =
         h.Unix.h_addr_list.(0)
       with 
         e -> 
-          Printf.printf "Exception %s in gethostbyname" (Printexc.to_string e);
+          Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
           print_newline ();
           try 
             inet_addr_of_string !!hostname
           with e ->
               Printf.printf "Exception %s in inet_addr_of_string" 
-                (Printexc.to_string e);
+                (Printexc2.to_string e);
               print_newline ();
               raise Not_found
     )
@@ -245,13 +245,13 @@ let reconnect gui =
             value_reader gui m sock
           with e ->
               Printf.printf "Exception %s in decode/exec" 
-                (Printexc.to_string e); print_newline ();
+                (Printexc2.to_string e); print_newline ();
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
     gui_send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
-      Printf.printf "Exception %s in connecting" (Printexc.to_string e);
+      Printf.printf "Exception %s in connecting" (Printexc2.to_string e);
       print_newline ();
       TcpBufferedSocket.close sock "error";
       connection_sock := None

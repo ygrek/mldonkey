@@ -48,9 +48,7 @@ let download r filenames =
     end
 
 let browse_client c =
-  DcServers.try_connect_client c
-          
-  
+  DcServers.try_connect_client c          
     
 let _ =
   network.op_network_search <- (fun q buf ->
@@ -106,6 +104,9 @@ let _ =
               s.server_search_timeout <- last_time () +. !!search_timeout;
               Printf.bprintf  buf "Sending search\n") !connected_servers
   );
+  network.op_network_connected <- (fun _ ->
+      !connected_servers <> []
+  );
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
       | "dc://" :: "server" :: addr :: _ ->  
@@ -159,6 +160,9 @@ let _ =
         P.room_messages = [];
         P.room_nusers = List.length s.server_users;
       }
+  );
+  room_ops.op_room_users <- (fun s ->
+      List2.tail_map (fun u -> as_user u.user_user) s.server_users  
   );
   room_ops.op_room_messages <- (fun s age ->
       extract_messages s.server_messages age);
@@ -294,4 +298,9 @@ let _ =
   );
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c
-  )
+  );
+  client_ops.op_client_files <- (fun c -> 
+      match c.client_all_files with None -> [] | Some list -> 
+          List2.tail_map (fun (s, r) ->
+            s, as_result r.result_result  
+          ) list)

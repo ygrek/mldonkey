@@ -132,7 +132,7 @@ let
           (match option_name with
              [] -> "???"
            | name :: _ -> name);
-        Printf.printf "%s" (Printexc.to_string e);
+        Printf.printf "%s" (Printexc2.to_string e);
         print_newline ();
         default_value
     end;
@@ -288,12 +288,12 @@ let really_load filename options =
             exec_hooks o
           with
             e ->
-             Printf.printf "Exc %s" (Printexc.to_string e); print_newline ())
+             Printf.printf "Exc %s" (Printexc2.to_string e); print_newline ())
 	options;
       list
     with
       e ->
-	Printf.printf "Error %s in %s" (Printexc.to_string e) filename;
+	Printf.printf "Error %s in %s" (Printexc2.to_string e) filename;
 	print_newline ();
 	[]
 ;;
@@ -551,7 +551,7 @@ let save opfile =
               Printf.printf "Error while saving option \"%s\": %s"
                 (try List.hd o.option_name with
                   _ -> "???")
-              (Printexc.to_string e);
+              (Printexc2.to_string e);
               print_newline ();
               StringValue ""))
     (List.rev opfile.file_options));

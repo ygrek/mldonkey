@@ -101,7 +101,7 @@ class virtual ['a] filtered_plist
                     wlist#set_row ~foreground: c row
               end
           with e ->
-              Printf.printf "Exception %s in update_row" (Printexc.to_string e);
+              Printf.printf "Exception %s in update_row" (Printexc2.to_string e);
               print_newline ()
         end else begin
           Printf.printf "update_row < 0"; print_newline ();

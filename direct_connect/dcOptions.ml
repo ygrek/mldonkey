@@ -47,12 +47,11 @@ let search_timeout = define_option directconnect_ini
 let load_hublist = define_option directconnect_ini ["load_hublist"]
     "Download a list of servers"
     bool_option true
-
   
 let shared_offset = define_option directconnect_ini
     ["shared_offset"]
     "An amount of bytes to add to the shared total (can help to connect)"
-    float_option 10000000000.
+    float_option (1024. *. 1024. *. 11.)
 
   
 let dc_port = define_option directconnect_ini ["client_port"]

@@ -473,6 +473,7 @@ print_newline ();
         end
   
   | M.ViewFilesReplyReq t ->
+      c.client_next_view_files <- last_time () +. 3600. *. 6.;
 (*
       Printf.printf "****************************************";
       print_newline ();
@@ -496,7 +497,7 @@ print_newline ();
         
         with e ->
             Printf.printf "Exception in ViewFilesReply %s"
-              (Printexc.to_string e); print_newline ();
+              (Printexc2.to_string e); print_newline ();
       end;
   
   | M.AvailableSlotReq _ ->
@@ -785,7 +786,7 @@ is checked for the file.
                 Printf.printf "WITH CLIENT %s" c.client_name;
                 print_newline ();
             | e ->
-                Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
+                Printf.printf "Error %s while writing block. Pausing download" (Printexc2.to_string e);
                 print_newline ();
                 file_pause (as_file file.file_file);
                 info_change_file file
@@ -819,7 +820,7 @@ is checked for the file.
       if not c.client_already_counted then begin
           count_seen c;
           c.client_already_counted <- true
-       end;
+        end;
       begin try 	
           count_filerequest c;
           let file = find_file t in
@@ -840,9 +841,9 @@ is checked for the file.
             });
           
           add_new_location sock file c
-                            
+        
         with _ -> () end    
-      
+  
   | M.SourcesReq t ->
       
       let module Q = M.Sources in
@@ -850,19 +851,19 @@ is checked for the file.
         try
           let file = find_file t.Q.md4 in
           if file.file_enough_sources then begin
-	    Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
-	    print_newline ()
-	  end else 
-          List.iter (fun (ip1, port, ip2) ->
-              if Ip.valid ip1 then
-                let c = new_client (Known_location (ip1, port)) in
-                if not (Intmap.mem (client_num c) file.file_sources) then
-                  new_source file c;
-		  schedule_new_client c
-          ) t.Q.sources
+              Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
+              print_newline ()
+            end else 
+            List.iter (fun (ip1, port, ip2) ->
+                if Ip.valid ip1 && Ip.reachable ip1 then
+                  let c = new_client (Known_location (ip1, port)) in
+                  if not (Intmap.mem (client_num c) file.file_sources) then
+                    new_source file c;
+                  schedule_new_client c
+            ) t.Q.sources
         with _ -> ()
       end
-
+      
   | M.SayReq s ->
       
       let ad_opt = 
@@ -1138,7 +1139,7 @@ let reconnect_client c =
 
         with e -> 
             Printf.printf "Exception %s in client connection"
-              (Printexc.to_string e);
+              (Printexc2.to_string e);
             print_newline ();
             connection_failed c.client_connection_control;
             set_client_state c NotConnected
@@ -1220,7 +1221,7 @@ let connect_as_soon_as_possible c =
 let query_id_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryIDReply in
-  if Ip.valid t.Q.ip then
+  if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then
     let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
     connect_as_soon_as_possible c
     
@@ -1240,47 +1241,48 @@ let udp_server_send s t =
 let query_locations_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryLocationReply in
-
-    connection_ok s.server_connection_control;
   
-    try
-      let file = find_file t.Q.md4 in
-      let nlocs = List.length t.Q.locs in
-      s.server_score <- s.server_score + 3;
-      if file.file_enough_sources then begin
-	Printf.printf "** Dropped %d sources for %s **" nlocs (file_best_name file);
-	print_newline ()
+  connection_ok s.server_connection_control;
+  
+  try
+    let file = find_file t.Q.md4 in
+    let nlocs = List.length t.Q.locs in
+    s.server_score <- s.server_score + 3;
+    if file.file_enough_sources then begin
+        Printf.printf "** Dropped %d sources for %s **" nlocs
+          (file_best_name file);
+        print_newline ()
       end else 
-  
-  List.iter (fun l ->
-      let ip = l.Q.ip in
-      let port = l.Q.port in
       
-      if Ip.valid ip then
-        begin
-          let c = new_client (Known_location (ip, port)) in
-	    if not (Intmap.mem (client_num c) file.file_sources) then begin
-	      new_source file c;
-	      schedule_new_client c
-	    end
-	end else
-      match s.server_sock with
-        None ->
-          let module Q = M.QueryCallUdp in
-          udp_server_send s 
-            (M.QueryCallUdpReq {
-              Q.ip = client_ip None;
-              Q.port = !client_port;
-              Q.id = ip;
-            })
-
-      | Some sock ->
-          printf_string "QUERY ID";
-          query_id s sock ip
-  ) t.Q.locs
-
-    with Not_found -> ()
+      List.iter (fun l ->
+          let ip = l.Q.ip in
+          let port = l.Q.port in
+          
+          if Ip.valid ip && Ip.reachable ip then
+            begin
+              let c = new_client (Known_location (ip, port)) in
+              if not (Intmap.mem (client_num c) file.file_sources) then begin
+                  new_source file c;
+                  schedule_new_client c
+                end
+            end else
+          match s.server_sock with
+            None ->
+              let module Q = M.QueryCallUdp in
+              udp_server_send s 
+                (M.QueryCallUdpReq {
+                  Q.ip = client_ip None;
+                  Q.port = !client_port;
+                  Q.id = ip;
+                })
+          
+          | Some sock ->
+              printf_string "QUERY ID";
+              query_id s sock ip
+      ) t.Q.locs
   
+  with Not_found -> ()
+      
 let client_connection_handler t event =
   printf_string "[REMOTE CONN]";
   match event with
@@ -1305,11 +1307,11 @@ begin
                   (client_to_client []));
             
             with e -> Printf.printf "Exception %s in init_connection"
-                  (Printexc.to_string e);
+                  (Printexc2.to_string e);
                 print_newline ());
         with e ->
             Printf.printf "Exception %s in client_connection_handler"
-              (Printexc.to_string e);
+              (Printexc2.to_string e);
             print_newline ();
             Unix.close s)
 (*

@@ -60,7 +60,7 @@ let file_complete file =
   (try file_completed (as_file file.file_file)
     with e ->
         Printf.printf "Exception %s in file completed"
-        (Printexc.to_string e)
+        (Printexc2.to_string e)
         ; print_newline ());
   current_files := List2.removeq file !current_files;
   old_files =:= (file.file_name, file_size file) :: !!old_files;
@@ -262,7 +262,7 @@ let client_reader2 c sock nread =
         
         with e -> 
             write_string sock "INVALID REQUEST";  
-            Printf.printf "EXCEPTION %s in client_reader2" (Printexc.to_string e); print_newline ();
+            Printf.printf "EXCEPTION %s in client_reader2" (Printexc2.to_string e); print_newline ();
       
       
       end
@@ -334,6 +334,6 @@ let listen () =
     ()
   with e ->
       Printf.printf "Exception %s while init limewire server" 
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ()
       

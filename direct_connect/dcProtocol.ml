@@ -702,7 +702,7 @@ AgProtocol.dump s;
         else UnknownReq s
     | _ -> UnknownReq s
   with e ->
-      Printf.printf "Exception %s in parse" (Printexc.to_string e);
+      Printf.printf "Exception %s in parse" (Printexc2.to_string e);
       print_newline ();
       UnknownReq s
       
@@ -843,7 +843,7 @@ let server_send sock m =
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
-(*  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();  *)
+  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();
   write_string sock s
       
 let debug_server_send sock m =

@@ -146,7 +146,7 @@ let update_shared_info shared =
   
 let catch m f =
   try f () with e ->
-      Printf.printf "Exception %s for message %s" (Printexc.to_string e) m;
+      Printf.printf "Exception %s for message %s" (Printexc2.to_string e) m;
       print_newline () 
 
 let send_event gui ev = 
@@ -396,8 +396,10 @@ end;
                 
                 rooms_iter (fun room ->
                     if room_state room <> RoomClosed then begin
+                        Printf.printf "ROOM ADD USERS"; print_newline ();
                         addevent gui.gui_rooms (room_num room) true;
                         List.iter (fun user ->
+                            Printf.printf "room add user"; print_newline ();
                             addevent gui.gui_users (user_num user) true;
                             gui.gui_new_events <-
                               (Room_add_user_event (room,user))
@@ -514,7 +516,7 @@ Printf.printf "Sending for %s" prefix; print_newline ();
                     if bool then network_enable n else network_disable n;
                   with e ->
                       Printf.printf "Exception %s in network enable/disable" 
-                        (Printexc.to_string e);
+                        (Printexc2.to_string e);
                       print_newline ());
               gui_send gui (P.Network_info (network_info n))
           
@@ -762,7 +764,7 @@ search.op_search_end_reply_handlers;
   | e ->
       gui_send gui (Console (    
           Printf.sprintf "from_gui: exception %s for message %s\n" (
-            Printexc.to_string e) (GuiProto.from_gui_to_string t)))
+            Printexc2.to_string e) (GuiProto.from_gui_to_string t)))
       
 let gui_closed gui sock  msg =
 (*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)

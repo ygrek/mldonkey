@@ -101,7 +101,7 @@ module Make(Doc : sig
         node.ndocs <- node.ndocs + 1;
         true
       with e ->
-(*          Printf.printf "exn %s" (Printexc.to_string e); print_newline (); *)
+(*          Printf.printf "exn %s" (Printexc2.to_string e); print_newline (); *)
           false
 (* ; Printf.printf "done"; print_newline () *)
     
@@ -150,7 +150,7 @@ module Make(Doc : sig
         in
         ignore (iter 0 index.node)
       with e -> 
-(*          Printf.printf "Exc %s" (Printexc.to_string e);print_newline (); *)
+(*          Printf.printf "Exc %s" (Printexc2.to_string e);print_newline (); *)
           ()
 (* ; Printf.printf "done"; print_newline ()  *)
     

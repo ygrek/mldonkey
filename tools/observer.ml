@@ -66,6 +66,7 @@ char[len]: packets
 *)
 
 let new_servers = ref []
+let new_peers = ref []
   
 let print_record t ip_firewall s =
   let ip = get_ip s 1 in
@@ -116,6 +117,7 @@ let print_record t ip_firewall s =
       for i = 0 to npeers - 1 do
         let ip = get_ip s (pos+4+i*6) in
         let port = get_int16 s (pos+6+i*6) in
+        new_peers := (ip, port) :: !new_peers;
         Printf.printf "         Overnet Peer %s:%d"        
         (Ip.to_string ip) port;
         print_newline ()
@@ -206,49 +208,77 @@ let count_records () =
   
 
 let servers_age = ref 60
+let peers_age = ref 2
 let _ =
   print_newline ();
   Arg.parse [
     "-ascii", Arg.Unit print_ascii, "";
     "-count", Arg.Unit count_records, "";
-    "-age", Arg.Int ((:=) servers_age), " <int> : max server age (minutes) in servers.met";
+    "-server_age", Arg.Int ((:=) servers_age), " <int> : max server age (minutes) in servers.met";
+    "-peer_age", Arg.Int ((:=) peers_age), " <int> : max server age (minutes) in servers.met";
     ] 
     (fun _ -> ()) ""
 
   
 let time = ref 0
-let array = Array.create !servers_age []
-let dump_server_list _ = 
-  try
-  Printf.printf "dump server list"; print_newline ();
-  let module S = DonkeyImport.Server in
-  incr time;
-  array.(!time mod !servers_age) <- !new_servers;
-  new_servers := [];
-  let servers = Hashtbl.create 97 in
-  let servers_ip = Hashtbl.create 97 in
-  for i = 0 to !servers_age - 1 do
-    List.iter (fun ((ip,port) as key) ->
-        if port <> 4662 && Ip.valid ip && ip <> Ip.localhost then
-        try
-           let key = Hashtbl.find servers_ip ip in
-           Hashtbl.remove servers key
-        with _ ->
-           Hashtbl.add servers key { S.ip = ip; S.port = port; S.tags = []; };
-           Hashtbl.add servers_ip ip key
-    ) array.(i)
-  done;
-  let list = Hashtbl2.to_list servers in
-  let buf = Buffer.create 100 in
-  S.write buf list;
-  File.from_string "servers.met" (Buffer.contents buf);
-(* now, what is the command to send the file to the WEB server ??? *)
-  ignore (Sys.command "scp -B -q servers.met mldonkey@subversions.gnu.org:/upload/mldonkey/network/");
-  ()
-  with e ->
-   Printf.printf "error: %s" (Printexc.to_string e);
-   print_newline ()  
+let servers_array = Array.create !servers_age []
+let peers_array = Array.create !peers_age []
 
+let dump_list array new_hosts adder dumper =
+  try
+    Printf.printf "dump server list"; print_newline ();
+    incr time;
+    let len = Array.length array in
+    array.(!time mod Array.length array) <- !new_hosts;
+    new_hosts := [];
+    let servers = Hashtbl.create 97 in
+    let servers_ip = Hashtbl.create 97 in
+    for i = 0 to len - 1 do
+      List.iter (fun ((ip,port) as key) ->
+          if port <> 4662 && Ip.valid ip && ip <> Ip.localhost
+              && Ip.reachable ip then
+            try
+              let key = Hashtbl.find servers_ip ip in
+              Hashtbl.remove servers key
+            with _ ->
+                Hashtbl.add servers key (adder ip port);
+                Hashtbl.add servers_ip ip key
+      ) array.(i)
+    done;
+    let list = Hashtbl2.to_list servers in
+    dumper list
+  with e ->
+      Printf.printf "error: %s" (Printexc2.to_string e);
+      print_newline ()  
+  
+let dump_servers_list _ = 
+  let module S = DonkeyImport.Server in
+  dump_list servers_array new_servers 
+    (fun ip port ->
+      { S.ip = ip; S.port = port; S.tags = []; };)
+  (fun list ->
+    let buf = Buffer.create 100 in
+    S.write buf list;
+    File.from_string "servers.met" (Buffer.contents buf);
+(* now, what is the command to send the file to the WEB server ??? *)
+      ignore
+      (Sys.command "scp -B -q servers.met patarin@subversions.gnu.org:/upload/mldonkey/network/");
+  )
+
+let dump_peers_list _ =
+  dump_list peers_array new_peers 
+    (fun ip port -> (ip,port))
+  (fun list ->
+      let buf = Buffer.create 100 in
+      List.iter (fun (ip, port) ->
+          Printf.bprintf buf "%s,%d,X\n" (Ip.to_string ip) port;
+      ) list;
+      File.from_string "peers.ocl" (Buffer.contents buf);
+      ignore
+        (Sys.command "scp -B -q peers.ocl patarin@subversions.gnu.org:/upload/mldonkey/network/");
+
+  )
+  
 let _ =
   ignore (create_observer 3999);
   ignore (create_observer 4665)
@@ -259,12 +289,14 @@ let _ =
     try
       let file = File.to_string "servers.met" in
       List.iter (fun s ->
-        array.(0) <- (s.S.ip , s.S.port) :: array.(0)
+        servers_array.(0) <- (s.S.ip , s.S.port) :: servers_array.(0)
         ) (S.read file)
     with _ -> Printf.printf "Could not load old server list"; print_newline ();
   end;
-  BasicSocket.add_timer 30. dump_server_list;
-  BasicSocket.add_infinite_timer 300. dump_server_list;
+  BasicSocket.add_timer 30. dump_servers_list;
+  BasicSocket.add_timer 30. dump_peers_list;
+  BasicSocket.add_infinite_timer 300. dump_servers_list;
+  BasicSocket.add_infinite_timer 300. dump_peers_list;
   Printf.printf "Observer started";
   print_newline ();
   BasicSocket.loop ()

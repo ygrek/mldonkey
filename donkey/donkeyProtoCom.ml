@@ -142,7 +142,7 @@ let udp_send t ip port msg =
   let s = Buffer.contents buf in
   UdpSocket.write t s ip port
   with e ->
-      Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
+      Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
       print_newline () 
 
       (*
@@ -157,7 +157,7 @@ let udp_send_if_possible t bc addr msg =
     if if_possible bc len then
       UdpSocket.write t s 0 (String.length s) addr
   with e ->
-      Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
+      Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
       print_newline () 
       *)
 
@@ -180,7 +180,7 @@ let udp_handler f sock event =
               end
           with e ->
               Printf.printf "Error %s in udp_handler"
-                (Printexc.to_string e); print_newline () 
+                (Printexc2.to_string e); print_newline () 
       ) ;
   | _ -> ()
 
@@ -248,7 +248,7 @@ let propagate_working_servers servers peers =
             let name, port = !!redirector in
             UdpSocket.write propagation_socket s (Ip.from_name name) port
           with e ->
-              Printf.printf "Exception %s in udp_sendonly" (Printexc.to_string e);
+              Printf.printf "Exception %s in udp_sendonly" (Printexc2.to_string e);
               print_newline () 
         end      
     end
@@ -270,7 +270,7 @@ let udp_basic_handler f sock event =
               end
           with e ->
               Printf.printf "Error %s in udp_basic_handler"
-                (Printexc.to_string e); print_newline () 
+                (Printexc2.to_string e); print_newline () 
       ) ;
   | _ -> ()
 

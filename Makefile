@@ -28,7 +28,7 @@ ifdef PLUGIN
   INCLUDES += -I $(PLUGIN)
 endif
 
-SUBDIRS=cdk chat lib net tools common driver mp3tagui 
+SUBDIRS=cdk chat lib net tools common driver mp3tagui config/$(OS_FILES)
 
 INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
 
@@ -43,11 +43,12 @@ TARGETS= use_tags$(EXE) mldonkey$(EXE)
 
 #######################################################################
 
-CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
+CDK_SRCS=\
+  cdk/printexc2.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
-  cdk/select_c.c cdk/heap_c.c cdk/array2.ml cdk/sort2.ml 
+  cdk/heap_c.c cdk/array2.ml cdk/sort2.ml 
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -59,22 +60,30 @@ MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\
   mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
 
-LIB_SRCS= lib/autoconf.ml  lib/intmap.ml \
+
+LIB_SRCS=   lib/autoconf.ml \
+  config/$(OS_FILES)/mlUnix.ml \
+  config/$(OS_FILES)/os_stubs_c.c \
+  lib/intmap.ml \
   lib/int32ops.ml lib/options.ml lib/ip.ml  lib/numset.ml  \
   lib/fifo.ml lib/fifo2.ml lib/intset.ml \
-  lib/hole_tab.ml lib/store.ml lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
+  lib/hole_tab.ml lib/store.ml \
+  lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
   lib/mailer.ml lib/date.ml \
-  lib/md4_comp.c lib/md4_c.c lib/unix32_c.c lib/inet_c.c \
-  lib/gettext.ml lib/md5_c.c
+  lib/md4_comp.c lib/md4_c.c \
+  lib/gettext.ml lib/md5_c.c \
+  lib/stubs_c.c
 
 NET_SRCS = \
   net/bigEndian.ml net/littleEndian.ml \
   net/basicSocket.ml net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml \
-  net/multicast.ml net/multicast_c.c  net/terminal.ml
+  net/multicast.ml net/multicast_c.c 
+
+# net/terminal.ml
 
 CHAT_SRCS = chat/chat_messages.ml\
 	chat/chat_misc.ml\

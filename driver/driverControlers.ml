@@ -150,7 +150,7 @@ let user_reader options auth sock nread  =
      with _ -> ());
   | e ->
     TcpBufferedSocket.write_string sock
-       (Printf.sprintf "exception [%s]\n" (Printexc.to_string e))
+       (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e))
 
   
 let user_closed sock  msg =
@@ -327,7 +327,7 @@ let http_handler options t r =
     (r.options.passwd <> !!http_password || r.options.login <> !!http_login)
   then begin
       Buffer.clear buf;  
-      need_auth buf "MLdonkey"
+      need_auth buf !!http_realm
     end
   else
     begin
@@ -429,7 +429,7 @@ let http_handler options t r =
                         Gettext.buftext buf M.download_started num
                       with  e -> 
                           Printf.bprintf buf "Error %s with %s<br>" 
-                            (Printexc.to_string e) value;
+                            (Printexc2.to_string e) value;
                           results_iter (fun n  r ->
                               Printf.bprintf buf "IN TABLE: %d   <br>\n" n)
                     end
@@ -528,7 +528,7 @@ end
             html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" cmd
       with e ->
-          Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);
+          Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
     end;
   
   html_close_page buf;

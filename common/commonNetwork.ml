@@ -149,7 +149,7 @@ let networks_iter f =
         if network_is_enabled r then f r
       with e ->
           Printf.printf "Exception %s in Network.iter for %s"
-            (Printexc.to_string e) r.network_name;
+            (Printexc2.to_string e) r.network_name;
           print_newline ()
   ) !networks
   
@@ -159,7 +159,7 @@ let networks_iter_until_true f =
         network_is_enabled r && f r
       with e ->
           Printf.printf "Exception %s in Network.iter for %s"
-            (Printexc.to_string e) r.network_name;
+            (Printexc2.to_string e) r.network_name;
           print_newline ();
           false
   ) !networks
@@ -168,7 +168,7 @@ let networks_iter_all f =
   List.iter (fun r ->
       try f r  with e ->
           Printf.printf "Exception %s in Network.iter for %s"
-            (Printexc.to_string e) r.network_name;
+            (Printexc2.to_string e) r.network_name;
           print_newline ()
   ) !networks
   
@@ -176,7 +176,7 @@ let networks_iter_all_until_true f =
   List.exists (fun r ->
       try f r  with e ->
           Printf.printf "Exception %s in Network.iter for %s"
-            (Printexc.to_string e) r.network_name;
+            (Printexc2.to_string e) r.network_name;
           print_newline ();
           false
   ) !networks

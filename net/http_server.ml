@@ -246,7 +246,7 @@ Printf.printf "LINE: [%s]" (escaped s); print_newline (); ) h;
               | _ -> options
             with e ->
                 if !debug then begin
-                    Printf.printf "Exception %s in header %s" (Printexc.to_string e) name;
+                    Printf.printf "Exception %s in header %s" (Printexc2.to_string e) name;
                     print_newline ();
                   end;
                 options
@@ -626,7 +626,7 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      Printf.printf "No such file: %s (%s)" file (Printexc.to_string e); 
+      Printf.printf "No such file: %s (%s)" file (Printexc2.to_string e); 
       print_newline ();
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown

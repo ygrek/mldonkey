@@ -101,13 +101,13 @@ let new_file_to_share sh old_impl =
     (try 
         DonkeyOvernet.publish_file file
       with e -> 
-          Printf.printf "DonkeyOvernet.publish_file: %s" (Printexc.to_string e);
+          Printf.printf "DonkeyOvernet.publish_file: %s" (Printexc2.to_string e);
 print_newline ());
   *)
     Printf.printf "Sharing %s" sh.sh_name;
     print_newline ();
   with e ->
-      Printf.printf "Exception %s while sharing %s" (Printexc.to_string e)
+      Printf.printf "Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name; print_newline () 
       
   
@@ -182,7 +182,7 @@ let check_shared_files () =
           end
       with e ->
           Printf.printf "Exception %s prevents sharing"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
           shared_files := files;
           if !shared_files = [] then begin
@@ -276,7 +276,7 @@ let remember_shared_info file new_name =
       }
     with e ->
         Printf.printf "Exception %s in remember_shared_info"
-          (Printexc.to_string e);
+          (Printexc2.to_string e);
         print_newline ()
         
 let must_share_file file = must_share_file file None

@@ -410,7 +410,7 @@ let udp_handler sock event =
 		end
           with e ->
             (*Printf.printf "******* EXCEPTION %s in List.iter on UDP packets"
-            (Printexc.to_string e); print_newline ();
+            (Printexc2.to_string e); print_newline ();
             Printf.printf "This could prevent discarding UDP messages ...";
             print_newline ();*)
 	    ()

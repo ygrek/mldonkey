@@ -18,6 +18,7 @@
 *)
 
 open Md4
+open CommonClient
 open CommonFile
 open CommonRoom
 open CommonComplexOptions
@@ -111,7 +112,7 @@ let value_to_file is_done assocs =
           )))
     with e -> 
         Printf.printf "Exception %s while loading source"
-          (Printexc.to_string e); 
+          (Printexc2.to_string e); 
         print_newline ();
   );
   as_file file.file_file
@@ -133,12 +134,39 @@ let file_to_value file =
             ) c.client_user.user_servers)]
     ) file.file_clients;
   ]
-        
+  
+let client_to_value c =
+  match c.client_addr with 
+    None -> raise Not_found
+  | Some (ip, port) ->
+      let list = [
+          "client_name", string_to_value c.client_name;
+          "client_ip", Ip.ip_to_value ip;
+          "client_port", int_to_value port;
+        ]
+      in
+      list
+      
+let value_to_client is_friend assocs = 
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  let ip = get_value "client_ip" Ip.value_to_ip in
+  let port = get_value "client_port" value_to_int in
+  let name = get_value "client_name" value_to_string in
+  let c = DcGlobals.new_client name in
+  c.client_addr <- Some (ip, port);
+  if is_friend then friend_add (as_client c.client_client);
+  c
+  
 let _ =
   server_ops.op_server_sort <- (fun s ->
       connection_last_conn s.server_connection_control);
   network.op_network_add_server <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;  
   network.op_network_add_file <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value
-  
+  file_ops.op_file_to_option <- file_to_value;
+  client_ops.op_client_to_option <- client_to_value;
+  network.op_network_add_client <- (fun is_friend c ->
+      as_client (value_to_client is_friend c).client_client)

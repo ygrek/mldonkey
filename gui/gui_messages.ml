@@ -439,7 +439,7 @@ let _ =
         (try Options.save message_file with _ -> ())
     | e ->
         Printf.printf "Error %s loading message file %s"
-          (Printexc.to_string e) 
+          (Printexc2.to_string e) 
         (Options.options_file_name message_file);
         print_newline ();
         Printf.printf "Using default messages."; print_newline ();

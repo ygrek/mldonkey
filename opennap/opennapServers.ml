@@ -175,7 +175,7 @@ print_newline (); *)
         end
   with e ->
       Printf.printf "Exception %s in get_file_from_source" 
-      (Printexc.to_string e);
+      (Printexc2.to_string e);
       print_newline ()
 
   
@@ -435,7 +435,7 @@ let connect_server s =
     with e -> 
         Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
           (Ip.to_string s.server_ip) s.server_port
-          (Printexc.to_string e); print_newline ();
+          (Printexc2.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
         decr nservers;
         s.server_sock <- None;

@@ -69,10 +69,10 @@ let load_comments filename =
       End_of_file -> close_in ic
     | e ->
         close_in ic;
-        Printf.printf "Error loading %s: %s" filename (Printexc.to_string e);
+        Printf.printf "Error loading %s: %s" filename (Printexc2.to_string e);
         print_newline () 
   with e ->
-      Printf.printf "Error loading %s: %s" filename (Printexc.to_string e);
+      Printf.printf "Error loading %s: %s" filename (Printexc2.to_string e);
       print_newline () 
 
 let save_comments () =
@@ -337,7 +337,7 @@ let add_to_local_index_timer _ =
 
       with e ->
           Printf.printf "Exception %s while starting local_index_add"
-            (Printexc.to_string e); print_newline ()
+            (Printexc2.to_string e); print_newline ()
     
     end
   
@@ -551,7 +551,7 @@ let init () =
               close_in ic
           | e -> (* some error *)
               Printf.printf "Error %s reading history file"
-                (Printexc.to_string e)
+                (Printexc2.to_string e)
               ; print_newline ();
               close_in ic;
               Printf.printf "Generating new file"; print_newline ();
@@ -564,7 +564,7 @@ let init () =
                   close_history_oc ();
                 with e ->            
                     Printf.printf "Error %s generating new history file"
-                      (Printexc.to_string e);
+                      (Printexc2.to_string e);
                     print_newline () 
               end
         with _ -> ());
@@ -626,7 +626,7 @@ let install_hooks () =
 (*        Printf.printf "SET NEW FILTERS"; print_newline (); *)
         DocIndexer.filter_words index (String2.stem !!filters)
       with e ->
-          Printf.printf "Error %s in set filters" (Printexc.to_string e);
+          Printf.printf "Error %s in set filters" (Printexc2.to_string e);
           print_newline ();
   )
   

@@ -333,8 +333,11 @@ class paused_rooms_box () =
 end
 
 let add_room_user room user_num =
-  if not (List.memq user_num room.room_users) then 
-    room.room_users <- user_num :: room.room_users
+  Printf.printf "ADD ROOM USER"; print_newline ();
+  if not (List.memq user_num room.room_users) then begin
+      room.room_users <- user_num :: room.room_users;
+      Printf.printf "Should have added user"; print_newline ();
+    end
     
 let insert_text (messages: box) ?user ?(priv=false) s =
   let user_info = 
@@ -465,7 +468,7 @@ class pane_rooms () =
           append_message room messages msg
         with _ -> ()
       with e -> 
-          Printf.printf "ROOM %d Exception %s" room_num (Printexc.to_string e);
+          Printf.printf "ROOM %d Exception %s" room_num (Printexc2.to_string e);
           print_newline ();
           ()
     
@@ -494,6 +497,7 @@ class pane_rooms () =
     
     
     method  add_room_user room_num user_num =
+      Printf.printf "add romm user"; print_newline ();
       try
         let (num, room) = try
             opened_rooms#find_room room_num 
@@ -502,6 +506,7 @@ class pane_rooms () =
             room.room_users <- user_num :: room.room_users;
             try
               let (users, messages) = Hashtbl.find widgets room_num in
+              Printf.printf "update_users"; print_newline ();
               update_users room users
             with _ -> ()
           end

@@ -109,9 +109,11 @@ let dummy_fd = Obj.magic (-1)
 
 let closed_tasks = ref []
 
+external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
+
 let print_socket s =  
   Printf.printf "FD %d: %20s Socket %s " 
-    (Obj.magic s.fd)
+    (get_fd_num s.fd)
   (Date.to_string s.born) (s.name ());
   print_newline ()
   
@@ -166,11 +168,14 @@ let dump_basic_socket () = ()
   
 let create_blocking name fd handler =
   
-  let (fdnum : int) = Obj.magic fd in
+  let (fdnum : int) = get_fd_num fd in
+(*
   if fdnum >= Unix32.fds_size then begin
       Unix.close fd;
+      Printf.printf "**** File descriptor above limit %d!!" fdnum; print_newline ();
       failwith "File Descriptor removed";
     end;
+*)
   incr nb_sockets;
   Unix.set_nonblock fd;
 (*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)
@@ -336,7 +341,6 @@ let rec exec_timers = function
       exec_timers tail
       
 let loop () =
-  Sys.set_signal  Sys.sigpipe Sys.Signal_ignore;
   while true do
     try
       let time = update_time () in
@@ -375,7 +379,7 @@ timeout := 5.;
 (*      Printf.printf "Tasks %d" (List.length !fd_tasks); print_newline ();*)
       select !fd_tasks !timeout; 
     with e ->
-        Printf.printf "Exception %s in Select.loop" (Printexc.to_string e);
+        Printf.printf "Exception %s in Select.loop" (Printexc2.to_string e);
         print_newline ();
   done
   
@@ -391,7 +395,7 @@ let shutdown t s =
 let nb_sockets () = !nb_sockets
   
 let _ =
-  Printexc.register_exn (fun e ->
+  Printexc2.register_exn (fun e ->
       match e with
         Unix.Unix_error (e, f, arg) ->
           Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else 
@@ -400,7 +404,7 @@ let _ =
   )
   
 let stats buf t =
-  Printf.printf "Socket %d\n" (Obj.magic t.fd)
+  Printf.printf "Socket %d\n" (get_fd_num t.fd)
   
 let print_socket s =
   print_socket s;

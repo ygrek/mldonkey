@@ -17,17 +17,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(* Module [Printexc]: facilities for printing exceptions *)
+(* Module [Printexc2]: facilities for printing exceptions *)
 
 val to_string : exn -> string
-        (* [Printexc.to_string e] returns a string representation of
+        (* [Printexc2.to_string e] returns a string representation of
            the exception [e]. *)
 
 val printers : (exn -> string) list ref
   
 
 val print: ('a -> 'b) -> 'a -> 'b
-        (* [Printexc.print fn x] applies [fn] to [x] and returns the result.
+        (* [Printexc2.print fn x] applies [fn] to [x] and returns the result.
            If the evaluation of [fn x] raises any exception, the
            name of the exception is printed on standard error output,
            and the exception is raised again.
@@ -35,14 +35,14 @@ val print: ('a -> 'b) -> 'a -> 'b
            escape a function application. *)
 
 val catch: ('a -> 'b) -> 'a -> 'b
-        (* [Printexc.catch fn x] is similar to [Printexc.print], but
+        (* [Printexc2.catch fn x] is similar to [Printexc2.print], but
            aborts the program with exit code 2 after printing the
            uncaught exception.  This function is deprecated: the runtime
            system is now able to print uncaught exceptions as precisely
-           as [Printexc.catch] does.  Moreover, calling [Printexc.catch]
+           as [Printexc2.catch] does.  Moreover, calling [Printexc2.catch]
            makes it harder to track the location of the exception
            using the debugger or the stack backtrace facility.
-           So, do not use [Printexc.catch] in new code.  *)
+           So, do not use [Printexc2.catch] in new code.  *)
 
 val register_exn : (exn -> string) -> unit
 (*d [register_exn printer] registers a printer for user-defined 

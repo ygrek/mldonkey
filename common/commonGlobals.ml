@@ -98,8 +98,7 @@ let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
   
 let can_open_connection () =
   let ns = nb_sockets () in
-  let max = mini !!max_opened_connections 
-      (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2)) in
+  let max = mini !!max_opened_connections MlUnix.max_sockets in
   if !!debug_net then begin
       Printf.printf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
         (UdpSocket.remaining_bytes udp_write_controler)
@@ -154,7 +153,7 @@ let exit_properly _ =
 (*        Printf.printf "exit_properly done"; print_newline (); *)
       with e -> 
           Printf.printf "exit_properly (exception %s)"
-            (Printexc.to_string e); print_newline ();
+            (Printexc2.to_string e); print_newline ();
   ) !exit_handlers;
 (*  Printf.printf "exit_properly DONE"; print_newline (); *)
   Pervasives.exit 0

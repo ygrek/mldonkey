@@ -104,10 +104,14 @@ module XorSet = Set.Make (
 let min_peers_per_block = 2
 let min_peers_before_connect = 5
 let search_max_queries = 64
-let overnet_default_ocl = [
-  "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" ;
-  "http://overnet.wiretapped.us/contact.ocl"; 
-]
+let overnet_default_ocl = define_option downloads_ini 
+    ["ocl_links"] ""
+  (list_option string_option)
+  [
+    "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl";        
+    "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" ;
+    "http://overnet.wiretapped.us/contact.ocl"; 
+  ]
 
 let global_peers_size = Array.make 256 0
 let files_to_be_published = ref []
@@ -232,7 +236,7 @@ let udp_send ip port msg =
         let len = String.length s in
         UdpSocket.write sock s ip port
       with e ->
-          Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
+          Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
           print_newline () 
             
 let search_hits = ref 0
@@ -394,15 +398,19 @@ let find_new_peers () =
 	  end
       end
 
-let automatic_ocl_load () =
+(* Used to prevent reloading the pages too often (max is 1/hour) *)
+let next_automatic_ocl_load = ref 0.0
+let automatic_ocl_load force =
   if !!overnet_search_sources || !!overnet_search_keyword then
     match get_uniform_distribution () with
       [] -> 
-	begin
+        if force || !next_automatic_ocl_load < last_time () then
+          begin
+            next_automatic_ocl_load := last_time () +. 3600.;
 	  Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
 	  List.iter (fun url ->
 	    Printf.printf "Loading %s\n" url;
-	    load_url "ocl" url) overnet_default_ocl;
+	    load_url "ocl" url) !!overnet_default_ocl;
 	end
     | _ -> ()
 
@@ -791,7 +799,7 @@ let udp_client_handler t p =
 				(*Printf.printf "FIXME: Received a BCP type 1 %s for MD4 %s" 
 				  bcp (Md4.to_string md4);*)
 				print_newline ();
-				if Ip.valid ip then
+                                  if Ip.valid ip && Ip.reachable ip then
 				   let c = new_client (Known_location (ip, port)) in
 				   c.client_brand <- Brand_overnet;
 				   if not (Intmap.mem (client_num c) file.file_sources) then
@@ -999,7 +1007,7 @@ let enable enabler =
   (* every 30min for common operations *)
   add_session_timer enabler 1800. (fun _ ->
       recover_all_files ();
-      automatic_ocl_load ();
+      automatic_ocl_load false;
   );
 
   (* every 15min for light operations *)
@@ -1013,7 +1021,7 @@ let enable enabler =
     publicize_peers ()
   );
   add_timer 20. (fun timer -> 
-    automatic_ocl_load ();
+    automatic_ocl_load false;
     find_new_peers (); 
     (*publish is in fact controled by do_publish_shared_files, every 2 min*)   
     publish_shared_files ()
@@ -1109,7 +1117,7 @@ let _ =
     "ovweb", Arg_multiple (fun args o ->
         let urls =
           match args with
-            [] -> overnet_default_ocl;
+            [] -> !!overnet_default_ocl;
           | _ -> args
         in
         List.iter (fun url ->
@@ -1131,6 +1139,8 @@ let _ =
             name :: port :: _ ->
               let ip = Ip.from_name name in
               let port = int_of_string port in
+              Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
+              print_newline ();
 	      udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
           | _ -> 
               Printf.printf "BAD LINE ocl: %s" s;

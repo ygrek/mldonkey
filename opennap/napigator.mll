@@ -71,7 +71,7 @@ let translate s =
     iter false false []
   with e ->
       Printf.printf "Html2table: Exception %s at pos %d"
-        (Printexc.to_string e)
+        (Printexc2.to_string e)
       (Lexing.lexeme_start lexbuf);
       print_newline ();
       []

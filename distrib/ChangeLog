@@ -1,6 +1,24 @@
 ChangeLog	
 =========
 
+2002/12/18: Simon
+  - MinGW port: should compile and seems to run. Not yet tested enough.
+  - DonkeyServers: better way to choose the master servers: if a new
+      server has 5 times more users or at least 1000 more users than a master
+      server, it replaces the master server.
+
+2002/12/17: Simon
+  - Prevent downloading the entire file list at every connection
+  - Added Ip.reachable to remove local network addresses
+  - Started port to native Windows via MinGW
+
+2002/12/16: Simon
+  - Applied Martin's patch on WEB Realm
+  - Added option 'run_as_user' that can be used to change (setuid) the
+      priviledges of mldonkey after ports binding.
+  - Started implementing upload in Direct-Connect
+  - New command 'friends' to print a list of all friends
+
 2002/12/15: Simon
   - Applied Norbert Lataille's patch 2.5 on Overnet publish
   - Applied Andre Hinrichs's patch for better help

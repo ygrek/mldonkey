@@ -790,7 +790,7 @@ let convert_file oc filename =
 (*    Hashtbl.add files (Filename.basename filename) file *)
   with e ->
       Printf.printf "%s : Exception %s" filename
-        (Printexc.to_string e);
+        (Printexc2.to_string e);
       print_newline ();
       exit 1
 

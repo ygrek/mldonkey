@@ -46,7 +46,7 @@ let start_interfaces () =
         ignore (DriverControlers.create_http_handler ());
       with e ->
           Printf.printf "Exception %s while starting HTTP interface"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
   
@@ -56,7 +56,7 @@ let start_interfaces () =
           !!telnet_port DriverControlers.telnet_handler);  
       with e ->
           Printf.printf "Exception %s while starting telnet interface"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
 
@@ -70,7 +70,7 @@ let start_interfaces () =
 	CommonChat.send_hello ()
       with e ->
           Printf.printf "Exception %s while starting chat interface"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end;
   
@@ -91,7 +91,7 @@ let start_interfaces () =
         !restart_gui_server ();
       with e ->
           Printf.printf "Exception %s while starting GUI interface"
-            (Printexc.to_string e);
+            (Printexc2.to_string e);
           print_newline ();
     end  ;
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
@@ -100,6 +100,7 @@ let start_interfaces () =
 
 let _ =
   add_web_kind "motd.html" (fun filename ->
+      Printf.printf "motd.html changed"; print_newline ();
     motd_html =:= File.to_string filename
 			   );
   add_web_kind "motd.conf" (fun filename ->
@@ -124,7 +125,7 @@ let _ =
     | End_of_file ->
 	close_in ic
     | e -> Printf.printf "Error while reading motd.conf(%s): %s" filename
-	(Printexc.to_string e); print_newline ();
+	(Printexc2.to_string e); print_newline ();
 	close_in ic
 			   )
 
@@ -321,32 +322,33 @@ Files.dump_file file), " <filename> : dump file";
   Unix2.safe_mkdir !!incoming_directory;
   Unix2.safe_mkdir !!temp_directory
 
-  
 let _ =  
-  Sys.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
+  MlUnix.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGCHLD"; print_newline ()));
-  Sys.set_signal  Sys.sighup
+  MlUnix.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGHUP"; print_newline ();
         BasicSocket.close_all ();
         BasicSocket.print_sockets ();
     ));
-  Sys.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
+  MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGPIPE"; print_newline ()));
-  Sys.set_signal  Sys.sigint (*Sys.Signal_ignore*)
+  MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         if !!CommonOptions.verbose then
           BasicSocket.print_sockets ();
         DriverInteractive.save_config ();
         exit 0));
-  Sys.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
+  MlUnix.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         if !!CommonOptions.verbose then
           BasicSocket.print_sockets ();
         DriverInteractive.save_config ();
-        exit 0));
+        exit 0))
+
+let _ =
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
@@ -412,8 +414,19 @@ let _ =
   
   save_mlsubmit_reg ();
   DriverInteractive.save_config ();
-
-  Unix32.max_cache_size := 
-  maxi 3 ((Unix32.fds_size - !!max_opened_connections) / 2);
+  
+  Unix32.max_cache_size := MlUnix.max_filedescs;
+  
+  if !!run_as_user <> "" then begin
+      try
+        let new_pw = Unix.getpwnam !!run_as_user  in
+        MlUnix.setuid new_pw.Unix.pw_uid;
+        let pw = Unix.getpwuid (Unix.getuid()) in
+        Printf.printf "dchub is now running as %s\n"  pw.Unix.pw_name;
+      with e ->
+          Printf.printf "Exception %s trying to set user_uid"
+          (Printexc2.to_string e);
+          print_newline ();
+    end;
   
   BasicSocket.loop ()

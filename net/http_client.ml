@@ -304,7 +304,7 @@ let wget url f =
         Sys.remove filename 
       with  e ->  Printf.printf
             "Exception %s in loading downloaded file %s"
-            (Printexc.to_string e) filename;
+            (Printexc2.to_string e) filename;
           Sys.remove filename 
   )
 
@@ -326,6 +326,6 @@ let cut_headers headers =
         String.lowercase (String.sub s 0 pos), String.sub s (pos+1) (len-pos-1)
   ) headers
   with e ->
-      Printf.printf "Exception in cut_headers: %s" (Printexc.to_string e);
+      Printf.printf "Exception in cut_headers: %s" (Printexc2.to_string e);
       print_newline ();
       raise e

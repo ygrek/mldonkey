@@ -4,7 +4,7 @@ AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
 CURRENT_VERSION=2.01
-CURRENT_RELEASE=1
+CURRENT_RELEASE=2
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -265,6 +265,7 @@ AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
+OS_FILES=unix
 case $host in
         *linux*)   
            AC_CHECK_HEADERS(linux/limits.h,, [
@@ -274,6 +275,7 @@ case $host in
              CPPFLAGS=$OLD_CPPFLAGS]
            )
         ;;
+        *mingw*) OS_FILES=mingw;;
         *)         ;;
 esac
 
@@ -608,7 +610,7 @@ AC_SUBST(CHECKBOUNDS)
 AC_SUBST(CURRENT_VERSION)
 AC_SUBST(CURRENT_RELEASE)
 AC_SUBST(GTOOLBOX_POPUPMENU)
-
+AC_SUBST(OS_FILES)
 
 AUTOCONF=../lib/autoconf.ml
 GTK_AUTOCONF=../lib/gAutoconf.ml

@@ -99,7 +99,7 @@ let local_search search =
                 
                 with e -> 
                     Printf.printf "result discarded for exn %s" 
-`                      (Printexc.to_string e); print_newline ()
+`                      (Printexc2.to_string e); print_newline ()
               else begin
                   try
                     let pos = String.index line ':' in
@@ -143,7 +143,7 @@ TcpBufferedSocket.write_string t_out (Buffer.contents buf)
   *)
     with e ->
         Printf.printf "Exception %s while starting local_index_find"
-          (Printexc.to_string e); print_newline ()
+          (Printexc2.to_string e); print_newline ()
 
 *)
   

@@ -525,7 +525,7 @@ let cut_messages parse f sock nread =
     done
   with Not_found -> ()
   | e ->
-      Printf.printf "EXCEPTION: %s" (Printexc.to_string e); print_newline ();
+      Printf.printf "EXCEPTION: %s" (Printexc2.to_string e); print_newline ();
       raise e
       
 let buf = Buffer.create 30000

@@ -58,8 +58,8 @@ let dummy_sock = Obj.magic 0
 let create name addr port handler =
   try
     let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-    Unix.setsockopt fd Unix.SO_REUSEADDR true;
-    Unix.set_close_on_exec fd;
+    Unix.setsockopt fd Unix.SO_REUSEADDR true; 
+    MlUnix.set_close_on_exec fd;  
     Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
     Unix.listen fd 10;
     let t = {
@@ -71,7 +71,7 @@ let create name addr port handler =
     t.sock <- sock;
     t
   with e ->
-      Printf.printf "Exception: %s at port %d" (Printexc.to_string e) port;
+      Printf.printf "Exception: %s at port %d" (Printexc2.to_string e) port;
       print_newline ();
       raise e
       
