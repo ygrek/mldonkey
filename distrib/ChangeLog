@@ -1,10 +1,22 @@
 ChangeLog
 =========
 
+2002/08/16: mldonkey
+  - add: New command "dd <size> <md4>" originally used by mldonkey_submit.
+     mldonkey now generates a mlsubmit.reg file that can be used under Windows
+     to submit ed2k urls to mldonkey (thanks to equinox), and the 
+     mldonkey_submit file.
+  - fix: Client files are now stored in a tree in the GUIs.
+  - fix: Config/config.guess and .sub updated.
+
+2002/08/15: mldonkey
+  - fix: "set" and "vo" should work on simple options of all networks.
+  - add: New option "calendar" to execute commands at different hours of day.
+
 2002/08/14: mldonkey
-  - The ./configure script is now able to download, compile and install
+  - add: The ./configure script is now able to download, compile and install
       locally (not as root) ocaml and lablgtk to be able to compile mldonkey.
-  - The ocaml-3.05.patch file contains the fix for the memory bug.
+  - fix: The ocaml-3.05.patch file contains the fix for the memory bug.
 
 2002/08/12: mldonkey
   - Olivier and Manu now work on another branch for servers rings

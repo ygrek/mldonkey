@@ -812,10 +812,10 @@ let _ =
         end;
       match c.client_files with
         None -> ()
-      | Some files -> 
+      | Some tree -> 
           List.iter (fun r -> 
               MyCList.update clist_friend_files r.result_md4 r) 
-          files;
+          (list_files tree);
   )
 
   
@@ -1148,13 +1148,12 @@ let value_reader (gui: gui) t sock =
           try
             let r = find_result r_num in
             let c = Hashtbl.find locations c_num in
-            ignore (canon_client { c with 
-                client_files = Some (match c.client_files with
-                    None -> [r]
-                  | Some list ->
-                      if List.memq r list then raise Exit;
-                      r :: list)
-              })
+            let tree = match c.client_files with
+                None -> { file_tree_list = []; file_tree_name = "" }
+              | Some tree -> { tree with file_tree_list = tree.file_tree_list }
+            in
+            Gui_proto.add_file tree dirname r;
+            ignore (canon_client { c with client_files = Some tree })
           with _ -> ()
         end
     

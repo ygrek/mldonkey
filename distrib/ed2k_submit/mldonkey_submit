@@ -50,7 +50,7 @@ while (my $uri = shift @ARGV) {
 		my $size = $1;
 		my $md4 = $2;
 		my $req = HTTP::Request->new(
-			GET => "$vars{'HTTPURL'}/submit?q=d+$size+$md4"
+			GET => "$vars{'HTTPURL'}/submit?q=dd+$size+$md4"
 		);
 		if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
 			$req->authorization_basic($vars{'HTTPUSER'},

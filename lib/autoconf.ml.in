@@ -1,2 +1,3 @@
 let current_dir = "@CURRENT_DIR@"
+let perl_path = "@PERL@"
   

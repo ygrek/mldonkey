@@ -790,6 +790,21 @@ let tuple3_option p =
   define_option_class "tuple3_option" (value_to_tuple3 p) (tuple3_to_value p)
 ;;
 
+let tuple4_to_value (c1, c2, c3, c4) (a1, a2, a3, a4) =
+  SmallList [to_value c1 a1; to_value c2 a2; to_value c3 a3; to_value c4 a4]
+;;
+let value_to_tuple4 (c1, c2, c3,c4) v =
+  match v with
+    List [v1; v2; v3;v4]
+  | SmallList [v1; v2; v3;v4] ->
+      from_value c1 v1, from_value c2 v2, from_value c3 v3, from_value c4 v4
+  | _ -> failwith "Options: not a tuple4 option"
+;;
+      
+let tuple4_option p =
+  define_option_class "tuple4_option" (value_to_tuple4 p) (tuple4_to_value p)
+;;
+
       
 let value_to_filename v =
   Filename2.from_string

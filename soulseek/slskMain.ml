@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open CommonOptions
 open CommonServer
 open CommonTypes
@@ -29,22 +30,23 @@ open SlskOptions
 
 let disable enabler () =
   enabler := false;
-  (*
-  List.iter (fun s -> disconnect_server s) !connected_servers;
-  List.iter (fun file -> ()) !current_files
-*)
-  if !!enable_directconnect then enable_directconnect =:= false
+  Hashtbl2.safe_iter (fun s -> SlskServers.disconnect_server s)
+  servers_by_addr;
+(*  List.iter (fun file -> ()) !current_files; *)
+  if !!enable_soulseek then enable_soulseek =:= false
   
 let enable () =
 
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
 
+  let main_server = new_server (new_addr_name !!main_server_name)
+    !!main_server_port in
   
-  if not !!enable_directconnect then enable_directconnect =:= true;
+  if not !!enable_soulseek then enable_soulseek =:= true;
   
-  add_session_timer enabler 1.0 (fun timer ->
-      SlskServers.connect_servers ());
+  add_session_timer enabler 30.0 (fun timer ->
+      SlskServers.connect_server main_server);
 
   add_session_timer enabler 300. (fun timer ->
       SlskServers.recover_files ()
@@ -55,9 +57,7 @@ let enable () =
   );
   
   SlskClients.listen ();
-  if !!load_serverlist &&
-    !nknown_servers < !!max_known_servers
-  then  SlskServers.load_servers_list "";
+  SlskServers.connect_server main_server;
 (*  network.command_vm <- SlskInteractive.print_connected_servers *)
     ()
 

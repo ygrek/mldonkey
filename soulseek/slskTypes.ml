@@ -19,15 +19,12 @@
 
 open CommonTypes
 
-type addr =
-  AddrIp of Ip.t
-| AddrName of string
-
+  
 type server = {
     server_server: server CommonServer.server_impl;
+    server_room: server CommonChatRoom.room_impl;
     mutable server_name : string;
     mutable server_addr : addr;
-    mutable server_ip_cached : (Ip.t * float) option;
     mutable server_info : string;
     mutable server_nusers : int;
     server_connection_control : CommonTypes.connection_control;
@@ -35,9 +32,9 @@ type server = {
     mutable server_port : int;
     mutable server_nick : int;
     mutable server_last_nick : string;
-    mutable server_searches : search list;
+    mutable server_search : search option;
+    mutable server_search_timeout : float;
     mutable server_users : user list;
-    mutable server_messages : room_message list;
   }
 
 and result = {

@@ -131,6 +131,8 @@ else
   AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
 fi
 
+AC_PATH_PROG(PERL, perl, perl)
+
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlc version is $OCAMLVERSION"
 
@@ -374,6 +376,8 @@ case "`uname -s`" in
   *) CURRENT_DIR="./";;
 esac
 
+echo $host
+
 case "$host" in
   alpha*-*-osf*)                arch=alpha; system=digital;;
   alpha*-*-linux*)              arch=alpha; system=linux;;
@@ -410,6 +414,7 @@ AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
 AC_SUBST(OCAMLDEP)
 AC_SUBST(CAMLP4)
+AC_SUBST(PERL)
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)

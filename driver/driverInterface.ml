@@ -166,7 +166,7 @@ let gui_reader (gui: gui_record) t sock =
         print_newline ();
         
     | P.SetOption (name, value) ->
-        Options.set_simple_option downloads_ini name value
+        CommonInteractive.set_fully_qualified_options name value
     
     | P.ForgetSearch num ->
         let s = search_find num in
@@ -261,7 +261,7 @@ search.op_search_end_reply_handlers;
     | P.SaveOptions_query list ->
         
         List.iter (fun (name, value) ->
-            set_simple_option downloads_ini name value) list;
+            CommonInteractive.set_fully_qualified_options name value) list;
         DriverInteractive.save_config ()
     
     | P.RemoveDownload_query num ->

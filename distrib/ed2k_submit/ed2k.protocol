@@ -1,5 +1,5 @@
 [Protocol]
-exec=mldonkey_submit %u
+exec=mldonkey_submit "%u"
 protocol=ed2k
 input=none
 output=none

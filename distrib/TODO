@@ -8,6 +8,26 @@ For 2.00:
  - Restore downloads in other p2p networks
  - Files are saved with their MD4 if it is the longest name !!!
  - Connect SIG HUP to restart all connections (for /etc/sysconfig/ip-up)
+
+
+ * password for GUI
+ * protocol 4 for GUI
+ * send ShareReq only after 5 minutes when modified and too big (more than
+    20 files)
+ * add special IP addresses with no upload limit and no upload slots for
+    good friends.
+ * add a schedule for upload/download throttle during the day:
+
+    To limit the upload during working hours:
+   set_options
+    [
+      ([0;1;2;3;4], 9, 0, "max_hard_download_rate", 20);
+      ([0;1;2;3;4], 19, 0, "max_hard_download_rate", 100);
+    ]
+
+ * better bandwidth control: take packet size into account
+ * server: seedIP and stats
+
 For 2.01:
   - Allow enable/disable network at runtime
   - Allow access to each network options in the GUI and telnet
@@ -52,21 +72,6 @@ Later:
    directory.
  + Imported files should have permission 644.[ Bug #420 ]
  * Change Shared message
-
- * password for GUI
- * protocol 4 for GUI
- * send ShareReq only after 5 minutes when modified and too big (more than
-    20 files)
- * add special IP addresses with no upload limit and no upload slots for
-    good friends.
- * add a schedule for upload/download throttle during the day:
-
-    To limit the upload during working hours:
-   set_options
-    [
-      ([0;1;2;3;4], 9, 0, "max_hard_download_rate", 20);
-      ([0;1;2;3;4], 19, 0, "max_hard_download_rate", 100);
-    ]
 
  
 TODO list for server

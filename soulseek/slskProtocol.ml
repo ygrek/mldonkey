@@ -106,8 +106,23 @@ module C2S = struct
           
       end
     
+    module SetWaitPort = struct
+        type t = int
+          
+        let parse s =  get_int s 0
+          
+        let print t =
+          Printf.printf "SETWAITPORT %d" t;
+          print_newline () 
+          
+        let write buf t =
+          buf_int buf t
+          
+      end
+    
     type t = 
     | LoginReq of Login.t
+    | SetWaitPortReq of SetWaitPort.t
     | GetUserStatsReq of string
     | UnknownReq of string
     
@@ -115,6 +130,7 @@ module C2S = struct
       try
         match opcode with
           1 -> LoginReq (Login.parse s)
+        | 2 -> SetWaitPortReq (SetWaitPort.parse s)
         | 36 -> 
             let user, _ = get_string s 0 in
             GetUserStatsReq user
@@ -127,14 +143,16 @@ module C2S = struct
     
     let print t =
       match t with
-        LoginReq t -> Login.print t  
+        | LoginReq t -> Login.print t  
+      | SetWaitPortReq t -> SetWaitPort.print t  
       | GetUserStatsReq t -> 
           Printf.printf "GetUserStats %s" t; print_newline () 
       | UnknownReq s -> Printf.printf "%s" s
           
     let write buf t =
       match t with
-        LoginReq t -> buf_int buf 1; Login.write buf t  
+      | LoginReq t -> buf_int buf 1; Login.write buf t  
+      | SetWaitPortReq t -> buf_int buf 2; SetWaitPort.write buf t  
       | GetUserStatsReq t -> buf_int buf 36; buf_string buf t
       | UnknownReq s -> Buffer.add_string buf s
       
@@ -319,3 +337,44 @@ let soulseek_handler parse f sock nread =
       else raise Not_found
     done
   with Not_found -> ()
+
+        
+let buf = Buffer.create 1000
+      
+let server_msg_to_string t = 
+  Buffer.clear buf;
+  buf_int buf 0;
+  C2S.write buf t;
+  let s = Buffer.contents buf in
+  let len = String.length s - 4 in
+  str_int s 0 len;
+  s 
+      
+let client_msg_to_string t = 
+  Buffer.clear buf;
+  buf_int buf 0;
+  C2C.write buf t;
+  let s = Buffer.contents buf in
+  let len = String.length s - 4 in
+  str_int s 0 len;
+  s 
+
+    
+let server_send sock t =
+
+  Printf.printf "SENDING TO SERVER:"; print_newline ();
+  C2S.print t;
+  
+  let s = server_msg_to_string t in
+  LittleEndian.dump s;
+  write_string sock s
+  
+let buf = Buffer.create 1000
+
+    
+let client_send sock t =
+  Printf.printf "SENDING TO CLIENT:"; print_newline ();
+  C2C.print t;
+  let s = client_msg_to_string t in
+  LittleEndian.dump s;
+  write_string sock s

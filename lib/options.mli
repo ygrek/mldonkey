@@ -81,6 +81,9 @@ val tuple2_option :
   'a option_class * 'b option_class -> ('a * 'b) option_class
 val tuple3_option : 'a option_class * 'b option_class * 'c option_class ->
   ('a * 'b * 'c) option_class
+val tuple4_option : 'a option_class * 'b option_class * 'c option_class
+   * 'd option_class->
+  ('a * 'b * 'c * 'd) option_class
 
 (*4 Using options *)
   

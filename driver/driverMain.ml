@@ -36,7 +36,8 @@ let hourly_timer timer =
   incr hours;
   if !hours mod 24 = 0 then do_daily ();
   CommonShared.shared_check_files ();
-  if !hours mod !!compaction_delay = 0 then Gc.compact ()
+  if !hours mod !!compaction_delay = 0 then Gc.compact ();
+  DriverControlers.check_calendar ()
 
 let start_interfaces () =
   
@@ -93,7 +94,72 @@ let start_interfaces () =
           print_newline ();
     end  ;
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
+
+let save_mlsubmit_reg () =
   
+(* Generate the mlsubmit.reg file *)
+  
+  let file = Printf.sprintf 
+    
+   "Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\\ed2k\\shell\\open\\command]
+@=\"C:\\\\Program Files\\\\Internet Explorer\\\\IEXPLORE.EXE http://%s:%s@%s:%d/submit?q=dllink+%%1\""
+
+    !!http_login !!http_password (Ip.to_string (client_ip None)) !!http_port
+  in
+  File.from_string "mlsubmit.reg" file;
+    
+(* Generate the mldonkey_submit file *)
+  
+  let file = Printf.sprintf 
+  
+"#!%s
+
+# Submit an eDonkey download request to mldonkey
+#
+# Argument(s): An ed2k URI of the form:
+#
+# ed2k://|file|<filename>|<filesize>|<MD4-sum|
+use LWP::UserAgent;
+
+($#ARGV >= 0) || die \"Usage: mldonkey_submit <ed2kURI> ...\n\";
+
+$vars{'HTTPURL'} = \"http://%s:%d\";
+$vars{'HTTPUSER'} = \"%s\";
+$vars{'HTTPPASS'} = \"%s\";
+
+my $ua = LWP::UserAgent->new;
+
+while (my $uri = shift @ARGV) {
+	$_ = URI::Escape::uri_unescape($uri);
+	if (/^ed2k:\\/\\/\\|file\\|[^|]+\\|(\\d+)\\|([\\dabcdef]+)\\|$/) {
+		my $size = $1;
+		my $md4 = $2;
+		my $req = HTTP::Request->new(
+			GET => \"$vars{'HTTPURL'}/submit?q=dllink+$uri\"
+		);
+		if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
+			$req->authorization_basic($vars{'HTTPUSER'},
+				$vars{'HTTPPASS'});
+		}
+		my $response = $ua->request($req);
+		if (!($response->is_success)) {
+			print $response->error_as_HTML;
+			exit 1;
+		}
+	} else {
+		print \"Not an ed2k URI: $_\n\";
+	}
+}
+" 
+      Autoconf.perl_path
+    (Ip.to_string (client_ip None)) !!http_port
+    !!http_login !!http_password
+  in
+  File.from_string "mldonkey_submit" file;
+  Unix.chmod  "mldonkey_submit" 0o755
+    
 let load_config () =
 
   CommonGlobals.do_at_exit DriverInteractive.save_config;
@@ -140,7 +206,7 @@ let load_config () =
                     (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
               in
               more_args := !more_args @ args)
-          r.network_prefixes
+          r.network_prefixes;
   );
   
   Arg.parse ([
@@ -277,6 +343,7 @@ let _ =
   Printf.printf "Or with browser: http://127.0.0.1:%d" !!http_port; 
   print_newline ();
 
+  save_mlsubmit_reg ();
   DriverInteractive.save_config ();
   
   BasicSocket.loop ()

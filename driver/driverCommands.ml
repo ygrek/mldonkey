@@ -90,18 +90,7 @@ let commands = [
             
             List.iter (fun file ->
                 file_print file o) !!files;
-*)
-            
-            Printf.bprintf  buf "\nDownloaded %d files\n" 
-              (List.length !!done_files);
-            if !!done_files <> [] then begin
-                List.iter (fun file -> CommonFile.file_print file o) 
-                !!done_files;
-(*                simple_print_file_list true buf !!done_files format; *)
-                Printf.bprintf buf
-                  "Use 'commit' to move downloaded files to the incoming directory"
-              end;
-              
+*)              
             ""    
     ), "<num>: view file info";
 
@@ -167,7 +156,7 @@ let commands = [
 " name name value
             else
               Printf.bprintf buf "%s = %s\n" name value)
-        (Options.simple_options downloads_ini);
+        (CommonInteractive.all_simple_options ());
         if o.conn_output = HTML then
           Printf.bprintf  buf "\\</table\\>";
         
@@ -178,6 +167,10 @@ let commands = [
         try
           try
             let buf = o.conn_buf in
+            CommonInteractive.set_fully_qualified_options name value;
+            Printf.sprintf "option %s value changed" name
+            
+            (*
             let pos = String.index name '-' in
             let prefix = String.sub name 0 pos in
             let name = String.sub name (pos+1) (String.length name - pos-1) in
@@ -187,14 +180,14 @@ let commands = [
                 | Some opfile ->
                     List.iter (fun p ->
                         if p = prefix then begin
-                            Options.set_simple_option opfile name value;
+                            set_simple_option opfile name value;
                             Printf.bprintf buf "option %s :: %s value changed" 
                             n.network_name name
                             
                           end)
                     n.network_prefixes      
-            );
-            ""
+);
+  *)
           with _ -> 
               Options.set_simple_option downloads_ini name value;
               Printf.sprintf "option %s value changed" name

@@ -171,10 +171,10 @@ class box_friends box_results () =
         None -> 
 (*          Printf.printf "No file for friend %d" c.client_num; print_newline (); *)
           Gui_com.send (GetClient_files c.client_num)
-      |	Some l -> 
+      |	Some tree -> 
 (*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
           print_newline (); *)
-          box_results#update_data l
+          box_results#update_data (list_files tree)
 
     method on_deselect f =
       box_results#update_data []

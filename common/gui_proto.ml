@@ -106,6 +106,16 @@ type room_info = {
     mutable room_state : room_state;
     mutable room_users : int list;
   }
+
+type file_tree =
+  {
+    mutable file_tree_name : string;
+    mutable file_tree_list : file_tree_item list;
+  }
+  
+and file_tree_item =
+  TreeDirectory of file_tree
+| TreeFile of result_info
   
 type client_info = {
     client_num : int;
@@ -118,7 +128,7 @@ type client_info = {
     mutable client_name : string;
 (* Currently, this is a list, but clearly, in the future, it has to become
   a tree. Zoggy, could you implement that ? *)
-    mutable client_files:  result_info list option;
+    mutable client_files:  file_tree option;
     mutable client_rating : int32;
     mutable client_chat_port : int;
   }
@@ -129,7 +139,47 @@ type client_stats = {
     mutable nshared_files : int;
     mutable shared_counter : int64;
   }
+    
   
+let add_file tree dirname r =
+  let path = Filename2.path_of_filename dirname in
+  
+  let rec iter list tree =
+    match list with
+      [] ->
+        let r = TreeFile r in
+        (if not (List.mem r tree.file_tree_list) then
+            tree.file_tree_list <- r :: tree.file_tree_list)
+    | dirname :: tail ->
+        iter2 tail tree dirname tree.file_tree_list
+        
+  and iter2 list tree dirname items =
+    match items with
+      [] ->
+        let new_tree = { file_tree_name = dirname; file_tree_list = [] } in
+        tree.file_tree_list <- (TreeDirectory new_tree) :: tree.file_tree_list;
+        iter list new_tree
+    | (TreeDirectory old_tree) :: items ->
+        if old_tree.file_tree_name = dirname then
+          iter list old_tree
+        else
+          iter2 list tree dirname items
+    | _ :: items ->
+        iter2 list tree dirname items
+  in
+  iter path tree    
+
+let list_files tree =
+  let rec iter list items =
+    match items with
+      [] -> list
+    | (TreeDirectory _) :: items -> iter list items
+    | (TreeFile r) :: items -> iter (r :: list) items
+        
+  in
+  iter [] tree.file_tree_list
+  
+    
 exception UnsupportedGuiMessage
   
 type from_gui =

@@ -23,3 +23,6 @@ val eval : bool ref -> string -> CommonTypes.connection_options -> unit
 val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val chat_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val create_http_handler : unit -> TcpServerSocket.t
+
+val check_calendar : unit -> unit
+  

@@ -600,3 +600,10 @@ let download_sample_rate = define_option downloads_ini ["download_sample_rate"]
  
 let download_sample_size = define_option downloads_ini ["download_sample_size"]
     "How many samples go into an estimate of transfer rates" int_option 10
+
+let calendar = define_option downloads_ini ["calendar"]
+  "This option defines a set of date at which some commands have to be executed"
+    (list_option (tuple3_option (list_option int_option,list_option int_option,
+      string_option)))
+  []
+  

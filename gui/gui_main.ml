@@ -364,15 +364,13 @@ There is the same problem with the update_downloaded_label ... *)
             try
               let c = Hashtbl.find G.locations num in
               try
-                let files = match c.client_files with
-                    None -> [file]
-                  | Some files -> 
-                      if List.memq file files then raise Exit;
-                      file :: files
+                let tree = match c.client_files with
+                    None -> { file_tree_list = []; file_tree_name = "" }
+                  | Some tree -> { tree with file_tree_list = tree.file_tree_list }
                 in
-(*                Printf.printf "canon_client %d" num; print_newline (); *)
-                ignore (canon_client gui
-                    { c with client_files = Some files });
+                add_file tree dirname file;
+                ignore (canon_client gui { c with client_files = Some tree })
+                
               with _ ->
 (*                  Printf.printf "File already there"; print_newline (); *)
                   ()

@@ -112,3 +112,17 @@ let shorten max s =
     (String.sub s (len-4) 4)
   else s
     
+    
+let path_of_filename filename =
+  let filename = String.copy filename in
+  let len = String.length filename in
+  for i = 0 to len - 1 do
+    if filename.[i] = '\\' then filename.[i] <- '/';
+  done;
+  let filename = 
+    if len > 2 && filename.[1] = ':' then
+      Printf.sprintf "%s/%s" (String.sub filename 0 2) 
+      (String.sub filename 2 len)
+    else filename
+  in
+  split_simplify filename '/'

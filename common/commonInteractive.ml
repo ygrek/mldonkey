@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open TcpBufferedSocket
 open BasicSocket
 open CommonGlobals
@@ -280,3 +281,38 @@ let send_custom_query buf s args =
       Printf.bprintf buf "Error %s while parsing request"
         (Printexc.to_string e)
 
+let all_simple_options () =
+  let options = ref (simple_options downloads_ini) in
+  networks_iter_all (fun r ->
+      match r.network_config_file with
+        None -> ()
+      | Some opfile ->
+          let args = simple_options opfile in
+          List.iter (fun prefix ->
+              let args = List2.tail_map (fun (arg, value) ->
+                    (Printf.sprintf "%s-%s" prefix arg, value)) 
+                args
+              in
+              options := !options @ args)
+          r.network_prefixes);
+  !options
+
+let set_fully_qualified_options name value =
+  let rec iter prefix opfile =
+    let args = simple_options opfile in
+    List.iter (fun (old_name, old_value) ->
+        let new_name = Printf.sprintf "%s%s" prefix old_name in
+        if new_name = name then
+          (set_simple_option opfile old_name value; raise Exit))
+    args
+  in
+  try
+    iter "" downloads_ini;
+    networks_iter_all (fun r ->
+        match r.network_config_file with
+          None -> ()
+        | Some opfile ->
+            List.iter (fun prefix ->
+                iter (prefix^"-") opfile
+            ) r.network_prefixes);
+  with Exit -> ()

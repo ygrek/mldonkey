@@ -38,7 +38,12 @@ let ip_cache_timeout = define_option soulseek_ini
 let load_serverlist = define_option soulseek_ini ["load_serverlist"]
   "Download a list of servers"
     bool_option true
+  
+let main_server_name = define_option soulseek_ini ["main_server_name"]
+    "The main server to connect to" string_option "sk.nikita.cx"
 
+let main_server_port = define_option soulseek_ini ["main_server_port"]
+  "The main server to connect to" int_option 2242
 
   
 let slsk_port = define_option soulseek_ini ["client_port"]
@@ -49,7 +54,7 @@ let login = define_option soulseek_ini ["login"]
   "Your login on SoulSeek" string_option ""
 
 let password = define_option soulseek_ini ["password"]
-  "Your password on SoulSeek" string_option ""
+    "Your password on SoulSeek" string_option "mldonkey"
   
 let max_known_servers = define_option soulseek_ini
     ["query_serverlist_limit"] 

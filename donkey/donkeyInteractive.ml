@@ -624,6 +624,14 @@ let commands = [
           "download started"
         else "bad syntax"
     ), " <ed2klink> : download ed2k:// link";
+
+    "dd", Arg_two(fun size md4 o ->
+        let buf = o.conn_buf in
+        query_download [] (Int32.of_string size)
+        (Md4.of_string md4) None None None;
+        "download started"
+
+    ), "<size> <md4> : download from size and md4";
     
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in

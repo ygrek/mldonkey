@@ -194,15 +194,21 @@ let enable () =
           Printf.printf "in these clients.";
           print_newline ();
     end;
-        
-    client_tags :=
-    [
-      { tag_name = "name"; tag_value =  String !!client_name };
-      { tag_name = "version"; tag_value =  Uint32 (Int32.of_int 
-          !!DonkeyOptions.protocol_version) };
-      { tag_name = "port"; tag_value =  Uint32 (Int32.of_int !client_port) };
-    ];
 
+    let reset_tags () =
+      client_tags :=
+      [
+        { tag_name = "name"; tag_value =  String !!client_name };
+        { tag_name = "version"; tag_value =  Uint32 (Int32.of_int 
+              !!DonkeyOptions.protocol_version) };
+        { tag_name = "port"; tag_value =  Uint32 (Int32.of_int !client_port) };
+      ]
+    in
+    reset_tags ();
+
+    Options.option_hook DonkeyOptions.protocol_version reset_tags;
+    Options.option_hook client_name reset_tags;
+    
     DonkeyFiles.fill_clients_list ();
     
 

@@ -337,6 +337,21 @@ let display_file_list buf format =
   in
   simple_print_file_list false buf list format
 
+  
+
+let display_file_list buf o =
+  display_file_list buf o;
+  Printf.bprintf  buf "\nDownloaded %d files\n" 
+    (List.length !!done_files);
+  if !!done_files <> [] then begin
+      List.iter (fun file -> CommonFile.file_print file o) 
+      !!done_files;
+(*                simple_print_file_list true buf !!done_files format; *)
+      Printf.bprintf buf
+        "Use 'commit' to move downloaded files to the incoming directory"
+    end
+  
+  
 let old_print_search buf output results = 
   let counter = ref 0 in
   

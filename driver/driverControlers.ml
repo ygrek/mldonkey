@@ -88,6 +88,32 @@ let eval auth cmd options =
       else
           Printf.bprintf buf "Command not authorized\n Use 'auth <password>' before."
 
+              
+(* This function is called every hour to check if we have something to do 
+just now *)
+        
+let calendar_options = {
+    conn_buf = Buffer.create 1000;
+    conn_output = TEXT;
+    conn_sortvd = NotSorted;
+    conn_filter = (fun _ -> ());
+  }
+      
+let check_calendar () =
+  let time = last_time () in
+  let tm = Unix.localtime time in
+  List.iter (fun (days, hours, command) ->
+      if List.mem tm.Unix.tm_wday days &&
+        List.mem tm.Unix.tm_hour hours then begin
+          eval (ref true) command calendar_options;
+          Printf.printf "Calendar execute: %s\n%s" command
+            (Buffer.contents calendar_options.conn_buf);
+          print_newline ();
+          Buffer.clear calendar_options.conn_buf;          
+        end
+  ) !!calendar
+  
+        
 (* The telnet client *)
         
 let user_reader options auth sock nread  = 
