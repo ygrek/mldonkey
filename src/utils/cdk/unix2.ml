@@ -55,16 +55,16 @@ let is_link filename =
   try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
 
 let rec safe_mkdir dir =  
-    if Sys.file_exists dir then begin
+  if Sys.file_exists dir then begin
       if not (is_directory dir) then 
         failwith (Printf.sprintf "%s not a directory" dir)
     end
   else begin
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
-      Unix.mkdir dir 0o775
+      if dir <> "." then Unix.mkdir dir 0o775
     end    
-
+    
     
 (* same as in downloadClient.ml *)
 let rec really_write fd s pos len =

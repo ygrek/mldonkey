@@ -1039,6 +1039,7 @@ let rename t f =
 module DiskFile_Test = (DiskFile : File)
 module SparseFile_Test = (SparseFile : File)
 
+  (*
 let _ =
   
   let t = create_multifile "toto" MultiFile.access MultiFile.rights
@@ -1072,3 +1073,4 @@ let _ =
     | Some f -> f);
   
   exit 2
+*)
