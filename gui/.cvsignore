@@ -1,12 +1,3 @@
 gui.ml
 *.cm?
-gui_console_base.ml
-gui_downloads_base.ml
-gui_friends_base.ml
-gui_help_base.ml
-gui_queries_base.ml
-gui_results_base.ml
-gui_rooms_base.ml
-gui_servers_base.ml
-gui_users_base.ml
-gui_window_base.ml
+*_base.ml
