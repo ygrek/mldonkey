@@ -73,7 +73,20 @@ let network = CommonNetwork.new_network "Global Shares"
 let _ = 
   network.op_network_connected <- (fun _ -> false);
   network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
-  network.op_network_info <- (fun _ -> raise Not_found)
+  network.op_network_info <- (fun _ -> raise Not_found);
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            [] -> "" | opfile :: _ -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_netflags = network.network_flags;
+        network_enabled = true;
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+        network_connected = 0;
+      });
+  network.op_network_connected_servers <- (fun _ -> [])
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network

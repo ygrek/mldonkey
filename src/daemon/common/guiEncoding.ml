@@ -277,7 +277,7 @@ let buf_file proto buf f =
   buf_file_state proto buf f.file_state;  
   buf_string buf f.file_chunks;  
   if proto > 17 then
-  buf_list buf (fun buf (network, avail) ->
+    buf_list buf (fun buf (network, avail) ->
         buf_int buf network;
         buf_string buf avail
     ) f.file_availability
@@ -300,7 +300,7 @@ let buf_file proto buf f =
             end
         end
     end
-  
+    
 let buf_addr buf addr =
   match addr with
     Ip.AddrIp ip ->
@@ -327,7 +327,6 @@ let buf_server proto buf s =
   buf_string buf s.server_description
   
 let buf_client proto buf c =
-  if proto <= 18 then begin
   buf_int buf c.client_num;
   buf_int buf c.client_network;
   buf_kind buf c.client_kind;
@@ -336,25 +335,18 @@ let buf_client proto buf c =
   buf_list buf buf_tag c.client_tags;
   buf_string buf c.client_name;
   buf_int buf c.client_rating;
-  buf_int buf c.client_chat_port
+  if proto <= 18 then begin
+      buf_int buf c.client_chat_port
     end else begin
-    buf_int buf c.client_num;
-    buf_int buf c.client_network;
-    buf_kind buf c.client_kind;
-    buf_host_state proto buf c.client_state;
-    buf_client_type buf c.client_type;
-    buf_list buf buf_tag c.client_tags;
-    buf_string buf c.client_name;
-    buf_int buf c.client_rating;
-    buf_string buf c.client_software;
-    buf_int64 buf c.client_downloaded;
-    buf_int64 buf c.client_uploaded;
-    buf_string buf c.client_sock_addr;
-    match c.client_upload with
+      buf_string buf c.client_software;
+      buf_int64 buf c.client_downloaded;
+      buf_int64 buf c.client_uploaded;
+      buf_string buf c.client_sock_addr;
+      match c.client_upload with
         Some s -> buf_string buf s
       | None -> buf_string buf ""
     end
-  
+    
 let buf_network proto buf n =
   buf_int buf n.network_netnum;
   buf_string buf n.network_netname;

@@ -463,6 +463,34 @@ let get_kind s pos =
 
 let get_client proto s pos =
   if proto <= 18 then
+    let num = get_int s pos in
+    let net = get_int s (pos+4) in
+    let kind, pos = get_kind s (pos+8) in
+    let state,pos = get_host_state proto s pos in
+    let t = get_client_type s pos in
+    let tags, pos = get_list get_tag s (pos+1) in
+    let name, pos = get_string s pos in
+    let rating = get_int s pos in
+    let chat_port = get_int s (pos+4) in
+    {
+      client_num = num;
+      client_network = net;
+      client_kind = kind;
+      client_state = state;
+      client_type = t;
+      client_tags = tags;
+      client_name = name;
+      client_rating = rating;
+      client_chat_port = chat_port;
+      client_files = None;
+      client_connect_time = 0;
+      client_software = "";
+      client_downloaded = zero;
+      client_uploaded = zero;
+      client_upload = None;
+      client_sock_addr = "";
+    }, pos+8
+  else
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let kind, pos = get_kind s (pos+8) in
@@ -471,7 +499,14 @@ let get_client proto s pos =
   let tags, pos = get_list get_tag s (pos+1) in
   let name, pos = get_string s pos in
   let rating = get_int s pos in
-  let chat_port = get_int s (pos+4) in
+  let software, pos = get_string s (pos+4) in
+  let downloaded = get_int64 s pos in
+  let uploaded = get_int64 s (pos+8) in
+  let sock_addr, pos = get_string s (pos+16) in
+  let upload, pos = match get_string s pos with
+      "", pos -> None, pos
+    | s, pos -> Some s, pos
+  in
   {
     client_num = num;
     client_network = net;
@@ -481,51 +516,16 @@ let get_client proto s pos =
     client_tags = tags;
     client_name = name;
     client_rating = rating;
-    client_chat_port = chat_port;
+    client_chat_port = 0;
     client_files = None;
     client_connect_time = 0;
-    client_software = "";
-    client_downloaded = zero;
-      client_uploaded = zero;
-    client_upload = None;
-	client_sock_addr = "";
-    }, pos+8
-    else
-    let num = get_int s pos in
-    let net = get_int s (pos+4) in
-    let kind, pos = get_kind s (pos+8) in
-    let state,pos = get_host_state proto s pos in
-    let t = get_client_type s pos in
-    let tags, pos = get_list get_tag s (pos+1) in
-    let name, pos = get_string s pos in
-    let rating = get_int s pos in
-    let software, pos = get_string s (pos+4) in
-    let downloaded = get_int64 s pos in
-    let uploaded = get_int64 s (pos+8) in
-    let sock_addr, pos = get_string s (pos+16) in
-    let upload, pos = match get_string s pos with
-                          "", pos -> None, pos
-                        | s, pos -> Some s, pos
-    in
-   {
-      client_num = num;
-      client_network = net;
-      client_kind = kind;
-      client_state = state;
-      client_type = t;
-      client_tags = tags;
-      client_name = name;
-      client_rating = rating;
-      client_chat_port = 0;
-      client_files = None;
-      client_connect_time = 0;
-      client_software = software;
-      client_downloaded = downloaded;
-      client_uploaded = uploaded;
-      client_upload = upload;
-      client_sock_addr = sock_addr;
+    client_software = software;
+    client_downloaded = downloaded;
+    client_uploaded = uploaded;
+    client_upload = upload;
+    client_sock_addr = sock_addr;
   }, pos
-
+  
 let default_flags = [
     NetworkHasServers ;
     NetworkHasRooms;
