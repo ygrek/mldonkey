@@ -37,7 +37,36 @@ LIBS_opt= unix.cmxa str.cmxa
 
 #######################################################################
 
-SUBDIRS=cdk chat lib net tools common driver mp3tagui config/$(OS_FILES)
+CDK=src/utils/cdk
+LIB=src/utils/lib
+NET=src/utils/net
+
+CHAT=src/daemon/chat
+COMMON=src/daemon/common
+DRIVER=src/daemon/driver
+MP3=src/utils/mp3tagui
+
+GPATTERN=src/gtk/gpattern
+OKEY=src/gtk/okey
+CONFIGWIN=src/gtk/configwin
+SRC_GUI=src/gtk/gui
+SRC_GUI2=src/gtk/gui2
+
+
+SRC_AUDIOGALAXY=src/networks/audio_galaxy
+SRC_DONKEY=src/networks/donkey
+SRC_BITTORRENT=src/networks/bittorrent
+SRC_SERVER=src/networks/server
+SRC_OPENNAP=src/networks/opennap
+SRC_GNUTELLA=src/networks/gnutella
+SRC_OPENFT=src/networks/openFT
+SRC_SOULSEEK=src/networks/soulseek
+SRC_DIRECTCONNECT=src/networks/direct_connect
+
+IM=src/im
+
+SUBDIRS=$(CDK) $(CHAT) $(LIB) $(NET) tools \
+   $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
@@ -62,7 +91,7 @@ endif
 ifeq ("$(ZLIB)" , "yes")
   LIBS_flags += -cclib -lz
 #  LIBS_byte += -cclib -lz
-  CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
+  CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zlibstubs.c
 endif
 
 
@@ -71,16 +100,16 @@ ifeq ("$(ICONV)" , "yes")
 #  LIBS_byte += -cclib -liconv
 endif
 
-CDK_SRCS += lib/autoconf.ml
+CDK_SRCS += $(LIB)/autoconf.ml
 
-CDK_SRCS+= lib/fifo.ml  cdk/printf2.ml \
-   cdk/heap.ml cdk/dprintf.ml \
-  cdk/printexc2.ml cdk/genlex2.ml cdk/sysenv.ml \
-  cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
-  cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
-  cdk/file.ml cdk/unix2.ml cdk/weak2.ml \
-  cdk/heap_c.c cdk/array2.ml cdk/sort2.ml \
-  cdk/xmllex.mll cdk/xmlyacc.mly cdk/xml.ml
+CDK_SRCS+= $(LIB)/fifo.ml  $(CDK)/printf2.ml \
+   $(CDK)/heap.ml $(CDK)/dprintf.ml \
+  $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
+  $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
+  $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
+  $(CDK)/file.ml $(CDK)/unix2.ml $(CDK)/weak2.ml \
+  $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml \
+  $(CDK)/xmllex.mll $(CDK)/xmlyacc.mly $(CDK)/xml.ml
 
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
@@ -93,74 +122,74 @@ ifneq ("$(PTHREAD_LIBS)" , "")
 #  LIBS_byte += -cclib "$(PTHREAD_LIBS)"
 endif
 
-MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
-  mp3tagui/mp3_misc.ml\
-  mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
+MP3TAG_SRCS=     $(MP3)/mp3_info.ml  $(MP3)/mp3_genres.ml \
+  $(MP3)/mp3_misc.ml\
+  $(MP3)/mp3_tag.ml $(MP3)/mp3tag.ml
 
 
 LIB_SRCS=   \
-  config/$(OS_FILES)/mlUnix.ml \
-  config/$(OS_FILES)/os_stubs_c.c \
-  lib/intmap.ml lib/stringMap.ml \
-  lib/int32ops.ml lib/options.ml4 lib/numset.ml  \
-  lib/fifo2.ml lib/intset.ml \
-  lib/hole_tab.ml lib/store.ml \
-  lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
-  lib/misc.ml lib/unix32.ml  lib/md4.ml \
-  lib/avifile.ml lib/http_lexer.mll lib/url.ml \
-  lib/date.ml \
-  lib/md4_comp.c lib/md4_c.c \
-  lib/gettext.ml lib/md5_c.c lib/sha1_c.c \
-  lib/tiger.c \
-  lib/stubs_c.c
+  src/config/$(OS_FILES)/mlUnix.ml \
+  src/config/$(OS_FILES)/os_stubs_c.c \
+  $(LIB)/intmap.ml $(LIB)/stringMap.ml \
+  $(LIB)/int32ops.ml $(LIB)/options.ml4 $(LIB)/numset.ml  \
+  $(LIB)/fifo2.ml $(LIB)/intset.ml \
+  $(LIB)/hole_tab.ml $(LIB)/store.ml \
+  $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
+  $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
+  $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
+  $(LIB)/date.ml \
+  $(LIB)/md4_comp.c $(LIB)/md4_c.c \
+  $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
+  $(LIB)/tiger.c \
+  $(LIB)/stubs_c.c
 
 NET_SRCS = \
-  net/basicSocket.ml \
-  net/ip.ml net/mailer.ml \
-  net/anyEndian.ml net/bigEndian.ml net/littleEndian.ml \
-  net/tcpBufferedSocket.ml \
-  net/tcpClientSocket.ml net/tcpServerSocket.ml \
-  net/udpSocket.ml net/http_server.ml net/http_client.ml \
-  net/multicast.ml net/multicast_c.c  \
-  net/terminal.ml
+  $(NET)/basicSocket.ml \
+  $(NET)/ip.ml $(NET)/mailer.ml \
+  $(NET)/anyEndian.ml $(NET)/bigEndian.ml $(NET)/littleEndian.ml \
+  $(NET)/tcpBufferedSocket.ml \
+  $(NET)/tcpClientSocket.ml $(NET)/tcpServerSocket.ml \
+  $(NET)/udpSocket.ml $(NET)/http_server.ml $(NET)/http_client.ml \
+  $(NET)/multicast.ml $(NET)/multicast_c.c  \
+  $(NET)/terminal.ml
 
 
-CHAT_SRCS = chat/chat_messages.ml\
-	chat/chat_misc.ml\
-        chat/chat_proto.ml\
-        chat/chat_types.ml\
-        chat/chat_options.ml\
-        chat/chat_config.ml\
+CHAT_SRCS = $(CHAT)/chat_messages.ml\
+	$(CHAT)/chat_misc.ml\
+        $(CHAT)/chat_proto.ml\
+        $(CHAT)/chat_types.ml\
+        $(CHAT)/chat_options.ml\
+        $(CHAT)/chat_config.ml\
 
-COMMON_SRCS=common/commonTypes.ml \
-  common/guiTypes.ml \
-  common/guiProto.ml \
-  common/commonEvent.ml \
-  common/commonOptions.ml \
-  common/commonMessages.ml \
-  common/commonGlobals.ml \
-  common/guiDecoding.ml \
-  common/guiEncoding.ml \
-  common/commonChat.ml \
-  common/commonHasher.ml \
-  common/commonHasher_c.c
+COMMON_SRCS=$(COMMON)/commonTypes.ml \
+  $(COMMON)/guiTypes.ml \
+  $(COMMON)/guiProto.ml \
+  $(COMMON)/commonEvent.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/guiDecoding.ml \
+  $(COMMON)/guiEncoding.ml \
+  $(COMMON)/commonChat.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
-  common/commonUser.ml \
-  common/commonServer.ml \
-  common/commonClient.ml \
-  common/commonFile.ml \
-  common/commonResult.ml \
-  common/commonNetwork.ml \
-  common/commonShared.ml \
-  common/commonRoom.ml \
-  common/commonComplexOptions.ml \
-  common/commonSearch.ml \
-  common/commonMultimedia.ml \
-  common/commonInteractive.ml \
-  common/commonDownloads.ml \
-  common/commonUploads.ml \
-  common/commonSwarming.ml
+  $(COMMON)/commonUser.ml \
+  $(COMMON)/commonServer.ml \
+  $(COMMON)/commonClient.ml \
+  $(COMMON)/commonFile.ml \
+  $(COMMON)/commonResult.ml \
+  $(COMMON)/commonNetwork.ml \
+  $(COMMON)/commonShared.ml \
+  $(COMMON)/commonRoom.ml \
+  $(COMMON)/commonComplexOptions.ml \
+  $(COMMON)/commonSearch.ml \
+  $(COMMON)/commonMultimedia.ml \
+  $(COMMON)/commonInteractive.ml \
+  $(COMMON)/commonDownloads.ml \
+  $(COMMON)/commonUploads.ml \
+  $(COMMON)/commonSwarming.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
@@ -169,7 +198,7 @@ config/configure: config/configure.in
 
 ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
 
-config/Makefile.config: config/configure config/Makefile.config.in lib/autoconf.ml.new.in
+config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in
 	./configure $(CONFIG_ARGS)
 
 else
@@ -193,43 +222,43 @@ Makefile: config/Makefile.in
 
 #######################################################################
 
-MAIN_SRCS=common/commonMain.ml
+MAIN_SRCS=$(COMMON)/commonMain.ml
 
 DONKEY_SRCS= \
   \
-  donkey/donkeyTypes.ml \
-  donkey/donkeyOptions.ml \
-  donkey/donkeyMftp.ml donkey/donkeyImport.ml \
-  donkey/donkeyOpenProtocol.ml \
-  donkey/donkeyProtoClient.ml \
-  donkey/donkeyProtoServer.ml  \
-  donkey/donkeyProtoUdp.ml  \
+  $(SRC_DONKEY)/donkeyTypes.ml \
+  $(SRC_DONKEY)/donkeyOptions.ml \
+  $(SRC_DONKEY)/donkeyMftp.ml $(SRC_DONKEY)/donkeyImport.ml \
+  $(SRC_DONKEY)/donkeyOpenProtocol.ml \
+  $(SRC_DONKEY)/donkeyProtoClient.ml \
+  $(SRC_DONKEY)/donkeyProtoServer.ml  \
+  $(SRC_DONKEY)/donkeyProtoUdp.ml  \
   \
-  donkey/donkeyGlobals.ml \
-  donkey/donkeyProtoCom.ml  \
-  donkey/donkeySourcesMisc.ml \
-  donkey/donkeySources1.ml  \
-  donkey/donkeySources2.ml  \
-  donkey/donkeySources3.ml  \
-  donkey/donkeySources.ml  \
+  $(SRC_DONKEY)/donkeyGlobals.ml \
+  $(SRC_DONKEY)/donkeyProtoCom.ml  \
+  $(SRC_DONKEY)/donkeySourcesMisc.ml \
+  $(SRC_DONKEY)/donkeySources1.ml  \
+  $(SRC_DONKEY)/donkeySources2.ml  \
+  $(SRC_DONKEY)/donkeySources3.ml  \
+  $(SRC_DONKEY)/donkeySources.ml  \
  \
-  donkey/donkeyComplexOptions.ml \
-  donkey/donkeySupernode.ml \
-  donkey/donkeyIndexer.ml \
-  donkey/donkeyShare.ml \
-  donkey/donkeyReliability.ml \
-  donkey/donkeyChunks.ml \
-  donkey/donkeyOneFile.ml \
-  donkey/donkeyStats.ml \
-  donkey/donkeyClient.ml \
-  donkey/donkeyProtoOvernet.ml \
+  $(SRC_DONKEY)/donkeyComplexOptions.ml \
+  $(SRC_DONKEY)/donkeySupernode.ml \
+  $(SRC_DONKEY)/donkeyIndexer.ml \
+  $(SRC_DONKEY)/donkeyShare.ml \
+  $(SRC_DONKEY)/donkeyReliability.ml \
+  $(SRC_DONKEY)/donkeyChunks.ml \
+  $(SRC_DONKEY)/donkeyOneFile.ml \
+  $(SRC_DONKEY)/donkeyStats.ml \
+  $(SRC_DONKEY)/donkeyClient.ml \
+  $(SRC_DONKEY)/donkeyProtoOvernet.ml \
   \
-  donkey/donkeyOvernet.ml \
-  donkey/donkeyFiles.ml  \
-  donkey/donkeyServers.ml \
-  donkey/donkeySearch.ml \
-  donkey/donkeyInteractive.ml \
-  donkey/donkeyMain.ml
+  $(SRC_DONKEY)/donkeyOvernet.ml \
+  $(SRC_DONKEY)/donkeyFiles.ml  \
+  $(SRC_DONKEY)/donkeyServers.ml \
+  $(SRC_DONKEY)/donkeySearch.ml \
+  $(SRC_DONKEY)/donkeyInteractive.ml \
+  $(SRC_DONKEY)/donkeyMain.ml
 
 
 OBSERVER_SRCS = \
@@ -239,148 +268,130 @@ OBSERVER_SRCS = \
 
 
 DONKEY_SERVER_SRCS=\
-  server/serverTypes.ml \
-  server/serverOptions.ml \
-  server/serverGlobals.ml \
-  server/serverMessages.ml \
-  server/serverLocate.ml \
-  server/serverIndexer.ml \
-  server/serverLog.ml \
-  server/serverSubscriptions.ml \
-  server/serverServer.ml \
-  server/serverClients.ml \
-  server/serverUdp.ml  \
-  server/serverMain.ml
+  $(SRC_SERVER)/serverTypes.ml \
+  $(SRC_SERVER)/serverOptions.ml \
+  $(SRC_SERVER)/serverGlobals.ml \
+  $(SRC_SERVER)/serverMessages.ml \
+  $(SRC_SERVER)/serverLocate.ml \
+  $(SRC_SERVER)/serverIndexer.ml \
+  $(SRC_SERVER)/serverLog.ml \
+  $(SRC_SERVER)/serverSubscriptions.ml \
+  $(SRC_SERVER)/serverServer.ml \
+  $(SRC_SERVER)/serverClients.ml \
+  $(SRC_SERVER)/serverUdp.ml  \
+  $(SRC_SERVER)/serverMain.ml
 
-OPENNAP_SRCS=opennap/napigator.mll \
- opennap/opennapTypes.ml \
- opennap/opennapProtocol.ml \
- opennap/opennapOptions.ml \
- opennap/opennapGlobals.ml \
- opennap/opennapComplexOptions.ml \
- opennap/opennapClients.ml \
- opennap/opennapServers.ml \
- opennap/opennapInteractive.ml \
- opennap/opennapMain.ml 
+OPENNAP_SRCS= \
+ $(SRC_OPENNAP)/napigator.mll \
+ $(SRC_OPENNAP)/opennapTypes.ml \
+ $(SRC_OPENNAP)/opennapProtocol.ml \
+ $(SRC_OPENNAP)/opennapOptions.ml \
+ $(SRC_OPENNAP)/opennapGlobals.ml \
+ $(SRC_OPENNAP)/opennapComplexOptions.ml \
+ $(SRC_OPENNAP)/opennapClients.ml \
+ $(SRC_OPENNAP)/opennapServers.ml \
+ $(SRC_OPENNAP)/opennapInteractive.ml \
+ $(SRC_OPENNAP)/opennapMain.ml 
 
 GNUTELLA_SRCS= \
-  gnutella/gnutellaTypes.ml \
-  gnutella/gnutellaOptions.ml \
-  gnutella/gnutellaGlobals.ml \
-  gnutella/gnutellaComplexOptions.ml \
-  gnutella/gnutellaProtocol.ml \
-  gnutella/gnutella1.ml \
-  gnutella/gnutella2.ml \
-  gnutella/gnutella.ml \
-  gnutella/gnutellaClients.ml \
-  gnutella/gnutella1Handler.ml \
-  gnutella/gnutella2Handler.ml \
-  gnutella/gnutella1Redirector.ml \
-  gnutella/gnutella2Redirector.ml \
-  gnutella/gnutellaServers.ml \
-  gnutella/gnutellaInteractive.ml \
-  gnutella/gnutellaMain.ml
+  $(SRC_GNUTELLA)/gnutellaTypes.ml \
+  $(SRC_GNUTELLA)/gnutellaOptions.ml \
+  $(SRC_GNUTELLA)/gnutellaGlobals.ml \
+  $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
+  $(SRC_GNUTELLA)/gnutellaProtocol.ml \
+  $(SRC_GNUTELLA)/gnutella1.ml \
+  $(SRC_GNUTELLA)/gnutella2.ml \
+  $(SRC_GNUTELLA)/gnutella.ml \
+  $(SRC_GNUTELLA)/gnutellaClients.ml \
+  $(SRC_GNUTELLA)/gnutella1Handler.ml \
+  $(SRC_GNUTELLA)/gnutella2Handler.ml \
+  $(SRC_GNUTELLA)/gnutella1Redirector.ml \
+  $(SRC_GNUTELLA)/gnutella2Redirector.ml \
+  $(SRC_GNUTELLA)/gnutellaServers.ml \
+  $(SRC_GNUTELLA)/gnutellaInteractive.ml \
+  $(SRC_GNUTELLA)/gnutellaMain.ml
 
 BITTORRENT_SRCS= \
-  bittorrent/bencode.ml \
-  bittorrent/bTTypes.ml \
-  bittorrent/bTOptions.ml \
-  bittorrent/bTGlobals.ml \
-  bittorrent/bTComplexOptions.ml \
-  bittorrent/bTProtocol.ml \
-  bittorrent/bTClients.ml \
-  bittorrent/bTInteractive.ml \
-  bittorrent/bTMain.ml
+  $(SRC_BITTORRENT)/bencode.ml \
+  $(SRC_BITTORRENT)/bTTypes.ml \
+  $(SRC_BITTORRENT)/bTOptions.ml \
+  $(SRC_BITTORRENT)/bTGlobals.ml \
+  $(SRC_BITTORRENT)/bTComplexOptions.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
+  $(SRC_BITTORRENT)/bTClients.ml \
+  $(SRC_BITTORRENT)/bTInteractive.ml \
+  $(SRC_BITTORRENT)/bTMain.ml
   
 OPENFT_SRCS= \
-  openFT/openFTTypes.ml \
-  openFT/openFTOptions.ml \
-  openFT/openFTGlobals.ml \
-  openFT/openFTComplexOptions.ml \
-  openFT/openFTProtocol.ml \
-  openFT/openFTClients.ml \
-  openFT/openFTServers.ml \
-  openFT/openFTInteractive.ml \
-  openFT/openFTMain.ml
+  $(SRC_OPENFT)/openFTTypes.ml \
+  $(SRC_OPENFT)/openFTOptions.ml \
+  $(SRC_OPENFT)/$(OPENFT)Globals.ml \
+  $(SRC_OPENFT)/openFTComplexOptions.ml \
+  $(SRC_OPENFT)/openFTProtocol.ml \
+  $(SRC_OPENFT)/openFTClients.ml \
+  $(SRC_OPENFT)/openFTServers.ml \
+  $(SRC_OPENFT)/openFTInteractive.ml \
+  $(SRC_OPENFT)/openFTMain.ml
 
 SOULSEEK_SRCS= \
-  soulseek/slskTypes.ml \
-  soulseek/slskOptions.ml \
-  soulseek/slskGlobals.ml \
-  soulseek/slskComplexOptions.ml \
-  soulseek/slskProtocol.ml \
-  soulseek/slskClients.ml \
-  soulseek/slskServers.ml \
-  soulseek/slskInteractive.ml \
-  soulseek/slskMain.ml
+  $(SRC_SOULSEEK)/slskTypes.ml \
+  $(SRC_SOULSEEK)/slskOptions.ml \
+  $(SRC_SOULSEEK)/slskGlobals.ml \
+  $(SRC_SOULSEEK)/slskComplexOptions.ml \
+  $(SRC_SOULSEEK)/slskProtocol.ml \
+  $(SRC_SOULSEEK)/slskClients.ml \
+  $(SRC_SOULSEEK)/slskServers.ml \
+  $(SRC_SOULSEEK)/slskInteractive.ml \
+  $(SRC_SOULSEEK)/slskMain.ml
 
 DIRECT_CONNECT_SRCS= \
-  direct_connect/dcTypes.ml \
-  direct_connect/dcOptions.ml \
-  direct_connect/che3_c.c \
-  direct_connect/che3.ml \
-  direct_connect/dcGlobals.ml \
-  direct_connect/dcComplexOptions.ml \
-  direct_connect/dcKey.ml \
-  direct_connect/dcProtocol.ml \
-  direct_connect/dcClients.ml \
-  direct_connect/dcServers.ml \
-  direct_connect/dcInteractive.ml \
-  direct_connect/dcMain.ml
+  $(SRC_DIRECTCONNECT)/dcTypes.ml \
+  $(SRC_DIRECTCONNECT)/dcOptions.ml \
+  $(SRC_DIRECTCONNECT)/che3_c.c \
+  $(SRC_DIRECTCONNECT)/che3.ml \
+  $(SRC_DIRECTCONNECT)/dcGlobals.ml \
+  $(SRC_DIRECTCONNECT)/dcComplexOptions.ml \
+  $(SRC_DIRECTCONNECT)/dcKey.ml \
+  $(SRC_DIRECTCONNECT)/dcProtocol.ml \
+  $(SRC_DIRECTCONNECT)/dcClients.ml \
+  $(SRC_DIRECTCONNECT)/dcServers.ml \
+  $(SRC_DIRECTCONNECT)/dcInteractive.ml \
+  $(SRC_DIRECTCONNECT)/dcMain.ml
 
-AUDIOGALAXY_SRCS=audio_galaxy/agTypes.ml \
-  audio_galaxy/agOptions.ml \
-  audio_galaxy/agGlobals.ml \
-  audio_galaxy/agComplexOptions.ml \
-  audio_galaxy/agProtocol.ml \
-  audio_galaxy/agClients.ml \
-  audio_galaxy/agServers.ml \
-  audio_galaxy/agInteractive.ml \
-  audio_galaxy/agHttpForward.ml \
-  audio_galaxy/agMain.ml
+AUDIOGALAXY_SRCS= \
+  $(SRC_AUDIOGALAXY)/agTypes.ml \
+  $(SRC_AUDIOGALAXY)/agOptions.ml \
+  $(SRC_AUDIOGALAXY)/agGlobals.ml \
+  $(SRC_AUDIOGALAXY)/agComplexOptions.ml \
+  $(SRC_AUDIOGALAXY)/agProtocol.ml \
+  $(SRC_AUDIOGALAXY)/agClients.ml \
+  $(SRC_AUDIOGALAXY)/agServers.ml \
+  $(SRC_AUDIOGALAXY)/agInteractive.ml \
+  $(SRC_AUDIOGALAXY)/agHttpForward.ml \
+  $(SRC_AUDIOGALAXY)/agMain.ml
 
-
-CYMES_SRCS=\
-  cymes/cymesTypes.ml \
-  cymes/cymesOptions.ml \
-  cymes/cymesGlobals.ml \
-  cymes/cymesProtocol.ml \
-  cymes/cymesMessages.ml \
-  cymes/cymesLocate.ml \
-  cymes/cymesIndexer.ml \
-  cymes/cymesLog.ml \
-  cymes/cymesSubscriptions.ml \
-  cymes/cymesServer.ml \
-  cymes/cymesClients.ml \
-  cymes/cymesMain.ml
 
 KDE_APPLET=yes
 
-
-ifeq ("$(CYMES)" , "yes")
-SUBDIRS += cymes
-CORE_SRCS += $(CYMES_SRCS)
-endif
-
 ifeq ("$(OPENFT)" , "yes")
-SUBDIRS += openFT
+SUBDIRS += $(SRC_OPENFT)
 
 CORE_SRCS += $(OPENFT_SRCS)
 
 endif
 
 ifeq ("$(AUDIO_GALAXY)" , "yes")
-SUBDIRS += audio_galaxy
+SUBDIRS += $(SRC_AUDIOGALAXY)
 
 CORE_SRCS += $(AUDIOGALAXY_SRCS)
 endif
 
 DRIVER_SRCS= \
-  driver/driverInteractive.ml  \
-  driver/driverCommands.ml  \
-  driver/driverControlers.ml  \
-  driver/driverInterface.ml \
-  driver/driverMain.ml 
+  $(DRIVER)/driverInteractive.ml  \
+  $(DRIVER)/driverCommands.ml  \
+  $(DRIVER)/driverControlers.ml  \
+  $(DRIVER)/driverInterface.ml \
+  $(DRIVER)/driverMain.ml 
 
 MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -431,22 +442,24 @@ install:: opt
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += gui gui2 configwin okey gpattern icons/$(ICONS_CHOICE) +lablgtk
+SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk
 
 GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
 GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
 GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
 
 
-CONFIGWIN_SRCS=configwin/configwin_types.ml \
-  configwin/configwin_messages.ml \
-  configwin/configwin_ihm.ml configwin/configwin.ml
+CONFIGWIN_SRCS= \
+  $(CONFIGWIN)/configwin_types.ml \
+  $(CONFIGWIN)/configwin_messages.ml \
+  $(CONFIGWIN)/configwin_ihm.ml \
+  $(CONFIGWIN)/configwin.ml
 
-MP3TAGUI_SRCS=  mp3tagui/mp3_messages.ml mp3tagui/mp3_ui.ml
+MP3TAGUI_SRCS=  $(MP3)/mp3_messages.ml $(MP3)/mp3_ui.ml
 
-GPATTERN_SRCS=  lib/gAutoconf.ml gpattern/gpattern.ml
+GPATTERN_SRCS=  $(LIB)/gAutoconf.ml $(GPATTERN)/gpattern.ml
 
-OKEY_SRCS= okey/okey.ml
+OKEY_SRCS= $(OKEY)/okey.ml
 
 ICONS= \
   icons/$(ICONS_CHOICE)/add_to_friends.xpm \
@@ -482,35 +495,35 @@ ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
 $(ALL_ICONS_SRCS): $(ALL_ICONS)
 
 GUI_BASE_SRCS= \
-  gui/gui_messages.ml   gui/gui_global.ml \
-  gui/gui_columns.ml \
-  gui/gui_keys.ml \
-  $(ALL_ICONS_SRCS) gui/gui_options.ml 
+  $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
+  $(SRC_GUI)/gui_columns.ml \
+  $(SRC_GUI)/gui_keys.ml \
+  $(ALL_ICONS_SRCS) $(SRC_GUI)/gui_options.ml 
 
 GUI_SRCS=  \
-  gui/gui_misc.ml \
-  gui/gui_com.ml \
-  gui/gui_help_base.zog gui/gui_help.ml \
-  gui/gui_console_base.zog gui/gui_console.ml \
-  gui/gui_uploads_base.zog gui/gui_uploads.ml \
-  gui/gui_users_base.zog gui/gui_users.ml \
-  gui/gui_results_base.zog gui/gui_results.ml \
-  gui/gui_rooms_base.zog gui/gui_rooms.ml \
-  gui/gui_friends_base.zog gui/gui_friends.ml \
-  gui/gui_cdget_base.zog gui/gui_cdget.ml \
-  gui/gui_queries_base.zog gui/gui_queries.ml \
-  gui/gui_servers_base.zog gui/gui_servers.ml \
-  gui/gui_downloads_base.zog gui/gui_downloads.ml \
-  gui/gui_window_base.zog gui/gui_window.ml \
+  $(SRC_GUI)/gui_misc.ml \
+  $(SRC_GUI)/gui_com.ml \
+  $(SRC_GUI)/gui_help_base.zog $(SRC_GUI)/gui_help.ml \
+  $(SRC_GUI)/gui_console_base.zog $(SRC_GUI)/gui_console.ml \
+  $(SRC_GUI)/gui_uploads_base.zog $(SRC_GUI)/gui_uploads.ml \
+  $(SRC_GUI)/gui_users_base.zog $(SRC_GUI)/gui_users.ml \
+  $(SRC_GUI)/gui_results_base.zog $(SRC_GUI)/gui_results.ml \
+  $(SRC_GUI)/gui_rooms_base.zog $(SRC_GUI)/gui_rooms.ml \
+  $(SRC_GUI)/gui_friends_base.zog $(SRC_GUI)/gui_friends.ml \
+  $(SRC_GUI)/gui_cdget_base.zog $(SRC_GUI)/gui_cdget.ml \
+  $(SRC_GUI)/gui_queries_base.zog $(SRC_GUI)/gui_queries.ml \
+  $(SRC_GUI)/gui_servers_base.zog $(SRC_GUI)/gui_servers.ml \
+  $(SRC_GUI)/gui_downloads_base.zog $(SRC_GUI)/gui_downloads.ml \
+  $(SRC_GUI)/gui_window_base.zog $(SRC_GUI)/gui_window.ml \
   $(IM_GUI_CORE) \
-  gui/gui_config.ml \
-  gui/gui_main.ml
+  $(SRC_GUI)/gui_config.ml \
+  $(SRC_GUI)/gui_main.ml
 
-GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
-  gui2/gui2_options.ml gui2/gui2_GList.ml gui2/gui2.zog \
-  gui2/myCList.ml gui2/gui2_handler.ml \
-  gui2/gui2_misc.ml gui2/gui2_config.ml \
-  gui2/gui2_main.ml
+GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
+  $(SRC_GUI2)/gui2_options.ml $(SRC_GUI2)/gui2_GList.ml $(SRC_GUI2)/gui2.zog \
+  $(SRC_GUI2)/myCList.ml $(SRC_GUI2)/gui2_handler.ml \
+  $(SRC_GUI2)/gui2_misc.ml $(SRC_GUI2)/gui2_config.ml \
+  $(SRC_GUI2)/gui2_main.ml
 
 MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa gui.cmxa
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
@@ -520,13 +533,13 @@ MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
 MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
 MLDONKEY_IM_SRCS= \
-   $(GUI_BASE_SRCS) $(IM_GUI_CORE) im/gui_im_main.ml  $(MAIN_SRCS)
+   $(GUI_BASE_SRCS) $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
-STARTER_SRCS= gui/gui_starter.ml
+STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 
 INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
 INSTALLER_SRCS= \
-  $(GUI_BASE_SRCS) gui/gui_installer_base.zog gui/gui_installer.ml
+  $(GUI_BASE_SRCS) $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
 
 
 #######################################################################
@@ -537,14 +550,14 @@ INSTALLER_SRCS= \
 
 
 CHAT_EXE_SRCS= \
-        chat/chat_data.ml\
-        chat/chat_icons.ml\
-        chat/chat_gui_base.ml\
-        chat/chat_gui.ml\
-        chat/chat_app.ml \
-        chat/mlchat.ml \
-	chat/chat_args.ml \
-	chat/chat_main.ml
+        $(CHAT)/chat_data.ml\
+        $(CHAT)/chat_icons.ml\
+        $(CHAT)/chat_gui_base.ml\
+        $(CHAT)/chat_gui.ml\
+        $(CHAT)/chat_app.ml \
+        $(CHAT)/mlchat.ml \
+        $(CHAT)/chat_args.ml \
+	$(CHAT)/chat_main.ml
 
 MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
@@ -564,27 +577,27 @@ endif
 #### IM stuff is now automatically included in the GUI
 
 
-SUBDIRS += im im/yahoo  im/irc
+SUBDIRS += $(IM) $(IM)/yahoo  $(IM)/irc
   
-IM_CORE += im/imTypes.ml im/imEvent.ml \
-   im/imProtocol.ml im/imIdentity.ml im/imAccount.ml \
-   im/imChat.ml im/imRoom.ml \
-   im/imOptions.ml
+IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
+   $(IM)/imProtocol.ml $(IM)/imIdentity.ml $(IM)/imAccount.ml \
+   $(IM)/imChat.ml $(IM)/imRoom.ml \
+   $(IM)/imOptions.ml
 
-IM_CORE +=  im/irc/irc.ml
+IM_CORE +=  $(IM)/irc/irc.ml
 
-IM_GUI_CORE += im/gui_im_base.zog   \
-    im/gui_im.ml
+IM_GUI_CORE += $(IM)/gui_im_base.zog   \
+    $(IM)/gui_im.ml
 
 TARGETS += mlim
 
 ifeq ("$(DEVEL)", "yes")
-  SUBDIRS += im/msn
+  SUBDIRS += $(IM)/msn
 
-  IM_CORE +=    im/yahoo/yahoo.ml   im/msn/msn.ml
+  IM_CORE +=    $(IM)/yahoo/yahoo.ml   $(IM)/msn/msn.ml
 endif
 
-IM_CORE +=   im/imMain.ml
+IM_CORE +=   $(IM)/imMain.ml
 
 endif
 
@@ -617,7 +630,7 @@ build/$2.cma: $($1_OBJS) $($1_CMOS)
 define(EXPAND_DRIVER,[[
 
 ifeq ("$($2)" , "yes")
-SUBDIRS += $3
+SUBDIRS += src/networks/$3
 
 CORE_SRCS += $($2_SRCS)
 
@@ -676,12 +689,12 @@ EXPAND_LIB(libguibase,guibase)
 
 USE_TAGS_CMXA=cdk.cmxa
 USE_TAGS_SRCS = \
-  lib/cddb_lexer.mll lib/cddb_file.ml \
+  $(LIB)/cddb_lexer.mll $(LIB)/cddb_file.ml \
   tools/use_tags.ml
 
 HASH_FILES_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  donkey/donkeyHasher.ml tools/hash_files.ml
+  $(SRC_DONKEY)/donkeyHasher.ml tools/hash_files.ml
 
 
 ######################################################################
@@ -785,21 +798,21 @@ byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 static: $(PATCHED_OCAMLOPT) $(foreach target, $(TARGETS), $(target).static)
 
 kde_applet: $(APPLET_OBJS)
-	cd applets/kde; ./configure --prefix /usr; make
+	cd src/applets/kde; ./configure --prefix /usr; make
 	@echo; echo
-	@echo "      Go in applets/kde, su root, and call 'make install'"
+	@echo "      Go in src/applets/kde, su root, and call 'make install'"
 	@echo; echo
 
 gnome_applet: $(APPLET_OBJS)
-	cd applets/gnome; make
+	cd src/applets/gnome; make
 	@echo; echo
-	@echo "      Go in applets/gnome, su root, and call 'make install'"
+	@echo "      Go in src/applets/gnome, su root, and call 'make install'"
 	@echo; echo
 
 APPLET_SRCS=\
-  applets/api/endianess.c \
-  applets/api/gui_protocol.c \
-  applets/api/main.c
+  src/applets/api/endianess.c \
+  src/applets/api/gui_protocol.c \
+  src/applets/api/main.c
 
 APPLET_OBJS += $(foreach file, $(APPLET_SRCS), $(basename $(file)).o)
 
@@ -807,22 +820,22 @@ text_applet: $(APPLET_OBJS)
 	$(CC) -o text_applet $(APPLET_OBJS)
 
 
-lib/md4_cc.o: lib/md4.c
-	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
+$(LIB)/md4_cc.o: $(LIB)/md4.c
+	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
 
-cdk/heap_c.o: cdk/heap_c.c
-	$(OCAMLC) -ccopt "$(CFLAGS) $(MORECFLAGS) -o cdk/heap_c.o" -ccopt "" -c cdk/heap_c.c
+$(CDK)/heap_c.o: $(CDK)/heap_c.c
+	$(OCAMLC) -ccopt "$(CFLAGS) $(MORECFLAGS) -o $(CDK)/heap_c.o" -ccopt "" -c $(CDK)/heap_c.c
 
-lib/md4_as.o: lib/md4_$(MD4ARCH).s
-	as -o lib/md4_as.o lib/md4_$(MD4ARCH).s
+$(LIB)/md4_as.o: $(LIB)/md4_$(MD4ARCH).s
+	as -o $(LIB)/md4_as.o $(LIB)/md4_$(MD4ARCH).s
 
-lib/md4_comp.o: lib/md4_$(MD4COMP).o
-	cp -f lib/md4_$(MD4COMP).o lib/md4_comp.o
+$(LIB)/md4_comp.o: $(LIB)/md4_$(MD4COMP).o
+	cp -f $(LIB)/md4_$(MD4COMP).o $(LIB)/md4_comp.o
 
 
 zogml:
-	(for i in gui/gui*_base.zog ; do \
-		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > gui/`basename $$i zog`ml ;\
+	(for i in $(GUI)/gui*_base.zog ; do \
+		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > $(GUI)/`basename $$i zog`ml ;\
 	done)
 
 #######################################################################
@@ -852,7 +865,7 @@ distclean: releaseclean
 	rm -rf patches/local
 
 maintainerclean: distclean
-	rm -f gui/gui.ml gui/gui_zog.ml 
+	rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml 
 
 LOCAL=patches/build
 
@@ -863,7 +876,7 @@ pa_zog.cma: $(PA_ZOG_FILES)
 
 $(TMPSOURCES): pa_zog.cma
 
-depend:  pa_zog.cma lib/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
+depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 	$(OCAMLDEP) $(INCLUDES) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(INCLUDES) $$i/*.ml $$i/*.mli  >> .depend; \
@@ -886,13 +899,13 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML
 #######################################################################
 
 DISDIR=mldonkey-distrib
-distrib/Readme.txt: gui/gui_messages.ml
-	grep -A 1000 help_text gui/gui_messages.ml | grep -v '"' > distrib/Readme.txt
+distrib/Readme.txt: $(GUI)/gui_messages.ml
+	grep -A 1000 help_text $(GUI)/gui_messages.ml | grep -v '"' > distrib/Readme.txt
 
 
 debug:
-	rm -f cdk/heap_c.o
-	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) cdk/heap_c.o
+	rm -f $(CDK)/heap_c.o
+	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) $(CDK)/heap_c.o
 	$(MAKE)
 
 RELEASE_TARGETS=mldonkey mlnet mlgui
@@ -977,7 +990,7 @@ auto-release:
 ## i386
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i386 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static lib/md4_comp.* lib/md4_as.*
+	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -986,7 +999,7 @@ auto-release:
 ## i686
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i686 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static lib/md4_comp.* lib/md4_as.*
+	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -995,7 +1008,7 @@ auto-release:
 ## i586
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i586 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static lib/md4_comp.* lib/md4_as.*
+	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -1004,7 +1017,7 @@ auto-release:
 ## i486
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i486 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static lib/md4_comp.* lib/md4_as.*
+	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/

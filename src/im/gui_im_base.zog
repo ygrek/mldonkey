@@ -1,0 +1,102 @@
+<entity name=window>
+  <window name=window width="400" height="200" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
+    <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+        <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+            <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mSettings" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+            <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+            </menu_separator>
+            <menu_item name=itemSetStatus width="-1" height="-1" border_width="-1" label="%22Change+Status%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+              <menu name=menuSetStatus width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <menu_item name=itemSetStatusOffline width="-1" height="-1" border_width="-1" label="%22Offline%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+                </menu_item>
+              </menu>
+            </menu_item>
+            <menu_item name=itemAddFriend width="-1" height="-1" border_width="-1" label="%22Add+Friend%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+            <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+            </menu_separator>
+            <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mQuit" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+          </menu>
+        </menu_item>
+      </menubar>
+      <hbox name=friends width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+      </hbox>
+      <hbox name=hbox_status width="-1" height="-1" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=label_connect_status width="-1" height="-1" text="%22%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
+        </label>
+      </hbox>
+    </vbox>
+  </window>
+</entity>
+<entity name=accounts>
+  <window name=window width="400" height="200" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
+    <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+        <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+            <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mSettings" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+            <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+            </menu_separator>
+            <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mQuit" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+          </menu>
+        </menu_item>
+      </menubar>
+      <hbox name=friends width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+      </hbox>
+      <hbox name=hbox_status width="-1" height="-1" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=label_connect_status width="-1" height="-1" text="%22%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
+        </label>
+      </hbox>
+    </vbox>
+  </window>
+</entity>
+<entity name=window2>
+  <window name=window width="640" height="400" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
+    <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+        <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+            <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mSettings" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+            <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+            </menu_separator>
+            <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mQuit" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+          </menu>
+        </menu_item>
+      </menubar>
+      <notebook name=main_notebook width="-1" height="-1" border_width="-1" tab_position="`LEFT" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
+        <hbox name=accounts_hbox width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Accounts%22" expand="false" fill="true" padding="-1">
+        </hbox>
+        <hbox name=contacts_hbox width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Friends%22" expand="false" fill="true" padding="-1">
+        </hbox>
+      </notebook>
+      <hbox name=hbox_status width="-1" height="-1" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=label_connect_status width="-1" height="-1" text="%22%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
+        </label>
+      </hbox>
+    </vbox>
+  </window>
+</entity>
+<entity name=room_tab>
+  <vbox name=room_vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="true" fill="true" padding="">
+    <hpaned name=wpane width="600" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+      <scrolled_window name=wscroll width="450" height="0" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="">
+        <text name=text width="-1" height="-1" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="true" fill="true" padding="-1">
+        </text>
+      </scrolled_window>
+    </hpaned>
+    <hbox name=hbox_91 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <label name=nick_label width="-1" height="-1" text="%22My+nick:%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+      </label>
+      <entry name=entry width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+      </entry>
+    </hbox>
+  </vbox>
+</entity>

@@ -1,0 +1,122 @@
+
+  Description of the new interface protocol (version 2.00)
+  ========================================================
+
+The protocol is mainly specified by its implementation in files
+
+common/commonTypes.ml (generic types)
+commmon/gui_proto.ml (GUI protocol)
+
+The specification should be moved in an human readable form to this file in
+the future.
+
+Basic ideas:
+============
+
+  The GUI must connect to the core via a TCP socket. Binary messages are
+sent on this socket, with the following format:
+
+| size of content (4 bytes) | content |
+
+size of content: 4 bytes integer (in network order, ie
+  1025 = 1 + 256 * 4 = |   1 |   4 |  0 |  0 | ), indicating the length
+  of the content of the message
+
+content: the content of the message. the content starts by a 2 bytes integer,
+  which is the opcode of the message, followed with the arguments.
+  If the opcode is not known by the GUI, the GUI can simply discard the whole
+  message, and continue with other messages (this way, partial implementations
+  of the protocol should work for simple functions).
+
+  | opcode (2 bytes) | arguments |
+
+When connected, both sides start by sending a 0-opcode message, with
+a 4-bytes argument indicating the version of the protocol used 
+(CoreProtocol and GuiProtocol messages in the gui_proto.ml file).
+
+Then, they should use the smallest protocol version, so that all messages 
+should be understandandable by both sides (the core should always remain
+backward compatible in the future with old versions of this GUI protocol).
+
+Current version of the protocol is 0.
+
+The remaining of this file will describe encoding and meaning of messages.
+Some remarks:
+
+ - In the core, all data structures have unique identifiers (an integer)
+   in their types (one result and one server can have the same number, but
+   not two different results). Thus, these identifiers are often used
+   between the GUI and the core.
+
+ - The basic core engine uses the following types:
+
+      network: a peer to peer network (donkey, open napster, gnutella, ...)
+      search: a search (network independant)
+
+      server: a server on a given network
+      file: a file being downloaded on a given network
+      client: a source for a file being downloaded, or a friend
+      result: the result of a search, or a browse operation on a friend
+      user: another peer connected on a server, or a source for a result of 
+             a search (it will become a client if we download its files or
+             if it becomes a friend)
+      room: a chat room, with many users connected to dialog.
+
+Basic encoding:
+===============
+
+  For basic types, the following encoding is used in the messages:
+
+int8: one byte
+int16: two bytes in network order
+int/int32: 4 bytes in network order
+                      1025 = 1 + 256 * 4  =     |   1 |   4 |  0 |  0 | 
+
+string: an int16 for the length, followed by the characters of the string
+  without 0 at the end.
+
+bool: an int8, with 0 for FALSE and 1 for TRUE.
+
+float: a string (see above), ASCII representation of the float.
+
+list or arrays of values: an int16 for the number of elements, followed by
+   the elements, without separators. 
+
+records, pairs, tuples: the fields are encoded without separators.
+
+md4: the 16 bytes corresponding to the hash.
+
+Messages from Core to GUI for protocol 0
+========================================
+CoreProtocol (opcode 0) + int32 (protocol version)
+
+    Indicates the most up-to-date version of the protocol understood by the 
+    core.
+
+Options_info (opcode 1) + a list of string pairs
+
+    Indicates the names of some options and their associated value (converted
+    to a string).
+
+DefineSearches (opcode 3) + query description list
+
+    Indicates to the GUI predefined or user-defined queries formats.
+    See buf_query in gui_proto.ml to see how queries are encoded exactly.
+
+Result_info (opcode 4) + result description
+
+    Describes a result. The result is not associated with a search.
+    Another message is used to associate the result (number) with a search.
+
+    result format: see buf_result in gui_proto.ml.
+
+etc...
+
+Messages from GUI to Core for protocol 0
+========================================
+
+
+
+
+
+

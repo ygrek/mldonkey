@@ -1,1 +1,1 @@
-See distrib/Developers.txt
+See docs/developers/Developers.txt

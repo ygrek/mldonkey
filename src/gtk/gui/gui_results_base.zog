@@ -1,0 +1,22 @@
+<entity name=box tb_style>
+  <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
+    <toolbar name=wtool1 width="" height="" border_width="" orientation="`HORIZONTAL" style="tb_style" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+    <toolbar name=wtool2 width="" height="" border_width="" orientation="`HORIZONTAL" style="tb_style" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+  </vbox>
+</entity>
+<entity name=files>
+  <hpaned name=wpane width="" height="" border_width="" handle_size="" tab_label="" expand="false" fill="true" padding="">
+    <vbox name=vbox_dir width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
+      <toolbar name=wtool1 width="" height="" border_width="" orientation="`HORIZONTAL" style="`ICONS" space_size="" space_style="`EMPTY" tooltips="true" button_relief="`NORMAL" tab_label="" expand="false" fill="true" padding="">
+      </toolbar>
+      <toolbar name=wtool2 width="" height="" border_width="" orientation="`HORIZONTAL" style="`ICONS" space_size="" space_style="`EMPTY" tooltips="true" button_relief="`NORMAL" tab_label="" expand="false" fill="true" padding="">
+      </toolbar>
+      <scrolled_window name=wscroll width="" height="" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="">
+        <tree name=wtree width="" height="" border_width="" selection_mode="`SINGLE" view_mode="`LINE" view_lines="true" tab_label="" expand="false" fill="true" padding="">
+        </tree>
+      </scrolled_window>
+    </vbox>
+  </hpaned>
+</entity>

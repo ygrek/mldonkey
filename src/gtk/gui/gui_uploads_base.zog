@@ -1,0 +1,12 @@
+<entity name=box>
+  <frame name=wf_upstats width="" height="" border_width="" label="Gettext.gettext+Gui_messages.upstats" label_xalign="" label_yalign="" shadow_type="`NONE" tab_label="" expand="true" fill="true" padding="2">
+  </frame>
+</entity>
+<entity name=upstats_box>
+  <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
+    <toolbar name=wtool1 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+    <toolbar name=wtool2 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+  </vbox>
+</entity>

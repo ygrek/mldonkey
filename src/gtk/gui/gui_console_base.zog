@@ -1,0 +1,18 @@
+<entity name=box>
+  <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+    <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
+      <text name=text width="-1" height="-1" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="false" fill="true" padding="-1">
+      </text>
+    </scrolled_window>
+    <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <label name=_ width="180" height="-1" text="Gettext.gettext+Gui_messages.command" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+      </label>
+      <combo name=we_command width="-1" height="-1" border_width="-1" popdown_strings="[]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="true" fill="true" padding="-1">
+      </combo>
+      <button name=wb_clear_console width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=_ width="180" height="-1" text="Gettext.gettext+Gui_messages.clear_console" justification="`RIGHT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+        </label>
+      </button>
+    </hbox>
+  </vbox>
+</entity>

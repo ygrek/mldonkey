@@ -1,6 +1,27 @@
 ChangeLog	
 =========
 
+2003/04/22: Simon (v release-2-4-rc5)
+  - Gnutella:
+     * Old host discovery system doesnot work anymore. Implemented
+         GWebCache system
+     * Option prefix set to GNUT
+  - Updated to use ocaml-3.06+27 which should support all Mac OS X versions
+  - Applied pango's patches:
+       88_login_missing_in_gui, 89_better_xs_messages, 90_limit_indirects
+  - Applied patch #1397 (upload priority)
+  - Bittorrent:
+     * Fixed problem with never finishing downloads
+  - Driver:
+     * Fixed problem with availability display
+  - Gnutella:
+     * Don't use 'Accept:' header for gnutella1 hosts, since most of them
+         refuse the connection
+
+2003/04/20: Simon
+  - Complete reorganization of source tree
+  - GUI: exit uses CTRL-q instead of CTRL-e
+
 2003/04/19: Simon (v release-2-4-rc4)
   - Applied patch #1393, #1395
   - Gnutella2 (not yet working):

@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.4
-CURRENT_RELEASE=rc4
+CURRENT_RELEASE=rc5
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -70,8 +70,6 @@ AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cy
 AC_ARG_ENABLE(bittorrent, [--disable-bittorrent:       allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
-
-AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
 
 AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
 
@@ -145,7 +143,7 @@ case "$host" in
   powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
   powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
   powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
-    REQUIRED_OCAML=3.06+21
+    REQUIRED_OCAML=3.06+27
     
     echo "***************************************************"
     echo
@@ -393,16 +391,16 @@ if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
 fi
 
   if test "$AUDIO_GALAXY" = "yes" ; then
-    AC_CHECK_FILE(../audio_galaxy,AUDIO_GALAXY=yes, [
+    AC_CHECK_FILE(../src/networks/audio_galaxy,AUDIO_GALAXY=yes, [
       AUDIO_GALAXY=no
-      BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+      BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
     ])
   else
-    BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+    BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
   fi
 
   if test "$OPEN_NAPSTER" = "yes" ; then
-    AC_CHECK_FILE(../opennap,OPEN_NAPSTER=yes, [
+    AC_CHECK_FILE(../src/networks/opennap,OPEN_NAPSTER=yes, [
       OPEN_NAPSTER=no
       BAD_TARGETS="$BAD_TARGETS open_napster"
     ])
@@ -411,7 +409,7 @@ fi
   fi
 
   if test "$DIRECT_CONNECT" = "yes" ; then
-    AC_CHECK_FILE(../direct_connect,DIRECT_CONNECT=yes, [
+    AC_CHECK_FILE(../src/networks/direct_connect,DIRECT_CONNECT=yes, [
       DIRECT_CONNECT=no
       BAD_TARGETS="$BAD_TARGETS direct_connect"
     ])
@@ -420,7 +418,7 @@ fi
   fi
 
   if test "$GNUTELLA" = "yes" ; then
-    AC_CHECK_FILE(../gnutella,GNUTELLA=yes, [
+    AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA=yes, [
       GNUTELLA=no
       BAD_TARGETS="$BAD_TARGETS gnutella"
     ])
@@ -429,7 +427,7 @@ fi
   fi
 
   if test "$BITTORRENT" = "yes"; then
-    AC_CHECK_FILE(../bittorrent,BITTORRENT=yes, [
+    AC_CHECK_FILE(../src/networks/bittorrent,BITTORRENT=yes, [
       BITTORRENT=no
       BAD_TARGETS="$BAD_TARGETS bittorrent"
     ])
@@ -438,7 +436,7 @@ fi
   fi
 
   if test "$SOULSEEK" = "yes" && test "$ZLIB" = "yes"; then
-    AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
+    AC_CHECK_FILE(../src/networks/soulseek,SOULSEEK=yes, [
       SOULSEEK=no
       BAD_TARGETS="$BAD_TARGETS soulseek"
     ])
@@ -448,28 +446,28 @@ fi
   fi
 
   if test "$OPENFT" = "yes" ; then
-    AC_CHECK_FILE(../openFT,OPENFT=yes, [
+    AC_CHECK_FILE(../src/networks/openFT,OPENFT=yes, [
       OPENFT=no
-      BAD_TARGETS="$BAD_TARGETS openFT"
+      BAD_TARGETS="$BAD_TARGETS openFT(obsolete)"
     ])
   else
-    BAD_TARGETS="$BAD_TARGETS openFT"
+    BAD_TARGETS="$BAD_TARGETS openFT(obsolete)"
   fi
 
   if test "$CYMES" = "yes" ; then
-    AC_CHECK_FILE(../cymes,CYMES=yes, [
+    AC_CHECK_FILE(../src/networks/cymes,CYMES=yes, [
       CYMES=no
-      BAD_TARGETS="$BAD_TARGETS cymes"
+      BAD_TARGETS="$BAD_TARGETS"
     ])
   else
-    BAD_TARGETS="$BAD_TARGETS cymes"
+    BAD_TARGETS="$BAD_TARGETS"
   fi
 
 if test "$DONKEY" = "yes" ; then
 
-  AC_CHECK_FILE(../donkey,[
+  AC_CHECK_FILE(../src/networks/donkey,[
     DONKEY=yes
-    AC_CHECK_FILE(../server,DONKEY_SERVER=yes, [
+    AC_CHECK_FILE(../src/networks/server,DONKEY_SERVER=yes, [
       DONKEY_SERVER=no
       BAD_TARGETS="$BAD_TARGETS donkey_server"
     ])
@@ -552,7 +550,7 @@ else
 fi
 
 if test "$IM" = "yes" ; then
-  AC_CHECK_FILE(../im,IM=yes, [
+  AC_CHECK_FILE(../src/im,IM=yes, [
   IM=no
   ])
 else
@@ -716,8 +714,8 @@ AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
 AC_SUBST(ZLIB__COMPRESS_STRING)
 
-AUTOCONF=../lib/autoconf.ml
-GTK_AUTOCONF=../lib/gAutoconf.ml
+AUTOCONF=../src/utils/lib/autoconf.ml
+GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
 AC_OUTPUT(\
   Makefile.config \
   Makefile.config.i386 \
