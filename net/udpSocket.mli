@@ -38,3 +38,4 @@ val closed : t -> bool
 val close : t -> string -> unit
 val write : t -> string -> int -> int -> Unix.sockaddr -> unit
 val create : int -> handler -> t
+val create_sendonly : unit -> t

@@ -131,7 +131,8 @@ let port = define_option downloads_ini ["port"] "The port used for connection by
 
 let save_options_delay = 
   define_option downloads_ini ["save_options_delay"] 
-  "The delay between two saves of the 'downloads.ini' file" float_option 60.0
+    "The delay between two saves of the 'downloads.ini' file (default is 4 minutes)" 
+  float_option 240.0
 
 let check_client_connections_delay = 
   define_option downloads_ini ["check_client_connections_delay"] 
@@ -190,3 +191,7 @@ let max_allowed_connected_servers () =
 
 let verbose = define_option downloads_ini ["verbose"] "Only for debug"
     bool_option false
+
+  
+let max_connections_per_minute = define_option downloads_ini
+    ["max_connections_per_minute"] "Maximal number of connection that can be tried per minute" int_option 500

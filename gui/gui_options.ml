@@ -204,7 +204,10 @@ let gui_height = define_option mldonkey_gui_ini
 let password = define_option mldonkey_gui_ini ["password"] "" string_option ""
 let port = define_option mldonkey_gui_ini ["port"] "" int_option 4001
 let hostname = define_option mldonkey_gui_ini ["hostname"] "" string_option 
-  "127.0.0.1"
+  "localhost"
 
   
   
+let max_client_name_len = define_option mldonkey_gui_ini
+    ["max_client_name_len"] "Max len of a source name"
+  int_option 18

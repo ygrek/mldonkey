@@ -61,3 +61,5 @@ val gui_height : int Options.option_record
 val password : string Options.option_record
 val port : int Options.option_record
 val hostname : string Options.option_record
+
+val max_client_name_len : int Options.option_record

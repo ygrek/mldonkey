@@ -74,3 +74,7 @@ let rec matches ((a4,a3,a2,a1) as a) ips =
         (a1 = b1 || b1 = 255))
       || (matches a tail)
       
+let localhost = of_string "127.0.0.1"
+  
+let to_sockaddr ip port =
+  Unix.ADDR_INET (to_inet_addr ip, port)

@@ -26,3 +26,11 @@ val clear : unit -> unit
 val init : unit -> unit
   
 val add_name : Gui_types.result -> string -> unit
+  
+val find_names : Md4.t -> string list
+  
+val load_comments : string -> unit
+val save_comments : unit -> unit
+val add_comment : Md4.t -> string -> unit
+  
+val load_old_history : unit -> unit

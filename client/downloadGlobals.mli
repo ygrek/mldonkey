@@ -87,7 +87,8 @@ val remove_server :  Ip.t -> int -> unit
 val remove_client : DownloadTypes.client -> unit
 val find_client : int -> DownloadTypes.client
 
-val small_change_file : DownloadTypes.file -> unit
+val info_change_file : DownloadTypes.file -> unit
+val avail_change_file : DownloadTypes.file -> unit
   
 val remove_client_chunks : 
   DownloadTypes.file -> DownloadTypes.availability -> unit
@@ -114,3 +115,7 @@ val connection_delay : DownloadTypes.connection_control -> unit
   
 val printf_char : char -> unit
 val printf_string : string -> unit
+  
+val allow_new_connection : unit -> bool
+val incr_connections : unit -> unit
+  

@@ -15,10 +15,10 @@ client, plus some more:
  - You can connect to several servers, and each search will query all the 
     connected servers.
  - You can select mp3s by bitrates in queries (useful ?).
- - You can select the name of a downlaoded file before moving it to your
+ - You can select the name of a downloaded file before moving it to your
    incoming directory.
  - You can have several queries in the graphical user interface at the same
-  moment. 
+    time. 
  - You can remember your old queries results in the command-line interface.
  - You can search in the history of all files you have seen on the network.
 
@@ -27,7 +27,7 @@ USAGE:
 ======
 
   This package contains three files: 'mldonkey', 'mldonkey_gui' and
-'downloads.ini'.
+servers.ini'.
 
 'mldonkey' is the main program, a daemon which is used to download files.
 It takes no argument, and outputs some debugging messages on his terminal,
@@ -36,7 +36,7 @@ you can use:
 
 prompt> ./mldonkey > mldonkey.log &
 
-  'mldonkey' expects to find a file called 'downloads.ini' in the directory 
+  'mldonkey' expects to find several .ini files in the directory 
 where it is started. You can use the file provided in this package, or your
 old one if you already used 'mldonkey' before. It contains a list of servers
 that were available when the release was done. You can edit 'downloads.ini' 
@@ -74,8 +74,8 @@ prompt> telnet myhost.mydomain.mydot
 
 (if the client was started on that host).
 
-Using my old config:
-===================
+Using the config the standard core :
+===================================
   Connect to mldonkey by telnet:
 
 prompt> telnet localhost 4000
@@ -99,35 +99,56 @@ inside ''.
 Frequently Asked Questions
 ==========================
 
-*) How can I find new versions ? 
---------------------------------
-
- Simply search for mldonkey on the donkey network or forums ... However, we
-don't plan to work a lot on this software now it is working correctly, so new
-versions will probably be seldom, after probably some bug fixes in the first
-release.
-
-*) How can I contact the authors ? 
+*) How can I contact the authors ?
 ----------------------------------
 
-You can reach us for a short time on 'mldonkey@monsieurcinema.com'. Please
-don't bother us too much with questions on how to use mldonkey. We prefer bug
-reports, containing USEFUL information to find the bug. 
+You can reach us for a short time on 
 
- We will not make a forum for mldonkey. We are looking for a volonteer to do
-that, probably on one of the current donkey sites. We will probably
-anonymously subscribe to the list to hear about users problems.
+      mldonkey@monsieurcinema.com
 
-  We are also looking for a volonteer to rewrite/correct the documentation.
-French people are not native english speakers and writers.
+Please don't bother us too much with questions on how to use mldonkey. We
+prefer bug reports, containing USEFUL information to find the bug. You can
+also submit bugs on the savannah WEB site:
+
+  http://www.freesoftware.fsf.org/mldonkey/
+
+For advices on how to use mldonkey, you can check several forums.
+In particular, 
+
+  http://forums.edonkey2000.com/
+
+contains an interesting linux topics.
 
 *) What about the sources ? What about the protocol ?
 -----------------------------------------------------
 
- We will not release the sources nor the protocol yet, because selfish guys
-could easily write their own donkey software, disabling upload. We want to
-make this as hard as possible. So you will have to do like us, find the
-protocol on your own.
+Most sources are available on the savannah WEB site, except the protocol
+files:
+
+  http://www.freesoftware.fsf.org/mldonkey/
+
+However, the distribution contains enough information to port mldonkey
+on all systems where Objective-Caml has been ported. In the future, we will
+provide additionnal files with a pseudo-protocol, so that contributors can
+test their changes on a local network before sending them to us.
+
+We will not release the protocol, because we don't want to be accused of
+being the murderers of the eDonkey network. However, since our knowledge of
+the protocol is only partial, we are interested in any information on it.
+
+*) The GUI/telnet/WEB can't connect to the core.
+-----------------------------------------------
+
+Since version 1.12, there is an option to control which computers can 
+connect to mldonkey: allowed_ips
+
+By default, this option only allows your local computer to connect to the 
+core. You can change this either by editing the downloads.ini file, or, in 
+the console, using the
+
+set allowed_ips '127.0.0.1 A.B.C.D ...'
+
+command, where A.B.C.D ... are IP addresses separated by spaces.
 
 *) I added a password, and now the connection between the client and
   the GUI is immediatly aborded at startup. What should I do ?
@@ -136,12 +157,19 @@ protocol on your own.
   Start the GUI. In the Options panel, type your password, and ENTER.
  Then reconnect to the client (menu or CTRL-R).
 
-*) How can I see the upload informations ?
-------------------------------------------
+*) How can I see the upload information ?
+-----------------------------------------
 
-You can't. For psychological reasons, we didn't want to display the upload
-informations. However, you can change your maximal upload rate in the Options
-panel. Minimum is 1 kB/s.
+In mldonkey, you cannot directly know the current upload state of your
+core. There is a 'upstats' command which can be used to get sorted
+information on the files which have been requested.
+
+Two options are used to control upload:
+- 'max_upload_rate' controls the maximal bandwidth you accept to provide
+on upload. The minimun is 1 (kB/s).
+- 'shared_directories' is the list of directories that you want to share.
+By default, the list is empty, since the temp/ and incoming/ dirs are always
+shared.
 
 You can also disable upload for short periods of time with the 'nu' command.
 Before you must have ran mldonkey at least 5*m minutes if you want to 
@@ -195,8 +223,18 @@ modify it according to your non-standard configuration.
 
 mldonkey tries to start a script, specified by the 'previewer' option.
 By default, this option calls 'mldonkey_previewer', which must be in your
-path. Its first arg is the name of the file on the local disk, which its
+path. Its first arg is the name of the file on the local disk, while its
 second arg is the name of the file on the donkey network.
+
+*) I started mldonkey, and it didn't connect to any server !
+-----------------------------------------------------------
+
+Depending on your list of servers, the process of finding a server available
+can take a while. You can try to modify some options, such as the server
+connection timeout or the delay between connections attempts. If you know
+a good server, use 'c 34' if 34 is for example the number of the server
+in the list 'vma'. You can also select some servers in the GUI, and use the
+connect button/menu.
 
 Help on the command-line interface
 ==================================
@@ -212,7 +250,7 @@ Then, use ? to find some help on available commands. Some commands are only
 available in the graphical interface (setting options for example), others
 only in the command-line interface (import of old donkey config for example).
 
-Here is the output of the help command:
+Here is the output of the help command for version 1.12:
 n  <ip> [<port>]: add a server
 vu  : view upload credits
 nu  <m> : disable upload during <m> minutes (multiple of 5)
@@ -362,11 +400,13 @@ TODO list
   * Add sleep and wakeup commands.
   * More options in GUI
   * Popup et historique des dialogues.
-  * Admin open file descrs.
   * Keep (server_ip, server_port, id) for indirect connections.
-  * Manager of shared files/direcxtories.
+  * Manager of shared files/directories.
   * Add Friends in console and WEB. 
-  * Search names for MD4 in history.
+  * Don't keep history in memory.
+  * Allow hostname instead of IPs in servers and friends.
+  * Queue uploads per chunk.
+  * wget list of servers, comments and good sources.
 
 Known bugs:
 ===========
@@ -377,14 +417,26 @@ ChangeLog
 =========
 
 Release 1.13:
+  * Annotations on files in file 'comments.met'. Commands 'comments <filename>'
+    to load a file, and 'comment <md4> <comment>' to add a new comment.
+    Such comments could be downloaded from web sites (sharereactor.com).
   * GUI:
      - New config file in $HOME/.mldonkey_gui.ini with GUI options
      - colors added in lists (see .mldonkey_gui.ini)
      - Layout is saved.
      - File locations are updated.
-  * Mailer accept non-canonnical addresses
+     - Improved protocol to decrease bandwidth
+     - Comments are displayed in searches, and can be added in contextual menu.
+  * Mailer accept non-canonnical addresses.
+  * Option 'verbose': '#' for download, 'U' for upload, and other messages.
+  * When possible, find extra names for files in history.
+  * New command 'close_fds' to close all open files, to free space on disk 
+      after remove.
+  * Some control on how many connections can be opened per minute.
   * Bug fixes:
-    - Remove block change causing 'exceeding block boundaries'
+    - Remove block change causing many 'exceeding block boundaries'
+    - history.dat changed to history.met, using more secure marshaling.
+    - OVERFLOW with GUI should appear less frequently.
 
 Release 1.12:
   * Bug fixes:

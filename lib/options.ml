@@ -591,7 +591,7 @@ let save opfile =
     (List.rev opfile.file_options));
   if not opfile.file_pruned then begin
       Printf.fprintf oc
-        "\n(*\n These options are not used (errors, obsolete, ...) \n*)\n";
+        "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
       List.iter
         (fun (name, value) ->
           try

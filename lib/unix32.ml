@@ -35,6 +35,8 @@ let fd_size = getdtablesize ()
 let _ =
   Printf.printf "Your system supports %d file descriptors" fd_size;
   print_newline () 
+
+(* at most 50 files can be opened simultaneously *)
   
 let max_cache_size = 50
 let cache_size = ref 0
@@ -83,3 +85,7 @@ let close t =
       decr cache_size
   | None -> ()
       
+let close_all () =
+  while not (Fifo.empty cache) do
+    close_one ()
+  done

@@ -74,7 +74,7 @@ NET_CMOS = \
   net/tcpClientSocket.$(EXT) net/tcpServerSocket.$(EXT) \
   net/udpSocket.$(EXT) net/http_server.$(EXT)
 
-MIN_PROTO_CMOS= proto/mftp.$(EXT) proto/files.$(EXT) 
+MIN_PROTO_CMOS= proto/mftp.$(EXT) proto/files.$(EXT) proto/openProtocol.$(EXT)
 
 PROTO_CMOS= \
   secret/mftp_client.$(EXT) secret/mftp_server.$(EXT)  \
@@ -85,7 +85,9 @@ OBJS=lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
 MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 
 GUI_CMOS= gui/gui_messages.$(EXT) gui/gui_keys.$(EXT) \
-  gui/gui_options.$(EXT) gui/gui.$(EXT)
+  gui/gui_options.$(EXT) gui/gui.$(EXT) \
+  gui/myCList.$(EXT) gui/gui_handler.$(EXT) \
+  gui/gui_misc.$(EXT) gui/gui_main.$(EXT)
 
 CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadOptions.$(EXT) \
@@ -132,7 +134,7 @@ client.cmo: client.lam
 client.cmx: client.lam
 	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I okey -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
 
-after_zoggy: gui/gui.zog
+gui/gui_zog.ml: gui/gui.zog
 	camlp4 pa_o.cmo -I `cdk_config -ocamllib` pa_zog.cma pr_o.cmo -impl gui/gui.zog > gui/gui_zog.ml
 
 gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
@@ -140,8 +142,8 @@ gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
 	cat gui/gui_zog.ml >> gui/gui.ml
 	cat gui/gui_trailer.ml >> gui/gui.ml
 
-gui/md4_c.o: gui/md4_c.c
-	ocamlc.opt -ccopt "-O6 -I /byterun -o gui/md4_c.o" -ccopt "" -c gui/md4_c.c
+lib/md4_c.o: lib/md4_c.c
+	ocamlc.opt -ccopt "-O6 -I /byterun -o lib/md4_c.o" -ccopt "" -c lib/md4_c.c
 
 
 byte: $(TARGETS)

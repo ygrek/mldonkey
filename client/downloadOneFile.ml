@@ -42,7 +42,9 @@ let client_state t =
 let set_client_state c s =
   if c.client_state = Connected_busy then decr nclients;
   if s = Connected_busy then incr nclients;  
-  c.client_state <- s
+  c.client_state <- s;
+  c.client_changed <- ClientStateChange;
+  !client_change_hook c
 
 
 let must_share_file file =
@@ -314,8 +316,6 @@ let compute_size file =
           ) b.block_zones
     done;
     let current = Int32.sub file.file_size !absents in
-    if file.file_downloaded <> current then 
-      file.file_changed <- SmallChange;
     file.file_downloaded <- current
     
 let print_time tm =
@@ -743,7 +743,6 @@ let update_zone file begin_pos end_pos z =
         file.file_downloaded <- 
           Int32.add file.file_downloaded 
           (Int32.sub z.zone_end z.zone_begin);
-        file.file_changed <- SmallChange;
         z.zone_present <- true;
         z.zone_begin <- z.zone_end;
       end 
@@ -751,7 +750,6 @@ let update_zone file begin_pos end_pos z =
         file.file_downloaded <- 
           Int32.add file.file_downloaded 
           (Int32.sub end_pos z.zone_begin);
-        file.file_changed <- SmallChange;
         z.zone_begin <- end_pos;
       end
 
@@ -837,7 +835,7 @@ let check_file_downloaded file =
           let format = DownloadMultimedia.get_info file.file_hardname in
           file.file_format <- format
         with _ -> ());
-      small_change_file file;
+      info_change_file file;
       !file_change_hook file;
       move_file files done_files file.file_md4
     with _ -> ()
@@ -845,8 +843,7 @@ let check_file_downloaded file =
 let update_options file =    
   file.file_absent_chunks <- List.rev (find_absents file);
   check_file_downloaded file;
-  print_stats file;
-  file.file_changed <- SmallChange
+  print_stats file
 
 let new_file_to_share sh =
   try

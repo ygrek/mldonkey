@@ -340,7 +340,7 @@ class box_downloads () =
       ~packing:_anonymous_container_17#add ()
   in
   let label_file_info =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true
       ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_18 =
@@ -799,6 +799,10 @@ class box_searches () =
     GMisc.label ~text:(Mes.local_search) ~justify:`LEFT ~line_wrap:true
       ~packing:button_local_search#add ()
   in
+  let label_file_comment =
+    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true
+      ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
+  in
   let _anonymous_container_51 =
     GBin.frame ~width:600 ~border_width:1 ~label:(Mes.results)
       ~shadow_type:`ETCHED_OUT ~packing:hpaned#add2 ()
@@ -827,6 +831,7 @@ class box_searches () =
     val button_search_submit = button_search_submit
     val button_extended_search = button_extended_search
     val button_local_search = button_local_search
+    val label_file_comment = label_file_comment
     val notebook_results = notebook_results
     method hpaned = hpaned
     method left_child = left_child
@@ -846,6 +851,7 @@ class box_searches () =
     method button_search_submit = button_search_submit
     method button_extended_search = button_extended_search
     method button_local_search = button_local_search
+    method label_file_comment = label_file_comment
     method notebook_results = notebook_results
     method coerce = hpaned#coerce
   end;;

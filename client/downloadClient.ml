@@ -211,6 +211,7 @@ let client_to_client for_files c t sock =
           c.client_is_friend <- Friend
         with _ -> ()
       end;
+      c.client_changed <- ClientStateChange;      
       !client_change_hook c;      
       begin
         match c.client_is_friend with
@@ -243,7 +244,7 @@ print_newline ();
                     result_tags = [];
                     result_type = "";
                     result_format = "";
-                    result_filtered_out = 0;
+                    result_comment = None;
                   } in
                 List.iter (fun tag ->
                     match tag with
@@ -262,7 +263,7 @@ print_newline ();
                 ) tags;
                 DownloadIndexer.index_result_no_filter r
             ) t);
-          c.client_changed <- BigChange;
+          c.client_changed <- ClientFilesChange;
           !client_change_hook c
         
         with e ->
@@ -276,7 +277,9 @@ print_newline ();
       let module CR = M.Connect in
       
       let c =
-        if c.client_kind <> Indirect_location then c else
+        match c.client_kind with
+          Known_location _ -> c
+        | Indirect_location ->
         if Ip.valid t.CR.ip then
           let kind = Known_location (t.CR.ip, t.CR.port) in
           try
@@ -317,7 +320,9 @@ We should probably check that here ... *)
           raise End_of_file
         end;
       begin
-        if c.client_kind = Indirect_location then 
+        match c.client_kind with
+          Known_location _ -> ()
+        | Indirect_location ->
           try
             Hashtbl.find indirect_clients_by_md4 t.CR.md4;
             Printf.printf "We are already connected to this client... disconnect"; print_newline ();
@@ -352,7 +357,7 @@ We should probably check that here ... *)
         }
       );
       
-      c.client_state <- Connected_idle;
+      set_client_state c Connected_idle;
       
       identify_as_mldonkey c sock;
       query_files c sock for_files;
@@ -360,10 +365,12 @@ We should probably check that here ... *)
       begin
         try
           Hashtbl.find indirect_friends (c.client_name, c.client_md4);
-          c.client_is_friend <- Friend
+          c.client_is_friend <- Friend;
+          c.client_changed <- ClientFriendChange;
+          !client_change_hook c;      
+          
         with _ -> ()
       end;
-      !client_change_hook c;      
       begin
         match c.client_is_friend with
           Friend ->
@@ -455,15 +462,16 @@ We should probably check that here ... *)
             match c.client_kind with
               Known_location _ ->
                 if not (List.memq c file.file_known_locations) then begin
-                    file.file_changed <- BigChange;
-                    file.file_known_locations <- c :: file.file_known_locations
+                    file.file_known_locations <- c :: file.file_known_locations;
+                    file.file_new_locations <- true
                   end
             | _ ->
-                if not (List.memq c file.file_indirect_locations) then
-                  file.file_indirect_locations <- 
-                    c :: file.file_indirect_locations
+                if not (List.memq c file.file_indirect_locations) then begin
+                    file.file_new_locations <- true;
+                      file.file_indirect_locations <- 
+                      c :: file.file_indirect_locations
+                  end
           end;
-          
           
           let chunks =
             if t.Q.chunks = [||] then
@@ -596,7 +604,7 @@ We should probably check that here ... *)
                       Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
                       print_newline ();
                       file.file_state <- FilePaused;
-                      small_change_file file
+                      info_change_file file
                 end;
 (*
                 let mmap_pos = Int32.mul (
@@ -630,7 +638,7 @@ Mmap.munmap m;
         
         List.iter (update_zone file begin_pos end_pos) c.client_zones;
         find_client_zone c;
-        !client_change_hook c
+(*        !client_change_hook c *)
       
       end
 
@@ -675,14 +683,14 @@ Mmap.munmap m;
                     file.file_known_locations <- 
                       c :: file.file_known_locations;
                     send_locations := max_int;
-                    file.file_changed <- BigChange;
+                    file.file_new_locations <- true
                   end
             | Indirect_location -> 
                 if not (List.memq c file.file_indirect_locations) then begin
                     file.file_indirect_locations <- 
                       c :: file.file_indirect_locations;
                     send_locations := max_int;
-                    file.file_changed <- BigChange;
+                    file.file_new_locations <- true
                   end
           );
           if c.client_is_mldonkey = 2 then 
@@ -821,45 +829,44 @@ let init_connection c  sock files =
   set_reader sock (Mftp_comm.client_handler (client_to_client files c));
   c.client_block <- None;
   c.client_zones <- [];
-  c.client_files <- [];
-  !client_change_hook c
+  c.client_files <- []
       
 let reconnect_client cid files c =
   match c.client_kind with
-    Indirect_location  -> ()
+    Indirect_location -> ()
   | Known_location (ip, port) ->
-      
-      try
-        set_client_state c Connecting;
-        connection_try c.client_connection_control;
-
-        printf_string "?C";
-        let sock = TcpClientSocket.connect (
-            Ip.to_inet_addr ip) 
-          port 
-            (client_handler c) in
-        init_connection c sock files;
-        c.client_sock <- Some sock;
-        let s = DownloadServers.last_connected_server () in
-        
-        client_send sock (
-          let module M = Mftp_client in
-          let module C = M.Connect in
-          M.ConnectReq {
-            C.md4 = !!client_md4; (* we want a different id each conn *)
-            C.ip = cid;
-            C.port = !client_port;
-            C.tags = !client_tags;
-            C.version = 16;
-            C.ip_server = s.server_ip;
-            C.port_server = s.server_port;
-          }
-        )
-      
-      with _ -> 
-          connection_failed c.client_connection_control;
-          c.client_state <- NotConnected
+        try
+          set_client_state c Connecting;
+          connection_try c.client_connection_control;
           
+        printf_string "?C";
+        incr_connections ();
+          let sock = TcpClientSocket.connect (
+              Ip.to_inet_addr ip) 
+            port 
+              (client_handler c) in
+          init_connection c sock files;
+          c.client_sock <- Some sock;
+          let s = DownloadServers.last_connected_server () in
+          
+          client_send sock (
+            let module M = Mftp_client in
+            let module C = M.Connect in
+            M.ConnectReq {
+              C.md4 = !!client_md4; (* we want a different id each conn *)
+              C.ip = cid;
+              C.port = !client_port;
+              C.tags = !client_tags;
+              C.version = 16;
+              C.ip_server = s.server_ip;
+              C.port_server = s.server_port;
+            }
+          )
+        
+        with _ -> 
+            connection_failed c.client_connection_control;
+            set_client_state c NotConnected
+            
 let connect_client cid files c = 
   match c.client_sock with
     None -> 
@@ -936,17 +943,20 @@ let client_connection_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       
       let c = new_client Indirect_location in
-      c.client_state <- Connected_initiating;
+      set_client_state c Connected_initiating;
       let sock = TcpClientSocket.create s (client_handler c) in
       init_connection c sock [];      
       c.client_sock <- Some sock;
       
       let sc = TcpClientSocket.sock sock in
   
+      (*
       if closed sc then begin
           Printf.printf "SOCK CLOSED %s" (error sock);  
           print_newline ();
         end;      
+*)
+      ()
       
   | _ -> 
         ()      

@@ -81,7 +81,6 @@ type from_gui =
 | QueryFormat of Md4.t
 | ModifyMp3Tags of Md4.t * Mp3tag.tag
 | KillServer
-| SendMoreInfo of Md4.t list * int list
 | ForgetSearch of int
 | SetOption of string * string
 | Command of string
@@ -89,7 +88,18 @@ type from_gui =
 | SayFriends of string * int list
 | Preview of Md4.t
 | ConnectFriend of int
+  
+| GetServer_users of server_key
+| GetClient_files of int
+| GetFile_locations of Md4.t
+  
+| GetServer_info of server_key
+| GetClient_info of int
+| GetFile_info of Md4.t
+  
+| SendMoreInfo of Md4.t list * int list
 
+  
 and result_info = {
     mutable result_num : int;    
     mutable result_res : result;
@@ -100,17 +110,17 @@ and file_info = {
     mutable file_name : string list;
     mutable file_md4 : Md4.t;        
     mutable file_size : int32;
-    mutable file_downloaded : int32;
-    mutable file_nlocations : int;
+    mutable file_downloaded : int32; (* LOT OF CHANGES *)
+    mutable file_nlocations : int; (* MANY CHANGES *)
     mutable file_nclients: int;
     mutable file_state : file_state;
     mutable file_chunks : string;
-    mutable file_availability : string;
+    mutable file_availability : string; (* MANY CHANGES *)
     mutable file_more_info : more_file_info option;
-    mutable file_download_rate : float;
+    mutable file_download_rate : float; (* LOT OF CHANGES *)
     mutable file_format : format;
   }
-
+  
 and more_file_info = {
     mutable file_known_locations : client_info list; 
     mutable file_indirect_locations : client_info list;
@@ -136,29 +146,21 @@ and server_info = {
     mutable server_state : connection_state;
     mutable server_name : string;
     mutable server_description : string;
-    mutable server_more_info : more_server_info option;
+    mutable server_users : user_info list option;
   } 
-
-and more_server_info = {
-    mutable server_users : user_info list; 
-  }
 
 and client_info = {
     mutable client_kind : location_kind;
-    mutable client_md4 : Md4.t;
-    mutable client_chunks : string;
-    mutable client_files : (Md4.t * string) list;
+(*    mutable client_md4 : Md4.t;                   *)
+(*    mutable client_chunks : string;               *)
+(*    mutable client_files : (Md4.t * string) list; *)
     mutable client_state : connection_state;
     mutable client_is_friend : friend_kind;
     mutable client_tags: Mftp.tag list;
     mutable client_name : string;
-    mutable client_more_info : more_client_info option;
+    mutable client_files:  result list option;
     mutable client_num : int;
     mutable client_rating : int32;
-  }
-
-and more_client_info = {
-    mutable client_all_files : result list option;        
   }
 
 and local_info = {
@@ -168,16 +170,30 @@ and local_info = {
 
 type to_gui =
 | Connected of int
+| Options_info of (string * string) list (*  options *)
+| GuiConnected
+  
 | Search_result of result_info
 | Search_waiting of int * int
-| Download_file of file_info
+  
+| File_info of file_info
+| File_downloaded of int * int32 * float
+| File_availability of int * string * string
+| File_locations of int * client_info list * client_info list
+  
+| Server_busy of server_key * int * int
+| Server_users of server_key * user_info list
+| Server_state of server_key * connection_state
 | Server_info of server_info
-| Options_info of (string * string) list (*  options *)
+  
 | Client_info of client_info
-| GuiConnected
+| Client_state of int * connection_state
+| Client_friend of int * friend_kind
+| Client_files of int * result list option
+
 | LocalInfo of local_info
 | Console of string
 | Dialog of string * string
   
-  
+
   

@@ -157,4 +157,17 @@ let create port handler =
   let sock = BasicSocket.create fd (udp_handler t) in
   t.sock <- sock;
   t
+  
+let create_sendonly () =
+  let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
+  Unix.setsockopt fd Unix.SO_REUSEADDR true;
+  let t = {
+      rlist = [];
+      wlist = [];
+      sock = dummy_sock;
+      event_handler = (fun _ _ -> ());
+    } in
+  let sock = BasicSocket.create fd (udp_handler t) in
+  t.sock <- sock;
+  t
     

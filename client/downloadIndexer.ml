@@ -16,12 +16,150 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open DownloadGlobals
 open Mftp
 open Options
 open DownloadTypes
 open DownloadOptions
 open Gui_types
 
+(* Use this latter to add comments to result. Comments can be downloaded
+from WEB servers. *)
+
+let comments = Hashtbl.create 127
+
+let comment_filename = "comments.met"
+
+    
+let name_bit = 1
+(* "size" *)
+(* "bitrate" *)
+let artist_bit = 2 (* tag "Artiste" *)
+let title_bit = 4  (* tag "Title" *)
+let album_bit = 8 (* tag "Album" *)
+let media_bit = 16 (* "type" *)
+let format_bit = 32 (* "format" *)
+  
+let index = Indexer.create ()
+  
+let results = Hashtbl.create 1023
+  
+let history_file = "history.met"
+let history_file_oc = ref None
+
+let update_comment_result md4 comment =
+  try
+    let doc = Hashtbl.find results md4 in
+    let r = Indexer.value doc in
+    r.result_comment <- Some comment
+  with _ -> ()
+  
+let add_comment md4 comment =
+  try
+    let old_comment = Hashtbl.find comments md4 in
+    if comment <> old_comment then 
+      let comment = Printf.sprintf "%s\n%s"
+          old_comment comment in
+      Hashtbl.remove comments md4;
+      Hashtbl.add comments md4 comment;
+      update_comment_result md4 comment
+  with _ ->
+      Hashtbl.add comments md4 comment;
+      update_comment_result md4 comment
+      
+let load_comments filename = 
+  try
+    let ic = open_in filename in
+    try
+      while true do 
+        let s = read_request ic in
+        let md4 = get_md4 s 0 in
+        let comment,_ = get_string s 16 in
+        add_comment md4 comment
+      done
+    with 
+      End_of_file -> close_in ic
+    | e ->
+        close_in ic;
+        Printf.printf "Error loading %s: %s" filename (Printexc.to_string e);
+        print_newline () 
+  with e ->
+      Printf.printf "Error loading %s: %s" filename (Printexc.to_string e);
+      print_newline () 
+
+let save_comments () =
+  let oc = open_out comment_filename in
+  let buf = Buffer.create 256 in
+  Hashtbl.iter (fun md4 comment ->
+      Buffer.clear buf;
+      buf_md4 buf md4;
+      buf_string buf comment;
+      output_request oc (Buffer.contents buf);
+  ) comments;
+  close_out oc
+  
+let _ =
+  load_comments comment_filename
+  
+let comment_result r = 
+  match r.result_comment with
+    Some _ -> ()
+  | None ->
+      try
+        r.result_comment <- Some (Hashtbl.find comments r.result_md4)
+      with _ -> ()
+
+let buf_tag b tag =
+  buf_string b tag.tag_name;
+  match tag.tag_value with
+    String s -> buf_int8 b 0; buf_string b s
+  | Uint32 i -> buf_int8 b 1; buf_int32_32 b i
+  | Fint32 i -> buf_int8 b 2; buf_int32_32 b i
+  | Addr ip ->  buf_int8 b 3; buf_ip b ip
+  
+let output_value oc h =
+  let b = Buffer.create 100 in
+  buf_list buf_string b h.hresult_names;
+  buf_md4 b h.hresult_md4;
+  buf_int32_32 b h.hresult_size;
+  buf_list buf_tag b h.hresult_tags;
+  let s = Buffer.contents b in
+  output_request oc s
+
+let get_tag s pos =
+  let name, pos = get_string s pos in
+  let t = get_int8 s pos in
+  let tag, pos =
+    if t = 0 then
+      let s, pos = get_string s (pos+1) in
+      String s, pos
+    else 
+    if t = 1 then
+      Uint32 (get_int32_32 s (pos+1)), pos + 5
+    else
+    if t = 2 then
+      Fint32 (get_int32_32 s (pos+1)), pos + 5
+    else
+    let ip = get_ip s (pos+1) in
+    Addr ip, pos + 5
+  in
+  { tag_name = name; tag_value = tag }, pos
+  
+let input_value ic =
+  let s = read_request ic in
+  let (names, pos) = get_list get_string s 0 in
+  let md4 = get_md4 s pos in
+  let size = get_int32_32 s (pos + 16) in
+  let pos = pos + 16 + 4 in
+  let (tags, pos) = get_list get_tag s pos in
+  {
+    hresult_names = names;
+    hresult_md4 = md4;
+    hresult_size = size;
+    hresult_tags = tags;
+  }
+  
 let input_result ic = 
   let hresult = input_value ic in
   let file = {
@@ -31,8 +169,44 @@ let input_result ic =
       result_format = "";
       result_type = "";
       result_tags = hresult.hresult_tags;
-      result_filtered_out = 0;
+      result_comment = None;
     }  in
+  List.iter (fun tag ->
+      match tag with
+        { tag_name = "format"; tag_value = String s } ->
+          file.result_format <- s
+      | { tag_name = "type"; tag_value = String s } ->
+          file.result_type <- s
+      | _ -> ()
+  ) file.result_tags;
+  file
+  
+let input_old_result ic = 
+  printf_char '<';
+  let hresult = Pervasives.input_value ic in
+  printf_char '>';
+  
+  let o = Obj.repr hresult in
+  Printf.printf "Type int: %s" (string_of_bool (Obj.is_int o));
+  print_newline ();
+  if not (Obj.is_int o) then begin
+      Printf.printf "Size: %d" (Obj.size o);
+      print_newline ();
+      
+      
+    end;
+  
+  
+  let file = {
+      result_names = hresult.hresult_names;
+      result_md4 = hresult.hresult_md4;
+      result_size = hresult.hresult_size;
+      result_format = "";
+      result_type = "";
+      result_tags = hresult.hresult_tags;
+      result_comment = None;
+    }  in
+  printf_char '!';
   List.iter (fun tag ->
       match tag with
         { tag_name = "format"; tag_value = String s } ->
@@ -52,22 +226,6 @@ let output_result oc result =
       hresult_tags = result.result_tags;
     }
   
-let name_bit = 1
-(* "size" *)
-(* "bitrate" *)
-let artist_bit = 2 (* tag "Artiste" *)
-let title_bit = 4  (* tag "Title" *)
-let album_bit = 8 (* tag "Album" *)
-let media_bit = 16 (* "type" *)
-let format_bit = 32 (* "format" *)
-  
-let index = Indexer.create ()
-  
-let results = Hashtbl.create 1023
-  
-let history_file = "history.dat"
-let history_file_oc = ref None
-  
 let clear () =
   Indexer.clear index;
   Hashtbl.clear results;
@@ -76,6 +234,13 @@ let clear () =
   | Some oc -> 
       close_out oc;
       history_file_oc := Some (open_out history_file) (* truncate !! *)
+
+let close_history_oc () =
+  match !history_file_oc with
+    None -> ()
+  | Some oc -> 
+      close_out oc;
+      history_file_oc := None
 
 let history_file_oc () =
   match !history_file_oc with
@@ -87,7 +252,10 @@ let history_file_oc () =
       history_file_oc := Some oc;
       oc
   | Some oc -> oc
-
+      
+  
+  
+      
 let stem s =
   let s = String.lowercase (String.copy s) in
   for i = 0 to String.length s - 1 do
@@ -126,6 +294,7 @@ let index_result_no_filter r =
       let doc = Indexer.make_doc index r in
       Hashtbl.add results r.result_md4 doc;
       output_result (history_file_oc ()) r;
+      flush (history_file_oc ());
       List.iter (fun name ->
           index_name doc name
       ) r.result_names;      
@@ -147,11 +316,11 @@ let index_result_no_filter r =
       doc
 
 let index_result r =
-  if not !!use_file_history then r else
-  let doc = index_result_no_filter r in
-  if Indexer.filtered doc then raise Not_found;
-  Indexer.value doc
-      
+    if not !!use_file_history then r else
+    let doc = index_result_no_filter r in
+    if Indexer.filtered doc then raise Not_found;
+    Indexer.value doc
+  
 let find s = 
   if not !!use_file_history then () else
 (*  Indexer.print index; *)
@@ -161,85 +330,39 @@ let find s =
   let ss = s.search_query in
   
   List.iter (fun s -> 
-(*      Printf.printf "search for [%s]" s; print_newline (); *)
       List.iter (fun s ->
           req := (s, 0xffffffff) :: !req) (stem s) 
   )  ss.search_words;
-  
-  begin
-    match ss.search_minsize with
-      None -> ()
-    | Some size -> 
-        let old_pred = !pred in
-        pred := (fun doc ->
-            let r = Indexer.value doc in
-            r.result_size >= size && old_pred doc);
-  end;
-  
-  begin
-    match ss.search_maxsize with
-      None -> ()
-    | Some size -> 
-        let old_pred = !pred in
-        pred := (fun doc ->
-            let r = Indexer.value doc in
-            r.result_size <= size && old_pred doc);
-  end;
-  
-  begin
-    match ss.search_media with
-      None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, media_bit) :: !req
-        ) (stem s)
-  end;
-  
-  begin
-    match ss.search_media with
-      None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, media_bit) :: !req
-        ) (stem s)
-  end;
 
-  begin
-    match ss.search_format with
+  let with_option o f =
+    match o with 
       None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, format_bit) :: !req
-        ) (stem s)
-  end;
+    | Some v -> f v 
+  in
 
-  begin
-    match ss.search_title with
+  let with_option_bit o bit =
+    match o with 
       None -> ()
     | Some s -> 
         List.iter (fun s ->
-            req := (s, title_bit) :: !req
-        ) (stem s)
-  end;
-
-  begin
-    match ss.search_artist with
-      None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, artist_bit) :: !req
-        ) (stem s)
-  end;
-
-  begin
-    match ss.search_album with
-      None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, album_bit) :: !req
-        ) (stem s)
-  end;
+            req := (s, bit) :: !req) (stem s)
+  in
   
+  with_option ss.search_minsize (fun size -> 
+      let old_pred = !pred in
+      pred := (fun doc ->
+          let r = Indexer.value doc in
+          r.result_size >= size && old_pred doc));
+  with_option ss.search_maxsize (fun  size -> 
+      let old_pred = !pred in
+      pred := (fun doc ->
+          let r = Indexer.value doc in
+          r.result_size <= size && old_pred doc));
+  with_option_bit ss.search_media media_bit;
+  with_option_bit ss.search_format format_bit;
+  with_option_bit ss.search_title title_bit;
+  with_option_bit ss.search_artist artist_bit;
+  with_option_bit ss.search_album album_bit;  
   
   let req = !req in
   
@@ -247,11 +370,21 @@ let find s =
 (*  Printf.printf "%d results" (List.length docs); print_newline (); *)
   List.iter (fun doc ->
       let r = Indexer.value doc in
+      comment_result r;
       s.search_handler (Result r);
       Hashtbl.add s.search_files r.result_md4 (r, ref 0);
       s.search_nresults <- s.search_nresults + 1
   ) docs
 
+
+let load_old_history () =
+  let ic = open_in "history.dat" in
+  try
+    while true do
+      DownloadGlobals.printf_char '.';
+      ignore (index_result_no_filter (input_old_result ic))
+    done
+  with _ -> close_in ic
   
 let init () =
 (* load history *)
@@ -312,7 +445,7 @@ let _ =
   );
   DownloadGlobals.do_at_exit (fun _ ->
       if !!save_file_history then begin
-(*          Printf.printf "Saving history 1"; print_newline (); *)
+          Printf.printf "Saving history 1"; print_newline (); 
           close_out (history_file_oc ());
           
 (*          Printf.printf "Saving history 2"; print_newline (); *)
@@ -333,4 +466,32 @@ let _ =
         end
   )
   
-let index_result_no_filter r = Indexer.value (index_result_no_filter r)
+let index_result_no_filter r = 
+  let r = Indexer.value (index_result_no_filter r) in
+  comment_result r;
+  r
+  
+let index_result r = 
+  let r = index_result r in
+  comment_result r;
+  r
+  
+let find_names md4 =
+  try
+    let doc = Hashtbl.find results md4 in
+    let r = Indexer.value doc in
+    r.result_names
+  with _ -> []
+      
+      
+let add_comment md4 comment =
+  add_comment md4 comment;
+  save_comments ();
+  try
+    let doc = Hashtbl.find results md4 in
+    let r = Indexer.value doc in
+    match r.result_comment with
+      None -> ()
+    | Some old_comment -> 
+        r.result_comment <- Some (Printf.sprintf "%s\n%s" old_comment comment)
+  with _ -> ()

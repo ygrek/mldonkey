@@ -16,14 +16,14 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
 open Options
 open DownloadTypes
 open Gui_types
 open DownloadOptions
 
 let set_features () =
-  List.iter (Mftp_client.set_features DownloadGlobals.has_upload) 
-  (String2.tokens !!features)
+  ignore (String2.tokens !!features)
 
   
 let _ =
@@ -230,6 +230,12 @@ module FileOption = struct
       s
     
     let file_to_value file =
+      let locs = ref [] in
+      List.iter (fun c ->
+          if c.client_md4 <> Md4.null then 
+            locs := c :: !locs
+      ) file.file_known_locations;
+         
       Options.Module [
         "file_md4", string_to_value (Md4.to_string file.file_md4);
         "file_size", int32_to_value file.file_size;
@@ -241,7 +247,7 @@ module FileOption = struct
         "file_filenames", List
           (List.map (fun s -> string_to_value s) file.file_filenames);
         "file_locations", list_to_value ClientOption.client_to_value
-          file.file_known_locations;
+          !locs;
         "file_md4s", List
           (List.map (fun s -> string_to_value (Md4.to_string s)) 
           file.file_md4s);

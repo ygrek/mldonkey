@@ -16,6 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
 open Options
 open Mftp
 open Mftp_comm
@@ -134,7 +135,7 @@ let save_file md4 name =
                 with _ -> ()
           )
           ;
-          file.file_changed <- SmallChange;
+          file.file_changed <- FileInfoChange;
           !file_change_hook file;
         end 
       else
@@ -173,6 +174,12 @@ let print_search buf s output =
         | name :: names ->
             Printf.bprintf buf "%s\n" name;
             List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+      end;
+      begin
+        match r.result_comment with
+          None -> ()
+        | Some comment ->
+            Printf.bprintf buf "COMMENT: %s\n" comment;
       end;
       if output = HTML then 
         Printf.bprintf buf "\</A HREF\>";
@@ -264,6 +271,11 @@ let really_query_download filenames size md4 location old_file absents =
         let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
         file.file_absent_chunks <- absents;
   end;
+  
+  let other_names = DownloadIndexer.find_names md4 in
+  let filenames = List.fold_left (fun names name ->
+        if List.mem name names then names else name :: names
+    ) filenames other_names in 
   file.file_filenames <- filenames @ file.file_filenames;
   file.file_state <- FileDownloading;
   files =:= file :: !!files;
@@ -571,23 +583,19 @@ let send_search search query =
       match s.server_sock with
         None -> ()
       | Some sock ->
-          Printf.printf "POST SEARCH"; print_newline ();
           let module M = Mftp_server in
           let module Q = M.Query in
           server_send sock (M.QueryReq query);
           let nhits = ref 0 in
           let rec handler s _ t =
-            Printf.printf "IN HANDLER %d" (List.length t); print_newline ();
             let nres = List.length t in
             nhits := !nhits + nres;
             if !last_xs = search.search_num && nres = 201 &&
               !nhits < search.search_query.search_max_hits then
               begin
-                Printf.printf "AGAIN ?"; print_newline ();
                 match s.server_sock with
                   None -> ()
                 | Some sock ->
-                    Printf.printf "RE ASK"; print_newline ();
                     server_send sock M.QueryMoreResultsReq;
                     Fifo.put s.server_search_queries handler      
               end;
@@ -628,6 +636,18 @@ let commands = [
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
     
     ), " : view upload credits";
+
+    "comments", Arg_one (fun filename buf _ ->
+        DownloadIndexer.load_comments filename;
+        DownloadIndexer.save_comments ();
+        "comments loaded and saved"
+    ), " <filename> : load comments from file";
+    
+    "comment", Arg_two (fun md4 comment buf _ ->
+        let md4 = Md4.of_string md4 in
+        DownloadIndexer.add_comment md4 comment;
+        "Comment added"
+    ), " <md4> \"<comment>\" : add comment on an md4";
     
     "nu", Arg_one (fun num buf _ ->
         let num = int_of_string num in
@@ -652,6 +672,11 @@ let commands = [
             Printf.sprintf "error %s while loading config" (
               Printexc.to_string e)
     ), " <dirname> : import the config from dirname";
+
+    "load_old_history", Arg_none (fun buf _ ->
+        DownloadIndexer.load_old_history ();
+        "Old history loaded"
+    ), " : load history.dat file";
     
     "x", Arg_one (fun num buf _ ->
         try
@@ -673,6 +698,11 @@ let commands = [
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc.to_string e)
     ), " <filename> : add the servers from a server.met file";
+
+    "close_fds", Arg_none (fun buf _ ->
+        Unix32.close_all ();
+        "All files closed"
+    ), " : close all files (use to free space on disk after remove)";
     
     "commit", Arg_none (fun buf _ ->
         List.iter (fun file ->

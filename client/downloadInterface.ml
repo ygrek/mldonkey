@@ -16,6 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
 open Options
 open Mftp
 open Mftp_comm
@@ -32,6 +33,7 @@ open DownloadClient
 open Gui_types
   
 module P = Gui_proto
+  
   
 let gui_send gui t = value_send gui.gui_sock (t : Gui_proto.to_gui)
 
@@ -64,9 +66,9 @@ let file_info file =
     P.file_nlocations = 0;
     P.file_nclients = 0;
     P.file_state = file.file_state;
-    P.file_chunks = file.file_all_chunks;
     P.file_more_info = None;
     P.file_download_rate = file.file_last_rate;
+    P.file_chunks = file.file_all_chunks;
     P.file_availability = String2.init file.file_nchunks (fun i ->
         if file.file_available_chunks.(i) > 1 then '2' else
         if file.file_available_chunks.(i) > 0 then '1' else
@@ -77,23 +79,20 @@ let file_info file =
 and client_info c = 
   {
     P.client_kind = c.client_kind;
+(*
     P.client_md4 = c.client_md4;
     P.client_chunks = c.client_all_chunks;
     P.client_files = List.map (fun (file, availability) ->
         file.file_md4, String2.init file.file_nchunks (fun i ->
-            if availability.(i) then '1' else '0')) c.client_files;
+if availability.(i) then '1' else '0')) c.client_files;
+*)
     P.client_state = c.client_state;
     P.client_is_friend = c.client_is_friend;
     P.client_tags = c.client_tags;
     P.client_name = c.client_name;
-    P.client_more_info = None;
+    P.client_files = None;
     P.client_num = c.client_num;
     P.client_rating = c.client_rating;
-  }
-
-let more_client_info c = 
-  {
-    P.client_all_files = c.client_all_files; 
   }
   
 let more_file_info file = 
@@ -116,7 +115,7 @@ let server_info s =
     P.server_state = s.server_state;
     P.server_name = s.server_name;
     P.server_description = s.server_description;
-    P.server_more_info = None;
+    P.server_users = None;
   } 
 
 let user_info s u = {
@@ -127,52 +126,47 @@ let user_info s u = {
     P.user_server = { P.key_ip = s.server_ip; P.key_port = s.server_port };
     P.user_name = u.user_name;
   }
-  
-let more_server_info s = 
-  let si = {
-    P.server_users = [];
-    } in
-  List.iter (fun u ->
-      si.P.server_users <- (user_info s u) :: si.P.server_users) 
-  s.server_users;
-  si
-  
+    
+let server_users s = List.map (user_info s) s.server_users
   
 let send_file_info gui file =
   let module P = Gui_proto in  
 (*  Printf.printf "SEND INFO"; print_newline (); *)
-  gui_send gui (P.Download_file (file_info file))
+  gui_send gui (P.File_info (file_info file))
 
 let send_full_file_info gui file =
   let module P = Gui_proto in  
   let file_info = file_info file in
   file_info.P.file_more_info <- Some (more_file_info file);
 (*  Printf.printf "SEND INFO"; print_newline (); *)
-  gui_send gui (P.Download_file file_info)
+  gui_send gui (P.File_info file_info)
   
   
   
   
 let send_server_info gui s =
-  let module P = Gui_proto in  
   gui_send gui (P.Server_info (server_info s))
 
+  (*
 let send_full_server_info gui s =
   let module P = Gui_proto in  
   let server_info = server_info s in
   server_info.P.server_more_info <- Some (more_server_info s);
   gui_send gui (P.Server_info server_info)
+  *)
 
 let send_client_info gui c =
   let module P = Gui_proto in  
   gui_send gui (P.Client_info (client_info c))
 
+  (*
 let send_full_client_info gui c =
   let module P = Gui_proto in  
   let client_info = client_info c in
   client_info.P.client_more_info <- Some (more_client_info c);
   gui_send gui (P.Client_info client_info)
-  
+  *)
+
 let new_friend c =  
   match c.client_is_friend with
     Friend -> ()
@@ -184,6 +178,7 @@ let new_friend c =
             known_friends =:= c :: !!known_friends;
         |  _ -> ()
       end;
+      c.client_changed <- ClientFriendChange;
       !client_change_hook c;
       
       match c.client_sock, c.client_state with
@@ -224,7 +219,7 @@ let view_users_handler s sock t =
 
       s.server_users <- u :: s.server_users
   ) t;
-  s.server_changed <- BigChange;
+  s.server_changed <- ServerUsersChange;
   !server_change_hook s
 
 let add_user_friend s u = 
@@ -309,7 +304,8 @@ let gui_reader (gui: gui_record) t sock =
             DownloadInteractive.forget_search (List.assoc num gui.gui_searches)
           with _ -> ()
         end
-    
+
+
     | P.ExtendedSearch ->
         if !last_xs >= 0 then begin
             try
@@ -317,50 +313,54 @@ let gui_reader (gui: gui_record) t sock =
               make_xs ss;
             with _ -> ()
           end
-
+    
     | P.Password (v,s) ->
         if v <> Gui_types.version then begin
             Printf.printf "Bad GUI version"; print_newline ();
             TcpClientSocket.close sock "bad version";
           end;
         if s = !!password then begin
-            (try
-                List.iter (send_file_info gui) !!files;
-                List.iter (send_file_info gui) !!done_files;
-                List.iter (send_client_info gui) !!known_friends;
-                Hashtbl2.iter (fun _ s -> send_server_info gui s) servers_by_key;
-              with e ->
-                  Printf.printf "\n\nEXCEPTION %s IN CONNECTION" (
-                    Printexc.to_string e); print_newline ();
-            );
+            BasicSocket.must_write (TcpClientSocket.sock sock) true;
+            let connecting = ref true in
+            
             gui_send gui (
               P.Options_info (simple_options downloads_ini));
-(*
-              {
-                P.connection_port = !!port;
-                P.control_port = !!rmt_port;
-                P.gui_port = !!gui_port;
-                
-                P.save_options_delay = !!save_options_delay;
-                P.check_client_connections_delay = !!check_client_connections_delay;
-                P.check_server_connections_delay = !!check_connections_delay;
-                P.small_retry_delay = !!small_retry_delay;
-                P.medium_retry_delay = !!medium_retry_delay;
-                P.long_retry_delay = !!long_retry_delay;
-                
-                P.name = !!client_name;
-                
-                P.features = String2.unsplit !!features ' ';
-                P.max_connected_servers = !!max_connected_servers;
-                P.upload_limit = !!max_upload_rate;
-                
-                P.server_timeout = !!server_connection_rtimeout;
-                P.client_timeout = !!cconn_rtimeout;
-                P.max_server_age = !!max_server_age;
-                P.password = !!password;
-});
-  *)
-            gui_send gui (P.GuiConnected);
+            
+            set_handler sock WRITE_DONE (fun _ ->
+                if !connecting then
+                  try
+                    while TcpClientSocket.can_write sock do
+                      match gui.gui_files with
+                        file :: files ->
+                          gui.gui_files <- files;
+                          send_file_info gui file
+                      | [] -> 
+                          match gui.gui_friends with
+                            c :: friends ->
+                              gui.gui_friends <- friends;
+                              send_client_info gui c;
+                              begin
+                                match c.client_all_files with
+                                  None -> ()
+                                | Some files ->
+                                    gui_send gui (P.Client_files (
+                                        c.client_num, c.client_all_files))
+                              end
+                          | [] ->
+                              match gui.gui_servers with
+                                s :: servers ->
+                                  gui.gui_servers <- servers;
+                                  send_server_info gui s
+                              | [] -> raise Not_found
+                    done;
+                  with _ -> 
+                      List.iter (fun (name,s) ->
+                          gui_send gui (P.Dialog (name, s))
+                      ) (List.rev !dialog_history);
+                      
+                      gui_send gui (P.GuiConnected);
+                      connecting := false
+            );
           
           end else
           TcpClientSocket.close gui.gui_sock "bad password"
@@ -487,6 +487,44 @@ let gui_reader (gui: gui_record) t sock =
         let c = find_client num in
         new_friend c
         
+    | P.GetClient_files num ->
+        let c = find_client num in
+        gui_send gui (P.Client_files (num, c.client_all_files))
+        
+    | P.GetClient_info num ->
+        let c = find_client num in
+        gui_send gui (P.Client_info (client_info c))
+        
+    | P.GetServer_users key ->
+        let s = server_of_key key in
+        gui_send gui (P.Server_users (key, server_users s))
+
+    | P.GetServer_info key ->
+        let  s = server_of_key key in
+        gui_send gui (P.Server_info (server_info s))
+          
+    
+    | P.GetFile_locations md4 ->
+        begin
+          try
+            let file = find_file md4 in
+            
+            let m = P.File_locations (file.file_num,
+                List.map client_info file.file_indirect_locations,
+                List.map client_info file.file_known_locations) in
+            gui_send gui m
+
+          with _ -> ()
+        end
+        
+    | P.GetFile_info md4 ->
+        begin
+          try
+            gui_send gui (P.File_info (file_info (find_file md4)))
+          with _ -> ()
+        end
+
+        
     | P.ConnectFriend num ->
         let c = find_client num in
         connection_must_try c.client_connection_control;
@@ -524,7 +562,7 @@ let gui_reader (gui: gui_record) t sock =
             let file = find_file md4 in
             let format = DownloadMultimedia.get_info file.file_hardname in
             file.file_format <- format;
-            small_change_file file
+            info_change_file file
           with _ -> ()
         end
     
@@ -552,7 +590,7 @@ let gui_reader (gui: gui_record) t sock =
           | _ -> 
               file.file_state <- FilePaused;
         end;
-        file.file_changed <- SmallChange;
+        file.file_changed <- FileInfoChange;
         !file_change_hook file
     
     | P.ViewUsers key -> 
@@ -580,7 +618,7 @@ let gui_reader (gui: gui_record) t sock =
         begin
           let c = find_client num  in
           c.client_is_friend <- FriendRemoved;
-          c.client_changed <- SmallChange;
+          c.client_changed <- ClientFriendChange;
           !client_change_hook c;
           c.client_is_friend <- NotAFriend;
           known_friends =:= List2.removeq c !!known_friends;
@@ -634,7 +672,7 @@ let gui_reader (gui: gui_record) t sock =
         List.iter (fun num ->
             let c = find_client num in
             if c.client_all_files != None then
-              send_full_client_info gui c) num_list;        
+              send_client_info gui c) num_list;        
         List.iter (fun (name,s) ->
             gui_send gui (P.Dialog (name, s))
         ) (List.rev !dialog_history);
@@ -661,7 +699,11 @@ let gui_handler t event =
             gui_searches = [];
             gui_sock = sock;
             gui_search_nums = [];
-            gui_server_users = [];
+                        
+            gui_files = !!files @ !!done_files;
+            gui_friends = !!known_friends;
+            gui_servers = !!known_servers;
+
           } in
         TcpClientSocket.set_max_write_buffer sock !!interface_buffer;
         TcpClientSocket.set_reader sock (Mftp.value_handler 
@@ -675,25 +717,35 @@ let gui_handler t event =
         Unix.close s
   | _ -> ()
       
-  
+let key s = { P.key_ip = s.server_ip; P.key_port = s.server_port }
+      
 let gui_server_change_hook s gui = 
   match s.server_changed with
-    BigChange -> send_full_server_info gui s
-  |  _ -> send_server_info gui s
-  
+    NoServerChange -> ()
+  | ServerStateChange ->
+      gui_send gui (P.Server_state (key s, s.server_state))
+  | ServerInfoChange -> send_server_info gui s
+  | ServerUsersChange ->
+      gui_send gui (P.Server_users (key s, server_users s ))
+  | ServerBusyChange ->
+      gui_send gui (P.Server_busy (key s, s.server_nusers, s.server_nfiles))
+        
 let gui_client_change_hook c gui = 
   match c.client_changed with
-    BigChange -> 
-      send_full_client_info gui c
-  |  _ -> send_client_info gui c
+     NoClientChange ->  ()
+  | ClientStateChange -> 
+      gui_send gui (P.Client_state (c.client_num, c.client_state))
+  | ClientFilesChange ->
+      gui_send gui (P.Client_files (c.client_num, c.client_all_files))
+  | ClientFriendChange ->
+      gui_send gui (P.Client_friend (c.client_num, c.client_is_friend))
+  | ClientInfoChange -> send_client_info gui c
   
 let gui_friend_change_hook friend gui = 
   ()
   
 let gui_file_change_hook file gui = 
-  match file.file_changed with
-    BigChange -> send_full_file_info gui file
-  | _ -> send_file_info gui file
+  send_file_info gui file
 
 let gui_say_hook gui name s =
   gui_send gui (P.Dialog (name, s))
@@ -704,29 +756,48 @@ let update_gui_info timer =
       let time = last_time () -. file.file_last_time in
       let diff =  Int32.sub file.file_downloaded file.file_last_downloaded in
       file.file_last_time <- last_time ();
-      file.file_last_downloaded <- file.file_downloaded;
       let rate = if time > 0.0 && diff > Int32.zero then begin
-          (Int32.to_float diff) /. time;
+            (Int32.to_float diff) /. time;
           end else 0.0
       in
-      if rate <> file.file_last_rate then begin
+      if rate <> file.file_last_rate || 
+        file.file_downloaded <> file.file_last_downloaded then begin
           file.file_last_rate <- rate;
-          if file.file_changed = NoChange then
-            file.file_changed <- SmallChange;
+          file.file_last_downloaded <- file.file_downloaded;
+          let m = P.File_downloaded (file.file_num, file.file_downloaded,
+              rate) in
+          List.iter (fun gui ->
+              gui_send gui m) !guis;
         end;
-
+      
       begin
         match file.file_changed with
-          NoChange -> ()
-        | SmallChange ->
-            List.iter (fun gui ->
-                send_file_info gui file) !guis;
-
-        | BigChange ->
-            List.iter (fun gui ->
-                send_full_file_info gui file) !guis;
+          NoFileChange -> ()
+        | FileAvailabilityChange ->
+            let m = P.File_availability (file.file_num,
+                file.file_all_chunks,
+                String2.init file.file_nchunks (fun i ->
+                    if file.file_available_chunks.(i) > 1 then '2' else
+                    if file.file_available_chunks.(i) > 0 then '1' else
+                      '0'))
+            in
+          List.iter (fun gui ->
+              gui_send gui m) !guis;
+            
+        | FileInfoChange ->
+            List.iter (fun gui -> send_file_info gui file) !guis;
       end;
-      file.file_changed <- NoChange
+      file.file_changed <- NoFileChange;
+      
+      if file.file_new_locations then begin
+          file.file_new_locations <- false;
+          
+          let m = P.File_locations (file.file_num,
+              List.map client_info file.file_indirect_locations,
+              List.map client_info file.file_known_locations) in
+          List.iter (fun gui -> gui_send gui m) !guis;
+          
+        end
   ) !!files;
   let msg = P.LocalInfo {
       P.upload_counter = !upload_counter;
@@ -770,12 +841,10 @@ let install_hooks () =
         | Some c -> 
             new_friend c;
             c.client_name in
-      
-      
+
       let list, _ = List2.cut
           !!max_dialog_history ((name, s) :: !dialog_history) in
       dialog_history :=  list;      
-      
       
       List.iter (fun gui ->
           gui_say_hook gui name s

@@ -126,7 +126,7 @@ let server_handler s sock event =
       s.server_state <- NotConnected;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
-      s.server_changed <- BigChange;
+      s.server_changed <- ServerStateChange;
       (try !server_change_hook s with e -> 
             Printf.printf "Exception %s in server_change_hook"
               (Printexc.to_string e); 
@@ -189,7 +189,7 @@ let client_to_server s t sock =
   | M.InfoReq (users, files) ->
       s.server_nusers <- users;
       s.server_nfiles <- files;
-      s.server_changed <- SmallChange;
+      s.server_changed <- ServerBusyChange;
       !server_change_hook s
   | _ -> 
       !received_from_server_hook s sock t
@@ -201,6 +201,7 @@ let connect_server s =
     s.server_cid <- !client_ip;
     incr nservers;
     printf_char 's'; 
+    incr_connections ();
     let sock = TcpClientSocket.connect (
         Ip.to_inet_addr s.server_ip) s.server_port 
         (server_handler s) in
@@ -239,34 +240,35 @@ let connect_server s =
       !server_change_hook s
       
 let rec connect_one_server () =
-  match !servers_list with
-    [] ->
-      
-      servers_list := !!known_servers;
-      (*
+  if allow_new_connection () then
+    match !servers_list with
+      [] ->
+        
+        servers_list := !!known_servers;
+(*
       Hashtbl2.fold (fun key s l ->
           s :: l
 ) servers_by_key [];
   *)
-      if !servers_list = [] then raise Not_found;
-      connect_one_server ()
-  | s :: list ->
-      servers_list := list;
-      if connection_can_try s.server_connection_control then
-        begin
+        if !servers_list = [] then raise Not_found;
+        connect_one_server ()
+    | s :: list ->
+        servers_list := list;
+        if connection_can_try s.server_connection_control then
+          begin
 (* connect to server *)
-          match s.server_sock with
-            Some _ -> ()
-          | None -> 
-              if s.server_score < 0 then begin
+            match s.server_sock with
+              Some _ -> ()
+            | None -> 
+                if s.server_score < 0 then begin
 (*                  Printf.printf "TOO BAD SCORE"; print_newline ();*)
-                  connect_one_server ()
-                end
-              else
-                connect_server s
-
-        end
-      
+                    connect_one_server ()
+                  end
+                else
+                  connect_server s
+          
+          end
+          
 
 let force_check_server_connections user =
   if user || !nservers <     max_allowed_connected_servers ()  then begin

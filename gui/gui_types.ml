@@ -18,7 +18,7 @@
 *)
 open Mftp
 
-let version = 16
+let version = 18
   
 module Mp3tag = Mp3tag.Id3v1
   
@@ -43,8 +43,8 @@ and result = {
     mutable result_size : int32;
     mutable result_format : string;
     mutable result_type : string;
-    mutable result_filtered_out : int;
     mutable result_tags : Mftp.tag list;
+    mutable result_comment : string option;
   }
 
 and history_result = {
@@ -74,7 +74,7 @@ type connection_state =
 and location_kind = 
   Known_location of Ip.t * int
 | Indirect_location
-
+  
 and friend_kind =
   NotAFriend
 | Friend

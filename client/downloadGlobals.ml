@@ -37,9 +37,10 @@ let printf_string c =
   
 let new_server_hook = ref (fun s -> ())      
 let server_change_hook = ref (fun (s: server) -> 
-      ())
+      s.server_changed <- NoServerChange)
+
 let client_change_hook = ref (fun (c: client) -> 
-      c.client_changed <- NoChange)
+      c.client_changed <- NoClientChange)
 
 let say_hook = ref (fun (c:client option) (s:string) -> ())
 
@@ -212,13 +213,14 @@ let new_file file_name md4 file_size writable =
           file_num = !file_counter;
           file_state = FileDownloading;
           file_available_chunks = Array.create nchunks 0;
-          file_changed = BigChange;
+          file_changed = FileInfoChange;
           file_last_time = last_time ();
           file_last_downloaded = Int32.zero;
           file_last_rate = 0.0;
           file_format = Unknown_format;
           file_upload_blocks = 0;
           file_upload_requests = 0;
+          file_new_locations = true;
         }
       in
       Hashtbl.add files_by_md4 md4 file;
@@ -230,20 +232,20 @@ let change_hardname file file_name =
   file.file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
   Unix32.close fd
   
-let big_change_file file =
-  file.file_changed <- BigChange
+let info_change_file file =
+  file.file_changed <- FileInfoChange
           
-let small_change_file file = 
+let avail_change_file file = 
   match file.file_changed with
-    BigChange -> ()
-  | _ -> file.file_changed <- SmallChange
+    FileInfoChange -> ()
+  | _ -> file.file_changed <- FileAvailabilityChange
           
 let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then 
       let new_n = file.file_available_chunks.(i) + 1 in
       file.file_available_chunks.(i) <- new_n;
-      if new_n = 1 then small_change_file file
+      if new_n = 1 then avail_change_file file
   done
       
 let remove_client_chunks file client_chunks = 
@@ -251,7 +253,7 @@ let remove_client_chunks file client_chunks =
     if client_chunks.(i) then
       let new_n = file.file_available_chunks.(i) - 1 in
       file.file_available_chunks.(i) <- new_n;
-      if new_n = 0 then small_change_file file;
+      if new_n = 0 then avail_change_file file;
       client_chunks.(i) <- false
   done
 
@@ -277,7 +279,7 @@ let new_server ip port score =
           server_nfiles = 0;
           server_nusers = 0;
           server_state = NotConnected;
-          server_changed = BigChange;
+          server_changed = ServerInfoChange;
           server_name = "";
           server_description = "";
           server_users = [];
@@ -333,7 +335,7 @@ let new_client key =
             client_all_files = None;
             client_next_view_files = last_time () -. 1.;
             client_all_chunks = "";
-            client_changed = SmallChange;
+            client_changed = ClientInfoChange;
             client_rating = Int32.zero;
             client_is_mldonkey = 0;
             client_alias = None;
@@ -363,7 +365,7 @@ let new_client key =
                 client_all_files = None;
                 client_next_view_files = last_time () -. 1.;
                 client_all_chunks = "";
-                client_changed = SmallChange;
+                client_changed = ClientInfoChange;
                 client_rating = Int32.zero;
                 client_is_mldonkey = 0;
                 client_alias = None;
@@ -402,3 +404,18 @@ let exit_properly _ =
   ) !exit_handlers;
 (*  Printf.printf "exit_properly DONE"; print_newline (); *)
   Pervasives.exit 0
+  
+let current_connections = ref 0
+  
+let allow_new_connection () =
+  !current_connections < !!max_connections_per_minute 
+  
+let incr_connections () =
+  incr current_connections
+    
+let max_connections_per_minute_timer timer =
+  reactivate_timer timer;
+  current_connections := 0
+  
+let _ =
+  add_timer 60. max_connections_per_minute_timer

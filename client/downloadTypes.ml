@@ -44,7 +44,7 @@ type server = {
     mutable server_nusers : int;
     mutable server_nfiles : int;
     mutable server_state : connection_state;
-    mutable server_changed : change_kind;
+    mutable server_changed : server_change_kind;
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users: user list;
@@ -85,11 +85,25 @@ and search = {
   
 and client_query = client -> Mftp_client.t -> unit
 
-and change_kind = 
-  NoChange
-| SmallChange
-| BigChange
+and file_change_kind = 
+  NoFileChange
+| FileAvailabilityChange
+| FileInfoChange
 
+and client_change_kind = 
+  NoClientChange
+| ClientStateChange
+| ClientFriendChange
+| ClientInfoChange
+| ClientFilesChange
+
+and server_change_kind = 
+  NoServerChange
+| ServerStateChange
+| ServerUsersChange
+| ServerInfoChange
+| ServerBusyChange
+  
 and availability = bool array
   
 and client = {
@@ -110,7 +124,7 @@ and client = {
     mutable client_tags: Mftp.tag list;
     mutable client_name : string;
     mutable client_all_chunks : string;
-    mutable client_changed : change_kind;
+    mutable client_changed : client_change_kind;
     mutable client_rating : int32;
     mutable client_upload : upload_info option;
     mutable client_is_mldonkey : int;
@@ -175,7 +189,8 @@ and file = {
     mutable file_last_time : float;
     mutable file_last_rate : float;
 (* the time the file state was last computed and sent to guis *)
-    mutable file_changed : change_kind; 
+    mutable file_changed : file_change_kind; 
+    mutable file_new_locations : bool;
     mutable file_shared : bool;
     
     mutable file_upload_requests : int;
@@ -210,8 +225,10 @@ and file_group = {
 type gui_record = {
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * int) list;
-    mutable gui_server_users : server list;
     mutable gui_sock : TcpClientSocket.t;
+    mutable gui_files : file list;
+    mutable gui_friends : client list;
+    mutable gui_servers : server list; 
   }
 
 type old_result = result

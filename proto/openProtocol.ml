@@ -1,4 +1,4 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(* Copyright 2002 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -17,14 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type t
+(* An open protocol that can be used between mldonkey clients *)
 
-val create : string -> Unix.open_flag list -> int -> t
-val close : t -> unit
-val force_fd : t -> Unix.file_descr
-  
-val seek32 : t -> int32 -> Unix.seek_command -> int32
-external getsize32 : string -> int32 = "ml_getsize32"
-val ftruncate32 : t -> int32 -> unit
+let udp_magic = 212
 
-val close_all : unit -> unit
+type udp_messages = 
+  ()

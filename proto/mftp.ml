@@ -54,12 +54,6 @@ let rec print_tags tags =
               (String.escaped s)
       end;
       print_tags tags
-
-      
-      
-
-
-      
       
 let const_int32_255 = Int32.of_int 255
 let output_int32_8 oc i =
@@ -71,6 +65,15 @@ let output_int32_32 oc i =
   output_int32_8 oc (right32 i  8);
   output_int32_8 oc (right32 i  16);
   output_int32_8 oc (right32 i  24)
+
+let output_int8 oc i =
+  output_char oc (char_of_int (i land 255))
+  
+let output_int oc i =
+  output_int8 oc i;
+  output_int8 oc (i lsr 8);
+  output_int8 oc (i lsr 16);
+  output_int8 oc (i lsr 24)
       
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
@@ -112,6 +115,15 @@ let buf_port buf port =
 
 let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
         
+
+let buf_peer buf (ip,port) =
+  buf_ip buf ip;
+  buf_port buf port
+  
+let buf_list buf_item b list =
+  let len = List.length list in
+  buf_int b len;
+  List.iter (buf_item b) list
   
 let rec buf_tags buf tags names_of_tag =
   match tags with
@@ -158,7 +170,21 @@ let read_request ic =
   let len = Int32.to_int len32 in
   let s = String.create len in
   really_input ic s 0 len;
+  (*
+  Printf.printf "read_request %d [%s]" len (String.escaped s); 
+print_newline ();
+  *)
   s
+
+let output_request oc s =
+  output_char oc (char_of_int 227);
+  let len = String.length s in
+  (*
+  Printf.printf "output_request %d [%s]" len (String.escaped s); 
+print_newline ();
+  *)
+  output_int oc len;
+  output_string oc s
 
   
 let get_md4 s pos =
@@ -252,6 +278,20 @@ let rec get_tags s pos ntags names_of_tag =
   (tag :: tags), pos
 
 
+let rec get_list_rec get_item s pos len left =
+  if len = 0 then List.rev left, pos else
+  let (item,pos) = get_item s pos in
+  get_list_rec get_item s pos (len-1) (item :: left)
+  
+let get_list get_item s pos =
+  let len = get_int s pos in
+  get_list_rec get_item s (pos+4) len []
+
+let get_peer s pos =
+  let ip = get_ip s pos in
+  let port = get_port s (pos+4) in
+  (ip,port), pos+6
+  
 let dump s =
   let len = String.length s in
   Printf.printf "ascii: [";

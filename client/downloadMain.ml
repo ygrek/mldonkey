@@ -56,7 +56,10 @@ let rec safe_mkdir dir =
 let hourly_timer timer =
   reactivate_timer timer;
   DownloadServers.remove_old_servers_timer ();
-  DownloadInteractive.check_shared_files ()
+  DownloadInteractive.check_shared_files ();
+  Mftp_comm.propagate_working_servers 
+    (List.map (fun s -> s.server_ip, s.server_port) !connected_server_list)
+  
   
 let _ = 
   try

@@ -147,7 +147,7 @@ let search_found search md4 tags =
           result_format = "";
           result_type = "";
           result_tags = List.rev !new_tags;
-          result_filtered_out = 0;
+          result_comment = None;
         } in
       List.iter (fun tag ->
           match tag with
@@ -216,13 +216,12 @@ let make_xs ss =
   
   
 let force_check_locations () =
-
-  
   try
     List.iter (fun file -> 
         if file.file_state = FileDownloading then begin      
             List.iter (fun c ->
-                try connect_client !client_ip [file] c with _ -> ()) 
+                if allow_new_connection () then      
+                  try connect_client !client_ip [file] c with _ -> ()) 
             file.file_known_locations;
             List.iter (fun s ->
                 match s.server_sock with
@@ -265,9 +264,11 @@ let force_check_locations () =
     List.iter (fun c -> 
         try connect_client !client_ip [] c with _ -> ()) !interesting_clients;
     interesting_clients := [];
-    
+
+    Printf.printf "try connecting friends"; print_newline ();
     List.iter (fun c ->
-        try connect_client !client_ip [] c with _ -> ()
+        if allow_new_connection () then
+          try connect_client !client_ip [] c with _ -> ()
     ) !!known_friends;
     
   with e ->
@@ -412,6 +413,7 @@ print_newline ();
     incr upload_counter;
     file.file_upload_blocks <- file.file_upload_blocks + 1;
 (*  Printf.printf "sending"; print_newline (); *)
+    printf_char 'U';
     client_send sock (
       let module M = Mftp_client in
       let module B = M.Bloc in

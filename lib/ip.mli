@@ -33,3 +33,5 @@ val valid : t -> bool
 val resolve_one : t -> string
 val matches : t -> t list -> bool
   
+val localhost : t
+val to_sockaddr : t -> int -> Unix.sockaddr

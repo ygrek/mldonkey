@@ -71,3 +71,5 @@ val max_name_len : int Options.option_record
 val shared_directories : string list Options.option_record
 val verbose : bool Options.option_record
   
+  
+val max_connections_per_minute : int Options.option_record
