@@ -748,7 +748,14 @@ class ['a] list_param_box (param : 'a list_param) =
    and adds the page to the given notebook. *)
 class configuration_box conf_struct (notebook : GPack.notebook) =
   (* we build different widgets, according to the conf_struct parameter *)
-  let main_box = GPack.vbox () in
+  let scroll_box = GPack.vbox () in
+  let scroll =
+    GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
+      ~placement:`TOP_LEFT
+      ~packing:scroll_box#add ()
+  in
+  let main_box = GPack.vbox ~packing:scroll#add_with_viewport ()
+  in
   let (label, child_boxes) = 
     match conf_struct with
       Section (label, param_list) ->
@@ -820,12 +827,12 @@ class configuration_box conf_struct (notebook : GPack.notebook) =
   let page_label = GMisc.label ~text: label () in
   let _ = notebook#append_page 
       ~tab_label: page_label#coerce
-      main_box#coerce
+      scroll_box#coerce
   in
 
   object (self)
     (** This method returns the main box ready to be packed. *)
-    method box = main_box#coerce
+    method box = scroll_box#coerce
     (** This method make the new values of the paramters applied, recursively in
        all boxes.*)
     method apply =

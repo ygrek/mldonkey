@@ -86,6 +86,9 @@ type from_gui =
   
 | SetFilePriority of int * int
 
+| RenameFile of int * string
+
+
 (* This message must be sent only to increase or decrease the protocol version
 on some messages in the range accepted by the core, ie between 0 and the 
 version sent in the CoreProtocol message. For other messages, the core uses
@@ -227,6 +230,8 @@ let from_gui_to_string t =
   | AddServer_query _ -> "AddServer_query"
       
   | MessageVersions _ -> "MessageVersions"
+
+	| RenameFile _ -> "RenameFile"
 
   | GiftAttach _ -> "GiftAttach"
   | GiftStats -> "GiftStats"

@@ -42,7 +42,7 @@ open GuiProto
 module M = Gui_messages
 
 
-let mldonkey_cache = Filename.concat Sysenv.home ".mldonkey_cache" 
+let mldonkey_cache = Filename.concat "." "mldonkey_cache" 
   
 let file_from_url url = 
   try

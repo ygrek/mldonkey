@@ -73,6 +73,8 @@ let shorten maxlen s =
   let len = String.length s in
   if len > maxlen then
     (String.sub s 0 (maxlen-3)) ^ "..."
+  else if s = "" then
+      "http://go.to/mldonkey"
   else s
 
 let state_pix state =

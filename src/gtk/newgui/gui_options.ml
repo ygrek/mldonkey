@@ -32,7 +32,7 @@ module M = Gui_messages
 module C = Gui_columns
 
 let mldonkey_gui_ini = create_options_file 
-    (Filename.concat CommonOptions.home_basedir ".mldonkey_gui.ini")
+    (Filename.concat "." "mldonkey_gui.ini")
   
 module KeyOption = struct
     
@@ -811,9 +811,6 @@ let client_name = ref ""
 let client_options_assocs = [
     "client_name",   client_name;    
   ]
-
-let uncompress s = Autoconf.zlib__uncompress_string2 s
-let compress s = Autoconf.zlib__compress_string s
 
 let rec iter i s l =
   try

@@ -184,14 +184,7 @@ let percent file =
   else (downloaded *. 100.) /. size
 
 let short_name file =
-  let name = file.file_name in
-  let len = String.length name in
-  let max_name_len = maxi !!max_name_len 10 in
-  if len > max_name_len then
-    let prefix = String.sub name 0 (max_name_len -7) in
-    let suffix = String.sub name (len-4) 4 in
-    Printf.sprintf "%s...%s" prefix suffix
-  else name
+  shorten file.file_name !!max_name_len
 
 type table_align = 
   Align_Left

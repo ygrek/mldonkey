@@ -8290,6 +8290,44 @@ fi
 
 # Check for GTK only if we want to build the GUI
 if test "$BUILD_GUI" = "yes"; then
+  if test "$OS_FILES" = "mingw"; then
+    # Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_GTK_CONFIG+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$GTK_CONFIG"; then
+  ac_cv_prog_GTK_CONFIG="$GTK_CONFIG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_GTK_CONFIG="pkg-config"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_prog_GTK_CONFIG" && ac_cv_prog_GTK_CONFIG="no"
+fi
+fi
+GTK_CONFIG=$ac_cv_prog_GTK_CONFIG
+if test -n "$GTK_CONFIG"; then
+  echo "$as_me:$LINENO: result: $GTK_CONFIG" >&5
+echo "${ECHO_T}$GTK_CONFIG" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  else
   # Extract the first word of "gtk-config", so it can be a program name with args.
 set dummy gtk-config; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -8326,6 +8364,7 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
+  fi
 else
   GTK_CONFIG=no
 fi
@@ -8876,16 +8915,28 @@ echo "${ECHO_T}no" >&6
         RELEASENAME="$RELEASENAME-nogui"
   else
         MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
+	if test "$OS_FILES" = "mingw"; then
+		GTK_LIBS=`$GTK_CONFIG --libs gtk+-1.3-win32-production`
+		GTK_CFLAGS=`$GTK_CONFIG --cflags gtk+-1.3-win32-production`
+		GTK_VERSION=`$GTK_CONFIG --modversion gtk+-1.3-win32-production`
+		COMPILE_GUI=yes
+		echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+	else
         GTK_LIBS=`$GTK_CONFIG --libs`
         GTK_CFLAGS=`$GTK_CONFIG --cflags`
         GTK_VERSION=`$GTK_CONFIG --version`
         COMPILE_GUI=yes
         echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
-
+	fi
         echo "$as_me:$LINENO: checking GToolbox.popup_menu args" >&5
 echo $ECHO_N "checking GToolbox.popup_menu args... $ECHO_C" >&6
+        if test "$OS_FILES" = "mingw"; then
+	   GTOOLBOX="`$OCAMLC -where`\lablgtk\gToolbox.mli"
+	else
         GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
+	fi
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
           GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
@@ -8997,7 +9048,7 @@ case "$OCAMLVERSION" in
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac
 
-if test "$MINGW32" = yes; then
+if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
 
@@ -10156,6 +10207,12 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 
 
 cd ..
+
+if test "$OS_FILES" = "mingw"; then
+   echo "compiling win32 resource file"
+   windres -o resfile.o config/mldonkey.rc.in
+fi
+
 echo "Building dependencies"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
 

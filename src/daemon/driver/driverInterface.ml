@@ -744,6 +744,11 @@ search.op_search_end_reply_handlers;
           
           | P.GetFile_info num ->
               addevent gui.gui_events.gui_files num true
+
+					| P.RenameFile (num, new_name) ->
+							let file = file_find num in
+		          set_file_best_name file new_name;
+							addevent gui.gui_events.gui_files num true
           
           | P.ConnectFriend num ->
               let c = client_find num in

@@ -820,11 +820,14 @@ protocol version. Do not send them ? *)
            buf_bool buf from_guip;
            buf_int buf proto
        ) list
+
+	| RenameFile (num, new_name) ->
+				buf_int16 buf 56; buf_int buf num; buf_string buf new_name
   
    | GiftAttach _ -> assert false
    | GiftStats -> assert false
        
-let best_gui_version = 19
+let best_gui_version = 20
   
 (********** Some assertions *********)
   

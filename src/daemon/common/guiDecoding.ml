@@ -880,6 +880,13 @@ let from_gui (proto : int array) opcode s =
               (opcode, from_guip, proto), pos+7
           )  s 2 in
         MessageVersions list
+
+
+		| 56 ->
+				let num = get_int s 2 in
+				let new_name, pos = get_string s 6 in
+				RenameFile(num, new_name)
+
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise Not_found

@@ -1,6 +1,12 @@
 ChangeLog	
 =========
 
+2003/11/28: Fabrice
+  * Applied GUI patches #2372 (renamefile), #2373 (newgui), 
+       #2374 (configwin), #2375 (im), #2376 (configure)
+  * Applied HTML patches #2151, #2264
+
+
 2003/11/27: Fabrice
   * Removed patch #2341 (for fun :) )
   * Applied patch #2139 (html mod), #2371 (telnet)

@@ -45,6 +45,8 @@ let short_name n =
   let len = String.length n in
   if len > 60 then
     Printf.sprintf "%s...%s" (String.sub n 0 55) (String.sub n (len-5) 5)
+  else if n="" then
+     "http://go.to/mldonkey"
   else n
 
 let is_connected state =

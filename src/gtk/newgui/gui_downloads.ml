@@ -134,10 +134,12 @@ let save_menu_items file =
   ) 
   file.data.gfile_names
 
+let file_first_name f = f.data.gfile_name
 
 let save_as file () = 
-  let file_opt = GToolbox.input_string ~title: (gettext M.save) 
-    (gettext M.save) in
+  let file_opt = GToolbox.input_string ~title:(gettext M.save_as)
+    ~text:(file_first_name file)
+    (gettext M.save_as) in
   match file_opt with
     None -> ()
   | Some name -> 
@@ -146,7 +148,6 @@ let save_as file () =
   
 let (!!) = Options.(!!)
 
-let file_first_name f = f.data.gfile_name
 
 
 let file_to_general_state state =
@@ -236,6 +237,8 @@ let color_opt_of_file f =
     Some !!O.color_downloading
   else if some_is_available f then
     Some !!O.color_available
+  else if f.data.gfile_state = FDownloaded then
+    Some !!O.color_downloaded
   else
     Some !!O.color_not_available
 
@@ -523,7 +526,7 @@ class box columns sel_mode () =
                  -10 -> gettext M.set_priority_low
                | 0 -> gettext M.set_priority_normal
                | 10 -> gettext M.set_priority_high
-               | _ -> "")
+               | _ -> Printf.sprintf "%d" f.data.gfile_priority)
             else ""
     
     method content f =
@@ -891,6 +894,33 @@ class box_downloads wl_status () =
            Gui_com.send (GuiProto.AddClientFriend num))
       self#selection
     
+    method save_all () = 
+      self#iter	(fun f ->
+          match f.data.gfile_state with
+              FDownloaded -> 
+                Gui_com.send (GuiProto.SaveFile (List.hd f.data.gfile_num, file_first_name f))
+            | _ -> () 
+      )
+    
+    method preview () =
+      match self#selection with
+        [] -> ()
+      | file :: _ -> preview file ()
+    
+    method edit_mp3_tags () = 
+      match self#selection with
+        file :: _ ->
+          (
+            match file.data.gfile_format with
+              MP3 (tag,_) ->
+                Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
+                Gui_com.send (GuiProto.ModifyMp3Tags (List.hd file.data.gfile_num, tag))
+            | _ ->
+                ()
+          )
+      |	_ ->
+          ()
+    
     method menu =
       match self#selection with
         [] -> []
@@ -912,12 +942,15 @@ class box_downloads wl_status () =
                 `I ((gettext M.set_priority_high), self#set_priority 10);
                 `I ((gettext M.set_priority_normal), self#set_priority 0);
                 `I ((gettext M.set_priority_low), self#set_priority (-10));
-            
             ]) ::
           `I ((gettext M.get_format), self#get_format) ::
+            `S ::
+          (match (file.data.gfile_state, file.data.gfile_format) with
+               (FDownloaded, MP3 _) -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
+             | _ -> []) @
+          `I ((gettext M.save_all), self#save_all) ::           
           (if tail = [] then
               [
-                  `S ;
                 `I ((gettext M.save_as), save_as file) ;
                   `M ((gettext M.save), save_menu_items file) ;
               ]
@@ -967,8 +1000,7 @@ class box_downloads wl_status () =
     
 (** {2 Handling core messages} *)
 
-     method update_file f f_new row =
-       let old_state = f.data.gfile_state in
+     method update_file f f_new row switch =
       f.data.gfile_md4 <- f_new.file_md4 ;
       f.data.gfile_name <-
         if icons_are_used then
@@ -1014,11 +1046,15 @@ class box_downloads wl_status () =
                                          true)
                   else None
            end;
+      if switch then
+      self#update_row f row
+      else
+        begin
       let test_visibility = self#wlist#row_is_visible row in
       match test_visibility with
           `NONE -> ()
         | _ -> if !toggle_update_clist then self#update_row f row
-
+        end
 
     (*
     as now we do not update the GUI downloads list every time,
@@ -1088,7 +1124,7 @@ class box_downloads wl_status () =
     method h_paused f =
       try
         let (row, fi) = self#find_file [f.file_num] in
-        self#update_file fi f row
+        self#update_file fi f row false
       with
         Not_found ->
           incr ndownloads;
@@ -1100,13 +1136,42 @@ class box_downloads wl_status () =
       try
         let (row, fi) = self#find_file [num] in
         decr ndownloads;
+	if fi.data.gfile_state = FDownloaded then
+	  decr ndownloaded;
         self#update_wl_status ;
         self#remove_file fi row;
       with
         Not_found ->
           ()
     
-    method h_downloaded = self#h_cancelled 
+    method h_downloaded f =
+      try
+        let (row, fi) = self#find_file [f.file_num] in
+        match fi.data.gfile_state with
+            FDownloaded -> ()
+          | _ -> incr ndownloaded;
+        self#update_wl_status ;
+        self#update_file fi f row true
+      with
+        Not_found ->
+          incr ndownloads;
+	  incr ndownloaded;
+          self#update_wl_status ;
+          let fi = {data = self#file_to_gui_file f; children = []} in
+          self#add_item fi
+         
+
+    method h_removed f =
+      try
+        let (row, fi) = self#find_file [f.file_num] in
+        decr ndownloaded;
+	decr ndownloads;
+        self#update_wl_status ;
+        self#remove_file fi row
+      with
+        Not_found ->
+          ()
+    
     method h_downloading f = self#h_paused f
     
     method make_child file client_num avail =
@@ -1276,11 +1341,6 @@ class box_downloads wl_status () =
           fi.children <- !lr
       done
     
-    method preview () =
-      match self#selection with
-        [] -> ()
-      | file :: _ -> preview file ()
-    
     (* to update sources in case a file is expanded *)
     method update_client_state (num , state) =
       let nrows = self#wlist#rows in
@@ -1411,15 +1471,9 @@ class pane_downloads () =
       | FileCancelled -> 
           dls#h_cancelled f.file_num
       |	FileDownloaded ->
-         dls#h_cancelled f.file_num
-      (*
-	  dls#h_cancelled f;
-	  dled#h_downloaded f
-       *)
-      |	FileShared -> ()
-      (*
-          dled#h_removed f
-      *)
+         dls#h_downloaded f
+      |	FileShared ->
+         dls#h_removed f
       |	FilePaused | FileQueued | FileAborted _ -> 
 	  dls#h_paused f
       | FileDownloading ->

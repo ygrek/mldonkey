@@ -1068,7 +1068,7 @@ lprint_newline ();
                         "A" else "";)) );
             ((string_of_connection_state (client_state c)), "sr", 
               (short_string_of_connection_state (client_state c)) );
-            ("", "sr", c.client_name);
+            (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
             ("", "sr", (if c.client_overnet then "T" else "F"));
             ("", "sr", (match c.client_kind with 
@@ -1168,7 +1168,7 @@ lprint_newline ();
                     html_mods_td buf [
                       (string_of_connection_state (client_state c), "sr", 
                         short_string_of_connection_state (client_state c));
-                      (Md4.to_string c.client_md4, "sr", c.client_name);
+                      (Md4.to_string c.client_md4, "sr", client_short_name c.client_name);
                       ("", "sr", gbrand_to_string c.client_brand);
                       ("", "sr", (if c.client_overnet then "T" else "F"));
                       ("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));

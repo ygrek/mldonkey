@@ -264,6 +264,7 @@ class upstats_box () =
     user to do it : IMHO it is annoying. *)
     method is_visible b =
       if b then begin
+        self#refresh ();
         refresh_timerID :=
           (Timeout.add ~ms:6000
              ~callback:(fun _ ->

@@ -456,23 +456,23 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
 //--\\>
 \\</script\\>";
             
-
-						let tabnumber = ref 0 in
-						let mtabs = ref 1 in
-
+            
+            let tabnumber = ref 0 in
+            let mtabs = ref 1 in
+            
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>";
-
-
-					List.iter (fun s ->
-						incr tabnumber; incr mtabs;
-						Printf.bprintf buf "\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
-						!tabnumber s
-					) [ "Client" ; "Ports" ; "html" ; "Delays" ; "Files" ; "Mail" ; "Net" ];
-
-Printf.bprintf buf "
+            
+            
+            List.iter (fun s ->
+                incr tabnumber; incr mtabs;
+                Printf.bprintf buf "\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
+                  !tabnumber s
+            ) [ "Client" ; "Ports" ; "html" ; "Delays" ; "Files" ; "Mail" ; "Net" ; "Misc" ];
+            
+            Printf.bprintf buf "
 \\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbig pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"pluginForm\\\" id=\\\"pluginForm\\\" 
@@ -480,27 +480,27 @@ action=\\\"javascript:pluginSubmit();\\\"\\>
 \\<select id=\\\"plugin\\\" name=\\\"plugin\\\"
 style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
 \\<option value=\\\"0\\\"\\>Plugins\n";
-
-					let netlist = ref [] in
-					List.iter (fun s ->
-						incr tabnumber;
-						netlist := !netlist @ [(s,!tabnumber)]
-						
-					) (CommonInteractive.all_active_network_opfile_network_names ());
-
-					let duplist = ref [] in
-					let netname = ref "" in
-					List.iter (fun tup ->
-						let s = (fst tup) in
-						let t = (snd tup) in
-						if List.memq s !duplist then
-								netname := Printf.sprintf "%s+" s
-						else netname := s;
-						duplist := !duplist @ [!netname];
-            Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n"
-						t !netname
-					) (List.sort (fun d1 d2 -> compare (fst d1) (fst d2)) !netlist);
-	
+            
+            let netlist = ref [] in
+            List.iter (fun s ->
+                incr tabnumber;
+                netlist := !netlist @ [(s,!tabnumber)]
+            
+            ) (CommonInteractive.all_active_network_opfile_network_names ());
+            
+            let duplist = ref [] in
+            let netname = ref "" in
+            List.iter (fun tup ->
+                let s = (fst tup) in
+                let t = (snd tup) in
+                if List.memq s !duplist then
+                  netname := Printf.sprintf "%s+" s
+                else netname := s;
+                duplist := !duplist @ [!netname];
+                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n"
+                  t !netname
+            ) (List.sort (fun d1 d2 -> compare (fst d1) (fst d2)) !netlist);
+            
             Printf.bprintf buf "\\</select\\>\\</td\\>\\</form\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
@@ -557,10 +557,13 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_mods_load_message_file; 
                         strings_of_option html_mods_max_messages; 
                         strings_of_option html_mods_bw_refresh_delay; 
+                        strings_of_option use_html_frames; 
+                        strings_of_option html_checkbox_file_list;     
                         strings_of_option commands_frame_height; 
                         strings_of_option display_downloaded_results; 
                         strings_of_option vd_reload_delay; 
                         strings_of_option max_name_len; 
+                        strings_of_option max_client_name_len; 
                       ] 
                   | 4 -> 
                       [
@@ -572,6 +575,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option compaction_delay; 
                         strings_of_option min_reask_delay; 
                         strings_of_option max_reask_delay; 
+                        strings_of_option max_connections_per_second; 
                         strings_of_option buffer_writes; 
                         strings_of_option buffer_writes_delay; 
                         strings_of_option buffer_writes_threshold; 
@@ -580,11 +584,13 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                       [
                         strings_of_option previewer; 
                         strings_of_option incoming_directory; 
+                        strings_of_option incoming_directory_prio; 
                         strings_of_option temp_directory; 
                         strings_of_option file_completed_cmd; 
                         strings_of_option allow_browse_share; 
                         strings_of_option auto_commit; 
                         strings_of_option log_file; 
+                        strings_of_option log_size; 
                       ] 
                   | 6 -> 
                       [
@@ -612,8 +618,21 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option minimal_packet_size; 
                         strings_of_option network_update_url; 
                         strings_of_option mlnet_redirector; 
+                        strings_of_option http_proxy_tcp; 
+                        strings_of_option http_proxy_server; 
+                        strings_of_option http_proxy_port; 
                       ] 
-                  
+                  | 8 -> 
+                      [
+                        strings_of_option term_ansi; 
+                        strings_of_option messages_filter; 
+                        strings_of_option max_displayed_results; 
+                        strings_of_option chat_app_port; 
+                        strings_of_option chat_app_host; 
+                        strings_of_option chat_console_id; 
+                        strings_of_option chat_warning_for_downloaded; 
+                      ] 
+                      
                   | _ -> 
                       let v = CommonInteractive.some_simple_options (tab - !mtabs) in
 													List.sort (fun d1 d2 -> compare d1 d2) v;

@@ -23,7 +23,7 @@ open CommonOptions
 open Options
 open CommonTypes
 open CommonGlobals
-  
+
 type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
@@ -364,7 +364,7 @@ let client_print_html c o =
 	("", "sr", (match info.G.client_kind with
           Indirect_location (name, _) -> Printf.sprintf "I"
         | Known_location (ip, port) -> Printf.sprintf "D") );
-	("", "sr", info.G.client_name); ]
+	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]
 
 let client_print c o =
   let impl = as_client_impl c in
@@ -380,7 +380,7 @@ let client_print c o =
              Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
            | Indirect_location _ -> Printf.sprintf "None"
            with _ -> ""));
-	("", "sr", info.G.client_name); ];
+	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ];
     end
   else begin
       Printf.bprintf buf "[%s %-5d] %d %23s %-20s"

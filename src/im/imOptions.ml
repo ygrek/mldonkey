@@ -51,7 +51,7 @@ module AccountOption = struct
   end
 
 let accounts_ini = create_options_file
-    (Filename.concat  CommonOptions.home_basedir ".mldonkey_im.ini")
+    (Filename.concat  "." "mldonkey_im.ini")
 let accounts_section = file_section accounts_ini [] ""
   
 let accounts = 

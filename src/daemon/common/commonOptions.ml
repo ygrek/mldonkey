@@ -780,9 +780,13 @@ to increase when the connection between them has a small bandwith" int_option
   1000000
 
 let max_name_len = define_expert_option current_section ["max_name_len"]
-    "The size long names will be shorten to in the interface"
+    "The size long names will be shortened to in the interface"
   int_option 50
 
+let max_client_name_len = define_expert_option current_section ["max_client_name_len"]
+    "The size long client names will be shortened to in the interface"
+    int_option 25
+  
 let term_ansi = define_expert_option current_section ["term_ansi"]
     "Is the default terminal an ANSI terminal (escape sequences can be used)"
   bool_option true

@@ -533,7 +533,11 @@ fi
 
 # Check for GTK only if we want to build the GUI
 if test "$BUILD_GUI" = "yes"; then
+  if test "$OS_FILES" = "mingw"; then
+    AC_CHECK_PROG(GTK_CONFIG, pkg-config, pkg-config, no)
+  else
   AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
+  fi
 else
   GTK_CONFIG=no
 fi
@@ -656,14 +660,25 @@ AC_MSG_CHECKING(compile GTK GUI)
         RELEASENAME="$RELEASENAME-nogui"
   else
         MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
+	if test "$OS_FILES" = "mingw"; then
+		GTK_LIBS=`$GTK_CONFIG --libs gtk+-1.3-win32-production`
+		GTK_CFLAGS=`$GTK_CONFIG --cflags gtk+-1.3-win32-production`
+		GTK_VERSION=`$GTK_CONFIG --modversion gtk+-1.3-win32-production`
+		COMPILE_GUI=yes
+		AC_MSG_RESULT(yes)
+	else
         GTK_LIBS=`$GTK_CONFIG --libs`
         GTK_CFLAGS=`$GTK_CONFIG --cflags`
         GTK_VERSION=`$GTK_CONFIG --version`
         COMPILE_GUI=yes
         AC_MSG_RESULT(yes)
-
+	fi
         AC_MSG_CHECKING(GToolbox.popup_menu args)
+        if test "$OS_FILES" = "mingw"; then
+	   GTOOLBOX="`$OCAMLC -where`\lablgtk\gToolbox.mli"
+	else
         GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
+	fi
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
           GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
@@ -705,7 +720,7 @@ case "$OCAMLVERSION" in
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac		    
 
-if test "$MINGW32" = yes; then
+if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
 
@@ -792,6 +807,12 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 
 
 cd ..
+
+if test "$OS_FILES" = "mingw"; then
+   echo "compiling win32 resource file"
+   windres -o resfile.o config/mldonkey.rc.in
+fi
+
 echo "Building dependencies"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
 

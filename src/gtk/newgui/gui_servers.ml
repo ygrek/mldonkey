@@ -464,9 +464,21 @@ class box columns users wl_status =
     method h_server_state num state =
       try
         let (row, serv) = self#find_server num in
+        (
+          match Mi.is_connected state, Mi.is_connected serv.gserver_state with
+            true, false -> incr G.nconnected_servers ; self#update_wl_status
+          | false, true -> decr G.nconnected_servers ; self#update_wl_status
+          | _ -> ()
+        );
         if state = RemovedHost then
-          self#remove_item row serv
-          else begin
+          begin
+            self#remove_item row serv;
+            if !G.nservers <> self#size then begin
+              G.nservers := self#size;
+              self#update_wl_status
+              end     
+          end else
+             begin
             serv.gserver_state <- state ;
             serv.gserver_pixmap <-
               if icons_are_used then
