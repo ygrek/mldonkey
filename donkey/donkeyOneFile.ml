@@ -91,6 +91,7 @@ let disconnect_client c =
       connection_failed c.client_connection_control;
       TcpBufferedSocket.close sock "closed";
       printf_string "-c"; 
+      c.client_has_a_slot <- false;
       c.client_chunks <- [||];
       c.client_sock <- None;
       set_client_state c NotConnected;
@@ -190,10 +191,12 @@ let query_zones c b =
           | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
-      set_read_power sock (c.client_power + file_priority (as_file file.file_file));
-      if !!max_hard_download_rate <> 0 then
+      set_read_power sock (c.client_power + 
+        file_priority (as_file file.file_file));
+      if !!max_hard_download_rate <> 0 then begin
+(*          Printf.printf "CLIENT: put in download fifo"; print_newline (); *)
         Fifo.put download_fifo (sock, msg, len)
-      else
+        end else
         direct_client_send sock msg
         
 
@@ -582,16 +585,18 @@ and find_client_block c =
       let _ = () in
       
       
-      for i = 0 to file.file_nchunks - 1 do
-        print_char (match file.file_chunks.(i) with
-          | PartialVerified _ -> 'P'
-          | PartialTemp _ -> 'p'
-          | AbsentVerified -> 'A'
-          | AbsentTemp -> 'a'
-          | PresentVerified -> 'D'
-          | PresentTemp -> 'd')
-      done;
-      print_newline ();
+      if !!verbose then begin
+          for i = 0 to file.file_nchunks - 1 do
+            print_char (match file.file_chunks.(i) with
+              | PartialVerified _ -> 'P'
+              | PartialTemp _ -> 'p'
+              | AbsentVerified -> 'A'
+              | AbsentTemp -> 'a'
+              | PresentVerified -> 'D'
+              | PresentTemp -> 'd')
+          done;
+          print_newline ();
+        end;
       
       
       begin
@@ -723,9 +728,12 @@ and next_file c =
       | Some sock ->
           match files with
             [] ->
-              connection_delay c.client_connection_control;
-              TcpBufferedSocket.close sock "useless client";            
-              raise Not_found
+              if not c.client_has_a_slot then begin
+                  connection_delay c.client_connection_control;
+(* This guy could still want to upload from us !!! *)
+                  TcpBufferedSocket.close sock "useless client";            
+                  raise Not_found
+                end
           | _ ->
               c.client_file_queue <- files;
               start_download c

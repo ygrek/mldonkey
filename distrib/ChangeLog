@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2002/12/21: Simon (tag release-2-01-4) 
+  - Bug fixes:
+   * DonkeyOneFile: removed a bug disconnecting from time to time an uploader.
+   * DonkeyClient: 
+     * verify that clients have received a slot before uploading
+     * remove client from upload queue when reconnecting
+
 2002/12/20: Simon
   - Applied patch #812 (KDE Icon set). The old icons can still be used by
      changing the Makefile line : ICONS_CHOICE=big

@@ -443,22 +443,11 @@ let remove_client_chunks file client_chunks =
   done
   
 let is_black_address ip port =
+  !!black_list && (
 (* Printf.printf "is black ="; *)
-  if not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) then begin
-(* Printf.printf " addr for %s %d\n" (Ip.to_string ip) port; *)
-      true
-    end
-  else begin
-      if (List.mem port !!port_black_list) then begin
-(*  Printf.printf " port for %s %d\n" (Ip.to_string ip) port; *)
-          true
-        end
-      else begin
-(* Printf.printf " false for %s %d\n" (Ip.to_string ip) port; *)
-          false
-        end
-    end
-    
+    not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
+    (List.mem port !!port_black_list) )
+      
 let new_server ip port score = 
   let key = (ip, port) in
   try
@@ -549,6 +538,7 @@ let dummy_client =
       client_on_list = false;
       client_already_counted = false;
       client_banned = false;
+      client_has_a_slot = false;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -606,7 +596,8 @@ let new_client key =
 	    client_uploaded = Int64.zero;
             client_on_list = false;            
             client_already_counted = false;
-	    client_banned = false;
+            client_banned = false;
+            client_has_a_slot = false;
             } and
           client_impl = {
             dummy_client_impl with            

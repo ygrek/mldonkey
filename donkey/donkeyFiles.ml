@@ -529,8 +529,8 @@ module NewUpload = struct
       remaining_bandwidth := !remaining_bandwidth - len_int;
       try
         if !!verbose then begin
-            Printf.printf "send_small_block(%s) %ld %d"
-              (brand_to_string c.client_brand)
+            Printf.printf "send_small_block(%s-%s) %ld %d"
+              c.client_name (brand_to_string c.client_brand)
               (begin_pos) (len_int);
             print_newline ();
           end;

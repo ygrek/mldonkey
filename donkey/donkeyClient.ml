@@ -444,8 +444,10 @@ let add_new_location sock file c =
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
 
-(*
-  Printf.printf "Message from client:"; print_newline ();
+  (*
+  Printf.printf "Message from client %s(%s)"
+  c.client_name (brand_to_string c.client_brand);
+  print_newline ();
   M.print t;
   print_newline ();
 *)
@@ -455,6 +457,7 @@ let client_to_client for_files c t sock =
       printf_string "******* [CCONN OK] ********"; 
       
       c.client_checked <- true;
+      c.client_has_a_slot <- false;
       
       let module CR = M.ConnectReply in
       
@@ -568,6 +571,7 @@ print_newline ();
             let module M = DonkeyProtoClient in
             let module Q = M.AvailableSlot in
             M.AvailableSlotReq Q.t);
+          c.client_has_a_slot <- true;
           
           Printf.printf "New uploader %s: brand %s" 
             c.client_name (brand_to_string c.client_brand);
@@ -584,18 +588,26 @@ print_newline ();
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
 (* OK, the slot is closed, but what should we do now ????? *)
-      direct_client_send sock (
-        let module M = DonkeyProtoClient in
-        let module Q = M.JoinQueue in
-        M.JoinQueueReq Q.t);                        
-      set_rtimeout sock !!queued_timeout;
-      set_client_state c Connected_queued
+      begin
+        match c.client_file_queue with
+          [] -> ()
+        | _ -> 
+            direct_client_send sock (
+              let module M = DonkeyProtoClient in
+              let module Q = M.JoinQueue in
+              M.JoinQueueReq Q.t);                        
+            set_rtimeout sock !!queued_timeout;
+            set_client_state c Connected_queued
+      end
   
   | M.ReleaseSlotReq _ ->
+      c.client_has_a_slot <- false;
       direct_client_send sock (
         let module M = DonkeyProtoClient in
         let module Q = M.CloseSlot in
         M.CloseSlotReq Q.t);
+      if c.client_file_queue = [] then
+        set_rtimeout sock 120.
   
   | M.QueryFileReplyReq t ->
       let module Q = M.QueryFileReply in
@@ -839,7 +851,8 @@ is checked for the file.
        *)
       direct_client_send_files sock !published_files
   
-  | M.QueryFileReq t when !has_upload = 0 && not c.client_banned ->
+  | M.QueryFileReq t when !has_upload = 0 && 
+    not (!!ban_queue_jumpers && c.client_banned) ->
       
       (try client_wants_file c t with _ -> ());
       if t = Md4.null && c.client_brand = Brand_edonkey then  begin
@@ -931,7 +944,8 @@ is checked for the file.
       
       end
   
-  | M.QueryChunksReq t when !has_upload = 0 && not c.client_banned ->
+  | M.QueryChunksReq t when !has_upload = 0 && not 
+      (!!ban_queue_jumpers && c.client_banned) ->
 
       let file = find_file t in
       direct_client_send sock (
@@ -945,7 +959,7 @@ is checked for the file.
           ) file.file_chunks;
         })
   
-  | M.QueryBlocReq t when !has_upload = 0 && not c.client_banned ->
+  | M.QueryBlocReq t when !has_upload = 0 && c.client_has_a_slot ->
   Printf.printf "uploader %s(%s) ask for block" c.client_name
 (brand_to_string c.client_brand); print_newline ();
   
@@ -987,6 +1001,7 @@ let client_handler c sock event =
   match event with
     BASIC_EVENT (CLOSED s) ->
       disconnect_client c;
+      
       (*
       if c.client_name <> "" then begin
           Printf.printf "client %s(%s) disconnected: reason %s"
@@ -1033,7 +1048,9 @@ let init_client sock c =
   );
   c.client_block <- None;
   c.client_zones <- [];
-  c.client_file_queue <- []
+  c.client_file_queue <- [];
+  c.client_has_a_slot <- false;
+  c.client_upload <- None
 
   
         
@@ -1045,6 +1062,7 @@ let read_first_message t sock =
       printf_string "******* [PCONN OK] ********";
       
       let module CR = M.Connect in
+
       
       if t.CR.md4 = !!client_md4 then begin
           TcpBufferedSocket.close sock "connected to myself";
@@ -1136,15 +1154,18 @@ let read_first_message t sock =
 
   
 let reconnect_client c =
+(*  Printf.printf "CLIENT: reconnect_client"; print_newline (); *)
   if can_open_connection () then
     match c.client_kind with
       Indirect_location _ -> ()
     | Known_location (ip, port) ->
+(*        Printf.printf "CLIENT: black listed ?"; print_newline ();  *)
         if client_state c <> BlackListedHost then
           if is_black_address ip port then
             set_client_state c BlackListedHost
           else
-        try
+          try
+(*            Printf.printf "CLIENT: connecting"; print_newline (); *)
           set_client_state c Connecting;
           connection_try c.client_connection_control;
           

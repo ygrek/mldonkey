@@ -625,6 +625,9 @@ let mldonkey_gui = define_option downloads_ini ["mldonkey_gui"]
     "Name of GUI to start" string_option 
     (Filename.concat bin_dir "mldonkey_gui")
 
+let black_list = define_option downloads_ini ["black_list"]
+  ""    bool_option true
+
 let filter_search = define_option downloads_ini ["filter_search"]
   "Should mldonkey filter results of searches
   (results are displayed only if they exactly match the request,

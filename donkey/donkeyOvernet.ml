@@ -227,14 +227,17 @@ let udp_send ip port msg =
         DonkeyProtoOvernet.write buf msg;
         let s = Buffer.contents buf in
         if !!verbose_overnet then 
-	  begin            
-	    (*Too much traffic for a correct debug*)
-	    if (get_int8 s 1) <> 15 && (get_int8 s 1) <> 14 && (get_int8 s 1) <> 19 then
-	      begin
-		Printf.printf "Sending UDP to %s:%d type %d (0x%02X)" 
-		  (Ip.to_string ip) port (get_int8 s 1) (get_int8 s 1);
-		print_newline ();
-		(*dump s; print_newline ();*)
+          begin            
+(*Too much traffic for a correct debug*)
+            if (get_int8 s 1) <> 15 && (get_int8 s 1) <> 14 && (get_int8 s 1) <> 19 then
+              begin
+                
+                if !!verbose_overnet then begin
+                    Printf.printf "Sending UDP to %s:%d type %d (0x%02X)" 
+                      (Ip.to_string ip) port (get_int8 s 1) (get_int8 s 1);
+                    print_newline ();
+(*dump s; print_newline ();*)
+                  end;
               end;
 	  end;
         let len = String.length s in
@@ -407,7 +410,9 @@ let automatic_ocl_load force =
       if force || !next_automatic_ocl_load < last_time () then
         begin
           next_automatic_ocl_load := last_time () +. 3600.;
-          Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
+          if !!verbose_overnet then begin
+              Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
+            end;
           List.iter (fun url ->
               Printf.printf "Loading %s\n" url;
               load_url "ocl" url) !!overnet_default_ocl;
@@ -671,8 +676,11 @@ let check_filename q tags =
     | QOr (q1, q2) ->  (check_iter q1) || (check_iter q2)
     | QAndNot (q1, q2) -> (check_iter q1) && (not (check_iter q2))
     | QHasWord s -> 
-	begin
-	  Printf.printf "%s CONTAINS[%s]\n" filename s; 
+        begin
+          if !!verbose_overnet then begin
+              Printf.printf "%s CONTAINS[%s]" filename s; 
+              print_newline ();
+            end;
 	  true
 	end
     | _ -> true
@@ -1269,9 +1277,11 @@ let _ =
           match String2.split_simplify s ',' with
             name :: port :: _ ->
               let ip = Ip.from_name name in
-              let port = int_of_string port in
-              Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
-              print_newline ();
+                let port = int_of_string port in
+                if !!verbose_overnet then begin
+                    Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
+                    print_newline ();
+                  end;
 	      udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
           | _ -> 
               Printf.printf "BAD LINE ocl: %s" s;

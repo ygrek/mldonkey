@@ -148,6 +148,7 @@ and client (*[]*) = {
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
     mutable client_banned : bool;
+    mutable client_has_a_slot : bool;
   }
   
 and upload_info = {
