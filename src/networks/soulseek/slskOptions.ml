@@ -24,7 +24,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let soulseek_ini = create_options_file (
     Filename.concat file_basedir "soulseek.ini")
-let soulseek_section = file_section soulseek_ini [] ""
+let soulseek_section = file_section soulseek_ini ["Soulseek"] "Soulseek options"
   
   
 let max_connected_servers = define_option soulseek_section

@@ -118,7 +118,7 @@ open CommonSearch
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open CommonSwarming
+open CommonDownloads
 open CommonTypes
 open CommonGlobals
   

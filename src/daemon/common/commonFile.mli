@@ -78,7 +78,7 @@ val file_resume : CommonTypes.file -> unit
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
 val set_file_best_name : CommonTypes.file -> string -> unit
-val file_set_format : CommonTypes.file -> CommonTypes.format -> unit
+val set_file_format : CommonTypes.file -> CommonTypes.format -> unit
 val file_check : CommonTypes.file -> unit
 val file_recover : CommonTypes.file -> unit
 val file_preview : CommonTypes.file -> unit
@@ -107,7 +107,8 @@ val set_file_disk_name : CommonTypes.file -> string -> unit
 val file_downloaded : CommonTypes.file -> int64
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_priority : CommonTypes.file -> int
-val file_set_priority : CommonTypes.file -> int -> unit
+val set_file_priority : CommonTypes.file -> int -> unit
+val set_file_last_seen : CommonTypes.file -> int -> unit
 val file_debug : CommonTypes.file -> string
 val set_file_comment : CommonTypes.file -> string -> unit
 val file_comment : CommonTypes.file -> string

@@ -529,9 +529,11 @@ class box columns sel_mode () =
       |	Col_file_priority ->
           if (List.length f.data.gfile_num) = 1 then
             (match f.data.gfile_priority with
-                 -10 -> M.dT_tx_priority_low
+                 -20 -> M.dT_tx_priority_verylow
+               | -10 -> M.dT_tx_priority_low
                | 0 -> M.dT_tx_priority_normal
                | 10 -> M.dT_tx_priority_high
+               | 20 -> M.dT_tx_priority_veryhigh
                | _ -> Printf.sprintf "%d" f.data.gfile_priority)
             else ""
     
@@ -905,9 +907,11 @@ class box_downloads wl_status () =
             `S ::
           `I ((M.dT_me_verify_chunks), self#verify_chunks) ::
             `M ((M.dT_me_set_priority), [
+                `I ((M.dT_me_set_priority_veryhigh), self#set_priority 20);
                 `I ((M.dT_me_set_priority_high), self#set_priority 10);
                 `I ((M.dT_me_set_priority_normal), self#set_priority 0);
                 `I ((M.dT_me_set_priority_low), self#set_priority (-10));
+                `I ((M.dT_me_set_priority_verylow), self#set_priority (-20));
             ]) ::
           `I ((M.dT_me_get_format), self#get_format) ::
             `S ::

@@ -228,7 +228,7 @@ let add_user_friend s u =
 
   
 let udp_from_server p =
-  match p.UdpSocket.addr with
+  match p.UdpSocket.udp_addr with
   | Unix.ADDR_INET(ip, port) ->
       let ip = Ip.of_inet_addr ip in
       if !!update_server_list then
@@ -274,6 +274,10 @@ let udp_client_handler t p =
       (match t.M.flags with Some x -> s.server_flags <- x
       | None -> ())
 
+(* TODO: what to do with this ping ? *)
+  | Udp.EmuleReaskFilePingUdpReq t -> ()
+      
+      
   | _ -> 
       lprintf "Unexpected UDP message: \n%s\n"
         (DonkeyProtoUdp.print t)

@@ -21,7 +21,7 @@
 open Md4
 
 open CommonTypes
-open CommonSwarming
+open CommonDownloads
 open BTRate
 
 type torrent = {

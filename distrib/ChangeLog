@@ -1,9 +1,47 @@
 ChangeLog	
 =========
 
-  Again an experimental version, the source management for Edonkey was
-_completely_ rewritten, generalized, and should soon be used by all other
-plugins if it is measured as efficient enough.
+2004/05/02: Fabrice  (version 2.5.19, tag release-2-5-19)
+  - Fixed bug causing lost of partially downloaded chunks.
+  - Fixed bug in recover_bytes, and added new Edonkey command 
+      'recover_bytes <file_num>' to recover files at a byte
+      level (i.e. partially downloaded chunks)
+  - Applied patches from Savannah: #3002 (cs_total), #3001 (newgui_csources),
+      #2993 (guiprio), #2988 (cs_html), #2983 (typo18),
+      #2978 (shorten results), #2975 (title opfile), #2966 (telnet stats),
+      #2965 (min users), #2964 (htmlmod), #2963 (lugdu_share), 
+      #2942 (emule mod), #2941 (options)
+    * #2952 is postponed until I understand if it is already included in the
+       Emule better compatibility work done.
+    * #2974 is postponed for verification of compatibility with other platforms
+
+2004/05/01: Fabrice
+  - Improved Emule compatibility: 
+     * Send 'emule_miscoptions1' on Connect, store emule features
+     * Receive EmuleCompressedPart messages (if Zlib)
+     * Receive SourceExchanges messages version 2
+     * Receive QueryFile messages containing QueryChunksReplyReq
+     * Send QueryFile messages containing QueryChunksReplyReq
+     * Send EmuleRequestSourcesReq even for small files
+     * Send QueryChunksReplyReq only if chunks not known
+     * Send JoinSlotReq with md4 
+
+2004/04/29: Fabrice
+  - DonkeyPandora: print packets and check encoding/decoding of
+      Edonkey packets using traces captured by tcpdump and treated
+      with Pandora.
+
+2004/04/25: Fabrice (version 2.5.19, tag release-2-5-19)
+  - Hardcoded size packet_frame_size to 1 in tcpBufferSocket.ml, so 
+     bw-management should be the same as in 2.5.16
+
+2004/04/22: Fabrice
+  - Memory leak bug found in the bandwidth management. Udp packets are not
+      sent because all the upload bandwidth is used. Partially fixed by
+      limiting the size of the queue of packets.
+
+2004/04/20: Fabrice
+  - Applied patches from Habi
 
 2004/04/16: Fabrice (version 2.5.18, tag release-2-5-18)
   - Fixed bug solved by patch #2937

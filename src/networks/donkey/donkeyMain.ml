@@ -23,7 +23,7 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
   
-open CommonSwarming
+open CommonDownloads
 open CommonNetwork
 open CommonInteractive
 open CommonClient
@@ -117,10 +117,16 @@ let disable enabler () =
     end
 
 let reset_tags () =
+  let module D = DonkeyProtoClient in
+  let m = D.mldonkey_emule_proto in
+  let emule_miscoptions1 = D.emule_miscoptions1 m in
   client_to_client_tags :=
   [
     string_tag "name" (local_login ());
     int_tag "version" protocol_version;
+    int_tag "emule_udpports" (!!port+4);
+    int_tag "emule_version" m.emule_version;
+    int64_tag "emule_miscoptions1" emule_miscoptions1;
     int_tag "port" !client_port;
   ];      
   client_to_server_tags :=
@@ -131,14 +137,16 @@ let reset_tags () =
   ];      
   if Autoconf.has_zlib then
     client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
-  emule_info_tags := [
-    int_tag "compression" 0;
+  emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
+    int_tag "compression" m.emule_compression;
+    int_tag "udpver" m.emule_udpver;
     int_tag "udpport" (!!port+4);
-    int_tag "sourceexchange" 1;
-    int_tag "comments" 1;
+    int_tag "sourceexchange" m.emule_sourceexchange;
+    int_tag "comments" m.emule_comments;
     int_tag "compatableclient" 10; 
-    int_tag "extendedrequest" 1;
-    int_tag "udpver" 1;
+    int_tag "extendedrequest" m.emule_extendedrequest;
+    int_tag "features" m.emule_features;
+    
   ];
   overnet_connect_tags :=
   [

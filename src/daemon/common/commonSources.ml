@@ -84,6 +84,48 @@ let expected_score = 0
 let found_score = 3
 let chunk_score = 5
 let upload_score = 7
+
+let outside_queue = -1
+let new_sources_queue = 0
+let good_sources_queue = 1
+let ready_saved_sources_queue = 2
+let waiting_saved_sources_queue = 3
+let old_sources1_queue = 4
+let old_sources2_queue = 5
+let old_sources3_queue = 6
+let connected_sources_queue = 7
+let connecting_sources_queue = 8
+let busy_sources_queue = 9
+
+let queue_name = [|
+    "new_sources";
+    "good_sources";
+    "ready_saved_sources";
+    "waiting_saved_sources";
+    "old_sources1";
+    "old_sources2";
+    "old_sources3";
+    "connected_sources";
+    "connecting_sources";
+    "busy_sources";
+  |]
+
+let queue_period = [|
+    0;
+    600;
+    600;
+    0;
+    600;
+    600;
+    1200;
+    0;
+    0;
+    0
+  |]
+
+
+let _ = assert (Array.length queue_name = Array.length queue_period)
+let nqueues = Array.length queue_name
   
 module Make(M: 
 
@@ -101,7 +143,9 @@ module Make(M:
     sig
       
       type source_uid      
-      
+
+      val module_name : string
+        
       val dummy_source_uid : source_uid
       val source_uid_to_value: source_uid -> Options.option_value
       val value_to_source_uid: Options.option_value -> source_uid
@@ -208,48 +252,6 @@ module Make(M:
 (*                                                                       *)
 (*************************************************************************)
       
-      let outside_queue = -1
-      let new_sources_queue = 0
-      let good_sources_queue = 1
-      let ready_saved_sources_queue = 2
-      let waiting_saved_sources_queue = 3
-      let old_sources1_queue = 4
-      let old_sources2_queue = 5
-      let old_sources3_queue = 6
-      let connected_sources_queue = 7
-      let connecting_sources_queue = 8
-      let busy_sources_queue = 9
-      
-      let queue_name = [|
-          "new_sources";
-          "good_sources";
-          "ready_saved_sources";
-          "waiting_saved_sources";
-          "old_sources1";
-          "old_sources2";
-          "old_sources3";
-          "connected_sources";
-          "connecting_sources";
-          "busy_sources";
-        |]
-      
-      let queue_period = [|
-          0;
-          600;
-          600;
-          0;
-          600;
-          600;
-          1200;
-          0;
-          0;
-          0
-        |]
-      
-      
-      let _ = assert (Array.length queue_name = Array.length queue_period)
-      let nqueues = Array.length queue_name
-      
       let dummy_source = {
           source_uid = M.dummy_source_uid;
           source_files = [];
@@ -328,7 +330,7 @@ module Make(M:
       
       let print buf =
         
-        Printf.bprintf buf "Statistics on sources:\n";
+        Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
         
         Printf.bprintf buf "File Sources Managers table:\n";
         let nsources_per_queue = Array.create nqueues 0 in
@@ -547,7 +549,7 @@ module Make(M:
                   r.request_time + !!min_reask_delay < last_time () then
                   source_query s r;
                 (try functions.function_add_location s.source_uid 
-                  r.request_file.manager_uid with _ -> ());
+                      r.request_file.manager_uid with _ -> ());
                 reschedule_source_for_file false s r
               end
         ) s.source_files
@@ -582,7 +584,7 @@ module Make(M:
                       r.request_time <- last_time () - 600;
                     (try
                         functions.function_remove_location s.source_uid
-                      r.request_file.manager_uid with _ -> ())
+                          r.request_file.manager_uid with _ -> ())
                   end;
                 reschedule_source_for_file false s r;
               end;
@@ -610,32 +612,32 @@ module Make(M:
         let queues = [|              
 (* New sources *)
 (* We should change this to 'oldest_last' to improve Queue.remove *)
-          SourcesQueueCreate.oldest_last (); (* instead of lifo *)
+            SourcesQueueCreate.oldest_last (); (* instead of lifo *)
 (* Good sources *)
 (* We should change this to 'oldest_first' to improve Queue.remove *)
-          SourcesQueueCreate.oldest_first (); (* instead of fifo *)
+            SourcesQueueCreate.oldest_first (); (* instead of fifo *)
 (* Ready saved sources *)
-          SourcesQueueCreate.oldest_last ();
+            SourcesQueueCreate.oldest_last ();
 (* Waiting saved sources *)
-          SourcesQueueCreate.oldest_first ();
+            SourcesQueueCreate.oldest_first ();
 (* Old sources *)
 (* We should change this to 'oldest_first' to improve Queue.remove *)
-          SourcesQueueCreate.oldest_first (); (* instead of fifo *)
-          SourcesQueueCreate.oldest_first (); (* instead of fifo *)
-          SourcesQueueCreate.oldest_first (); (* instead of fifo *)
+            SourcesQueueCreate.oldest_first (); (* instead of fifo *)
+            SourcesQueueCreate.oldest_first (); (* instead of fifo *)
+            SourcesQueueCreate.oldest_first (); (* instead of fifo *)
 (* Connected Sources *)
-          SourcesQueueCreate.oldest_first ();
+            SourcesQueueCreate.oldest_first ();
 (* Connecting Sources *)
-          SourcesQueueCreate.oldest_first ();
+            SourcesQueueCreate.oldest_first ();
 (* Busy Sources *)
-          SourcesQueueCreate.oldest_first ();
+            SourcesQueueCreate.oldest_first ();
           |] in
         if Array.length queues <> Array.length queue_name then begin
             lprintf "Falal error in CommonSources.create_queues\n";
             exit 2;
           end;
         queues
-        
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         create_file_sources_manager                   *)
@@ -652,7 +654,7 @@ module Make(M:
           } in
         file_sources_managers := m :: !file_sources_managers;
         m
-        
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         remove_file_sources_manager                   *)
@@ -660,7 +662,7 @@ module Make(M:
 (*************************************************************************)
       
       let remove_file_sources_manager m =
-
+        
         iter_all_sources (fun s -> 
             s.source_files <- List.filter (fun r ->
                 r.request_file != m
@@ -815,7 +817,7 @@ module Make(M:
             set_score s r score;
             s.source_files <- r :: s.source_files;
             reschedule_source_for_file false s r
-            
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_request_result                            *)
@@ -889,7 +891,7 @@ we will probably query for the other file almost immediatly. *)
 (*                         set_brothers                                  *)
 (*                                                                       *)
 (*************************************************************************)
-
+      
       let set_brothers files =
         let brothers = ref [] in
         let rec add_brother m =
@@ -909,10 +911,10 @@ we will probably query for the other file almost immediatly. *)
 (*                         get_brothers                                  *)
 (*                                                                       *)
 (*************************************************************************)
-
+      
       let get_brothers file =
         List.map (fun m -> m.manager_uid) file.manager_brothers
-        
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         add_saved_source_request                      *)
@@ -922,7 +924,12 @@ we will probably query for the other file almost immediatly. *)
       let add_saved_source_request s uid score time =
         if !verbose_sources then
           lprintf "  Request %s %d %d\n" uid score time;
-        let file = functions.function_string_to_manager uid in
+        let file = 
+          try
+            functions.function_string_to_manager uid 
+          with e ->
+              lprintf "CommonSources: add_saved_source_request -> %s not found\n" uid; raise e 
+            in
         let r = add_request s file time in
         set_score s r score;
         reschedule_source_for_file true s r;
@@ -967,6 +974,7 @@ we will probably query for the other file almost immediatly. *)
                 
                 with e -> 
                     lprintf "CommonSources.value_to_source: exception %s in iter request\n"
+                    
                       (Printexc2.to_string e)
               )
           | (StringValue _) as uid ->
@@ -1053,7 +1061,7 @@ we will probably query for the other file almost immediatly. *)
                 end
             
             in
-            
+
 (* Fill only with sources from files being downloaded *)
             
             let nfiles = ref 0 in
@@ -1074,9 +1082,9 @@ we will probably query for the other file almost immediatly. *)
                 | _ -> ()
             ) !file_sources_managers;
             let files = List.sort (fun (p1,_) (p2,_) -> compare p2 p1) !files in
-            let nsources = min (!nfiles*3) 
+            let nsources = maxi (!nfiles*3) 
               (functions.function_max_connections_per_second () * 10) in
-            
+
 (* Fill by starting with the files with either priority. Sources for files 
 with lower priority might not be connected at all for long period, but
 we don't care since we decided to decrease their priority ! *)
@@ -1139,7 +1147,7 @@ we don't care since we decided to decrease their priority ! *)
               (m.manager_sources.(old_sources3_queue))
               old_sources3_queue
         ) !file_sources_managers
-        
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         connect_sources                               *)
@@ -1192,7 +1200,7 @@ connected if needed *)
                   if Queue.length q > 0 then
                     let (time, s) = Queue.head q in
                     if time + !!min_reask_delay < last_time () then begin
-
+                        
                         let r = find_request s m in
                         source_query s r;
 (* After this step, the source is either in 'busy_sources_queue', if for some
@@ -1234,7 +1242,7 @@ the tail if the request could be sent. This seems thus safe. *)
           if !verbose_sources then
             lprintf "   done\n";
         with Exit -> ()
-            
+
 
 
 (*************************************************************************)
@@ -1253,7 +1261,7 @@ the tail if the request could be sent. This seems thus safe. *)
         (fun s -> Module (source_to_value s []))
       
       let file_sources_option = ref None
-        
+      
       let attach_sources_to_file section =
         let sources = match !file_sources_option with
             None -> 
@@ -1269,6 +1277,65 @@ the tail if the request could be sent. This seems thus safe. *)
         
         (fun _ -> sources =:= [])
 
-        
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+      
+      let _ = 
+        Heap.add_memstat M.module_name (fun buf ->
+            
+            let nsources_per_queue = Array.create nqueues 0 in
+            let nready_per_queue = Array.create nqueues 0 in
+            List.iter (fun m ->
+                for i = 0 to nqueues -1 do
+                  let q = m.manager_sources.(i) in
+                  let nready = ref 0 in
+                  let nsources = ref 0 in
+                  Queue.iter (fun (time, s) ->
+                      incr nsources;
+                      if time + !!min_reask_delay < last_time () then
+                        incr nready
+                      else
+                      if i = new_sources_queue then begin
+                          Printf.bprintf buf "ERROR: Source is not ready in new_sources_queue !\n";
+                          print_source buf s
+                        end
+                  ) q;
+                  nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
+                  nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
+                done            
+            ) !file_sources_managers;
+            
+            Printf.bprintf buf  "\nFor all managers:\n";
+            for i = 0 to nqueues - 1 do
+              Printf.bprintf buf "   Queue[%s]: %d entries (%d ready)\n" 
+                queue_name.(i) nsources_per_queue.(i) nready_per_queue.(i);
+            
+            done;
+            
+            let nsources = ref 0 in
+            HS.iter (fun _ -> incr nsources) sources_by_uid;
+            Printf.bprintf buf "Sources by UID table: %d entries\n" !nsources;
+            
+            let nconnected = ref 0 in
+            Fifo.iter (fun (_,s) ->
+                if s.source_last_attempt = 0 then incr nconnected;
+            ) connecting_sources;
+            Printf.bprintf buf "Connecting Sources: %d entries" 
+              (Fifo.length connecting_sources);
+            if !nconnected > 0 then Printf.bprintf buf " (connected: %d)" !nconnected;
+            Printf.bprintf buf "\n";
+            
+            Printf.bprintf buf "Next Direct Sources: %d entries\n" 
+              (Fifo.length next_direct_sources);
+            
+            Printf.bprintf buf "Next Indirect Sources: %d entries\n"
+              (List.length !next_indirect_sources)
+        )
+    
     end)
+  
   

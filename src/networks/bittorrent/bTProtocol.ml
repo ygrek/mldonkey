@@ -223,14 +223,12 @@ Chock/unchock every 10 seconds
 
 open Printf2
 open CommonOptions
-open BTOptions
 open Options
 open Md4
 open CommonGlobals
 open BigEndian
 open TcpBufferedSocket
 open AnyEndian
-open BTTypes
   
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t -> 
@@ -416,8 +414,8 @@ With bencoded payload:
 *)
 
 let buf = Buffer.create 100
-let send_client c msg =
-    do_if_connected  c.client_sock (fun sock ->
+let send_client client_sock msg =
+    do_if_connected  client_sock (fun sock ->
   try
         Buffer.clear buf;
 (*        lprintf "send_client\n";         *)
@@ -456,12 +454,12 @@ let send_client c msg =
 
 let zero8 = String.make 8 '\000'
   
-let send_init file c sock = 
+let send_init client_uid file_id sock = 
   let buf = Buffer.create 100 in
   buf_string8 buf  "BitTorrent protocol";
   Buffer.add_string buf zero8;
-  Buffer.add_string buf (Sha1.direct_to_string file.file_id);
-  Buffer.add_string buf (Sha1.direct_to_string !!client_uid);
+  Buffer.add_string buf (Sha1.direct_to_string file_id);
+  Buffer.add_string buf (Sha1.direct_to_string client_uid);
   let s = Buffer.contents buf in
   write_string sock s
   

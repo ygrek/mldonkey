@@ -33,7 +33,7 @@ let bind_address = ref Unix.inet_addr_any
 let ip_packet_size = ref 40
 let mtu_packet_size = ref 1500
 let minimal_packet_size = ref 600
-let packet_frame_size = ref 250
+let packet_frame_size = 1
 
 let proc_net_fs = ref true
 
@@ -268,9 +268,9 @@ let forecast_bytes t nbytes =
   | Some bc ->       
       let nip_packets = 1 + nbytes / !mtu_packet_size in
       let nbytes = nbytes + nip_packets * !ip_packet_size in
-      let nframes = 1 + nbytes / !packet_frame_size in
+      let nframes = 1 + nbytes / packet_frame_size in
       bc.forecast_bytes <- bc.forecast_bytes + 
-        (nframes * !packet_frame_size)
+        (nframes * packet_frame_size)
   
 let register_bytes t nbytes =
   match t with
@@ -278,9 +278,9 @@ let register_bytes t nbytes =
   | Some bc ->       
       let nip_packets = 1 + nbytes / !mtu_packet_size in
       let nbytes = nbytes + nip_packets * !ip_packet_size in
-      let nframes = 1 + nbytes / !packet_frame_size in
+      let nframes = 1 + nbytes / packet_frame_size in
       bc.remaining_bytes <- bc.remaining_bytes - 
-      (nframes * !packet_frame_size)
+      (nframes * packet_frame_size)
   
 let forecast_download t n =
   forecast_bytes t.read_control n
@@ -303,8 +303,8 @@ let best_packet_size nbytes =
   let nbytes = maxi nbytes !minimal_packet_size in
   let nip_packets = 1 + nbytes / !mtu_packet_size in
   let headers = nip_packets * !ip_packet_size in
-  let nframes = 1 + (nbytes + headers) / !packet_frame_size in
-  nframes * !packet_frame_size - headers
+  let nframes = 1 + (nbytes + headers) / packet_frame_size in
+  nframes * packet_frame_size - headers
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1754,6 +1754,9 @@ let proc_net_timer _ =
     end
     
   
-  
 let _ =
   add_infinite_timer 1.0 proc_net_timer 
+  
+  
+let packet_frame_size = ref 250
+  

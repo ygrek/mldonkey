@@ -66,7 +66,9 @@ module Make(M:
     sig
       
       type source_uid      
-      
+        
+      val module_name : string
+        
       val dummy_source_uid : source_uid
       val source_uid_to_value: source_uid -> Options.option_value
       val value_to_source_uid: Options.option_value -> source_uid

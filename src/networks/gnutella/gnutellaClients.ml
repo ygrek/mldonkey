@@ -44,7 +44,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 open CommonGlobals
-open CommonSwarming  
+open CommonDownloads  
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals

@@ -27,7 +27,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let opennap_ini = create_options_file (
     Filename.concat file_basedir "opennap.ini")
 
-let opennap_section = file_section opennap_ini [] ""
+let opennap_section = file_section opennap_ini ["Opennap"] "Opennap options"
   
 let client_port = define_option opennap_section ["client_port"]
     "The port to bind the client to"

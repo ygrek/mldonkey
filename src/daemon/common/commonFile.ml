@@ -24,6 +24,12 @@ open Options
 open CommonTypes
 open CommonOptions
 open CommonGlobals
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         TYPES                                         *)
+(*                                                                       *)
+(*************************************************************************)
   
 type 'a file_impl = {
     mutable impl_file_update : int;
@@ -72,6 +78,12 @@ it will happen soon. *)
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
     mutable op_file_debug : ('a -> string);
   }
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         as_file...                                    *)
+(*                                                                       *)
+(*************************************************************************)
   
 let as_file  (file : 'a file_impl) =
   let (file : file) = Obj.magic file in
@@ -106,6 +118,12 @@ let dummy_file_impl = {
   
 let dummy_file = as_file dummy_file_impl  
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global values                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
 module H = Weak2.Make(struct
       type t = file
       let hash file = Hashtbl.hash (file_num file)
@@ -116,13 +134,12 @@ module H = Weak2.Make(struct
 let file_counter = ref 0
 let files_by_num = H.create 1027
   
-  
-let _ = 
-  Heap.add_memstat "CommonFile" (fun buf ->
-      let counter = ref 0 in
-      H.iter (fun _ -> incr counter) files_by_num;
-      Printf.bprintf buf "  files: %d\n" !counter;
-  )
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Stub functions                                *)
+(*                                                                       *)
+(*************************************************************************)
 
 let ni n m = 
   let s = Printf.sprintf "File.%s not implemented by %s" 
@@ -223,7 +240,7 @@ let set_file_best_name file name =
   let name = String2.replace name '/' "::" in
   file.impl_file_best_name <- name
 
-let file_set_format (file : file) format =
+let set_file_format (file : file) format =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_set_format file.impl_file_val format
 
@@ -401,7 +418,7 @@ let file_network file =
 let file_priority file = 
   (as_file_impl file).impl_file_priority
   
-let file_set_priority file p = 
+let set_file_priority file p = 
   let impl = as_file_impl file in
   if impl.impl_file_priority <> p then begin
       impl.impl_file_priority <- p;      
@@ -409,13 +426,20 @@ let file_set_priority file p =
       file_must_update file
     end
 
+let set_file_last_seen file age =
+  let impl = as_file_impl file in
+  impl.impl_file_last_seen <- age
+    
 let file_preview (file : file) =
   let cmd = Printf.sprintf "%s \"%s\" \"%s\"" !!previewer
 	      (file_disk_name file) (file_best_name file) in
   ignore (Sys.command cmd)
 
-let com_files_by_num = files_by_num
-let files_by_num = ()
+(*************************************************************************)
+(*                                                                       *)
+(*                         file_downloaders                              *)
+(*                                                                       *)
+(*************************************************************************)
 
 module G = GuiTypes
 
@@ -441,6 +465,12 @@ let file_downloaders file o cnt =
       ) srcs;
 
 	if !counter mod 2 = 0 then true else false
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         file_print                                    *)
+(*                                                                       *)
+(*************************************************************************)
   
 (* Use span for Opera DOM compatibility *)
 let colored_chunks chunks =
@@ -701,49 +731,31 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       end
 
   with _ -> ())
-(*
-let file_size file = 
-  (as_file_impl file).impl_file_size
   
-let file_disk_name file =
-  Unix32.filename (as_file_impl file).impl_file_fd
-      
-let file_fd file =
-  (as_file_impl file).impl_file_fd
 
-let set_file_disk_name file filename =
-  Unix32.rename (file_fd file) filename
-  
-let file_downloaded file = (as_file_impl file).impl_file_downloaded
-
-let file_network file =
-  (as_file_impl file).impl_file_ops.op_file_network
-
-let file_priority file = 
-  (as_file_impl file).impl_file_priority
-  
-let file_set_priority file p = 
-  let impl = as_file_impl file in
-  if impl.impl_file_priority <> p then begin
-      impl.impl_file_priority <- p;      
-      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;      
-      file_must_update file
-    end
-*)
-
+(*************************************************************************)
+(*                                                                       *)
+(*                         add_segment (internal)                        *)
+(*                                                                       *)
+(*************************************************************************)
 open Int64ops
-
-(* let max_recover_gap = ref (Int64.of_int 1) *)
   
 let add_segment begin_pos end_pos segments =
+(*  lprintf "Adding segment %Ld - %Ld\n" begin_pos end_pos;  *)
   match segments with
     [] ->
       (begin_pos, end_pos) :: segments
   | (begin_pos2, end_pos2) :: tail ->
-      if end_pos2 -- begin_pos <= !!max_recover_gap then
+      if begin_pos -- end_pos2 <= !!max_recover_gap then
         (begin_pos2, end_pos) :: tail
       else
         (begin_pos, end_pos) :: segments
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         recover_bytes                                 *)
+(*                                                                       *)
+(*************************************************************************)
   
 let recover_bytes file =
   let size = file_size file in
@@ -751,43 +763,52 @@ let recover_bytes file =
   let len = 32768 in
   let len64 = Int64.of_int len in
   let s = String.create len in
-  let rec iter_file_out pos segments =
+  
+  let rec iter_file_out file_pos segments =
     
-    if pos = size then segments else
+(*    lprintf "iter_file_out pos = %Ld\n" file_pos; *)
+    if file_pos = size then segments else
     
-    let max64 = min len64 (size -- pos) in
+    let max64 = min len64 (size -- file_pos) in
     let max = Int64.to_int max64 in
     if try
-        Unix32.read fd pos s 0 max;
+        Unix32.read fd file_pos s 0 max;
         true
       with _ -> false
     then 
-      iter_string_out (pos++max64) 0 max segments
+      iter_string_out (file_pos++max64) 0 max segments
     else segments
         
-  and iter_file_in pos begin_pos segments =
+  and iter_file_in file_pos begin_pos segments =
+(*    lprintf "iter_file_in file_pos = %Ld begin_pos = %Ld\n" file_pos begin_pos; *)
     
-    if pos = size then
+    if file_pos = size then
       if begin_pos <> size then
         add_segment begin_pos size segments 
       else segments
     else
     
-    let max64 = min len64 (size -- pos) in
+    let max64 = min len64 (size -- file_pos) in
     let max = Int64.to_int max64 in
     if try
-        Unix32.read fd pos s 0 max;
+        Unix32.read fd file_pos s 0 max;
         true
       with _ -> false
     then 
-      iter_string_in (pos++max64) 0 max begin_pos segments
+      iter_string_in (file_pos++max64) 0 max begin_pos segments
     else
-    if begin_pos < pos then 
-      add_segment begin_pos pos segments
+    if begin_pos < file_pos then 
+      add_segment begin_pos file_pos segments
     else segments
   
   and iter_string_out file_pos pos max segments =
     
+(*    lprintf "iter_string_out file_pos = %Ld pos = %d len = %d\n"
+      file_pos pos max;
+    
+    iter_string_out_ file_pos pos max segments
+    
+  and  iter_string_out_ file_pos pos max segments = *)
     if pos = max then
       iter_file_out file_pos segments
     else
@@ -796,10 +817,18 @@ let recover_bytes file =
     else
     let begin_pos = file_pos -- (Int64.of_int (max - pos)) in
 (*    lprintf "  Downloaded byte at %Ld\n" begin_pos; *)
-    iter_string_in file_pos (pos+1) max file_pos  segments
+    iter_string_in file_pos (pos+1) max begin_pos  segments
   
   and iter_string_in file_pos pos max begin_pos segments =
-        
+
+    (*
+    lprintf "iter_string_in file_pos = %Ld pos = %d len = %d begin_pos = %Ld\n"
+    file_pos pos max begin_pos;
+  
+    iter_string_in_ file_pos pos max begin_pos segments
+    
+  and iter_string_in_ file_pos pos max begin_pos segments = *)
+    
     if pos = max then
       iter_file_in file_pos begin_pos segments
     else
@@ -809,14 +838,37 @@ let recover_bytes file =
       iter_string_out file_pos (pos+1) max 
       (add_segment begin_pos end_pos segments)
     else
-      iter_string_in file_pos (pos+1) max 
-        (file_pos -- (Int64.of_int (max - pos))) segments
+      iter_string_in file_pos (pos+1) max begin_pos segments
     
   in
   let segments = List.rev (iter_file_out zero []) in
+  (*
   lprintf "CommonFile.recover_bytes: recovered segments\n";
   List.iter (fun (begin_pos, end_pos) ->
       lprintf "   %Ld - %Ld\n" begin_pos end_pos
   ) segments;
+*)
   segments
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+    
+let _ = 
+  Heap.add_memstat "CommonFile" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) files_by_num;
+      Printf.bprintf buf "  files: %d\n" !counter;
+  )
+
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         Protect globals                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let com_files_by_num = files_by_num
+let files_by_num = ()

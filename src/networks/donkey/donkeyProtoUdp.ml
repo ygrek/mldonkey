@@ -39,6 +39,7 @@ module QueryReplyUdp  = struct
         "\003", "type";
         "\004", "format";
         "\021", "availability";
+	"\048", "completesources";
       ]        
         
     let get_file  s pos =

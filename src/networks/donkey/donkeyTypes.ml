@@ -19,7 +19,7 @@
 
 open Queues
 open Md4
-open CommonSwarming
+open CommonDownloads
 open CommonTypes
 
   (*
@@ -126,7 +126,23 @@ type file_tag_name =
 | FT_FILE_DISKNAME
 | FT_FILE_PRIORITY
 | FT_FILE_STATUS
-*)  
+    *)  
+
+type emule_proto = {
+    mutable emule_comments : int;
+    mutable emule_version : int;
+    mutable emule_secident : int;
+    mutable emule_noviewshared : int;
+    mutable emule_supportpreview : int;
+
+    mutable emule_compression : int;
+    mutable emule_sourceexchange : int;
+    mutable emule_multipacket : int;
+    mutable emule_extendedrequest : int;
+    mutable emule_features : int;
+    mutable emule_udpver : int;
+  }
+
 type emule_tag_name =
 | ET_COMPRESSION
 | ET_UDPPORT
@@ -257,8 +273,9 @@ type brand_mod =
 | Brand_mod_blackmule
 | Brand_mod_morphxt
 | Brand_mod_ngdonkey
+| Brand_mod_cyrex
 
-let brand_mod_count = 72
+let brand_mod_count = 73
 
 type source_uid = 
   Direct_address of Ip.t * int
@@ -271,7 +288,9 @@ module DonkeySources = CommonSources.Make(struct
       
       type t = source_uid
       type source_uid = t
-      
+
+      let module_name = "DonkeySources"
+        
       let direct_source s =
         match s with Direct_address _ -> true | _ -> false
       
@@ -458,6 +477,16 @@ and client = {
     mutable client_slot : slot_status;
     mutable client_debug : bool;
     mutable client_pending_messages: string list;
+    client_emule_proto : emule_proto;
+    mutable client_comp : compressed_parts option;
+  }
+  
+and compressed_parts = {
+    comp_md4 : Md4.t;
+    comp_pos : int64; 
+    comp_total : int;
+    mutable comp_len : int;
+    mutable comp_blocs : string list;
   }
 
 and slot_status = 
@@ -839,4 +868,23 @@ let dummy_source = {
     source_in_queues = [];
     source_sock = NoConnection;
   }
-*)
+    *)
+
+
+let dummy_emule_proto = {
+    emule_comments = 0;
+    emule_version = 0;
+    emule_secident = 0;
+    emule_noviewshared = 0;
+    emule_supportpreview = 0;
+    
+    emule_compression = 0; (* 1 *)
+    emule_sourceexchange = 0; (* 3 *)
+    emule_multipacket = 0; (* 1 *)
+    emule_extendedrequest = 0; (* 2 *)
+    emule_features = 0; (* 3 *)
+    emule_udpver = 0; (* 4 *)
+  }
+
+let emule_proto () = 
+  { dummy_emule_proto with emule_version = 0 }

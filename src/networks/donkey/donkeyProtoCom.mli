@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open DonkeyTypes
 (*
 type server_msg = DonkeyProtoServer.t 
 type client_msg =  DonkeyProtoClient.t 
@@ -27,8 +27,8 @@ type client_sock = TcpBufferedSocket.t
     *)
 
 val server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
-val client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
-val emule_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+val client_send : client -> DonkeyProtoClient.t -> unit
+(*val emule_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit *)
 val servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 
   
@@ -41,9 +41,10 @@ TcpBufferedSocket.t -> int -> unit
 val cut_messages : (int -> string -> 'a) ->
     ('a -> TcpBufferedSocket.t -> 'b) -> TcpBufferedSocket.t -> int -> unit
   
-val client_handler2 : 'a option ref ->
-    (DonkeyProtoClient.t -> TcpBufferedSocket.t -> 'a option) ->
-    ('a -> DonkeyProtoClient.t -> TcpBufferedSocket.t -> unit) ->
+val client_handler2 : 
+  client option ref ->
+    (DonkeyProtoClient.t -> TcpBufferedSocket.t -> client option) ->
+  (client -> DonkeyProtoClient.t -> TcpBufferedSocket.t -> unit) ->
   TcpBufferedSocket.t -> int -> unit
   
   (*
@@ -63,21 +64,19 @@ val udp_basic_handler :
   UdpSocket.event -> unit
 
 val server_msg_to_string : DonkeyProtoServer.t -> string
-val client_msg_to_string : DonkeyProtoClient.t -> string
+val client_msg_to_string : emule_proto -> DonkeyProtoClient.t -> string 
   
-val direct_server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
-val direct_client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
-val direct_client_sock_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
-val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
-val direct_server_send_share : 
-  bool -> TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit
-val direct_client_send_files : 
-    TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
+val direct_client_sock_send : emule_proto -> TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+
+val server_send_share : 
+  bool -> TcpBufferedSocket.t  -> file list -> unit
+val client_send_files : 
+    TcpBufferedSocket.t -> file list -> unit
   
 val new_string :  DonkeyProtoClient.t -> string -> unit
   
-val tag_file : DonkeyTypes.file -> CommonTypes.tag list
+val tag_file : file -> CommonTypes.tag list
  
 
-val udp_server_send : DonkeyTypes.server -> DonkeyProtoUdp.t -> unit
+val udp_server_send : server -> DonkeyProtoUdp.t -> unit
   

@@ -23,7 +23,7 @@ open Md4
 open Options
 open BasicSocket
   
-open CommonSwarming
+open CommonDownloads
 open CommonTypes
 open CommonFile
 

@@ -22,7 +22,7 @@
 *)
 
 open Queues
-open CommonSwarming
+open CommonDownloads
 open Printf2
 open Md4
 open CommonOptions

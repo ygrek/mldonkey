@@ -26,7 +26,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let fileTP_ini = create_options_file (
     Filename.concat file_basedir "fileTP.ini")
 
-let fileTP_section = file_section fileTP_ini [] ""  
+let fileTP_section = file_section fileTP_ini ["FileTP"] "FileTP options"  
   
   (*
 let enabled = define_option fileTP_section

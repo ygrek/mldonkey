@@ -70,7 +70,7 @@ let query_location file sock =
   if !verbose_location then begin
       lprintf "\nServer: Query Location of %s\n" (file_best_name file);
     end;
-  direct_server_send sock (
+  server_send sock (
     let module M = DonkeyProtoServer in
     let module C = M.QueryLocation in
     M.QueryLocationReq file.file_md4
@@ -183,7 +183,7 @@ let client_to_server s t sock =
           s.server_score <- s.server_score + 5;
           connection_ok (s.server_connection_control);
           
-          direct_server_send sock (
+          server_send sock (
             let module A = M.AckID in
             M.AckIDReq A.t
           );
@@ -259,7 +259,7 @@ queries. *)
       s.server_nfiles <- files;
       if (users < !!min_users_on_server) then
         begin
-          Printf.printf "%s:%d remove server min_users_on_server limit hit!"
+          lprintf "%s:%d remove server min_users_on_server limit hit!"
             (Ip.to_string s.server_ip) s.server_port; print_newline ();
           
           disconnect_server s Closed_for_timeout;
@@ -305,7 +305,7 @@ connection from another client. In this case, we should immediatly connect.
           if !xs_last_search = search.search_num && nres = 201 &&
             search.search_nresults < search.search_max_hits then
             begin
-              direct_server_send sock M.QueryMoreResultsReq;
+              server_send sock M.QueryMoreResultsReq;
               Fifo.put s.server_search_queries search      
             end;
           DonkeyUdp.search_handler search t
@@ -404,7 +404,7 @@ let connect_server s =
                 s.server_queries_credit <- 0;
                 s.server_sock <- Connection sock;
                 incr nservers;
-                direct_server_send sock (
+                server_send sock (
                   let module M = DonkeyProtoServer in
                   let module C = M.Connect in
                   M.ConnectReq {
@@ -595,7 +595,7 @@ let update_master_servers _ =
             do_if_connected  s.server_sock (fun sock ->
                 s.server_master <- true;
                 incr nmasters;
-                direct_server_send_share s.server_has_zlib sock
+                server_send_share s.server_has_zlib sock
                   (DonkeyShare.all_shared ())
             )
           end else
@@ -748,7 +748,7 @@ the fewer users. *)
           end;
         s.server_master <- true;
         incr nmasters;
-        direct_server_send_share s.server_has_zlib sock
+        server_send_share s.server_has_zlib sock
           (DonkeyShare.all_shared ())        
     )
   in

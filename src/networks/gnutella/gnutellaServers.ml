@@ -18,7 +18,7 @@
 *)
 
 open Queues
-open CommonSwarming
+open CommonDownloads
 open Printf2
 open Md4
 open CommonOptions
@@ -539,11 +539,11 @@ let ask_for_files () =
 
     
 let udp_handler p =
-  let (ip,port) = match p.UdpSocket.addr with
+  let (ip,port) = match p.UdpSocket.udp_addr with
     | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
     | _ -> raise Not_found
   in
-  let buf = p.UdpSocket.content in
+  let buf = p.UdpSocket.udp_content in
   let len = String.length buf in
   GnutellaHandler.udp_handler ip port buf
       

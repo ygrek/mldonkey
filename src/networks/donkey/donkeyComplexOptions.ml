@@ -21,7 +21,7 @@ open Printf2
 open BasicSocket
 open Md4
   
-open CommonSwarming
+open CommonDownloads
   
 open CommonClient
 open CommonServer
@@ -381,7 +381,6 @@ let file_to_value file =
         (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
       "file_md4s", array_to_value Md4.hash_to_value 
         file.file_md4s;
-      "file_downloaded", int64_to_value (file_downloaded file);
 (*      "file_mtime", float_to_value (
         try Unix32.mtime (file_disk_name file) with _ -> 0.0) *)
     ]

@@ -19,20 +19,46 @@
 
 open CommonTypes
 
-type strategy =
-  LinearStrategy    (* one after the other one *)
-| AdvancedStrategy  (* first chunks first, rarest chunks second, 
+module Make (M : sig
+      
+      module CommonTypes : sig
+          type file
+          type client
+        end
+      
+      open CommonTypes
+      module CommonClient : sig
+          val client_num : client -> int          
+        end
+      
+      module CommonFile : sig
+          val file_num : file -> int          
+          val set_file_last_seen : file -> int -> unit
+          val file_size : file -> int64
+          val file_best_name : file -> string
+          val file_state : file -> file_state
+          val file_fd : file -> Unix32.t
+        end
+    
+    end) : sig
+    
+    open M
+    open CommonTypes
+    
+    
+    type strategy =
+      LinearStrategy    (* one after the other one *)
+    | AdvancedStrategy  (* first chunks first, rarest chunks second, 
      complete first third, and random final *)
-
-exception VerifierNotReady
-  
-module Int64Swarmer :
-  sig
+    
+    exception VerifierNotReady
+      
+      
     type t
     and range
     and uploader
     and block
-    
+      
     type chunks =
       AvailableRanges of (int64 * int64) list
 (* A bitmap is encoded with '0' for empty, '1' for present *)

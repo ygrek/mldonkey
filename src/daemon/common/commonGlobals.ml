@@ -195,38 +195,6 @@ let _ =
 let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
 let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
-    
-(*
-  
-    
-val verify_ip : TcpBufferedSocket.t -> unit
-
-  
-val ip_verified : int ref
-  
-  
-val can_open_connection : unit -> bool
-      
-val new_connection_control : float -> CommonTypes.connection_control
-val connection_ok : CommonTypes.connection_control -> unit
-val connection_failed : CommonTypes.connection_control -> unit
-val connection_can_try : CommonTypes.connection_control -> bool
-val connection_must_try : CommonTypes.connection_control -> unit
-val connection_set_last_conn : CommonTypes.connection_control -> float -> unit
-val connection_last_conn :  CommonTypes.connection_control -> float
-val connection_try : CommonTypes.connection_control -> unit
-val connection_delay : CommonTypes.connection_control -> unit
-  
-val printf_char : char -> unit
-val printf_string : string -> unit
-  
-val one_day : float
-val half_day : float
-
-val upload_control : TcpBufferedSocket.bandwidth_controler
-val download_control : TcpBufferedSocket.bandwidth_controler
-
-*)
   
 let gui_server_sock = ref (None : TcpServerSocket.t option)
   
@@ -362,6 +330,13 @@ let string_of_tags tags =
   ) tags;
   Buffer.contents buf
 
+let rec find_tag name tags =
+  match tags with
+    [] -> raise Not_found
+  | { tag_name = tag_name; tag_value = v } :: _ when tag_name = name -> v
+  | _ :: tail -> find_tag name tail
+      
+      
       
   
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
@@ -660,12 +635,30 @@ let detected_uplink_capacity () =
 let int_tag s i = 
   { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
 
-let int32_tag s i = 
+let int64_tag s i = 
   { tag_name = s; tag_value = Uint64 i }
 
 let string_tag s i = 
   { tag_name = s; tag_value = String i }
 
+let for_int_tag tag f =
+  match tag.tag_value with
+    Uint64 i | Fint64 i -> f (Int64.to_int i)
+  | String _ -> ()
+  | Addr _ -> ()
+
+let for_int64_tag tag f =
+  match tag.tag_value with
+    Uint64 i | Fint64 i -> f i
+  | String _ -> ()
+  | Addr _ -> ()
+
+let for_string_tag tag f =
+  match tag.tag_value with
+    Uint64 _ | Fint64 _ -> ()
+  | String s -> f s
+  | Addr _ -> ()
+      
 (* Name,FrameHeight *)
 let html_mods_styles = ref
   [| ("Green",42) ; ("Tang",42); ("L.Blue",42); 

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open Md4
 open Options
@@ -194,19 +195,11 @@ let _ =
   register_commands "Driver/General"
   [
 
-(*
     "dump_heap", Arg_none (fun o ->
-        Heap.print_memstats ();
+(*        Gc.dump_heap (); *)
         "heap dumped"
     ), ":\t\t\t\tdump heap for debug";
-    
-    "dump_usage", Arg_none (fun o ->
-        Heap.dump_usage ();
-        "usage dumped"
-    ), ":\t\t\t\tdump main structures for debug";
-*)
-    
-        
+
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
     ), ":\t\t\t\t\t$bclose telnet$n";
@@ -1264,7 +1257,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_mods_max_messages; 
                         strings_of_option html_mods_bw_refresh_delay; 
                         strings_of_option use_html_frames; 
-                        strings_of_option html_checkbox_file_list;     
+                        strings_of_option html_checkbox_vd_file_list;     
+                        strings_of_option html_checkbox_search_file_list;     
                         strings_of_option commands_frame_height; 
                         strings_of_option display_downloaded_results; 
                         strings_of_option vd_reload_delay; 
@@ -1913,7 +1907,7 @@ let _ =
                     else (file_priority file) + p in
                   let priority = if priority < -100 then -100 else
                     if priority > 100 then 100 else priority in
-                  file_set_priority file priority;
+                  set_file_priority file priority;
                   Printf.bprintf buf "Setting priority of %s to %d\n"
                     (file_best_name file) (file_priority file);
                 with _ -> failwith (Printf.sprintf "No file number %s" arg)
@@ -1948,13 +1942,15 @@ let _ =
         
         let num = int_of_string num in
         let file = file_find num in
-        let segments = recover_bytes file in
+        let segments = CommonFile.recover_bytes file in
         let buf = o.conn_buf in
         Printf.bprintf buf "Segments:\n";
+        let downloaded = ref zero in
         List.iter (fun (begin_pos, end_pos) ->
-            Printf.bprintf buf "   %Ld - %Ld\n" begin_pos end_pos
+            Printf.bprintf buf "   %Ld - %Ld\n" begin_pos end_pos;
+            downloaded := !downloaded ++ (end_pos -- begin_pos);
         ) segments;
-        ""
+        Printf.sprintf "Downloaded: %Ld\n" !downloaded
     ), " <num> : print the segments downloaded in file";
         
     

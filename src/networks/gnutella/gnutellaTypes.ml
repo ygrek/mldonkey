@@ -21,7 +21,7 @@ open Queues
 open Md4
 
 open CommonTypes
-open CommonSwarming
+open CommonDownloads
 
 
 type query_key =

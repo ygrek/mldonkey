@@ -153,7 +153,7 @@ let send_search search query =
       do_if_connected s.server_sock (fun sock ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
-          direct_server_send sock (M.QueryReq query);
+          server_send sock (M.QueryReq query);
           Fifo.put s.server_search_queries search
       )
   ) (connected_servers());
@@ -168,10 +168,10 @@ let send_subscribe search query =
   List.iter (fun s ->
       do_if_connected  s.server_sock (fun sock ->
           if s.server_mldonkey then
-            direct_server_send sock (
+            server_send sock (
               M.Mldonkey_SubscribeReq (search.search_num, 3600, query))
           else begin
-              direct_server_send sock (M.QueryReq query);
+              server_send sock (M.QueryReq query);
               Fifo.put s.server_search_queries search
             end
       )

@@ -702,7 +702,7 @@ search.op_search_end_reply_handlers;
           
           | P.SetFilePriority (num, prio) ->
               let file = file_find num in
-              file_set_priority file prio;
+              set_file_priority file prio;
               CommonInteractive.force_download_quotas ()
           
           | P.SaveFile (num, name) ->
@@ -794,7 +794,7 @@ search.op_search_end_reply_handlers;
                   let file = file_find num in
                   let filename = file_disk_name file in
                   let format = CommonMultimedia.get_info filename in
-                  file_set_format file format;
+                  set_file_format file format;
                   file_must_update file;
                 with _ -> ()
               end

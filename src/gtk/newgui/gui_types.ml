@@ -120,6 +120,7 @@ type gui_result_info = {
     mutable gresult_codec : string;
     mutable gresult_bitrate : int;
     mutable gresult_availability : int;
+    mutable gresult_completesources : int;
     mutable gresult_comment : string;
     mutable gresult_done : bool;
     mutable gresult_pixmap : GDraw.pixmap option;

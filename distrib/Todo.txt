@@ -2,8 +2,13 @@ TODO list for client
 ====================
 
 URGENT:
- * set_present_chunks does not compute the correct "downloaded" value !
+ * Understand why we ask several times for the same chunks
+ * Only request slots from interesting clients
+ * Propagate client bitmaps to GUI
  * Seeding in Bittorrent doesn't work
+ * In 'recover_bytes/set_present', there might be some corruption causing
+    the downloaded size to decrease instead of increasing. We should not
+    maybe allow verification during this phase to have a correct computation.
 
 
 

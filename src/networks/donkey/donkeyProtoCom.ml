@@ -40,13 +40,14 @@ let buf = TcpBufferedSocket.internal_buf
   
 
         
-let client_msg_to_string magic msg =
+let client_msg_to_string emule_version msg =
   Buffer.clear buf;
-  buf_int8 buf magic;
+  buf_int8 buf 0;
   buf_int buf 0;
-  DonkeyProtoClient.write buf msg;
+  let magic = DonkeyProtoClient.write emule_version buf msg in
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
+  s.[0] <- char_of_int magic;
   str_int s 1 len;
   s
   
@@ -75,10 +76,11 @@ let server_send sock m =
 *)
   write_string sock (server_msg_to_string m)
 
-let direct_client_sock_send sock m =
-  write_string sock (client_msg_to_string 227 m)
+let direct_client_sock_send emule_version sock m =
+  write_string sock (client_msg_to_string emule_version m)
   
 let client_send c m =
+  let emule_version = c.client_emule_proto in
   if !verbose_msg_clients || c.client_debug then begin
       lprintf "Sent to client[%d] %s(%s)" (client_num c)
         c.client_name (brand_to_string c.client_brand);
@@ -93,8 +95,9 @@ let client_send c m =
       lprint_newline ();
     end;
   do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
-      direct_client_sock_send sock m)
+      direct_client_sock_send emule_version sock m)
 
+  (*
 let emule_send sock m =
   let m = client_msg_to_string 0xc5 m in
   (*
@@ -103,8 +106,9 @@ let emule_send sock m =
   lprint_newline ();
   lprint_newline (); *)
   write_string sock m
+    *)
 
-let client_msg_to_string m = client_msg_to_string 227 m
+(* let client_msg_to_string m = client_msg_to_string 227 m *)
   
 let servers_send socks m =
   let m = server_msg_to_string m in
@@ -112,6 +116,10 @@ let servers_send socks m =
   
       
 let client_handler2 c ff f =
+  let emule_version = match !c with
+      None -> emule_proto ();
+    | Some c -> c.client_emule_proto
+  in
   let msgs = ref 0 in
   fun sock nread ->
 
@@ -133,12 +141,13 @@ let client_handler2 c ff f =
               end;
             let s = String.sub b.buf (b.pos+5) msg_len in
             buf_used b  (msg_len + 5);
-            let t = M.parse opcode s in
+            let t = M.parse emule_version opcode s in
 (*          M.print t;   
 lprint_newline (); *)
             incr msgs;
             match !c with
-              None -> c := ff t sock
+              None -> 
+                c := ff t sock
             | Some c -> f c t sock
           end
         else raise Not_found
@@ -187,7 +196,7 @@ let udp_handler f sock event =
     UdpSocket.READ_DONE ->
       UdpSocket.read_packets sock (fun p -> 
           try
-            let pbuf = p.UdpSocket.content in
+            let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
             if len > 0 then
               let t = M.parse (int_of_char pbuf.[0])
@@ -203,7 +212,7 @@ let udp_basic_handler f sock event =
     UdpSocket.READ_DONE ->
       UdpSocket.read_packets sock (fun p -> 
           try
-            let pbuf = p.UdpSocket.content in
+            let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
             if len = 0 || 
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
@@ -228,15 +237,6 @@ let new_string msg s =
   
 let empty_string = ""
   
-let direct_servers_send s msg =
-  servers_send s msg
-  
-let direct_client_send s msg =
-    client_send s msg
-  
-let direct_server_send s msg =
-  server_send s msg
-
 let tag_file file =
   (string_tag "filename"
     (
@@ -249,7 +249,7 @@ let tag_file file =
         end;
       name
     ))::
-  (int32_tag "size" file.file_file.impl_file_size) ::
+  (int64_tag "size" file.file_file.impl_file_size) ::
   (
     (match file.file_format with
         FormatNotComputed next_time when
@@ -300,8 +300,20 @@ let make_tagged sock files =
           f_tags = tag_file file;
         }
     ) files)
+
+(* Computes tags for shared files with the special ip and port values for newer servers*)
+let make_tagged_server sock files =
+  (List2.tail_map (fun file ->
+        {
+          f_md4 = file.file_md4;
+          f_ip = (if (file_state file = FileShared) then Ip.of_string "251.251.251.251" else Ip.of_string "252.252.252.252");
+          f_port = (if (file_state file = FileShared) then 0xFBFB else 0xFCFC);
+          f_tags = tag_file file;
+        }
+    ) files)
   
-let direct_server_send_share compressed sock msg =
+  
+let server_send_share compressed sock msg =
 
 (*  lprintf "SEND %d FILES TO SHARE" (List.length msg); lprint_newline ();*)
   
@@ -316,7 +328,7 @@ let direct_server_send_share compressed sock msg =
     if compressed && Autoconf.has_zlib then begin
         buf_int buf 0;
         let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
-            make_tagged (Some sock) msg) 0 max_len in
+            make_tagged_server (Some sock) msg) 0 max_len in
         let s = Buffer.contents buf in
         str_int s 0 nfiles;
         let s = String.sub s 0 prev_len in        
@@ -344,7 +356,7 @@ let direct_server_send_share compressed sock msg =
   str_int s 1 len;
   write_string sock s
   
-let direct_client_send_files sock msg =
+let client_send_files sock msg =
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in
   Buffer.clear buf;

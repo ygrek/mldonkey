@@ -21,16 +21,11 @@ open CommonSwarming
 open Md4
 
 val clean_current_download : DonkeyTypes.client -> unit
-(* val restart_download : DonkeyTypes.client -> unit *)
 val get_from_client : DonkeyTypes.client -> unit
 val request_slot : DonkeyTypes.client -> unit
-(* val client_file : DonkeyTypes.client -> DonkeyTypes.file *)
-(* val next_file : DonkeyTypes.client -> unit *)
-(*val set_file_size : DonkeyTypes.file -> int64 -> unit *)
 val check_files_downloaded : unit -> unit
-(*val client_has_chunks : DonkeyTypes.client -> DonkeyTypes.file ->
-  bool array -> unit *)
-val block_received : DonkeyTypes.client -> DonkeyProtoClient.Bloc.t -> unit
+  val block_received :
+    DonkeyTypes.client -> Md4.t -> int64 -> string -> int -> int -> unit
 val add_client_chunks : DonkeyTypes.client ->
   DonkeyTypes.file -> bool array -> unit
 

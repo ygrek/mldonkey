@@ -421,6 +421,7 @@ module QueryReply  = struct
         "\003", "type";
         "\004", "format";
         "\021", "availability";
+	"\048", "completesources";
       ]        
 
           
@@ -525,6 +526,7 @@ module Query  = struct (* request 22 *)
         "\003", "type";
         "\004", "format";
         "\021", "availability";
+	"\048", "completesources";
       ]
     
     let rec parse_query s pos =

@@ -26,7 +26,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 open CommonSources
-open CommonSwarming
+open CommonDownloads
 open CommonInteractive
 open CommonSearch
 open CommonGlobals
@@ -1214,8 +1214,15 @@ let check_file_downloaded file =
             if bitmap.[i] = '3' then iter (i+1) else false
           in
           let verified = iter 0 in
+          
+          let downloaded = Int64Swarmer.downloaded swarmer in
+          if file_downloaded file <> downloaded then begin
+              lprintf "ERROR: file_downloaded file (%Ld) <> downloaded swarmer (%Ld)\n"
+                (file_downloaded file) downloaded
+            end;
+          
           if verified then begin
-              if (file_size file <> Int64Swarmer.downloaded swarmer)
+              if (file_size file <> downloaded)
               then
                 lprintf "DonkeyOneFile: Downloaded size differs after complete verification\n";
               download_finished file
@@ -1325,20 +1332,21 @@ let send_get_range_request c file ranges =
       in
       let msg = M.QueryBlocReq msg in
       set_read_power sock (!!upload_power + maxi 0 (file_priority file));
-      lprintf "QUEUE DOWNLOAD REQUEST\n";
-      CommonUploads.queue_download_request (fun _ -> 
-          direct_client_send c msg ) (Int64.to_int len) 
+(*      lprintf "QUEUE DOWNLOAD REQUEST\n"; *)
+(*      CommonUploads.queue_download_request (fun _ ->  *)
+          client_send c msg 
+(*          ) (Int64.to_int len) *)
   | _ -> assert false
       
 let rec get_from_client c =
   match c.client_download with
     None ->
-      lprintf "get_from_client: no download\n";
+(*      lprintf "get_from_client: no download\n"; *)
       begin
         match c.client_file_queue with
           [] -> 
             
-            lprintf "get_from_client: no more file\n";
+(*            lprintf "get_from_client: no more file\n"; *)
             if not (client_has_a_slot (as_client c)) then begin
 (*                connection_delay c.client_connection_control; *)
                 match c.client_source.DonkeySources.source_sock with
@@ -1351,7 +1359,7 @@ let rec get_from_client c =
         | (file, chunks, up) :: tail ->
 
 (* Should we start a download without asking for a slot first ?? *)
-            lprintf "get_from_client: next file\n";
+(*            lprintf "get_from_client: next file\n"; *)
             c.client_download <- Some (file,up);
             get_from_client c
       end
@@ -1394,19 +1402,19 @@ let rec get_from_client c =
 (* We already have 3 ranges in the current block *)
           ()
       with Not_found ->
-          lprintf "get_from_client: no range\n";
+(*          lprintf "get_from_client: no range\n"; *)
           try
             let b = Int64Swarmer.find_block up in
             get_from_client c
             
           with Not_found ->
-              lprintf "get_from_client: no block\n";
+(*              lprintf "get_from_client: no block\n"; *)
               match Int64Swarmer.current_ranges up with
                 [] ->
 (* We have nothing to wait for in the current file *)
                   begin
                     
-                    lprintf "get_from_client: no expected ranges\n";
+(*                    lprintf "get_from_client: no expected ranges\n"; *)
                     
                     c.client_download <- None;
                     Int64Swarmer.unregister_uploader up;
@@ -1434,40 +1442,31 @@ let request_slot c =
           match c.client_file_queue with
             [] -> ()
           | (file, _,_ ) :: _ ->
-
-              direct_client_send c (
+              client_send c (
                 let module M = DonkeyProtoClient in
                 let module Q = M.JoinQueue in
-                M.JoinQueueReq Q.t);
+                M.JoinQueueReq (Some file.file_md4));
               c.client_slot <- SlotAsked;
       )
     end
   
-let block_received c t = 
-  let module M = DonkeyProtoClient in  
-  let module Q = M.Bloc in
+let block_received c md4 begin_pos bloc bloc_pos bloc_len = 
+    
   match c.client_download with
     None -> 
-      lprintf "DonkeyOneFile.block_received: block received but no file !\n  Received: %s\n" (Md4.to_string t.Q.md4)
+      lprintf "DonkeyOneFile.block_received: block received but no file !\n  Received: %s\n" (Md4.to_string md4)
   | Some (file, up) ->
       
-      if file.file_md4 <> t.Q.md4 then begin
-          lprintf "DonkeyOneFile.block_received: block for bad file\n  Received: %s\n  Expected: %s\n" (Md4.to_string t.Q.md4) (Md4.to_string file.file_md4)
+      if file.file_md4 <> md4 then begin
+          lprintf "DonkeyOneFile.block_received: block for bad file\n  Received: %s\n  Expected: %s\n" (Md4.to_string md4) (Md4.to_string file.file_md4)
         end else begin
           DonkeySources.set_request_result c.client_source file.file_sources File_upload;
           
           c.client_rating <- c.client_rating + 10;
           
-          let begin_pos = t.Q.start_pos in
-          let end_pos = t.Q.end_pos in
-          
           set_client_state c (Connected_downloading (file_num file));
-          let len = Int64.sub end_pos begin_pos in
-          if Int64.to_int len <> t.Q.bloc_len then begin
-              lprintf "%d: inconsistent packet sizes\n" (client_num c);
-              raise Not_found
-            end;
-          count_download c file len;
+          let len64 = Int64.of_int bloc_len in
+          count_download c file len64;
 
 (* TODO: verify the received data has been requested *)
           
@@ -1476,9 +1475,7 @@ let block_received c t =
           
           begin
             try
-              Int64Swarmer.received up
-                begin_pos
-                t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+              Int64Swarmer.received up begin_pos bloc bloc_pos bloc_len
             with
             | e ->
                 let m =
@@ -1513,11 +1510,9 @@ let block_received c t =
           if new_downloaded <> old_downloaded then 
             add_file_downloaded file.file_file 
               (new_downloaded -- old_downloaded);
-          if new_downloaded -- old_downloaded < end_pos -- begin_pos then
+          if new_downloaded -- old_downloaded < len64 then
             lprintf "ALREADY RECEIVED: %Ld < %Ld\n"
-              (new_downloaded -- old_downloaded)
-            (end_pos -- begin_pos);
-          
+              (new_downloaded -- old_downloaded) len64;          
           get_from_client c
 
 (*

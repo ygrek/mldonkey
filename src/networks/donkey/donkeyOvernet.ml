@@ -696,13 +696,13 @@ let recover_all_files () =
   ) !DonkeyGlobals.current_files
   
 let ip_of_udp_packet p =
-  match p.UdpSocket.addr with
+  match p.UdpSocket.udp_addr with
     Unix.ADDR_INET (inet, port) ->
       Ip.of_inet_addr inet
   | _ -> assert false
     
 let port_of_udp_packet p =
-  match p.UdpSocket.addr with
+  match p.UdpSocket.udp_addr with
     Unix.ADDR_INET (inet, port) -> port
   | _ -> assert false
       
@@ -838,7 +838,7 @@ let udp_client_handler t p =
       begin
         try 
           let (s_ip, s_port) as s_addr =
-            match p.UdpSocket.addr with
+            match p.UdpSocket.udp_addr with
             | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
             | _ -> raise Not_found
           in                  
@@ -881,7 +881,7 @@ let udp_client_handler t p =
             begin
               try 
                 let (s_ip, s_port) as s_addr =
-                  match p.UdpSocket.addr with
+                  match p.UdpSocket.udp_addr with
                   | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
                   | _ -> raise Not_found
                 in                  
@@ -932,7 +932,7 @@ let udp_client_handler t p =
           begin
             try 
               let (s_ip, s_port) as s_addr =
-                match p.UdpSocket.addr with
+                match p.UdpSocket.udp_addr with
                 | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
                 | _ -> raise Not_found
               in                  

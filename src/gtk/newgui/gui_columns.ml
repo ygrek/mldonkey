@@ -203,6 +203,7 @@ type result_column =
 | Col_result_codec
 | Col_result_bitrate
 | Col_result_availability
+| Col_result_completesources
 | Col_result_comment
 | Col_result_network
   
@@ -215,8 +216,9 @@ let result_column_strings = [
     Col_result_codec,  M.c_codec, 5 ;
     Col_result_bitrate,  M.c_bitrate, 6 ;
     Col_result_availability,  M.c_avail, 7 ;
-    Col_result_comment,  M.c_comment, 8 ;
-    Col_result_network,  M.c_network, 9 ;
+    Col_result_completesources,  M.c_csour, 8 ;
+    Col_result_comment,  M.c_comment, 9 ;
+    Col_result_network,  M.c_network, 10 ;
   ] 
 
 module Result = Make(struct 

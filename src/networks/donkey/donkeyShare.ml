@@ -136,7 +136,7 @@ let send_new_shared () =
       List.iter (fun s ->
           if s.server_master then
             do_if_connected s.server_sock (fun sock ->
-                direct_server_send_share s.server_has_zlib sock list))
+                server_send_share s.server_has_zlib sock list))
       (connected_servers ());
     end
           

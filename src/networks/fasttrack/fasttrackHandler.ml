@@ -24,7 +24,7 @@ open TcpBufferedSocket
 open Options
 open AnyEndian
   
-open CommonSwarming  
+open CommonDownloads  
 open CommonUploads
 open CommonOptions
 open CommonSearch

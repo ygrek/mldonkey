@@ -480,9 +480,11 @@ let html_mods_theme = define_option current_section
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
   
-let html_checkbox_file_list = define_expert_option current_section
-    ["html_checkbox_file_list"] "Whether to use checkboxes in the WEB interface" bool_option true
+let html_checkbox_vd_file_list = define_expert_option current_section
+    ["html_checkbox_vd_file_list"] "Whether to use checkboxes in the WEB interface for download list" bool_option true
 
+let html_checkbox_search_file_list = define_expert_option current_section
+    ["html_checkbox_search_file_list"] "Whether to use checkboxes in the WEB interface for search result list" bool_option false
   
   
 
@@ -669,11 +671,10 @@ let delete_original = define_option current_section ["delete_original"]
     bool_option false
     *)
 
-let max_recover_gap = define_option current_section ["max_recover_gap"]
+let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
-should be interpreted as downloaded during a recovery (0 = no recover at
-byte level, 1 is the minimum)"
-    int64_option Int64.zero
+should be interpreted as downloaded during a recovery"
+    int64_option (Int64.of_int 16)
     
 let file_completed_cmd = define_option current_section 
     ["file_completed_cmd"] "A command that is called when a file is completely
@@ -732,7 +733,7 @@ let recover_temp_on_startup = define_option current_section
 let config_files_security_space = define_expert_option current_section
     ["config_files_security_space"]
   "How many megabytes should MLdonkey keep for saving configuration files."
-    int_option 3
+    int_option 10
 
 let propagate_servers = define_expert_option current_section ["propagate_servers"]
   "Send an UDP packet to a central servers with the list of servers you
@@ -1070,11 +1071,6 @@ let server_connection_timeout = define_expert_option current_section
   ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 15.
   
-let new_print_search = define_expert_option current_section
-    ["new_print_search"] "Use new display of search results (with tables,
-    which might be slower for your browser to display)"
-    bool_option false 
-
 let download_sample_rate = define_expert_option current_section ["download_sample_rate"]
   "The delay between one glance at a file and another" float_option 1.
  

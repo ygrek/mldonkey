@@ -33,7 +33,40 @@ open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
 
+(* TODO: add all the functionnalities that the dp500 lacks:
+  - shuffled directory (reply with random mp3 from directory)
+  - shuffled tree (reply with random mp3 from tree)
+  - search by subword (give a tree structure with the 26 letters per directory)
+*)
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global values                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
 let verbose_dp500 = ref true
+let pclink_buf = ref ""
+let pclink_buf_len = ref 0
+
+let pclink_socks = ref []    
+
+(* An horrible hack... The DP500 requires to have an extension of the
+file before playing it, so we add it after a @, but we then need
+to remove it when the file is received. *)
+
+let nregistered_files = ref 0
+let registered_files_of_diskname = Hashtbl.create 13
+let registered_files_of_num = Hashtbl.create 13
+
+let max_best_name_len = 100
+let max_disk_name_len = 80
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         pclink_reader                                 *)
+(*                                                                       *)
+(*************************************************************************)
   
 let pclink_reader telnet sock nread = 
   let b = buf sock in
@@ -67,8 +100,11 @@ let pclink_reader telnet sock nread =
     write s b.buf b.pos b.len;
     buf_used b b.len
 
-let pclink_buf = ref ""
-let pclink_buf_len = ref 0
+(*************************************************************************)
+(*                                                                       *)
+(*                         good_file                                     *)
+(*                                                                       *)
+(*************************************************************************)
 
 let good_file kind is_dir file =
   String.length file > 1 && file.[0] <> '.' && 
@@ -84,16 +120,11 @@ let good_file kind is_dir file =
           if !verbose_dp500 then lprintf "Unknow kind [%s]\n" kind;
           []))
 
-(* An horrible hack... The DP500 requires to have an extension of the
-file before playing it, so we add it after a @, but we then need
-to remove it when the file is received. *)
-
-let nregistered_files = ref 0
-let registered_files_of_diskname = Hashtbl.create 13
-let registered_files_of_num = Hashtbl.create 13
-
-let max_best_name_len = 100
-let max_disk_name_len = 80
+(*************************************************************************)
+(*                                                                       *)
+(*                         need_correction                               *)
+(*                                                                       *)
+(*************************************************************************)
   
 let need_correction best_name disk_name =
   
@@ -103,6 +134,12 @@ let need_correction best_name disk_name =
     let disk_ext = Filename2.last_extension disk_name in  
     String.lowercase best_ext <> String.lowercase disk_ext)
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         correct_length                                *)
+(*                                                                       *)
+(*************************************************************************)
+
 let correct_length best_name =
   let len = String.length best_name in
   if len > max_best_name_len then
@@ -111,6 +148,12 @@ let correct_length best_name =
   else
     best_name
     
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         register_file                                 *)
+(*                                                                       *)
+(*************************************************************************)
   
 let register_file best_name disk_name =
   
@@ -140,6 +183,12 @@ let register_file best_name disk_name =
         n
   in
   correct_length best_name, Printf.sprintf "%d@%s" n ext
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         correct_file                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let correct_file file =
   let file = 
@@ -162,6 +211,12 @@ let correct_file file =
       
     with _ -> file in
   file
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         exec_command                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let exec_command telnet line sock =
   try
@@ -321,91 +376,109 @@ let exec_command telnet line sock =
       close sock (Closed_for_error "");
       if !verbose_dp500 then lprintf "Exception %s for [%s]\n" (Printexc2.to_string e) line
       
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         pclink_reader                                 *)
+(*                                                                       *)
+(*************************************************************************)
       
 let pclink_reader telnet sock nread =
   if !telnet < 10 then
-  let b = buf sock in
-  if !verbose_dp500 then lprintf "BUFFER: [%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
-  let rec iter () =
-    if b.len > 0 then
-      if String2.starts_with b.buf "ACTION 2" then
-        let rec iter_pipe i =
-          if i < b.len then
-            if b.buf.[b.pos + i] = '|' then
-              let file = String.sub b.buf b.pos i in
-              let file = correct_file file in
-              buf_used b (i+1);
-              if !verbose_dp500 then lprintf "Existing file [%s]\n" (String.escaped file);
+    let b = buf sock in
+    if !verbose_dp500 then lprintf "BUFFER: [%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
+    let rec iter () =
+      if b.len > 0 then
+        if String2.starts_with b.buf "ACTION 2" then
+          let rec iter_pipe i =
+            if i < b.len then
+              if b.buf.[b.pos + i] = '|' then
+                let file = String.sub b.buf b.pos i in
+                let file = correct_file file in
+                buf_used b (i+1);
+                if !verbose_dp500 then lprintf "Existing file [%s]\n" (String.escaped file);
+                
+                write_string sock (
+                  if Sys.file_exists file then
+                    "200" 
+                  else 
+                    "404"
+                );
+                iter ()
+              else
+                iter_pipe (i+1)
+          in
+          buf_used b 9;
+          iter_pipe 0
+        else
+        if String2.starts_with b.buf "ACTION 1" then
+          let rec iter_pipe args i =
+            if i < b.len then
+              if b.buf.[b.pos + i] = '|' then
+                let file = String.sub b.buf b.pos i in
+                if !verbose_dp500 then lprintf "Argument [%s]\n" (String.escaped file);
+                buf_used b (i+1);
+                let args = file :: args in
+                if List.length args = 3 then begin
+                    
+                    let file = String.sub file 1 (String.length file - 1) in
+                    let file = correct_file file in
+                    if !verbose_dp500 then lprintf "Existing file [%s]\n" (String.escaped file);
+                    
+                    write_string sock (
+                      if Sys.file_exists file then
+                        "200" 
+                      else 
+                        "404"
+                    );
+                    
+                    
+                    iter ()
+                  end else
+                  iter_pipe args 0
+              else
+                iter_pipe args (i+1)
+          in
+          buf_used b 9;
+          iter_pipe [] 0
+        
+        else
+        let rec iter_nl i =
+          if i + 3 < b.len then
+            if 
+              b.buf.[b.pos + i] = '\r' &&
+              b.buf.[b.pos + i + 1] = '\n' &&
+              b.buf.[b.pos + i + 2] = '\r' &&
+              b.buf.[b.pos + i + 3] = '\n' then
+              let line = String.sub b.buf b.pos i in
+              buf_used b (i+4);
               
-              write_string sock (
-                if Sys.file_exists file then
-                  "200" 
-                else 
-                  "404"
-              );
+              if !verbose_dp500 then lprintf "Exec command [%s]\n" (String.escaped line);
+              exec_command telnet line sock;
               iter ()
             else
-              iter_pipe (i+1)
+              iter_nl (i+1)
         in
-        buf_used b 9;
-        iter_pipe 0
-      else
-      if String2.starts_with b.buf "ACTION 1" then
-        let rec iter_pipe args i =
-          if i < b.len then
-            if b.buf.[b.pos + i] = '|' then
-              let file = String.sub b.buf b.pos i in
-              if !verbose_dp500 then lprintf "Argument [%s]\n" (String.escaped file);
-              buf_used b (i+1);
-              let args = file :: args in
-              if List.length args = 3 then begin
-                  
-                  let file = String.sub file 1 (String.length file - 1) in
-                  let file = correct_file file in
-                  if !verbose_dp500 then lprintf "Existing file [%s]\n" (String.escaped file);
-                  
-                  write_string sock (
-                    if Sys.file_exists file then
-                      "200" 
-                    else 
-                      "404"
-                  );
-                  
-
-                  iter ()
-                end else
-                iter_pipe args 0
-            else
-              iter_pipe args (i+1)
-        in
-        buf_used b 9;
-iter_pipe [] 0
-        
-    else
-    let rec iter_nl i =
-      if i + 3 < b.len then
-        if 
-          b.buf.[b.pos + i] = '\r' &&
-          b.buf.[b.pos + i + 1] = '\n' &&
-          b.buf.[b.pos + i + 2] = '\r' &&
-          b.buf.[b.pos + i + 3] = '\n' then
-          let line = String.sub b.buf b.pos i in
-          buf_used b (i+4);
-          
-          if !verbose_dp500 then lprintf "Exec command [%s]\n" (String.escaped line);
-          exec_command telnet line sock;
-          iter ()
-        else
-          iter_nl (i+1)
-      in
-      iter_nl 0
-  in
-  iter ()
+        iter_nl 0
+    in
+    iter ()
     
-
-let pclink_socks = ref []    
+    
+(*************************************************************************)
+(*                                                                       *)
+(*                         pclink_closed                                 *)
+(*                                                                       *)
+(*************************************************************************)
   
 let pclink_closed sock reason = ()
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         pclink_handler                                *)
+(*                                                                       *)
+(*************************************************************************)
+
+  
 let pclink_handler t event = 
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->

@@ -310,6 +310,15 @@ let availability_of_tags tags =
   ) tags;
   !value
 
+let completesources_of_tags tags =
+  let value = ref 0 in
+  List.iter (fun t ->
+    match t.tag_name with
+        "completesources" -> value := int_of_tag_value t.tag_value
+      | _ -> ()
+  ) tags;
+  !value
+
 class box s_num columns () =
   let titles = List.map Gui_columns.Result.string_of_column !!columns in
   object (self)
@@ -407,6 +416,7 @@ class box s_num columns () =
       |	Col_result_codec -> compare r1.gresult_codec r2.gresult_codec
       |	Col_result_bitrate -> compare r1.gresult_bitrate r2.gresult_bitrate
       |	Col_result_availability -> compare r1.gresult_availability r2.gresult_availability
+      |	Col_result_completesources -> compare r1.gresult_completesources r2.gresult_completesources
       |	Col_result_comment -> compare r1.gresult_comment r2.gresult_comment
       | Col_result_network -> compare r1.gresult_network r2.gresult_network
           
@@ -435,6 +445,10 @@ class box s_num columns () =
           if r.gresult_availability = 0 
             then "" 
             else string_of_int r.gresult_availability
+      |	Col_result_completesources -> 
+          if r.gresult_completesources = 0 
+            then "" 
+            else string_of_int r.gresult_completesources
       | Col_result_network -> Gui_global.network_name r.gresult_network
       |	Col_result_comment -> r.gresult_comment
     
@@ -483,6 +497,7 @@ class box s_num columns () =
        gresult_codec = codec_of_tags r.result_tags;
        gresult_bitrate = bitrate_of_tags r.result_tags;
        gresult_availability = availability_of_tags r.result_tags;
+       gresult_completesources = completesources_of_tags r.result_tags;
        gresult_comment = r.result_comment;
        gresult_done = r.result_done;
        gresult_pixmap =

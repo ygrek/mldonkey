@@ -225,9 +225,9 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonMultimedia.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonInteractive.ml \
+  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
-  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonSources.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
@@ -272,6 +272,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyProtoClient.ml \
   $(SRC_DONKEY)/donkeyProtoServer.ml  \
   $(SRC_DONKEY)/donkeyProtoUdp.ml  \
+  $(SRC_DONKEY)/donkeyPandora.ml  \
   \
   $(SRC_DONKEY)/donkeyGlobals.ml \
   $(SRC_DONKEY)/donkeyProtoCom.ml  \
@@ -323,6 +324,7 @@ SPIDER_SRCS= \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonShared.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHasher_c.c \
@@ -370,6 +372,32 @@ SPIDER_SRCS= \
   \
   src/spider/spiderMain.ml \
   src/daemon/common/commonMain.ml
+
+
+BTVIEW_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonSwarming.ml \
+  $(COMMON)/commonHasher_c.c \
+  \
+  $(SRC_BITTORRENT)/bencode.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
+  src/btview/btviewTypes.ml \
+  src/btview/btviewGlobals.ml \
+  src/btview/btviewOptions.ml \
+  src/btview/btviewClients.ml \
+  src/btview/btviewInteractive.ml \
+  \
+  src/btview/btviewMain.ml \
+  src/daemon/common/commonMain.ml
+
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -2550,6 +2578,32 @@ mlspider.byte: $(SPIDER_OBJS) $(SPIDER_CMOS)  $(SPIDER_CMAS)
  
 mlspider.static:  $(SPIDER_OBJS) $(SPIDER_CMXS)  $(SPIDER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SPIDER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(SPIDER_CMXAS) $(SPIDER_CMXS)
+
+
+BTVIEW_ZOG := $(filter %.zog, $(BTVIEW_SRCS)) 
+BTVIEW_MLL := $(filter %.mll, $(BTVIEW_SRCS)) 
+BTVIEW_MLY := $(filter %.mly, $(BTVIEW_SRCS)) 
+BTVIEW_ML4 := $(filter %.ml4, $(BTVIEW_SRCS)) 
+BTVIEW_MLT := $(filter %.mlt, $(BTVIEW_SRCS)) 
+BTVIEW_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(BTVIEW_SRCS)) 
+BTVIEW_C := $(filter %.c, $(BTVIEW_SRCS)) 
+BTVIEW_CMOS=$(foreach file, $(BTVIEW_ML),   $(basename $(file)).cmo) 
+BTVIEW_CMXS=$(foreach file, $(BTVIEW_ML),   $(basename $(file)).cmx) 
+BTVIEW_OBJS=$(foreach file, $(BTVIEW_C),   $(basename $(file)).o)    
+
+BTVIEW_CMXAS := $(foreach file, $(BTVIEW_CMXA),   build/$(basename $(file)).cmxa)
+BTVIEW_CMAS=$(foreach file, $(BTVIEW_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(BTVIEW_ML4:.ml4=.ml) $(BTVIEW_MLT:.mlt=.ml) $(BTVIEW_MLL:.mll=.ml) $(BTVIEW_MLY:.mly=.ml) $(BTVIEW_MLY:.mly=.mli) $(BTVIEW_ZOG:.zog=.ml) 
+ 
+btview: $(BTVIEW_OBJS) $(BTVIEW_CMXS) $(BTVIEW_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(BTVIEW_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(BTVIEW_CMXAS) $(BTVIEW_CMXS) 
+ 
+btview.byte: $(BTVIEW_OBJS) $(BTVIEW_CMOS)  $(BTVIEW_CMAS)
+	$(OCAMLC) -linkall -o $@  $(BTVIEW_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(BTVIEW_CMAS) $(BTVIEW_CMOS) 
+ 
+btview.static:  $(BTVIEW_OBJS) $(BTVIEW_CMXS)  $(BTVIEW_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(BTVIEW_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(BTVIEW_CMXAS) $(BTVIEW_CMXS)
 
 
 

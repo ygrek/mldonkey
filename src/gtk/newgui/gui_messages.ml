@@ -233,6 +233,9 @@ let dT_tx_black_listed =
 let dT_tx_unknown = 
   _s 
   "Unknown"
+let dT_tx_priority_veryhigh = 
+  _s 
+  "Very High"
 let dT_tx_priority_high = 
   _s 
   "High"
@@ -242,6 +245,9 @@ let dT_tx_priority_normal =
 let dT_tx_priority_low = 
   _s 
   "Low"
+let dT_tx_priority_verylow = 
+  _s 
+  "Very Low"
 let dT_wt_cancel = 
   _s 
   "Cancel File(s)"
@@ -272,6 +278,9 @@ let dT_me_verify_chunks =
 let dT_me_set_priority = 
   _s 
   "Set priority"
+let dT_me_set_priority_veryhigh = 
+  _s 
+  "Very High"
 let dT_me_set_priority_high = 
   _s 
   "High"
@@ -281,6 +290,9 @@ let dT_me_set_priority_normal =
 let dT_me_set_priority_low = 
   _s 
   "Low"
+let dT_me_set_priority_verylow = 
+  _s 
+  "Very Low"
 let dT_me_get_format = 
   _s 
   "Get format info"
@@ -536,6 +548,9 @@ let qT_lb_soundtrack =
 let qT_lb_availability = 
   _s 
   "Availability"
+let qT_lb_completesources = 
+  _s 
+  "Completesources"
 let qT_lb_size = 
   _s 
   "Size"
@@ -1346,6 +1361,9 @@ let c_state =
 let c_avail = 
   _s 
   "Availability"
+let c_csour = 
+  _s 
+  "Completesources"
 let c_rate = 
   _s 
   "Rate"

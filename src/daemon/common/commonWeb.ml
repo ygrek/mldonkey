@@ -143,27 +143,13 @@ let gen_redirector_packet () =
   
   Buffer.clear buf;
   buf_int8 buf 212; (* udp_magic *)
-  buf_int8 buf 1;    
+  buf_int8 buf 2;   (* type of data sent *)
   let ip = client_ip None in
   buf_ip buf ip; (* The client IP *)
 
 (* Some statistics on the network *)
   buf_string buf Autoconf.current_version;
   buf_int buf (last_time () - start_time); (* uptime in sec *)
-  let module S = CommonShared in
-  let total_shared = ref Int64.zero in
-  let total_uploaded = ref Int64.zero in
-  
-  S.shared_iter (fun s ->
-      let i = S.as_shared_impl s in
-      total_uploaded := 
-      Int64.add !total_uploaded i.S.impl_shared_uploaded;
-      total_shared := 
-      Int64.add !total_shared i.S.impl_shared_size
-  );
-  
-  buf_int64 buf !total_shared;
-  buf_int64 buf !total_uploaded;
 
 (* Statistics for Supernode creation *)
   buf_int16 buf !!max_hard_upload_rate;

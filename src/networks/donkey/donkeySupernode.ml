@@ -126,8 +126,7 @@ let supernode_browse_handler node msg sock =
 
   | M.ConnectReplyReq t ->      
       printf_string "******* [BROWSE CCONN OK] ********"; 
-      let module CR = M.ConnectReply in      
-      node.node_md4 <- t.CR.md4;
+      node.node_md4 <- t.M.Connect.md4;
       
   | _ -> (* Don't care about other messages *)
       ()
@@ -145,15 +144,17 @@ let supernode_browse_client node =
               printf_string "[BR?]";
               close s Closed_for_timeout
           );
-          set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
-              (supernode_browse_handler node));
+          let emule_proto = emule_proto () in
+          set_reader sock (DonkeyProtoCom.cut_messages 
+              (DonkeyProtoClient.parse (emule_proto))
+            (supernode_browse_handler node));
           let server_ip, server_port =         
             try
               let s = DonkeyGlobals.last_connected_server () in
               s.server_ip, s.server_port
             with _ -> Ip.localhost, 4665
           in
-          direct_client_sock_send sock (
+          direct_client_sock_send (emule_proto) sock (
             let module M = DonkeyProtoClient in
             let module C = M.Connect in
             M.ConnectReq {
@@ -165,7 +166,7 @@ let supernode_browse_client node =
               C.server_info = Some (server_ip, server_port);
               C.left_bytes = left_bytes;
             });
-          direct_client_sock_send sock (
+          direct_client_sock_send emule_proto sock (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t)

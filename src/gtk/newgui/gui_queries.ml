@@ -77,6 +77,7 @@ let label_to_text_list =
    ("Rock", M.qT_lb_rock );
    ("Soundtrack", M.qT_lb_soundtrack );
    ("Availability", M.qT_lb_availability );
+   ("Completesources", M.qT_lb_completesources );
    ("Size", M.qT_lb_size );
    ("DVD Rips", M.qT_lb_dvd_rips );
    ("Screeners", M.qT_lb_screeners );

@@ -35,9 +35,11 @@ open BTRate
 open BTTypes
 open BTOptions
 open BTProtocol
-open CommonSwarming  
+open CommonDownloads  
 open CommonNetwork
 
+let send_client c m = send_client c.client_sock m
+  
 let as_file file = as_file file.file_file        
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)

@@ -26,7 +26,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let fasttrack_ini = create_options_file (
     Filename.concat file_basedir "fasttrack.ini")
 
-let fasttrack_section = file_section fasttrack_ini [] ""  
+let fasttrack_section = file_section fasttrack_ini ["Fasttrack"] "Fasttrack options"  
   
 let max_ultrapeers = define_option fasttrack_section
     [ "max_ultrapeers"]

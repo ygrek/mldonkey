@@ -29,23 +29,24 @@ type event =
 | BASIC_EVENT of BasicSocket.event
 
 type udp_packet = {
-    content: string;
-    addr: Unix.sockaddr;
+    udp_content: string;
+    udp_addr: Unix.sockaddr;
 (*
     val sendto : Unix.file_descr -> string -> int -> int ->
        Unix.msg_flag MSG_DONTWAITlist -> Unix.sockaddr -> int
 *)
   }
 
+let max_wlist_size = ref 100000
+  
 let local_sendto a b c d e f = 
-(*  Printf2.lprintf "sendto\n"; *)
   Unix.sendto a b c d e f
    
 
 module PacketSet = Set.Make (struct
       type t = int * udp_packet
       let compare (t1,p1) (t2,p2) = 
-        compare (t1, String.length p1.content,p1) (t2, String.length p2.content,p2)
+        compare (t1, String.length p1.udp_content,p1) (t2, String.length p2.udp_content,p2)
     end)
 
 type socks_proxy = {
@@ -60,6 +61,7 @@ type t = {
     mutable sock : BasicSocket.t;
     mutable rlist : udp_packet list;
     mutable wlist : PacketSet.t;
+    mutable wlist_size : int;
     mutable event_handler : handler;
     mutable write_controler : bandwidth_controler option;
     mutable socks_proxy : socks_proxy option;
@@ -136,8 +138,7 @@ let print_addr addr =
 let max_delayed_send = 30
   
 let write t s ip port =
-  
-  if not (closed t) then 
+  if not (closed t) && t.wlist_size < !max_wlist_size then 
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
     | Some (ip, port) -> 
@@ -169,9 +170,10 @@ lprintf "UDP sent [%s]" (String.escaped
             with
               Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
                 t.wlist <- PacketSet.add  (0, {
-                    content = s ;
-                    addr = addr;
+                    udp_content = s ;
+                    udp_addr = addr;
                   }) t.wlist;
+                t.wlist_size <- t.wlist_size + String.length s;
                 must_write sock true;
             | e ->
                 lprintf "Exception %s in sendto"
@@ -182,17 +184,20 @@ lprintf "UDP sent [%s]" (String.escaped
           end
         else begin
             t.wlist <- PacketSet.add (0, {
-                content = s ;
-              addr = addr;
+                udp_content = s ;
+                udp_addr = addr;
               })  t.wlist;
+            t.wlist_size <- t.wlist_size + String.length s;
             must_write t.sock true;
           end
     | Some bc ->
+
         begin
           t.wlist <- PacketSet.add (bc.base_time + max_delayed_send, {
-              content = s;
-              addr = addr;
+              udp_content = s;
+              udp_addr = addr;
             })  t.wlist;
+          t.wlist_size <- t.wlist_size + String.length s;
           must_write t.sock true;
         end
     
@@ -201,22 +206,23 @@ let dummy_sock = Obj.magic 0
 let read_buf = String.create 66000
 
 let rec iter_write_no_bc t sock = 
-    let (time,p) = PacketSet.min_elt t.wlist in
-    t.wlist <- PacketSet.remove (time,p) t.wlist;
-    let len = String.length p.content in
-    begin try
-        ignore (
-        local_sendto (fd sock) p.content 0 len  [] p.addr);
-        udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
-      with
-        Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
-      | e ->
-          lprintf "Exception %s in sendto next"
-            (Printexc2.to_string e);
-          lprint_newline ();
-    end;
-    iter_write_no_bc t sock
-    
+  let (time,p) = PacketSet.min_elt t.wlist in
+  t.wlist <- PacketSet.remove (time,p) t.wlist;
+  t.wlist_size <- t.wlist_size - String.length p.udp_content;
+  let len = String.length p.udp_content in
+  begin try
+      ignore (
+        local_sendto (fd sock) p.udp_content 0 len  [] p.udp_addr);
+      udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+    with
+      Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
+    | e ->
+        lprintf "Exception %s in sendto next"
+          (Printexc2.to_string e);
+        lprint_newline ();
+  end;
+  iter_write_no_bc t sock
+  
 let iter_write_no_bc t sock = 
   try
     iter_write_no_bc t sock 
@@ -229,18 +235,19 @@ let rec iter_write t sock bc =
     let _ = () in
     let (time,p) = PacketSet.min_elt t.wlist in
     t.wlist <- PacketSet.remove (time,p) t.wlist;
+    t.wlist_size <- t.wlist_size - String.length p.udp_content;
     if time < bc.base_time then begin
         if !debug then begin
             lprintf "[UDP DROPPED]"; 
           end;
       iter_write t sock bc
       end else
-    let len = String.length p.content in
+    let len = String.length p.udp_content in
     begin try
         
 
         ignore (
-          local_sendto (fd sock) p.content 0 len  [] p.addr);
+          local_sendto (fd sock) p.udp_content 0 len  [] p.udp_addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
         bc.remaining_bytes <- bc.remaining_bytes - (len + !
           TcpBufferedSocket.ip_packet_size) ;
@@ -274,8 +281,8 @@ let udp_handler t sock event =
       in
       udp_downloaded_bytes := Int64.add !udp_downloaded_bytes (Int64.of_int len);
       t.rlist <- {
-        content = s;
-        addr = addr;
+        udp_content = s;
+        udp_addr = addr;
       } :: t.rlist;
       t.event_handler t READ_DONE
   
@@ -305,18 +312,19 @@ let create addr port handler =
   Unix.setsockopt fd Unix.SO_REUSEADDR true;
   Unix.bind fd (Unix.ADDR_INET ( (*Unix.inet_addr_any*) addr, port));
   let port = match Unix.getsockname fd with
-    Unix.ADDR_INET (ip, port) -> port
-  |_ -> port in
+      Unix.ADDR_INET (ip, port) -> port
+    |_ -> port in
   let t = {
-    rlist = [];
-    wlist = PacketSet.empty;
-    sock = dummy_sock;
-    event_handler = handler;
-    write_controler = None;
-    socks_proxy= None;
-    socks_local= None;
-    port = port;
-  } in
+      rlist = [];
+      wlist = PacketSet.empty;
+      wlist_size = 0;
+      sock = dummy_sock;
+      event_handler = handler;
+      write_controler = None;
+      socks_proxy= None;
+      socks_local= None;
+      port = port;
+    } in
   let sock = BasicSocket.create "udp_socket" fd (udp_handler t) in
   prevent_close sock;
   t.sock <- sock;

@@ -225,9 +225,9 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonMultimedia.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonInteractive.ml \
+  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
-  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonSources.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
@@ -272,6 +272,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyProtoClient.ml \
   $(SRC_DONKEY)/donkeyProtoServer.ml  \
   $(SRC_DONKEY)/donkeyProtoUdp.ml  \
+  $(SRC_DONKEY)/donkeyPandora.ml  \
   \
   $(SRC_DONKEY)/donkeyGlobals.ml \
   $(SRC_DONKEY)/donkeyProtoCom.ml  \
@@ -323,6 +324,7 @@ SPIDER_SRCS= \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonShared.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHasher_c.c \
@@ -370,6 +372,32 @@ SPIDER_SRCS= \
   \
   src/spider/spiderMain.ml \
   src/daemon/common/commonMain.ml
+
+
+BTVIEW_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonSwarming.ml \
+  $(COMMON)/commonHasher_c.c \
+  \
+  $(SRC_BITTORRENT)/bencode.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
+  src/btview/btviewTypes.ml \
+  src/btview/btviewGlobals.ml \
+  src/btview/btviewOptions.ml \
+  src/btview/btviewClients.ml \
+  src/btview/btviewInteractive.ml \
+  \
+  src/btview/btviewMain.ml \
+  src/daemon/common/commonMain.ml
+
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -1119,6 +1147,7 @@ EXPAND(HASH_FILES,hash_files)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
 EXPAND(MLPIC,mlpic)
 EXPAND(SPIDER,mlspider)
+EXPAND(BTVIEW,btview)
 
 
 

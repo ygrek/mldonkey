@@ -18,7 +18,7 @@
 *)
 
 open Int64ops
-open CommonSwarming
+open CommonDownloads
 
 open CommonInteractive
 open TcpBufferedSocket
@@ -133,10 +133,18 @@ let page_size = Int64.of_int 4096
 (* GLOBAL STATE *)
   
 open DonkeyMftp
+
   
 let client_to_client_tags = ref ([] : tag list)
 let client_to_server_tags = ref ([] : tag list)
-let emule_info_tags = ref ([] : tag list)
+let emule_info = 
+  let module E = DonkeyProtoClient.EmuleClientInfo in
+  {
+    E.version = 66; 
+    E.protversion = 66;
+    E.tags = [];
+  }
+
 let client_port = ref 0
 let overnet_connectreply_tags = ref ([] :  tag list)
 let overnet_connect_tags = ref ([] :  tag list)
@@ -322,7 +330,7 @@ let update_best_name file =
 let new_shared_files = ref [] 
         
 let new_file file_state file_name md4 file_size writable =
-  lprintf "NEW FILE TO DOWNLAOD ??????????? %s\n" file_name;
+  lprintf "NEW FILE TO DOWNLOAD ??????????? %s\n" file_name;
   try
     find_file md4 
   with _ ->
@@ -413,7 +421,7 @@ let new_file file_state file_name md4 file_size writable =
               Unix32.write  t offset s pos len
         );
         Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
-            if file.file_md4s = [||] then raise VerifierNotReady;
+            if file.file_md4s = [||] then raise Int64Swarmer.VerifierNotReady;
             lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
             Unix32.flush_fd (file_fd file);
             let md4 = Md4.digest_subfile (file_fd file) 
@@ -542,6 +550,7 @@ let remove_server ip port =
   with _ -> ()
 
 let dummy_client = 
+  let module D = DonkeyProtoClient in
   let rec c = {
       client_client = client_impl;
       client_upload = None;
@@ -581,6 +590,8 @@ let dummy_client =
       client_slot = SlotNotAsked;
       client_debug = false;
       client_pending_messages = [];
+      client_emule_proto = emule_proto ();
+      client_comp = None;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -593,6 +604,7 @@ let dummy_client =
     
   
 let create_client key =  
+  let module D = DonkeyProtoClient in
   let s = DonkeySources.find_source_by_uid key in
   let rec c = {
 (*      dummy_client with *)
@@ -635,7 +647,9 @@ let create_client key =
       client_slot = SlotNotAsked; 
       client_debug = Intset.mem s.DonkeySources.source_num !debug_clients;
       client_pending_messages = [];
-    } and
+      client_emule_proto = emule_proto ();
+      client_comp = None;
+      } and
     client_impl = {
       dummy_client_impl with            
       impl_client_val = c;
@@ -950,6 +964,7 @@ let brand_mod_to_string b =
   | Brand_mod_blackmule -> "Blackmule"
   | Brand_mod_morphxt -> "MorphXT"
   | Brand_mod_ngdonkey -> "ngdonkey"
+  | Brand_mod_cyrex -> "Cyrex"
       
 (*************************************************************
 

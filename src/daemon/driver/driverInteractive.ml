@@ -733,7 +733,7 @@ let simple_print_file_list finished buf files format =
   let print_table = if format.conn_output = HTML then print_table_html 2
     else print_table_text in
   if not finished then
-    if format.conn_output = HTML && ( !!html_checkbox_file_list  ) then
+    if format.conn_output = HTML && ( !!html_checkbox_vd_file_list  ) then
       begin
         if !!html_mods then print_file_html_mods buf files
         else
@@ -923,11 +923,13 @@ let old_print_search buf o results =
 		( "0", "srh", "File", "File (mouseover)" ) ; 
 		( "1", "srh ar", "Size", "Size" ) ; 
 		( "1", "srh ar", "Availability", "A" ) ; 
+		( "1", "srh ar", "Complete Sources", "C" ) ; 
 		( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ; 
 		( "0", "srh", "Tags", "Tags (mouseover)" ) ] ; 
   
   (try
       List.iter (fun (rs,r,avail) ->
+        if !!display_downloaded_results || not r.result_done  then begin
           incr counter;
           if !counter >= !!max_displayed_results then raise Exit;          
           
@@ -965,7 +967,7 @@ let old_print_search buf o results =
               match r.result_names with
                 [] -> ()
               | name :: names ->
-                  Printf.bprintf buf "%s\n" name;
+                  Printf.bprintf buf "%s\n" (shorten name !!max_name_len);
                   List.iter (fun s -> 
                       if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
                       Printf.bprintf buf "       %s\n" s
@@ -1002,12 +1004,37 @@ let old_print_search buf o results =
 				| _ -> ())) r.result_tags;
 			if !hash = "" then hash := Md4.to_string r.result_md4;
 
+			let csource = ref "" in
+			List.iter (fun t ->
+			    (match t.tag_name with 
+				"completesources" -> (
+	                   		 match t.tag_value with
+				      String s -> csource := s
+	 	    		    | Uint64 i -> csource := Int64.to_string i
+        	           	    | Fint64 i -> csource := Int64.to_string i
+	        	       	    | _ -> csource := "")
+				| _ -> ())) r.result_tags;
+
+			let cavail = ref "" in
+			List.iter (fun t ->
+			    (match t.tag_name with 
+				"availability" -> (
+	                   		 match t.tag_value with
+				      String s -> cavail := s
+	 	    		    | Uint64 i -> cavail := Int64.to_string i
+        	           	    | Fint64 i -> cavail := Int64.to_string i
+	        	       	    | _ -> cavail := "")
+				| _ -> ())) r.result_tags;
+
           if use_html_mods o then 
             Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/%s\\\"\\>%s\\</a\\>\\</td\\>"
             (size_of_int64 r.result_size)
-			(string_of_int avail)
+			!cavail
+			!csource
+
 			(if String.contains !hash ':' then
 				String.sub !hash 
 				((String.rindex !hash ':')+1)
@@ -1021,7 +1048,7 @@ let old_print_search buf o results =
 			Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
           List.iter (fun t ->
 				  (match t.tag_name with 
-					| "availability" | "urn" | "FTH"  -> () 
+					| "completesources" | "availability" | "urn" | "FTH"  -> () 
 					| _ -> 
 					Buffer.add_string buf ("\\<span title=\\\"" ^ 
 					get_tag_value t.tag_value ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
@@ -1032,10 +1059,11 @@ let old_print_search buf o results =
 		  else
       		List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
-                  (if t.tag_name = "availability" then string_of_int avail else
+                  (if t.tag_name = "availability" then !cavail else
 					get_tag_value t.tag_value))
           ) r.result_tags;
           Buffer.add_char buf '\n';
+	end
       ) results;
       if use_html_mods o then Printf.bprintf buf "\\</table\\>"
     with _ -> ())
@@ -1324,12 +1352,12 @@ let print_search buf s o =
     (if s.search_waiting = 0 then "done" else
       (string_of_int s.search_waiting) ^ " waiting");
   
-  if not !!new_print_search then old_print_search buf o results else
+  if o.conn_output != HTML then print_results buf o results else
     begin
-      if o.conn_output = HTML && !!html_checkbox_file_list then
+      if !!html_checkbox_search_file_list then
         print_search_html buf results o s.search_num
       else
-        print_results buf o results 
+        old_print_search buf o results 
     end  
 
 let browse_friends () =

@@ -23,7 +23,7 @@ open Md4
 open GuiTypes
   
 open CommonTypes
-open CommonSwarming
+open CommonDownloads
 
 (* any = 0 *)
 let name_of_tag = 

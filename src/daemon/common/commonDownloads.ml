@@ -29,7 +29,8 @@ open TcpBufferedSocket
 
 open CommonGlobals
 open CommonOptions
-  
+
+module Basic = struct
 (*
 A common function for all networks were the file is got in one single piece,
   and the connection is closed at the end.
@@ -120,3 +121,11 @@ module Make(M: sig
       d  
       
 end
+end
+
+module Int64Swarmer = CommonSwarming.Make(struct
+      module CommonTypes = CommonTypes
+      module CommonFile = CommonFile
+      module CommonClient = CommonClient
+    end)
+  

@@ -499,7 +499,7 @@ let udp_handler f sock event =
     UdpSocket.READ_DONE ->
       UdpSocket.read_packets sock (fun p -> 
           try
-            let pbuf = p.UdpSocket.content in
+            let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
             if len < 2 || 
               int_of_char pbuf.[0] <> 227 then 
@@ -517,7 +517,7 @@ let udp_handler f sock event =
           with e ->
               lprintf "Error %s in udp_handler, dump of packet:\n"
                 (Printexc2.to_string e); 
-              dump p.UdpSocket.content;
+              dump p.UdpSocket.udp_content;
               lprint_newline ()	    
       );
   | _ -> ()

@@ -726,7 +726,7 @@ let results_columns = define_option mldonkey_gui_section
    C.Col_result_size ; C.Col_result_format ;
    C.Col_result_duration ; C.Col_result_codec ;
    C.Col_result_bitrate ; C.Col_result_availability ;
-   C.Col_result_comment ;
+   C.Col_result_completesources ; C.Col_result_comment ;
   ]
 
 

@@ -24,7 +24,7 @@ open CommonOptions
 let donkey_ini = create_options_file (
     Filename.concat file_basedir "donkey.ini")
 
-let donkey_section = file_section donkey_ini [] ""
+let donkey_section = file_section donkey_ini ["Donkey"] "Donkey options"
   
 let initial_score = define_expert_option donkey_section ["initial_score"] "" int_option 5
   

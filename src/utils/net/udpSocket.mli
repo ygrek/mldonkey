@@ -21,7 +21,7 @@ type event =
   | CAN_REFILL
   | READ_DONE
   | BASIC_EVENT of BasicSocket.event
-type udp_packet = { content : string; addr : Unix.sockaddr; } 
+type udp_packet = { udp_content : string; udp_addr : Unix.sockaddr; } 
 type t
 (*
   type t = {

@@ -33,7 +33,7 @@ open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open CommonOptions
-open CommonSwarming
+open CommonDownloads
   
 
 open DonkeyMftp
@@ -259,9 +259,11 @@ let register_md4 i md4 (begin_pos : int64) (len : int64) file =
     let files = Hashtbl.find md4_table (md4, i, begin_pos, len) in
     if not (List.memq file !files) then begin
         files := file :: !files;
+        (*
         lprintf "Files";
         List.iter (fun file -> lprintf " %d" (file_num file)) !files;
-        lprintf " share block %s\n" (Md4.to_string md4);
+lprintf " share block %s\n" (Md4.to_string md4);
+  *)
       end
   with _ ->
       Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])

@@ -26,7 +26,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let bittorrent_ini = create_options_file (
     Filename.concat file_basedir "bittorrent.ini")
-let bittorrent_section = file_section bittorrent_ini [] ""
+let bittorrent_section = file_section bittorrent_ini ["Bittorrent"] "Bittorrent options"
   
 let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"

@@ -23,7 +23,7 @@ open Md4
 open GuiTypes
   
 open CommonTypes
-open CommonSwarming
+open CommonDownloads
 
 type client = {
     client_client : client CommonClient.client_impl;

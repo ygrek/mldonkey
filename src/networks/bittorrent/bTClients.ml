@@ -51,14 +51,14 @@ open TcpBufferedSocket
 open Ip_set
 
 open CommonGlobals
-open CommonSwarming  
+open CommonDownloads  
 open BTRate
 open BTTypes
+open BTProtocol
 open BTOptions
 open BTGlobals
 open BTComplexOptions
 
-open BTProtocol
 open BTChooser
   
 let http_ok = "HTTP 200 OK"
@@ -84,17 +84,19 @@ let current_uploaders = ref ([] : BTTypes.client list)
    The function will get a file as an argument (@see 
    get_sources_from_tracker for an example)
 *)
-let connect_tracker file url event f =
+let connect_tracker file event f =
+  let url = file.file_tracker in
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
       lprintf "Connect tracker.........\n";
-      let args,must_check_delay = 
+      let downloaded = Int64Swarmer.downloaded swarmer in
+      let args,must_check_delay, downloaded = 
         match event with
-        | "completed" -> [("event", "completed")],true
-        | "started" -> [("event", "started")],true
-        | "stopped" -> [("event", "stopped")],false
-        | _ -> [],true
+        | "completed" -> [("event", "completed")],true, zero
+        | "started" -> [("event", "started")],true, downloaded
+        | "stopped" -> [("event", "stopped")],false, downloaded
+        | _ -> [], true, downloaded
       in
       if (not must_check_delay) || (file.file_tracker_last_conn + 
             file.file_tracker_interval 
@@ -105,8 +107,7 @@ let connect_tracker file url event f =
           ("peer_id", Sha1.direct_to_string !!client_uid) ::
           ("port", string_of_int !!client_port) ::
           ("uploaded", Int64.to_string file.file_uploaded) ::
-          ("downloaded", Int64.to_string
-              (Int64Swarmer.downloaded swarmer)) ::
+          ("downloaded", Int64.to_string downloaded) ::
           ("left", Int64.to_string ((file_size file) -- 
                 (Int64Swarmer.downloaded swarmer)) ) ::
           args
@@ -276,7 +277,7 @@ let download_finished file =
       file_completed (as_file file);
       current_files := List2.removeq file !current_files;
       disconnect_clients file;
-      connect_tracker file file.file_tracker "completed" (fun _ -> ())
+      connect_tracker file "completed" (fun _ -> ())
     end
           
 
@@ -442,7 +443,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     if not init_sent then 
       begin
         c.client_incoming<-true;
-        send_init file c sock;
+        send_init !!client_uid file_id sock;
       end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
@@ -937,7 +938,7 @@ let connect_client c =
                       lprintf "READY TO DOWNLOAD FILE\n";
                     end;
                   
-                  send_init file c sock;
+                  send_init !!client_uid file.file_id sock;
 (* Fabrice: Initialize the client bitmap and uploader fields to <> None *)
                   update_client_bitmap c;
 (*              (try get_from_client sock c with _ -> ());*)
@@ -1098,7 +1099,7 @@ let resume_clients file =
   and if we respect the file_tracker_interval then
   we really ask sources to the tracker
 *)
-let get_sources_from_tracker file url = 
+let get_sources_from_tracker file = 
   lprintf "get_sources_from_tracker\n";
   let f filename = 
 (*This is the function which will be called by the http client
@@ -1168,7 +1169,7 @@ for parsing the response*)
     | _ -> "started" 
   in
   if file.file_clients_num < !!ask_tracker_threshold then
-    connect_tracker file url event f
+    connect_tracker file event f
     
     
   
@@ -1188,11 +1189,11 @@ let recover_files () =
 	     get_sources_from_tracker)
 	     (try resume_clients file with _ -> ());*)
               (try 
-                  get_sources_from_tracker file file.file_tracker  
+                  get_sources_from_tracker file  
                 with _ -> ())
           | FileShared ->
               (try 
-                  connect_tracker file file.file_tracker "completed" (fun _ -> ())
+                  connect_tracker file "completed" (fun _ -> ())
                 with _ -> ())
           | s -> lprintf "Other state %s!!\n" (string_of_state s)
       ) !current_files
@@ -1266,7 +1267,7 @@ let file_resume file =
 (* useless with no saving of sources
   resume_clients file;
 *)
-  (try get_sources_from_tracker file file.file_tracker  with _ -> ())
+  (try get_sources_from_tracker file  with _ -> ())
 
 
 
@@ -1279,7 +1280,7 @@ let file_resume file =
 let file_stop file =
     if file.file_tracker_connected then 
       begin
-	connect_tracker file file.file_tracker "stopped" (fun _ -> ());
+	connect_tracker file "stopped" (fun _ -> ());
 	  (*This vvvv must be after after this ^^^^ *)
 	file.file_tracker_connected <- false
       end

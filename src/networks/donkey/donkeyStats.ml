@@ -159,6 +159,7 @@ let brand_mod_to_int b =
   | Brand_mod_blackmule -> 69
   | Brand_mod_morphxt -> 70
   | Brand_mod_ngdonkey -> 71
+  | Brand_mod_cyrex -> 72
 
 let brand_mod_of_int b =
   match b with
@@ -234,6 +235,7 @@ let brand_mod_of_int b =
   | 69 -> Brand_mod_blackmule
   | 70 -> Brand_mod_morphxt
   | 71 -> Brand_mod_ngdonkey
+  | 72 -> Brand_mod_cyrex
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -310,6 +312,7 @@ let gbrand_mod_to_string b =
   | Brand_mod_blackmule -> "blm"
   | Brand_mod_morphxt -> "Mxt"
   | Brand_mod_ngdonkey -> "ngd"
+  | Brand_mod_cyrex -> "cyr"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 
@@ -548,6 +551,44 @@ let new_print_stats buf o =
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
   
+  let sstats_all = 
+    let stat = {
+        brand_seen = 0;
+        brand_banned = 0;
+        brand_filerequest = 0;
+        brand_download = Int64.zero;
+        brand_upload = Int64.zero
+      }
+    in stat in
+
+  for i=0 to brand_count-1 do
+    if ( brand_of_int i != Brand_server ) then begin
+        sstats_all.brand_seen <- sstats_all.brand_seen + stats_by_brand.(i).brand_seen;
+        sstats_all.brand_filerequest <- sstats_all.brand_filerequest + stats_by_brand.(i).brand_filerequest;
+        sstats_all.brand_download <- Int64.add sstats_all.brand_download stats_by_brand.(i).brand_download ;
+        sstats_all.brand_upload <- Int64.add sstats_all.brand_upload stats_by_brand.(i).brand_upload;
+        sstats_all.brand_banned <- sstats_all.brand_banned + stats_by_brand.(i).brand_banned;
+    end;
+  done; 
+
+  let gstats_all = 
+    let stat = {
+        brand_seen = 0;
+        brand_banned = 0;
+        brand_filerequest = 0;
+        brand_download = Int64.zero;
+        brand_upload = Int64.zero
+      }
+    in stat in
+  
+  for i=0 to brand_count-1 do
+    gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen;
+    gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest;
+    gstats_all.brand_download <- Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download ;
+    gstats_all.brand_upload <- Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload;
+    gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned;
+  done; 
+  
   if use_html_mods o then
     begin
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d seconds (%d+%02d:%02d)\\</div\\>" uptime days hours mins;
@@ -591,43 +632,43 @@ let new_print_stats buf o =
             
             (if !showTotal then "Total" else (brand_to_string (brand_of_int i))) 
             
-            (if !showTotal then stats_all.brand_seen else
+            (if !showTotal then sstats_all.brand_seen else
                     stats_by_brand.(i).brand_seen) 
                     
             (if !showTotal then 100.0 else (percent_of_ints
             stats_by_brand.(i).brand_seen stats_all.brand_seen))
           
-            (if !showTotal then stats_all.brand_filerequest else stats_by_brand.(i).brand_filerequest)
+            (if !showTotal then sstats_all.brand_filerequest else stats_by_brand.(i).brand_filerequest)
 
             (if !showTotal then 100.0 else (percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest))
 
-            (if !showTotal then stats_all.brand_banned else
+            (if !showTotal then sstats_all.brand_banned else
                     stats_by_brand.(i).brand_banned)
                     
-            (max 0.0 (if !showTotal then (percent_of_ints stats_all.brand_banned stats_all.brand_seen) 
+            (max 0.0 (if !showTotal then (percent_of_ints sstats_all.brand_banned sstats_all.brand_seen) 
              else (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)))
 
-            (size_of_int64 (if !showTotal then stats_all.brand_upload else
+            (size_of_int64 (if !showTotal then sstats_all.brand_upload else
                     stats_by_brand.(i).brand_upload)) 
           
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand.(i).brand_upload stats_all.brand_upload)))
 
-            (if !showTotal then ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+            (if !showTotal then ((Int64.to_float sstats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
             else ((Int64.to_float stats_by_brand.(i).brand_upload) /.  (float_of_int uptime) /. 1024.0))
           
-            (size_of_int64 (if !showTotal then stats_all.brand_download else
+            (size_of_int64 (if !showTotal then sstats_all.brand_download else
                     stats_by_brand.(i).brand_download)) 
 
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand.(i).brand_download stats_all.brand_download)))
 
-            (if !showTotal then ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+            (if !showTotal then ((Int64.to_float sstats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
             else ((Int64.to_float stats_by_brand.(i).brand_download) /.  (float_of_int uptime) /. 1024.0))
 
             (if !showTotal then 
-             (if stats_all.brand_upload = Int64.zero then 0.0 else 
-	    	  ( (Int64.to_float stats_all.brand_download) /.  (Int64.to_float stats_all.brand_upload) ))
+             (if sstats_all.brand_upload = Int64.zero then 0.0 else 
+	    	  ( (Int64.to_float sstats_all.brand_download) /.  (Int64.to_float sstats_all.brand_upload) ))
             else 
              (if stats_by_brand.(i).brand_upload = Int64.zero then 0.0 else 
 			 ( (Int64.to_float stats_by_brand.(i).brand_download) /.
@@ -636,25 +677,6 @@ let new_print_stats buf o =
       done;
       Printf.bprintf buf "\\</table\\>\\</div\\>\n";
       
-      let gstats_all = 
-        let stat = {
-            brand_seen = 0;
-            brand_banned = 0;
-            brand_filerequest = 0;
-            brand_download = Int64.zero;
-            brand_upload = Int64.zero
-          }
-        in stat in
-      
-      for i=0 to brand_count-1 do
-        
-        gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen;
-        gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest;
-        gstats_all.brand_download <- Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download ;
-        gstats_all.brand_upload <- Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload;
-        gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned;
-      
-      done; 
       let gdays = (guptime () + uptime) / one_day in
       let grem = maxi 1 ((guptime () + uptime) - gdays * one_day) in
       
@@ -743,8 +765,8 @@ let new_print_stats buf o =
   else
     begin
       Printf.bprintf buf "Session Uptime: %d seconds (%d days %d hours %d minutes)\n" uptime days hours mins;
-      Printf.bprintf buf "Client Brand|    seen    |     Downloads     |      Uploads      |   Banned   |  Requests\n";
-      Printf.bprintf buf "------------+------------+-------------------+-------------------+------------+------------\n";
+      Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
+      Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
       
       for i=1 to brand_count-1 do
         if brand_of_int i != Brand_server && stats_by_brand.(i).brand_seen > 0 then (* dont print server stats *)
@@ -754,7 +776,7 @@ let new_print_stats buf o =
             else
               brand_to_string (brand_of_int i) in
           
-          Printf.bprintf buf "%-12s|%7d %3.f%%|%8.1f %5.1f %3.0f%%|%8.1f %5.1f %3.0f%%|%7d %3.0f%%|%7d %3.0f%%\n"
+          Printf.bprintf buf "%-12s|%9d %3.f%%|%9.1f %5.1f %3.0f%%|%9.1f %5.1f %3.0f%%|%7d %3.0f%%|%9d %3.0f%%\n"
             (brandstr)
             stats_by_brand.(i).brand_seen 
               (percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
@@ -770,41 +792,25 @@ let new_print_stats buf o =
               (percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest)
       done;
 
-      Printf.bprintf buf "------------+------------+-------------------+-------------------+------------+------------\n";
-      Printf.bprintf buf "%-12s|%7d     |%8.1f %5.1f     |%8.1f %5.1f     |%7d     |%7d\n"
+      Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
+      Printf.bprintf buf "%-12s|%9d     |%9.1f %5.1f     |%9.1f %5.1f     |%7d     |%9d\n"
         "Total"
-        stats_all.brand_seen
-        ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
-          ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-        ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
-          ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-        stats_all.brand_banned 
-        stats_all.brand_filerequest;
+        sstats_all.brand_seen
+        ((Int64.to_float sstats_all.brand_download) /. 1024.0 /. 1024.0)
+          ((Int64.to_float sstats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+        ((Int64.to_float sstats_all.brand_upload) /. 1024.0 /. 1024.0)
+          ((Int64.to_float sstats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+        sstats_all.brand_banned 
+        sstats_all.brand_filerequest;
 
-      let gstats_all = 
-        let stat = {
-            brand_seen = 0;
-            brand_banned = 0;
-            brand_filerequest = 0;
-            brand_download = Int64.zero;
-            brand_upload = Int64.zero
-          }
-        in stat in
-        for i=0 to brand_count-1 do
-          gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen;
-          gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest;
-          gstats_all.brand_download <- Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download ;
-          gstats_all.brand_upload <- Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload;
-          gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned;
-        done; 
       let gdays = (guptime () + uptime) / one_day in
       let grem = maxi 1 ((guptime () + uptime) - gdays * one_day) in
       let ghours = grem / one_hour in
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
       Printf.bprintf buf "\nTotal Uptime: %d seconds (%d days %d hours %d minutes)\n" (guptime() + uptime) gdays ghours gmins;
-      Printf.bprintf buf "Client Brand|    seen    |     Downloads     |      Uploads      |   Banned   |  Requests\n";
-      Printf.bprintf buf "------------+------------+-------------------+-------------------+------------+------------\n";
+      Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
+      Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
       
       for i=1 to brand_count-1 do
         if brand_of_int i != Brand_server && !!gstats_by_brand.(i).brand_seen > 0 then (* dont print server stats *)
@@ -814,7 +820,7 @@ let new_print_stats buf o =
             else
               brand_to_string (brand_of_int i) in
           
-          Printf.bprintf buf "%-12s|%7d %3.f%%|%8.1f %5.1f %3.0f%%|%8.1f %5.1f %3.0f%%|%7d %3.0f%%|%7d %3.0f%%\n"
+          Printf.bprintf buf "%-12s|%9d %3.f%%|%9.1f %5.1f %3.0f%%|%9.1f %5.1f %3.0f%%|%7d %3.0f%%|%9d %3.0f%%\n"
             (brandstr)
             !!gstats_by_brand.(i).brand_seen 
               (percent_of_ints !!gstats_by_brand.(i).brand_seen gstats_all.brand_seen)
@@ -830,8 +836,8 @@ let new_print_stats buf o =
               (percent_of_ints !!gstats_by_brand.(i).brand_filerequest gstats_all.brand_filerequest)
       done;
 
-      Printf.bprintf buf "------------+------------+-------------------+-------------------+------------+------------\n";
-      Printf.bprintf buf "%-12s|%7d     |%8.1f %5.1f     |%8.1f %5.1f     |%7d     |%7d\n"
+      Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
+      Printf.bprintf buf "%-12s|%9d     |%9.1f %5.1f     |%9.1f %5.1f     |%7d     |%9d\n"
       "Total"
       gstats_all.brand_seen
       ((Int64.to_float gstats_all.brand_download) /. 1024.0 /. 1024.0)

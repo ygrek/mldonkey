@@ -792,6 +792,8 @@ let string_of_string_list list =
     [] -> ""
   | s :: tail -> iter s tail
   
+let title_opfile = ref true;;
+  
 let save opfile =
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
@@ -799,6 +801,7 @@ let save opfile =
   let oc = open_out temp_file in
   try
     once_values_counter := 0;
+    title_opfile := true;
     Hashtbl.clear once_values_rev;
     let advanced = ref false in
     List.iter (fun s ->
@@ -810,7 +813,12 @@ let save opfile =
             if s.section_name <> [] then begin
                 Printf.fprintf oc "\n\n";
                 Printf.fprintf oc "    (************************************)\n";
-                
+		if !title_opfile then begin
+                  Printf.fprintf oc "    (*   Never edit options files when  *)\n";
+                  Printf.fprintf oc "    (*       the daemon is running      *)\n";
+                  Printf.fprintf oc "    (************************************)\n";
+                  title_opfile := false;
+		end;
                 Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
                 Printf.fprintf oc "    (* %s *)\n" s.section_help;
                 Printf.fprintf oc "    (************************************)\n";

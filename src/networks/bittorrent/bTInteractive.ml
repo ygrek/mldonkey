@@ -32,7 +32,7 @@ open CommonResult
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
-open CommonSwarming
+open CommonDownloads
 open CommonInteractive
   
 open BTTypes
@@ -145,7 +145,7 @@ let load_torrent_string s =
   in
   file.file_files <- torrent.torrent_files;
   file.file_chunks <- torrent.torrent_pieces;
-  BTClients.get_sources_from_tracker file torrent.torrent_announce;
+  BTClients.get_sources_from_tracker file;
   ()
   
 let load_torrent_file filename =
@@ -156,6 +156,26 @@ let load_torrent_file filename =
   File.from_string download_filename s;
   load_torrent_string s
 
+let parse_tracker_reply file filename =
+(*This is the function which will be called by the http client
+for parsing the response*)
+(* Intrested only in interval*)
+  lprintf "Filename %s\n" filename;
+  let v = Bencode.decode (File.to_string filename) in
+
+  lprintf "Received: %s\n" (Bencode.print v);
+  let interval = ref 600 in
+  match v with
+    Dictionary list ->
+      List.iter (fun (key,value) ->
+          match (key, value) with
+            String "interval", Int n ->
+              file.file_tracker_interval <- Int64.to_int n;
+              lprintf ".. interval %d ..\n" file.file_tracker_interval
+          | _ -> ()
+      ) list;
+  | _ -> assert false
+  
 let try_share_file filename =
 (*  lprintf "BTInteractive.try_share_file: %s\n" filename; *)
   let s = File.to_string filename in  
@@ -190,8 +210,8 @@ let try_share_file filename =
     lprintf "......\n";
     file.file_files <- torrent.torrent_files;
     file.file_chunks <- torrent.torrent_pieces;
-    BTClients.connect_tracker file torrent.torrent_announce "completed" 
-      (fun _ -> ())
+    BTClients.connect_tracker file "completed" 
+      (parse_tracker_reply file)
 
     
 (* Call one minute after start, and then every 20 minutes. Should 

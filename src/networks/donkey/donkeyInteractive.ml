@@ -34,7 +34,7 @@ open CommonClient
 open CommonUser
 open CommonInteractive
 open CommonNetwork
-open CommonSwarming  
+open CommonDownloads  
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
@@ -395,9 +395,6 @@ let recover_md4s md4 =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      if !!max_recover_gap > zero then
-        Int64Swarmer.set_present swarmer 
-          (recover_bytes (as_file file));
       Int64Swarmer.verify_all_blocks swarmer false
   
   (*
@@ -480,8 +477,8 @@ let commands = [
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.sprintf 
-		"Upload credits : %d minutes\nUpload disabled for %d minutes" 
-		!CommonUploads.upload_credit !CommonUploads.has_upload;
+          "Upload credits : %d minutes\nUpload disabled for %d minutes" 
+          !CommonUploads.upload_credit !CommonUploads.has_upload;
     
     ), ":\t\t\t\t\tview upload credits";
     
@@ -499,7 +496,7 @@ let commands = [
         DonkeyIndexer.add_comment md4 comment;
         "Comment added"
     ), "<md4> \"<comment>\" :\t\tadd comment on a md4";
-        
+    
     "import", Arg_one (fun dirname o ->
         let buf = o.conn_buf in
         try
@@ -569,9 +566,37 @@ let commands = [
         DonkeySources.set_brothers 
           (List.map (fun file -> file.file_sources) !files);
         brotherhood =:= 
-        (List.map (fun file -> file.file_md4) !files) :: !!brotherhood;
+          (List.map (fun file -> file.file_md4) !files) :: !!brotherhood;
         "    are now defined as colocated"
     ) , "<f1> < f2> ... :\t\t\tdefine these files as probably colocated";
+    
+    "recover_bytes", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        
+        List.iter (fun arg ->
+            let num = int_of_string arg in
+            List.iter (fun file ->
+                if file_num file = num then begin
+                    match file.file_swarmer with
+                      None -> ()
+                    | Some swarmer ->
+                        let segments = CommonFile.recover_bytes (as_file file) in
+                        let old_downloaded = Int64Swarmer.downloaded swarmer in
+                        Int64Swarmer.set_present swarmer segments;
+                        let new_downloaded = Int64Swarmer.downloaded swarmer in
+                        if new_downloaded > old_downloaded then
+                          add_file_downloaded file.file_file
+                            (new_downloaded -- old_downloaded);
+                        
+                        Printf.bprintf buf "Recovered %Ld bytes for %s\n"
+                          (new_downloaded -- old_downloaded) 
+                        (file_best_name file)
+                        
+                  end
+            ) !current_files
+        ) args;
+        ""
+    ) , "<f1> < f2> ... :\t\t\ttry to recover these files at byte level";
     
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -793,7 +818,7 @@ file.---------> to be done urgently
         | ConnectionWaiting _ ->
             c.client_pending_messages <- c.client_pending_messages @ [s];
         | Connection sock ->
-            direct_client_send c (DonkeyProtoClient.SayReq s)
+            client_send c (DonkeyProtoClient.SayReq s)
       with
         Not_found ->
           CommonChat.send_text !!CommonOptions.chat_console_id None 
@@ -956,14 +981,14 @@ let _ =
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
         Connection sock, (Connected _ | Connected_downloading _) ->
-          direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
+          server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
         Connection sock, (Connected _ | Connected_downloading _) ->
-          direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
+          server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      
   );
@@ -1081,7 +1106,7 @@ let _ =
       | ConnectionWaiting _ -> 
           c.client_pending_messages <- c.client_pending_messages @ [s];
       | Connection sock ->
-          direct_client_send c (DonkeyProtoClient.SayReq s)
+          client_send c (DonkeyProtoClient.SayReq s)
   );  
   client_ops.op_client_files <- (fun c ->
       match c.client_all_files with
@@ -1098,7 +1123,7 @@ let _ =
       lprintf "       ASK VIEW FILES         ";
 lprint_newline ();
   *)
-          direct_client_send c (
+          client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          

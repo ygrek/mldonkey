@@ -119,7 +119,7 @@ module FileOption = struct
               set_file_best_name file
               (get_value "file_filename" value_to_string)
             with _ -> ());
-          file_set_priority file priority;
+          set_file_priority file priority;
           file
       | _ -> assert false
           

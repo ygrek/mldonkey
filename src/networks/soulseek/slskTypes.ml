@@ -70,7 +70,7 @@ and client = {
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
     mutable client_peer_sock : tcp_connection;
-    mutable client_downloads : (file, client) CommonDownloads.download list;
+    mutable client_downloads : (file, client) CommonDownloads.Basic.download list;
     mutable client_result_socks : TcpBufferedSocket.t list;
     client_connection_control : CommonTypes.connection_control;
     mutable client_files : (file * string) list; 

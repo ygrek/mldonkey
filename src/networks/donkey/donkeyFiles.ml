@@ -97,7 +97,7 @@ module NewUpload = struct
               B.bloc_len = 0; 
             }
           ) in
-        let s = client_msg_to_string msg in
+        let s = client_msg_to_string c.client_emule_proto msg in
         let slen = String.length s in
         let upload_buffer = String.create (slen + len_int) in
         String.blit s 0 upload_buffer 0 slen;
