@@ -23,8 +23,9 @@ open CommonTypes
 type t
   
 type shared_impl = {
-    impl_shared_filename : string;
-    mutable impl_shared_update : bool;
+    impl_shared_fullname : string;
+    impl_shared_codedname : string;
+    mutable impl_shared_update : int;
     mutable impl_shared_num : int;
     mutable impl_shared_ops : (t * (t shared_ops)) list;
   }
@@ -35,7 +36,8 @@ and 'a shared_ops = {
   
 let shared_num = ref 0
 let shareds_by_num = Hashtbl.create 1027
-let shareds_by_filename = Hashtbl.create 1027
+let shareds_by_fullname = Hashtbl.create 1027
+let shareds_by_codedname = Hashtbl.create 1027
   
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
@@ -59,26 +61,39 @@ let shareds_update_list = ref []
   
 let shared_must_update shared =
   let impl = as_shared_impl shared in
-  if not impl.impl_shared_update then
+  if impl.impl_shared_update > 0 then
     begin
-      impl.impl_shared_update <- true;
+      impl.impl_shared_update <- 0;
       shareds_update_list := shared :: !shareds_update_list
     end
 
-  
-let new_shared filename =
-  if not (Hashtbl.mem shareds_by_filename filename) then begin
+let dirnames = Hashtbl.create 13
+let dirname_counter = ref 0
+    
+let new_shared dirname filename fullname =
+  let fullname = Filename2.normalize fullname in
+  if not (Hashtbl.mem shareds_by_fullname fullname) then begin
+      let filename = Filename2.normalize filename in
+      let dirname = try
+          Hashtbl.find dirnames dirname with _ ->
+            incr dirname_counter;
+            let name = Printf.sprintf "shared%d" !dirname_counter in
+            Hashtbl.add dirnames dirname name;
+            name in
+      let codedname = Filename.concat dirname filename in
       incr shared_num;
       let impl = {
-          impl_shared_update = false;
-          impl_shared_filename = filename;
+          impl_shared_update = 1;
+          impl_shared_fullname = fullname;
+          impl_shared_codedname = codedname;
           impl_shared_num = !shared_num;
           impl_shared_ops = [];
         } in
       let s = as_shared impl in
       shared_must_update (as_shared impl);
       Hashtbl.add shareds_by_num !shared_num s;
-      Hashtbl.add shareds_by_filename filename s;
+      Hashtbl.add shareds_by_fullname fullname s;
+      Hashtbl.add shareds_by_codedname codedname s;
       CommonNetwork.networks_iter (fun n -> CommonNetwork.network_share n s)
     end
     
@@ -86,16 +101,21 @@ let shared_num shared =
   let impl = as_shared_impl  shared in
   impl.impl_shared_num
 
-let shared_filename s =
+let shared_fullname s =
   let impl = as_shared_impl s in
-  impl.impl_shared_filename  
+  impl.impl_shared_fullname  
+
+let shared_codedname s =
+  let impl = as_shared_impl s in
+  impl.impl_shared_codedname  
   
 let shared_unshare s =
   let impl = as_shared_impl s in
   List.iter (fun (v,o) -> 
       try o.op_shared_unshare s v with _ -> ()) impl.impl_shared_ops;
   Hashtbl.remove shareds_by_num impl.impl_shared_num;
-  Hashtbl.remove shareds_by_filename impl.impl_shared_filename
+  Hashtbl.remove shareds_by_fullname impl.impl_shared_fullname;
+  Hashtbl.remove shareds_by_codedname impl.impl_shared_codedname
   
 let new_shared_ops network = {
     op_shared_unshare = (fun _ _ -> ni_ok network "shared_unshare");
@@ -107,7 +127,7 @@ let shared_find num =
 let shared_check_files () =
   let list = ref [] in
   Hashtbl.iter (fun _ s ->
-      let name = shared_filename s in
+      let name = shared_fullname s in
       if not (Sys.file_exists name) then list := s :: !list
   ) shareds_by_num;
   List.iter (fun s -> shared_unshare s) !list
@@ -118,26 +138,27 @@ let shareds_by_num = ()
 let file_size filename = Unix32.getsize32 filename
 let local_dirname = Sys.getcwd ()
   
-let rec shared_add_directory dirname =
-  let files = Unix2.list_directory dirname in
+let rec shared_add_directory dirname local_dir =
+  let full_dir = Filename.concat dirname local_dir in
+  let files = Unix2.list_directory full_dir in
   List.iter (fun file ->
-      let name =  Filename.concat dirname file in
+      let full_name = Filename.concat full_dir file in
+      let local_name = Filename.concat local_dir file in
       try
-        if Unix2.is_directory name then
-          shared_add_directory name
+        if Unix2.is_directory full_name then
+          shared_add_directory dirname local_name
         else
-        let real_name =  
-          Filename2.normalize (
-            if Filename.is_relative name then
-              Filename.concat local_dirname name
-            else name) in
-        let size = file_size name in
+        let size = file_size full_name in
         if size > Int32.zero then
-          new_shared real_name
+          new_shared dirname local_name full_name
       with _ -> ()
   ) files
+
+let shared_add_directory dirname =
+  shared_add_directory dirname ""
   
-let set_shared_ops s f v =
+let set_shared_ops s (f: 'a) (v: 'a shared_ops) =
   let impl = as_shared_impl s in
-  impl.impl_shared_ops <- (f,v) :: impl.impl_shared_ops
+  let pair  =  Obj.magic (f,v) in
+  impl.impl_shared_ops <- pair :: impl.impl_shared_ops
   

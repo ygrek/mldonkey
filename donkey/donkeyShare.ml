@@ -120,15 +120,23 @@ let make_tagged files =
           )
         }
     ) files)
+
   
+let all_shared () =  
+  let shared_files = ref [] in
+  Hashtbl.iter (fun md4 file ->
+      if file.file_shared then shared_files := file :: !shared_files
+  ) files_by_md4;
+  !shared_files
+
 (* Check whether new files are shared, and send them to connected servers. 
   Compute (at most) one MD4 chunk
   if needed. *)
 let check_shared_files () =
   if !new_shared != [] then
     begin
-      let msg = Mftp_server.ShareReq (make_tagged !new_shared) 
-      in
+      let msg = (Mftp_server.ShareReq
+            (make_tagged (all_shared ()))) in
       new_shared := [];
       let socks = ref [] in
       List.iter (fun s ->
@@ -195,65 +203,15 @@ let check_shared_files () =
 
 let file_size filename = Unix32.getsize32 filename
 let local_dirname = Sys.getcwd ()
-
-  (*
-(* recursively read the directory (in argument) and share all the files *)
-let rec add_shared_files dirname =
-  let files = Unix2.list_directory dirname in
-  List.iter (fun file ->
-      let name =  Filename.concat dirname file in
-      try
-        if Unix2.is_directory name then
-          add_shared_files name
-        else
-        let size = file_size name in
-        if size > Int32.zero then
-          let real_name =  
-            Filename2.normalize (
-              if Filename.is_relative name then
-                Filename.concat local_dirname name
-              else name) in
-          try
-            let s = Hashtbl.find shared_files_info real_name in
-            let mtime = (Unix.stat real_name).Unix.st_mtime in
-            if s.sh_mtime = mtime && s.sh_size = size then begin
-(*                Printf.printf "USING OLD MD4s for %s" real_name;
-                print_newline (); *)
-                new_file_to_share s
-              end else begin
-                Printf.printf "Shared file %s has been modified" real_name;
-                print_newline ();
-                Hashtbl.remove shared_files_info real_name;
-                known_shared_files =:= List2.removeq s !!known_shared_files
-              end
-          with Not_found ->
-              Printf.printf "No info on %s" real_name; print_newline (); 
-              shared_files := {
-                shared_name = real_name;              
-                shared_size = size;
-                shared_list = [];
-                shared_pos = Int32.zero;
-                shared_fd = Unix32.create real_name [O_RDONLY] 0o444;
-              } :: !shared_files
-      with _ -> ()
-  ) files
-*)    
   
         
 (* returns the list of all files which are currently shared 
   (shared + downloading) *)
 
-let all_shared () =  
-  let shared_files = ref [] in
-  Hashtbl.iter (fun md4 file ->
-      if file.file_shared then shared_files := file :: !shared_files
-  ) files_by_md4;
-  !shared_files
-
 let _ =
   network.op_network_share <- (fun shared ->      
-      let real_name = shared_filename shared in
-        let size = file_size real_name in
+      let real_name = shared_fullname shared in
+      let size = file_size real_name in
       try
         let s = Hashtbl.find shared_files_info real_name in
         let mtime = (Unix.stat real_name).Unix.st_mtime in

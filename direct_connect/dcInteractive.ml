@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
+open CommonComplexOptions
 open CommonClient
 open CommonFile
 open CommonUser
@@ -37,27 +39,17 @@ let download r filenames =
   let key = (r.result_name, r.result_size) in
   if not (Hashtbl.mem files_by_key key) then begin
       let file = new_file (Md4.random()) r.result_name r.result_size in
-      List.iter (fun (s, filename) ->
-          match s.source_server.server_sock with
-            None -> ()
-          | Some sock ->
-              let c = add_source file s filename in
-              ()
+      List.iter (fun (user, filename) ->
+          ignore (add_file_client file user filename)
       ) r.result_sources;
       DcServers.ask_for_file file
     end
-  
-    (*
-let _ =
-  server_ops.op_server_print <- (fun s o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf
-        "Connected to %s:%d (%s) nusers %d\n"
-        (DcServers.server_addr s) s.server_port
-        s.server_name s.server_nusers      
-  )
-  *)
 
+let browse_client c =
+  DcServers.try_connect_client c
+          
+  
+    
 let _ =
   network.op_network_search <- (fun q buf ->
       let query = q.search_query in
@@ -108,25 +100,50 @@ let _ =
             None -> ()
           | Some sock ->
               server_send sock msg; 
-              s.server_searches <- q :: s.server_searches; 
+              s.server_search <- Some q; 
+              s.server_search_timeout <- last_time () +. !!search_timeout;
               Printf.bprintf  buf "Sending search\n") !connected_servers
-  )  
+  );
+  network.op_network_parse_url <- (fun url ->
+      match String2.split (String.escaped url) '|' with
+      | "dc://" :: "server" :: addr :: _ ->  
+          let addr, port = 
+            let ip, port = match String2.split addr ':' with
+                [ addr; port ] -> addr, int_of_string port
+              | _ -> addr, 411
+            in            
+            let ip = Ip.of_string addr in
+            let addr = if ip = Ip.null then AddrName addr else AddrIp ip in
+            addr, port
+          in
+          let s = new_server addr port in
+          true
+      | "dc://" :: "friend" :: nick :: [] ->  
+          let c = new_client nick in
+          friend_add (as_client c.client_client);
+          true
+      | "dc://" :: "friend" :: nick :: addr :: _ ->  
+          let addr, port = 
+            let ip, port = match String2.split addr ':' with
+                [ addr; port ] -> addr, int_of_string port
+              | _ -> addr, 411
+            in            
+            let ip = Ip.of_string addr in
+            ip, port
+          in
+          let c = new_client nick in
+          c.client_addr <- Some (addr, port);
+          friend_add (as_client c.client_client);
+          true
+      | _ -> false
+  )
 
 let _ =
-  result_ops.op_result_print <- (fun r count o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf "[DC %5d] %-70s %10ld   "
-        count
-        r.result_name r.result_size;
-      List.iter (fun (s,_) ->
-          Printf.bprintf buf "(%s on %s)" s.source_nick 
-          s.source_server.server_name)
-      r.result_sources;
-      Printf.bprintf buf "\n";
-  );
   result_ops.op_result_download <- (fun r filenames ->
       download r filenames   
   )
+
+module P = Gui_proto
   
 let _ =
   room_ops.op_room_info <- (fun s ->
@@ -142,7 +159,7 @@ let _ =
   );
   room_ops.op_room_messages <- (fun s ->
       let list = List.rev s.server_messages in
-      Printf.printf " %d" (List.length list); print_newline ();
+(*      Printf.printf " %d" (List.length list); print_newline ();*)
       s.server_messages <- [];
       list);
   room_ops.op_room_send_message <- (fun s m ->
@@ -154,6 +171,9 @@ let _ =
               let m = Printf.sprintf "<%s> %s" s.server_last_nick m in
               server_send sock (MessageReq m)
           | _ -> assert false
+  );
+  room_ops.op_room_name <- (fun s ->
+      s.server_name
   )
   
 let _ = 
@@ -178,8 +198,12 @@ let _ =
         );
             
         
-        P.user_server = user.user_server.server_server.impl_server_num;
-        P.user_state = user.user_user.impl_user_state;
+        P.user_server = (match user.user_servers with
+            [] -> 
+              Printf.printf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
+              print_newline ();
+              0
+          | s :: _ -> s.server_server.impl_server_num);
       });
   user_ops.op_user_remove <- (fun user -> ())
 
@@ -197,7 +221,7 @@ let _ =
         C.result_format = "";
         C.result_type = "";
         C.result_tags = [];
-        C.result_comment = None;
+        C.result_comment = "";
         C.result_done = false;
       }
   )
@@ -208,7 +232,7 @@ let _ =
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = [file.file_name];
-        P.file_md4 = Md4.null;
+        P.file_md4 = file.file_id;
         P.file_size = file.file_size;
         P.file_downloaded = file.file_downloaded;
         P.file_nlocations = 0;
@@ -222,45 +246,36 @@ let _ =
         P.file_chunks_age = [|0.0|];
         P.file_age = 0.0;
       }    
+  );
+  file_ops.op_file_save_as <- (fun file new_name  ->
+      match file_state file with
+        FileDownloaded | FileShared ->
+          Unix2.rename file.file_temp new_name;
+          file.file_temp <- new_name
+      | _ -> ()
+  );
+  file_ops.op_file_commit <- (fun file ->
+      () (* nothing to do *)   
+  );
+  file_ops.op_file_disk_name <- (fun file -> file.file_temp);
+  file_ops.op_file_best_name <- (fun file -> file.file_name);
+  file_ops.op_file_sources <- (fun file ->
+      List2.tail_map (fun c -> as_client c.client_client)
+      file.file_clients
   )
 
-let client_of_user user t =
+let client_of_user user =
   let c = new_client user.user_nick in
-  set_client_type (as_client c.client_client) t;
-  begin
-    match c.client_sock with
-    | Some _ -> ()
-    | None -> 
-        let s = match c.client_server with
-            None -> c.client_server <- Some user.user_server; user.user_server
-          | Some s -> s
-        in
-        match s.server_sock with
-          None -> ()
-(* we should remember that this user is a friend, so that we can recognize a
-friend when we receive the NickList of the server. Maybe should we link the
-client and the servers ? *)
-        | Some sock ->
-            Printf.printf "ASK FRIEND TO CONNECT"; print_newline ();
-            debug_server_send sock (
-              let module C = ConnectToMe in
-              ConnectToMeReq {
-                C.nick = c.client_name;
-                C.ip = !!CO.client_ip;
-                C.port = !!dc_port;
-              }
-            );
-  end;
   c
   
 let _ =
   user_ops.op_user_browse_files <- (fun user ->
-      let c = client_of_user user ContactClient in
-      ()
+      let c = client_of_user user in
+      contact_add (as_client c.client_client)
   );
   user_ops.op_user_set_friend <- (fun user ->
-      let c = client_of_user user FriendClient in
-      ()
+      let c = client_of_user user in
+      friend_add (as_client c.client_client)
   )
   
   
@@ -276,6 +291,9 @@ let _ =
         P.client_files = None;
         P.client_num = (client_num (as_client c.client_client));
         P.client_rating = Int32.zero;
-        P.client_chat_port = None ;
+        P.client_chat_port = 0 ;
       }
+  );
+  client_ops.op_client_browse <- (fun c immediate ->
+      browse_client c
   )

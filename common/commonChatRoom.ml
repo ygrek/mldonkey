@@ -21,7 +21,7 @@ open Options
 open CommonTypes
   
 type 'a room_impl = {
-    mutable impl_room_update : bool;
+    mutable impl_room_update : int;
     mutable impl_room_state : room_state;
     mutable impl_room_val : 'a;
     mutable impl_room_num : int;
@@ -38,9 +38,35 @@ and 'a room_ops = {
     mutable op_room_info : ('a -> Gui_proto.room_info);
     mutable op_room_send_message : ('a -> room_message -> unit);
   }
+
+
+let as_room  (room : 'a room_impl) =
+  let (room : room) = Obj.magic room in
+  room
   
+let as_room_impl  (room : room) =
+  let (room : 'a room_impl) = Obj.magic room in
+  room
+
+let dummy_room_impl = {
+    impl_room_update = 1;
+    impl_room_state = RoomClosed;
+    impl_room_val = 0;
+    impl_room_num = 0;
+    impl_room_ops = Obj.magic None;
+  }
+  
+let dummy_room  = as_room dummy_room_impl
+module H = Weak2.Make(struct
+      type t = room
+      let hash r = Hashtbl.hash (as_room_impl r).impl_room_num
+      
+      let equal x y = 
+        (as_room_impl x).impl_room_num = (as_room_impl y).impl_room_num
+    end)
+
 let room_counter = ref 0
-let rooms_by_num = Hashtbl.create 1027
+let rooms_by_num = H.create 1027
   
 let ni n m = 
   let s = Printf.sprintf "Room.%s not implemented by %s" 
@@ -51,22 +77,14 @@ let ni n m =
 let fni n m =   failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
-let as_room  (room : 'a room_impl) =
-  let (room : room) = Obj.magic room in
-  room
-  
-let as_room_impl  (room : room) =
-  let (room : 'a room_impl) = Obj.magic room in
-  room
-
   let rooms_update_list = ref []
   
   
 let room_must_update room =
   let impl = as_room_impl room in
-  if not impl.impl_room_update then
+  if impl.impl_room_update > 0 then
     begin
-      impl.impl_room_update <- true;
+      impl.impl_room_update <- 0;
       rooms_update_list := room :: !rooms_update_list
     end
 
@@ -74,7 +92,7 @@ let room_add (room : 'a room_impl) =
   incr room_counter;
   room.impl_room_num <- !room_counter;
   let (room : room) = Obj.magic room in
-  Hashtbl.add rooms_by_num !room_counter room;
+  H.add rooms_by_num room;
   room_must_update room
     
 let room_num room =
@@ -93,8 +111,10 @@ let new_room_ops network = {
 }
 
 let room_find num = 
-  Hashtbl.find rooms_by_num num
-    
+
+  H.find rooms_by_num (as_room { dummy_room_impl with
+    impl_room_num = num })
+
 let room_state c =
   let impl = as_room_impl c in
   impl.impl_room_state
@@ -147,9 +167,11 @@ let room_close (room : room) =
       set_room_state room RoomClosed;
       room_must_update room;
       impl.impl_room_ops.op_room_close impl.impl_room_val;
-      Hashtbl.remove rooms_by_num impl.impl_room_num
     end
 
+
+let rooms_iter (f : CommonTypes.room -> unit) =
+  H.iter f rooms_by_num
   
 let com_rooms_by_num = rooms_by_num
 let rooms_by_num = ()
@@ -158,4 +180,7 @@ let rooms_by_num = ()
 let room_new_users = ref []
     
 let room_new_user room c =
-  room_new_users := (room_num room, (c : user)) :: !room_new_users  
+  room_new_users := ((room : room), (c : user)) :: !room_new_users  
+  
+  
+  

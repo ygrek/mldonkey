@@ -17,12 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open Options
 
-let file_basedir = ""
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
-let limewire_ini = create_options_file (file_basedir ^ "limewire.ini")
+let limewire_ini = create_options_file (
+    Filename.concat file_basedir "limewire.ini")
 
 let max_ultrapeers = define_option limewire_ini ["max_ultrapeers"]
     "Maximal number of ultrapeers connected"

@@ -311,6 +311,14 @@ let compute_size file =
     done;
     let current = Int32.sub file.file_size !absents in
     file.file_downloaded <- current;
+    if file.file_downloaded > file.file_size then begin
+        Printf.printf "******* downloaded %s > %s size after compute_size ***** for %s"
+          (Int32.to_string file.file_downloaded)
+        (Int32.to_string file.file_size)
+        (match file.file_filenames with
+            s :: _ -> s| _ -> Md4.to_string file.file_md4);
+        print_newline () 
+      end;
     file_must_update file
     
 let print_time tm =
@@ -641,23 +649,33 @@ let disconnect_chunk ch =
 let verify_chunks file =
   if file.file_md4s <> [] then
     for i = 0 to file.file_nchunks - 1 do
-        let b = file.file_chunks.(i)  in
-        match b with
-          PresentVerified | AbsentVerified | PartialVerified _ ->
-            ()
-        | _ ->
-            let state = verify_chunk file i in
-            file.file_chunks.(i) <- (
-              if state = PresentVerified then begin
-                  Printf.printf "(PRESENT VERIFIED)";
-                  print_newline ();
-                  PresentVerified
-                end
-              else
-              match b with
+      let b = file.file_chunks.(i)  in
+      match b with
+        PresentVerified | AbsentVerified | PartialVerified _ ->
+          ()
+      | _ ->
+          let state = verify_chunk file i in
+          file.file_chunks.(i) <- (
+            if state = PresentVerified then begin
+                Printf.printf "(PRESENT VERIFIED)";
+                print_newline ();
+                PresentVerified
+              end
+            else
+            match b with
               PartialTemp bloc -> PartialVerified bloc
             | PresentTemp ->
                 file.file_downloaded <- Int32.sub file.file_downloaded block_size;
+                
+                if file.file_downloaded > file.file_size then begin
+                    Printf.printf "******* downloaded %s > %s size after verify_chunks ***** for %s"
+                      (Int32.to_string file.file_downloaded)
+                    (Int32.to_string file.file_size)
+                    (match file.file_filenames with
+                        s :: _ -> s| _ -> Md4.to_string file.file_md4);
+                    print_newline () 
+                  end;
+                
                 Printf.printf "(CORRUPTION FOUND)"; print_newline ();
                 file_must_update file;
                 AbsentVerified
@@ -703,34 +721,92 @@ Printf.printf "%s <---> %s" (Int32.to_string p0) (Int32.to_string p1);
 ) file.file_absent_chunks;
   *)
     end
+
+    
+(*              
   
+   B--------------------------------------------------E       OK
+   B--------------------E                                     OK
+                      B-------------------------------E       OK
+   B-----E                                                    OUT
+                      B-----------E                           OUT
+                                                 B----E       OUT
+----------------|----------------------------|---------------------
+         z.zone_begin                   z.zone_end
 
 
-      
+*)
+    
+    
 let update_zone file begin_pos end_pos z =
-  if z.zone_begin <= begin_pos && 
-    z.zone_end > begin_pos then 
-    if z.zone_end <= end_pos then begin
-        file.file_downloaded <- 
-          Int32.add file.file_downloaded 
-          (Int32.sub z.zone_end z.zone_begin);
-        file_must_update file;
-        z.zone_present <- true;
-        z.zone_begin <- z.zone_end;
-        if !!verbose && end_pos > z.zone_end then begin
-            Printf.printf "EXCEEDING: %s>%s" (Int32.to_string end_pos)
-            (Int32.to_string z.zone_end);
-            print_newline ();
-          end
-      end 
-    else begin
-        file.file_downloaded <- 
-          Int32.add file.file_downloaded 
-          (Int32.sub end_pos z.zone_begin);
-        z.zone_begin <- end_pos;
-        file_must_update file;
-      end
-(*  else begin
+  if z.zone_begin >= begin_pos && z.zone_end <= end_pos then begin
+(* the zone has completely been downloaded *)
+      
+      file.file_downloaded <- Int32.add file.file_downloaded 
+        (Int32.sub z.zone_end z.zone_begin);
+      
+      if file.file_downloaded > file.file_size then begin
+          Printf.printf "******* downloaded %s > %s size after update_zone ***** for %s"
+            (Int32.to_string file.file_downloaded)
+          (Int32.to_string file.file_size)
+          (match file.file_filenames with
+              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          print_newline () 
+        end;
+      
+      file_must_update file;
+      z.zone_present <- true;
+      z.zone_begin <- z.zone_end;
+      if !!verbose && end_pos > z.zone_end then begin
+          Printf.printf "EXCEEDING: %s>%s" (Int32.to_string end_pos)
+          (Int32.to_string z.zone_end);
+          print_newline ();
+        end
+    
+    end else
+  if z.zone_begin >= begin_pos && z.zone_begin < end_pos then begin
+(* the block is at the beginning of the zone *)
+      
+      file.file_downloaded <- 
+        Int32.add file.file_downloaded 
+        (Int32.sub end_pos z.zone_begin);
+      if file.file_downloaded > file.file_size then begin
+          Printf.printf "******* downloaded %s > %s size after update_zone (2) ***** for %s"
+            (Int32.to_string file.file_downloaded)
+          (Int32.to_string file.file_size)
+          (match file.file_filenames with
+              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          print_newline () 
+        end;
+      
+      z.zone_begin <- end_pos;
+      file_must_update file;
+      
+      
+    end else
+  if z.zone_end > begin_pos && z.zone_end <= end_pos then begin
+(* the block is at the end of the zone *)
+      
+      file.file_downloaded <- 
+        Int32.add file.file_downloaded 
+        (Int32.sub z.zone_end begin_pos);
+      if file.file_downloaded > file.file_size then begin
+          Printf.printf "******* downloaded %s > %s size after update_zone (3) ***** for %s"
+            (Int32.to_string file.file_downloaded)
+          (Int32.to_string file.file_size)
+          (match file.file_filenames with
+              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          print_newline () 
+        end;
+      
+      z.zone_end <- begin_pos;
+      file_must_update file;
+      
+      
+      
+    end
+
+(*  else begin 
       if !!verbose then begin
           Printf.printf "CAN'T UPDATE ZONE %s-%s WITH %s-%s"
             (Int32.to_string z.zone_begin)
@@ -909,8 +985,7 @@ let update_options file =
   check_file_downloaded file
 
                     
-let check_files_md4s timer =
-  reactivate_timer timer;
+let check_files_md4s () =
   try
     check_downloaded_files ();
     DonkeyShare.check_shared_files ();

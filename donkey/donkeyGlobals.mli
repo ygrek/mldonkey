@@ -30,7 +30,6 @@ val server_is_connected_hook :
 val received_from_server_hook :
   (DonkeyTypes.server -> server_sock -> Mftp_server.t -> unit) ref
 val server_is_disconnected_hook : (DonkeyTypes.server -> unit) ref
-val friend_change_hook : (DonkeyTypes.client -> unit) ref
 val file_change_hook : (DonkeyTypes.file -> unit) ref
   
 (* constants *)
@@ -151,7 +150,6 @@ val connected_servers : unit -> DonkeyTypes.server list
 
 val friend_add : DonkeyTypes.client -> unit
 val friend_remove : DonkeyTypes.client -> unit
-val current_friends : unit -> DonkeyTypes.client Intmap.t
   
 (* indexation *)
   
@@ -191,4 +189,5 @@ val title_bit : int
 val format_bit : int
 val media_bit : int
   
-val client_is_friend : DonkeyTypes.client -> bool
+val client_type : DonkeyTypes.client -> CommonTypes.client_type
+  

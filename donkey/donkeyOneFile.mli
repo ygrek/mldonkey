@@ -33,5 +33,5 @@ val remove_file : Md4.t -> unit
 
 val update_options : DonkeyTypes.file -> unit
 val download_engine : unit -> unit
-val check_files_md4s : BasicSocket.timer -> unit
+val check_files_md4s : unit -> unit
   

@@ -426,13 +426,15 @@ let read_first_message t sock =
       set_client_state c Connected_idle;      
       identify_as_mldonkey c sock;
       query_files c sock [];
-      if client_is_friend c then
+      if client_type c <> NormalClient then
         if last_time () > c.client_next_view_files then begin
+            (*
             Printf.printf "****************************************";
             print_newline ();
             Printf.printf "       ASK VIEW FILES         ";
             print_newline ();
-
+*)
+            
             direct_client_send sock (
               let module M = Mftp_client in
               let module C = M.ViewFiles in
@@ -483,12 +485,14 @@ let client_to_client for_files c t sock =
       identify_as_mldonkey c sock;
       query_files c sock for_files;
       client_must_update c;      
-      if client_is_friend c then begin
+      if client_type c <> NormalClient then begin
           if last_time () > c.client_next_view_files then begin
+              (*
             Printf.printf "****************************************";
             print_newline ();
             Printf.printf "       ASK VIEW FILES         ";
-            print_newline ();
+print_newline ();
+  *)
               direct_client_send sock (
                 let module M = Mftp_client in
                 let module C = M.ViewFiles in
@@ -497,11 +501,13 @@ let client_to_client for_files c t sock =
         end
   
   | M.ViewFilesReplyReq t ->
+      (*
       Printf.printf "****************************************";
       print_newline ();
       Printf.printf "       VIEW FILES REPLY         ";
       print_newline ();
-
+*)
+      
       let module Q = M.ViewFilesReply in
       begin
         try
@@ -517,7 +523,7 @@ let client_to_client for_files c t sock =
                     result_tags = [];
                     result_type = "";
                     result_format = "";
-                    result_comment = None;
+                    result_comment = "";
                     result_done = false;
                   } in
                 List.iter (fun tag ->
@@ -816,8 +822,8 @@ let client_to_client for_files c t sock =
 	Known_location (ip, port) -> 
 	  (
 	   match c.client_chat_port with
-	     None -> None
-	   | Some p ->Some (Ip.to_string ip, p)
+	     0 -> None
+	   | p ->Some (Ip.to_string ip, p)
 	  )
       |	Indirect_location _ -> None
       in
@@ -937,6 +943,7 @@ let reconnect_client cid files c =
               Ip.to_inet_addr ip) 
             port 
               (client_handler c) (*client_msg_to_string*) in
+          TcpBufferedSocket.set_write_power sock !!upload_power;
           verify_ip sock;          
           init_connection sock;
           init_client sock c files;
@@ -1052,6 +1059,7 @@ let client_connection_handler t event =
             TcpBufferedSocket.create "donkey client connection" s (client_handler2 c) 
 (*client_msg_to_string*)
           in
+          set_write_power sock !!upload_power;
           (try
               set_reader sock 
                 (Mftp_comm.client_handler2 c read_first_message

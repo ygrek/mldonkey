@@ -118,7 +118,7 @@ and client = {
     mutable client_upload : upload_info option;
     mutable client_is_mldonkey : int;
     mutable client_checked : bool;
-    mutable client_chat_port : int option;
+    mutable client_chat_port : int;
   }
   
 and upload_info = {
@@ -149,7 +149,7 @@ and block = {
   
 and zone = {
     mutable zone_begin : int32;
-    zone_end : int32;
+    mutable zone_end : int32;
     mutable zone_nclients : int;
     mutable zone_present : bool;
     zone_file : file;
@@ -195,20 +195,6 @@ and file_to_share = {
     mutable shared_pos : int32;
     mutable shared_fd : Unix32.t;
   }
-
-  (*
-and shared_file = {
-    sh_name : string;
-    sh_size : int32;
-    sh_upload_requests : int;
-    sh_upload_kbs : int;
-    sh_md4 : Md4.t;
-    sh_md4s : Md4.t list;
-    sh_format : format;
-    sh_fd : Unix32.t;
-    sh_chunks : chunk array;
-  }
-*)
   
 module UdpClientMap = Map.Make(struct
       type t = location_kind
@@ -242,17 +228,135 @@ type shared_file_info = {
   
 
 open CommonNetwork
+
+(*
+    mutable op_network_connected_servers : (unit -> server list);
+    mutable op_network_config_file : (unit -> Options.options_file);
+    mutable op_network_is_enabled : (unit -> bool);
+    mutable op_network_save_simple_options : (unit -> unit);
+    mutable op_network_load_simple_options : (unit -> unit);
+    mutable op_network_save_complex_options : (unit -> unit);
+    mutable op_network_load_complex_options : (unit -> unit);
+    mutable op_network_enable : (unit -> unit);
+    mutable op_network_disable : (unit -> unit);    
+    mutable op_network_add_server : 
+      ((string * Options.option_value) list -> server);
+    mutable op_network_add_file : 
+      bool -> ((string * Options.option_value) list -> file);
+    mutable op_network_add_client : 
+      bool -> ((string * Options.option_value) list -> client);
+    mutable op_network_prefixed_args : 
+      (unit -> (string * Arg.spec * string) list);    
+    mutable op_network_search : (search -> Buffer.t -> unit);
+    mutable op_network_share : (shared -> unit);
+    mutable op_network_private_message : (string -> string -> unit);
+    mutable op_network_connect_servers : (unit -> unit);
+    mutable op_network_add_server_id : (Ip.t -> int -> unit);
+    mutable op_network_forget_search : (search -> unit);
+    mutable op_network_close_search : (search -> unit);
+    mutable op_network_extend_search : (unit -> unit);
+    mutable op_network_clean_servers : (unit -> unit);
+    mutable op_network_add_friend_id : (Ip.t -> int -> unit);
+
+*)
   
 let network = CommonNetwork.new_network "Donkey"
   
-let (file_ops : file CommonFile.file_ops) = CommonFile.new_file_ops network
-let (server_ops : server CommonServer.server_ops) = 
-  CommonServer.new_server_ops network
-let (client_ops : client CommonClient.client_ops) = 
-  CommonClient.new_client_ops network
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-let (user_ops : user CommonUser.user_ops) = 
-  CommonUser.new_user_ops network
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
+
+  (*
+     op_result_network : network;
+     op_result_download : ('a -> string list -> unit);
+     op_result_info : ('a -> CommonTypes.result_info);
+  *)
+      
+let (result_ops : result CommonResult.result_ops) = 
+  CommonResult.new_result_ops network
+  
+(*
+     op_server_network : network;
+     op_server_to_option : ('a -> (string * option_value) list);
+     op_server_remove : ('a -> unit);
+     op_server_info : ('a -> Gui_proto.server_info);
+     op_server_sort : ('a -> float);
+     op_server_connect : ('a -> unit);
+     op_server_disconnect : ('a -> unit);
+     op_server_users : ('a -> user list);
+     op_server_query_users : ('a -> unit);
+     op_server_find_user : ('a -> string -> unit);
+     op_server_new_messages : (unit -> (int * int * string) list);
+*)
+  
+let (server_ops : server CommonServer.server_ops) = 
+  CommonServer.new_server_ops network
+  
+(*
+  
+     op_room_close : ('a -> unit);
+     op_room_pause : ('a -> unit);
+     op_room_resume : ('a -> unit);
+     op_room_messages : ('a -> room_message list);
+     op_room_users : ('a -> user list);
+     op_room_name : ('a -> string);
+     op_room_info : ('a -> Gui_proto.room_info);
+     op_room_send_message : ('a -> room_message -> unit);
+
+*)
+let (room_ops : server CommonChatRoom.room_ops) = 
+  CommonChatRoom.new_room_ops network
+  
+(*
+     op_user_network : network;
+     op_user_commit : ('a -> unit);
+     op_user_save_as : ('a -> string -> unit);
+     op_user_print : ('a -> CommonTypes.connection_options -> unit);
+     op_user_to_option : ('a -> (string * option_value) list);
+     op_user_remove : ('a -> unit);
+     op_user_info : ('a -> Gui_proto.user_info);
+     op_user_set_friend : ('a -> unit);
+     op_user_browse_files : ('a -> unit);
+*)
+  
+let (user_ops : user CommonUser.user_ops) = 
+  CommonUser.new_user_ops network
+  
+(*
+     op_file_network : network;
+     op_file_commit : ('a -> unit);
+     op_file_save_as : ('a -> string -> unit);
+     op_file_to_option : ('a -> (string * option_value) list);
+     op_file_cancel : ('a -> unit);
+     op_file_pause : ('a -> unit);
+     op_file_resume : ('a -> unit);
+     op_file_info : ('a -> Gui_proto.file_info);
+     op_file_disk_name : ('a -> string);
+     op_file_best_name : ('a -> string);
+     op_file_state : ('a -> CommonTypes.file_state);
+     op_file_set_format : ('a -> CommonTypes.format -> unit);
+     op_file_check : ('a -> unit);
+     op_file_recover : ('a -> unit);
+     op_file_sources : ('a -> client list);
+*)
+  
+let (file_ops : file CommonFile.file_ops) = 
+  CommonFile.new_file_ops network
+  
+(*
+     op_client_network : network;
+     op_client_commit : ('a -> unit);
+     op_client_connect : ('a -> unit);
+     op_client_save_as : ('a -> string -> unit);
+     op_client_to_option : ('a -> (string * option_value) list);
+     op_client_cancel : ('a -> unit);
+     op_client_info : ('a -> Gui_proto.client_info);
+     op_client_say : ('a -> string -> unit);
+     op_client_files : ('a -> (string * result) list);
+     op_client_set_friend : ('a -> unit);
+     op_client_remove_friend : ('a -> unit);
+*)
+  
+let (client_ops : client CommonClient.client_ops) = 
+  CommonClient.new_client_ops network
+
+  

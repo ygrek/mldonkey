@@ -26,6 +26,13 @@ let download_sample_rate = define_option downloads_ini ["download_sample_rate"]
  
 let download_sample_size = define_option downloads_ini ["download_sample_size"]
     "How many samples go into an estimate of transfer rates" int_option 10
-  
+
+let upload_power = define_option downloads_ini ["upload_power"]
+  "The weight of upload on a donkey connection compared to upload on other
+  peer-to-peer networks. Setting it to 5 for example means that a donkey 
+  connection will be allowed to send 5 times more information per second than
+  an Open Napster connection. This is done to favorise donkey connections
+  over other networks, where upload is less efficient, without preventing
+  upload from these networks." int_option 5
 
   

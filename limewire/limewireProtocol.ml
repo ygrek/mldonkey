@@ -21,6 +21,12 @@ open CommonGlobals
 open BigEndian
 open TcpBufferedSocket
 
+  
+let gnutella_ok = "GNUTELLA OK"     
+let gnutella_200_ok = "GNUTELLA/0.6 200 OK"
+let gnutella_503_shielded = "GNUTELLA/0.6 503 I am a shielded leaf node"
+
+  
 type packet_type =
   PING | PONG | PUSH | QUERY | QUERY_REPLY | UNKNOWN of int
 

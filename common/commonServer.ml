@@ -24,7 +24,7 @@ open CommonUser
 open CommonTypes
   
 type 'a server_impl = {
-    mutable impl_server_update : bool;
+    mutable impl_server_update : int;
     mutable impl_server_state : CommonTypes.host_state;
     mutable impl_server_num : int;
     mutable impl_server_sort : float;
@@ -36,7 +36,6 @@ and 'a server_ops = {
     mutable op_server_network : network;
     mutable op_server_to_option : ('a -> (string * option_value) list);
     mutable op_server_remove : ('a -> unit);
-(*    mutable op_server_print : ('a -> CommonTypes.connection_options -> unit); *)
     mutable op_server_info : ('a -> Gui_proto.server_info);
     mutable op_server_sort : ('a -> float);
     mutable op_server_connect : ('a -> unit);
@@ -44,9 +43,6 @@ and 'a server_ops = {
     mutable op_server_users : ('a -> user list);
     mutable op_server_query_users : ('a -> unit);
     mutable op_server_find_user : ('a -> string -> unit);
-    
-(* line number X user num X message  *)
-    mutable op_server_new_messages : (unit -> (int * int * string) list);
   }
 
 let ni n m = 
@@ -57,10 +53,8 @@ let ni n m =
   
 let fni n m =  failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
-
-let server_num = ref 0
-let servers_by_num = Hashtbl.create 1027
-
+  
+  
 let as_server  (server : 'a server_impl) =
   let (server : server) = Obj.magic server in
   server
@@ -69,22 +63,50 @@ let as_server_impl  (server : server) =
   let (server : 'a server_impl) = Obj.magic server in
   server
 
+    
+let  dummy_server_impl = {
+    impl_server_update = 1;
+    impl_server_state = NewHost;
+    impl_server_num = 0;
+    impl_server_sort = 0.0;
+    impl_server_val = 0;
+    impl_server_ops = Obj.magic None;
+  }
+
+let dummy_server = as_server dummy_server_impl
+
+
+let server_num s =
+  let s = as_server_impl s in
+  s.impl_server_num
+  
+module H = Weak2.Make(struct
+      type t = server
+      let hash s = Hashtbl.hash (server_num s)
+      
+      let equal x y = 
+        (server_num x) = (server_num y)
+    end)
+
+let server_counter = ref 0
+let servers_by_num = H.create 1027
+
 let servers_update_list = ref []
   
 let server_must_update s =
   let impl = as_server_impl s in
-  if not impl.impl_server_update then
+  if impl.impl_server_update > 0 then
     begin
-      impl.impl_server_update <- true;
+      impl.impl_server_update <- 0;
       servers_update_list := s :: !servers_update_list
     end
 
 let server_update_num impl =
   let server = as_server impl in
-  incr server_num;
-  impl.impl_server_num <- !server_num;
+  incr server_counter;
+  impl.impl_server_num <- !server_counter;
   server_must_update server;
-  Hashtbl.add servers_by_num !server_num server
+  H.add servers_by_num server
 
 let server_to_option (server : server) =
   let server = as_server_impl server in
@@ -115,41 +137,58 @@ let server_users s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_users s.impl_server_val
 
-let new_server_ops network = {
-    op_server_network =  network;
-    op_server_remove = (fun _ -> ni_ok network "server_remove");
+  
+let servers_ops = ref []
+let new_server_ops network =
+  let s = {
+      op_server_network =  network;
+      op_server_remove = (fun _ -> ni_ok network "server_remove");
 (*    op_server_print = (fun _ _ -> ni_ok network "server_print"); *)
-    op_server_to_option = (fun _ -> fni network "server_to_option");
-    op_server_info = (fun _ -> fni network "server_info");
-    op_server_sort = (fun _ -> ni_ok network "server_sort"; 0.0);
-    op_server_connect = (fun _ -> ni_ok network "server_connect");
-    op_server_disconnect = (fun _ -> ni_ok network "server_disconnect");
-    op_server_find_user = (fun _ -> fni network "find_user");
-    op_server_query_users = (fun _ -> ni_ok network "query_users");
-    op_server_users = (fun _ -> fni network "users");
-    op_server_new_messages = (fun _ -> fni network "new_messages");
-  }
+      op_server_to_option = (fun _ -> fni network "server_to_option");
+      op_server_info = (fun _ -> fni network "server_info");
+      op_server_sort = (fun _ -> ni_ok network "server_sort"; 0.0);
+      op_server_connect = (fun _ -> ni_ok network "server_connect");
+      op_server_disconnect = (fun _ -> ni_ok network "server_disconnect");
+      op_server_find_user = (fun _ -> fni network "find_user");
+      op_server_query_users = (fun _ -> ni_ok network "query_users");
+      op_server_users = (fun _ -> fni network "users");
+    } in
+  let ss = (Obj.magic s : int server_ops) in
+  servers_ops := (ss, { ss with op_server_network = s.op_server_network })
+  :: ! servers_ops;
+  s
   
-let server_new_messages s =
-  let s = as_server_impl s in
-  s.impl_server_ops.op_server_new_messages s.impl_server_val
-  
-  (*
-let remove_connected_server network s =
-  network.connected_servers <- List2.removeq s network.connected_servers
 
-let add_connected_server network s =
-  network.connected_servers <- s :: network.connected_servers
-*)
-
-
+let check_server_implementations () =
+  Printf.printf "\n----- Methods not implemented for CommonServer ----\n";
+  print_newline ();
+  List.iter (fun (c, cc) ->
+      let n = c.op_server_network.network_name in
+      Printf.printf "\n  Network %s\n" n; print_newline ();
+      if c.op_server_remove == cc.op_server_remove then 
+        Printf.printf "op_server_remove\n";
+      if c.op_server_to_option == cc.op_server_to_option then
+        Printf.printf "op_server_to_option\n";
+      if c.op_server_info == cc.op_server_info then
+        Printf.printf "op_server_info\n";
+      if c.op_server_sort == cc.op_server_sort then
+        Printf.printf "op_server_sort\n";
+      if c.op_server_connect == cc.op_server_connect then
+        Printf.printf "op_server_connect\n";
+      if c.op_server_disconnect == cc.op_server_disconnect then
+        Printf.printf "op_server_disconnect\n";
+      if c.op_server_find_user == cc.op_server_find_user then
+        Printf.printf "op_server_find_user\n";
+      if c.op_server_query_users == cc.op_server_query_users then
+        Printf.printf "op_server_query_users\n";
+      if c.op_server_users == cc.op_server_users then
+        Printf.printf "op_server_users\n";
+  ) !servers_ops;
+  print_newline () 
 
 let server_find (num : int) = 
-  (Hashtbl.find servers_by_num num : server)
-
-let server_num s =
-  let s = as_server_impl s in
-  s.impl_server_num
+  H.find servers_by_num  (as_server { dummy_server_impl with
+      impl_server_num = num })
   
 let server_connect s =
   let server = as_server_impl s in
@@ -177,23 +216,27 @@ let set_server_state c state =
 
 let server_sort () = 
   let list = ref [] in
-  Hashtbl.iter (fun _ s ->
-      list := s :: !list;
-      let s = as_server_impl s in
-      s.impl_server_sort <- s.impl_server_ops.op_server_sort s.impl_server_val;
+  H.iter (fun s ->
+      let impl = as_server_impl s in
+      match impl.impl_server_state with
+        RemovedHost -> ()
+      | _ ->
+          list := s :: !list;
+          impl.impl_server_sort <- 
+            (try impl.impl_server_ops.op_server_sort impl.impl_server_val
+            with _ -> 0.0);
   ) servers_by_num;
   Sort.list (fun s1 s2 -> 
       (as_server_impl s1).impl_server_sort >= (as_server_impl s2).impl_server_sort
   ) !list
-
-let com_servers_by_num = servers_by_num
   
+let com_servers_by_num = servers_by_num  
   
 let server_new_users = ref []
     
 let server_new_user server user =
   user_must_update user;
-  let key = (server_num server, (user : user)) in
+  let key = ((server : server), (user : user)) in
   if not (List.mem key !server_new_users) then
     server_new_users := key :: !server_new_users
 

@@ -80,7 +80,7 @@ let start_interfaces () =
             (Printexc.to_string e);
           print_newline ();
     end  ;
-  add_timer !!update_gui_delay DriverInterface.update_gui_info
+  add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
   
 let load_config () =
 
@@ -102,7 +102,14 @@ let load_config () =
         exit 2;
         ());  
 
-  networks_iter_all (fun r -> network_load_simple_options r);
+  networks_iter_all (fun r -> 
+      match r.network_config_file with
+        None -> ()
+      | Some opfile -> 
+          try
+            Options.load opfile
+          with Sys_error _ ->
+              Options.save_with_help opfile);
   
 (**** PARSE ARGUMENTS ***)    
 
@@ -112,7 +119,17 @@ let load_config () =
     @ (Options.simple_args downloads_ini);
   
   networks_iter_all (fun r ->
-      more_args := !more_args @ network_prefixed_args r);
+      match r.network_config_file with
+        None -> ()
+      | Some opfile ->
+          let args = simple_args opfile in
+          List.iter (fun prefix ->
+              let args = List2.tail_map (fun (arg, spec, help) ->
+                    (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
+              in
+              more_args := !more_args @ args)
+          r.network_prefixes
+  );
   
   Arg.parse ([
       "-client_ip", Arg.String (fun s ->
@@ -164,6 +181,15 @@ Files.dump_file file), " <filename> : dump file";
           Printf.printf "%s = %s" ip (Ip.to_string (Ip.of_string ip));
           print_newline ();
           exit 0), "<ip> : undocumented";
+      "-check_impl", Arg.Unit (fun _ ->
+          CommonNetwork.check_network_implementations ();
+          CommonClient.check_client_implementations ();
+          CommonServer.check_server_implementations ();
+          CommonFile.check_file_implementations ();
+          CommonResult.check_result_implementations ();
+          print_newline ();
+          exit 0), 
+      " : display information on the implementations";
     ] @ !more_args)
     (fun file -> ()
 (*      Files.dump_file file; exit 0 *)
@@ -209,9 +235,6 @@ let _ =
       ip_verified := 0;
       (try
           client_ip =:= Ip.my ();
-          Printf.printf "SETTIGN CLIENT IP TO %s" (Ip.to_string !!client_ip); 
-          print_newline ();
-          
         with _ -> ());
     end;
   
@@ -221,17 +244,17 @@ let _ =
       print_newline () );
   networks_iter (fun r -> network_enable r);
   
-  add_timer !!save_options_delay (fun timer ->
-      reactivate_timer timer;
+  add_infinite_option_timer save_options_delay (fun timer ->
       DriverInteractive.save_config ());  
   start_interfaces ();
 
-  add_timer 3600. (fun timer ->
-      reactivate_timer timer;
+  add_infinite_timer 3600. (fun timer ->
       CommonShared.shared_check_files ());
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;
 
+  add_infinite_timer 300. (fun timer ->
+      DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
   

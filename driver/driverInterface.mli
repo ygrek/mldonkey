@@ -35,7 +35,7 @@ val gui_file_change_hook :
 
   val gui_handler : 'a -> TcpServerSocket.event -> unit
   
-val update_gui_info : BasicSocket.timer -> unit
+val update_gui_info : unit -> unit
 
 val install_hooks : unit -> unit
 

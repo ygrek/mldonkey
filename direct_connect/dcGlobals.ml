@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonResult
 open BasicSocket
 open CommonGlobals
 open CommonTypes
@@ -37,9 +38,31 @@ module DO = CommonOptions
   
 let nservers = ref 0
         
-let servers_list = ref ([] : server list)
+let servers_list = ref ([] : server list) 
 let connected_servers = ref ([]: server list)
+let servers_by_addr = Hashtbl.create 100
+let nknown_servers = ref 0  
+  
+let shared_files = Hashtbl.create 13
+let shared_total = ref 0.0
 
+let users_by_name = Hashtbl.create 113
+    
+let files_by_key = Hashtbl.create 47
+
+let current_files = ref []
+      
+let clients_by_name = Hashtbl.create 113
+
+let results_by_file = Hashtbl.create 111
+
+
+(**)
+(**)
+(*             FUNCTIONS          *)
+(**)
+(**)
+  
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
 let set_room_state s state =
@@ -50,52 +73,94 @@ let server_state s = server_state (as_server s.server_server)
 let file_state s = file_state (as_file s.file_file)
 let server_must_update s = server_must_update (as_server s.server_server)
 let file_must_update s = file_must_update (as_file s.file_file)
-let user_remove user = user_remove (as_user user.user_user)  
-  
-let shared_files = ref []
-let shared_total = ref 0.0
+    
+let new_shared_dir dirname = {
+    shared_dirname = dirname;
+    shared_files = [];
+    shared_dirs = [];
+  }
+
+let shared_tree = new_shared_dir ""
+
+let rec add_shared_file node sh dir_list =
+  match dir_list with
+    [] -> assert false
+  | [filename] ->
+      node.shared_files <- sh :: node.shared_files
+  | dirname :: dir_tail ->
+      let node =
+        try
+          List.assoc dirname node.shared_dirs
+        with _ ->
+            let new_node = new_shared_dir dirname in
+            node.shared_dirs <- (dirname, new_node) :: node.shared_dirs;
+            new_node
+      in
+      add_shared_file node sh dir_tail
   
 let add_shared s =
-  shared_files  := s :: !shared_files;
-  let size = Unix32.getsize32 (shared_filename s) in
+  let full_name = shared_fullname s in
+  let codedname = shared_codedname s in
+  let size = Unix32.getsize32 full_name in
+  let sh = {
+      shared_fullname = full_name;
+      shared_codedname = codedname;
+      shared_size = size;
+      shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o666;
+    } in
+  set_shared_ops s sh shared_ops;
+  Hashtbl.add shared_files codedname sh;
+  add_shared_file shared_tree sh (String2.split codedname '/');
   shared_total :=  !shared_total +. (Int32.to_float size);
   Printf.printf "Total shared : %f" !shared_total;
   print_newline () 
   
-let _ =
-  network.op_network_share <- add_shared
- 
-exception Found of user  
   
+exception Found of user  
+
+let new_user server name =
+  let u =
+    try
+      let user = Hashtbl.find users_by_name name in
+      user
+    with _ ->
+        let rec user = {
+            user_nick = name;
+            user_servers = [];
+            user_user = user_impl;
+            user_link = "";
+            user_data = 0.0;
+            user_admin = false;
+          } and user_impl = {
+            dummy_user_impl with
+            impl_user_ops = user_ops;
+            impl_user_val = user;
+          }
+        in
+        Hashtbl.add users_by_name name user;
+        user_add user_impl;
+        user      
+  in
+  match server with
+    None -> u
+  | Some s ->
+      if not (List.memq s u.user_servers) then begin
+
+          (*Printf.printf "%s(%d) is on %s" u.user_nick u.user_user.impl_user_num s.server_name; print_newline (); *)
+          u.user_servers <- s :: u.user_servers;
+        end;
+      u
+        
 let user_add server name =
   try
     List.iter (fun user -> if user.user_nick = name then raise (Found user)) 
     server.server_users;
-    let rec user = {
-        user_nick = name;
-        user_server = server;
-        user_user = user_impl;
-        user_link = "";
-        user_data = 0.0;
-        user_admin = false;
-      } and user_impl = {
-        impl_user_update = false;
-        impl_user_state = NewHost;
-        impl_user_num = 0;
-        impl_user_ops = user_ops;
-        impl_user_val = user;
-      }
-    in
-    user_add user_impl;
-    server_new_user (as_server server.server_server) (as_user user_impl);
-    room_new_user (as_room server.server_room) (as_user user_impl);
+    let user = new_user (Some server) name in
+    server_new_user (as_server server.server_server) (as_user user.user_user);
+    room_new_user (as_room server.server_room) (as_user user.user_user);
     server.server_users <- user :: server.server_users;
     user
   with Found user -> user
-    
-let files_by_key = Hashtbl.create 47
-
-let current_files = ref []
   
 let new_file file_id name size =
   let key = (name, size) in
@@ -122,9 +187,7 @@ let new_file file_id name size =
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_clients = [];
         } and impl = {
-          impl_file_update = false;
-          impl_file_num = 0;
-          impl_file_state = FileNew;
+          dummy_file_impl with
           impl_file_val = file;
           impl_file_ops = file_ops;
         } in
@@ -136,45 +199,49 @@ let new_file file_id name size =
       file_add impl state;
       Hashtbl.add files_by_key key file;
       file
+
+let find_file file_name file_size =
+  Hashtbl.find files_by_key (file_name, file_size)
       
-let clients_by_name = Hashtbl.create 113
-  
 let new_client name =
   try
     Hashtbl.find clients_by_name name 
   with _ ->
+      let user = new_user None name in
       let rec c = {
           client_client = impl;
           client_sock = None;
           client_name = name;
-          client_server = None;
           client_addr = None;
           client_files = [];
           client_download = DcIdle;
           client_pos = Int32.zero;
           client_all_files = None;
           client_receiving = Int32.zero;
+          client_user = user;
+          client_connection_control = new_connection_control 0.0;
         } and impl = {
-          impl_client_update = false;
-          impl_client_state = NotConnected;
-          impl_client_type = NormalClient;
+          dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-          impl_client_num = 0;          
         } in
       new_client impl;
       Hashtbl.add clients_by_name name c;
       c
 
       
-let add_source file src filename = 
-  let  c = new_client src.source_nick in
+let add_file_client file user filename = 
+  let  c = new_client user.user_nick in
   if not (List.memq c file.file_clients) then begin
       file.file_clients <- c :: file.file_clients;
       c.client_files <- (file, filename) :: c.client_files
     end;
   c
 
+let add_result_source r u filename =
+  if not (List.mem_assoc u r.result_sources) then begin
+      r.result_sources <- (u, filename) :: r.result_sources
+    end
       
 let remove_client c =
   Hashtbl.remove clients_by_name c.client_name;
@@ -201,14 +268,10 @@ let login s =
 
 let client_type c =
   client_type (as_client c.client_client)
-  
-  
     
-let servers_by_addr = Hashtbl.create 100
-let nknown_servers = ref 0  
-let new_server addr =
+let new_server addr port=
   try
-    Hashtbl.find servers_by_addr addr 
+    Hashtbl.find servers_by_addr (addr, port) 
   with _ ->
       incr nknown_servers;
       let rec h = { 
@@ -219,32 +282,81 @@ let new_server addr =
           server_nusers = 0;
           server_info = "";
           server_ip_cached = None;
-          server_connection_control = new_connection_control (last_time());
+          server_connection_control = new_connection_control 0.0;
           server_sock = None;
-          server_port = 411;
+          server_port = port;
           server_nick = 0;
           server_last_nick = "";
-          server_searches = [];
+          server_search = None;
+          server_search_timeout = 0.0;
           server_users = [];
           server_messages = [];
         } and 
         server_impl = {
-          impl_server_update = false;
-          impl_server_state = NewHost;
-          impl_server_sort = 0.0;
+          dummy_server_impl with
           impl_server_val = h;
           impl_server_ops = server_ops;
-          impl_server_num = 0;
         } and 
         room_impl = {
-          impl_room_update = false;
-          impl_room_state = RoomPaused;
+          dummy_room_impl with
           impl_room_val = h;
           impl_room_ops = room_ops;
-          impl_room_num = 0;
         }         
       in
       server_add server_impl;
       room_add room_impl;
-      Hashtbl.add servers_by_addr addr h;
+      Hashtbl.add servers_by_addr (addr, port) h;
       h
+
+        
+let exit_exn = Exit
+let basename filename =
+  let s =
+    let len = String.length filename in
+    try
+      let pos = String.rindex_from filename (len-1) '\\' in
+      String.sub filename (pos+1) (len-pos-1)
+    with _ ->      
+        try
+          if len > 2 then
+            let c1 = Char.lowercase filename.[0] in
+            let c2 = filename.[1] in
+            match c1,c2 with
+              'a'..'z', ':' ->
+                String.sub filename 2 (len -2 )
+            | _ -> raise exit_exn
+          else raise exit_exn
+        with _ -> Filename.basename filename
+  in
+  String.lowercase s
+  
+let new_result filename filesize =
+  let basename = basename filename in
+  let key = (basename, filesize) in
+  
+  try
+    Hashtbl.find results_by_file key
+  with _ ->
+      let rec result = {
+          result_result = result_impl;
+          result_name = basename;
+          result_size = filesize;
+          result_sources = [];
+        } and
+        result_impl = {
+          dummy_result_impl with
+          impl_result_val = result;
+          impl_result_ops = result_ops;
+        } in
+      CommonResult.new_result result_impl;
+      Hashtbl.add results_by_file key result;
+      result
+      
+let server_remove s =
+  server_remove (as_server s.server_server);
+  Hashtbl.remove servers_by_addr (s.server_addr, s.server_port);
+  decr nknown_servers;
+  servers_list := List2.removeq s !servers_list
+    
+let _ =
+  network.op_network_share <- add_shared

@@ -78,7 +78,7 @@ module AddSource = struct
       Printf.printf "Source port: %d\n" t.source_port
 
 
-    let write buf s =
+    let write buf t =
       buf_md4 buf t.md4; 
       buf_ip buf t.source_ip;
       buf_port buf t.source_port
@@ -108,7 +108,7 @@ module SuppSource = struct
       Printf.printf "Source ip: %s\n" (Ip.to_string t.source_ip);
       Printf.printf "Source port: %d\n" t.source_port
 
-    let write buf s = 
+    let write buf t = 
       buf_md4 buf t.md4; 
       buf_ip buf t.source_ip;
       buf_port buf t.source_port
@@ -139,13 +139,13 @@ module QueryUserConnect = struct
     let print t =  
       Printf.printf "CONNECT A REMOTE FIREWALLED CLIENT:\n";
       Printf.printf "File MD4: %s\n" (Md4.to_string t.md4);
-      Printf.printf "Local id: %s\n" (Ip.to_string t.local_id)
+      Printf.printf "Local id: %s\n" (Ip.to_string t.local_id);
       Printf.printf "Source ip: %s\n" (Ip.to_string t.client_ip);
       Printf.printf "Source port: %d\n" t.client_port
 
-    let write buf s = 
+    let write buf t = 
       buf_md4 buf t.md4;
-      buf_ip buf t.local_id 
+      buf_ip buf t.local_id; 
       buf_ip buf t.client_ip;
       buf_port buf t.client_port
 
@@ -166,8 +166,8 @@ type t =
 | AddSourceReq of AddSource.t
 | SuppSourceReq of SuppSource.t
 | QueryUserConnectReq of QueryUserConnect.t
+| UnKnownReq of string
 | QuitReq
-
 
 let parse s =
   try
@@ -185,18 +185,19 @@ let parse s =
   with e ->
       Printf.printf "From server to server :"; print_newline ();
       dump s;
-      UnknownReq s
+      UnKnownReq s
 
 
 let print t =
   begin
     match t with
-    | ServerConnectReq -> ServerConnect.print t
+    | ServerConnectReq t -> ServerConnect.print t
     | QuitReq -> Printf.printf("Server Quit Relais Group");print_newline () 
-    | AddSourceReq -> AddSource.print t
-    | SuppSourceReq -> SuppSource.print t
-    | QueryUserConnectReq -> QueryUserConnect.print t
-  end 
+    | AddSourceReq t -> AddSource.print t
+    | SuppSourceReq t -> SuppSource.print t
+    | QueryUserConnectReq t -> QueryUserConnect.print t
+    | UnKnownReq t-> Mftp_server.print (Mftp_server.UnknownReq t)
+  end;
   print_newline()
 
 
@@ -206,18 +207,19 @@ let udp_write buf t =
   match t with
   | ServerConnectReq t ->
       buf_int8 buf 1;
-      Connect.write buf t
+      ServerConnect.write buf t
   | QuitReq ->
       buf_int8 buf 20
-  | AddSourceReq ->
+  | AddSourceReq t ->
       buf_int8 buf 30;
-      Connect.write buf t
-  | SuppSourceReq ->
+      AddSource.write buf t
+  | SuppSourceReq t ->
       buf_int8 buf 40;
-      Connect.write buf t
-  | QueryUserConnectReq ->
+      SuppSource.write buf t
+  | QueryUserConnectReq t ->
       buf_int8 buf 50;
-      Connect.write buf t
-
+      QueryUserConnect.write buf t
+  | _ -> ()
+      
 let write buf t = 
   udp_write buf t

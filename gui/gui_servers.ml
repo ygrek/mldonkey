@@ -158,9 +158,10 @@ class box columns users =
             server, we_port#text
       in
       Gui_com.send 
-        (AddServer_query ("Donkey",
-          Ip.of_string server_ip,
-          int_of_string server_port)
+        (Url (
+          Printf.sprintf "ed2k://|server|%s|%s||"
+            server_ip
+            server_port)
       );
       we_ip#set_text "";
       we_port#set_text ""

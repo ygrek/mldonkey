@@ -37,10 +37,6 @@ module DG = CommonGlobals
 module DO = CommonOptions
 
 
-let gnutella_ok = "GNUTELLA OK"     
-let gnutella_200_ok = "GNUTELLA/0.6 200 OK"
-let gnutella_503_shielded = "GNUTELLA/0.6 503 I am a shielded leaf node"
-
   
 let send_query min_speed keywords xml_query =
   let module Q = Query in
@@ -78,14 +74,12 @@ let stem s =
 
 let recover_files () =
   List.iter (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
       let keywords = 
-        match stem f.file_name with 
+        match stem file.file_name with 
           [] | [_] -> 
-            Printf.printf "Not enough keywords to recover %s" f.file_name;
+            Printf.printf "Not enough keywords to recover %s" file.file_name;
             print_newline ();
-            [f.file_name]
+            [file.file_name]
         | l -> l
       in
       ignore (send_query 0 keywords "")
@@ -94,14 +88,12 @@ let recover_files () =
   
 let recover_files_from_server sock =
   List.iter (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
       let keywords = 
-        match stem f.file_name with 
+        match stem file.file_name with 
           [] | [_] -> 
-            Printf.printf "Not enough keywords to recover %s" f.file_name;
+            Printf.printf "Not enough keywords to recover %s" file.file_name;
             print_newline ();
-            [f.file_name]
+            [file.file_name]
         | l -> l
       in
       let module Q = Query in
@@ -201,8 +193,7 @@ print_newline ();
       if List.memq s !connected_servers then begin
           connected_servers := List2.removeq s !connected_servers;
         end;
-      Hashtbl.remove servers_by_key (s.server_ip, s.server_port);
-      server_remove (as_server s.server_server)
+      server_remove s
 
 let add_peers headers =
   (try
@@ -256,17 +247,24 @@ ascii: [ G N U T E L L A / 0 . 6   2 0 0   O K(13)(10) U s e r - A g e n t :   G
 
 
 
-let update_source t =
+let update_user t =
   let module Q = QueryReply in
-  let src = new_source t.Q.guid t.Q.ip t.Q.port in
+  let user = new_user t.Q.guid (match t.Q.dont_connect with
+        Some true ->  Indirect_location ("", t.Q.guid)
+      | _ -> Known_location(t.Q.ip, t.Q.port))
+  in
+  user.user_speed <- t.Q.speed;
+  user
+
+let update_client t =
+  let module Q = QueryReply in
+  let c = new_client t.Q.guid (match t.Q.dont_connect with
+        Some true ->  Indirect_location ("", t.Q.guid)
+      | _ -> Known_location(t.Q.ip, t.Q.port))
+  in
   
-  (src.source_push <-           
-    match t.Q.dont_connect with
-    | Some true -> true
-    | _ -> false);
-  
-  src.source_speed <- t.Q.speed;
-  src
+  c.client_user.user_speed <- t.Q.speed;
+  c
   
 let server_parse_header s sock header =
 (*  AP.dump header; *)
@@ -382,13 +380,13 @@ print p;
         try
           let s = Hashtbl.find searches_by_uid p.pkt_uid in
           
-          let src = update_source t in
+          let user = update_user t in
 
 (*          Printf.printf "ADDING RESULTS"; print_newline ();*)
           List.iter (fun f ->
 (*              Printf.printf "NEW RESULT %s" f.Q.name; print_newline ();*)
               let result = new_result f.Q.name f.Q.size in
-              add_source result src f.Q.index;
+              add_source result user f.Q.index;
               
               search_add_result s.search_search result.result_result;
           ) t.Q.files
@@ -396,13 +394,12 @@ print p;
 (*            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); *)
             List.iter (fun ff ->
                 List.iter (fun file ->
-                    let r = file.file_result in
-                    let f = r.result_file in
-                    if f.file_name = ff.Q.name && f.file_size = ff.Q.size then 
+                    if file.file_name = ff.Q.name && 
+                      file.file_size = ff.Q.size then 
                       begin
 (*                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" f.file_name; print_newline (); *)
-                        let s = update_source t in
-                        add_download file s ff.Q.index
+                        let c = update_client t in
+                        add_download file c ff.Q.index;
                         end
                 ) !current_files;
             ) t.Q.files
@@ -500,20 +497,21 @@ print_newline ();
       done
     end
 
-let get_file_from_source s file r =
-  if connection_can_try s.source_connection_control then begin
-      connection_try s.source_connection_control;      
-      if s.source_push then begin
+let get_file_from_source c file =
+  if connection_can_try c.client_connection_control then begin
+      connection_try c.client_connection_control;
+      match c.client_user.user_kind with
+        Indirect_location ("", uid) ->
 (*          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   *)
-          
+
 (* do as if connection failed. If it connects, connection will be set to OK *)
-          connection_failed s.source_connection_control;
+          connection_failed c.client_connection_control;
           let module P = Push in
           let t = PushReq {
-              P.guid = s.source_uid;
+              P.guid = uid;
               P.ip = !!DO.client_ip;
               P.port = !!client_port;
-              P.index = List.assq r s.source_files;
+              P.index = List.assq file c.client_downloads;
             } in
           let p = new_packet t in
           List.iter (fun s ->
@@ -521,33 +519,57 @@ let get_file_from_source s file r =
                 None -> ()
               | Some sock -> server_send sock p
           ) !connected_servers
-        end else
-        LimewireClients.connect_source s
-    end    
-      
+      | _ ->
+          LimewireClients.connect_client c
+    end
+    
 let download_file (r : result) =
-  let f = r.result_file in
-  let file = new_file (Md4.random ()) f.file_name f.file_size in
+  let file = new_file (Md4.random ()) r.result_name r.result_size in
 (*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun src ->
-      add_download file src 0; (* 0 since index is already known. verify ? *)
-      get_file_from_source src file r;
+  List.iter (fun user ->
+      let index = List.assoc r user.user_files in
+      let c = new_client user.user_uid user.user_kind in
+      add_download file c index;
+      get_file_from_source c file;
   ) r.result_sources;
   ()
 
 let ask_for_files () =
   List.iter (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
-      List.iter (fun s ->
-          get_file_from_source s file r
-      ) r.result_sources
+      List.iter (fun c ->
+          get_file_from_source c file
+      ) file.file_clients
   ) !current_files;
   ()
   
   
 
+  
+let disconnect_server s =
+      match s.server_sock with
+        None -> ()
+      | Some sock -> close sock "user disconnect"
+    
+let _ =
+(*  server_ops.op_server_connect <- connect_server; *)
+  server_ops.op_server_disconnect <- disconnect_server;
+(*
+(*  server_ops.op_server_query_users <- (fun s -> *)
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          server_send sock (GetNickListReq)
+  );
+(*  server_ops.op_server_users <- (fun s -> *)
+      List2.tail_map (fun u -> as_user u.user_user) s.server_users
+);
+  *)
+  server_ops.op_server_remove <- (fun s ->
+      disconnect_server s;
+      server_remove s
+  )
+  
   

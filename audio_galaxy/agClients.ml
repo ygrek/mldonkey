@@ -149,12 +149,9 @@ let init_file_transfer t =
       client_file_id = t.FT.file_id;
     } and
     client_impl = {
-      impl_client_update = false;
-      impl_client_state = NotConnected;
-      impl_client_type = NormalClient;
+      dummy_client_impl with
       impl_client_val = c;
       impl_client_ops = client_ops;
-      impl_client_num = 0;
     }
   in
   CommonClient.new_client client_impl;

@@ -22,13 +22,13 @@ open CommonTypes
 open BasicSocket
 open TcpBufferedSocket
 open Unix
-open TcpBufferedSocket
 open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes  
 open ServerOptions        
 open ServerGlobals
+open ServerLog
 
 module M = Mftp_server
 
@@ -112,15 +112,15 @@ let reply_to_client_connection c =
       c.client_id <- id;
       Hashtbl.add clients_by_id id c;
 
-     print clients_by_id;
+      (*print clients_by_id;*)
       
-      Printf.printf "SET ID"; print_newline ();
+      (*Printf.printf "SET ID"; print_newline ();*)
 (* send ID back to client *)
-      direct_server_send sock  (M.SetIDReq c.client_id);
+      direct_server_send sock  (M.SetIDReq c.client_id)
 
-(* send some messages *)
+(* send some messages 
       List.iter (fun msg ->
-          direct_server_send sock (M.MessageReq msg)) !!welcome_messages
+          direct_server_send sock (M.MessageReq msg)) !!welcome_messages*)
       
   
 let check_handler c port ok sock event = 
@@ -156,12 +156,17 @@ let check_client c port =
   Printf.printf "Checking client ID"; print_newline ();
   ()
 
+(*send 200 results*)
 let send_query_reply sock c =
   let list = ServerIndexer.get c.client_results 200 in
+  (*if (!!save_log) then
+     ServerLog.put_results list;*)
+  if (!!save_log) then
+          ServerLog.add_note  ("Number of Files:\n"^(string_of_int (List.length list))^"\n");
   direct_server_send sock (M.QueryReplyReq list);
   ()
   
-  
+(*remove in the location table all file share by a client*)   
 let remove_md4_source c =
   let files_liste = c.client_files in
   let loc = {
@@ -171,24 +176,46 @@ let remove_md4_source c =
             } in
   List.iter (fun md4 -> ServerLocate.supp md4 loc)
   files_liste   
-   
+  
 
+(* send nb clients and nb files on the server *)
+let send_stat_to_clients timer =
+        Hashtbl.iter ( fun k x ->
+                 match x.client_sock with
+                         None -> ()
+                       | Some sock ->
+                direct_server_send  sock (M.InfoReq
+                (!nconnected_clients,!nshared_files))) clients_by_id
+
+(*get A part of a listeof servers*)
+let rec get_serverlist servers nb_servers =
+  match servers with 
+    [] -> []
+    | hd :: tail ->if nb_servers = 0 then []
+      else { M.ServerList.ip = hd.server_ip; M.ServerList.port = hd.server_port} :: get_serverlist tail (nb_servers-1)
+
+
+(*message comming from a client*)
 let server_to_client c t sock =
-  Printf.printf "server_to_client"; print_newline ();
+(*  Printf.printf "server_to_client"; print_newline ();
   M.print t;
-  print_newline ();
-  match t with
+  print_newline ();*)
+  incr nb_tcp_req;
+  if (!!save_log) then
+     ServerLog.new_log_req c.client_location.loc_ip c.client_md4 t;
+  (match t with
     M.ConnectReq t ->
       c.client_md4 <- t.M.Connect.md4;
       c.client_tags <- t.M.Connect.tags;      
-      check_client c t.M.Connect.port;
-
+      check_client c t.M.Connect.port
+      
   | M.AckIDReq _ -> 
-(* send messages to the client *)
+(* send messages to the client*) 
       List.iter (fun s -> direct_server_send sock (M.MessageReq s))
       !!welcome_messages;
 (* send servers list *)
-      direct_server_send sock (M.ServerListReq []);
+      direct_server_send sock (M.ServerListReq (get_serverlist !alive_servers 50));
+			     
 (* send info to client *)
       direct_server_send sock (M.ServerInfoReq 
           (let module SI = M.ServerInfo in          
@@ -200,8 +227,7 @@ let server_to_client c t sock =
               { tag_name = "name"; tag_value = String !!server_name };
               { tag_name = "description"; tag_value = String !!server_desc }
               ];
-          }));
-      ()
+          }))
   
   | M.ShareReq list ->
       remove_md4_source c;                     
@@ -211,29 +237,23 @@ let server_to_client c t sock =
            ServerLocate.add tmp.f_md4
            {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
             c.client_files <- tmp.f_md4::c.client_files 
-          with _ -> Printf.printf "To Much Files Sahred"
-                    
-          
-       ) list;
-         ServerLocate.print();
-     
-                             
+          with _ -> Printf.printf "To Much Files Shared\n"
+                   
+       ) list
+       (*ServerLocate.print()*)
+                           
   | M.QueryReq t ->
       let module R = M.Query in
       let q = ServerIndexer.query_to_query t in            
       let docs = ServerIndexer.find q in
 (* send back QueryReplyReq *)
+	
       c.client_results <- docs;
-      Printf.printf "QueryReq partially implemented"; print_newline ();
-      send_query_reply sock c;
-      ()      
+      send_query_reply sock c   
       
   | M.QueryMoreResultsReq ->
 (* send back QueryReplyReq *)
-      Printf.printf "QueryMoreResultsReq partially implemented"; 
-      print_newline ();
-      send_query_reply sock c;
-      ()
+       send_query_reply sock c
       
   | M.QueryIDReq t ->
 (* send back
@@ -241,7 +261,7 @@ let server_to_client c t sock =
   QueryIDReplyReq if connected
 *)
       begin
-        try 
+        try
           let cc = Hashtbl.find clients_by_id t in
           match cc.client_kind, sock, c.client_kind, cc.client_sock with
           | KnownLocation (ip, port), sock, _, _
@@ -258,7 +278,8 @@ let server_to_client c t sock =
               raise Not_found
         with Not_found ->
             direct_server_send sock (M.QueryIDFailedReq t)
-      end
+         
+      end;
 
 (***************************************************************** TODO ***)
       
@@ -267,41 +288,60 @@ let server_to_client c t sock =
        try
       let module R = M.QueryLocationReply in
       let peer_list = ServerLocate.get t in
-      M.QueryLocationReply.print peer_list;
+      (*M.QueryLocationReply.print peer_list;*)
 (* send back QueryLocationReplyReq *)
+       if (!!save_log) then
+          ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
       direct_server_send sock (M.QueryLocationReplyReq peer_list);  
-(*Printf.printf "QueryLocationReq not implemented"; print_newline ();*)
-      ()
       with Not_found -> ()
-      end
+     end
       
   | M.QueryUsersReq t ->
 (* send back QueryUsersReplyReq *)
-      Printf.printf "QueryUsersReq not implemented"; print_newline ();
-      ()
+      let clients_list = ref [] in
+      Hashtbl.iter (fun k x ->
+              clients_list := {
+                    M.QueryUsersReply.md4 = x.client_md4;
+                    M.QueryUsersReply.ip = x.client_location.loc_ip;                             
+                    M.QueryUsersReply.port = x.client_location.loc_port;
+                    M.QueryUsersReply.tags = [];
+                 }:: !clients_list
+      ) clients_by_id; 
+      direct_server_send sock (M.QueryUsersReplyReq !clients_list)       
       
-  | _ -> ()
-
+  | _ -> Printf.printf "UNKNOWN TCP REQ\n"; 
+      ());
+  if (!!save_log) then
+     ServerLog.add_to_liste ();
+   ()
       
 (* every minute, send a InfoReq message *)
 
 let remove_client c sock s = 
-  Printf.printf ("CLIENT DISCONNECTED %s")
+  (*Printf.printf ("CLIENT DISCONNECTED %s")
   (Ip.to_string c.client_id);
-  print_newline ();
+  print_newline ();*)
+  if (!!save_log) then
+    begin
+      ServerLog.something_append  c.client_location.loc_ip c.client_md4 s;
+      ServerLog.add_to_liste () 
+    end;
   Hashtbl.remove clients_by_id c.client_id;
   remove_md4_source c;
-  print clients_by_id;
-  ServerLocate.print ();
+  (*print clients_by_id;
+  ServerLocate.print ();*)
   decr nconnected_clients
       
 let handler t event =
-  Printf.printf "CONNECTION"; print_newline ();
+  (*Printf.printf "CONNECTION"; print_newline ();*)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if !!max_clients <= !nconnected_clients then
-        Unix.close s
+	begin
+	  Printf.printf "too much clients\n";
+          Unix.close s
+	end
       else
       let sock = TcpBufferedSocket.create "server client connection" s (fun _ _ -> ()) 
         (*server_msg_to_string*)

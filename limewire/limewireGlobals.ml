@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
+open CommonUser
 open CommonTypes
 open CommonComplexOptions
 open CommonServer
@@ -34,6 +36,21 @@ let current_files = ref ([] : LimewireTypes.file list)
   
 let connected_servers = ref ([] : server list)
 let servers_by_key = Hashtbl.create 103
+
+let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
+let (ultrapeers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
+let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
+let nservers = ref 0
+let redirector_connected = ref false
+
+let redirectors_ips = ref ( [] : Ip.t list)
+let redirectors_to_try = ref ( [] : Ip.t list)
+  
+let files_by_key = Hashtbl.create 13
+
+let (users_by_uid : (Md4.t, user) Hashtbl.t) = Hashtbl.create 127
+let (clients_by_uid : (Md4.t, client) Hashtbl.t) = Hashtbl.create 127
+let results_by_key = Hashtbl.create 127
 
 let new_server ip port =
   let key = (ip,port) in
@@ -54,57 +71,32 @@ let new_server ip port =
           server_nkb_last = 0;
         } and
         server_impl = {
-          impl_server_update = false;
-          impl_server_state = NewHost;
-          impl_server_sort = 0.0;
+          dummy_server_impl with
           impl_server_val = s;
           impl_server_ops = server_ops;
-          impl_server_num = 0;
         } in
       server_add server_impl;
       Hashtbl.add servers_by_key key s;
       s
 
-(*      
-let searches = ref ([] : search list)
-  *)
-let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
-
-let (ultrapeers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
-let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
-let nservers = ref 0
-let redirector_connected = ref false
-
-let redirectors_ips = ref ( [] : Ip.t list)
-let redirectors_to_try = ref ( [] : Ip.t list)
-
-  
-  
-let files_by_key = Hashtbl.create 13
-
-let (sources_by_uid : (Md4.t, source) Hashtbl.t) = Hashtbl.create 127
-let results_by_file = Hashtbl.create 127
-
 let new_result file_name file_size =
-  let file = {
-      file_name = file_name;
-      file_size = file_size;
-    } in
+  let key = (file_name, file_size) in
   try
-    Hashtbl.find results_by_file file
+    Hashtbl.find results_by_key key
   with _ ->
       let rec result = {
           result_result = result_impl;
-          result_file = file;
+          result_name = file_name;
+          result_size = file_size;
           result_sources = [];
         } and
         result_impl = {
+          dummy_result_impl with
           impl_result_val = result;
           impl_result_ops = result_ops;
-          impl_result_num = 0;
         } in
       CommonResult.new_result result_impl;
-      Hashtbl.add results_by_file file result;
+      Hashtbl.add results_by_key key result;
       result
       
   
@@ -127,14 +119,15 @@ let new_file file_id file_name file_size =
       let rec file = {
           file_file = file_impl;
           file_id = file_id;
-          file_result = new_result file_name file_size;
+          file_name = file_name;
+          file_size = file_size;
           file_downloaded = current_size;
           file_temp = file_temp;
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          file_clients = [];
         } and file_impl =  {
-          impl_file_update = false;
-          impl_file_state = FileNew;
-          impl_file_num = 0;
+          dummy_file_impl with
+
           impl_file_val = file;
           impl_file_ops = file_ops;
         }
@@ -149,40 +142,65 @@ let new_file file_id file_name file_size =
       file
 
 
-let new_source uid ip port =
+let new_user uid kind =
   try
-    let s = Hashtbl.find sources_by_uid uid in
-    s.source_ip <- ip;
-    s.source_port <- port;
+    let s = Hashtbl.find users_by_uid uid in
+    s.user_kind <- kind;
     s
   with _ ->
-      let src = {
-          source_uid = uid;
-          source_ip = ip;
-          source_port = port;
-          source_files = [];
-          source_speed = 0;
-          source_client = None;
-          source_downloads = [];
-          source_connection_control = 
-          new_connection_control (last_time ());
-          source_push = true;
+      let rec user = {
+          user_user = user_impl;
+          user_uid = uid;
+          user_kind = kind;
+          user_files = [];
+          user_speed = 0;
+        }  and user_impl = {
+          dummy_user_impl with
+            impl_user_ops = user_ops;
+            impl_user_val = user;
+          } in
+      user_add user_impl;
+      Hashtbl.add users_by_uid uid user;
+      user
+  
+let new_client uid kind =
+  try
+    Hashtbl.find clients_by_uid uid 
+  with _ ->
+      let user = new_user uid kind in
+      let rec c = {
+          client_client = impl;
+          client_sock = None;
+(*          client_name = name; 
+          client_kind = None; *)
+          client_file = None;
+          client_pos = Int32.zero;
+          client_all_files = None;
+          client_user = user;
+          client_error = false;
+          client_connection_control = new_connection_control (last_time());
+          client_downloads = [];
+        } and impl = {
+          dummy_client_impl with
+          impl_client_val = c;
+          impl_client_ops = client_ops;
         } in
-      Hashtbl.add sources_by_uid uid src;
-      src
-
+      new_client impl;
+      Hashtbl.add clients_by_uid uid c;
+      c
 
 let add_source r s index =
   if not (List.memq s r.result_sources) then begin
-      s.source_files <- (r,index) :: s.source_files;
+      s.user_files <- (r,index) :: s.user_files;
       r.result_sources <- s :: r.result_sources
     end
     
-let add_download file s index =
-  let r = file.file_result in
-  add_source r s index;
-  if not (List.memq file s.source_downloads) then begin
-      s.source_downloads <- file :: s.source_downloads;
+let add_download file c index =
+  let r = new_result file.file_name file.file_size in
+(*  add_source r c.client_user index; *)
+  if not (List.memq c file.file_clients) then begin
+      c.client_downloads <- (file, index) :: c.client_downloads;
+      file.file_clients <- c :: file.file_clients
     end
     
       
@@ -204,4 +222,10 @@ let server_state s =
       
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
+  
+let server_remove s =
+  connected_servers := List2.removeq s !connected_servers;    
+  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
+
+let client_type c = client_type (as_client c.client_client)
   

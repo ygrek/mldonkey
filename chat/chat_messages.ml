@@ -12,7 +12,7 @@
 (** Messages and string constants. *)
 
 let software = "MLChat"
-let software_version = "0.2"
+let software_version = "0.3"
 let software_author = "Maxence Guesdon"
 let software_author_mail = "Maxence.Guesdon@inria.fr"
 let software_copyright = 
@@ -57,6 +57,7 @@ let h_id = "Your id"
 let h_color_myself = "My color in dialog boxes"
 let h_popup_all = "Popup for all incoming messages (true) or "^
   "for only people in your personal list"
+let h_rooms = "The rooms you know, list of (name, list of (id, host, port))"
 
 (** {2 Messages} *)
 
@@ -72,11 +73,17 @@ let options = "Options"
 let connection = "Connection"
 let colors = "Colors"
 let popup_all = "Popup all"
+let rooms = "Rooms"
+let room_name = "Room name"
+let show_hide_people = "Show/hide people"
 
 (** {2 Menu labels} *)
 
 let m_quit = "Quit"
 let m_open_dialog_for_selected_people = "Open dialog"
 let m_options = "Options"
-let m_set_not_temp = "Add selected temporay people"
+let m_add_people = "Add people"
+let m_toggle_temp = "Toggle temp flag for selected people"
 let m_about = "About ..."
+let m_remove_people = "Remove selected people"
+let m_rooms = "Rooms"

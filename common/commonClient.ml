@@ -25,7 +25,7 @@ open CommonTypes
 type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
-    mutable impl_client_update : bool;
+    mutable impl_client_update : int;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
     mutable impl_client_ops : 'a client_ops;
@@ -33,22 +33,32 @@ type 'a client_impl = {
   
 and 'a client_ops = {
     mutable op_client_network : network;
-    mutable op_client_commit : ('a -> unit);
+    
+(* force connection to the client. *)
     mutable op_client_connect : ('a -> unit);
-    mutable op_client_save_as : ('a -> string -> unit);
-(*    mutable op_client_print : ('a -> CommonTypes.connection_options -> unit);
-  *)
+    
+(* convert a client structure to be stored in the option file *)
     mutable op_client_to_option : ('a -> (string * option_value) list);
-    mutable op_client_cancel : ('a -> unit);
+    
+(* convert a client to an info structure used in the interfaces *)
     mutable op_client_info : ('a -> Gui_proto.client_info);
+    
+(* send a message to a given client *)
     mutable op_client_say : ('a -> string -> unit);
-    mutable op_client_files : ('a -> result list);
-    mutable op_client_set_friend : ('a -> unit);
-    mutable op_client_remove_friend : ('a -> unit);
+    
+(* ask a client for its list of files. The boolean argument is used to
+decide whether to connect immediatly or not. *)
+    mutable op_client_browse : ('a -> bool -> unit);
+    
+(* returns the list of files of a client as already known *)
+    mutable op_client_files : ('a -> (string * result) list);
+    
+(* used to clear the file list a client *)
+    mutable op_client_clear_files : ('a -> unit);
   }
   
 let client_counter = CommonUser.user_counter
-let clients_by_num = Hashtbl.create 1027
+  
   
 let as_client  (client : 'a client_impl) =
   let (client : client) = Obj.magic client in
@@ -62,6 +72,26 @@ let client_num c =
   let c = as_client_impl c in
   c.impl_client_num
   
+let dummy_client_impl = {
+    impl_client_type = NormalClient;
+    impl_client_state = NewHost;
+    impl_client_update = 1;
+    impl_client_num = 0;
+    impl_client_val = 0;
+    impl_client_ops = Obj.magic None;
+  }
+
+let dummy_client = as_client dummy_client_impl
+  
+module H = Weak2.Make(struct
+      type t = client
+      let hash c = Hashtbl.hash (client_num c)
+      
+      let equal x y = (client_num x) = (client_num y)
+    end)
+
+let clients_by_num = H.create 1027
+  
 let client_network (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_network
@@ -69,26 +99,6 @@ let client_network (client : client) =
 let client_to_option (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_to_option client.impl_client_val
-  
-let client_cancel (client : client) =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_cancel client.impl_client_val;
-  Hashtbl.remove clients_by_num client.impl_client_num
-  
-let client_commit (client : client) =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_commit client.impl_client_val;
-  Hashtbl.remove clients_by_num client.impl_client_num
-
-  (*
-let client_print (client : client) buf =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_print client.impl_client_val buf
-    *)
-
-let client_save_as (client : client) name =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_save_as client.impl_client_val name
 
 let client_network (client : client) =
   let client = as_client_impl client in
@@ -109,6 +119,14 @@ let client_files client=
 let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
+
+let client_clear_files client=
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_clear_files client.impl_client_val
+
+let client_browse client immediate =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_browse client.impl_client_val immediate
   
 let ni n m = 
   let s = Printf.sprintf "Client.%s not implemented by %s" 
@@ -119,30 +137,58 @@ let ni n m =
 let fni n m =   failwith (ni n m)
   let ni_ok n m = ignore (ni n m)
 
-let new_client_ops network = {
-    op_client_network =  network;
-    op_client_commit = (fun _ -> ni_ok network "client_commit");
-    op_client_save_as = (fun _ _ -> ni_ok network "client_save_as");
-(*    op_client_print = (fun _ _ -> ni_ok network "client_print"); *)
-    op_client_to_option = (fun _ -> fni network "client_to_option");
-    op_client_cancel = (fun _ -> ni_ok network "client_cancel");
-    op_client_info = (fun _ -> fni network "client_info");
-    op_client_say = (fun _ _ -> ni_ok network "client_say");
-    op_client_files = (fun _ -> fni network "client_files");
-    op_client_set_friend = (fun _ -> ni_ok network "client_set_friend");
-    op_client_remove_friend = (fun _ -> ni_ok network "client_remove_friend");
-    op_client_connect  = (fun _ -> ni_ok network "client_connect");
-  }
+let clients_ops = ref []
+  
+let new_client_ops network = 
+  let c = {
+      op_client_network =  network;
+      op_client_to_option = (fun _ -> fni network "client_to_option");
+      op_client_info = (fun _ -> fni network "client_info");
+      op_client_say = (fun _ _ -> ni_ok network "client_say");
+      op_client_files = (fun _ -> fni network "client_files");
+      op_client_connect  = (fun _ -> ni_ok network "client_connect");
+      op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");
+      op_client_browse = (fun _ _ -> ni_ok network "client_browse");
+    } in
+  let cc = (Obj.magic c : int client_ops) in
+  clients_ops := (cc, { cc with op_client_network = c.op_client_network })
+  :: ! clients_ops;
+  c
 
-let client_find num = Hashtbl.find clients_by_num num
+let check_client_implementations () =
+  Printf.printf "\n---- Methods not implemented for CommonClient ----\n";
+  print_newline ();
+  List.iter (fun (c, cc) ->
+      let n = c.op_client_network.network_name in
+      Printf.printf "\n  Network %s\n" n; print_newline ();
+      if c.op_client_to_option == cc.op_client_to_option then 
+        Printf.printf "op_client_to_option\n";
+      if c.op_client_info == cc.op_client_info then
+        Printf.printf "op_client_info\n";
+      if c.op_client_say == cc.op_client_say then
+        Printf.printf "op_client_say\n";
+      if c.op_client_files == cc.op_client_files then
+        Printf.printf "op_client_files\n";
+      if c.op_client_connect == cc.op_client_connect then
+        Printf.printf "op_client_connect\n";
+      if c.op_client_clear_files == cc.op_client_clear_files then
+        Printf.printf "op_client_clear_files\n";
+      if c.op_client_browse == cc.op_client_browse then
+        Printf.printf "op_client_browse\n";
+  ) !clients_ops;
+  print_newline () 
+  
+let client_find num = 
+  H.find clients_by_num (as_client { dummy_client_impl with
+      impl_client_num = num })
     
 let clients_update_list = ref []
   
 let client_must_update client =
   let impl = as_client_impl client in
-  if not impl.impl_client_update then
+  if impl.impl_client_update > 0 then
     begin
-      impl.impl_client_update <- true;
+      impl.impl_client_update <- 0;
       clients_update_list := client :: !clients_update_list
     end
 
@@ -161,15 +207,13 @@ let new_client (client : 'a client_impl) =
   incr client_counter;
   client.impl_client_num <- !client_counter;
   let (client : client) = Obj.magic client in
-  Hashtbl.add clients_by_num !client_counter client;
+  H.add clients_by_num client;
   client_must_update client
   
   
 let client_remove c =
-  set_client_state c RemovedHost;
-  let impl = as_client_impl c in
-  Hashtbl.remove clients_by_num impl.impl_client_num
-
+  set_client_state c RemovedHost
+  
 let client_type c =
   let impl = as_client_impl c in
   impl.impl_client_type
@@ -180,72 +224,30 @@ let set_client_type c t =
       impl.impl_client_type <- t;
       client_must_update c
     end
-  
+    
 let clients_by_num = ()
   
-
 let client_new_files = ref []
     
-let client_new_file client c =
-  let key = (client_num client, (c : result)) in
+let client_new_file (client :client) (dirname:string) r =
+  let key = (client, dirname, (r : result)) in
   if not (List.mem key !client_new_files) then  
     client_new_files := key :: !client_new_files  
 
-(*
+module G = Gui_proto
+  
+let client_print c o =
+  let impl = as_client_impl c in
+  let n = impl.impl_client_ops.op_client_network in
+  let info = client_info c in
+  let buf = o.conn_buf in
+    Printf.bprintf buf "[%s %-5d] %23s %-20s"
+    n.network_name
+    (client_num c)
+  (match info.G.client_kind with
+      Indirect_location (name, _) -> name
+    | Known_location (ip, port) ->
+        Printf.sprintf "%s:%d" (Ip.to_string ip) port
+  )
+  info.G.client_name
 
-  client_ops.op_client_print <- (fun c output ->
-      let buf = output.conn_buf in      
-      (match c.client_kind with
-          Indirect_location _ -> 
-            Printf.bprintf buf "Client [%5d] Indirect client\n" 
-            (client_num c)
-        | Known_location (ip, port) ->
-            Printf.bprintf buf "Client [%5d] %s:%d\n" 
-            (client_num c)
-              (Ip.to_string ip) port);
-      Printf.bprintf buf "Name: %s\n" c.client_name;
-      (match c.client_all_files with
-          None -> ()
-        | Some results ->
-            Printf.bprintf buf "Files:\n";
-            List.iter (fun rs ->
-                let doc = rs.result_index in
-                let r = Store.get store doc in
-                if output.conn_output = HTML then 
-                  Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-                    (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-                begin
-                  match r.result_names with
-                    [] -> ()
-                  | name :: names ->
-                      Printf.bprintf buf "%s\n" name;
-                      List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
-                end;
-                begin
-                  match r.result_comment with
-                    None -> ()
-                  | Some comment ->
-                      Printf.bprintf buf "COMMENT: %s\n" comment;
-                end;
-                if output.conn_output = HTML then 
-                  Printf.bprintf buf "\</A HREF\>";
-                Printf.bprintf  buf "          %10s %10s " 
-                  (Int32.to_string r.result_size)
-                (Md4.to_string r.result_md4);
-                List.iter (fun t ->
-                    Buffer.add_string buf (Printf.sprintf "%-3s "
-                        (match t.tag_value with
-                          String s -> s
-                        | Uint32 i -> Int32.to_string i
-                        | Fint32 i -> Int32.to_string i
-                        | _ -> "???"
-                      ))
-                ) r.result_tags;
-                Buffer.add_char buf '\n';
-            ) results
-      )
-  )  
-
-*)
-    
-let client_print c o = ()

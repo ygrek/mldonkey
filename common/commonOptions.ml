@@ -21,16 +21,28 @@ open BasicSocket
 open Options
 open Unix
 
-let file_basedir = ""
+  
+let file_basedir = 
+  try
+    Sys.getenv "MLDONKEY_DIR"
+  with _ -> ""
+
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   
-let downloads_ini = create_options_file (file_basedir ^ "downloads.ini")
-let shared_files_ini = create_options_file (file_basedir ^ "shared_files.ini")
-let servers_ini = create_options_file (file_basedir ^ "servers.ini")
-let searches_ini = create_options_file (file_basedir ^ "searches.ini")
-let clients_ini = create_options_file (file_basedir ^ "files.ini")
-let files_ini = create_options_file (file_basedir ^ "files.ini")
-let friends_ini = create_options_file (file_basedir ^ "friends.ini")
+let downloads_ini = create_options_file (
+    Filename.concat file_basedir "downloads.ini")
+let shared_files_ini = create_options_file (
+    Filename.concat file_basedir "shared_files.ini")
+let servers_ini = create_options_file (
+    Filename.concat file_basedir "servers.ini")
+let searches_ini = create_options_file (
+    Filename.concat file_basedir "searches.ini")
+let clients_ini = create_options_file (
+    Filename.concat file_basedir "files.ini")
+let files_ini = create_options_file (
+    Filename.concat file_basedir "files.ini")
+let friends_ini = create_options_file (
+    Filename.concat file_basedir "friends.ini")
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
 
@@ -86,12 +98,12 @@ let update_gui_delay = define_option downloads_ini ["update_gui_delay"]
  
 let temp_directory = define_option downloads_ini ["temp_directory" ] 
     "The directory where temporary files should be put" 
-  string_option "temp"
+    string_option (Filename.concat file_basedir "temp")
   
 let incoming_directory = 
   define_option downloads_ini ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
-  string_option "incoming"
+    string_option (Filename.concat file_basedir "incoming")
 
 let shared_directories = 
   define_option downloads_ini ["shared_directories" ] 
@@ -120,14 +132,6 @@ let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rat
   "The maximal download rate you can tolerate on your link in kB/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
-
-(*  
-let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
-  "The maximal upload rate you can tolerate (in kB/s)" int_option 3000
-  
-let max_download_rate = define_option downloads_ini ["max_download_rate"] 
-  "The maximal download rate you can tolerate in kB/s(0 = no limit)" int_option 0
-*)
   
   
 let max_xs_packets = define_option downloads_ini ["max_xs_packets"] 

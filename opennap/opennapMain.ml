@@ -17,21 +17,29 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open OpennapServers
 open CommonOptions
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open Options
-  open BasicSocket
+open BasicSocket
 open OpennapTypes
 open OpennapGlobals
 open OpennapOptions  
 
+let disable enabler () =
+  enabler := false;
+  List.iter (fun s -> disconnect_server s) !connected_servers;
+  List.iter (fun file -> ()) !current_files
+  
 let enable () =
 
+  let enabler = ref true in
+  network.op_network_disable <- disable enabler;
   if not !!enable_opennap then enable_opennap =:= true;
   if !!use_napigator then
-    Napigator.load_servers_list "http://www.napigator.com/servers/"
+    Napigator.load_servers_list !!servers_list_url
       (fun list -> 
       Printf.printf "LIST OF %d SERVERS DOWNLOADED"
           (List.length list)
@@ -41,30 +49,15 @@ let enable () =
           let s = new_server ip port in
             s.server_desc <- desc;
             s.server_net <- network) list);
-
-  (*
-  Hashtbl.iter (fun _ file ->
-      if file_state file <> FileDownloaded then
-        current_files := file :: !current_files
-  ) files_by_key;
-*)
   
-  add_timer 1.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 1.0 (fun timer ->
       OpennapServers.connect_servers ());
-
-  add_timer 30.0 (fun timer ->
-      reactivate_timer timer;
-      Printf.printf "SAVE FILES"; print_newline ();
-      OpennapComplexOptions.save_config ());
   
-  add_timer 60.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 60.0 (fun timer ->
       OpennapServers.ask_for_files ();
   );
   
-  add_timer 300.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 300.0 (fun timer ->
       OpennapServers.recover_files ());
 
   OpennapClients.listen ();
@@ -76,16 +69,16 @@ open CommonTypes
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_opennap);
-  network.op_network_save_simple_options <- OpennapComplexOptions.save_config;
-  network.op_network_load_simple_options <- (fun _ -> 
-      try
-        Options.load opennap_ini
-      with Sys_error _ ->
-          OpennapComplexOptions.save_config ()        
-  );
   network.op_network_enable <- enable;
-  network.op_network_prefixed_args <- (fun _ ->
-      prefixed_args "opennap" OpennapOptions.opennap_ini  
-  )
-
-  
+  network.network_prefixes <- [!!network_prefix];
+  network.network_config_file <- Some opennap_ini;
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })

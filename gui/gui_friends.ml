@@ -36,10 +36,11 @@ let string_color_of_state state =
   | Connected_busy
   | Connected_idle -> M.connected, Some !!O.color_connected 
   | Connecting -> M.connecting, Some !!O.color_connecting
-  | NotConnected -> "", None
+  | NotConnected
+  | NewHost -> "", None
   | Connected_initiating -> M.initiating, Some !!O.color_not_connected
   | Connected_queued -> M.queued, Some !!O.color_not_connected
-  | _ -> M.removed, Some !!O.color_not_connected
+  | RemovedHost -> M.removed, Some !!O.color_not_connected
 
 class box columns () =
   let titles = List.map Gui_columns.string_of_client_column columns in
@@ -177,8 +178,8 @@ class box_friends box_results () =
 	  Known_location (ip, port) -> 
 	    (
 	     match f.client_chat_port with
-	       None -> None
-	     | Some p -> Some (Ip.to_string ip, p)
+	       0 -> None
+	     | p -> Some (Ip.to_string ip, p)
 	    )
 	| Indirect_location _ -> None
       in

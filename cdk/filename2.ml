@@ -32,7 +32,6 @@ let normalize filename =
     | "." :: l -> iter l
     | ".." :: l -> let l,_ = iter l in ("..":: l), false
     | x :: ".." :: l -> 
-        Printf.printf "remove .."; print_newline ();
         let l,_ = iter l in l, true
     | x :: l -> 
         let l, redo = iter l in if redo then iter (x :: l) else (x :: l), false
@@ -48,10 +47,15 @@ let normalize filename =
       "" :: (iter_abs l)
     else l
   in
-  match l with
+  let file = match l with
     [] -> "."
   | [""] -> "/"
-  | _ -> unsplit l '/'
+    | _ -> unsplit l '/'
+  in
+  if file <> filename then begin
+      Printf.printf "[%s] normalized to [%s]" filename file; print_newline ();
+    end;
+  file
 ;;
 
 let rec dirname name =

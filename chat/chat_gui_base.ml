@@ -3,26 +3,37 @@ class gui () =
   let menubar =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:true) ()
   in
-  let itemfile = GMenu.menu_item ~label:"File" ~packing:menubar#add () in
-  let menuFile = GMenu.menu ~packing:itemfile#set_submenu () in
+  let itemfile = GMenu.menu_item ~label:"File" ~packing:(menubar#add) () in
+  let menuFile = GMenu.menu ~packing:(itemfile#set_submenu) () in
   let itemOptions =
-    GMenu.menu_item ~label:(Chat_messages.m_options) ~packing:menuFile#add ()
+    GMenu.menu_item ~label:(Chat_messages.m_options) ~packing:(menuFile#add)
+      ()
   in
-  let itemSetNotTemp =
-    GMenu.menu_item ~label:(Chat_messages.m_set_not_temp)
-      ~packing:menuFile#add ()
+  let itemAddPeople =
+    GMenu.menu_item ~label:(Chat_messages.m_add_people)
+      ~packing:(menuFile#add) ()
+  in
+  let itemToggleTemp =
+    GMenu.menu_item ~label:(Chat_messages.m_toggle_temp)
+      ~packing:(menuFile#add) ()
   in
   let itemOpenDialog =
     GMenu.menu_item ~label:(Chat_messages.m_open_dialog_for_selected_people)
-      ~packing:menuFile#add ()
+      ~packing:(menuFile#add) ()
   in
+  let _ = GMenu.menu_item ~packing:(menuFile#add) () in
+  let itemRemovePeople =
+    GMenu.menu_item ~label:(Chat_messages.m_remove_people)
+      ~packing:(menuFile#add) ()
+  in
+  let _ = GMenu.menu_item ~packing:(menuFile#add) () in
   let itemQuit =
-    GMenu.menu_item ~label:(Chat_messages.m_quit) ~packing:menuFile#add ()
+    GMenu.menu_item ~label:(Chat_messages.m_quit) ~packing:(menuFile#add) ()
   in
-  let itemHelp = GMenu.menu_item ~label:"?" ~packing:menubar#add () in
-  let menuHelp = GMenu.menu ~packing:itemHelp#set_submenu () in
+  let itemHelp = GMenu.menu_item ~label:"?" ~packing:(menubar#add) () in
+  let menuHelp = GMenu.menu ~packing:(itemHelp#set_submenu) () in
   let itemAbout =
-    GMenu.menu_item ~label:(Chat_messages.m_about) ~packing:menuHelp#add ()
+    GMenu.menu_item ~label:(Chat_messages.m_about) ~packing:(menuHelp#add) ()
   in
   let accelgroup = GtkData.AccelGroup.create () in
   let _ = menuFile#set_accel_group accelgroup in
@@ -31,12 +42,20 @@ class gui () =
       ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._O
   in
   let _ =
-    itemSetNotTemp#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
+    itemAddPeople#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
       ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._A
+  in
+  let _ =
+    itemToggleTemp#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
+      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._T
   in
   let _ =
     itemOpenDialog#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
       ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._D
+  in
+  let _ =
+    itemRemovePeople#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
+      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._K
   in
   let _ =
     itemQuit#add_accelerator ~group:accelgroup ~modi:([`CONTROL])
@@ -52,8 +71,8 @@ class gui () =
       ~titles:(
         [""; Chat_messages.id; Chat_messages.host; Chat_messages.port;
          Chat_messages.temporary])
-      ~shadow_type:`NONE ~selection_mode:`SINGLE ~titles_show:true
-      ~packing:_anonymous_container_1#add ()
+      ~shadow_type:`NONE ~selection_mode:`EXTENDED ~titles_show:true
+      ~packing:(_anonymous_container_1#add) ()
   in
   object
     val box = box
@@ -62,8 +81,10 @@ class gui () =
     val itemfile = itemfile
     val menuFile = menuFile
     val itemOptions = itemOptions
-    val itemSetNotTemp = itemSetNotTemp
+    val itemAddPeople = itemAddPeople
+    val itemToggleTemp = itemToggleTemp
     val itemOpenDialog = itemOpenDialog
+    val itemRemovePeople = itemRemovePeople
     val itemQuit = itemQuit
     val itemHelp = itemHelp
     val menuHelp = menuHelp
@@ -75,15 +96,17 @@ class gui () =
     method itemfile = itemfile
     method menuFile = menuFile
     method itemOptions = itemOptions
-    method itemSetNotTemp = itemSetNotTemp
+    method itemAddPeople = itemAddPeople
+    method itemToggleTemp = itemToggleTemp
     method itemOpenDialog = itemOpenDialog
+    method itemRemovePeople = itemRemovePeople
     method itemQuit = itemQuit
     method itemHelp = itemHelp
     method menuHelp = menuHelp
     method itemAbout = itemAbout
     method wlist = wlist
     method coerce = box#coerce
-  end;;
+  end
 class dialog () =
   let box = GPack.vbox ~homogeneous:false () in
   let wscroll =
@@ -92,7 +115,7 @@ class dialog () =
   in
   let wt_dialog =
     GEdit.text ~editable:false ~word_wrap:true ~line_wrap:true
-      ~packing:wscroll#add ()
+      ~packing:(wscroll#add) ()
   in
   let wtool =
     GButton.toolbar ~orientation:`HORIZONTAL ~style:`ICONS ~space_style:`EMPTY
@@ -103,16 +126,39 @@ class dialog () =
     GEdit.text ~height:50 ~editable:true ~word_wrap:true ~line_wrap:true
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
+  let wb_show_hide =
+    GButton.button ~packing:(box#pack ~expand:false ~fill:true) ()
+  in
+  let _65 =
+    GMisc.label ~text:(Chat_messages.show_hide_people) ~justify:`LEFT
+      ~line_wrap:true ~packing:(wb_show_hide#add) ()
+  in
+  let wscroll_people =
+    GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
+      ~placement:`TOP_LEFT ~packing:(box#pack ~expand:true ~fill:true) ()
+  in
+  let wlist_people =
+    GList.clist
+      ~titles:([Chat_messages.id; Chat_messages.host; Chat_messages.port])
+      ~shadow_type:`NONE ~selection_mode:`SINGLE ~titles_show:true
+      ~packing:(wscroll_people#add) ()
+  in
   object
     val box = box
     val wscroll = wscroll
     val wt_dialog = wt_dialog
     val wtool = wtool
     val wt_input = wt_input
+    val wb_show_hide = wb_show_hide
+    val wscroll_people = wscroll_people
+    val wlist_people = wlist_people
     method box = box
     method wscroll = wscroll
     method wt_dialog = wt_dialog
     method wtool = wtool
     method wt_input = wt_input
+    method wb_show_hide = wb_show_hide
+    method wscroll_people = wscroll_people
+    method wlist_people = wlist_people
     method coerce = box#coerce
-  end;;
+  end

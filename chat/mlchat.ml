@@ -24,11 +24,18 @@ type source = version * id * address
 type proto = Chat_proto.proto =
     HelloOk | Hello | Byebye | Message of message 
   | AddOpen of id * address
-type paquet = source * id * proto
+  | RoomMessage of id * (id * host * port) list * message
+type packet = source * id * proto
 
 let version () = Chat_messages.software_version
 
 class type com = Chat_proto.com
+
+let read_packet = Chat_proto.read_packet_buffer
+let read_packet_channel = Chat_proto.read_packet_channel
+
+let write_packet = Chat_proto.write_packet
+let write_packet_channel = Chat_proto.write_packet_channel
 
 class udp (conf : config) = Chat_proto.udp conf
 class tcp (conf : config) = Chat_proto.tcp conf

@@ -23,7 +23,7 @@ open Options
 open CommonTypes
   
 type 'a file_impl = {
-    mutable impl_file_update : bool;
+    mutable impl_file_update : int;
     mutable impl_file_state : file_state;
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
@@ -34,7 +34,6 @@ and 'a file_ops = {
     mutable op_file_network : network;
     mutable op_file_commit : ('a -> unit);
     mutable op_file_save_as : ('a -> string -> unit);
-(*    mutable op_file_print : ('a -> CommonTypes.connection_options -> unit); *)
     mutable op_file_to_option : ('a -> (string * option_value) list);
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
@@ -42,15 +41,48 @@ and 'a file_ops = {
     mutable op_file_info : ('a -> Gui_proto.file_info);
     mutable op_file_disk_name : ('a -> string);
     mutable op_file_best_name : ('a -> string);
-    mutable op_file_state : ('a -> CommonTypes.file_state);
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
     mutable op_file_check : ('a -> unit);
     mutable op_file_recover : ('a -> unit);
     mutable op_file_sources : ('a -> client list);
   }
+
   
-let file_num = ref 0
-let files_by_num = Hashtbl.create 1027
+  
+  
+
+  
+let as_file  (file : 'a file_impl) =
+  let (file : file) = Obj.magic file in
+  file
+  
+let as_file_impl  (file : file) =
+  let (file : 'a file_impl) = Obj.magic file in
+  file
+  
+let file_num file =
+  let impl = as_file_impl  file in
+  impl.impl_file_num
+
+let dummy_file_impl = {
+    impl_file_update = 1;
+    impl_file_state = FileNew;
+    impl_file_num = 0;
+    impl_file_val = 0;
+    impl_file_ops = Obj.magic 0;
+  }
+  
+let dummy_file = as_file dummy_file_impl  
+
+module H = Weak2.Make(struct
+      type t = file
+      let hash file = Hashtbl.hash (file_num file)
+      
+      let equal x y  = (file_num x) = (file_num y)
+    end)
+
+let file_counter = ref 0
+let files_by_num = H.create 1027
   
   
 
@@ -63,37 +95,23 @@ let ni n m =
 let fni n m = failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
-  
-let as_file  (file : 'a file_impl) =
-  let (file : file) = Obj.magic file in
-  file
-  
-let as_file_impl  (file : file) =
-  let (file : 'a file_impl) = Obj.magic file in
-  file
-
 let files_update_list = ref []
   
 let file_must_update file =
   let impl = as_file_impl file in
-  if not impl.impl_file_update then
+  if impl.impl_file_update > 0 then
     begin
-      impl.impl_file_update <- true;
+      impl.impl_file_update <- 0;
       files_update_list := file :: !files_update_list
     end
 
 let update_file_num impl =
   if impl.impl_file_num = 0 then begin
-      incr file_num;
-      impl.impl_file_num <- !file_num;
-      Hashtbl.add files_by_num !file_num (as_file impl);
+      incr file_counter;
+      impl.impl_file_num <- !file_counter;
+      H.add files_by_num (as_file impl);
       file_must_update (as_file impl);
     end
-
-  
-let file_num file =
-  let impl = as_file_impl  file in
-  impl.impl_file_num
     
 let update_file_state impl state =
   impl.impl_file_state <- state;
@@ -143,10 +161,6 @@ let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_best_name file.impl_file_val
 
-let file_state (file : file) =
-  let file = as_file_impl file in
-  file.impl_file_ops.op_file_state file.impl_file_val
-
 let file_set_format (file : file) format =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_set_format file.impl_file_val format
@@ -164,28 +178,74 @@ let file_recover (file : file) =
 let file_sources file =
   let impl = as_file_impl file in
   impl.impl_file_ops.op_file_sources impl.impl_file_val
-  
-let new_file_ops network = {
-    op_file_network =  network;
-    op_file_commit = (fun _ -> ni_ok network "file_commit");
-    op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
-(*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
-    op_file_to_option = (fun _ -> fni network "file_to_option");
-    op_file_cancel = (fun _ -> ni_ok network "file_cancel");
-    op_file_info = (fun _ -> fni network "file_info");
-    op_file_pause = (fun _ -> ni_ok network "file_pause");
-    op_file_state = (fun _ -> fni network "file_state");
-    op_file_resume = (fun _ -> ni_ok network "file_resume");
-    op_file_disk_name = (fun _ -> fni network "file_disk_name");
-    op_file_best_name = (fun _ -> fni network "file_best_name");
-    op_file_check = (fun _ -> ni_ok network "file_check");
-    op_file_recover = (fun _ -> ni_ok network "file_recover");
-    op_file_set_format = (fun _ -> fni network "file_set_format");
-    op_file_sources = (fun _ -> fni network "file_sources");
-  }
 
+let files_ops = ref []
+  
+let new_file_ops network = 
+  let f = 
+    {
+      op_file_network =  network;
+      op_file_commit = (fun _ -> ni_ok network "file_commit");
+      op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
+(*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
+      op_file_to_option = (fun _ -> fni network "file_to_option");
+      op_file_cancel = (fun _ -> ni_ok network "file_cancel");
+      op_file_info = (fun _ -> fni network "file_info");
+      op_file_pause = (fun _ -> ni_ok network "file_pause");
+      op_file_resume = (fun _ -> ni_ok network "file_resume");
+      op_file_disk_name = (fun _ -> fni network "file_disk_name");
+      op_file_best_name = (fun _ -> fni network "file_best_name");
+      op_file_check = (fun _ -> ni_ok network "file_check");
+      op_file_recover = (fun _ -> ni_ok network "file_recover");
+      op_file_set_format = (fun _ -> fni network "file_set_format");
+      op_file_sources = (fun _ -> fni network "file_sources");
+    }
+  in
+  let ff = (Obj.magic f : int file_ops) in
+  files_ops := (ff, { ff with op_file_network = ff.op_file_network })
+  :: ! files_ops;
+  f
+
+let check_file_implementations () =
+  Printf.printf "\n---- Methods not implemented for CommonFile ----\n";
+  print_newline ();
+  List.iter (fun (c, cc) ->
+      let n = c.op_file_network.network_name in
+      Printf.printf "\n  Network %s\n" n; print_newline ();
+      if c.op_file_to_option == cc.op_file_to_option then 
+        Printf.printf "op_file_to_option\n";
+      if c.op_file_info == cc.op_file_info then
+        Printf.printf "op_file_info\n";
+      if c.op_file_commit == cc.op_file_commit then
+        Printf.printf "op_file_commit\n";
+      if c.op_file_save_as == cc.op_file_save_as then
+        Printf.printf "op_file_save_as\n";
+      if c.op_file_cancel == cc.op_file_cancel then
+        Printf.printf "op_file_cancel\n";
+      if c.op_file_pause == cc.op_file_pause then
+        Printf.printf "op_file_pause\n";
+      if c.op_file_resume == cc.op_file_resume then
+        Printf.printf "op_file_resume\n";
+      if c.op_file_disk_name == cc.op_file_disk_name then
+        Printf.printf "op_file_disk_name\n";
+      if c.op_file_best_name == cc.op_file_best_name then
+        Printf.printf "op_file_best_name\n";
+      if c.op_file_check == cc.op_file_check then
+        Printf.printf "op_file_check\n";
+      if c.op_file_recover == cc.op_file_recover then
+        Printf.printf "op_file_recover\n";
+      if c.op_file_set_format == cc.op_file_set_format then
+        Printf.printf "op_file_set_format\n";
+      if c.op_file_sources == cc.op_file_sources then
+        Printf.printf "op_file_sources\n";
+  ) !files_ops;
+  print_newline () 
+
+  
 let file_find num = 
-  Hashtbl.find files_by_num num
+  H.find files_by_num (as_file {
+    dummy_file_impl   with impl_file_num = num
+  })
 
 let file_state file =
   let impl = as_file_impl file in
@@ -194,10 +254,9 @@ let file_state file =
   
 let file_new_sources = ref []
     
-let file_new_source file c =
+let file_new_source (file : file) c =
   client_must_update c;
-  file_new_sources := (file_num file, 
-    CommonClient.client_num c) :: !file_new_sources  
+  file_new_sources := (file, c) :: !file_new_sources  
 
   
 let com_files_by_num = files_by_num

@@ -96,6 +96,11 @@ let write t s pos len addr =
                 addr = addr;
                 } :: t.wlist;
               must_write sock true;              
+          | e ->
+              Printf.printf "Exception %s in sendto"
+                (Printexc.to_string e);
+              print_newline ();
+              raise e
         end
     | _ -> 
         t.wlist <- {
@@ -116,7 +121,7 @@ let udp_handler t sock event =
         addr = addr;
       } :: t.rlist;
       t.event_handler t READ_DONE
-     
+  
   | CAN_WRITE ->
       begin
         match t.wlist with
@@ -134,6 +139,12 @@ p.content); print_newline ();
             with
               Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
                 t.wlist <- p :: l
+            | e ->
+                Printf.printf "Exception %s in sendto next"
+                  (Printexc.to_string e);
+                print_newline ();
+                raise e
+
       end;
       if not (closed t) then begin
           t.event_handler t CAN_REFILL;
@@ -144,6 +155,7 @@ p.content); print_newline ();
         end      
   | _ -> t.event_handler t (BASIC_EVENT event)
 
+      
 let create addr port handler =
   let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
   Unix.setsockopt fd Unix.SO_REUSEADDR true;

@@ -244,9 +244,8 @@ let force_check_server_connections user =
         end
     end
     
-let rec check_server_connections timer =
+let rec check_server_connections () =
 (*  Printf.printf "Check connections"; print_newline (); *)
-  reactivate_timer timer;
   force_check_server_connections false
 
 let remove_old_servers () =
@@ -328,8 +327,7 @@ print_newline ();
   them , and don't send your shared files list *)
 let walker_list = ref []
 let next_walker_start = ref 0.0
-let walker_timer timer = 
-  reactivate_timer timer;
+let walker_timer () = 
   match !walker_list with
     [] ->
       if !walker_list <> [] &&

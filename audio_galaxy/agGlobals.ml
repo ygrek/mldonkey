@@ -59,9 +59,7 @@ let new_file file_id file_name file_size =
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_client = None;
         } and file_impl = {
-          impl_file_update = false;
-          impl_file_state = FileNew;
-          impl_file_num = 0;
+          dummy_file_impl with
           impl_file_val = file;
           impl_file_ops = file_ops;
         }

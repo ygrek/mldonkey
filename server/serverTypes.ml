@@ -77,6 +77,7 @@ open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey:server"
 
+
 (*
 
 Il ne faut pas utiliser les memes noms de label dans deux records definis

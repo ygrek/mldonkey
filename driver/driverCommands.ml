@@ -176,21 +176,31 @@ let commands = [
     
     "set", Arg_two (fun name value o ->
         try
-          Options.set_simple_option downloads_ini name value;
-          Printf.sprintf "option %s value changed" name
+          try
+            let buf = o.conn_buf in
+            let pos = String.index name '-' in
+            let prefix = String.sub name 0 pos in
+            let name = String.sub name (pos+1) (String.length name - pos-1) in
+            networks_iter (fun n ->
+                match n.network_config_file with
+                  None -> ()
+                | Some opfile ->
+                    List.iter (fun p ->
+                        if p = prefix then begin
+                            Options.set_simple_option opfile name value;
+                            Printf.bprintf buf "option %s :: %s value changed" 
+                            n.network_name name
+                            
+                          end)
+                    n.network_prefixes      
+            );
+            ""
+          with _ -> 
+              Options.set_simple_option downloads_ini name value;
+              Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc.to_string e)
     ), " <option_name> <option_value> : change option value";
-
-    "set_in", Arg_three (fun name network value o ->
-        try
-          let n = network_find_by_name network in
-          let opfile = n.op_network_config_file () in
-          Options.set_simple_option opfile name value;
-          Printf.sprintf "option %s value changed" name
-        with e ->
-            Printf.sprintf "Error %s" (Printexc.to_string e)
-    ), " <network> <option_name> <option_value> : change option value for a given network";
     
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in

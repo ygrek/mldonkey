@@ -50,6 +50,11 @@ val set_after_select_hook : (unit -> unit) -> unit
   
 type timer
 val add_timer : float -> (timer -> unit) -> unit
+val add_infinite_timer : float -> (unit -> unit) -> unit
+val add_session_timer : bool ref -> float -> (unit -> unit) -> unit
+val add_session_option_timer : bool ref -> float Options.option_record -> (unit -> unit) -> unit
+val add_infinite_option_timer : float Options.option_record -> (unit -> unit) -> unit
+  
 val reactivate_timer : timer -> unit
 val loop : unit -> unit
 

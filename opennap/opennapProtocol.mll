@@ -368,20 +368,7 @@ module SearchReply = struct
     link_type : link_type;
     weight : int;
   }
-  
-
-(*
-        " F : \ m a n s o n \ r e m i x e s \ M a r i l y n   M a n s o n   - -   T h e   D o p e   S h o w   ( N a r c i s s i s t i c   +   S o   S h a l l o w   m i . m p 3 "   
-        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0   
-        3 0 4 7 9 9 1   
-        1 1 2   
-        4 4 1 0 0   
-        2 1 7   
-        m r m o n s t e r 4 4   
-        3 0 7 6 4 7 0 4 3   
-      7]
-*)
-    
+      
     let parse s =
       match get_strings s 0 with
         filename ::
@@ -684,6 +671,59 @@ module Resume = struct
   
 module ResumeReply = DownloadAck
 module EndOfResumeReply = Empty (struct let msg = "EndOfResumeReply" end)  
+  
+module BrowseUser = SimpleString (struct let msg = "BrowseUser" end)
+module BrowseUserReplyEnd = Empty (struct let msg = "BrowseUser" end)
+  
+module BrowseUserReply = struct
+    type t = {
+        nick : string;
+        filename : string;
+        md5 : string;
+        size : int32;
+        bitrate : int;
+        freq : int;
+        length : int;
+      }
+      
+    let parse s =
+      match get_strings s 0 with
+        nick ::
+        filename ::
+        md5 ::
+        size_s ::
+        bitrate_s ::
+        freq_s ::
+        length_s ::
+        tail -> begin
+            let size = Int32.of_string size_s in
+            let bitrate = int_of_string bitrate_s in
+            let freq = int_of_string freq_s in
+            let length = int_of_string length_s in
+            { 
+              filename = filename;
+              md5 = md5;
+              size = size;
+              bitrate = bitrate;
+              freq = freq;
+              length = length;
+              nick = nick;
+            }
+          end
+      | _ -> failwith "Bad number of args in browse reply"            
+
+      
+    let print t = 
+      Printf.printf "BROWSE REPLY %s \"%s\" %s %s %d %d %d"
+        t.nick t.filename t.md5 (Int32.to_string t.size) t.bitrate t.freq 
+      t.length
+        
+    let write buf t =
+      Printf.bprintf buf "%s \"%s\" %s %s %d %d %d"
+        t.nick t.filename t.md5
+      (Int32.to_string t.size) t.bitrate t.freq t.length
+  end
+
 module Msg = struct
     type t = ()
       
@@ -725,6 +765,10 @@ type t =
 | MessageReq of Message.t
 
 | AlternateDownloadRequestReq of DownloadRequest.t
+    
+| BrowseUserReq of BrowseUser.t
+| BrowseUserReplyReq of BrowseUserReply.t
+| BrowseUserReplyEndReq
   
 | UnknownReq of int * string
   
@@ -748,7 +792,11 @@ let parse msg_type data msg_len =
     | 204 -> DownloadAckReq (DownloadAck.parse data)
     | 205 -> PrivateMessageReq (PrivateMessage.parse data)
     | 206 -> DownloadErrorReq (DownloadError.parse data)
-    
+
+    | 211 -> BrowseUserReq (BrowseUser.parse data)
+    | 212 -> BrowseUserReplyReq (BrowseUserReply.parse data)
+    | 213 -> BrowseUserReplyEndReq
+        
     | 214 -> 
         if msg_len = 0 then GetServerStatsReq else
         ServerStatsReq (ServerStats.parse data)
@@ -785,6 +833,10 @@ let print t =
     | PrivateMessageReq t -> PrivateMessage.print t
     | DownloadErrorReq t -> DownloadError.print t
     
+    | BrowseUserReplyEndReq -> BrowseUserReplyEnd.print ()
+    | BrowseUserReplyReq t -> BrowseUserReply.print t
+    | BrowseUserReq t -> BrowseUser.print t
+        
     | ServerStatsReq t -> ServerStats.print t
     | ResumeReq t -> Resume.print t
     | ResumeReplyReq t -> 
@@ -854,6 +906,17 @@ let write buf t =
         buf_int16 buf 206;
         DownloadError.write buf t
 
+    | BrowseUserReq t ->
+        buf_int16 buf 211;
+        BrowseUser.write buf t
+
+    | BrowseUserReplyReq t ->
+        buf_int16 buf 212;
+        BrowseUserReply.write buf t
+
+    | BrowseUserReplyEndReq ->
+        buf_int16 buf 213
+        
     | ServerStatsReq t ->
         buf_int16 buf 214;
         ServerStats.write buf t

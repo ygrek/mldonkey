@@ -258,16 +258,15 @@ let exec_chooks o =
 let really_load filename options =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then begin
-      Printf.printf 
-        "File %s exists\n" temp_file;
-      Printf.printf 
-        "An error may have occurred during previous configuration save.\n";
-      Printf.printf 
-        "Please, check your configurations files, and rename/remove this file\n";
-      Printf.printf "before restarting";
-      print_newline ();
-      exit 1
-    end 
+    let buf = Buffer.create 150 in
+    Printf.bprintf buf "File %s exists\n" temp_file;
+    Printf.bprintf buf
+      "An error may have occurred during previous configuration save.\n";
+    Printf.bprintf buf
+      "Please, check your configurations files, and rename/remove this file\n";
+    Printf.bprintf buf "before restarting.";
+    raise (Failure (Buffer.contents buf))
+  end 
   else
     let ic = open_in filename in
     let s = Stream.of_channel ic in
@@ -576,8 +575,8 @@ let save opfile =
       opfile.file_rc;
     end;
   close_out oc;
-  (try Unix2.rename filename old_file with _ -> ());
-  (try Unix2.rename temp_file filename with _ -> ())
+  (try Sys.rename filename old_file with _ -> ());
+  (try Sys.rename temp_file filename with _ -> ())
 ;;
 
 let save_with_help opfile =

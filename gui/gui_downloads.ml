@@ -197,6 +197,7 @@ class box columns sel_mode () =
 
     initializer
       box#vbox#pack ~expand: true pl#box;
+      
 
   end
 
@@ -396,7 +397,11 @@ class box_downloads box_locs () =
 
     method pause_resume () =
       List.iter
-	(fun f -> Gui_com.send (SwitchDownload f.file_num))
+        (fun f -> Gui_com.send (SwitchDownload (f.file_num,
+              match f.file_state with
+                FilePaused -> true
+              | _ -> false
+            )))
 	self#selection
 
     method verify_chunks () =
@@ -501,7 +506,7 @@ class box_downloads box_locs () =
 
     method h_file_location num src =
       try
-        Printf.printf "Source %d for %d" src num;  print_newline ();
+(*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
         let (row, f) = self#find_file num in
         self#update_file f 
         { f with 
@@ -513,7 +518,9 @@ class box_downloads box_locs () =
         } 
           row
       with Not_found -> 
-          Printf.printf "No such file %d" num;
+          (* some sources are sent for shared files in eDonkey. have to fix that *)
+          
+(*          Printf.printf "No such file %d" num; *)
           print_newline ()
 
     initializer
@@ -614,7 +621,21 @@ class pane_downloads () =
     method h_update_location c_new =
       locs#h_update_location c_new
 
+    method on_entry_return () =
+      match entry_ed2k_url#text with
+        "" -> ()
+      | s ->
+          Gui_com.send (Gui_proto.Url s);
+          entry_ed2k_url#set_text ""
+
     initializer
+      Okey.add entry_ed2k_url
+        ~mods: []
+        GdkKeysyms._Return
+        self#on_entry_return;
+
+
+      
       hpaned#add2 locs#coerce;
       vpaned#add1 dled#coerce;
       vpaned#add2 dls#coerce ;

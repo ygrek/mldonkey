@@ -93,21 +93,9 @@ type result_info = {
     mutable result_format : string;
     mutable result_type : string;
     mutable result_tags : tag list;
-    mutable result_comment : string option;
+    mutable result_comment : string;
     mutable result_done : bool;
   }
-
-let result_info_all = 255
-let result_info_name = 1
-let result_info_tags = 2
-let result_info_comment = 4
-  
-type result_parts =
-  Result_info_all of result_info
-| Result_info_parts of int * result_part list
-  
-and result_part =
-  Result_info_name of string list
   
 type output_type = TEXT | HTML
   
@@ -143,15 +131,23 @@ type room_message =
   ServerMessage of string
 | PublicMessage of int * string
 | PrivateMessage of int * string
-  
+
+type network_info = {
+    network_netname : string;
+    network_netnum : int;
+    network_config_filename : string;
+    mutable network_enabled : bool;
+    mutable network_uploaded : int64;
+    mutable network_downloaded : int64;
+  }
+    
 type network = {
     network_name : string;
     network_num : int;
+    mutable network_prefixes : string list;
+    mutable network_config_file : Options.options_file option;
     mutable op_network_connected_servers : (unit -> server list);
-    mutable op_network_config_file : (unit -> Options.options_file);
     mutable op_network_is_enabled : (unit -> bool);
-    mutable op_network_save_simple_options : (unit -> unit);
-    mutable op_network_load_simple_options : (unit -> unit);
     mutable op_network_save_complex_options : (unit -> unit);
     mutable op_network_load_complex_options : (unit -> unit);
     mutable op_network_enable : (unit -> unit);
@@ -163,21 +159,18 @@ type network = {
       bool -> ((string * Options.option_value) list -> file);
     mutable op_network_add_client : 
       bool -> ((string * Options.option_value) list -> client);
-
-    mutable op_network_prefixed_args : 
-      (unit -> (string * Arg.spec * string) list);
-    
     mutable op_network_search : (search -> Buffer.t -> unit);
     mutable op_network_share : (shared -> unit);
     mutable op_network_private_message : (string -> string -> unit);
+    mutable op_network_parse_url : (string -> bool);
     mutable op_network_connect_servers : (unit -> unit);
-    mutable op_network_add_server_id : (Ip.t -> int -> unit);
     mutable op_network_forget_search : (search -> unit);
     mutable op_network_close_search : (search -> unit);
     mutable op_network_extend_search : (unit -> unit);
     mutable op_network_clean_servers : (unit -> unit);
-    mutable op_network_add_friend_id : (Ip.t -> int -> unit);
+    mutable op_network_info : (unit -> network_info);
   }
+  
   
 
 and search = {
@@ -234,7 +227,7 @@ and history_result = {
 and location_kind = 
   Known_location of Ip.t * int
 | Indirect_location of string * Md4.t
-
+  
 (*
 We should add information about what has already been sent to the GUI to
 prevent sending the same information several times (for example, 
@@ -243,6 +236,7 @@ message.
 *)
   
 type gui_record = {
+    mutable gui_num : int;
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * search) list;
     mutable gui_sock : TcpBufferedSocket.t;
@@ -251,6 +245,7 @@ type gui_record = {
     mutable gui_servers : server list; 
     mutable gui_sources : (client list * file) option;
     mutable gui_rooms : room list;
+    mutable gui_version : int;
   }
   
 exception Avifile_info of avi_info

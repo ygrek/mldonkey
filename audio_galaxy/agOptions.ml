@@ -17,12 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open Options
-
-let file_basedir = ""
+open CommonGlobals
+  
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
-let audiogal_ini = create_options_file (file_basedir ^ "audiogal.ini")
+let audiogal_ini = create_options_file (
+    Filename.concat file_basedir "audiogal.ini")
   
   
 let login = define_option audiogal_ini ["login"]
@@ -61,9 +63,6 @@ let gold_redirection_server_ip = define_option audiogal_ini
 let http_port = define_option audiogal_ini ["http_port"]
   "The port to redirect to www.audiogalaxy.com"
     int_option 4081
-
-let save_config () =
-  Options.save_with_help audiogal_ini
   
 let commit_in_subdir = define_option audiogal_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"

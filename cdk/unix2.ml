@@ -32,6 +32,19 @@ let list_directory filename =
   with _ -> 
       closedir dir;
       !list
+  
+let iter_directory f dirname =
+  let dir = opendir dirname in
+  try
+    while true do
+      let file = readdir dir in 
+      if file <> "." && file <> ".." then begin
+          f (Filename.concat dirname file)
+        end;
+    done;
+    assert false
+  with _ -> 
+      closedir dir
 
 let is_directory filename =
   try let s = Unix.stat filename in s.st_kind = S_DIR with _ -> false

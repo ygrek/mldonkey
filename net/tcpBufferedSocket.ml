@@ -47,7 +47,7 @@ type t = {
     
     mutable read_control : bandwidth_controler option;
     mutable write_control : bandwidth_controler option;
-    
+    mutable write_power : int;    
   }
   
   
@@ -395,6 +395,10 @@ let can_write_handler t sock max_len =
           t.event_handler t WRITE_DONE
         end
     end      
+
+let remaining_to_write t =
+  let b = t.wbuf in
+  b.len
     
 let tcp_handler t sock event = 
   match event with
@@ -429,7 +433,7 @@ let tcp_handler t sock event =
 (*                Printf.printf "DELAYED"; print_newline (); *)
             if bc.remaining_bytes > 0 then begin
                 bc.connections <- t :: bc.connections;
-                bc.nconnections <- 1 + bc.nconnections
+                bc.nconnections <- t.write_power + bc.nconnections
                   end
               end
       end
@@ -504,6 +508,7 @@ let create name fd handler =
       monitored = false;
       read_control = None;
       write_control = None;
+      write_power = 1;
     } in
   let sock = create name fd (tcp_handler t) in
   t.sock <- sock;
@@ -522,6 +527,7 @@ let create_blocking name fd handler =
       monitored = false;
       read_control = None;
       write_control = None;
+      write_power = 1;
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
@@ -612,8 +618,7 @@ let set_monitored t =
   
   
 let _ =
-  BasicSocket.add_timer 1.0 (fun timer ->
-      reactivate_timer timer;
+  add_infinite_timer 1.0 (fun timer ->
       List.iter (fun bc ->
           bc.last_remaining <- bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;
@@ -661,6 +666,7 @@ let _ =
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
                 let can_write = maxi 1 (bc.remaining_bytes / bc.nconnections) in
+                let can_write = can_write * t.write_power in
                 let old_nwrite = t.nwrite in
                 (try
 (*                    Printf.printf "WRITE"; print_newline (); *)
@@ -668,7 +674,7 @@ let _ =
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes - 
                 t.nwrite + old_nwrite;
-                bc.nconnections <- bc.nconnections - 1;
+                bc.nconnections <- bc.nconnections - t.write_power;
           ) bc.connections;
           if bc.remaining_bytes = 0 then bc.allow_io := false;
           bc.connections <- [];
@@ -740,3 +746,6 @@ let value_handler f sock nread =
       else raise Not_found
     done
   with Not_found -> ()
+
+let set_write_power t p = t.write_power <- p
+  

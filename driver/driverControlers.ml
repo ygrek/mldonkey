@@ -150,59 +150,69 @@ let telnet_handler t event =
 let chat_handler t event = 
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      prerr_endline "incoming chat connection";
-      let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip !!allowed_ips then 
-	(
-	 let chanin = Unix.in_channel_of_descr s in
-	 let chanout = Unix.out_channel_of_descr s in
-	 let (paq : Chat_proto.paquet) = input_value chanin in
-	 prerr_endline "received a message on chat port";
-	 let ret = 
-	  match paq with
-	    ((v,id,(host,port)),iddest,pro) ->
-	      if v <> CommonChat.version then 
-		None
-	      else
-		Some paq
-	 in
-	 close_out chanout;
-	 (match ret with
-	   None -> ()
-	 | Some ((v,id,(host,port)),iddest,pro) ->
-	     prerr_endline "received a good message on chat port";
-	     match pro with
-	       Chat_proto.Hello ->
-		 CommonChat.send_hello_ok ()
-	     | Chat_proto.HelloOk -> ()
-	     | Chat_proto.AddOpen _ -> ()
-	     | Chat_proto.Byebye -> ()
-	     | Chat_proto.Message s ->
-		 if iddest = !!CommonOptions.chat_console_id then
+      (
+       try
+	 prerr_endline "incoming chat connection";
+	 let from_ip = Ip.of_inet_addr from_ip in
+	 if Ip.matches from_ip !!allowed_ips then 
+	   (
+	    let chanin = Unix.in_channel_of_descr s in
+	    let chanout = Unix.out_channel_of_descr s in
+	    let paq = Chat_proto.read_packet_channel chanin in
+	    prerr_endline "received a message on chat port";
+	    let ret = 
+	      match paq with
+		((v,id,(host,port)),iddest,pro) ->
+		  if v <> CommonChat.version then 
+		    None
+		  else
+		    Some paq
+	    in
+	    close_out chanout;
+	    (match ret with
+	      None -> ()
+	    | Some ((v,id,(host,port)),iddest,pro) ->
+		prerr_endline "received a good message on chat port";
+		match pro with
+		  Chat_proto.Hello ->
+		    CommonChat.send_hello_ok ()
+		| Chat_proto.HelloOk -> ()
+		| Chat_proto.AddOpen _ -> ()
+		| Chat_proto.Byebye -> ()
+		| Chat_proto.RoomMessage _ ->
+		    (* A VOIR *)
+		    ()
+		| Chat_proto.Message s ->
+		    if iddest = !!CommonOptions.chat_console_id then
 		   (* we must eval the string as a command *)
-		   (
-                        let options = {
-                            conn_buf = Buffer.create 1000;
-                            conn_output = TEXT;
-                            conn_sortvd = NotSorted;
-                            conn_filter = (fun _ -> ());
-                          } in
-                        let buf = options.conn_buf in
-		    let auth = ref true in
-		    eval auth s options;
-		    CommonChat.send_text !!CommonOptions.chat_console_id None 
-		      (Buffer.contents buf);
-		    Buffer.reset buf
-		   )
-		 else
+		      (
+                       let options = {
+                         conn_buf = Buffer.create 1000;
+                         conn_output = TEXT;
+                         conn_sortvd = NotSorted;
+                         conn_filter = (fun _ -> ());
+                       } in
+                       let buf = options.conn_buf in
+		       let auth = ref true in
+		       eval auth s options;
+		       CommonChat.send_text !!CommonOptions.chat_console_id None 
+			 (Buffer.contents buf);
+		       Buffer.reset buf
+		      )
+		    else
 		   (* we must forward the message *)
                       (networks_iter (fun r ->
-                            network_private_message r iddest s)
+			network_private_message r iddest s)
                       )
-	 )
-	)
-      else 
-        Unix.close s
+	    )
+	   )
+	 else 
+           Unix.close s
+     with
+       Failure mess ->
+	 prerr_endline mess;
+	 Unix.close s
+    )
   | _ ->
       ()
 

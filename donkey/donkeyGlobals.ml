@@ -39,15 +39,6 @@ let tag_file   = 202
     
 (* HOOKS *)
 
-  (*
-let new_server_hook = ref (fun s -> ())      
-let server_change_hook = ref (fun (s: server) -> 
-      s.server_changed <- NoServerChange)
-
-let client_change_hook = ref (fun (c: client) -> 
-      c.client_changed <- NoClientChange)
-  *)
-
 let client_must_update c =
   client_must_update (as_client c.client_client)
 
@@ -68,10 +59,6 @@ let received_from_server_hook = ref (fun
       (t: Mftp_server.t) -> ())
 let server_is_disconnected_hook = ref (fun 
       (s: server) -> ())
-  
-let current_friends = ref Intmap.empty
-  
-let friend_change_hook = ref (fun (friend: client) -> ())
   
 (* hook called when something changed on a file. Currently, it is only called
   when a file is added or removed. *)
@@ -224,9 +211,7 @@ let new_file file_state file_name md4 file_size writable =
           file_new_locations = true;
         }
       and file_impl = {
-          impl_file_update = false;
-          CommonFile.impl_file_state = FileNew;
-          CommonFile.impl_file_num = 0;
+          dummy_file_impl with
           CommonFile.impl_file_val = file;
           CommonFile.impl_file_ops = file_ops;
         }
@@ -294,10 +279,7 @@ let new_server ip port score =
         }
       and server_impl = 
         {
-          impl_server_update = false;
-          CommonServer.impl_server_state = NewHost;
-          CommonServer.impl_server_num = 0;
-          CommonServer.impl_server_sort = 0.0;
+          dummy_server_impl with          
           CommonServer.impl_server_val = s;
           CommonServer.impl_server_ops = server_ops;
         }
@@ -350,16 +332,13 @@ let new_client key =
           client_rating = Int32.zero;
           client_is_mldonkey = 0;
           client_checked = false;
-          client_chat_port = None ; (** A VOIR : où trouver le 
+          client_chat_port = 0 ; (** A VOIR : où trouver le 
 					 port de chat du client ? *)
         } and
           client_impl = {
-            impl_client_update = false;
-          impl_client_state = NotConnected;
-          impl_client_type = NormalClient;
-          impl_client_val = c;
-          impl_client_ops = client_ops;
-          impl_client_num = 0;
+            dummy_client_impl with            
+            impl_client_val = c;
+            impl_client_ops = client_ops;
         }
       in
       Heap.set_tag c tag_client;
@@ -369,15 +348,11 @@ let new_client key =
   in
   c
   
-let client_is_friend c =
-  client_type (as_client c.client_client) = FriendClient
+let client_type c =
+  client_type (as_client c.client_client)
 
 let friend_add c =
-  if not (client_is_friend c) then begin
-      friend_add  (as_client c.client_client);
-      current_friends := Intmap.add 
-        c.client_client.impl_client_num c !current_friends;
-    end
+  friend_add (as_client c.client_client)
       
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
@@ -392,7 +367,7 @@ let set_client_name c name md4 =
       try      
         let kind = Indirect_location (name, md4) in
         let cc = Hashtbl.find clients_by_kind kind in
-        if cc != c && client_is_friend cc then
+        if cc != c && client_type cc = FriendClient then
           friend_add c
       with _ -> ()
     end
@@ -538,7 +513,7 @@ let remove_client c =
 
 let check_useful_client c = 
   let useful =
-    client_is_friend c ||
+    client_type c <> NormalClient ||
     c.client_sock <> None ||
     match c.client_kind with
       Known_location _ -> c.client_source_for != [] 
@@ -554,13 +529,8 @@ let check_useful_client c =
       remove_client c
     end
     
-let friend_remove c =
-  if client_is_friend c then begin
-      friend_remove  (as_client c.client_client);
-      current_friends := Intmap.remove 
-        c.client_client.impl_client_num !current_friends;
-      check_useful_client c
-    end
+let friend_remove c = 
+  friend_remove  (as_client c.client_client)
     
 let remove_file_clients file =
   let locs = file.file_sources in
@@ -620,18 +590,16 @@ let client_state client =
   CommonClient.client_state (as_client client.client_client)
     
 let client_new_file client r =
-  client_new_file (as_client client.client_client) (as_result r.result_result)
+  client_new_file (as_client client.client_client) ""
+  (as_result r.result_result)
     
 let server_state server =
   CommonServer.server_state (as_server server.server_server)
-
-let current_friends () =
-  !current_friends
   
 (* indexation *)
 let comments = Hashtbl.create 127
 
-let comment_filename = "comments.met"
+let comment_filename = Filename.concat file_basedir "comments.met"
 
 let name_bit = 1
 (* "size" *)
@@ -642,7 +610,8 @@ let album_bit = 8 (* tag "Album" *)
 let media_bit = 16 (* "type" *)
 let format_bit = 32 (* "format" *)
   
-let (store: CommonTypes.result_info Store.t) = Store.create "store"
+let (store: CommonTypes.result_info Store.t) = 
+  Store.create (Filename.concat file_basedir "store")
   
 module Document = struct
     type t = Store.index
@@ -662,7 +631,7 @@ let index = DocIndexer.create ()
   
 let (results_by_md4 : (Md4.t, result) Hashtbl.t) = Hashtbl.create 1023
   
-let history_file = "history.met"
+let history_file = Filename.concat file_basedir "history.met"
 let history_file_oc = ref None
 
   

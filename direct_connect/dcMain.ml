@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open DcServers
 open CommonOptions
 open CommonServer
 open CommonTypes
@@ -26,25 +27,30 @@ open DcTypes
 open DcGlobals
 open DcOptions  
 
+let disable enabler () =
+  enabler := false;
+  List.iter (fun s -> disconnect_server s) !connected_servers;
+  List.iter (fun file -> ()) !current_files
   
 let enable () =
+
+  let enabler = ref true in
+  
+  network.op_network_disable <- disable enabler;
   
   if not !!enable_directconnect then enable_directconnect =:= true;
   
-  add_timer 1.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 1.0 (fun timer ->
       DcServers.connect_servers ());
 
-  add_timer 300. (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 300. (fun timer ->
       DcServers.recover_files ()
   );
 
-  add_timer 60. (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 60. (fun timer ->
       DcServers.ask_for_files ()
   );
-  
+
   DcClients.listen ();
   if !!load_hublist &&
     !nknown_servers < !!max_known_servers
@@ -54,18 +60,32 @@ let enable () =
 
   
 let _ =
-  network.op_network_save_simple_options <- DcComplexOptions.save_config;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_directconnect);
+(*  
+  network.op_network_save_simple_options <- DcComplexOptions.save_config;
   network.op_network_load_simple_options <- (fun _ -> 
       try Options.load directconnect_ini
         with Sys_error _ ->
           DcComplexOptions.save_config ()
-  );
-  network.op_network_prefixed_args <- (fun _ -> []);
+);
+  *)
+  network.network_prefixes <- [!!network_prefix];
+  network.network_config_file <- Some directconnect_ini;
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers   
   );
-  network.op_network_enable <- enable
+  network.op_network_enable <- enable;
+    network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })
+
   
 
   

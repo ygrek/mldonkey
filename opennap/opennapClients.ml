@@ -34,6 +34,7 @@ module OG = OpennapGlobals
 module DO = CommonOptions  
 module DG = CommonGlobals
 
+  (*
 let client s =
   match s.source_client with
     None -> 
@@ -56,7 +57,7 @@ let disconnect_from_source s =
     Printf.printf "Disconnected from source"; print_newline ();
     s.source_client <- None
   with _ -> ()
-
+      
 let new_client s sock =
   disconnect_from_source s;
   let c = {
@@ -90,13 +91,18 @@ let client_close c =
             close sock ""
       end
   | Some s -> disconnect_from_source s
+        *)
 
+let client_disconnected c =
+  match c.client_sock with
+    None -> ()
+  | Some sock -> close sock "client disconnected"
       
 let client_handler c sock event = 
   match event with
     BASIC_EVENT (CLOSED s) ->      
 (*      Printf.printf "CONNECTION WITH CLIENT LOST (%s)" s; print_newline (); *)
-      client_close c
+      client_disconnected c
   | _ -> ()
 
 
@@ -107,8 +113,6 @@ let rec remove_download file list =
       if f == file then tail else f :: (remove_download file tail)
       
 let file_complete file =
-  let r = file.file_result in
-  let f = r.result_file in
 (*  Printf.printf "FILE %s DOWNLOADED" f.file_name;
   print_newline (); *)
   (try file_completed (as_file file.file_file)
@@ -117,10 +121,10 @@ let file_complete file =
         (Printexc.to_string e)
         ; print_newline ());
   current_files := List2.removeq file !current_files;
-  old_files =:= (f.file_name, f.file_size) :: !!old_files;
-  List.iter (fun s ->
-      s.source_downloads <- remove_download file s.source_downloads      
-  ) r.result_sources;
+  old_files =:= (file.file_name, file.file_size) :: !!old_files;
+  List.iter (fun c ->
+      c.client_files <- List.remove_assoc file c.client_files
+  ) file.file_clients;
 
 (* finally move file *)
   let incoming_dir =
@@ -129,8 +133,7 @@ let file_complete file =
     else !!DO.incoming_directory
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let new_name = 
-    Filename.concat incoming_dir f.file_name
+  let new_name =  Filename.concat incoming_dir file.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline (); *)
   Unix2.rename file.file_temp  new_name;
@@ -170,8 +173,36 @@ let index_sub s pos len c =
   let find = String.index_from s pos c in
   if find >= pos + len then raise Not_found;
   find
-    
-let client_reader file c =
+  
+let read_stream c file sock b =
+  begin
+    begin
+      let fd = try
+          Unix32.force_fd file.file_fd 
+        with e -> 
+            Printf.printf "In Unix32.force_fd"; print_newline ();
+            raise e
+      in
+      let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
+      Unix2.really_write fd b.buf b.pos b.len;
+    end;
+(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
+    c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+(*
+      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
+print_newline ();
+  *)
+    TcpBufferedSocket.buf_used sock b.len;
+    if c.client_pos > file.file_downloaded then begin
+        file.file_downloaded <- c.client_pos;
+        file_must_update (as_file file.file_file)
+      end;
+    if file.file_downloaded = file.file_size then
+      
+      file_complete file             
+  end
+  
+let client_reader c =
   let state = ref 0 in
   let rec iter sock nread =
 (*    Printf.printf "CLIENT READER %d BYTES" nread; print_newline (); *)
@@ -184,24 +215,25 @@ let client_reader file c =
               state := 1;
               buf_used sock 1;            
               write_string sock "GET";
-              match c.source, c.source_file with
-                Some s, Some file ->
-                  connection_ok s.source_connection_control;
-                  let r = file.file_result in
-                  let filename = List.assoc r s.source_files in
+              match c.client_files with
+                (file, filename) :: _ ->
+                  c.client_file <- Some file;
+                  connection_ok c.client_connection_control;
                   let s =  (Printf.sprintf "%s \"%s\" %s"
-                        s.source_server.server_last_nick filename 
+                        (match c.client_user.user_servers with
+                          [] -> !!CommonOptions.client_name
+                        | s :: _ -> s.server_last_nick) filename 
                         (Int32.to_string file.file_downloaded)) in
                   write_string sock s;
-                  c.source_pos <- file.file_downloaded;
+                  c.client_pos <- file.file_downloaded;
                   iter sock (nread - 1)
               | _ -> 
                   Printf.printf "No file or source"; print_newline ();
-                  client_close c
+                  client_disconnected c
             end
           else begin
               Printf.printf "bad non 1 reply"; print_newline ();
-              client_close c
+              client_disconnected c
             end
         end
       else
@@ -227,99 +259,74 @@ let client_reader file c =
             let total_size = Int32.of_string size in
             state := 2;
             iter sock (nread - len)
-        end else begin
-          let f = file.file_result.result_file in
-          begin
-            let fd = try
-                Unix32.force_fd file.file_fd 
-              with e -> 
-                  Printf.printf "In Unix32.force_fd"; print_newline ();
-                  raise e
-            in
-            let final_pos = Unix32.seek32 file.file_fd c.source_pos Unix.SEEK_SET in
-            Unix2.really_write fd b.buf b.pos b.len;
-          end;
-(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-          c.source_pos <- Int32.add c.source_pos (Int32.of_int b.len);
-(*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
-print_newline ();
-  *)
-          TcpBufferedSocket.buf_used sock b.len;
-          if c.source_pos > file.file_downloaded then begin
-              file.file_downloaded <- c.source_pos;
-              file_must_update (as_file file.file_file)
-            end;
-          if file.file_downloaded = f.file_size then
-            file_complete file             
-      end
+        end else 
+      match c.client_file with
+        None -> close sock "not downloading"
+      | Some file -> read_stream c file sock b
   in
   iter 
   
-let client_reader2 c =
-  let state = ref 0 in
-  let rec iter sock nread =
+let client_reader2 c sock nread =
 (*    Printf.printf "CLIENT READER %d BYTES" nread; print_newline ();  *)
-    if nread > 0 then
-      let b = buf sock in
-      set_rtimeout sock half_day;
-      if !state = 0 then (* waiting for SENDnick "filename" size *) begin
+  if nread = 0 then () else
+  let b = buf sock in
+  set_rtimeout sock half_day;
+  match !c with
+    None -> (* waiting for SENDnick "filename" size *) 
+      begin
 (*          Printf.printf "RECEIVED [%s]" 
-            (String.escaped (String.sub b.buf b.pos (min b.len 300)));
-          print_newline ();
-  *)        
-          try
-            let space = index_sub b.buf b.pos b.len ' ' in
+(String.escaped (String.sub b.buf b.pos (min b.len 300)));
+print_newline ();
+*)        
+        try
+          let space = index_sub b.buf b.pos b.len ' ' in
 (*            Printf.printf "SPACE FOUND AT %d" space; print_newline (); *)
-            let quote = index_sub b.buf space (b.len - space) '"' in
+          let quote = index_sub b.buf space (b.len - space) '"' in
 (*            Printf.printf "QUOTE FOUND AT %d" quote; print_newline (); *)
-            if space+1 <> quote then begin
-                Printf.printf "BAD SPACE"; print_newline ();
-                client_close c; raise Not_found
-              end;
-            let quote2 = index_sub b.buf (quote+1) (b.len - quote - 1) '"' in
+          if space+1 <> quote then failwith "BAD SPACE"; 
+          let quote2 = index_sub b.buf (quote+1) (b.len - quote - 1) '"' in
 (*            Printf.printf "QUOTE2 FOUND AT %d" quote2; print_newline (); *)
-            let nick = String.sub b.buf b.pos (space - b.pos) in
+          let nick = String.sub b.buf b.pos (space - b.pos) in
 (*            Printf.printf "nick ok"; print_newline (); *)
-            let file_name = String.sub b.buf (quote+1) (quote2 - quote - 1) in
+          let file_name = String.sub b.buf (quote+1) (quote2 - quote - 1) in
 (*            Printf.printf "name ok"; print_newline (); *)
-            let size = String.sub b.buf (quote2+2) (b.len - quote2 - 2) in
+          let size = String.sub b.buf (quote2+2) (b.len - quote2 - 2) in
 (*            Printf.printf "FROM [%s] FILE [%s] SIZE [%s]" nick file_name size;
             print_newline (); *)
-            
-            buf_used sock b.len;
-            
-            try
-              let file_name = OpennapGlobals.basename file_name in
-              let file = OpennapGlobals.find_file 
-                  file_name (Int32.of_string size) in
-              c.source_file <- Some file;
-              c.source_pos <- file.file_downloaded;
-              write_string sock (Int32.to_string c.source_pos);
-              let r = file.file_result in
-              List.iter (fun s ->
-                  if s.source_nick = nick then begin
-(*                      Printf.printf "***** SOURCE FOUND ****";
-                      print_newline (); *)
-                      c.source <- Some s
-                    end
-              ) r.result_sources;
-              state := 1;
-            with Not_found ->
-                write_string sock "INVALID REQUEST";
-                client_close c
           
-          with e -> 
-              Printf.printf "EXCEPTION %s in client_reader2" (Printexc.to_string e); print_newline ();
+          buf_used sock b.len;
+          
+          let file_name = OpennapGlobals.basename file_name in
+          let file = OpennapGlobals.find_file 
+              file_name (Int32.of_string size) in
+          
+          List.iter (fun cc ->
+              if cc.client_name = nick then 
+                match cc.client_sock with
+                  None ->
+                    cc.client_file <- Some file;
+                    cc.client_pos <- file.file_downloaded;
+                    write_string sock (Int32.to_string cc.client_pos);
+                    cc.client_sock <- Some sock;
+                    c := Some cc
+                | Some sock ->
+                    close sock "already connected";
+                    raise Not_found
+          ) file.file_clients
         
-        
-        end
-      else
-      if !state = 1 then begin
-          match c.source_file with
-            None -> assert false
-          | Some file ->
-          let f = file.file_result.result_file in
+        with e -> 
+            write_string sock "INVALID REQUEST";  
+            Printf.printf "EXCEPTION %s in client_reader2" (Printexc.to_string e); print_newline ();
+      
+      
+      end
+  | Some c ->
+      match c.client_file with
+        None -> close sock "not downloading"
+      | Some file ->
+          read_stream c file sock b
+          
+          (*
           begin
             let fd = try
                 Unix32.force_fd file.file_fd 
@@ -327,11 +334,11 @@ let client_reader2 c =
                   Printf.printf "In Unix32.force_fd"; print_newline ();
                   raise e
             in
-            let final_pos = Unix32.seek32 file.file_fd c.source_pos Unix.SEEK_SET in
+            let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
             Unix2.really_write fd b.buf b.pos b.len;
           end;
 (*          Printf.printf "DIFF %d/%d" nread b.len; print_newline (); *)
-          c.source_pos <- Int32.add c.source_pos (Int32.of_int b.len);
+          c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
 (*
       Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
 print_newline ();
@@ -342,9 +349,8 @@ print_newline ();
             end;
           if file.file_downloaded = f.file_size then
             file_complete file 
-            
-        end
-              (*
+*)
+(*
 
           if b.buf.[b.pos] = '1' then begin
               
@@ -415,27 +421,25 @@ print_newline ();
           if file.file_downloaded = f.file_size then
             file_complete file 
 *)            
-  in
-  iter 
-  
-let connect_client s ip port =
-  match s.source_downloads with
-    [] -> assert false
-  | file :: tail ->
-      let c = new_client_file s None file in
+
+let connect_client c =
+  match c.client_addr with
+    None -> assert false
+  | Some (ip, port) ->
+      c.client_file <- None;
 (*      Printf.printf "TRYING TO CONNECT CLIENT ON %s:%d" 
-        (Ip.to_string ip) port; print_newline (); *)
+(Ip.to_string ip) port; print_newline (); *)
       let sock = TcpBufferedSocket.connect "opennap to client" (
           Ip.to_inet_addr ip) port 
           (client_handler c)  in
-      c.source_sock <- Some sock;
+      c.client_sock <- Some sock;
       set_read_controler sock DG.download_control;
       set_write_controler sock DG.upload_control;
       
-      set_reader sock (client_reader file c);
+      set_reader sock (client_reader c);
       set_rtimeout sock 30.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          client_close c
+          client_disconnected c
       )
       
       
@@ -457,21 +461,18 @@ let listen () =
               
               Printf.printf "INDIRECT CONNECTION !!!!"; print_newline ();
 *)
+              let c = ref None in
               
               let sock = TcpBufferedSocket.create
                 "opennap client connection" s (fun _ _ -> ()) in
               TcpBufferedSocket.set_read_controler sock download_control;
               TcpBufferedSocket.set_write_controler sock upload_control;
 
-              let c = {
-                  source_sock = Some sock;
-                  source_pos = Int32.zero;
-                  source_error = false;
-                  source = None;
-                  source_file = None;
-                } in
               TcpBufferedSocket.set_closer sock (fun _ s ->
-                  client_close c
+                  match !c with
+                    None -> ()
+                  | Some c ->
+                      client_disconnected c
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
               

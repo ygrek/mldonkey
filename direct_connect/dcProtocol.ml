@@ -221,7 +221,7 @@ module Search = struct
         match after with
           [] -> assert false
         | s :: tail ->
-            if String.length s > 8 && s.[1] = '?' && s.[3] = '?' then
+            if String.length s >= 8 && s.[1] = '?' && s.[3] = '?' then
               before, String2.unsplit after '$'
             else
               iter (Printf.sprintf "%s %s" before s) tail
@@ -233,8 +233,8 @@ module Search = struct
             String2.replace_char words '$' ' ';
             let size = 
               match has_size, size_kind with
-                "T", "T" -> AtMost (Int32.of_string size)
-              |  "T", "F" -> AtLeast (Int32.of_string size)
+                "T", "T" -> AtMost (Int32.of_float (float_of_string size))
+              |  "T", "F" -> AtLeast (Int32.of_float (float_of_string size))
               | _ -> NoLimit
             in
             {
@@ -855,3 +855,76 @@ let debug_server_send sock m =
   let s = Buffer.contents buf in
   Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();  
   write_string sock s
+
+let rec count_tabs line pos =
+  if line.[pos] <> '\t' then pos else
+    count_tabs line (pos+1)
+
+let char_13 = char_of_int 13
+    
+let parse_list user s =
+  String2.replace_char s char_13 '\n';
+(*  Printf.printf "step 1"; print_newline (); *)
+  let lines = String2.split_simplify s '\n' in
+(*  Printf.printf "step 2"; print_newline (); *)
+  let rec iter ntabs  dirname lines list =
+    match lines with 
+      [] -> [], list
+    | line :: tail ->
+        let all_tabs = count_tabs line 0 in
+        if ntabs = all_tabs then
+          let len = String.length line in
+          try
+            let pos = String.index line '|' in
+            let name = String.sub line all_tabs (pos-all_tabs) in
+            let size = String.sub line (pos+1) (len - pos - 1) in
+(*            Printf.printf "%s : %s" name size; print_newline (); *)
+            let r = new_result name (Int32.of_string size) in
+            let filename = Filename.concat dirname name in
+            add_result_source r user filename;
+            iter ntabs dirname tail ((dirname, r) :: list)
+          with _ ->
+(* a directory *)
+              let name = String.sub line all_tabs (len-all_tabs) in
+              let lines, list = iter (ntabs+1) (Filename.concat dirname name)
+                tail list in
+              iter ntabs dirname lines list
+        else begin
+(*            Printf.printf "all_tabs: %d; ntabs: %d" all_tabs ntabs; 
+            print_newline (); *)
+            assert (all_tabs < ntabs);
+            lines, list
+          end
+  in
+  let (_, list) = iter 0 "" lines [] in
+  list
+  
+let rec buf_tabs buf n =
+  if n > 0 then begin
+      Buffer.add_char buf '\t';
+      buf_tabs buf (n-1)
+    end
+  
+let make_shared_list () =
+  let buf = Buffer.create 1000 in
+  let rec iter ntabs node =
+    let dirname =  node.shared_dirname in
+    let ntabs =
+      if dirname = "" then ntabs else begin
+          buf_tabs buf ntabs;
+          Printf.bprintf buf "%s\r\n" dirname;
+          ntabs+1
+        end
+    in
+    List.iter (fun sh ->
+        buf_tabs buf ntabs;
+        Printf.bprintf buf "%s|%ld\r\n" (
+          Filename.basename sh.shared_fullname) sh.shared_size
+    ) node.shared_files;
+    List.iter (fun (_, node) ->
+        iter ntabs node
+    ) node.shared_dirs
+  in
+  iter 0 shared_tree;
+  Buffer.contents buf 
+ 

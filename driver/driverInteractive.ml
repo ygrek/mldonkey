@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonNetwork
 open CommonResult
 open CommonFile
@@ -34,10 +35,12 @@ open CommonTypes
   
 let save_config () =
   Options.save_with_help downloads_ini;
-  networks_iter (fun r -> r.op_network_save_simple_options ());
+  networks_iter (fun r -> 
+      match r.network_config_file with
+        None -> ()
+      | Some opfile -> Options.save_with_help opfile);
   CommonComplexOptions.save ();
   ()
-
     
 let age_to_day date =
   int_of_float ((last_time () -. date) /. one_day)
@@ -360,8 +363,8 @@ let old_print_search buf output results =
           
           begin
             match r.result_comment with
-              None -> ()
-            | Some comment ->
+              "" -> ()
+            | comment ->
                 Printf.bprintf buf "COMMENT: %s\n" comment;
           end;
           if output.conn_output = HTML then 
@@ -473,9 +476,10 @@ let print_search_html buf results format search_num =
                   let names = if r.result_done then
                       names @ ["ALREADY DOWNLOADED"] else names in
                   let names = match  r.result_comment with
-                      Some comment ->
+                    | "" -> names 
+                    | comment ->
                         names @ ["COMMENT: " ^ comment] 
-                    | _ -> names in
+                  in
                   match names with
                     [name] -> name
                   | _ ->
@@ -567,10 +571,11 @@ let print_search buf s format =
                     let names = r.result_names in
                     let names = if r.result_done then
                         names @ ["ALREADY DOWNLOADED"] else names in
-                    let names = match  r.result_comment with
-                        Some comment ->
-                          names @ ["COMMENT: " ^ comment] 
-                      | _ -> names in
+                        let names = match  r.result_comment with
+                            "" -> names
+                          |  comment ->
+                              names @ ["COMMENT: " ^ comment] 
+                        in
                     match names with
                       [name] -> name
                     | _ ->
@@ -622,3 +627,9 @@ let print_search buf s format =
         
         (List.rev !files)
     end  
+
+let browse_friends () =
+  List.iter (fun c -> client_browse c false) !!friends;
+  List.iter (fun c -> client_browse c false) !contacts
+  
+  

@@ -30,13 +30,17 @@ val server_remove : CommonTypes.server -> unit
   
 val friend_add : CommonTypes.client -> unit
 val friend_remove : CommonTypes.client -> unit
+  
+val contact_add : CommonTypes.client -> unit
+val contact_remove : CommonTypes.client -> unit
 
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
 
 val servers : CommonTypes.server list Options.option_record
 val friends : CommonTypes.client list Options.option_record
-
+val contacts : CommonTypes.client list ref
+  
 val customized_queries :     
   (string * CommonTypes.query_entry) list Options.option_record
   

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonSearch
 open CommonServer
 open CommonTypes
@@ -40,25 +41,25 @@ module OT = OpennapTypes
 let send_search s ss msg =
   if not (List.mem_assoc ss s.server_pending_searches) then
     let f ss =
-      s.server_searches <- Some ss;
-(*      add_timer 5.0 (fun _ -> *)
-          match s.server_sock with
-            None -> ()
-          | Some sock -> 
+      match s.server_sock with
+        None -> ()
+      | Some sock -> 
+          s.server_searches <- Some ss;
           OP.debug_server_send sock (OP.SearchReq msg)
-(*          ) *)
-  in
-  match s.server_searches with
-      None -> f ss
-    | Some _ -> 
-        s.server_pending_searches <- s.server_pending_searches @ [ss, f]
+    in
+    s.server_pending_searches <- s.server_pending_searches @ [ss, f];
+    match s.server_pending_searches with
+      [_] -> f ss
+    | _ -> ()
 
-let update_searches s =
+let end_of_search s =
   match s.server_pending_searches with
     [] -> ()
-  | (ss, f) :: tail ->
+  | _ :: tail ->
       s.server_pending_searches <- tail;
-      f ss
+      match tail with
+      | (ss, f) :: _ -> f ss
+      | _ -> ()
         
 let rec remove_short list list2 =
   match list with
@@ -89,14 +90,12 @@ let send_query ss words =
       
 let recover_files () =
   List.iter (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
       let keywords = 
-        match stem f.file_name with 
+        match stem file.file_name with 
           [] | [_] -> 
 (*            Printf.printf "Not enough keywords to recover %s" f.file_name;
             print_newline (); *)
-            [f.file_name]
+            [file.file_name]
         | l -> l
       in
       ignore (send_query (Recover_file keywords) keywords)
@@ -108,14 +107,12 @@ let recover_files_from_server s =
     None -> ()
   | Some sock -> 
       List.iter (fun file ->
-          let r = file.file_result in
-          let f = r.result_file in
           let keywords = 
-            match stem f.file_name with 
+            match stem file.file_name with 
               [] | [_] -> 
 (*                Printf.printf "Not enough keywords to recover %s" f.file_name;
                 print_newline (); *)
-                [f.file_name]
+                [file.file_name]
             | l -> l
           in
           let module S = OP.Search in
@@ -136,37 +133,37 @@ let try_nick s sock =
   OP.server_send sock (OP.NickCheckReq s.server_last_nick)
 
 
-let get_file_from_source src file r =
+let get_file_from_source c file =
 (*  Printf.printf "GET FILE FROM SOURCE !!!!!!!!!!!!!!!!!!!!"; print_newline (); *)
   try
-    if connection_can_try src.source_connection_control then begin
-        connection_try src.source_connection_control;      
+    if connection_can_try c.client_connection_control then begin
+        connection_try c.client_connection_control;      
 (*        Printf.printf "Opennap.get_file_from_source not implemented";  
-        print_newline (); *)
-        let s = src.source_server in
-        match s.server_sock with
-          None -> ()
-        | Some sock ->
-            connection_failed src.source_connection_control;      
-            if not (List.mem_assoc src.source_nick s.server_sources) then
-                s.server_sources <- (src.source_nick,src) :: s.server_sources;
+print_newline (); *)
+        List.iter (fun s ->
+            match s.server_sock with
+              None -> ()
+            | Some sock ->
+                connection_failed c.client_connection_control;      
 
 (* emulate WinMX behavior *)
-            OP.debug_server_send sock (OP.PrivateMessageReq (
-                let module PM = OP.PrivateMessage in
-                {
-                  PM.nick = src.source_nick;
-                  PM.message = "//WantQueue";
-                }));
-            
-            OP.debug_server_send sock (OP.DownloadRequestReq (
-                let module DR = OP.DownloadRequest in
-                {
-                  DR.nick = src.source_nick;
-                  DR.filename = List.assq r src.source_files;
-                }
-              ));
-      end
+                OP.debug_server_send sock (OP.PrivateMessageReq (
+                    let module PM = OP.PrivateMessage in
+                    {
+                      PM.nick = c.client_name;
+                      PM.message = "//WantQueue";
+                    }));
+                
+                OP.debug_server_send sock (OP.DownloadRequestReq (
+                    let module DR = OP.DownloadRequest in
+                    {
+                      DR.nick = c.client_name;
+                      DR.filename = List.assq file c.client_files;
+                    }
+                  ));
+        ) c.client_user.user_servers;
+        
+        end
   with e ->
       Printf.printf "Exception %s in get_file_from_source" 
       (Printexc.to_string e);
@@ -174,15 +171,15 @@ let get_file_from_source src file r =
 
   
 let download_file (r : result) =
-  let f = r.result_file in
-  let file = new_file (Md4.random ()) f.file_name f.file_size in
+  let file = new_file (Md4.random ()) r.result_name r.result_size in
 (*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun src ->
-      add_download file src ""; (* 0 since index is already known. verify ? *)
-      get_file_from_source src file r;
+  List.iter (fun (user, filename) ->
+      let c = new_client user.user_nick in
+      add_download file c filename;
+      get_file_from_source c file;
   ) r.result_sources;
   ()
 
@@ -210,14 +207,16 @@ let try_login_on_server s sock =
         NUL.client_info = !!client_info;
         NUL.link_type = OT.LinkCable;
       }))
-  
+
+  (*
 let update_source s t =
   let module Q = OP.SearchReply in
-  let src = new_source s t.Q.nick t.Q.ip in
+  let c = new_source s t.Q.nick t.Q.ip in
   
-  src.source_link <- t.Q.link_type;
-  src
-  
+  c.client_link <- t.Q.link_type;
+  c
+    *)
+
 let server_handler s sock event = 
   match event with
     BASIC_EVENT (CLOSED _) ->
@@ -275,9 +274,10 @@ try_nick s sock;
         match s.server_searches with 
           None -> assert false
         | Some (Normal_search q) -> 
-            let src = update_source s t in
+            let user = new_user (Some s) t.SR.nick in
+            user.user_link <- t.SR.link_type;
             let result = new_result (basename t.SR.filename) t.SR.size in
-            add_source result src t.SR.filename;
+            add_source result user t.SR.filename;
             search_add_result q result.result_result;
         | Some (Recover_file _) -> 
             begin
@@ -285,66 +285,86 @@ try_nick s sock;
                 let file = find_file (basename t.SR.filename) t.SR.size in 
 (*                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
                 print_newline (); *)
-                let r = file.file_result in
 (*                Printf.printf "1"; print_newline (); *)
-                let src = update_source s t in
-                add_source r src t.SR.filename;
+                let c = new_client t.SR.nick in
+                let result = new_result (basename t.SR.filename) t.SR.size in
+                add_source result c.client_user t.SR.filename;
 (*                Printf.printf "2"; print_newline (); *)
 (*                Printf.printf "3"; print_newline (); *)
-                add_download file src ""; (* 0 since index is already known. verify ? *)
+                add_download file c t.SR.filename;
 (*                Printf.printf "4"; print_newline (); *)
-                get_file_from_source src file r;
+                get_file_from_source c file;
 (*                Printf.printf "5"; print_newline (); *)
 (*                Printf.printf "6"; print_newline (); *)
               with _ -> ()
             end
       end
+      
+      
+  | OP.BrowseUserReplyReq t ->
+      begin
+        match s.server_browse_queue with
+          c :: _ ->
+            let module BU = OP.BrowseUserReply in
+            let r = new_result (basename t.BU.filename) t.BU.size in
+            add_source r c.client_user t.BU.filename;
+            let rs = match c.client_all_files with
+                None -> []
+              | Some rs -> rs in
+            if not (List.memq r rs) then begin
+                c.client_all_files <- Some (r :: rs);
+                client_new_file (as_client c.client_client) 
+                (Filename.dirname t.BU.filename)
+                (as_result r.result_result) 
+              end
+        | _ -> ()
+      end
+          
   | OP.EndOfSearchReplyReq ->
       begin
         match s.server_searches with 
           None -> assert false
         | Some (Normal_search q) -> 
             s.server_searches <- None;
-            update_searches s
+            end_of_search s
         | Some (Recover_file _) -> 
             s.server_searches <- None;
-            update_searches s
+            end_of_search s
       end
   
   | OP.DownloadAckReq t ->
       
-      begin
-        let module DA = OP.DownloadAck in
-(*        Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick;  *)
-        print_newline (); 
-        try
-          let src = List.assoc t.DA.nick s.server_sources in
-          
-          if t.DA.port = 0 then (
+      let module DA = OP.DownloadAck in
+(*        Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
+      print_newline (); 
+       *)
+      let c = new_client t.DA.nick in
+      
+      if t.DA.port = 0 then (
 (*              Printf.printf "************** Must download indirectly  *************"; 
               print_newline (); *)
-              OP.debug_server_send sock (OP.AlternateDownloadRequestReq (
-                  let module DR = OP.DownloadRequest in
-                  {
-                    DR.nick = t.DA.nick;
-                    DR.filename = t.DA.filename;
-                  }
-                ));
-            ) else (
+          OP.debug_server_send sock (OP.AlternateDownloadRequestReq (
+              let module DR = OP.DownloadRequest in
+              {
+                DR.nick = t.DA.nick;
+                DR.filename = t.DA.filename;
+              }
+            ));
+        ) else (
 (*              Printf.printf "************** Can download directly *************"; 
               print_newline (); *)
-              let ip = t.DA.ip in
-              let port = t.DA.port in
-              OpennapClients.connect_client src ip port
-            );
-        with e ->
-            Printf.printf "SOURCES: "; print_newline ();
-            List.iter (fun (nick, src) ->
-                Printf.printf "{ %s }" nick; print_newline ();
-            ) s.server_sources;
-            Printf.printf "Exception %s in DownloadAckReq" 
-              (Printexc.to_string e); print_newline (); 
-      end;
+          let ip = t.DA.ip in
+          let port = t.DA.port in
+          c.client_addr <- Some (ip, port);
+          OpennapClients.connect_client c
+        );
+      
+  | OP.BrowseUserReplyEndReq ->
+      begin
+        match s.server_browse_queue with
+          [] -> ()
+        | _ :: tail -> s.server_browse_queue <- tail
+      end
       
       
   | OP.DownloadErrorReq t ->
@@ -382,6 +402,7 @@ let connect_server s =
       s.server_nick_num <- 0;
       s.server_searches <- None;
       s.server_pending_searches <- [];
+      s.server_browse_queue <- [];
       try_nick s sock;  
 (*      try_login_on_server s sock; *)
       s.server_sock <- Some sock;
@@ -423,12 +444,35 @@ let connect_servers () =
         
 let ask_for_files () = 
   List.iter (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
-      List.iter (fun s ->
-          get_file_from_source s file r
-      ) r.result_sources
+      List.iter (fun c ->
+          get_file_from_source c file
+      ) file.file_clients
   ) !current_files;
   ()
 
+
+let disconnect_server s =
+      match s.server_sock with
+        None -> ()
+      | Some sock -> close sock "user disconnect"
+    
+let _ =
+  server_ops.op_server_connect <- connect_server;
+  server_ops.op_server_disconnect <- disconnect_server;
+(*
+(*  server_ops.op_server_query_users <- (fun s -> *)
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          server_send sock (GetNickListReq)
+  );
+(*  server_ops.op_server_users <- (fun s -> *)
+      List2.tail_map (fun u -> as_user u.user_user) s.server_users
+);
+  *)
+  server_ops.op_server_remove <- (fun s ->
+      disconnect_server s;
+      server_remove s
+  )
+  
   

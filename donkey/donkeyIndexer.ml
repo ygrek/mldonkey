@@ -38,7 +38,7 @@ let update_comment_result md4 comment =
   try
     let rs = Hashtbl.find results_by_md4 md4 in
     let r = doc_value rs.result_index in
-    r.result_comment <- Some comment;
+    r.result_comment <- comment;
     Store.update store rs.result_index r
   with _ -> ()
   
@@ -86,14 +86,10 @@ let save_comments () =
   close_out oc
 
 let comment_result r doc = 
-  match r.result_comment with
-    Some _ -> ()
-  | None ->
-      try
-        r.result_comment
-        <- Some (Hashtbl.find comments r.result_md4);
-        Store.update store doc r
-      with _ -> ()
+  try
+    r.result_comment <- Hashtbl.find comments r.result_md4;
+    Store.update store doc r
+  with _ -> ()
 
 let buf_tag b tag =
   buf_string b tag.tag_name;
@@ -156,7 +152,7 @@ let input_result ic =
       result_format = "";
       result_type = "";
       result_tags = hresult.hresult_tags;
-      result_comment = None;
+      result_comment = "";
       result_done = false;
     } in
   List.iter (fun tag ->
@@ -202,7 +198,7 @@ let input_old_result ic =
       result_format = "";
       result_type = "";
       result_tags = hresult.hresult_tags;
-      result_comment = None;
+      result_comment = "";
       result_done = false;
     } in
   printf_char '!';
@@ -360,7 +356,7 @@ let result_add_by_md4 r =
       result_result = result_impl;
       result_index = Store.dummy_index;
     } and result_impl = {
-      impl_result_num = 0;
+      dummy_result_impl with
       impl_result_val = rs;
       impl_result_ops = result_ops;
     } in

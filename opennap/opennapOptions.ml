@@ -17,12 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
+open OpennapTypes
+open CommonTypes
 open Options
 
-let file_basedir = ""
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
-let opennap_ini = create_options_file (file_basedir ^ "opennap.ini")
+let opennap_ini = create_options_file (
+    Filename.concat file_basedir "opennap.ini")
 
   
 let client_port = define_option opennap_ini ["client_port"]
@@ -50,3 +53,18 @@ let use_napigator = define_option opennap_ini ["use_napigator"]
 let commit_in_subdir = define_option opennap_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Napster"
+
+let servers_list_url = define_option opennap_ini ["servers_list_url"]
+    "The URL from which servers list is downloaded"
+    string_option  "http://www.napigator.com/servers/"
+  
+    
+let network_prefix = define_option opennap_ini
+    ["network_prefix"] "The prefixes used before Open-Napster options"
+    string_option "ON"
+  
+let _ =
+  option_hook network_prefix (fun _ ->
+      network.network_prefixes <- [!!network_prefix]   
+  )
+  

@@ -1,3 +1,5 @@
+open Cddb_lexer
+
 let rec strncmp_aux s1 s2 pos len =
   pos >= len || ( 
     s1.[pos] = s2.[pos] && strncmp_aux s1 s2 (pos+1) len)
@@ -11,9 +13,9 @@ let read_lines filename =
   let lexbuf = Lexing.from_string s in
   let rec iter list = 
     try
-      let name, value = Cddb_lexer.line lexbuf in
-      if name = "" && value = "" then list else
-        iter ((name, value) :: list)
+      let value = Cddb_lexer.line lexbuf in
+      if value = EOF then list else
+        iter (value :: list)
     with
       e ->
         Printf.printf "Exception %s at pos %d, file %s"
@@ -22,18 +24,21 @@ let read_lines filename =
   in
   let list = iter [] in
   let list = List.rev list in
+  (*
   List.iter (fun (s,v) ->
       Printf.printf "%s = %s" s v; print_newline ();
-  ) list;
+) list;
+  *)
   list
 
+  (*
 type t = {
     id : string;
     author : string;
     album : string;
     year : string option;
     genre : string option;
-    titles : (string * int) array;
+    titles : (string * int) list;
     info : string list;
   }
 
@@ -43,7 +48,7 @@ let dummy = {
     album = "";
     year = None;
     genre = None;
-    titles = [||];
+    titles = [];
     info = [];
   }
   
@@ -100,4 +105,9 @@ let read filename =
   in
   let _ = iter_before lines [] in
   ()
+  
+  *)
+
+let read filename =
+  read_lines filename
   

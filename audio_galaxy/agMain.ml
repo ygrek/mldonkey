@@ -29,9 +29,13 @@ open AgTypes
 open AgGlobals
 open AgOptions
 
+let disable enabler () =
+  enabler := false
   
 let enable  () =
 
+  let enabler = ref true in
+  network.op_network_disable <- disable enabler;
   if not !!enable_audiogalaxy then enable_audiogalaxy =:= true;
   
   Hashtbl.iter (fun _ file ->
@@ -60,15 +64,10 @@ let enable  () =
         print_newline ());
   
   AgServers.connect_server ();
-  add_timer 5.0 (fun timer ->
+  add_timer (*enabler*) 5.0 (fun timer ->
       reactivate_timer timer;
       AgServers.connect_server ());
   
-  
-  add_timer 30.0 (fun timer ->
-      reactivate_timer timer;
-      Printf.printf "SAVE FILES"; print_newline ();
-      AgOptions.save_config ());
 
   AgHttpForward.start ();
 (* Faire un relais d'un port particulier vers http://www.audiogalaxy.com,
@@ -81,6 +80,7 @@ Relais bete: on forward simplement la requete sans la modifier !
 let _ =
   network.op_network_is_enabled <- (
     fun _ -> !!CommonOptions.enable_audiogalaxy);
+  (*
   network.op_network_save_simple_options <- AgOptions.save_config;
   network.op_network_load_simple_options <- 
     (fun _ -> 
@@ -88,11 +88,22 @@ let _ =
         Options.load audiogal_ini;      
       with Sys_error _ ->
           AgOptions.save_config ()
-        );
+);
+  *)
   network.op_network_enable <- enable;
-  network.op_network_prefixed_args <- (fun _ ->
-      prefixed_args "ag" AgOptions.audiogal_ini  
-  );
+  network.network_prefixes <- ["ag"];
+  network.network_config_file <- Some audiogal_ini;
+    network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })
+  ;
   
   CommonNetwork.register_escape_char 'G' (fun _ ->
       Printf.sprintf "<td><a href=\"http://%s:%d/\" $O> Audio Gallaxy </a>" 

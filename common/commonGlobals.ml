@@ -263,3 +263,9 @@ let string_of_tags tags =
             ))
   ) tags;
   Buffer.contents buf
+
+      
+  
+  (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
+let gui_counter = ref 1
+  

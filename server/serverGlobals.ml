@@ -31,13 +31,24 @@ let servers_by_md4 = Hashtbl.create 40
 let client_counter = ref 0  
   
 let other_servers = ref []
+
+let alive_servers = ref []
   
 let get_client id = Hashtbl.find clients_by_id id
 
 let nconnected_clients = ref 0
 
 let nshared_files = ref 0
-  
+
+let nb_udp_loc = ref 0
+
+let nb_udp_req = ref 0
+
+let nb_udp_query = ref 0
+
+let nb_tcp_req = ref 0
+
+
   (*
 let rec tag_find v tags =
   match tags with

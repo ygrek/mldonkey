@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonOptions
 open CommonServer
 open CommonResult
@@ -30,16 +31,6 @@ open LimewireGlobals
 open LimewireComplexOptions
 
 open LimewireProtocol
-
-  (*
-let _ =
-  server_ops.op_server_print <- (fun s o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf "%s:%d  %30s %d files(%d) %d kb\n"
-        (Ip.to_string s.server_ip) s.server_port
-        s.server_agent s.server_nfiles s.server_nfiles_last s.server_nkb      
-  )
-  *)
 
 let _ =
   network.op_network_search <- (fun search buf ->
@@ -90,19 +81,6 @@ let _ =
   ())
 
 let _ =
-  result_ops.op_result_print <- (fun r counter o ->
-      let buf = o.conn_buf in
-      let file = r.result_file in
-      Printf.bprintf buf "[Limewire %5d] %-70s %10s "
-        counter
-        (String.escaped file.file_name) (Int32.to_string file.file_size);
-      List.iter (fun s ->
-          Printf.bprintf buf "(%s:%d on %d kb/s%s)"
-            (Ip.to_string s.source_ip) s.source_port s.source_speed
-            (if s.source_push then "(PUSH)" else "")
-      ) r.result_sources;
-      Printf.bprintf buf "\n";
-  );
   result_ops.op_result_download <- (fun result _ ->
       LimewireServers.download_file result)
 
@@ -122,20 +100,17 @@ module P = Gui_proto
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
-      Hashtbl.remove OpennapGlobals.files_by_key (f.file_name, f.file_size);
+      Hashtbl.remove OpennapGlobals.files_by_key 
+      (file.file_name, file.file_size);
       current_files := List2.removeq file !current_files      
   );
   file_ops.op_file_info <- (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
        {
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [f.file_name];
+        P.file_names = [file.file_name];
         P.file_md4 = Md4.null;
-        P.file_size = f.file_size;
+        P.file_size = file.file_size;
         P.file_downloaded = file.file_downloaded;
         P.file_nlocations = 0;
         P.file_nclients = 0;
@@ -178,13 +153,13 @@ let _ =
         C.result_num = r.result_result.impl_result_num;    
         C.result_network = network.network_num;
         
-        C.result_names = [r.result_file.file_name];
+        C.result_names = [r.result_name];
         C.result_md4 = Md4.null;
-        C.result_size = r.result_file.file_size;
+        C.result_size = r.result_size;
         C.result_format = "";
         C.result_type = "";
         C.result_tags = [];
-        C.result_comment = None;
+        C.result_comment = "";
         C.result_done = false;
       }   
   )
@@ -193,5 +168,33 @@ let _ =
 let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers
+  );
+  network.op_network_parse_url <- (fun url ->
+      match String2.split (String.escaped url) '|' with
+      | "lw://" :: "server" :: ip :: port :: _ ->  
+          let ip = Ip.of_string ip in
+          let port = int_of_string port in
+          let s = new_server ip port in
+          true
+      | "lw://" :: "friend" :: uid :: ip :: port :: _ ->  
+          let ip = Ip.of_string ip in
+          let port = int_of_string port in
+          let md4 = Md4.of_string uid in
+          let c = new_client md4 (Known_location (ip, port)) in
+          friend_add (as_client c.client_client);
+          true
+      | "lw://" :: "friend" :: uid :: _ ->
+          let md4 = Md4.of_string uid in
+          let c = new_client md4 (Indirect_location ("", md4)) in
+          friend_add (as_client c.client_client);
+          true
+      | _ -> false
+  )
+
+let browse_client c = ()
+  
+let _ =
+  client_ops.op_client_browse <- (fun c immediate ->
+      browse_client c
   )
   

@@ -27,9 +27,17 @@ open LimewireOptions
 open LimewireGlobals
 open LimewireTypes
 open CommonTypes
-
+open LimewireServers
+  
+let disable enabler () =
+  enabler := false;
+  List.iter (fun s -> disconnect_server s) !connected_servers;
+  List.iter (fun file -> ()) !current_files
   
 let enable () =
+
+  let enabler = ref true in
+  network.op_network_disable <- disable enabler;
   
   if not !!enable_limewire then enable_limewire =:= true;
   List.iter (fun s ->
@@ -45,18 +53,16 @@ let enable () =
         current_files := file :: !current_files
   ) files_by_key;
 *)
+  List.iter (fun s -> Fifo.put ultrapeers_queue s) !!ultrapeers;
   
-  add_timer 1.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 1.0 (fun timer ->
       LimewireServers.connect_servers ());
 
-  add_timer 60.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 60.0 (fun timer ->
       LimewireServers.ask_for_files ();
       LimewireServers.send_pings ());
   
-  add_timer 300.0 (fun timer ->
-      reactivate_timer timer;
+  add_session_timer enabler 300.0 (fun timer ->
       LimewireServers.recover_files ());
   
   LimewireClients.listen ();
@@ -64,19 +70,30 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_limewire);
+(*
   network.op_network_save_simple_options <- LimewireComplexOptions.save_config;
   network.op_network_load_simple_options <- 
     (fun _ -> 
       try
         Options.load limewire_ini;
-        List.iter (fun s -> Fifo.put ultrapeers_queue s) !!ultrapeers      
       with Sys_error _ ->
           LimewireComplexOptions.save_config ()
-      );
+);
+  *)
   network.op_network_enable <- enable;
-  network.op_network_prefixed_args <- (fun _ ->
-      prefixed_args "limewire" LimewireOptions.limewire_ini  
-  )
+  network.network_prefixes <- ["LW"];
+  network.network_config_file <- Some limewire_ini;
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })
+  
   
 let main (toto: int) = ()
   

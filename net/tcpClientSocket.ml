@@ -583,8 +583,7 @@ let set_monitored t =
   
   
 let _ =
-  BasicSocket.add_timer 1.0 (fun timer ->
-      reactivate_timer timer;
+  BasicSocket.add_infinite_timer 1.0 (fun _ ->
       List.iter (fun bc ->
           bc.remaining_bytes <- bc.total_bytes;
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)

@@ -110,6 +110,7 @@ class app
 
   object (self)
     val mutable working = false
+    val mutable closed = false
 
     inherit Chat_gui.gui no_quit data as gui
 
@@ -125,12 +126,12 @@ class app
 	       data#set_connected id host port;
 	       gui#update;
 	       None
-
+		 
 	   | Hello ->
 	       data#set_connected id host port;
 	       gui#update;
 	       Some HelloOk
-		  
+		   
 	   | Byebye ->
 	       data#set_not_connected id host port;
 	       gui#update;
@@ -144,32 +145,51 @@ class app
 		 conf#popup_all or 
 		 (List.exists (pred (id,host,port)) conf#people)
 	       in
-	       let dial = Chat_gui.get_dialog ~show data id host port in
-	       dial#handle_message mes;
+	       let dial = Chat_gui.get_dialog ~show data (Chat_gui.Single (id, host, port)) in
+	       dial#handle_message id mes;
 	       None
+		 
 	   | AddOpen (i, (h, p)) ->
-	       prerr_endline (Printf.sprintf "received AddOpen i=%s h=%s p=%d" i h p);
+	       Chat_messages.verbose (Printf.sprintf "received AddOpen i=%s h=%s p=%d" i h p);
 	       self#handle_paquet ((version,i,(h,p)), iddest, Message "");
+	       None
+		 
+	   | RoomMessage (name, people, mes) ->
+	       let dial = Chat_gui.get_dialog ~show: true data (Chat_gui.Room (name, people)) in
+	       List.iter 
+		 (fun (i,h,p) ->
+		   if List.exists (data#pred (i,h,p)) conf#people then
+		     data#set_connected i h p)
+		 people;
+	       gui#update;
+	       dial#handle_message id mes;
 	       None
 	  )
       in
       match reply with
 	None -> ()
-      |	Some r ->
+      | Some r ->
 	  try data#com#send id (host,port) r
-	  with Failure s -> prerr_endline s
+	  with Failure s -> Chat_messages.verbose s
 
     method accept =
-      match data#com#receive with
-	None -> ()
-      | Some p -> self#handle_paquet p
+      try
+	match data#com#receive with
+	  None -> ()
+	| Some p -> self#handle_paquet p
+      with
+	Failure s ->
+	  Chat_messages.verbose s;
+	  ()
+
 
     method work () =
-      if working then false
+      if working then not closed
       else
 	(
 	 self#accept;
-	 ignore (GMain.Timeout.add ~ms: conf#timeout ~callback: self#work);
+	 if not closed then
+	   ignore (GMain.Timeout.add ~ms: conf#timeout ~callback: self#work);
 	 working <- false;
 	 false
 	)
@@ -180,7 +200,7 @@ class app
 	try data#com#send id (host, port) Hello 
 	with Failure s ->
 	  data#set_not_connected id host port;
-	  prerr_endline s
+	  Chat_messages.verbose s
 
     method say_byebye (id, host, port, state, temp) =
 	try data#com#send id (host, port) Byebye
@@ -196,24 +216,48 @@ class app
       else
 	()
 
-    method set_not_temp_selected =
+    method toggle_temp_selected =
       List.iter
 	(fun (i,h,p,_,t) ->
 	  if t then data#add_people i h p
-	  else ())
+	  else data#remove_people i h p)
 	selected_people;
       gui#update
 
+    method kill_people_selected =
+       List.iter
+	(fun (i,h,p,_,t) ->
+	  data#remove_people ~kill: true i h p)
+	selected_people;
+      gui#update
+
+    method add_people =
+      match input_people () with
+      None -> ()
+    | Some (id,host,port) -> 
+	let l = data#people in
+	data#add_people id host port;
+	let l2 = data#people in
+	self#say_hello (data#get_complete_people id host port);
+	gui#update
+
     initializer
       ignore (itemOptions#connect#activate (fun () -> self#edit_conf));
-      ignore (itemSetNotTemp#connect#activate
-		(fun () -> self#set_not_temp_selected));
+      ignore (itemToggleTemp#connect#activate
+		(fun () -> self#toggle_temp_selected));
+      ignore (itemAddPeople#connect#activate (fun () -> self#add_people));
+      ignore (itemRemovePeople#connect#activate (fun () -> self#kill_people_selected));
 
       ignore (GMain.Timeout.add ~ms: conf#timeout ~callback: self#work) ;
       List.iter self#say_hello data#people;
       gui#update;
 
-      ignore (box#connect#destroy 
-		(fun () -> List.iter self#say_byebye data#people))
+      ignore (self#box#connect#destroy 
+		(fun () -> 
+		  List.iter self#say_byebye data#people ;
+		  closed <- true;
+		  com#close
+		)
+	     )
 
   end

@@ -39,6 +39,7 @@ let client_close c =
   match c.client_sock with
     None -> ()
   | Some sock ->
+      connection_failed c.client_connection_control;      
       Printf.printf "CLOSE SOCKET"; print_newline ();
       close sock "client close";
       set_client_state c NotConnected;
@@ -55,7 +56,7 @@ let create_key () =
     key.[i] <- char_of_int (char_percent + Random.int (char_z - char_percent))
   done;
   LockReq { 
-    Lock.info = "Pk=mldonkey"; 
+    Lock.info = !!client_keyinfo;
     Lock.key = key
   }
 
@@ -69,16 +70,17 @@ LockReq {
 let init_connection nick_sent c sock =
   c.client_receiving <- Int32.zero;
   c.client_sock <- Some sock;
+  connection_ok c.client_connection_control;  
   if not nick_sent then begin
-      let my_nick = match c.client_server with
-          None -> !!client_name
-        | Some s -> s.server_last_nick 
+      let my_nick = match c.client_user.user_servers with
+          [] -> !!client_name
+        | s :: _ -> s.server_last_nick 
       in
       debug_server_send sock (MyNickReq my_nick);
       debug_server_send sock (create_key ());
     end;
   match c.client_all_files, client_type c with
-  | Some _, _ 
+  | Some _, _  (* we already have browsed this client *)
   | None, NormalClient ->
       if c.client_files = [] then
         debug_server_send sock (DirectionReq { 
@@ -94,7 +96,15 @@ let init_connection nick_sent c sock =
           Direction.direction = Download;
           Direction.level = 31666;
         })      
-    
+
+      
+let rec really_read fd s pos len =
+  let nread = Unix.read fd s pos len in
+  if nread = 0 then raise End_of_file else
+  if nread < len then
+    really_read fd s (pos + nread) (len - nread)
+
+      
 let read_first_message nick_sent t sock =
   Printf.printf "FIRST MESSAGE"; print_newline ();
   print t;
@@ -122,6 +132,7 @@ let client_reader c t sock =
   print t;
   match t with
     MyNickReq n ->
+      connection_ok c.client_connection_control;
       if c.client_name != n then begin
           Printf.printf "Bad nickname for client %s/%s" n c.client_name; 
           print_newline ();
@@ -159,26 +170,28 @@ let client_reader c t sock =
       Printf.printf "DISCARD KEY ..."; print_newline ();
   
   | DirectionReq t ->
-      (* HERE, we should check for upload slots ...
-      if t.Direction.download then begin
-          Printf.printf "UPLOAD NOT IMPLEMENTED"; print_newline ();
-          client_close c;
-          raise Not_found
+(* HERE, we should check for upload slots ...*)
+      if t.Direction.direction = Download then begin
+(* this client wants something from us ... *)
+
+(* is this OK (we sent two Direction messages !) ? *)
+          debug_server_send sock (DirectionReq { 
+              Direction.direction = Upload;
+              Direction.level = 666;
+            });
         end;
-      Printf.printf "GOOD DIRECTION: %d" t.Direction.level; print_newline ();
-*)
       ()
-      
+  
   | FileLengthReq t ->
       begin
         match c.client_download with
           DcDownload file ->
-            if Int32.add c.client_pos t = file.file_size then begin
+            if t = file.file_size then begin
                 c.client_receiving <- t;
               end else begin
-                Printf.printf "Bad file size: %ld + %ld = %ld <> %ld"
-                  c.client_pos  t
-                (Int32.add c.client_pos t)  file.file_size;
+                Printf.printf "Bad file size: %ld  <> %ld"
+                  t
+                   file.file_size;
                 print_newline ();
                 client_close c;
                 raise Not_found
@@ -192,8 +205,58 @@ let client_reader c t sock =
             raise Not_found
       end;
       debug_server_send sock SendReq
-
   
+  | GetReq t ->
+(* this client REALLY wants to download from us !! *)
+      if t.Get.name = "MyList.DcLst" then begin
+          c.client_pos <- Int32.zero;
+          let list = make_shared_list () in
+          let list = Che3.compress list in
+          c.client_download <- DcUploadList list;
+          debug_server_send sock (FileLengthReq (
+              Int32.of_int (String.length list)))
+        end else begin 
+(* Upload not yet implemented *)
+          try
+            let sh = Hashtbl.find shared_files t.Get.name in
+            c.client_pos <- Int32.sub t.Get.pos Int32.one;
+            let rem = Int32.sub sh.shared_size c.client_pos in
+            debug_server_send sock (FileLengthReq rem);
+            c.client_download <- DcUpload sh
+          with _ ->
+              ()
+        end
+  
+  | SendReq ->
+      let refill sock =
+        Printf.printf "FILL SOCKET"; print_newline ();
+        let len = remaining_to_write sock in
+        if len < 8192 then
+          match c.client_download with
+            DcUploadList list ->
+              let slen = String.length list in
+              let pos = Int32.to_int c.client_pos in
+              if pos < slen then
+                TcpBufferedSocket.write sock list pos (mini (slen - pos) (8192 - len))
+          | DcUpload sh -> 
+              let slen = sh.shared_size in
+              let pos = c.client_pos in
+              if pos < slen then
+                let fd = sh.shared_fd in
+                ignore (Unix32.seek32 fd pos Unix.SEEK_SET);
+                let rlen = 
+                  let rem = Int32.sub slen  pos in
+                  let can = 8192 - len in
+                  if rem > Int32.of_int can then can else Int32.to_int rem
+                in
+                let upload_buffer = String.create rlen in
+                really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
+                TcpBufferedSocket.write sock upload_buffer 0 rlen
+          | _ -> assert false
+      in
+      set_refill sock refill;
+      set_handler sock WRITE_DONE (fun sock -> close sock "write done")
+        
   | _ ->
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
       DcProtocol.print t
@@ -222,12 +285,11 @@ print_newline ();
     Filename.concat incoming_dir file.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  Unix2.rename file.file_temp  new_name
+  Unix2.rename file.file_temp  new_name;
+  file.file_temp <- new_name
   
 let client_downloaded c sock nread = 
-  Printf.printf "----------------------------------------"; print_newline ();
-  Printf.printf "CLIENT RECEIVE STREAM !!!!!!!!!!!!!!!!!!"; print_newline ();
-  Printf.printf "----------------------------------------"; print_newline ();
+  Printf.printf "."; flush stdout; 
   if nread > 0 then
     match c.client_download with
     | DcDownload file ->
@@ -264,13 +326,29 @@ print_newline ();
         buf_used sock b.len;
         c.client_receiving <- Int32.sub c.client_receiving (Int32.of_int len);
         if c.client_receiving = Int32.zero then begin
+            (*
             Printf.printf "----------------------------------------"; print_newline ();
             Printf.printf "RECEIVED COMPLETE FILE LIST "; print_newline ();
-            Printf.printf "----------------------------------------"; print_newline ();
+Printf.printf "----------------------------------------"; print_newline ();
+  *)
             let s = Buffer.contents buf in
             let s = Che3.decompress s in
-            Printf.printf "LIST: [%s]" (String.escaped s);
-            print_newline ();
+            try
+(*              Printf.printf "LIST: [%s]" (String.escaped s);
+              print_newline (); *)
+              let files = parse_list c.client_user s in
+(*              Printf.printf "PARSED"; print_newline (); *)
+              c.client_all_files <- Some files;
+              List.iter (fun (dirname,r) ->
+(*                  Printf.printf "NEW FILE"; print_newline (); *)
+                  client_new_file (as_client c.client_client) dirname
+                    (as_result r.result_result)
+              ) files;
+              ()
+            with e ->
+                Printf.printf "Exception %s in parse client files"
+                  (Printexc.to_string e);
+                ; print_newline ();
           end
     | _ -> assert false
 
@@ -323,6 +401,7 @@ let connect_client c =
     match c.client_addr with
       None -> ()
     | Some (ip,port) ->
+        connection_try c.client_connection_control;      
         let sock = connect "client download" 
             (Ip.to_inet_addr ip) port
             (fun sock event ->

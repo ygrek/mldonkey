@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonResult
 open CommonServer
 open CommonTypes
@@ -31,18 +32,6 @@ module OG = OpennapGlobals
 module OS = OpennapServers
 module OP = OpennapProtocol
 module OC = OpennapClients
-
-
-  (*
-let _ =
-  server_ops.op_server_print <- (fun s o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf
-      "Connected to %s:%d (%s) with %d users %d files %d GB\n"
-        (Ip.to_string s.server_ip) s.server_port s.server_net s.server_nusers
-        s.server_nfiles s.server_size
-  )
-  *)
 
 let  _ =
   network.op_network_search <- (fun q  buf ->
@@ -120,22 +109,6 @@ let string_of_length d =
 
 
 let _ = 
-  result_ops.CommonResult.op_result_print <- (fun r num o ->
-      let buf = o.conn_buf in
-      let file = r.result_file in
-      Printf.bprintf buf "[Opennap %5d] %-70s %10s   "
-      num
-      file.file_name (Int32.to_string file.file_size);
-(*
-file.file_bitrate file.file_freq
-(string_of_length file.file_length); 
-*)
-      List.iter (fun s ->
-          Printf.bprintf buf "(%s on %s)"
-          s.source_nick (OP.string_of_link s.source_link))
-      r.result_sources;
-      Printf.bprintf buf "\n";
-  );
   result_ops.CommonResult.op_result_download <- (fun r _ ->
       OpennapServers.download_file r)
 
@@ -146,20 +119,17 @@ module P = Gui_proto
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
-      Hashtbl.remove OpennapGlobals.files_by_key (f.file_name, f.file_size);
-      current_files := List2.removeq file !current_files      
+      Hashtbl.remove OpennapGlobals.files_by_key (file.file_name, file.file_size);
+      current_files := List2.removeq file !current_files;
+      file_cancel (as_file file.file_file)
   );
   file_ops.op_file_info <- (fun file ->
-      let r = file.file_result in
-      let f = r.result_file in
        {
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [f.file_name];
+        P.file_names = [file.file_name];
         P.file_md4 = file.file_id;
-        P.file_size = f.file_size;
+        P.file_size = file.file_size;
         P.file_downloaded = file.file_downloaded;
         P.file_nlocations = 0;
         P.file_nclients = 0;
@@ -201,13 +171,13 @@ let _ =
         C.result_num = r.result_result.impl_result_num;    
         C.result_network = network.network_num;
         
-        C.result_names = [r.result_file.file_name];
+        C.result_names = [r.result_name];
         C.result_md4 = Md4.null;
-        C.result_size = r.result_file.file_size;
+        C.result_size = r.result_size;
         C.result_format = "";
         C.result_type = "";
         C.result_tags = [];
-        C.result_comment = None;
+        C.result_comment = "";
         C.result_done = false;
       }   
   )
@@ -216,4 +186,18 @@ let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers
   )
+  
+let browse_client c = 
+  let user = c.client_user in
+  List.iter (fun s ->
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          s.server_browse_queue <- s.server_browse_queue @ [c];
+          OP.server_send sock (OP.BrowseUserReq user.user_nick);
+  ) user.user_servers
+  
+let _ =
+  client_ops.op_client_browse <- (fun c immediate ->
+      browse_client c  )
   

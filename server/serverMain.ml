@@ -26,17 +26,10 @@ open Options
 open Mftp_comm
 open ServerTypes
 open ServerOptions
-
-  
-let load_simple_args () =
-    begin try
-      Options.load server_ini;
-    with e ->
-        Printf.printf "Exception %s while loading options"
-          (Printexc.to_string e);
-        print_newline ();
-        Options.save_with_help server_ini
-  end
+open ServerLog
+open BasicSocket
+open ServerClients
+open ServerGlobals
 
 let enable () =
   
@@ -60,16 +53,68 @@ let enable () =
               Q.port = !!server_port;
             }));
     end;
-  Printf.printf "server started at %d" !!server_port; print_newline ()
+    
+    if !!save_log then ServerLog.initialized(); 
+
+    (*Printf.printf "COOOOOOOOOL %d\n" (List.length !!known_server); *)  
+
+   
+      other_servers := List.map (fun (ip,port) ->
+				   {server_ip = ip; server_port = port}) !!known_server;
+   
+	
+
+    
+    (*Printf.printf "BOOOOOOOL %d\n" (List.length !other_servers);  *)
+
+    (*ServerUdp.print !other_servers;*)
+
+    (*List.iter (fun s -> server_print s stdout) !!known_servers;*)
+
+    (*let tmp = List.hd !!known_servers in
+    let (ip,port) = get_address tmp in
+      Printf.printf "yes//////\n";
+      Printf.printf "%s:%d" (Ip.to_string ip) port*)
+
+   
+	
+   
+   (* let serv  = (List.hd !!known_servers) in
+      Printf.printf "%s" serv;*)
+    
+    (*other_servers := List.map (fun serv -> serv.server_addr) !!known_servers;*)
+    
+    add_infinite_option_timer send_server_stat_delay ServerClients.send_stat_to_clients;
+    
+    add_infinite_option_timer save_option_delay (fun timer -> 
+				     ServerUdp.save_servers_liste();
+				     Options.save_with_help server_ini;
+    );
+
+    add_infinite_option_timer ping_knowed_servers ServerUdp.ping_servers;
+
+    add_infinite_timer 15. (fun timer ->
+		      Printf.printf "SERVER STAT\n";
+		      Printf.printf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_files;
+		      Printf.printf "nb_know_alive_server:%d\n" (List.length !alive_servers);
+		      Printf.printf "nb_know_other_server:%d\n" (List.length !other_servers);
+		       Printf.printf "client_counter:%d\n" !client_counter;
+		      Printf.printf "nb udp requets:%d\n" !nb_udp_req;
+	              Printf.printf "nb udp Location:%d\n nb udp Query:%d\n " !nb_udp_loc !nb_udp_query;
+	              Printf.printf "nb tcp requets:%d\n" !nb_tcp_req;
+		      (*ServerUdp.print !alive_servers;*)
+		      Pervasives.flush Pervasives.stdout
+		
+		   );
+
+    ServerUdp.hello_world();
+
+    Printf.printf "server started at %d" !!server_port; print_newline ()
 
 let _ =
-  network.op_network_config_file <- (fun _ -> server_ini);
+  network.network_config_file <- Some server_ini;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_server);
-  network.op_network_load_simple_options <- load_simple_args;
-  network.op_network_save_simple_options <- save_config;
   network.op_network_enable <- enable;
-  network.op_network_prefixed_args <- (fun _ ->
-      prefixed_args "server" server_ini  
-  );
+  network.network_prefixes <- [ "server" ]  
 
   

@@ -42,13 +42,13 @@ let value_to_addr v =
 
 
 let value_to_server  assocs =
-  
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
   in
   let server_addr = get_value "server_addr" value_to_addr in
-  let h = new_server server_addr in
+  let server_port = get_value "server_port" value_to_int in
+  let h = new_server server_addr server_port in
   h.server_name <- get_value "server_name" value_to_string;
   h.server_info <- get_value "server_info" value_to_string;
   h.server_nusers <- get_value "server_nusers" value_to_int;
@@ -66,6 +66,7 @@ let server_to_value h =
       "server_addr", addr_to_value h.server_addr;
       "server_info", string_to_value h.server_info;
       "server_nusers", int_to_value h.server_nusers;
+      "server_port", int_to_value h.server_port;
     ] in
   let list = match h.server_ip_cached with 
       None -> list
@@ -75,9 +76,6 @@ let server_to_value h =
   in
   list
   
-
-let save_config () =
-  Options.save_with_help directconnect_ini
 
 
 let value_to_file is_done assocs =
@@ -98,38 +96,51 @@ let value_to_file is_done assocs =
   in
   
   let file = new_file file_id file_name file_size in
-
-  (*
+  
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
-                SmallList [c; index] | List [c;index] ->
-                  let s = ClientOption.value_to_client c in
-                  add_download file s (value_to_int index)
+                SmallList [nick; filename; (SmallList servers | List servers) ] 
+              | List [nick; filename; (SmallList servers | List servers)] ->
+                  let nick = value_to_string nick in
+                  let filename = value_to_string filename in
+                  let user = new_user None nick in
+                  let c = add_file_client file user filename in
+                  List.iter (fun v ->
+                      match v with
+                        SmallList [addr; port]
+                      | List [addr; port] ->
+                          let addr = value_to_addr addr in
+                          let port = value_to_int port in
+                          let s = new_server addr port in
+                          user.user_servers <- s :: user.user_servers
+                      | _ -> ()
+                  ) servers
               | _ -> failwith "Bad source"
           )))
     with e -> 
         Printf.printf "Exception %s while loading source"
           (Printexc.to_string e); 
         print_newline ();
-);
-  *)
+  );
   as_file file.file_file
-
+  
 let file_to_value file =
   [
     "file_size", int32_to_value file.file_size;
     "file_name", string_to_value file.file_name;
     "file_downloaded", int32_to_value file.file_downloaded;
     "file_id", string_to_value (Md4.to_string file.file_id);
-(*
     "file_sources", 
-    list_to_value (fun s ->
-        SmallList [ClientOption.client_to_value s;
-          int_to_value (List.assq r s.source_files)]
-    ) r.result_sources
-;
-*)
+    list_to_value (fun c ->
+        let filename = List.assoc file c.client_files  in
+        SmallList [string_to_value c.client_user.user_nick;
+          string_to_value filename;
+          (list_to_value (fun s ->
+                SmallList [addr_to_value s.server_addr;
+                  int_to_value s.server_port]
+            ) c.client_user.user_servers)]
+    ) file.file_clients;
   ]
         
 let _ =

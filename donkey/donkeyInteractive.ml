@@ -233,8 +233,6 @@ let really_query_download filenames size md4 location old_file absents =
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          Printf.printf "ASKING EXTENDED SEARCH RESULT SENDER"; 
-          print_newline ();
           udp_server_send s (Mftp_server.QueryLocationUdpReq file.file_md4)
       ) servers
     with _ -> ());
@@ -437,176 +435,28 @@ let print_file buf file =
         | PartialVerified _ -> '!'
       )
   ) file.file_chunks
-  
 
-  (*
-  
-let simple_print_file buf name_len done_len size_len format file =
-  Printf.bprintf buf "[%-5d] "
-      (file_num file);
-  if format.conn_output = HTML && file.file_state <> FileDownloaded then 
-    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>] " 
-    (file_num file);
-  let s = short_name file in
-  Printf.bprintf buf "%s%s " s
-    (String.make (name_len - (String.length s)) ' ');
+let parse_donkey_url url =
+  match String2.split (String.escaped url) '|' with
+  | "ed2k://" :: "file" :: name :: size :: md4 :: _
+  | "file" :: name :: size :: md4 :: _ ->
+      query_download [name] (Int32.of_string size)
+      (Md4.of_string md4) None None None;
+      true
+  | "ed2k://" :: "server" :: ip :: port :: _
+  | "server" :: ip :: port :: _ ->
+      let s = add_server (Ip.of_string ip) (int_of_string port) in
+      server_must_update s;
+      true
+  | "ed2k://" :: "friend" :: ip :: port :: _
+  | "friend" :: ip :: port :: _ ->
+      let ip = Ip.of_string ip in
+      let port = int_of_string port in
+      let c = new_client (Known_location (ip,port)) in
+      new_friend c;
+      true
 
-  if file.file_state <> FileDownloaded then begin
-      let s = Int32.to_string file.file_downloaded in
-      Printf.bprintf buf "%s%s " s (String.make (
-          done_len - (String.length s)) ' ');
-    end;
-
-  let s = Int32.to_string file.file_size in
-  Printf.bprintf buf "%s%s " s (String.make (
-      size_len - (String.length s)) ' ');
-
-  if file.file_state = FileDownloaded then
-    Buffer.add_string buf (Md4.to_string file.file_md4)
-  else
-  if file.file_state = FilePaused then
-    Buffer.add_string buf "Paused"
-  else
-  if file.file_last_rate < 10.24 then
-    Buffer.add_string buf "-"
-  else
-    Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
-  Buffer.add_char buf '\n'
-*)
-
-
-    
-  (*
-  Printf.bprintf buf "\<TABLE\>\<TR\>
-  \<TD\> [ Num ] \</TD\> 
-  \<TD\> \<a href=/submit\?q\=vd\&sortby\=name\> File \</a\> \</TD\>";
-  
-  if not finished then
-    Printf.bprintf buf 
-    "\<TD ALIGN\=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=percent\> Percent \</a\> \</TD\> 
-\<TD ALIGN\=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=done\> Downloaded \</a\> \</TD\> ";
-  
-  Printf.bprintf buf 
-    "\<TD ALIGN=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\> \</TD\> ";
-  
-  Printf.bprintf buf "\<TD\> \<a href=/submit\?q\=vd\&sortby\=rate\> %s \</a\> \</TD\> " (if finished then "MD4" else "Rate");
-  Printf.bprintf  buf "\</TR\>\n";
-  
-  List.iter (fun file ->
-      Printf.bprintf buf "\<TR\> \<TD ALIGN\=RIGHT\> [%-5d]"
-        (file_num file);
-      if file.file_state <> FileDownloaded then 
-        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>] " 
-          (file_num file);
-      Printf.bprintf  buf "\</TD\>";
-      Printf.bprintf buf " \<TD\> %s \</TD\> " (short_name file);
-
-      if file.file_state <> FileDownloaded then 
-        Printf.bprintf buf "\<TD ALIGN\=RIGHT\> %5.1f \</TD\> \<TD ALIGN\=RIGHT\> %s \</TD\> " (percent file) (Int32.to_string file.file_downloaded);
-
-      Printf.bprintf buf "\<TD ALIGN=RIGHT\> %s \</TD\> " (Int32.to_string file.file_size);
-
-      Printf.bprintf buf "\<TD ALIGN=RIGHT\> %s \</TD\>"
-        (if file.file_state = FileDownloaded then
-          Md4.to_string file.file_md4
-        else
-        if file.file_state = FilePaused then
-          "Paused"
-        else
-        if file.file_last_rate < 10.24 then
-          "-"
-        else
-          Printf.sprintf "%5.1f" (file.file_last_rate /. 1024.));
-      Buffer.add_string buf "\</TR\>"
-      
-  ) files;
-  
-  Printf.bprintf  buf "\</TABLE\>\n"
-*)
-(*  
-let simple_print_file_list finished buf files format =
-(*  if format.conn_output = HTML then *)
-  simple_print_file_list_html finished buf files format
-(*  else
-  let size_len = ref 10 in
-  let done_len = ref 10 in
-  let name_len = ref 1 in
-  List.iter 
-    (fun f ->
-      name_len := max !name_len (String.length (short_name f));
-      size_len := max !size_len (String.length (Int32.to_string f.file_size));
-      done_len := max !done_len (String.length (Int32.to_string f.file_downloaded));
-  )
-  files;
-  Printf.bprintf buf "[ Num ] ";
-  if format.conn_output = HTML then Printf.bprintf buf "         ";
-
-  let make_spaces len s =
-    String.make (max 0 (len - (String.length s))) ' '
-  in
-  let s = "File" in
-  if format.conn_output = HTML then
-    Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=name\>%s\</a\>%s "
-    s (make_spaces  !name_len s)
-  else
-    Printf.bprintf buf "%s%s " s (make_spaces  !name_len s);
-  
-  if not finished then
-    begin
-      let s = "Downloaded" in
-      if format.conn_output = HTML then
-        Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=done\>%s\</a\>%s "
-          s (make_spaces !done_len s)
-      else
-        Printf.bprintf buf "%s%s " s (make_spaces !done_len s);
-    end;
-  
-  let s = "Size" in
-  if format.conn_output = HTML then
-    Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=size\>%s\</a\>%s "
-      s (make_spaces !size_len s)
-  else
-    Printf.bprintf buf "%s%s " s (make_spaces !size_len s);
-  
-  let s = if finished then "MD4" else
-    if format.conn_output = HTML then
-      "\<a href=/submit\?q\=vd\&sortby\=rate\>Rate\</a\>"
-    else "Rate"
-  in
-  Printf.bprintf buf "%s\n" s;
-  
-  List.iter (simple_print_file buf !name_len !done_len !size_len format) files
-*)
-    *)  
-
-(*
-        *)
-
-let print_search _ _ _ = 
-  Printf.printf "print_search not implemented"; print_newline ();
-  ()
-
-  (*
-let print_connected_servers buf =
-  Printf.bprintf  buf "Connected to %d eDonkey servers\n"
-    (List.length !connected_server_list);
-  List.iter (fun s ->
-      Printf.bprintf buf "[%-5d] %s:%-5d  "
-        s.server_num
-        (Ip.to_string s.server_ip) s.server_port;
-      List.iter (fun t ->
-          Printf.bprintf buf "%-3s "
-            (match t.tag_value with
-              String s -> s
-            | Uint32 i -> Int32.to_string i
-            | Fint32 i -> Int32.to_string i
-            | _ -> "???"
-          )
-      ) s.server_tags;
-      Printf.bprintf buf " %6d %7d" s.server_nusers s.server_nfiles;
-      Buffer.add_char buf '\n'
-  ) !connected_server_list
-    *)
+  | _ -> false
 
 let commands = [
     "n", Arg_multiple (fun args o ->
@@ -808,13 +658,9 @@ let commands = [
     "dllink", Arg_multiple (fun args o ->        
         let buf = o.conn_buf in
         let url = String2.unsplit args ' ' in
-        match String2.split (String.escaped url) '|' with
-          "ed2k://" :: "file" :: name :: size :: md4 :: _
-        |              "file" :: name :: size :: md4 :: _ ->
-            query_download [name] (Int32.of_string size)
-            (Md4.of_string md4) None None None;
-            "download started"
-        | _ -> "bad syntax"    
+        if parse_donkey_url url then
+          "download started"
+        else "bad syntax"
     ), " <ed2klink> : download ed2k:// link";
     
     "force_download", Arg_none (fun o ->
@@ -965,7 +811,6 @@ let _ =
         P.user_tags = u.user_tags;
         P.user_name = u.user_name;
         P.user_server = u.user_server.server_server.impl_server_num;
-        P.user_state = u.user_user.impl_user_state;
       }
   )
 
@@ -975,7 +820,7 @@ let _ =
         P.client_network = network.network_num;
         P.client_kind = c.client_kind;
         P.client_state = client_state c;
-        P.client_type = client_type (as_client c.client_client);
+        P.client_type = client_type c;
         P.client_tags = c.client_tags;
         P.client_name = c.client_name;
         P.client_files = None;
@@ -994,23 +839,20 @@ let _ =
 let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true
-  );
-  network.op_network_add_server_id <- (fun ip port ->
-      let s = add_server ip port in
-      server_must_update s
   )
-
+let disconnect_server s =
+  match s.server_sock with
+    None -> ()
+  | Some sock ->
+      TcpBufferedSocket.shutdown sock "user disconnect"
+      
 let _ =
   server_ops.op_server_remove <- (fun s ->
       DonkeyComplexOptions.remove_server s.server_ip s.server_port
   );
-  server_ops.op_server_connect <- (fun s ->
-      connect_server s);
-  server_ops.op_server_disconnect <- (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
-          TcpBufferedSocket.shutdown sock "user disconnect");
+  server_ops.op_server_connect <- connect_server;
+  server_ops.op_server_disconnect <- disconnect_server;
+
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
         Some sock, (Connected_idle | Connected_busy) ->
@@ -1027,29 +869,8 @@ let _ =
   );
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
-()
-  (*
-  server_ops.op_server_print <- (fun s o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf "[Donkey %-5d] %s:%-5d  "
-        (server_num s)
-      (Ip.to_string s.server_ip) s.server_port;
-      List.iter (fun t ->
-          Printf.bprintf buf "%-3s "
-            (match t.tag_value with
-              String s -> s
-            | Uint32 i -> Int32.to_string i
-            | Fint32 i -> Int32.to_string i
-            | _ -> "???"
-          )
-      ) s.server_tags;
-      (match s.server_sock with
-          None -> ()
-        | Some _ ->
-            Printf.bprintf buf " %6d %7d" s.server_nusers s.server_nfiles);
-      Buffer.add_char buf '\n'
-  )
-*)  
+  ()
+
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
       file.file_filenames <- [name]
@@ -1083,12 +904,10 @@ let _ =
   network.op_network_clean_servers <- (fun _ ->
       DonkeyServers.remove_old_servers ());
   
-  network.op_network_add_friend_id <- (fun ip port ->
-      let c = new_client (Known_location (ip,port)) in
-      new_friend c);
-
   network.op_network_connect_servers <- (fun _ ->
-      force_check_server_connections true)
+      force_check_server_connections true);
+  
+  network.op_network_parse_url <- parse_donkey_url
 
 let _ =
   client_ops.op_client_say <- (fun c s ->
@@ -1099,22 +918,25 @@ let _ =
   );  
   client_ops.op_client_files <- (fun c ->
       match c.client_all_files with
-        None -> []
-      | Some files -> List2.tail_map (fun r -> as_result r.result_result) files
-  );
-  client_ops.op_client_remove_friend <- (fun c ->
-      friend_remove c);
-  client_ops.op_client_set_friend <- (fun c ->
-      friend_add c);  
+        None ->  []
+      | Some files -> 
+          List2.tail_map (fun r -> "", as_result r.result_result) files);
+  client_ops.op_client_browse <- (fun c immediate ->
+      if immediate then browse_client c else begin
+          clients_list := (c, []) :: !clients_list;
+          incr clients_list_len
+        end);
   client_ops.op_client_connect <- (fun c ->
       connection_must_try c.client_connection_control;
       connect_client !!client_ip [] c
-  )
+  );
+  client_ops.op_client_clear_files <- (fun c ->
+      c.client_all_files <- None;
+      check_useful_client c)
 
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in
-(*      let s = find_server key.P.key_ip key.P.key_port in *)
       add_user_friend s u
   )
 

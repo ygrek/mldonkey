@@ -5,6 +5,27 @@ AC_CONFIG_HEADER(config.h)
 
 touch install-sh
 
+MULTINET=yes
+AC_ARG_ENABLE(multinet, [--disable-multinet:       allows you to only compile support for edonkey], [MULTINET="$enableval"])
+
+AUDIO_GALAXY=yes
+AC_ARG_ENABLE(audiogalaxy, [--disable-audiogalaxy:       allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
+
+OPEN_NAPSTER=yes
+AC_ARG_ENABLE(opennap, [--disable-opennap:       allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
+
+LIMEWIRE=yes
+AC_ARG_ENABLE(limewire, [--disable-limewire:       allows you to remove support for LimeWire], [LIMEWIRE="$enableval"])
+
+DIRECT_CONNECT=yes
+AC_ARG_ENABLE(directconnect, [--disable-directconnect:       allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
+
+SOULSEEK=yes
+AC_ARG_ENABLE(soulseek, [--disable-soulseek:       allows you to remove support for SoulSeek], [SOULSEEK="$enableval"])
+
+DONKEY=yes
+AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
+
 AC_CANONICAL_HOST
 AC_PROG_CC
 AC_EXEEXT
@@ -71,30 +92,65 @@ if test -f $OCAMLLIB/lablgl.cmxa; then
   LABLGL_CMXA=lablgl.cmxa
 fi
 
-AC_CHECK_FILE(../audio_galaxy,AUDIO_GALAXY=yes, [
+
+if test "$MULTINET" = "yes" ; then
+
+  if test "$AUDIO_GALAXY" = "yes" ; then
+    AC_CHECK_FILE(../audio_galaxy,AUDIO_GALAXY=yes, [
+      AUDIO_GALAXY=no
+      BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+  fi
+
+  if test "$OPEN_NAPSTER" = "yes" ; then
+    AC_CHECK_FILE(../opennap,OPEN_NAPSTER=yes, [
+      OPEN_NAPSTER=no
+      BAD_TARGETS="$BAD_TARGETS open_napster"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS open_napster"
+  fi
+
+  if test "$DIRECT_CONNECT" = "yes" ; then
+    AC_CHECK_FILE(../direct_connect,DIRECT_CONNECT=yes, [
+      DIRECT_CONNECT=no
+      BAD_TARGETS="$BAD_TARGETS direct_connect"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS direct_connect"
+  fi
+
+  if test "$LIMEWIRE" = "yes" ; then
+    AC_CHECK_FILE(../limewire,LIMEWIRE=yes, [
+      LIMEWIRE=no
+      BAD_TARGETS="$BAD_TARGETS limewire"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS limewire"
+  fi
+
+  if test "$SOULSEEK" = "yes" ; then
+    AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
+      SOULSEEK=no
+      BAD_TARGETS="$BAD_TARGETS soulseek"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS soulseek"
+  fi
+
+else
   AUDIO_GALAXY=no
-  BAD_TARGETS="$BAD_TARGETS audio_galaxy"
-])
-
-AC_CHECK_FILE(../opennap,OPEN_NAPSTER=yes, [
   OPEN_NAPSTER=no
-  BAD_TARGETS="$BAD_TARGETS open_napster"
-])
-
-AC_CHECK_FILE(../direct_connect,DIRECT_CONNECT=yes, [
   DIRECT_CONNECT=no
-  BAD_TARGETS="$BAD_TARGETS direct_connect"
-])
-
-AC_CHECK_FILE(../limewire,LIMEWIRE=yes, [
   LIMEWIRE=no
-  BAD_TARGETS="$BAD_TARGETS limewire"
-])
-
-AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
   SOULSEEK=no
-  BAD_TARGETS="$BAD_TARGETS soulseek"
-])
+
+  BAD_TARGETS="$BAD_TARGETS audio_galaxy open_napster direct_connect limewire soulseek"
+fi
+
+if test "$DONKEY" = "yes" ; then
 
 OCAMLC_DIL=no 
 AC_MSG_CHECKING($OCAMLC supports -dil option)
@@ -127,6 +183,10 @@ AC_CHECK_FILE(../secret, [
       BAD_TARGETS="$BAD_TARGETS open_donkey"
   fi
 ])
+  else
+      BAD_TARGETS="$BAD_TARGETS donkey_server closed_donkey open_donkey"
+fi
+
 
 AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
 if test "$GTK_CONFIG" = "no"; then

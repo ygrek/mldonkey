@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open CommonFile
@@ -35,35 +36,15 @@ open LimewireProtocol
 
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
-    
-let client s =
-  match s.source_client with
-    None -> 
-      Printf.printf "NO SOURCE CLIENT"; print_newline ();
-      raise Not_found
-  | Some c -> c
       
-let disconnect_from_source s =
+let disconnect_from_client c =
   try
-    let c = client s in
-    connection_failed s.source_connection_control;
-    let sock = c.source_sock in
-    close sock "closed";
-    Printf.printf "Disconnected from source"; print_newline ();
-    s.source_client <- None
+    Printf.printf "Disconnected from source"; print_newline ();    
+    connection_failed c.client_connection_control;
+    match c.client_sock with
+      None -> ()
+    | Some sock -> close sock "closed";
   with _ -> ()
-
-let new_client s sock =
-  disconnect_from_source s;
-  let c = {
-    source_sock = sock;
-    source_pos = Int32.zero;
-    source_error = false; 
-    source_file = None;
-    source = Some s;
-    } in
-  s.source_client <- Some c;
-  c
 
 let is_http_ok header = 
   let pos = String.index header '\n' in
@@ -74,9 +55,9 @@ let is_http_ok header =
       String2.starts_with (String.lowercase http) "http"
   | _ -> false
   
-let client_parse_header s file sock header = 
+let client_parse_header c sock header = 
   try
-    connection_ok s.source_connection_control;
+    connection_ok c.client_connection_control;
 (*
   *)
     if is_http_ok header then
@@ -127,44 +108,35 @@ Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
                           raise e
                     with Not_found -> Int32.zero
                   in                  
-                  let c = client s in
-                  if c.source_pos <> start_pos then 
+                  if c.client_pos <> start_pos then 
                     failwith (Printf.sprintf "Bad range %s for %s"
                         (Int32.to_string start_pos)
-                      (Int32.to_string c.source_pos));
+                      (Int32.to_string c.client_pos));
                   ()
       end else begin
         (*
         Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
 BigEndian.dump header;
         *) 
-        disconnect_from_source s
+        disconnect_from_client c
       end
   with e ->
       Printf.printf "Exception %s in client_parse_header" (Printexc.to_string e);
       print_newline ();
       BigEndian.dump header;      
-      disconnect_from_source s
-
-let rec remove_download file list =
-  match list with
-    [] -> []
-  | f :: tail ->
-      if f == file then tail else f :: (remove_download file tail)
+      disconnect_from_client c
     
 let file_complete file =
-  let r = file.file_result in
-  let f = r.result_file in
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
 print_newline ();
   *)
   file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
-  old_files =:= (f.file_name, f.file_size) :: !!old_files;
-  List.iter (fun s ->
-      s.source_downloads <- remove_download file s.source_downloads      
-  ) r.result_sources;
+  old_files =:= (file.file_name, file.file_size) :: !!old_files;
+  List.iter (fun c ->
+      c.client_downloads <- List.remove_assoc file c.client_downloads      
+  ) file.file_clients;
   
 (* finally move file *)
   let incoming_dir =
@@ -174,95 +146,137 @@ print_newline ();
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
-    Filename.concat incoming_dir f.file_name
+    Filename.concat incoming_dir file.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
   Unix2.rename file.file_temp  new_name;
   file.file_temp <- new_name
+
+let client_to_client s p sock =
+  match p.pkt_payload with
+  | _ -> ()
      
-let client_reader s file sock nread = 
+let client_reader c sock nread = 
   if nread > 0 then
-  let c = client s in
-  let b = TcpBufferedSocket.buf sock in
-  if not c.source_error then begin
-        let f = file.file_result.result_file in
-        set_rtimeout sock half_day;
-      begin
-        let fd = try
-            Unix32.force_fd file.file_fd 
-          with e -> 
-              Printf.printf "In Unix32.force_fd"; print_newline ();
-              raise e
-        in
-        let final_pos = Unix32.seek32 file.file_fd c.source_pos Unix.SEEK_SET in
-        Unix2.really_write fd b.buf b.pos b.len;
-      end;
+    let b = TcpBufferedSocket.buf sock in
+    if not c.client_error then begin
+        match c.client_file with
+          None -> disconnect_from_client c
+        | Some file ->
+            set_rtimeout sock half_day;
+        begin
+              let fd = try
+                  Unix32.force_fd file.file_fd 
+                with e -> 
+                    Printf.printf "In Unix32.force_fd"; print_newline ();
+                    raise e
+              in
+              let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
+              Unix2.really_write fd b.buf b.pos b.len;
+        end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-      c.source_pos <- Int32.add c.source_pos (Int32.of_int b.len);
+        c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.client_pos);
 print_newline ();
   *)
-      TcpBufferedSocket.buf_used sock b.len;
-      if c.source_pos > file.file_downloaded then begin
-            file.file_downloaded <- c.source_pos;
+        TcpBufferedSocket.buf_used sock b.len;
+        if c.client_pos > file.file_downloaded then begin
+            file.file_downloaded <- c.client_pos;
             file_must_update file;
-        end;
-      if file.file_downloaded = f.file_size then
-        file_complete file 
-    end else begin
+          end;
+        if file.file_downloaded = file.file_size then
+          file_complete file 
+      end else begin
 (*      Printf.printf "ERROR REPORTED: [%s]" (String.sub b.buf b.pos b.len);
       print_newline (); *)
-      disconnect_from_source s
-    end
-
-let get_from_client sock s c file =
-  
-  let r = file.file_result in
-  let f = r.result_file in
-  let index = List.assq r s.source_files in
-  write_string sock (Printf.sprintf 
-      "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%s-\r\n\r\n" index f.file_name (Int32.to_string file.file_downloaded));
-  c.source_pos <- file.file_downloaded;
-  c.source_file <- Some file;
-  set_rtimeout sock 30.;
-  c.source_error <- false  
-
-let client_close c =
-  match c.source with
-    None -> close c.source_sock ""
-  | Some s -> disconnect_from_source s
-    
-let connect_source s =
-  try
-    let sock = connect "limewire download" 
-        (Ip.to_inet_addr s.source_ip) s.source_port 
-        (fun sock event ->
-          match event with
-            BASIC_EVENT RTIMEOUT ->
-              disconnect_from_source s
-          | BASIC_EVENT (CLOSED _) ->
-              disconnect_from_source s
-          | _ -> ()
-      )
-    in
-    verify_ip sock;
-    TcpBufferedSocket.set_read_controler sock download_control;
-    TcpBufferedSocket.set_write_controler sock upload_control;
-    
-    let c = new_client s sock in
-    match s.source_downloads with
-      [] -> disconnect_from_source s
-    | file :: _ ->
-        get_from_client sock s c file;
-(*        Printf.printf "++++++++ CONNECTING TO CLIENT +++++++"; print_newline (); *)
+        disconnect_from_client c
+      end
         
-        TcpBufferedSocket.set_closer sock (fun _ s ->
-            client_close c
+let client_parse_header c sock header =
+  try
+    if String2.starts_with header gnutella_200_ok ||
+      String2.starts_with header gnutella_503_shielded then begin
+        set_rtimeout sock half_day;
+        let lines = Http_client.split_header header in
+        match lines with
+          [] -> raise Not_found        
+        | _ :: headers ->
+            let headers = Http_client.cut_headers headers in
+            let agent =  List.assoc "user-agent" headers in
+            if String2.starts_with agent "LimeWire" ||
+              String2.starts_with agent "Gnucleus" ||
+              String2.starts_with agent "BearShare"              
+            then
+              begin
+                (* add_peers headers; *)
+                write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
+                Printf.printf "********* READY TO BROWSE FILES *********";
+                print_newline ();
+              end
+            else raise Not_found
+      end 
+    else raise Not_found
+  with _ -> disconnect_from_client c
+      
+let get_from_client sock (c: client) (file : file) =
+  let index = List.assoc file c.client_downloads in
+  write_string sock (Printf.sprintf 
+      "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%s-\r\n\r\n" index file.file_name (Int32.to_string file.file_downloaded));
+  c.client_pos <- file.file_downloaded;
+  c.client_file <- Some file;
+  set_rtimeout sock 30.;
+  c.client_error <- false  
+    
+let connect_client c =
+  try
+    match c.client_user.user_kind with
+      Indirect_location _ -> ()
+    | Known_location (ip, port) ->
+        let sock = connect "limewire download" 
+            (Ip.to_inet_addr ip) port
+            (fun sock event ->
+              match event with
+                BASIC_EVENT RTIMEOUT ->
+                  disconnect_from_client c
+              | BASIC_EVENT (CLOSED _) ->
+                  disconnect_from_client c
+              | _ -> ()
+          )
+        in
+        verify_ip sock;
+        TcpBufferedSocket.set_read_controler sock download_control;
+        TcpBufferedSocket.set_write_controler sock upload_control;
+        
+        c.client_sock <- Some sock;
+        TcpBufferedSocket.set_closer sock (fun _ _ ->
+            disconnect_from_client c
         );
         set_rtimeout sock 30.;
-         set_reader sock (handler (client_parse_header s file)
-          (client_reader s file));
+        match c.client_downloads with
+          [] -> 
+(* Here, we should probably browse the client or reply to
+an upload request *)
+            if client_type c = NormalClient then                
+              disconnect_from_client c;
+            set_reader sock (handler (client_parse_header c)
+              (gnutella_handler parse (client_to_client c))
+            );
+            let s = Printf.sprintf 
+                "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
+                (Ip.to_string !!DO.client_ip) !!client_port
+                (Ip.to_string ip)
+            in
+(*
+        Printf.printf "SENDING"; print_newline ();
+        AP.dump s;
+  *)
+            write_string sock s;
+            
+            
+        | (file, _) :: _ ->
+            get_from_client sock c file;
+            set_reader sock (handler (client_parse_header c) (client_reader c));
 
         
           
@@ -270,7 +284,7 @@ let connect_source s =
       Printf.printf "Exception %s while connecting to client" 
         (Printexc.to_string e);
       print_newline ();
-      disconnect_from_source s
+      disconnect_from_client c
 
 
 (*
@@ -291,7 +305,7 @@ let find_file file_name file_size =
       Printf.printf "NO SUCH DOWNLOAD"; print_newline ();
       raise e
       
-let push_handler c sock header = 
+let push_handler cc sock header = 
 (*  Printf.printf "PUSH HEADER: [%s]" (String.escaped header);
   print_newline (); *)
   try
@@ -301,37 +315,43 @@ let push_handler c sock header =
         let slash_pos = String.index header '/' in
         let uid = Md4.of_string (String.sub header (colon_pos+1) 32) in
         let index = int_of_string (String.sub header 4 (colon_pos-4)) in
-        let s = Hashtbl.find sources_by_uid uid in
-(*        Printf.printf "SOURCE FOUND"; print_newline (); *)
-        match s.source_client with
-          Some cc -> 
+        let c = new_client uid (Indirect_location ("", uid)) in
+        match c.client_sock with
+          Some _ -> 
 (*            Printf.printf "ALREADY CONNECTED"; print_newline (); *)
-            client_close c
+            close sock "already connected"
         | None ->
-            connection_ok s.source_connection_control;
-            c.source <- Some s;
-            s.source_client <- Some c;
-            let r = List2.assoc_inv index s.source_files in
-            let f = r.result_file in
-            let file = find_file f.file_name f.file_size in
-            c.source_file <- Some file;
-            get_from_client sock s c file
+            cc := Some c;
+            c.client_sock <- Some sock;
+            connection_ok c.client_connection_control;
+            try
+              let file = List2.assoc_inv index c.client_downloads in
+              get_from_client sock c file
+            with e ->
+                Printf.printf "Exception %s during client connection"
+                  (Printexc.to_string e);
+                print_newline ();
+                disconnect_from_client c
       end
     else raise Not_found
   with _ ->
-      client_close c;
-      raise Not_found
+      match !cc with 
+        None -> raise Not_found
+      | Some c ->
+          disconnect_from_client c;
+          raise Not_found
   
 let client_parse_header2 c sock header = 
-    match c.source, c.source_file with
-    Some s, Some file ->
-      client_parse_header s file sock header
+    match !c with
+    Some c ->
+      client_parse_header c sock header
   | _ -> assert false
+      
 
 let client_reader2 c sock nread = 
-  match c.source, c.source_file with
-    Some s, Some file ->
-      client_reader s file sock nread
+  match !c with
+    Some c ->
+      client_reader c sock nread
   | _ -> assert false
       
 let listen () =
@@ -354,15 +374,11 @@ let listen () =
               TcpBufferedSocket.set_read_controler sock download_control;
               TcpBufferedSocket.set_write_controler sock upload_control;
 
-              let c = {
-                  source_sock = sock;
-                  source_pos = Int32.zero;
-                  source_error = false;
-                  source = None;
-                  source_file = None;
-                } in
+              let c = ref None in
               TcpBufferedSocket.set_closer sock (fun _ s ->
-                  client_close c
+                  match !c with
+                    Some c ->  disconnect_from_client c
+                  | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
               TcpBufferedSocket.set_reader sock (

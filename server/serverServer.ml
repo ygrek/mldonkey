@@ -1,4 +1,5 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(* Fonction of server interation in the relais protocol *)
+(* Copyright 2002 vernin, INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -17,14 +18,35 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-let ( *. ) x y = Int32.mul x y
-let ( +. ) x y = Int32.add x y
-let ( -. ) x y = Int32.sub x y
-let left32 x y = Int32.shift_left x y
-let right32 x y = Int32.shift_right_logical x y
+open CommonTypes
 
-let ( *.. ) x y = Int64.mul x y
-let ( +.. ) x y = Int64.add x y
-let ( -.. ) x y = Int64.sub x y
-let left64 x y = Int64.shift_left x y
-let right64 x y = Int64.shift_right_logical x y
+open BasicSocket
+open TcpBufferedSocket
+open Unix
+open TcpBufferedSocket
+open DonkeyMftp
+open Options
+open Mftp_comm
+open ServerTypes  
+open ServerOptions        
+open ServerGlobals
+open ServerMessages
+
+module M = ServerMessages
+
+  
+let null_ip = Ip.of_int32 (Int32.of_int 0)
+
+
+let server_to_server s t sock = 
+  Printf.printf "server_to_server"; print_newline ();
+  M.print t;
+  print_newline ();
+  (*match t with
+    M.ServerConnectReq t ->
+      (*s.peer_md4 <- t.M.ServerConnect.md4;
+      s.peer_tags <- t.M.ServerConnect.tags;*)      
+   _ -> ()*)
+        
+  
+

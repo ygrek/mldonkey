@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open CommonTypes
 open Unix
 open TcpBufferedSocket
@@ -35,7 +36,7 @@ type tagged_file =  {
 
     *)
 
-let store = Store.create "server_store"
+let store = Store.create (Filename.concat file_basedir "server_store")
   
 module Document = struct
     type t = Store.index

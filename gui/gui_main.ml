@@ -155,30 +155,30 @@ let value_reader gui t sock =
     | Network_info n ->
         begin
           try
-            let nn = Hashtbl.find Gui_global.networks n.Gui_proto.network_num
+            let nn = Hashtbl.find Gui_global.networks n.network_netnum
             in
             nn.net_enabled <- n.network_enabled;
             nn.net_menu_item#set_active n.network_enabled
           with _ ->
               let display_menu_item =
-                GMenu.check_menu_item ~label: n.network_name ~active:true
+                GMenu.check_menu_item ~label: n.network_netname ~active:true
                 ~packing:gui#menu_display#add ()
               in
               let network_menu_item =
-                GMenu.check_menu_item ~label: n.network_name 
+                GMenu.check_menu_item ~label: n.network_netname 
                 ~active:n.network_enabled
                   ~packing:gui#menu_networks#add ()
               in
               let nn = {
-                  net_num = n.network_num;
-                  net_name = n.network_name;
+                  net_num = n.network_netnum;
+                  net_name = n.network_netname;
                   net_enabled = n.network_enabled;
                   net_menu_item = network_menu_item;
                   net_displayed = true;
                 } in
               ignore (network_menu_item#connect#toggled ~callback:(fun _ ->
                     nn.net_enabled <- not nn.net_enabled;
-                    Com.send (EnableNetwork (n.network_num, 
+                    Com.send (EnableNetwork (n.network_netnum, 
                         network_menu_item#active)
                     )));
               ignore (display_menu_item#connect#toggled ~callback:(fun _ ->
@@ -189,25 +189,27 @@ let value_reader gui t sock =
                     gui#tab_servers#h_server_filter_networks;
                     gui#tab_queries#h_search_filter_networks;
               ));
-              Hashtbl.add Gui_global.networks n.Gui_proto.network_num nn;
+              Hashtbl.add Gui_global.networks n.network_netnum nn;
               ()
         end
         
+      (*  
     | LocalInfo l ->
         gui#label_upload_status#set_text (
           Printf.sprintf "%s %d/%d" M.upload l.upload_counter l.shared_files)
+*)
         
-    | Connected v -> 
-        if v <> CommonTypes.version then 
+    | CoreProtocol v -> 
+        if v <> 0 then 
 	  (
-           Printf.printf "Bad GUI version"; print_newline ();
+            Printf.printf "Bad GUI version"; print_newline ();
+            
            TcpBufferedSocket.close sock "bad version";
           )
         else 
 	  (
-(*        Printf.printf "Connected"; print_newline (); *)
            gui#label_connect_status#set_text M.connected;
-           Com.send (Password (CommonTypes.version,!!O.password))
+           Com.send (Password (!!O.password))
 	  )
  
     | Search_result (num,r) -> 
@@ -232,6 +234,7 @@ let value_reader gui t sock =
 	gui#tab_downloads#h_file_availability num chunks avail;
 
     | File_info f ->
+(*        Printf.printf "FILE INFO"; print_newline (); *)
 	gui#tab_downloads#h_file_info f;
             
     | Server_info s ->
@@ -247,7 +250,9 @@ let value_reader gui t sock =
         gui#update_server_label 
     
     | Server_user (key, user) ->
+(*        Printf.printf "server user %d %d" key user; print_newline (); *)
         if not (Hashtbl.mem G.users user) then begin
+(*            Printf.printf "Unknown user %d" user; print_newline ();*)
             Gui_com.send (GetUser_info user);
           end else begin
             gui#tab_servers#h_server_user key user;
@@ -262,13 +267,13 @@ let value_reader gui t sock =
     | User_info user ->
         let user = try 
             let u = Hashtbl.find G.users user.user_num  in
-            u.user_state <- user.user_state;
             u.user_tags <- user.user_tags;
             u
           with Not_found ->
               Hashtbl.add G.users user.user_num user; 
               user
         in
+(*        Printf.printf "user_info %s/%d" user.user_name user.user_server; print_newline (); *)
         gui#tab_servers#h_server_user user.user_server user.user_num;
         Gui_rooms.user_info user;
         gui#update_server_label
@@ -290,9 +295,6 @@ let value_reader gui t sock =
               print_newline ();
         end
         
-    | GuiConnected -> 
-	()
-
     | Options_info list ->
 (*        Printf.printf "Options_info"; print_newline ();*)
         let rec iter list =
@@ -340,7 +342,10 @@ let value_reader gui t sock =
         if not (Hashtbl.mem G.results r.result_num) then
           Hashtbl.add G.results r.result_num r
         
-    | Client_file (num , file_num) ->
+    | Client_file (num , dirname, file_num) ->
+(* Here, the dirname is forgotten: it should be used to build a tree
+  when possible... *)
+        
         (
           try
             let file = Hashtbl.find G.results file_num in
@@ -423,13 +428,12 @@ let main () =
   Com.reconnect gui (value_reader gui) ;
   
   let gtk_handler timer =
-    BasicSocket.reactivate_timer timer;
     while Glib.Main.pending () do
       ignore (Glib.Main.iteration false)
     done;
   in
     
-  BasicSocket.add_timer 0.1 gtk_handler;
+  BasicSocket.add_infinite_timer 0.1 gtk_handler;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->

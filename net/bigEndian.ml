@@ -20,15 +20,23 @@
 open Int32ops
   
 let const_int32_255 = Int32.of_int 255
+let const_int64_255 = Int64.of_int 255
 
 (* int 8 bits *)
   
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
         Int32.logand i const_int32_255)))
+  
+let buf_int64_8 buf i =
+  Buffer.add_char buf (char_of_int (Int64.to_int (
+        Int64.logand i const_int64_255)))
       
 let get_int32_8 s pos =
   Int32.of_int (int_of_char s.[pos])
+  
+let get_int64_8 s pos =
+  Int64.of_int (int_of_char s.[pos])
 
 let buf_int8 buf i =
   Buffer.add_char buf (char_of_int (i land 255))
@@ -53,12 +61,25 @@ let get_int16 s pos =
 
 (* int 32 bits *)
   
-let buf_int32_32 oc i =
+let buf_int32 oc i =
   buf_int32_8 oc i;
   buf_int32_8 oc (right32 i  8);
   buf_int32_8 oc (right32 i  16);
   buf_int32_8 oc (right32 i  24)
 
+let buf_int32_32 = buf_int32
+  
+let buf_int64 oc i =
+  buf_int64_8 oc i;
+  buf_int64_8 oc (right64 i  8);
+  buf_int64_8 oc (right64 i  16);
+  buf_int64_8 oc (right64 i  24);
+  
+  buf_int64_8 oc (right64 i  32);
+  buf_int64_8 oc (right64 i  40);
+  buf_int64_8 oc (right64 i  48);
+  buf_int64_8 oc (right64 i  56)
+  
 let get_int32_32 s pos = 
   let c1 = get_int32_8 s pos in
   let c2 = get_int32_8 s (pos+1) in
@@ -66,6 +87,12 @@ let get_int32_32 s pos =
   let c4 = get_int32_8 s (pos+3) in
   c1 +. (left32 c2 8) +. (left32 c3 16) +. (left32 c4 24)           
 
+let get_int32 =  get_int32_32
+  
+let get_int64 s pos = 
+  let i1 = get_int32 s pos in
+  let i2 = get_int32 s (pos+4) in
+  (Int64.of_int32 i1) +.. (left64 (Int64.of_int32 i2) 32)
   
 (* int 31 bits *)
   

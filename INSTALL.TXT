@@ -3,7 +3,7 @@ Compiling mldonkey:
 
 1) Installing required tools: Objective-Caml 1.04 (patched) and LablGTK 1.2.3
 
- 1.1) Objective-Caml 1.04
+ 1.1) Objective-Caml 1.04 (from   http://pauillac.inria.fr/caml)
 
     ~/tmp> tar zxf ocaml-1.04.tar.gz
     ~/tmp> cd ocaml-1.04
@@ -12,7 +12,8 @@ Compiling mldonkey:
     ~/tmp/ocaml-3.04> make world opt opt.opt
     ~/tmp/ocaml-3.04> make install
 
- 1.2) LablGTK 1.2.3
+ 1.2) LablGTK 1.2.3 (from 
+            http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
     ~/tmp> tar zxf lablgtk-1.2.3.tar.gz
     ~/tmp> cd lablgtk-1.2.3
@@ -29,5 +30,9 @@ Compiling mldonkey:
     ~/tmp/mldonkey> make opt
 
   You should now have 'mldonkey' (the daemon), 'mldonkey_gui' (the interface)
- and 'mlchat' (a chat program). 
+ and 'mlchat' (a chat program). No 'make install' is provided.
 
+  You can disable all other p2p networks using the --disable-multinet option
+   with ./configure. Only edonkey support will then be compiled.
+
+See the USAGE.txt file for information on how to use mldonkey.

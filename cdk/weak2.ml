@@ -110,13 +110,14 @@ module Make (H : Hashtbl.HashedType) : (S with type data = H.t) = struct
     let rec fold_bucket i b accu =
       if i >= length b then accu else
       match get b i with
-      | Some v -> fold_bucket (i+1) b (f v accu)
+      | Some v -> 
+          fold_bucket (i+1) b (f v accu)
       | None -> fold_bucket (i+1) b accu
     in
     Array.fold_right (fold_bucket 0) t.table init
   ;;
 
-  let iter f t = fold (fun d () -> ()) t ();;
+  let iter f t = fold (fun d () -> f d) t ();;
 
   let count t =
     let rec count_bucket i b accu =
@@ -161,7 +162,8 @@ module Make (H : Hashtbl.HashedType) : (S with type data = H.t) = struct
     in
     loop 0;
 
-  and add t d = add_aux t d (get_index t d)
+  and add t d = 
+    add_aux t d (get_index t d)
   ;;
 
   let find_or t d ifnotfound =

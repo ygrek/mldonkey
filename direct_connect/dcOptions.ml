@@ -17,12 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
+open CommonTypes
+open DcTypes
 open Options
 
-let file_basedir = ""
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
-let directconnect_ini = create_options_file (file_basedir ^ "directconnect.ini")
+let directconnect_ini = create_options_file (
+    Filename.concat file_basedir "directconnect.ini")
   
   
 let max_connected_servers = define_option directconnect_ini
@@ -41,6 +44,11 @@ let ip_cache_timeout = define_option directconnect_ini
     "The time an ip address can be kept in the cache"
     float_option 3600.
 
+let search_timeout = define_option directconnect_ini
+    ["search_timeout"]
+  "The time a search is active"
+    float_option 60.
+
 let load_hublist = define_option directconnect_ini ["load_hublist"]
     "Download a list of servers"
     bool_option true
@@ -57,7 +65,7 @@ let dc_port = define_option directconnect_ini ["client_port"]
     int_option 4444
   
 let login = define_option directconnect_ini ["login"]
-    "Your login on DC" string_option ""
+    "Your login on DC (no spaces !!!)" string_option ""
   
     
 let max_known_servers = define_option directconnect_ini
@@ -67,3 +75,32 @@ let max_known_servers = define_option directconnect_ini
 let commit_in_subdir = define_option directconnect_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "DC"
+
+let servers_list_url = define_option directconnect_ini ["servers_list_url"]
+    "The URL from which the first server list is downloaded"
+    string_option  "http://www.neo-modus.com/PublicHubList.config"
+  
+let client_description = define_option directconnect_ini
+    ["client_description"] "The description sent in the MyINFO message"
+    string_option "mldonkey client"
+  
+(* We should probably only have one common option for all networks for the
+  speed. However, it might be interesting to cheat on some networks... *)
+  
+let client_speed = define_option directconnect_ini
+    ["client_speed"] "The line speed sent in the MyINFO message"
+    string_option "DSL"
+  
+let client_keyinfo = define_option directconnect_ini
+    ["client_keyinfo"] "The key info sent in the handshake message"
+    string_option "Pk=mldonkey"
+  
+let network_prefix = define_option directconnect_ini
+    ["network_prefix"] "The prefixes used before Direct-Connect options"
+    string_option "DC"
+  
+let _ =
+  option_hook network_prefix (fun _ ->
+      network.network_prefixes <- [!!network_prefix]   
+  )
+  

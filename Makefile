@@ -28,6 +28,11 @@ LIBS_opt= unix.cmxa
 
 #######################################################################
 
+ifdef PLUGIN
+  PLUGIN_FLAG += -plugin $(PLUGIN)_
+  INCLUDES += -I $(PLUGIN)
+endif
+
 SUBDIRS=cdk chat lib net tools common driver mp3tagui 
 
 INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
@@ -69,6 +74,7 @@ NET_SRCS = \
 OBJS=lib/md4_comp.o lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o cdk/heap_c.o
 
 CHAT_SRCS = chat/chat_messages.ml\
+	chat/chat_misc.ml\
         chat/chat_proto.ml\
         chat/chat_types.ml\
         chat/chat_options.ml\
@@ -94,10 +100,23 @@ COMMON_CLIENT_SRCS= \
   common/commonMultimedia.ml \
   common/commonInteractive.ml
 
-ifeq ("$(DONKEY)" , "yes")
-SUBDIRS += donkey
+all: opt
 
-DONKEY_SRCS=donkey/donkeyTypes.ml \
+
+#######################################################################
+
+#              PLUGINS
+
+#######################################################################
+
+DONKEY_SRCS= \
+  \
+  donkey/donkeyMftp.ml donkey/donkeyImport.ml \
+  donkey/donkeyOpenProtocol.ml \
+  secret/mftp_client.ml secret/mftp_server.ml  \
+  secret/mftp_comm.ml  \
+  \
+  donkey/donkeyTypes.ml \
   donkey/donkeyOptions.ml \
   donkey/donkeyGlobals.ml \
   donkey/donkeyComplexOptions.ml \
@@ -108,42 +127,20 @@ DONKEY_SRCS=donkey/donkeyTypes.ml \
   donkey/donkeySearch.ml donkey/donkeyInteractive.ml \
   donkey/donkeyMain.ml
 
-NEED_DONKEY_PROTO=yes
-endif
 
-ifeq ("$(DONKEY_SERVER)" , "yes")
-SUBDIRS += server
-
-SERVER_SRCS=\
+DONKEY_SERVER_SRCS=\
   server/serverTypes.ml \
   server/serverOptions.ml \
   server/serverGlobals.ml \
   server/serverLocate.ml \
   server/serverIndexer.ml \
+  server/serverMessages.ml \
+  server/serverLog.ml \
   server/serverClients.ml \
   server/serverUdp.ml  \
+  server/serverServer.ml \
   server/serverMain.ml
 
-NEED_DONKEY_PROTO=yes
-endif
-
-ifeq ("$(NEED_DONKEY_PROTO)" , "yes")
-SUBDIRS += secret
-
-DONKEY_PROTO_SRCS= donkey/donkeyMftp.ml donkey/donkeyImport.ml \
- donkey/donkeyOpenProtocol.ml \
-  secret/mftp_client.ml secret/mftp_server.ml  \
-  secret/mftp_comm.ml  
-endif
-
-ifeq ("$(OPEN_DONKEY)" , "yes")
-SUBDIRS += donkey
-
-DONKEY_SRCS=  donkey/donkey.lam
-endif
-
-ifeq ("$(OPEN_NAPSTER)" , "yes")
-SUBDIRS += opennap
 OPENNAP_SRCS=opennap/napigator.mll \
  opennap/opennapTypes.ml \
  opennap/opennapProtocol.mll \
@@ -154,10 +151,6 @@ OPENNAP_SRCS=opennap/napigator.mll \
  opennap/opennapServers.ml \
  opennap/opennapInteractive.ml \
  opennap/opennapMain.ml 
-endif
-
-ifeq ("$(LIMEWIRE)" , "yes")
-SUBDIRS += limewire
 
 LIMEWIRE_SRCS= \
   limewire/limewireTypes.ml \
@@ -169,10 +162,6 @@ LIMEWIRE_SRCS= \
   limewire/limewireServers.ml \
   limewire/limewireInteractive.ml \
   limewire/limewireMain.ml
-endif
-
-ifeq ("$(SOULSEEK)" , "yes")
-SUBDIRS += soulseek
 
 SOULSEEK_SRCS= \
   soulseek/slskTypes.ml \
@@ -184,10 +173,6 @@ SOULSEEK_SRCS= \
   soulseek/slskServers.ml \
   soulseek/slskInteractive.ml \
   soulseek/slskMain.ml
-endif
-
-ifeq ("$(DIRECT_CONNECT)" , "yes")
-SUBDIRS += direct_connect
 
 DIRECTCONNECT_SRCS= \
   direct_connect/dcTypes.ml \
@@ -202,10 +187,6 @@ DIRECTCONNECT_SRCS= \
   direct_connect/dcServers.ml \
   direct_connect/dcInteractive.ml \
   direct_connect/dcMain.ml
-endif
-
-ifeq ("$(AUDIO_GALAXY)" , "yes")
-SUBDIRS += audio_galaxy
 
 AUDIOGALAXY_SRCS=audio_galaxy/agTypes.ml \
   audio_galaxy/agOptions.ml \
@@ -217,9 +198,60 @@ AUDIOGALAXY_SRCS=audio_galaxy/agTypes.ml \
   audio_galaxy/agInteractive.ml \
   audio_galaxy/agHttpForward.ml \
   audio_galaxy/agMain.ml
+
+ifeq ("$(DONKEY)" , "yes")
+SUBDIRS += secret donkey
+
+CORE_PLUGINS += $(DONKEY_SRCS)
+
+SECRET_DONKEY_ML= $(DONKEY_PROTO_SRCS) $(DONKEY_SRCS) $(DONKEY_SERVER_SRCS)
+
+  ifeq ("$(DONKEY_SERVER)" , "yes")
+  SUBDIRS += server
+
+  CORE_PLUGINS += $(DONKEY_SERVER_SRCS)
+  endif
+
 endif
 
+ifeq ("$(OPEN_DONKEY)" , "yes")
+SUBDIRS += donkey
 
+CORE_PLUGINS +=  donkey/donkey.lam
+endif
+
+ifeq ("$(OPEN_NAPSTER)" , "yes")
+SUBDIRS += opennap
+CORE_PLUGINS += $(OPENNAP_SRCS)
+endif
+
+ifeq ("$(LIMEWIRE)" , "yes")
+SUBDIRS += limewire
+
+CORE_PLUGINS += $(LIMEWIRE_SRCS)
+
+endif
+
+limewire_plugin:
+	$(MAKE) PLUGIN_SRCS=LIMEWIRE_SRCS PLUGIN=limewire plugin
+
+ifeq ("$(SOULSEEK)" , "yes")
+SUBDIRS += soulseek
+
+CORE_PLUGINS += $(SOULSEEK_SRCS)
+endif
+
+ifeq ("$(DIRECT_CONNECT)" , "yes")
+SUBDIRS += direct_connect
+
+CORE_PLUGINS += $(DIRECTCONNECT_SRCS)
+endif
+
+ifeq ("$(AUDIO_GALAXY)" , "yes")
+SUBDIRS += audio_galaxy
+
+CORE_PLUGINS += $(AUDIOGALAXY_SRCS)
+endif
 
 DRIVER_SRCS= \
   driver/driverInteractive.ml  \
@@ -229,9 +261,6 @@ DRIVER_SRCS= \
   driver/driverMain.ml 
 
 
-SECRET_DONKEY_SRCS= $(DONKEY_PROTO_SRCS) $(DONKEY_SRCS) $(SERVER_SRCS)
-SECRET_DONKEY_ML= $(DONKEY_PROTO_SRCS) $(DONKEY_SRCS) $(SERVER_SRCS)
-
 MLDONKEY_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS) \
@@ -239,12 +268,7 @@ MLDONKEY_SRCS= \
   $(COMMON_SRCS) \
   $(COMMON_CLIENT_SRCS) \
   \
-  $(OPENNAP_SRCS) \
-  $(AUDIOGALAXY_SRCS) \
-  $(DIRECTCONNECT_SRCS) \
-  $(LIMEWIRE_SRCS) \
-  $(SOULSEEK_SRCS) \
-  $(SECRET_DONKEY_SRCS) \
+  $(CORE_PLUGINS) \
   \
   $(DRIVER_SRCS)
 
@@ -301,7 +325,6 @@ MLDONKEYGUI_SRCS= \
 
 
 CHAT_EXE_SRCS= \
-        chat/chat_misc.ml\
         chat/chat_data.ml\
         chat/chat_icons.ml\
         chat/chat_gui_base.ml\
@@ -325,8 +348,8 @@ endif
 
 #######################################################################
 
-USE_TAGS = \
-  $(CDK_SRCS) $(LIB_SRCS) \
+USE_TAGS_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS) \
   lib/cddb_lexer.mll lib/cddb_file.ml \
   tools/use_tags.ml
@@ -381,28 +404,53 @@ MLCHAT_CMXS=$(foreach file, $(MLCHAT_SRCS),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLCHAT_MLL:.mll=.ml) $(MLCHAT_MLY:.mly=.ml) $(MLCHAT_MLY:.mly=.mli) $(MLCHAT_ZOG:.zog=.ml)
 
+USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS))
+USE_TAGS_MLL := $(filter %.mll, $(USE_TAGS_SRCS))
+USE_TAGS_MLY := $(filter %.mly, $(USE_TAGS_SRCS))
+
+USE_TAGS_CMOS=$(foreach file, $(USE_TAGS_SRCS),   $(basename $(file)).cmo)
+USE_TAGS_CMXS=$(foreach file, $(USE_TAGS_SRCS),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.mly=.mli) $(USE_TAGS_ZOG:.zog=.ml)
+
+PLUGIN_ZOG := $(filter %.zog, $($(PLUGIN_SRCS)))
+PLUGIN_MLL := $(filter %.mll, $($(PLUGIN_SRCS)))
+PLUGIN_MLY := $(filter %.mly, $($(PLUGIN_SRCS)))
+
+PLUGIN_CMXS=$(foreach file, $($(PLUGIN_SRCS)),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(PLUGIN_MLL:.mll=.ml) $(PLUGIN_MLY:.mly=.ml) $(PLUGIN_MLY:.mly=.mli) $(PLUGIN_ZOG:.zog=.ml)
+
 #######################################################################
 
 #                      Other rules
 
 #######################################################################
 
-all: byte
+opt: $(TMPSOURCES) $(TARGETS)
 
 byte: $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
-opt: $(TMPSOURCES) $(TARGETS)
 static: $(foreach target, $(TARGETS), $(target).static)
+
+
+PLUGINS_FILES:=$(foreach plugin, $(PLUGINS), $(plugin)_plugin)
+
+plugins: $(PLUGINS_FILES)
+	echo $(PLUGINS) $(PLUGINS_FILES)
+
+plugin: $(PLUGIN_CMXS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $(PLUGIN)_plugin -a $(PLUGIN_CMXS)
 
 lambda: $(MLDONKEY_CMXS) $(SECRET_DONKEY_ML) donkey/donkey.cmi
 	ocaml ./secret/make_client  $(SECRET_DONKEY_ML)
-	$(OCAMLOPT)  $(INCLUDES) -c -dol donkey/donkey.ml
+	$(OCAMLOPT) $(PLUGIN_FLAG) $(INCLUDES) -c -dol donkey/donkey.ml
 	rm -f donkey/donkey.ml	
 
 donkey/donkey.cmo: donkey/donkey.lam donkey/donkey.cmi
 	$(OCAMLC)  $(INCLUDES)  -c -dil -impl donkey/donkey.lam
 
 donkey/donkey.cmx: donkey/donkey.lam donkey/donkey.cmi
-	$(OCAMLOPT)  $(INCLUDES) -c -dil -impl donkey/donkey.lam
+	$(OCAMLOPT) $(PLUGIN_FLAG)  $(INCLUDES) -c -dil -impl donkey/donkey.lam
 
 lib/md4_cc.o: lib/md4.c
 	ocamlc.opt -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
@@ -416,14 +464,14 @@ lib/md4_comp.o: lib/md4_$(MD4COMP).o
 ######## TAGS
 
 use_tags: $(USE_TAGS_CMXS) $(OBJS)
-	$(OCAMLOPT) -o $@ $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(OBJS)
 
 use_tags.byte: $(USE_TAGS_CMOS) $(OBJS)
-	$(OCAMLC) -o $@ $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) $(OBJS)
+	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) $(OBJS)
 
 ######## MLCHAT
 mlchat: $(MLCHAT_CMXS) $(OBJS)
-	$(OCAMLOPT) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) $(OBJS)
 
 mlchat.byte: $(MLCHAT_CMOS) $(OBJS)
 	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLCHAT_CMOS) $(OBJS)
@@ -431,13 +479,13 @@ mlchat.byte: $(MLCHAT_CMOS) $(OBJS)
 ######## MLDONKEYGUI
 
 mldonkey_gui: $(MLDONKEYGUI_CMXS) $(OBJS) 
-	$(OCAMLOPT) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
 
 mldonkey_gui.byte: $(MLDONKEYGUI_CMOS) $(OBJS) 
 	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) $(OBJS)
 
 mldonkey_gui.static: $(MLDONKEYGUI_CMXS) $(OBJS) 
-	$(OCAMLOPT) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
 
 zogml:
 	(for i in gui/gui*_base.zog ; do \
@@ -447,13 +495,13 @@ zogml:
 ######## MLDONKEY
 
 mldonkey: $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
-	$(OCAMLOPT) -o $@ $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
 
 mldonkey.byte: $(MLDONKEY_OBJS) $(MLDONKEY_CMOS) $(OBJS)
 	$(OCAMLC) -o $@ $(LIBS_byte)  $(MLDONKEY_OBJS) $(MLDONKEY_CMOS) $(OBJS)
 
 mldonkey.static:  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
-	$(OCAMLOPT) -ccopt -static -o $@  $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
 
 open_mldonkey: mldonkey
 open_mldonkey.opt:  mldonkey
@@ -468,6 +516,7 @@ open_mldonkey.static: mldonkey.state
 
 clean: 
 	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core *.static
+	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o ; \
@@ -597,7 +646,7 @@ auto-release: VERSION
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
@@ -605,7 +654,7 @@ auto-release: VERSION
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmx :
-	$(OCAMLOPT) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -629,5 +678,8 @@ auto-release: VERSION
 	$(OCAMLC) -o $*.byte $(LIBS) $<
 
 .cmx.opt:
-	$(OCAMLOPT) -o $*.opt $(OPTLIBS) $<
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $*.opt $(OPTLIBS) $<
 
+
+.plugindep:
+	echo toto

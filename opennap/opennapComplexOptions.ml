@@ -106,10 +106,9 @@ let value_to_file is_done assocs =
   as_file file.file_file
 
 let file_to_value file =
-  let r = file.file_result in
   [
-    "file_size", int32_to_value file.file_result.result_file.file_size;
-    "file_name", string_to_value file.file_result.result_file.file_name;
+    "file_size", int32_to_value file.file_size;
+    "file_name", string_to_value file.file_name;
     "file_downloaded", int32_to_value file.file_downloaded;
     "file_id", string_to_value (Md4.to_string file.file_id);
   ]
@@ -127,14 +126,7 @@ let done_files =
 
 let old_files = 
   define_option opennap_ini ["old_files"]
-    "" (list_option (tuple2_option (string_option, int32_option))) []
-
-  
-
-let save_config () =  
-  Options.save_with_help opennap_ini
-  
-  
+    "" (list_option (tuple2_option (string_option, int32_option))) []  
       
 let _ =
   network.op_network_add_file <- value_to_file;

@@ -16,9 +16,6 @@ TODO list for client
   * Use a cache of data to help diffusing files.
   * Check that program exists before trying to execute.
   * Correct boolean searches
-  * List of prefered servers
-  * Fix BUFFER OVERFLOW bug !!!!!
-  * Customized queries in GUI
   * Clean the clients_by_num table from clients which are not useful anymore.
   * remove locations of downloaded files.
   * check that 'cancelled' files cannot be shared also in incoming/
@@ -40,11 +37,29 @@ Before 1.17:
 
 Before 2.00:
   - Allow enable/disable network at runtime
-  - Allow enable/disable network display in the GUI
   - Allow access to each network options in the GUI and telnet
   - Detect disconnection to client in the GUI (zogzog, do it !!, it was done
       in 1.16 and before)
   - Allow passing ed2k links in GUI
+  - Use weak hashtbl everywhere possible:
+    * Searches, Files, Done Files, Servers and Friends/Contacts should be
+      strong pointers
+    * Users, Results, Clients (but how with Contacts) should always be weak
+      pointers.
+  - What about having one result per file ?
+  - Allow upload at least in Direct Connect... Maybe in gnutella too, even
+     if it is probably a waste of bandwidth. Upload should probably be
+     concentrated on eDonkey2000, where it is better used. However, if we
+     don't want to be kicked from other network, it is better to allow them
+     to download from us. Maybe we could use priorities, but how ? Each network
+     would have a score, and the better score would be given bandwidth first ?
+  - Check if downloaded of mldonkey file is greater than 100%...
+
+From other P2P systems:
+ 
+  LimeWire: 
+   - Incomplete files can be automatically deleted when too old (7 days)
+
 
 TODO list for server
 ====================

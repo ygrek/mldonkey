@@ -40,7 +40,6 @@ open DonkeyClient
 open CommonGlobals
 
 let search_found search md4 tags = 
-  Printf.printf "SEARCH FOUND"; print_newline ();
   let file_name = ref "" in
   let file_size = ref Int32.zero in
   let availability = ref 0 in
@@ -73,7 +72,7 @@ let search_found search md4 tags =
           result_format = "";
           result_type = "";
           result_tags = List.rev !new_tags;
-          result_comment = None;
+          result_comment = "";
           result_done = false;
         } in
       List.iter (fun tag ->
@@ -144,9 +143,6 @@ let fill_clients_list _ =
                     )
             file.file_sources;
       ) !current_files;
-      Intmap.iter (fun _ c ->
-          clients_list := (c, []) :: !clients_list
-      ) (current_friends ());
       clients_list_len := List.length !clients_list;
     end  
   
@@ -264,38 +260,31 @@ let force_check_locations () =
       Printf.printf "force_check_locations: %s" (Printexc.to_string e);
       print_newline ()
       
-let check_locations timer =
-  reactivate_timer timer;
-  force_check_locations ()  
-
-
 let new_friend c =  
-  if not (client_is_friend c) then
-    begin
-      friend_add c;
-      
-      match c.client_sock, client_state c with
-      | None, NotConnected ->
-          connection_must_try c.client_connection_control;
-          connect_client !!client_ip [] c
-      | None, _ -> ()
-      | Some sock, (
-          Connected_initiating 
-        | Connected_busy
-        | Connected_queued
-        | Connected_idle)
-        ->
-            Printf.printf "****************************************";
-            print_newline ();
-            Printf.printf "       ASK VIEW FILES         ";
-            print_newline ();
-          direct_client_send sock (
-            let module M = Mftp_client in
-            let module C = M.ViewFiles in
-            M.ViewFilesReq C.t);          
-      | _ -> ()
-    end
-    
+  friend_add c
+
+let browse_client c =
+  match c.client_sock, client_state c with
+  | None, NotConnected ->
+      connection_must_try c.client_connection_control;
+      connect_client !!client_ip [] c
+  | None, _ -> ()
+  | Some sock, (
+      Connected_initiating 
+    | Connected_busy
+    | Connected_queued
+    | Connected_idle)
+    ->
+      Printf.printf "****************************************";
+      print_newline ();
+      Printf.printf "       ASK VIEW FILES         ";
+      print_newline ();
+      direct_client_send sock (
+        let module M = Mftp_client in
+        let module C = M.ViewFiles in
+        M.ViewFilesReq C.t);          
+  | _ -> ()
+
 let add_user_friend s u = 
   let kind = 
     if Ip.valid u.user_ip then
@@ -385,9 +374,7 @@ and remove clients whose server is deconnected. *)
                   user_server = s;                  
                 } 
               and  user_impl = {
-                  impl_user_update = false;
-                  impl_user_state = NewHost;
-                  impl_user_num = 0;
+                  dummy_user_impl with
                   impl_user_val = user;
                   impl_user_ops = user_ops;
                 }
@@ -649,8 +636,7 @@ let rec next_uploads () =
   if !remaining_bandwidth < old then next_uploads ()
   
   (* timer started every 1/10 seconds *)
-let upload_timer timer =
-  reactivate_timer timer;
+let upload_timer () =
   (try download_engine () with e -> 
         Printf.printf "Exception %s in download_engine" 
           (Printexc.to_string e); print_newline (););
@@ -667,8 +653,7 @@ let upload_credit_timer _ =
   else
     decr has_upload
 
-let sample_timer timer =
-  reactivate_timer timer;
+let sample_timer () =
   let trimto list length =
     let (list, _) = List2.cut length list in
     list 
@@ -679,4 +664,3 @@ let sample_timer timer =
         trimto ((file.file_downloaded, time) :: file.file_last_downloaded) 
       !!download_sample_size
   ) !current_files
-  

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
+
 let debug = ref false
     
 type event = 
@@ -61,7 +63,7 @@ type timer = {
     mutable next_time : float;
     time_handler : timer -> unit;
     mutable applied : bool;
-    delay : float;
+    mutable delay : float;
   }
 
 let nb_sockets = ref 0
@@ -246,13 +248,37 @@ let add_timer delay f =
     applied = false;
     delay = delay;
   } :: !timers
-  
+
 let reactivate_timer t =
   if t.applied then begin
       t.next_time <- last_time () +. t.delay;
       t.applied <- false;
     end
-    
+
+let add_session_timer enabler delay f = 
+  let f t =
+    if !enabler then begin
+        reactivate_timer t;
+        f ()
+      end
+  in
+  add_timer delay f
+
+  
+let add_infinite_timer delay f = add_session_timer (ref true) delay f
+
+let add_session_option_timer enabler option f = 
+  let f t =
+    if !enabler then begin
+        t.delay <- !!option;
+        reactivate_timer t;
+        f ()
+      end
+  in
+  add_timer !!option f
+
+let add_infinite_option_timer option f = add_session_option_timer (ref true) option f
+  
 let can_read = 1
 let can_write = 2
 

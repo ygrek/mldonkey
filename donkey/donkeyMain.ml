@@ -51,7 +51,6 @@ let do_daily () =
   incr days
 
 let hourly_timer timer =
-  reactivate_timer timer;
   incr hours;
   DonkeyServers.remove_old_servers ();
   DonkeyFiles.remove_old_clients ();
@@ -65,25 +64,31 @@ let hourly_timer timer =
     do_daily ()
 
 let quarter_timer timer =
-  reactivate_timer timer;
   ()
 
 let fivemin_timer timer =
-  reactivate_timer timer;
   DonkeyFiles.fill_clients_list ()
 
 let second_timer timer =
-  reactivate_timer timer;
   DonkeyFiles.check_clients ();
   DonkeyFiles.reset_upload_timer ()
 
 let halfmin_timer timer =
-  reactivate_timer timer;
   DonkeyServers.update_master_servers ();
   DonkeyFiles.upload_credit_timer ();
   DonkeyIndexer.add_to_local_index_timer ()
+
   
-let enable () = 
+let disable enabler () =
+  enabler := false;
+  List.iter (fun s -> DonkeyInteractive.disconnect_server s) 
+  (connected_servers ());
+  List.iter (fun file -> ()) !current_files
+  
+let enable () =
+
+  let enabler = ref true in
+  network.op_network_disable <- disable enabler;
   
   if not !!enable_donkey then enable_donkey =:= true;
   
@@ -204,19 +209,21 @@ let enable () =
     
 
 (**** START TIMERS ****)
-    add_timer !!check_client_connections_delay DonkeyFiles.check_locations;
+    add_session_option_timer enabler check_client_connections_delay 
+      DonkeyFiles.force_check_locations;
 
-    add_timer !!check_connections_delay DonkeyServers.check_server_connections;
-    add_timer !!compute_md4_delay DonkeyOneFile.check_files_md4s;  
-    add_timer 5.0 DonkeyServers.walker_timer;
+    add_session_option_timer enabler check_connections_delay 
+      DonkeyServers.check_server_connections;
+    add_session_option_timer enabler compute_md4_delay DonkeyOneFile.check_files_md4s;  
+    add_session_timer enabler 5.0 DonkeyServers.walker_timer;
     
-    add_timer 3600. hourly_timer;
-    add_timer 30. halfmin_timer;
-    add_timer 300. fivemin_timer;
-    add_timer 900. quarter_timer;
-    add_timer 1. second_timer;
-    add_timer 0.1 DonkeyFiles.upload_timer;
-    add_timer !!download_sample_rate DonkeyFiles.sample_timer;
+    add_session_timer enabler 3600. hourly_timer;
+    add_session_timer enabler 30. halfmin_timer;
+    add_session_timer enabler 300. fivemin_timer;
+    add_session_timer enabler 900. quarter_timer;
+    add_session_timer enabler 1. second_timer;
+    add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
+    add_session_option_timer enabler download_sample_rate DonkeyFiles.sample_timer;
     
 
 (**** START PLAYING ****)  
@@ -235,9 +242,18 @@ let _ =
       Printf.printf "SAVED"; print_newline ();
   );
   network.op_network_enable <- enable;
-  network.op_network_save_simple_options <- (fun _ -> ());
-  network.op_network_prefixed_args <- (fun _ -> []);
-  network.op_network_load_simple_options <- (fun _ -> ());
+  network.network_prefixes <- ["donkey"];
+  network.network_config_file <- None;
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })
   
   
   

@@ -22,6 +22,13 @@ val files_by_md4 : (Md4.t, ServerTypes.location list) Hashtbl.t
 val servers_by_md4 : (Md4.t, ServerTypes.server) Hashtbl.t
 val client_counter : int ref
 val other_servers : ServerTypes.server list ref
+val alive_servers : ServerTypes.server list ref
 val nconnected_clients : int ref
 val nshared_files : int ref
+
+(*test values*)
+val nb_udp_loc : int ref
+val nb_udp_req : int ref
+val nb_udp_query : int ref
+val nb_tcp_req : int ref
   

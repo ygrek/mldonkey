@@ -307,7 +307,7 @@ module ClientOption = struct
   
 let friends = 
   define_option friends_ini ["friends"] 
-    "The list of known friends" (list_option (ClientOption.t true)) []
+    "The list of known friends" (listiter_option (ClientOption.t true)) []
   
 let load () = 
   Options.load files_ini;
@@ -327,16 +327,21 @@ let save () =
   
 let file_commit file =
   try
-  let impl = as_file_impl file in
-  if impl.impl_file_state = FileDownloaded then begin
-      update_file_state impl FileShared;
-      done_files =:= List2.removeq file !!done_files;
-      impl.impl_file_ops.op_file_commit impl.impl_file_val;
-    end
+    let impl = as_file_impl file in
+    if impl.impl_file_state = FileDownloaded then begin
+        update_file_state impl FileShared;
+        done_files =:= List2.removeq file !!done_files;
+        impl.impl_file_ops.op_file_commit impl.impl_file_val;
+        let file_name = file_disk_name file in
+        ignore (CommonShared.new_shared "completed" (
+            Filename.basename file_name)
+          file_name)
+      
+      end
   with e ->
       Printf.printf "Exception in file_commit: %s" (Printexc.to_string e);
       print_newline ()
-  
+      
 let file_cancel file =
   try
   let impl = as_file_impl file in
@@ -345,7 +350,6 @@ let file_cancel file =
       update_file_state impl FileCancelled;
       impl.impl_file_ops.op_file_cancel impl.impl_file_val;
       files =:= List2.removeq file !!files;
-      Hashtbl.remove com_files_by_num impl.impl_file_num
     end
   with e ->
       Printf.printf "Exception in file_cancel: %s" (Printexc.to_string e);
@@ -358,7 +362,10 @@ let file_completed (file : file) =
         files =:= List2.removeq file !!files;
         done_files =:= file :: !!done_files;
         update_file_state impl FileDownloaded;  
-        ignore (CommonShared.new_shared (file_disk_name file))
+        let file_name = file_disk_name file in
+        ignore (CommonShared.new_shared "completed" (
+            Filename.basename file_name)
+          file_name)
       end
   with e ->
       Printf.printf "Exception in file_completed: %s" (Printexc.to_string e);
@@ -392,7 +399,6 @@ let server_remove server =
       (try impl.impl_server_ops.op_server_remove impl.impl_server_val
           with _ -> ());
       servers =:= List2.removeq server !!servers;
-      Hashtbl.remove com_servers_by_num impl.impl_server_num;
     end
   with e ->
       Printf.printf "Exception in server_remove: %s" (Printexc.to_string e);
@@ -406,16 +412,22 @@ let server_add impl =
       impl.impl_server_state <- NotConnected;
     end
 
+let contacts = ref []
+
 let friend_add c =
   let impl = as_client_impl c in
   match impl.impl_client_type with
     FriendClient -> ()
-  | _ ->
+  | old_state ->
       impl.impl_client_type <- FriendClient;
       client_must_update c;
       friends =:= c :: !!friends;
-      impl.impl_client_ops.op_client_set_friend impl.impl_client_val
+      contacts := List2.removeq c !contacts;
+      if old_state <> ContactClient then
+        impl.impl_client_ops.op_client_browse impl.impl_client_val true
 
+(* Maybe we should not add the client to the contact list and completely remove
+it ? *)
 let friend_remove c =
   try
     let impl = as_client_impl c in
@@ -424,9 +436,34 @@ let friend_remove c =
         impl.impl_client_type <- ContactClient;
         client_must_update c;
         friends =:= List2.removeq c !!friends;
-        impl.impl_client_ops.op_client_remove_friend impl.impl_client_val
+        contacts := c :: !contacts;
     | _ -> ()
   with e ->
       Printf.printf "Exception in friend_remove: %s" (Printexc.to_string e);
       print_newline ()
+  
+let contact_add c =
+  let impl = as_client_impl c in
+  match impl.impl_client_type with
+    FriendClient | ContactClient -> ()
+  | _ ->
+      impl.impl_client_type <- ContactClient;
+      client_must_update c;
+      contacts := c :: !contacts;
+      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+
+let contact_remove c =
+  try
+    let impl = as_client_impl c in
+    match  impl.impl_client_type with 
+      ContactClient ->
+        impl.impl_client_type <- NormalClient;
+        client_must_update c;
+        contacts := List2.removeq c !contacts;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+    | _ -> ()
+  with e ->
+      Printf.printf "Exception in contact_remove: %s" (Printexc.to_string e);
+      print_newline ()
+
       

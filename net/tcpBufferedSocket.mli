@@ -86,3 +86,8 @@ val set_wtimeout : t -> float -> unit
 val internal_buf : Buffer.t
 val value_send : t -> 'a -> unit
 val value_handler : ('a -> t -> unit) -> t -> int -> unit
+
+val set_write_power : t -> int -> unit
+  
+val remaining_to_write : t -> int
+  

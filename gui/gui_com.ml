@@ -19,6 +19,7 @@
 
 (** Communicating with the mldonkey client. *)
 
+open Gui_proto
 module M = Gui_messages
 module O = Gui_options
 module G = Gui_global
@@ -33,6 +34,14 @@ let disconnect () =
   | Some sock ->
       TcpBufferedSocket.close sock "user close";
       connection := None
+
+let send t =
+  match !connection with
+    None -> 
+      Printf.printf "Message not sent since not connected";
+      print_newline ();
+  | Some sock ->
+      gui_send Encoding.from_gui.(0) sock t
 
 let reconnect gui value_reader =
   (try disconnect () with _ -> ());
@@ -64,25 +73,28 @@ let reconnect gui value_reader =
         | Some s -> 
             if s == sock then begin
                 connection := None;
+                gui#label_connect_status#set_text "Disconnected";
               end
     );
     TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_reader sock (
-      TcpBufferedSocket.value_handler value_reader);
-    gui#label_connect_status#set_text "Connecting"
+      gui_cut_messages
+        (fun opcode s ->
+          try
+            let m = Decoding.to_gui.(0) opcode s in
+            value_reader m sock
+          with e ->
+              Printf.printf "Exception %s in decode/exec" 
+                (Printexc.to_string e); print_newline ();
+              raise e
+            ));
+    gui#label_connect_status#set_text "Connecting";
+    send (Gui_proto.GuiProtocol 0)
   with e ->
       Printf.printf "Exception %s in connecting" (Printexc.to_string e);
       print_newline ();
       TcpBufferedSocket.close sock "error";
       connection := None
-
-let send t =
-  match !connection with
-    None -> 
-      Printf.printf "Message not sent since not connected";
-      print_newline ();
-  | Some sock ->
-      TcpBufferedSocket.value_send sock (t : Gui_proto.from_gui)  
 
 let receive () =
   match !connection with

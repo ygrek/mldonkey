@@ -192,6 +192,8 @@ let add_room_user num user_num =
       print_newline ()
       
 let user_info user = 
+  ()  
+  (*
   match user.user_state with
     RemovedHost -> 
       Hashtbl.iter (fun num vbox ->
@@ -199,7 +201,7 @@ let user_info user =
           
       ) rooms_by_num
   | _ -> ()
-      
+*)      
   
 let add_room_message num msg =
   let vbox = Hashtbl.find rooms_by_num num in

@@ -654,51 +654,49 @@ let search_media_list =
     "Collection", "Col";
   ]
 
-module P = Gui_proto
-
 (** Transforme une query_entry en provenance de la gui
    en query. Les conversions pour Media sont faites
    au vol, pour donkey.*)
 
 let rec mftp_query_of_query_entry qe =
   match qe with
-    P.Q_AND ([]|[_]) -> QNone
-  | P.Q_AND (h :: q) ->
+    Q_AND ([]|[_]) -> QNone
+  | Q_AND (h :: q) ->
       List.fold_left
 	(fun acc -> fun q -> QAnd (acc, mftp_query_of_query_entry q))
 	(mftp_query_of_query_entry h)
 	q
 
-  | P.Q_OR ([]|[_]) -> QNone
-  | P.Q_OR (h :: q) ->
+  | Q_OR ([]|[_]) -> QNone
+  | Q_OR (h :: q) ->
       List.fold_left
 	(fun acc -> fun q -> QOr (acc, mftp_query_of_query_entry q))
 	(mftp_query_of_query_entry h)
 	q
-  | P.Q_ANDNOT (q1,q2) ->
+  | Q_ANDNOT (q1,q2) ->
       QAndNot 
 	(mftp_query_of_query_entry q1,
 	 mftp_query_of_query_entry q2)
-  | P.Q_MODULE (_, q) ->
+  | Q_MODULE (_, q) ->
       mftp_query_of_query_entry q
 	
-  | P.Q_KEYWORDS (_,s) ->
+  | Q_KEYWORDS (_,s) ->
       (
        try want_and_not (fun w -> QHasWord w) s
        with Not_found -> QNone
       )
 
-  | P.Q_MINSIZE (_,s) ->
+  | Q_MINSIZE (_,s) ->
       (
        try QHasMinVal ("size", Int32.of_string s)
        with _ -> QNone
       )
-  | P.Q_MAXSIZE (_,s) ->
+  | Q_MAXSIZE (_,s) ->
       (
        try QHasMaxVal ("size", Int32.of_string s)
        with _ -> QNone
       )
-  | P.Q_FORMAT (_,s) ->
+  | Q_FORMAT (_,s) ->
       (
        try
 	 want_comb_not or_comb
@@ -706,7 +704,7 @@ let rec mftp_query_of_query_entry qe =
        with Not_found ->
 	 QNone
       )
-  | P.Q_MEDIA (_,s) ->
+  | Q_MEDIA (_,s) ->
       (
        try QHasField("type", List.assoc s search_media_list)
        with Not_found -> 
@@ -715,7 +713,7 @@ let rec mftp_query_of_query_entry qe =
 	 | _ -> QHasField ("type", s)
       )
 	
-  | P.Q_MP3_ARTIST (_,s) ->
+  | Q_MP3_ARTIST (_,s) ->
       (
        try 
 	 want_comb_not and_comb 
@@ -724,7 +722,7 @@ let rec mftp_query_of_query_entry qe =
 	 QNone
       )
 
-  | P.Q_MP3_TITLE (_,s) ->
+  | Q_MP3_TITLE (_,s) ->
       (
        try 
 	 want_comb_not and_comb 
@@ -732,7 +730,7 @@ let rec mftp_query_of_query_entry qe =
        with Not_found ->
 	 QNone
       ) 
-  | P.Q_MP3_ALBUM (_,s) ->
+  | Q_MP3_ALBUM (_,s) ->
       (
        try 
 	 want_comb_not and_comb 
@@ -741,16 +739,16 @@ let rec mftp_query_of_query_entry qe =
 	 QNone
       )
 
-  | P.Q_MP3_BITRATE (_,s) ->
+  | Q_MP3_BITRATE (_,s) ->
       let bitrate = 
 	try Int32.of_string s
 	with _ -> Int32.of_int 1
       in
       QHasMinVal("bitrate", bitrate)
 
-  | P.Q_HIDDEN [q] ->
+  | Q_HIDDEN [q] ->
       mftp_query_of_query_entry q
-  | P.Q_HIDDEN l ->
-      mftp_query_of_query_entry (P.Q_AND l)
+  | Q_HIDDEN l ->
+      mftp_query_of_query_entry (Q_AND l)
 
 

@@ -26,7 +26,7 @@ module O = CommonOptions
 
 let (!!) = Options.(!!)
 
-let send_paquet_to_mlchat (p : C.paquet) =
+let send_paquet_to_mlchat (p : C.packet) =
   let domain = Unix.PF_INET in
   let sock = Unix.socket domain Unix.SOCK_STREAM 0 in
   let inet_addr = 
@@ -40,7 +40,7 @@ let send_paquet_to_mlchat (p : C.paquet) =
   try
     let chanout = Unix.out_channel_of_descr sock in
     Unix.connect sock sockaddr;
-    output_value chanout p;
+    Chat_proto.write_packet_channel chanout p;
     flush chanout;
     close_out chanout
   with

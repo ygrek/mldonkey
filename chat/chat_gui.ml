@@ -14,20 +14,46 @@
 open Chat_types
 open Chat_proto
 
-class dialog (data : Chat_data.data) id host port =
+type dialog_type = 
+    Single of id * host * port
+  | Room of id * (id * host * port) list
+
+class dialog (data : Chat_data.data) typ_dial =
+  let id, host, port = 
+    match typ_dial with
+      Single (i,h,p) -> (i,h,p)
+    | Room (n,_) -> n,"",0
+  in
   object (self)
     inherit Chat_gui_base.dialog ()
 	
-    method id = id (** id of the person this dialog is used to talk to *)
+    val mutable name =
+      match typ_dial with
+	Single (id, h, p) -> Printf.sprintf "%s @ %s:%d" id h p
+      |	Room (name, _) -> name
+
+    method name =  name
+    method id = id
     method host = host
     method port = port
 
     method send s =
-      try data#com#send id (host, port) (Message s) 
-      with Failure s ->prerr_endline s
+      match typ_dial with
+	Single (i,h,p) ->
+	  (
+	   try data#com#send i (h, p) (Message s) 
+	   with Failure s -> Chat_messages.verbose s
+	  )
+      |	Room (name, people) ->
+	  List.iter
+	    (fun (i,h,p) ->
+	      try data#com#send i (h, p) (RoomMessage (self#name, people, s))
+	      with Failure s -> Chat_messages.verbose s
+	    )
+	    people
 
-    method handle_message mes =
-      wt_dialog#insert ~foreground: (`NAME data#conf#color_connected) id;
+    method handle_message source_id mes =
+      wt_dialog#insert ~foreground: (`NAME data#conf#color_connected) source_id;
       wt_dialog#insert (" : "^mes^"\n");
       wt_dialog#set_position (wt_dialog#length - 1)
 
@@ -56,39 +82,87 @@ class dialog (data : Chat_data.data) id host port =
 	box#destroy;
       Okey.add_list wt_dialog ~mods: [`CONTROL] 
 	[GdkKeysyms._c; GdkKeysyms._C]
-	box#destroy
+	box#destroy;
+      Okey.add_list wt_input ~mods: [`CONTROL] 
+	[GdkKeysyms._l; GdkKeysyms._L]
+	wb_show_hide#clicked;
+      Okey.add_list wt_dialog ~mods: [`CONTROL] 
+	[GdkKeysyms._l; GdkKeysyms._L]
+	wb_show_hide#clicked;
+
+      match typ_dial with
+	Single _ -> 
+	  wb_show_hide#misc#hide ();
+	  wscroll_people#misc#hide ()
+      |	Room (name, people) ->
+	  wscroll_people#misc#hide ();
+	  let show = ref false in
+	  ignore (wb_show_hide#connect#clicked
+		    (fun () -> 
+		      show := not !show;
+		      if !show then
+			wscroll_people#misc#show ()
+		      else
+			wscroll_people#misc#hide ()));
+	  List.iter
+	    (fun (i,h,p) ->
+	      ignore (wlist_people#append
+			[i ; h ; string_of_int p]))
+	    people;
+	  GToolbox.autosize_clist wlist_people
   end
 
 (** Liste des dialogs ouverts *)
 let dialogs = ref ([] : (GWindow.window * dialog) list)
 
+(** Liste des rooms ouvertes *)
+let room_dialogs = ref ([] : (GWindow.window * dialog) list)
 
 (** Remove the dialog with the given id from the list of dialogs. *)
-let remove_dialog id =
-  dialogs := List.filter
-      (fun (_,d) -> d#id <> id)
-      !dialogs
+let remove_dialog data typ_dial =
+  match typ_dial with
+    Single (id,host,port) ->
+      dialogs := List.filter
+	  (fun (_,d) -> not (data#pred (id,host,port) (d#id, d#host, d#port)))
+	  !dialogs
+  | Room (name, people) ->
+      room_dialogs := List.filter
+	  (fun (_,d) -> d#name <> name)
+	  !room_dialogs
+
 
 (** Find the window and dialog with the given id. It
    it was not found, create it and add it to the list of dialogs.*)
-let get_dialog ?(show=true) data id host port =
+let get_dialog ?(show=true) data typ_dial =
   try
-    let (w,d) = List.find 
-	(fun (w,d) -> data#pred (id,host,port) (d#id, d#host, d#port))
-	!dialogs 
-    in
-    d#wt_input#misc#grab_focus ();
-    if show then w#show () ;
-    d
+    match typ_dial with
+      Single (id,host,port) ->
+	let (w,d) = List.find 
+	    (fun (w,d) -> data#pred (id,host,port) (d#id, d#host, d#port))
+	    !dialogs 
+	in
+	d#wt_input#misc#grab_focus ();
+	if show then w#show () ;
+	d
+    | Room (name, people) ->
+	let (w,d) = List.find (fun (_,d) -> d#name = name) !room_dialogs in
+	d#wt_input#misc#grab_focus ();
+	if show then w#show () ;
+	d
   with
     Not_found ->
-      let window = GWindow.window ~kind: `DIALOG ~width: 300 ~height: 200 ~title: id () in
-      ignore (window#connect#destroy (fun () -> remove_dialog id));
-      let dialog = new dialog data id host port in
+      let window = GWindow.window ~kind: `DIALOG ~width: 300 ~height: 200 ~title: "" () in
+      ignore (window#connect#destroy (fun () -> remove_dialog data typ_dial));
+      let dialog = new dialog data typ_dial in
+      window#set_title dialog#name;
       ignore (dialog#box#connect#destroy window#destroy);
       window#add dialog#box#coerce;
       if show then window#show ();
-      dialogs := (window, dialog) :: ! dialogs;
+      (
+       match typ_dial with
+	 Single _ -> dialogs := (window, dialog) :: ! dialogs
+       | Room _ -> room_dialogs := (window, dialog) :: ! room_dialogs
+      );
       dialog#wt_input#misc#grab_focus ();
       dialog
 
@@ -128,15 +202,25 @@ class gui no_quit (data : Chat_data.data) =
       selected_people <- []
 
     method open_dialog (id, host, port, _, _) =
-      ignore (get_dialog data id host port)
+      ignore (get_dialog data (Single (id, host, port)))
+
+    method open_room room_name people =
+      let l = List.map (fun (i,h,p,_,_) -> (i,h,p)) people in
+      ignore (get_dialog data (Room (room_name, l)))
 
     method open_dialog_for_selected_people =
       match selected_people with
 	[] -> ()
+      |	[p] -> self#open_dialog p
       |	l -> 
-	  (* pour l'instant, pas de conférence, un
-	     dialog pour chaque personne sélectionnée *)
-	  List.iter self#open_dialog l
+	  match GToolbox.input_string 
+	      ~title: Chat_messages.m_open_dialog_for_selected_people
+	      (Chat_messages.room_name^": ") 
+	  with
+	    None -> ()
+	  | Some name ->
+	      let c = data#conf in
+	      self#open_room name ((c#id, Unix.gethostname (), c#port, Connected, false) :: l)
 
     initializer
       if no_quit then
@@ -162,7 +246,14 @@ class gui no_quit (data : Chat_data.data) =
 
       let f_select ~row ~column ~event =
         try 
-	  selected_people <- (List.nth people row) :: selected_people ;
+	  let (id,host,port,_,_) as p = List.nth people row in
+	  if List.exists 
+	      (fun (i,h,p,_,_) -> data#pred (id,host,port) (i,h,p)) 
+	      selected_people 
+	  then
+	    ()
+	  else
+	    selected_people <- p :: selected_people ;
 	  match event with
 	    None -> ()
 	  | Some ev -> maybe_double_click ev
@@ -172,7 +263,7 @@ class gui no_quit (data : Chat_data.data) =
         try 
 	  let (id, host, port, _, _) = List.nth people row  in
 	  selected_people <- List.filter
-	      (fun (i,h,p,_,_) -> h <> host or p <> port)
+	      (fun (i,h,p,_,_) -> not (data#pred (id,host,port) (i,h,p)))
 	      selected_people;
 	  match event with
 	    None -> ()

@@ -89,7 +89,7 @@ class box columns () =
       |	Col_result_format -> r.result_format
       |	Col_result_props -> CommonGlobals.string_of_tags r.result_tags
           | Col_result_network -> network_name r.result_network
-      |	Col_result_comment -> match r.result_comment with None -> "" | Some s -> s
+      |	Col_result_comment -> r.result_comment 
               
     method content r =
       let strings = List.map 

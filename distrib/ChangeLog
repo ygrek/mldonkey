@@ -1,6 +1,71 @@
 ChangeLog
 =========
 
+2002/07/24:
+ - Added GUI counter for better protocol compression.
+ - Removed user_remove function
+
+2002/07/23:
+ - Bug fix in Ocaml weak hash tables
+ - First file downloaded on DC (yeah !!)
+
+2002/07/21:
+ - Fixed a bug in the GUI protocol
+ - Improve timers behaviors
+
+2002/07/16:
+ - Upload should be OK in Direct-Connect
+ - CDDB: research is possible in index. building the index takes at least 
+     600 Mo of RAM ... maybe some work to compress it.
+
+2002/07/15:
+ - New structure network_info
+ - Direct-Connect: allow other clients to browse our client
+ - CDDB: use_tags is able to index a freedb database. take about 300 Mo for
+    the full indexed database. need to build a server now.
+ - Donkey: fixed a buf in the protocol that removed shared files from shared
+     list.
+
+2002/07/14:
+ - New env variable MLDONKEY_DIR
+
+2002/07/13:
+ - More options in alternative networks.
+ - ./configure script accepts a --disable-multinet option.
+ - New option -check_impl to display unimplemented methods.
+ - New behavior for computing the downloaded size in donkey.
+
+2002/07/11:
+ - Upload on edonkey is priviledged, thanks to the upload_power option.
+    Done by giving more upload to some connections in TcpBufferedSocket.
+
+2002/07/10:
+ - Protocol between GUI and Core completely rewritten. No more Ocaml specific.
+     Other GUIs are encouraged to move to this new protocol.
+ - network-specific URLs are supported:
+     ed2k://|file|...
+     ed2k://|server|ip|port|
+     ed2k://|friend|ip|port|
+     dc://|server|ip:port|
+     dc://|friend|ip:port|
+ - Client browsing in Opennap.
+
+2002/07/04:
+ - Better types for result, client, user and file in LimeWire
+
+2002/07/03:
+ - Better Opennap support
+    - Should no more be 'too many pending searches'.
+    - Better types for result, client, user and file.
+
+2002/07/02:
+ - Per network options better supported (use "set" command with a prefix).
+ - One step towards soulseek implementation.
+ - Started implementing 'disable' methods.
+ - Using Weak hash tables for all common modules.
+
+*** 2002/07/01: in holidays :) no network access for two weeks ...
+
 2002/06/30:
  - HE3 compress/decompress code completely working for DirectConnect
  - Can download file list in DirectConnect (not display it)
