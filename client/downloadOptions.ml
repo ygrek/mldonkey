@@ -30,9 +30,14 @@ let files_ini = create_options_file "./files.ini"
 let friends_ini = create_options_file "./friends.ini"
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
-      
+
+let random_letter () =
+  char_of_int (97 + Random.int 26)
+  
+  
 let client_name = define_option downloads_ini ["client_name"] "small name of client" string_option 
-    "mldonkey"
+    (Printf.sprintf "mldonkey_%c%c%c%c%c" (random_letter ()) (random_letter ()) 
+    (random_letter ()) (random_letter ()) (random_letter ()))
 
 let small_retry_delay = define_option downloads_ini ["small_retry_delay"] 
   "" float_option 30.
@@ -82,7 +87,7 @@ let initialized = define_option downloads_ini ["initialized"]
     bool_option false
     
 let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
-  "The maximal upload rate you can tolerate" int_option 30
+  "The maximal upload rate you can tolerate" int_option 3000
   
 let max_download_rate = define_option downloads_ini ["max_download_rate"] 
     "The maximal download rate you can tolerate (0 = no limit)" int_option 0
@@ -150,7 +155,7 @@ let _ =
 
 let retry_delay = define_option downloads_ini ["retry_delay"] "" float_option 3600.
 let server_connection_timeout = define_option downloads_ini ["server_connection_timeout"] 
-  "timeout when connecting to a server" float_option 30.
+  "timeout when connecting to a server" float_option 5.
 
 let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
 
@@ -165,6 +170,19 @@ let filters = define_option downloads_ini ["filters"]
     "filters on replies (replies will be kept)."
     string_list_option ""
 
+let smtp_server = define_option downloads_ini ["smtp_server"] 
+  "The mail server you want to use (must be SMTP). Use hostname or IP address"
+    string_option "127.0.0.1"
+
+let smtp_port = define_option downloads_ini ["smtp_port"] 
+  "The port to use on the mail server (default 25)"
+  int_option 25
+
+let mail = define_option downloads_ini ["mail"]
+  "Your e-mail if you want to receive mails when downloads are completed"
+    string_option ""
+
+  
 (************ COMPLEX OPTIONS *****************)
   
 let value_to_addr v =
@@ -540,3 +558,7 @@ module FriendOption = struct
   end
 *)  
 
+
+
+let max_allowed_connected_servers () =
+  min 5 !!max_connected_servers

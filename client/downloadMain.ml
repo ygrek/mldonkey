@@ -237,7 +237,8 @@ let _ =
     client_tags :=
     [
       { tag_name = "name"; tag_value =  String !!client_name };
-      { tag_name = "version"; tag_value =  Uint32 (Int32.of_int 57) };
+      { tag_name = "version"; tag_value =  Uint32 (Int32.of_int 
+          Mftp_server.protocol) };
       { tag_name = "port"; tag_value =  Uint32 (Int32.of_int !client_port) };
     ];
 
@@ -248,6 +249,7 @@ let _ =
     add_timer !!save_options_delay DownloadFiles.save_options;  
     add_timer !!check_connections_delay DownloadServers.check_server_connections;
     add_timer 5.0 DownloadOneFile.check_files_md4s;  
+    add_timer 5.0 DownloadServers.walker_timer;
     
     add_timer 3600. hourly_timer;
     

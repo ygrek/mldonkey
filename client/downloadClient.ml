@@ -24,8 +24,7 @@ functions are defined in downloadOneFile.ml *)
    client_state
    on met client_handler comme handler du socket
    on appelle init_connection c sock
-   on modifie client_sock
-  
+   on modifie client_sock  
 *)
 
 open Options
@@ -369,16 +368,9 @@ We should probably check that here ... *)
       end
   
   | M.AvailableSlotReq _ ->
+      find_client_block c
 
 (*
-      printf_char 'O';
-      
-      client_send sock (
-        let module M = Mftp_client in
-        let module Q = M.Message84 in
-        M.Message84Req Q.t);              
-*)
-      ()
   | M.QueueReq t ->
       
       printf_char 'Q';
@@ -393,7 +385,7 @@ We should probably check that here ... *)
       client_send sock (
         let module M = Mftp_client in
         M.QueueReq t);              
-  
+*)  
   
   | M.JoinQueueReq _ ->
       
@@ -508,14 +500,8 @@ We should probably check that here ... *)
           raise Not_found
         end;
 
-
-(* good client. try to reconnect fast *)
-      set_rtimeout (TcpClientSocket.sock sock) 120.;
-      
       if file.file_state = FilePaused then begin
           next_file c
-        
-        
         end
       else
       
@@ -600,7 +586,17 @@ We should probably check that here ... *)
                 
                 let fd = file_fd file in
                 ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
-                really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                
+                begin
+                  try
+                    really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                  with
+                    e ->
+                      Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
+                      print_newline ();
+                      file.file_state <- FilePaused;
+                      small_change_file file
+                end;
 (*
                 let mmap_pos = Int32.mul (
                     Int32.div begin_pos page_size) page_size
@@ -863,7 +859,7 @@ let reconnect_client cid files c =
 let connect_client cid files c = 
   match c.client_sock with
     None -> 
-      if connection_can_try c.client_connection_control then
+      if connection_can_try c.client_connection_control then 
         reconnect_client cid files c
   | Some sock ->
       match c.client_state with
@@ -875,6 +871,7 @@ let query_id_reply s t =
   let module M = Mftp_server in
   let module Q = M.QueryIDReply in
   let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
+  Printf.printf "QueryIDReply: Connect client"; print_newline ();
   connect_client s [] c
       
 let query_id s sock ip =

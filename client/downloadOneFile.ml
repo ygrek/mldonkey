@@ -582,12 +582,8 @@ and start_download c =
             let module Q = M.JoinQueue in
             M.JoinQueueReq Q.t);              
           
-          set_rtimeout (TcpClientSocket.sock sock) !queue_timeout;
-          
-          set_client_state c Connected_queued;
-          
-          find_client_block c
-
+          set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+          set_client_state c Connected_queued
 
 and find_client_block c =
 (* find an available block *)
@@ -808,25 +804,13 @@ let remove_file md4 =
   ()
   
 open Mailer
-
-let smtp_server = define_option downloads_ini ["smtp_server"] 
-  "The mail server you want to use (must be SMTP). Use hostname or IP address"
-    string_option "127.0.0.1"
-
-let smtp_port = define_option downloads_ini ["smtp_port"] 
-  "The port to use on the mail server (default 25)"
-  int_option 25
-
-let mail = define_option downloads_ini ["mail"]
-  "Your e-mail if you want to receive mails when downloads are completed"
-    string_option ""
-
+  
 let best_name file =
   match file.file_filenames with
     [] -> Md4.to_string file.file_md4
   | name :: _ -> name
   
-let completed_file file =
+let mail_for_completed_file file =
   if !!mail <> "" then
     let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
     let line2 = Printf.sprintf "\r\ned2k://|file|%s|%s|%s|\r\n" 
@@ -868,6 +852,9 @@ let check_file_downloaded file =
           | _ -> raise Not_found
       ) file.file_chunks;        
       file.file_state <- FileDownloaded;
+      (try mail_for_completed_file file with e ->
+            Printf.printf "Exception %s in sendmail" (Printexc.to_string e);
+            print_newline ());
       (try
           let format = DownloadMultimedia.get_info file.file_name in
           file.file_format <- format

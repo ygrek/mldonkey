@@ -68,7 +68,7 @@ let new_connection_control last_conn = {
 let connection_ok cc = 
   cc.control_next_delay <- !min_retry_delay;
   cc.control_last_conn <- last_time ();
-  cc.control_next_try <- last_time () +. !min_retry_delay
+  cc.control_next_try <- last_time () 
   
 let connection_try cc =
   cc.control_next_try <- last_time () +. cc.control_next_delay
@@ -122,8 +122,6 @@ let sleeping = ref false
 let indirect_clients_by_md4 = Hashtbl.create 127
   
 let last_xs = ref (-1)
-
-let max_allowed_connected_servers = 5
   
 let has_upload = ref 0
 let upload_credit = ref 0

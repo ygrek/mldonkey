@@ -60,6 +60,10 @@ val max_xs_packets : int Options.option_record
 val previewer : string Options.option_record
 val max_dialog_history : int Options.option_record
 
+val smtp_server : string Options.option_record
+val smtp_port : int Options.option_record
+val mail : string Options.option_record
+  
 val filters : string Options.option_record
   
 val client_md4 : Md4.t Options.option_record
@@ -78,4 +82,5 @@ val remove_server : Ip.t -> int -> unit
 
 val allowed_ips : Ip.t list Options.option_record
 val initialized : bool Options.option_record
+val max_allowed_connected_servers : unit -> int
   

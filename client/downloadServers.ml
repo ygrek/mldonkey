@@ -156,14 +156,13 @@ let client_to_server s t sock =
       );
       
       server_send sock (M.ShareReq (make_tagged (
-            let shared_files = all_shared () in
-            if !nservers <= max_allowed_connected_servers then begin
+            if !nservers <=  max_allowed_connected_servers () then
+              begin
                 s.server_master <- true;
+                let shared_files = all_shared () in
                 shared_files
               end else
-            match shared_files with
-              f :: _ -> [f]
-            | _ -> []
+              []
           )));
   
   | M.ServerListReq l ->
@@ -272,7 +271,7 @@ let rec connect_one_server () =
       
 
 let force_check_server_connections user =
-  if user || !nservers < max_allowed_connected_servers then begin
+  if user || !nservers <     max_allowed_connected_servers ()  then begin
       if !nservers < !!max_connected_servers then
         begin
           for i = !nservers to !!max_connected_servers-1 do
@@ -336,7 +335,7 @@ Printf.printf "Master Server is connected"; print_newline ();
   List.iter (fun s ->
       incr nconnected_servers;
       if not s.server_master then
-        if !nmasters < max_allowed_connected_servers then begin
+        if !nmasters <  max_allowed_connected_servers () then begin
             match s.server_sock with
               None -> 
               (*  Printf.printf "MASTER NOT CONNECTED"; print_newline ();  *)
@@ -348,7 +347,7 @@ Printf.printf "Master Server is connected"; print_newline ();
                 server_send sock (Mftp_server.ShareReq
                   (make_tagged (all_shared ())));
           end else
-        if !nconnected_servers > max_allowed_connected_servers then begin
+        if !nconnected_servers > max_allowed_connected_servers ()  then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
 (*            Printf.printf "DISCONNECT FROM EXTRA SERVER %s:%d "
@@ -370,4 +369,23 @@ print_newline ();
   (* reverse the list, so that first servers to connect are kept ... *)
   (List.rev !connected_server_list)
     
-  
+(* Keep connecting to servers in the background. Don't stay connected to 
+  them , and don't send your shared files list *)
+let walker_list = ref []
+let next_walker_start = ref 0.0
+let walker_timer timer = 
+  reactivate_timer timer;
+  match !walker_list with
+    [] ->
+      if !!known_servers <> [] &&
+        last_time () > !next_walker_start then begin
+          walker_list := !!known_servers;
+          next_walker_start := last_time () +. 3600.;
+        end
+  | s :: tail ->
+      walker_list := tail;
+      match s.server_sock with
+        None -> 
+          if connection_can_try s.server_connection_control then
+            connect_server s
+      | Some _ -> ()

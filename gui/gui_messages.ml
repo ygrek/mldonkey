@@ -532,30 +532,36 @@ TODO list
   * Correct display of availability.
   * Add sleep and wakeup commands.
   * More options in GUI
-  * Ask for passwords if they are not set. 
   * Popup et historique des dialogues.
   * Admin open file descrs.
+  * Keep (server_ip, server_port, id) for indirect connections.
 
 ChangeLog
 =========
 
 Release 1.10:
+  * Default timeout for server connection set to 5 for faster connection.
   * Options are now divided into four configuration files: downloads.ini,
       servers.ini, friends.ini and files.ini.
   * Console: better display of downloads.
   * Verification of IP addresses for admin ('allowed_ips' option).
   * WEB interface: added pragma no-cache. 
+  * Keep checking servers in the background.
   * GUI: Auto-resize is now delayed. Default selection
      mode is EXTENDED. Contextual menu items to switch between
-     auto-resize/manual resize and EXTENDED/MULTIPLE selection.
+    auto-resize/manual resize and EXTENDED/MULTIPLE selection.
+  * Send a mail when download is finished. You must complete the
+    'smtp_server', 'smtp_port' and 'mail' options.
   * Bug fixes: partial page in WEB interface fixed (often with vr).
+      Removed two minutes timeout on good client connections.
+      NoSpaceLeft causes pause in download.
 
 Release 1.09:
   * Bug fixes: fixed bad md4 computation of the first chunk, preventing
      completion of downloads.
   * New command 'recover_temp' to recover all lost files from the temp
      directory.
-  * See mldonkey.sourceforge.net for porting mldonkey on new OSes.
+  * See  http://www.freesoftware.fsf.org/mldonkey/ for porting mldonkey on new OSes.
 
 Release 1.08:
   * Remove use of the 'mmap' system call.
