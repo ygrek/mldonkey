@@ -532,7 +532,8 @@ TODO list
   * Correct display of availability.
   * Add sleep and wakeup commands.
   * More options in GUI
-  * Ask for passwords if they are not set. Check IP addresses too.
+  * Ask for passwords if they are not set. 
+  * Popup et historique des dialogues.
 
 ChangeLog
 =========
