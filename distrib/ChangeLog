@@ -2,6 +2,7 @@ ChangeLog
 =========
 
 2002/02/18: Simon  (release unstable-2-02-11)
+  - DonkeyServers: fixed a bug with socket Lifetimes
   - Fixed bugs in gpattern and vm commands
 
 2002/02/17: Simon (release unstable-2-02-10)

@@ -67,8 +67,6 @@ direct_connect/	Direct-Connect (must work on that)
 limewire/	LimeWire (Gnutella client)
 opennap/		Open-Napster
 
-secret/		you should not have that :) the protocol must remain
-		hidden (too many discussions about that)
 donkey/		the client part of donkey
 server/		the server part of donkey
 

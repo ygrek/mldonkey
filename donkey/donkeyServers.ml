@@ -143,6 +143,8 @@ let server_handler s sock event =
   match event with
     BASIC_EVENT (CLOSED _) ->
       disconnect_server s
+  | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
+          close sock "timeout"  
 
   | _ -> ()
       
@@ -362,9 +364,6 @@ let connect_server s =
       set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
           (client_to_server s));
       set_rtimeout sock !!server_connection_timeout;
-      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          close s "timeout"  
-      );
       
           Fifo.clear s.server_id_requests;
       s.server_waiting_queries <- [];

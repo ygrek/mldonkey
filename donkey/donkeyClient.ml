@@ -1373,6 +1373,10 @@ let client_handler c sock event =
     BASIC_EVENT (CLOSED s) ->
       disconnect_client c;
 
+  | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
+      printf_string "[TO?]";
+      close sock "timeout"
+
       (*
       if c.client_name <> "" then begin
           Printf.printf "client %s(%s) disconnected: reason %s"
@@ -1393,6 +1397,11 @@ let client_handler2 c sock event =
       match event with
         BASIC_EVENT (CLOSED s) ->
           printf_string "-c";
+      
+      | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
+          printf_string "[TO?]";
+          close sock "timeout"
+          
       | _ -> ()
       
 let init_connection sock =
@@ -1408,12 +1417,8 @@ With 150 connections of 1 minute, it means we can at most make
 make 1500 connections/10 minutes.  *)
   
 (*  set_lifetime sock 60.; *)
+  ()
   
-  set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-      printf_string "[TO?]";
-      close s "timeout"
-  )
-
 let init_client sock c =
   set_handler sock WRITE_DONE (fun s ->
       match c.client_upload with
