@@ -1,7 +1,1 @@
-Release 1.08
-  * Remove dependencies to the "mmap" system call.
-  * Better management of delays between connection attempts.
-  * Local searches use minsize/maxsize information.
-
-Release 1.07
-  * Move the CVS to sourceforge.net
+See the gui/gui_message.ml file end for ChangeLog.

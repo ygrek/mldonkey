@@ -121,8 +121,8 @@ gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
 	cat gui/gui_zog.ml >> gui/gui.ml
 	cat gui/gui_trailer.ml >> gui/gui.ml
 
-#gui/md4_c.o: gui/md4_c.c
-#	ocamlc.opt -ccopt "-O6 -I /byterun -o gui/md4_c.o" -ccopt "" -c gui/md4_c.c
+gui/md4_c.o: gui/md4_c.c
+	ocamlc.opt -ccopt "-O6 -I /byterun -o gui/md4_c.o" -ccopt "" -c gui/md4_c.c
 
 
 byte: $(TARGETS)
