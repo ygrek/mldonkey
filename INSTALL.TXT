@@ -1,0 +1,33 @@
+Compiling mldonkey:
+-------------------
+
+1) Installing required tools: Objective-Caml 1.04 (patched) and LablGTK 1.2.3
+
+ 1.1) Objective-Caml 1.04
+
+    ~/tmp> tar zxf ocaml-1.04.tar.gz
+    ~/tmp> cd ocaml-1.04
+    ~/tmp/ocaml-3.04> patch -p1 < ~/tmp/mldonkey/patches/ocaml-3.04.patch
+    ~/tmp/ocaml-3.04> ./configure
+    ~/tmp/ocaml-3.04> make world opt opt.opt
+    ~/tmp/ocaml-3.04> make install
+
+ 1.2) LablGTK 1.2.3
+
+    ~/tmp> tar zxf lablgtk-1.2.3.tar.gz
+    ~/tmp> cd lablgtk-1.2.3
+    ~/tmp/lablgtk-1.2.3> make configure
+    ~/tmp/lablgtk-1.2.3> make
+    ~/tmp/lablgtk-1.2.3> make opt
+    ~/tmp/lablgtk-1.2.3> make install
+
+2) Compiling mldonkey:
+
+    ~/tmp/mldonkey> ./configure
+    ~/tmp/mldonkey> make depend
+    ~/tmp/mldonkey> make byte
+    ~/tmp/mldonkey> make opt
+
+  You should now have 'mldonkey' (the daemon), 'mldonkey_gui' (the interface)
+ and 'mlchat' (a chat program). 
+
