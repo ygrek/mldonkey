@@ -590,7 +590,14 @@ search.op_search_end_reply_handlers;
               networks_iter network_connect_servers
           
           | P.Url url ->
-              ignore (networks_iter_until_true (fun n -> network_parse_url n url))
+              if not (networks_iter_until_true (fun n -> network_parse_url n url)) then
+                begin
+                  let file = File.to_string url in
+                  let lines = String2.split_simplify file '\n' in
+                  List.iter (fun line ->
+                      ignore (networks_iter_until_true (fun n -> network_parse_url n line))
+                  ) lines
+                end
           
           | P.RemoveServer_query num ->
               server_remove (server_find num)
@@ -1027,7 +1034,12 @@ let update_gui_info () =
   let nets = ref [] in
   networks_iter (fun n -> if network_connected n then 
         nets := n.network_num :: !nets);
-  
+     
+  DriverInteractive.saved_upload_udp_rate := udp_upload_rate;
+  DriverInteractive.saved_upload_tcp_rate := control_upload_rate;
+  DriverInteractive.saved_download_udp_rate := udp_download_rate;
+  DriverInteractive.saved_download_tcp_rate := control_download_rate;
+
   let msg = (Client_stats {
         upload_counter = !upload_counter;
         download_counter = !download_counter;

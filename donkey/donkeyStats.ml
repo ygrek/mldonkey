@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open DonkeyGlobals
 open CommonOptions 
 open CommonTypes
@@ -26,7 +27,9 @@ open DonkeyTypes
 open GuiTypes
 open CommonMessages
 open BasicSocket (* last_time *)
+open CommonInteractive
 
+  
 let brand_count = 9
 
 let brand_to_int b =
@@ -206,135 +209,180 @@ let print_stats buf =
 	(100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
     done
   end
+  
 
-let new_print_stats_html buf =
+
+let new_print_stats buf o =
   let one_minute = 60 in
   let one_hour = 3600 in
   let one_day = 86400 in
   let uptime = last_time () - start_time in
   let days = uptime / one_day in
   let rem = uptime - days * one_day in
+  
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
-
-  Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
-	
-		Printf.bprintf buf "\\<table class=\\\"sources\\\"\\>\\<tr\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.T\\<br\\>%s\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\<br\\>%d\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\<br\\>%.1f\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.1f\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\<br\\>%.1f\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.1f\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Banned\\<br\\>%d\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.0f\\</td\\>
-\\</tr\\>"
-    "ALL"
-    stats_all.brand_seen
-    ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
-  ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-  ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
-  ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-  stats_all.brand_banned 
-    (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int
-    stats_all.brand_seen));
-
-let counter = ref 0 in
-
- for i=1 to brand_count-1 do
-
-
-         
-    if brand_of_int i != Brand_server then (* dont print server stats *)
-      let brandstr = gbrand_to_string (brand_of_int i) in
-     
-      incr counter;
-    	 if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                                     else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+  
+  
+  if o.conn_output = HTML && !!html_mods then
+    begin
       
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
       
-Printf.bprintf buf "
+      Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
+\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
+\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"File Requests Received\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Reqs\\</td\\>
+\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Uploads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Bans\\</td\\>
+\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\</tr\\>";
+      
+      let counter = ref 0 in
+      
+      for i=1 to brand_count-1 do
+        
+        
+        
+        if brand_of_int i != Brand_server then (* dont print server stats *)
+          let brandstr = gbrand_to_string (brand_of_int i) in
+          
+          incr counter;
+          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+          
+          
+          Printf.bprintf buf "
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.f\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\n"
-    
-    
-      (brandstr)
-      stats_by_brand.(i).brand_seen 
-        (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
-      ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
-      ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
-      (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
-      ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
-      ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
-      (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
-      stats_by_brand.(i).brand_banned 
-        (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
-  done;
-
-    Printf.bprintf buf "\\</table\\>\n"
-  
-
-
-let new_print_stats buf =
-  let one_minute = 60 in
-  let one_hour = 3600 in
-  let one_day = 86400 in
-  let uptime = last_time () - start_time in
-  let days = uptime / one_day in
-  let rem = uptime - days * one_day in
-  let hours = rem / one_hour in
-  let rem = rem - hours * one_hour in
-  let mins = rem / one_minute in
-
-  Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
-  
-  Printf.bprintf buf "      Client| seen      |  Downloads       |  Uploads         |  Banned\n";
-  Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
-  Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"
-    "Total"
-    stats_all.brand_seen
-    ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
-  ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-  ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
-  ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-  stats_all.brand_banned 
-    (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen));
-  
-  for i=1 to brand_count-1 do
-    if brand_of_int i != Brand_server then (* dont print server stats *)
-      let brandstr = 
-        if brand_of_int i = Brand_mldonkey3 then 
-          "trusted mld"
-        else
-          brand_to_string (brand_of_int i) in
+            
+            
+            (brandstr)
+          stats_by_brand.(i).brand_seen 
+            (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+          
+          stats_by_brand.(i).brand_filerequest 
+            (100. *. (float_of_int stats_by_brand.(i).brand_filerequest) /. (float_of_int stats_all.brand_filerequest))
+          
+          (size_of_int64 stats_by_brand.(i).brand_download)
+          (max 0.0 (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download)))
+          ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+          
+          (size_of_int64 stats_by_brand.(i).brand_upload) 
+          (max 0.0 (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload)))
+          ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
+          
+          
+          stats_by_brand.(i).brand_banned 
+            (max 0.0 (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned)) )
+      done;
       
-      Printf.bprintf buf "%-12s|%6d %3.f%%|%7.1f %5.1f %3.0f%%|%7.1f %5.1f %3.0f%%|%5d %3.0f%%\n"
-        (brandstr)
-      stats_by_brand.(i).brand_seen 
-        (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
-      ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
-      ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
-      (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
-      ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
-      ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
-      (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
-      stats_by_brand.(i).brand_banned 
-        (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
-  done
-  
+      incr counter;
+      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+      
+      
+      Printf.bprintf buf "
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\n"
+        
+        "ALL"
+        stats_all.brand_seen
+        "100"
+        stats_all.brand_filerequest
+        "100"
+        
+        (size_of_int64 stats_all.brand_download) 
+      "100" 
+        ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+      
+      (size_of_int64 stats_all.brand_upload) 
+      "100"
+        ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+      
+      stats_all.brand_banned 
+        (max 0.0 (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen)));
+    
+    end
+  else
+    begin
+      Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+      Printf.bprintf buf "      Client| seen      |  Downloads       |  Uploads         |  Banned\n";
+      Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
+      Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"
+        
+        
+        
+        
+        
+        "Total"
+        stats_all.brand_seen
+        ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+      ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+      stats_all.brand_banned 
+        (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen));
+      
+      for i=1 to brand_count-1 do
+        if brand_of_int i != Brand_server then (* dont print server stats *)
+          let brandstr = 
+            if brand_of_int i = Brand_mldonkey3 then 
+              "trusted mld"
+            else
+              brand_to_string (brand_of_int i) in
+          
+          Printf.bprintf buf "%-12s|%6d %3.f%%|%7.1f %5.1f %3.0f%%|%7.1f %5.1f %3.0f%%|%5d %3.0f%%\n"
+            (brandstr)
+          stats_by_brand.(i).brand_seen 
+            (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+          ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
+          ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+          (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
+          ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
+          ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
+          (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
+          stats_by_brand.(i).brand_banned 
+            (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
+      done
+    end
+    
 let _ =
   register_commands 
     [
@@ -346,14 +394,10 @@ let _ =
 
    "cs", Arg_none (fun o ->
 	let buf = o.conn_buf in
-	  new_print_stats buf;
+	  new_print_stats buf o;
 	  ""
-   ), ":\t\t\t\tshow table of download/upload by clients brand";
-   "cshtml", Arg_none (fun o ->
-	let buf = o.conn_buf in
-	  new_print_stats_html buf;
-	  ""
-   ), ":\t\t\t\tshow table of download/upload by clients brand";
+    ), ":\t\t\t\tshow table of download/upload by clients brand";
+    
    "reload_messages", Arg_none (fun o ->
 	begin
 

@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2002/02/18: Simon (v 2.02-13)
+  - Upgraded to lattest html_mods
+  - GUI: 
+       * You can now pass the full path to a file filled with urls (ed2k://) in 
+         the ed2k:// entry
+
+2002/02/18: Simon (v 2.02-12)
+  - fixed bug exiting on set_request_result not found.
+
 2002/02/18: Simon  (release unstable-2-02-11)
   - DonkeyServers: fixed a bug with socket Lifetimes
   - Fixed bugs in gpattern and vm commands

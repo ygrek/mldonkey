@@ -33,7 +33,8 @@ open BasicSocket
 open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
-
+open CommonInteractive
+  
 let execute_command arg_list output cmd args =
   let buf = output.conn_buf in
   try
@@ -122,9 +123,12 @@ let commands = [
         match args with
           [arg] ->
             let num = int_of_string arg in
-            if o.conn_output = HTML then begin
-                Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>\\<br\\>";
-                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks %d\\>Verify Chunks\\</a\\>\\<br\\>" num;
+            if o.conn_output = HTML then
+              begin
+                Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>  ";
+                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks+%d\\>Verify Chunks\\</a\\>  " num;
+                if !!html_mods then
+                  Printf.bprintf  buf "\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\<br\\>\n";
               end;
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
@@ -198,19 +202,23 @@ let commands = [
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %s bytes uploaded\n" 
-          (Int64.to_string !upload_counter);
+        
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
+        else Printf.bprintf buf "Upload statistics:\n";
+        Printf.bprintf buf "Total: %s uploaded\n" 
+          (size_of_int64 !upload_counter);
+        
         let list = ref [] in
         shared_iter (fun s ->
             let impl = as_shared_impl s in
             list := impl :: !list
         );
         
-        if use_html_mods o  then 
+        
+        if o.conn_output = HTML && !!html_mods then 
           Printf.bprintf buf "\\<table class=\\\"upstats\\\"\\>\\<tr\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Requests\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Bytes\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Reqs\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Total\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>File\\</td\\>
 \\</tr\\>";
         
@@ -235,7 +243,7 @@ let commands = [
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
             class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
                   impl.impl_shared_requests
-                  (Int64.to_string impl.impl_shared_uploaded)
+                  (size_of_int64 impl.impl_shared_uploaded)
                 impl.impl_shared_codedname ;
               
               end
@@ -245,7 +253,8 @@ let commands = [
                 (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         
-        if use_html_mods o then Printf.bprintf buf "\\</table\\>";
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
+        
         
         "done"
     ), ":\t\t\t\tstatistics on upload";
@@ -402,17 +411,19 @@ let commands = [
         List.iter (fun (name, q) ->
             if o.conn_output = HTML then
               begin        
-           
-                if !!html_mods then
-                Printf.bprintf buf 
-                  "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>  " 
-                  (Url.encode name) name
-				else
-				Printf.bprintf buf 
-                "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
-                (Url.encode name) name; 
+                
+                if o.conn_output = HTML && !!html_mods then  
+                  Printf.bprintf buf 
+                    "\\<a href=/submit\\?custom=%s target=\\\"$O\\\"\\> %s \\</a\\>  " 
+                    (Url.encode name) name
+                
+                else
+                  Printf.bprintf buf 
+                    "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
+                    (Url.encode name) name;
               end
             else
+              
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; ""
     ), ":\t\t\tview custom queries";
@@ -518,26 +529,27 @@ let commands = [
         let buf = o.conn_buf in       
         let nb_servers = ref 0 in
         
-        if use_html_mods o  then 
+        if o.conn_output = HTML && !!html_mods then 
           Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Files\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
 ";
+        
         Intmap.iter (fun _ s ->
             try
               incr nb_servers;
-              if use_html_mods o then begin
+              if o.conn_output = HTML && !!html_mods then 
+                begin
                   if (!nb_servers mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
                   else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
                 end;
-              
               
               server_print s o
             with e ->
@@ -546,7 +558,7 @@ let commands = [
         ) !!servers;
         
         if use_html_mods o then Printf.bprintf buf "\\</table\\>";
-
+        
         
         Printf.sprintf "Servers: %d known\n" !nb_servers
     ), ":\t\t\t\t\tlist all known servers";
@@ -592,14 +604,94 @@ let commands = [
         "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
     
+    "friend_add", Arg_one (fun num o ->
+        let num = int_of_string num in
+        let c = client_find num in
+        friend_add c;
+        "Added Friend"
+    ), "<num> :\t\t\t\tadd friend <client#>";
+    
+    "friend_remove", Arg_one (fun num o ->
+        let num = int_of_string num in
+        let c = client_find num in
+        friend_remove c;
+        "Removed Friend"
+    ), "<num> :\t\t\t\tremove friend <client#>";
+    
+    "friend_removeall", Arg_none (fun o ->
+        List.iter (fun c ->
+            friend_remove c
+        ) !!friends;
+        "Removed All Friends"
+    ), ":\t\t\tremove all friends";
+    
+    
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
+        
+        if o.conn_output = HTML && !!html_mods then 
+          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>
+\\<a href=\\\"javascript:window.location.reload()\\\"\\>Refresh\\</a\\>
+\\<table class=\\\"friends\\\" cellspacing=0 cellpadding=0\\>
+\\<td title=\\\"Remove\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Remove\\</td\\>
+\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+\\<td title=\\\"Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Files\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>State\\</td\\>
+\\</tr\\>";
+        
+        let counter = ref 0 in
         List.iter (fun c ->
             let i = client_info c in
             let n = network_find_by_num i.client_network in
-            Printf.bprintf buf "[%s %d] %s" n.network_name
-              i.client_num i.client_name
+            if o.conn_output = HTML && !!html_mods then 
+              begin
+                
+                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+                
+                incr counter;
+                Printf.bprintf buf "
+			\\<td title=\\\"Remove Friend\\\"  
+			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_remove+%d'\\\" 
+			class=\\\"srb\\\"\\>Remove\\</td\\>            
+			\\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>            
+			\\<td title=\\\"Name (Click to View Files)\\\"  
+			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+			class=\\\"sr\\\"\\>%s\\</td\\>            
+	 		\\<td title=\\\"Click to view Files\\\"  
+            onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+            onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+            onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+            class=\\\"sr\\\"\\>%s\\</td\\>
+			\\</tr\\>"
+                  i.client_num
+                  n.network_name
+                  i.client_num
+                  i.client_name
+                  i.client_num
+                  
+                  (let rs = client_files c in
+                  
+                  if (List.length rs) > 0 then Printf.sprintf "%d Files Listed" (List.length rs)
+                  else 
+                    string_of_connection_state (client_state c) 
+                
+                )
+              
+              end
+            
+            else 
+              Printf.bprintf buf "[%s %d] %s" n.network_name
+                i.client_num i.client_name
         ) !!friends;
+        
+        if o.conn_output = HTML && !!html_mods then 
+          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<A HREF=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_removeall'\\\"\\>Remove All Friends\\</A\\>\\</div\\>";
+        
         ""
     ), ":\t\t\tdisplay all friends";
     
@@ -615,13 +707,49 @@ let commands = [
                   ) rs in
                 CommonInteractive.last_results := [];
                 Printf.bprintf buf "Reinitialising download selectors\n";
-                print_results buf o rs;
+                DriverInteractive.print_results buf o rs;
                 
                 ()
               end
         ) !!friends;
         ""), " <friend_num> :\tPrint friend files";
     
+    
+    "bw_stats", Arg_none (fun o -> 
+        let buf = o.conn_buf in
+        if o.conn_output = HTML && !!html_mods then 
+          begin
+            
+            Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
+            Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
+            Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
+            Printf.bprintf buf "\\<TD\\>\\<TABLE border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>DL: %.1f kbs (%d|%d)\\</td\\>
+\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>UL: %.1f kbs (%d|%d)\\</td\\>
+\\<td class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
+              
+              (( (float_of_int !saved_download_udp_rate) +. (float_of_int !saved_download_tcp_rate)) /. 1024.0)
+            !saved_download_udp_rate
+              !saved_download_tcp_rate
+              (( (float_of_int !saved_upload_udp_rate) +. (float_of_int !saved_upload_tcp_rate)) /. 1024.0)
+            !saved_upload_udp_rate
+              !saved_upload_tcp_rate
+              !nshared_files
+              (size_of_int64 !upload_counter);
+            
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+          end
+        
+        else 
+          Printf.bprintf buf "DL: %d bps ( %d + %d ) | UL: %d bps ( %d + %d ) [Average bps (UDP+TCP)]"
+            (!saved_download_udp_rate + !saved_download_tcp_rate)
+          !saved_download_udp_rate
+            !saved_download_tcp_rate
+            (!saved_upload_udp_rate + !saved_upload_tcp_rate)
+          !saved_upload_udp_rate
+            !saved_upload_tcp_rate;
+        ""
+    ), ":\t\t\t\tprint current bandwidth stats";
     
     "mem_stats", Arg_none (fun o -> 
         let buf = o.conn_buf in

@@ -37,24 +37,30 @@ let rec dollar_escape with_frames s =
       if escaped then
         match c with
         | 'O' -> if with_frames then
-              Buffer.add_string b " target=\"output\""; false
+              if !!html_mods then Buffer.add_string b "output"
+              else Buffer.add_string b " target=\"output\""; 
+              false
         | 'S' -> if with_frames then
-              Buffer.add_string b " target=\"fstatus\""; false
+              if !!html_mods then Buffer.add_string b "fstatus"
+              else Buffer.add_string b " target=\"fstatus\"";
+              false
         | 'P' -> if with_frames then
-              Buffer.add_string b " target=\"_parent\""; false
+              if !!html_mods then Buffer.add_string b "_parent"
+              else Buffer.add_string b " target=\"_parent\""; 
+              false
         | 'G' -> false
         | _ -> 
             try
               Buffer.add_string b (dollar_escape with_frames
                   (CommonNetwork.escape_char c));
               false
-              
+            
             with _ ->
                 Buffer.add_char b '$'; Buffer.add_char b c; false
       else
       if c = '$' then true else
         (Buffer.add_char b c; false)) s
-
+  
 let eval auth cmd options =
   let buf = options.conn_buf in
   let l = String2.tokens cmd in
@@ -314,7 +320,7 @@ open Http_server
 
 let add_simple_commands buf =
   Buffer.add_string buf (if !!html_mods then
-      !!CommonMessages.web_common_header_mods
+      !!CommonMessages.web_common_header_mods2
     else
       !!CommonMessages.web_common_header_old)
 
@@ -341,13 +347,13 @@ let html_open_page buf t r open_body =
   
   if !CommonInteractive.display_vd then begin
       Buffer.add_string buf 
-        (if !!html_mods then !!CommonMessages.download_html_header_mods
+        (if !!html_mods then !!CommonMessages.download_html_header_mods2
         else !!CommonMessages.download_html_header_old);
       Printf.bprintf buf "<meta http-equiv=Refresh
           content=\"%d\">" !!vd_reload_delay;
     end else 
     Buffer.add_string buf !!(if !!html_mods then 
-        CommonMessages.html_header_mods else CommonMessages.html_header_old);
+        CommonMessages.html_header_mods2 else CommonMessages.html_header_old);
   
   Buffer.add_string buf "</HEAD>\n";
   if open_body then Buffer.add_string buf "<BODY>\n";    
@@ -374,7 +380,7 @@ let http_handler options t r =
         | "/commands.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!(if !!html_mods then
-                CommonMessages.web_common_header_mods
+                CommonMessages.web_common_header_mods2
               else
                 CommonMessages.web_common_header_old)
         | "/" | "/index.html" -> 
@@ -383,12 +389,14 @@ let http_handler options t r =
                 if !!html_mods then
                   
                   Printf.bprintf buf "
-                  <frameset src=\"index\" rows=\"%d,25,*\">
+			 <frameset src=\"index\" rows=\"%d,25,*\">
                   <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/commands.html\">
                   <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/noframe.html\">
-                  <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
+               <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height
+                
                 else
+                  
                   
                   
                   Printf.bprintf buf "
@@ -406,10 +414,10 @@ let http_handler options t r =
             CommonSearch.complex_search buf
         | "/noframe.html" -> 
             html_open_page buf t r true
-
+        
         | "/oneframe.html" ->
             html_open_page buf t r true;
-	    Buffer.add_string buf !!motd_html
+            Buffer.add_string buf !!motd_html
         
         | "/filter" ->
             html_open_page buf t r true;
@@ -476,7 +484,7 @@ let http_handler options t r =
                         let num = int_of_string value in 
                         let r = result_find num in
                         result_download r [] false;
-
+                        
                         let module M = CommonMessages in
                         Gettext.buftext buf M.download_started num
                       with  e -> 
@@ -488,8 +496,8 @@ let http_handler options t r =
                 | _ -> ()
             ) r.get_url.Url.args;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
-            
-            
+        
+        
         | "/files" ->
             
             List.iter (fun (arg, value) ->
@@ -510,10 +518,15 @@ let http_handler options t r =
                     begin
                       match value with
                       | "Percent" -> options.conn_sortvd <- ByPercent
+                      | "%" -> options.conn_sortvd <- ByPercent
                       | "File" -> options.conn_sortvd <- ByName
                       | "Downloaded" -> options.conn_sortvd <- ByDone
+                      | "DLed" -> options.conn_sortvd <- ByDone
                       | "Size" -> options.conn_sortvd <- BySize
                       | "Rate" -> options.conn_sortvd <- ByRate
+                      | "ETA" -> options.conn_sortvd <- ByETA
+                      | "Age" -> options.conn_sortvd <- ByAge
+                      | "Last" -> options.conn_sortvd <- ByLast
                       | _ -> ()
                     end
                 | _ -> 
@@ -521,8 +534,8 @@ let http_handler options t r =
                     print_newline ();
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
-            DriverInteractive.display_file_list b options;
             
+            DriverInteractive.display_file_list b options;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 

@@ -1,6 +1,11 @@
 TODO list for client
 ====================
 
+When an error occur during GUI encoding/decoding, dump the message and the
+protocol used.
+
+vd <num> jump to 100% of cpu
+
 >  recompute_ready_sources on sources not implemented
 >  Error: setting result to no request
 

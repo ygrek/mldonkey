@@ -654,32 +654,7 @@ let commands = [
         ) files;
         "done"
     ), ":\t\t\t\trecover lost files from temp directory";
-
-(*
     
-    "upstats", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %s bytes uploaded\n" 
-          (Int64.to_string !upload_counter);
-        let list = ref [] in
-        Hashtbl.iter (fun _ file ->
-            match file.file_shared with
-              None -> ()
-            | Some file ->
-                list := file :: !list
-        ) files_by_md4;
-        let list = Sort.list (fun f1 f2 ->
-              f1.impl_shared_requests >= f2.impl_shared_requests)
-          !list in
-        List.iter (fun impl ->
-            Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
-              impl.impl_shared_codedname impl.impl_shared_requests
-              (Int64.to_string impl.impl_shared_uploaded);
-        ) list;
-        "done"
-    ), ":\t\t\tstatistics on upload";
-*)
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeySources.print_sources buf;
@@ -695,38 +670,43 @@ let commands = [
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
         
-        if Fifo.length upload_clients > 0 then
+        
+        
+        if o.conn_output = HTML && !!html_mods then
           
           begin
-            if use_html_mods o then
+            
+            
+            if Fifo.length upload_clients > 0 then
               
-              Printf.bprintf buf "\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
+              begin
+                
+                
+                Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
 \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
 \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
-\\<td title=\\\"Client Type\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.T\\</td\\>
+\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
 \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</TR\\>
 ";
-            
-            
-            let counter = ref 0 in
-            
-            Fifo.iter (fun c ->
                 
-                incr counter;
                 
-                if use_html_mods o then begin
+                let counter = ref 0 in
+                
+                Fifo.iter (fun c ->
+                    
+                    incr counter;
+                    
                     if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
                     else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-                  end;                
-                
-                client_print (as_client c.client_client) o;
-                
-                if use_html_mods o then begin
+                    
+                    
+                    client_print (as_client c.client_client) o;
+                    
                     begin
                       match c.client_sock with
                         Some sock -> Printf.bprintf buf "\\<td
@@ -734,32 +714,43 @@ let commands = [
                         class=\\\"sr\\\"\\>%s\\</td\\>" 
                             (Ip.to_string (peer_ip sock)) (gbrand_to_string c.client_brand) 
                       | None -> Printf.bprintf buf "\\<td
-                        class=\\\"srh\\\"\\>\\</td\\>
+                        class=\\\"sr\\\"\\>\\</td\\>
                         \\<td class=\\\"sr\\\"\\>\\</td\\>" 
                     end;
                     
                     Printf.bprintf buf "\\<td
                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
-                        class=\\\"sr ar\\\"\\>%s\\</td\\>" (Int64.to_string
-                        c.client_downloaded) (Int64.to_string c.client_uploaded);
+                        class=\\\"sr ar\\\"\\>%s\\</td\\>" 
+                      (size_of_int64 c.client_downloaded) 
+                    (size_of_int64 c.client_uploaded);
                     
                     (match c.client_upload with
                         Some cu ->
                           Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" (file_best_name cu.up_file)
                       | None -> ());
                     
-                    
                     Printf.bprintf buf "\\</tr\\>"
-                  end else
-                  Printf.bprintf buf "\n"
+                ) upload_clients;
+                Printf.bprintf buf "\\</table\\>";
+              end;
+            
+            Printf.bprintf buf "\nTotal upload slots: %d" (Fifo.length upload_clients);
+            Printf.bprintf buf "\\</div\\>";
+            ""
+          end
+        else
+          begin
+            
+            Fifo.iter (fun c ->
+                Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
+                client_print (as_client c.client_client) o;
             ) upload_clients;
-            if use_html_mods o then
-              Printf.bprintf buf "\\</table\\>";
-          end;
+            
+            Printf.sprintf "\nTotal upload slots: %d" 
+              (Fifo.length upload_clients);        
+          end
+          
         
-        
-        Printf.sprintf "\nTotal upload slots: %d" 
-          (Fifo.length upload_clients);
     ), ":\t\t\t\tshow users currently uploading";
     
     "xs", Arg_none (fun o ->
@@ -1112,120 +1103,157 @@ print_newline ();
         if last < 1 then "never" else string_of_date last)
       (string_of_date (connection_next_try c.client_connection_control))
   );
-    
+  
   
   client_ops.op_client_bprint_html <- (fun buf c file ->
-  
-  	begin
-  
-  	try 
-  
-  	Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>   
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-  \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-  \\<td class=\\\"sr\\\"\\>" 
-  		(client_num c)
+      
+      begin
+        
+        try 
           
-  		(match c.client_block with
-            None -> Printf.sprintf "" 
-          | Some b -> Printf.sprintf "%s" ( 
-                 let qfiles = c.client_file_queue in
-                 let (qfile, qchunks) =  List.hd qfiles in
-                 if (qfile = (as_file_impl file).impl_file_val) then 
-                  "A" else "";)
+          Printf.bprintf buf "
+\\<TD title=\\\"Add as Friend\\\" class=\\\"srb ar\\\" 
+onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr \\\"\\>" 
+            
+            (client_num c)
+          (client_num c)
+          
+          (match c.client_block with
+              None -> Printf.sprintf "" 
+            | Some b -> Printf.sprintf "%s" ( 
+                  let qfiles = c.client_file_queue in
+                  let (qfile, qchunks) =  List.hd qfiles in
+                  if (qfile = (as_file_impl file).impl_file_val) then 
+                    "A" else "";)
           ) 
           
+          (
+            short_string_of_connection_state (client_state c) )
+          
+          
           c.client_name 
-  		(gbrand_to_string c.client_brand)
-  		(match c.client_kind with 
-  			  Indirect_location _ -> Printf.sprintf "I"
-      		| Known_location (ip,port) -> Printf.sprintf "D")
-  
-          (match c.client_sock with
-            Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
-           | None -> Printf.sprintf "None" 
-  		) 
-  		(Int64.to_string c.client_uploaded) 
-  		(Int64.to_string c.client_downloaded)
-  		c.client_rank
-  		c.client_score
-          (let last = c.client_connection_control.control_last_ok in
-          if last < 1 then "never" else (
-                    string_of_int (((last_time ()) - last) / 60)
-                    ) 
-          )
-          (let last = c.client_connection_control.control_last_try in
-          if last < 1 then "never" else (
-                    string_of_int (((last_time ()) - last) / 60)
-                    ) 
-          )
-          (let next = (connection_next_try c.client_connection_control) in
-              string_of_int ((next - (last_time ())) / 60)
-          );
-  
-  (* why can duplicates exist in c.client_file_queue? i dunno, but they do *)
-  (* find a better way to empty an array... *)
+            (gbrand_to_string c.client_brand)
+          (if c.client_overnet then "T" else "F") 
+          (match c.client_kind with 
+              Indirect_location _ -> Printf.sprintf "I"
+            | Known_location (ip,port) -> Printf.sprintf "D")
           
           (
-          let qfiles = c.client_file_queue in
-          let found = ref 0 in
-            List.iter (fun (qfile, qchunks) ->
-                    if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
-                    begin
-                    incr found;
-  		            Array.iter (fun b ->
-                          if b = true then Buffer.add_string buf "1" 
-  						            else Buffer.add_string buf "0") qchunks
-                    end;
-           ) qfiles
-  
-          );
-  
-  		Printf.bprintf buf "\\</td\\>"
+            
+            try
+              
+              match c.client_sock with
+                Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
+              | None -> (match c.client_kind with 
+                      Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                    | Indirect_location _ -> Printf.sprintf "None"
+                  )
+            
+            with _ -> 
+                
+                try 
+                  match c.client_kind with 
+                    Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                  | Indirect_location _ -> Printf.sprintf "None"
+                with _ -> ""
+          ) 
           
-  	with _ -> 
-  		Printf.bprintf buf "\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>
-          \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-          \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-          \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-          \\<td class=\\\"sr\\\"\\>\\</td\\>"
-          c.client_name 
-          (let last = c.client_connection_control.control_last_ok in
-          if last < 1 then "never" else (
-                    string_of_int (((last_time ()) - last) / 60)
-                    ) 
+          
+          (size_of_int64 c.client_uploaded) 
+          (size_of_int64 c.client_downloaded)
+          c.client_rank
+            c.client_score
+            (let last = c.client_connection_control.control_last_ok in
+            if last < 1 then "never" else (
+                string_of_int (((last_time ()) - last) / 60)
+              ) 
           )
           (let last = c.client_connection_control.control_last_try in
-          if last < 1 then "never" else (
-                    string_of_int (((last_time ()) - last) / 60)
-                    ) 
+            if last < 1 then "never" else (
+                string_of_int (((last_time ()) - last) / 60)
+              ) 
           )
           (let next = (connection_next_try c.client_connection_control) in
-              string_of_int ((next - (last_time ())) / 60)
+            string_of_int ((next - (last_time ())) / 60)
           )
+          
+          (if c.client_has_a_slot then "T" else "F")
+          (if c.client_banned then "T" else "F")
+          c.client_requests_sent
+            c.client_requests_received
+            (((last_time ()) - c.client_connect_time) / 60)
+          (Md4.to_string c.client_md4);
+
+(* why can duplicates exist in c.client_file_queue? i dunno, but they do *)
+(* find a better way to empty an array... *)
+          
+          (
+            let qfiles = c.client_file_queue in
+            let found = ref 0 in
+            List.iter (fun (qfile, qchunks) ->
+                if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
+                  begin
+                    incr found;
+                    Array.iter (fun b ->
+                        if b then Buffer.add_string buf "1" 
+                        else Buffer.add_string buf "0") qchunks
+                  end;
+            ) qfiles
+          
+          );
+          
+          Printf.bprintf buf "\\</td\\>"
+        
+        with _ -> 
+            Printf.bprintf buf "'\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
+        \\<td class=\\\"sr\\\"\\>\\</td\\>"
+      end;
+  )
   
-  	end;
-    )
-  
+
 
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
