@@ -391,6 +391,7 @@ let get_host_state proto s pos =
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
   | 9 -> NotConnected (BasicSocket.Closed_by_user,0)
+  | 10 -> Connected (-2) 
   | _ -> assert false), pos+1
   else
   match get_uint8 s pos with
@@ -408,6 +409,7 @@ let get_host_state proto s pos =
   | 8 -> BlackListedHost, pos+1
   | 9 -> NotConnected (BasicSocket.Closed_by_user,
      get_int s (pos+1)), pos+5
+  | 10 -> Connected (-2), pos+1
   | _ -> assert false
 
 

@@ -34,8 +34,8 @@ type peer =
   { 
     peer_md4 : Md4.t;
     mutable peer_ip : Ip.t;
-    peer_port : int;
-    peer_kind : int;
+    mutable peer_port : int;
+    mutable peer_kind : int;
     mutable peer_last_msg : int;
   }
   

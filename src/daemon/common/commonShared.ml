@@ -133,11 +133,16 @@ let new_shared dirname prio filename fullname =
 	dirnames_prio := (name, prio) :: !dirnames_prio;
         name in
   let codedname = Filename.concat dirname filename in
-(*  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
-dirname filename fullname codedname; lprint_newline (); *)
+  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
+    dirname filename fullname codedname; lprint_newline (); 
+
   let size = Unix32.getsize fullname in
   incr files_scanned;
   files_scanned_size := Int64.add !files_scanned_size size;
+  if Unix2.is_directory fullname then begin
+    lprintf "new_shared: %s is directory! Skipped network.share\n" fullname;
+  end
+  else 
   CommonNetwork.networks_iter (fun n -> 
       CommonNetwork.network_share n fullname codedname size)
 

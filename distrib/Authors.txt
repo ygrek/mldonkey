@@ -28,6 +28,9 @@ Mike Jones (html_mods)
 Beedauchon
 mld_thomas
 Soulburner
+Denis Fortin (Hightime)
+Spiralvoice
+Zet
 
 Fasttrack plugin from giFT-fasttrack:
 Markus Kern

@@ -4,6 +4,11 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/04: Fabrice (version 2.5.4+8, tag release-2-5-4-8)
+  * Bittorrent:
+     * New version of uploaders choice.
+  * Applied patches #2571, #2579, #2580 (is patch #2578 reversed ?)
+
 2004/02/04: Fabrice (version 2.5.4+7)
   * Bittorent:
      * Fixed upload for seeded files, and probably some other bugs.

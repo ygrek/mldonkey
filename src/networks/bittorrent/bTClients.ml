@@ -134,13 +134,15 @@ let connect_tracker file url event f =
 *)
 let recompute_uploaders () =
   
-  next_uploaders := choose_best_downloaders 
-    (List.filter 
-      (fun f -> 
-        match file_state f with
-          FileDownloading | FileShared -> true
-        | _ -> false ) 
+  next_uploaders := choose_best_downloaders
+    (List.filter
+      (fun f ->  file_state f = FileDownloading )
     !current_files );
+  
+  next_uploaders := !next_uploaders @ (choose_best_uploaders
+      (List.filter
+        (fun f ->  file_state f = FileShared )
+      !current_files )); 
 
 (*Send choke if a current_uploader is not in next_uploaders*)      
   List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
