@@ -20,8 +20,7 @@ static void Encode PROTO_LIST
   ((unsigned char *, UINT4 *, unsigned int));
 static void Decode PROTO_LIST
   ((UINT4 *, unsigned char *, unsigned int));
-static void MD4_memcpy PROTO_LIST ((POINTER, POINTER, unsigned int));
-static void MD4_memset PROTO_LIST ((POINTER, int, unsigned int));
+
 
 static unsigned char PADDING[64] = {
   0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -94,7 +93,7 @@ unsigned int inputLen;                     /* length of input block */
   /* Transform as many times as possible.
    */
   if (inputLen >= partLen) {
-    MD4_memcpy
+    memcpy
       ((POINTER)&context->buffer[index], (POINTER)input, partLen);
     MD4Transform (context->state, context->buffer);
 
@@ -107,7 +106,7 @@ unsigned int inputLen;                     /* length of input block */
     i = 0;
 
   /* Buffer remaining input */
-  MD4_memcpy
+  memcpy
     ((POINTER)&context->buffer[index], (POINTER)&input[i],
      inputLen-i);
 }
@@ -138,7 +137,7 @@ MD4_CTX *context;                                        /* context */
 
   /* Zeroize sensitive information.
    */
-  MD4_memset ((POINTER)context, 0, sizeof (*context));
+  memset ((POINTER)context, 0, sizeof (*context));
 
 }
 
@@ -213,7 +212,7 @@ unsigned char block[64];
 
   /* Zeroize sensitive information.
    */
-  MD4_memset ((POINTER)x, 0, sizeof (x));
+  memset ((POINTER)x, 0, sizeof (x));
 }
 
 /* Encodes input (UINT4) into output (unsigned char). Assumes len is
@@ -251,32 +250,6 @@ unsigned int len;
       (((UINT4)input[j+2]) << 16) | (((UINT4)input[j+3]) << 24);
 }
 
-/* Note: Replace "for loop" with standard memcpy if possible.
- */
-static void MD4_memcpy (output, input, len)
-POINTER output;
-POINTER input;
-unsigned int len;
-{
-  unsigned int i;
-
-  for (i = 0; i < len; i++)
-    output[i] = input[i];
-}
-
-/* Note: Replace "for loop" with standard memset if possible.
- */
-static void MD4_memset (output, value, len)
-POINTER output;
-int value;
-unsigned int len;
-{
-  unsigned int i;
-
-  for (i = 0; i < len; i++)
-    ((char *)output)[i] = (char)value;
-}
-
 /****************  OCAML PART ************/
 
 #include "caml/mlvalues.h"
@@ -298,6 +271,9 @@ value md4_unsafe_string(value digest_v, value string_v, value len_v)
 }
 
 #include <stdio.h>
+
+#define BUFFER_LEN 8192
+
 value md4_unsafe_file (value digest_v, value filename_v)
 {
   char *filename  = String_val(filename_v);
@@ -305,14 +281,14 @@ value md4_unsafe_file (value digest_v, value filename_v)
   FILE *file;
   MD4_CTX context;
   int len;
-  unsigned char buffer[1024];
+  unsigned char buffer[BUFFER_LEN];
 
   if ((file = fopen (filename, "rb")) == NULL)
     raise_not_found();
 
   else {
     MD4Init (&context);
-    while ((len = fread (buffer, 1, 1024, file)))
+    while ((len = fread (buffer, 1, BUFFER_LEN, file)))
       MD4Update (&context, buffer, len);
     MD4Final (digest, &context);
 
@@ -320,3 +296,43 @@ value md4_unsafe_file (value digest_v, value filename_v)
   }
   return Val_unit;
 }
+
+#ifdef HAS_UNISTD
+#include <unistd.h>
+#else
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+#endif
+
+value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
+{
+  int fd = Int_val(fd_v);
+  long pos = Int32_val(pos_v);
+  long len = Int32_val(len_v);
+  unsigned char *digest = String_val(digest_v);
+  FILE *file;
+  MD4_CTX context;
+  int nread;
+  unsigned char buffer[BUFFER_LEN];
+
+  MD4Init (&context);
+  if(pos != 0)     lseek(fd, pos, SEEK_SET);
+  while (len>0){
+    int max_read = BUFFER_LEN > len ? len : BUFFER_LEN;
+
+    nread = fread (buffer, 1, max_read, file);
+
+    if(nread == 0){
+      MD4Final (digest, &context);
+
+      return Val_unit;
+    }
+
+    MD4Update (&context, buffer, nread);
+  }
+  MD4Final (digest, &context);
+
+  return Val_unit;
+}
+

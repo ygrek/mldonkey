@@ -563,7 +563,7 @@ print_newline ();
                 printf_char '#'; 
                 
                 let fd = file_fd file in
-                ignore (Mmap.seek32 fd begin_pos Unix.SEEK_SET);
+                ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
                 really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
 (*
                 let mmap_pos = Int32.mul (

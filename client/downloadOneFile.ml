@@ -360,10 +360,13 @@ let verify_chunk file i =
   let end_pos = chunk_end file i in
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
+  let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
+  (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in
   let new_md4 = Mmap.md4_sub mmap Int32.zero len in
   Mmap.munmap mmap;
+  *)
   if new_md4 = md4 then begin
       must_share_file file;
       PresentVerified
@@ -668,8 +671,6 @@ let verify_chunks file =
   file.file_absent_chunks <- List.rev (find_absents file);
   compute_size file
 
-external ftruncate32 : Unix.file_descr -> int32 -> unit = "ml_truncate32"
-  
 let set_file_size file sz =
   
   if sz <> Int32.zero then begin
@@ -679,7 +680,7 @@ let set_file_size file sz =
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
       file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
-      ftruncate32 (file_fd file) sz;
+      Unix32.ftruncate32 (file_fd file) sz;
       
       file.file_all_chunks <- String.make file.file_nchunks '0';
       
@@ -861,7 +862,7 @@ let check_files_md4s timer =
               Printf.printf "Shared file doesn't exist"; print_newline ();
               raise Not_found;
             end;
-          if Mmap.getsize32 sh.shared_name <> sh.shared_size then begin
+          if Unix32.getsize32 sh.shared_name <> sh.shared_size then begin
               Printf.printf "Bad shared file size" ; print_newline ();
               raise Not_found;
             end;
@@ -869,7 +870,9 @@ let check_files_md4s timer =
           let end_pos = if end_pos > sh.shared_size then sh.shared_size
             else end_pos in
           let len = Int32.sub end_pos sh.shared_pos in
-          
+
+          let new_md4 = Md4.digest_subfile (shared_fd sh) sh.shared_pos len in
+          (*
           let mmap = try
               Mmap.mmap sh.shared_name (shared_fd sh) sh.shared_pos len 
             with e -> 
@@ -878,7 +881,9 @@ let check_files_md4s timer =
                 raise e
           in
           let new_md4 = Mmap.md4_sub mmap Int32.zero len in
-          Mmap.munmap mmap;
+Mmap.munmap mmap;
+          *)
+  
           sh.shared_list <- new_md4 :: sh.shared_list;
           sh.shared_pos <- end_pos;
           if end_pos = sh.shared_size then begin
@@ -928,7 +933,7 @@ let check_files_md4s timer =
       open Unix
       
 
-let file_size filename = Mmap.getsize32 filename
+let file_size filename = Unix32.getsize32 filename
 
 let rec add_shared_files dirname =
   let files = Unix2.list_directory dirname in

@@ -1,0 +1,329 @@
+cdk/file.cmo: cdk/string2.cmi cdk/file.cmi 
+cdk/file.cmx: cdk/string2.cmx cdk/file.cmi 
+cdk/filename2.cmo: cdk/string2.cmi cdk/filename2.cmi 
+cdk/filename2.cmx: cdk/string2.cmx cdk/filename2.cmi 
+cdk/filepath.cmo: cdk/filepath.cmi 
+cdk/filepath.cmx: cdk/filepath.cmi 
+cdk/genlex2.cmo: cdk/genlex2.cmi 
+cdk/genlex2.cmx: cdk/genlex2.cmi 
+cdk/hashtbl2.cmo: cdk/hashtbl2.cmi 
+cdk/hashtbl2.cmx: cdk/hashtbl2.cmi 
+cdk/list2.cmo: cdk/list2.cmi 
+cdk/list2.cmx: cdk/list2.cmi 
+cdk/netbase.cmo: cdk/netbase.cmi 
+cdk/netbase.cmx: cdk/netbase.cmi 
+cdk/printexc.cmo: cdk/printexc.cmi 
+cdk/printexc.cmx: cdk/printexc.cmi 
+cdk/string2.cmo: cdk/string2.cmi 
+cdk/string2.cmx: cdk/string2.cmi 
+cdk/sysenv.cmo: cdk/sysenv.cmi 
+cdk/sysenv.cmx: cdk/sysenv.cmi 
+configwin/configwin_ihm.cmo: configwin/configwin_messages.cmo \
+    configwin/configwin_types.cmo 
+configwin/configwin_ihm.cmx: configwin/configwin_messages.cmx \
+    configwin/configwin_types.cmx 
+configwin/configwin.cmo: configwin/configwin_ihm.cmo \
+    configwin/configwin_types.cmo 
+configwin/configwin.cmx: configwin/configwin_ihm.cmx \
+    configwin/configwin_types.cmx 
+mp3tagui/mp3_args.cmo: mp3tagui/mp3_messages.cmo 
+mp3tagui/mp3_args.cmx: mp3tagui/mp3_messages.cmx 
+mp3tagui/mp3_info.cmo: mp3tagui/mp3_info.cmi 
+mp3tagui/mp3_info.cmx: mp3tagui/mp3_info.cmi 
+mp3tagui/mp3_misc.cmo: mp3tagui/mp3_genres.cmo 
+mp3tagui/mp3_misc.cmx: mp3tagui/mp3_genres.cmx 
+mp3tagui/mp3.cmo: mp3tagui/mp3_args.cmo mp3tagui/mp3tagui.cmi 
+mp3tagui/mp3.cmx: mp3tagui/mp3_args.cmx mp3tagui/mp3tagui.cmx 
+mp3tagui/mp3_tag.cmo: mp3tagui/mp3_misc.cmo 
+mp3tagui/mp3_tag.cmx: mp3tagui/mp3_misc.cmx 
+mp3tagui/mp3tag.cmo: mp3tagui/mp3_genres.cmo mp3tagui/mp3_info.cmi \
+    mp3tagui/mp3_misc.cmo mp3tagui/mp3_tag.cmo mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tag.cmx: mp3tagui/mp3_genres.cmx mp3tagui/mp3_info.cmx \
+    mp3tagui/mp3_misc.cmx mp3tagui/mp3_tag.cmx mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tagui.cmo: mp3tagui/mp3_ui.cmi mp3tagui/mp3tagui.cmi 
+mp3tagui/mp3tagui.cmx: mp3tagui/mp3_ui.cmx mp3tagui/mp3tagui.cmi 
+mp3tagui/mp3_ui.cmo: configwin/configwin.cmo mp3tagui/mp3_genres.cmo \
+    mp3tagui/mp3_messages.cmo mp3tagui/mp3_misc.cmo mp3tagui/mp3tag.cmi \
+    mp3tagui/mp3_ui.cmi 
+mp3tagui/mp3_ui.cmx: configwin/configwin.cmx mp3tagui/mp3_genres.cmx \
+    mp3tagui/mp3_messages.cmx mp3tagui/mp3_misc.cmx mp3tagui/mp3tag.cmx \
+    mp3tagui/mp3_ui.cmi 
+mp3tagui/mp3tagui.cmi: mp3tagui/mp3tag.cmi 
+mp3tagui/mp3_ui.cmi: mp3tagui/mp3tag.cmi 
+lib/client.cmo: net/basicSocket.cmi lib/ip.cmi lib/md4.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_comm.cmi lib/options.cmi \
+    net/tcpClientSocket.cmi 
+lib/client.cmx: net/basicSocket.cmx lib/ip.cmx lib/md4.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_comm.cmx lib/options.cmx \
+    net/tcpClientSocket.cmx 
+lib/fifo.cmo: lib/fifo.cmi 
+lib/fifo.cmx: lib/fifo.cmi 
+lib/hole_tab.cmo: lib/hole_tab.cmi 
+lib/hole_tab.cmx: lib/hole_tab.cmi 
+lib/host.cmo: lib/host.cmi 
+lib/host.cmx: lib/host.cmi 
+lib/indexer.cmo: lib/indexer.cmi 
+lib/indexer.cmx: lib/indexer.cmi 
+lib/ip.cmo: lib/int32ops.cmo lib/ip.cmi 
+lib/ip.cmx: lib/int32ops.cmx lib/ip.cmi 
+lib/md4.cmo: lib/misc.cmo lib/md4.cmi 
+lib/md4.cmx: lib/misc.cmx lib/md4.cmi 
+lib/mmap.cmo: lib/md4.cmi lib/mmap.cmi 
+lib/mmap.cmx: lib/md4.cmx lib/mmap.cmi 
+lib/numset.cmo: lib/numset.cmi 
+lib/numset.cmx: lib/numset.cmi 
+lib/options.cmo: cdk/filename2.cmi cdk/filepath.cmi cdk/genlex2.cmi \
+    cdk/printexc.cmi cdk/sysenv.cmi lib/options.cmi 
+lib/options.cmx: cdk/filename2.cmx cdk/filepath.cmx cdk/genlex2.cmx \
+    cdk/printexc.cmx cdk/sysenv.cmx lib/options.cmi 
+lib/relay.cmo: net/basicSocket.cmi lib/host.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_server.cmo cdk/netbase.cmi \
+    net/tcpClientSocket.cmi net/tcpServerSocket.cmi net/udpSocket.cmi 
+lib/relay.cmx: net/basicSocket.cmx lib/host.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_server.cmx cdk/netbase.cmx \
+    net/tcpClientSocket.cmx net/tcpServerSocket.cmx net/udpSocket.cmx 
+lib/unix32.cmo: lib/unix32.cmi 
+lib/unix32.cmx: lib/unix32.cmi 
+lib/url.cmo: cdk/string2.cmi lib/url.cmi 
+lib/url.cmx: cdk/string2.cmx lib/url.cmi 
+net/basicSocket.cmo: cdk/printexc.cmi net/basicSocket.cmi 
+net/basicSocket.cmx: cdk/printexc.cmx net/basicSocket.cmi 
+net/http_server.cmo: lib/http_lexer.cmo lib/ip.cmi cdk/printexc.cmi \
+    cdk/string2.cmi net/tcpClientSocket.cmi net/tcpServerSocket.cmi \
+    lib/url.cmi net/http_server.cmi 
+net/http_server.cmx: lib/http_lexer.cmx lib/ip.cmx cdk/printexc.cmx \
+    cdk/string2.cmx net/tcpClientSocket.cmx net/tcpServerSocket.cmx \
+    lib/url.cmx net/http_server.cmi 
+net/tcpClientSocket.cmo: net/basicSocket.cmi cdk/printexc.cmi \
+    net/tcpClientSocket.cmi 
+net/tcpClientSocket.cmx: net/basicSocket.cmx cdk/printexc.cmx \
+    net/tcpClientSocket.cmi 
+net/tcpServerSocket.cmo: net/basicSocket.cmi cdk/printexc.cmi \
+    net/tcpServerSocket.cmi 
+net/tcpServerSocket.cmx: net/basicSocket.cmx cdk/printexc.cmx \
+    net/tcpServerSocket.cmi 
+net/udpSocket.cmo: net/basicSocket.cmi net/udpSocket.cmi 
+net/udpSocket.cmx: net/basicSocket.cmx net/udpSocket.cmi 
+net/http_server.cmi: lib/ip.cmi net/tcpClientSocket.cmi \
+    net/tcpServerSocket.cmi lib/url.cmi 
+net/tcpClientSocket.cmi: net/basicSocket.cmi 
+net/tcpServerSocket.cmi: net/basicSocket.cmi 
+net/tcpSocket.cmi: net/basicSocket.cmi 
+net/udpSocket.cmi: net/basicSocket.cmi 
+proto/files.cmo: lib/ip.cmi lib/md4.cmi proto/mftp.cmo 
+proto/files.cmx: lib/ip.cmx lib/md4.cmx proto/mftp.cmx 
+proto/mftp.cmo: lib/int32ops.cmo lib/ip.cmi lib/md4.cmi \
+    net/tcpClientSocket.cmi 
+proto/mftp.cmx: lib/int32ops.cmx lib/ip.cmx lib/md4.cmx \
+    net/tcpClientSocket.cmx 
+client/downloadClient.cmo: net/basicSocket.cmi client/downloadGlobals.cmi \
+    client/downloadIndexer.cmi client/downloadOneFile.cmi \
+    client/downloadOptions.cmi client/downloadServers.cmi \
+    client/downloadTypes.cmo lib/fifo.cmi gui/gui_types.cmo lib/ip.cmi \
+    lib/md4.cmi proto/mftp.cmo secret/mftp_client.cmo secret/mftp_comm.cmi \
+    secret/mftp_server.cmo lib/options.cmi cdk/printexc.cmi \
+    net/tcpClientSocket.cmi net/tcpServerSocket.cmi lib/unix32.cmi \
+    client/downloadClient.cmi 
+client/downloadClient.cmx: net/basicSocket.cmx client/downloadGlobals.cmx \
+    client/downloadIndexer.cmx client/downloadOneFile.cmx \
+    client/downloadOptions.cmx client/downloadServers.cmx \
+    client/downloadTypes.cmx lib/fifo.cmx gui/gui_types.cmx lib/ip.cmx \
+    lib/md4.cmx proto/mftp.cmx secret/mftp_client.cmx secret/mftp_comm.cmx \
+    secret/mftp_server.cmx lib/options.cmx cdk/printexc.cmx \
+    net/tcpClientSocket.cmx net/tcpServerSocket.cmx lib/unix32.cmx \
+    client/downloadClient.cmi 
+client/downloadFiles.cmo: net/basicSocket.cmi client/downloadClient.cmi \
+    client/downloadGlobals.cmi client/downloadIndexer.cmi \
+    client/downloadOneFile.cmi client/downloadOptions.cmi \
+    client/downloadServers.cmi client/downloadTypes.cmo lib/fifo.cmi \
+    gui/gui_types.cmo lib/ip.cmi cdk/list2.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_comm.cmi secret/mftp_server.cmo \
+    lib/options.cmi cdk/printexc.cmi net/tcpClientSocket.cmi \
+    net/udpSocket.cmi lib/unix32.cmi client/downloadFiles.cmi 
+client/downloadFiles.cmx: net/basicSocket.cmx client/downloadClient.cmx \
+    client/downloadGlobals.cmx client/downloadIndexer.cmx \
+    client/downloadOneFile.cmx client/downloadOptions.cmx \
+    client/downloadServers.cmx client/downloadTypes.cmx lib/fifo.cmx \
+    gui/gui_types.cmx lib/ip.cmx cdk/list2.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_comm.cmx secret/mftp_server.cmx \
+    lib/options.cmx cdk/printexc.cmx net/tcpClientSocket.cmx \
+    net/udpSocket.cmx lib/unix32.cmx client/downloadFiles.cmi 
+client/downloadGlobals.cmo: net/basicSocket.cmi client/downloadTypes.cmo \
+    lib/fifo.cmi gui/gui_types.cmo cdk/hashtbl2.cmi lib/ip.cmi cdk/list2.cmi \
+    lib/md4.cmi proto/mftp.cmo secret/mftp_comm.cmi secret/mftp_server.cmo \
+    cdk/printexc.cmi net/tcpClientSocket.cmi net/tcpServerSocket.cmi \
+    net/udpSocket.cmi lib/unix32.cmi client/downloadGlobals.cmi 
+client/downloadGlobals.cmx: net/basicSocket.cmx client/downloadTypes.cmx \
+    lib/fifo.cmx gui/gui_types.cmx cdk/hashtbl2.cmx lib/ip.cmx cdk/list2.cmx \
+    lib/md4.cmx proto/mftp.cmx secret/mftp_comm.cmx secret/mftp_server.cmx \
+    cdk/printexc.cmx net/tcpClientSocket.cmx net/tcpServerSocket.cmx \
+    net/udpSocket.cmx lib/unix32.cmx client/downloadGlobals.cmi 
+client/downloadIndexer.cmo: client/downloadGlobals.cmi \
+    client/downloadOptions.cmi client/downloadTypes.cmo gui/gui_types.cmo \
+    lib/indexer.cmi proto/mftp.cmo lib/options.cmi cdk/printexc.cmi \
+    cdk/string2.cmi client/downloadIndexer.cmi 
+client/downloadIndexer.cmx: client/downloadGlobals.cmx \
+    client/downloadOptions.cmx client/downloadTypes.cmx gui/gui_types.cmx \
+    lib/indexer.cmx proto/mftp.cmx lib/options.cmx cdk/printexc.cmx \
+    cdk/string2.cmx client/downloadIndexer.cmi 
+client/downloadInteractive.cmo: net/basicSocket.cmi client/downloadClient.cmi \
+    client/downloadFiles.cmi client/downloadGlobals.cmi \
+    client/downloadIndexer.cmi client/downloadOneFile.cmi \
+    client/downloadOptions.cmi client/downloadServers.cmi \
+    client/downloadTypes.cmo lib/fifo.cmi cdk/file.cmi cdk/filename2.cmi \
+    proto/files.cmo gui/gui_types.cmo net/http_server.cmi lib/ip.cmi \
+    cdk/list2.cmi lib/md4.cmi proto/mftp.cmo secret/mftp_comm.cmi \
+    secret/mftp_server.cmo lib/options.cmi cdk/printexc.cmi cdk/string2.cmi \
+    net/tcpClientSocket.cmi net/tcpServerSocket.cmi cdk/unix2.cmo lib/url.cmi \
+    client/downloadInteractive.cmi 
+client/downloadInteractive.cmx: net/basicSocket.cmx client/downloadClient.cmx \
+    client/downloadFiles.cmx client/downloadGlobals.cmx \
+    client/downloadIndexer.cmx client/downloadOneFile.cmx \
+    client/downloadOptions.cmx client/downloadServers.cmx \
+    client/downloadTypes.cmx lib/fifo.cmx cdk/file.cmx cdk/filename2.cmx \
+    proto/files.cmx gui/gui_types.cmx net/http_server.cmx lib/ip.cmx \
+    cdk/list2.cmx lib/md4.cmx proto/mftp.cmx secret/mftp_comm.cmx \
+    secret/mftp_server.cmx lib/options.cmx cdk/printexc.cmx cdk/string2.cmx \
+    net/tcpClientSocket.cmx net/tcpServerSocket.cmx cdk/unix2.cmx lib/url.cmx \
+    client/downloadInteractive.cmi 
+client/downloadInterface.cmo: net/basicSocket.cmi client/downloadClient.cmi \
+    client/downloadFiles.cmi client/downloadGlobals.cmi \
+    client/downloadIndexer.cmi client/downloadInteractive.cmi \
+    client/downloadMultimedia.cmi client/downloadOneFile.cmi \
+    client/downloadOptions.cmi client/downloadServers.cmi \
+    client/downloadTypes.cmo lib/fifo.cmi gui/gui_proto.cmo gui/gui_types.cmo \
+    cdk/hashtbl2.cmi lib/ip.cmi cdk/list2.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_comm.cmi secret/mftp_server.cmo \
+    mp3tagui/mp3tag.cmi lib/options.cmi cdk/printexc.cmi cdk/string2.cmi \
+    net/tcpClientSocket.cmi net/tcpServerSocket.cmi \
+    client/downloadInterface.cmi 
+client/downloadInterface.cmx: net/basicSocket.cmx client/downloadClient.cmx \
+    client/downloadFiles.cmx client/downloadGlobals.cmx \
+    client/downloadIndexer.cmx client/downloadInteractive.cmx \
+    client/downloadMultimedia.cmx client/downloadOneFile.cmx \
+    client/downloadOptions.cmx client/downloadServers.cmx \
+    client/downloadTypes.cmx lib/fifo.cmx gui/gui_proto.cmx gui/gui_types.cmx \
+    cdk/hashtbl2.cmx lib/ip.cmx cdk/list2.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_comm.cmx secret/mftp_server.cmx \
+    mp3tagui/mp3tag.cmx lib/options.cmx cdk/printexc.cmx cdk/string2.cmx \
+    net/tcpClientSocket.cmx net/tcpServerSocket.cmx \
+    client/downloadInterface.cmi 
+client/downloadMain.cmo: net/basicSocket.cmi client/downloadClient.cmi \
+    client/downloadFiles.cmi client/downloadGlobals.cmi \
+    client/downloadIndexer.cmi client/downloadInteractive.cmi \
+    client/downloadInterface.cmi client/downloadMultimedia.cmi \
+    client/downloadOneFile.cmi client/downloadOptions.cmi \
+    client/downloadServers.cmi client/downloadTypes.cmo cdk/file.cmi \
+    cdk/filepath.cmi proto/files.cmo gui/gui_types.cmo lib/host.cmi \
+    lib/ip.cmi proto/mftp.cmo secret/mftp_comm.cmi lib/options.cmi \
+    cdk/printexc.cmi net/tcpClientSocket.cmi net/tcpServerSocket.cmi \
+    net/udpSocket.cmi client/downloadMain.cmi 
+client/downloadMain.cmx: net/basicSocket.cmx client/downloadClient.cmx \
+    client/downloadFiles.cmx client/downloadGlobals.cmx \
+    client/downloadIndexer.cmx client/downloadInteractive.cmx \
+    client/downloadInterface.cmx client/downloadMultimedia.cmx \
+    client/downloadOneFile.cmx client/downloadOptions.cmx \
+    client/downloadServers.cmx client/downloadTypes.cmx cdk/file.cmx \
+    cdk/filepath.cmx proto/files.cmx gui/gui_types.cmx lib/host.cmx \
+    lib/ip.cmx proto/mftp.cmx secret/mftp_comm.cmx lib/options.cmx \
+    cdk/printexc.cmx net/tcpClientSocket.cmx net/tcpServerSocket.cmx \
+    net/udpSocket.cmx client/downloadMain.cmi 
+client/downloadMultimedia.cmo: client/downloadTypes.cmo cdk/filename2.cmi \
+    gui/gui_types.cmo mp3tagui/mp3tag.cmi client/downloadMultimedia.cmi 
+client/downloadMultimedia.cmx: client/downloadTypes.cmx cdk/filename2.cmx \
+    gui/gui_types.cmx mp3tagui/mp3tag.cmx client/downloadMultimedia.cmi 
+client/downloadOneFile.cmo: net/basicSocket.cmi client/downloadGlobals.cmi \
+    client/downloadMultimedia.cmi client/downloadOptions.cmi \
+    client/downloadServers.cmi client/downloadTypes.cmo proto/files.cmo \
+    gui/gui_types.cmo cdk/list2.cmi lib/md4.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_comm.cmi secret/mftp_server.cmo \
+    lib/options.cmi net/tcpClientSocket.cmi cdk/unix2.cmo lib/unix32.cmi \
+    client/downloadOneFile.cmi 
+client/downloadOneFile.cmx: net/basicSocket.cmx client/downloadGlobals.cmx \
+    client/downloadMultimedia.cmx client/downloadOptions.cmx \
+    client/downloadServers.cmx client/downloadTypes.cmx proto/files.cmx \
+    gui/gui_types.cmx cdk/list2.cmx lib/md4.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_comm.cmx secret/mftp_server.cmx \
+    lib/options.cmx net/tcpClientSocket.cmx cdk/unix2.cmx lib/unix32.cmx \
+    client/downloadOneFile.cmi 
+client/downloadOptions.cmo: client/downloadGlobals.cmi \
+    client/downloadTypes.cmo gui/gui_types.cmo lib/ip.cmi cdk/list2.cmi \
+    lib/md4.cmi proto/mftp.cmo secret/mftp_client.cmo lib/options.cmi \
+    cdk/string2.cmi client/downloadOptions.cmi 
+client/downloadOptions.cmx: client/downloadGlobals.cmx \
+    client/downloadTypes.cmx gui/gui_types.cmx lib/ip.cmx cdk/list2.cmx \
+    lib/md4.cmx proto/mftp.cmx secret/mftp_client.cmx lib/options.cmx \
+    cdk/string2.cmx client/downloadOptions.cmi 
+client/downloadServers.cmo: net/basicSocket.cmi client/downloadGlobals.cmi \
+    client/downloadMultimedia.cmi client/downloadOptions.cmi \
+    client/downloadTypes.cmo proto/files.cmo gui/gui_types.cmo \
+    cdk/hashtbl2.cmi lib/ip.cmi proto/mftp.cmo secret/mftp_comm.cmi \
+    secret/mftp_server.cmo lib/options.cmi cdk/printexc.cmi \
+    net/tcpClientSocket.cmi client/downloadServers.cmi 
+client/downloadServers.cmx: net/basicSocket.cmx client/downloadGlobals.cmx \
+    client/downloadMultimedia.cmx client/downloadOptions.cmx \
+    client/downloadTypes.cmx proto/files.cmx gui/gui_types.cmx \
+    cdk/hashtbl2.cmx lib/ip.cmx proto/mftp.cmx secret/mftp_comm.cmx \
+    secret/mftp_server.cmx lib/options.cmx cdk/printexc.cmx \
+    net/tcpClientSocket.cmx client/downloadServers.cmi 
+client/downloadTypes.cmo: lib/fifo.cmi gui/gui_types.cmo lib/ip.cmi \
+    lib/md4.cmi proto/mftp.cmo secret/mftp_client.cmo secret/mftp_server.cmo \
+    mp3tagui/mp3tag.cmi net/tcpClientSocket.cmi 
+client/downloadTypes.cmx: lib/fifo.cmx gui/gui_types.cmx lib/ip.cmx \
+    lib/md4.cmx proto/mftp.cmx secret/mftp_client.cmx secret/mftp_server.cmx \
+    mp3tagui/mp3tag.cmx net/tcpClientSocket.cmx 
+client/downloadClient.cmi: client/downloadTypes.cmo lib/ip.cmi lib/md4.cmi \
+    secret/mftp_server.cmo net/tcpClientSocket.cmi net/tcpServerSocket.cmi 
+client/downloadFiles.cmi: net/basicSocket.cmi client/downloadTypes.cmo \
+    secret/mftp_server.cmo net/udpSocket.cmi 
+client/downloadGlobals.cmi: client/downloadTypes.cmo lib/fifo.cmi \
+    gui/gui_types.cmo cdk/hashtbl2.cmi lib/ip.cmi lib/md4.cmi proto/mftp.cmo \
+    secret/mftp_server.cmo net/tcpClientSocket.cmi net/tcpServerSocket.cmi \
+    net/udpSocket.cmi 
+client/downloadIndexer.cmi: client/downloadTypes.cmo gui/gui_types.cmo 
+client/downloadInteractive.cmi: client/downloadTypes.cmo lib/md4.cmi \
+    net/tcpServerSocket.cmi 
+client/downloadInterface.cmi: net/basicSocket.cmi net/tcpServerSocket.cmi 
+client/downloadMultimedia.cmi: gui/gui_types.cmo 
+client/downloadOneFile.cmi: net/basicSocket.cmi client/downloadTypes.cmo \
+    gui/gui_types.cmo lib/md4.cmi 
+client/downloadOptions.cmi: client/downloadTypes.cmo lib/ip.cmi lib/md4.cmi \
+    lib/options.cmi 
+client/downloadServers.cmi: net/basicSocket.cmi client/downloadTypes.cmo \
+    proto/mftp.cmo 
+gui/gui_header.cmo: gui/gui_messages.cmo lib/options.cmi 
+gui/gui_header.cmx: gui/gui_messages.cmx lib/options.cmx 
+gui/gui.cmo: net/basicSocket.cmi gui/gui_messages.cmo gui/gui_proto.cmo \
+    gui/gui_types.cmo lib/ip.cmi cdk/list2.cmi lib/md4.cmi proto/mftp.cmo \
+    mp3tagui/mp3_ui.cmi mp3tagui/mp3tag.cmi lib/options.cmi cdk/printexc.cmi \
+    cdk/string2.cmi net/tcpClientSocket.cmi 
+gui/gui.cmx: net/basicSocket.cmx gui/gui_messages.cmx gui/gui_proto.cmx \
+    gui/gui_types.cmx lib/ip.cmx cdk/list2.cmx lib/md4.cmx proto/mftp.cmx \
+    mp3tagui/mp3_ui.cmx mp3tagui/mp3tag.cmx lib/options.cmx cdk/printexc.cmx \
+    cdk/string2.cmx net/tcpClientSocket.cmx 
+gui/gui_proto.cmo: gui/gui_types.cmo lib/ip.cmi lib/md4.cmi proto/mftp.cmo \
+    mp3tagui/mp3tag.cmi 
+gui/gui_proto.cmx: gui/gui_types.cmx lib/ip.cmx lib/md4.cmx proto/mftp.cmx \
+    mp3tagui/mp3tag.cmx 
+gui/gui_trailer.cmo: net/basicSocket.cmi gui/gui_messages.cmo \
+    gui/gui_proto.cmo gui/gui_types.cmo lib/ip.cmi cdk/list2.cmi lib/md4.cmi \
+    proto/mftp.cmo mp3tagui/mp3_ui.cmi mp3tagui/mp3tag.cmi cdk/printexc.cmi \
+    cdk/string2.cmi net/tcpClientSocket.cmi 
+gui/gui_trailer.cmx: net/basicSocket.cmx gui/gui_messages.cmx \
+    gui/gui_proto.cmx gui/gui_types.cmx lib/ip.cmx cdk/list2.cmx lib/md4.cmx \
+    proto/mftp.cmx mp3tagui/mp3_ui.cmx mp3tagui/mp3tag.cmx cdk/printexc.cmx \
+    cdk/string2.cmx net/tcpClientSocket.cmx 
+gui/gui_types.cmo: lib/ip.cmi lib/md4.cmi proto/mftp.cmo mp3tagui/mp3tag.cmi 
+gui/gui_types.cmx: lib/ip.cmx lib/md4.cmx proto/mftp.cmx mp3tagui/mp3tag.cmx 
+secret/mftp_client.cmo: lib/ip.cmi lib/md4.cmi proto/mftp.cmo 
+secret/mftp_client.cmx: lib/ip.cmx lib/md4.cmx proto/mftp.cmx 
+secret/mftp_comm.cmo: net/basicSocket.cmi proto/mftp.cmo \
+    secret/mftp_client.cmo secret/mftp_server.cmo net/tcpClientSocket.cmi \
+    net/udpSocket.cmi secret/mftp_comm.cmi 
+secret/mftp_comm.cmx: net/basicSocket.cmx proto/mftp.cmx \
+    secret/mftp_client.cmx secret/mftp_server.cmx net/tcpClientSocket.cmx \
+    net/udpSocket.cmx secret/mftp_comm.cmi 
+secret/mftp_server.cmo: lib/ip.cmi lib/md4.cmi proto/mftp.cmo 
+secret/mftp_server.cmx: lib/ip.cmx lib/md4.cmx proto/mftp.cmx 
+secret/mftp_comm.cmi: secret/mftp_client.cmo secret/mftp_server.cmo \
+    net/tcpClientSocket.cmi net/udpSocket.cmi 

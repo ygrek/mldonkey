@@ -29,7 +29,3 @@ let md4_sub t pos len =
   let md4 = Md4.create () in
   mmap_md4_sub t pos len md4;
   md4
-  
-external seek32 : Unix.file_descr -> int32 -> Unix.seek_command -> int32 =
-  "ml_lseek32"
-external getsize32 : string -> int32 = "ml_getsize32"

@@ -3,3 +3,5 @@ config.cache
 install-sh
 config.status
 Makefile.config
+*.cm?
+config.log

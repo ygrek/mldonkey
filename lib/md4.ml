@@ -43,7 +43,9 @@ let of_string s =
 
 external unsafe_string : string -> string -> int -> unit = "md4_unsafe_string"
 external unsafe_file : string -> string -> unit = "md4_unsafe_file"
-
+external digest_subfile : t -> Unix.file_descr -> int32 -> int32 -> unit =
+  "md4_unsafe_fd"
+  
 let string s =
   let len = String.length s in
   let digest = String.create 16 in
@@ -53,6 +55,11 @@ let string s =
 let file s =
   let digest = String.create 16 in
   unsafe_file digest s;
+  digest
+  
+let digest_subfile s pos len =
+  let digest = String.create 16 in
+  digest_subfile digest s pos len;
   digest
   
 let create () =

@@ -102,12 +102,42 @@ let find s =
   if not !!use_file_history then () else
 (*  Indexer.print index; *)
   let req = ref [] in
+  let pred = ref (fun _ -> true) in
   
   List.iter (fun s -> 
 (*      Printf.printf "search for [%s]" s; print_newline (); *)
       List.iter (fun s ->
           req := (s, 0xffffffff) :: !req) (stem s) 
   )  s.search_words;
+  
+  begin
+    match s.search_minsize with
+      None -> ()
+    | Some size -> 
+        let old_pred = !pred in
+        pred := (fun doc ->
+            let r = Indexer.value doc in
+            r.result_size >= size && old_pred doc);
+  end;
+  
+  begin
+    match s.search_maxsize with
+      None -> ()
+    | Some size -> 
+        let old_pred = !pred in
+        pred := (fun doc ->
+            let r = Indexer.value doc in
+            r.result_size <= size && old_pred doc);
+  end;
+  
+  begin
+    match s.search_media with
+      None -> ()
+    | Some s -> 
+        List.iter (fun s ->
+            req := (s, media_bit) :: !req
+        ) (stem s)
+  end;
   
   begin
     match s.search_media with
@@ -157,7 +187,7 @@ let find s =
   
   let req = !req in
   
-  let docs = Indexer.complex_request index req in
+  let docs = Indexer.complex_request index req !pred in
 (*  Printf.printf "%d results" (List.length docs); print_newline (); *)
   List.iter (fun doc ->
       let r = Indexer.value doc in

@@ -54,9 +54,11 @@ let connection_ok cc =
   
 let connection_try cc =
   cc.control_next_try <- last_time () +. cc.control_next_delay
+
+let half_day = 12. *. 3600.
   
 let connection_failed cc =
-  cc.control_next_delay <- cc.control_next_delay *. 2.
+  cc.control_next_delay <- min (cc.control_next_delay *. 2.) half_day
 
 let connection_can_try cc =
   cc.control_next_try < last_time ()
@@ -144,7 +146,7 @@ let new_file file_name md4 file_size =
         if file_size = Int32.zero then
           try
             Printf.printf "CHECK FILE SIZE"; print_newline ();
-            Mmap.getsize32 file_name
+            Unix32.getsize32 file_name
           with _ ->
               failwith "Zero length file ?"
         else file_size

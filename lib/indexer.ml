@@ -246,7 +246,7 @@ module IntMap = Map.Make (struct
       type t = int
       let compare d1 d2 = d1 - d2 end)
 
-let get_fields tree fields =
+let get_fields tree fields pred =
 (*  Printf.printf "get_fields"; print_newline (); *)
   let map = ref IntMap.empty in 
   let rec iter tree = 
@@ -269,7 +269,8 @@ let get_fields tree fields =
 (*            Printf.printf "in doc %d field %d/%d" doc.doc_num where fields; 
             print_newline (); *)
             if where land fields <> 0 && not (
-                IntMap.mem doc.doc_num !map) then begin
+                IntMap.mem doc.doc_num !map) &&
+              pred doc then begin
 (*                Printf.printf "add doc to map"; print_newline (); *)
                 map := IntMap.add doc.doc_num doc !map
               end
@@ -279,7 +280,7 @@ let get_fields tree fields =
   iter tree;
   !map
 
-let and_get_fields and_map tree fields = 
+let and_get_fields and_map tree fields pred = 
   let map = ref IntMap.empty in 
   let rec iter tree = 
 (* retourne une liste de listes triees de documents *)
@@ -302,7 +303,8 @@ let and_get_fields and_map tree fields =
             if where land fields <> 0 &&
               IntMap.mem doc.doc_num and_map &&
               not (
-                IntMap.mem doc.doc_num !map) then begin
+                IntMap.mem doc.doc_num !map) &&
+              pred doc then begin
 (*                Printf.printf "add doc to AND map"; print_newline (); *)
                 map := IntMap.add doc.doc_num doc !map
               end
@@ -318,7 +320,7 @@ let and_get_fields and_map tree fields =
   !map
   
 
-let complex_request idx req = 
+let complex_request idx req pred = 
   try
     let  trees = List.map (fun (s,fields) ->
 (*          Printf.printf "FIND [%s]" s; print_newline (); *)
@@ -327,10 +329,10 @@ let complex_request idx req =
     match trees with
       [] ->  []
     | (s, tree, fields) :: tail -> 
-        let hits = get_fields tree fields in
+        let hits = get_fields tree fields pred in
         let hits = List.fold_left (fun hits (s, tree, fields) ->
 (*              Printf.printf "AND GET FIELD on [%s]" s; print_newline (); *)
-              and_get_fields hits tree fields) hits tail in
+              and_get_fields hits tree fields pred) hits tail in
         let list = ref [] in
         IntMap.iter (fun _ doc -> list := doc :: !list) hits;
 (*        Printf.printf "FOUND %d documents" (List.length !list); 
