@@ -13,3 +13,5 @@ ocaml-patched
 1st_contest
 release-*
 contribs
+use_tags*
+.depend

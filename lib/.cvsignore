@@ -2,3 +2,4 @@ http_lexer.ml
 *.cm?
 autoconf.ml
 cddb_lexer.ml
+md4sum
