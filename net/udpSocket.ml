@@ -18,6 +18,7 @@
 *)
 
 open BasicSocket
+open LittleEndian
 
 type event = 
   WRITE_DONE
@@ -40,14 +41,22 @@ module PacketSet = Set.Make (struct
         compare (t1, String.length p1.content,p1) (t2, String.length p2.content,p2)
     end)
 
-
+type socks_proxy = {
+    socks_proxy_address : string;
+    socks_proxy_port : int;
+    socks_proxy_user : string;
+    socks_proxy_password : string;
+  }
   
 type t = {
+    mutable port : int;
     mutable sock : BasicSocket.t;
     mutable rlist : udp_packet list;
     mutable wlist : PacketSet.t;
     mutable event_handler : handler;
     mutable write_controler : bandwidth_controler option;
+    mutable socks_proxy : socks_proxy option;
+    mutable socks_local : (Ip.t * int) option;
   }
 
 and bandwidth_controler = {
@@ -64,6 +73,8 @@ and handler = t -> event -> unit
 
 let udp_uploaded_bytes = ref Int64.zero
 let udp_downloaded_bytes = ref Int64.zero
+    
+let buf = Buffer.create 2000
 
 
 let read t = 
@@ -117,16 +128,31 @@ let print_addr addr =
 
 let max_delayed_send = 30
   
-let write t s pos len addr =
+let write t s ip port =
+  
   if not (closed t) then 
+    let s, addr = match t.socks_local with
+      None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
+    | Some (ip, port) -> 
+	Buffer.clear buf;
+	buf_int8 buf 0;
+	buf_int8 buf 0;
+	buf_int8 buf 0;
+	buf_int8 buf 1;
+	buf_ip buf ip;
+	buf_int16 buf port;
+	Buffer.add_string buf s;
+	Buffer.contents buf,  Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
+    in
     match t.write_controler with
       None ->
         if not (PacketSet.is_empty t.wlist) then
           begin
             let sock = sock t in
             try
-              
-              let code = Unix.sendto (fd sock) s pos len [] addr in
+              let len = String.length s in
+
+              let code = Unix.sendto (fd sock) s 0 len [] addr in
               udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
               ()
 (*
@@ -136,7 +162,7 @@ Printf.printf "UDP sent [%s]" (String.escaped
             with
               Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
                 t.wlist <- PacketSet.add  (0, {
-                    content = String.sub s  pos len;
+                    content = s ;
                     addr = addr;
                   }) t.wlist;
                 must_write sock true;
@@ -149,7 +175,7 @@ Printf.printf "UDP sent [%s]" (String.escaped
           end
         else begin
             t.wlist <- PacketSet.add (0, {
-                content = String.sub s  pos len;
+                content = s ;
               addr = addr;
               })  t.wlist;
             must_write t.sock true;
@@ -157,7 +183,7 @@ Printf.printf "UDP sent [%s]" (String.escaped
     | Some bc ->
         begin
           t.wlist <- PacketSet.add (bc.base_time + max_delayed_send, {
-              content = String.sub s  pos len;
+              content = s;
               addr = addr;
             })  t.wlist;
           must_write t.sock true;
@@ -165,7 +191,7 @@ Printf.printf "UDP sent [%s]" (String.escaped
     
 let dummy_sock = Obj.magic 0
 
-let buf = String.create 66000
+let read_buf = String.create 66000
 
 let rec iter_write_no_bc t sock = 
     let (time,p) = PacketSet.min_elt t.wlist in
@@ -173,7 +199,7 @@ let rec iter_write_no_bc t sock =
     let len = String.length p.content in
     begin try
         ignore (
-          Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+        Unix.sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
       with
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
@@ -205,6 +231,7 @@ let rec iter_write t sock bc =
     let len = String.length p.content in
     begin try
         
+
         ignore (
           Unix.sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
@@ -230,10 +257,16 @@ let iter_write t sock bc =
 let udp_handler t sock event = 
   match event with
   | CAN_READ ->
-      let (len, addr) = Unix.recvfrom (fd sock) buf 0 66000 [] in
+      let (len, addr) = Unix.recvfrom (fd sock) read_buf 0 66000 [] in
+      let s, addr = match t.socks_proxy with
+	None -> String.sub read_buf 0 len, addr
+      | Some _ ->
+	  String.sub read_buf 10 (len-10), 
+	  Unix.ADDR_INET(Ip.to_inet_addr (get_ip read_buf 4), get_int16 read_buf 8)
+      in
       udp_downloaded_bytes := Int64.add !udp_downloaded_bytes (Int64.of_int len);
       t.rlist <- {
-        content = String.sub buf 0 len;
+        content = s;
         addr = addr;
       } :: t.rlist;
       t.event_handler t READ_DONE
@@ -262,34 +295,27 @@ let udp_handler t sock event =
 let create addr port handler =
   let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
   Unix.setsockopt fd Unix.SO_REUSEADDR true;
-  Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
+  Unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
+  let port = match Unix.getsockname fd with
+    Unix.ADDR_INET (ip, port) -> port
+  |_ -> port in
   let t = {
-      rlist = [];
-      wlist = PacketSet.empty;
-      sock = dummy_sock;
-      event_handler = handler;
-      write_controler = None;
-    } in
+    rlist = [];
+    wlist = PacketSet.empty;
+    sock = dummy_sock;
+    event_handler = handler;
+    write_controler = None;
+    socks_proxy= None;
+    socks_local= None;
+    port = port;
+  } in
   let sock = BasicSocket.create "udp_socket" fd (udp_handler t) in
   prevent_close sock;
   t.sock <- sock;
   t
   
-let create_sendonly () =
-  let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
-  Unix.setsockopt fd Unix.SO_REUSEADDR true;
-  let t = {
-      rlist = [];
-      wlist = PacketSet.empty;
-      sock = dummy_sock;
-      event_handler = (fun _ _ -> ());
-      write_controler = None;      
-    } in
-  let sock = BasicSocket.create "udp_handler_sendonly" fd (udp_handler t) in
-  prevent_close sock;
-  t.sock <- sock;
-  t
-    
+let create_sendonly () = create Unix.inet_addr_any 0 (fun _ _ -> ())
+
 let can_write t =
   PacketSet.is_empty t.wlist
 
@@ -315,11 +341,13 @@ let new_bandwidth_controler tcp_bc =
     } in
   let udp_user total n =
     if !BasicSocket.debug then  begin
-      Printf.printf "udp_user %d" n; print_newline ();
+      Printf.printf "udp_user %d/%d" n total; print_newline ();
       end;
+    let n = if total = 0 then 100000 else n in
     udp_bc.base_time <- udp_bc.base_time + 1;
     if udp_bc.count = 0 then begin
         udp_bc.count <- 10;
+        TcpBufferedSocket.set_lost_bytes tcp_bc udp_bc.remaining_bytes udp_bc.base_time;
         udp_bc.remaining_bytes <- 0;
       end;
     udp_bc.count <- udp_bc.count - 1;
@@ -337,5 +365,68 @@ let remaining_bytes bc =
   
 let use_remaining_bytes bc n =
   bc.remaining_bytes <- bc.remaining_bytes - n
-  
-  
+
+let set_socks_proxy t ss =
+  try
+
+    Buffer.clear buf;
+    let s = read_buf in
+
+    t.socks_proxy <- Some ss;
+    
+    let fd = fd t.sock in
+    Unix.clear_nonblock fd;
+    let socks_ip = Ip.from_name ss.socks_proxy_address in
+    let proxy_addr = Unix.ADDR_INET(Ip.to_inet_addr socks_ip, ss.socks_proxy_port) in
+
+    buf_int8 buf 5;
+    buf_int8 buf 1;
+    let auth = ss.socks_proxy_user <> "" || ss.socks_proxy_password <> "" in
+    buf_int8 buf (if auth then 2 else 0);
+
+    let send_and_wait () =
+      let s = Buffer.contents buf in
+      Buffer.clear buf;
+      assert (Unix.sendto fd s 0 (String.length s) [] proxy_addr > 0);
+      
+      match Unix.select [fd] [] [] 30. with
+	[],_,_ -> failwith "[SOCKS] timeout"  
+      | _ -> ()
+    in
+    send_and_wait ();
+    assert (fst (Unix.recvfrom fd s 0 2 []) = 2);
+    assert (s.[0] = '\005');
+    if auth then begin
+      assert (s.[1] = '\002');
+
+      buf_int8 buf 1;
+      buf_string8 buf ss.socks_proxy_user;
+      buf_string8 buf ss.socks_proxy_password;    
+      send_and_wait ();
+
+      assert (fst (Unix.recvfrom fd s 0 2 []) = 2);
+      assert (s.[0] = '\005');
+    end;
+    assert (s.[1] = '\000');
+
+    buf_int8 buf 5;
+    buf_int8 buf 3;
+    buf_int8 buf 0;
+    buf_int8 buf 1;
+    buf_int buf 0;
+    buf_int16 buf t.port;
+
+    send_and_wait ();
+    assert (fst (Unix.recvfrom fd s 0 10 []) = 10);
+    assert (s.[0] = '\005');
+    assert (s.[1] = '\000');
+
+    let ip = get_ip s 4 in
+    let port = get_int16 s 8 in
+    t.socks_local <- Some (ip, port);
+
+    Unix.set_nonblock fd;
+  with e -> 
+    Printf.printf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
+      (Printexc.to_string e); print_newline ();
+    close t "socks proxy error"; raise e

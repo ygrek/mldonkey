@@ -20,3 +20,4 @@ mlchat.byte
 test_*
 ocamlopt-*
 *.static
+xpm2ml*

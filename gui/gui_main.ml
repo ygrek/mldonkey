@@ -29,8 +29,6 @@ module Mi = Gui_misc
   
 let (!!) = Options.(!!)
 
-let _ = GMain.Main.init ()
-
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
       e ->
@@ -132,7 +130,7 @@ let canon_client gui c =
 (*          Printf.printf "Removing client %d" c.client_num; print_newline ();
 *)
           Hashtbl.remove G.locations c.client_num;
-          gui#tab_downloads#box_downloads#remove_client cc.client_num
+(*          gui#tab_downloads#box_downloads#remove_client cc.client_num *)
         end;
       
       begin
@@ -169,7 +167,7 @@ let canon_client gui c =
         c
   in
   c
-  
+
 let value_reader gui t sock =
   try
     match t with
@@ -491,8 +489,16 @@ let main () =
     exit 0
   in
   Gui_config.update_toolbars_style gui;
+  List.iter (fun (menu, init) ->
+      let _Menu = GMenu.menu_item ~label:menu  ~packing:(gui#menubar#add) ()
+      in
+      let _menu = GMenu.menu ~packing:(_Menu#set_submenu) () in
+      init _menu
+  ) !Gui_global.top_menus;
   ignore (w#connect#destroy quit);
 
+  console_message := (fun s -> gui#tab_console#insert s);
+  
   (** menu actions *)
   ignore (gui#itemQuit#connect#activate w#destroy) ;
   ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
@@ -515,14 +521,6 @@ let main () =
 
   (** connection with core *)
   Com.reconnect gui (value_reader gui) ;
-  
-  let gtk_handler timer =
-    while Glib.Main.pending () do
-      ignore (Glib.Main.iteration false)
-    done;
-  in
-    
-  BasicSocket.add_infinite_timer 0.1 gtk_handler;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->

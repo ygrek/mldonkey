@@ -52,12 +52,12 @@ val server_handler :
   TcpBufferedSocket.t -> int -> unit
 *)
   
-val udp_send:  UdpSocket.t -> Unix.sockaddr -> DonkeyProtoServer.t -> unit
+val udp_send:  UdpSocket.t -> Ip.t -> int -> DonkeyProtoServer.t -> unit
 val udp_handler :
   (DonkeyProtoServer.t -> UdpSocket.udp_packet -> unit) ->
   UdpSocket.t -> UdpSocket.event -> unit
   
-val propagate_working_servers : (Ip.t * int) list -> unit
+val propagate_working_servers : (Ip.t * int) list -> (Ip.t * int) list -> unit
 val udp_basic_handler : 
   (string -> UdpSocket.udp_packet -> unit) -> UdpSocket.t -> 
   UdpSocket.event -> unit

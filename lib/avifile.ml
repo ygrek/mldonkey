@@ -253,6 +253,5 @@ let load file =
   in
   let pos0 = Int32.of_int 16 in
   iter_list pos0 (Int32.add pos0 size);
-  Printf.printf "DONE"; print_newline ();
   close_in ic;
 

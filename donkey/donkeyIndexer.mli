@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 val index_result : CommonTypes.result_info -> DonkeyTypes.result
 val index_result_no_filter : 
   CommonTypes.result_info -> DonkeyTypes.result

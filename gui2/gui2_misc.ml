@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open CommonTypes
 open CommonGlobals
 open Options
@@ -239,7 +241,7 @@ let reconnect gui =
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = GuiDecoding.to_gui.(!gui_protocol_used) opcode s in
+            let m = GuiDecoding.to_gui opcode s in
             value_reader gui m sock
           with e ->
               Printf.printf "Exception %s in decode/exec" 

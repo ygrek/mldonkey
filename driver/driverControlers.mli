@@ -25,4 +25,6 @@ val chat_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val create_http_handler : unit -> TcpServerSocket.t
 
 val check_calendar : unit -> unit
-  
+
+(* should not be here ... *)
+val text_of_html : string -> string

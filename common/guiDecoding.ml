@@ -16,6 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+open Md4
 
 open CommonGlobals
 open CommonTypes
@@ -392,7 +393,6 @@ let get_file_version_9 s pos =
     file_last_seen = BasicSocket.last_time () -. float_of_int last_seen;
   }, pos
 
-
 let get_host_state s pos = 
   match get_int8 s pos with
     0 -> NotConnected
@@ -403,6 +403,7 @@ let get_host_state s pos =
   | 5 -> Connected_queued
   | 6 -> NewHost
   | 7 -> RemovedHost
+  | 8 -> BlackListedHost
   | _ -> assert false
 
 
@@ -600,6 +601,25 @@ let get_shared_info s pos =
     shared_size = size;
     shared_uploaded = uploaded;
     shared_requests = requests;
+    shared_id = Md4.null;
+  }
+
+let get_shared_info_version_10 s pos =
+  let num = get_int s pos in
+  let network = get_int s (pos+4) in
+  let name, pos = get_string s (pos+8) in
+  let size = get_int32 s pos in
+  let uploaded = get_int64 s (pos+4) in
+  let requests = get_int s (pos+12) in
+  let md4 = get_md4 s (pos+16) in
+  {
+    shared_num = num;
+    shared_network = network;
+    shared_filename = name;
+    shared_size = size;
+    shared_uploaded = uploaded;
+    shared_requests = requests;
+    shared_id = md4;
   }
   
 (***************
@@ -608,7 +628,7 @@ let get_shared_info s pos =
 
 ****************)
 
-let from_gui_version_0 opcode s =
+let from_gui opcode s =
   match opcode with
     0 -> GuiProtocol (get_int s 2)
   
@@ -773,21 +793,8 @@ let from_gui_version_0 opcode s =
   | 41 ->
       let int = get_int s 2 in 
       BrowseUser  int
-  
-  | _ -> 
-      Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
-      assert false
-
-      let from_gui_version_1 = from_gui_version_0
-
-let from_gui_version_2 opcode s =
-  match opcode with
-    42 -> let s, pos = get_search_version_2 s 2 in Search_query s
-  | _ -> from_gui_version_1 opcode s
-
-let from_gui_version_3 opcode s =
-  match opcode with
-    43 -> 
+  | 42 -> let s, pos = get_search_version_2 s 2 in Search_query s
+  | 43 -> 
       let int = get_int s 2 in 
       let message, pos = get_string s 6 in
       MessageToClient (int, message)
@@ -800,50 +807,18 @@ let from_gui_version_3 opcode s =
       GuiExtensions list
   | 48 ->
       SetRoomState (get_int s 2, get_room_state s 6)
-  | _ -> from_gui_version_2 opcode s
 
-let from_gui_version_4 opcode s = 
-  match opcode with
   | 49 -> RefreshUploadStats
-  | _ ->  from_gui_version_3 opcode s
-      
-let from_gui_version_5 opcode s = 
-  match opcode with
-  | _ ->  from_gui_version_4 opcode s
-      
-let from_gui_version_6 opcode s = 
-  match opcode with
-  | _ ->  from_gui_version_5 opcode s
 
-let from_gui_version_7 opcode s = 
-  match opcode with
-    50 ->
+  | 50 ->
       let list, pos = get_list get_string s 2 in
       let result_num = get_int s pos in
       let force = get_bool s (pos+4) in
       Download_query (list, result_num, false)
-  | _ ->  from_gui_version_6 opcode s
-
-let from_gui_version_8 opcode s = 
-  match opcode with
-  | _ ->  from_gui_version_7 opcode s
-
-let from_gui_version_9 opcode s = 
-  match opcode with
-  | _ ->  from_gui_version_8 opcode s
-
-let from_gui = [| 
-    from_gui_version_0; 
-    from_gui_version_1; 
-    from_gui_version_2; 
-    from_gui_version_3; 
-    from_gui_version_4; 
-    from_gui_version_5; 
-    from_gui_version_6; 
-    from_gui_version_7;  
-    from_gui_version_8;  
-    from_gui_version_9;  
-  |]
+  
+  | _ -> 
+      Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
+      assert false
       
 (***************
 
@@ -851,7 +826,7 @@ let from_gui = [|
 
 ****************)
 
-let to_gui_version_0 opcode s =
+let to_gui opcode s =
   match opcode with
   | 0 -> CoreProtocol (get_int s 2)
   
@@ -971,13 +946,7 @@ let to_gui_version_0 opcode s =
       let n1 = get_int s 2 in
       let n2 = get_int s 6 in          
       Room_add_user (n1,n2)
-  
-  | _ -> 
-      Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
-      assert false
 
-let to_gui_version_1 opcode s = 
-  match opcode with
   | 25 ->
       let upload = get_int64 s 2 in
       let download = get_int64 s 10 in
@@ -992,17 +961,13 @@ let to_gui_version_1 opcode s =
         tcp_download_rate = 0;
         udp_upload_rate = 0;
         udp_download_rate = 0;
+        connected_networks = [];
+        ndownloading_files = 0;
+        ndownloaded_files = 0;
       }
-  | _ -> to_gui_version_0 opcode s
 
-let to_gui_version_2 opcode s = 
-  match opcode with
-    26 -> let s, pos = get_server_version_2 s 2 in Server_info s
-  | _ -> to_gui_version_1 opcode s
-
-let to_gui_version_3 opcode s = 
-  match opcode with
-    27 -> 
+  | 26 -> let s, pos = get_server_version_2 s 2 in Server_info s
+  | 27 -> 
       let int = get_int s 2 in 
       let message, pos = get_string s 6 in
       MessageFromClient (int, message)
@@ -1023,10 +988,6 @@ let to_gui_version_3 opcode s =
       let room_info, pos = get_room_version_3 s 2 in
       Room_info room_info
 
-  | _ -> to_gui_version_2 opcode s
-
-let to_gui_version_4 opcode s = 
-  match opcode with
   | 32 -> 
       let room = get_int s 2 in 
       let user = get_int s 6 in
@@ -1034,6 +995,7 @@ let to_gui_version_4 opcode s =
   | 33 ->
       let s = get_shared_info s 2 in
       Shared_file_info s
+      
   | 34 ->
       let num = get_int s 2 in
       let upload = get_int64 s 6 in
@@ -1043,11 +1005,7 @@ let to_gui_version_4 opcode s =
   | 35 ->
       let num = get_int s 2 in
       Shared_file_unshared num
-      
-  | _ -> to_gui_version_3 opcode s
 
-let to_gui_version_5 opcode s = 
-  match opcode with
   | 36 -> 
       let section, pos = get_string s 2 in
       let message, pos = get_string s pos in 
@@ -1077,12 +1035,12 @@ let to_gui_version_5 opcode s =
         udp_download_rate = 0;
         tcp_upload_rate = tcp_upload_rate;
         tcp_download_rate = tcp_download_rate;
+        connected_networks = [];
+        ndownloading_files = 0;
+        ndownloaded_files = 0;
+
       }
       
-  | _ -> to_gui_version_4 opcode s
-
-let to_gui_version_6 opcode s = 
-  match opcode with
   | 38 -> 
       let section, pos = get_string s 2 in
       let message, pos = get_string s pos in 
@@ -1114,19 +1072,12 @@ let to_gui_version_6 opcode s =
         udp_download_rate = udp_download_rate;
         tcp_upload_rate = tcp_upload_rate;
         tcp_download_rate = tcp_download_rate;
+        connected_networks = [];
+        ndownloading_files = 0;
+        ndownloaded_files = 0;
       }
         
-  | _ -> to_gui_version_5 opcode s
-
-      
-let to_gui_version_7 opcode s = 
-  match opcode with
-        
-  | _ -> to_gui_version_6 opcode s
-      
-let to_gui_version_8 opcode s = 
-  match opcode with
-    40 ->
+  |  40 ->
       let file, pos = get_file_version_8 s 2 in
       File_info file
             
@@ -1138,11 +1089,7 @@ let to_gui_version_8 opcode s =
       let list, pos = get_list get_file_version_8 s 2 in
       DownloadedFiles list
 
-  | _ -> to_gui_version_7 opcode s
-
-let to_gui_version_9 opcode s = 
-  match opcode with
-    43 ->
+  | 43 ->
       let file, pos = get_file_version_9 s 2 in
       File_info file
             
@@ -1163,22 +1110,41 @@ let to_gui_version_9 opcode s =
         BasicSocket.last_time () -. float_of_int last_seen)
 
   | 47 -> BadPassword
+  
+  | 48 ->
+      let s = get_shared_info_version_10 s 2 in
+      Shared_file_info s      
+
+  | 49 ->
+      let upload = get_int64 s 2 in
+      let download = get_int64 s 10 in
+      let shared = get_int64 s 18 in
+      let nshared = get_int s 26 in
+      let tcp_upload_rate = get_int s 30 in
+      let tcp_download_rate = get_int s 34 in
+      let udp_upload_rate = get_int s 38 in
+      let udp_download_rate = get_int s 42 in
+      let ndownloading_files = get_int s 46 in
+      let ndownloaded_files = get_int s 50 in
+      let connected_networks, pos = get_list
+        (fun s pos -> get_int s pos, pos+4)  s 54 in
       
-  | _ -> to_gui_version_8 opcode s
-        
+      Client_stats {
+        upload_counter = upload;
+        download_counter = download;
+        shared_counter = shared;
+        nshared_files = nshared;
+        udp_upload_rate = udp_upload_rate;
+        udp_download_rate = udp_download_rate;
+        tcp_upload_rate = tcp_upload_rate;
+        tcp_download_rate = tcp_download_rate;
+        connected_networks = connected_networks;
+        ndownloading_files = ndownloading_files;
+        ndownloaded_files = ndownloaded_files;
+      }
+      
+  | _ -> 
+      Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
+      assert false
 
-let to_gui = [| 
-    to_gui_version_0; 
-    to_gui_version_1; 
-    to_gui_version_2; 
-    to_gui_version_3;
-    to_gui_version_4;
-    to_gui_version_5;
-    to_gui_version_6;
-    to_gui_version_7; 
-    to_gui_version_8; 
-    to_gui_version_9; 
-  |]
-
-let _ =  assert (Array.length from_gui = Array.length to_gui);
   

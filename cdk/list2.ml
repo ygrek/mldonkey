@@ -69,3 +69,6 @@ let rec assoc_inv x = function
     [] -> raise Not_found
   | (a,b)::l -> if b = x then a else assoc_inv x l
         
+let safe_iter f list =
+  List.iter (fun v -> try f v with _ -> ()) list
+  

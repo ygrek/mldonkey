@@ -33,8 +33,8 @@ class box () =
     inherit Gui_console_base.box () as box
 
     method insert t =
-      ignore (text#insert_text t ~pos:0);
-      text#set_position 0;
+      ignore (text#insert t (* ~pos:0 *) );
+(*      text#set_position 0; *)
 
     method on_entry_return () =
       match we_command#text with

@@ -1100,12 +1100,10 @@ let _ =
         find ws
     ), " : find albums with keywords";
     "-send_udp", Arg.Unit (fun _ ->
-        let sock = UdpSocket.create_sendonly () in 
-        let addr = Unix.ADDR_INET(
-            (Ip.to_inet_addr (Ip.of_string "128.93.52.5")), 1999) in 
+        let sock = UdpSocket.create_sendonly () in
         for i = 0 to 100000 do
           let s = Printf.sprintf "Packet %d" i in
-          UdpSocket.write sock s 0 (String.length s) addr
+          UdpSocket.write sock s (Ip.of_string "128.93.52.5") 1999
         done;
         BasicSocket.loop ()
     ), " : test UDP send";

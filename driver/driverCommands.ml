@@ -87,6 +87,8 @@ let commands = [
         match args with
           [arg] ->
             let num = int_of_string arg in
+              if o.conn_output = HTML then
+		Printf.bprintf  buf "\\<a href=/submit\\?q\\=vd\\>Display all files\\</a\\>\\<br\\>";
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
                   CommonFile.file_print file o)

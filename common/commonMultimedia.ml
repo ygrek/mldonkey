@@ -238,7 +238,8 @@ let search_info_mp3 filename =
   | Mp3_info tag -> 
       raise (Mp3_info tag)
   | x ->
-      prerr_endline ("error while looking for mp3file "^filename);
+      Printf.printf "error while looking for mp3file %s: %s" filename
+        (Printexc.to_string x); print_newline ();
       raise x
 
 let get_info file =

@@ -1,6 +1,49 @@
 TODO list for client
 ====================
 
+1) For zoggy (the GUI):
+  1) There is a bin as icon for "Find Friend"
+  2) New lines in the console are not displayed because the window
+      don't scroll immediatly
+  3) Show list of file names for files being downloaded
+  4) Add reduced icons
+
+2) Extended search doesnot work after connect because no ping was sent.
+
+
+All the last changes should be tested carefully before committing:
+- Test Soulseek with new rooms
+
+The GUI
+ * Improve the gui CPU usage
+ * Stop sharing the widgets in the chatrooms
+ * .zog files should be manually editable (remove default properties)
+
+LimeWire and other networks: check carefully what is replied by a client
+  for a download. In particular, check that there are no "Server busy" errors
+  added to the download stream. Check the is_http_ok function in
+  limewireClients.ml.
+
+Socks 5 support
+
+Savannah motds:
+  motd.html (to be displayed in the html frame of your browser)
+  -> generate motd.txt (to be displayed in the help panel, at the beginning, 
+   and in the telnet login)
+  motd.conf (changes that have to be made to the default config. For example,
+    adding servers and peers, supermode activation parameters, etc)
+
+Redirectors: send more information to the redirectors
+  to help other users to connect
+
+Remove UDP messages to dead servers
+
+Query and parse WEB server pages such as jiggle
+
+Reduce mldonkey memory footprint
+
+Use our own network of servers
+
 For 2.00: 
 - Fix poll mechanism for GUIs:
   - Messages in DriverInterface.update_ should only be sent if gui_poll

@@ -180,7 +180,7 @@ print_newline ();
 let http_reply_handler headers_handler =
   read_header (parse_header headers_handler)
   
-let get_page url get_args content_handler =
+let get_page url get_args content_handler f =
   let rec get_url level url =
     let args = ref [] in
     let headers = ref [] in
@@ -213,55 +213,7 @@ let get_page url get_args content_handler =
     TcpBufferedSocket.write_string sock request;
     TcpBufferedSocket.set_reader sock (http_reply_handler 
         (default_headers_handler level))
-(*
-  let fds = socket PF_INET SOCK_STREAM 0 in
-  try
-    connect fds sock;
-    (* send the request *)
-    let outch = out_channel_of_descr fds in
-    output_string outch request;
-    flush outch;
-    (* read the answer *)
-    let inch = in_channel_of_descr fds in
-    (* get the status line *)
-    let ans = input_line inch in
-    let ans_code = int_of_string (String.sub ans 9 3) in
-    (* Compute headers *)
-    let headers = ref [] in
-    let this_header = ref (input_line inch) in
-    while (String.length !this_header) >= 2 do
-      (* suppress the final \r *)
-      this_header :=
-        String.sub !this_header 0 ((String.length !this_header)-1);
-      (* Get name and content of this header *)
-      let sep = String.index !this_header ':' in
-      let name_head = String.sub !this_header 0 sep in
-      let size = String.length !this_header in
-      let content_head = String.sub !this_header (sep+2) (size-sep-2) in
-      headers := (name_head, content_head)::!headers;
-      this_header := input_line inch
-    done;
-    (* we've got the headers, report ! *)
-    headers_handler ans_code !headers;
-(* now get the content of the page *)
-    let fd = Unix.descr_of_in_channel inch in
-    Bufrw.buf_read timeout fd content_handler;
-   (* 
-    let str, pos = before_read buf 1024 in
-    let nb_read = ref (input inch str pos 1024) in
-    while !nb_read > 0 do
-      after_read buf !nb_read;
-      content_handler buf;
-      let str, pos = before_read buf 1024 in
-      nb_read := input inch str pos 1024
-    done;
-  *)
-    close fds
-  with e -> (* always close the connection *)
-    close fds;
-    raise e
-*)
-  
+    
   and default_headers_handler level sock ans_code headers =
     (*
     List.iter (fun (name, value) ->
@@ -269,7 +221,6 @@ let get_page url get_args content_handler =
         print_newline ();
     ) headers;
 *)
-    
     match ans_code with
       200 ->
 (*
@@ -280,6 +231,8 @@ let get_page url get_args content_handler =
       print_newline ();) 
 headers;
 *)
+        TcpBufferedSocket.set_closer sock (fun _ _ -> 
+            f ());
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
@@ -292,11 +245,10 @@ headers;
         
         let content_handler = content_handler !content_length headers in
         set_reader sock content_handler;
-        set_closer sock (fun _ _ ->
-            content_handler sock 0);
         let buf = TcpBufferedSocket.buf sock in
         if buf.len > 0 then
           content_handler sock buf.len 
+          
     | 302 ->
         Printf.printf "INDIRECTION"; print_newline ();
         if level < 10 then
@@ -312,7 +264,8 @@ headers;
                     print_newline ();
                 ) headers
                 
-        end
+          end
+          
     | _ ->
         Printf.printf "Http_client: bad reply %d" ans_code;
         print_newline ();
@@ -320,7 +273,41 @@ headers;
         raise Not_found
 
   in get_url 0 url
+
   
+let wget url f = 
+    
+  let file_buf = Buffer.create 1000 in
+  let file_size = ref 0 in
+
+  get_page (Url.of_string url) []
+    (fun maxlen headers sock nread ->
+        let buf = TcpBufferedSocket.buf sock in
+        
+        if nread > 0 then begin
+            let left = 
+              if maxlen >= 0 then
+                mini (maxlen - !file_size) nread
+              else nread
+          in
+          Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
+            buf_used sock left;
+            file_size := !file_size + left;
+            if nread > left then
+              TcpBufferedSocket.close sock "end read"
+        end)
+  (fun _ ->  
+      let filename = Filename.temp_file "http_" ".tmp" in
+      File.from_string filename (Buffer.contents file_buf);
+      try
+        (f filename : unit);
+        Sys.remove filename 
+      with  e ->  Printf.printf
+            "Exception %s in loading downloaded file %s"
+            (Printexc.to_string e) filename;
+          Sys.remove filename 
+  )
+
   
 let split_header header =     
   for i = 0 to String.length header - 1 do

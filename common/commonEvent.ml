@@ -65,14 +65,14 @@ let addevent events num update =
       events.num_map <- Intmap.add num update events.num_map;
       events.num_list <- num :: events.num_list
 
-let rec getevents list g =
+let rec getevents context list g =
   match list with
-    [] -> g ()
+    [] -> g context
   | (events, f) :: tail ->
       match events.num_list with
-        [] -> getevents tail g
+        [] -> getevents context tail g
       | num :: tail ->
           events.num_list <- tail;
           let update = Intmap.find num events.num_map in
           events.num_map <- Intmap.remove num events.num_map ;
-          try f num update; true with _ -> true
+          try f context num update; true with _ -> true

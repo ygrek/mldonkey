@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 val query_id_reply : Ip.t -> DonkeyProtoServer.QueryIDReply.t -> unit
   
 val query_id :
@@ -39,8 +41,6 @@ val clean_groups : unit -> unit
 val client_send_if_possible : TcpBufferedSocket.t -> 
   DonkeyProtoClient.t -> unit
 
-val schedule_connections: unit -> unit
-  
   
 val force_fast_connect_client  : DonkeyTypes.client -> unit
 val connect_as_soon_as_possible :  DonkeyTypes.client -> unit

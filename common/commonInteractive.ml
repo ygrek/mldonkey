@@ -35,50 +35,19 @@ let add_web_kind kind f =
   
 let load_url kind url =
   Printf.printf "QUERY URL %s" url; print_newline ();
-  let filename = Filename.temp_file "http_" ".tmp" in
-  let file_oc = open_out filename in
-  let file_size = ref 0 in
-
-  Http_client.get_page (Url.of_string url) []
-    (fun maxlen headers sock nread ->
-        let buf = TcpBufferedSocket.buf sock in
-        
-        if nread > 0 then begin
-            let left = 
-              if maxlen >= 0 then
-                mini (maxlen - !file_size) nread
-              else nread
-            in
-            output file_oc buf.buf buf.pos left;
-            buf_used sock left;
-            file_size := !file_size + left;
-            if nread > left then
-              TcpBufferedSocket.close sock "end read"
-          end
-        else
-        if nread = 0 then begin
-            close_out file_oc;
-            try
-              let f = 
-                try
-                  List.assoc kind !file_kinds 
-                with
-                  _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-              in
-              (f filename : unit);
-(*              Sys.remove filename *)
-            with e ->
-                Printf.printf
-                  "Exception %s in loading downloaded file %s"
-                  (Printexc.to_string e) filename
-                
-          end
-    )
+  try
+    let f = List.assoc kind !file_kinds in 
+    Http_client.wget url f
+  with _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
 
 let days = ref 0      
 let hours = ref 0    
 
 let load_web_infos () =
+  if !!network_update_url <> "" then begin
+    load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
+    load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
+  end;
   List.iter (fun (kind, period, url) ->
       if !days mod period = 0 then load_url kind url
   ) !!CommonOptions.web_infos
@@ -301,7 +270,7 @@ let all_simple_options () =
   );
   !options
 
-let set_fully_qualified_options name value =
+let apply_on_fully_qualified_options name f =
   if !!verbose then begin
       Printf.printf "For option %s" name; print_newline ();
     end;
@@ -310,7 +279,7 @@ let set_fully_qualified_options name value =
     List.iter (fun (old_name, old_value) ->
         let new_name = Printf.sprintf "%s%s" prefix old_name in
         if new_name = name then
-          (set_simple_option opfile old_name value; raise Exit))
+          (f opfile old_name old_value; raise Exit))
     args
   in
   try
@@ -326,9 +295,21 @@ let set_fully_qualified_options name value =
             with Exit -> true
         )) then begin
         Printf.printf "Could not set option %s" name; print_newline ();
+        raise Not_found
       end
   with Exit -> ()
-      
+
+
+let set_fully_qualified_options name value =
+  apply_on_fully_qualified_options name (fun opfile old_name old_value ->
+    set_simple_option opfile old_name value)
+
+let add_item_to_fully_qualified_options name value =
+  ()
+
+let del_item_from_fully_qualified_options name value = 
+  ()
+
 let keywords_of_query query =
   let keywords = ref [] in
   

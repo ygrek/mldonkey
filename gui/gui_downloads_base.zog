@@ -1,25 +1,25 @@
 <entity name=box>
-  <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
-    <toolbar name=wtool width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+  <vbox name=vbox homogeneous="false" expand="true" fill="true">
+    <toolbar name=wtool orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" expand="false" fill="true" padding="2">
     </toolbar>
   </vbox>
 </entity>
 <entity name=paned>
-  <hbox name=box width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Downloads%22" expand="false" fill="true" padding="-1">
-    <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
-      <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="3" expanded="false">
-        <label name=_ width="-1" height="-1" text="Gettext.gettext Gui_messages.ed2k" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+  <hbox name=box homogeneous="false" tab_label="%22Downloads%22" expand="false" fill="true">
+    <vbox name=_ homogeneous="false" expand="true" fill="true">
+      <hbox name=_ homogeneous="false" expand="false" fill="true" padding="3" expanded="false">
+        <label name=_ text="Gettext.gettext Gui_messages.ed2k" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true">
         </label>
-        <entry name=entry_ed2k_url width="500" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+        <entry name=entry_ed2k_url width="500" visibility="true" editable="true" expand="false" fill="true">
         </entry>
-        <label name=_ width="-1" height="-1" text="Gettext.gettext Gui_messages.recover_md4" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=_ text="Gettext.gettext Gui_messages.recover_md4" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true">
         </label>
-        <entry name=entry_md4 width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+        <entry name=entry_md4 visibility="true" editable="true" expand="false" fill="true">
         </entry>
       </hbox>
-      <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
-        <vbox name=_ width="600" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
-          <vpaned name=vpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+      <hpaned name=hpaned expand="true" fill="true">
+        <vbox name=_ width="600" homogeneous="false" expand="true" fill="true">
+          <vpaned name=vpaned expand="true" fill="true">
           </vpaned>
         </vbox>
       </hpaned>

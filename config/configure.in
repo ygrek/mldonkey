@@ -3,7 +3,7 @@ AC_PREREQ(2.0)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
-CURRENT_VERSION=2.00+2
+CURRENT_VERSION=2.00+3
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -59,6 +59,9 @@ AC_ARG_ENABLE(openft, [--disable-openft:       allows you to remove support for 
 AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cymes], [CYMES="$enableval"])
 
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
+
+IM=no
+AC_ARG_ENABLE(im, [--enable-im:       (undocumented)], [IM="$enableval"])
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -258,6 +261,7 @@ ZLIB=no
 AC_CHECK_LIB(z,inflate,[ZLIB=yes])
 AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
 
+
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
 case $host in
@@ -428,6 +432,49 @@ else
   fi
 fi
 
+  if test "$IM" = "yes" ; then
+    AC_CHECK_FILE(../im,IM=yes, [
+      IM=no
+    ])
+  else
+    IM=no
+  fi
+
+
+if test "$IM" = "yes"; then
+  CRYPTOKIT=no
+  AC_MSG_CHECKING(Checking for CryptoKit)
+  if test -f $OCAMLLIB/cryptokit.cmxa; then
+    CRYPTOKIT=yes
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+  fi
+
+  if test "$CRYPTOKIT" = "yes"; then
+    YAXPO=no
+    AC_MSG_CHECKING(Checking for Yaxpo)
+    if test -f $OCAMLLIB/yaxpo.cmxa; then
+      YAXPO=yes
+      AC_MSG_RESULT(yes)
+    else
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$YAXPO" = "yes"; then
+    JABBR=no
+    AC_MSG_CHECKING(Checking for Jabbr)
+    if test -f $OCAMLLIB/jabbr.cmxa; then
+      JABBR=yes
+      AC_MSG_RESULT(yes)
+    else
+      AC_MSG_RESULT(no)
+    fi
+  fi
+fi
+
+
 AC_MSG_CHECKING(compile GTK GUI)
   if test "$LABLGTK_CONFIG" = "no"; then
         AC_MSG_RESULT(no)
@@ -441,6 +488,17 @@ AC_MSG_CHECKING(compile GTK GUI)
         GTK_VERSION=`$GTK_CONFIG --version`
         COMPILE_GUI=yes
         AC_MSG_RESULT(yes)
+
+        AC_MSG_CHECKING(GToolbox.popup_menu args)
+        GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
+        grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
+        if test "$GTOOLBOX_ARGS" = "new"; then
+          GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
+          AC_MSG_RESULT(new)
+        else
+          GTOOLBOX_POPUPMENU=' ~x: button ~y: time '
+          AC_MSG_RESULT(old)
+        fi
   fi
 
 case "`uname -s`" in
@@ -533,6 +591,9 @@ AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(CYMES)
 
+AC_SUBST(IM)
+AC_SUBST(JABBR)
+
 AC_SUBST(OCAMLOPT_DIL)
 AC_SUBST(COMPILE_GUI)
 AC_SUBST(REQUIRED_OCAML)
@@ -544,10 +605,14 @@ AC_SUBST(COMPRESS_EXT)
 AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
 AC_SUBST(CURRENT_VERSION)
+AC_SUBST(GTOOLBOX_POPUPMENU)
+
 
 AUTOCONF=../lib/autoconf.ml
-AC_OUTPUT(Makefile.config $AUTOCONF.new)
+GTK_AUTOCONF=../lib/gAutoconf.ml
+AC_OUTPUT(Makefile.config $AUTOCONF.new $GTK_AUTOCONF.new)
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
+diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
 
 

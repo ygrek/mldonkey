@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonGlobals
 open ServerServer
 open CommonClient
@@ -317,6 +318,10 @@ let rec print_liste_2 lst =
   | hd :: tl -> Printf.printf " el: %s\n" (Md4.to_string hd.f_md4);
       print_liste_2 tl
 
+let client_is_mldonkey2 c =
+  let md4 = Md4.direct_to_string c.client_md4 in
+    md4.[5] = 'M' && md4.[14] = 'L'
+
 (*message comming from a client*)
 let server_to_client c t sock =
   (*Printf.printf "server_to_client"; print_newline ();
@@ -557,14 +562,20 @@ let server_to_client c t sock =
 	  if c.client_mldonkey = 0 || c.client_mldonkey = 1 then
             if c.client_mldonkey = 0 && t = Md4.null then
 	      (* c.client_mldonkey = 0 ==> First location query *)
-              c.client_mldonkey <- 1 + c.client_mldonkey
+              c.client_mldonkey <- 1
             else
 	      (* c.client_mldonkey = 1 ==> Might be mldonkey client *)
               if c.client_mldonkey = 1 && t = Md4.one then 
 		begin
-		  c.client_mldonkey <- 1 + c.client_mldonkey;
+		  c.client_mldonkey <- 2;
+(*		  direct_server_send sock (M.Mldonkey_MldonkeyUserReplyReq) *)
+		end
+	      else
+		if client_is_mldonkey2 c then
+		begin
+		  c.client_mldonkey <- 3;
 		  direct_server_send sock (M.Mldonkey_MldonkeyUserReplyReq)
-		end 
+		end
 	      else
 (* It is a classical client *)
 		let mess = "For best performance, you'd better use a mldonkey client (http://www.freesoftware.fsf.org/mldonkey)" in

@@ -134,13 +134,13 @@ let cut_messages parse f sock nread =
     done
   with Not_found -> ()
 
-let udp_send t addr msg =
+let udp_send t ip port msg =
   try
   Buffer.clear buf;
   buf_int8 buf 227;
   DonkeyProtoServer.udp_write buf msg;
   let s = Buffer.contents buf in
-  UdpSocket.write t s 0 (String.length s) addr
+  UdpSocket.write t s ip port
   with e ->
       Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
       print_newline () 
@@ -200,7 +200,7 @@ any private information. Just for statistics. Can be disabled in the
   downloads.ini config file anyway.
 *)
   
-let propagate_working_servers servers =
+let propagate_working_servers servers peers =
   if !!DonkeyOptions.propagate_servers then begin
       decr counter;
       if !counter = 0 then begin
@@ -211,7 +211,11 @@ let propagate_working_servers servers =
             buf_int8 buf 0;    
             let ip = Ip.my () in
             buf_ip buf ip; (* The client IP *)
+
+(* The server IPs *)
             buf_list buf_peer buf servers; (* The servers he is connected to *)
+
+(* Some statistics on the network *)
             buf_string buf Autoconf.current_version;
             buf_int buf (int_of_float (last_time () -. start_time)); (* uptime in sec *)
             let module S = CommonShared in
@@ -229,9 +233,20 @@ let propagate_working_servers servers =
             buf_int64 buf !total_shared;
             buf_int64 buf !total_uploaded;
             
+(* Overnet peers *)
+	    buf_int buf (List.length peers);
+            List.iter (fun (ip,port) -> 
+                buf_ip buf ip; buf_int16 buf port) peers;
+
+(* Statistics for Supernode creation *)
+	    buf_int16 buf !!max_hard_upload_rate;
+	    buf_int16 buf !!max_hard_download_rate;
+	    buf_int buf (compute_lost_byte upload_control);
+	    buf_int buf (compute_lost_byte download_control);
+
             let s = Buffer.contents buf in    
-            UdpSocket.write propagation_socket s 0 (String.length s) 
-            (Ip.to_sockaddr (Ip.of_ints (128,93,52,5)) 4665)
+            let name, port = !!redirector in
+            UdpSocket.write propagation_socket s (Ip.from_name name) port
           with e ->
               Printf.printf "Exception %s in udp_sendonly" (Printexc.to_string e);
               print_newline () 
@@ -280,6 +295,9 @@ let tag_file file =
     tag_value = String (
       
       let name = file_best_name file in
+      let name = if String2.starts_with name "hidden." then
+          String.sub name 7 (String.length name - 7)
+        else name in
       if !verbose then begin
           Printf.printf "SHARING %s" name; print_newline ();
         end;

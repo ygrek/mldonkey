@@ -37,12 +37,13 @@ let string_color_of_state state =
   | Connected_busy -> gettext M.downloading, Some !!O.color_downloading 
   | Connected_idle -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
-  | NotConnected
-  | NewHost -> "", None
+  | NotConnected -> "Not connected", None
+  | NewHost -> "NEW HOST", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
   | Connected_queued -> gettext M.queued, Some !!O.color_not_connected
   | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
-  
+  | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
+      
 let string_color_of_client c =
   match c.client_files with
     Some _ -> gettext M.o_col_files_listed, Some !!O.color_downloading 
@@ -103,7 +104,7 @@ end
 class box columns () =
   let titles = List.map Gui_columns.Client.string_of_column columns in
   object (self)
-    inherit [client_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [client_info] Gpattern.plist `EXTENDED titles true (fun c -> c.client_num) as pl
       inherit Gui_friends_base.box () as box
     
     val mutable columns = columns
@@ -158,21 +159,9 @@ class box columns () =
       in
       (strings, col_opt)
 
-    method find_client num =
-      let rec iter n l =
-        match l with
-          [] -> raise Not_found
-        | c :: q ->
-            if c.client_num = num then
-              (n, c)
-            else
-              iter (n+1) q
-      in
-      iter 0 data
+    method find_client num = self#find num
 
     method set_tb_style = wtool#set_style
-
-    method clear = self#update_data []
 
     initializer
       box#vbox#pack ~expand: true pl#box
@@ -187,22 +176,9 @@ class box_friends box_files () =
   object (self)
     inherit box !!O.friends_columns ()
     
-    val mutable filtered_data = []
+    method filter = is_filtered    
     
-    method filter_networks = 
-      let data = data @ filtered_data in
-      let rec iter filtered not_filtered data =
-        match data with
-          [] -> List.rev filtered, List.rev not_filtered
-        | s :: tail ->
-            if is_filtered s then
-              iter (s :: filtered) not_filtered tail
-            else
-              iter filtered (s :: not_filtered) tail
-      in
-      let (filtered, not_filtered) = iter [] [] data in
-      filtered_data <- filtered;
-      self#update_data not_filtered
+    method filter_networks = self#refresh_filter
     
     method remove () = 
       List.iter
@@ -210,7 +186,7 @@ class box_friends box_files () =
       self#selection
     
     method remove_all_friends () = 
-      self#update_data [];
+      self#clear;
       Gui_com.send GuiProto.RemoveAllFriends
     
     method find_friend () =
@@ -227,10 +203,10 @@ class box_friends box_files () =
       |	Some tree -> 
 (*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
           print_newline (); *)
-          box_files#update_data (Some tree)
+          box_files#update_tree (Some tree)
     
     method on_deselect f =
-      box_files#update_data None
+      box_files#update_tree None
     
     val mutable on_double_click = (fun _ -> ())
     method set_on_double_click f = on_double_click <- f
@@ -260,14 +236,12 @@ class box_friends box_files () =
         self#update_row f row
       with
         Not_found ->
-          data <- data @ [f_new] ;
-          self#insert ~row: self#wlist#rows f_new
+          self#add_item f_new
     
     method h_remove_friend num =
       try
-        let (row, _) = self#find_client num in
-        self#wlist#remove row;
-        data <- List.filter (fun fi -> fi.client_num <> num) data ;
+        let (row, i) = self#find_client num in
+        self#remove_item row i;
         selection <- List.filter (fun fi -> fi.client_num <> num) selection
       with
         Not_found -> ()
@@ -276,24 +250,24 @@ class box_friends box_files () =
       ignore
         (wtool#insert_button 
           ~text: (gettext M.find_friend)
-          ~tooltip: (gettext M.find_friend)
-          ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
+        ~tooltip: (gettext M.find_friend)
+        ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
           ~callback: self#find_friend
           ()
       );
       ignore
         (wtool#insert_button 
           ~text: (gettext M.remove)
-          ~tooltip: (gettext M.remove)
-          ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
+        ~tooltip: (gettext M.remove)
+        ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
           ~callback: self#remove
           ()
       );
       ignore
         (wtool#insert_button 
           ~text: (gettext M.remove_all_friends)
-          ~tooltip: (gettext M.remove_all_friends)
-          ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
+        ~tooltip: (gettext M.remove_all_friends)
+        ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
           ~callback: self#remove_all_friends
           ()
       );
@@ -320,33 +294,42 @@ class box_list () =
         [] -> []
       |	_ -> [ `I (gettext M.add_to_friends, self#add_to_friends) ]
     
+    val mutable delayed_sources_update = None
+    
     method update_data_by_file file_opt =
-      G.nclocations := 0;
-      G.nlocations := 0;
-      let l = ref [] in
-      (
-        match file_opt with
-        | None -> ()
-        | Some file ->
-            match file.file_sources with
-              None -> 
+      if delayed_sources_update = None then 
+        BasicSocket.add_timer 0.1 (fun _ ->
+            match delayed_sources_update with
+              Some file_opt ->
+                delayed_sources_update <- None;
+                G.nclocations := 0;
+                G.nlocations := 0;
+                let l = ref [] in
+                (
+                  match file_opt with
+                  | None -> ()
+                  | Some file ->
+                      match file.file_sources with
+                        None -> 
+                          
+                          Gui_com.send (GuiProto.GetFile_locations file.file_num)
+                      | Some list ->
+                          List.iter 
+                            (fun num ->
+                              try
+                                let c = Hashtbl.find G.locations num in
+                                if Mi.is_connected c.client_state then incr G.nclocations;
+                                l := c :: !l
+                              with _ -> 
+                                  Gui_com.send (GuiProto.GetClient_info num)
+                          )  list
                 
-                Gui_com.send (GuiProto.GetFile_locations file.file_num)
-            | Some list ->
-                List.iter 
-                  (fun num ->
-                    try
-                      let c = Hashtbl.find G.locations num in
-                      if Mi.is_connected c.client_state then incr G.nclocations;
-                      l := c :: !l
-                    with _ -> 
-                        Gui_com.send (GuiProto.GetClient_info num)
-                )  list
-      
-      );
-      G.nlocations := List.length !l;
-      self#update_data !l;
-      self#update_locations_label
+                );
+                G.nlocations := List.length !l;
+                self#reset_data !l;
+                self#update_locations_label;
+            | _ -> ());
+      delayed_sources_update <- Some file_opt
     
     method h_update_location c_new =
       try
@@ -369,7 +352,7 @@ class box_list () =
             print_newline (); *)
             decr G.nlocations;
             self#update_locations_label;
-            self#update_data (List.filter (fun c -> c_new.client_num <> c.client_num) data)
+            self#remove_item row c
           end else
         let _ = () in          
         if c_new.client_files <> None then
@@ -380,7 +363,7 @@ class box_list () =
         
         c.client_kind <- c_new.client_kind;
         c.client_tags <- c_new.client_tags;
-          self#update_row c row
+        self#update_row c row
       with
 	Not_found ->
 	  ()

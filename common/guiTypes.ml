@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonGlobals
 open CommonTypes
 
@@ -145,6 +146,9 @@ type client_stats = {
     mutable tcp_download_rate : int; (* bytes/second *)
     mutable udp_upload_rate : int; (* bytes/second *)
     mutable udp_download_rate : int; (* bytes/second *)
+    mutable connected_networks : int list;
+    mutable ndownloaded_files : int;
+    mutable ndownloading_files : int;
   }
 
 type shared_info = {
@@ -154,6 +158,7 @@ type shared_info = {
     mutable shared_size : int32;
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
+    mutable shared_id : Md4.t;
   }
   
   
@@ -219,4 +224,3 @@ type option_widget =
   StringEntry
 | BoolEntry
 | FileEntry
-  

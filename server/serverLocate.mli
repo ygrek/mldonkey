@@ -19,6 +19,7 @@
 
 (*open LocalisationInit
 open LocalisationNotif*)
+open Md4
 
 (*add one location*)
 val add : Md4.t -> ServerTypes.location -> unit

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open CommonShared
 open CommonServer
 open CommonResult
@@ -44,6 +46,7 @@ open DonkeyGlobals
 open DonkeyClient
 open CommonGlobals
 open CommonOptions
+open DonkeyStats
   
 let result_name r =
   match r.result_names with
@@ -112,16 +115,17 @@ let load_server_met filename =
     let s = File.to_string filename in
     let ss = S.read s in
     List.iter (fun r ->
-        if Ip.valid r.S.ip then
-        let server = add_server r.S.ip r.S.port in
-        List.iter (fun tag ->
-            match tag with
-              { tag_name = "name"; tag_value = String s } -> 
-                server.server_name <- s;
-            |  { tag_name = "description" ; tag_value = String s } ->
-                server.server_description <- s
-            | _ -> ()
-        ) r.S.tags
+        try
+          let server = check_add_server r.S.ip r.S.port in
+          List.iter (fun tag ->
+              match tag with
+                { tag_name = "name"; tag_value = String s } -> 
+                  server.server_name <- s;
+              |  { tag_name = "description" ; tag_value = String s } ->
+                  server.server_description <- s
+              | _ -> ()
+          ) r.S.tags
+        with _ -> ()
     ) ss;
     List.length ss
   with e ->
@@ -176,7 +180,7 @@ let really_query_download filenames size md4 location old_file absents =
   let filenames = List.fold_left (fun names name ->
         if List.mem name names then names else name :: names
     ) filenames other_names in 
-  file.file_filenames <- filenames @ file.file_filenames;
+  file.file_filenames <- file.file_filenames @ filenames ;
   update_best_name file;
 
   DonkeyOvernet.recover_file file;
@@ -422,10 +426,9 @@ let parse_donkey_url url =
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
-      (if Ip.valid ip then
-          let s = add_server ip (int_of_string port) in
-          server_must_update s);
-      true
+      let s = add_server ip (int_of_string port) in
+      server_connect (as_server s.server_server);
+      true 
   | "ed2k://" :: "friend" :: ip :: port :: _
   | "friend" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
@@ -448,26 +451,25 @@ let commands = [
         let ip = Ip.of_string ip in
         let port = int_of_string port in
         
-        let s = add_server ip port in
+        safe_add_server ip port;
         Printf.bprintf buf "New server %s:%d\n" 
-          (Ip.to_string s.server_ip) 
-        s.server_port;
+          (Ip.to_string ip) port;
         ""
     ), " <ip> [<port>]: add a server";
-        
+    
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
     
     ), " : view upload credits";
-            
+    
     "mem_stats", Arg_none (fun o -> 
         let buf = o.conn_buf in
         DonkeyGlobals.mem_stats buf;
         ""
     ), " : print memory stats";
-
-        
+    
+    
     "comments", Arg_one (fun filename o ->
         let buf = o.conn_buf in
         DonkeyIndexer.load_comments filename;
@@ -485,16 +487,27 @@ let commands = [
     "nu", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let num = int_of_string num in
-        if !upload_credit >= num then begin
-            upload_credit := !upload_credit - num;
-            has_upload := !has_upload + num;
-            if !has_upload < 0 then begin
-                upload_credit := !upload_credit - !has_upload;
-                has_upload := 0;
-              end;
-            Printf.sprintf "upload disabled for %d minutes" num
-        end else
-          Printf.sprintf "Not enough credit (%d)" !upload_credit
+        
+        if num > 0 then (* we want to disable upload for a short time *)
+          let num = mini !upload_credit num in
+          has_upload := !has_upload + num;
+          upload_credit := !upload_credit - num;
+          Printf.sprintf
+            "upload disabled for %d minutes (remaining credits %d)" 
+            !has_upload !upload_credit
+        else
+        
+        if num < 0 && !has_upload > 0 then
+(* we want to restart upload probably *)
+          let num = - num in
+          let num = mini num !has_upload in
+          has_upload := !has_upload - num;
+          upload_credit := !upload_credit + num;
+          Printf.sprintf
+            "upload disabled for %d minutes (remaining credits %d)" 
+            !has_upload !upload_credit
+        
+        else ""
     ), " <m> : disable upload during <m> minutes (multiple of 5)";
     
     "import", Arg_one (fun dirname o ->
@@ -506,7 +519,7 @@ let commands = [
             Printf.sprintf "error %s while loading config" (
               Printexc.to_string e)
     ), " <dirname> : import the config from dirname";
-
+    
     "import_temp", Arg_one (fun dirname o ->
         let buf = o.conn_buf in
         try
@@ -531,7 +544,7 @@ let commands = [
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc.to_string e)
     ), " <filename> : add the servers from a server.met file";
-
+    
     
     "id", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -541,7 +554,7 @@ let commands = [
               (if Ip.valid s.server_cid then
                 Ip.to_string s.server_cid
               else
-                Int32.to_string (Ip.to_int32 s.server_cid))
+                Int32.to_string (Ip.to_int32 (Ip.rev s.server_cid)))
         ) (connected_servers());
         ""
     ), " : print ID on connected servers";
@@ -555,7 +568,7 @@ let commands = [
         "url added to web_infos. downloading now"
     ), " <kind> <url> : load this file from the web. 
     kind is either server.met (if the downloaded file is a server.met)";
-       
+    
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
@@ -569,21 +582,21 @@ let commands = [
                 "(downloading)" 
               with _ ->
                   Printf.bprintf buf "%s %s %s\n"
-                  filename
+                    filename
                     (if List.mem md4 !!old_files then
                       "is an old file" else "is unknown")
                   (try
                       let names = DonkeyIndexer.find_names md4 in
                       List.hd names
                     with _ -> "and never seen")
-                    
+            
             with _ -> 
                 Printf.bprintf buf "%s unknown\n" filename
         
         ) list;
         "done";
     ), " : print temp directory content";
-
+    
     "recover_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
         let files = Unix2.list_directory !!temp_directory in
@@ -606,7 +619,7 @@ let commands = [
         "done"
     ), " : recover lost files from temp directory";
 
-    (*
+(*
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -632,6 +645,20 @@ let commands = [
     ), " : statistics on upload";
 *)
     
+    "uploaders", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        List.iter (fun c ->
+            client_print (as_client c.client_client) o;
+            Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
+            match c.client_upload with
+              Some cu ->
+                Printf.bprintf buf "\nfilename: %s\n\n" (file_best_name cu.up_file)
+            | None -> ()
+        ) (Fifo.to_list upload_clients);
+        "done"
+    ), " : show users currently uploading";
+    
+    
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in
         if !xs_last_search >= 0 then begin
@@ -647,7 +674,7 @@ let commands = [
         DonkeyIndexer.clear ();
         "local history cleared"
     ), " : clear local history";
-        
+    
     "dllink", Arg_multiple (fun args o ->        
         let buf = o.conn_buf in
         let url = String2.unsplit args ' ' in
@@ -655,13 +682,13 @@ let commands = [
           "download started"
         else "bad syntax"
     ), " <ed2klink> : download ed2k:// link";
-
+    
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
         query_download [] (Int32.of_string size)
         (Md4.of_string md4) None None None false;
         "download started"
-
+    
     ), "<size> <md4> : download from size and md4";
     
     "remove_old_servers", Arg_none (fun o ->
@@ -669,7 +696,26 @@ let commands = [
         DonkeyServers.remove_old_servers ();
         "clean done"
     ), ": remove servers that have not been connected for several days";
+    
+    
+    
+    "bp", Arg_multiple (fun args o ->
+        List.iter (fun arg ->
+            let port = int_of_string arg in
+            port_black_list =:=  port :: !!port_black_list;
+        ) args;
+        "done"
+    ), " <port1> <port2> ... : add these Ports to the port black list";
 
+    "send_servers", Arg_none (fun o ->
+        DonkeyProtoCom.propagate_working_servers 
+          (List.map (fun s -> s.server_ip, s.server_port)
+          (connected_servers()))
+        (DonkeyOvernet.connected_peers ())
+        ;
+        "done"
+    ), " : send the list of connected servers to the redirector";
+    
   ]
   
 let _ =
@@ -684,9 +730,12 @@ let _ =
 (*      !file_change_hook file *)
   );
   file_ops.op_file_commit <- (fun file new_name ->
-      old_files =:= file.file_md4 :: !!old_files;
-      
+      if not (List.mem file.file_md4 !!old_files) then
+        old_files =:= file.file_md4 :: !!old_files;
       DonkeyShare.remember_shared_info file new_name
+  );
+  network.op_network_connected <- (fun _ ->
+    !nservers > 0  
   );
   network.op_network_private_message <- (fun iddest s ->      
       try
@@ -852,15 +901,22 @@ let _ =
       !list);
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
+      current_files := List2.removeq file !current_files;
       (try  Sys.remove (file_disk_name file)  with e -> 
             Printf.printf "Sys.remove %s exception %s" 
             (file_disk_name file)
-              (Printexc.to_string e); print_newline ());
+            (Printexc.to_string e); print_newline ());
+      if !!keep_cancelled_in_old_files &&
+        not (List.mem file.file_md4 !!old_files) then
+        old_files =:= file.file_md4 :: !!old_files;
+      let sources = file.file_sources in
       Intmap.iter (fun _ c ->
-          c.client_source_for <- List2.removeq file c.client_source_for;
+          remove_source file c
+(*
+      c.client_source_for <- List2.removeq file c.client_source_for;
           c.client_file_queue <- List.remove_assoc file c.client_file_queue;
-          check_useful_client c
-      ) file.file_sources;
+          check_useful_client c  *)
+      ) sources;
   );
   file_ops.op_file_comment <- (fun file ->
       Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
@@ -948,6 +1004,7 @@ let _ =
           { (impl_shared_info impl) with 
             T.shared_network = network.network_num;
             T.shared_filename = file_best_name file;
+            T.shared_id = file.file_md4;
             }
   );
   pre_shared_ops.op_shared_info <- (fun s ->
@@ -959,6 +1016,12 @@ let _ =
 
 let _ =
   add_web_kind "server.met" (fun filename ->
+      Printf.printf "FILE LOADED"; print_newline ();
+      let n = load_server_met filename in
+      Printf.printf "%d SERVERS ADDED" n; print_newline ();    
+  );
+  add_web_kind "servers.met" (fun filename ->
+      Printf.printf "FILE LOADED"; print_newline ();
       let n = load_server_met filename in
       Printf.printf "%d SERVERS ADDED" n; print_newline ();    
   );

@@ -19,6 +19,8 @@
 
 (** GUI for the lists of files. *)
 
+open Md4
+
 open Gettext
 open Gui_global
 open CommonTypes
@@ -39,13 +41,18 @@ let first_name r =
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
+let is_filtered r =
+  List.memq r.result_network !Gui_global.networks_filtered
+
 class box s_num columns () =
   let titles = List.map Gui_columns.Result.string_of_column columns in
   object (self)
-    inherit [CommonTypes.result_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [CommonTypes.result_info] Gpattern.filtered_plist `EXTENDED titles true (fun r -> r.result_num) as pl
     inherit Gui_results_base.box !!O.toolbars_style () as box 
 
     val mutable wb_extend_search = (None : GButton.button option)
+
+    method filter = is_filtered
 
     val mutable columns = columns
     method set_columns l =
@@ -126,8 +133,6 @@ class box s_num columns () =
 	  wb_extend_search <- None
 *)
       
-    method clear = self#update_data []
-
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
@@ -152,9 +157,6 @@ class box s_num columns () =
 
   end
 
-let is_filtered r =
-  List.memq r.result_network !Gui_global.networks_filtered
-
 class search_result_box s_num () =
   let hbox_labels = GPack.hbox () in
   let wl_count = GMisc.label ~text: "" 
@@ -168,35 +170,16 @@ class search_result_box s_num () =
   object (self)
     inherit box s_num !!Gui_options.results_columns  () as box
 
-    val mutable filtered_data = []
-    
+    method filter res = is_filtered res
+
     method add_result (res : CommonTypes.result_info) =
-      if is_filtered res then 
-          filtered_data <- filtered_data @ [res]
-      else begin
-          data <- data @ [res];
-          self#insert ~row: self#wlist#rows res;
-          wl_count#set_text 
-            (gettext M.results (List.length data))
-        end
+      self#add_item res;
+      wl_count#set_text  (gettext M.results self#size)
 
     method set_waiting n =
       wl_wait#set_text (M.waiting_for_replies n)
 
-    method filter_networks = 
-      let data = data @ filtered_data in
-      let rec iter filtered not_filtered data =
-        match data with
-          [] -> List.rev filtered, List.rev not_filtered
-        | s :: tail ->
-            if is_filtered s then
-              iter (s :: filtered) not_filtered tail
-            else
-              iter filtered (s :: not_filtered) tail
-      in
-      let (filtered, not_filtered) = iter [] [] data in
-      filtered_data <- filtered;
-      self#update_data not_filtered
+    method filter_networks = self#refresh_filter
       
     initializer
       box#vbox#pack ~expand: false hbox_labels#coerce ;
@@ -211,7 +194,7 @@ class box_dir_files () =
 
     val mutable selected_dir = (None : GuiTypes.file_tree option)
 
-    method update_data file_tree_opt =
+    method update_tree file_tree_opt =
       self#clear ;
       selected_dir <- None;
       results#clear ;
@@ -244,7 +227,7 @@ class box_dir_files () =
       let (subdirs, result_list) = self#separate_children ft in
 
       ignore (item#connect#select
-		(fun () -> selected_dir <- Some ft; results#update_data result_list));
+		(fun () -> selected_dir <- Some ft; results#reset_data result_list));
       ignore (item#connect#deselect
 		(fun () -> selected_dir <- None; results#clear));
       (

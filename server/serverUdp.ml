@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open Random
 open CommonGlobals
 open Unix
@@ -43,22 +44,21 @@ let server_udp_send s t =
     begin
       incr nb_udp_reply_count;
       DonkeyProtoCom.udp_send (udp_sock ())
-	(Unix.ADDR_INET 
-	   (Ip.to_inet_addr s.DonkeyTypes.server_ip,
-	    s.DonkeyTypes.server_port+4))
+	s.DonkeyTypes.server_ip
+	(s.DonkeyTypes.server_port+4)
 	t
     end
 
-let udp_send sock to_addr t =
+let udp_send sock ip port t =
   if not (!stop_udp) then
     begin
       incr nb_udp_reply_count;
-      udp_send sock to_addr t
+      udp_send sock ip port t
     end
 
-let alway_udp_send sock to_addr t =
+let alway_udp_send sock ip port t =
   incr nb_udp_reply_count;
-  udp_send sock to_addr t
+  udp_send sock ip port t
 
 (* reponse (propagation de la liste des serveurs connus):
 227: header
@@ -109,7 +109,14 @@ let udp_handler sock event =
   match event with
     UdpSocket.READ_DONE ->
       read_packets sock (fun p -> 
+
           try
+	    let to_ip, to_port = match p.UdpSocket.addr with
+	    | Unix.ADDR_INET(ip, port) ->
+		let ip = Ip.of_inet_addr ip in ip, port
+	    | _ -> raise Not_found
+	    in
+
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
             if len = 0 || 
@@ -248,32 +255,12 @@ let udp_handler sock event =
                         }))     
 
 		  | M.ServerDescUdpReq t ->
-		      let to_addr = p.UdpSocket.addr in
-			(*begin
-			  try
-			    let bob = match to_addr with
-			      | Unix.ADDR_INET(ip, port) ->
-				  let ip = Ip.of_inet_addr ip in
-				    if Ip.valid ip then
-				      let s = DonkeyGlobals.find_server ip (port-4) in
-					s
-				    else raise Not_found
-			      | _ -> raise Not_found
-			    in
-			    bob.DonkeyTypes.server_last_message <- last_time ();
-			      server_udp_send bob ( 
-				let module R = M.ServerDescReplyUdp in
-				  (M.ServerDescReplyUdpReq {
-				     R.name = !!server_name;
-				     R.desc = !!server_desc;
-				   }))
-			  with _ ->*)
-			    udp_send sock to_addr  ( 
-			      let module R = M.ServerDescReplyUdp in
-				(M.ServerDescReplyUdpReq {
-				 R.name = !!server_name;
-				   R.desc = !!server_desc;
-				 })) 
+		      udp_send sock to_ip to_port  ( 
+		      let module R = M.ServerDescReplyUdp in
+		      (M.ServerDescReplyUdpReq {
+		       R.name = !!server_name;
+		       R.desc = !!server_desc;
+		     })) 
 			
 			
 		  | M.ServerListUdpReq t ->
@@ -304,7 +291,7 @@ let udp_handler sock event =
 						) !serverList;
 				       }))   
 			  with _ ->*)
-			    udp_send sock to_addr  ( 
+			    udp_send sock to_ip to_port  ( 
 			      let module M = DonkeyProtoServer in
 				M.QueryServersReplyUdpReq (
 				  let module Q = M.QueryServersReply in
@@ -336,7 +323,7 @@ let udp_handler sock event =
 			    else raise Not_found
 			    | _ -> raise Not_found
 			    with _ -> ());*)
-			  udp_send sock to_addr (M.PingServerReplyUdpReq
+			  udp_send sock to_ip to_port (M.PingServerReplyUdpReq
 						   (t,
 						    Int32.of_int !nconnected_clients, 
 						    Int32.of_int !nshared_md4))  
@@ -357,7 +344,7 @@ let udp_handler sock event =
 			    if (!!save_log) then
 			      ServerLog.put_results list;
 			    let to_addr = p.UdpSocket.addr in 
-			      alway_udp_send sock to_addr (M.QueryReplyUdpReq (List.hd list));
+			      alway_udp_send sock to_ip to_port (M.QueryReplyUdpReq (List.hd list));
 			  end;
 		    ()   
 
@@ -374,7 +361,7 @@ let udp_handler sock event =
 			      if ((List.length peer_list.R.locs) <> 0) then
 				let to_addr = p.UdpSocket.addr in
 				  begin
-				    alway_udp_send sock to_addr (M.QueryLocationReplyUdpReq peer_list);
+				    alway_udp_send sock to_ip to_port (M.QueryLocationReplyUdpReq peer_list);
 				    incr nb_udp_loc_reply_count;
 				  end
 			  with Not_found -> ()
@@ -391,7 +378,7 @@ let udp_handler sock event =
 				    let module QI = M.QueryIDReply in
 				      (match cc.client_kind, sock, cc.client_sock with
 					   KnownLocation (ip, port), sock, _ ->
-					     udp_send sock to_addr (M.QueryIDReplyReq {
+					     udp_send sock to_ip to_port (M.QueryIDReplyReq {
 								      QI.ip = t.CU.ip;
 								      QI.port = t.CU.port;
 								    })	 
@@ -406,7 +393,7 @@ let udp_handler sock event =
 				| RemoteClient cc ->
 				    ()
 			      with Not_found ->
-				alway_udp_send sock to_addr (M.QueryIDFailedReq t.CU.id)
+				alway_udp_send sock to_ip to_port (M.QueryIDFailedReq t.CU.id)
 		      end
 		      
 
@@ -535,14 +522,10 @@ let test() =
     Q.port = !!server_port;
   } in 
     DonkeyProtoCom.udp_send (udp_sock ()) 
-      (Unix.ADDR_INET 
-	 (Ip.to_inet_addr ip,
-	  5004))
+    ip	  5004
       t;
     DonkeyProtoCom.udp_send (udp_sock ())
-      (Unix.ADDR_INET 
-	 (Ip.to_inet_addr ip,
-	  5004))
+    ip	  5004
       m
       
 let hello_world () =

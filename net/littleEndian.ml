@@ -23,7 +23,7 @@ Big Endian:    strongest byte first (network order)
 Little Endian: weakest byte first
 
   *)
-
+open Md4
 open Autoconf
 open Int32ops
 
@@ -197,9 +197,11 @@ let buf_list8 buf_item b list =
 let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
 
 let get_md4 s pos =
-  try Md4.direct_of_string (String.sub s pos 16)  with e ->
-      Printf.printf "exception in get_md4 %d" pos; print_newline ();
-      raise e
+  try Md4.direct_of_string (String.sub s pos 16)  
+  with e ->
+    Printf.printf "exception in get_md4 %d s=%s" pos s; 
+    print_newline ();
+    raise e
 
       
 let dump_ascii s =
@@ -244,3 +246,12 @@ let dump_sub s pos len =
   done;
   Printf.printf "]\n";
   print_newline ()
+
+
+let buf_string16 buf s =
+  buf_int16 buf (String.length s);
+  Buffer.add_string buf s
+
+let buf_string8 buf s =
+  buf_int8 buf (String.length s);
+  Buffer.add_string buf s

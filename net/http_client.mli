@@ -41,8 +41,13 @@ type get_args =
 type content_handler = 
   int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
-val get_page : Url.url -> get_args list -> content_handler  -> unit
+val get_page : Url.url -> get_args list -> content_handler ->
+  (unit -> unit) -> unit
 
+val wget : string -> (string -> unit) -> unit
+
+  
+  
   (*
 val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
   headers_handler

@@ -23,6 +23,8 @@ For each file on disk that has to be shared, call
   
 *)
 
+open Md4
+
 open CommonOptions
 open CommonGlobals
 open Options
@@ -165,20 +167,9 @@ let dummy_shared = {
   
 let shared_find num = 
   H.find shareds_by_num (as_shared { dummy_shared with impl_shared_num = num })
-  
-let shared_check_files () =
-  let list = ref [] in
-  H.iter (fun s ->
-      let name = shared_fullname s in
-      if not (Sys.file_exists name) then list := s :: !list
-  ) shareds_by_num;
-  List.iter (fun s -> shared_unshare s) !list
 
 let shared_iter f =
   H.iter f shareds_by_num
-  
-let com_shareds_by_num = shareds_by_num
-let shareds_by_num = ()
 
 let file_size filename = Unix32.getsize32 filename
 let local_dirname = Sys.getcwd ()
@@ -223,6 +214,15 @@ let shared_add_directory dirname =
   Printf.printf "SHARING %s" dirname; print_newline ();
   shared_add_directory dirname ""
   
+let shared_check_files () =
+  let list = ref [] in
+  H.iter (fun s ->
+      let name = shared_fullname s in
+      if not (Sys.file_exists name) then list := s :: !list
+  ) shareds_by_num;
+  List.iter (fun s -> shared_unshare s) !list;
+  List.iter shared_add_directory !!shared_directories
+  
 let impl_shared_info impl =
   let module T = GuiTypes in
   {
@@ -232,9 +232,13 @@ let impl_shared_info impl =
     T.shared_size = impl.impl_shared_size;
     T.shared_uploaded = impl.impl_shared_uploaded;
     T.shared_requests = impl.impl_shared_requests; 
+    T.shared_id = Md4.null;
   }
   
 let shared_info s =
   let impl = as_shared_impl s in
   impl.impl_shared_ops.op_shared_info impl.impl_shared_val
   
+    
+let com_shareds_by_num = shareds_by_num
+let shareds_by_num = ()

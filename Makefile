@@ -47,7 +47,7 @@ CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
-  cdk/select_c.c cdk/heap_c.c cdk/array2.ml cdk/sort2.ml
+  cdk/select_c.c cdk/heap_c.c cdk/array2.ml cdk/sort2.ml 
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -67,14 +67,14 @@ LIB_SRCS= lib/autoconf.ml\
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
   lib/mailer.ml lib/date.ml \
   lib/md4_comp.c lib/md4_c.c lib/unix32_c.c lib/inet_c.c \
-  lib/gettext.ml
+  lib/gettext.ml lib/md5_c.c
 
 NET_SRCS = \
   net/bigEndian.ml net/littleEndian.ml \
   net/basicSocket.ml net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml \
-  net/multicast.ml net/multicast_c.c
+  net/multicast.ml net/multicast_c.c  net/terminal.ml
 
 CHAT_SRCS = chat/chat_messages.ml\
 	chat/chat_misc.ml\
@@ -129,9 +129,11 @@ DONKEY_SRCS= \
   donkey/donkeyGlobals.ml \
   donkey/donkeyProtoCom.ml  \
   donkey/donkeyComplexOptions.ml \
+  donkey/donkeySupernode.ml \
   donkey/donkeyIndexer.ml \
   donkey/donkeyShare.ml \
   donkey/donkeyOneFile.ml \
+  donkey/donkeyStats.ml \
   donkey/donkeyClient.ml \
   donkey/donkeyProtoOvernet.ml \
   donkey/donkeyOvernet.ml \
@@ -248,6 +250,9 @@ CYMES_SRCS=\
 
 #   cymes/cymesUdp.ml 
 
+KDE_APPLET=yes
+
+
 ifeq ("$(DONKEY)" , "yes")
 SUBDIRS += donkey
 
@@ -328,6 +333,25 @@ MLDONKEY_SRCS= \
   \
   $(DRIVER_SRCS)
 
+ifeq ("$(IM)", "yes")
+  SUBDIRS += im im/yahoo im/msn im/icq im/toc
+  
+  IM_CORE += im/imTypes.ml im/imEvent.ml \
+   im/imProtocol.ml im/imIdentity.ml im/imAccount.ml \
+   im/imChat.ml im/imRoom.ml \
+   im/imOptions.ml \
+   \
+   im/yahoo/yahoo.ml  \
+   im/msn/msn.ml \
+   im/icq/icq.ml \
+   im/toc/toc.ml \
+   \
+   im/imMain.ml
+
+  IM_GUI_CORE +=    im/gui_im_base.zog  im/gui_im.ml 
+
+endif
+
 #######################################################################
 
 #              'Objects files for "mldonkey_gui"
@@ -338,6 +362,9 @@ MLDONKEY_SRCS= \
 # might want to keep it for a while. We don't want to force users to move
 
 ifeq ("$(COMPILE_GUI)" , "yes")
+
+#TARGETS += xpm2ml$(EXE)
+
 SUBDIRS += gui gui2 configwin okey gpattern 
 
 CONFIGWIN_SRCS=configwin/configwin_types.ml \
@@ -346,7 +373,7 @@ CONFIGWIN_SRCS=configwin/configwin_types.ml \
 
 MP3TAGUI_SRCS=  mp3tagui/mp3_messages.ml mp3tagui/mp3_ui.ml
 
-GPATTERN_SRCS=  gpattern/gpattern.ml
+GPATTERN_SRCS=  lib/gAutoconf.ml gpattern/gpattern.ml
 
 OKEY_SRCS= okey/okey.ml
 
@@ -355,7 +382,7 @@ GUI_SRCS= gui/gui_messages.ml \
   gui/gui_global.ml \
   gui/gui_keys.ml gui/gui_options.ml \
   gui/gui_com.ml gui/gui_misc.ml \
-  gui/gui_icons.ml \
+  gui/gui_all_icons.ml gui/gui_icons.ml \
   gui/gui_help_base.zog gui/gui_help.ml \
   gui/gui_console_base.zog gui/gui_console.ml \
   gui/gui_uploads_base.zog gui/gui_uploads.ml \
@@ -367,9 +394,32 @@ GUI_SRCS= gui/gui_messages.ml \
   gui/gui_queries_base.zog gui/gui_queries.ml \
   gui/gui_downloads_base.zog gui/gui_downloads.ml \
   gui/gui_window_base.zog gui/gui_window.ml \
+  $(IM_GUI_CORE) \
   gui/gui_config.ml \
   gui/gui_main.ml
 
+ICONS= \
+  icons/big/add_to_friends.xpm icons/big/cancel.xpm icons/big/connect_more.xpm \
+  icons/big/connect.xpm icons/big/disconnect.xpm icons/big/download.xpm \
+  icons/big/edit_mp3.xpm icons/big/extend_search.xpm icons/big/get_format.xpm \
+  icons/big/local_search.xpm icons/big/preview.xpm icons/big/refres.xpm \
+  icons/big/save_all.xpm icons/big/save_as.xpm icons/big/save.xpm \
+  icons/big/trash.xpm icons/big/verify_chunks.xpm icons/big/view_users.xpm \
+ \
+  icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
+  icons/small/connect_more_small.xpm icons/small/connect_small.xpm \
+  icons/small/disconnect_small.xpm icons/small/download_small.xpm \
+  icons/small/edit_mp3_small.xpm icons/small/extend_search_small.xpm \
+  icons/small/get_format_small.xpm icons/small/local_search_small.xpm \
+  icons/small/preview_small.xpm icons/small/refres_small.xpm \
+  icons/small/save_all_small.xpm icons/small/save_as_small.xpm icons/small/save_small.xpm \
+  icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
+  icons/small/view_users_small.xpm
+
+
+ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icon)
+gui/gui_all_icons.ml: $(ALL_ICONS) $(ICONS)
+	cat $(ALL_ICONS) > gui/gui_all_icons.ml
 
 GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
   gui2/gui2_options.ml gui2/gui2_GList.ml gui2/gui2.zog \
@@ -381,16 +431,16 @@ GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
 MLDONKEYGUI_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_SRCS)
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
 
 MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI2_SRCS)
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS)
 
 TOP_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
@@ -633,6 +683,25 @@ opt:  $(PATCHED_OCAMLOPT)  $(TMPSOURCES) $(TARGETS)
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 static: $(PATCHED_OCAMLOPT) $(foreach target, $(TARGETS), $(target).static)
 
+kde_applet: $(APPLET_OBJS)
+	cd applets/kde; ./configure --prefix /usr; make
+	@echo; echo
+	@echo "      Go in applets/kde, su root, and call 'make install'"
+	@echo; echo
+
+gnome_applet: $(APPLET_OBJS)
+	cd applets/gnome; make
+	@echo; echo
+	@echo "      Go in applets/gnome, su root, and call 'make install'"
+	@echo; echo
+
+APPLET_SRCS=\
+  applets/api/endianess.c \
+  applets/api/gui_protocol.c
+
+APPLET_OBJS += $(foreach file, $(APPLET_SRCS), $(basename $(file)).o)
+
+
 
 PLUGINS_FILES:=$(foreach plugin, $(PLUGINS), $(plugin)_plugin)
 
@@ -739,6 +808,9 @@ zogml:
 mldonkeytop: $(TOP_CMOS) $(TOP_OBJS)
 	$(OCAMLMKTOP) -o $@ $(LIBS_byte) $(TOP_CMOS) $(TOP_OBJS) 
 
+xpm2ml: tools/xpm.ml
+	$(OCAMLOPT) -o $@  tools/xpm.ml
+
 ######## MLDONKEY
 
 mldonkey: $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) 
@@ -828,7 +900,7 @@ release.shared: opt
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
 	   cp $$i $(DISDIR)/$$i; \
-   	   strip  $(DISDIR)/$$i; \
+	   strip  $(DISDIR)/$$i; \
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
@@ -843,7 +915,7 @@ release.static: static opt
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
 	   cp $$i.static $(DISDIR)/$$i; \
-   	   strip  $(DISDIR)/$$i; \
+	   strip  $(DISDIR)/$$i; \
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
@@ -951,12 +1023,17 @@ auto-release:
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml_icon .cc
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.xpm.ml_icon :
+	echo "let " `basename $*` " = [|" > $@
+	grep '"' $< | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
+	echo "|]" >> $@
 
 .ml.cmx :
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
@@ -978,6 +1055,9 @@ auto-release:
 
 .c.o :
 	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
+
+.cc.o :
+	$(CXX) $(CXX_FLAGS) -o $*.o $(CFLAGS) -c $<
 
 .cmo.byte:
 	$(OCAMLC) -o $*.byte $(LIBS) $<

@@ -33,7 +33,7 @@ let (!!) = Options.(!!)
 class box columns () =
   let titles = List.map Gui_columns.User.string_of_column columns in 
   object (self)
-    inherit [GuiTypes.user_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [GuiTypes.user_info] Gpattern.plist `EXTENDED titles true (fun s -> s.user_num) as pl
       inherit Gui_users_base.box () as box
     
     val mutable columns = columns
@@ -113,17 +113,7 @@ class box columns () =
 
     method set_tb_style = wtool#set_style
 
-    method clear = self#update_data []
-
-    method find_user num =
-      let rec iter n l =
-        match l with
-          [] -> raise Not_found
-        | s :: q ->
-            if s.user_num = num then (n, s)
-            else iter (n+1) q
-      in
-      iter 0 data
+    method find_user num = self#find num
 
     initializer
       box#vbox#pack ~expand: true pl#box ;

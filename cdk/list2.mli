@@ -39,3 +39,5 @@ val tail_map : ('a -> 'b) -> 'a list -> 'b list
   
 val assoc_inv : 'a -> ('b * 'a) list -> 'b
   
+val safe_iter : ('a -> unit) -> 'a list -> unit
+  

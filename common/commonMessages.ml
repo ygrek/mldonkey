@@ -139,7 +139,7 @@ let web_common_header = define_option message_file
 <td><a href=\"/submit?q=vs\" $O>View Searches</a></td>
 <td><a href=\"/submit?q=vma\" $O>View all Servers</a></td>
 <td><a href=\"/submit?q=ovstats\" $O>Overnet Stats</a></td>
-<td align=\"right\"><a class=\"extern\" href=\"http://savannah.nongnu.org/projects/mldonkey/\" $O>Project</a></td>
+<td align=\"right\"><a class=\"extern\" href=\"http://www.mldonkey.net/\" $O>Project</a></td>
 </tr>
 <tr>
 <td><a href=\"/submit?q=reshare\" $S>Reshare Files</a></td>

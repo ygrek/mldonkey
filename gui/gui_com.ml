@@ -49,7 +49,7 @@ let send t =
       Printf.printf "Message not sent since not connected";
       print_newline ();
   | Some sock ->
-      GuiEncoding.gui_send GuiEncoding.from_gui.(!gui_protocol_used) sock t
+      GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
 
 let reconnect gui value_reader =
   (try disconnect gui with _ -> ());
@@ -97,7 +97,7 @@ let reconnect gui value_reader =
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = GuiDecoding.to_gui.(!gui_protocol_used) opcode s in
+            let m = GuiDecoding.to_gui opcode s in
             value_reader m sock
           with e ->
             Printf.printf "Exception %s in decode/exec" (Printexc.to_string e); 

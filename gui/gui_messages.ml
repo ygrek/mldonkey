@@ -48,6 +48,7 @@ let friends = message "friends" (T.option T.format) "Friends"
 let searches = message "searches" (T.option T.format) "Searches"
 let options = message "options" (T.option T.format) "Options"
 let not_connected = message "not_connected" (T.option T.format) "Not connected"
+let black_listed = message "black_listed" (T.option T.format) "Black Listed"
 let connected_to_servers = 
   message "connected_to_servers" (T.option (T.int (T.int T.format)))
   "Connected to %d/%d server(s)"

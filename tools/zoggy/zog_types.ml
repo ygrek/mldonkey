@@ -100,6 +100,11 @@ type prop_kind =
   | Value_in_list
   | Ok_if_empty
   | Update_policy
+
+  | PPixmap_file
+  | PPixmap_data
+  | PPixmap_code
+
 (*
 open Gtk.Tags
 
@@ -305,6 +310,9 @@ let properties = [
   (Value_in_list, "value_in_list", Bool, "bool");
   (Ok_if_empty, "ok_if_empty", Bool, "bool") ;
   (Update_policy, "update_policy", Enum update_type_values, gt "policy_type") ;
+  (PPixmap_file, "pixmap_file", Code, "string");
+  (PPixmap_data, "pixmap_data", Code, "string array");
+  (PPixmap_code, "pixmap_code", Code, "pixmap");
 ] 
 
 (** Get information on property kind. *)
@@ -345,6 +353,9 @@ type ele_class =
   | Notebook
   | Color_selection
   | Pixmap
+  | Pixmap_file
+  | Pixmap_data
+  | Pixmap_code
   | Entry
   | Spin_button
   | Combo
@@ -402,8 +413,8 @@ let class_names_and_strings =
       Toolbar, "toolbar", "wtool_", "GButton.toolbar" ;
       Hbox, "hbox", "hbox_", "GPack.hbox" ;
       Vbox, "vbox", "vbox_", "GPack.vbox" ;
-      Hbutton_box, "button_box", "whbb_", "GPack.button_box `HORIZONTAL" ;
-      Vbutton_box, "button_box", "whbb_", "GPack.button_box `VERTICAL" ;
+      Hbutton_box, "button_box", "wbb_", "GPack.button_box `HORIZONTAL" ;
+      Vbutton_box, "vbutton_box", "wbb_", "GPack.button_box `VERTICAL" ;
       Fixed, "fixed", "wfix_", "GPack.fixed" ;
       Frame, "frame", "wf_", "GBin.frame" ;
       Aspect_frame, "aspect_frame", "waf_", "GBin.aspect_frame" ;
@@ -445,6 +456,16 @@ let class_names_and_strings =
       Font_selection, "font_selection", "wfontsel", "GMisc.font_selection" ;
     ] 
 
+let class_names_and_strings_opt = 
+  [
+    Pixmap_data, "pixmap_data", "wpix_", "GMisc.pixmap" ;
+    Pixmap_file, "pixmap_file", "wpix_", "GMisc.pixmap" ;
+    Pixmap_code, "pixmap_code", "wpix_", "GMisc.pixmap" ;
+  ] 
+
+let class_names_and_strings_complete =
+  class_names_and_strings @ class_names_and_strings_opt
+
 (** This list can be used to iter on classes used to define menus. *)
 let menu_classes_names_and_strings = List.filter
     (fun (c,_,_,_) -> 
@@ -456,10 +477,10 @@ let menu_classes_names_and_strings = List.filter
 (** Get information on a class kind. *)
 let get_class_info cl =
   try
-    List.find (fun (c,_,_,_) -> c = cl) class_names_and_strings
+    List.find (fun (c,_,_,_) -> c = cl) class_names_and_strings_complete
   with
     Not_found ->
-      raise (Failure "a constructor has no string in Zog_types.class_names_and_strings")
+     raise (Failure "a constructor has no string in Zog_types.class_names_and_strings")
 
 (** Return the value of a property kind in a list of properties. *)
 let get_prop_value props kind =
@@ -500,6 +521,9 @@ let pack_method_of_ele parent ele =
   | Vseparator, _
   | Color_selection, _
   | Pixmap, _
+  | Pixmap_file, _
+  | Pixmap_data, _
+  | Pixmap_code, _
   | Entry, _
   | Spin_button, _
   | Combo, _

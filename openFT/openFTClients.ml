@@ -263,7 +263,7 @@ let get_from_client sock (c: client) (file : file) =
       "GET %s HTTP/1.0\r\nRangeRange: bytes=%ld-%ld\r\n\r\n" file.file_name (file_downloaded file) (file_size file));
   let d = CommonDownloads.new_download sock 
       (as_client c.client_client)
-    (as_file file.file_file)
+    (as_file file.file_file) 1
     (on_close c) 
     (on_finished file)
     commit_in_subdir in

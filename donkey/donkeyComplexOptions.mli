@@ -17,10 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Md4
 open Options
 
 val add_server : Ip.t -> int -> DonkeyTypes.server
+val check_add_server : Ip.t -> int -> DonkeyTypes.server
+val safe_add_server : Ip.t -> int -> unit
 
 val remove_server : Ip.t -> int -> unit
   

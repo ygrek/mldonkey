@@ -40,7 +40,7 @@ val set_reader : t -> (t -> unit) -> unit
 val sock : t -> BasicSocket.t
 val closed : t -> bool
 val close : t -> string -> unit
-val write : t -> string -> int -> int -> Unix.sockaddr -> unit
+val write : t -> string -> Ip.t -> int -> unit
 val create : Unix.inet_addr -> int -> handler -> t
 val create_sendonly : unit -> t
 val can_write : t -> bool

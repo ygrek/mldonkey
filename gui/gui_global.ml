@@ -92,6 +92,21 @@ let clear () =
   search_counter := 0;
   Hashtbl.clear options_values;
   client_sections := [];
-  plugins_sections := [];
+  plugins_sections := []
 
+let console_message = ref (fun s -> 
+      Printf.printf "CONSOLE: %s" s;
+      print_newline () )
+
+
+let gtk_handler timer =
+  while Glib.Main.pending () do
+    ignore (Glib.Main.iteration false)
+  done
   
+    
+let _ =
+  ignore (GMain.Main.init ());
+  BasicSocket.add_infinite_timer 0.1 gtk_handler
+
+let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)

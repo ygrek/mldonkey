@@ -412,39 +412,9 @@ let parse_servers_list s =
 let load_servers_list url =
   let url = if url = "" then !!servers_list_url
     else "" in
-  let filename = Filename.temp_file "http_" ".tmp" in
-  let file_oc = open_out filename in
-  let file_size = ref 0 in
-  Http_client.get_page (Url.of_string url) []
-  (fun maxlen headers sock nread ->
-(*        Printf.printf "..."; print_newline (); *)
-        let buf = TcpBufferedSocket.buf sock in
-        
-        if nread > 0 then begin
-            let left = 
-              if maxlen >= 0 then
-                min (maxlen - !file_size) nread
-              else nread
-            in
-            output file_oc buf.buf buf.pos left;
-            buf_used sock left;
-            file_size := !file_size + left;
-            if nread > left then
-              TcpBufferedSocket.close sock "end read"
-          end
-        else
-        if nread = 0 then begin
-            close_out file_oc;
-            try
-              parse_servers_list (File.to_string filename);
-              Sys.remove filename
-            with e ->
-                Printf.printf
-                  "Exception %s in loading downloaded file %s"
-                  (Printexc.to_string e) filename
-          
-          end
-    )
+  Http_client.wget url (fun filename ->
+      parse_servers_list (File.to_string filename))
+
 
 module P = GuiTypes
   

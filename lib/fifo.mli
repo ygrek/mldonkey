@@ -28,3 +28,5 @@ val to_list : 'a t -> 'a list
 val length : 'a t -> int
 val put_back_ele : 'a t -> 'a -> unit
 val put_back : 'a t -> 'a list -> unit
+val iter: 'a t -> ('a -> unit) -> unit
+  

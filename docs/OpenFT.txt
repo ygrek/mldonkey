@@ -149,7 +149,6 @@ I%hu%s%lu%lu",
 ;
 
 };
-$Id$
 
 NOTE: this file is basically what OpenFT was supposed to be before it
 started...what it is now is probably different :)

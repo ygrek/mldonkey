@@ -46,7 +46,7 @@ let is_filtered s =
 class box columns users wl_status =
   let titles = List.map Gui_columns.Server.string_of_column columns in 
   object (self)
-    inherit [server_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [server_info] Gpattern.filtered_plist `EXTENDED titles true (fun s -> s.server_num) as pl
       inherit Gui_servers_base.box () as box
     
     val mutable filtered_data = []
@@ -81,8 +81,8 @@ class box columns users wl_status =
     method update_wl_status =
       wl_status#set_text
         (Printf.sprintf !!Gui_messages.connected_to_servers 
-	   !G.nconnected_servers !G.nservers)
-
+          !G.nconnected_servers !G.nservers)
+    
     method content_by_col s col =
       match col with
         Col_server_address -> 
@@ -140,22 +140,32 @@ class box columns users wl_status =
     method remove_old_servers () =
       Gui_com.send GuiProto.CleanOldServers
     
+    val mutable delayed_users_update = None 
+    
     method on_select s =
       match s.server_users with
         None -> 
-          users#update_data [] ;
+          users#clear;
           Gui_com.send (GuiProto.GetServer_users s.server_num);
       |	Some l -> 
-          let list = ref [] in
-          List.iter (fun u ->
-              try
-                let user_info = Hashtbl.find G.users u in
-                list := user_info :: !list
-              with _ ->
-                  Gui_com.send (GuiProto.GetUser_info u);
-          ) l;
-          users#update_data !list
-    
+          if delayed_users_update = None then
+            BasicSocket.add_timer 0.1 (fun _ ->
+                match delayed_users_update with
+                  Some l ->
+                    delayed_users_update <- None;
+                    let list = ref [] in
+                    List.iter (fun u ->
+                        try
+                          let user_info = Hashtbl.find G.users u in
+                          list := user_info :: !list
+                        with _ ->
+                            Gui_com.send (GuiProto.GetUser_info u);
+                    ) l;
+                    users#reset_data !list
+                | _ -> ()
+            );
+          delayed_users_update <- Some l
+                
     method add_server () =
       let (server_ip, server_port) =
         let server = we_ip#text in
@@ -175,8 +185,7 @@ class box columns users wl_status =
       we_ip#set_text "";
       we_port#set_text ""
     
-    method on_deselect s = 
-      users#update_data []
+    method on_deselect s = users#clear
     
     method menu =
       (match self#selection with
@@ -194,10 +203,10 @@ class box columns users wl_status =
     
     method set_tb_style = wtool#set_style
 
-    method clear = self#update_data []
-
 (** {2 Handling core messages} *)
-    
+
+    method filter = is_filtered
+
     method update_server s s_new row =
       s.server_score <- s_new.server_score ;
       s.server_tags <- s_new.server_tags ;
@@ -206,23 +215,15 @@ class box columns users wl_status =
       s.server_state <- s_new.server_state ;
       s.server_name <- s_new.server_name ;
       s.server_description <- s_new.server_description ;
-      if s.server_state = RemovedHost then
-        if row >= 0 then 
-          (
-           data <- List.filter (fun s2 -> s2 <> s) data;
-           self#wlist#remove row;
-           decr G.nservers;
-	   self#update_wl_status
-          )
-        else
-	  (
-           filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
-           decr G.nservers;
-	   self#update_wl_status
-          )
-      else 
-      if row >= 0 then
-        self#update_row s row;
+      if s.server_state = RemovedHost then 
+	self#remove_item row s
+      else begin
+	self#refresh_item row s
+      end;
+      if !G.nservers <> self#size then begin
+	G.nservers := self#size;
+	self#update_wl_status
+      end;
       
       (if s.server_users != s_new.server_users then begin
             s.server_users <- s_new.server_users ;
@@ -234,20 +235,7 @@ class box columns users wl_status =
       )
     
     
-    method find_server num =
-      let rec iter n l =
-        match l with
-          [] -> 
-            if n >= 0 then
-              iter min_int filtered_data
-            else raise Not_found
-        | s :: q ->
-            if s.server_num = num then
-              (n, s)
-            else
-              iter (n+1) q
-      in
-      iter 0 data
+    method find_server num = self#find num
     
     method h_server_info s = 
       try
@@ -258,61 +246,23 @@ class box columns users wl_status =
           | false, true -> decr G.nconnected_servers ; self#update_wl_status
           | _ -> ()
         );
-        let row = 
-          if is_filtered s <> (row < 0) then 
-            if row < 0 then begin
-(* serv was filtered, but not s *)
-                data  <- data @ [serv];
-                filtered_data <- List2.removeq serv filtered_data;
-                let row = self#wlist#rows    in
-                self#insert ~row: row s;
-                row
-              end
-            else begin
-                filtered_data  <- filtered_data @ [serv];
-                data <- List2.removeq serv data;
-                self#wlist#remove row;
-                -1
-              end else row
-        in
         self#update_server serv s row;
       with
         Not_found ->
           if s.server_state <> RemovedHost then
             (
-              if is_filtered s then 
-		begin
-                  filtered_data <- filtered_data @ [s];
-                  incr G.nservers ;       
-		  self#update_wl_status
-                end 
-	      else 
-		begin
-                  data <- data @ [s];
-                  incr G.nservers;
-                  self#insert ~row: self#wlist#rows s;
-                  if Mi.is_connected s.server_state then
-                    incr G.nconnected_servers;
-		  self#update_wl_status
-                end
+	     self#add_item s;
+             if !G.nservers <> self#size then begin
+	       G.nservers := self#size;
+	       self#update_wl_status
+             end;
+             if Mi.is_connected s.server_state then begin
+               incr G.nconnected_servers;
+	       self#update_wl_status
+	     end
             )
-          else
-            ()
     
-    method h_server_filter_networks =
-      let data = data @ filtered_data in
-      let rec iter filtered not_filtered data =
-        match data with
-          [] -> List.rev filtered, List.rev not_filtered
-        | s :: tail ->
-            if is_filtered s then
-              iter (s :: filtered) not_filtered tail
-            else
-              iter filtered (s :: not_filtered) tail
-      in
-      let (filtered, not_filtered) = iter [] [] data in
-      filtered_data <- filtered;
-      self#update_data not_filtered
+    method h_server_filter_networks = self#refresh_filter
     
     method toggle_display_all_servers () =
       filter_disconnected_servers := not !filter_disconnected_servers;

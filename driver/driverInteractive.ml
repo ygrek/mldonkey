@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open CommonClient
 open CommonNetwork
 open CommonResult
@@ -211,7 +213,8 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[%-5d] %s " 
+          (Printf.sprintf "[\\<a href=/submit\\?q\\=vd+%d\\>%-5d\\</a\\>] %s " 
+              file.file_num
               file.file_num
               (let n = network_find_by_num file.file_network in
               n.network_name)            

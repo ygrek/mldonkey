@@ -19,7 +19,8 @@
 
 open Options
 open CommonTypes
-  
+
+    
 
 let ni n m = 
   let s = Printf.sprintf "Network.%s not implemented by %s" 
@@ -68,6 +69,7 @@ let new_network name prefix_option subdir_option =
       op_network_clean_servers = (fun _ -> ni_ok name "clean servers");
       op_network_parse_url = (fun _ -> ni_ok name "parse_url"; false);
       op_network_info = (fun _ -> fni name "network_info");
+      op_network_connected = (fun _ -> ni_ok name "connected"; false);
     }
   in
   let rr = (Obj.magic r: network) in
@@ -206,6 +208,7 @@ let network_close_search n s = n.op_network_close_search s
 let network_private_message n id s = n.op_network_private_message id s
   
 let network_extend_search n e = n.op_network_extend_search e
+let network_connected n = n.op_network_connected ()
   
 let network_clean_servers r = r.op_network_clean_servers ()
 

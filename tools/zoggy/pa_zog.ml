@@ -16,6 +16,8 @@
 
 open Zog_types
 
+exception Field_error of string
+
 (* BEGIN CDK *)
 
 let anonymous_name_counter = ref 0
@@ -151,13 +153,16 @@ let get_prop_label ele prop =
   | Ok_if_empty -> "ok_if_empty"
   | Update_policy -> "update_policy"
 
+  | PPixmap_file | PPixmap_data | PPixmap_code -> ""
+
 (** Remove blanks (space, tabs, \r and \n) from a string. *)
 let remove_blanks s =
   let buf = Buffer.create 16 in
   let f c = 
     match c with
       ' ' | '\n' | '\t' | '\r' -> ()
-    | _ -> Buffer.add_char buf c
+    | _ ->
+	Buffer.add_char buf c
   in
   String.iter f s;
   Buffer.contents buf
@@ -183,6 +188,10 @@ let must_gen prop =
   with
     Failure s -> prerr_endline s; false
 
+let field_error_string f =
+  match List.find (fun (x, _, _, _) -> x = f) Zog_types.properties with
+      (_, n, _, _) -> n
+
 let ast_of_creation_options_code loc ele f =
   let g f prop =
     match prop.prop_kind with
@@ -190,6 +199,24 @@ let ast_of_creation_options_code loc ele f =
     | Accel_modifier | Accel_group_name | Accel_flags | Accel_keysym | Show_toggle |
       Show_indicator | Right_justify ->
         f
+    | PPixmap_file ->
+	if must_gen prop then
+          let v = parse_prop_value prop in
+            <:expr< $f$ (GDraw.pixmap_from_xpm ~file : $v$ ()) >>
+	else
+ 	  raise (Field_error (field_error_string PPixmap_file))
+    | PPixmap_data ->
+	if must_gen prop then
+          let v = parse_prop_value prop in
+            <:expr< $f$ (GDraw.pixmap_from_xpm_d ~data : $v$ ()) >>
+	else
+ 	  raise (Field_error (field_error_string PPixmap_data))
+    | PPixmap_code ->
+	if must_gen prop then
+          let v = parse_prop_value prop in
+            <:expr< $f$ $v$ >>
+	else
+ 	  raise (Field_error (field_error_string PPixmap_code))
     | _ ->
         if must_gen prop then
           let v = parse_prop_value prop in
@@ -330,7 +357,7 @@ and ast_of_post_menu_creation_code loc accel_name ele ce =
   | _ -> ce
 
 (** Output the OCaml for the given element which must be a Menubar. *)
-let ast_of_post_menubar_creation_code loc ele ce =
+let ast_of_post_menubar_creation_code ?win loc ele ce =
   match ele.classe with
     Menubar ->
       let acc_name = accel_group_name ele in
@@ -338,20 +365,32 @@ let ast_of_post_menubar_creation_code loc ele ce =
         List.fold_right (ast_of_post_menu_item_creation_code loc acc_name)
           ele.children ce
       in
+      let ce2 = 
+	(
+	 match win with
+	   None -> ce
+	 | Some w -> 
+	     <:class_expr<
+	     let _ = $lid:w$#add_accel_group $lid:acc_name$ in $ce$
+	     >>
+	)      
+      in
       <:class_expr<
-         let $lid:acc_name$ = GtkData.AccelGroup.create () in $ce$
+      let $lid:acc_name$ = GtkData.AccelGroup.create () in 
+      $ce2$
       >>
+
   | _ -> ce
 
-let rec ast_of_ele_creations loc parent_opt previous_opt ele ce =
-  let ce = ast_of_post_menubar_creation_code loc ele ce in
+let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
+  let ce = ast_of_post_menubar_creation_code ?win loc ele ce in
   let ce =
     let rec iter prev ce =
       function
         [] -> ce
       | e :: q ->
           let ce = iter (Some e) ce q in
-          ast_of_ele_creations loc (Some ele) prev e ce
+          ast_of_ele_creations ?win loc (Some ele) prev e ce
     in
     iter None ce ele.children
   in
@@ -438,7 +477,13 @@ let ast_of_entity loc entity =
   let ce =
     match entity.en_ele with
       None -> ce
-    | Some ele -> ast_of_ele_creations loc None None ele ce
+    | Some ele ->
+	let win_opt = 
+	  match ele.classe with
+	    Window -> Some ele.name
+	  | _ -> None
+	in
+	ast_of_ele_creations ?win: win_opt loc None None ele ce
   in
   let ce =
     List.fold_right (fun p ce -> <:class_expr< fun $lid:p$ -> $ce$ >>)
@@ -451,6 +496,9 @@ let ast_of_entity loc entity =
 let gram = Grammar.create (Plexer.make ())
 let project = Grammar.Entry.create gram "project"
 
+let field_error s =
+  Printf.eprintf "Error: field %s is empty\n" s
+
 let _ =
   EXTEND
     GLOBAL: project;
@@ -461,8 +509,13 @@ let _ =
       [ [ "<"; LIDENT "entity"; LIDENT "name"; "="; name = LIDENT;
           pl = LIST0 LIDENT; ">"; w = OPT widget; "</"; LIDENT "entity";
           ">" ->
-            let entity = {en_name = name; en_params = pl; en_ele = w} in
-            ast_of_entity loc entity, loc ] ]
+	    try
+              let entity = {en_name = name; en_params = pl; en_ele = w} in
+		ast_of_entity loc entity, loc
+            with Field_error m ->
+              field_error m;
+	      exit 1
+	] ]
     ;
     widget:
       [ [ "<"; tag = LIDENT; LIDENT "name"; "="; (name, nloc) = ident;

@@ -19,6 +19,8 @@
 
 (** The box with uploads info *)
 
+open Md4
+
 open Gettext
 open CommonTypes
 open GuiTypes
@@ -38,7 +40,7 @@ class box columns () =
   object (self)
     inherit [GuiTypes.shared_info] Gpattern.plist `SINGLE
       (List.map C.Shared_files_up.string_of_column columns)
-    true as pl
+    true  (fun si -> si.shared_num) as pl
       inherit Gui_uploads_base.box () as box
     
     val mutable columns = columns
@@ -85,28 +87,37 @@ class box columns () =
         columns 
       in
       (strings, None)
-    
-    method clear = self#update_data []
-    
-    method find_file num =
-      let rec iter n l =
-        match l with
-          [] -> raise Not_found
-        | si :: q ->
-            if si.shared_num = num then
-              (n, si)
-            else
-              iter (n+1) q
+
+    method menu =
+      
+(* fuck the object oriented style: how do I copy something to the
+console ???? *)
+      
+      let copy_ed2k_links list _ = 
+        List.iter (fun si ->
+            let link = Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
+(* Why are some files prefixed by their path ?? *)
+                (Filename.basename si.shared_filename)
+              si.shared_size
+              (Md4.to_string si.shared_id)
+            in
+            !Gui_global.console_message link
+        ) list
       in
-      iter 0 data
+      
+      match self#selection with
+        [] -> []
+      |	list ->
+          [ `I (("Copy ed2k link to console"), copy_ed2k_links list)  ] 
+    
+    method find_file num = self#find num
     
     method h_shared_file_info si =
       try
         let _,s_old = self#find_file si.shared_num in
         s_old.shared_filename <- si.shared_filename
       with Not_found ->
-        data <- data @ [si];
-        self#insert ~row: self#wlist#rows si
+        self#add_item si
         
     method h_shared_file_upload num upsize requests =
       try

@@ -23,10 +23,16 @@ open CommonOptions
 let donkey_ini = downloads_ini
   
   
+let port_black_list = define_option downloads_ini 
+    ["port_black_list"] "A list of ports that specify servers to remove
+    from server list. Servers with ports on this list can't be added, and
+    will eventually be removed"
+    (list_option int_option) []
+   
 let protocol_version = 
   define_option donkey_ini ["protocol_version"] 
     "The version of the protocol that should be sent to servers (need restart) "
-    int_option 59
+    int_option 61
   
 let queued_timeout = 
   define_option donkey_ini ["queued_timeout"] 
@@ -37,6 +43,11 @@ let upload_timeout =
   define_option donkey_ini ["upload_timeout"] 
     "How long can a silent client stay in the upload queue"
     float_option 1800. 
+      
+let random_order_download = 
+  define_option donkey_ini ["random_order_download"] 
+  "Should we try to download chunks in random order (false = linearly) ?"
+    bool_option false
       
 let verbose_overnet = 
   define_option donkey_ini ["verbose_overnet"] 
@@ -55,6 +66,9 @@ let upload_power = define_option donkey_ini ["upload_power"]
   an Open Napster connection. This is done to favorise donkey connections
   over other networks, where upload is less efficient, without preventing
   upload from these networks." int_option 5
+
+let reward_power = define_option donkey_ini ["reward_power"]
+  "Maximum additional weight granted to good sources" int_option 0
 
 let propagate_servers = define_option donkey_ini ["propagate_servers"]
   "Send an UDP packet to a central servers with the list of servers you
@@ -75,15 +89,29 @@ let files_queries_initial_delay = define_option donkey_ini
 let commit_in_subdir = define_option donkey_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option ""
+
+let min_left_servers = define_option donkey_ini ["min_left_servers"]
+  "Minimal number of servers remaining after remove_old_servers"
+    int_option 200
   
 let network_options_prefix = define_option donkey_ini
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
     string_option ""
   
+let keep_cancelled_in_old_files = define_option donkey_ini
+    ["keep_cancelled_in_old_files"] 
+    "Are the cancelled files added to the old files list to prevent re-download ?"
+    bool_option false
+  
 let new_upload_system = define_option donkey_ini
     ["new_upload_system"] "Should we use the new experimental upload system"
-  bool_option true
+    bool_option true
+  
+let sources_per_chunk = 
+  define_option donkey_ini ["sources_per_chunk"]
+    "How many sources to use to download each chunk"
+    int_option 1
   
 let _ = 
 (* Clients should never send more than 5 localisations queries
@@ -100,13 +128,19 @@ let gui_donkey_options_panel =
   [
     "Maximal Source Age", shortname max_sources_age, "T";
     "Maximal Server Age", shortname max_server_age, "T";
+    "Min Left Servers After Clean", shortname min_left_servers, "T";
     "Update Server List", shortname update_server_list, "B";
     "Min Users on Master Servers", shortname master_server_min_users, "T";
+    "Force High ID", shortname force_high_id, "B";
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
+    "Upload Quantum", shortname upload_quantum, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Port", shortname port, "T";
+    "Download Chunks in Random order", shortname random_order_download, "B";    
+    "Sources Per Chunk", shortname sources_per_chunk, "T";
+    "Prevent Re-download of Cancelled Files", shortname keep_cancelled_in_old_files, "B";
   ]
 

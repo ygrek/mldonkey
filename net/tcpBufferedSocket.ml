@@ -61,6 +61,7 @@ and bandwidth_controler = {
     allow_io : bool ref;
     mutable remaining_bytes_user : ((* total *) int -> (* remaining *) int -> unit);
     mutable moved_bytes : int64;
+    mutable lost_bytes : int array; (* 3600 samples*)
   }
 
 
@@ -470,14 +471,15 @@ let write_bandwidth_controlers = ref []
       
 let create_read_bandwidth_controler rate = 
   let bc = {
-      remaining_bytes = rate;
-      total_bytes = rate;
-      nconnections = 0;
-      connections = [];
-      allow_io = ref true;
-      remaining_bytes_user = (fun _ _ -> ());
-      moved_bytes = Int64.zero;
-    } in
+    remaining_bytes = rate;
+    total_bytes = rate;
+    nconnections = 0;
+    connections = [];
+    allow_io = ref true;
+    remaining_bytes_user = (fun _ _ -> ());
+    moved_bytes = Int64.zero;
+    lost_bytes = Array.create 3600 0;
+  } in
   read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
   bc
       
@@ -490,6 +492,7 @@ let create_write_bandwidth_controler rate =
       allow_io = ref true;
       remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
+    lost_bytes = Array.create 3600 0;
     } in
   write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
   bc
@@ -808,3 +811,13 @@ let moved_bytes bc = bc.moved_bytes
 let set_remaining_bytes_user bc f =
   bc.remaining_bytes_user <- f
   
+let set_lost_bytes bc lost sec =
+  bc.lost_bytes.(sec mod 3600) <- lost
+
+let compute_lost_byte bc =
+  if bc.total_bytes = 0 then -1 else
+  let sum = ref Int64.zero in
+  for i = 0 to 3600-1 do
+    sum := Int64.add !sum (Int64.of_int bc.lost_bytes.(i));
+  done;
+  Int64.to_int (Int64.div !sum (Int64.of_int 3600))

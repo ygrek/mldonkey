@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonUser
 open CommonSearch
 open CommonComplexOptions
@@ -118,7 +119,7 @@ let disconnect_server s =
   match s.server_sock with
     None -> ()
   | Some sock ->
-      if s.server_sock <> None then decr nservers;
+      decr nservers;
       TcpBufferedSocket.close sock "closed";
       (*
             Printf.printf "%s:%d CLOSED received by server"
@@ -130,9 +131,7 @@ let disconnect_server s =
       s.server_users <- [];
       set_server_state s NotConnected;
       s.server_master <- false;
-      remove_connected_server s;
-(*      !server_is_disconnected_hook s *)
-      ()
+      remove_connected_server s
       
 let server_handler s sock event = 
   match event with
@@ -150,20 +149,20 @@ let client_to_server s t sock =
 *)
   match t with
     M.SetIDReq t ->
-      s.server_cid <- t;
-      set_rtimeout sock !!connected_server_timeout; 
+      if not (Ip.valid t) && !!force_high_id then
+	disconnect_server s
+      else begin
+	s.server_cid <- t;
+	set_rtimeout sock !!connected_server_timeout; 
 (* force deconnection after one hour if nothing  appends *)
-      set_server_state s Connected_initiating;
-      s.server_score <- s.server_score + 5;
-      connection_ok (s.server_connection_control);
+	set_server_state s Connected_initiating;
+	s.server_score <- s.server_score + 5;
+	connection_ok (s.server_connection_control);
       
-      direct_server_send sock (
-        let module A = M.AckID in
-        M.AckIDReq A.t
-      );
-      
-      direct_server_send sock (M.QueryLocationReq Md4.null);
-      direct_server_send sock (M.QueryLocationReq Md4.one);
+	direct_server_send sock (
+          let module A = M.AckID in
+          M.AckIDReq A.t
+	);
 
 (*
       server_send sock (M.ShareReq (make_tagged (
@@ -176,13 +175,18 @@ let client_to_server s t sock =
               []
           )));
 *)
-  
+        end
+        
+  | M.MessageReq msg ->
+      let msg = Printf.sprintf "From server %s [%s:%d]: %s\n"
+          s.server_name (Ip.to_string s.server_ip) s.server_port msg in
+      CommonEvent.add_event (Console_message_event msg)
+      
   | M.ServerListReq l ->
       if !!update_server_list then
         let module Q = M.ServerList in
         List.iter (fun s ->
-            if Ip.valid s.Q.ip && not (List.mem s.Q.ip !!server_black_list) then
-              ignore (add_server s.Q.ip s.Q.port);
+            safe_add_server s.Q.ip s.Q.port
         ) l
   
   | M.ServerInfoReq t ->
@@ -350,10 +354,7 @@ let connect_server s =
       (Ip.to_string s.server_ip) s.server_port; print_newline ();
 *)
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
-        decr nservers;
-        s.server_sock <- None;
-        set_server_state s NotConnected;
-        connection_failed s.server_connection_control
+        disconnect_server s
         
 let rec connect_one_server () =
 (*  Printf.printf "connect_one_server"; print_newline (); *)
@@ -395,47 +396,77 @@ let rec connect_one_server () =
 
 let force_check_server_connections user =
 (*  Printf.printf "force_check_server_connections"; print_newline (); *)
-  if user || !nservers < max_allowed_connected_servers ()  then begin
-      if !nservers < !!max_connected_servers then
-        let rec iter n =
-          if n > 0 && can_open_connection () then begin
-              connect_one_server ();
-              iter (n-1)
-            end
-        in
-        iter (!!max_connected_servers - 1 - !nservers)
-    end
+  if user || !nservers < max_allowed_connected_servers ()  then 
+    let rec iter n =
+      if n > 0 && can_open_connection () then begin
+          connect_one_server ();
+          iter (n-1)
+        end
+    in
+    iter (!!max_connected_servers - !nservers)
     
 let rec check_server_connections () =
   force_check_server_connections false
 
 let remove_old_servers () =
   Printf.printf "REMOVE OLD SERVERS";  print_newline ();
-  let list = ref [] in
+(*
+The new tactic: we sort the servers (the more recently connected first,
+the black-listed ones at the end), and we start checking from the last
+position to the min_left_servers position.
+*)
+
+  let array = Array.of_list (Hashtbl2.to_list servers_by_key)  in
+  Array.sort (fun s1 s2 ->
+      
+      let bl1 = is_black_address s1.server_ip s1.server_port in
+      let bl2 = is_black_address s2.server_ip s2.server_port in
+      if bl1 = bl2 then
+        let ls1 = connection_last_conn s1.server_connection_control in
+        let ls2 = connection_last_conn s2.server_connection_control in
+        if ls1 = ls2 then 0 else if ls1 > ls2 then 1 else -1
+      else
+      if bl1 then -1 else 1
+  ) array;
+  
+  for i = 0 to Array.length array - 1 do
+    let s = array.(i) in
+    Printf.printf "server %d last_conn %10.f" (server_num s) 
+      (connection_last_conn s.server_connection_control);
+    print_newline ()
+  done;
+
   let min_last_conn =  last_time () -. 
     float_of_int !!max_server_age *. one_day in
+
+  for i = Array.length array - 1 downto !!min_left_servers do
+    let s = array.(i) in
+    if connection_last_conn s.server_connection_control < min_last_conn ||
+      is_black_address s.server_ip s.server_port then  begin
+          Printf.printf "Server too old: %s:%d" 
+            (Ip.to_string s.server_ip) s.server_port;
+          print_newline ();
+          server_remove (as_server s.server_server);
+          Hashtbl.remove servers_by_key (s.server_ip, s.server_port);
+    end
+  done;
   
+(*
   let removed_servers = ref [] in
   let servers_left = ref 0 in
   
   Hashtbl.iter (fun key s ->
-      if connection_last_conn s.server_connection_control < min_last_conn ||
-        List.mem s.server_ip !!server_black_list then 
+      if 
         removed_servers := (key,s) :: !removed_servers
       else incr servers_left
   ) servers_by_key;
   if !servers_left > 200 then begin
       List.iter (fun (key,s) ->
-          Printf.printf "Server too old: %s:%d" 
-            (Ip.to_string s.server_ip) s.server_port;
-          print_newline ();
-          server_remove (as_server s.server_server);
-          Hashtbl.remove servers_by_key key
       ) !removed_servers
     end else begin
       Printf.printf "Not enough remaining servers: %d" !servers_left;  
       print_newline ()
-    end;
+    end; *)
   Printf.printf "REMOVE OLD SERVERS DONE";  print_newline ()
   
 (* Don't let more than max_allowed_connected_servers running for
@@ -451,6 +482,9 @@ let update_master_servers _ =
         | Some _ -> incr nmasters;
   ) (connected_servers ());
   let nconnected_servers = ref 0 in
+  let list = List.sort (fun s2 s1 ->
+        s1.server_nusers - s2.server_nusers
+    ) (connected_servers ()) in
   List.iter (fun s ->
       incr nconnected_servers;
       if not s.server_master then
@@ -489,12 +523,14 @@ print_newline ();
           end
   ) 
   (* reverse the list, so that first servers to connect are kept ... *)
-  (List.rev (connected_servers()))
+  list
     
 (* Keep connecting to servers in the background. Don't stay connected to 
   them , and don't send your shared files list *)
 let walker_list = ref []
 let next_walker_start = ref 0.0
+  
+(* one call every 5 seconds, so 12/minute, 720/hour *)
 let walker_timer () = 
   match !walker_list with
     [] ->
@@ -512,3 +548,41 @@ let walker_timer () =
           if connection_can_try s.server_connection_control then
             connect_server s
       | Some _ -> ()
+
+(* one call per second *)
+
+              
+(* Keep connecting to servers in the background. Don't stay connected to 
+  them , and don't send your shared files list *)
+let udp_walker_list = ref []
+let next_udp_walker_start = ref 0.0
+
+(* one call every second, so 3600/hour, must wait one hour before
+restarting 
+Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
+7 packets/second = 7 * 40 bytes = 280 B/s ...
+*)
+  
+let udp_ping = String.create 5
+  
+let _ = 
+  udp_ping.[0] <- char_of_int 0x96;
+  udp_ping.[1] <- char_of_int (Random.int 256);
+  udp_ping.[2] <- char_of_int (Random.int 256);
+  udp_ping.[3] <- char_of_int (Random.int 256);
+  udp_ping.[4] <- char_of_int (Random.int 256)
+  
+let udp_walker_timer () = 
+  match !udp_walker_list with
+    [] ->
+      if !udp_walker_list <> [] &&
+        last_time () > !next_udp_walker_start then begin
+          next_udp_walker_start := last_time () +. 4. *. 3600.;
+          Hashtbl.iter (fun _ s ->
+              udp_walker_list := s :: !udp_walker_list
+          ) servers_by_key;
+        end
+  | s :: tail ->
+      udp_walker_list := tail;
+      UdpSocket.write (get_udp_sock ()) udp_ping s.server_ip s.server_port
+        

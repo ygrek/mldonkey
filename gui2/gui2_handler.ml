@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open CommonGlobals
 open CommonTypes
 open Options
@@ -140,7 +142,7 @@ let gui_send t =
       Printf.printf "Message not sent since not connected";
       print_newline ();
   | Some sock ->
-      GuiEncoding.gui_send GuiEncoding.from_gui.(!gui_protocol_used) sock t
+      GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
       
 let _ = 
   (try Options.load mldonkey_gui_ini with
@@ -173,6 +175,7 @@ let is_connected state =
   | NotConnected
   | Connecting
   | NewHost
+  | BlackListedHost
   | RemovedHost -> false
   
   
@@ -209,6 +212,7 @@ let string_of_state state =
   | Connected_idle -> "Connected"
   | Connected_queued -> "Queued"
   | RemovedHost -> "Removed"
+  | BlackListedHost -> "Black Listed"
 
 let color_of_state state =
   match state with
@@ -219,6 +223,7 @@ let color_of_state state =
   | NewHost
   | Connected_initiating
   | Connected_queued
+  | BlackListedHost
   | RemovedHost -> Some !!color_not_connected
 
 let color_of_server s = color_of_state s.server_state

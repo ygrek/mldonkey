@@ -188,7 +188,7 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
       M.a_cancel_download, gui#tab_downloads#button_download_cancel#clicked ;
       M.a_save_all_files, (fun () -> ignore (save_all_files ()));
       M.a_menu_save_file, 
-      (fun () -> GToolbox.popup_menu ~x: 0 ~y: 0 
+      (fun () -> GAutoconf.popup_menu ~button: 1 ~time: 0 
             ~entries: (menu_save_file clist_downloaded)) ;
       M.a_select_all, (fun () -> ignore (MyCList.select_all clist_downloads)) ;
     ]

@@ -19,6 +19,8 @@
 
 (** GUI for the lists of files. *)
 
+open Md4
+
 open Gettext
 open Gui_global
 open CommonTypes
@@ -134,7 +136,7 @@ let time_to_string time =
 class box columns sel_mode () =
   let titles = List.map Gui_columns.File.string_of_column columns in
   object (self)
-    inherit [file_info] Gpattern.plist sel_mode titles true as pl
+    inherit [file_info] Gpattern.plist sel_mode titles true (fun f -> f.file_num) as pl
     inherit Gui_downloads_base.box () as box
 
     val mutable columns = columns
@@ -226,26 +228,13 @@ class box columns sel_mode () =
       in
       (strings, col_opt)
 
-    method find_file num =
-      let rec iter n l =
-	match l with
-	  [] -> raise Not_found
-	| fi :: q ->
-	    if fi.file_num = num then
-	      (n, fi)
-	    else
-	      iter (n+1) q
-      in
-      iter 0 data
+    method find_file num = self#find num
 
-    method remove_file f row =
-      self#wlist#remove row;
-      data <- List.filter (fun fi -> fi.file_num <> f.file_num) data ;
+    method remove_file f row = 
+      self#remove_item row f;
       selection <- List.filter (fun fi -> fi.file_num <> f.file_num) selection
 
     method set_tb_style = wtool#set_style
-
-    method clear = self#update_data []
 
     initializer
       box#vbox#pack ~expand: true pl#box;
@@ -278,18 +267,16 @@ class box_downloaded wl_status () =
       in
       items
 
-    method save () =
+    method save ev =
       match self#selection with
 	f :: _ ->
 	  let items = self#save_menu_items f in
-	  GToolbox.popup_menu ~entries: items ~x: 0 ~y: 0
+	  GAutoconf.popup_menu ~entries: items ~button: 1 ~time: 0
       |	_ ->
 	  ()
 
     method save_all () = 
-      List.iter
-	(fun f -> Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
-	data
+      self#iter	(fun f -> Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
 
     method save_as () = 
       match self#selection with
@@ -342,8 +329,7 @@ class box_downloaded wl_status () =
         Not_found ->
           incr ndownloaded;
 	  self#update_wl_status ;
-	  data <- data @ [f];
-	  self#insert ~row: self#wlist#rows f
+	  self#add_item f
 
     method h_removed f =
       try
@@ -547,9 +533,7 @@ class box_downloads box_locs wl_status () =
            ;
 	);
       redraw_chunks draw_availability file;
-      begin
-        box_locs#update_data_by_file (Some file)
-      end
+      box_locs#update_data_by_file (Some file)
 
     method on_deselect _ =
       box_locs#update_data_by_file None
@@ -593,8 +577,7 @@ class box_downloads box_locs wl_status () =
         Not_found ->
           incr ndownloads;
 	  self#update_wl_status ;
-          data <- data @ [f];
-          self#insert ~row: self#wlist#rows f;
+	  self#add_item f
       
     method h_cancelled f = 
       try
@@ -617,6 +600,7 @@ class box_downloads box_locs wl_status () =
 	  row
       with Not_found -> ()
 
+(*
     method remove_client c =
       List.iter (fun file ->
           match file.file_sources with
@@ -630,6 +614,7 @@ class box_downloads box_locs wl_status () =
                     List.filter (fun cc -> cc != c) sources) } 
                 row
       ) data
+*)
 
     method h_file_age num age =
       try
@@ -773,7 +758,7 @@ class pane_downloads () =
     method h_update_location c_new =
       locs#h_update_location c_new
 
-    method h_remove_client c = dls#remove_client c
+(*    method h_remove_client c = dls#remove_client c *)
       
     method on_entry_return () =
       match entry_ed2k_url#text with

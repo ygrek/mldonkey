@@ -16,6 +16,9 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open Md4
+
 val find_client_zone : DonkeyTypes.client -> unit
 val update_zone : DonkeyTypes.file -> 
   int32 -> int32 -> DonkeyTypes.zone -> unit

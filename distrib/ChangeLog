@@ -1,7 +1,182 @@
 ChangeLog	
 =========
 
-2002/10/23: mldonkey
+2002/12/08: Simon
+  - Applied Overnet publish patch from Norbert LATAILLE
+  - The Overnet patch is too aggressive (about 5 kB/s). It really needs to
+     be tune.
+
+2002/12/07: Simon
+  - Fixed bug in "nu" command (thanks Rudolf Polzer)
+  - "reshare" now add new files to upload.
+
+2002/12/06: Simon
+  - Applying Pango's patch: 
+       01_display_server_banners: banners already appear in GUI console
+       02_force_high_id: applied
+       03_overnet_boot_dns_resolution: already done
+       05_network_signature_change: applied
+       06_wrong_lowid_display: already done
+       07_keep_user_filenames: applied
+       08_better_default_parameters: partially applied
+       09_md4_speedup.patch: already done
+       10_port_blacklist: applied
+       11_max_connected_servers_offbyone: already done
+       12_files_md4_corruption: already done
+       13_revert_iptos: applied, but why in and out ?
+       14_get_chunks_in_random_order: applied, but with an option to disable it
+       15_fix_ovweb_default_site: applied, but an option would be better
+       16_sources_per_chunk: applied
+       18_remove_cancelled_downloads: applied
+       20_vd_sharp_urls: applied
+       24_check_for_x: applied
+       22_connect_on_server_urls: applied
+       26_old_file_on_cancel: applied, but option, disabled by default
+       23_uploaders_command: applied
+       27_selective_hide_files: applied
+
+   NOT APPLIED, need some discussion:
+       17_hide_chunks_being_uploaded: 
+       21_fifo_new_sources:
+       25_bolder_remove_old_sources:
+
+2002/12/04: Simon
+  - Gpattern: fixed bugs introduced by mldonkey :)
+  - Gui_servers, Gui_friends: server users list and file sources list are only
+      update 1/10 second after selection to avoid flickering.
+
+2002/12/02: Simon
+  - Moved some code in the GUI driver to avoid sending many messages when
+      GUI use the POLL extension.
+
+2002/12/01: Simon
+  - Applets: new directory applets/, containing 3 sub-directories:
+     * api: a common C api used by applets to chat with mldonkey on its GUI port
+     * kde: a KDE panel applet
+     * gnome: a GNOME panel applet
+    A lot to be done. I know a bit GTK, not QT ...
+    The Client_stats message is not yet completely filled with useful data
+    by the core. 
+
+2002/11/20: Simon
+  - IM: 
+      * Accounts Window, and Toplevel menu to access it
+      * Contacts Window works
+      * Dialog Window
+
+2002/11/18: Simon
+  - Gui_rooms: each opened room has its own users/messages widgets, to avoid
+	reprinting all messages when changing of room. Maxence, could you
+	look at that and explain me how to destroy a widget when room is
+	closed
+  - CommonInteractive: raise Not_found when the option doesnot exists
+	(no more "option NAME value changed" for non-existing options :)
+  - Instant Messaging: Started implementing the interface for instant 
+	messaging.
+
+2002/11/17: Simon
+  - CommonClient: check MD4 replies from client (inspired from patch #662)
+  - DriverMain: track options_version, to be able to update the options
+	when a new version of mldonkey is used.
+
+2002/11/16: Simon
+  - CommonOptions: added the redirector-generated server list to web_infos,
+	and an option to change the redirector. Now, we should probably
+	disable auto_update_server by default, since the relocator gives
+	a nice server list. Or we should give more weight to new servers
+	when trying to connect.
+
+2002/11/15: Simon
+  - DonkeyServer: added sending of UDP pings. Check that pings have been
+	replied before sending extended search/locate requests.
+  - DonkeyClient: changed mldonkey-specific protocol to recognize old
+	clients, and send a warning.
+
+2002/11/14: Simon
+  - Fixed bug #1701 ?: read at least 1000 bytes before writing stream
+	in a file from Limewire. Gnutella clients problem, or is_http_ok is
+	not strict enough.
+  - Fixed bug #1708 ?: rewritten get_page and wget in net/http_client.ml
+	to avoid fd leak.
+  - Support #101511: in the Upload panel of the GUI, the contextual menu
+	offers to print ed2k links in the Console panel.
+  - GuiTypes: new event Server_message_event to send server messages to
+	the GUI console.
+  - GuiEncoding/GuiDeconding: now, protocol versions will only change when
+	the encoding of some old messages changes, not when new messages
+	are added, so that new messages can be handled even if an old
+	format is used for other messages (old GUIs can benefit from new
+	messages)
+  - DonkeyOvernet: change the URL in 'ovweb'
+  - DonkeyProtoCom: sending much more information to the redirector, so that:
+	- we can generate our own server list
+	- we can generate an overnet peer list
+	- we can gather some statistics on node bandwidth usage to decide
+	    when to create supernodes.
+  - Observer: now generates a 'servers.met' file every 5 minutes, which is
+	sent to savannah, if I find the command :), but the dest is:
+	"http://savannah.nongnu.org/download/mldonkey/network/servers.met"
+	if you want to add to your web_infos.
+	Servers inside are guaranteed alive in the last 5 hours (well,
+	unless the redirector is down which is often true :( )
+
+2002/11/13: Simon
+  - common/commonOptions.ml: new option "network_update_url" to
+	download files "motd.html" and "motd.conf" used to update some
+	parameters in all clients. "motd.conf" is displayed in the
+	HTML and telnet interfaces, and at startup. Why not in the GUI :) ?
+	These URLs are downloaded every day, and can change the configuration
+	of the client remotely. This will be used later to test different
+	parameters to activate/desactivate ultrapeers behaviors.
+  - donkey/donkeyServer.ml: new implementation of remove_old_servers. The
+	new implementation sorts the servers, and remove all those that
+	exceed their age, but guaranty to let at least "min_left_servers" in
+	the list.
+  - donkey/donkeySupernode.ml: started implementation of supernodes.
+	Supernodes are mldonkey clients, that act as pseudo-servers:
+	- they accept queries from mldonkey clients
+	- they index files from all clients
+  - donkey/donkeyOvernet.ml: fixed bug preventing removal of old
+	connected peers.
+  - config/configure.in: REQUIRED_LABLGTK=1.2.4 (please, dont force
+	people to upgrade if it is not REQUIRED). Use the configure
+	script to detect the version and to generate stubs for simple
+	modifications (lib/gAutoconf.ml.new.in). Only upgrade for
+	major reasons (ocaml release eg).
+
+2002/11/11: Simon
+  - config/configure.in: detection of lablgtk version to be able to compile
+	without lablgtk-20021031 (must find mouse position, zoggy ??). 
+	GToolbox.popup_menu is generated by ./configure from 
+	lib/gAutoconf.ml.new.in
+  - gpattern/gpattern.ml: using arrays instead of lists. filters directly 
+	integrated. Forces many changes in gui/gui*.ml, but should be much
+	faster.
+  - gui/gui_downloads.ml: Call to remove_client removed until a new message
+	is added	for that in the protocol
+  - net/udpSocket.ml: implementation of SOCKS 5 support for UDP. Must check that
+	bytes are correctly ordered.
+
+2002/11/10: Simon
+  - Fabrice has to move, and his new employer does not allow him to
+	program in other open-source projects (for Intellectual Property 
+	problems). So he will keep administrating the project (web site, 
+	forums, releases), while I'm integrated in the developper team
+	as main developper... As a start, I have some bugs to fix, and
+	I would like to create a parallel network over edonkey2000 using
+	mldonkey supernodes.
+
+2002/11/06: zoggy
+  - changes to use lablgtk-20021031 (@#!:@* Why the fuck did you do that ? 
+	you are the only developper to use it, nobody can compile now :(
+	
+2002/11/04: mldonkey
+  - Applied patch #634 (increase buffer size for md4 comp.)
+            patch #631 (max_connected_servers off by one)
+            patch #630 (low id display)
+            patch #632 (use DNS in "boot")
+
+2002/10/23: Simon
   - New implementation of 'remove_old_clients'
 
 2002/10/22: mldonkey

@@ -250,6 +250,7 @@ let is_connected state =
   | NotConnected
   | Connecting
   | RemovedHost
+  | BlackListedHost
   | NewHost -> false
 
 let save_gui_options gui =

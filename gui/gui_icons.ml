@@ -24,6 +24,9 @@ module O = Gui_options
 
 let (!!) = Options.(!!)
 
+open Gui_all_icons
+
+(*
 let remove = [|
 "32 32 13 1";
 "  c black";
@@ -3192,34 +3195,35 @@ let refresh = [|
 "                   .X           ";
 "                   .X           ";
 "                    .           "|]
+*)
 
 let table = [
-  M.o_xpm_remove, (remove, O.xpm_remove) ;
-  M.o_xpm_cancel, (cancel, O.xpm_cancel);
-  M.o_xpm_connect, (connect, O.xpm_connect);
-  M.o_xpm_disconnect, (disconnect, O.xpm_disconnect);
-  M.o_xpm_view_users, (view_users, O.xpm_view_users);
-  M.o_xpm_connect_more_servers, (connect_more_servers, O.xpm_connect_more_servers);
-  M.o_xpm_remove_old_servers, (remove_old_servers, O.xpm_remove_old_servers);
-  M.o_xpm_toggle_display_all_servers, (toggle_display_all_servers, O.xpm_toggle_display_all_servers);
-  M.o_xpm_save, (save, O.xpm_save);
-  M.o_xpm_save_all, (save_all, O.xpm_save_all);
-  M.o_xpm_save_as, (save_as, O.xpm_save_as);
-  M.o_xpm_edit_mp3, (edit_mp3, O.xpm_edit_mp3);
-  M.o_xpm_pause_resume, (pause_resume, O.xpm_pause_resume);
-  M.o_xpm_get_format, (get_format, O.xpm_get_format);
-  M.o_xpm_preview, (preview, O.xpm_preview);
-  M.o_xpm_verify_chunks, (verify_chunks, O.xpm_verify_chunks);
-  M.o_xpm_retry_connect, (retry_connect, O.xpm_retry_connect);
-  M.o_xpm_add_to_friends, (add_to_friends, O.xpm_add_to_friends);
-  M.o_xpm_download, (download, O.xpm_download);
-  M.o_xpm_submit_search, (submit_search, O.xpm_submit_search);
-  M.o_xpm_extend_search, (extend_search, O.xpm_extend_search);
-  M.o_xpm_local_search, (local_search, O.xpm_local_search);
-  M.o_xpm_find_friend, (find_friend, O.xpm_find_friend) ;
-  M.o_xpm_remove_all_friends, (remove_all_friends, O.xpm_remove_all_friends) ;
-  M.o_xpm_close_room, (close_room, O.xpm_close_room) ;
-  M.o_xpm_refresh, (refresh, O.xpm_refresh) ;
+  M.o_xpm_remove, (trash_small, O.xpm_remove) ;
+  M.o_xpm_cancel, (cancel_small, O.xpm_cancel);
+  M.o_xpm_connect, (connect_small, O.xpm_connect);
+  M.o_xpm_disconnect, (disconnect_small, O.xpm_disconnect);
+  M.o_xpm_view_users, (view_users_small, O.xpm_view_users);
+  M.o_xpm_connect_more_servers, (connect_more_small, O.xpm_connect_more_servers);
+  M.o_xpm_remove_old_servers, (trash_small, O.xpm_remove_old_servers);
+  M.o_xpm_toggle_display_all_servers, (get_format_small, O.xpm_toggle_display_all_servers);
+  M.o_xpm_save, (save_small, O.xpm_save);
+  M.o_xpm_save_all, (save_all_small, O.xpm_save_all);
+  M.o_xpm_save_as, (save_as_small, O.xpm_save_as);
+  M.o_xpm_edit_mp3, (edit_mp3_small, O.xpm_edit_mp3);
+(*  M.o_xpm_pause_resume, (pause_resume_small, O.xpm_pause_resume); NON EXISTING ? *)
+  M.o_xpm_get_format, (get_format_small, O.xpm_get_format);
+  M.o_xpm_preview, (preview_small, O.xpm_preview);
+  M.o_xpm_verify_chunks, (verify_chunks_small, O.xpm_verify_chunks);
+(*  M.o_xpm_retry_connect, (retry_connect_small, O.xpm_retry_connect); NON EXISTING ? *)
+  M.o_xpm_add_to_friends, (add_to_friends_small, O.xpm_add_to_friends);
+  M.o_xpm_download, (download_small, O.xpm_download);
+(*   M.o_xpm_submit_search, (submit_search_small, O.xpm_submit_search); NON EXISTING ? *)
+  M.o_xpm_extend_search, (extend_search_small, O.xpm_extend_search);
+  M.o_xpm_local_search, (local_search_small, O.xpm_local_search);
+(*  M.o_xpm_find_friend, (find_friend_small, O.xpm_find_friend) ;  NON EXISTING ? *)
+(*  M.o_xpm_remove_all_friends, (remove_all_friends_small, O.xpm_remove_all_friends) ; NON EXISTING ? *)
+  M.o_xpm_close_room, (trash_small, O.xpm_close_room) ;
+  M.o_xpm_refresh, (refres_small, O.xpm_refresh) ;
 ] 
 
 let gdk_pix i =
@@ -3242,7 +3246,7 @@ let gdk_pix i =
 	      () 
   with
     Not_found ->
-      GDraw.pixmap_from_xpm_d ~data: remove
+      GDraw.pixmap_from_xpm_d ~data: trash
 	~colormap: (Gdk.Color.get_system_colormap ())
 	() 
 

@@ -31,7 +31,8 @@ MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network"
     
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
-  
+
+let boot_time = last_time ()
 
 let printf_char c =
   if !!verbose then 

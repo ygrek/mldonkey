@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Md4
 type addr = {
     mutable addr_ip: Ip.t;
     mutable addr_name : string;
@@ -81,6 +81,7 @@ type host_state =
   
 | NewHost
 | RemovedHost
+| BlackListedHost
   
 type connection_control = {
     mutable control_last_ok : float;
@@ -188,6 +189,8 @@ type network = {
     
     mutable op_network_clean_servers : (unit -> unit);
     mutable op_network_info : (unit -> network_info);
+    
+    mutable op_network_connected : (unit -> bool);
   }
   
   
@@ -269,10 +272,18 @@ type gui_record = {
     mutable gui_version : int;
     mutable gui_auth : bool;
     mutable gui_poll : bool;
-    
+
+(* Some kind of FIFO for one time events. These events are uniq for a given
+GUI, and are always sent after all other pending events. Thus, if they use
+arguments, the events defining the arguments have already been sent *)
     mutable gui_new_events : event list;
     mutable gui_old_events : event list;
   
+    
+(* Queues of pending events for particular objects: objects updates
+are kept here before being sent, so that we can easily check if a
+particular update is already pending for a given GUI to avoid
+sending it twice. *)
     mutable gui_files : numevents;
     mutable gui_users : numevents;
     mutable gui_clients : numevents;
@@ -299,7 +310,9 @@ and event =
 | File_new_source_event of file * client
 | Server_new_user_event of server * user
 | Search_new_result_event of gui_record * int * result
-    
+
+| Console_message_event of string
+  
 exception Avifile_info of avi_info
 exception Mp3_info of Mp3tag.tag
 

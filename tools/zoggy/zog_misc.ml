@@ -13,6 +13,32 @@
 
 open Zog_types
 
+(** Get the first value of a property, function of the property kind. *)
+let default_prop_value kind =
+  try
+    let (_,_,values_kind,_) = Zog_types.get_prop_info kind in
+    match values_kind with
+      Bool -> 
+	(
+	 match kind with
+	   Expand | Homogeneous | Right_justify -> "false"
+	 | _ -> "true"
+	)
+    | PosInt -> ""
+    | Float -> ""
+    | Code -> ""
+    | Code_list -> "[]"
+    | Enum [] -> ""
+    | Enum ((s,_) :: _) -> s
+    | Enum_list [] -> ""
+    | Enum_list ((s,_) :: _) -> s
+    | Keysym -> ""
+  with
+    Failure s ->
+      prerr_endline s ;
+      ""
+
+
 (** {2 Variables for Lexer/Parser} *)
 let line_number = ref 0
 
@@ -81,7 +107,7 @@ let decode s =
   else s
 ;;
 
-let special x = List.mem x ['='; '&'; '"'];;
+let special x = List.mem x ['='; '&'; '"'; '+'];;
 
 let encode s =
   let rec need_code i =
@@ -127,7 +153,7 @@ let encode s =
 let class_of_class_name name =
   try
     let (c,_,_,_) = 
-      List.find (fun (_,n,_,_) -> n = name) Zog_types.class_names_and_strings
+      List.find (fun (_,n,_,_) -> n = name) Zog_types.class_names_and_strings_complete
     in
     c
   with
@@ -158,6 +184,7 @@ let rec print_gui_element fmt t g_ele =
     List.iter
       (fun prop ->
 	try
+	  if prop.prop_value <> default_prop_value prop.prop_kind then
 	  let (_,pname,_,_) = Zog_types.get_prop_info prop.prop_kind in
 	  p fmt (" "^pname^"=\""^(encode prop.prop_value)^"\"")
 	with

@@ -45,7 +45,9 @@ let hourly_timer timer =
   DonkeyServers.remove_old_servers ();
   DonkeyClient.clean_groups ();
   DonkeyProtoCom.propagate_working_servers 
-    (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()));
+    (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
+    (DonkeyOvernet.connected_peers ())
+    ;
   Hashtbl.clear udp_servers_replies
     
 let quarter_timer timer =
@@ -237,6 +239,7 @@ let enable () =
       DonkeyServers.check_server_connections;
     add_session_option_timer enabler compute_md4_delay DonkeyOneFile.check_files_md4s;  
     add_session_timer enabler 5.0 DonkeyServers.walker_timer;
+    add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
     
     add_session_timer enabler 3600. hourly_timer;
     add_session_timer enabler 30. halfmin_timer;
@@ -245,7 +248,7 @@ let enable () =
     add_session_timer enabler 1. second_timer;
     add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
     add_session_timer enabler 60. DonkeyServers.query_locations_timer;
-    add_session_timer enabler 1. DonkeyClient.schedule_connections;
+
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());

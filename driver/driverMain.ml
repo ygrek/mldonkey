@@ -27,6 +27,7 @@ open CommonOptions
 open CommonGlobals
 open CommonNetwork
 
+
   
 let do_daily () =
   incr days;
@@ -94,6 +95,39 @@ let start_interfaces () =
           print_newline ();
     end  ;
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
+
+
+
+let _ =
+  add_web_kind "motd.html" (fun filename ->
+    motd_html =:= File.to_string filename
+			   );
+  add_web_kind "motd.conf" (fun filename ->
+    let ic = open_in filename in
+    try
+      while true do
+	let line = input_line ic in
+	let cmd, args = String2.cut_at line ' ' in
+	let name, value = String2.cut_at args ' ' in
+	match cmd with
+	  "set" ->
+            CommonInteractive.set_fully_qualified_options name value
+	| "add_item" ->
+            CommonInteractive.add_item_to_fully_qualified_options name value
+	| "del_item" ->
+            CommonInteractive.del_item_from_fully_qualified_options name value
+	| _ -> 
+	    Printf.printf "UNUSED LINE: %s" line; print_newline ()
+          
+      done;
+    with 
+    | End_of_file ->
+	close_in ic
+    | e -> Printf.printf "Error while reading motd.conf(%s): %s" filename
+	(Printexc.to_string e); print_newline ();
+	close_in ic
+			   )
+
 
 let save_mlsubmit_reg () =
   
@@ -179,7 +213,7 @@ let load_config () =
         Printf.printf "exception during options load"; print_newline ();
         exit 2;
         ());  
-
+  
   networks_iter_all (fun r -> 
       match r.network_config_file with
         None -> ()
@@ -188,6 +222,18 @@ let load_config () =
             Options.load opfile
           with Sys_error _ ->
               Options.save_with_help opfile);
+  
+(* Here, we try to update options when a new version of mldonkey is
+used. For example, we can add new web_infos... *)
+  if !!options_version < 1 then begin
+      Printf.printf "Updating options"; print_newline ();
+      web_infos =:= 
+        (
+        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
+        ):: 
+      !!web_infos;
+    end;
+  options_version =:= 1;
   
 (**** PARSE ARGUMENTS ***)    
 
@@ -325,33 +371,44 @@ let _ =
   add_infinite_option_timer save_options_delay (fun timer ->
       DriverInteractive.save_config ());  
   start_interfaces ();
-
+  
   add_infinite_timer 3600. hourly_timer;
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;
-
+  
+  
+  
   add_infinite_timer 300. (fun timer ->
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
-
+  
   (try load_web_infos () with _ -> ());
   
   Printf.printf "Welcome to MLdonkey client"; print_newline ();
-  Printf.printf "Check http://go.to/mldonkey for updates"; 
+  Printf.printf "Check http://www.mldonkey.net/ for updates"; 
   print_newline ();
   Printf.printf "To command: telnet 127.0.0.1 %d" !!telnet_port; 
   print_newline ();
   Printf.printf "Or with browser: http://127.0.0.1:%d" !!http_port; 
   print_newline ();
-
-  if !!start_gui then
-    ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
-  else
-  if !!ask_for_gui then
-    ignore (Sys.command
-      (Printf.sprintf "%s %s&" (Filename.concat !!mldonkey_bin 
-            "mldonkey_guistarter") !!mldonkey_gui));
+  
+  print_string (DriverControlers.text_of_html !!motd_html);
+  print_newline ();
+  
+  
+  (try
+      let _ = Sys.getenv("DISPLAY") in
+      if !!start_gui then
+        ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
+      else
+      if !!ask_for_gui then
+        ignore (Sys.command
+            (Printf.sprintf "%s %s&" (Filename.concat !!mldonkey_bin 
+                "mldonkey_guistarter") !!mldonkey_gui));
+    with Not_found -> 
+        Printf.printf "Not running under X, not trying to start the GUI";
+        print_newline ());
   
   save_mlsubmit_reg ();
   DriverInteractive.save_config ();

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
@@ -285,7 +286,14 @@ let get_from_client sock (c: client) (file : file) =
   write_string sock (Printf.sprintf 
       "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%ld-\r\n\r\n" index file.file_name new_pos);
   let d = CommonDownloads.new_download sock (as_client c.client_client)
-    (as_file file.file_file) (on_close c)
+    (as_file file.file_file) 
+    
+(* Read at least 1000 bytes from the client before accepting the stream *)
+    (mini
+        (Int32.to_int (Int32.sub (file_size file) (file_downloaded file)))
+      1000)
+    
+    (on_close c)
     (on_finish file) commit_in_subdir
   in
   c.client_file <- Some d;

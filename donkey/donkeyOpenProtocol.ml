@@ -19,6 +19,7 @@
 
 (* An open protocol that can be used between mldonkey clients *)
 
+open Md4
 let udp_magic = 212
 
 type udp_messages = 

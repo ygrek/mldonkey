@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 val add : CommonTypes.tagged_file -> unit
   
 val find : Store.index Indexer.query -> ServerTypes.replies

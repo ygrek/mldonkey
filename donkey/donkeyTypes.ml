@@ -17,22 +17,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonTypes
 
-type server = {
+type server (*[]*) = {
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t;
-    mutable server_port : int;
+    mutable server_port : int (*[16]*);
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
     mutable server_connection_control : connection_control;
-    mutable server_score : int;
+    mutable server_score : int (*[16]*);
     mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
+    mutable server_nusers : int (*[16]*);
+    mutable server_nfiles : int (*[24]*);
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users: user list;
@@ -55,15 +56,15 @@ and user = {
     user_tags : CommonTypes.tag list;
     user_server : server;
   }
-  
-  (*
+
+(*
 and server_search = {
     search_search : CommonTypes.search;
     mutable nhits : int;
   }
 *)
-  
-  (*
+
+(*
 and local_search = {
     search_search : CommonTypes.search;
     mutable search_handler : (search_event -> unit);
@@ -71,16 +72,16 @@ and local_search = {
     mutable search_overnet : bool;
   }
 *)
-  
+
 and result = {
     result_result : result CommonResult.result_impl;
     mutable result_index : Store.index;
   }
-  
+
 and search_event =
 (*  Result of result *)
 | Waiting of int
-  
+
 and file_change_kind = 
   NoFileChange
 | FileAvailabilityChange
@@ -99,20 +100,30 @@ and server_change_kind =
 | ServerUsersChange
 | ServerInfoChange
 | ServerBusyChange
-  
+
 and availability = bool array
 
 (*
     mutable client_is_friend : friend_kind;
 *)
+
+and brand = 
+  Brand_unknown
+| Brand_edonkey
+| Brand_mldonkey1
+| Brand_mldonkey2
+| Brand_overnet
+| Brand_oldemule
+| Brand_newemule
+| Brand_server
   
-and client = {
+and client (*[]*) = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : location_kind;
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
-    mutable client_power : int;
+    mutable client_power : int (*[4]*);
     mutable client_block : block option;
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
@@ -123,13 +134,19 @@ and client = {
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_all_chunks : string;
-    mutable client_rating : int;
+    mutable client_rating : int (*[16]*);
     mutable client_upload : upload_info option;
-    mutable client_is_mldonkey : int;
     mutable client_checked : bool;
-    mutable client_chat_port : int;
+    mutable client_chat_port : int (*[2]*);
     mutable client_connected : bool;
     mutable client_on_list : bool;
+(* statistics *)
+    mutable client_already_counted : bool;
+    mutable client_last_filereqs : float;    
+    mutable client_downloaded : Int64.t;
+    mutable client_uploaded : Int64.t;
+    mutable client_bucket : int;
+    mutable client_brand : brand;
   }
   
 and upload_info = {
@@ -173,6 +190,7 @@ and file = {
 (*    mutable file_size : int32; *)
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
+    mutable file_chunks_order : int array;
 (*    mutable file_age : float; *)
     mutable file_chunks_age : float array;
 (*    mutable file_fd : Unix32.t; *)
@@ -218,7 +236,7 @@ module UdpClientMap = Map.Make(struct
 type udp_client = {
     udp_client_ip : Ip.t;
     udp_client_port : int;
-    udp_client_is_mldonkey : bool;
+    udp_client_can_receive : bool;
     mutable udp_client_last_conn : float;
   }
   

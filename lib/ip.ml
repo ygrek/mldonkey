@@ -101,17 +101,17 @@ let rec get_non_local_ip list =
       else ip
   
 let from_name name =
-  try
+  if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
+    of_string name 
+  else  try
     Printf.printf "Resolving %s ..." name; flush stdout;
     let h = Unix.gethostbyname name in
     Printf.printf "done"; print_newline ();
     let list = Array.to_list h.Unix.h_addr_list in
     get_non_local_ip list
   with _ -> 
-      if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
-        of_string name 
-      else raise Not_found
-        
+      raise Not_found
+      
 let my () =
   try
     let name = Unix.gethostname () in

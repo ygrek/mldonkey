@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonClient
 open CommonServer
 open CommonComplexOptions
@@ -120,7 +121,7 @@ let client_to_value c =
   in
   
   match c.client_kind with
-    Known_location (ip, port) ->        
+    Known_location (ip, port) ->   
       ("client_addr", addr_to_value ip  port) :: list
   | _ -> list
       
@@ -237,7 +238,10 @@ let value_to_file is_done assocs =
   
   file.file_filenames <-
     get_value_nil "file_filenames" (value_to_list value_to_string);
-  update_best_name file;
+  (try
+      set_file_best_name (as_file file.file_file)
+         (get_value "file_filename" value_to_string)
+    with _ -> update_best_name file);
   
   (try
       file.file_all_chunks <- get_value "file_all_chunks"
@@ -300,6 +304,7 @@ let file_to_value file =
       (List.map (fun (i1,i2) -> 
           SmallList [int32_to_value i1; int32_to_value i2])
       file.file_absent_chunks);
+    "file_filename", string_to_value (file_best_name file);
     "file_filenames", List
       (List.map (fun s -> string_to_value s) file.file_filenames);
     "file_age", FloatValue file.file_file.impl_file_age;
@@ -389,19 +394,31 @@ let known_shared_files = define_option shared_files_ini
   
 let add_server ip port =
   try
-    DonkeyGlobals.find_server ip port 
+    DonkeyGlobals.find_server ip port
   with _ ->
       let s = DonkeyGlobals.new_server ip port !!initial_score in
       DonkeyGlobals.servers_ini_changed := true;
       s
   
+let check_add_server ip port =
+  if Ip.valid ip && not (is_black_address ip port) then
+    add_server ip port
+  else raise Not_found
+
+let safe_add_server ip port =
+  if Ip.valid ip && not (is_black_address ip port) then
+    try
+      ignore (DonkeyGlobals.find_server ip port)
+    with _ ->
+        let s = DonkeyGlobals.new_server ip port !!initial_score in
+        DonkeyGlobals.servers_ini_changed := true
+        
 let remove_server ip port =
   try
     let s = DonkeyGlobals.find_server ip port in
     DonkeyGlobals.servers_ini_changed := true;
     DonkeyGlobals.remove_server ip port
   with _ -> ()
-
     
 let load _ =
   try

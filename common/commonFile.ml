@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Md4
 open CommonClient
 open Options
 open CommonTypes
@@ -195,6 +195,7 @@ let file_best_name (file : file) =
   
 let set_file_best_name file name = 
   let file = as_file_impl file in
+  let name = String2.replace name '/' "::" in
   file.impl_file_best_name <- name
 
 let file_set_format (file : file) format =

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonResult
 open CommonFile
 open CommonServer
@@ -294,7 +295,12 @@ let remove_connected_server c =
 let connected_servers () = !connected_server_list
   
 let udp_sock = ref (None: UdpSocket.t option)
-  
+        
+let get_udp_sock () =
+  match !udp_sock with
+    None -> failwith "No UDP socket"
+  | Some sock -> sock
+
   
 let listen_sock = ref (None : TcpServerSocket.t option)
   
@@ -399,6 +405,7 @@ let new_file file_state file_name md4 file_size writable =
           file_md4 = md4;
           file_nchunks = nchunks;
           file_chunks = [||];
+          file_chunks_order = [||];
           file_chunks_age = [||];
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
@@ -458,7 +465,24 @@ let remove_client_chunks file client_chunks =
       if new_n = 0 then avail_change_file file;
       client_chunks.(i) <- false
   done
-
+  
+let is_black_address ip port =
+(* Printf.printf "is black ="; *)
+  if (List.mem ip !!server_black_list) then begin
+(* Printf.printf " addr for %s %d\n" (Ip.to_string ip) port; *)
+      true
+    end
+  else begin
+      if (List.mem port !!port_black_list) then begin
+(*  Printf.printf " port for %s %d\n" (Ip.to_string ip) port; *)
+          true
+        end
+      else begin
+(* Printf.printf " false for %s %d\n" (Ip.to_string ip) port; *)
+          false
+        end
+    end
+    
 let new_server ip port score = 
   let key = (ip, port) in
   try
@@ -524,6 +548,7 @@ let dummy_client =
       client_kind = Indirect_location ("", Md4.null);   
       client_sock = None;
       client_md4 = Md4.null;
+      client_last_filereqs = 0.;
       client_chunks = [||];
       client_block = None;
       client_zones = [];
@@ -536,13 +561,17 @@ let dummy_client =
       client_next_view_files = last_time () -. 1.;
       client_all_chunks = "";
       client_rating = 0;
-      client_is_mldonkey = 0;
+      client_bucket = 0;
+      client_brand = Brand_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
       client_connected = false;
       client_power = 0;
+      client_downloaded = Int64.zero;
+      client_uploaded = Int64.zero;
       client_on_list = false;
+      client_already_counted = false;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -563,6 +592,7 @@ let new_client key =
             client_kind = key;   
             client_sock = None;
             client_md4 = Md4.null;
+	    client_last_filereqs = 0.;
             client_chunks = [||];
             client_block = None;
             client_zones = [];
@@ -575,13 +605,17 @@ let new_client key =
             client_next_view_files = last_time () -. 1.;
             client_all_chunks = "";
             client_rating = 0;
-            client_is_mldonkey = 0;
+	    client_bucket = 0;
+	    client_brand = Brand_unknown;
             client_checked = false;
             client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
             client_connected = false;
             client_power = !!upload_power;
+	    client_downloaded = Int64.zero;
+	    client_uploaded = Int64.zero;
             client_on_list = false;            
+            client_already_counted = false;
             } and
           client_impl = {
             dummy_client_impl with            
@@ -766,8 +800,11 @@ let check_useful_client c =
   let useful =
     client_type c <> NormalClient ||
     c.client_sock <> None ||
+    c.client_downloaded <> Int64.zero || (* don't forget *)
+    c.client_uploaded <> Int64.zero || (* don't forgive *)
     match c.client_kind with
-      Known_location _ -> c.client_source_for != [] 
+      Known_location (ip, port) -> c.client_source_for != [] && 
+        not (is_black_address ip port )
     | Indirect_location _ -> 
         c.client_source_for != [] || c.client_upload != None
   in

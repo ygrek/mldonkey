@@ -156,6 +156,19 @@ let user_reader options auth sock nread  =
 let user_closed sock  msg =
   user_socks := List2.removeq sock !user_socks;
   ()
+
+(* Here, we clearly need a good html parser to remove tags, and to translate
+special characters. Avoid them in the meantime. *)
+let text_of_html html = 
+  String2.convert false (fun buf state c -> 
+    if state then
+      c <> '>' 
+    else 
+      if c = '<' then true else begin
+	Buffer.add_char buf c;
+	false
+      end
+) html
   
 let telnet_handler t event = 
   match event with
@@ -175,6 +188,9 @@ let telnet_handler t event =
         TcpBufferedSocket.set_reader sock (user_reader options auth);
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
+
+	TcpBufferedSocket.write_string sock (text_of_html !!motd_html);
+
         TcpBufferedSocket.write_string sock "\nWelcome on mldonkey command-line\n";
         TcpBufferedSocket.write_string sock "\nUse ? for help\n\n";
       else 
@@ -336,9 +352,12 @@ let http_handler options t r =
         | "/complex_search.html" ->
             html_open_page buf t r true;
             CommonSearch.complex_search buf
-        | "/noframe.html"
-        | "/oneframe.html" ->
+        | "/noframe.html" -> 
             html_open_page buf t r true
+
+        | "/oneframe.html" ->
+            html_open_page buf t r true;
+	    Buffer.add_string buf !!motd_html
         
         | "/filter" ->
             html_open_page buf t r true;

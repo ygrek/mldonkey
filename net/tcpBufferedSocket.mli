@@ -111,5 +111,7 @@ val moved_bytes : bandwidth_controler -> int64
   
 val set_remaining_bytes_user : bandwidth_controler ->
   (int -> int -> unit) -> unit
+val set_lost_bytes : bandwidth_controler -> int -> int -> unit
+val compute_lost_byte : bandwidth_controler -> int
   
   

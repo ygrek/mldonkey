@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open CommonShared
 open CommonServer
 open CommonComplexOptions
@@ -39,6 +41,7 @@ open DonkeyOptions
 open CommonOptions
 open DonkeyClient  
 open CommonGlobals
+open DonkeyStats
           
 let search_handler s t =
   let waiting = s.search_waiting - 1 in
@@ -63,14 +66,31 @@ let rec find_search_rec num list =
 let find_search num = find_search_rec num !local_searches
     *)
 
+let cut_for_udp_send max_servers list =
+  let min_last_conn = last_time () -. 8. *. 3600. in
+  let rec iter list n left =
+    if n = 0 then 
+      left, list
+    else
+    match list with 
+      [] -> left, []
+    | s :: tail ->
+        if connection_last_conn s.server_connection_control > min_last_conn
+        then
+          iter tail (n-1) (s :: left)
+        else
+          iter tail n left
+  in
+  iter list max_servers []
+
 let make_xs ss =
   if ss.search_num <> !xs_last_search then begin
       xs_last_search := ss.search_num;
       xs_servers_list := Hashtbl2.to_list servers_by_key;
     end;
-  let servers, left = List2.cut !!max_xs_packets !xs_servers_list in
-  xs_servers_list := left;
   
+  let before, after = cut_for_udp_send !!max_xs_packets !xs_servers_list in
+  xs_servers_list := after;
   List.iter (fun s ->
       match s.server_sock with
       | Some sock -> ()
@@ -78,7 +98,7 @@ let make_xs ss =
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
           udp_server_send s (M.QueryUdpReq ss.search_query);
-  ) servers;
+  ) before;
   
   DonkeyOvernet.overnet_search ss
 
@@ -153,14 +173,17 @@ let check_clients _ =
                   reconnect_client c;
                   if c.client_sock <> None then decr nwaiting
               | Some sock ->
-(*     (try query_files c sock files with _ -> ()); *)
+		  (try query_files c sock with _ -> ());
+		  connection_try c.client_connection_control;
+		  connection_ok c.client_connection_control;
                   ()
           with e ->
               Printf.printf "Exception %s in check_clients"
                 (Printexc.to_string e); print_newline ()
     done
   with Exit -> ()
-      
+    
+      (*
 let throttle_searches () =
   List.iter (fun file ->
     let locs = file.file_sources in
@@ -196,7 +219,8 @@ let throttle_searches () =
 	update_file_enough_sources file false
     end
   ) !current_files
-
+*)
+  
 (* We need to be smarter. This function should be called every 20 minutes for
 example. It should be used to remove sources when there are more sources
 than we want, and it should disable the 
@@ -288,14 +312,18 @@ let remove_old_clients () =
         print_newline ();
 
         file.file_enough_sources <- (
-          file.file_nlocations > !!max_sources_per_file);
+          file.file_nlocations > (!!max_sources_per_file * 11) / 10);
 
   ) !current_files
           
 let force_check_locations () =
   try
+    
+    let before, after = cut_for_udp_send !!max_udp_sends !udp_servers_list in
+    udp_servers_list := after;
+    
     List.iter (fun file -> 
-        if file_state file = FileDownloading then begin      
+        if file_state file = FileDownloading then 
 (*(* USELESS NOW *)
             Intmap.iter (fun _ c ->
                 try connect_client !!client_ip [file] c with _ -> ()) 
@@ -310,31 +338,18 @@ let force_check_locations () =
                     (try query_location file sock with _ -> ())
             ) (connected_servers());
 *)
-            
-            let list = ref !udp_servers_list in
-            for i = 1 to !!max_udp_sends do
-              match !list with
-                [] -> ()
-              | s :: tail ->
-                  list := tail;
-                  if s.server_next_udp <= last_time () then
-                    match s.server_sock with
-                      None -> udp_query_locations file s
-                    | _ -> ()
-            done;
-            
-          end
+            List.iter (fun s  ->
+                if s.server_next_udp <= last_time () then
+                  match s.server_sock with
+                    None -> udp_query_locations file s
+                  | _ -> ()
+            ) before
     ) !current_files;
 
-    for i = 1 to !!max_udp_sends do
-      match !udp_servers_list with
-        [] -> 
-          udp_servers_list := Hashtbl2.to_list servers_by_key
-      | s :: tail ->
-          s.server_next_udp <- last_time () +. !!min_reask_delay;
-          udp_servers_list := tail
-    done;
-
+    List.iter (fun s ->
+        s.server_next_udp <- last_time () +. !!min_reask_delay) before;
+    if !udp_servers_list = [] then
+          udp_servers_list := Hashtbl2.to_list servers_by_key;
     
     if !xs_last_search >= 0 then  begin
         try
@@ -411,8 +426,8 @@ let udp_from_server p =
   match p.UdpSocket.addr with
   | Unix.ADDR_INET(ip, port) ->
       let ip = Ip.of_inet_addr ip in
-      if Ip.valid ip && !!update_server_list then
-        let s = add_server ip (port-4) in
+      if !!update_server_list then
+        let s = check_add_server ip (port-4) in
 (* set last_conn, but add a 2 minutes offset to prevent staying connected
 to this server *)
         connection_set_last_conn s.server_connection_control (
@@ -465,7 +480,10 @@ let udp_client_handler t p =
 client_wants_file c md4) t.Q.locs
 
 *)
-  
+
+  | M.PingServerReplyUdpReq _ ->
+      ignore (udp_from_server p)
+        
   | _ -> ()
 
 let verbose_upload = false
@@ -516,7 +534,7 @@ module NewUpload = struct
         ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
         Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
-        upload_counter := Int64.add !upload_counter uploaded;
+        count_upload c file uploaded;
         (match file.file_shared with None -> ()
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);
@@ -744,7 +762,7 @@ print_newline ();
 (*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
 print_newline (); *)
         let uploaded = Int64.of_int len_int in
-        upload_counter := Int64.add !upload_counter uploaded;
+	count_upload c file uploaded;
         (match file.file_shared with None -> ()
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);

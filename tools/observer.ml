@@ -65,19 +65,11 @@ char[len]: packets
 
 *)
 
+let new_servers = ref []
+  
 let print_record t ip_firewall s =
   let ip = get_ip s 1 in
   let ips, pos = get_list get_peer s 5 in
-  let version, uptime, shared, uploaded =
-    try
-      let version, pos = get_string s pos in
-      let uptime = get_int s pos in
-      let shared = get_int64 s (pos+4) in
-      let uploaded = get_int64 s (pos+12) in
-      version, uptime, shared, uploaded
-    with _ ->
-        "unknown", 0, Int64.zero, Int64.zero
-  in
   let t = Int32.to_float t in
   
   let t = localtime t in
@@ -92,13 +84,48 @@ let print_record t ip_firewall s =
   (Ip.to_string ip_firewall)
   ;
   print_newline ();
+  
+  let version, uptime, shared, uploaded, pos =
+    try
+      let version, pos = get_string s pos in
+      let uptime = get_int s pos in
+      let shared = get_int64 s (pos+4) in
+      let uploaded = get_int64 s (pos+12) in
+      version, uptime, shared, uploaded, pos+20
+    
+    
+    
+    with _ ->
+        "unknown", 0, Int64.zero, Int64.zero, pos
+  in
+  
+  
   Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
     version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
-    print_newline ();
+  print_newline ();
   List.iter (fun (ip, port) ->
+      new_servers := (ip, port) :: !new_servers;
       Printf.printf "            Connected to %s:%d"
         (Ip.to_string ip) port;
-      print_newline ()) ips
+      print_newline ()) ips;
+  
+  begin
+    try
+      let npeers = get_int s pos in
+      Printf.printf "Overnet peers: %d" npeers; print_newline ();
+      for i = 0 to npeers - 1 do
+        let ip = get_ip s (pos+4+i*6) in
+        let port = get_int16 s (pos+6+i*6) in
+        Printf.printf "         Overnet Peer %s:%d"        
+        (Ip.to_string ip) port;
+        print_newline ()
+      done;
+      
+      
+    with _ -> ()
+  end
+  
+  
   
 let create_observer port = UdpSocket.create Unix.inet_addr_any port
     (DonkeyProtoCom.udp_basic_handler (fun s p ->
@@ -177,22 +204,53 @@ let count_records () =
       print_newline ();
   )
   
-  
+
+let servers_age = ref 60
 let _ =
   print_newline ();
   Arg.parse [
     "-ascii", Arg.Unit print_ascii, "";
     "-count", Arg.Unit count_records, "";
+    "-age", Arg.Int ((:=) servers_age), " <int> : max server age (minutes) in servers.met";
     ] 
     (fun _ -> ()) ""
+
   
-    
   
+let time = ref 0
+let array = Array.create !servers_age []
+let dump_server_list _ = 
+  try
+  Printf.printf "dump server list"; print_newline ();
+  let module S = DonkeyImport.Server in
+  incr time;
+  array.(!time mod !servers_age) <- !new_servers;
+  new_servers := [];
+  let servers = Hashtbl.create 97 in
+  for i = 0 to !servers_age - 1 do
+    List.iter (fun ((ip,port) as key) ->
+        if not (Hashtbl.mem servers key) then
+          Hashtbl.add servers key { S.ip = ip; S.port = port; S.tags = []; }
+    ) array.(i)
+  done;
+  let list = Hashtbl2.to_list servers in
+  let buf = Buffer.create 100 in
+  S.write buf list;
+  File.from_string "servers.met" (Buffer.contents buf);
+(* now, what is the command to send the file to the WEB server ??? *)
+  ignore (Sys.command "scp -B -q servers.met mldonkey@subversions.gnu.org:/upload/mldonkey/network/");
+  ()
+  with e ->
+   Printf.printf "error: %s" (Printexc.to_string e);
+   print_newline ()  
+
 let _ =
   ignore (create_observer 3999);
   ignore (create_observer 4665)
   
 let _ =
+  BasicSocket.add_timer 30. dump_server_list;
+  BasicSocket.add_infinite_timer 300. dump_server_list;
   Printf.printf "Observer started";
   print_newline ();
   BasicSocket.loop ()

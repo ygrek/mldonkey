@@ -191,10 +191,10 @@ let update_sizes timer =
       GdkEvent.Button.button ev = 3 &&
       GdkEvent.get_type ev = `BUTTON_PRESS &&
       (
-        GToolbox.popup_menu 
-          ~x: (int_of_float (GdkEvent.Button.x ev))
-        ~y: (int_of_float (GdkEvent.Button.y ev))
-        ~entries: (t.make_menu t)
+        GAutoconf.popup_menu 
+          ~button: 3
+         ~time: 0
+         ~entries: (t.make_menu t)
         ;
         true
       )

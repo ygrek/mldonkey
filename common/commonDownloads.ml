@@ -46,6 +46,9 @@ type download = {
 (* The subdir option for the commit *)
     download_on_finish : (download -> unit);
 (* A function to call when download is finished ! *)
+    
+(* When the data is long enough to be accepted *)
+    mutable download_min_read : int;
   }
 
 let disconnect_download d =
@@ -68,8 +71,9 @@ print_newline ();
 let download_reader d sock nread = 
   if d.download_sock = None then  raise Exit;
   let file = d.download_file in
-  if nread > 0 then
+  if nread >= d.download_min_read then
     let b = TcpBufferedSocket.buf sock in
+    d.download_min_read <- 1;
     set_rtimeout sock 120.;
     set_client_state d.download_client Connected_busy;
     begin
@@ -98,7 +102,7 @@ print_newline ();
       file_complete d file 
 
       
-let new_download sock c file on_close on_finish subdir_option =
+let new_download sock c file min_read on_close on_finish subdir_option  =
   let d = {
       download_client = c;
       download_file = file;
@@ -107,9 +111,28 @@ let new_download sock c file on_close on_finish subdir_option =
       download_on_finish = on_finish;
       download_on_close = on_close;
       download_subdir = subdir_option;
+      download_min_read = min_read;
     } in
   set_closer sock (fun _ _ -> disconnect_download d);
   TcpBufferedSocket.set_read_controler sock download_control;
   TcpBufferedSocket.set_write_controler sock upload_control;
   set_rtimeout sock 30.;
   d  
+
+(* We should implement a common uploader too for all networks where
+upload is done linearly. *)
+  
+  
+type upload = {
+    upload_file : file; (* the file being uploaded *)
+    upload_client : client;
+    mutable upload_pos : int32; (* the position in the file *)
+    mutable upload_end : int32; (* the last position in the file to upload *)
+    mutable upload_sock : TcpBufferedSocket.t option; (* the socket for upload (often shared in client structure) *)
+    mutable upload_on_close : (upload -> unit); (* function called when
+    the socket is closed (Unix.close is already done) *)
+    upload_subdir : string Options.option_record;
+(* The subdir option for the commit *)
+    upload_on_finish : (upload -> unit);
+(* A function to call when upload is finished ! *)    
+  }

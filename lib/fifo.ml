@@ -80,6 +80,22 @@ let create () = {
     size = 3;
   }
 
+let iter t f =
+  if not t.empty then 
+    if t.inpos > t.outpos then 
+      for i = t.outpos to t.inpos - 1 do
+        f t.array.(i)
+      done
+    else begin
+        for i = t.outpos to t.size do
+          f t.array.(i)
+        done;
+        for i = 0 to t.inpos - 1 do
+          f t.array.(i)
+        done        
+      end
+      
+  
 let realloc t =
   let len = Array.length t.array in
   let tab = Array.create (2*len) t.array.(0) in

@@ -30,7 +30,7 @@ in the .Xdefaults file (using Xrm to load them). Maybe we should merge
 both approaches in a latter release.
   
     *)
-  
+
 type option_value =
     Module of option_module
   | StringValue of string
@@ -421,6 +421,18 @@ let value_to_list v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
 ;;
 
+let value_to_hasharray v2c v =
+  match v with
+    List l ->  
+      begin
+	let hash=Array.init 256 (fun _ -> Hashtbl.create 10) in
+        List.iter ( fun a -> let (num, md4, peer) = v2c a in 
+            Hashtbl.add hash.(num) md4 peer) (List.rev l);
+	hash
+      end
+  | _ -> failwith (Printf.sprintf "Options: not a list option for list2")
+;;
+
 let value_to_safelist v2c v =
   match v with
     List l | SmallList l -> 
@@ -481,6 +493,13 @@ let value_to_option v2c v =
 let list_to_value name c2v l =
   List (convert_list name c2v l [])
   
+let hasharray_to_value x c2v l =
+  let res = ref [] in
+  for i=0 to 255 do   
+    Hashtbl.iter (fun a b -> res := (c2v (0,x,b) ) :: !res ) l.(i);
+  done;
+  List !res
+
 let smalllist_to_value name c2v l =
   SmallList (convert_list name c2v l [])
 
@@ -531,6 +550,11 @@ let option_option cl =
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
     (list_to_value cl.class_name cl.to_value)
+;;
+
+let hasharray_option x cl =
+  define_option_class "Hashtable array" (value_to_hasharray cl.from_value) 
+    (hasharray_to_value x cl.to_value)
 ;;
 
 let safelist_option cl =

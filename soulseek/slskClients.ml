@@ -82,7 +82,7 @@ let connect_download c file req =
         in
         let  d = CommonDownloads.new_download sock 
             (as_client c.client_client) (as_file file.file_file)
-          (on_close c) (on_finished file) 
+          1 (on_close c) (on_finished file) 
           commit_in_subdir in
         set_reader sock (CommonDownloads.download_reader d);
         init_download_connection sock file (login()) req 

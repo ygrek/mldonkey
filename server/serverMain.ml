@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonGlobals
 open ServerServer
 open GuiTypes
@@ -53,8 +54,7 @@ let enable () =
     match !!seed_ip with
       None -> ()
     | Some ip ->
-        udp_send udp_server_sock (Unix.ADDR_INET (Ip.to_inet_addr ip,
-          !!seed_port + 4)) (
+        udp_send udp_server_sock ip  (!!seed_port + 4) (
           let module M = DonkeyProtoServer in
           M.QueryServersUdpReq (
             let module Q = M.QueryServers in
@@ -162,7 +162,7 @@ let _ =
 			  match c with 
 			      LocalClient c -> 
 				incr real;
-				if c.client_mldonkey = 2 then
+				if c.client_mldonkey >= 2 then
 				  incr ml_user
 			    | RemoteClient _ -> incr remote
 		     ) clients_by_id;

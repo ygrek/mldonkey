@@ -17,11 +17,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open BasicSocket
 open Options
 open Unix
 
-  
   
 let file_basedir = 
   try
@@ -72,7 +72,7 @@ let _ =
         String.sub !!client_name 0 prefix_len = prefix then
         client_name =:= new_name ()
   )
-  
+
 let min_reask_delay = define_option downloads_ini ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
   float_option 720.
@@ -120,6 +120,7 @@ let shared_directories =
 
 let http_port = 
   define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
+
   
 let http_login = 
   define_option downloads_ini ["http_login"] "Your login when using a WEB browser" string_option ""
@@ -179,12 +180,14 @@ let check_connections_delay =
   define_option downloads_ini ["check_connections_delay"] 
   "The delay between server connection rounds" float_option 5.0
   
-let max_connected_servers = define_option downloads_ini ["max_connected_servers"] 
-    "The number of servers you want to stay connected to" int_option 10
+let max_connected_servers = define_option downloads_ini
+  ["max_connected_servers"] 
+    "The number of servers you want to stay connected to" int_option 1
 
 let max_udp_sends = define_option downloads_ini ["max_udp_sends"] 
     "The number of UDP packets you send every check_client_connections_delay" 
   int_option 10
+
 
   (*
 let _ =
@@ -199,7 +202,7 @@ let server_connection_timeout = define_option downloads_ini ["server_connection_
 
 let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
 
-let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 7
+let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
   
@@ -324,6 +327,7 @@ let use_html_frames = define_option downloads_ini ["use_html_frames"]
 
 let commands_frame_height = define_option downloads_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 140
 
+
 let compute_md4_delay = define_option downloads_ini ["compute_md4_delay"]
     "The delay between computations of the md4 of chunks"
   float_option 10.
@@ -338,6 +342,10 @@ let master_server_min_users = define_option downloads_ini
     to be admitted as one of the 5 master servers"
     int_option 0
   
+let force_high_id = define_option downloads_ini ["force_high_id"] 
+    "immediately close connection to servers that don't grant a High ID"
+    bool_option false
+
 let update_server_list = define_option downloads_ini
     ["update_server_list"] "Set this option to false if you don't want auto
     update of servers list" bool_option true
@@ -348,7 +356,7 @@ let minor_heap_size = define_option downloads_ini
   
 let max_sources_age = define_option downloads_ini
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
-    int_option 3
+    int_option 2
   
 let max_clients_per_second = define_option downloads_ini
     ["max_clients_per_second"] "Maximal number of connections to sources per second"
@@ -394,14 +402,17 @@ let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"]
 
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"
-    int_option 20
+    int_option 10
   
 let _ =  
   option_hook max_upload_slots (fun _ ->
       if !!max_upload_slots < 10 then
         max_upload_slots =:= 10)
 
-  
+let upload_quantum = define_option downloads_ini ["upload_quantum"]
+    "How much data can be uploaded during each turn"
+    int_option 9728000
+    
 let compaction_delay = define_option downloads_ini ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"
     int_option 2
@@ -432,7 +443,7 @@ let propagate_sources = define_option downloads_ini ["propagate_sources"]
   
 let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
     "Maximal number of sources for each file"
-    int_option 1000
+    int_option 500
     
 let max_displayed_results = define_option downloads_ini
     ["max_displayed_results"]
@@ -466,6 +477,7 @@ let enable_soulseek = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
     bool_option false
     
+
   
 let enable_audiogalaxy = define_option downloads_ini
     ["enable_audiogalaxy"]
@@ -523,6 +535,7 @@ let allowed_ips = define_option downloads_ini ["allowed_ips"]
     "list of IP address allowed to control the client via telnet/GUI/WEB"
     (list_option Ip.option) [Ip.of_string "127.0.0.1"]
 
+
 let _ = 
   Options.set_string_wrappers allowed_ips 
     (fun list ->
@@ -535,8 +548,20 @@ let _ =
       List.map (fun ip -> Ip.of_string ip) list
   )
 
+    
+let mldonkey_md4 md4 =
+  let md4 = Md4.direct_to_string md4 in
+  md4.[5] <- 'M';
+  md4.[14] <- 'L';
+  Md4.direct_of_string md4
+
 let client_md4 = define_option downloads_ini ["client_md4"]
-    "The MD4 of this client" Md4.option (Md4.random ())
+    "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
+  
+let _ =
+  option_hook client_md4 (fun _ -> let m = mldonkey_md4 !!client_md4 in
+      if m <> !!client_md4 then
+        client_md4 =:= m)
 
 let ip_cache_timeout = define_option downloads_ini
     ["ip_cache_timeout"]
@@ -555,7 +580,8 @@ let calendar = define_option downloads_ini ["calendar"]
     (list_option (tuple3_option (list_option int_option,list_option int_option,
       string_option)))
   []
-  
+
+    
 let shared_extensions = define_option downloads_ini ["shared_extensions"]
   
   "A list of extensions of files that should be shared. Files with extensions
@@ -576,7 +602,8 @@ let debug_net = define_option downloads_ini ["debug_net"]
   
 let ask_for_gui = define_option downloads_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
-  
+
+    
 let start_gui = define_option downloads_ini ["start_gui"]
     "Automatically Start the GUI" bool_option false
 
@@ -591,15 +618,34 @@ let mldonkey_gui = define_option downloads_ini ["mldonkey_gui"]
     (Filename.concat bin_dir "mldonkey_gui")
 
 let filter_search = define_option downloads_ini ["filter_search"]
-  "(not implemented) Should mldonkey filter results of searches
+  "Should mldonkey filter results of searches
   (results are displayed only if they exactly match the request,
     and filtering is done every 'filter_search_delay'." 
     bool_option false
 
 let filter_search_delay = define_option downloads_ini ["filter_search_delay"]
-  "(not implemented) Delay before two filtering on results (results
+  "Delay before two filtering on results (results
     are not displayed until filtered). Min is 1 second." float_option 20.
 
+let network_update_url = define_option downloads_ini ["network_update_url"]
+    "URL where mldonkey can download update information on the network"
+    string_option "http://savannah.nongnu.org/download/mldonkey/network/"
+  
+let motd_html = define_option downloads_ini ["motd_html"]
+    "Message printed at startup (automatically downloaded from the previous
+    URL directory" string_option "Welcome to MLdonkey"
+
+let addr_option  =  define_option_class "Addr" 
+    (fun value ->
+      let s = value_to_string value in
+      let addr, port = String2.cut_at s ':' in
+      addr, int_of_string port)
+      (fun (addr, port) -> string_to_value (Printf.sprintf "%s:%d" addr port))
+  
+let redirector = define_option downloads_ini ["redirector"]
+    "IP:port of the network redirector"
+    addr_option ("128.93.52.5", 4665)
+  
 let tcpip_packet_size = define_option downloads_ini ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
     14 bytes sometimes, so modify to take that into account)"
@@ -610,7 +656,10 @@ let _ =
   option_hook filter_search_delay (fun _ ->
       if !!filter_search_delay < 1. then filter_search_delay =:= 1.)
 
-
+let options_version = define_option downloads_ini ["options_version"]
+    "(internal option)"
+    int_option 0  
+  
 let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
   "Which options are configurable in the GUI option panel, and in which
     sections. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
@@ -667,7 +716,6 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Startup", "Path of mldonkey binaries", shortname mldonkey_bin, "F";
     "Startup", "Name of MLdonkey GUI to start", shortname mldonkey_gui, "F";
  ]  
-
   
 let client_ip sock =
   if !!force_client_ip then !!client_ip else
@@ -677,3 +725,5 @@ let client_ip sock =
       let ip = TcpBufferedSocket.my_ip sock in
       if ip <> Ip.localhost then client_ip =:= ip;
       ip
+
+      

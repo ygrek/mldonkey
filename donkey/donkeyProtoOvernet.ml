@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
+
 open Options
 open DonkeyOptions
 open CommonTypes
@@ -43,9 +45,6 @@ let get_peer s pos =
   let md4 = get_md4 s pos in
   let ip = get_ip s (pos+16) in
   let port = get_int16 s (pos+20) in
-  if !!verbose_overnet then begin
-      Printf.printf "PEER %s:%d" (Ip.to_string ip) port; print_newline ();
-    end;
   let kind = get_int8 s (pos+22) in
   {
     peer_md4 = md4;
@@ -69,6 +68,14 @@ type t =
 | OvernetSearch of 
 (* ?? 2 is OK for most searches, number of replies ? *) int * 
 (* searched file or keyword *) Md4.t
+
+| OvernetPublicize of
+(* client md4 *) Md4.t *
+(* IP address *) Ip.t *
+(* port *)       int *
+(* kind *)       int
+
+| OvernetPublicized
 
 | OvernetSearchReply of 
   Md4.t *
@@ -218,6 +225,12 @@ dec: [
 
 | OvernetUnknown of int * string
 
+| OvernetGetMyIP
+
+| OvernetGetMyIPResult of Ip.t
+
+| OvernetGetMyIPDone
+
 let names_of_tag =
   [
     1, "filename";
@@ -239,6 +252,16 @@ let write buf t =
       buf_int8 buf 11;
       buf_list16 buf_peer buf peers      
   
+  | OvernetPublicize (md4, ip, port, kind) ->
+      buf_int8 buf 12;
+      buf_md4 buf md4;
+      buf_ip buf ip;
+      buf_int16 buf port;
+      buf_int8 buf kind
+
+  | OvernetPublicized ->
+      buf_int8 buf 13
+
   | OvernetSearch (kind, md4) ->
       buf_int8 buf 14;
       buf_int8 buf kind;
@@ -259,6 +282,7 @@ let write buf t =
       buf_int8 buf 17;
       buf_md4 buf md4;
       buf_md4 buf r_md4;
+      buf_int32 buf (Int32.of_int (List.length r_tags));
       buf_tags buf r_tags names_of_tag
 
   | OvernetNoResult md4 ->
@@ -269,11 +293,24 @@ let write buf t =
       buf_int8 buf 19;
       buf_md4 buf md4;
       buf_md4 buf r_md4;
+      buf_int32 buf (Int32.of_int (List.length r_tags));
       buf_tags buf r_tags names_of_tag
       
   | OvernetPublished md4 ->
       buf_int8 buf 20;
       buf_md4 buf md4
+
+  | OvernetGetMyIP ->
+      buf_int8 buf 27;
+      buf_int8 buf 54;
+      buf_int8 buf 18
+
+  | OvernetGetMyIPResult (ip) ->
+      buf_int8 buf 28;
+      buf_ip buf ip
+
+  | OvernetGetMyIPDone ->
+      buf_int8 buf 29
       
   | OvernetUnknown (opcode, s) ->
       buf_int8 buf opcode;
@@ -297,6 +334,20 @@ let parse opcode s =
           end;
         let peers, pos = get_list16 get_peer s 0 in
         OvernetConnectReply peers
+    | 12 -> 
+        if !!verbose_overnet then begin
+            Printf.printf "OK: PUBLICIZE"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        let ip = get_ip s 16 in
+        let port = get_int16 s 20 in
+        let kind = get_int8 s 22 in
+        OvernetPublicize (md4,ip,port,kind)
+    | 13 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: PUBLICIZED"; print_newline ();
+          end; 
+	OvernetPublicized
     | 14 -> 
         if !!verbose_overnet then begin
             Printf.printf "OK: SEARCH MESSAGE"; print_newline ();
@@ -321,8 +372,7 @@ let parse opcode s =
         let kind = get_int8 s 16 in
         let min = get_int16 s 17 in
         let max = get_int16 s 19 in
-        OvernetGetSearchResults (md4, kind, min, max)
-    
+        OvernetGetSearchResults (md4, kind, min, max)  
     
     | 17 ->
         if !!verbose_overnet then begin
@@ -357,7 +407,41 @@ let parse opcode s =
           end;
         let md4 = get_md4 s 0 in
         OvernetPublished md4
-        
+
+    | 27 ->
+        let opcode1 = get_int8 s 0 in
+	let opcode2 = get_int8 s 1 in	
+	if opcode1 = 54 && opcode2 = 18 then 
+	  begin
+	    if !!verbose_overnet then 
+	      begin
+		Printf.printf "OK: GETMYIP"; 
+		print_newline ();
+	      end;
+	    OvernetGetMyIP
+	  end
+	else
+	  begin
+	    if !!verbose_overnet then 
+	      begin
+		Printf.printf "UNKNOWN: opcode %d, opcode1 %d, opcode2 %d " opcode opcode1 opcode2; 
+		print_newline ();
+	      end;
+	    dump s;
+            print_newline ();
+            OvernetUnknown (opcode, s)
+	  end
+    | 28 -> 
+	if !!verbose_overnet then begin
+            Printf.printf "OK: GETMYIPRESULT MESSAGE"; print_newline ();
+          end;
+        let ip = get_ip s 0 in
+        OvernetGetMyIPResult (ip)
+    | 29 -> 
+	if !!verbose_overnet then begin
+            Printf.printf "OK: GETMYIPDONE MESSAGE"; print_newline ();
+          end;
+        OvernetGetMyIPDone
     | _ ->
         Printf.printf "UNKNOWN: opcode %d" opcode; print_newline ();
         dump s;
@@ -378,12 +462,14 @@ let udp_handler f sock event =
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
             if len < 2 || 
-              int_of_char pbuf.[0] <> 227 then begin
+              int_of_char pbuf.[0] <> 227 then 
+	      begin
                 Printf.printf "Received unknown UDP packet"; print_newline ();
                 dump pbuf;
-              end else begin
-                let t = parse (int_of_char pbuf.[1]) 
-                  (String.sub pbuf 2 (len-2)) in
+              end 
+	    else 
+	      begin
+                let t = parse (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
 (*              M.print t; *)
                 f t p
               end

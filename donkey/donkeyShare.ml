@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonFile
 open CommonShared
 open CommonTypes
@@ -54,6 +55,20 @@ let must_share_file file has_old_impl =
       | Some old_impl -> replace_shared old_impl impl
 
 
+let md4_of_list md4s =
+  let len = List.length md4s in
+  let s = String.create (len * 16) in
+  let rec iter list i =
+    match list with
+      [] -> ()
+    | md4 :: tail ->
+        let md4 = Md4.direct_to_string md4 in
+        String.blit md4 0 s i 16;
+        iter tail (i+16)
+  in
+  iter md4s 0;
+  Md4.string s
+  
 let new_file_to_share sh old_impl =
   try
 (* How do we compute the total MD4 of the file ? *)
@@ -64,19 +79,7 @@ let new_file_to_share sh old_impl =
       | [] -> Printf.printf "No md4 for %s" sh.sh_name;
           print_newline ();
           raise Not_found
-      | _ -> 
-          let len = List.length md4s in
-          let s = String.create (len * 16) in
-          let rec iter list i =
-            match list with
-              [] -> ()
-            | md4 :: tail ->
-                let md4 = Md4.direct_to_string md4 in
-                String.blit md4 0 s i 16;
-                iter tail (i+16)
-          in
-          iter md4s 0;
-          Md4.string s
+      | _ -> md4_of_list md4s
     in
     
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
@@ -189,18 +192,17 @@ let check_shared_files () =
             
 let local_dirname = Sys.getcwd ()
   
-        
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !!verbose then begin
-        Printf.printf "FULLNAME %s" fullname; print_newline ();
+          Printf.printf "FULLNAME %s" fullname; print_newline ();
         end;
       let codedname = Filename.basename codedname in
       if !!verbose then begin
           Printf.printf "CODEDNAME %s" codedname; print_newline ();
         end;
       try
-        (*
+(*
 Printf.printf "Searching %s" fullname; print_newline ();
 *)
         let s = Hashtbl.find shared_files_info fullname in
@@ -217,12 +219,23 @@ Printf.printf "Searching %s" fullname; print_newline ();
                 print_newline ();
               end;
             Hashtbl.remove shared_files_info fullname;
-            known_shared_files =:= List2.removeq s !!known_shared_files
+            known_shared_files =:= List2.removeq s !!known_shared_files;
+            raise Not_found
           end
       with Not_found ->
           if !!verbose then begin
               Printf.printf "No info on %s" fullname; print_newline (); 
             end;
+          
+          let rec iter list left =
+            match list with
+              [] -> List.rev left
+            | sh :: tail ->
+                if sh.shared_name = fullname then iter tail left
+                else iter tail (sh :: left)
+          in
+          shared_files := iter !shared_files [];
+          
           let rec impl = {
               impl_shared_update = 1;
               impl_shared_fullname = fullname;
@@ -244,8 +257,7 @@ Printf.printf "Searching %s" fullname; print_newline ();
             } in
           update_shared_num impl;  
           shared_files := pre_shared :: !shared_files;
-          
-)
+  )
   
 let remember_shared_info file new_name =
   if file.file_md4s <> [] then

@@ -19,6 +19,8 @@
 
 (* declaration des differents types de messages entre les servers*)
 
+open Md4
+
 open BasicSocket
 open TcpBufferedSocket
 
