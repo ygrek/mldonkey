@@ -338,12 +338,16 @@ MLDONKEY_ZOG := $(filter %.zog, $(MLDONKEY_SRCS))
 MLDONKEY_MLL := $(filter %.mll, $(MLDONKEY_SRCS))
 MLDONKEY_MLY := $(filter %.mly, $(MLDONKEY_SRCS))
 
-ifeq  ("$(COMPILE_LAM)" , "yes")
-MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
-MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
+ifeq  ("$(OCAMLC_DIL)" , "yes")
+  MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
 else
-MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
-MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+  MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+fi
+
+ifeq  ("$(OCAMLOPT_DIL)" , "yes")
+  MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
+else
+  MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
 endif
 
 MLDONKEY_C := $(filter %.c, $(MLDONKEY_SRCS))

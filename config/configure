@@ -1751,10 +1751,15 @@ else
 fi
 
 
+OCAMLC_DIL=no 
+OCAMLOPT_DIL=no 
+($OCAMLC -help 2>&1 | grep -e -dil > /dev/null) && OCAMLC_DIL=yes
+($OCAMLOPT -help 2>&1 | grep -e -dil > /dev/null) && OCAMLOPT_DIL=yes
+
 
 ac_safe=`echo "../secret" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../secret""... $ac_c" 1>&6
-echo "configure:1758: checking for ../secret" >&5
+echo "configure:1763: checking for ../secret" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1774,7 +1779,7 @@ if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
   
 ac_safe=`echo "../donkey" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../donkey""... $ac_c" 1>&6
-echo "configure:1778: checking for ../donkey" >&5
+echo "configure:1783: checking for ../donkey" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1795,7 +1800,7 @@ if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
     
 ac_safe=`echo "../server" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../server""... $ac_c" 1>&6
-echo "configure:1799: checking for ../server" >&5
+echo "configure:1804: checking for ../server" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1835,10 +1840,11 @@ else
 
   DONKEY=no
   BAD_TARGETS="$BAD_TARGETS closed_donkey"
-  
+  if test "$OCAMLOPT_DIL" = "yes"; then
+    
 ac_safe=`echo "../donkey/donkey.lam" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../donkey/donkey.lam""... $ac_c" 1>&6
-echo "configure:1842: checking for ../donkey/donkey.lam" >&5
+echo "configure:1848: checking for ../donkey/donkey.lam" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1857,21 +1863,21 @@ if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
   OPEN_DONKEY=yes
 else
   echo "$ac_t""no" 1>&6
-
-    OPEN_DONKEY=no
-    BAD_TARGETS="$BAD_TARGETS open_donkey"
-  
+OPEN_DONKEY=no
 fi
 
+  fi
+  if test "$OPEN_DONKEY" = "no"; then
+      BAD_TARGETS="$BAD_TARGETS open_donkey"
+  fi
 
 fi
-
 
 
 # Extract the first word of "gtk-config", so it can be a program name with args.
 set dummy gtk-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1875: checking for $ac_word" >&5
+echo "configure:1881: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_GTK_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1909,7 +1915,7 @@ else
 fi
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:1913: checking compile GTK GUI" >&5
+echo "configure:1919: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
@@ -1927,6 +1933,8 @@ case "`uname -s`" in
   *win32* | *WIN32*) CURRENT_DIR="";;
   *) CURRENT_DIR="./";;
 esac
+
+
 
 
 
@@ -2110,6 +2118,8 @@ s%@SOULSEEK@%$SOULSEEK%g
 s%@DONKEY@%$DONKEY%g
 s%@OPEN_DONKEY@%$OPEN_DONKEY%g
 s%@DONKEY_SERVER@%$DONKEY_SERVER%g
+s%@OCAMLOPT_DIL@%$OCAMLOPT_DIL%g
+s%@OCAMLC_DIL@%$OCAMLC_DIL%g
 s%@COMPILE_GUI@%$COMPILE_GUI%g
 
 CEOF

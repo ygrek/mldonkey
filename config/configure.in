@@ -96,6 +96,11 @@ AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
   BAD_TARGETS="$BAD_TARGETS soulseek"
 ])
 
+OCAMLC_DIL=no 
+OCAMLOPT_DIL=no 
+($OCAMLC -help 2>&1 | grep -e -dil > /dev/null) && OCAMLC_DIL=yes
+($OCAMLOPT -help 2>&1 | grep -e -dil > /dev/null) && OCAMLOPT_DIL=yes
+
 AC_CHECK_FILE(../secret, [
   AC_CHECK_FILE(../donkey,[
     DONKEY=yes
@@ -110,12 +115,13 @@ AC_CHECK_FILE(../secret, [
  ],[
   DONKEY=no
   BAD_TARGETS="$BAD_TARGETS closed_donkey"
-  AC_CHECK_FILE(../donkey/donkey.lam, OPEN_DONKEY=yes, [
-    OPEN_DONKEY=no
-    BAD_TARGETS="$BAD_TARGETS open_donkey"
-  ])
+  if test "$OCAMLOPT_DIL" = "yes"; then
+    AC_CHECK_FILE(../donkey/donkey.lam, OPEN_DONKEY=yes, OPEN_DONKEY=no)
+  fi
+  if test "$OPEN_DONKEY" = "no"; then
+      BAD_TARGETS="$BAD_TARGETS open_donkey"
+  fi
 ])
-
 
 AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
 if test "$GTK_CONFIG" = "no"; then
@@ -166,6 +172,8 @@ AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 
+AC_SUBST(OCAMLOPT_DIL)
+AC_SUBST(OCAMLC_DIL)
 AC_SUBST(COMPILE_GUI)
 
 AC_OUTPUT(Makefile.config ../lib/autoconf.ml)
