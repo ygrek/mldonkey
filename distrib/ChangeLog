@@ -1,6 +1,18 @@
 ChangeLog	
 =========
 
+2003/11/17: Fabrice
+   * Applied patches
+      - GUI: #2080-#2087
+        + By default, the new gui is built. To build the former one, run
+            ./configure -disable-newgui
+        + When switching from one gui to another one, the .mldonkey_gui* files
+            may be incorrect, so you are advised to save them or delete them
+            before switching.
+      - #2067 ("nu" for bittorrent), 
+        #2070 (new option "all_sources_on_telnet"),
+        #2094 (sort files by priority for each downloader)
+
 2003/10/12: Simon (release-2-5-4)
    * Applied patches #2033 (hide-dirs), #2038 (ocaml-3.07), 
       #2039 (mlsubmit.reg), #2041 (hide-psswd)

@@ -442,8 +442,12 @@ let incoming_directory =
 let http_realm = 
   define_option downloads_expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
 
+    
 let create_mlsubmit =
   define_option downloads_expert_ini ["create_mlsubmit"] "Should the MLSUBMIT.REG file be created" bool_option true
+
+let all_sources_on_telnet =
+   define_option downloads_expert_ini ["all_sources_on_telnet"] "Should *all* sources be shown on telnet vd <num>" bool_option true
 
 let set_client_ip = define_option downloads_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  

@@ -601,7 +601,7 @@ class room_window (room: room) =
         (room_users#wtool#insert_button 
           ~text: "Leave"
           ~tooltip: "Leave this room"
-          ~icon: (Gui_options.pixmap Gui_messages.o_xpm_remove)#coerce
+          ~icon: (Gui_options.pixmap Gui_messages.o_xpm_close_room)#coerce
           ~callback: self#quit_this_room
           ()
       );
@@ -677,9 +677,17 @@ end
 let main_window = 
   let window = new main_window () in
   window#window#set_title "IM Window";
-  ignore (window#window#connect#destroy (fun _ ->
+  (* Here there is an error if you close directly the window. You cannot call it back !
+     #connect#destroy is too late : the window is already destroyed.
+     Call #event#connect#delete instead to make operations before destroying the window *)
+  (* ignore (window#window#connect#destroy (fun _ ->
         if !quit_on_close then CommonGlobals.exit_properly 0 else
           window#coerce#misc#hide ()
+    )); *)
+  ignore (window#window#event#connect#delete (fun _ ->
+        if !quit_on_close then CommonGlobals.exit_properly 0 else
+          window#coerce#misc#hide ();
+          true
     ));
   ignore (window#itemQuit#connect#activate 
       (fun _ -> 
@@ -782,8 +790,7 @@ let _ =
             ~packing:menu#add ()
         in
         ignore (menu_item#connect#activate ~callback:(fun _ ->              
-              main_window#window#show ();
-          ));        
+              main_window#window#show ()));
         (*
         
   *)

@@ -475,6 +475,54 @@ and check_file_block c file i max_clients force =
       | _ -> ()
     end
     
+(* Sort files in clients file queue in order of priority and percentage downloaded
+   This way higher priority files will be asked/downloaded first if the client does have more
+   than one file to offer.
+   Only sort if client_block is not set.
+   Once the block has been finished allow changing order.
+ *)
+and sort_file_queue c =
+  match c.client_block with
+    Some _ -> ()
+  | None ->
+      match c.client_file_queue with
+        [] -> ()
+      | [ (file, _) ] -> 
+        if !verbose_download || c.client_debug then begin
+          lprintf "sort_file_queue: single file. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+        end
+      | (file, _) :: _ ->
+        let fn = file_num file in
+        if !verbose_download || c.client_debug then begin
+          lprintf "sort_file_queue: multiple files. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+        end;
+        c.client_file_queue <- List.stable_sort (fun (f1, _) (f2, _) ->
+            let v = file_priority f2 - file_priority f1 in
+            if v <> 0 then v else
+              let s1 = if (file_size f1) > Int64.zero then
+                  Int64.to_int (Int64.div (Int64.mul (file_downloaded f1) (Int64.of_int 100)) (file_size f1))
+                else 0 in
+              let s2 = if (file_size f2) > Int64.zero then
+                  Int64.to_int (Int64.div (Int64.mul (file_downloaded f2) (Int64.of_int 100)) (file_size f2))
+                else 0 in
+              s2 - s1
+            ) c.client_file_queue;
+        match c.client_file_queue with
+          [] -> ()
+        | (file, (chunks)) :: _ ->
+          if (file_num file) <> fn then begin
+            if !verbose_download || c.client_debug then begin
+              lprintf "sort_file_queue: queue change. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+            end;
+            c.client_chunks <- chunks;
+            c.client_all_chunks <- String.make file.file_nchunks '0';
+            c.client_zones <- [];
+            for i = 0 to file.file_nchunks - 1 do
+              if c.client_chunks.(i)  then
+                c.client_all_chunks.[i] <- '1';
+            done;
+          end
+
 and start_download c =
   if c.client_slot = SlotNotAsked then begin
       if !verbose_download then begin
@@ -484,6 +532,7 @@ and start_download c =
         None -> ()
       | Some sock ->
           
+          sort_file_queue c;
           match c.client_file_queue with
             [] -> ()
           | (file, (chunks)) :: _ ->
@@ -505,6 +554,7 @@ and restart_download c =
     None -> ()
   | Some sock ->
       
+      sort_file_queue c;
       match c.client_file_queue with
         [] -> ()
       | (file, (chunks)) :: _ ->
@@ -535,6 +585,7 @@ and find_client_block c =
   if !verbose_download || c.client_debug then begin
       lprintf "find_client_block: started\n"; 
     end;
+  sort_file_queue c;
   match c.client_file_queue with
     [] ->
 (* Emule may reconnect and give the slot without us asking for it.

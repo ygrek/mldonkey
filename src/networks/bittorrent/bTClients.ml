@@ -465,6 +465,7 @@ and client_to_client c sock msg =
 
         
     | Request (n, pos, len) ->
+        if !CommonUploads.has_upload = 0 then
         begin
           match c.client_upload_requests with
             [] ->

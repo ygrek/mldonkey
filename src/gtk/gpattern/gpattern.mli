@@ -24,6 +24,13 @@
 type content =
   | String of string 
   | Pixmap of GDraw.pixmap
+  | Pixtext of string * GDraw.pixmap
+
+type 'a ptree =
+  {
+   data : 'a;
+   mutable children : 'a ptree list
+  }
 
 class virtual ['a] plist : 
     Gtk.Tags.selection_mode ->
@@ -48,6 +55,9 @@ class virtual ['a] plist :
     method on_double_click : 'a -> unit
     method menu : GToolbox.menu_entry list
     method find : int -> int * 'a
+    method get_data : int -> 'a
+    method get_all_items : 'a list
+    method has_changed_width : (int * int) list -> unit
     method add_item : 'a -> unit
     method size : int
     method reset_data : 'a list -> unit
@@ -86,6 +96,9 @@ class virtual ['a] filtered_plist :
     method on_double_click : 'a -> unit
     method menu : GToolbox.menu_entry list
     method find : int -> int * 'a
+    method get_data : int -> 'a
+    method get_all_items : 'a list
+    method has_changed_width : (int * int) list -> unit
     method add_item : 'a -> unit
     method size : int
     method reset_data : 'a list -> unit
@@ -98,5 +111,47 @@ class virtual ['a] filtered_plist :
     method resort_column : int -> unit -> unit
     method column_menu :  int -> GToolbox.menu_entry list
       
+    method iter : ('a -> unit) -> unit
+  end
+
+class virtual ['a] filtered_ptree :
+    Gtk.Tags.selection_mode ->
+    string list ->
+    bool ->
+    ('a -> int list) ->
+  object
+    constraint 'a = 'b ptree
+    val mutable selection : 'a list
+    val mutable current_sort : int
+    method is_expanded : (int list * int ) list
+    method box : GObj.widget
+    method wlist : 'a GList.clist
+    method update_row : 'a -> int -> unit
+    method insert : ?row: int -> 'a -> unit
+    method expand : 'a -> bool
+    method collapse : 'a -> bool
+    method update : unit
+    method clear : unit
+    method virtual content : 'a -> content list * GDraw.optcolor option
+    method virtual compare : 'a -> 'a -> int
+    method selection : 'a list
+    method set_titles : string list -> unit
+    method on_select : 'a -> unit
+    method on_deselect : 'a -> unit
+    method on_double_click : 'a -> unit
+    method menu : GToolbox.menu_entry list
+    method find : int list -> int * 'a
+    method get_data : int -> 'a
+    method get_all_items : 'a list
+    method has_changed_width : (int * int) list -> unit
+    method add_item : 'a -> unit
+    method size : int
+    method reset_data : 'a list -> unit
+    method remove_item : int -> 'a -> unit
+    method virtual filter : 'a -> bool
+    method refresh_item : int -> 'a -> unit
+    method refresh_filter : unit
+    method resort_column : int -> unit -> unit
+    method column_menu :  int -> GToolbox.menu_entry list
     method iter : ('a -> unit) -> unit
   end

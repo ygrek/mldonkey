@@ -273,18 +273,21 @@ let client_upload c =
   (as_client_impl c).impl_client_upload
 
 let set_client_upload c sh =
-  (as_client_impl c).impl_client_upload <- sh
+  (as_client_impl c).impl_client_upload <- sh;
+  client_must_update c
   
 let set_client_has_a_slot c b = 
   let impl = as_client_impl c in
   if not b && impl.impl_client_has_slot then begin
       impl.impl_client_has_slot <- false;
-      uploaders := Intmap.remove (client_num c) !uploaders
+      uploaders := Intmap.remove (client_num c) !uploaders;
+      client_must_update c
     end
   else
   if b && not impl.impl_client_has_slot then  begin
       uploaders := Intmap.add (client_num c) c !uploaders;
-      impl.impl_client_has_slot <- b
+      impl.impl_client_has_slot <- b;
+      client_must_update c
     end
     
 let set_client_disconnected c reason =

@@ -1,0 +1,32 @@
+<entity name=window>
+  <window name=window width="Options.(!!)+Gui_options.gui_width" height="Options.(!!)+Gui_options.gui_height" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
+    <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+        <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+        </menu_item>
+      </menubar>
+      <hbox name=hbox_77 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=wl_78 width="-1" height="-1" text="%22Welcome+to+MLdonkey+installer%22" justification="`CENTER" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+        </label>
+      </hbox>
+      <notebook name=notebook width="-1" height="-1" border_width="-1" tab_position="`LEFT" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
+      </notebook>
+      <hbox name=hbox_status width="-1" height="-1" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
+      </hbox>
+    </vbox>
+  </window>
+</entity>
+<entity name=tab>
+  <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+    <hbox name=main_hbox width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+    </hbox>
+    <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="20">
+      <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+      </vbox>
+      <button name=button_next width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=_ width="100" height="50" text="%22Next%22" justification="`CENTER" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="3" y_padding="3" tab_label="" expand="false" fill="true" padding="-1">
+        </label>
+      </button>
+    </hbox>
+  </vbox>
+</entity>

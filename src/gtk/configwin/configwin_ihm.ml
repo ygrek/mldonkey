@@ -839,7 +839,7 @@ class configuration_box conf_struct (notebook : GPack.notebook) =
 let edit ?(with_apply=true)  title ?(width=400) ?(height=400) conf_struct_list =
   let return = ref Return_cancel in
   let window = GWindow.window
-      ~modal: true ~title: title
+      ~modal: true ~title: title ~position:`CENTER
       ~width: width ~height: height ()
   in
   let _ = window#connect#destroy ~callback: GMain.Main.quit in
@@ -975,7 +975,7 @@ let simple_edit ?(with_apply=true)
     title ?width ?height 
     param_list =
   let return = ref Return_cancel in
-  let window = GWindow.window ~modal: true ~title: title () in
+  let window = GWindow.window ~modal: true ~title: title ~position:`CENTER () in
   let _ = match width, height with
     None, None -> ()
   | Some w, None -> window#misc#set_geometry ~width: w ()

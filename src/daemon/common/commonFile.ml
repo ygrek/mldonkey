@@ -664,7 +664,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
               Printf.bprintf buf "\\</tr\\>";
             end
           else
-            client_bprint c buf;
+            if !!all_sources_on_telnet then client_bprint c buf;
       ) srcs;
 
       if use_html_mods o && srcs <> [] then begin

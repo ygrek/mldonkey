@@ -53,7 +53,6 @@ type 'a search_request = {
     mutable search_network : int;
   }
 
-  
 type file_info = {
     file_num : int;    
     file_network : int;
@@ -65,7 +64,6 @@ type file_info = {
     mutable file_downloaded : int64; (* LOT OF CHANGES *)
     mutable file_nlocations : int; (* MANY CHANGES *)
     mutable file_nclients: int;
-
     mutable file_state : file_state;
     mutable file_chunks : string;
     mutable file_availability : string; (* MANY CHANGES *)
@@ -78,6 +76,49 @@ type file_info = {
     mutable file_priority : int;
   }
   
+type general_state =
+  FDownloading
+| FQueued
+| FPaused
+| FDownloaded
+| FShared
+| FCancelled
+| FNew
+| FAborted of string
+| CNotConnected of BasicSocket.close_reason * int (* >= 0 Queued *)
+| CConnecting
+| CConnected_initiating
+| CConnected of int    (* >= 0 Queued *)
+| CConnected_downloading
+| CNewHost
+| CRemovedHost
+| CBlackListedHost
+
+type gui_file_info = {
+    gfile_num : int list;
+
+    mutable gfile_network : int;
+    mutable gfile_name : string;
+    mutable gfile_names : string list;
+    mutable gfile_md4 : Md4.t;
+    mutable gfile_size : int64;
+    mutable gfile_downloaded : int64;
+    mutable gfile_nlocations : int;
+    mutable gfile_nclients: int;
+    mutable gfile_state : general_state;
+    mutable gfile_chunks : string;
+    mutable gfile_availability : string;
+    mutable gfile_download_rate : float;
+    mutable gfile_format : format;
+    mutable gfile_age : int;
+    mutable gfile_last_seen : int;
+    mutable gfile_priority : int;
+    mutable gfile_pixmap : GDraw.pixmap option;
+    mutable gfile_net_pixmap : GDraw.pixmap option;
+    mutable gfile_priority_pixmap : GDraw.pixmap option;
+    mutable gfile_avail_pixmap : GDraw.pixmap option;
+  }
+
 type user_info = {
     user_num : int;
     user_md4 : Md4.t;
@@ -105,6 +146,41 @@ type server_info = {
     mutable server_banner : string;
   } 
 
+type gui_server_info = {
+    gserver_num : int;
+    gserver_network : int;
+
+    mutable gserver_addr : Ip.addr;
+    mutable gserver_port : int;
+    mutable gserver_score : int;
+    mutable gserver_tags : CommonTypes.tag list;
+    mutable gserver_nusers : int;
+    mutable gserver_nfiles : int;
+    mutable gserver_state : host_state;
+    mutable gserver_name : string;
+    mutable gserver_description : string;
+    mutable gserver_users : int list option;
+    mutable gserver_banner : string;
+    mutable gserver_pixmap : GDraw.pixmap option;
+    mutable gserver_net_pixmap : GDraw.pixmap option;
+  }
+
+type gui_result_info = {
+    mutable gresult_num : int;
+    gresult_network : int;
+
+    mutable gresult_names : string list;
+    mutable gresult_md4 : Md4.t;
+    mutable gresult_size : int64;
+    mutable gresult_format : string;
+    mutable gresult_type : string;
+    mutable gresult_tags : tag list;
+    mutable gresult_comment : string;
+    mutable gresult_done : bool;
+    mutable gresult_pixmap : GDraw.pixmap option;
+    mutable gresult_net_pixmap : GDraw.pixmap option;
+  }
+
 type room_info = {
     room_num : int;
     room_network : int;
@@ -113,6 +189,17 @@ type room_info = {
     mutable room_users : int list;
     mutable room_messages : room_message list;
     mutable room_nusers : int;
+  }
+
+type gui_room_info = {
+    groom_num : int;
+    groom_network : int;
+    groom_name : string;
+    mutable groom_state : room_state;
+    mutable groom_users : int list;
+    mutable groom_messages : room_message list;
+    mutable groom_nusers : int;
+    mutable groom_net_pixmap : GDraw.pixmap option;
   }
 
 type file_tree =
@@ -143,6 +230,26 @@ type client_info = {
     mutable client_uploaded : int64;
     mutable client_upload : string option;
 	mutable client_sock_addr : string;
+  }
+
+type gui_client_info = {
+    gclient_num : int;
+    gclient_network : int;
+
+    mutable gclient_kind : location_kind;
+    mutable gclient_state : host_state;
+    mutable gclient_type : client_type;
+    mutable gclient_tags: CommonTypes.tag list;
+    mutable gclient_name : string;
+    mutable gclient_files:  file_tree option;
+    mutable gclient_rating : int;
+    mutable gclient_software : string;
+    mutable gclient_downloaded : int64;
+    mutable gclient_uploaded : int64;
+    mutable gclient_upload : string option;
+    mutable gclient_sock_addr : string;
+    mutable gclient_net_pixmap : GDraw.pixmap option;
+    mutable gclient_pixmap : GDraw.pixmap option;
   }
 
 type client_stats = {
@@ -242,7 +349,7 @@ let file_info_test =
     file_names = ["toto"; "tutu"];
     file_md4 = Md4.random ();
     file_size = Int64.of_string "68758765";
-    file_downloaded = Int64.of_string "68758764";
+    file_downloaded = Int64.of_string "10";
     file_nlocations = 12;
     file_nclients = 18;
     file_state = FileDownloading;

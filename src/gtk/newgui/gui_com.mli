@@ -17,27 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Options
-open SlskOptions
-open SlskTypes
-open CommonTypes
+val disconnect :
+  < 
+  clear : 'a; 
+  label_connect_status : < set_text : string -> 'b; .. >;
+      .. > -> BasicSocket.close_reason -> unit
+val send : GuiProto.from_gui -> unit
+val reconnect :  (< clear : 'b; label_connect_status : < set_text : string -> 'c; .. >;
+       .. > as 'a) ->
+    ('a -> GuiProto.to_gui -> unit) -> BasicSocket.close_reason -> unit
+val connected : unit -> bool
   
-let old_files = 
-  define_option soulseek_ini ["old_files"]
-    "" (list_option (tuple2_option (string_option, int64_option))) []
-
-let servers = 
-  define_option soulseek_ini ["servers"]
-    "" (list_option (tuple2_option (string_option, int_option))) 
-  (* this server is no more actual [ ("mail.slsk.org", 2240) ] *)
-    [ ("38.115.131.131", 2240) ]
+val gui_protocol_used : int ref
   
-let save_config () =
-  servers =:= List.map (fun s ->
-      let addr = s.server_addr in
-      let port = s.server_port in
-      let name = Ip.string_of_addr addr in
-      (name, port)
-  ) (Hashtbl2.to_list SlskGlobals.servers_by_addr)
+val scan_ports : unit -> unit
   
   

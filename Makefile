@@ -13,9 +13,6 @@
 
 include config/Makefile.config
 
-ICONS_CHOICE=kde
-
-
 ##################################################################
 
 ##             Bytecode or Native ?
@@ -37,6 +34,18 @@ LIBS_opt= unix.cmxa str.cmxa
 
 #######################################################################
 
+
+ifeq ("$(BUILD_NEWGUI)", "yes")
+  ICONS_CHOICE=tux
+  GUI=NEWGUI
+  SRC_GUI=src/gtk/newgui
+else
+  SRC_GUI=src/gtk/gui
+  ICONS_CHOICE=kde
+  GUI=OLDGUI
+endif
+
+
 CDK=src/utils/cdk
 LIB=src/utils/lib
 NET=src/utils/net
@@ -49,7 +58,6 @@ MP3=src/utils/mp3tagui
 GPATTERN=src/gtk/gpattern
 OKEY=src/gtk/okey
 CONFIGWIN=src/gtk/configwin
-SRC_GUI=src/gtk/gui
 SRC_GUI2=src/gtk/gui2
 
 
@@ -495,7 +503,120 @@ GPATTERN_SRCS=  $(LIB)/gAutoconf.ml $(GPATTERN)/gpattern.ml
 
 OKEY_SRCS= $(OKEY)/okey.ml
 
-ICONS= \
+NEWGUI_ICONS= \
+  icons/$(ICONS_CHOICE)/extend_search.xpm \
+  icons/$(ICONS_CHOICE)/local_search.xpm \
+  icons/$(ICONS_CHOICE)/trash.xpm \
+  icons/$(ICONS_CHOICE)/subscribe_search.xpm \
+  icons/$(ICONS_CHOICE)/submit_search.xpm \
+  icons/$(ICONS_CHOICE)/close_search.xpm \
+  icons/$(ICONS_CHOICE)/stop_search.xpm \
+  icons/$(ICONS_CHOICE)/nbk_networks_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_networks_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_servers_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_servers_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_downloads_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_downloads_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_friends_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_friends_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_search_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_search_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_rooms_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_rooms_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_uploads_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_uploads_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_console_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_console_menu.xpm \
+  icons/$(ICONS_CHOICE)/nbk_graphs_on.xpm \
+  icons/$(ICONS_CHOICE)/nbk_graphs_menu.xpm \
+  icons/$(ICONS_CHOICE)/about.xpm \
+  icons/$(ICONS_CHOICE)/im.xpm \
+  icons/$(ICONS_CHOICE)/settings.xpm \
+  icons/$(ICONS_CHOICE)/exit.xpm \
+  icons/$(ICONS_CHOICE)/gui.xpm \
+  icons/$(ICONS_CHOICE)/kill_core.xpm \
+  icons/$(ICONS_CHOICE)/splash_screen.xpm \
+  icons/$(ICONS_CHOICE)/album_search.xpm \
+  icons/$(ICONS_CHOICE)/movie_search.xpm \
+  icons/$(ICONS_CHOICE)/mp3_search.xpm \
+  icons/$(ICONS_CHOICE)/complex_search.xpm \
+  icons/$(ICONS_CHOICE)/sharereactor_search.xpm \
+  icons/$(ICONS_CHOICE)/jigle_search.xpm \
+  icons/$(ICONS_CHOICE)/freedb_search.xpm \
+  icons/$(ICONS_CHOICE)/imdb_search.xpm \
+  icons/$(ICONS_CHOICE)/bt.xpm \
+  icons/$(ICONS_CHOICE)/dc.xpm \
+  icons/$(ICONS_CHOICE)/ed2k.xpm \
+  icons/$(ICONS_CHOICE)/fasttrack.xpm \
+  icons/$(ICONS_CHOICE)/gnutella.xpm \
+  icons/$(ICONS_CHOICE)/napster.xpm \
+  icons/$(ICONS_CHOICE)/slsk.xpm \
+  icons/$(ICONS_CHOICE)/unknown.xpm \
+  icons/$(ICONS_CHOICE)/downloading.xpm \
+  icons/$(ICONS_CHOICE)/connect_y.xpm \
+  icons/$(ICONS_CHOICE)/connect_m.xpm \
+  icons/$(ICONS_CHOICE)/connect_n.xpm \
+  icons/$(ICONS_CHOICE)/removedhost.xpm \
+  icons/$(ICONS_CHOICE)/blacklistedhost.xpm \
+  icons/$(ICONS_CHOICE)/files_listed.xpm \
+  icons/$(ICONS_CHOICE)/server_c.xpm \
+  icons/$(ICONS_CHOICE)/server_ci.xpm \
+  icons/$(ICONS_CHOICE)/server_nc.xpm \
+  icons/$(ICONS_CHOICE)/toggle_display_all_servers.xpm \
+  icons/$(ICONS_CHOICE)/add_server.xpm \
+  icons/$(ICONS_CHOICE)/add_shared_directory.xpm \
+  icons/$(ICONS_CHOICE)/download_directory.xpm \
+  icons/$(ICONS_CHOICE)/friend_user.xpm \
+  icons/$(ICONS_CHOICE)/contact_user.xpm \
+  icons/$(ICONS_CHOICE)/normal_user.xpm \
+  icons/$(ICONS_CHOICE)/priority_0.xpm \
+  icons/$(ICONS_CHOICE)/priority_1.xpm \
+  icons/$(ICONS_CHOICE)/priority_2.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_binary.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_cdimage.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_debian.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_html.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_images.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_java.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_pdf.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_postscript.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_real.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_recycled.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_rpm.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_shellscript.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_soffice.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_sound.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_source.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_spreadsheet.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_tex.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_text.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_tgz.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_video.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_wordprocessing.xpm \
+  icons/$(ICONS_CHOICE)/mimetype_unknown.xpm \
+  icons/$(ICONS_CHOICE)/tree_closed.xpm \
+  icons/$(ICONS_CHOICE)/tree_opened.xpm \
+  icons/$(ICONS_CHOICE)/bt_net_on.xpm \
+  icons/$(ICONS_CHOICE)/dc_net_on.xpm \
+  icons/$(ICONS_CHOICE)/ed2k_net_on.xpm \
+  icons/$(ICONS_CHOICE)/ftt_net_on.xpm \
+  icons/$(ICONS_CHOICE)/gnut_net_on.xpm \
+  icons/$(ICONS_CHOICE)/nap_net_on.xpm \
+  icons/$(ICONS_CHOICE)/slsk_net_on.xpm \
+  icons/$(ICONS_CHOICE)/mld_tux_on.xpm
+
+NEWGUI_SMALL_ICONS= \
+  icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
+  icons/small/connect_more_small.xpm icons/small/connect_small.xpm \
+  icons/small/disconnect_small.xpm icons/small/download_small.xpm \
+  icons/small/edit_mp3_small.xpm icons/small/extend_search_small.xpm \
+  icons/small/get_format_small.xpm icons/small/local_search_small.xpm \
+  icons/small/preview_small.xpm icons/small/refres_small.xpm \
+  icons/small/save_all_small.xpm icons/small/save_as_small.xpm icons/small/save_small.xpm \
+  icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
+  icons/small/view_users_small.xpm
+
+OLDGUI_ICONS= \
   icons/$(ICONS_CHOICE)/add_to_friends.xpm \
   icons/$(ICONS_CHOICE)/cancel.xpm icons/$(ICONS_CHOICE)/connect_more.xpm \
   icons/$(ICONS_CHOICE)/connect.xpm icons/$(ICONS_CHOICE)/disconnect.xpm \
@@ -510,8 +631,8 @@ ICONS= \
   icons/$(ICONS_CHOICE)/view_users.xpm \
   icons/$(ICONS_CHOICE)/pause_resume.xpm \
   icons/$(ICONS_CHOICE)/remove_all_friends.xpm 
- 
-SMALL_ICONS= \
+
+OLDGUI_SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
   icons/small/connect_more_small.xpm icons/small/connect_small.xpm \
   icons/small/disconnect_small.xpm icons/small/download_small.xpm \
@@ -522,6 +643,8 @@ SMALL_ICONS= \
   icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
   icons/small/view_users_small.xpm
 
+ICONS= $($(GUI)_ICONS)
+SMALL_ICONS= $($(GUI)_SMALL_ICONS)
 
 ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
 ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
@@ -534,7 +657,28 @@ GUI_BASE_SRCS= \
   $(SRC_GUI)/gui_keys.ml \
   $(ALL_ICONS_SRCS) $(SRC_GUI)/gui_options.ml 
 
-GUI_SRCS=  \
+NEWGUI_SRCS=  \
+  $(SRC_GUI)/gui_misc.ml \
+  $(SRC_GUI)/gui_com.ml \
+  $(SRC_GUI)/gui_graph_base.ml $(SRC_GUI)/gui_graph.ml \
+  $(SRC_GUI)/gui_console_base.zog $(SRC_GUI)/gui_console.ml \
+  $(SRC_GUI)/gui_users_base.ml $(SRC_GUI)/gui_users.ml \
+  $(SRC_GUI)/gui_results_base.ml $(SRC_GUI)/gui_results.ml \
+  $(SRC_GUI)/gui_rooms_base.ml $(SRC_GUI)/gui_rooms.ml \
+  $(SRC_GUI)/gui_friends_base.ml $(SRC_GUI)/gui_friends.ml \
+  $(SRC_GUI)/gui_cdget_base.zog $(SRC_GUI)/gui_cdget.ml \
+  $(SRC_GUI)/gui_queries_base.ml $(SRC_GUI)/gui_queries.ml \
+  $(SRC_GUI)/gui_servers_base.ml $(SRC_GUI)/gui_servers.ml \
+  $(SRC_GUI)/gui_uploads_base.ml $(SRC_GUI)/gui_uploads.ml \
+  $(SRC_GUI)/gui_downloads_base.ml $(SRC_GUI)/gui_downloads.ml \
+  $(SRC_GUI)/gui_networks.ml \
+  $(SRC_GUI)/gui_window_base.ml $(SRC_GUI)/gui_window.ml \
+  $(IM_GUI_CORE) \
+  $(SRC_GUI)/gui_config.ml \
+  $(SRC_GUI)/gui_main.ml
+
+
+OLDGUI_SRCS=  \
   $(SRC_GUI)/gui_misc.ml \
   $(SRC_GUI)/gui_com.ml \
   $(SRC_GUI)/gui_help_base.zog $(SRC_GUI)/gui_help.ml \
@@ -552,6 +696,8 @@ GUI_SRCS=  \
   $(IM_GUI_CORE) \
   $(SRC_GUI)/gui_config.ml \
   $(SRC_GUI)/gui_main.ml
+
+GUI_SRCS= $($(GUI)_SRCS)
 
 GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
   $(SRC_GUI2)/gui2_options.ml $(SRC_GUI2)/gui2_GList.ml $(SRC_GUI2)/gui2.zog \
@@ -1031,6 +1177,7 @@ libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS)
 libguibase_SRCS= $(IM_CORE)
 libgui_SRCS=   $(GUI_BASE_SRCS) $(GUI_SRCS)
+libgui3_SRCS=   $(GUI_BASE_SRCS) $(GUI3_SRCS)
 
 
 libcdk_ZOG := $(filter %.zog, $(libcdk_SRCS)) 
