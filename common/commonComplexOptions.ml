@@ -426,6 +426,7 @@ let file_commit file =
         (file_disk_name file) new_name; 
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
+      Unix32.close (file_fd file);
       (* Commit the file first, and share it after... *)
       impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
       ignore (CommonShared.new_shared "completed" best_name new_name);
@@ -439,9 +440,10 @@ let file_cancel file =
   let impl = as_file_impl file in
 
   if impl.impl_file_state <> FileCancelled then begin
-      update_file_state impl FileCancelled;
-      impl.impl_file_ops.op_file_cancel impl.impl_file_val;
-      files =:= List2.removeq file !!files;
+        update_file_state impl FileCancelled;
+        impl.impl_file_ops.op_file_cancel impl.impl_file_val;
+        Unix32.close (file_fd file);
+        files =:= List2.removeq file !!files;
     end
   with e ->
       lprintf "Exception in file_cancel: %s" (Printexc2.to_string e);

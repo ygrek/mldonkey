@@ -576,10 +576,13 @@ let commands = [
         List.iter (fun s ->
             Printf.bprintf buf "For %s:%d  --->   %s\n"
               (Ip.to_string s.server_ip) s.server_port
-              (if Ip.valid s.server_cid then
-                Ip.to_string s.server_cid
-              else
-                Int64.to_string (Ip.to_int64 (Ip.rev s.server_cid)))
+              (match s.server_cid with
+                None -> "waiting"
+              | Some ip ->
+                  if Ip.valid ip then
+                    Ip.to_string ip
+                  else
+                    Int64.to_string (Ip.to_int64 (Ip.rev ip)))
         ) (connected_servers());
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
@@ -757,7 +760,7 @@ let commands = [
                         (client_num c);
                         
                         
-                        client_print (as_client c.client_client) o;
+                        client_print_html (as_client c.client_client) o;
                         
                         begin
                           match c.client_sock with
@@ -823,7 +826,7 @@ let commands = [
                       cnum;
                       
                       
-                      client_print (as_client c.client_client) o;
+                      client_print_html (as_client c.client_client) o;
                       
                       Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" 
                         (gbrand_to_string c.client_brand);
@@ -834,16 +837,18 @@ let commands = [
                         (size_of_int64 c.client_downloaded) 
                       (size_of_int64 c.client_uploaded);
                       
-                      try 
-                        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+			
+                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+                      (try 
                           
                           (  match c.client_sock with
                             Some sock -> (Ip.to_string (peer_ip sock)) 
                           | None -> "")
                       
-                      with _ -> Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>\\</td\\>";
+                      with _ -> ""
+					  );
                           
-                          Printf.bprintf buf "\\</tr\\>";
+                      Printf.bprintf buf "\\</tr\\>";
                     
                     
                     with _ -> ();
@@ -1127,7 +1132,9 @@ let _ =
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
   server_ops.op_server_cid <- (fun s -> 
-            s.server_cid);
+      match s.server_cid with
+        None -> Ip.null
+      | Some ip -> ip);
 
   ()
 

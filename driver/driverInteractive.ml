@@ -127,6 +127,7 @@ module Html = struct
   end
   
 let save_config () =
+  (try Unix32.flush () with _ -> ());
   Options.save_with_help downloads_ini;
   networks_iter (fun r -> 
       match r.network_config_file with

@@ -19,15 +19,22 @@
 
 open Printf2
 
+let verbose = false
+  
 type t = {
     mutable fd : Unix.file_descr option;
     mutable access : int;
     mutable rights : Unix.open_flag list;
     mutable filename : string;
+    mutable error : exn option;
+    mutable buffers : (string * int * int * int64 * int64) list;
   }
 
 let getsize64 = Unix2.c_getsize64
 let fds_size = Unix2.c_getdtablesize ()
+
+let buffered_bytes = ref Int64.zero
+let modified_files = ref []
   
 let _ =
   lprintf "Your system supports %d file descriptors" fds_size;
@@ -44,6 +51,8 @@ let create f r a = {
     fd = None;
     rights = r;
     access = a;
+    error = None;
+    buffers = [];
   }
 
 let rec close_one () =
@@ -96,5 +105,116 @@ let set_filename t f =
 let mtime64 filename =
   let st = Unix.LargeFile.stat filename in
   st.Unix.LargeFile.st_mtime
+
+let buffer = Buffer.create 65000
+
+let (++) = Int64.add
+let (--) = Int64.sub
+
+let flush_buffer t offset = 
+  if verbose then lprintf "flush_buffer\n";
+  let s = Buffer.contents buffer in
+  Buffer.clear buffer;
+  let len = String.length s in
+  try
+    if verbose then lprintf "seek64 %Ld\n" offset;
+    let final_pos = seek64 t offset Unix.SEEK_SET in
+    let fd =  force_fd t in
+    if verbose then lprintf "really_write %d\n" len;
+    Unix2.really_write fd s 0 len;
+    buffered_bytes := !buffered_bytes -- (Int64.of_int len);
+    if verbose then lprintf "written %d bytes (%Ld)\n" len !buffered_bytes;
+  with e ->
+      lprintf "exception %s in flush_buffer\n" (Printexc2.to_string e);
+      t.buffers <- (s, 0, len, offset, Int64.of_int len) :: t.buffers;
+      raise e
+  
+let flush_fd t = 
+  if t.buffers = [] then () else
+  let list = 
+    List.sort (fun (_, _, _, o1, l1) (_, _, _, o2, l2) ->
+        let c = compare o1 o2 in
+        if c = 0 then compare l2 l1 else c) 
+    t.buffers
+  in
+  if verbose then lprintf "flush_fd\n";
+  t.buffers <- list;
+  let rec iter_out () =
+    match t.buffers with
+      [] -> ()
+    | (s, pos_s, len_s, offset, len) :: tail ->
+        Buffer.clear buffer;
+        Buffer.add_substring buffer s pos_s len_s;
+        t.buffers <- tail;
+        iter_in offset len
+        
+  and iter_in offset len =
+    match t.buffers with
+      [] -> flush_buffer t offset
+    | (s, pos_s, len_s, offset2, len2) :: tail ->
+        let in_offset = offset ++ len -- offset2 in
+        if in_offset = Int64.zero then begin
+            Buffer.add_substring buffer s pos_s len_s;
+            t.buffers <- tail;
+            iter_in offset (len ++ len2);
+          end else
+        if in_offset < Int64.zero then begin
+            flush_buffer t offset;
+            iter_out ()
+          end else 
+        let keep_len = len2 -- in_offset in
+        if verbose then lprintf "overlap %Ld\n" keep_len;
+        t.buffers <- tail;
+        if keep_len <= Int64.zero then begin
+            buffered_bytes := !buffered_bytes -- len2;                
+            iter_in offset len
+          end else begin
+            let new_pos = len2 -- keep_len in
+            Buffer.add_substring buffer s 
+              (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
+            buffered_bytes := !buffered_bytes -- new_pos;
+            iter_in offset (len ++ keep_len)
+          end
+  in
+  iter_out ()
+
+let max_buffered = ref (Int64.of_int (1024*1024))
+      
+let flush _ = 
+  if verbose then lprintf "flush all\n";
+  let rec iter list =
+    match list with
+      [] -> []
+    | t :: tail ->
+        try
+          flush_fd t;
+          t.error <- None;
+          iter tail
+        with e -> 
+            t.error <- Some e;
+            t :: (iter tail)
+  in
+  modified_files := iter !modified_files;
+  if !buffered_bytes <> Int64.zero then
+    lprintf "[ERROR] remaining bytes after flush\n"
+  
+let write t offset s pos_s len_s = 
+  let len = Int64.of_int len_s in
+  match t.error with
+    None -> 
+      if len > Int64.zero then begin
+          if not (List.memq t !modified_files) then
+            modified_files := t:: !modified_files;
+          t.buffers <- (s, pos_s, len_s, offset, len) :: t.buffers;
+          buffered_bytes := !buffered_bytes ++ len;
+          if verbose then 
+            lprintf "buffering %Ld bytes (%Ld)\n" len !buffered_bytes;
+
+(* Don't buffer more than 1 Mo *)
+          if !buffered_bytes > !max_buffered then flush ()
+        end
+  | Some e -> 
+      t.error <- None; 
+      raise e
   
   

@@ -822,10 +822,39 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
     ),
     "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
     
-    "vc", Arg_one (fun num o ->
-        let num = int_of_string num in
-        let c = client_find num in
-        client_print c o;
+    "vc", Arg_multiple (fun args o ->
+        if args = ["all"] then begin 
+          let buf = o.conn_buf in
+          Printf.bprintf buf "\\<div class=\\\"vc\\\"\\>\\<table id=\\\"vc\\\" name=\\\"vc\\\" 
+							class=\\\"vc\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
+\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
+\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
+\\</tr\\>";
+        
+          let counter = ref 0 in
+		  let all_clients_list = clients_get_all () in
+          List.iter (fun num ->
+			let c = client_find num in
+            if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+			 title=\\\"Add as friend\\\" 
+			 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\" 
+            onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+            onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
+            (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
+         	client_print c o;
+            if use_html_mods o then Printf.bprintf buf "\\</tr\\>";
+			incr counter;
+		  ) all_clients_list;
+          if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
+		end
+        else 
+          List.iter (fun num ->
+            let num = int_of_string num in
+            let c = client_find num in
+            client_print c o;
+          ) args;
         ""
     ), "<num> :\t\t\t\tview client";
     
@@ -1338,7 +1367,8 @@ formID.msgText.value=\\\"\\\";
     "clear_debug", Arg_none (fun o ->
         
         Intset.iter (fun num ->
-            try let c = client_find num in client_debug c true with _ -> ()
+            try let c = client_find num in 
+              client_debug c false with _ -> ()
         ) !debug_clients;
         debug_clients := Intset.empty;
         "done"
@@ -1396,6 +1426,12 @@ formID.msgText.value=\\\"\\\";
           "Only 'admin' is allowed to do that"
     ), "<user> <passwd> :\t\tadd a new mldonkey user";
 
+    "calendar_add", Arg_two (fun hour action o ->
+        calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
+        :: !!calendar;
+        "action added"
+    ), " <hour> \"...command...\": add a command to be executed every day";
+    
     ]
 
 let _ =

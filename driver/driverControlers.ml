@@ -176,8 +176,8 @@ let check_calendar () =
   let time = last_time () in
   let tm = Unix.localtime (date_of_int time) in
   List.iter (fun (days, hours, command) ->
-      if List.mem tm.Unix.tm_wday days &&
-        List.mem tm.Unix.tm_hour hours then begin
+      if (List.mem tm.Unix.tm_wday days || days = [])  &&
+        (List.mem tm.Unix.tm_hour hours || hours = []) then begin
           eval (ref true) command calendar_options;
           lprintf "Calendar execute: %s\n%s" command
             (Buffer.contents calendar_options.conn_buf);
@@ -526,6 +526,8 @@ let chat_handler t event =
 
 let buf = Buffer.create 1000
       
+let html_page = ref true  
+
 open Http_server
 
 let add_simple_commands buf =
@@ -533,7 +535,6 @@ let add_simple_commands buf =
       !!CommonMessages.web_common_header_mods2
     else
       !!CommonMessages.web_common_header_old)
-
 
 let http_add_header buf = 
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
@@ -543,11 +544,18 @@ let http_add_header buf =
   Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
   Buffer.add_string  buf "\r\n"
 
+let http_add_css_header buf = 
+  Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
+  Buffer.add_string  buf "Server: MLdonkey\r\n";
+  Buffer.add_string  buf "Connection: close\r\n";
+  Buffer.add_string  buf "Content-Type: text/css; charset=iso-8859-1\r\n";
+  Buffer.add_string  buf "\r\n"
+
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
 let html_open_page buf t r open_body =
   Buffer.clear buf;
-  
+  html_page := true;
   http_add_header buf;
   
   if not !!html_mods  then 
@@ -575,8 +583,10 @@ let html_close_page buf =
   Buffer.add_string buf "</HTML>\n";
   ()
   
+  
 let http_handler o t r =
   CommonInteractive.display_vd := false;
+  
   
   let user = if r.options.login = "" then "admin" else r.options.login in
   if not (valid_password user r.options.passwd) then begin
@@ -800,6 +810,23 @@ let http_handler o t r =
                   raise Not_found
 end
 
+        | "/mld1.css" ->
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_css_header buf;
+            Buffer.add_string buf !!(if !!html_mods then
+                CommonMessages.html_css_mods2
+               else
+                CommonMessages.html_css_old)
+        | "/mld2.css" ->          
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_css_header buf;
+            Buffer.add_string buf !!(if !!html_mods then
+                CommonMessages.download_html_css_mods2
+               else
+                CommonMessages.download_html_css_old)
+
         | cmd ->
             html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" cmd
@@ -807,6 +834,7 @@ end
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
     end;
   
+  if !html_page then
   html_close_page buf;
   let s = Buffer.contents buf in
   let s = dollar_escape o !!use_html_frames s in

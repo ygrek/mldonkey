@@ -141,8 +141,10 @@ let send_qrt_sequence s =
   let table = !cached_qrt_table in
   
   let compressor, table =
-    (* 0, table *)
-    1, Zlib.compress_string table
+    if Autoconf.has_zlib then
+      1, Autoconf.zlib__compress_string table
+    else
+      0, table 
   in
   
   server_send_new s (QrtPatchReq {

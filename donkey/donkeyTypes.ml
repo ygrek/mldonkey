@@ -53,10 +53,10 @@ type client_score =
 | Client_has_upload
 | Client_has_priority_upload
 
-type trust =
-  Trust_neutral
-| Trust_trusted
-| Trust_suspicious of int
+type reliability =
+  Reliability_neutral
+| Reliability_reliable
+| Reliability_suspicious of int
 
 type brand = 
   Brand_unknown
@@ -74,7 +74,7 @@ let brand_count = 9
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
-    mutable server_cid : Ip.t;
+    mutable server_cid : Ip.t option;
     mutable server_port : int;
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_nqueries : int;
@@ -170,6 +170,7 @@ and client = {
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_ip : Ip.t;
     mutable client_power : int ;
     mutable client_block : block option;
     mutable client_zones : zone list;
@@ -229,10 +230,9 @@ and block = {
     block_begin : int64;
     block_end : int64;
     mutable block_zones : zone list;
-    mutable block_unknown_origin : bool;
     mutable block_nclients : int;
-    mutable block_trust : trust;
     mutable block_contributors : Ip.t list;
+    mutable block_legacy : bool;
     mutable block_pos : int;
     block_file : file;
   }

@@ -38,7 +38,7 @@ open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals          
 open DonkeyChunks
-open DonkeyTrust
+open DonkeyReliability
   
 let new_block file i =
   
@@ -48,9 +48,8 @@ let new_block file i =
     block_present = false;
     block_begin = begin_pos;
     block_end = end_pos;
-    block_unknown_origin = true;
+    block_legacy = true;
     block_nclients = 0;
-    block_trust = Trust_neutral;
     block_contributors = [];
     block_zones = [];
     block_pos = i;
@@ -255,6 +254,7 @@ let print_time tm =
     tm.U.tm_hour tm.U.tm_min tm.U.tm_sec;
   lprint_newline ()
   
+exception Block_selected
       
 let rec find_client_zone c = 
   match c.client_block with
@@ -361,11 +361,17 @@ and find_zone1 c b zones =
           CommonEvent.add_event (Console_message_event message);
           corrupted_block_detected b;
           b.block_zones <- create_zones file b.block_begin b.block_end [];
-          b.block_unknown_origin <- false;
           b.block_present <- false;
+          b.block_legacy <- false;
           b.block_contributors <- [];
+          add_file_downloaded file.file_file (Int64.sub Int64.zero block_size);
           file.file_chunks.(b.block_pos) <- PartialVerified b;
-          c.client_block <- Some b
+          Hashtbl.iter (fun _ c ->
+              match c.client_block with
+                Some cb when cb == b -> c.client_block <- None
+              | _ -> ()
+          ) connected_clients
+        
         end;
       find_client_block c
   
@@ -402,7 +408,7 @@ and zero_block file i =
                 raise e
           in
           let buffer_size = 128 * 1024 in
-          let buffer = String.make buffer_size '\000' in
+          let buffer = String.make buffer_size '\001' in
           let remaining = ref (Int64.to_int (Int64.sub (chunk_end file i) chunk_begin)) in
           while !remaining >= buffer_size do
             Unix2.really_write fd buffer 0 buffer_size;
@@ -438,18 +444,16 @@ and check_file_block c file i max_clients force =
               lprint_newline ();
             end;
           zero_block file i;
-          b.block_unknown_origin <- false;
+          b.block_legacy <- false;
           c.client_block <- Some b;
           file.file_chunks.(i) <- PartialVerified b;
-          add_client_trust b c;
           find_client_zone c;
-          raise Not_found
+          raise Block_selected
       
       | PartialVerified b ->
           if b.block_nclients < max_clients && 
-            allowed_by_trust b c force then begin
-              if force then
-                b.block_unknown_origin <- true;
+            (not !!reliable_sources ||
+              allowed_by_reliability b c >= force) then begin
               b.block_nclients <- b.block_nclients + 1;            
               c.client_block <- Some b;
               if !verbose then begin
@@ -460,13 +464,12 @@ and check_file_block c file i max_clients force =
                 end;
               
               file.file_chunks.(i) <- PartialVerified b;
-              add_client_trust b c;
               find_client_zone c;
-              raise Not_found
+              raise Block_selected
             end      
       | _ -> ()
     end
-
+    
 and start_download c =
   if not c.client_asked_for_slot then begin
       if !verbose_download then begin
@@ -571,7 +574,8 @@ and find_client_block c =
       end;
       
       try  
-        let aux force =
+(* only break reliability barriers when in need *)
+	for force = 1 to (if !!reliable_sources then 4 else 1) do
           
           let last = file.file_nchunks - 1 in
           
@@ -581,16 +585,34 @@ and find_client_block c =
                   lprintf "find_client_block: random_order_download"; lprint_newline ();
                 end;
 
+ 	      let proportional_check_file_block c file i force =
+ 	        let n = 1 + (((!!sources_per_chunk-1) * Int64.to_int (chunk_compute_missing file i)) / Int64.to_int block_size) in
+ 		  check_file_block c file i n force in
+ 
+ 	      if c.client_chunks.(last) &&
+ 		(match file.file_chunks.(last) with
+ 		     PresentTemp | PresentVerified -> false
+ 		   | _ -> true) &&
+ 		file.file_available_chunks.(last) >= 10 then
+ 		  proportional_check_file_block c file last force;
+	      
+ 	      if c.client_chunks.(0) &&
+ 		(match file.file_chunks.(0) with
+ 		     PresentTemp | PresentVerified -> false
+ 		   | _ -> true) &&
+ 		file.file_available_chunks.(0) >= 10 then
+ 		  proportional_check_file_block c file 0 force;
+ 
 (* chunks with MD4 already computed *)
               for i = 0 to last do
                 let j = file.file_chunks_order.(i) in
                 if c.client_chunks.(j) && 
                   (match file.file_chunks.(j) with
                       AbsentVerified -> true
-                    | PartialVerified b when b.block_nclients = 0 -> true
+                    | PartialVerified b -> true
                     | _ -> false
                   ) then
-                  check_file_block c file j !!sources_per_chunk force
+                  proportional_check_file_block c file j force
               done;        
 
 (* chunks whose computation will probably lead to only one MD4 *)
@@ -599,26 +621,40 @@ and find_client_block c =
                 if c.client_chunks.(j) && 
                   (match file.file_chunks.(j) with
                       AbsentTemp -> true
-                    | PartialTemp b when b.block_nclients = 0 -> true
+                    | PartialTemp b -> true
                     | _ -> false
                   ) then
-                  check_file_block c file j  !!sources_per_chunk force
+                  proportional_check_file_block c file j force
               done;        
 
 (* rare chunks *)
 (* while different clients should try to get different chunks, each client
    should try to complete the chunks it started: if the rare sources
    disappear, all partial chunks will become useless *)
-              for i = 0 to last do
-                let j = file.file_chunks_order.(i) in
-                if c.client_chunks.(j) && file.file_available_chunks.(j) = 1 then
-                  check_file_block c file j max_int force;
-              done;
+ 	      let min_availability = ref max_int in
+ 	      let max_availability = ref 0 in
+ 	      for i = 0 to last do
+ 		if c.client_chunks.(i) then begin
+ 		  if file.file_available_chunks.(i) < !min_availability then
+ 		    min_availability := file.file_available_chunks.(i);
+ 		  if file.file_available_chunks.(i) > !max_availability then
+ 		    max_availability := file.file_available_chunks.(i)
+ 		end
+ 	      done;
+ 
+ 	      let rare_level = !max_availability / 2 in
+ 	      if !min_availability <= rare_level then
+		for i = 0 to last do
+ 		  let j = file.file_chunks_order.(i) in
+ 		  if c.client_chunks.(j) && 
+ 		    file.file_available_chunks.(j) <= rare_level then
+                      check_file_block c file j max_int force
+		done;
 
-(* chunks with no client *)
+(* chunks with few clients *)
               for i = 0 to last do
                 let j = file.file_chunks_order.(i) in
-                check_file_block c file j  !!sources_per_chunk force
+		proportional_check_file_block c file j force
               done;
 
 (* chunks with several clients *)
@@ -643,7 +679,7 @@ and find_client_block c =
               for i = 0 to file.file_nchunks - 1 do
                 if c.client_chunks.(i) && (match file.file_chunks.(i) with
                       AbsentVerified -> true
-                    | PartialVerified b when b.block_nclients = 0 -> true
+                    | PartialVerified b -> true
                     | _ -> false
                   ) then
                   check_file_block c file i  !!sources_per_chunk force
@@ -653,7 +689,7 @@ and find_client_block c =
               for i = 0 to file.file_nchunks - 1 do
                 if c.client_chunks.(i) && (match file.file_chunks.(i) with
                       AbsentTemp -> true
-                    | PartialTemp b when b.block_nclients = 0 -> true
+                    | PartialTemp b -> true
                     | _ -> false
                   ) then
                   check_file_block c file i  !!sources_per_chunk force
@@ -684,10 +720,8 @@ and find_client_block c =
                 check_file_block c file i max_int force
               done
             
-            end in
-        
-        aux false;
-        aux true;
+            end
+	done;
         
         if !verbose_download || c.client_debug then begin
             lprintf "No block found ???"; lprint_newline ();
@@ -711,7 +745,9 @@ and find_client_block c =
 (* THIS CLIENT CANNOT HELP ANYMORE: USELESS FOR THIS FILE *)
         printf_string "[NEXT]";
         next_file c
-      with e -> 
+      with 
+	  Block_selected -> ()
+	| e -> 
           if !verbose_download || c.client_debug then begin
               lprintf "find_client_block: exception %s"
                 (Printexc2.to_string e); lprint_newline ();
@@ -737,7 +773,7 @@ and next_file c =
                   connection_delay c.client_connection_control;
 (* This guy could still want to upload from us !!! *)
                   TcpBufferedSocket.close sock "useless client";            
-                  raise Not_found
+                  raise Block_selected
                 end
           | _ ->
               c.client_file_queue <- files;
@@ -756,50 +792,19 @@ let disconnect_chunk ch =
   | AbsentTemp | AbsentVerified | PresentTemp  | PresentVerified -> ()
  
 let random_chunks_order nchunks =
-
-  let n = ref 0 in
-  let nbegin = ref 0 in
-  let nend = ref (nchunks-1) in
   let order = Array.create nchunks 0 in
-
-  let from_the_beginning =
-    if !n < nchunks then begin
-      order.(!n) <- !nbegin;
-      incr n;
-      incr nbegin 
-    end in
-
-  let from_the_end =
-    if !n < nchunks then begin
-      order.(!n) <- !nend;
-      incr n;
-      decr nend
-    end in
-
+  for i = 0 to nchunks - 1 do
+    order.(i) <- i
+  done;
 (* Fisher-Yates shuffle *)
-  let shuffle a start len =
-    for i = len-1 downto 1 do
-      let j = Random.int (i+1) in
-      if i <> j then
-        let temp = a.(i+start) in
-        a.(i+start) <- a.(j+start);
-        a.(j+start) <- temp
-    done in
-(* download the last chunk *)
-    from_the_end;
-(* download the first chunk *)
-    from_the_beginning;
-(* download the second last chunk too *)
-    from_the_end;
-(* download the remaining chunks at random *)
-    if !n < nchunks then begin
-      for i = !n to nchunks-1 do
-	order.(i) <- !nbegin;
-	incr nbegin
-      done;
-      shuffle order !n (nchunks - !n)
-    end;
-    order
+  for i = nchunks-1 downto 1 do
+    let j = Random.int (i+1) in
+    if i <> j then
+      let temp = order.(i) in
+      order.(i) <- order.(j);
+      order.(j) <- temp
+  done;
+  order
   
 let set_file_size file sz =
   

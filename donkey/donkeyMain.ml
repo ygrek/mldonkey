@@ -250,6 +250,9 @@ let enable () =
     add_session_option_timer enabler check_client_connections_delay 
       DonkeyFiles.force_check_locations;
 
+    add_session_option_timer enabler buffer_writes_delay 
+      (fun _ -> Unix32.flush ());
+    
     add_session_option_timer enabler check_connections_delay 
       DonkeyServers.check_server_connections;
     add_session_option_timer enabler compute_md4_delay DonkeyOneFile.check_files_md4s;  

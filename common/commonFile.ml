@@ -35,7 +35,8 @@ type 'a file_impl = {
     mutable impl_file_age : int;
     mutable impl_file_fd : Unix32.t;
     mutable impl_file_downloaded : int64;
-    mutable impl_file_last_downloaded : (int64 * int) list;
+    mutable impl_file_received : int64;
+    mutable impl_file_last_received : (int64 * int) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
     mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
@@ -90,7 +91,8 @@ let dummy_file_impl = {
     impl_file_age = 0;
     impl_file_fd = Unix32.create "" [Unix.O_RDONLY] 0o666;
     impl_file_downloaded = Int64.zero;
-    impl_file_last_downloaded = [];
+    impl_file_received = Int64.zero;
+    impl_file_last_received = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
     impl_file_priority = 0;
@@ -324,13 +326,13 @@ let sample_timer () =
   let time = BasicSocket.last_time () in
   H.iter (fun file ->
       let impl = as_file_impl file in
-      impl.impl_file_last_downloaded <-
-        trimto ((impl.impl_file_downloaded, time) :: 
-        impl.impl_file_last_downloaded) 
+      impl.impl_file_last_received <-
+        trimto ((impl.impl_file_received, time) :: 
+        impl.impl_file_last_received) 
       !!CommonOptions.download_sample_size;
-      match impl.impl_file_last_downloaded with
-        _ :: (last_downloaded, _) :: _ ->
-          if last_downloaded = impl.impl_file_downloaded &&
+      match impl.impl_file_last_received with
+        _ :: (last_received, _) :: _ ->
+          if last_received = impl.impl_file_received &&
             impl.impl_file_last_rate > 0. then
             file_must_update_downloaded file
       | _ -> ()
@@ -339,9 +341,9 @@ let sample_timer () =
 
 let file_download_rate impl =
   let time = BasicSocket.last_time () in
-  let (last_downloaded, file_last_time) = last impl.impl_file_last_downloaded in
+  let (last_received, file_last_time) = last impl.impl_file_last_received in
   let time = time - file_last_time in
-  let diff = Int64.sub impl.impl_file_downloaded last_downloaded in
+  let diff = Int64.sub impl.impl_file_received last_received in
   let rate = if time > 0 && diff > Int64.zero then begin
         (Int64.to_float diff) /. (float_of_int time);
       end else 0.0
@@ -351,6 +353,9 @@ let file_download_rate impl =
   
 let add_file_downloaded impl n =
   impl.impl_file_downloaded <- Int64.add impl.impl_file_downloaded n;
+(* you cannot remove received bytes *)
+  if Int64.compare n Int64.zero > 0 then
+    impl.impl_file_received <- Int64.add impl.impl_file_received n;
   file_must_update_downloaded (as_file impl)
     
 

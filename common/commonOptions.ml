@@ -43,6 +43,10 @@ let (file_basedir, home_basedir) =
     let chroot_dir = Sys.getenv "MLDONKEY_CHROOT" in
     try
       Unix.chdir chroot_dir;
+      let new_passwd = Filename.concat chroot_dir "/etc/passwd" in
+      if not (Sys.file_exists new_passwd) then begin
+          lprintf "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option\n"
+        end;
       Unix.chroot chroot_dir;
       lprintf "mldonkey is now running in %s\n"  chroot_dir;
         ".", "."
@@ -109,6 +113,22 @@ let _ =
 let allow_browse_share = define_option downloads_ini ["allow_browse_share"]
     "Allow others to browse our share list" bool_option true
 
+let buffer_writes = define_option downloads_ini ["buffer_writes"]
+    "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
+    bool_option false
+
+let buffer_writes_delay = define_option downloads_ini ["buffer_writes_delay"]
+    "Buffer writes and flush after buffer_writes_delay seconds (experimental)" 
+    float_option 30.
+
+let buffer_writes_threshold = define_option downloads_ini ["buffer_writes_threshold"]
+  "Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)" 
+    int_option 1024
+
+let _ =
+  option_hook buffer_writes_threshold (fun _ ->
+      Unix32.max_buffered := Int64.of_int (1024 * !!buffer_writes_threshold))
+  
 let shared_directories = 
   define_option downloads_ini ["shared_directories" ] 
     "Directories where files will be shared"

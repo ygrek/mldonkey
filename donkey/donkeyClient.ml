@@ -50,7 +50,7 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 open DonkeyStats
 open DonkeyTypes  
-open DonkeyTrust
+open DonkeyReliability
 
 module Udp = DonkeyProtoUdp
   
@@ -83,6 +83,12 @@ let ban_client c sock msg =
         Printf.sprintf 
         "[ERROR] Your client %s, it has been banned" msg))
   
+let corruption_warning c =
+  if !!send_warning_messages then
+    let module M = DonkeyProtoClient in
+    direct_client_send c (
+      M.SayReq "[WARNING] It has been detected that your client is sending corrupted data. Please double-check your hardware (disk, memory, cpu) and software (latest version ?)")
+
 let request_for c file sock =
   if !!ban_queue_jumpers then
     try
@@ -377,7 +383,10 @@ let find_sources_in_groups c md4 =
 (* send the list of members of the group to the client *)
                   let list = ref [] in
                   UdpClientMap.iter (fun _ uc ->
-                      list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
+		    match ip_reliability uc.udp_client_ip with
+			Reliability_reliable | Reliability_neutral ->
+			  list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
+		      | Reliability_suspicious _ -> ()
                   ) group.group;
                   if !list <> [] then begin
                       if !verbose_src_prop then begin
@@ -595,8 +604,8 @@ type challenge_vals =
 | Four of string
 | Five of float * challenge_vals
 | Six of char * challenge_vals
-| Seven of challenge_vals * int
-
+| Seven of challenge_vals * string
+  
 let solve_challenge md4 =
   let md4 = Md4.direct_to_string md4 in  
   let rec iter n =
@@ -613,13 +622,12 @@ let solve_challenge md4 =
     | 4 -> Four (Marshal.to_string v [])
     | 5 -> Five (3.3, v)
     | 6 -> Six ('x', v)
-    | _ -> Seven (v, hash v)
+    | _ -> Seven (v, Marshal.to_string v [])
   in
   let array = Array.init 4 (fun i -> 
         let n = LittleEndian.get_int md4 (4*i) in
         iter n) in
-  let v = Marshal.to_string array [] in
-  Md4.string v  
+  Md4.string (Marshal.to_string array [])
   
 let client_to_client challenge for_files c t sock = 
   let module M = DonkeyProtoClient in
@@ -765,6 +773,9 @@ lprint_newline ();
                 None -> ()
               | Some s ->
                   if s.source_age > last_time () - 600 &&
+		    (match ip_reliability ip with
+			 Reliability_reliable | Reliability_neutral -> true
+		       | Reliability_suspicious _ -> false) &&
                     List.exists (fun r ->
                         match r.request_result with
                           File_not_found | File_possible | File_expected ->
@@ -847,7 +858,7 @@ lprint_newline ();
                       lprintf "Recovered file queue by md4\n";
                     v
                   with _ ->
-                    let id = client_id c in
+                      let id = client_id c in
                       let v = Hashtbl.find join_queue_by_id id in
                       if c.client_debug then
                         lprintf "Recovered file queue by md4\n";
@@ -860,8 +871,8 @@ lprint_newline ();
                 c.client_file_queue <- files @ c.client_file_queue;
                 c.client_asked_for_slot <- true;
                 DonkeyOneFile.restart_download c
-                    
-                
+              
+              
               with _ -> ()
       end;
       DonkeyOneFile.find_client_block c
@@ -1056,9 +1067,10 @@ is checked for the file.
       let file = client_file c in
       
       if !!reliable_sources && 
-        socket_trust sock = Trust_suspicious 0 then begin
-          lprintf "Receiving data from banned client, disconnect";
+        socket_reliability sock = Reliability_suspicious 0 then begin
+          lprintf "Receiving data from unreliable client, disconnect";
           lprint_newline ();
+	  corruption_warning c;
           disconnect_client c;
           raise Not_found
         end;
@@ -1084,10 +1096,10 @@ is checked for the file.
       set_client_state c Connected_downloading;
       let len = Int64.sub end_pos begin_pos in
       if Int64.to_int len <> t.Q.bloc_len then begin
-        lprintf "%d: inconsistent packet sizes" (client_num c);
-	lprint_newline ();
-	raise Not_found
-      end;
+          lprintf "%d: inconsistent packet sizes" (client_num c);
+          lprint_newline ();
+          raise Not_found
+        end;
       count_download c file len;
       begin
         match c.client_block with
@@ -1162,19 +1174,25 @@ is checked for the file.
                 );              
               raise Not_found
             else
-            
-            let final_pos = Unix32.seek64 (file_fd file) 
-              begin_pos Unix.SEEK_SET in
-            if final_pos <> begin_pos then begin
-                lprintf "BAD LSEEK %Ld/%Ld"
-                  (final_pos)
-                (begin_pos); lprint_newline ();
-                raise Not_found
-              end;
-            if c.client_connected then
-              printf_string "#[OUT]"
-            else
-              printf_string "#[IN]";
+            try
+              begin
+                if !!buffer_writes then 
+                  Unix32.write (file_fd file) begin_pos
+                    t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                else
+                
+                let final_pos = Unix32.seek64 (file_fd file) 
+                  begin_pos Unix.SEEK_SET in
+                if final_pos <> begin_pos then begin
+                    lprintf "BAD LSEEK %Ld/%Ld"
+                      (final_pos)
+                    (begin_pos); lprint_newline ();
+                    raise Not_found
+                  end;
+                if c.client_connected then
+                  printf_string "#[OUT]"
+                else
+                  printf_string "#[IN]";
 
 (*            if !verbose then begin
                 lprintf "{%d-%d = %Ld-%Ld}" (t.Q.bloc_begin)
@@ -1182,18 +1200,17 @@ is checked for the file.
                 (end_pos);
                 lprint_newline ();
               end; *)
-            try
-              let fd = try
-                  Unix32.force_fd (file_fd file) 
-                with e -> 
-                    lprintf "In Unix32.force_fd"; lprint_newline ();
-                    raise e
-              in
-              Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
+                let fd = try
+                    Unix32.force_fd (file_fd file) 
+                  with e -> 
+                      lprintf "In Unix32.force_fd"; lprint_newline ();
+                      raise e
+                in
+                Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
+              end;
               List.iter (update_zone file begin_pos end_pos) c.client_zones;
-              if !!reliable_sources &&
-                not (List.mem (peer_ip sock) bb.block_contributors) then
-                bb.block_contributors <- (peer_ip sock) :: 
+              if not (List.mem c.client_ip bb.block_contributors) then
+                bb.block_contributors <- c.client_ip :: 
                 bb.block_contributors;
               find_client_zone c;                    
             with
@@ -1602,6 +1619,7 @@ let read_first_message overnet challenge m sock =
         match c.client_sock with
           None -> 
             c.client_sock <- Some sock;
+	    c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
             c.client_connect_time <- last_time ();
@@ -1630,9 +1648,9 @@ let read_first_message overnet challenge m sock =
       c.client_tags <- t.CR.tags;
       
       if  !!reliable_sources && 
-        ip_trust (peer_ip sock) = Trust_suspicious 0 then begin
+        ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
 	set_client_state c BlackListedHost;
-	raise End_of_file
+	raise Not_found
       end;
             
       begin
@@ -1738,7 +1756,7 @@ let reconnect_client c =
       | Known_location (ip, port) ->
           if client_state c <> BlackListedHost then
             if !!black_list && is_black_address ip port ||
-	       (!!reliable_sources && ip_trust ip = Trust_suspicious 0) then
+	       (!!reliable_sources && ip_reliability ip = Reliability_suspicious 0) then
               set_client_state c BlackListedHost
             else
             try
@@ -1768,6 +1786,7 @@ let reconnect_client c =
                   (client_to_client challenge files c));
               
               c.client_sock <- Some sock;
+	      c.client_ip <- ip;
               c.client_connected <- true;
               let server_ip, server_port = 
                 try

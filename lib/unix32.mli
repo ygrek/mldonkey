@@ -35,3 +35,8 @@ val set_filename : t -> string -> unit
 val max_cache_size : int ref
 val mtime64 : string -> float
   
+val flush : unit -> unit
+val flush_fd : t -> unit
+val write : t -> int64 -> string -> int -> int -> unit
+val max_buffered : int64 ref
+  

@@ -16,6 +16,7 @@ let check_array s pos =
     raise outofboundsaccess
 
 let has_zlib = @HAS_ZLIB@
-let zlib_uncompress s = @ZLIB_UNCOMPRESS@
+let zlib__uncompress_string2 s = @ZLIB__UNCOMPRESS_STRING2@
+let zlib__compress_string s = @ZLIB__COMPRESS_STRING@
 
 @TYPE_FORMAT@

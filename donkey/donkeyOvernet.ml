@@ -91,7 +91,40 @@ module XorMd4Map = Map.Make (
     end
   )
   
-let boot_peers = ref []
+
+type search_for =
+  FileSearch of file
+| KeywordSearch of CommonTypes.search list
+  
+type overnet_search = {
+    search_md4 : Md4.t;
+    mutable search_kind : search_for;
+    mutable search_last_insert : int;
+
+    mutable search_not_asked_peers : XorSet.t;
+    mutable search_asked_peers : XorSet.t;
+    mutable search_done_peers : XorSet.t;
+
+    (* nb of peers in search_not_asked_peers + search_asked_peers + search_done_peers *)
+    mutable search_total_peers : int;
+
+    (* already tested peers, either they are in asked/not_asked/done, either they are useless*)
+    mutable search_known_peers : (Ip.t*int, peer) Hashtbl.t;
+
+    mutable search_nresults : int;
+    mutable search_results : (Md4.t, tag list) Hashtbl.t;
+    mutable search_hits : int;
+    mutable search_publish_files : file list;
+    mutable search_publish_file : bool;
+  }
+
+(********************************************************************
+
+
+                     STATIC MEMORY
+  
+
+*********************************************************************)
   
 let min_peers_per_block = 2
 let min_peers_before_connect = 5
@@ -99,12 +132,16 @@ let max_searches_for_publish = 5
 let search_max_queries = 64
   
 let global_peers_size = Array.make 256 0
-(*let firewalled_overnet_peers = Hashtbl.create 13*)
 
-let published_keyword_set = ref XorMd4Set.empty
-let published_keyword_table = Hashtbl.create 103
-let published_keyword_size = ref 0
+
+
+(********************************************************************
+
+
+                           OPTIONS
   
+
+*********************************************************************)
 
 module PeerOption = struct
     
@@ -136,7 +173,7 @@ module PeerOption = struct
       
     let t = define_option_class "Peer" value_to_peer peer_to_value
 end
-  
+
 let overnet_store_size = 
   define_option downloads_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
     int_option 2000
@@ -163,11 +200,6 @@ let overnet_max_known_peers =
 let overnet_search_keyword = 
   define_option downloads_ini ["overnet_search_keyword"] 
   "allow extended search to search on overnet" bool_option false
-
-let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = define_option servers_ini 
-    ["overnet_peers"] "List of overnet peers"
-    (hasharray_option Md4.null PeerOption.t) 
-    (Array.init 256 (fun _ -> Hashtbl.create 10))
 
 let overnet_search_timeout = 
   define_option downloads_ini ["overnet_search_timeout"] 
@@ -201,21 +233,62 @@ let overnet_options_version =
   define_option downloads_ini ["overnet_options_version"] 
     "(internal)"
     int_option 0
+
+    
+(********************************************************************
+
+
+                        MUTABLE STRUCTURES
   
+
+*********************************************************************)
+
+  
+let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = define_option servers_ini 
+    ["overnet_peers"] "List of overnet peers"
+    (hasharray_option Md4.null PeerOption.t) 
+    (Array.init 256 (fun _ -> Hashtbl.create 10))
+
+let boot_peers = ref []
+  
+(*let firewalled_overnet_peers = Hashtbl.create 13*)
+
+let published_keyword_set = ref XorMd4Set.empty
+let published_keyword_table = Hashtbl.create 103
+let published_keyword_size = ref 0
+
+    
+let search_hits = ref 0
+let source_hits = ref 0
+
+let all_overnet_searches = ref ([] : int list)
+    
 let udp_sock = ref None  
 let tcp_sock = ref None
   
-let buf = Buffer.create 2000
+let udp_buf = Buffer.create 2000
+
+      
+let overnet_searches = Hashtbl.create 13
+let files_to_be_published = ref []
+
+(********************************************************************
+
+
+                           FUNCTIONS
+  
+
+*********************************************************************)
   
 let udp_send ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
       try
-        Buffer.clear buf;
-        buf_int8 buf 227;
-        DonkeyProtoOvernet.write buf msg;
-        let s = Buffer.contents buf in
+        Buffer.clear udp_buf;
+        buf_int8 udp_buf 227;
+        DonkeyProtoOvernet.write udp_buf msg;
+        let s = Buffer.contents udp_buf in
         if !verbose_overnet then 
           begin            
 (*Too much traffic for a correct debug*)
@@ -236,9 +309,6 @@ let udp_send ip port msg =
           lprintf "Exception %s in udp_send" (Printexc2.to_string e);
           lprint_newline () 
             
-let search_hits = ref 0
-let source_hits = ref 0
-
 let remove_old_global_peers () =
   for i=0 to 255 do 
     Hashtbl.iter ( fun a b -> 
@@ -410,35 +480,6 @@ let automatic_ocl_load force =
         end
   | _ -> ()
       *)
-
-type search_for =
-  FileSearch of file
-| KeywordSearch of CommonTypes.search list
-  
-type overnet_search = {
-    search_md4 : Md4.t;
-    mutable search_kind : search_for;
-    mutable search_last_insert : int;
-
-    mutable search_not_asked_peers : XorSet.t;
-    mutable search_asked_peers : XorSet.t;
-    mutable search_done_peers : XorSet.t;
-
-    (* nb of peers in search_not_asked_peers + search_asked_peers + search_done_peers *)
-    mutable search_total_peers : int;
-
-    (* already tested peers, either they are in asked/not_asked/done, either they are useless*)
-    mutable search_known_peers : (Ip.t*int, peer) Hashtbl.t;
-
-    mutable search_nresults : int;
-    mutable search_results : (Md4.t, tag list) Hashtbl.t;
-    mutable search_hits : int;
-    mutable search_publish_files : file list;
-    mutable search_publish_file : bool;
-  }
-    
-let overnet_searches = Hashtbl.create 13
-let files_to_be_published = ref []
 
 let add_search_peer s p = 
   if not (Hashtbl.mem s.search_known_peers (p.peer_ip,p.peer_port)) &&
@@ -1397,8 +1438,6 @@ let _ =
               end
       ) lines
   )
-  
-let all_overnet_searches = ref ([] : int list)
   
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && not (List.mem ss.search_num !all_overnet_searches) then

@@ -93,6 +93,15 @@ let rec matches ((a4,a3,a2,a1) as a) ips =
         (a1 = b1 || b1 = 255))
       || (matches a tail)
       
+let compare ((a4,a3,a2,a1) as a) ((b4,b3,b2,b1) as b) =
+  let c4 = compare a4 b4 in
+  if c4 <> 0 then c4 else
+  let c3 = compare a3 b3 in
+  if c3 <> 0 then c3 else
+  let c2 = compare a2 b2 in
+  if c2 <> 0 then c2 else
+  compare a1 b1
+
 let localhost = of_string "127.0.0.1"
   
 let to_sockaddr ip port =

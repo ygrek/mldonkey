@@ -58,6 +58,7 @@ let verify_chunk file i =
         begin_pos len;
     end;
   let t1 = Unix.gettimeofday () in
+  Unix32.flush_fd (file_fd file);
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   let t2 = Unix.gettimeofday () in
   if !verbose then begin
@@ -157,20 +158,25 @@ let find_absents file =
   in
   iter_chunks_out 0 []
     
+let chunk_compute_missing file i =    
+  match file.file_chunks.(i) with
+      PresentTemp | PresentVerified -> Int64.zero
+    | AbsentTemp | AbsentVerified -> 
+        Int64.sub (chunk_end file i) (chunk_pos i)
+    | PartialTemp b | PartialVerified b ->
+	let absent = ref Int64.zero in
+        List.iter (fun z ->
+	  absent := Int64.add !absent (
+            Int64.sub z.zone_end z.zone_begin)
+	) b.block_zones; 
+	!absent
+
 let compute_size file =
   if file_size file <> Int64.zero then
     
     let absents = ref Int64.zero in
     for i = 0 to file.file_nchunks - 1 do
-      match file.file_chunks.(i) with
-        PresentTemp | PresentVerified -> ()
-      | AbsentTemp | AbsentVerified -> absents := Int64.add !absents (
-            Int64.sub (chunk_end file i) (chunk_pos i))
-      | PartialTemp b | PartialVerified b ->
-          List.iter (fun z ->
-              absents := Int64.add !absents (
-                Int64.sub z.zone_end z.zone_begin)
-          ) b.block_zones
+      absents := Int64.add !absents (chunk_compute_missing file i)
     done;
     let current = Int64.sub (file_size file) !absents in
     file.file_file.impl_file_downloaded <- current;

@@ -86,6 +86,7 @@ support the charge, at least, currently. *)
   let (name, port) = !!mlnet_redirector in
   Ip.async_ip name (fun ip ->
       try
+        lprintf "connecting to redirector\n";
         let sock = TcpBufferedSocket.connect "connect redirector"
             (Ip.to_inet_addr ip) port            
             (fun sock event ->
@@ -97,6 +98,7 @@ support the charge, at least, currently. *)
         TcpBufferedSocket.set_rtimeout sock 30.;
         let to_read = ref [] in
         set_reader sock (cut_messages (fun opcode s ->
+              lprintf "redirector info received\n";
               let module L = LittleEndian in
               
               let motd_html_s, pos = L.get_string16 s 2 in

@@ -208,7 +208,7 @@ DONKEY_SRCS= \
   donkey/donkeySupernode.ml \
   donkey/donkeyIndexer.ml \
   donkey/donkeyShare.ml \
-  donkey/donkeyTrust.ml \
+  donkey/donkeyReliability.ml \
   donkey/donkeyChunks.ml \
   donkey/donkeyOneFile.ml \
   donkey/donkeyStats.ml \

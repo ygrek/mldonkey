@@ -1,6 +1,26 @@
 ChangeLog	
 =========
 
+2003/03/18: Simon (v 2.04rc1-4)
+  - Applied patches #1271, #1272
+  - New experimental options 'buffer_writes', 'buffer_writes_delay' and
+       'buffer_writes_threshold' to buffer writes to decrease HD usage.
+  - Applied pango's patches:
+      * pango, don't forget that you should modify config/Makefile.in and
+         not only Makefile.
+      51_new_chunks_scheduling
+      62_wait_for_id_before_publishing
+      77_reliable_sources
+      80_file_received_file_downloaded
+
+2003/03/15: Simon
+  - New command 'calendar_add' to add a command to the calendar
+  - Remove dependency to Zlib in LimeWire/eDonkey
+
+2003/03/14: Simon
+  - Applied patch #1266
+  - Fixed Challenge, so that it does not depend on Ocaml version
+
 2003/03/13: Simon (v 2.04rc1-3)
   - Applied patch #1263, #1264
   - Fixed bug with allowed_commands option

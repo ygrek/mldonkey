@@ -991,10 +991,12 @@ let parse magic s =
         
     | 0xD4 -> (* 212 *)
         
-        let s = Autoconf.zlib_uncompress (String.sub s 1 (len-1)) in
-        let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
-        parse_emule_packet opcode (String.length s) s
-        
+        if Autoconf.has_zlib then
+          let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
+          parse_emule_packet opcode (String.length s) s
+        else
+          failwith "No Zlib to uncompress packet"
         (*
         lprintf "Compressed message decompressed with opcode %d" opcode; lprint_newline ();
         if !CommonOptions.verbose_unknown_messages then begin       

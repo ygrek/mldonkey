@@ -305,14 +305,13 @@ let client_new_file (client :client) (dirname:string) r =
     (client, dirname, (r : result)))
 
 module G = GuiTypes
-  
-let client_print c o =
+
+let client_print_html c o =
   let impl = as_client_impl c in
   let i = client_info c in
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-  if use_html_mods o then begin
       Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>"
@@ -322,6 +321,27 @@ let client_print c o =
         | Known_location (ip, port) -> Printf.sprintf "D"
       ) 
       info.G.client_name      
+
+let client_print c o =
+  let impl = as_client_impl c in
+  let i = client_info c in
+  let n = impl.impl_client_ops.op_client_network in
+  let info = client_info c in
+  let buf = o.conn_buf in
+  if use_html_mods o then begin
+      Printf.bprintf buf "\\<td class=sr\\>%d\\</td\\>
+      \\<td class=sr\\>%s\\</td\\>
+      \\<td class=sr\\>%s\\</td\\>
+      \\<td class=sr\\>%s\\</td\\>"
+        (client_num c)
+        n.network_name
+     	(try
+           match info.G.client_kind with
+             Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+           | Indirect_location _ -> Printf.sprintf "None"
+           with _ -> ""
+          )
+      info.G.client_name
     end
   else begin
       Printf.bprintf buf "[%s %-5d] %d %23s %-20s"

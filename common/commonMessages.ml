@@ -35,16 +35,11 @@ let message_file = Options.create_options_file message_file_name
 let message name t x = define_option message_file [name] "" t x
 let string name x = define_option message_file [name] "" string_option x
 
-  
-let html_header_mods2 = define_option message_file ["html_header_mods2"]
-  "The header used in the WEB interface (modify to add your CSS)"
+let html_css_mods2 = define_option message_file
+  ["html_css_mods2"]
+  "The css"
     string_option  
-
- "<title>MLdonkey: Web Interface</title>
-<style type=\"text/css\">
-<!--
-
-pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
+ "pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 body {
 font-family: Verdana, sans-serif;
@@ -116,8 +111,7 @@ a:hover { color: #000000; text-decoration: underline;}
 td.fbig { cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: #86BE86; border-top: #000 solid 1px; border-left: #000 solid 1px; }
 td.pr { border-right: #000 solid 1px; }
 
-td {font-size: 12px; font-face: verdana; }
-tr {font-size: 12px; font-face: verdana; }
+td, tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #555;  }
 td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
@@ -126,99 +120,20 @@ tr.dl-1 { background: #FFFFFF; }
 tr.dl-2 { background: #EEEEEE; }
 td.dl-1 { background: #FFFFFF; }
 td.dl-2 { background: #EEEEEE; }
-table.sources {
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.cs {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.servers {
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.upstats {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.messages {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.uploaders {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.friends {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.bw_stats {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-}
-table.vo {
+
+table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
+table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages, 
+table.sources, table.shares, table.vc {
     margin-right: auto;
     margin-left: auto;
-    border: 1;
+    border: 1; 
     border: #000 solid 1px;
-}
-table.downloaders {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.shares {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-table.scan_temp {
-	margin-right: auto;
-	margin-left: auto;
-	border: 1; 
-	border: #000 solid 1px;
-	border-collapse: collapse;
-}
-div.main {
-text-align: center;
-}
-table.main {
-margin-right: auto;
-margin-left: auto;
-}
-div.bw_stats { text-align: center; }
-div.friends { text-align: center; }
-div.cs { text-align: center; }
-div.uploaders { text-align: center; }
-div.upstats { text-align: center; }
-div.downloaders { text-align: center; }
-div.messages { text-align: center; }
-div.shares { text-align: center; }
+    border-collapse: collapse;
+}  
+table.main { margin-right: auto; margin-left: auto; }
+div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, 
+div.downloaders, div.messages, div.vc, div.bw_stats { text-align: center; }
+
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px; border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
 td.act { font-size: 10px; font-weight: 700; }
 td.br {border-right: #000 dotted 1px;}
@@ -227,9 +142,14 @@ td.al {text-align: left;}
 td.ac {text-align: center;}
 .chunk0 { background: #F33;}
 .chunk1 { background: #33F;}
+ "
 
--->
-</style>
+let html_header_mods2 = define_option message_file ["html_header_mods2"]
+  "The header used in the WEB interface (modify to add your CSS)"
+    string_option
+
+ "<title>MLdonkey: Web Interface</title>
+<link href=\"mld1.css\" rel=\"stylesheet\" type=\"text/css\">
 
 <script language=\"javascript\">
 <!--
@@ -237,19 +157,13 @@ function mOvr(src,clrOver)
         {
        src.style.cursor = 'pointer';
        src.style.backgroundColor = clrOver;
-        }
+}
 function mOut(src,clrIn)
 {
     src.style.cursor = 'default';
     src.style.backgroundColor = clrIn;
     src.bgColor = clrIn;
-        }
-function mStatus(Str)
-        {
-          window.status = Str;
-          return true;
-        }
-
+}
 function mSub(target,cmd)
 {
     if (target != \"\") {
@@ -340,7 +254,7 @@ function _cmdLine(){
 top.fstatus.document.open();
 top.fstatus.document.clear();
 top.fstatus.document.writeln(\"<html><head></head>\");
-top.fstatus.document.writeln(\"<body bgColor='#CBE5CB'><center><table width=100% border=0 cellspacing=0 cellpadding=0>\");
+top.fstatus.document.writeln(\"<body bgColor='#CBE5CB'><center><table width=99% border=0 cellspacing=0 cellpadding=0>\");
 top.fstatus.document.writeln(\" <form action=submit target=$O name=cmdFormular> \" );
 top.fstatus.document.writeln(\"<tr><td width=100% nowrap>\");
 top.fstatus.document.writeln(\" <input style='width: 99%; background: #E5FFE5; height: 20px; font-size: 12px;\'\"); 
@@ -366,14 +280,11 @@ document.cmdFormular.submit();
 </script>
 "
 
-let download_html_header_mods2 = define_option message_file
-  ["download_html_header_mods2"]
-  "The header used in the WEB interface for downloads (modify to add your CSS)"
+let download_html_css_mods2 = define_option message_file
+  ["download_html_css_mods2"]
+  "The small CSS)"
     string_option  
 "
-<title>MLDonkey: Web Interface</title>
-<style type=\"text/css\">
-<!--
 body{background-color:#B2CCB2;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
 td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px;}
 table.downloaders {
@@ -382,13 +293,8 @@ table.downloaders {
 	border: 1; 
 	border: #000 solid 1px;
 }
-div.main {
-text-align: center;
-}
-table.main {
-margin-right: auto;
-margin-left: auto;
-}
+div.main { text-align: center; }
+table.main { margin-right: auto; margin-left: auto; }
 td.loaded{padding-top: 0px; padding-bottom: 0px; background-color:#72AA72; font-size:1px; line-height: 2px;}
 td.remain{padding-top: 0px; padding-bottom: 0px; background-color:#EEE; font-size:1px; line-height: 2px;}
 td.downloaded{font-family: Verdana; font-weight: 500; font-size: 12px; color: #000;}
@@ -396,11 +302,8 @@ td.dl { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left
 td.dlheader {cursor: pointer; color: #000000; font-family: Verdana, serif; font-size: 10px; 
 border-bottom: solid 1px; background: #90C890; padding-left: 3px;
 padding-right: 3px;}
-
 input.checkbox { background: #90C890; vertical-align: middle; height: 10px; width: 10px; }
-
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
-
 table { cellspacing: 0; cellpadding: 0; }
 .commands { border: #000 solid 3px; }
 td.ar {text-align: right;}
@@ -410,7 +313,6 @@ td.big { border-top: #000 solid 1px; border-left: #000 solid 1px; }
 td.pr { border-right: #000 solid 1px; }
 
 .bigbutton {
-
 	font-family: Verdana, serif;
 	font-size: 10px;
 	background: #CBE5CB; 
@@ -419,13 +321,13 @@ td.pr { border-right: #000 solid 1px; }
 }
 
 .headbutton {
-		width: 100%; 
-		font-family: Verdana, serif; 
-		font-size: 10px; 
-		border: #90C890 solid 1px; 
-		background: #90C890; 
-		padding-left: 5px; 
-		padding-right: 5px;
+	width: 100%; 
+	font-family: Verdana, serif; 
+	font-size: 10px; 
+	border: #90C890 solid 1px; 
+	background: #90C890; 
+	padding-left: 5px; 
+	padding-right: 5px;
 	cursor: pointer;
 }
 
@@ -440,9 +342,15 @@ a:hover { color: #000000; text-decoration: underline;}
 
 a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
 .extern:hover { color: #000000; }
--->
-</style>
-<script>                  
+  "
+
+let download_html_header_mods2 = define_option message_file
+  ["download_html_header_mods2"]
+  "The header used in the WEB interface for downloads (modify to add your CSS)"
+    string_option
+  "
+<title>MLDonkey: Web Interface</title>
+<link href=\"mld2.css\" rel=\"stylesheet\" type=\"text/css\">
 <!--
 function ovlink(){
 var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
@@ -478,84 +386,92 @@ let web_common_header_mods2 = define_option message_file
 "
 <table width=100% border=0 cellspacing=0 cellpadding=0>
 <tr><td>
-<table style=\"border: #000 solid 1px; border-top: #E5FFE5 solid 1px; border-left: #E5FFE5 solid 1px\" class=\"topcommands\" cellspacing=0 cellpadding=0><tr>
+<table width=100% style=\"border: #000 solid 1px; border-top: #E5FFE5 solid 1px; border-left: #E5FFE5 solid 1px\" class=\"topcommands\" cellspacing=0 cellpadding=0><tr>
 <td 
-title=\"Help!\"
+title=\"Client statistics in a table\"
 class=\"bu bsmall b1\"
-onMouseOver=\"mOvr(this,'#FF0066');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','help')\">Help!
-</td>
-<td 
-title=\"MLDonkey homepage\"
-class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage
-</td>
-<td 
-title=\"English/German support forums\"
-class=\"bu bsmall1 b2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
-</td>
-<td 
-title=\"Options\"
-class=\"bu bsmall2 b2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vo')\">Options
+onClick=\"mSub('$O','cs')\">Stats tbl
 </td>
 <td 
 title=\"Memory statistics\"
-class=\"bu bsmall2 b2\"
+class=\"bu bsmall b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','mem_stats')\">Mem
 </td>
 <td 
 title=\"Client statistics\"
-class=\"bu bsmall2 b2\"
+class=\"bu bsmall b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','client_stats')\">Client stats
 </td>
 <td 
-title=\"Load OverNet peers\"
-class=\"bu bsmall3 b2\"
+title=\"Options\"
+class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','ovweb')\">Load ONet peers
+onClick=\"mSub('$O','vo')\">Options
+</td>
+<td 
+title=\"Friends\"
+class=\"bu bsmall2 b2\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','friends')\">Friends
+</td>
+<td 
+title=\"MLDonkey homepage\"
+class=\"bu bsmall2 b2\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage
 </td>
 <td 
 title=\"Kill/Close the MLdonkey core\"
 class=\"bu bsmall3 b2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOver=\"mOvr(this,'#F00066');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','kill')\">Kill core
 </td>
-<tr>
 <td 
-title=\"Show current version\"
+title=\"Help!\"
+class=\"bu bsmall3 b2\"
+onMouseOver=\"mOvr(this,'#00F066');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','help')\">Help!
+</td>
+<tr>
+<!-- Row -->
+<td 
+title=\"Bandwidth stats (10 second refresh)\"
 class=\"bu bsmall b3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','version')\">Version
+onClick=\"mSub('$S','bw_stats')\">Bw stats
 </td>
 <td 
-title=\"View the CVS changeLog\"
+title=\"View sources statistics\"
+class=\"bu bsmall b4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','sources')\">Srcs
+</td>
+<td 
+title=\"Overnet statistics\"
+class=\"bu bsmall b4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','ovstats')\">Overnet stats
+</td>
+<td 
+title=\"Load OverNet peers\"
 class=\"bu bsmall1 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog
-</td>
-<td 
-title=\"Friends\"
-class=\"bu bsmall1 b4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','friends')\">Friends
+onClick=\"mSub('$S','ovweb')\">Load ONet peers
 </td>
 <td 
 title=\"Message window (20 second refresh)\"
@@ -565,32 +481,25 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','message')\">Messages
 </td>
 <td 
-title=\"View sources statistics\"
+title=\"English/German support forums\"
 class=\"bu bsmall2 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','sources')\">Srcs
+onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
 </td>
 <td 
-title=\"Client statistics in a table\"
-class=\"bu bsmall2 b4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','cs')\">Stats tbl
-</td>
-<td 
-title=\"Overnet statistics\"
+title=\"View the CVS changeLog\"
 class=\"bu bsmall3 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','ovstats')\">Overnet stats
+onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog
 </td>
 <td 
-title=\"Bandwidth stats (10 second refresh)\"
+title=\"Show current version\"
 class=\"bu bsmall3 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','bw_stats')\">Bw stats
+onClick=\"mSub('$S','version')\">Version
 </td>
 </tr>
 </table>
@@ -622,7 +531,7 @@ onClick=\"mSub('$S','bw_stats')\">Bw stats
 	font-size: 10px;
 	height: 18px;
 	width: 15px;
-	\" onclick=\"_cmdLine();\" type=\"button\" value=\"!\">
+	\" onclick=\"_cmdLine();\" type=\"button\" value=\">\">
 </td>
 </form>
 
@@ -635,96 +544,109 @@ onClick=\"mSub('$S','bw_stats')\">Bw stats
 
 <table style=\"border: #000 solid 1px\" class=\"commands\" width=100% cellspacing=0 cellpadding=0><tr>
 <td 
+title=\"Upload statistics\"
+class=\"bu bbig bb2\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','upstats')\">Uls
+</td>
+<td 
+title=\"View current uploaders\"
+class=\"bu bbig bb\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','uploaders')\">Ulers
+</td>
+<td 
+title=\"Custom search\"
+class=\"bu bbig bbig2 bb2\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$S','view_custom_queries')\">Custom search
+</td>
+<td 
+title=\"Extend search to more servers\"
+class=\"bu bbig bbig2 bb\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$S','xs')\">Extend search
+</td>
+<td 
 title=\"List connected servers\"
-class=\"bu bbig\"
+class=\"bu bbig bbig2 bb2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','vm')\">Connected servers
 </td>
 <td 
 title=\"Connect to more servers\"
-class=\"bu bbig\"
+class=\"bu bbig bbig2 bb\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','c')\">Connect more servers
 </td>
 <td 
-title=\"Custom search\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','view_custom_queries')\">Custom search
-</td>
-<td 
-title=\"View searches\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vs')\">View searches
-</td>
-<td 
 title=\"Recover files from temp directory\"
-class=\"bu bbig bbig3\"
+class=\"bu bbig bbig3 bb2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','recover_temp')\">Recover temp
 </td>
 <td 
 title=\"Commit downloaded files to incoming directory\"
-class=\"bu bbig bbig3\"
+class=\"bu bbig bbig3 bb\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','commit')\">Commit</td>
-<td 
-title=\"View current uploaders\"
-class=\"bu bbig bbig3\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','uploaders')\">Ulers
-</td>
-<td 
-title=\"Upload statistics\"
-class=\"bu bbig bbig3 bb2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','upstats')\">Uls
+onClick=\"mSub('$S','commit')\">Commit
 </td>
 </tr>
-
 <!-- Row -->
-
 <tr>
 <td 
-title=\"View the list of all servers\"
+title=\"View current downloads\"
+class=\"bu bbig bb3\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','vd')\">Dls
+</td>
+<td 
+title=\"View current downloaders\"
 class=\"bu bbig bb4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','downloaders')\">Dlers
+</td>
+<td 
+title=\"View search results\"
+class=\"bu bbig bbig2 bb3\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','vr')\">Search results
+</td>
+<td 
+title=\"View searches\"
+class=\"bu bbig bbig2 bb4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','vs')\">View searches
+</td>
+<td 
+title=\"View the list of all servers\"
+class=\"bu bbig bbig2 bb3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','vma')\">View all servers
 </td>
 <td 
 title=\"Remove old servers\"
-class=\"bu bbig bb4\"
+class=\"bu bbig bbig2 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','remove_old_servers')\">Remove old Servers
 </td>
 <td 
-title=\"Extend search to more servers\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','xs')\">Extend search
-</td>
-<td 
-title=\"View search results\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vr')\">Search results
-</td>
-<td 
 title=\"Scan temp directory for files\"
-class=\"bu bbig bbig3 bb4\"
+class=\"bu bbig bbig3 bb3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','scan_temp')\">Scan temp
@@ -736,20 +658,6 @@ onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','reshare')\">Reshare
 </td>
-<td 
-title=\"View current downloaders\"
-class=\"bu bbig bbig3 bb4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','downloaders')\">Dlers
-</td>
-<td 
-title=\"View current downloads\"
-class=\"bu bbig bbig3 bb3\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vd')\">Dls
-</td>
 </tr>
 </table>
 
@@ -757,20 +665,24 @@ onClick=\"mSub('$O','vd')\">Dls
 </tr></table>
 "
 
-let html_header_old = define_option message_file ["html_header_old"]
-  "The header used in the WEB interface (modify to add your CSS)"
+let html_css_old = define_option message_file
+  ["html_css_old"]
+  "The old css"
     string_option  
-  "<title>MLDonkey: Web Interface</title>
-<style type=\"text/css\">
-<!--
+  "
 body,th,td { background-color:#EAE8CF;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 12px; }
 a { text-decoration: none; }
 a:hover { text-decoration: underline; color: #660000; }
 a:link,a:active,a:visited { color: #660000; }
 a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; } 
--->
-</style>
+  "
+
+let html_header_old = define_option message_file ["html_header_old"]
+  "The header used in the WEB interface (modify to add your CSS)"
+    string_option  
+  "<title>MLDonkey: Web Interface</title>
+<link href=\"mld1.css\" rel=\"stylesheet\" type=\"text/css\">
 <script>
 <!--
 function CheckInput(){
@@ -791,13 +703,11 @@ return true;
 
     "
   
-let download_html_header_old = define_option message_file ["download_html_header_old"]
-  "The header used in the WEB interface for downloads (modify to add your CSS)"
+let download_html_css_old = define_option message_file
+  ["download_html_css_old"]
+  "The small CSS)"
     string_option  
   "
-<title>MLdonkey: Web Interface</title>
-<style type=\"text/css\">
-<!--
 body { background-color: #EAE8CF; color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; margin: 2; }
 td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; }
 
@@ -810,8 +720,15 @@ a:hover { color: #000000; text-decoration: underline;}
 
 a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
--->
-</style>
+  "
+  
+let download_html_header_old = define_option message_file ["download_html_header_old"]
+  "The header used in the WEB interface for downloads (modify to add your CSS)"
+    string_option  
+  "
+<title>MLdonkey: Web Interface</title>
+<link href=\"mld2.css\" rel=\"stylesheet\" type=\"text/css\">
+
 <script>
 <!--
 function ovlink(){

@@ -168,7 +168,7 @@ let client_to_server s t sock =
       if not (Ip.valid t) && !!force_high_id then
 	disconnect_server s
       else begin
-	s.server_cid <- t;
+	s.server_cid <- Some t;
 	set_rtimeout sock !!connected_server_timeout; 
 (* force deconnection after one hour if nothing  appends *)
 	set_server_state s Connected_initiating;
@@ -352,39 +352,39 @@ let connect_server s =
       match s.server_sock with
         Some _ -> printf_string "[e0]"
       | _ ->
-          
+
 (*                lprintf "CONNECTING ONE SERVER"; lprint_newline (); *)
-      connection_try s.server_connection_control;
-      incr nservers;
-      printf_char 's'; 
-      let sock = TcpBufferedSocket.connect 
-          "donkey to server"
-        (
-          Ip.to_inet_addr s.server_ip) s.server_port 
-          (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
-          s.server_cid <- client_ip (Some sock);
-      set_server_state s Connecting;
-      set_read_controler sock download_control;
-      set_write_controler sock upload_control;
-      
-      set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
-          (client_to_server s));
-      set_rtimeout sock !!server_connection_timeout;
-      
+          connection_try s.server_connection_control;
+          incr nservers;
+          printf_char 's'; 
+          let sock = TcpBufferedSocket.connect 
+              "donkey to server"
+              (
+              Ip.to_inet_addr s.server_ip) s.server_port 
+              (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
+          s.server_cid <- None (*client_ip (Some sock) *);
+          set_server_state s Connecting;
+          set_read_controler sock download_control;
+          set_write_controler sock upload_control;
+          
+          set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
+              (client_to_server s));
+          set_rtimeout sock !!server_connection_timeout;
+          
           Fifo.clear s.server_id_requests;
-      s.server_waiting_queries <- [];
-      s.server_queries_credit <- 0;
-      s.server_sock <- Some sock;
-      direct_server_send sock (
-        let module M = DonkeyProtoServer in
-        let module C = M.Connect in
-        M.ConnectReq {
-          C.md4 = !!client_md4;
-          C.ip = client_ip (Some sock);
-          C.port = !client_port;
-          C.tags = !client_tags;
-        }
-      );
+          s.server_waiting_queries <- [];
+          s.server_queries_credit <- 0;
+          s.server_sock <- Some sock;
+          direct_server_send sock (
+            let module M = DonkeyProtoServer in
+            let module C = M.Connect in
+            M.ConnectReq {
+              C.md4 = !!client_md4;
+              C.ip = client_ip (Some sock);
+              C.port = !client_port;
+              C.tags = !client_tags;
+            }
+          );
     with _ -> 
 (*
       lprintf "%s:%d IMMEDIAT DISCONNECT "
@@ -392,7 +392,7 @@ let connect_server s =
 *)
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         disconnect_server s
-
+        
 let print_empty_list = ref true
         
 let rec connect_one_server () =
@@ -544,7 +544,7 @@ let update_master_servers _ =
     ) (connected_servers ()) in
   List.iter (fun s ->
       incr nconnected_servers;
-      if not s.server_master then
+      if not s.server_master && s.server_cid <> None then
         if !nmasters <  max_allowed_connected_servers () &&
           s.server_nusers >= !!master_server_min_users
         then begin

@@ -29,7 +29,7 @@ Before 2.04 :)
   * Remove "a la mldonkey" source propagation
   * have a look at reliable_sources
 * Add a "log_file" option or argument.
-
+* Check the NaS problem in client_name
 
 Core:
 =====
