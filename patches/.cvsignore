@@ -1,3 +1,5 @@
 ocamlopt-*
 local
 build
+lablgtk-1.2.?.tar.gz
+ocaml-?.??.tar.gz

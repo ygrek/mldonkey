@@ -74,11 +74,9 @@ let enable () =
   BTClients.recover_files ();  
   add_session_timer enabler 60.0 (fun timer ->
       BTClients.recover_files ();
-				 );
-  
-  add_session_timer enabler 120.0 (fun timer ->
 	BTClients.send_pings ();
 				  );
+  
   
   add_session_timer enabler 10.0 (fun timer ->
       BTClients.recompute_uploaders());

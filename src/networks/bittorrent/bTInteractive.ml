@@ -72,11 +72,13 @@ let _ =
   file_ops.op_file_commit <- (fun file new_name ->
       try
         if file.file_files <> [] then 
-          let old_file = new_name ^ ".torrent" in
-          Sys.rename new_name old_file;
-          let old_fd = Unix32.create_ro old_file in
+	  let base_dir_name = if String2.check_suffix new_name ".torrent" then
+            String.sub new_name 0 ((String.length new_name) - 8)
+	  else 
+            new_name ^ ".d" in
+          let bt_fd = Unix32.create_ro new_name in
           List.iter (fun (filename, begin_pos, end_pos) ->
-              let filename = Filename.concat new_name filename in
+              let filename = Filename.concat base_dir_name filename in
               lprintf "Would save file as %s\n" filename;
               let dirname = Filename.dirname filename in
               Unix2.safe_mkdir dirname;
@@ -84,11 +86,11 @@ let _ =
                 begin_pos (end_pos -- begin_pos);
               let fd = Unix32.create
                   filename [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
-              Unix32.copy_chunk old_fd fd begin_pos zero (end_pos -- begin_pos);
+              Unix32.copy_chunk bt_fd fd begin_pos zero (end_pos -- begin_pos);
               Unix32.close fd
           ) file.file_files;
-          Unix32.close old_fd;
-          if !!delete_original then Sys.remove old_file
+          Unix32.close bt_fd;
+          if !!delete_original then Sys.remove new_name
       with e ->
           lprintf "Exception %s while commiting BitTorrent file"
             (Printexc.to_string e)
@@ -242,6 +244,9 @@ let load_torrent_file filename =
         Sha1.direct_of_string s
     ) in
   
+  if !file_files <> [] && not (String2.check_suffix !file_name ".torrent") then
+    file_name := !file_name ^ ".torrent";
+
   let file = new_file file_id !file_name !length 
       !announce !file_piece_size
   in

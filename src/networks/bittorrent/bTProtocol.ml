@@ -307,6 +307,9 @@ dump (String.sub b.buf b.pos b.len);
 (*              lprintf "Parsed, calling handler\n"; *)
                   handler sock p
                 with Not_found -> ()
+            else
+              (*received a ping*)
+              set_lifetime sock 100.
           end
         else raise Not_found
       done

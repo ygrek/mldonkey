@@ -155,6 +155,11 @@ let check_prefix s prefix =
   let len = String.length s in
   let plen = String.length prefix in
   len >= plen  && String.sub s 0 plen = prefix
+
+let check_suffix s suffix =
+  let len = String.length s in
+  let slen = String.length suffix in
+  len >= slen && String.sub s (len - slen) slen = suffix
   
 let upp_initial s =
   if String.length s > 0 then

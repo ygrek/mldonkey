@@ -344,6 +344,20 @@ value ml_setsock_iptos_throughput(value sock_v)
 /*******************************************************************
 
 
+                         ml_sizeofoff_t
+
+
+*******************************************************************/
+
+
+value ml_sizeofoff_t(value unit)
+{
+  return Val_int(sizeof(off_t));
+}
+
+/*******************************************************************
+
+
                          ml_getsize64
 
 
@@ -368,7 +382,7 @@ value ml_getsize64(value path)
 #define ZEROS_LEN 1024
 value mld_ftruncate_64(value fd_v, value len_v)
 {
-  unsigned long len = Int64_val(len_v);
+  off_t len = Int64_val(len_v);
   OS_FD fd = Fd_val(fd_v);  
 
   os_ftruncate(fd, len);
@@ -473,8 +487,8 @@ unsigned char hash_buffer[HASH_BUFFER_LEN];
 value HASH_NAME##_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v) \
 { \
   OS_FD fd = Fd_val(fd_v); \
-  long pos = Int64_val(pos_v); \
-  long len = Int64_val(len_v); \
+  off_t pos = Int64_val(pos_v); \
+  off_t len = Int64_val(len_v); \
   unsigned char *digest = String_val(digest_v); \
   HASH_CONTEXT context; \
   int nread; \
@@ -597,8 +611,8 @@ static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *dige
 value tigertree_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   OS_FD fd = Fd_val(fd_v);
-  long pos = Int64_val(pos_v);
-  long len = Int64_val(len_v);
+  off_t pos = Int64_val(pos_v);
+  off_t len = Int64_val(len_v);
   unsigned char *digest = String_val(digest_v);
 /*  int nread; */
 

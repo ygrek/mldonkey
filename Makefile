@@ -340,6 +340,7 @@ GNUTELLA_SRCS= \
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
+  $(SRC_BITTORRENT)/bTRate.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
   $(SRC_BITTORRENT)/bTOptions.ml \
   $(SRC_BITTORRENT)/bTProtocol.ml \

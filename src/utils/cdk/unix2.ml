@@ -118,3 +118,4 @@ external c_getsize64 : string -> int64 = "ml_getsize64"
 external c_ftruncate64 : Unix.file_descr -> int64 -> unit =
   "mld_ftruncate_64"
 external c_getdtablesize : unit -> int = "ml_getdtablesize"
+external c_sizeofoff_t : unit -> int = "ml_sizeofoff_t"

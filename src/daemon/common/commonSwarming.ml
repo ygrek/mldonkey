@@ -96,6 +96,7 @@ module type Swarmer = sig
     val partition_size : partition -> int
     val debug_print : Buffer.t -> t -> unit
     val compute_bitmap : partition -> unit
+    val is_interesting : partition -> string -> bool
   end
   
 module Make(Integer: Integer) = struct
@@ -1029,6 +1030,31 @@ start at the beginning of the range. *)
       Printf.bprintf buf "  \n";
       debug_partitions buf t.t_partitions;
       Printf.bprintf buf "END\n"
+
+    (*return true if s is interesting for p1
+    NB: works when s is a mask of 0s(absent bloc) and 1s(present bloc) 
+    p1 can be a string 0(absent) 1(partial) 2(present unverified) or 
+      3(present verified)
+                        s : 00001111
+                       p1 : 01230123
+           is_interesting : 00001110
+    *)
+    let is_interesting p1 s = 
+      let s1 = p1.part_bitmap in
+	  let length = min (String.length s1) (String.length s) in
+	  let rec is_interest_aux p1 p2 i len =
+	    if i = len then
+	      false
+	    else
+	      if 
+		(
+		  (int_of_char p1.[i]  < int_of_char '3')
+		  && 
+		  (int_of_char p2.[i] = int_of_char '1')
+		)
+	      then true
+	      else is_interest_aux p1 p2 (i+1) len in
+	    is_interest_aux s1 s 0 length
       
   end
   

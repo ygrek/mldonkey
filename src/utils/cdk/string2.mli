@@ -62,6 +62,9 @@ The first [c] of [s] is not contained in the two substrings.
 val check_prefix : string -> string -> bool
 (*d [check_prefix s prefix] checks whether [prefix] is a prefix of [s]. *)
   
+val check_suffix : string -> string -> bool
+(*d [check_suffix s suffix] checks whether [suffix] is a suffix of [s]. *)
+  
 val upp_initial : string -> string
 (*d [upp_initial s] returns a copy of [s] with uppercase first character. *)
   

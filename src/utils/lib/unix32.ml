@@ -386,6 +386,13 @@ let modified_files = ref []
 
 let _ =
   lprintf "Your system supports %d file descriptors" fds_size;
+  lprint_newline ();
+  lprintf "You can download files up to %s\n" 
+    ( match Unix2.c_sizeofoff_t () with 
+	|  4 -> "2GB"
+	|  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" 
+	     ((Unix2.c_sizeofoff_t () *8)-1)			
+    );
   lprint_newline () 
 
 (* at most 50 files can be opened simultaneously *)
@@ -586,7 +593,7 @@ let copy_chunk t1 t2 pos1 pos2 len =
   let rec iter file_in file_out len =
     if len > 0 then
       let can_read = mini buffer_len len in
-      let nread = Unix.read file_in buffer 0 buffer_len in
+      let nread = Unix.read file_in buffer 0 can_read in
 (*      lprintf "Unix2.really_write %d\n" nread; *)
       Unix2.really_write file_out buffer 0 nread;
       iter file_in file_out (len-nread)

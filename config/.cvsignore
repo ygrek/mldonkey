@@ -7,3 +7,5 @@ Makefile.config
 config.log
 wget
 Makefile.config.i?86
+confdefs.h
+autom4te.cache

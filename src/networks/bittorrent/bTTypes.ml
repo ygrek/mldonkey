@@ -22,6 +22,7 @@ open Md4
 
 open CommonTypes
 open CommonSwarming
+open BTRate
 
 type client = {
     client_client : client CommonClient.client_impl;
@@ -43,13 +44,17 @@ type client = {
     mutable client_upload_requests : (int * int64 * int64) list;
     mutable client_allowed_to_write : int64;
     
-    mutable client_downloaded_rate : int64;
+    mutable client_downloaded_rate :  Rate.t;
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
     mutable client_optimist_time : int;
     
     mutable client_blocks_sent : Int64Swarmer.block list;
     mutable client_good : bool;
+    mutable client_num_try : int;
+    mutable client_alrd_sent_interested : bool;
+    mutable client_alrd_sent_notinterested : bool;
+    mutable client_interesting : bool;
   }
 
 and file = {

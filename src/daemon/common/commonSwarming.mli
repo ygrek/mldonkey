@@ -74,6 +74,7 @@ module type Integer = sig
       val partition_size : partition -> int
       val debug_print : Buffer.t -> t -> unit
       val compute_bitmap : partition -> unit
+      val is_interesting : partition -> string -> bool	
   end
   
 module Make(I: Integer) : Swarmer with type pos = I.t
