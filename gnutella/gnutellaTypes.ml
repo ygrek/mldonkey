@@ -106,5 +106,3 @@ and download = {
     mutable download_ranges : Int64Swarmer.range list;
     mutable download_block : Int64Swarmer.block option;
   }
-
-  
