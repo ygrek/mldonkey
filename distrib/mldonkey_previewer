@@ -3,7 +3,7 @@
 echo Local File is "$1"
 echo Pseudo file name is "$2"
 
-MOVIE_PLAYER=mplayer
+MOVIE_PLAYER='mplayer -vo sdl'
 
 case "$2" in
     *.avi | *.mpg | *.mpeg | *.divx  | *.AVI | *.MPG | *.MPEG | *.DIVX)

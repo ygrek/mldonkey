@@ -1,14 +1,19 @@
 ChangeLog	
 =========
 
-2002/12/18: Simon
+2002/12/18: Simon (tag release-2-01-2)
+  - Overnet: Applied Norbert Lataille's patch 3.0
+
+2002/12/18: Simon (tag release-2-01-2)
   - MinGW port: should compile and seems to run. Not yet tested enough.
-  - DonkeyServers: better way to choose the master servers: if a new
+  - DonkeyServers: 
+    * Better way to choose the master servers: if a new
       server has 5 times more users or at least 1000 more users than a master
       server, it replaces the master server.
+    * Don't remove old servers if we are connected to them !
 
 2002/12/17: Simon
-  - Prevent downloading the entire file list at every connection
+  - Prevent downloading the entire file list at every connection to a friend
   - Added Ip.reachable to remove local network addresses
   - Started port to native Windows via MinGW
 

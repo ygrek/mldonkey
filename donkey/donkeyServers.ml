@@ -446,7 +446,7 @@ position to the min_left_servers position.
   
   for i = Array.length array - 1 downto !!min_left_servers do
     let ls, s = array.(i) in
-    if ls < min_last_conn then begin
+    if ls < min_last_conn && s.server_sock = None then begin
         if !!verbose then begin
             Printf.printf "Server too old: %s:%d" 
               (Ip.to_string s.server_ip) s.server_port;

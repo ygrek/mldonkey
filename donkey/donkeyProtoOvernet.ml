@@ -505,19 +505,20 @@ let udp_handler f sock event =
             let len = String.length pbuf in
             if len < 2 || 
               int_of_char pbuf.[0] <> 227 then 
-	      begin
+              begin
                 Printf.printf "Received unknown UDP packet"; print_newline ();
                 dump pbuf;
               end 
-	    else 
-	      begin
+            else 
+              begin
                 let t = parse (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
 (*              M.print t; *)
                 f t p
               end
           with e ->
-              Printf.printf "Error %s in udp_handler"
-                (Printexc2.to_string e); print_newline () 
+              Printf.printf "Error %s in udp_handler, dump of packet:\n" (Printexc.to_string e); 
+              dump p.UdpSocket.content;
+              print_newline ()	    
       );
   | _ -> ()
       
