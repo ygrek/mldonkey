@@ -416,3 +416,18 @@ let create_source new_score source_age addr =
           lprintf "Source %d added" s.source_num; lprint_newline ();
         end;
       s
+
+
+let ask_indirect_connection_by_udp ip port id =
+  let client_ip = client_ip None in
+  if Ip.reachable client_ip then
+    let module Q = DonkeyProtoUdp.QueryCallUdp in
+      
+    DonkeyProtoCom.udp_send (get_udp_sock ())
+    ip (port+4)
+    (DonkeyProtoUdp.QueryCallUdpReq {
+        Q.ip = client_ip;
+        Q.port = !client_port;
+        Q.id = id;
+      })
+  

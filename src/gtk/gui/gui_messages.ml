@@ -26,7 +26,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat CommonOptions.home_basedir ".mldonkey_gui_messages.ini"
+      Filename.concat CommonOptions.config_dir "gui_messages.ini"
 
       (*
 let _ =

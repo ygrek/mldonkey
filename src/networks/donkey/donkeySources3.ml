@@ -963,17 +963,7 @@ let check_sources reconnect_client =
                   M.QueryIDReq id
                 );
           with _ ->
-              
-              let module Q = DonkeyProtoUdp.QueryCallUdp in
-              
-              
-              DonkeyProtoCom.udp_send (get_udp_sock ())
-              ip (port+4)
-              (DonkeyProtoUdp.QueryCallUdpReq {
-                  Q.ip = client_ip None;
-                  Q.port = !client_port;
-                  Q.id = id;
-                })
+              ask_indirect_connection_by_udp ip port id
         else raise Not_found
       done;
     with _ -> ());

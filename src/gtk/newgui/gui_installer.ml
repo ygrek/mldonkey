@@ -36,8 +36,6 @@ that should also be loaded at startup by mldonkey.
 
   
   
-let home_dir = (try Sys.getenv "HOME" with _ -> ".")
-
 let _ = Unix2.safe_mkdir config_dir
 let installer_name = Filename.concat config_dir "installer.ini"
   

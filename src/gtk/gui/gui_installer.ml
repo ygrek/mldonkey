@@ -38,7 +38,14 @@ that should also be loaded at startup by mldonkey.
   
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
   
-let installer_name = Filename.concat home_dir ".mldonkey_installer.ini"
+let config_dir_basename =
+  if Autoconf.windows then "mldonkey" else ".mldonkey"
+  
+let config_dir = Filename.concat home_dir config_dir_basename
+  
+let _ = Unix2.safe_mkdir config_dir
+  
+let installer_name = Filename.concat config_dir "installer.ini"
   
 let installer_ini = create_options_file installer_name
   

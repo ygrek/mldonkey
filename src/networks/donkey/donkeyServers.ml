@@ -297,7 +297,7 @@ connection from another client. In this case, we should immediatly connect.
           DonkeyUdp.search_handler search t
         with Already_done -> iter ()
       in
-      iter ()          
+      iter ()
     
   | M.Mldonkey_NotificationReq (num, t) ->
       let s = search_find num in

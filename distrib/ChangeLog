@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/12/02: Fabrice
+  * gui_messages.ini.dutch added
+  * Suppressed UDP frames sent by a firewalled client, causing it to be
+      black-listed.
+
 2003/12/01: Fabrice
   * Applied patch #2390
   * Added Autoconf.windows boolean

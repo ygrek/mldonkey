@@ -31,6 +31,8 @@ open Options
 module M = Gui_messages
 module C = Gui_columns
 
+let _ = Unix2.safe_mkdir CommonOptions.config_dir
+  
 let mldonkey_gui_ini = create_options_file 
     (Filename.concat CommonOptions.config_dir "mldonkey_gui.ini")
   

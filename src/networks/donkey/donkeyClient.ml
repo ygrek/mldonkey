@@ -1332,15 +1332,8 @@ end else *)
                 ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
               else
                 begin
-                  let module C = Udp.QueryCallUdp in
-                  DonkeyProtoCom.udp_send (get_udp_sock ())
-                  s.Q.server_ip (s.Q.server_port+4)
-                  (Udp.QueryCallUdpReq {
-                      C.ip = client_ip None;
-                      C.port = !client_port;
-                      C.id = s.Q.ip;
-                    })
-                
+                  DonkeySourcesMisc.ask_indirect_connection_by_udp
+                    s.Q.server_ip s.Q.server_port s.Q.ip                
                 end
           ) t.Q.sources
         with _ -> ()
@@ -1907,6 +1900,8 @@ But if we receive them, take them !
         else
         match s.server_sock with
           None ->
+            DonkeySourcesMisc.ask_indirect_connection_by_udp s.server_ip s.server_port ip
+            (*
             let module Q = Udp.QueryCallUdp in
             udp_server_send s 
               (Udp.QueryCallUdpReq {
@@ -1914,7 +1909,7 @@ But if we receive them, take them !
                 Q.port = !client_port;
                 Q.id = ip;
               })
-        
+        *)
         | Some sock ->
             printf_string "QUERY ID";
             query_id s sock ip (Some file)
