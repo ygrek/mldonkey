@@ -212,7 +212,8 @@ if test "$BUILD_OCAML" = "yes"; then
 
 #  http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
 
-        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
+#        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
+        $WGET  http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
 
