@@ -71,6 +71,8 @@ let tcp_handler t sock event =
   match event with
   | CAN_READ 
   | CAN_WRITE ->
+    begin
+    try
       let s,id = Unix.accept (fd sock) in
       if !verbose_bandwidth > 1 then lprintf "[BW2 %6d] accept on %s\n" (last_time ()) t.name;
       (match t.accept_control with
@@ -78,6 +80,10 @@ let tcp_handler t sock event =
             cc.nconnections_last_second <- cc.nconnections_last_second + 1);
       incr nconnections_last_second;
       t.event_handler t (CONNECTION (s,id))
+    with e->
+      lprintf "Exception tcp_handler: %s\n" (Printexc2.to_string e);
+      raise e
+    end
   | _ -> t.event_handler t (BASIC_EVENT event)
       
 let dummy_sock = Obj.magic 0  

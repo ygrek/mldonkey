@@ -116,6 +116,8 @@ val string_of_reason : close_reason -> string
   
 val loop_delay : float ref
 
+val socket_keepalive : bool ref
+
 (*
 0 : not verbose
 1 : summary every second

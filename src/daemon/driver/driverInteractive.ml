@@ -34,6 +34,7 @@ open CommonTypes
 open CommonGlobals
 open CommonOptions
 open CommonTypes
+open Int64ops
 
    
 (* ripped from gui_downloads *)
@@ -277,6 +278,9 @@ let print_table_html_mods buf lines =
   let counter = ref 0 in
   
   List.iter (fun line ->
+    match line with 
+      [||] -> ()
+    | _ -> begin
       if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=dl-1"
       else Printf.bprintf buf "\\<tr class=dl-2";
       incr counter;
@@ -285,6 +289,7 @@ let print_table_html_mods buf lines =
           Printf.bprintf buf "%s" data;
       ) line;
       Html.end_tr buf;
+    end
   ) lines;
   Html.end_table buf;
   Html.end_td buf;
@@ -584,6 +589,13 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 
   print_table_html_mods buf 
     (List.map (fun file ->
+      if not 
+        (match file.file_state with
+          | FilePaused -> !!html_mods_vd_paused
+          | FileQueued -> !!html_mods_vd_queued
+          | _ -> true)
+      then [||]
+      else
         [|
           (if downloading file then
               Printf.sprintf "
@@ -802,11 +814,18 @@ let simple_print_file_list finished buf files format =
                       file.file_download_rate /. 1024.), "$b"
             in
             [|
-              (Printf.sprintf "%0s[%0s%4d]%0s"
+              (Printf.sprintf "%0s[%0s]%0s"
                   (if !!term_ansi then (color)
                   else "")
+                  (if format.conn_output = HTML then 
+                   (Printf.sprintf "\\<a href=\\\"submit\\?q\\=vd\\+%d\\\" $S\\>%0s%4d\\</a\\>"
+                    file.file_num
+                    (short_net_name file)
+                    file.file_num)
+                   else
+        	    (Printf.sprintf "%0s%4d"
                 (short_net_name file)
-                file.file_num
+                file.file_num))
                   (if format.conn_output = HTML then  
                     Printf.sprintf "[\\<a href=\\\"submit\\?q\\=cancel\\+%d\\\" $S\\>CANCEL\\</a\\>][\\<a href=\\\"submit\\?q\\=%s\\+%d\\\" $S\\>%s\\</a\\>] " 
                       file.file_num
@@ -1048,7 +1067,7 @@ let old_print_search buf o results =
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/%s\\\"\\>%s\\</a\\>\\</td\\>"
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>\\</td\\>"
                   (size_of_int64 r.result_size)
                 !cavail
                   !csource
@@ -1239,18 +1258,22 @@ let print_results stime buf o results =
     else print_table_text in
   
   let counter = ref 0 in
+  let nsources = ref 0 in
+  let totalsize = ref 0L in
   let files = ref [] in
   (try
       List.iter (fun (rs, r,avail) ->
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
+	      nsources := !nsources + avail;
+	      totalsize := !totalsize ++ r.result_size ** (Int64.of_int avail);
               if !counter >= !!max_displayed_results then raise Exit;
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               let new_result = !!save_results > 0 && r.result_time >= stime in
               files := [|
                 
                 (if use_html_mods o then
-                    Printf.sprintf "\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>\\<td class=\\\"sr\\\"\\>" !counter
+                    Printf.sprintf "\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>" !counter
                   else Printf.sprintf "%s[%s%5d]" 
                       (if new_result && !!term_ansi then "$b" else "$n")
                       (if new_result then "N" else " ")
@@ -1269,7 +1292,7 @@ let print_results stime buf o results =
                 
                 (Printf.sprintf "%s%s%s"
                     (if o.conn_output = HTML then begin
-                        if !!html_mods then Printf.sprintf "\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                        if !!html_mods then Printf.sprintf "\\<td class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
                         else Printf.sprintf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                       end
                     else "")
@@ -1362,7 +1385,8 @@ let print_results stime buf o results =
       "MD4";
     |] 
     
-    (List.rev !files)
+    (List.rev !files);
+  Printf.bprintf buf "%d sources, total available %s\n" !nsources (size_of_int64 !totalsize)
   
   
 let print_search buf s o = 

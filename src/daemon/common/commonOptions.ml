@@ -33,7 +33,7 @@ let bin_dir = Filename.dirname Sys.argv.(0)
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
 let hidden_dir_prefix =
-  if Autoconf.windows then "" else "."
+  if Autoconf.system = "windows" then "" else "."
 
 let config_dir_basename = hidden_dir_prefix ^ "mldonkey" 
   
@@ -253,7 +253,12 @@ let current_section = interfaces_section
 let allowed_ips = define_option current_section ["allowed_ips"]
     ~desc: "Allowed IPs"
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
-list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
+list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* 
+! Put the IPs between quotes !
+EXAMPLE:   allowed_ips = [
+             '127.0.0.1';
+             '192.168.1.2'; 
+             '192.168.1.3';]"
     ip_list_option [Ip.localhost]  
         
 let gui_port = 
@@ -485,6 +490,12 @@ let html_mods_vd_prio = define_expert_option current_section
 let html_mods_vd_queues = define_expert_option current_section
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
 
+let html_mods_vd_queued = define_expert_option current_section
+    ["html_mods_vd_queued"] "Whether to display queued files in vd output" bool_option true
+
+let html_mods_vd_paused = define_expert_option current_section
+    ["html_mods_vd_paused"] "Whether to display paused files in vd output" bool_option true
+
 let html_vd_barheight = define_expert_option current_section
     ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
 
@@ -607,6 +618,11 @@ let minimal_packet_size = define_expert_option current_section ["minimal_packet_
   "The size of the minimal packet you want mldonkey to send when data is
 available on the connection"
     int_option !TcpBufferedSocket.minimal_packet_size
+
+let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
+  "Should a connection check if the peer we are connected to is still alive?
+  This implies some bandwidth-cost (with 200 connections ~10-20%)"
+    bool_option !BasicSocket.socket_keepalive
 
 let network_update_url = 
   define_expert_option current_section ["network_update_url"]
@@ -1213,23 +1229,32 @@ let verbosity = define_expert_option current_section ["verbosity"]
   "A space-separated list of keywords. Each keyword triggers
   printing information on the corresponding messages:
   mc : debug client messages
+  mr|raw : debug raw messages
   mct : debug emule clients tags
   ms : debug server messages
-  connect : debug connections
-  net : debug net
   verb : debug other
-  loc : debug source research
-  sp : debug source propagation 
   sm : debug source management
+  net : debug net
   do : some download warnings
   up : some upload warnings
   unk : unknown messages
   ov : overnet
+  loc : debug source research
   share: debug sharing
   md4 : md4 computation
+  connect : debug connections
   udp : udp messages
-  hc: http_client messages
-  hs: http_server messages
+  ultra|super : debug supernode
+  swarming : debug swarming
+  hc : http_client messages
+  hs : http_server messages
+  act : debug activity
+  bw : debug bandwidth
+  tor : debug .torrent loading
+  file : debug file handling
+  redir : debug redirector
+  unexp : debug unexpected messages
+  hid : print hidden errors messages
 "
     string_option ""
   
@@ -1388,12 +1413,12 @@ let _ =
       TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
   )
 
-let verbose_msg_servers = ref false
 let verbose_msg_clients = ref false
 let verbose_msg_raw = ref false
 let verbose_msg_clienttags = ref false
-let verbose_sources = ref 0
+let verbose_msg_servers = ref false
 let verbose = ref false
+let verbose_sources = ref 0
 let verbose_download = ref false
 let verbose_upload = ref false
 let verbose_unknown_messages = ref false
@@ -1403,20 +1428,23 @@ let verbose_share = ref false
 let verbose_md4 = ref false
 let verbose_connect = ref false
 let verbose_udp = ref false
+let verbose_supernode = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
-let verbose_supernode = ref false
+let verbose_torrent = ref false
+let verbose_files = ref false
+let verbose_redirector = ref false
+let verbose_unexpected_messages = ref false
+let verbose_hidden_errors = ref false
   
 let set_all v =
   
-  verbose_connect := v;
   verbose_msg_clients := v;
   verbose_msg_raw := v;
   verbose_msg_clienttags := v;
   verbose_msg_servers := v;
-  verbose_supernode := v;
-  BasicSocket.debug := v;
   verbose := v;
+  BasicSocket.debug := v;
   verbose_download := v;
   verbose_upload := v;
   verbose_unknown_messages := v;
@@ -1424,17 +1452,24 @@ let set_all v =
   verbose_location := v;
   verbose_share := v;
   verbose_md4 := v;
+  verbose_connect := v;
   verbose_udp := v;
+  verbose_supernode := v;
   verbose_swarming := v;
   Http_client.verbose := v;
   Http_server.verbose := v;
-  verbose_activity := v
+  verbose_activity := v;
+  verbose_torrent  := v;
+  verbose_files := v;
+  verbose_redirector := v;
+  verbose_unexpected_messages := v;
+  verbose_hidden_errors := v
   
 let _ = 
   option_hook verbosity (fun _ ->
       BasicSocket.verbose_bandwidth := 0;
       verbose_sources := 0;
-      set_all false;      
+      set_all false;
       List.iter (fun s ->
           match s with
           | "mc" -> verbose_msg_clients := true;
@@ -1457,15 +1492,20 @@ let _ =
           | "swarming" -> verbose_swarming := true
           | "hc" -> Http_client.verbose := true
           | "hs" -> Http_server.verbose := true
-          | "act" -> verbose_activity := true              
+          | "act" -> verbose_activity := true
           | "bw" -> incr BasicSocket.verbose_bandwidth
+          | "tor" -> verbose_torrent := true
+          | "file" -> verbose_files := true
+          | "redir" -> verbose_redirector := true
+          | "unexp" -> verbose_unexpected_messages := true
+          | "hid" -> verbose_hidden_errors := true
               
           | "all" ->
               
               verbose_sources := 1;
               set_all true;
               
-          | _ -> ()
+          | _ -> lprintf "Unknown verbosity tag: %s" s
       
       ) (String2.split_simplify !!verbosity ' ')
   )
@@ -1474,6 +1514,9 @@ let _ =
 let _ =
   option_hook loop_delay (fun _ ->
      BasicSocket.loop_delay := (float_of_int !!loop_delay) /. 1000.;
+  );
+  option_hook socket_keepalive (fun _ ->
+      BasicSocket.socket_keepalive := !!socket_keepalive
   )
 
 let _ =

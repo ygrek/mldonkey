@@ -68,7 +68,7 @@ let quarter_timer timer =
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
   DonkeyChunks.duplicate_chunks ();
-  DonkeySources.clean_sources ();
+(*  DonkeySources.clean_sources (); *)
   clients_root := []
 
 let second_timer timer =
@@ -81,6 +81,7 @@ let second_timer timer =
   )
 
 let halfmin_timer timer =
+  DonkeySources.clean_sources ();
   DonkeyServers.update_master_servers ()
 (*  DonkeyIndexer.add_to_local_index_timer () *)
 
@@ -146,7 +147,7 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "udpport") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "sourceexchange") m.emule_sourceexchange;
     int_tag (Field_UNKNOWN "comments") m.emule_comments;
-    int_tag (Field_UNKNOWN "compatableclient") 10; 
+    int_tag (Field_UNKNOWN "compatibleclient") 10; 
     int_tag (Field_UNKNOWN "extendedrequest") m.emule_extendedrequest;
     int_tag (Field_UNKNOWN "features") m.emule_features;
     
@@ -281,7 +282,9 @@ be useful when users want to share files that they had already previously
 
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 
-        DonkeyUdp.force_check_locations;
+	(fun _ -> 
+	   DonkeyUdp.extent_search ();
+	   DonkeyServers.udp_query_sources ());
       
       add_session_option_timer enabler buffer_writes_delay 
         (fun _ -> Unix32.flush ());
@@ -315,9 +318,11 @@ be useful when users want to share files that they had already previously
       DonkeyComplexOptions.load_sources ();
       
 (**** START PLAYING ****)  
+(* removed, just wait for timer to start the action *)
+(*
     (try DonkeyUdp.force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
-
+*)
   with e ->
       lprintf "Error: Exception %s during startup\n"
         (Printexc2.to_string e)

@@ -69,7 +69,6 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
-      file_cancel (as_file file);
   );
   file_ops.op_file_info <- (fun file ->
       {
@@ -313,13 +312,58 @@ let download_file url =
   
   download_file_from_mirror file u;
   find_mirrors file u
-  
-  
-  
+
+(* I think this is a real bad idea, we should check this by ensuring that the
+   bt-url-handler is called first. *)
+let is_http_torrent headers url =
+  let ext = String.lowercase (Filename2.last_extension url) in
+  if ext = ".torrent" || ext = ".tor"
+     || (String2.contains headers "content-type application/x-bittorrent")
+    then true
+  else false
+
+let get_regexp_int text r =
+  ignore (Str.search_forward r text 0);
+  let a = Str.group_beginning 1 in
+  let b = Str.group_end 1 in
+  int_of_string (String.sub text a (b - a))
+
+let get_regexp_string text r =
+  ignore (Str.search_forward r text 0);
+  let a = Str.group_beginning 1 in
+  let b = Str.group_end 1 in
+    String.sub text a (b - a)
+
+(* This is called when a dllink is entered into the console.
+   It returns true if this file can be handled by fileTP,
+   and false otherwise.
+ *)
+let rec op_network_parse_url url =
+  if !verbose then lprintf "filetp.op_network_parse_url\n";
+  let location_regexp = "Location: \\(.*\\)" in
+  let real_url = get_regexp_string url (Str.regexp location_regexp) in
+  if !verbose then lprintf "real url: %s\n" real_url;
+  if (is_http_torrent url real_url) then false
+  else
+    if (String2.check_prefix real_url "http://") then (
+      lprintf "http download\n";
+      let length_regexp = "Content-Length: \\(.*\\)" in
+	try let length = get_regexp_int url (Str.regexp length_regexp) in
+	  if (length > 0) then begin
+	    download_file real_url; true
+	  end
+	  else raise Not_found
+	with Not_found -> lprintf "Unknown file length. Use a web browser\n"; false
+    )
+    else if (String2.check_prefix url "ftp://") || (String2.check_prefix url "ssh://") then (
+      download_file url;
+      true
+    )
+    else
+      false
+     
 let _ =
-  network.op_network_parse_url <- (fun url ->
-      false);
-  ()
+  network.op_network_parse_url <- op_network_parse_url
 
 open Queues
 open GuiTypes
@@ -328,7 +372,7 @@ let commands = [
     "http", "Network/FileTP", Arg_one (fun arg o ->
         download_file arg;
         _s "download started"
-    ), " <url> : start downloading this URL";
+    ), " <url> :\t\t\t\tstart downloading this URL";
     
     "mirror", "Network/FileTP", Arg_two (fun num url o ->
         try
@@ -354,9 +398,12 @@ let commands = [
           ) files_by_uid;
           _s "file not found"
         with Exit -> _s "mirror added"
-    ), " <url> : start downloading this URL";
+    ), " <num> <url> :\t\t\tadd url as mirror for num";
     ]
   
 let _ = 
-  CommonNetwork.register_commands commands
-  
+  CommonNetwork.register_commands commands;
+  (* Shut up "Network.share not implemented by FileTP" *)
+  network.op_network_share <- (fun fullname codedname size -> ());
+  (* Same with Network.forget_search... *)
+  network.op_network_forget_search <- (fun s -> ())

@@ -58,7 +58,7 @@ let mldonkey_wget url f =
   
   
 let load_url kind url =
-  lprintf "QUERY URL %s\n" url; 
+  if !verbose then lprintf "QUERY URL %s\n" url; 
   let f = 
     try 
       (List.assoc kind !file_kinds) url
@@ -204,7 +204,7 @@ support the charge, at least, currently. *)
   let packet = gen_redirector_packet () in
   Ip.async_ip name (fun ip ->
       try
-        lprintf "connecting to redirector\n";
+        if !verbose_redirector then lprintf "connecting to redirector\n";
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "connect redirector"
             (Ip.to_inet_addr ip) port            
@@ -217,7 +217,7 @@ support the charge, at least, currently. *)
         TcpBufferedSocket.set_rtimeout sock 30.;
         let to_read = ref [] in
         set_reader sock (cut_messages (fun opcode s ->
-              lprintf "redirector info received\n";
+              if !verbose_redirector then lprintf "redirector info received\n";
               let module L = LittleEndian in
               
               let motd_html_s, pos = L.get_string16 s 2 in
@@ -321,8 +321,8 @@ let _ =
   add_redirector_info "LTCY" (fun buf ->
       
       if not !initialized then begin
-          tcp_latencies_block := TcpBufferedSocket.get_latencies ();
-          udp_latencies_block := UdpSocket.get_latencies ();
+          tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
+          udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
           initialized := true;
         end;
       
@@ -337,7 +337,7 @@ let _ =
 (* Every 6 hours *)
   add_infinite_timer 21600. (fun _ ->
       initialized := true;
-      tcp_latencies_block := TcpBufferedSocket.get_latencies ();
-      udp_latencies_block := UdpSocket.get_latencies ();
+      tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
+      udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
   )
   

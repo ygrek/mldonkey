@@ -11,10 +11,10 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=29
+CURRENT_RELEASE=30
 
 REQUIRED_OCAML=3.08
-DOWNLOAD_OCAML=3.08.0
+DOWNLOAD_OCAML=3.08.2
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -40,6 +40,7 @@ FORCE_MINGW=no
 
 BUILD_GUI=yes
 BUILD_NEWGUI=yes
+LABLGTK_NAME=lablgtk
 
 PROFILE=no
 SWARMING1=no
@@ -132,7 +133,7 @@ ifelse(AC_ACVERSION, [2.13], [],
 AC_ARG_ENABLE(swarming1, [--enable-swarming1:           very experimental], [SWARMING1="$enableval"])
 
 AC_CANONICAL_HOST
-AC_CHECK_PROG(CC,gcc3,"gcc3")
+AC_CHECK_PROG(CC,gcc3,"gcc3",cc)
 AC_PROG_CC
 AC_EXEEXT
 AC_PROG_CPP
@@ -242,6 +243,11 @@ WGET="$ac_cv_prog_WGET"
 if test "$BUILD_OCAML" = "yes"; then
 
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2; 
+  if test "$WGET" = ""; then
+    echo "********          wget is missing          *********" 1>&2;
+    echo "********       cannot download Ocaml       *********" 1>&2;
+    exit 1
+  fi
   echo "*******  Check http://caml.inria.fr/  ********" 1>&2; 
   echo "Do you want this script to try to download and install ocaml"
   echo "LOCALLY in mldonkey directory ?"
@@ -623,78 +629,174 @@ fi
 
 
 # Check for GTK only if we want to build the GUI
+if test "$BUILD_GUI" = "yes"; then
+  echo "---------------------------------------------------------"
+  echo "Checking the libraries required to build the GTK GUI."
+  echo "---------------------------------------------------------"
+  if test "$USE_GTK2" = "yes"; then
+    AC_MSG_CHECKING(for Zlib)
+    if test "$ZLIB" = "yes"; then
+      AC_MSG_RESULT(yes)
+      REQUIRED_GTK=2.4.0
+      PKG_GTK=gtk+-2.0
+      AC_MSG_CHECKING(for GTK+ - version >= $REQUIRED_GTK)
+      if pkg-config --atleast-version $REQUIRED_GTK $PKG_GTK; then
+        AC_MSG_RESULT(yes)
+        REQUIRED_RSVG=2.4.0
+        PKG_RSVG=librsvg-2.0
+        AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
+        if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
+          GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
+          BUILD_NEWGUI=no
+          REQUIRED_LABLGTK=2.4.0
+          LABLGTK_NAME=lablgtk2
+          AC_MSG_RESULT(yes)
+        else
+          GTK_CONFIG=no
+          AC_MSG_RESULT(no)
+        fi
+      else
+        GTK_CONFIG=no
+        AC_MSG_RESULT(no)
+      fi
+    else
+      GTK_CONFIG=no
+      AC_MSG_RESULT(no)
+    fi
+  else
+    if test "$OS_FILES2" = "mingw"; then
+      REQUIRED_GTK=1.3.0
+      PKG_GTK=gtk+-1.3-win32-production
+      AC_MSG_CHECKING(for GTK+ - version >= $REQUIRED_GTK)
+      if pkg-config --atleast-version $REQUIRED_GTK $PKG_GTK; then
+        GTK_CONFIG="pkg-config $PKG_GTK"
+        AC_MSG_RESULT(yes)
+      else
+        GTK_CONFIG=no
+        AC_MSG_RESULT(no)
+      fi
+    else
+      AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
+      if test "$GTK_CONFIG" = "no"; then
+        AC_MSG_RESULT(no)
+      else
+        AC_MSG_RESULT(yes)
+      fi
+    fi
+  fi
+else
+  GTK_CONFIG=no
+fi
+if test "$GTK_CONFIG" = "no"; then
+     LABLGTK_CONFIG=no
+else
+  AC_MSG_CHECKING(for native code $LABLGTK_NAME)
+  if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
+     if test "$USE_GTK2" = "yes"; then
+       if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablrsvg.$OCAMLLIB_EXT; then
+         AC_MSG_RESULT(yes)
+         LABLGTK_CONFIG=yes
+       else
+         AC_MSG_RESULT(no)
+         LABLGTK_CONFIG=no
+         if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablrsvg.cma; then
+           echo "---------------------------------------------------------"
+           echo "lablrsvg is not installed properly. See the INSTALL.txt"
+           echo "file of mldonkey to see how to compile $LABLGTK_NAME. You"
+           echo "probably forgot to call 'make opt' before 'make install'."
+           echo "---------------------------------------------------------"
+         else
+           echo "---------------------------------------------------------"
+           echo "lablrsvg is not installed. See the INSTALL.txt file of"
+           echo "mldonkey to see how to compile $LABLGTK_NAME. Librsvg"
+           echo "may not be installed when you compiled $LABLGTK_NAME."
+           echo "---------------------------------------------------------"
+         fi
+       fi
+     else
+       AC_MSG_RESULT(yes)
+       LABLGTK_CONFIG=yes
+     fi
+  else
+     AC_MSG_RESULT(no)
+     LABLGTK_CONFIG=no
+     if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.cma; then
+       echo "-------------------------------------------------------------"
+       echo "$LABLGTK_NAME is not installed properly. See the INSTALL.txt"
+       echo "file of mldonkey to see how to compile $LABLGTK_NAME. You"
+       echo "probably forgot to call 'make opt' before 'make install'."
+       echo "-------------------------------------------------------------"
+     else
+       echo "Do you want this script to try to download and install $LABLGTK_NAME"
+       echo "LOCALLY in mldonkey directory ?"
+       if test "$BATCH" = "no"; then read i; else i=yes; fi
+       case "$i" in
+        y* | Y*) 
+
+         cd $PATCH_DIR
+         rm -rf lablgtk-"$REQUIRED_LABLGTK"
+         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
+           echo Downloading ...
+           $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+         fi
+         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+
+         mkdir -p $BUILD_DIR
+         cd $BUILD_DIR
+        echo Uncompressing ...
+         gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
+         (cd lablgtk-"$REQUIRED_LABLGTK"
+          PATH=$OCAML_PATH:$PATH
+          export PATH
+          echo $PATH
+
+          if test "$USE_GTK2" = "yes"; then
+            $GNU_MAKE configure --with-rsvg
+            $GNU_MAKE world
+            $GNU_MAKE install
+          else
+            $GNU_MAKE configure
+            $GNU_MAKE
+            $GNU_MAKE opt  
+            $GNU_MAKE install
+          fi
+
+          cd ..
+          rm -rf lablgtk-"$REQUIRED_LABLGTK"
+         )
+         cd $CONFIG_DIR
+         if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
+            LABLGTK_CONFIG=yes
+         else
+            echo "Installation of $LABLGTK_NAME failed"
+            LABLGTK_CONFIG=no
+         fi
+         ;;
+        *);;
+      esac
+     fi
+  fi
+fi
 
 if test "$USE_GTK2" = "yes" ; then
   GTK=gtk2
   GUIS="mldonkey_gui\$(EXE)"
-  BUILD_NEWGUI=yes
+  case "`uname -s`" in
+    *win32* | *WIN32* | MINGW* ) 
+      GTKCFLAGS="`pkg-config --cflags-only-I gtk+-2.0`"
+      GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
+      GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
+      ;;
+    *) 
+      ;;
+  esac
 else
   GTK=gtk
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
 fi
 
-if test "$BUILD_GUI" = "no"; then
-    LABLGTK_CONFIG=no
-else
-
-AC_MSG_CHECKING(Checking for native code lablgtk)
-if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
-   AC_MSG_RESULT(yes)
-   LABLGTK_CONFIG=yes
-else
-   AC_MSG_RESULT(no)
-   LABLGTK_CONFIG=no
-   if test -f `$OCAMLC -where`/labl$GTK/lablgtk.cma; then
-     echo "--------------------------------"
-     echo "Lablgtk is not installed properly. See the INSTALL.txt"
-     echo "file of mldonkey to see how to compile lablgtk. You"
-     echo "probably forgot to call 'make opt' before 'make install'."
-     echo "--------------------------------"
-   else
-     echo "Do you want this script to try to download and install lablgtk"
-     echo "LOCALLY in mldonkey directory ?"
-     if test "$BATCH" = "no"; then read i; else i=yes; fi
-     case "$i" in
-      y* | Y*) 
-
-       cd $PATCH_DIR
-       rm -rf lablgtk-"$REQUIRED_LABLGTK"
-       if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
-	 echo Downloading ...
-	 $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
-       fi
-       if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
-
-       mkdir -p $BUILD_DIR
-       cd $BUILD_DIR
-       echo Uncompressing ...
-       gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
-       (cd lablgtk-"$REQUIRED_LABLGTK"
-	PATH=$OCAML_PATH:$PATH
-	export PATH
-	echo $PATH
-	$GNU_MAKE configure
-	$GNU_MAKE
-	$GNU_MAKE opt  
-	$GNU_MAKE install
-	cd ..
-	rm -rf lablgtk-"$REQUIRED_LABLGTK"
-       )
-       cd $CONFIG_DIR
-       if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
-	  LABLGTK_CONFIG=yes
-       else
-	  echo "Installation of lablgtk failed"
-	  LABLGTK_CONFIG=no
-       fi
-       ;;
-      *);;
-    esac
-   fi
-fi
-
 if test "$IM" = "yes" ; then
-  AC_CHECK_FILE(../src/gtk/im,IM=yes, [
+  AC_CHECK_FILE(../src/im,IM=yes, [
   IM=no
   ])
 else
@@ -734,7 +836,6 @@ if test "$IM" = "yes"; then
     fi
   fi
 fi
-fi
 
 if test "$PTHREAD_LIBS" = "no"; then
  PTHREAD_LIBS="" 
@@ -757,11 +858,15 @@ AC_MSG_CHECKING(compile GTK GUI)
         if test "$BUILD_NEWGUI" = "yes"; then
         echo "compiling newgui"
         else
+        if test "$USE_GTK2" = "yes"; then
+	echo "compiling gtk2 gui"
+	else
         echo "compiling oldgui"
+        fi
         fi
         AC_MSG_CHECKING(GToolbox.popup_menu args)
         if test "$OS_FILES" = "mingw"; then
-	   GTOOLBOX="`$OCAMLC -where`\lablgtk\gToolbox.mli"
+	   GTOOLBOX="`$OCAMLC -where`\labl$GTK\gToolbox.mli"
 	else
         GTOOLBOX="`$OCAMLC -where`/labl$GTK/gToolbox.mli"
 	fi
@@ -775,13 +880,33 @@ AC_MSG_CHECKING(compile GTK GUI)
         fi
   fi
 
+echo "---------------------------------------------------------"
+echo "End of GTK GUI configuration."
+echo "---------------------------------------------------------"
+
+CURRENT_DIR="./"
 case "`uname -s`" in
-  *win32* | *WIN32* | MINGW* ) 
-      CURRENT_DIR=""
-      WINDOWS="true"
-      ;;
-  *) CURRENT_DIR="./"
-     WINDOWS="false"
+  *win32* | *WIN32* | MINGW* | CYGWIN* ) 
+     CURRENT_DIR=""
+     SYSTEM="windows"
+     ;;
+  *Linux*)
+     SYSTEM="linux"
+     ;;
+  *FreeBSD*)
+     SYSTEM="freebsd"
+     ;;
+  *OpenBSD*)
+     SYSTEM="openbsd"
+     ;;
+  *SunOS*)
+     SYSTEM="solaris"
+     ;;
+  *Darwin*)
+     SYSTEM="darwin"
+     ;;
+  *)
+     SYSTEM=""
      ;;
 esac
 
@@ -855,7 +980,7 @@ AC_SUBST(OCAMLDEP_OPTIONS)
 AC_SUBST(CAMLP4)
 AC_SUBST(PERL)
 AC_SUBST(OCAMLMKTOP)
-AC_SUBST(WINDOWS)
+AC_SUBST(SYSTEM)
 
 AC_SUBST(SHA1_VERSION)
 AC_SUBST(MORE_TARGETS)
@@ -916,12 +1041,21 @@ AC_SUBST(RPMBUILD)
 
 AC_SUBST(TMK)
 AC_SUBST(GTK)
+AC_SUBST(USE_GTK2)
+AC_SUBST(GTKCFLAGS)
+AC_SUBST(GTKLLIBS)
+AC_SUBST(GTKLFLAGS)
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
 AC_SUBST(ZLIB__COMPRESS_STRING)
 AC_SUBST(ZLIB__GZIP_STRING)
 
 AC_SUBST(COMMONSWARMING)
+
+BUILD_SYSTEM1="`uname -s` `uname -m` `uname -r`"
+BUILD_SYSTEM2="`$OCAMLC -version`"
+BUILD_SYSTEM="Ocaml $BUILD_SYSTEM2 on $BUILD_SYSTEM1"
+AC_SUBST(BUILD_SYSTEM)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml

@@ -27,8 +27,7 @@ val update_master_servers : unit-> unit
 val walker_timer : unit -> unit
 val udp_walker_timer : unit -> unit
   
-val udp_send_if_possible : UdpSocket.t -> Ip.t -> int -> DonkeyProtoUdp.t -> unit
-
 val query_locations_timer : unit -> unit
-val query_location : DonkeyTypes.file -> TcpBufferedSocket.t -> unit
+val add_query_location : DonkeyTypes.file -> DonkeyTypes.server -> unit
+val udp_query_sources : unit -> unit
   

@@ -149,6 +149,7 @@ module Make(M:
       val value_to_source_brand: Options.option_value -> source_brand
       
       val direct_source : source_uid -> bool    
+      val indirect_source : source_uid -> bool    
     end) = 
   (struct
 
@@ -269,7 +270,7 @@ module Make(M:
       let last_refill = ref 0
       
       let not_implemented s _ = 
-        failwith (Printf.sprintf "CommonSources.%s not implemneted" s)
+        failwith (Printf.sprintf "CommonSources.%s not implemented" s)
       
       let functions = {
           function_connect = not_implemented "function_connect";
@@ -283,7 +284,6 @@ module Make(M:
           
           function_add_location = not_implemented "function_add_location";
           function_remove_location = not_implemented "function_remove_location";
-        
         }
       
       let indirect_connections = ref 0
@@ -364,11 +364,14 @@ module Make(M:
               Printf.bprintf buf "   Queue[%s]: %d entries" 
                 queue_name.(i) (Queue.length q);
               let nindirect = ref 0 in
+              let ninvalid = ref 0 in
               let nready = ref 0 in
               let nsources = ref 0 in
               Queue.iter (fun (time, s) ->
                   incr nsources;
-                  if not (M.direct_source s.source_uid) then incr nindirect;
+                  if M.indirect_source s.source_uid then incr nindirect
+                  else if not (M.direct_source s.source_uid) then incr ninvalid;
+                  
                   if time + !!min_reask_delay < last_time () then
                     incr nready
                   else
@@ -380,6 +383,8 @@ module Make(M:
               Printf.bprintf buf " (ready: %d/%d)" !nready !nsources ;
               if !nindirect > 0 then
                 Printf.bprintf buf  " (indirect %d)" !nindirect;
+              if !ninvalid > 0 then
+                Printf.bprintf buf  " (invalid %d)" !ninvalid;
               nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
               nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
               nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
@@ -424,6 +429,116 @@ module Make(M:
           (List.length !next_indirect_sources)
 
 
+(******************************************************************************)
+(*
+ *              print table of sources for each downloadingfile
+ *
+ *)    
+      let print_tsources buf =
+        
+        Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
+        
+        Printf.bprintf buf "File Sources Managers table:\n";
+	Printf.bprintf buf "%32s   new good savd old1 old2 old3 conn busy  all\n" ("");
+        let nsources_per_queue = Array.create nqueues 0 in
+        let nready_per_queue = Array.create nqueues 0 in
+        let nindirect_per_queue = Array.create nqueues 0 in
+	let downloading_files =
+	  List.filter ( 
+	    fun s -> 
+	      file_state (s.manager_file ()) = FileDownloading 
+	  ) !file_sources_managers;
+	in
+        List.iter (
+	  fun m ->
+	    let name = file_best_name (m.manager_file ()) in
+	    let len = if String.length name < 32 then String.length name else 32 in
+            Printf.bprintf buf "%-32s: " (String.sub name 0 len);
+                        
+            let q = m.manager_sources.(0) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            let q = m.manager_sources.(1) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            let q = m.manager_sources.(2) in
+            let r = m.manager_sources.(3) in
+            Printf.bprintf buf "%4d " (Queue.length q + Queue.length r);
+            let q = m.manager_sources.(4) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            let q = m.manager_sources.(5) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            let q = m.manager_sources.(6) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            let q = m.manager_sources.(7) in
+            let r = m.manager_sources.(8) in
+            Printf.bprintf buf "%4d " (Queue.length q + Queue.length r);
+            let q = m.manager_sources.(9) in
+            Printf.bprintf buf "%4d " (Queue.length q);
+            Printf.bprintf buf "%4d\n" (m.manager_all_sources);
+
+            for i = 0 to nqueues -1 do
+              let q = m.manager_sources.(i) in
+              let nindirect = ref 0 in
+              let nready = ref 0 in
+              let nsources = ref 0 in
+              Queue.iter (
+		fun (time, s) ->
+		  incr nsources;
+		  if not (M.direct_source s.source_uid) then incr nindirect;
+                  if time + !!min_reask_delay < last_time () then
+                    incr nready
+              ) q;
+              nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
+              nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
+              nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
+            done;
+        
+        ) 
+	  (List.sort (
+	     fun f1 f2 -> 
+	       String.compare 
+		 (file_best_name (f1.manager_file ()))
+		 (file_best_name (f2.manager_file ()))
+	   )downloading_files);
+        
+        Printf.bprintf buf  "For all managers:\n";
+
+        for i = 0 to nqueues - 1 do
+          Printf.bprintf buf "   Queue[%s]: %d entries"
+            queue_name.(i) nsources_per_queue.(i);
+          
+          if nsources_per_queue.(i) > 0 then
+            Printf.bprintf buf " (%d ready)" nready_per_queue.(i);
+          
+          if nindirect_per_queue.(i) > 0 then
+            Printf.bprintf buf " (%d indirect)" nindirect_per_queue.(i);
+          
+          Printf.bprintf buf "\n";
+        done;
+        Printf.bprintf buf "\n";
+        
+        let nsources = ref 0 in
+        HS.iter (fun _ -> incr nsources) sources_by_uid;
+        Printf.bprintf buf "Sources by UID table: %d entries\n" !nsources;
+        
+        let nconnected = ref 0 in
+        Fifo.iter (fun (_,s) ->
+	  if s.source_last_attempt = 0 then 
+	    incr nconnected;
+        ) connecting_sources;
+
+        Printf.bprintf buf "Connecting Sources: %d entries" 
+          (Fifo.length connecting_sources);
+        if !nconnected > 0 then 
+	  Printf.bprintf buf " (connected: %d)" !nconnected;
+        Printf.bprintf buf "\n";
+        
+        Printf.bprintf buf "Next Direct Sources: %d entries\n" 
+          (Fifo.length next_direct_sources);
+        
+        Printf.bprintf buf "Next Indirect Sources: %d entries\n"
+          (List.length !next_indirect_sources)
+
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         reschedule_source_for_file                    *)
@@ -432,11 +547,12 @@ module Make(M:
       
       let reschedule_source_for_file saved s r =
         if r.request_queue = outside_queue then
-          if r.request_score > possible_score then
-            let queue = 
-              if s.source_last_attempt <> 0 then
-                connecting_sources_queue
-              else
+			let queue = 
+		        if r.request_score = not_found_score then
+		        	old_sources3_queue (* Backlog ... avoid this source to bounce back as new source! *)
+		        else if s.source_last_attempt <> 0 then
+					connecting_sources_queue
+            	else
               match s.source_sock with
               | (NoConnection | ConnectionWaiting _)  ->
 (* State (1) *)
@@ -461,8 +577,8 @@ have the file are not put in good_sources_queue, unless they have an
                     else
                       old_sources1_queue
                   else
-                  if s.source_score < 10 then old_sources1_queue else 
-                  if s.source_score < 20 then old_sources2_queue else
+                  if s.source_score < 8 then old_sources2_queue else 
+(*                  if s.source_score < 9 then old_sources2_queue else *)
                     old_sources3_queue
 
 (* State (3) *)
@@ -492,6 +608,14 @@ have the file are not put in good_sources_queue, unless they have an
         Array.iter (fun q ->
             Queue.iter (fun (_,s) -> f s)  q
         ) m.manager_sources
+
+(*************************************************************************)
+(*                         iterQualifiedSources                          *)
+(*            Only these sources should be used in sourceexchage         *)
+(*************************************************************************)
+      let iterQualifiedSources f m =
+          let q = m.manager_sources.(good_sources_queue) in
+	          Queue.iter (fun (_,s) -> f s)  q
 
 (*************************************************************************)
 (*                                                                       *)
@@ -571,13 +695,14 @@ have the file are not put in good_sources_queue, unless they have an
       
       let source_query s r =
         remove_from_queue s r;
-        r.request_time <- 0; (* The source is ready for this request *)
-        reschedule_source_for_file false s r; (* put it in busy_sources_queue *)
-        (try functions.function_query 
-              s.source_uid r.request_file.manager_uid with
-            e ->
-              lprintf "Exception %s in functions.function_query\n"
-                (Printexc2.to_string e))
+		if r.request_score > not_found_score then begin
+			r.request_time <- 0; (* The source is ready for this request *)
+			reschedule_source_for_file false s r; (* put it in busy_sources_queue *)
+			(try functions.function_query s.source_uid r.request_file.manager_uid
+			with e ->
+				lprintf "Exception %s in functions.function_query\n" (Printexc2.to_string e)
+			)
+			end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -599,9 +724,10 @@ have the file are not put in good_sources_queue, unless they have an
                     Printf.sprintf "%d secs"
                       (last_time () - r.request_time));                *)
                 remove_from_queue s r;
+(* I don't think it's up to commonSources when to query sources for files
                 if r.request_score > possible_score &&
                   r.request_time + !!min_reask_delay < last_time () then
-                  source_query s r;
+                  source_query s r;*)
                 (try 
                     let m = r.request_file in
                     functions.function_add_location s.source_uid 
@@ -735,6 +861,15 @@ have the file are not put in good_sources_queue, unless they have an
         
         file_sources_managers := List2.removeq m !file_sources_managers
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        number_of_sources                              *)
+(*                                                                       *)
+(*************************************************************************)
+(* get number of sources for a file*)
+      let number_of_sources f =
+	f.manager_all_sources
 
 (*************************************************************************)
 (*                                                                       *)
@@ -938,13 +1073,25 @@ we will probably query for the other file almost immediatly. *)
 (*                                                                       *)
 (*************************************************************************)
       
-      let query_file s file =
-        if file_state (file.manager_file ()) = FileDownloading then
-          let r = find_request s file in
-          if r.request_time + !!min_reask_delay <= last_time () then 
-            if r.request_score > not_found_score ||
-              last_time () - r.request_time > 3600 then 
-              source_query s r
+	let query_file s file =
+		if file_state (file.manager_file ()) = FileDownloading then
+			let r = find_request s file in
+			if r.request_time + !!min_reask_delay <= last_time () then 
+(* There is realy no need to query a not found source again for the file ... not even after an hour! *)
+				if r.request_score > not_found_score (* ||
+              last_time () - r.request_time > 3600 *) then
+				source_query s r
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         query_files                                   *)
+(*                                                                       *)
+(*************************************************************************)
+(* Query a source for all of its known files*)
+	let query_files s =
+		List.iter (fun f ->
+			query_file s f.request_file;
+		) s.source_files
 
 
 (*************************************************************************)
@@ -1090,9 +1237,12 @@ we will probably query for the other file almost immediatly. *)
       let refill_sources () =
 
 (* Wait for 9 seconds before refilling, since we put at least 10 seconds
-  of clients in the previous bucket. *)
-        if !last_refill + 8 < last_time () then
+	   of clients in the previous bucket. 
           
+	   wrong assumption for me :
+	   we may have failed to fill the queue with what was available
+           if !last_refill + 8 < last_time () then
+	*)
           try
             last_refill := last_time ();
             if !verbose_sources > 0 then begin
@@ -1102,20 +1252,24 @@ we will probably query for the other file almost immediatly. *)
                 lprintf "%s\n\n" (Buffer.contents buf);
               end;
             
-            let rec iter nsources todo_files done_files =
-              if nsources > 0 then
-                match todo_files with
-                  (m, queue) :: tail ->
-                    iter_sources nsources tail done_files m queue
-                | [] ->
-                    match done_files with
-                      [] -> nsources
-                    | _ -> iter nsources done_files []
-              else 0
+
+	  (* 
+	     how much consecutive sources in the queue a file can have
+	     source_f1|source_f1|source_f1|source_f2...
+	     <- - - - - - - 3 - - - - - ->	               
+	  *)  
+	  let max_consecutive = 3 in
+    
+	    
             
-            and iter_sources nsources todo_files done_files m queue =
-              if queue = connected_sources_queue then
-                iter nsources todo_files done_files
+	  (*
+	    get at most nsources direct sources from a file 
+	    return number of sources found,new queue position
+	  *)
+          let rec get_sources nsource m queue took =
+            if queue >= old_sources3_queue || nsource <= 0 then (* old3 queue == avoid SE bounceback, i.e. a dustbin *)
+	      (* we tried all queue or found enough sources, good bye!*)
+            took
               else
               let q = m.manager_sources.(queue) in
               if Queue.length q > 0 then
@@ -1125,75 +1279,142 @@ we will probably query for the other file almost immediatly. *)
                       lprintf "Sources: take source from Queue[%s] for %s\n"
                         queue_name.(queue) 
                       (file_best_name (m.manager_file ()));
+		  (* put in the connecting queue*)
                     source_connecting s;
                     if M.direct_source s.source_uid then begin
                         Fifo.put next_direct_sources s;
-                        iter (nsources-1) todo_files ((m, queue) :: done_files)
+		    (*we found a direct source try again in the _same_ queue*)
+                    get_sources (nsource-1) m queue (took+1)
                       end else begin
                         next_indirect_sources := s :: !next_indirect_sources;
-                        iter_sources nsources todo_files done_files m queue
+		    (*we found an indirect source try again in the _same_ queue*)
+                    get_sources nsource m queue took
                       end
                   end else begin 
                     if !verbose_sources > 1 then
                       lprintf "Source of queue %s is not ready for %s\n"
                         queue_name.(queue) (file_best_name (m.manager_file ()));
-                    iter_sources nsources todo_files done_files m (queue+1)
+		  (* too early to take sources in this queue try again in the _next_ queue*)
+				if queue = new_sources_queue then (* after new_sources, continue with old_sources2 *)
+							(* a maximum of just one source from old2 queue *)
+							get_sources (min 1 nsource) m (old_sources2_queue) took
+				else if queue = old_sources1_queue then
+                  		get_sources nsource m (new_sources_queue) took
+					else
+						get_sources nsource m (queue+1) took
+					
                   end
               else begin
                   if !verbose_sources > 1 then
                     lprintf "Queue %s is empty for %s\n"
                       queue_name.(queue) (file_best_name (m.manager_file ()));
-                  iter_sources nsources todo_files done_files m (queue+1)
+				(* no sources in this queue try again in the _next_ queue*)
+				if queue = new_sources_queue then (* after new_sources, continue with old_sources2 *)
+							(* a maximum of just one source from old2 queue *)
+							get_sources (min 1 nsource) m (old_sources2_queue) took
+				else if queue = old_sources1_queue then
+                  		get_sources nsource m (new_sources_queue) took
+					else
+						get_sources nsource m (queue+1) took
                 end
             
             in
 
+
+	  (* recalc list if there's no new file*)
 (* Fill only with sources from files being downloaded *)
             
             let nfiles = ref 0 in
             let files = ref [] in
+	  let min_priority = ref 0 in
+	  let sum_priority = ref 0 in
             List.iter (fun m ->
                 match file_state (m.manager_file ()) with
                   FileDownloading ->
                     let priority = file_priority (m.manager_file ()) in
-                    
-                    (try
-                        let files = List.assoc priority !files in
-                        files := (m, new_sources_queue) :: !files
-                      with _ ->
-                          files := (priority, ref [m, new_sources_queue]) :: !files
-                    );
-                    
+				 min_priority := min !min_priority priority;
+				 sum_priority := !sum_priority + priority;
+				 files := (priority, m ) :: !files;                  
                     incr nfiles
                 | _ -> ()
             ) !file_sources_managers;
-            let files = List.sort (fun (p1,_) (p2,_) -> compare p2 p1) !files in
+	    
+	    (* 'normalize' to 0 priorities*)
+	    sum_priority := !sum_priority + (!nfiles * (-(!min_priority)));
+	    (* update priorities to be > 0 *)
+	    files := List.map ( fun (p,f) -> 
+			 let np = p - (!min_priority) in
+			   if np==0 then
+			     begin
+			       sum_priority := !sum_priority + 1;
+			       (1,f)
+			     end
+			   else
+			     (np,f)
+		     ) !files;  
+	    
+	    (*sort by highest priority*)
+            files := List.sort (fun (p1,_) (p2,_) -> compare p2 p1) !files;
+	    
+	    (* calc sources queue size 
+	       at least 3 sources per file*)
             let nsources = maxi (!nfiles*3) 
               (functions.function_max_connections_per_second () * 10) in
 
-(* Fill by starting with the files with either priority. Sources for files 
-with lower priority might not be connected at all for long period, but
-we don't care since we decided to decrease their priority ! *)
+	    (* calc how much sources a file can get according to its priority*)
+	    let sources_per_prio =  (float_of_int nsources) /. (float_of_int !sum_priority) in
             
-            let rec iter_priorities nsources files =
-              if nsources > 0 then
-                match files with
-                  [] -> ()
-                | (prio, files) :: tail ->
-                    if !verbose_sources > 1 then 
-                      lprintf "Adding sources for priority %d (%d max)\n" prio
-                        nsources;
-                    let nsources = iter nsources !files [] in
-                    iter_priorities nsources tail
+	    (* 
+	       iter through files to queue sources
+	       flist_todo : next files to test
+	       flist_done : already tested files
+	       assigned : number of sources already queued
+	       pos : position in file list
+	       len : length of file list
+	       looped : number of times we allow to loop try to fill queue of sources
+	                (how hard we try to fill queue)
+	    *)
+	    let rec  iter_files flist_todo flist_done assigned pos len looped = 
+	      if pos==len || assigned>nsources then
+		begin
+		  (* 
+		     assigned>nsources stop!
+		     pos=len we are at the end of file list
+		  *)
+		  if assigned < nsources && looped>0 then
+		    (* 
+		       if assigned < nsources restart to fill 
+		       reorder todo files by highest priority first
+		       allow at most looped re-iter of list to not loop endlessly
+		    *)
+		    iter_files (List.rev flist_done) [] assigned 0 len (looped-1)
+		end
+	      else
+		begin
+		  let fp = List.hd flist_todo in
+		  let file = snd fp and
+		    prio = fst fp in		    
+		  let tt = min (truncate (sources_per_prio *. float_of_int(prio))) 
+			     max_consecutive in
+		  let to_take = max tt 1 in
+		    (*allow at least one source per file :
+		      we will overflow a bit the expected next_direct_sources length
+		      but it's for the good cause : not 'starving' some files
+		    *)
+		    let took = get_sources to_take file good_sources_queue 0 in
+		      iter_files (List.tl flist_todo) (fp::flist_done) (assigned+took) 
+			(pos+1) len looped
+		end
             in
-            iter_priorities nsources files;
+	      iter_files !files [] 0 0 (List.length !files) 3;
+	      
+
             if !verbose_sources > 0 then begin
                 lprintf "CommonSources.refill_sources AFTER:\n";
                 let buf = Buffer.create 100 in
                 print buf;
                 lprintf "%s\n\n" (Buffer.contents buf);
               end;
-          
           with e -> 
               lprintf "Exception %s in refill_sources\n"
                 (Printexc2.to_string e)
@@ -1207,34 +1428,70 @@ we don't care since we decided to decrease their priority ! *)
       let clean_sources () =
 (* Maybe this should be dependant on the file (priority, state,...) ? *)
         let max_sources_per_file = functions.function_max_sources_per_file () in
-        List.iter (fun m ->
-            let nsources = ref 0 in
-            iter_all_sources (fun _ -> incr nsources) m;
-            
-            if !nsources > max_sources_per_file then
-              let rec iter nsources q queue =
-                if nsources > 0 then
-                  if Queue.length q > 0 then
-                    begin
-                      let _, s = Queue.take q in
-                      m.manager_all_sources <- m.manager_all_sources - 1;
-                      if active_queue queue then
-                        m.manager_active_sources <- m.manager_active_sources - 1;                      
-                      List.iter (fun r ->
-                          if r.request_file == m then begin
-                              r.request_queue <- outside_queue;
-                              set_score_part r not_found_score
-                            end
-                      ) s.source_files;
-                      iter (nsources-1) q queue
-                    end
-                  else
-                  if queue > new_sources_queue then
-                    iter nsources m.manager_sources.(queue-1) (queue-1)
-              in
-              iter (!nsources - max_sources_per_file)
-              (m.manager_sources.(old_sources3_queue))
-              old_sources3_queue
+        List.iter (
+        fun m ->
+          match file_state (m.manager_file ()) with
+              FileDownloading ->
+                let nsources =  m.manager_all_sources in
+                if nsources > max_sources_per_file then
+                  let rec iter nsources q queue =
+                  if nsources > 0 then
+	              if Queue.length q > 0
+                        && queue <> good_sources_queue then
+                          begin
+                            let _, s = Queue.take q in
+                            m.manager_all_sources <- m.manager_all_sources - 1;
+                            if active_queue queue then
+                              m.manager_active_sources <- m.manager_active_sources - 1;
+                            List.iter (
+                              fun r ->
+                                if r.request_file == m then
+                                  begin
+                                    r.request_queue <- outside_queue;
+                                    set_score_part r not_found_score
+                                  end
+                            ) s.source_files;
+                            iter (nsources-1) q queue
+                          end
+                      else
+                       if queue = old_sources2_queue then
+                           iter nsources m.manager_sources.(old_sources3_queue) (old_sources3_queue)
+                       else if queue = old_sources3_queue then
+                           iter nsources m.manager_sources.(new_sources_queue) (new_sources_queue)
+                       else  if queue = new_sources_queue then
+                           iter nsources m.manager_sources.(old_sources1_queue) (old_sources1_queue)
+                       else  if queue > good_sources_queue then
+                           iter nsources m.manager_sources.(queue-1) (queue-1)
+                  in
+                  iter (nsources - max_sources_per_file)
+                    (m.manager_sources.(old_sources2_queue))
+                    old_sources2_queue
+
+           | _ ->
+               let rec iter q queue =
+                 if Queue.length q > 0 then
+                   begin
+                     let _, s = Queue.take q in
+                     m.manager_all_sources <- m.manager_all_sources - 1;
+                     if active_queue queue then
+                         m.manager_active_sources <- m.manager_active_sources - 1;
+                     List.iter (
+                       fun r ->
+                         if r.request_file == m then
+                           begin
+                             r.request_queue <- outside_queue;
+                             set_score_part r not_found_score
+                           end
+                     ) s.source_files;
+                     iter q queue
+                   end
+                 else
+                   if queue > 0 then
+                     iter m.manager_sources.(queue-1) (queue-1)
+               in
+               iter (m.manager_sources.(old_sources3_queue))
+                 old_sources3_queue
+
         ) !file_sources_managers
 
 (*************************************************************************)
@@ -1333,6 +1590,36 @@ the tail if the request could be sent. This seems thus safe. *)
         with Exit -> ()
 
 
+
+(*
+ *
+ *                         need_new_sources
+ *
+ *)
+
+    let need_new_sources file =
+		let new_src = Queue.length ( file.manager_sources.( new_sources_queue ) ) in
+		let rdy1_count = ref 0 in
+		for i = good_sources_queue to old_sources1_queue do
+			let lookin = file.manager_sources.( i ) in
+			Queue.iter ( fun (time, s) ->
+	        	             if time + !!min_reask_delay < last_time () then
+		                        incr rdy1_count
+						) lookin
+		done;
+		let f = file.manager_file () in
+		(file_priority f) + 20 > !rdy1_count + new_src
+
+
+
+      let need_new_sources2 file =
+	let old2q = file.manager_sources.( old_sources2_queue ) in
+	let old3q = file.manager_sources.( old_sources3_queue ) in
+	let all   = file.manager_all_sources in
+	let interesting = all 
+	                 - (Queue.length old2q)
+	                 - (Queue.length old3q) in
+	interesting < functions.function_max_sources_per_file ()
 
 (*************************************************************************)
 (*                                                                       *)

@@ -538,12 +538,14 @@ let content_types = [
     ".jpg",          "image/jpeg";
     ".tiff",         "image/tiff";
     ".tif",          "image/tiff";
+    ".png",          "image/png";
     ".au",           "audio/basic";
     ".snd",          "audio/basic";
     ".wav",          "audio/x-wav";
     ".mpeg",         "video/mpeg";
     ".mpg",          "video/mpeg";
     ".avi",          "video/avi";
+    ".ogm",          "video/ogm";
     ".fli",          "video/fli";
     ".flc",          "video/fli";
     

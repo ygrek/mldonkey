@@ -285,22 +285,21 @@ headers;
               with _ -> 
                   lprintf "bad content length [%s]\n" content;
         ) headers;
-        
-        let content_handler = content_handler !content_length headers in
+          let location = "Location", Url.to_string old_url in
+        let content_handler = content_handler !content_length (location::headers) in
         set_reader sock content_handler;
         let buf = TcpBufferedSocket.buf sock in
         if buf.len > 0 then
           content_handler sock buf.len 
     
-    | 302 ->
-        lprintf "Http_client 302: Redirect\n";
+    | 301 | 302 | 304 ->
+        if !verbose then lprintf "Http_client %d: Redirect\n" ans_code;
         if level < 10 then
           begin
             try
               let url = List.assoc "Location" headers in
-              lprintf "Redirected to %s\n" url; 
               List.iter (fun (name, value) ->
-                  lprintf "[%s]=[%s]\n" name value;
+                  if !verbose then lprintf "[%s]=[%s]\n" name value;
               ) headers;
               
               let url = if String.length url > 0 && url.[0] <> '/' then
@@ -309,24 +308,26 @@ headers;
                   Printf.sprintf "http://%s:%d%s"
                     old_url.Url.server old_url.Url.port url 
               in
-              lprintf "Redirected to %s\n" url;               
+              if !verbose then lprintf "Redirected to %s\n" url;               
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
             with e ->
+		lprintf "Http_client: error understanding redirect response %d\n" ans_code;
                 List.iter (fun (name, value) ->
                     lprintf "[%s]=[%s]\n" name value;
                 ) headers
                 
           end
+	else if !verbose then lprintf "Http_client: more than 10 redirections, aborting."
           
     | 404 ->
-        lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
+        if !verbose then lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
           
     | _ ->
-        lprintf "Http_client: bad reply %d\n" ans_code;
+        if !verbose then lprintf "Http_client: bad reply %d\n" ans_code;
         close sock (Closed_for_error "bad reply");
         raise Not_found
 
@@ -382,7 +383,7 @@ let whead r f =
       (try f headers with _ -> ());
       fun sock nread -> 
         close sock Closed_by_user
-  )
+    )
   (fun _ ->  ())
   
 let wget_string r f progress = 

@@ -133,8 +133,8 @@ let download_on_port c d (x,y) ip port =
   let nread = ref false in
   TcpBufferedSocket.set_reader sock (range_reader c d (ref x) y);
   set_rtimeout sock 15.;
-  TcpBufferedSocket.set_closer sock (fun _ _ -> ()
-(*        lprintf "Connection closed nread:%b\n" !nread; *)
+  TcpBufferedSocket.set_closer sock (fun _ _ ->
+        disconnect_client c Closed_by_user;
   )
 
 let write_reqs sock reqs =

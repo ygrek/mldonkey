@@ -38,8 +38,8 @@ let send_paquet_to_mlchat (p : C.packet) =
         h.Unix.h_addr_list.(0)
   in
   let sockaddr = Unix.ADDR_INET (inet_addr, !!O.chat_app_port) in
+  let chanout = Unix.out_channel_of_descr sock in
   try
-    let chanout = Unix.out_channel_of_descr sock in
     Unix.connect sock sockaddr;
     Chat_proto.write_packet_channel chanout p;
     flush chanout;
@@ -48,11 +48,13 @@ let send_paquet_to_mlchat (p : C.packet) =
   | Unix.Unix_error (e,s1,s2) ->
       let s = (Unix.error_message e)^" : "^s1^" "^s2 in
       lprintf "%s\nchat_app_host=%s chat_app_port=%d\n" s
-        !!O.chat_app_host !!O.chat_app_port
+        !!O.chat_app_host !!O.chat_app_port;
+	close_out chanout
   | e ->
       lprintf "%s\nchat_app_host=%s chat_app_port=%d\n"
         (Printexc2.to_string e)
-      !!O.chat_app_host !!O.chat_app_port
+      !!O.chat_app_host !!O.chat_app_port;
+	close_out chanout
 
 
 let send_chat_proto name ad_opt m =

@@ -61,9 +61,9 @@ let _ =
         check_tracker ();
         check_torrent ();
         let s = File.to_string !torrent_filename in
-        let torrent_id, torrent = BTTracker.decode_torrent s in
+        let torrent_id, torrent = BTTorrent.decode_torrent s in
         let torrent = { torrent with BTTypes.torrent_announce = !announce } in
-        let torrent_id, encoded =  BTTracker.encode_torrent torrent in
+        let torrent_id, encoded =  BTTorrent.encode_torrent torrent in
         let s = Bencode.encode encoded in
         File.from_string !torrent_filename s;
         Printf.printf "Torrent file of %s modified" (Sha1.to_string torrent_id);
@@ -73,7 +73,7 @@ let _ =
     "-print", Arg.Unit (fun filename ->
         check_torrent ();
         let s = File.to_string !torrent_filename in
-        let torrent_id, torrent = BTTracker.decode_torrent s in
+        let torrent_id, torrent = BTTorrent.decode_torrent s in
         Printf.printf "Torrent name: %s\n" torrent.torrent_name;
         Printf.printf "        length: %Ld\n" torrent.torrent_length;
         Printf.printf "        tracker: %s\n" torrent.torrent_announce;
@@ -94,7 +94,7 @@ let _ =
     "-create", Arg.String (fun filename ->
         check_tracker ();
         check_torrent ();
-        BTTracker.generate_torrent !announce !torrent_filename filename;
+        BTTorrent.generate_torrent !announce !torrent_filename filename;
         Printf.printf "Torrent file generated";
         print_newline ();
     )," <filename> : compute hashes of filenames and generate a .torrent file";
@@ -103,7 +103,7 @@ let _ =
         check_torrent ();
         
         let s = File.to_string !torrent_filename in
-        let torrent_id, torrent = BTTracker.decode_torrent s in
+        let torrent_id, torrent = BTTorrent.decode_torrent s in
         
         let base_dir_name = 
           String.sub !torrent_filename 0 ((String.length !torrent_filename) - 8)
@@ -135,7 +135,7 @@ let _ =
     "-check", Arg.String (fun filename ->
         check_torrent ();
         let s = File.to_string !torrent_filename in
-        let torrent_id, torrent = BTTracker.decode_torrent s in
+        let torrent_id, torrent = BTTorrent.decode_torrent s in
         
         if torrent.torrent_name <> Filename.basename filename then begin
             Printf.printf "WARNING: %s <> %s" 

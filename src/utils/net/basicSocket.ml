@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Unix
 open Printf2
 open Options
 
@@ -130,6 +131,7 @@ let after_select_hooks = ref []
 let timeout = ref infinite_timeout
 let timers = ref []
 let loop_delay = ref 0.005
+let socket_keepalive = ref false
 let verbose_bandwidth = ref 0  
 let bandwidth_second_timers = ref []
 let use_threads = ref true
@@ -344,6 +346,7 @@ let create_blocking name fd handler =
 
 let create name fd handler =
   MlUnix.set_nonblock fd;
+  if Autoconf.system <> "windows" then setsockopt fd SO_KEEPALIVE !socket_keepalive;
   create_blocking name fd handler
 
 

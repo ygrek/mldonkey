@@ -263,7 +263,6 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
-      file_cancel (as_file file);
       GnutellaProto.cancel_recover_files file
   );
   file_ops.op_file_info <- (fun file ->

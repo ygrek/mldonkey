@@ -465,10 +465,13 @@ module P = struct
                 let t = parse_message ip port pbuf in
                 f t p
               with e ->
+	          if !verbose_hidden_errors then
+		  begin
                   lprintf "Error %s in udp_handler, dump of packet:\n"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
-                  lprint_newline ()	    
+                  lprint_newline ()
+		  end
           );
       | _ -> ()
     
@@ -480,7 +483,7 @@ module P = struct
         
     let overnet_section = file_section donkey_ini 
         [ options_section_name ]
-        "Overnet options"  
+        "Kademlia options"  
     
     let overnet_port =  
       define_option overnet_section [options_section_name; "port"] 
@@ -494,4 +497,3 @@ module P = struct
   end
   
 module Kademlia = Make(P)
-  

@@ -27,6 +27,12 @@ open UdpSocket
 open TcpBufferedSocket
 
 
+(* This one is networkspecific, however it has to be here, since commonServer will use it! *)
+let donkeyIsLowID ip =
+  match Ip.to_ints ip with
+    | _, _, _, 0 -> true
+    | _ -> false
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         short_lazy                                    *)
@@ -71,10 +77,14 @@ module ShortLazy : sig
 
 let networks_string = ref ""
   
+let patches_string = ref "No patches were used."
+
 let version () = 
   Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"  
     Autoconf.current_version !networks_string
   
+let buildinfo () =
+  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)\nwas built with %s\n%s" Autoconf.current_version !networks_string Autoconf.build_system !patches_string
   
 (* Should we try to find another port when we cannot bind to the one set
 in an option, and then change the option accordingly. ?> *)

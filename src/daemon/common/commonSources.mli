@@ -78,6 +78,7 @@ module Make(M:
       val value_to_source_brand: Options.option_value -> source_brand
       
       val direct_source : source_uid -> bool    
+      val indirect_source : source_uid -> bool    
     end) : (
     sig
 
@@ -137,6 +138,8 @@ module Make(M:
         string -> file_sources_manager
       val remove_file_sources_manager :
         file_sources_manager -> unit
+      val number_of_sources : 
+        file_sources_manager -> int
         
 (* Find a given source *)
       val find_source_by_uid : M.source_uid -> source
@@ -154,6 +157,8 @@ module Make(M:
         source -> file_sources_manager -> file_request
       val find_request_result : 
         source -> file_sources_manager -> request_result
+
+      val need_new_sources : file_sources_manager -> bool 
         
 (* Connect sources every second *)
       val connect_sources : TcpBufferedSocket.connection_manager -> unit
@@ -161,17 +166,20 @@ module Make(M:
       val attach_sources_to_file : Options.options_section -> (unit -> unit)
         
       val print : Buffer.t -> unit
+      val print_tsources : Buffer.t -> unit
   
       val indirect_connections : int ref
         
       val dummy_source : source        
   
       val query_file : source -> file_sources_manager -> unit
+      val query_files : source -> unit
         
       val clean_sources : unit -> unit
         
       val iter_all_sources : (source -> unit) -> file_sources_manager -> unit
       val iter_active_sources : (source -> unit) -> file_sources_manager -> unit
+      val iterQualifiedSources : (source -> unit) -> file_sources_manager -> unit
 
       val set_brothers : file_sources_manager list -> unit
       val get_brothers : file_sources_manager -> string list      

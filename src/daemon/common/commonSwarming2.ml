@@ -1090,6 +1090,7 @@ let verify_chunk t i =
               
               end else begin
                 
+	       if !verbose_swarming then
                 lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
                   i (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
@@ -1098,7 +1099,8 @@ let verify_chunk t i =
                       s.s_verified_bitmap.[i] = '2'
                   ) t.t_t2s_blocks.(i) then begin
                     
-                    lprintf "  Swarmer block was complete. Removing data...\n";
+                    lprintf "Verification of complete block %d of %s FAILED, redownloading it.\n"
+                            i (file_best_name t.t_file);
                     
                     t.t_converted_verified_bitmap.[i] <- '0';
                     
@@ -2294,6 +2296,8 @@ let received (up : uploader) (file_begin : Int64.t)
                       string_pos < 0 ||
                       string_pos < string_begin || 
                       string_len < string_length then begin
+                        if !verbose_hidden_errors then
+                        begin
                         lprintf "[ERROR CommonSwarming]: BAD WRITE\n";
                         lprintf "   for range %Ld-%Ld (string_pos %d)\n"
                           r.range_begin r.range_end string_pos;
@@ -2331,6 +2335,7 @@ let received (up : uploader) (file_begin : Int64.t)
                               (br.range_end -- br.range_current_begin);
                             lprintf "\n";
                         ) up.up_ranges;
+			end;
                         if !exit_on_error then exit 2
                       end else
                     if string_length > 0 then
@@ -2768,7 +2773,7 @@ it is verified as soon as possible. *)
 *)
   
   if primary then begin
-      lprintf "Loading present...\n";
+      if !verbose then lprintf "Loading present...\n";
       let present = try 
           let present = 
             (get_value "file_present_chunks" 
@@ -2781,22 +2786,22 @@ it is verified as soon as possible. *)
               (Printexc2.to_string e);         
             []
       in
-      lprintf "Downloaded after present %Ld\n" (downloaded t);
+      if !verbose then lprintf "Downloaded after present %Ld\n" (downloaded t);
       
-      lprintf "Loading absent...\n";
+      if !verbose then lprintf "Loading absent...\n";
       (try 
           set_absent t 
             (get_value "file_absent_chunks" 
               (value_to_list value_to_int64_pair));
         with e ->
-            lprintf "Exception %s while set absent\n"
+            if !verbose then lprintf "Exception %s while set absent\n"
               (Printexc2.to_string e);         
       );
-      lprintf "Downloaded after absent %Ld\n" (downloaded t);
+      if !verbose then lprintf "Downloaded after absent %Ld\n" (downloaded t);
       (try 
           let d = get_value "file_downloaded" value_to_int64 in
           
-          if d <> downloaded t then begin
+          if d <> downloaded t && not !verbose then begin
               lprintf "ERROR: CommonSwarming: stored downloaded value not restored  !!! (%Ld/%Ld)\n" (downloaded t) d;
               lprintf "ERROR: CommonSwarming: present:\n";
               List.iter (fun (x,y) ->

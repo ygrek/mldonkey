@@ -29,6 +29,26 @@ type dialog_type =
     Single of id * host * port
   | Room of id * (id * host * port) list
 
+let remove_key ~target ~sign =
+    ignore (target#misc#disconnect sign)
+
+let add_key ~key ~target ~f ?(mods = [`MOD1]) ?source () =
+  let sign =
+    target#event#connect#key_press
+      ~callback:(fun ev ->
+        if GdkEvent.Key.keyval ev = key && GdkEvent.Key.state ev = mods
+          then begin
+            f (); 
+            true 
+          end else false
+    )
+  in
+  Gaux.may ~f:(fun w -> 
+    ignore (w#misc#connect#destroy 
+      ~callback:(fun _ -> remove_key ~target ~sign)
+  )) source
+
+
 class dialog (data : Chat_data.data) typ_dial =
   let id, host, port = 
     match typ_dial with
@@ -64,16 +84,16 @@ class dialog (data : Chat_data.data) typ_dial =
 	    people
 
     method handle_message source_id mes =
-      wt_dialog#buffer#insert
-(* GTK2 ~foreground: (`NAME data#conf#color_connected) *)
-      source_id;
-      wt_dialog#buffer#insert (" : "^mes^"\n");
-(* GTK2      wt_dialog#set_position (wt_dialog#length - 1) *)
-      ()
+      let col = data#conf#color_connected in
+      ignore (wt_dialog#buffer#create_tag ~name:"foreground" [`FOREGROUND col]);
+      wt_dialog#buffer#insert ~iter:(wt_dialog#buffer#get_iter `END) ~tag_names:["foreground"] source_id;
+      wt_dialog#buffer#insert ~iter:(wt_dialog#buffer#get_iter `END) (" : "^mes^"\n")
 
     initializer
       let return () = 
-	let s = wt_input#buffer#get_text () (* chars 0 wt_input#length *) in
+        let start = wt_input#buffer#get_iter `START in
+        let stop = wt_input#buffer#get_iter `END in
+        let s = wt_input#buffer#get_text ~start ~stop () in
 	let len = String.length s in
 	let s2 = 
 	  if len <= 0 then s
@@ -83,28 +103,18 @@ class dialog (data : Chat_data.data) typ_dial =
 	    | _ -> s
 	in
 	self#send s2;
-	wt_dialog#buffer#insert 
-	  (* GTK2 ~foreground: (`NAME data#conf#color_myself)  *)
-	  data#conf#id;
-	wt_dialog#buffer#insert (" : "^s2^"\n") ;
-      wt_input#buffer#delete 
-        ~start: wt_input#buffer#start_iter
-      ~stop: wt_input#buffer#end_iter
-	  
+        let col = data#conf#color_myself in
+        ignore (wt_dialog#buffer#create_tag ~name:"myself_foreground" [`FOREGROUND col]);
+        wt_dialog#buffer#insert ~iter:(wt_dialog#buffer#get_iter `END) ~tag_names:["myself_foreground"] data#conf#id;
+        wt_dialog#buffer#insert ~iter:(wt_dialog#buffer#get_iter `END) (" : "^s2^"\n");
+        wt_input#buffer#delete ~start ~stop
+  
       in
-      Okey.add wt_input ~mods: [] GdkKeysyms._Return return;
-      Okey.add_list wt_input ~mods: [`CONTROL]
-	[GdkKeysyms._c; GdkKeysyms._C]
-	box#destroy;
-      Okey.add_list wt_dialog ~mods: [`CONTROL] 
-	[GdkKeysyms._c; GdkKeysyms._C]
-	box#destroy;
-      Okey.add_list wt_input ~mods: [`CONTROL] 
-	[GdkKeysyms._l; GdkKeysyms._L]
-	wb_show_hide#clicked;
-      Okey.add_list wt_dialog ~mods: [`CONTROL] 
-	[GdkKeysyms._l; GdkKeysyms._L]
-	wb_show_hide#clicked;
+      add_key ~key:GdkKeysyms._Return ~target:wt_input ~f:return ~mods:[] ();
+      add_key ~key:GdkKeysyms._w ~target:wt_input ~f:box#destroy ~mods:[`CONTROL] ();
+      add_key ~key:GdkKeysyms._w ~target:wt_dialog ~f:box#destroy ~mods:[`CONTROL] ();
+      add_key ~key:GdkKeysyms._l ~target:wt_input ~f:wb_show_hide#clicked ~mods:[`CONTROL] ();
+      add_key ~key:GdkKeysyms._l ~target:wt_dialog ~f:wb_show_hide#clicked ~mods:[`CONTROL] ();
 
       match typ_dial with
 	Single _ -> 
@@ -167,8 +177,7 @@ let get_dialog ?(show=true) data typ_dial =
 	d
   with
     Not_found ->
-      let window = GWindow.window 
-        ~kind: `POPUP ~width: 300 ~height: 200 ~title: "" () in
+      let window = GWindow.window ~kind:`TOPLEVEL ~width: 300 ~height: 200 ~title: "" () in
       ignore (window#connect#destroy (fun () -> remove_dialog data typ_dial));
       let dialog = new dialog data typ_dial in
       window#set_title dialog#name;

@@ -147,6 +147,7 @@ let new_shared dirname prio filename fullname =
   incr files_scanned;
   files_scanned_size := !files_scanned_size ++ size;
   if Unix2.is_directory fullname then begin
+  if !verbose_share then
     lprintf "new_shared: %s is directory! Skipped network.share\n" fullname;
   end
   else begin
@@ -240,7 +241,7 @@ let shared_scan_directory shared_dir local_dir =
   if can_share dirname then
     try
       let files = Unix2.list_directory full_dir in
-      lprintf "Sharing sub-directory %s\n" full_dir; 
+      if !verbose_share then lprintf "Sharing sub-directory %s\n" full_dir; 
       List.iter (fun file ->
           if file <> "" && file.[0] <> '.' then
             let full_name = Filename.concat full_dir file in
@@ -288,7 +289,7 @@ let _ =
     
 let shared_add_directory shared_dir =
   if shared_dir.shdir_dirname <> "" then begin
-      lprintf "SHARING %s PRIO %d\n" shared_dir.shdir_dirname
+      if !verbose_share then lprintf "SHARING %s PRIO %d\n" shared_dir.shdir_dirname
         shared_dir.shdir_priority;
       shared_add_directory shared_dir ""
     end

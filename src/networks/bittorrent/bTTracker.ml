@@ -351,7 +351,7 @@ let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
   let trackers = ref [] in
   
-  lprintf "clean_tracker_timer\n";
+  if !verbose_msg_servers then lprintf "clean_tracker_timer\n";
   Hashtbl.iter (fun _ tracker ->
       let list = ref [] in
       let old_peers = ref [] in

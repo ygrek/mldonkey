@@ -35,6 +35,8 @@ open DonkeyOptions
 open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
+
+let new_shared_files = ref []
   
 let must_share_file file codedname has_old_impl =
   match file.file_shared with
@@ -54,6 +56,7 @@ let must_share_file file codedname has_old_impl =
           impl_shared_requests = 0;
         } in
       file.file_shared <- Some impl;
+      new_shared_files := file :: !new_shared_files;
       incr CommonGlobals.nshared_files;
       CommonShared.shared_calculate_total_bytes ();
       match has_old_impl with
@@ -124,7 +127,7 @@ let new_file_to_share sh codedname old_impl =
 		 *)
                 lprintf "verified map of %s = %s\n"
 		         (codedname) (Int64Swarmer.verified_bitmap s))
-      | None -> lprintf "no swarmer for %s\n" codedname;
+      | None -> if !verbose_share then lprintf "no swarmer for %s\n" codedname;
     (try 
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)
@@ -151,24 +154,31 @@ let all_shared () =
         None -> ()
       | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
-  lprintf "%d files shared\n" (List.length !shared_files);
+  if !verbose_share then lprintf "%d files shared\n" (List.length !shared_files);
   !shared_files
+
 
 (*  Check whether new files are shared, and send them to connected servers.
 Do it only once per 5 minutes to prevent sending to many times all files.
   Should I only do it for master servers, no ?
+  
+  FritzMock: 21.01.2005 just send *new* shared files to servers, they never forget a clients files untill disconnection
   *)
 let send_new_shared () =
-  if !new_shared then
-    begin
-      new_shared := false;
-      let socks = ref [] in
-      let list = all_shared () in
-      List.iter (fun s ->
-          if s.server_master then
-            do_if_connected s.server_sock (fun sock ->
-                server_send_share s.server_has_zlib sock list))
-      (connected_servers ());
+	if !new_shared then begin
+		new_shared := false;
+		let socks = ref [] in
+		if !new_shared_files <> [] then begin
+			List.iter (fun s ->
+				if s.server_master then
+					do_if_connected s.server_sock (fun sock ->
+						server_send_share s.server_has_zlib sock !new_shared_files))
+			(connected_servers ());
+			if !verbose_share then lprintf "donkeyShare: send_new_share: Sent %d new shared files to servers\n" (List.length !new_shared_files);
+			new_shared_files := []
+			end
+		else
+			if !verbose_share then lprintf "donkeyShare: send_new_share: No new shared files to send to servers\n"
     end
           
 (*
@@ -245,8 +255,8 @@ let local_dirname = Sys.getcwd ()
   
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
-      lprintf "********** NETWORK SHARE ************\n";
       if !verbose_share then begin
+	  lprintf "********** NETWORK SHARE ************\n";
           lprintf "FULLNAME %s\n" fullname; 
         end;
 (*      let codedname = Filename.basename codedname in*)

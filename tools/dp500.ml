@@ -44,6 +44,7 @@ module DP500 = DriverLink.DP500(struct
       module CommonFile = CommonFile
       module CommonTypes = CommonTypes
 
+      let incoming_directory () = ""
       let files () = []
       
     end)

@@ -137,23 +137,23 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
     let multiple_replies = 2
     
     type t = {
-        challenge : int64;
-        users : int;
-        files : int;
-        soft_limit : int  option;
+        challenge  : int64;
+        users      : int;
+        files      : int;
+        soft_limit : int option;
         hard_limit : int option;
-        max_users : int option;
-        flags : int option;
+        max_users  : int option;
+        flags      : int option;
       }
 (*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
     let parse len s =
       let challenge = get_uint64_32 s 1 in
       let users = get_int s 5 in
       let files = get_int s 9 in
-      let soft_limit = if len > 13 then Some (get_int  s 9) else None in
-      let hard_limit = if len > 17 then Some (get_int  s 13) else None in
-      let max_users = if len > 21 then Some (get_int  s 17) else None in
-      let flags = if len > 25 then Some (get_int s 21) else None in
+      let max_users  = if len >= 16 then Some (get_int s 13) else None in
+      let soft_limit = if len >= 20 then Some (get_int s 17) else None in
+      let hard_limit = if len >= 24 then Some (get_int s 21) else None in
+      let flags      = if len >= 28 then Some (get_int s 25) else None in
       {
         challenge = challenge;
         users = users;

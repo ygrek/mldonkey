@@ -1075,7 +1075,7 @@ let add_search_peer s p =
     end
 
 let create_search kind md4 =   
-  lprintf () "create_search\n";
+  if !verbose_overnet then lprintf () "create_search\n";
   let s = {
       search_md4 = md4;
       search_kind = kind;
@@ -1107,7 +1107,7 @@ let create_search kind md4 =
   *)
     } in
   List.iter (add_search_peer s) (get_closest_peers md4 max_search_queries);
-  lprintf () "create_search done\n";
+  if !verbose_overnet then lprintf () "create_search done\n";
   overnet_searches := s :: !overnet_searches;
   s
 
@@ -2318,10 +2318,7 @@ let _ =
         if !!enable_overnet = false then disable() else enable ()
   );
   option_hook overnet_query_peer_period 
-    (fun _ -> if !!overnet_query_peer_period < 5. then overnet_query_peer_period =:= 5.);
-  option_hook overnet_max_known_peers 
-    (fun _ -> if !!overnet_max_known_peers < 4096 then overnet_max_known_peers =:= 4096)
-
+    (fun _ -> if !!overnet_query_peer_period < 5. then overnet_query_peer_period =:= 5.)
   
   (*
 let connected_peers () =
@@ -2353,7 +2350,7 @@ let _ =
         let port = int_of_string port in
         bootstrap ip port;
         Printf.sprintf "peer %s:%d added" (Ip.to_string ip) port
-    ), "<ip> <port> :\t\t\tadd an Overnet peer";
+    ), "<ip> <port> :\t\t\tadd an Overnet/Kademlia peer";
     
     "link", Arg_multiple (fun args o ->        
         let buf = o.conn_buf in
@@ -2406,7 +2403,7 @@ let _ =
         ) !overnet_searches;
         
         "";
-    ), ":\t\t\t\tOvernet Stats";
+    ), ":\t\t\t\tOvernet/Kademlia Stats";
     
     "web", Arg_multiple (fun args o ->
         let urls =
@@ -2425,7 +2422,7 @@ let _ =
     ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
     
     "md4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string !!overnet_md4);
-    ), ":\t\t\t\t\tget client MD4 address on the overnet network";
+    ), ":\t\t\t\t\tget client MD4 address on the Overnet/Kademlia network";
     
     "store", Arg_none (fun o -> 
         let buf = o.conn_buf in
@@ -2436,7 +2433,7 @@ let _ =
           PublishedFiles.print buf;
         
         ""
-    ), ":\t\t\t\tdump the Overnet File Store";
+    ), ":\t\t\t\tdump the Overnet/Kademlia File Store";
     
 
       (*

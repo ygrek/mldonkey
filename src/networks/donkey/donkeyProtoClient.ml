@@ -28,16 +28,20 @@ open CommonGlobals
 open DonkeyTypes
 open DonkeyMftp
   
+(* TODO : update this
+I downgraded some of those to get better results :
+We don't use emule udp extension, client_md4 in sourceexchange or complete sources in
+file request *)
 let mldonkey_emule_proto = {
     emule_comments = 1;
-    emule_version = 43520;
+    emule_version = 43600; (* compatible client can also be set here *)
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;
     emule_compression = if Autoconf.has_zlib then 1 else 0; (* 1 *)
-    emule_sourceexchange = 2; (* 3 *)
+    emule_sourceexchange = 1; (* 2 : +client_md4 3 : +IdHybrid (emule Kademlia?)*)
     emule_multipacket = 0; (* 1 *)
-    emule_extendedrequest = 2; (* 2 *)
+    emule_extendedrequest = 1; (* 1: +file_status 2: +ncomplete_sources*)
     emule_features = 0; (* 3 *)
     emule_udpver = 0; (* 4 *)
   }
@@ -774,7 +778,7 @@ module EmuleClientInfo = struct
         "\035", "sourceexchange";
         "\036", "comments";
         "\037", "extendedrequest";
-        "\038", "compatableclient";
+        "\038", "compatibleclient";
         "\039", "features";
         "\060", "downloadtime";
         "\061", "incompleteparts";
@@ -923,7 +927,7 @@ module EmuleRequestSourcesReply = struct
               if slen > 6 then begin
                   ss.src_server_ip <- get_ip s (pos+6);
                   ss.src_server_port <- get_int16 s (pos+10);
-                  if slen > 12 then begin
+                  if slen > 12 && (sourceexchange e > 1) then begin
                       ss.src_md4 <- get_md4 s (pos+12);
                       pos + 28
                     end else

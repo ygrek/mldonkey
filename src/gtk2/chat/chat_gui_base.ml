@@ -136,18 +136,16 @@ class dialog () =
       ~placement:`TOP_LEFT ~packing:(box#pack ~expand:true ~fill:true) ()
   in
   let wt_dialog =
-    GText.view ~editable:false (* ~word_wrap:true ~line_wrap:true *)
+    GText.view ~editable:false ~wrap_mode:`WORD
       ~packing:(wscroll#add) ()
   in
   let wtool =
-    GButton.toolbar ~orientation:`HORIZONTAL ~style:`ICONS 
-    (* ~space_style:`EMPTY *)
-      ~tooltips:true 
-    (* ~button_relief:`NORMAL *)
+    GButton.toolbar ~orientation:`HORIZONTAL ~style:`ICONS
+      ~tooltips:true
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let wt_input =
-    GText.view ~height:50 ~editable:true (* ~word_wrap:true ~line_wrap:true *)
+    GText.view ~height:50 ~editable:true ~wrap_mode:`WORD
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let wb_show_hide =

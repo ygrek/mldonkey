@@ -52,31 +52,49 @@ and file_uid_id =
 | MD5EXT
 | TIGER
 
-let string_of_uid uid = 
+let string_of_uid_sep uid sep =
   match uid with
-    Bitprint (sha1,ttr) -> 
-      Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
-      (TigerTree.to_string ttr)
-  | Sha1 sha1 -> 
-      Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1)
-  | Ed2k ed2k -> 
-      Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k)
-  | Md5 md5 -> 
-      Printf.sprintf "urn:md5:%s" (Md5.to_string md5)
+    Bitprint (sha1,ttr) ->
+      "urn" ^ sep ^ "bitprint" ^ sep ^
+        (Sha1.to_string sha1) ^ "." ^
+          (TigerTree.to_string ttr)
+  | Sha1 sha1 ->
+      "urn" ^ sep ^ "sha1" ^ sep ^ (Sha1.to_string sha1)
+  | Ed2k ed2k ->
+      "urn" ^ sep ^ "ed2k" ^ sep ^ (Md4.to_string ed2k)
+  | Md5 md5 ->
+      "urn" ^ sep ^ "md5" ^ sep ^ (Md5.to_string md5)
   | TigerTree ttr -> 
-      Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr)
-  | Md5Ext md5 -> 
-      Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
+      "urn" ^ sep ^ "ttr" ^ sep ^ (TigerTree.to_string ttr)
+  | Md5Ext md5 ->
+      "urn" ^ sep ^ "sig2dat" ^ sep ^
+        (Md5Ext.to_base32 md5)
   | BTUrl url ->
-      Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
+      "urn" ^ sep ^ "bt" ^ sep ^ (Sha1.to_string url)
   | NoUid -> ""
-      
-(* Maybe it would be better to raise an exception for errors ? *)      
+
+let string_of_uid uid =
+  string_of_uid_sep uid ":"
+
+(* This should be used for temp. files, because for some
+   systems the character ":" may be illegal for filenames.
+ *)
+let file_string_of_uid uid =
+  string_of_uid_sep uid "_"
+
+(* Maybe it would be better to raise an exception for errors ? *)
+exception Illegal_urn of string
 let uid_of_string s =
   let s = String.lowercase s in
-  let (urn, rem) = String2.cut_at s ':' in
-  if urn <> "urn" then failwith "Illegal UID";
-  let (sign, rem) = String2.cut_at rem ':' in
+  let urn = String2.before s 4 in
+  let rem = String2.after s 4 in
+  let sep = ref ':' in
+  (match urn with
+   | "urn:" -> sep := ':'
+   | "urn_" -> sep := '_'
+   | _ -> raise (Illegal_urn (s ^ " at " ^ urn ^ " should be urn: or urn_"))
+  );
+  let (sign, rem) = String2.cut_at rem !sep in
   match sign with
   | "ed2k" -> Ed2k (Md4.of_string rem)
   | "bitprint" | "bp" -> 
@@ -88,19 +106,20 @@ let uid_of_string s =
   | "tree" ->
       let (tiger, rem) = String2.cut_at rem ':' in
       if tiger <> "tiger" then 
-        failwith (Printf.sprintf "Illformed URN [%s]" s);
+        raise (Illegal_urn (s ^ " at " ^ tiger ^ " should be tiger:"));
       TigerTree (TigerTree.of_string rem)
   | "ttr" -> TigerTree (TigerTree.of_string rem)
   | "md5" ->  Md5 (Md5.of_string rem)
   | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
   | "bt" | "bittorrent" -> 
       BTUrl (Sha1.of_string rem)
-  | _ -> failwith "Illegal UID"
-      
+  | _ -> raise (Illegal_urn (s ^ " at " ^ sign ^ " is not known"))
+
 module Uid : sig
-    type t     
+    type t
     val create : uid_type -> t
     val to_string : t -> string
+    val to_file_string : t -> string
     val of_string : string -> t
     val to_uid : t -> uid_type
     val mem : t -> t list -> bool
@@ -139,7 +158,10 @@ module Uid : sig
         
     let to_string t = t.uid_string
     
-    let to_uid t = t.uid_type    
+    let to_file_string t =
+      file_string_of_uid t.uid_type
+    
+    let to_uid t = t.uid_type
     
     let derive uid =
       match uid.uid_type with

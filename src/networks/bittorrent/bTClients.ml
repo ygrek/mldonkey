@@ -123,43 +123,47 @@ let connect_trackers file event f =
   let args = if !!numwant > -1 then
       ("numwant", string_of_int !!numwant) :: args else args in
   
-  List.iter (fun t ->  
-      if 
-        (file.file_clients_num < !!ask_tracker_threshold )
-        ||
-        t.tracker_last_conn + 14400 < last_time()
-        ||
-        t.tracker_last_conn + t.tracker_interval < last_time()
+  List.iter (fun t ->
+      (* if we have too few sources we may ask the tracker before the interval *)
+      if not must_check_delay
+        || not file.file_tracker_connected
+        || t.tracker_last_conn + t.tracker_interval < last_time()
+        || ( file.file_clients_num < !!ask_tracker_threshold
+            && (file_state file) == FileDownloading
+            && t.tracker_last_conn + !!min_tracker_reask_interval < last_time() )
       then
         begin
           if !verbose_msg_servers then 
             lprintf "get_sources_from_tracker: tracker_connected:%s last_clients:%i last_conn-last_time:%i file: %s\n"
               (string_of_bool file.file_tracker_connected) t.tracker_last_clients_num
               (t.tracker_last_conn - last_time()) file.file_name;
-          t.tracker_last_conn <- (last_time() - (t.tracker_interval + 30));
-
-
-        let module H = Http_client in
-        let url = t.tracker_url in
-        let r = {
-            H.basic_request with
-            H.req_url = Url.of_string ~args: args url;
-            H.req_proxy = !CommonOptions.http_proxy;
-            H.req_user_agent = 
-            Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
-          } in
-        
-        lprintf "Request sent to tracker\n";
-        H.wget r 
-          (fun fileres -> 
-            t.tracker_last_conn <- last_time ();
-            file.file_tracker_connected <- true;
-            f t fileres
-        )
-        end else
-        lprintf "Request NOT sent to tracker - remaning: %d\n" 
-        (t.tracker_interval - (last_time () - t.tracker_last_conn))
-  ) file.file_trackers        
+          
+          
+          let module H = Http_client in
+          let url = t.tracker_url in
+          let r = {
+              H.basic_request with
+              H.req_url = Url.of_string ~args: args url;
+              H.req_proxy = !CommonOptions.http_proxy;
+              H.req_user_agent = 
+              Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+            } in
+          
+          if !verbose_msg_servers then
+              lprintf "Request sent to tracker %s for file: %s\n"
+                t.tracker_url file.file_name;
+          H.wget r 
+            (fun fileres -> 
+              t.tracker_last_conn <- last_time ();
+              file.file_tracker_connected <- true;
+              f t fileres
+          )
+        end
+      else
+     if !verbose_msg_servers then
+          lprintf "Request NOT sent to tracker %s - remaning: %d file: %s\n"
+            t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
+  ) file.file_trackers
 
 (** In this function we decide which peers will be 
   uploaders. We send a choke message to current uploaders
@@ -431,15 +435,20 @@ let rec client_parse_header counter cc init_sent gconn sock
       match !cc with 
         None ->
           let c = new_client file peer_id (TcpBufferedSocket.peer_addr sock) in
-          lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
+          if !verbose_connect then lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
           cc := Some c;
           c
-      | Some c -> 
+      | Some c ->
+          (* Does it happen that this c was alread used to connect sucessfully?
+             If yes then this must happen: *)
+          c.client_received_peer_id <- false;
+          c
          (* client could have had Sha1.null as peer_id/uid *)
+         (* this is to be done, later
          if c.client_uid <> peer_id then 
           c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
           c
-
+	*)
 (*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
               let ccc = new_client file peer_id (TcpBufferedSocket.host sock) in
@@ -463,8 +472,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     if !verbose_msg_clients then begin
         let (ip,port) = c.client_host in
         lprintf "CLIENT %d: Connected (%s:%d)\n"  (client_num c)
-        (Ip.to_string ip) port
-        ;
+        (Ip.to_string ip) port;
       end;
     
     (match c.client_sock with
@@ -514,14 +522,14 @@ let rec client_parse_header counter cc init_sent gconn sock
     );
     
     ()
-  with e ->
-    begin
-      match e with
-        | Not_found ->
-          lprintf "BT: requested file not shared [%s]\n" (Sha1.direct_to_string file_id)
-        | _ ->
-      lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
-    end;
+  with
+      | Not_found ->
+          let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
+          if !verbose_unexpected_messages then
+            lprintf "BT: %s:%d requested a file that is not shared [%s]\n"
+              (Ip.to_string ip) port (Sha1.to_hexa file_id)
+      | e ->
+          lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
       close sock (Closed_for_exception e);
       raise e
 
@@ -589,7 +597,7 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
         None -> assert false
       | Some up -> up in 
     let swarmer = Int64Swarmer.uploader_swarmer up in       
-    
+  try
     let num, x,y, r = 
       if !verbose_msg_clients then begin
           lprintf "CLIENT %d: Finding new range to send\n" (client_num c);
@@ -686,6 +694,9 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
         (client_num c)
       (Sha1.to_string c.client_uid) 
       x y
+  with Not_found ->
+        if not (Int64Swarmer.check_finished swarmer) && !verbose_hidden_errors then
+          lprintf "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished...\n"
 
 
 
@@ -800,7 +811,9 @@ and client_to_client c sock msg =
     
     | PeerID p ->
       c.client_software <- (parse_software p);
-      c.client_uid <- Sha1.direct_of_string p
+      c.client_uid <- Sha1.direct_of_string p;
+      (* Disconnect if that is ourselves. *)
+      if c.client_uid = !!client_uid then disconnect_client c Closed_by_user
 
     | BitField p ->
 (*A bitfield is a summary of what a client have*)
@@ -910,9 +923,13 @@ and client_to_client c sock msg =
           begin
           match c.client_uploader with
               None ->
-                lprintf "BT: Choke send, but no client bitmap\n"
+                (* Afaik this is no protocolviolation and happens if the client
+		   didn't send a client bitmap after the handshake. *)
+		    let (ip,port) = c.client_host in
+		      if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
+		        (Ip.to_string ip) port (c.client_software)
             | Some up -> 
-          Int64Swarmer.clear_uploader_ranges up
+	          Int64Swarmer.clear_uploader_ranges up
           end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;
@@ -965,7 +982,7 @@ and client_to_client c sock msg =
     
     | Cancel _ -> ()
   with e ->
-      lprintf "Error %s while handling MESSAGE\n" (Printexc2.to_string e)
+      lprintf "Error %s while handling MESSAGE: %s\n" (Printexc2.to_string e) (TcpMessages.to_string msg)
       
 
 
@@ -976,7 +993,15 @@ be put in a fifo and dequeud according to
 @param c The client we must connect
 *)      
 let connect_client c =
-  if can_open_connection connection_manager then
+  if can_open_connection connection_manager && 
+	(let (ip,port) = c.client_host in match Ip_set.match_ip !Ip_set.bl ip with
+	     None -> true
+	   | Some br ->
+	       if !verbose_connect then
+		 lprintf "%s:%d blocked: %s\n"
+		   (Ip.to_string ip) port br.blocking_description;
+	       false)		
+  then
   match c.client_sock with
     NoConnection ->
     
@@ -1203,6 +1228,10 @@ for parsing the response*)
             match (key, value) with
               String "interval", Int n -> 
                 t.tracker_interval <- Int64.to_int n
+            | String "failure reason", String failure ->
+	        lprintf "Failure from BT-Tracker %s in file: %s Reason: %s\n" t.tracker_url file.file_name failure
+	    | String "complete", Int n -> () (*TODO we should put these two in some var. and perhaps display them in the gui*)
+	    | String "incomplete", Int n -> ()
             | String "peers", List list ->
                 List.iter (fun v ->
                     match v with
@@ -1238,7 +1267,7 @@ for parsing the response*)
                         then
                           let c = new_client file !peer_id (!peer_ip,!port)
                           in
-                          lprintf "Received %s:%d\n" (Ip.to_string !peer_ip)
+                          if !verbose_sources > 1 then lprintf "Received %s:%d\n" (Ip.to_string !peer_ip)
                           !port;
                           ()
                     
@@ -1259,7 +1288,7 @@ for parsing the response*)
                     iter_comp s (pos+6) l
                 in
                 iter_comp p 0 (String.length p)
-            | _ -> ()
+            | _ -> lprintf "BT: received unknown entry in answer from tracker: %s\n" (Bencode.print key)
         ) list;
 (*Now, that we have added new clients to a file, it's time
 	to connect to them*)

@@ -90,6 +90,10 @@ let numwant = define_option bittorrent_section ["numwant"]
     "Number of peers to request from tracker (Negative # = let tracker decide)"
     int_option (-1)
 
+let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_reask_interval"]
+    "Minimum time in seconds to wait between asking the tracker for sources"
+    int_option 300
+
 let _ =
   begin
     option_hook max_uploaders_per_torrent

@@ -816,7 +816,7 @@ let tcp_handler_write t sock =
           end
   end
   
-let get_latencies () =
+let get_latencies verbose =
   let b = Buffer.create 300 in
   let counter = ref 0 in  
   Hashtbl.iter (fun ip (latency, samples) ->
@@ -824,7 +824,7 @@ let get_latencies () =
   ) latencies;
   LittleEndian.buf_int b !counter;
   Hashtbl.iter (fun ip (latency, samples) ->
-      lprintf "   Latency TCP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
+      if !verbose then lprintf "   Latency TCP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
       LittleEndian.buf_ip b ip;
       LittleEndian.buf_int16 b !latency;
       LittleEndian.buf_int16 b !samples;
@@ -1385,8 +1385,9 @@ let connect token name host port handler =
         close t Closed_connect_failed;
         raise e
   with e ->
-      lprintf "+++ Exception BEFORE CONNECT %s\n" (Printexc2.to_string e);
-      raise e
+      lprintf "EXCEPTION %s  before connect to host %s:%d\n"
+          (Printexc2.to_string e) (Unix.string_of_inet_addr host) port;
+            raise e
       
 
 

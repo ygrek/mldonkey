@@ -172,4 +172,4 @@ val must_write : t -> bool -> unit
 val max_refill : t -> int
 val output_buffered : t -> int
   
-val get_latencies : unit -> string
+val get_latencies : bool ref -> string

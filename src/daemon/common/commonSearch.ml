@@ -870,11 +870,11 @@ let result_format_of_name name =
     
 let result_media_of_name name = 
   match String.lowercase (Filename2.last_extension name ) with
-    ".mpg" | ".mpeg" | ".avi" | ".mov" -> "Video"
-  | ".mp3" | ".wav" -> "Audio"
+    ".mpg" | ".mpeg" | ".avi" | ".ogm" | ".divx" | ".mov" -> "Video"
+  | ".mp3" | ".wav" | ".ogg" -> "Audio"
   | ".txt" | ".doc" -> "Doc"
   | ".exe" -> "Pro"
-  | ".jpg" | ".jpeg" | ".tiff" | ".gif" -> "Image"
+  | ".jpg" | ".jpeg" | ".tiff" | ".png" | ".gif" -> "Image"
   | _ -> ""
 
 

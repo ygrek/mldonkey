@@ -840,13 +840,11 @@ let file_verify file key begin_pos end_pos =
         (if result then "VERIFIED" else "CORRUPTED");
       end;
     result
-  with e ->
-      if e = Not_found then raise Not_found;
-      if !verbose_md4 then  lprintf "Checksum computed: chunk MISSING\n";
-      false
-      
+  with
+    | Not_found -> raise Not_found
+    | _ -> if !verbose_md4 then lprintf "Checksum computed: chunk MISSING\n";
+    false
 
-    
 let file_mtime file = Unix32.mtime64 (file_fd file)
   
 let file_copy file1 file2 pos1 pos2 size =

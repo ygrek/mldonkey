@@ -45,6 +45,7 @@ type client = {
     (int64 * int64 * Int64Swarmer.range) option;
     mutable client_block : Int64Swarmer.block option;
     
+    mutable client_received_peer_id : bool;
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)
     mutable client_choked : bool;      (* we received a Choke from the client *)
     mutable client_interested : bool;

@@ -1,4 +1,3 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -119,7 +118,7 @@ module NewUpload = struct
         write_string sock upload_buffer;
         check_end_upload c sock
       with e -> 
-          lprintf "Exception %s in send_small_block\n" (Printexc2.to_string e)
+          if !verbose_hidden_errors then lprintf "Exception %s in send_small_block\n" (Printexc2.to_string e) else ()
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)

@@ -5,10 +5,12 @@ type date_format =
 | Day
 | WeekDay
 | Month
+| MonthNumber
 | Year
 | Comma
 | Space
 | Colon
+| Dot
   
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
                 "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec"|]
@@ -27,10 +29,12 @@ let string_of_date formats tm =
       | Day -> Printf.sprintf "%s%02d" s tm.Unix.tm_mday
       | WeekDay  -> Printf.sprintf "%s%s" s (!day tm.Unix.tm_wday)
       | Month -> Printf.sprintf "%s%s" s (!month tm.Unix.tm_mon)
+      | MonthNumber -> Printf.sprintf "%s%d" s (tm.Unix.tm_mon)
       | Year -> Printf.sprintf "%s%04d" s (1900+tm.Unix.tm_year)
       | Comma -> s ^ ","
       | Space -> s ^ " "
       | Colon -> s ^ ":"
+      | Dot -> s ^ "."
   ) "" formats
 
   
@@ -46,9 +50,9 @@ let simple date =
   string_of_date [Hour;Colon;Minute;Colon;Second;Space; Space; WeekDay]
     (Unix.localtime date)
   
-let mail_string =
+let mail_string date =
     string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second]
-    (Unix.localtime (Unix.time ()))
+    (Unix.localtime date)
 
 let hour_in_secs = 3600
 let day_in_secs = 24 * hour_in_secs

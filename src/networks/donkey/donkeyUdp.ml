@@ -54,173 +54,74 @@ let search_handler s t =
   ) t
 (*  search.search_handler (Waiting s.search_waiting) *)
     
-let udp_query_locations file s =
-  if !verbose then begin
-      lprintf "UDP: query location %s" (Ip.to_string s.server_ip);
-      lprint_newline ();
-    end;
-  let module Udp = DonkeyProtoUdp in
-  udp_server_send s (Udp.QueryLocationUdpReq [file.file_md4])
-
-  (*
-let rec find_search_rec num list =
-  match list with
-    [] -> raise Not_found
-  | s :: tail ->
-      if s.search_search.search_num = num then s else 
-        find_search_rec num tail
-        
-let find_search num = find_search_rec num !local_searches
-    *)
-
-let cut_for_udp_send max_servers list =
-  let min_last_conn = last_time () - 8 * 3600 in
-  let rec iter list n left =
-    if n = 0 then 
-      left, list
-    else
-    match list with 
-      [] -> left, []
-    | s :: tail ->
-        if connection_last_conn s.server_connection_control > min_last_conn
-        then
-          iter tail (n-1) (s :: left)
-        else
-          iter tail n left
-  in
-  iter list max_servers []
-
 let make_xs ss =
-  lprintf "******** make_xs ********\n";
-  if ss.search_num <> !xs_last_search then begin
+  if !verbose then lprintf "******** make_xs ********\n";
+   if ss.search_num <> !xs_last_search then
+     begin
       xs_last_search := ss.search_num;
       xs_servers_list := Hashtbl2.to_list servers_by_key;
     end;
-  
+
+   let cut_for_udp_send max_servers list =
+     let min_last_conn = last_time () - 8 * 3600 in
+     let rec iter list n left =
+       if n = 0 then
+       left, list
+       else
+       match list with
+           [] -> left, []
+         | s :: tail ->
+               if connection_last_conn s.server_connection_control > min_last_conn then
+               iter tail (n-1) (s :: left)
+               else
+               iter tail n left in
+     iter list max_servers [] in
   let before, after = cut_for_udp_send !!max_xs_packets !xs_servers_list in
   xs_servers_list := after;
-  List.iter (fun s ->
+
+   List.iter (fun s ->
       match s.server_sock with
-        Connection _ -> ()
-      | _ ->
-          let module M = DonkeyProtoServer in
-          let module Q = M.Query in
-          udp_server_send s (
+           Connection _ -> ()
+       | _ ->
+             let module M = DonkeyProtoServer in
+             let module Q = M.Query in
+             udp_server_send s (
 (* By default, send the MultipleUdp !!! we have to set 
 server_send_multiple_replies to true by default, and change it to false
 when receiving an old ping.
 
   if server_send_multiple_replies s then
               Udp.QueryUdpReq ss.search_query
-	  else *) Udp.QueryMultipleUdpReq ss.search_query);
+         else *)
+             Udp.QueryMultipleUdpReq ss.search_query);
   ) before;
-  lprintf "===================== STARTING SEARCH ON OVERNET =========\n";
+
+  if !verbose then lprintf "===================== STARTING SEARCH ON OVERNET =========\n";
   DonkeyProtoOvernet.Overnet.overnet_search ss;
   DonkeyProtoKademlia.Kademlia.overnet_search ss
           
-let force_check_locations () =
+ let extent_search () =
   try
     if !xs_last_search >= 0 then  begin
-        try
-          make_xs (search_find !xs_last_search)
-        with _ -> ()
-      end;
-
-    let files = ref [] in
-    List.iter (fun file -> 
-      if file_state file = FileDownloading then 
-	files := file :: !files) !current_files;
-
-    if !files <> [] then
-
-    let old_servers = ref [] in
-    let new_servers = ref [] in
-    let nservers = ref 0 in
-
-    while !nservers < !!max_udp_sends &&
-      match !udp_servers_list with
-	[] -> false
-      | s :: tail -> 
-	  udp_servers_list := tail;
-            (match s.server_sock with
-                Connection _ -> ()
-              | _ -> 
-	      if 
-		connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
-		s.server_next_udp <= last_time () then begin
-		  (if server_accept_multiple_getsources s then
-		    new_servers := s :: !new_servers
-		  else
-		    old_servers := s :: !old_servers);
-		  incr nservers;
-		end
-            );
-	  true do
-      ()
-    done;
-
-    if !new_servers <> [] then begin
-      let md4s = List.map (fun file -> file.file_md4) !files in
-
-      List.iter (fun s ->
-	let module Udp = DonkeyProtoUdp in
-	udp_server_send s (Udp.QueryLocationUdpReq md4s);
-	s.server_next_udp <- last_time () + !!min_reask_delay
-      ) !new_servers
+       try
+         make_xs (search_find !xs_last_search)
+       with _ -> ()
     end;
 
-    if !old_servers <> [] then    
-      List.iter (fun file -> 
-	if file_state file = FileDownloading then begin
-(*(* USELESS NOW *)
-   Intmap.iter (fun _ c ->
-   try connect_client !!client_ip [file] c with _ -> ()) 
-   file.file_known_locations;
-*)            
-
-          (* now, it is done in donkeySources
-             List.iter (fun s ->
-             match s.server_sock with
-                  None -> () (* assert false !!! *)
-                | Some sock ->
-                    (try DonkeyServers.query_location file sock with _ -> ())
-            ) (connected_servers());
-*)
-          
-            List.iter (fun s  ->
-              if 
-                connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
-                s.server_next_udp <= last_time () then
-                      match s.server_sock with
-                      | Connection _ -> ()
-                      | _ -> udp_query_locations file s
-	    ) !old_servers;
-	  end
-    ) !current_files;
-
-    List.iter (fun s ->
-        s.server_next_udp <- last_time () + !!min_reask_delay
-	      ) !old_servers;
-    if !udp_servers_list = [] then
-          udp_servers_list := Hashtbl2.to_list servers_by_key;
-    
-
   with e ->
-      lprintf "force_check_locations: %s" (Printexc2.to_string e);
-      lprint_newline ()
+     if !verbose then lprintf "extent_search: %s\n" (Printexc2.to_string e)
 
 let add_user_friend s u = 
   let kind  = 
     if Ip.valid u.user_ip && ip_reachable u.user_ip then
       Direct_address (u.user_ip, u.user_port)
-    else begin
-        begin
-          match s.server_sock, server_state s with 
-            Connection sock, (Connected _ |Connected_downloading _) ->
-              query_id s.server_ip s.server_port (id_of_ip u.user_ip) 
-          | _ -> ()
-        end;
-        Invalid_address (u.user_name, Md4.to_string u.user_md4)
+     else
+      begin
+        ( match s.server_sock, server_state s with
+              Connection sock, (Connected _ |Connected_downloading _) ->
+              query_id s.server_ip s.server_port (id_of_ip u.user_ip)
+            | _ -> () );
+      Invalid_address (u.user_name, Md4.to_string u.user_md4)
       end
   in
   let c = new_client kind  in
@@ -229,41 +130,42 @@ let add_user_friend s u =
   friend_add c
 
   
-let udp_from_server p =
-  match p.UdpSocket.udp_addr with
-  | Unix.ADDR_INET(ip, port) ->
-      let ip = Ip.of_inet_addr ip in
-      if !!update_server_list then
-        let s = check_add_server ip (port-4) in
-(* set last_conn, but add a 2 minutes offset to prevent staying connected
-to this server *)
-        connection_set_last_conn s.server_connection_control (
-          last_time () - 121);
-        s.server_score <- s.server_score + 3;
-        s
-      else find_server ip (port-4)
-  | _ -> raise Not_found
 
 let udp_client_handler t p =
-  let module M = DonkeyProtoServer in
-  if !verbose_udp then begin
-      lprintf "Received UDP message:\n";
-      lprintf "%s\n" (Udp.print t);
-    end;
+  if !verbose_udp then
+    lprintf "Received UDP message:\n%s\n" (Udp.print t);
+
+  let udp_from_server p =
+    match p.UdpSocket.udp_addr with
+      | Unix.ADDR_INET(ip, port) ->
+	  let ip = Ip.of_inet_addr ip in
+	  if !!update_server_list then
+            let s = check_add_server ip (port-4) in
+	    (* set last_conn, but add a 2 minutes offset to prevent 
+	       staying connected to this server *)
+            connection_set_last_conn s.server_connection_control (
+              last_time () - 121);
+            s.server_score <- s.server_score + 3;
+            s
+	  else 
+	    find_server ip (port-4)
+      | _ -> raise Not_found
+  in
   match t with
-    Udp.QueryLocationReplyUdpReq t ->
-(*      lprintf "Received location by UDP"; lprint_newline ();  *)
-      let  s = udp_from_server p in
-      List.iter (query_locations_reply s) t
+      Udp.QueryLocationReplyUdpReq t ->
+	(*      lprintf "Received location by UDP"; lprint_newline ();  *)
+	let  s = udp_from_server p in
+	List.iter (query_locations_reply s) t
       
   | Udp.QueryReplyUdpReq t ->
-(*      lprintf "Received file by UDP"; lprint_newline ();  *)
+      (*      lprintf "Received file by UDP"; lprint_newline ();  *)
       if !xs_last_search >= 0 then
         let ss = search_find !xs_last_search in
 	let s = udp_from_server p in
 	List.iter (fun t ->
-        Hashtbl.add udp_servers_replies t.f_md4 s;
-          search_handler ss [t]) t
+          Hashtbl.add udp_servers_replies t.f_md4 s;
+          search_handler ss [t]
+        ) t
 
   | Udp.PingServerReplyUdpReq t ->
       let module M = Udp.PingServerReplyUdp in
@@ -272,14 +174,17 @@ let udp_client_handler t p =
       s.server_last_message <- last_time ();
       s.server_nfiles <- Int64.of_int t.M.files;
       s.server_nusers <- Int64.of_int t.M.users;
-      (match t.M.max_users with Some x -> s.server_max_users <- x
-      | None -> ());
-      (match t.M.flags with Some x -> s.server_flags <- x
-      | None -> ())
+      (match t.M.max_users with 
+	   Some x -> s.server_max_users <- x
+	 | None -> ());
+      (match t.M.flags with 
+	   Some x -> s.server_flags <- x
+	 | None -> ())
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()
       
       
   | _ -> 
+      if !verbose_unexpected_messages then
       lprintf "Unexpected UDP message: \n%s\n"
         (DonkeyProtoUdp.print t)

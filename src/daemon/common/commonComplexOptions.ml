@@ -81,6 +81,7 @@ module FileOption = struct
                 normalize_time (get_value "file_age" value_to_int)
             with _ -> ());
           set_file_state file file_state;       
+	  if !verbose then 
           (match file_state with
               FileDownloading -> lprintf "New downloading file\n";
             | FileDownloaded -> lprintf "New downloaded file\n";

@@ -82,7 +82,7 @@ let local_index_add_cmd = define_expert_option donkey_section
 
 let compute_md4_delay = define_expert_option donkey_section ["compute_md4_delay"]
     "The delay between computations of the md4 of chunks"
-  float_option 10.
+  float_option 1.
 
 let _ =
   option_hook compute_md4_delay (fun _ ->
@@ -117,7 +117,7 @@ between servers" int_option 1
 let walker_server_lifetime = define_expert_option donkey_section
     ["walker_server_lifetime"] 
   "The maximal delay a connection with a server should last when walking
-through the list (should be greater than become_master_delay)" int_option 1
+through the list (should be greater than become_master_delay)" int_option 300
     
 (* let max_sources_age = define_expert_option donkey_section
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
@@ -126,7 +126,7 @@ through the list (should be greater than become_master_delay)" int_option 1
 let max_indirect_connections = define_option donkey_section
     ["max_indirect_connections"] 
   "Maximal number of incoming connections at any moment (default 10000 = unlimited :)"
-  int_option 300
+  int_option 100
   
 let log_clients_on_console = define_expert_option donkey_section
   ["log_clients_on_console"] 
@@ -141,11 +141,6 @@ let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"
     int_option 500
     
-let min_left_sources = define_expert_option donkey_section
-    ["min_left_sources"]
-    "Minimal number of sources for a file"
-    int_option 100
-
 open Md4  
     
 let mldonkey_md4 md4 =
@@ -303,6 +298,10 @@ let immediate_master =
 let become_master_delay = 
   define_expert_option donkey_section ["become_master_delay"] 
     "(only for development tests)" int_option 120
+
+let firewalled_mode = 
+  define_expert_option donkey_section ["firewalled_mode"] 
+    "Send the ID assigned from servers in connect-requests sent to other donkey clients (doe only apply when we have a LowID assogned!)" bool_option false
 
 let gui_donkey_options_panel = 
   [

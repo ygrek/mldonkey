@@ -275,13 +275,25 @@ let value_to_file file_size file_state assocs =
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
-  let file_diskname = try
-      get_value "file_diskname" value_to_string
-    with _ -> 
+  let file_diskname =
+    let filename =
+      try
+        get_value "file_diskname" value_to_string
+      with _ ->
         let filename = Filename.concat !!temp_directory file_md4 in
-        if Sys.file_exists filename then filename else
-          Filename.concat  !!temp_directory 
+        lprintf "testing ed2k-temp-file %s .\n" filename;
+        if Sys.file_exists filename then
+          filename
+        else
+          Filename.concat !!temp_directory
             (Printf.sprintf "urn:ed2k:%s" file_md4)
+    in
+    if not (Sys.file_exists filename) then
+      (* I think we should die here, to prevent any corruption. *)
+      lprintf "ERROR ED2K-TEMP-FILE %s DOES NOT EXIST, THIS WILL PERHAPS LEAD TO CORRUPTION IN THAT DOWNLOAD!!!!!!!!!!!!!!!\n"
+        filename;
+    if !verbose then lprintf "ed2k-temp-file %s used.\n" filename;
+    filename
   in
 
   let filenames = List.map (fun name -> name, GuiTypes.noips()) 

@@ -61,7 +61,7 @@ let result_name r =
 
 
 let op_file_proposed_filenames file = 
-  lprintf "op_file_proposed_filenames\n";
+  if !verbose then lprintf "op_file_proposed_filenames\n";
   List2.tail_map fst file.file_filenames
       
 let reconnect_all file =
@@ -114,7 +114,7 @@ let already_done = Failure "File already downloaded (use 'force_download' if nec
       
 let really_query_download filenames size md4 location old_file absents =
   
-  lprintf "really_query_download..................... \n";
+  if !verbose then lprintf "really_query_download..................... \n";
   begin
     try
       let file = Hashtbl.find files_by_md4 md4 in
@@ -127,25 +127,26 @@ let really_query_download filenames size md4 location old_file absents =
       if file.file_md4 = md4 then raise already_done) 
   !current_files;
 
-  let uid = Uid.create (Ed2k md4) in
   let file_diskname = Filename.concat !!temp_directory 
-    (Uid.to_string uid) in
+    (file_string_of_uid (Ed2k md4)) in
   begin
     match old_file with
     | Some filename when file_diskname <> filename ->
-        if Sys.file_exists filename && not (
-            Unix32.file_exists file_diskname) then
+        if Sys.file_exists filename
+	 && not (Sys.file_exists file_diskname)
+	  then
           (try 
-              if !verbose then begin
-                  lprintf "Renaming from %s to %s\n" filename
-                    file_diskname; 
-                end;
+	      lprintf "Renaming edonkey temp-file from %s to %s\n"
+		filename file_diskname;
               Unix2.rename filename file_diskname;
               Unix.chmod file_diskname 0o644;
               with e -> 
                 lprintf "Could not rename %s to %s: exception %s\n"
                   filename file_diskname (Printexc2.to_string e);
-          );        
+          )
+        else lprintf "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b\n"
+                filename (Sys.file_exists filename)
+                file_diskname (Sys.file_exists file_diskname);      
     | _ -> ()
   end;
 
@@ -180,8 +181,7 @@ let really_query_download filenames size md4 location old_file absents =
   DonkeyNeighbours.recover_downloads [file];
   
   List.iter (fun s ->
-      do_if_connected s.server_sock (fun sock ->
-          query_location file sock)
+    add_query_location file s
   ) (connected_servers());
 
   (try
@@ -445,7 +445,7 @@ let parse_donkey_url url =
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
-      let s = check_add_server ip (int_of_string port) in
+      let s = force_add_server ip (int_of_string port) in
       server_connect (as_server s.server_server);
       true 
   | "ed2k://" :: "friend" :: ip :: port :: _
@@ -537,7 +537,7 @@ let commands = [
         with e ->
             Printf.sprintf "error %s while loading temp files" (
               Printexc2.to_string e)
-    ), "<temp_dir> :\t\timport the old edonkey temp directory";
+    ), "<temp_dir> :\t\t\timport the old edonkey temp directory";
     
     "load_old_history", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -590,7 +590,7 @@ let commands = [
         brotherhood =:= 
           (List.map (fun file -> file.file_md4) !files) :: !!brotherhood;
         "    are now defined as colocated"
-    ) , "<f1> < f2> ... :\t\t\tdefine these files as probably colocated";
+    ) , "<f1> < f2> ... :\t\tdefine these files as probably colocated";
     
     "recover_bytes", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -614,7 +614,7 @@ let commands = [
             ) !current_files
         ) args;
         ""
-    ) , "<f1> < f2> ... :\t\t\ttry to recover these files at byte level";
+    ) , "<f1> < f2> ... :\t\ttry to recover these files at byte level";
 
     "preferred", Arg_two (fun arg1 arg2 o ->
         let preferred = bool_of_string arg1 in
@@ -626,7 +626,7 @@ let commands = [
             end
         ) servers_by_key;
         "ok"
-    ), "<true/false> <ip> : set the server with this IP has preferred";
+    ), "<true/false> <ip> :\t\tset the server with this IP has preferred";
     
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -648,8 +648,7 @@ let commands = [
           web_infos =:=  v :: !!web_infos;
         CommonWeb.load_url kind url;
         "url added to web_infos. downloading now"
-    ), "<kind> <url> :\t\t\tload this file from the web.
-\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+    ), "<kind> <url> :\t\t\tload this file from the web. kind is either server.met (if the downloaded file is a server.met)";
     
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -684,8 +683,25 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
             incr counter;
             if (!counter mod 2 == 0) then tr := "dl-1"
             else tr := "dl-2";
+            let uid =
+              try Uid.of_string filename
+              with _ -> Uid.no
+            in
+            let (other,md4) =
+              match Uid.to_uid uid with
+              | Ed2k md4 -> (false,md4)
+              | NoUid ->
+                  (try
+                     if String.length filename = 32 then
+                       (false,(Md4.of_string filename))
+                     else (true,Md4.null)
+                   with _ ->
+                     (true,Md4.null)
+                  )
+              | _ -> (true,Md4.null)
+            in
             try
-              let md4 = Md4.of_string filename in
+              if other then raise Not_found;
               try
                 let file = find_file md4 in
                 if use_html_mods o then
@@ -744,6 +760,12 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
         "done"
     ), ":\t\t\t\tshow sources currently known";
 
+    "tsources", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        DonkeySources.print_tsources buf;
+        "done"
+    ), ":\t\t\t\tshow table of sources of downloading files";
+
     (*
     "update_sources", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -795,7 +817,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
             port_black_list =:=  port :: !!port_black_list;
         ) args;
         "done"
-    ), "<port1> <port2> ... :\t\tadd these Ports to the port black list";
+    ), "<port1> <port2> ... :\t\t\tadd these Ports to the port black list";
     
     "send_servers", Arg_none (fun o ->
         CommonWeb.connect_redirector ();
@@ -820,7 +842,8 @@ DonkeySources.recompute_ready_sources ()        *)
       
 (*      DonkeyStats.save_download_history file; *)
       
-      if not (List.mem file.file_md4 !!old_files) then
+      if !!keep_cancelled_in_old_files &&
+        not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
       DonkeyShare.remember_shared_info file new_name;
       
@@ -1073,6 +1096,13 @@ let _ =
 
       tr ();
       html_mods_td buf [
+        ("File History Links", "sr br", "File History");
+	("","sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://stats.razorback2.com/ed2khistory\\?ed2k=%s\\\"\\>RazorBack File History\\</a\\>"
+	    (Md4.to_string file.file_md4)
+	)
+      ];
+      tr ();
+      html_mods_td buf [
         ("ed2k link", "sr br", "ed2k link");
         ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>"
             (file_best_name file)
@@ -1207,7 +1237,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
-            ("", "sr ar br", Printf.sprintf "%d" c.client_score);
+            ("", "sr ar br", Printf.sprintf "%d" c.client_source.DonkeySources.source_score);
             ("", "sr ar", (string_of_date (c.client_source.DonkeySources.source_age)));
             ("", "sr ar", ("-"));
             ("", "sr ar br", "-");
@@ -1274,12 +1304,17 @@ let try_recover_temp_file filename md4 =
   try
     ignore (Hashtbl.find files_by_md4 md4)
   with Not_found ->
-      let size = Unix32.getsize (Filename.concat !!temp_directory filename) in
+      let file_diskname = Filename.concat !!temp_directory filename in
+      let size = Unix32.getsize file_diskname in
       if size <> zero then
-        let names = (* TODO RESULT try DonkeyIndexer.find_names md4 
-                with _ -> *) [] in
+        let names =
+	 (* TODO RESULT
+	 try DonkeyIndexer.find_names md4 
+         with _ -> *)
+	[]
+	in
         let file = 
-          query_download names size md4 None (Some filename) None true
+          query_download names size md4 None (Some file_diskname) None true
         in        
         recover_md4s md4
         
@@ -1300,17 +1335,32 @@ let _ =
 
 (* TODO RESULT *)
   network.op_network_recover_temp <- (fun _ ->
-      lprintf "op_network_recover_temp ++++++++++++++++++++++++++\n";
+      if !verbose then lprintf "op_network_recover_temp ++++++++++++++++++++++++++\n";
       let files = Unix2.list_directory !!temp_directory in
       List.iter (fun filename ->
-          if String.length filename = 32 then
-            try
-              let md4 = Md4.of_string filename in
-              try_recover_temp_file filename md4
-            with e ->
-                lprintf "exception %s in recover_temp\n"
-                  (Printexc2.to_string e); 
-      ) files
+          let uid =
+            try Uid.of_string filename
+            with _ -> Uid.no
+          in
+          match Uid.to_uid uid with
+          | Ed2k md4 ->
+              (try
+                 try_recover_temp_file filename md4
+                with e ->
+                  lprintf "exception %s in recover_temp\n"
+                  (Printexc2.to_string e);
+              )
+          | NoUid ->
+              (if String.length filename = 32 then
+                 try
+                    let md4 = Md4.of_string filename in
+                    try_recover_temp_file filename md4
+                 with e ->
+                    lprintf "exception %s in recover_temp\n"
+                     (Printexc2.to_string e);
+              )
+          | _ -> ()
+    ) files
   );
   
   network.op_network_parse_url <- parse_donkey_url;
@@ -1464,7 +1514,7 @@ let _ =
   
 let _ =
   shared_ops.op_shared_unshare <- (fun file ->
-      lprintf "************ UNSHARE FILE ************\n";
+      if !verbose_share then lprintf "************ UNSHARE FILE ************\n";
       unshare_file file;
       
 (* Should we or not ??? *)

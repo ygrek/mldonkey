@@ -8,4 +8,9 @@ rm -f *.cma *.cmxa *.a
 rm -f mlgnut mlnap mlbt mldonkey mlslsk mldonkey_gui*
 rm -f build/*.cma build/*.cmxa build/*.a
 touch .depend
-cd config; ./configure $*
+if [ -d config ]
+then
+	cd config; ./configure $*
+else
+	echo "Missing config/ directory. Re-download mldonkey"
+fi

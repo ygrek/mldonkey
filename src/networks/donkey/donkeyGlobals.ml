@@ -148,7 +148,9 @@ let block_size = Int64.of_int 9728000
   
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
     
-let files_queries_per_minute = 1
+(* ask connected servers for sources for 3 files
+   costs 3*16 credits; 1 minute gets us 60 credits *)
+let files_queries_per_minute = 3
     
 let nclients = ref 0
 
@@ -264,8 +266,9 @@ let update_best_name file =
   
   let best_name = file_best_name file in
 (*  lprintf "update_best_name: %s\n" best_name; *)
-  if String2.starts_with best_name "urn:" ||
-    best_name = Md4.to_string file.file_md4
+  if best_name = file_string_of_uid (Ed2k file.file_md4)
+     || best_name = string_of_uid (Ed2k file.file_md4)
+     || best_name = Md4.to_string file.file_md4
     then
     try
       let file = as_file file in
@@ -277,7 +280,7 @@ let update_best_name file =
       | Some best_name ->
           let best_name = String2.replace best_name '/' "::" in
           set_file_best_name file best_name;
-          lprintf "BEST NAME now IS %s" best_name;
+          if !verbose then lprintf "BEST NAME now IS %s" best_name;
     with Not_found -> ()
 
         
@@ -400,8 +403,13 @@ let remove_client_chunks file client_chunks =
   done
     *)
 
+let low_id ip =
+  match Ip.to_ints ip with
+    | _, _, _, 0 -> true
+    | _ -> false
+
 let is_black_address ip port =
-  !!black_list && (
+  !!black_list && not (low_id ip) && (
 (* lprintf "is black ="; *)
     not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) ||
@@ -436,7 +444,7 @@ let new_server ip port score =
         server_tags = [];
         server_nfiles = Int64.zero;
         server_nusers = Int64.zero;
-          server_max_users = 0;
+        server_max_users = 0;
         server_name = "";
         server_description = "";
         server_banner = "";
@@ -446,9 +454,10 @@ let new_server ip port score =
         server_last_message = 0;
         server_queries_credit = 0;
         server_waiting_queries = [];
+	server_sent_all_queries = false;
         server_id_requests = Fifo.create ();
-          server_flags = 0;
-          server_has_zlib = false;
+        server_flags = 0;
+        server_has_zlib = false;
       }
       and server_impl = 
         {
@@ -718,7 +727,22 @@ let remove_client c =
 let friend_remove c = 
   friend_remove  (as_client c)
 
-  
+(* Parts stolen from update_master_servers. Maybe someone competent
+   enough reduces the redundant code produced here. *)
+let last_connected_master () =
+  let server_list = connected_servers () in
+  let masters = ref [] in
+  List.iter (
+    fun s ->
+      if s.server_master then 
+        match s.server_sock with
+          | Connection _ -> 
+              masters := s :: !masters
+          | _ -> s.server_master <- false
+  ) server_list;
+  match !masters with
+  | s :: _ -> s
+  | [] -> raise Not_found
   
 let last_connected_server () =
   match !servers_list with 
@@ -870,7 +894,32 @@ let brand_mod_to_string b =
   | Brand_mod_bl4ckbird -> "bl4ckbird"
   | Brand_mod_bl4ckf0x -> "bl4ckf0x"
   | Brand_mod_rt -> "rt"
+  | Brand_mod_airionix -> "air-ionix"
+  | Brand_mod_ionix -> "ionix"
+  | Brand_mod_tornado -> "tornado"
+  | Brand_mod_antifaker -> "anti-faker"
+  | Brand_mod_netf -> "netf"
+  | Brand_mod_nextemf -> "nextemf"
+  | Brand_mod_proemule -> "proemule"
+  | Brand_mod_szemule -> "szemule"
+  | Brand_mod_darkmule -> "darkmule"
+  | Brand_mod_miragemod -> "miragemod"
+  | Brand_mod_nextevolution -> "nextevolution"
+  | Brand_mod_pootzgrila -> "pootzgrila"
+  | Brand_mod_freeangel -> "freeangel"
+  | Brand_mod_enos -> "enos"
+  | Brand_mod_webys -> "webys"
     
+let string_of_client c =
+  Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
+  c.client_name (brand_to_string c.client_brand)
+  (match c.client_kind with
+      Indirect_address _ | Invalid_address _ -> ""
+    | Direct_address (ip,port) ->
+        Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
+  )
+
+
 
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
@@ -994,6 +1043,3 @@ let server_accept_multiple_getsources s =
 let server_send_multiple_replies s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
 
-let low_id ip =
-  let _,_,_,i = Ip.to_ints ip in
-    i==0

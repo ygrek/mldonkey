@@ -160,5 +160,7 @@ let save_config () =
   
 let _ =
   network.op_network_file_of_option <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value
-  
+  file_ops.op_file_to_option <- file_to_value;
+  (* Shut up message "Network.save/load_complex_options not implemented by FileTP" *)
+  network.op_network_load_complex_options <- (fun _ -> ());
+  network.op_network_save_complex_options <- (fun _ -> ())

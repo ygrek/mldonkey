@@ -516,7 +516,7 @@ let set_socks_proxy t ss =
 *)
 
   
-let get_latencies () =
+let get_latencies verbose =
   let b = Buffer.create 300 in
   let counter = ref 0 in  
   Hashtbl.iter (fun ip (latency, samples) ->
@@ -524,7 +524,7 @@ let get_latencies () =
   ) latencies;
   LittleEndian.buf_int b !counter;
   Hashtbl.iter (fun ip (latency, samples) ->
-      lprintf "   Latency UDP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
+      if !verbose then lprintf "   Latency UDP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
       LittleEndian.buf_ip b ip;
       LittleEndian.buf_int16 b !latency;
       LittleEndian.buf_int16 b !samples;

@@ -270,6 +270,7 @@ let get_info file =
     | "mpg" :: _ -> FormatType ("mpg", "Video")
     | "mpeg" :: _ -> FormatType ("mpg", "Video")
     | "mov" :: _ -> FormatType ("mov", "Video")
+    | "ogm" :: _ -> FormatType ("ogm", "Video")
     | "asf" :: _ -> FormatType ("asf", "Video")
     | _ -> FormatUnknown
   with e -> 

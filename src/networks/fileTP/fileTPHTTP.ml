@@ -153,7 +153,32 @@ let rec client_parse_header c gconn sock header =
           end;
       end;
     
-    
+
+    (* I think this is already handeled with the new headder check before
+       download start code
+     If the header contains a redirection 
+    if (code = 302) then begin
+      let (newurl, _) = List.assoc "location" headers in
+
+      remove_file file;
+      file_cancel (as_file file);
+      let u = Url.of_string newurl in
+
+      c.client_hostname <- u.Url.server;
+      c.client_port <- u.Url.port;
+
+      let file = new_file (Md4.random ()) u.Url.full_file zero in
+      
+      lprintf "DOWNLOAD FILE %s\n" (file_best_name  file); 
+      if not (List.memq file !current_files) then begin
+	current_files := file :: !current_files;
+      end;
+      add_download file c u;
+      FileTPClients.get_file_from_source c file;
+      
+     end;
+    *)
+
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
     
@@ -393,7 +418,7 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should no
         | _ -> ()
     )
     
-  
+ 
 let proto =
   {
     proto_send_range_request = http_send_range_request;

@@ -75,6 +75,7 @@ let match_ip bl ip =
 
 let load_merge bl filename =
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
+  let ipfilter_regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *- *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *, *[0-9]+ *, *\\(.*\\)$" in
 
   let cin = open_in filename in
   let bl = ref bl in
@@ -83,16 +84,25 @@ let load_merge bl filename =
     while true do
       let line = input_line cin in
 	try
-	  if Str.string_match guardian_regexp line 0 then begin
+	  if Str.string_match ipfilter_regexp line 0 then begin
 	    let br = {
-	      blocking_description = Str.matched_group 1 line;
-	      blocking_begin = Ip.of_string (Str.matched_group 2 line);
-	      blocking_end = Ip.of_string (Str.matched_group 3 line);
+	      blocking_description = Str.matched_group 3 line;
+	      blocking_begin = Ip.of_string (Str.matched_group 1 line);
+	      blocking_end = Ip.of_string (Str.matched_group 2 line);
 	      blocking_hits = 0 } in
 	    bl := add_range !bl br;
 	    incr nranges
 	  end else 
-	    raise Not_found
+	    if Str.string_match guardian_regexp line 0 then begin
+	      let br = {
+	        blocking_description = Str.matched_group 1 line;
+	        blocking_begin = Ip.of_string (Str.matched_group 2 line);
+	        blocking_end = Ip.of_string (Str.matched_group 3 line);
+	        blocking_hits = 0 } in
+	      bl := add_range !bl br;
+	      incr nranges
+	    end else 
+	      raise Not_found
 	with _ ->
 	  lprintf "Syntax error: %s" line;
 	  lprint_newline ()

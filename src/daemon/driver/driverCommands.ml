@@ -223,7 +223,7 @@ let _ =
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
-    
+
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
             try
@@ -274,6 +274,10 @@ let _ =
             CommonGlobals.version () else CommonGlobals.version ()
     ), ":\t\t\t\tprint mldonkey version";
     
+    "buildinfo", Arg_none (fun o ->
+        if use_html_mods o then Printf.sprintf "\\<P\\>" ^ 
+            CommonGlobals.buildinfo () else CommonGlobals.buildinfo ()
+    ), ":\t\t\t\tprint mldonkey core build information";
     
     "activity", Arg_one (fun arg o ->
         let arg = int_of_string arg in
@@ -296,7 +300,7 @@ let _ =
               end
         ) activities;
         ""
-    ), " <minutes> : print activity in the last <minutes> minutes";
+    ), " <minutes> :\t\tprint activity in the last <minutes> minutes";
     
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -597,7 +601,7 @@ let _ =
             ) args;
             Printf.sprintf (_b "%d friends removed") (List.length args)
           end
-    ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";    
+    ), "<client numbers> :\t\tremove friend (use arg 'all' for all friends)";    
     
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -741,7 +745,7 @@ let _ =
             !CommonUploads.has_upload !CommonUploads.upload_credit
         
         else ""
-    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
+    ), "<m> :\t\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
     
     "bw_stats", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -852,14 +856,14 @@ let _ =
         let n = network_find_by_num (int_of_string num) in
         network_enable n;
         _s "network enabled"
-    ) , " <num> : enable a particular network";
+    ) , " <num> :\t\t\t\tenable a particular network";
 
     "disable", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let n = network_find_by_num (int_of_string num) in
         network_disable n;
         _s "network disabled"
-    ) , " <num> : disable a particular network";
+    ) , " <num> :\t\t\t\tdisable a particular network";
     
     ]
 
@@ -898,7 +902,7 @@ let _ =
               ) args;
         end;
         ""  
-    ), "<num1> <num2> ...:\t\t\t\tforget searches <num1> <num2> ...";
+    ), "<num1> <num2> ...:\t\tforget searches <num1> <num2> ...";
     
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -933,25 +937,8 @@ let _ =
               G.search_network = net;
             }) buf);
         ""
-    ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n;
-\tWith special args:
-\t-network <netname>
-\t-minsize <size>
-\t-maxsize <size>
-\t-media <Video|Audio|...>
-\t-Video
-\t-Audio
-\t-format <format>
-\t-title <word in title>
-\t-album <word in album>
-\t-artist <word in artist>
-\t-field <field> <fieldvalue>
-\t-not <word>
-\t-and <word> 
-\t-or <word>
+    ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n";
 
-";
-    
     "ls", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
@@ -965,24 +952,8 @@ let _ =
               G.search_network = net;
             }) buf);
         ""
-    ), "<query> :\t\t\t\tsearch for files locally\n
-\tWith special args:
-\t-network <netname>
-\t-minsize <size>
-\t-maxsize <size>
-\t-media <Video|Audio|...>
-\t-Video
-\t-Audio
-\t-format <format>
-\t-title <word in title>
-\t-album <word in album>
-\t-artist <word in artist>
-\t-field <field> <fieldvalue>
-\t-not <word>
-\t-and <word> 
-\t-or <word>
-";
-        
+    ), "<query> :\t\t\t\tsearch for files locally\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n";
+
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
@@ -1031,8 +1002,7 @@ let _ =
           Printf.bprintf buf "\\<a
             href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FileHeaven\\</a\\> \\<a
             href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FileDonkey\\</a\\> \\<a
-            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> \\<a
-            href=\\\"http://filewatcher.org\\\" name=\\\"FileWatcher\\\" target=\\\"$O\\\"\\>FileWatcher\\</a\\> ";
+            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> ";
         
         ""
     ), ":\t\t\tview custom queries";
@@ -1054,7 +1024,7 @@ let _ =
             in
             List.iter CommonInteractive.start_download files;
             "download forced"
-    ), ":\t\t\tforce download of an already downloaded file";
+    ), ":\t\t\t\tforce download of an already downloaded file";
     
     ]
   
@@ -1276,6 +1246,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_mods_vd_age; 
                         strings_of_option html_mods_vd_last; 
                         strings_of_option html_mods_vd_prio; 
+                        strings_of_option html_mods_vd_paused; 
+                        strings_of_option html_mods_vd_queued; 
                         strings_of_option html_mods_vd_queues; 
                         strings_of_option html_mods_show_pending; 
                         strings_of_option html_mods_load_message_file; 
@@ -1572,7 +1544,8 @@ let _ =
             html_mods_table_header buf "sharesTable" "shares" [ 
               ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ; 
               ( "1", "srh ar", "Priority", "P" ) ; 
-              ( "0", "srh", "Directory", "Directory" ) ]; 
+              ( "0", "srh", "Directory", "Directory" ) ;
+              ( "0", "srh", "Strategy", "Strategy" ) ]; 
             
             let counter = ref 0 in
 
@@ -1592,11 +1565,13 @@ let _ =
         setTimeout(\\\"window.location.reload()\\\",1000);}'
 		class=\\\"srb\\\"\\>Unshare\\</td\\>
 		\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+		\\<td class=\\\"sr\\\"\\>%s\\</td\\>
 		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
                   (if !counter mod 2 == 0 then "dl-1" else "dl-2") 
                 shared_dir.shdir_dirname 
                 shared_dir.shdir_priority
-                shared_dir.shdir_dirname;
+                shared_dir.shdir_dirname
+                shared_dir.shdir_strategy;
             )
             !!shared_directories;
             
@@ -1608,13 +1583,13 @@ let _ =
             Printf.bprintf buf "Shared directories:\n";
 (*            Printf.bprintf buf "  %d %s\n" !!incoming_directory_prio !!incoming_directory; *)
             List.iter (fun sd -> 
-                Printf.bprintf buf "  %d %s\n" 
-                sd.shdir_priority sd.shdir_dirname)
+                Printf.bprintf buf "  %d %s %s\n" 
+                sd.shdir_priority sd.shdir_dirname sd.shdir_strategy)
             !!shared_directories;
           
           end;
         ""
-    ), ":\t\t\t\tprint shared directories";
+    ), ":\t\t\t\t\tprint shared directories";
     
     "share", Arg_multiple (fun args o ->
         let (prio, arg, strategy) = match args with
@@ -1645,7 +1620,7 @@ let _ =
             "directory already shared"
         else
           "no such directory"
-    ), "<priority> <dir> [<strategy>] :\t\t\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";
+    ), "<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";
     
     "unshare", Arg_one (fun arg o ->
 
@@ -1967,7 +1942,7 @@ let _ =
         | "what" | "w" ->
             files_to_cancel o
         | _ -> failwith "Invalid argument"
-    ), " <yes|no|what>: confirm cancellation";
+    ), " <yes|no|what>:\t\t\tconfirm cancellation";
 
     "test_recover", Arg_one (fun num o ->
         
@@ -1982,7 +1957,7 @@ let _ =
             downloaded := !downloaded ++ (end_pos -- begin_pos);
         ) segments;
         Printf.sprintf "Downloaded: %Ld\n" !downloaded
-    ), " <num> : print the segments downloaded in file";
+    ), " <num> :\t\t\tprint the segments downloaded in file";
         
     
     "cancel", Arg_multiple (fun args o ->
@@ -2093,7 +2068,7 @@ let _ =
             file_commit file
         ) !!done_files;
         "Commited"
-    ) , ":\t\t\t\t$bmove downloaded files to incoming directory$n";
+    ) , ":\t\t\t\t\t$bmove downloaded files to incoming directory$n";
     
     "vd", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -2153,22 +2128,48 @@ let _ =
     
     
     "dllink", Arg_multiple (fun args o ->        
+	if !verbose then lprintf "dllink\n";
         let buf = o.conn_buf in
-        let url = String2.unsplit args ' ' in
+	let query_networks url = 
+	  if not (networks_iter_until_true
+		    (fun n -> 
+                       try 
+			 network_parse_url n url
+                       with e ->
+			 Printf.bprintf buf "Exception %s for network %s\n"
+			 (Printexc2.to_string e) (n.network_name);
+			 false
+		    )) then
+            _s "Unable to match URL"
+          else
+            _s "done"
+	in
         
-        if not (networks_iter_until_true
-              (fun n -> 
-                try 
-                  network_parse_url n url
-                with e ->
-                    Printf.bprintf buf "Exception %s for network %s\n"
-                      (Printexc2.to_string e) (n.network_name);
-                    false
-            )) then
-          _s "Unable to match URL"
-        else
-          _s "done"
-    ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
+        let url = String2.unsplit args ' ' in
+	  if (String2.starts_with url "http") then (
+	    let u = Url.of_string url in
+	    let module H = Http_client in
+	    let r = {
+	      H.basic_request with
+		H.req_url =  u;
+		H.req_proxy = !CommonOptions.http_proxy;
+		H.req_request = H.HEAD;
+		H.req_user_agent = 
+		       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+	    } in
+	      H.whead r 
+		(fun headers ->
+		   (* Combine the list of header fields into one string *)
+		   let concat_headers = 
+		     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")  in
+		     ignore (query_networks concat_headers)
+		);
+	  
+	      _s "Parsing HTTP url..."
+	  )
+	  else
+	    query_networks url
+	), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
     
     "dllinks", Arg_one (fun arg o ->        
         let buf = o.conn_buf in
@@ -2180,7 +2181,7 @@ let _ =
                   network_parse_url n line))
         ) lines;
         _s "done"
-    ), "<file> :\t\t\tdownload all the links contained in the file";
+    ), "<file> :\t\t\t\tdownload all the links contained in the file";
     
   ]
 
@@ -2270,14 +2271,14 @@ let _ =
             MlUnix.detach_daemon ();
             _s "done"
           end
-    ), ":\t\t\t\tdetach process from console and run in background";
+    ), ":\t\t\t\t\tdetach process from console and run in background";
     
     "merge", Arg_two (fun f1 f2 o ->
         let file1 = file_find (int_of_string f1) in
         let file2 = file_find (int_of_string f2) in
         Int64Swarmer.merge file1 file2;
         "The two files are now merged"
-    ), " <num1> <num2> : try to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
+    ), " <num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
     
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in
@@ -2363,7 +2364,7 @@ let _ =
         ""
         
         
-    ), " : print RSS feeds";
+    ), " :\t\t\t\t\tprint RSS feeds";
     
     "html_theme", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -2418,7 +2419,7 @@ let _ =
 
     "block_list", Arg_none (fun o ->
       Ip_set.print_list o.conn_buf !Ip_set.bl;
-      _s "done"), ":\t\t\tdisplay the list of blocked IP ranges that were hit";
+      _s "done"), ":\t\t\t\t\tdisplay the list of blocked IP ranges that were hit";
 
     "block_test", Arg_one (fun arg o ->
       let ip = Ip.of_string arg in

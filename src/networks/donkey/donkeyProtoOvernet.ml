@@ -402,10 +402,12 @@ module Proto = struct
                     f t p
                   end
               with e ->
+	          if !verbose_hidden_errors then begin
                   lprintf "Error %s in udp_handler, dump of packet:\n"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
                   lprint_newline ()	    
+		  end
           );
       | _ -> ()
     
@@ -515,4 +517,4 @@ module Overnet = struct
         | Some sock -> 
             tcp_sock := None;
             TcpServerSocket.close sock Closed_by_user);
-end      
+end

@@ -155,7 +155,7 @@ let add_torrent_infos file trackers =
   ) trackers
 
 let create_temp_file file_temp file_files =
-  lprintf "create_temp_file %s\n" file_temp;
+  if !CommonOptions.verbose_files then lprintf "create_temp_file %s\n" file_temp;
   let file_fd =
     if file_files <> [] then
       Unix32.create_multifile file_temp
@@ -473,7 +473,7 @@ let decode_non_zero s =
 let parse_software s =
   try 
   let rec try_styles i =
-    if i > 12 then "" else begin
+    if i > 13 then "UNKNOWN" else begin
     let res = ref
       (match i with
          | 0 -> decode_az_style s
@@ -489,13 +489,16 @@ let parse_software s =
          | 10 -> decode_bitcomet s
          | 11 -> decode_shareaza s
          | 12 -> decode_non_zero s
-         | _ -> "")
+         | 13 -> if (Sha1.null) = (Sha1.direct_of_string s) then
+                     "NULL" else ""
+         | _ -> "ERROR"
+       )
     in
     if !res = "" then try_styles (i+1) else !res;
   end
   in
   try_styles 0
-  with _ -> ""
+  with _ -> "ERROR"
       
 let new_client file peer_id kind =
   try
@@ -511,6 +514,7 @@ let new_client file peer_id kind =
           client_file = file;
           client_host = kind;
           client_choked = true;
+          client_received_peer_id = false;
           client_sent_choke = false;
           client_interested = false;
           client_uploader = None;
@@ -536,8 +540,9 @@ let new_client file peer_id kind =
           client_incoming = false;
 	  client_registered_bitfield = false;
 	  client_last_optimist = 0;
-          client_software = if peer_id = Sha1.null then "" 
-            else (parse_software (Sha1.direct_to_string peer_id));
+          client_software = if peer_id != Sha1.null then
+              (parse_software (Sha1.direct_to_string peer_id))
+            else "NOT_RECEIVED";
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

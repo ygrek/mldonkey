@@ -390,15 +390,19 @@ let server_print s o =
             match impl.impl_server_state with
             Connected _ -> begin 
                         let cid = (server_cid s) in
-                        if Ip.valid cid then Printf.sprintf 
+(* No! No! How often is this done wrong in mldonkey???  ... *)
+(*                        if Ip.valid cid then Printf.sprintf  *)
+                        if not (donkeyIsLowID cid) then Printf.sprintf
                         "title=\\\"HighID: %s = %s %s\\\" \\>%s" 
                         (Int64.to_string (Ip.to_int64 (Ip.rev cid)))  
 						(Ip.to_string cid) 
 						(if !!set_client_ip <> cid then Printf.sprintf "(clientIP: %s)" (Ip.to_string !!set_client_ip) 
 						 else "") 
 						"Hi"
-                        else Printf.sprintf "title=\\\"LowID: %s\\\" \\>%s" 
-                        (Int64.to_string (Ip.to_int64 (Ip.rev cid))) "Lo"
+                        else Printf.sprintf "title=\\\"LowID: %s = %s\\\" \\>%s" 
+                        (Int64.to_string (Ip.to_int64 (Ip.rev cid)))
+						(Ip.to_string cid)
+						 "Lo"
                         end
         | _ -> "\\>"
 

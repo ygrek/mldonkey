@@ -111,7 +111,7 @@ let file_commit file =
             set_file_disk_name file new_name;
             let best_name = file_best_name file in  
             Unix32.destroy (file_fd file);
-            lprintf "destroyed\n";
+            if !verbose_files then lprintf "commonInteractive.file_commit: destroyed\n";
             let impl = as_file_impl file in
             
 (* When the commit action is called, the file is supposed not to exist
@@ -133,7 +133,7 @@ anymore. *)
             done_files =:= List2.removeq file !!done_files;
             files =:= List2.removeq file !!files;
             
-            lprintf "going to secondaries...\n";
+            if !verbose_files then lprintf "commonInteractive.file_commit: going to secondaries...\n";
             List.iter (fun file ->
 (* Commit the file first, and share it after... *)
                 try

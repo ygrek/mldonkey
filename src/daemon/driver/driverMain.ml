@@ -490,7 +490,7 @@ let _ =
   Options.prune_file downloads_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
-  lprintf (_b "Welcome to MLdonkey client\n"); 
+  lprintf (_b "\nWelcome to MLdonkey client\n"); 
   lprintf (_b "Check http://www.mldonkey.net/ for updates\n"); 
   lprintf (_b "To command: telnet %s %d\n") 
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1" 
@@ -504,7 +504,7 @@ let _ =
   
 
   add_init_hook (fun _ ->
-      if not !gui_included then
+      if not !gui_included && ( !!start_gui || !!ask_for_gui ) then
       (try
           let _ = Sys.getenv("DISPLAY") in
           if !!start_gui && Sys.file_exists !!mldonkey_gui then

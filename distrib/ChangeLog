@@ -1,6 +1,96 @@
 ChangeLog	
 =========
 
+2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
+
+-------------------------------------------------------------------
+These patches were applied to 2-5-29 by b8_bavard without mentioning
+in Changelog:
+
+3357: BT: use config option for hardcoded TCP-read-timeout
+3326: html_mods: Show sources info in vd # output again
+      (bt_vd_soft.diff + html_print_sources.diff)
+-------------------------------------------------------------------
+This patch was applied to 2-5-28-1 by spiralvoice without mentioning
+in Changelog:
+
+3672: Let mldonkey upload (complete files) work with Low ID clients
+-------------------------------------------------------------------
+
+These patches are part of release 2.5.30:
+
+3676: BT/fileTP HTTP header check (header_checks-fix.diff)
+3551: new gtk2 gui (3551_1_29.patch.gz, rsvg_icons_set.patch.gz)
+3308: Optionally skip (queued/paused) files in html vd display
+3461: [EDK] Fix some bugs (3461_29.patch, tweak_commonSources.2-5-28-fixed.patch)
+3476: Fix bug in friends file list
+3481: Let configure fail if Ocaml and wget are not available
+3484: Add vd link for nocheckboxes html interface (3484_2.patch)
+3490: Some leftovers from patch_pack 2-5-28h
+      (lowid_29.patch, cleanups_small-fixes.patch, 3490_2.patch)
+3491: Some stuff for config/Makefile.config.i?86.in
+3494: BT: tracker interval fixed again (this patch replaces
+      patch 3447 from 2-5-28-1, 3494_29.patch)
+3522: BT guarding.p2p support
+3575: Detect if config/ directory is absent during configure
+3603: Error in mldonkey-design.tex
+3604: Fix for bug #11394 - HTTP redirection
+3608: EDK: Higher default for walker_server_lifetime 
+3609: New extensions for video search (extensions28.patch)
+3610: Kademlia nodes are collected even if Kademlia is disabled
+3615: Small typo, clean logfile
+      (log.patch, log.patch (for Overnet messages, new in 2-5-28p,
+      typo.patch, 3615_4_29, replaces edkudp_messages.patch,
+      3615_5_29, replaces compatableclient.patch)
+3616: fix for too much source-queries to servers for 2.5.28i
+      (3616_29.patch)
+3620: Donkey guarding.p2p support (3620_29.patch)
+3621: new command "tsources" prints table of sources
+3622: we should only ask for sources if we need_new_sources (3622_29.patch)
+3627: Adding EDK servers with edk://server did not work
+3631: Solve configure problem on Mac - fixes bug 11365
+3634: This patch addes RazorBack's file history link to interface 
+3637: Fix for MacOS Orphaned File Descriptor Bug
+3648: HTML: Display sharing strategies in Options, Shares
+3652: TELNET: Display search result summary
+3653: Handle HTML error 304 in http_client.ml (3653_29.patch)
+3655: Bugfix for multiple sourceexchanges with the same peer
+      (3655_2.patch)
+3656: Parse eMules ipfilter.dat for use in IP blocking function
+3672: Let mldonkey upload (complete files) work with Low ID clients
+3675: EDK: keep_cancelled_in_old_files works again
+3677: Fix for bug #11686 - fileTP cancel
+3680: get more infos on servers per UDP
+3685: fileTP FTP quick fix
+3688: Avoid Exception Pervasives.Exit in QueryFileReq
+3707: Use Ocaml 3.08.2 instead of 3.08.0 when no Ocaml is installed yet
+3715: Some care for options
+3719: New command: buildinfo (3719.patch, buildinfo2.patch, 3719_3.patch)
+3721: HTML: Remove filewatcher.org from Search function
+3725: EDK: 15 new eMule mods
+3726: EDK: Better recognition for Shareaza clients
+3728: EDK: vd <num> source score display bugfix
+3734: Configurable socket option so_keepalive (3734_29.patch)
+3737: FT/GT: Canceling download works again (3737_29.patch)
+3744: bugfix #11362 and some description cleanup
+3754: Bitzi lookup works again in Search results interface (3754_29.patch)
+3157: Send core update message to "new mldonkey" (3157_29.patch)
+3681: remove guarding block of indirect sources
+3717: improvement of patch 3672 (additonally bugfix for wrong Hi/Lo-ID in serverlist)
+3773: Solve compile bug in tools (dp500.patch, make_torrent.patch)
+3673: do not send the entire list of shadred file to servers every 5 minutes
+      (3673_29.patch)
+3291: Fix for bug 9996 - Missing Date Header in Emails
+      (fixed problems with 3291_29.patch)
+3736: Bugfix for Chunks-Randomizing and LowID recognition on inbound connections
+3722: Enhancements to the sourceexchange and some minor ED2K bugfixes (3722_29.patch)
+3735: Sourcemanagement revisited (3735_29.patch)
+3776: Fix for file corruption in CVS 2-5-29
+3777: Lots of backported stuff from Amorphous branch 205
+      (backport.patch, log.patch)
+
+-------------------------------------------------------------------
+
 UPDATE (2005/02/20): branch 2-5-28 was updated, to check out use "-r release-2-5-28-1"
 
 A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !

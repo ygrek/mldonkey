@@ -185,6 +185,21 @@ let brand_mod_to_int b =
   | Brand_mod_bl4ckbird -> 95
   | Brand_mod_bl4ckf0x -> 96
   | Brand_mod_rt -> 97
+  | Brand_mod_airionix -> 98
+  | Brand_mod_ionix -> 99
+  | Brand_mod_tornado -> 100
+  | Brand_mod_antifaker -> 101
+  | Brand_mod_netf -> 102
+  | Brand_mod_nextemf -> 103
+  | Brand_mod_proemule -> 104
+  | Brand_mod_szemule -> 105
+  | Brand_mod_darkmule -> 106
+  | Brand_mod_miragemod -> 107
+  | Brand_mod_nextevolution -> 108
+  | Brand_mod_pootzgrila -> 109
+  | Brand_mod_freeangel -> 110
+  | Brand_mod_enos -> 111
+  | Brand_mod_webys -> 112
 
 let brand_mod_of_int b =
   match b with
@@ -286,6 +301,21 @@ let brand_mod_of_int b =
   | 95 -> Brand_mod_bl4ckbird
   | 96 -> Brand_mod_bl4ckf0x
   | 97 -> Brand_mod_rt
+  | 98 -> Brand_mod_airionix
+  | 99 -> Brand_mod_ionix
+  | 100 -> Brand_mod_tornado
+  | 101 -> Brand_mod_antifaker
+  | 102 -> Brand_mod_netf
+  | 103 -> Brand_mod_nextemf
+  | 104 -> Brand_mod_proemule
+  | 105 -> Brand_mod_szemule
+  | 106 -> Brand_mod_darkmule
+  | 107 -> Brand_mod_miragemod
+  | 108 -> Brand_mod_nextevolution
+  | 109 -> Brand_mod_pootzgrila
+  | 110 -> Brand_mod_freeangel
+  | 111 -> Brand_mod_enos
+  | 112 -> Brand_mod_webys
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -388,6 +418,21 @@ let gbrand_mod_to_string b =
   | Brand_mod_bl4ckbird -> "b4b"
   | Brand_mod_bl4ckf0x -> "b4f"
   | Brand_mod_rt -> "rt"
+  | Brand_mod_airionix -> "aio"
+  | Brand_mod_ionix -> "ion"
+  | Brand_mod_tornado -> "tor"
+  | Brand_mod_antifaker -> "anf"
+  | Brand_mod_netf -> "nef"
+  | Brand_mod_nextemf -> "nxf"
+  | Brand_mod_proemule -> "pem"
+  | Brand_mod_szemule -> "sze"
+  | Brand_mod_darkmule -> "dar"
+  | Brand_mod_miragemod -> "mir"
+  | Brand_mod_nextevolution -> "nxe"
+  | Brand_mod_pootzgrila -> "poo"
+  | Brand_mod_freeangel -> "fre"
+  | Brand_mod_enos -> "eno"
+  | Brand_mod_webys -> "wys"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 

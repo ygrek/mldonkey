@@ -60,7 +60,7 @@ torrents/: for BitTorrent
 let chunk_size = Int64.of_int (256 * 1024)    
   
 let decode_torrent s =
-  lprintf ".torrent file loaded\n";
+  if !verbose_msg_servers then lprintf ".torrent file loaded\n";
 (*            lprintf "Loaded: %s\n" (String.escaped s); *)
   let v = Bencode.decode s in
 (*            lprintf "Decoded file: %s\n" (Bencode.print v);  *)
@@ -100,7 +100,7 @@ let decode_torrent s =
                     length_set := true
                 
                 | String key, _ -> 
-                    lprintf "other field [%s] in files\n" key
+                    if !verbose_msg_servers then lprintf "other field [%s] in files\n" key
                 | _ -> 
                     lprintf "other field in files\n"
             ) list;
@@ -137,12 +137,12 @@ let decode_torrent s =
                     | String "pieces", String pieces ->
                         file_pieces := pieces
                     | String key, _ -> 
-                        lprintf "other field [%s] in info\n" key
+                        if !verbose_msg_servers then lprintf "other field [%s] in info\n" key
                     | _ -> 
                         lprintf "other field in info\n"
                 ) list            
             | String key, _ -> 
-                lprintf "other field [%s] after info\n" key
+                if !verbose_msg_servers then lprintf "other field [%s] after info\n" key
             | _ -> 
                 lprintf "other field after info\n"
         ) list

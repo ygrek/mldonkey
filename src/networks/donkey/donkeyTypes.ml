@@ -149,7 +149,7 @@ type emule_tag_name =
 | ET_SOURCEEXCHANGE
 | ET_COMMENTS
 | ET_EXTENDEDREQUEST
-| ET_COMPATABLECLIENT
+| ET_COMPATIBLECLIENT
 | ET_MOD_FEATURESET
 | ET_MOD_PROTOCOL
 | ET_MOD_VERSION
@@ -298,8 +298,23 @@ type brand_mod =
 | Brand_mod_bl4ckbird
 | Brand_mod_bl4ckf0x
 | Brand_mod_rt
+| Brand_mod_airionix
+| Brand_mod_ionix
+| Brand_mod_tornado
+| Brand_mod_antifaker
+| Brand_mod_netf
+| Brand_mod_nextemf
+| Brand_mod_proemule
+| Brand_mod_szemule
+| Brand_mod_darkmule
+| Brand_mod_miragemod
+| Brand_mod_nextevolution
+| Brand_mod_pootzgrila
+| Brand_mod_freeangel
+| Brand_mod_enos
+| Brand_mod_webys
 
-let brand_mod_count = 98
+let brand_mod_count = 113
 
 type source_uid = 
   Direct_address of Ip.t * int
@@ -325,6 +340,9 @@ module DonkeySources = CommonSources.Make(struct
         
       let direct_source s =
         match s with Direct_address _ -> true | _ -> false
+      
+      let indirect_source s =
+        match s with Indirect_address _ -> true | _ -> false
       
       let dummy_source_uid = Direct_address (Ip.null, 0)
             
@@ -384,6 +402,7 @@ type server = (*[]*){
     
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
+    mutable server_sent_all_queries : bool;
     mutable server_has_zlib : bool;
     
     mutable server_flags : int;
@@ -872,7 +891,7 @@ let string_of_emule_tag_name name =
   | ET_SOURCEEXCHANGE -> "sourceexchange"
   | ET_COMMENTS -> "comments"
   | ET_EXTENDEDREQUEST -> "extendedrequest"
-  | ET_COMPATABLECLIENT -> "compatableclient"
+  | ET_COMPATIBLECLIENT -> "compatibleclient"
   | ET_MOD_FEATURESET -> "mod_featureset"
   | ET_MOD_PROTOCOL -> "mod_protocol"
   | ET_MOD_VERSION -> "mod_version"

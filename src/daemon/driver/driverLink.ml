@@ -148,11 +148,11 @@ let good_file kind is_dir file =
     if !verbose_dp500 then lprintf "Extension [%s]\n" ext;
     List.mem ext
     (match String.lowercase kind with
-        "video" -> [ ".avi"; ".mpg"; ".mpeg" ]
-      | "audio" -> [ ".mp3"; ".ogg"; ".wma" ]
-      | "picture" -> [ ".jpg"; ".jpeg"; ".jpe"; ".gif"; ".tiff" ]
+        "video" -> [ ".avi"; ".mpg"; ".mpeg"; ".ogm"; ".divx" ]
+      | "audio" -> [ ".mp3"; ".ogg"; ".wma"; ".wav" ]
+      | "picture" -> [ ".jpg"; ".jpeg"; ".jpe"; ".gif"; ".tiff"; ".png" ]
       | kind -> 
-          if !verbose_dp500 then lprintf "Unknow kind [%s]\n" kind;
+          if !verbose_dp500 then lprintf "Unknown kind [%s]\n" kind;
           []))
 
 (*************************************************************************)

@@ -879,7 +879,7 @@ let ready_for_upload c =
     
 let add_pending_slot c =
   if client_has_a_slot c then begin
-      lprintf "Avoided inserting an uploader in pending slots!\n";
+      if !verbose_upload then lprintf "Avoided inserting an uploader in pending slots!\n";
     end 
   else 
   if not (Intmap.mem (client_num c) !pending_slots_map) then
@@ -1072,7 +1072,7 @@ let upload_download_timer () =
   
 let words_of_filename =
   let extension_list = [
-      "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
+      "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" ; "ogm"
     ]
   in      
   let rec remove_short list list2 =
