@@ -413,11 +413,11 @@ end;
                     addevent gui.gui_shared_files (shared_num s) true
                 );
                 
-                Fifo.iter console_messages (fun ev ->
+                Fifo.iter (fun ev ->
                     gui.gui_new_events <- ev :: gui.gui_new_events
-                );                
+                ) console_messages;                
                 
-                gui_send gui (
+		gui_send gui (
                   P.Options_info (simple_options downloads_ini));
                 networks_iter_all (fun r ->
                     match r.network_config_file with

@@ -108,6 +108,11 @@ let new_upload_system = define_option donkey_ini
     ["new_upload_system"] "Should we use the new experimental upload system"
     bool_option true
   
+let send_warning_messages = define_option donkey_ini
+    ["send_warning_messages"] "true if you want your mldonkey to lose some
+upload bandwidth sending messages to clients which are banned :)"
+    bool_option false
+  
 let sources_per_chunk = 
   define_option donkey_ini ["sources_per_chunk"]
     "How many sources to use to download each chunk"

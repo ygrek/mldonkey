@@ -193,8 +193,9 @@ let check_clients _ =
                 connection_try c.client_connection_control;
                 connection_ok c.client_connection_control;
                 ()
-          end else begin
+          end else begin (*
             Printf.printf "Client connection too early"; print_newline ();
+	    *)
           end
       with e ->
           Printf.printf "Exception %s in check_clients"

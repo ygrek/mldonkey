@@ -8,6 +8,12 @@ Problems:
  * MLdonkey client generate "Exceeding Block Boundaries" errors
  * Walker doesnot seem to work ?
 
+Source management:
+* max_sources_per_file should be the number of good sources (ie
+   sources that have chunks we want).
+
+
+
 * Popup when clicking on a file with stats on sources
 * Active telnet: print the current state of files when it changes
 
@@ -184,5 +190,77 @@ Maybe the cancel/retry-connect could move to the
 connections panel? On the search results tab, it would be nice to indicate
 number of results per file, to give at least an
 indication of availability.
+
+
+
+Since Pierre asked for discussions on big changes in mldonkey, I think
+it is time to really discuss source management.
+
+We have different constraints:
+1) trying too many sources takes a lot of bandwidth, and a lot of memory
+2) keeping the number of sources low takes a lot of CPU, and can
+  prevent from finding good sources.
+
+Thus, it would be interesting to find a good compromise.
+
+My current ideas: four level of sources for each file
+
+* Normal sources: these sources have been tested recently, and they
+   have chunks interesting for us. They take a big structure in
+   memory, and they are limited by the max_sources_per_file option.
+   We connect to them every 10 minutes to ask for a slot.
+
+* Emerging sources: these sources have just been announced. they could
+   have something interesting for us. We never connected to them.
+   They are stored in a compressed form (only IP + port).
+
+* Concurrent sources: these sources have the file, but not the chunks
+  we want. They can be tested from time to time to see if they have
+  new chunks. One chunk is 9MB, at 5 KB/s, it is half an hour to
+  download.  Depending on the number of chunks they had the last time,
+  we should not try them before at least 1 hour.
+
+* Old sources: these sources have once been indicated as sources for
+   the file. We couldn't connect to them to verify that, or at least,
+   we could'nt connect to them for a long period. We should test them
+   anyway, maybe once every 6 hours ?  They are removed after the
+   max_sources_age delay.
+
+When new slots are available in the normal sources, they are filled
+from the other kind of sources, mainly by taking emerging sources,
+then concurrent sources and finally old sources. After 1 to 5 failed
+attempts to connect, they are moved to the old sources.
+
+The first kind of sources would take a lot of memory (at least 300
+bytes), whereas the other sources only take around 30 bytes. If we
+keep all the sources that way, 10000 sources would take:
+300 normal sources = 90 kB
+10000 other sources = 300 kB
+--> 400 kB per very popular file.
+
+MLdonkey would keep asking for sources until at least
+good_sources_threshold of its normal sources slots are used.
+
+What do you think of such a scheme ?
+
+- MLDonkey
+
+PS: some computations.
+
+300 normal sources = 300 connections/10 minutes = 1 connection/2 seconds
+  for 30 files, it is 15 connections/second
+
+1 connection =
+  TCP Connection = 80 bytes upload, 40 bytes download
+  edonkey hand check ~ 200 bytes upload, 200  bytes download
+    ~ 300 B up, 300 B down
+30 files --> 15x300 = 4.5 kB/s up and down
+
+If we move to old sources after 1 failed attempt = 10 minutes,
+ we can test 300 sources/10 minutes, so 10000 old sources/5 hours
+2 failed attempts = 10 hours
+3 failed attempts = 15 hours
+4 failed attempts = 20 hours
+5 failed attempts = 25 hours
 
 

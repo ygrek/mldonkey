@@ -80,7 +80,7 @@ let create () = {
     size = 3;
   }
 
-let iter t f =
+let iter f t =
   if not t.empty then 
     if t.inpos > t.outpos then 
       for i = t.outpos to t.inpos - 1 do

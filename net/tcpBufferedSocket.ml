@@ -703,6 +703,12 @@ let my_ip t =
   match Unix.getsockname fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
   | _ -> raise Not_found
+    
+let peer_ip t =
+  let fd = fd t.sock in
+  match Unix.getpeername fd with
+    Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
+  | _ -> raise Not_found
       
 let stats buf t =
   BasicSocket.stats buf t.sock;

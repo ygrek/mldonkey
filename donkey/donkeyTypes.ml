@@ -146,6 +146,7 @@ and client (*[]*) = {
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
+    mutable client_banned : bool;
   }
   
 and upload_info = {
@@ -181,7 +182,17 @@ and zone = {
     mutable zone_present : bool;
     zone_file : file;
   }
+  
+and source = {
+    source_ip : Ip.t;
+    source_port : int;
+    mutable source_client: client_kind; 
+  }
 
+and client_kind = 
+  SourceClient of client
+| SourceRecord of float (* last connection attempt *)
+  
 and file = {
     file_file : file CommonFile.file_impl;
     file_md4 : Md4.t;
@@ -196,15 +207,22 @@ and file = {
     mutable file_all_chunks : string;
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
-    mutable file_sources : client Intmap.t;
     mutable file_nlocations : int;
     mutable file_md4s : Md4.t list;
     mutable file_format : format;
     mutable file_available_chunks : int array;
     mutable file_enough_sources : bool;
 
-
-
+(* These are the good sources: they have a chunk we want, or we are trying 
+to connect them. *)
+    mutable file_sources : client Intmap.t; 
+    
+    (*
+    mutable file_emerging_sources : source list;
+    mutable file_concurrent_sources : source Fifo.t;
+    mutable file_old_sources : source Fifo.t;
+*)    
+    
 (*
     mutable file_last_downloaded : (int32 * float) list;
     mutable file_last_time : float;

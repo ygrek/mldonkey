@@ -337,6 +337,7 @@ class virtual ['a] filtered_plist
       end else begin
           Array.blit items (pos+1) items pos (nitems - pos - 1);
           self#wlist#remove pos;
+          nitems <- nitems - 1
         end
     
     method iter (f : 'a -> unit) =

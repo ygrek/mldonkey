@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2002/12/19: Simon
+  - DonkeyClient: quota limitations:
+     * Emule clients can not get more than 1/3 of the upload slots
+     * at least one mldonkey client can always enter the queue
+  - DonkeyClient: banning mechanism for clients that connect too often
+     (don't prevent downloading from them)
+  - Gui: 
+     * Remove duplicates at end of list
+
 2002/12/18: Simon
   - Multi-column sort should work again.
   - Reverted again the query for all files to a query for one file.

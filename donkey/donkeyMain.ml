@@ -43,6 +43,7 @@ let _ =
 
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
+  DonkeyClient.clean_requests ();
   DonkeyProtoCom.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
     (DonkeyOvernet.connected_peers ())

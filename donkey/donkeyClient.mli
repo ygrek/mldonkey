@@ -45,3 +45,4 @@ val connect_as_soon_as_possible :  DonkeyTypes.client -> unit
 val unschedule_client :  DonkeyTypes.client -> unit
 val schedule_new_client : DonkeyTypes.client -> unit
 val schedule_client :  DonkeyTypes.client -> unit  
+val clean_requests : unit -> unit

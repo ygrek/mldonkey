@@ -541,6 +541,7 @@ let dummy_client =
       client_uploaded = Int64.zero;
       client_on_list = false;
       client_already_counted = false;
+      client_banned = false;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -584,6 +585,7 @@ let new_client key =
 	    client_uploaded = Int64.zero;
             client_on_list = false;            
             client_already_counted = false;
+	    client_banned = false;
             } and
           client_impl = {
             dummy_client_impl with            

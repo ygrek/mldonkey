@@ -49,6 +49,60 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 open DonkeyStats
 
+type request_record = {
+  mutable last_request : float;
+  mutable nwarnings : int;
+}
+
+let banned_ips = Hashtbl.create 113
+let old_requests = Hashtbl.create 13013
+
+let is_banned c sock = c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
+    
+let ban_client c sock = 
+  let ip = peer_ip sock in
+  count_banned c;
+  c.client_banned <- true;
+  Hashtbl.add banned_ips ip (last_time ())
+
+let request_for c file sock =
+  try
+  let record = Hashtbl.find old_requests (client_num c, file_num file) in
+  if record.last_request +. 540. > last_time () then begin
+    record.nwarnings <- record.nwarnings+ 1;
+    record.last_request <- last_time ();
+    if record.nwarnings > 3 then raise Exit;
+    let module M = DonkeyProtoClient in
+    if record.nwarnings =3 then begin
+      Printf.printf "uploader %s(%s) has been banned" c.client_name (brand_to_string c.client_brand);
+      print_newline ();
+      ban_client c sock;
+      if !!send_warning_messages then
+        direct_client_send sock ( M.SayReq  (
+ 				     "[ERROR] Your client is connecting too fast, it has been banned"));
+      raise Exit;
+    end;
+    Printf.printf "uploader %s(%s) has been warned" c.client_name (brand_to_string c.client_brand);
+    print_newline ();
+    if !!send_warning_messages then
+      direct_client_send sock ( M.SayReq  (
+				       "[WARNING] Your client is connecting too fast, it will get banned"))
+  end else
+      record.last_request <- last_time ();
+  with Not_found ->
+    Hashtbl.add old_requests (client_num c, file_num file) 
+       { last_request = last_time (); nwarnings = 0; }
+   
+let clean_requests () = (* to be called every hour *)
+  Hashtbl.clear old_requests;
+  let remove_ips = ref [] in
+    Hashtbl.iter (fun ip time ->
+		  if time +. 3600. *. 6. < last_time () then remove_ips := ip :: !remove_ips
+		  ) banned_ips;
+List.iter (fun ip ->
+	   Hashtbl.remove banned_ips ip;
+	   ) !remove_ips
+
 let client_send_if_possible sock msg =
   if can_write_len sock (!!client_buffer_size/2) then
     client_send sock msg
@@ -434,7 +488,8 @@ print_newline ();
                 let module C = M.ViewFiles in
                 M.ViewFilesReq C.t);          
             end
-        end
+        end;
+      is_banned c sock
   
   | M.ViewFilesReplyReq t ->
       c.client_next_view_files <- last_time () +. 3600. *. 6.;
@@ -475,9 +530,25 @@ print_newline ();
       end
   
   | M.JoinQueueReq _ ->
+     begin try
 
-      let len = Fifo.length upload_clients in
-      if len < !!max_upload_slots then begin
+Printf.printf "Upload queue:"; print_newline ();
+begin
+ match c.client_brand with
+  Brand_mldonkey2 -> 
+     if Fifo.length upload_clients >= !!max_upload_slots then
+       Fifo.iter (fun c -> if c.client_sock <> None && c.client_brand = Brand_mldonkey2 then raise Exit)
+       upload_clients
+| Brand_oldemule
+| Brand_newemule ->
+     if Fifo.length upload_clients >= !!max_upload_slots then raise Exit;
+     let nemule = ref 0 in
+     Fifo.iter (fun c -> if c.client_sock <> None && (c.client_brand = Brand_oldemule || c.client_brand = Brand_newemule)
+     then incr nemule) upload_clients;
+     if !nemule > !!max_upload_slots / 3 then raise Exit
+| _ ->
+     if Fifo.length upload_clients >= !!max_upload_slots then raise Exit;
+end;
           set_rtimeout sock !!upload_timeout;
           
           direct_client_send sock (
@@ -489,8 +560,8 @@ print_newline ();
           print_newline ();
           set_write_power sock (c.client_power);
           set_read_power sock (c.client_power);
-        end
-      else begin
+        
+with _ ->
           Printf.printf "(uploader %s: brand %s, couldn't get a slot)" c.client_name (brand_to_string c.client_brand);
           print_newline ()
         end
@@ -753,7 +824,7 @@ is checked for the file.
        *)
       direct_client_send_files sock !published_files
   
-  | M.QueryFileReq t when !has_upload = 0 -> 
+  | M.QueryFileReq t when !has_upload = 0 && not c.client_banned ->
       
       (try client_wants_file c t with _ -> ());
       if t = Md4.null && c.client_brand = Brand_edonkey then  begin
@@ -762,6 +833,7 @@ is checked for the file.
             direct_client_send sock (
               M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
         end;
+
       if not c.client_already_counted then begin
           count_seen c;
           c.client_already_counted <- true
@@ -774,6 +846,7 @@ is checked for the file.
             | Some impl ->
                 shared_must_update_downloaded (as_shared impl);
                 impl.impl_shared_requests <- impl.impl_shared_requests + 1);
+          request_for c file sock;
           direct_client_send sock (
             let module Q = M.QueryFileReply in
             let filename = file_best_name file in
@@ -843,7 +916,7 @@ is checked for the file.
       
       end
   
-  | M.QueryChunksReq t when !has_upload = 0 ->
+  | M.QueryChunksReq t when !has_upload = 0 && not c.client_banned ->
 
       let file = find_file t in
       direct_client_send sock (
@@ -857,7 +930,10 @@ is checked for the file.
           ) file.file_chunks;
         })
   
-  | M.QueryBlocReq t when !has_upload = 0 ->
+  | M.QueryBlocReq t when !has_upload = 0 && not c.client_banned ->
+  Printf.printf "uploader %s(%s) ask for block" c.client_name
+(brand_to_string c.client_brand); print_newline ();
+  
       set_rtimeout sock !!upload_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
@@ -1022,6 +1098,7 @@ let read_first_message t sock =
               M.ViewFilesReq C.t);          
             end;
       client_must_update c;
+      is_banned c sock;
       Some c
       
   | M.NewUserIDReq _ ->

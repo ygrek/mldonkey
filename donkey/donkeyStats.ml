@@ -43,6 +43,7 @@ let brand_to_string b =
 
 type brand_stat = {
   mutable brand_seen : int;
+  mutable brand_banned : int;
   mutable brand_filerequest : int;
   mutable brand_download : Int64.t;
   mutable brand_upload : Int64.t;
@@ -51,6 +52,7 @@ type brand_stat = {
 let dummy_stats =
   let stat = {
     brand_seen = 0;
+    brand_banned = 0;
     brand_filerequest = 0;
     brand_download = Int64.zero;
     brand_upload = Int64.zero
@@ -65,15 +67,24 @@ let stats_by_brand = Array.init brand_count (fun _ ->
 let count_seen c =
   stats_all.brand_seen <- stats_all.brand_seen + 1;
   match c.client_brand with
-      Brand_unknown -> failwith "unknown client type"
+      Brand_unknown -> () (* be careful, raising an exception here will
+abort all other operations after that point for this client...*)
     | b ->
 	stats_by_brand.(brand_to_int b).brand_seen <-
 	stats_by_brand.(brand_to_int b).brand_seen + 1
 
+let count_banned c =
+  stats_all.brand_banned <- stats_all.brand_banned + 1;
+  match c.client_brand with
+      Brand_unknown -> () 
+    | b ->
+	stats_by_brand.(brand_to_int b).brand_banned <-
+	stats_by_brand.(brand_to_int b).brand_banned + 1
+
 let count_filerequest c =
   stats_all.brand_filerequest <- stats_all.brand_filerequest + 1;
   match c.client_brand with
-      Brand_unknown -> failwith "unknown client type"
+      Brand_unknown -> ()
     | b ->
 	    stats_by_brand.(brand_to_int b).brand_filerequest <-
 	    stats_by_brand.(brand_to_int b).brand_filerequest + 1
@@ -83,7 +94,7 @@ let count_download c f v =
   c.client_downloaded <- Int64.add c.client_downloaded v;
   stats_all.brand_download <- Int64.add stats_all.brand_download v;
   match c.client_brand with
-      Brand_unknown -> failwith "unknown client type"
+      Brand_unknown -> ()
     | b ->
 	    stats_by_brand.(brand_to_int b).brand_download <-
 	    Int64.add stats_by_brand.(brand_to_int b).brand_download v
@@ -157,7 +168,20 @@ let print_stats buf =
 	(Int64.to_string stats_by_brand.(i).brand_upload) 
 	(100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
     done
+  end;
+  
+  if stats_all.brand_banned = 0 then
+    Printf.bprintf buf "You didn't ban any client yet\n"
+  else begin
+    Printf.bprintf buf "                Total banneds: %18d\n" stats_all.brand_banned;
+    for i=1 to brand_count-1 do
+      Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
+	(brand_to_string (brand_of_int i)) 
+	stats_by_brand.(i).brand_banned 
+	(100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
+    done
   end
+
 
 let _ =
   register_commands 
