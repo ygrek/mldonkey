@@ -566,8 +566,8 @@ and gconn = {
 
 let gnutella_handler parse f handler sock =
   let b = TcpBufferedSocket.buf sock in
-  lprintf "GNUTELLA HANDLER\n";
-  dump (String.sub b.buf b.pos b.len);
+(*  lprintf "GNUTELLA HANDLER\n"; 
+  dump (String.sub b.buf b.pos b.len); *)
   try
     while b.len >= 23 do
       let msg_len = get_int b.buf (b.pos+19) in

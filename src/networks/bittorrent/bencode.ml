@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+
 (*
  {
  "announce" = "http://sucs.org:6969/announce";
@@ -100,6 +102,7 @@ let decode s =
 	in
 	iter s (pos+1) len []
    | 'd' -> 
+
         let rec iter s pos len list =
 	  if pos = len then assert false;
           match s.[pos] with

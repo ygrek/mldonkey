@@ -45,6 +45,15 @@ module FDCache = struct
         access = a;
       }
     
+    let close t =
+      match t.fd with
+      | Some fd -> 
+(*          lprintf "close_one: closing %d\n" (Obj.magic fd); *)
+          (try Unix.close fd with _ -> ());
+          t.fd <- None;
+          decr cache_size
+      | None -> ()
+    
     
     let rec close_one () =
       if not (Fifo.empty cache) then
@@ -53,30 +62,25 @@ module FDCache = struct
           None -> 
             close_one ()
         | Some fd -> 
-            (try Unix.close fd with _ -> ()); 
-            t.fd <- None
+            close t
     
     
     let local_force_fd t =
-      match t.fd with
-        None ->
-          if !cache_size >= !max_cache_size then
-            close_one ()
-          else incr cache_size;
-          let fd = Unix.openfile t.filename t.rights t.access in
-          Fifo.put cache t;
-          t.fd <- Some fd;
-          fd
-      | Some fd -> fd
-    
-    
-    let close t =
-      match t.fd with
-      | Some fd -> 
-          (try Unix.close fd with _ -> ());
-          t.fd <- None;
-          decr cache_size
-      | None -> ()
+      let fd = 
+        match t.fd with
+          None ->
+            if !cache_size >= !max_cache_size then
+              close_one ()
+            else incr cache_size;
+            let fd = Unix.openfile t.filename t.rights t.access in
+(*            lprintf "local_force: opening %d\n" (Obj.magic fd); *)
+            Fifo.put cache t;
+            t.fd <- Some fd;
+            fd
+        | Some fd -> fd
+      in
+(*      lprintf "local_force_fd %d\n" (Obj.magic fd); *)
+      fd
     
     
     let close_all () =
@@ -469,23 +473,27 @@ let flush_fd t =
 let max_buffered = ref (Int64.of_int (1024*1024))
 
 let flush _ = 
-  if verbose then lprintf "flush all\n";
-  let rec iter list =
-    match list with
-      [] -> []
-    | t :: tail ->
-        try
-          flush_fd t;
-          t.error <- None;
-          iter tail
-        with e -> 
-            t.error <- Some e;
-            t :: (iter tail)
-  in
-  modified_files := iter !modified_files;
-  if !buffered_bytes <> Int64.zero then
-    lprintf "[ERROR] remaining bytes after flush\n"
-
+  try
+    if verbose then lprintf "flush all\n";
+    let rec iter list =
+      match list with
+        [] -> []
+      | t :: tail ->
+          try
+            flush_fd t;
+            t.error <- None;
+            iter tail
+          with e -> 
+              t.error <- Some e;
+              t :: (iter tail)
+    in
+    modified_files := iter !modified_files;
+    if !buffered_bytes <> Int64.zero then
+      lprintf "[ERROR] remaining bytes after flush\n"
+  with e ->
+      lprintf "[ERROR] Exception %s in Unix32.flush\n"
+        (Printexc2.to_string e)
+      
 let buffered_write t offset s pos_s len_s = 
   let len = Int64.of_int len_s in
   match t.error with
@@ -561,11 +569,12 @@ let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t2;
   FDCache.close_one ();
   FDCache.close_one ();
-  lprintf "Copying chunk\n";
+(*  lprintf "Copying chunk\n"; *)
   let file_in,pos1 = fd_of_chunk t1 pos1 len in
   let file_out,pos2 = fd_of_chunk t2 pos2 len in
-  ignore (Unix2.c_seek64 file_in pos1 Unix.SEEK_SET);
-  ignore (Unix2.c_seek64 file_out pos2 Unix.SEEK_SET);
+  let pos1_after = Unix2.c_seek64 file_in pos1 Unix.SEEK_SET in
+  let pos2_after = Unix2.c_seek64 file_out pos2 Unix.SEEK_SET in
+(*  lprintf "Seek %Ld/%Ld %Ld/%Ld\n" pos1_after pos1 pos2_after pos2; *)
   let buffer_len = 32768 in
   let len = Int64.to_int len in
   let buffer = String.create buffer_len in
@@ -573,11 +582,13 @@ let copy_chunk t1 t2 pos1 pos2 len =
     if len > 0 then
       let can_read = mini buffer_len len in
       let nread = Unix.read file_in buffer 0 buffer_len in
+(*      lprintf "Unix2.really_write %d\n" nread; *)
       Unix2.really_write file_out buffer 0 nread;
       iter file_in file_out (len-nread)
   in
   iter file_in file_out len;
-  lprintf "Chunk copied\n"
+(*  lprintf "Chunk copied\n"; *)
+  ()
 
 let close_all = FDCache.close_all
 let close t = 

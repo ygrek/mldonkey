@@ -19,13 +19,14 @@
 
 (* read a whole file *)
 let to_string name =
-  let chan = open_in name in
+  let chan = open_in_bin name in
   let buf_size = 1024 in
   let buf = String.create buf_size in
   let cont = ref true in
   let rec iter buf nb_read =
     let buf_size = String.length buf in
-    let tmp = input chan buf nb_read (buf_size - nb_read) in
+    let to_read = min (buf_size - nb_read) 10000 in
+    let tmp = input chan buf nb_read to_read in
     if tmp = 0 then 
       String.sub buf 0 nb_read
     else 

@@ -467,6 +467,7 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                         strings_of_option_html commands_frame_height; 
                         strings_of_option_html display_downloaded_results; 
                         strings_of_option_html vd_reload_delay; 
+                        strings_of_option_html max_name_len; 
                       ] 
                   | 4 -> 
                       [
@@ -515,6 +516,8 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                         strings_of_option_html tcpip_packet_size; 
                         strings_of_option_html mtu_packet_size; 
                         strings_of_option_html minimal_packet_size; 
+                        strings_of_option_html network_update_url; 
+                        strings_of_option_html mlnet_redirector; 
                       ] 
                   
                   | _ -> CommonInteractive.all_simple_options_html ()
@@ -859,7 +862,7 @@ the name between []"
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: { 
-                   var getdir = prompt('Input directory [surround with quotes if necessary (ie:spaces in name)]','/home/mldonkey/share')
+                   var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
                    parent.fstatus.location.href='/submit?q=share+' + outstr;
@@ -868,17 +871,17 @@ the name between []"
 \\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\> 
-\\<tr\\>\\<td\\> 
-\\<table id=\\\"shares\\\" name=\\\"shares\\\" 
-class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Click to unshare directory)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh ac\\\"\\>Unshare\\</td\\>
-\\<td title=\\\"Directory\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Directory\\</td\\>
-\\</tr\\>";
+\\<tr\\>\\<td\\>";
+
+          html_mods_table_header buf "sharesTable" "shares" [ 
+            ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ; 
+            ( "1", "srh ar", "Priority", "P" ) ; 
+            ( "0", "srh", "Directory", "Directory" ) ]; 
             
             let counter = ref 0 in
             
             Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
-\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
+\\<td class=\\\"sr ar\\\"\\>0\\</td\\>\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
             
             List.iter (fun (dir, prio) -> 
                 incr counter;
@@ -890,14 +893,13 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 		parent.fstatus.location.href=\\\"/submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
         setTimeout(\\\"window.location.reload()\\\",1000);}'
 		class=\\\"srb\\\"\\>Unshare\\</td\\>
-		\\<td class=\\\"sr\\\"\\>%d:%s\\</td\\>\\</tr\\>" 
+		\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
                   (if !counter mod 2 == 0 then "dl-1" else "dl-2") dir prio dir;
             )
             !!shared_directories;
             
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
-          
-          
           end
         else 
           begin
@@ -911,9 +913,13 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         ""
     ), ":\t\t\t\tprint shared directories";
     
-    "share", Arg_two (fun p arg o ->
+    "share", Arg_multiple (fun args o ->
+       let (prio, arg) = match args with
+            [prio; arg] -> int_of_string prio, arg
+	  | [arg] -> 0, arg
+	  | _  -> failwith "Bad number of arguments"
+	in
         
-        let prio = int_of_string p in
         if Unix2.is_directory arg then
           if not (List.mem_assoc arg !!shared_directories) then begin
               shared_directories =:= (arg, prio) :: !!shared_directories;

@@ -377,14 +377,15 @@ let split_header header =
 
 let cut_headers headers =
   try
-  List.map (fun s ->
-      let pos = String.index s ':' in
-      let len = String.length s in
-      if pos+1 < len && s.[pos+1] = ' ' then
-        String.lowercase (String.sub s 0 pos), String.sub s (pos+2) (len-pos-2)
-      else
-        String.lowercase (String.sub s 0 pos), String.sub s (pos+1) (len-pos-1)
-  ) headers
+    List.map (fun s ->
+        let pos = String.index s ':' in
+        let len = String.length s in
+        let key = String.sub s 0 pos in
+        String.lowercase key, if pos+1 < len && s.[pos+1] = ' ' then
+          String.sub s (pos+2) (len-pos-2), key
+        else
+          String.sub s (pos+1) (len-pos-1), key
+    ) headers
   with e ->
       lprintf "Exception in cut_headers: %s" (Printexc2.to_string e);
       lprint_newline ();

@@ -61,7 +61,30 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_debug <- (fun file ->
-      Int64Swarmer.debug_print file.file_swarmer)
+      Int64Swarmer.debug_print file.file_swarmer);
+  file_ops.op_file_commit <- (fun file new_name ->
+      try
+        if file.file_files <> [] then 
+          let old_file = new_name ^ ".torrent" in
+          Sys.rename new_name old_file;
+          let old_fd = Unix32.create_ro old_file in
+          List.iter (fun (filename, begin_pos, end_pos) ->
+              let filename = Filename.concat new_name filename in
+              lprintf "Would save file as %s\n" filename;
+              let dirname = Filename.dirname filename in
+              Unix2.safe_mkdir dirname;
+              lprintf "Copying %Ld %Ld to 0\n"
+                begin_pos (end_pos -- begin_pos);
+              let fd = Unix32.create
+                  filename [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+              Unix32.copy_chunk old_fd fd begin_pos zero (end_pos -- begin_pos);
+              Unix32.close fd
+          ) file.file_files;
+          Unix32.close old_fd
+      with e ->
+          lprintf "Exception %s while commiting BitTorrent file"
+            (Printexc.to_string e)
+  ) 
 
   
 module P = GuiTypes
@@ -100,16 +123,14 @@ let _ =
 module C = CommonTypes
             
 open Bencode
-  
-let _ =
-  network.op_network_parse_url <- (fun url ->
-      if Filename2.last_extension url = ".torrent" then
-        let f filename = 
-          try
+
+let load_torrent_file filename =
+         try
             lprintf ".torrent file loaded\n";
             let s = File.to_string filename in
+(*            lprintf "Loaded: %s\n" (String.escaped s); *)
             let v = Bencode.decode s in
-(*            lprintf "Decoded file: %s\n" (Bencode.print v); *)
+(*            lprintf "Decoded file: %s\n" (Bencode.print v);  *)
             
             
             let announce = ref "" in
@@ -205,8 +226,8 @@ let _ =
             let npieces = 
               1+ Int64.to_int ((!length -- one) // !file_piece_size)
             in
-(*            lprintf "npieces %d length %Ld piece %Ld\n"
-              npieces !length !file_piece_size; *)
+(*            lprintf "npieces %d length %Ld piece %Ld %d\n"
+              npieces !length !file_piece_size (String.length !file_pieces); *)
             let pieces = Array.init npieces (fun i ->
                   let s = String.sub !file_pieces (i*20) 20 in
                   Sha1.direct_of_string s
@@ -225,7 +246,18 @@ let _ =
                 (Printexc2.to_string e)
         
         
-        in
+
+let _ =
+  network.op_network_parse_url <- (fun url ->
+      let ext = String.lowercase (Filename2.last_extension url) in
+      lprintf "Last extension: %s\n" ext;
+      if ext = ".torrent" || ext = ".tor" then
+       try
+         lprintf "Trying to load %s\n" url;
+         load_torrent_file url;
+         true
+       with e ->
+        lprintf "Exception %s while loading\n" (Printexc2.to_string e);
         let module H = Http_client in
         let r = {
             H.basic_request with
@@ -234,7 +266,7 @@ let _ =
             Printf.sprintf "MLdonkey %s" Autoconf.current_version;
           } in
         
-        H.wget r f;
+        H.wget r load_torrent_file;
         
         true
       else
@@ -293,52 +325,40 @@ let _ = (
 			(Printf.sprintf "%d" !fc) ) ) ];
   );
   client_ops.op_client_dprint <- (fun c o file ->
-      let info = file_info file in
-      let buf = o.conn_buf in
-	  let cc = as_client c in
-	  let cinfo = client_info cc in
-		try
-        (match client_state cc  with
-          Connected_downloading ->  begin
-            client_print cc o;
-            Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
-          	"bT" (* cinfo.GuiTypes.client_software *)
-            (Int64.to_string c.client_downloaded)
-            (Int64.to_string c.client_uploaded);
-            Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
-                  end;
-		  | _ -> ())
-          with _ -> ()
+	let info = file_info file in
+	let buf = o.conn_buf in
+	let cc = as_client c in
+	let cinfo = client_info cc in
+    client_print cc o;
+    Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
+    "bT" (* cinfo.GuiTypes.client_software *)
+    (Int64.to_string c.client_downloaded)
+    (Int64.to_string c.client_uploaded);
+    Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
   );
   client_ops.op_client_dprint_html <- (fun c o file str ->
-      let info = file_info file in
-      let buf = o.conn_buf in
-	  let cc = as_client c in
-	  let cinfo = client_info cc in
-	  try
-        (match client_state cc  with
-          Connected_downloading ->  begin
-			Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
-			onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
-		
-			html_mods_td buf [
-			("", "srb ar", Printf.sprintf "%d" (client_num c));
-			((string_of_connection_state (client_state cc)), "sr", 
-				(short_string_of_connection_state (client_state cc)));
-			((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
-			("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
-			("", "sr", "F");
-			("", "sr ar", Printf.sprintf "%d" 
-				(((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
-			("", "sr", "D");
-			("", "sr", (Ip.to_string (fst c.client_host)));
-			("", "sr ar", (size_of_int64 c.client_uploaded));
-			("", "sr ar", (size_of_int64 c.client_downloaded));
-			("", "sr", info.GuiTypes.file_name); ];
-          	true
-          end
-		  | _ -> false)
-      with _ -> false;
+	let info = file_info file in
+	let buf = o.conn_buf in
+	let cc = as_client c in
+	let cinfo = client_info cc in
+	Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+	onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
+	
+	html_mods_td buf [
+	("", "srb ar", Printf.sprintf "%d" (client_num c));
+	((string_of_connection_state (client_state cc)), "sr", 
+		(short_string_of_connection_state (client_state cc)));
+	((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
+	("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+	("", "sr", "F");
+	("", "sr ar", Printf.sprintf "%d" 
+		(((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+	("", "sr", "D");
+	("", "sr", (Ip.to_string (fst c.client_host)));
+	("", "sr ar", (size_of_int64 c.client_uploaded));
+	("", "sr ar", (size_of_int64 c.client_downloaded));
+	("", "sr", info.GuiTypes.file_name); ];
+    true
   )
 )
 

@@ -1,6 +1,7 @@
 TODO list for client
 ====================
 
+os_lseek: limited to 32 bits !!!
 
 Short schedule:
 ---------------

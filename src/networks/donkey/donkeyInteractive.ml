@@ -99,7 +99,7 @@ let load_server_met filename =
       lprint_newline ();
       0
 
-let already_done = Failure "File already downloaded"
+let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
       
 let really_query_download filenames size md4 location old_file absents =
   begin

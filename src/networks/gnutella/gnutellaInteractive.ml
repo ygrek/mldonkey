@@ -135,7 +135,8 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server s.server_gnutella2 s);
+      GnutellaServers.connect_server s.server_gnutella2 
+      GnutellaServers.retry_and_fake s []);
   server_ops.op_server_disconnect <- GnutellaServers.disconnect_server
 
 module C = CommonTypes

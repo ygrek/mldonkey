@@ -2,7 +2,7 @@
 ;Basic Example Script
 ;Written by Joost Verburg
 
-!define MUI_PRODUCT "mlnet" ;Define your own software name here
+!define MUI_PRODUCT "MLdonkey" ;Define your own software name here
 !define MUI_VERSION "@CURRENT_VERSION@-@CURRENT_RELEASE@" ;Define your own software version here
 
 !include "MUI.nsh"
@@ -11,7 +11,7 @@
 ;Configuration
 
   ;General
-  OutFile "mlnet_@CURRENT_VERSION@-@CURRENT_RELEASE@_win32_installer.exe"
+  OutFile "MLdonkey_@CURRENT_VERSION@-@CURRENT_RELEASE@_win32_installer.exe"
 
   ;Folder selection page
   InstallDir "$PROGRAMFILES\${MUI_PRODUCT}"
@@ -42,42 +42,101 @@
 ;Language Strings
 
   ;Description
-  LangString DESC_1 ${LANG_ENGLISH} "This is the mlDonkey Core compiled for Windows"
+  LangString DESC_1 ${LANG_ENGLISH} "This is the mlDonkey Core compiled for Windows(mlnet.exe)"
   LangString DESC_2 ${LANG_ENGLISH} "This will copy the mgwz.dll into your Installation Directory (needed in most Cases!!!)"
-  LangString DESC_3 ${LANG_ENGLISH} "This makes mlDonkey the default Programm to open ed2k:// links with your Internet Explorer"
-
+  LangString DESC_3 ${LANG_ENGLISH} "This is the mlDonkey GTK interface for Windows (mlgui.exe and mlnet+gui.exe). Not needed, you can use the WEB interface."
+  LangString DESC_4 ${LANG_ENGLISH} "This will copy the GTK dlls into your Installation Directory (needed if you use the GTK interface)"
+  LangString DESC_5 ${LANG_ENGLISH} "This makes mlDonkey the default Program to open ed2k:// links with your Internet Explorer"
+  LangString DESC_6 ${LANG_ENGLISH} "This makes mlDonkey the default Program to open magnet? links with your Internet Explorer"
+  LangString DESC_7 ${LANG_ENGLISH} "This makes mlDonkey the default Program to open BitTorrent links with your Internet Explorer"
 
 ;--------------------------------
 ;Data
   
-  LicenseData "${NSISDIR}\gpl.txt"
+Function .onInit
+  SetOutPath $TEMP
+  File /oname=mldonkey.bmp "mldonkey.bmp"
+	InitPluginsDir
+
+  advsplash::show 1000 600 400 -1 $TEMP\mldonkey
+
+  Pop $0 ; $0 has '1' if the user closed the splash screen early,
+         ; '0' if everything closed normal, and '-1' if some error occured.
+
+  Delete $TEMP\mldonkey.bmp
+FunctionEnd
+
+
+  LicenseData "../../COPYING"
 
 ;--------------------------------
 ;Installer Sections
 
-Section "mlnet.exe" Sec1
+Section "MLdonkey" Sec1
 
   ;ADD YOUR OWN STUFF HERE!
 
   SetOutPath "$INSTDIR"
-  File "${NSISDIR}\mlnet.exe"
+  File "..\..\mlnet.exe"
+  File "mld.ico"
   
   ;Store install folder
   WriteRegStr HKCU "Software\${MUI_PRODUCT}" "" $INSTDIR
   
   ;Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\MLdonkey" \
+	  "DisplayName" "MLdonkey"
+  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\MLdonkey" \
+	  "UninstallString" '"$INSTDIR\Uninstall.exe"'
+
+; Start Menu Entries
+  CreateDirectory "$SMPROGRAMS\MLdonkey"
+  CreateShortCut "$SMPROGRAMS\MLdonkey\MLdonkey (daemon).lnk" "$INSTDIR\mlnet.exe" "" "$INSTDIR\mld.ico" 0 SW_SHOWMINIMIZED
+  WriteINIStr "$SMPROGRAMS\MLdonkey\WEB Interface.url" "InternetShortcut" "URL" "http://admin:@127.0.0.1:4080/"
+  CreateShortCut "$SMPROGRAMS\MLdonkey\MLdonkey Incoming Directory.lnk" "$INSTDIR\incoming"
+  WriteINIStr "$SMPROGRAMS\MLdonkey\www.mldonkey.net.url" "InternetShortcut" "URL" "http://www.mldonkey.net/"
+  CreateShortCut "$SMPROGRAMS\MLdonkey\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
 
 SectionEnd
 
-Section  "mgwz.dll" Sec2
+Section  "The Zlib library" Sec2
   
   SetOutPath "$INSTDIR"
-  File "${NSISDIR}\mgwz.dll"
+  File "..\..\distrib\dlls\mgwz.dll"
 
 SectionEnd
 
-Section "take ed2k:// links" Sec3
+
+Section  "The GTK Interface" Sec3
+  
+  SetOutPath "$INSTDIR"
+  File "..\..\mlnet+gui.exe"
+  File "..\..\mlgui.exe"
+
+  CreateShortCut "$SMPROGRAMS\MLdonkey\Graphical Interface (need MLdonkey).lnk" "$INSTDIR\mlgui.exe" ""  "$INSTDIR\mld.ico" 0 SW_SHOWMINIMIZED
+  CreateShortCut "$SMPROGRAMS\MLdonkey\MLdonkey + Interface.lnk" "$INSTDIR\mlnet+gui.exe" "" "$INSTDIR\mld.ico" 0 SW_SHOWMINIMIZED
+
+SectionEnd
+
+Section  "The GTK dlls" Sec4
+  
+  SetOutPath "$INSTDIR"
+  File "..\..\distrib\dlls\iconv.dll" 
+  File "..\..\distrib\dlls\libgdk-0.dll"
+  File "..\..\distrib\dlls\libglib-2.0-0.dll"
+  File "..\..\distrib\dlls\libgmodule-2.0-0.dll"
+  File "..\..\distrib\dlls\libgobject-2.0-0.dll"
+  File "..\..\distrib\dlls\libgthread-2.0-0.dll"
+  File "..\..\distrib\dlls\libgtk-0.dll"
+  File "..\..\distrib\dlls\libintl-1.dll"
+  File "..\..\distrib\dlls\libintl.dll"
+  File "..\..\distrib\dlls\localcharset.dll"
+  File "..\..\distrib\dlls\mingwm10.dll"
+
+SectionEnd
+
+Section "Send ed2k:// links to MLdonkey" Sec5
 
   WriteRegStr HKCR "ed2k" "" "URL: ed2k Protocol"
   WriteRegStr HKCR "ed2k" "URL Protocol" ""
@@ -85,6 +144,26 @@ Section "take ed2k:// links" Sec3
 
 SectionEnd
 
+
+Section "Send magnet? links to MLdonkey" Sec6
+
+  WriteRegStr HKCR "magnet" "" "URL: magnet Protocol"
+  WriteRegStr HKCR "magnet" "URL Protocol" ""
+  WriteRegStr HKCR "magnet\shell\open\command" "" "$\"IEXPLORE.EXE$\" $\"http://admin:@127.0.0.1:4080/submit?q=dllink+%1$\""
+
+SectionEnd
+
+Section "Send BitTorrent links to MLdonkey" Sec7
+
+  WriteRegStr HKCR ".torrent" "" bittorrent
+  WriteRegStr HKCR ".torrent" "Content Type" "application/x-bittorrent"
+  WriteRegStr HKCR "MIME\Database\Content Type\application/x-bittorrent" "Extension" ".torrent"
+  WriteRegStr HKCR "bittorrent" "" "TORRENT File"
+  WriteRegStr HKCR "bittorrent" "EditFlags" 00000100
+  WriteRegStr HKCR "bittorrent\shell" "" "open"
+  WriteRegStr HKCR "bittorrent\shell\open\command" "" "$\"IEXPLORE.EXE$\" $\"http://admin:@127.0.0.1:4080/submit?q=dllink+%1$\""
+
+SectionEnd
 
 ;Display the Finish header
 ;Insert this macro after the sections if you are not using a finish page
@@ -97,6 +176,9 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${Sec1} $(DESC_1)
   !insertmacro MUI_DESCRIPTION_TEXT ${Sec2} $(DESC_2)
   !insertmacro MUI_DESCRIPTION_TEXT ${Sec3} $(DESC_3)
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec4} $(DESC_4)
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec4} $(DESC_5)
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec5} $(DESC_6)
 
 
 !insertmacro MUI_FUNCTIONS_DESCRIPTION_END
@@ -106,9 +188,12 @@ SectionEnd
 
 Section "Uninstall"
 
-  ;ADD YOUR OWN STUFF HERE!
-
+;; Binaries
   Delete "$INSTDIR\mlnet.exe"
+  Delete "$INSTDIR\mlgui.exe"
+  Delete "$INSTDIR\mlnet+gui.exe"
+
+;; Configuration files
   Delete "$INSTDIR\.mldonkey_messages.ini"
   Delete "$INSTDIR\file_sources.ini"
   Delete "$INSTDIR\files.ini"  
@@ -129,7 +214,6 @@ Section "Uninstall"
   Delete "$INSTDIR\searches.ini"
   Delete "$INSTDIR\servers.ini"
   Delete "$INSTDIR\stats.ini"
-  Delete "$INSTDIR\mgwz.dll"
   Delete "$INSTDIR\bittorrent.ini"
   Delete "$INSTDIR\limewire.ini"
   Delete "$INSTDIR\shared_files.ini"
@@ -141,15 +225,44 @@ Section "Uninstall"
   Delete "$INSTDIR\directconnect.ini.old"
   Delete "$INSTDIR\opennap.ini.old"
   Delete "$INSTDIR\soulseek.ini.old"
+
+;; DLLs
+  Delete "$INSTDIR\mgwz.dll"
+
+  Delete "$INSTDIR\iconv.dll" 
+  Delete "$INSTDIR\libgdk-0.dll"
+  Delete "$INSTDIR\libglib-2.0-0.dll"
+  Delete "$INSTDIR\libgmodule-2.0-0.dll"
+  Delete "$INSTDIR\libgobject-2.0-0.dll"
+  Delete "$INSTDIR\libgthread-2.0-0.dll"
+  Delete "$INSTDIR\libgtk-0.dll"
+  Delete "$INSTDIR\libintl-1.dll"
+  Delete "$INSTDIR\libintl.dll"
+  Delete "$INSTDIR\localcharset.dll"
+  Delete "$INSTDIR\mingwm10.dll"
     
-
-
+;; Start Menu
+  Delete "$SMPROGRAMS\MLdonkey\MLdonkey (daemon).lnk"
+  Delete "$SMPROGRAMS\MLdonkey\MLdonkey + Interface.lnk"
+  Delete "$SMPROGRAMS\MLdonkey\Uninstall.lnk"
+  Delete "$SMPROGRAMS\MLdonkey\WEB Interface.url"
+  Delete "$SMPROGRAMS\MLdonkey\www.mldonkey.net.url"
+  Delete "$SMPROGRAMS\MLdonkey\Graphical Interface (need MLdonkey).lnk"
+  Delete "$SMPROGRAMS\MLdonkey\MLdonkey Incoming Directory.lnk"
   Delete "$INSTDIR\Uninstall.exe"
-
   
   DeleteRegKey /ifempty HKCU "Software\${MUI_PRODUCT}"
   DeleteRegKey HKCR "ed2k"
-  
+  DeleteRegKey HKCR "magnet"
+  DeleteRegKey HKCR "bittorrent"
+  DeleteRegKey HKCR ".torrent"
+  DeleteRegKey HKCR "MIME\Database\Content Type\application/x-bittorrent"
+
+  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\MLdonkey"
+  DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\MLdonkey"
+  RMDir "$INSTDIR"
+  RMDir "$SMPROGRAMS\MLdonkey"
+
   ;Display the Finish header
   !insertmacro MUI_UNFINISHHEADER
 

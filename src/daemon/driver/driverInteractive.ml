@@ -87,7 +87,7 @@ let file_availability f =
     then 
       if n < 0.0001
       then "-"
-      else Printf.sprintf "%5.1f" (p /. n *. 100.0)
+      else Printf.sprintf "%5.0f" (p /. n *. 100.0)
     else
       if partial_chunk f.file_chunks.[i]
       then
@@ -107,8 +107,18 @@ let string_availability s =
       end
   done;
   if len = 0 then "" else 
-    Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
+    Printf.sprintf "%5.0f" (float_of_int !p /. float_of_int len *. 100.)
+
+
+let number_of_sources gf = List.length (file_sources (file_find gf.file_num))
     
+let number_of_active_sources gf =
+  let nasrcs = ref 0 in
+  List.iter (fun fsrc ->
+   if client_state fsrc = Connected_downloading then 
+    incr nasrcs;
+  ) (file_sources (file_find gf.file_num));
+  !nasrcs
   
 module Html = struct
     let begin_td buf = Printf.bprintf buf "\\<td\\>"
@@ -127,7 +137,9 @@ module Html = struct
   end
   
 let save_config () =
-  (try Unix32.flush () with _ -> ());
+  (try Unix32.flush () with e -> 
+        Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
+  );
   Options.save_with_help downloads_ini;
   networks_iter (fun r -> 
       match r.network_config_file with
@@ -396,6 +408,15 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   let print_file_html_mods buf guifiles =
   
     if (List.length guifiles) > 0 then begin
+	let tsize = ref Int64.zero in
+	let tdl = ref Int64.zero in
+	let trate = ref 0.0 in
+
+	List.iter (fun file -> 
+	 tsize := Int64.add !tsize file.file_size;
+     tdl := Int64.add !tdl file.file_downloaded;
+	 trate := !trate +. file.file_download_rate;
+	) guifiles;
         
   Printf.bprintf buf "\\</pre\\>
 \\<script language=JavaScript\\>\\<!--
@@ -403,12 +424,29 @@ function pauseAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=
 function resumeAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"resume\\\") {j.checked=x;}}}
 function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"cancel\\\") {j.checked=x;}}}
 function clearAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.type==\\\"checkbox\\\") {j.checked=x;}}}
-function submitPriority(num) {
-var selectID = document.getElementById(\\\"selectPriority\\\" + num);
-var params='';
-if (selectID.value.length \\> 0) {params = '+'+selectID.value+'+'+num;}
-parent.fstatus.location.href='/submit?q=priority' + params;
-setTimeout('window.location.reload()',500);
+function submitPriority(num,cp,sel) {
+	// 2 line workaround for mozilla mouseout bug:
+	var row = sel.parentNode.parentNode.parentNode;
+	row.className=mOvrClass;
+	var divID = document.getElementById(\\\"divSelectPriority\\\" + num);
+	var selectID = document.getElementById(\\\"selectPriority\\\" + num);
+	var params='';
+	if (selectID.value.length \\> 0) {params = '+'+selectID.value+'+'+num;}
+	var np = selectID.value;
+	if (np.charAt(0) == \\\"=\\\") {var p = parseInt(np.substring(1,99));} 
+	else {var p = parseInt(cp) + parseInt(selectID.value);}
+	var str='\\<select id=\\\"selectPriority' + num + '\\\" name=\\\"selectPriority' + num + '\\\" style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(' + num + ',' + p + ',this)\\\"\\>';
+	if (p != 10 \\&\\& p != 0 \\&\\& p != -10) { str += '\\<OPTION value=\\\"=' + p + '\\\" SELECTED\\>' + p; }
+	str += '\\<option value=\\\"=10\\\"'; if (p==10) {str += \\\" SELECTED\\\"}; str += '\\>High';
+	str += '\\<option value=\\\"=0\\\"'; if (p==0) {str += \\\" SELECTED\\\"}; str += '\\>Normal';
+	str += '\\<option value=\\\"=-10\\\"'; if (p==-10) {str += \\\" SELECTED\\\"}; str += '\\>Low';
+	str += '\\<option value=\\\"5\\\"\\>+5';
+	str += '\\<option value=\\\"1\\\"\\>+1';
+	str += '\\<option value=\\\"-1\\\"\\>-1';
+	str += '\\<option value=\\\"-5\\\"\\>-5';
+	str += \\\"\\</select\\>\\\";
+	divID.innerHTML = str;
+	parent.fstatus.location.href='/submit?q=priority' + params;
 }
 //--\\>\\</script\\>
 
@@ -419,7 +457,7 @@ setTimeout('window.location.reload()',500);
 \\<tr\\>\\<td\\>
 
 \\<table cellspacing=0  cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>Downloading %d files\\</td\\>
+\\<td class=downloaded width=100%%\\>Downloading %d files (%s/%s @ %.1f KB/s)\\</td\\>
 
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Pause all\\\" onclick=\\\"pauseAll(true);\\\"\\>\\</td\\>
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Resume all\\\" onclick=\\\"resumeAll(true);\\\"\\>\\</td\\>
@@ -437,11 +475,11 @@ setTimeout('window.location.reload()',500);
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>
-\\<td title=\\\"Number of sources\\\" class=\\\"dlheader\\\"\\>Srcs\\</td\\>"
-(List.length guifiles);
+\\<td title=\\\"Sort by number of sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Srcs name=sortby\\>\\</td\\>"
+(List.length guifiles) (size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.);
 
 if !!html_mods_vd_active_sources then Printf.bprintf buf 
-"\\<td title=\\\"Number of active sources\\\" class=\\\"dlheader\\\"\\>A\\</td\\>";
+"\\<td title=\\\"Sort by number of active sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=A name=sortby\\>\\</td\\>";
 
 Printf.bprintf buf 
 "\\<td title=\\\"File availability percentage (using %s availability)\\\" class=\\\"dlheader ac\\\"\\>Avail\\</td\\>"
@@ -509,18 +547,13 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%5.1f\\</td\\>" file.file_num (percent file));
 
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
-			(let cfile = file_find file.file_num in List.length (file_sources cfile)) 
+			(number_of_sources file) 
           );
 
           (if !!html_mods_vd_active_sources then 
             Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
-			(let nasrcs = ref 0 in
-		     let cfile = file_find file.file_num in 
-			 List.iter (fun fsrc ->
-				if client_state fsrc = Connected_downloading then incr nasrcs;
-			 ) (file_sources cfile);
-			 !nasrcs)
-		  else Printf.sprintf ""
+			(number_of_active_sources file) 
+		  else ""
 		  );
 
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\> %s\\</td\\>"
@@ -536,7 +569,7 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
             file.file_num
             (let age = (BasicSocket.last_time ()) - file.file_age in
             time_to_string age)
-		   else Printf.sprintf ""
+		   else ""
           );
 
 
@@ -546,24 +579,18 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
             (if file.file_last_seen > 0
              then let last = (BasicSocket.last_time ()) - file.file_last_seen in
                 time_to_string last
-             else Printf.sprintf "-"
+             else "-"
           	)
-			else Printf.sprintf ""
-
-		
+			else ""
           );
           
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>"
-                file.file_num
-                (if file.file_state = FilePaused then
-                    "Paused"
-                  else
-                  if file.file_state = FileQueued then
-                    "Queued"
-                    else
-                        if file.file_download_rate < 10.24 then "-"
-                        else Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.)
-                
+          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" 
+				file.file_num
+                (match file.file_state with 
+				   FilePaused -> "Paused"
+                 | FileQueued -> "Queued"
+                 | _ -> if file.file_download_rate < 10.24 then "-"
+                       else Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.)
                 )
           );
 
@@ -575,8 +602,9 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
 		  );
 
           (if !!html_mods_vd_prio then 
-	     (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
-			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d)\\\"\\>\n" file.file_num file.file_num file.file_num)
+	     (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
+			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d,%d,this)\\\"\\>\n" 
+			file.file_num file.file_num file.file_num file.file_num file.file_priority)
 			^ (match file.file_priority with 0 | -10 | 10 -> "" | _ ->
 			  Printf.sprintf "\\<option value=\\\"=%d\\\" SELECTED\\>%d\n" file.file_priority file.file_priority)
 			^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
@@ -586,12 +614,12 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
 			^ "\\<option value=\\\"1\\\"\\>+1\n"
 			^ "\\<option value=\\\"-1\\\"\\>-1\n"
 			^ "\\<option value=\\\"-5\\\"\\>-5\n"
-			^ "\\</select\\>"
-	       else 
-		 Printf.sprintf "");
+			^ "\\</select\\>\\</div\\>"
+	       else "");
 
         |]
     ) guifiles);
+
   Printf.bprintf buf "\\</form\\>"
 
 end
@@ -783,6 +811,8 @@ let display_file_list buf o =
         | ByName -> (fun f1 f2 -> String.lowercase f1.file_name <= String.lowercase f2.file_name)
         | ByDone -> (fun f1 f2 -> f1.file_downloaded >= f2.file_downloaded)
 	| ByPriority -> (fun f1 f2 -> f1.file_priority >= f2.file_priority)
+		| BySources -> (fun f1 f2 -> (number_of_sources f1) >= (number_of_sources f2))
+		| ByASources -> (fun f1 f2 -> (number_of_active_sources f1) >= (number_of_active_sources f2))
         | ByPercent -> (fun f1 f2 -> percent f1 >= percent f2)
         | ByETA -> (fun f1 f2 -> calc_file_eta f1 <= calc_file_eta f2)
         | ByAge -> (fun f1 f2 -> f1.file_age >= f2.file_age)

@@ -771,6 +771,8 @@ let http_handler o t r =
                       | "Priority" -> o.conn_sortvd <- ByPriority
                       | "Age" -> o.conn_sortvd <- ByAge
                       | "Last" -> o.conn_sortvd <- ByLast
+                      | "Srcs" -> o.conn_sortvd <- BySources
+                      | "A" -> o.conn_sortvd <- ByASources
                       | _ -> ()
                     end
                 | _ -> 

@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2003/04/23: Simon (v release-2-4-rc6)
+  - Applied patch #1402
+  - Prevent exceptions from raising from calls to lprintf
+  - Fixed bug in Unix32 causing error with file descriptors
+     (and maybe file corruption)
+  - BitTorrent:
+     * Commit directories in multiple files
+
 2003/04/22: Simon (v release-2-4-rc5)
   - Gnutella:
      * Old host discovery system doesnot work anymore. Implemented

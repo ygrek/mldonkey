@@ -122,6 +122,8 @@ type sortvd_type =
 | ByAge
 | ByETA
 | ByLast
+| BySources
+| ByASources
 | NotSorted
   
 type room_state = 

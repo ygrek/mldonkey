@@ -128,14 +128,14 @@ let rec client_parse_header c gconn sock header =
     
     begin
       try
-        let urn = List.assoc "x-gnutella-content-urn" headers in
+        let (urn,_) = List.assoc "x-gnutella-content-urn" headers in
 
 (* Contribute: maybe we can find the bitprint associated with a SHA1 here,
   and use it for corruption detection... *)
         
         
         
-        let locations = 
+        let (locations,_) = 
           List.assoc "x-gnutella-alternate-location" headers in
         let locations = String2.split locations ',' in
         
@@ -183,7 +183,7 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
     
     let start_pos, end_pos = 
       try
-        let range = List.assoc "content-range" headers in
+        let (range,_) = List.assoc "content-range" headers in
         try
           let npos = (String.index range 'b')+6 in
           let dash_pos = try String.index range '-' with _ -> -10 in
@@ -214,11 +214,12 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
             raise e
       with Not_found -> 
 (* A bit dangerous, no ??? *)
-          lprintf "Could not find range header, assuming 0-\n";
+          lprintf "Could not find range header, assuming 0-\nHEADER: %s\n"
+          (String.escaped header);
           Int64.zero, size
     in 
     (try
-        let len = List.assoc "content-length" headers in
+        let (len,_) = List.assoc "content-length" headers in
         let len = Int64.of_string len in
         lprintf "Specified length: %Ld\n" len;
         if len <> end_pos -- start_pos then
@@ -296,7 +297,7 @@ and friend_parse_header c gconn sock header =
           [] -> raise Not_found        
         | _ :: headers ->
             let headers = Http_client.cut_headers headers in
-            let agent =  List.assoc "user-agent" headers in
+            let (agent,_) =  List.assoc "user-agent" headers in
             if String2.starts_with agent "LimeWire" ||
               String2.starts_with agent "Gnucleus" ||
               String2.starts_with agent "BearShare"              

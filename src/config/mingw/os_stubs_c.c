@@ -1,4 +1,4 @@
-#include "../../lib/os_stubs.h"
+#include "../../utils/lib/os_stubs.h"
 
 #ifndef INVALID_SET_FILE_POINTER
 #define INVALID_SET_FILE_POINTER (-1)

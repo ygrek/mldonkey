@@ -830,7 +830,6 @@ let g2_udp_handler p =
   let buf = p.UdpSocket.content in
   dump buf;
   let len = String.length buf in
-  let pos = 8 in
   let nSequence = get_int16 buf 4 in
   let nCount = get_int8 buf 7 in
   let nFlags = get_int8 buf 3 in
@@ -840,11 +839,16 @@ let g2_udp_handler p =
   - multi-parts message
   - acknowledgement
 *)
-  if nCount > 1 || nFlags land 1 <> 0 then
+  if nCount > 1 then
     lprintf "g2_udp_handler not implemented\n";
+  let buf,pos = if nFlags land 1 <> 0 then
+      let trailer = String.sub buf 8 (len - 8) in
+      Autoconf.zlib__uncompress_string2 trailer, 0
+    else buf, 8
+  in
   if nFlags land 2 <> 0 then
     udp_send_ack ip port nSequence;
-  let cb = get_int8 buf 8 in
+  let cb = get_int8 buf pos in
   let len_len = (cb lsr 6) land 3 in
   let be = cb land 2 <> 0 in
   
@@ -859,7 +863,7 @@ let g2_udp_handler p =
   in
   let name_len = ((cb lsr 3) land 7) + 1 in
   let msg_len = 1 + len_len + name_len + pkt_len in
-  if len < 8 + msg_len then raise Not_found;
+  if len < pos + msg_len then raise Not_found;
   
 (*  lprintf "One gnutella2 packet received\n"; *)
   let name = String.sub buf (pkt_pos + pos) name_len in

@@ -188,11 +188,11 @@ let cprintf kont fmt =
 let lprintf_handler = ref (fun s -> ())
   
 let lprintf fmt = 
-  cprintf (fun s -> !lprintf_handler s)
+  cprintf (fun s -> try !lprintf_handler s with _ -> ())
   (fmt : ('a,unit, unit) format )
   
 let lprintf_nl fmt = 
-  cprintf (fun s -> !lprintf_handler (s^"\n"))
+  cprintf (fun s -> try !lprintf_handler (s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprint_newline () = lprintf "\n"

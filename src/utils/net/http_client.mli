@@ -60,5 +60,5 @@ val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
 *)
   
 val split_header : string -> string list
-val cut_headers : string list -> (string * string) list
+val cut_headers : string list -> (string * (string * string)) list
   

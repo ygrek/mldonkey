@@ -50,8 +50,17 @@ module GnutellaHandler = struct
   
 let gnutella_proto = "GNUTELLA/"
 let gnutella_proto_len = String.length gnutella_proto
+
+    
+let send_pings () =
+  List.iter (fun s ->
+      Gnutella.server_send_ping s
+  ) !connected_servers
+
+
+let retry_and_fake = false
   
-let server_parse_header s gconn sock header =
+let rec server_parse_header with_accept retry_fake s gconn sock header =
 (*   if !verbose_msg_servers then  LittleEndian.dump_ascii header;   *)
   try
     if not (String2.starts_with header gnutella_proto) then 
@@ -69,7 +78,7 @@ let server_parse_header s gconn sock header =
           
           if !verbose_msg_servers then begin
               lprintf "HEADER: %s\n" line;
-              List.iter (fun (header, value) ->
+              List.iter (fun (header, (value,_)) ->
                   lprintf "   %s = %s\n" header value;
               ) headers;
               lprintf "\n\n"
@@ -80,11 +89,15 @@ let server_parse_header s gconn sock header =
     let ultra_peer = ref false in
     let gnutella2 = ref false in
     let deflate = ref false in
-    List.iter (fun (header, value) ->
+    let keep_headers = ref [] in
+    let content_type = ref "" in
+    List.iter (fun (header, (value, key)) ->
         try
           match (String.lowercase header) with
           
-          | "user-agent" ->  s.server_agent <- value
+          | "user-agent" ->  
+              s.server_agent <- value;
+              keep_headers := (key, value) :: !keep_headers
           
           | "remote-ip" -> 
               last_high_id := Ip.of_string value;
@@ -132,13 +145,15 @@ let server_parse_header s gconn sock header =
                   
                   with _ -> ()
               ) (String2.split_simplify value ',')    
-
+          
           | "accept" -> ()
           | "accept-encoding" -> ()
           | "x-ultrapeer-loaded" -> ()
               
           | "content-type" ->
               List.iter (fun s ->
+                  content_type := s;
+                  lprintf "Content-Type: %s\n" s;
                   match s with 
                     "application/x-gnutella2" -> gnutella2 := true
                   | _ -> ()
@@ -149,40 +164,45 @@ let server_parse_header s gconn sock header =
           
           | "content-encoding" -> 
               if value = "deflate" then deflate := true
-          
-          | "x-query-routing" -> (* current 0.1 *) ()
-          | "listen-ip" -> (* value = ip:port *) ()
-          | "pong-caching" -> (* version = 0.1 *) ()
-          | "servent-id" -> (* servent in hexa *) ()
-          | "ggep" -> (* current is 0.5 *) ()
-          | "vendor-message" -> (* current is 0.1 *) ()
-          | "x-ultrapeer-needed" -> (* true/false *) ()
-          | "bye-packet" -> (* current is 0.1 *) ()
 
-(* LimeWire *)
-          | "x-dynamic-querying" -> (* current is 0.1 *) ()
-          | "x-version" -> ()
-          | "x-max-ttl" -> (* often 4 *) ()
-          | "x-degree" -> (* often 15 *) () 
-          | "x-ext-probes" -> (* current is 0.1 *) ()
-          | "x-ultrapeer-query-routing" -> (* current is 0.1 *) ()
-(* BearShare *)
+          | "listen-ip"
+          | "x-my-address"
+            -> (* value = ip:port *) ()
+          | "servent-id" -> (* servent in hexa *) ()
+          | "x-ultrapeer-needed" -> (* true/false *) ()
           | "fp-auth-challenge" -> (* used by BearShare for auth *) ()
-          | "hops-flow" -> ()
-          | "bearchat" -> ()
           | "machine" -> () (* unknown usage *)
-          | "x-guess" -> (* current is 0.1 *) ()
 (* Swapper *)
           | "x-live-since" -> ()
 (* Gtk-gnutella : try and try-ultrapeer on several lines *)
           | "x-token" -> ()
 (* Gnucleus/MorpheusOS/MyNapster *)
           | "uptime" -> (*  0D 21H 01M *) ()
-          | "x-leaf-max" -> ()
+
+(* These ones should be kept *)
+          | "x-query-routing"    (* current 0.1 *) 
+          | "pong-caching"    (* version = 0.1 *) 
+          | "ggep"    (* current is 0.5 *) 
+          | "vendor-message"    (* current is 0.1 *) 
+          | "bye-packet"    (* current is 0.1 *) 
+
+(* LimeWire *)
+          | "x-dynamic-querying"    (* current is 0.1 *) 
+          | "x-version"    
+          | "x-max-ttl"    (* often 4 *) 
+          | "x-degree"    (* often 15 *)  
+          | "x-ext-probes"    (* current is 0.1 *) 
+          | "x-ultrapeer-query-routing"    (* current is 0.1 *) 
+(* BearShare *)
+          | "hops-flow"    
+          | "bearchat"    
+          | "x-guess"    (* current is 0.1 *) 
+          | "x-leaf-max" -> 
+              keep_headers := (key, value) :: !keep_headers
           
           | _ -> 
               lprintf "Unknown Option in HEADER:\n";
-              List.iter (fun (h, v) ->
+              List.iter (fun (h, (v,_)) ->
                   if h = header then
                     lprintf ">>>>>>>   %s = %s\n" h v
                   else
@@ -194,25 +214,28 @@ let server_parse_header s gconn sock header =
     
     if not !ultra_peer then 
       failwith "DISCONNECT: Not an Ultrapeer";
-    if code <> "200" then
-      failwith  (Printf.sprintf "Bad return code [%s]" code);
+    if code <> "200" then begin
+        if retry_fake then begin
+            Gnutella.disconnect_from_server s;
+            connect_server with_accept false s !keep_headers
+          end else
+          failwith  (Printf.sprintf "Bad return code [%s]" code)
+        
+      end else
     if proto < "0.6" then
-      failwith (Printf.sprintf "Bad protocol [%s]" proto);
+      failwith (Printf.sprintf "Bad protocol [%s]" proto)
+    else
     if not (!gnutella2 || !!enable_gnutella1) then
-      failwith "Protocol Gnutella2 not supported";
-    
-    set_rtimeout sock DG.half_day;
-    
-    set_server_state s (Connected (-1));
-    server_must_update (as_server s.server_server);
-    
+      failwith "Protocol Gnutella2 not supported"
+    else
     let msg = 
       let buf = Buffer.create 100 in
       Buffer.add_string buf "GNUTELLA/0.6 200 OK\r\n";
-      Printf.bprintf  buf "Content-Type: %s\r\n"
-        (if !gnutella2 then
-          "application/x-gnutella2" else
-          "application/x-gnutella-packets");
+      if !content_type <> "" then
+        Printf.bprintf  buf "Content-Type: %s\r\n"
+          (if !gnutella2 then
+            "application/x-gnutella2" else
+            !content_type);
       Buffer.add_string buf "X-Ultrapeer: False\r\n";
 (* Contribute: sending gnutella 1 or 2 ultrapeers to other peers
       Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
@@ -221,8 +244,18 @@ let server_parse_header s gconn sock header =
       Buffer.add_string buf "\r\n";
       Buffer.contents buf
     in
-(*    lprintf "CONNECT REQUEST: %s\n" (String.escaped msg);  *)
+(*    lprintf "CONNECT REQUEST: %s\n" (String.escaped msg);   *)
     write_string sock msg;
+    
+    (*
+    if not retry_fake then
+      lprintf "******** CONNECTED BY FAKING ********\n";
+*)
+    
+    set_rtimeout sock DG.half_day;
+    
+    set_server_state s (Connected (-1));
+    server_must_update (as_server s.server_server);
     
     s.server_gnutella2 <-  !gnutella2;
     connected_servers := s :: !connected_servers;
@@ -233,13 +266,8 @@ let server_parse_header s gconn sock header =
   | e -> 
       lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
       Gnutella.disconnect_from_server s
-  
-let send_pings () =
-  List.iter (fun s ->
-      Gnutella.server_send_ping s
-  ) !connected_servers
       
-let connect_server with_accept s =  
+and connect_server with_accept retry_fake s headers =  
   match s.server_sock with
     Some _ -> ()
   | None -> 
@@ -265,7 +293,7 @@ let connect_server with_accept s =
         s.server_sock <- Some sock;
         incr nservers;
         set_gnutella_sock sock !verbose_msg_servers
-          (HttpHeader (server_parse_header s)
+          (HttpHeader (server_parse_header true retry_fake s)
         
         );
         set_closer sock (fun _ error -> 
@@ -281,29 +309,35 @@ let connect_server with_accept s =
             (Ip.to_string (client_ip (Some sock))) !!client_port;
           Printf.bprintf buf "Remote-IP: %s\r\n"
             (Ip.to_string s.server_ip);
-          Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
-          if with_accept then
-            Printf.bprintf buf "Accept: %s%s\r\n"
-              (if !!enable_gnutella1 then "application/x-gnutella-packets,"
-              else "")
-            (if !!enable_gnutella2 then "application/x-gnutella2"
-              else "application/x-edonkey"); 
-          Printf.bprintf buf "X-Ultrapeer: False\r\n";
+          
+          if headers = [] then begin
+              Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+              if with_accept then
+                Printf.bprintf buf "Accept: %s%s\r\n"
+                  (if !!enable_gnutella1 then "application/x-gnutella-packets,"
+                  else "")
+                (if !!enable_gnutella2 then "application/x-gnutella2"
+                  else "application/x-edonkey"); 
 (* Contribute:  Packet compression is not yet supported...
-          Printf.bprintf buf "Accept-Encoding: deflate\r\n"; *)
+Printf.bprintf buf "Accept-Encoding: deflate\r\n"; *)
 (* Other Gnutella headers *)          
+              Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
+              Printf.bprintf buf "GGEP: 0.5\r\n"; 
+            end else begin
+(*              lprintf "****** Retry and fake **********\n"; *)
+              List.iter (fun (key, value) ->
+                  Printf.bprintf buf "%s: %s\r\n" key value
+              ) headers;
+            end;
           Printf.bprintf buf "X-My-Address: %s:%d\r\n"
             (Ip.to_string (client_ip (Some sock))) !!client_port;
-          Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
-          Printf.bprintf buf "GGEP: 0.5\r\n"; 
+          Printf.bprintf buf "X-Ultrapeer: False\r\n";
+          Printf.bprintf buf "X-Ultrapeer-Needed: True\r\n";
 (* Finish with headers *)
           Buffer.add_string buf "\r\n";
           Buffer.contents buf
         in
-(*
-        lprintf "SENDING\n";
-        AP.dump s;
-  *)
+(*        lprintf "SENDING %s\n" (String.escaped s); *)
         write_string sock s;
       with _ ->
           Gnutella.disconnect_from_server s
@@ -311,7 +345,9 @@ let connect_server with_accept s =
 let try_connect_ultrapeer () =
   let ((ip,port), with_accept) = 
     try
-      Fifo.take ultrapeers2_queue, true
+      if !!enable_gnutella2 then
+        Fifo.take ultrapeers2_queue, true
+      else raise Not_found
     with _ ->
         (try if !!enable_gnutella2 then Gnutella2Redirector.connect ()
           with _ -> ());
@@ -327,7 +363,19 @@ let try_connect_ultrapeer () =
                 raise Not_found
   in
   let s = new_server ip port in
-  connect_server (with_accept || s.server_gnutella2) s
+  connect_server (with_accept || s.server_gnutella2) retry_and_fake s []
+
+(*
+GNUTELLA CONNECT/0.6\013\n
+Listen-IP: 81.100.86.143:6346\013\n
+Remote-IP: 207.5.221.193\013\n
+User-Agent: MLDonkey 2.4-rc6\013\n
+X-Query-Routing: 0.1\013\n
+GGEP: 0.5\013\n
+X-My-Address: 81.100.86.143:6346\013\n
+X-Ultrapeer: False\013\n\013\n
+
+  *)
   
 let connect_servers () =
   (*
