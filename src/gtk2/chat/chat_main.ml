@@ -20,40 +20,31 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type parameter_kind = Configwin_types.parameter_kind
+(** Main module of the standalone tool. *)
 
-type configuration_structure =
-    Configwin_types.configuration_structure =
-    Section of string * parameter_kind list
-  | Section_list of string * configuration_structure list
+ignore (GMain.Main.init ());;
 
-type return_button =
-    Configwin_types.return_button =
-    Return_apply
-  | Return_ok
-  | Return_cancel
+let pred (i1,h1,p1) (i2,h2,p2) =
+  i1 = i2 && h1 = h2 && p1 = p2
 
+let main () =
+  let _ = GMain.Main.init () in
+  let config = Chat_args.parse () in
+  let com = new Mlchat.tcp config in
+  let app = new Mlchat.app ~pred: pred config com in
+  let window = GWindow.window 
+      ~allow_shrink: true
+      ~allow_grow: true
+      ~icon:(Chat_art.get_icon ~icon:"icon_mlchat" ())
+      ~width:(Gdk.Screen.height () * 2 / 5)
+      ~height:(Gdk.Screen.width () * 1 / 3)
+      ~title:Chat_messages.software () 
+  in
+  window#add app#coerce ;
+  ignore (app#box#connect#destroy window#destroy);
+  ignore (window#connect#destroy GMain.Main.quit);
+  app#init_window window ;
+  window#show () ;
+  GMain.Main.main ()
 
-let string = Configwin_ihm.string
-let password = Configwin_ihm.password
-let text = Configwin_ihm.text
-let strings = Configwin_ihm.strings
-let list = Configwin_ihm.list
-let bool = Configwin_ihm.bool
-let filename = Configwin_ihm.filename
-let filenames = Configwin_ihm.filenames
-let color = Configwin_ihm.color
-let font = Configwin_ihm.font
-let combo = Configwin_ihm.combo
-let custom = Configwin_ihm.custom
-let date = Configwin_ihm.date
-
-let edit = Configwin_ihm.edit 
-
-let get = Configwin_ihm.edit ~with_apply: false
-
-let simple_edit = Configwin_ihm.simple_edit
-
-let simple_get = Configwin_ihm.simple_edit ~with_apply: false
-
-let box = Configwin_ihm.box
+let _ = main ()
