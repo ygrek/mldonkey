@@ -5,7 +5,7 @@
 
 #define FD_SETSIZE 256
 
-#include <w32api/winsock.h>
+#include <winsock.h>
 
 struct filedescr {
   union {

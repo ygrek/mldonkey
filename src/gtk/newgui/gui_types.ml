@@ -75,6 +75,7 @@ type gui_client_info = {
     mutable gclient_name : string;
     mutable gclient_files:  file_tree option;
     mutable gclient_rating : int;
+    mutable gclient_connect_time : int;
     mutable gclient_software : string;
     mutable gclient_downloaded : int64;
     mutable gclient_uploaded : int64;
@@ -113,7 +114,10 @@ type gui_result_info = {
     mutable gresult_size : int64;
     mutable gresult_format : string;
     mutable gresult_type : string;
-    mutable gresult_tags : tag list;
+    mutable gresult_duration : string;
+    mutable gresult_codec : string;
+    mutable gresult_bitrate : int;
+    mutable gresult_availability : int;
     mutable gresult_comment : string;
     mutable gresult_done : bool;
     mutable gresult_pixmap : GDraw.pixmap option;

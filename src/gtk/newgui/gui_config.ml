@@ -355,6 +355,24 @@ let create_gui_params () =
       (gettext M.o_use_graphical_availability)
       !!GO.use_graphical_availability
   in
+  let max_file_name_len = string
+      ~f: (safe_int_of_string GO.max_file_name_len)
+      ~help: (gettext M.h_max_file_name_len)
+      (gettext M.o_max_file_name_len)
+      (string_of_int !!GO.max_file_name_len)
+  in
+  let max_client_name_len = string
+      ~f: (safe_int_of_string GO.max_client_name_len)
+      ~help: (gettext M.h_max_client_name_len)
+      (gettext M.o_max_client_name_len)
+      (string_of_int !!GO.max_client_name_len)
+  in
+  let max_result_name_len = string
+      ~f: (safe_int_of_string GO.max_result_name_len)
+      ~help: (gettext M.h_max_result_name_len)
+      (gettext M.o_max_result_name_len)
+      (string_of_int !!GO.max_result_name_len)
+  in
   let misc_options = Section
       ((gettext M.o_misc),
        [
@@ -365,6 +383,9 @@ let create_gui_params () =
 	 chunk_width ;
          use_icons;
          use_graphical_availability;
+         max_file_name_len;
+	 max_client_name_len;
+	 max_result_name_len;
        ]
       )
   in

@@ -29,6 +29,8 @@ module type Digest = sig
     val null : t
     val one : t
     val two : t
+
+    val equal : t -> t -> bool
       
     val to_string : t -> string
 (* [to_string_case upper hash] *)

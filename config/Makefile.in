@@ -447,12 +447,14 @@ MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   tools/mlcast.ml
 
+ICONS_CMXA=icons.cmxa
+
 CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
 mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
-  gmisc.cmxa guibase.cmxa gui.cmxa
+  gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlnet+gui_SRCS=$(MAIN_SRCS)
 
 
@@ -663,7 +665,7 @@ GUI_BASE_SRCS= \
   $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
   $(SRC_GUI)/gui_columns.ml \
   $(SRC_GUI)/gui_keys.ml \
-  $(ALL_ICONS_SRCS) $(SRC_GUI)/gui_options.ml 
+  $(SRC_GUI)/gui_options.ml 
 
 NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_types.ml \
@@ -714,13 +716,13 @@ GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
   $(SRC_GUI2)/gui2_misc.ml $(SRC_GUI2)/gui2_config.ml \
   $(SRC_GUI2)/gui2_main.ml
 
-MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa gui.cmxa
+MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
-MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
+MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
-MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
+MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEY_IM_SRCS= \
    $(GUI_BASE_SRCS) $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
@@ -843,7 +845,7 @@ EXPAND_LIB($2,$1)
 
 $1+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa $1.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 $1+gui_SRCS= $(MAIN_SRCS)
 
 ]])
@@ -865,7 +867,9 @@ libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
 libguibase_SRCS= $(IM_CORE)
 libgui_SRCS=   $(GUI_BASE_SRCS) $(GUI_SRCS)
 libgui3_SRCS=   $(GUI_BASE_SRCS) $(GUI3_SRCS)
+libicons_SRCS= $(ALL_ICONS_SRCS)
 
+EXPAND_LIB(libicons,icons)
 EXPAND_LIB(libcdk,cdk)
 EXPAND_LIB(libcommon,common)
 EXPAND_LIB(libclient,client)
@@ -1081,9 +1085,9 @@ pa_zog.cma: $(PA_ZOG_FILES)
 $(TMPSOURCES): pa_zog.cma
 
 depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
-	$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
+	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
-		$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 	done)
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz

@@ -337,14 +337,17 @@ let buf_client proto buf c =
   buf_int buf c.client_rating;
   if proto <= 18 then begin
       buf_int buf c.client_chat_port
-    end else begin
+    end else 
+    begin
       buf_string buf c.client_software;
       buf_int64 buf c.client_downloaded;
       buf_int64 buf c.client_uploaded;
-      buf_string buf c.client_sock_addr;
-      match c.client_upload with
-        Some s -> buf_string buf s
-      | None -> buf_string buf ""
+(*      buf_string buf c.client_sock_addr; *)
+      (match c.client_upload with
+          Some s -> buf_string buf s
+        | None -> buf_string buf "");
+      if proto >= 20 then
+        buf_int buf c.client_connect_time
     end
     
 let buf_network proto buf n =
@@ -666,7 +669,7 @@ let rec from_gui (proto : int array) buf t =
       buf_string buf pass;
       if proto > 13 then 
         buf_string buf login
-        
+  
   | Search_query search -> 
       let proto = proto.(42) in
       if proto < 2 then begin
@@ -683,7 +686,7 @@ let rec from_gui (proto : int array) buf t =
       buf_int buf int;
       if proto > 13 then
         buf_bool buf force
-        
+  
   | Url string -> buf_int16 buf 8;
       buf_string buf string
   | RemoveServer_query int -> buf_int16 buf 9;
@@ -694,8 +697,8 @@ let rec from_gui (proto : int array) buf t =
   
   | RemoveDownload_query  int -> buf_int16 buf 11;
       buf_int buf int
-
-      
+  
+  
   | ServerUsers_query  int -> buf_int16 buf 12;
       buf_int buf int
   | SaveFile (int, string) -> buf_int16 buf 13;
@@ -776,57 +779,57 @@ let rec from_gui (proto : int array) buf t =
           buf_int buf c;
           buf_string buf m
         end
-        
+
 (* These messages are not supported by the core with the provided 
 protocol version. Do not send them ? *)
-        
+
 (* Introduced with proto 3 *)
   | GetConnectedServers -> buf_int16 buf 44
   | GetDownloadFiles -> buf_int16 buf 45
   | GetDownloadedFiles -> buf_int16 buf 46
-      
+  
   | GuiExtensions list -> 
       buf_int16 buf 47;
       buf_list buf (fun buf (ext, bool) ->
           buf_int buf ext;
           buf_int8 buf (if bool then 1 else 0);
       ) list
-      
+  
   | SetRoomState (num, state) ->
       buf_int16 buf 48;
       buf_int buf num;
       buf_room_state buf state
-      
+
 (* Introduced with proto 4 *)
   | RefreshUploadStats ->      buf_int16 buf 49
 
 (* Introduced with proto 7 *)
-        
+  
   | SetFilePriority (num, prio) ->
       let proto = proto.(51) in
       if proto >= 12 then
         buf_int16 buf 51; buf_int buf num; buf_int buf prio
-
+  
   | AddServer_query (net, ip, port) ->
       buf_int16 buf 54;
       buf_int buf net;
       buf_ip buf ip;
       buf_int16 buf port
-
-   | MessageVersions list ->
-       buf_int16 buf 55;
-       buf_list buf (fun buf (opcode, from_guip, proto) ->
-           buf_int16 buf opcode;
-           buf_bool buf from_guip;
-           buf_int buf proto
-       ) list
-
-	| RenameFile (num, new_name) ->
-				buf_int16 buf 56; buf_int buf num; buf_string buf new_name
   
-   | GiftAttach _ -> assert false
-   | GiftStats -> assert false
-       
+  | MessageVersions list ->
+      buf_int16 buf 55;
+      buf_list buf (fun buf (opcode, from_guip, proto) ->
+          buf_int16 buf opcode;
+          buf_bool buf from_guip;
+          buf_int buf proto
+      ) list
+  
+  | RenameFile (num, new_name) ->
+      buf_int16 buf 56; buf_int buf num; buf_string buf new_name
+  
+  | GiftAttach _ -> assert false
+  | GiftStats -> assert false
+      
 let best_gui_version = 20
   
 (********** Some assertions *********)

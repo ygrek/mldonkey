@@ -569,3 +569,12 @@ type arg_kind =
 | Arg_one of (string -> arg_handler)
 | Arg_two of (string -> string -> arg_handler)
 | Arg_three of (string -> string -> string -> arg_handler)
+
+    
+let  string_of_kind kind =
+  try
+    match kind with
+    | Known_location (ip,port) -> Ip.to_string ip
+    | _ -> ""
+  with _ -> ""
+      

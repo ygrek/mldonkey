@@ -25,9 +25,11 @@ open Options
 open Unix
 
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
+
+let config_dir = Filename.concat home_dir ".mldonkey"
   
-let installer_ini = create_options_file (Filename.concat home_dir 
-      ".mldonkey_installer.ini")
+let installer_ini = create_options_file (Filename.concat config_dir
+      "installer.ini")
   
 let installer_section = file_section installer_ini [] ""
   

@@ -42,12 +42,14 @@ let (!!) = Options.(!!)
 let (=:=) = Options.(=:=)
 
 let short_name n =
-  let len = String.length n in
-  if len > 60 then
-    Printf.sprintf "%s...%s" (String.sub n 0 55) (String.sub n (len-5) 5)
-  else if n="" then
+  let n = if n="" then
      "http://go.to/mldonkey"
   else n
+  in
+  let len = String.length n in
+  if len > !!O.max_file_name_len then
+    Printf.sprintf "%s...%s" (String.sub n 0 (!!O.max_file_name_len - 5)) (String.sub n (len-5) 5)
+    else n
 
 let is_connected state =
   match state with

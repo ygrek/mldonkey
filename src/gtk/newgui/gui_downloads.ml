@@ -128,7 +128,9 @@ let save_menu_items file =
     (fun name ->
       `I (name, 
         (fun _ -> 
-	  Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+          match file.data.gfile_state with
+ 	      FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+            | _  ->  Gui_com.send (GuiProto.RenameFile (List.hd (file.data.gfile_num), name))
         )
       )
   ) 
@@ -143,7 +145,9 @@ let save_as file () =
   match file_opt with
     None -> ()
   | Some name -> 
-      Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+          match file.data.gfile_state with
+ 	      FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+            | _  ->  Gui_com.send (GuiProto.RenameFile (List.hd (file.data.gfile_num), name))
       
   
 let (!!) = Options.(!!)

@@ -25,7 +25,7 @@ open Str (* global_replace *)
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
   with _ ->
-      Filename.concat CommonOptions.home_basedir ".mldonkey_messages.ini"
+      Filename.concat CommonOptions.config_dir "messages.ini"
     
       (* 
 let _ =

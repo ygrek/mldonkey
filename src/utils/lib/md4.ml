@@ -247,6 +247,8 @@ module type Digest = sig
     val one : t
     val two : t
       
+    val equal : t -> t -> bool
+      
     val to_string : t -> string
     val to_string_case : bool -> t -> string
     val of_string : string -> t
@@ -306,6 +308,8 @@ module Make(M: sig
     let null = String.make hash_length '\000'
     let one = String.make hash_length '\001'
     let two =  String.make hash_length '\002'
+
+    let equal h1 h2 = (String.compare h1 h2) = 0
 
     let string s =
       let len = String.length s in

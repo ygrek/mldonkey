@@ -330,7 +330,7 @@ let _ = (
           P.client_downloaded = c.client_downloaded;
           P.client_uploaded = c.client_uploaded;
           P.client_upload = None;
-          P.client_sock_addr = (Ip.to_string ip);
+(*          P.client_sock_addr = (Ip.to_string ip); *)
         }
     );
     client_ops.op_client_bprint <- (fun c buf ->

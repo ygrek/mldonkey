@@ -374,7 +374,12 @@ let _ =
 let browse_client c = 
   lprintf "Fasttrack: browse client not implemented\n";
   ()
-  
+
+let string_of_client_addr c =
+  match c.client_user.user_kind with
+  | Known_location (ip,port) -> Ip.to_string ip
+  | _ -> ""
+      
 let _ =
   client_ops.op_client_info <- (fun c ->
       {
@@ -398,9 +403,7 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
-		P.client_sock_addr = (match c.client_user.user_kind with
-						| Known_location (ip,port) -> Ip.to_string ip
-						| _ -> "");
+(*		P.client_sock_addr = (; *)
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
@@ -411,7 +414,7 @@ let _ =
         let cinfo = client_info cc in
         Printf.bprintf buf "%s (%s)\n"
           cinfo.GuiTypes.client_name
-          cinfo.GuiTypes.client_sock_addr
+          (string_of_client_addr c)
     );
     client_ops.op_client_bprint_html <- (fun c buf file ->
         let cc = as_client c.client_client in
@@ -420,7 +423,7 @@ let _ =
         html_mods_td buf [
           ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
           ("", "sr br", cinfo.GuiTypes.client_name);
-          ("", "sr", cinfo.GuiTypes.client_sock_addr);
+          ("", "sr", (string_of_client_addr c));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
     );
@@ -454,7 +457,7 @@ let _ =
           ("", "sr ar", Printf.sprintf "%d" 
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
           ("", "sr", "D");
-          ("", "sr", (cinfo.GuiTypes.client_sock_addr));
+          ("", "sr", (string_of_client_addr c));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
           ("", "sr", info.GuiTypes.file_name); ];

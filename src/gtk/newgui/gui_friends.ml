@@ -272,6 +272,7 @@ class box columns friend_tab =
       | Col_client_network -> compare f1.gclient_network f2.gclient_network
       | Col_client_type -> compare f1.gclient_type f2.gclient_type
       | Col_client_rating -> compare f1.gclient_rating f2.gclient_rating
+      | Col_client_connect_time -> compare f1.gclient_connect_time f2.gclient_connect_time
       | Col_client_software -> compare f1.gclient_software f2.gclient_software
       | Col_client_downloaded -> compare f1.gclient_downloaded f2.gclient_downloaded
       | Col_client_uploaded -> compare f1.gclient_uploaded f2.gclient_uploaded
@@ -301,6 +302,7 @@ class box columns friend_tab =
             Known_location _ -> gettext M.direct
           | _ -> "")
       | Col_client_rating -> string_of_int f.gclient_rating
+      | Col_client_connect_time -> Gui_graph.time_to_string (BasicSocket.last_time () - f.gclient_connect_time)
       | Col_client_software -> f.gclient_software
       | Col_client_downloaded -> Gui_misc.size_of_int64 f.gclient_downloaded
       | Col_client_uploaded -> Gui_misc.size_of_int64 f.gclient_uploaded
@@ -441,12 +443,12 @@ class box_friends box_files friend_tab =
         client_files = c.gclient_files;
         client_rating = c.gclient_rating;
         client_chat_port = 0;
-        client_connect_time = 0;
+        client_connect_time = c.gclient_connect_time;
         client_software = c.gclient_software;
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
         client_upload = c.gclient_upload;
-        client_sock_addr = c.gclient_sock_addr;
+(*        client_sock_addr = c.gclient_sock_addr;*)
       }
 
     method to_gui_client c =
@@ -460,11 +462,12 @@ class box_friends box_files friend_tab =
         gclient_name = c.client_name;
         gclient_files = c.client_files;
         gclient_rating = c.client_rating;
+        gclient_connect_time = c.client_connect_time;
         gclient_software = c.client_software;
         gclient_downloaded = c.client_downloaded;
         gclient_uploaded = c.client_uploaded;
         gclient_upload = c.client_upload;
-        gclient_sock_addr = c.client_sock_addr;
+        gclient_sock_addr = string_of_kind c.client_kind;
         gclient_net_pixmap =
           if icons_are_used then
             Some (Gui_options.network_pix
@@ -495,11 +498,12 @@ class box_friends box_files friend_tab =
                 (* added *)
                 f.gclient_tags <- f_new.client_tags;
                 f.gclient_rating <- f_new.client_rating;
+                f.gclient_connect_time <-  f_new.client_connect_time;
                 f.gclient_software <- f_new.client_software;
                 f.gclient_downloaded <- f_new.client_downloaded;
                 f.gclient_uploaded <- f_new.client_uploaded;
                 f.gclient_upload <- f_new.client_upload;
-                f.gclient_sock_addr <- f_new.client_sock_addr;
+                f.gclient_sock_addr <- string_of_kind f_new.client_kind;
                 if box_friends_is_visible then self#update_row f row
               end
       with
@@ -651,12 +655,12 @@ class box_list friend_tab =
         client_files = c.gclient_files;
         client_rating = c.gclient_rating;
         client_chat_port = 0;
-        client_connect_time = 0;
+        client_connect_time = c.gclient_connect_time;
         client_software = c.gclient_software;
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
         client_upload = c.gclient_upload;
-        client_sock_addr = c.gclient_sock_addr;
+(*        client_sock_addr = string_of_kind c.gclient_kind; *)
       }
 
     method to_gui_client c =
@@ -670,11 +674,12 @@ class box_list friend_tab =
         gclient_name = c.client_name;
         gclient_files = c.client_files;
         gclient_rating = c.client_rating;
+        gclient_connect_time =  c.client_connect_time;
         gclient_software = c.client_software;
         gclient_downloaded = c.client_downloaded;
         gclient_uploaded = c.client_uploaded;
         gclient_upload = c.client_upload;
-        gclient_sock_addr = c.client_sock_addr;
+        gclient_sock_addr = string_of_kind c.client_kind;
         gclient_net_pixmap = None;
         gclient_pixmap = None;
       }
@@ -708,6 +713,7 @@ class box_list friend_tab =
           else begin
             c.gclient_state <- c_new.client_state;
             c.gclient_rating <- c_new.client_rating;
+            c.gclient_connect_time <- c_new.client_connect_time;
             c.gclient_name <- c_new.client_name;
             c.gclient_kind <- c_new.client_kind;
             c.gclient_tags <- c_new.client_tags;
@@ -721,7 +727,7 @@ class box_list friend_tab =
                 Connected _
               | Connected_downloading -> c.gclient_upload <- c_new.client_upload
               | _ -> c.gclient_upload <- None );
-            c.gclient_sock_addr <- c_new.client_sock_addr;
+            c.gclient_sock_addr <- string_of_kind c_new.client_kind;
             if icons_are_used && (not (self#filter c)) && (c.gclient_net_pixmap = None) then
               c.gclient_net_pixmap <-
                 Some (Gui_options.network_pix

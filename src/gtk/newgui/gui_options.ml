@@ -32,7 +32,7 @@ module M = Gui_messages
 module C = Gui_columns
 
 let mldonkey_gui_ini = create_options_file 
-    (Filename.concat "." "mldonkey_gui.ini")
+    (Filename.concat CommonOptions.config_dir "mldonkey_gui.ini")
   
 module KeyOption = struct
     
@@ -669,7 +669,8 @@ let file_locations_columns = define_option mldonkey_gui_section
   [
    C.Col_client_network ; C.Col_client_name ;
    C.Col_client_kind ; C.Col_client_state;
-   C.Col_client_rating ; C.Col_client_software ;
+   C.Col_client_rating ; C.Col_client_connect_time ;
+   C.Col_client_software ;
    C.Col_client_downloaded ; C.Col_client_uploaded ;
    C.Col_client_upload ; C.Col_client_sock_addr ;
   ]
@@ -712,7 +713,9 @@ let results_columns = define_option mldonkey_gui_section
   [
    C.Col_result_network ; C.Col_result_name ;
       C.Col_result_size ; C.Col_result_format ;
-   C.Col_result_props ; C.Col_result_comment ;
+   C.Col_result_duration ; C.Col_result_codec ;
+   C.Col_result_bitrate ; C.Col_result_availability ;
+   C.Col_result_comment ;
   ]
 
 
@@ -753,32 +756,35 @@ let use_size_suffixes = define_option mldonkey_gui_section
     (M.h_use_size_suffixes) bool_option true
 
 let use_availability_height = define_option mldonkey_gui_section ["availability_height"]
-  "Display the availability of each chunk as the height of the colored bar"
+  (gettext M.h_use_availability_height)
     bool_option true
 
 let availability_max = define_option mldonkey_gui_section ["availability_max"]
-  "If use_availability_height is true, which availability corresponds to
-  a full bar ?"
+  (gettext M.h_availability_max)
     int_option 10
   
 let use_relative_availability = define_option mldonkey_gui_section ["relative_availability"]
-  "Calculate the % avilability ignoring already present chunks"
+  (gettext M.h_use_relative_availability)
     bool_option true
 
 let use_icons = define_option mldonkey_gui_section ["use_icons"]
-  "Use icons in all the lists"
+  (gettext M.h_use_icons)
     bool_option true
 
 let use_graphical_availability = define_option mldonkey_gui_section ["graphical_availability"]
-  "Use graphical representation for the availability in the downloads tab"
+  (gettext M.h_use_graphical_availability)
     bool_option true
 
-let max_client_name_len = define_option mldonkey_gui_section
-    ["max_client_name_len"] "Max length of a source name"
+let max_file_name_len = define_option mldonkey_gui_section ["max_file_name_len"] 
+  (gettext M.h_max_file_name_len)
+  int_option 70
+
+let max_client_name_len = define_option mldonkey_gui_section ["max_client_name_len"]
+  (gettext M.h_max_client_name_len)
     int_option 40
 
-let max_result_name_len = define_option mldonkey_gui_section
-    ["max_result_name_len"] "Max length of a source name"
+let max_result_name_len = define_option mldonkey_gui_section ["max_result_name_len"]
+  (gettext M.h_max_result_name_len)
     int_option 70
     
 let compaction_overhead = define_option mldonkey_gui_section 

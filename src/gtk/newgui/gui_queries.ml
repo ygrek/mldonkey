@@ -32,7 +32,8 @@ module O = Gui_options
 
 let (!!) = Options.(!!)
 
-
+(* This is a bad idea. Customed searches are defined in "searches.ini", and
+  so the labels are bad if a new search is added. *)
 let search_nbk_data =
 [ (Gui_messages.o_xpm_album_search, Gettext.gettext Gui_messages.album_searches);
   (Gui_messages.o_xpm_movie_search, Gettext.gettext Gui_messages.movie_searches);
@@ -44,13 +45,26 @@ let search_nbk_data =
   (Gui_messages.o_xpm_imdb_search, Gettext.gettext Gui_messages.imdb_searches)
 ]
 
+(* Add these regexps in gui_options.ini *)
+let album_reg = Str.regexp_case_fold ".*album.*"
+let mp3_reg = Str.regexp_case_fold ".*mp3.*"
+let movie_reg = Str.regexp_case_fold ".*movie.*"
+  
 let get_num label =
-    match label with
-        "Album Search" -> 0
-      | "Movie Search" -> 1
-      | "MP3 Search" -> 2
-      | _ -> 3
-
+  Printf2.lprintf "LABEL: [%s]\n" label;
+  let label = String.lowercase label in
+  if Str.string_match album_reg label 0 then 0 else
+  if Str.string_match movie_reg label 0 then 1 else
+  if Str.string_match mp3_reg label 0 then 2 else
+   3
+    (*
+  match label with
+    "Album Search" -> 0
+  | "Movie Search" -> 1
+  | "MP3 Search" -> 2
+  | _ -> 3
+*)
+    
 let tab_box n data =
   let (icon, wlabel) = List.nth data n in
   let hbox = GPack.hbox ~homogeneous:false () in
@@ -102,7 +116,7 @@ let form_leaf qe we =
 let rec form_of_entry f_submit qe =
   match qe with
     Q_AND le ->
-
+      
       let vbox = GPack.vbox ~spacing:2 () in
       
       let rec iter l = 
@@ -118,19 +132,19 @@ let rec form_of_entry f_submit qe =
             let wf2 = GBin.frame ~label:s2 ~border_width:2 () in
             let (w2,e2,f2) = form_of_entry f_submit qe2 in
             wf2#add w2;
-
+            
             hbox#pack ~padding: 2 ~expand: e1 wf1#coerce;            
             hbox#pack ~padding: 2 ~expand: e2 wf2#coerce;
             
             (QF_MODULE f1) :: (QF_MODULE f2) :: (iter tail)
-            
+        
         | qe :: tail ->
             let (w, expand, form) = form_of_entry f_submit qe in
             vbox#pack ~padding: 2 ~expand w;
             form :: (iter tail)
       in
       let le = QF_AND (iter le) in
-      
+
 (*
       let l = List.map (form_of_entry f_submit) le in
       List.iter (fun (w,expand,form) -> vbox#pack ~padding: 2 ~expand w) l;

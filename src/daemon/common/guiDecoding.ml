@@ -488,7 +488,7 @@ let get_client proto s pos =
       client_downloaded = zero;
       client_uploaded = zero;
       client_upload = None;
-      client_sock_addr = "";
+(*      client_sock_addr = ""; *)
     }, pos+8
   else
   let num = get_int s pos in
@@ -502,11 +502,17 @@ let get_client proto s pos =
   let software, pos = get_string s (pos+4) in
   let downloaded = get_int64 s pos in
   let uploaded = get_int64 s (pos+8) in
-  let sock_addr, pos = get_string s (pos+16) in
+(*  let sock_addr, pos = get_string s (pos+16) in *)
+  let pos = pos + 16 in
   let upload, pos = match get_string s pos with
       "", pos -> None, pos
     | s, pos -> Some s, pos
   in
+  let connect_time, pos = 
+    if proto >= 20 then
+      get_int s pos, (pos+4)
+      else 0, pos
+  in 
   {
     client_num = num;
     client_network = net;
@@ -518,14 +524,15 @@ let get_client proto s pos =
     client_rating = rating;
     client_chat_port = 0;
     client_files = None;
-    client_connect_time = 0;
+    client_connect_time = connect_time;
     client_software = software;
     client_downloaded = downloaded;
     client_uploaded = uploaded;
     client_upload = upload;
-    client_sock_addr = sock_addr;
+(*    client_sock_addr = sock_addr; *)
   }, pos
   
+
 let default_flags = [
     NetworkHasServers ;
     NetworkHasRooms;

@@ -447,12 +447,14 @@ MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   tools/mlcast.ml
 
+ICONS_CMXA=icons.cmxa
+
 CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
 mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
-  gmisc.cmxa guibase.cmxa gui.cmxa
+  gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlnet+gui_SRCS=$(MAIN_SRCS)
 
 
@@ -663,7 +665,7 @@ GUI_BASE_SRCS= \
   $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
   $(SRC_GUI)/gui_columns.ml \
   $(SRC_GUI)/gui_keys.ml \
-  $(ALL_ICONS_SRCS) $(SRC_GUI)/gui_options.ml 
+  $(SRC_GUI)/gui_options.ml 
 
 NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_types.ml \
@@ -714,13 +716,13 @@ GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
   $(SRC_GUI2)/gui2_misc.ml $(SRC_GUI2)/gui2_config.ml \
   $(SRC_GUI2)/gui2_main.ml
 
-MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa gui.cmxa
+MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
-MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
+MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
-MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
+MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEY_IM_SRCS= \
    $(GUI_BASE_SRCS) $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
@@ -845,7 +847,7 @@ build/mldc.cma: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMOS)
 
 mldc+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mldc.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mldc+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -892,7 +894,7 @@ build/mlnap.cma: $(OPENNAP_OBJS) $(OPENNAP_CMOS)
 
 mlnap+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlnap.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlnap+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -939,7 +941,7 @@ build/mlgnut.cma: $(GNUTELLA_OBJS) $(GNUTELLA_CMOS)
 
 mlgnut+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlgnut+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -986,7 +988,7 @@ build/mlfasttrack.cma: $(FASTTRACK_OBJS) $(FASTTRACK_CMOS)
 
 mlfasttrack+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlfasttrack+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1033,7 +1035,7 @@ build/mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS)
 
 mlbt+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlbt.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlbt+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1080,7 +1082,7 @@ build/mldonkey.cma: $(DONKEY_OBJS) $(DONKEY_CMOS)
 
 mldonkey+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mldonkey+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1127,7 +1129,7 @@ build/mlcymes.cma: $(CYMES_OBJS) $(CYMES_CMOS)
 
 mlcymes+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlcymes.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlcymes+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1174,7 +1176,7 @@ build/mlslsk.cma: $(SOULSEEK_OBJS) $(SOULSEEK_CMOS)
 
 mlslsk+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlslsk.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlslsk+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1187,6 +1189,27 @@ libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
 libguibase_SRCS= $(IM_CORE)
 libgui_SRCS=   $(GUI_BASE_SRCS) $(GUI_SRCS)
 libgui3_SRCS=   $(GUI_BASE_SRCS) $(GUI3_SRCS)
+libicons_SRCS= $(ALL_ICONS_SRCS)
+
+
+libicons_ZOG := $(filter %.zog, $(libicons_SRCS)) 
+libicons_MLL := $(filter %.mll, $(libicons_SRCS)) 
+libicons_MLY := $(filter %.mly, $(libicons_SRCS)) 
+libicons_ML4 := $(filter %.ml4, $(libicons_SRCS)) 
+libicons_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(libicons_SRCS)) 
+libicons_C := $(filter %.c, $(libicons_SRCS)) 
+libicons_CMOS=$(foreach file, $(libicons_ML),   $(basename $(file)).cmo) 
+libicons_CMXS=$(foreach file, $(libicons_ML),   $(basename $(file)).cmx) 
+libicons_OBJS=$(foreach file, $(libicons_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(libicons_ML4:.ml4=.ml) $(libicons_MLL:.mll=.ml) $(libicons_MLY:.mly=.ml) $(libicons_MLY:.mly=.mli) $(libicons_ZOG:.zog=.ml) 
+ 
+build/icons.cmxa: $(libicons_OBJS) $(libicons_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libicons_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libicons_CMXS) 
+ 
+build/icons.cma: $(libicons_OBJS) $(libicons_CMOS) 
+	$(OCAMLC) -a -o $@  $(libicons_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libicons_CMOS) 
+ 
 
 
 libcdk_ZOG := $(filter %.zog, $(libcdk_SRCS)) 
@@ -2131,9 +2154,9 @@ pa_zog.cma: $(PA_ZOG_FILES)
 $(TMPSOURCES): pa_zog.cma
 
 depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
-	$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
+	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
-		$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 	done)
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz

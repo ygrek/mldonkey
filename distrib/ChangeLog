@@ -2,6 +2,11 @@ ChangeLog
 =========
 
 2003/11/29: Fabrice
+  * Applied patch #2382 (mingw), #2380 (anti-thieves),
+     #2384 (gui), #2386 (gui)
+  * Removed client addr as string in GUI protocol 20
+
+2003/11/29: Fabrice
   * Unix32: create_ro = create_rw
   * New module BTTracker, to implement a tracker for BitTorrent.
       Command "compute_torrent <filename>" in console to generate

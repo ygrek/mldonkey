@@ -2,6 +2,8 @@ TODO list for client
 ====================
 
 * Remove create_ro
+* Extension to download small files immediatly (files smaller than 10k for
+   example)
 * Fix the address in client_info sent as a string instead of an ADDR
 * Put as many config files as possible in ~/.mldonkey/,~/.mldonkey/mlgui
 * Fix performance problems in CommonSwarming

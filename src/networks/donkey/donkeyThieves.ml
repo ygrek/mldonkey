@@ -33,32 +33,42 @@ open TcpBufferedSocket
 open DonkeyTypes
 open DonkeyGlobals
 
-let (client_hashes : (Ip.t, (Md4.t * int)) Hashtbl.t) = Hashtbl.create 16383
-let (hashes_usage : (Md4.t, (int * int)) Hashtbl.t) = Hashtbl.create 16383
+let hash_of_md4 md4 = Hashtbl.hash (Md4.direct_to_string md4)
+
+module Md4HashType =
+  struct type t = Md4.t
+  let equal = Md4.equal
+  let hash = hash_of_md4
+end
+
+module Md4_hashtbl = Hashtbl.Make ( Md4HashType )
+
+let (client_hashes : (Ip.t, (Md4.t * int) ref) Hashtbl.t) = Hashtbl.create 16383
+let hashes_usage = Md4_hashtbl.create 16383
 
 let register_client_hash ip hash =
-  let usage =
+  let usageref =
     try
-      let old_usage, _ = Hashtbl.find hashes_usage hash in
-      old_usage
-    with Not_found -> 0 in
+      Md4_hashtbl.find hashes_usage hash
+    with Not_found ->
+      let newusage = ref (0, 0) in
+      Md4_hashtbl.add hashes_usage hash newusage;
+      newusage in
+  match !usageref with usage, _ ->
   try
-    let old_hash, _ = Hashtbl.find client_hashes ip in
-    Hashtbl.replace client_hashes ip (hash, last_time ());
-    if hash = old_hash then begin
+    let hashref = Hashtbl.find client_hashes ip in
+    match !hashref with old_hash, _ ->
+    hashref := (hash, last_time ());
+    if Md4.equal hash old_hash then begin
       (* No change, all is fine *)
-      if usage = 0 then
-	(* should not normally happen *)
-	Hashtbl.add hashes_usage hash (1, last_time ())
-      else
-	(* refresh timestamp *)
-	Hashtbl.replace hashes_usage hash (usage, last_time ());
+      (* just refresh timestamp *)
+      usageref := (usage, last_time ());
       true 
     end else begin
-      Hashtbl.replace hashes_usage hash (usage + 1, last_time ());
+      usageref := (usage + 1, last_time ());
       lprintf "client hash change %s: %s -> %s" (Ip.to_string ip) (Md4.to_string old_hash) (Md4.to_string hash);
       lprint_newline ();
-      if usage = 1 then 
+      if usage = 0 then 
 	(* The new hash is original, that's acceptable *)
 	true
       else begin
@@ -71,22 +81,24 @@ let register_client_hash ip hash =
     (* No hash was known for that IP, that's acceptable.
        We do not check if the hash was already used elsewhere, because it
        could just be a client reconnecting with a new address *)
-    Hashtbl.add client_hashes ip (hash, last_time ());
-    Hashtbl.replace hashes_usage hash (usage + 1, last_time ());
+    Hashtbl.add client_hashes ip (ref (hash, last_time ()));
+    usageref := (usage + 1, last_time ());
     true
 
 let clean_thieves () =
   let timelimit = last_time () - 3 * 3600 in
-  let obsolete_ips = Hashtbl.fold (fun ip (_, time) l ->
-				     if time < timelimit then
-				       ip :: l
-				     else l) client_hashes [] in
+  let obsolete_ips = Hashtbl.fold (fun ip r l ->
+				     match !r with _, time ->
+				       if time < timelimit then
+				         ip :: l
+				       else l) client_hashes [] in
   List.iter (fun ip -> Hashtbl.remove client_hashes ip) obsolete_ips;
-  let obsolete_hashes = Hashtbl.fold (fun hash (_, time) l ->
-					if time < timelimit then
-					  hash :: l
-					else l) hashes_usage [] in
-  List.iter (fun hash -> Hashtbl.remove hashes_usage hash) obsolete_hashes
+  let obsolete_hashes = Md4_hashtbl.fold (fun hash r l ->
+					    match !r with _, time ->
+					      if time < timelimit then
+					        hash :: l
+					      else l) hashes_usage [] in
+  List.iter (fun hash -> Md4_hashtbl.remove hashes_usage hash) obsolete_hashes
 
 module Marshal = struct
 

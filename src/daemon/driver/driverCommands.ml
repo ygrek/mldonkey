@@ -632,11 +632,11 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option chat_console_id; 
                         strings_of_option chat_warning_for_downloaded; 
                       ] 
-                      
+                  
                   | _ -> 
                       let v = CommonInteractive.some_simple_options (tab - !mtabs) in
-													List.sort (fun d1 d2 -> compare d1 d2) v;
-
+                      List.sort (fun d1 d2 -> compare d1 d2) v;
+            
             );
             Printf.bprintf buf "
 \\</td\\>\\</tr\\>
@@ -690,7 +690,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
           end;
         ""
     ), ":\t\t\t\t\tprint all options";
-
+    
     "options", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
@@ -733,7 +733,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                     List.iter (fun s ->
                         print_section 
                           (Printf.sprintf "%s::%s" r.network_name
-                          (section_name s)) (r.network_prefix ()) s
+                            (section_name s)) (r.network_prefix ()) s
                     ) (sections file)
                 ) r.network_config_file
             );
@@ -742,7 +742,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 the name between []"
     ), ":\t\t\t\t$bprint options values by section$n";
 
-    (*
+(*
     "options", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
@@ -807,7 +807,7 @@ the name between []"
             ( "1", "srh", "Total file requests", "Reqs" ) ; 
             ( "1", "srh", "Total bytes sent", "Total" ) ; 
             ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
-	    ( "0", "srh", "Filename", "Filename" ) ]; 
+            ( "0", "srh", "Filename", "Filename" ) ]; 
         
         let counter = ref 0 in 
         
@@ -824,19 +824,19 @@ the name between []"
                 
                 let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/" 
                     (Filename.basename impl.impl_shared_codedname)
-                    (Int64.to_string impl.impl_shared_size)
+                  (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
                 
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-
-		let uploaded = Int64.to_float impl.impl_shared_uploaded in
-		let size = Int64.to_float impl.impl_shared_size in
+                
+                let uploaded = Int64.to_float impl.impl_shared_uploaded in
+                let size = Int64.to_float impl.impl_shared_size in
                 
                 html_mods_td buf [
                   ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
                   ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
-		  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
+                  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
                   ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
                       ed2k (Filename.basename impl.impl_shared_codedname)) ];
                 Printf.bprintf buf "\\</tr\\>\n";
@@ -862,7 +862,7 @@ the name between []"
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
-
+    
     "set", Arg_two (fun name value o ->
         try
           try
@@ -889,8 +889,8 @@ the name between []"
 );
   *)
           with _ -> 
-                Options.set_simple_option downloads_ini name value;
-                Printf.sprintf "option %s value changed" name
+              Options.set_simple_option downloads_ini name value;
+              Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
     ), "<option_name> <option_value> :\t$bchange option value$n";
@@ -1004,9 +1004,9 @@ the name between []"
                 Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\"\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num
               else "")
             s.search_num 
-            s.search_string
+              s.search_string
               (if o.conn_output = HTML then "\\</a\\>" else "")
-              (if s.search_waiting = 0 then "done" else
+            (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
         ) user.ui_user_searches; ""), ":\t\t\t\t\tview all queries";
     
@@ -1207,10 +1207,10 @@ the name between []"
             let buf = o.conn_buf in
             
             if use_html_mods o then html_mods_table_header buf "vcTable" "vc" [ 
-              ( "1", "srh ac", "Client number", "Num" ) ; 
-              ( "0", "srh", "Network", "Network" ) ; 
-              ( "0", "srh", "IP address", "IP address" ) ; 
-              ( "0", "srh", "Client name", "Client name" ) ]; 
+                ( "1", "srh ac", "Client number", "Num" ) ; 
+                ( "0", "srh", "Network", "Network" ) ; 
+                ( "0", "srh", "IP address", "IP address" ) ; 
+                ( "0", "srh", "Client name", "Client name" ) ]; 
             
             let counter = ref 0 in
             let all_clients_list = clients_get_all () in
@@ -1725,7 +1725,7 @@ formID.msgText.value=\\\"\\\";
         ) args;
         "done"
     ), "<client nums> :\t\tdebug message in communications with these clients";
-
+    
     "debug_file", Arg_multiple (fun args o ->
         List.iter (fun arg ->
             let num = int_of_string arg in
@@ -1846,7 +1846,7 @@ formID.msgText.value=\\\"\\\";
         "done"
     ), "<file> :\t\t\tdownload all the links contained in the file";
     
-
+    
     "networks", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf buf "Networks:\n";
@@ -1872,7 +1872,7 @@ formID.msgText.value=\\\"\\\";
             
             Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
               (Fifo.length CommonUploads.upload_clients)
-              (Intmap.length !CommonUploads.pending_slots_map);
+            (Intmap.length !CommonUploads.pending_slots_map);
             
             if nuploaders > 0 then
               
@@ -1900,26 +1900,23 @@ formID.msgText.value=\\\"\\\";
                         onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this);\\\" 
                         onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
-                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) 
-						( float_of_int (Int64.to_int i.client_uploaded / 1024) /. 
- 						  float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
-						(client_num c);
+                            ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) 
+                          ( float_of_int (Int64.to_int i.client_uploaded / 1024) /. 
+                              float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
+                          (client_num c);
                           
-                        client_print_html c o;
-						html_mods_td buf [
-						("", "sr", (try (match i.client_kind with
-                              Known_location (ip,_) -> Ip.to_string ip
-                            | _ -> i.client_sock_addr)
-                        	with _ -> "") );
-						("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
-						("", "sr", i.client_software);
-						("", "sr ar", size_of_int64 i.client_downloaded);
-						("", "sr ar", size_of_int64 i.client_uploaded);
-						("", "sr", (match i.client_upload with
-                         		     Some cu -> cu
-                            		| None -> "") ) ];
+                          client_print_html c o;
+                          html_mods_td buf [
+                            ("", "sr", (string_of_kind  i.client_kind));
+                            ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
+                            ("", "sr", i.client_software);
+                            ("", "sr ar", size_of_int64 i.client_downloaded);
+                            ("", "sr ar", size_of_int64 i.client_uploaded);
+                            ("", "sr", (match i.client_upload with
+                                  Some cu -> cu
+                                | None -> "") ) ];
                           
-                        Printf.bprintf buf "\\</tr\\>"
+                          Printf.bprintf buf "\\</tr\\>"
                         end
                     with _ -> ()
                 ) (List.sort 
@@ -1947,24 +1944,21 @@ formID.msgText.value=\\\"\\\";
                       let i = client_info c in
                       incr counter;
                       
-					Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+                      Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
 					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
 					onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
-					( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
+                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
                       
-					client_print_html c o;
-					
-					html_mods_td buf [
-					("", "sr", i.client_software);
-					("", "sr ar", size_of_int64 i.client_downloaded);
-					("", "sr ar", size_of_int64 i.client_uploaded);
-					("", "sr", (try (match i.client_kind with
-                          		Known_location (ip,_) -> Ip.to_string ip
-                          		| _ -> i.client_sock_addr)
-                       			with _ -> "") ) ];
+                      client_print_html c o;
                       
-					Printf.bprintf buf "\\</tr\\>";
-					with _ -> ();
+                      html_mods_td buf [
+                        ("", "sr", i.client_software);
+                        ("", "sr ar", size_of_int64 i.client_downloaded);
+                        ("", "sr ar", size_of_int64 i.client_uploaded);
+                        ("", "sr", string_of_kind i.client_kind); ];
+                      
+                      Printf.bprintf buf "\\</tr\\>";
+                    with _ -> ();
                 
                 ) !CommonUploads.pending_slots_map;
                 Printf.bprintf buf "\\</table\\>\\</div\\>";
@@ -1988,13 +1982,13 @@ formID.msgText.value=\\\"\\\";
                       Printf.bprintf buf "      filename: %s\n" cu
                   | None -> ()
                 with _ -> 
-                   Printf.bprintf buf "no info on client %d\n" (client_num c )
+                    Printf.bprintf buf "no info on client %d\n" (client_num c )
             ) !uploaders;
             
             Printf.sprintf "Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
               (Fifo.length CommonUploads.upload_clients)
-              (Intmap.length !CommonUploads.pending_slots_map);
-
+            (Intmap.length !CommonUploads.pending_slots_map);
+            
             
           end
           

@@ -38,7 +38,10 @@ module O = Gui_options
 
 let (!!) = Options.(!!)
 
-let color_opt_of_file f = Some !!O.color_files_result
+let color_opt_of_file f = 
+  match f.gresult_done with
+      true -> Some !!O.color_not_available
+    | _ -> Some !!O.color_files_result
 
 let first_name names =
   match names with
@@ -255,6 +258,58 @@ let result_mapping names =
     | ".wpd"-> O.gdk_pix M.o_xpm_mimetype_wordprocessing
     | _ -> O.gdk_pix M.o_xpm_mimetype_unknown
 
+let string_of_tag_value value =
+  match value with
+      String s -> s
+    | Uint64 i -> Int64.to_string i
+    | Fint64 i -> Int64.to_string i
+    | _ -> ""
+
+let int_of_tag_value value =
+  try
+    match value with
+        String s -> (int_of_string s)
+      | Uint64 i -> (Int64.to_int i)
+      | Fint64 i -> (Int64.to_int i)
+      | _ -> 0
+  with _ -> 0
+
+let duration_of_tags tags =
+  let value = ref "" in
+  List.iter (fun t ->
+    match t.tag_name with
+        "length" -> value := string_of_tag_value t.tag_value
+      | _ -> ()
+  ) tags;
+  !value
+
+let codec_of_tags tags =
+  let value = ref "" in
+  List.iter (fun t ->
+    match t.tag_name with
+        "codec" -> value := string_of_tag_value t.tag_value
+      | _ -> ()
+  ) tags;
+  !value
+
+let bitrate_of_tags tags =
+  let value = ref 0 in
+  List.iter (fun t ->
+    match t.tag_name with
+        "bitrate" -> value := int_of_tag_value t.tag_value
+      | _ -> ()
+  ) tags;
+  !value
+
+let availability_of_tags tags =
+  let value = ref 0 in
+  List.iter (fun t ->
+    match t.tag_name with
+        "availability" -> value := int_of_tag_value t.tag_value
+      | _ -> ()
+  ) tags;
+  !value
+
 class box s_num columns () =
   let titles = List.map Gui_columns.Result.string_of_column !!columns in
   object (self)
@@ -348,9 +403,10 @@ class box s_num columns () =
       |	Col_result_md4 -> compare (Md4.to_string r1.gresult_md4) (Md4.to_string r2.gresult_md4)
       |	Col_result_size -> compare r1.gresult_size r2.gresult_size
       |	Col_result_format -> compare r1.gresult_format r2.gresult_format
-      |	Col_result_props -> compare (CommonGlobals.string_of_tags 
-              r1.gresult_tags) (
-            CommonGlobals.string_of_tags r2.gresult_tags)
+      |	Col_result_duration -> compare r1.gresult_duration r2.gresult_duration
+      |	Col_result_codec -> compare r1.gresult_codec r2.gresult_codec
+      |	Col_result_bitrate -> compare r1.gresult_bitrate r2.gresult_bitrate
+      |	Col_result_availability -> compare r1.gresult_availability r2.gresult_availability
       |	Col_result_comment -> compare r1.gresult_comment r2.gresult_comment
       | Col_result_network -> compare r1.gresult_network r2.gresult_network
           
@@ -369,7 +425,16 @@ class box s_num columns () =
       |	Col_result_md4 -> Md4.to_string r.gresult_md4
       |	Col_result_size -> Gui_misc.size_of_int64 r.gresult_size
       |	Col_result_format -> r.gresult_format
-      |	Col_result_props -> CommonGlobals.string_of_tags r.gresult_tags
+      |	Col_result_duration -> r.gresult_duration
+      |	Col_result_codec -> r.gresult_codec
+      |	Col_result_bitrate -> 
+          if r.gresult_bitrate = 0 
+            then "" 
+	    else string_of_int r.gresult_bitrate
+      |	Col_result_availability -> 
+          if r.gresult_availability = 0 
+            then "" 
+            else string_of_int r.gresult_availability
       | Col_result_network -> Gui_global.network_name r.gresult_network
       |	Col_result_comment -> r.gresult_comment
     
@@ -414,7 +479,10 @@ class box s_num columns () =
        gresult_size = r.result_size;
        gresult_format = r.result_format;
        gresult_type = r.result_type;
-       gresult_tags = r.result_tags;
+       gresult_duration = duration_of_tags r.result_tags;
+       gresult_codec = codec_of_tags r.result_tags;
+       gresult_bitrate = bitrate_of_tags r.result_tags;
+       gresult_availability = availability_of_tags r.result_tags;
        gresult_comment = r.result_comment;
        gresult_done = r.result_done;
        gresult_pixmap =

@@ -30,37 +30,36 @@ module M = Gui_messages
 module Com = Gui_com
 module G = Gui_global
 module Mi = Gui_misc
-
+  
 (*module Gui_rooms = Gui_rooms2*)
 let chmod_config () =
-	let base_config = 
-	    (Filename.concat CommonOptions.home_basedir ".mldonkey_gui.ini")
-	in
-	let save_config =
-		base_config^".old"
-	in
-	begin
-	if Sys.file_exists base_config then
-		Unix.chmod base_config 0o600
-	else
-		()
-	end;
-	begin
-	if Sys.file_exists save_config then
-		Unix.chmod save_config 0o600
-	else
-		()
-	end
+  let base_config = 
+    (Filename.concat CommonOptions.config_dir "mldonkey_gui.ini")
+  in
+  let save_config =
+    base_config^".old"
+  in
+  begin
+    if Sys.file_exists base_config then
+      Unix.chmod base_config 0o600
+    else
+      ()
+  end;
+  begin
+    if Sys.file_exists save_config then
+      Unix.chmod save_config 0o600
+    else
+      ()
+  end
   
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
       Sys_error _ ->
 	(try Options.save O.mldonkey_gui_ini with _ -> ())
      | e ->
-        lprintf "Exception %s in load options %s" 
+        lprintf "Exception %s in load options %s\n" 
 	 (Printexc2.to_string e)
 	 (Options.options_file_name O.mldonkey_gui_ini);
-        lprint_newline ();
   );
   let args = 
     ("-dump_msg", Arg.Unit (fun _ ->

@@ -26,7 +26,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat "." "mldonkey_gui_messages.ini"
+      Filename.concat CommonOptions.config_dir "gui_messages.ini"
 
       (*
 let _ =
@@ -320,7 +320,8 @@ let mAdd_column_before = message "mAdd_column_before" (T.option T.format) "Add C
 let software = "MLDonkey"
 let software_version = "1.0"
 
-let chat_config_file = Filename.concat CommonOptions.home_basedir ".mldonkey_chat.ini"
+let chat_config_file = 
+  Filename.concat CommonOptions.config_dir "chat.ini"
 
 (** {2 Command line messages} *)
 
@@ -400,9 +401,11 @@ let o_files_auto_expand_depth = message "o_files_auto_expand_depth" (T.option T.
 let h_files_auto_expand_depth = 
   "The depth to which the directories of a friend are automatically expanded"
 
-let o_use_size_suffixes = message "o_use_size_suffixes" (T.option T.format) "Use size suffixes (G, M, k)"
 let h_use_size_suffixes = 
   "Whether sizes are printed using G(iga), M(ega) and k(ilo) suffixes."
+let o_use_size_suffixes = message "o_use_size_suffixes" (T.option T.format) "Use size suffixes (G, M, k)"
+
+let h_availability_max =  message "h_availability_max" (T.option T.format) "If use_availability_height is true, which availability corresponds to a full bar ?"
 
 let h_use_availability_height = message "h_use_availability_height" (T.option T.format) "Display the availability of a chunk as height or color coded bar"
 let o_use_availability_height = message "o_use_availability_height" (T.option T.format) "Use height encoded availability"
@@ -421,6 +424,15 @@ let o_use_icons = message "o_use_icons" (T.option T.format) "Use icons in the li
 
 let h_use_graphical_availability = message "h_use_graphical_availability" (T.option T.format) "What is displayed in availability column : graphical or text"
 let o_use_graphical_availability = message "o_use_graphical_availability" (T.option T.format) "Use graphical represention for availability"
+
+let h_max_file_name_len = message "h_max_file_name_len" (T.option T.format) "What is the maximum length of a file name displayed in the downloads list"
+let o_max_file_name_len = message "o_max_file_name_len" (T.option T.format) "Maximum length of a file name"
+
+let  h_max_result_name_len = message "h_max_result_name_len" (T.option T.format) "What is the maximum length of a file name displayed in the results list"
+let o_max_result_name_len = message "o_max_result_name_len" (T.option T.format) "Maximum length of a result name"
+
+let h_max_client_name_len = message "h_max_client_name_len" (T.option T.format) "What is the maximum length of a client name displayed in the friends and uploads lists"
+let o_max_client_name_len = message "o_max_client_name_len" (T.option T.format) "Maximum length of a client name"
 
 
 let o_layout = message "o_layout" (T.option T.format) "Layout"
@@ -550,6 +562,7 @@ let c_client_downloaded = "Downloaded"
 let c_client_uploaded = "Uploaded"
 let c_client_upload = "File uploaded"
 let c_client_sock_addr = "IP Address"
+let c_client_connect_time = "Connected Time"
 
 let c_address = "Address"
 let c_server_nusers = "Users"
@@ -561,6 +574,10 @@ let c_nusers = "Users"
 let c_filename = "Filename"
 let c_uploaded = "Uploaded"
 let c_requests = "Requests"
+  
+let c_duration = "Duration"
+let c_codec = "Codec"
+let c_bitrate  = "Bitrate"
   
 let o_xpm_toggle_display_all_servers = "toggle_display_all_servers"
 let o_xpm_add_server = "add_server"

@@ -857,7 +857,12 @@ let _ =
         P.user_server = u.user_server.server_server.impl_server_num;
       }
   )
-
+let string_of_client_addr c =
+  try match c.client_sock with
+      Some sock -> (Ip.to_string (peer_ip sock)) 
+    | None -> ""
+  with _ -> ""
+      
 let _ =
   client_ops.op_client_info <- (fun c ->
       {
@@ -875,16 +880,12 @@ let _ =
         P.client_software = gbrand_to_string c.client_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
-		P.client_sock_addr = 
-		(try match c.client_sock with
-          Some sock -> (Ip.to_string (peer_ip sock)) 
-        | None -> ""
-		with _ -> "");
+(*        P.client_sock_addr =    (); *)
         P.client_upload = 
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)
           | None -> None);
-                        
+        
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -1076,7 +1077,7 @@ lprint_newline ();
                 | Known_location (ip,port) -> Printf.sprintf "D"));
             ("", "sr br", match c.client_kind with
                 Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-              | Indirect_location _ -> i.client_sock_addr);
+              | Indirect_location _ -> (string_of_client_addr c));
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
@@ -1177,7 +1178,7 @@ lprint_newline ();
                           | Known_location (ip,port) -> Printf.sprintf "D"));
                       ("", "sr", match c.client_kind with
                           Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                        | Indirect_location _ -> i.client_sock_addr);
+                        | Indirect_location _ -> (string_of_client_addr c));
                       ("", "sr ar", (size_of_int64 c.client_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_downloaded));
                       ("", "sr", info.GuiTypes.file_name) ];

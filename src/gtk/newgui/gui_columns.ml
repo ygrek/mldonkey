@@ -120,6 +120,7 @@ type client_column =
 | Col_client_network
 | Col_client_type
 | Col_client_rating
+| Col_client_connect_time
 | Col_client_software
 | Col_client_downloaded
 | Col_client_uploaded
@@ -133,6 +134,7 @@ let client_column_strings = [
     Col_client_network, M.c_network;
     Col_client_type, M.c_client_type;
     Col_client_rating, M.c_client_rating;
+    Col_client_connect_time, M.c_client_connect_time;
     Col_client_software, M.c_client_software;
     Col_client_downloaded, M.c_client_downloaded;
     Col_client_uploaded, M.c_client_uploaded;
@@ -178,7 +180,10 @@ type result_column =
 | Col_result_md4
 | Col_result_size
 | Col_result_format
-| Col_result_props
+| Col_result_duration
+| Col_result_codec
+| Col_result_bitrate
+| Col_result_availability
 | Col_result_comment
 | Col_result_network
   
@@ -187,7 +192,10 @@ let result_column_strings = [
     Col_result_md4, M.c_md4 ;
     Col_result_size, M.c_size ;
     Col_result_format, M.c_format ;
-    Col_result_props, M.c_properties ;
+    Col_result_duration, M.c_duration ;
+    Col_result_codec, M.c_codec ;
+    Col_result_bitrate, M.c_bitrate ;
+    Col_result_availability, M.c_avail ;
     Col_result_comment, M.c_comment ;
     Col_result_network, M.c_network;
   ] 
