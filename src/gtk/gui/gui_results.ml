@@ -42,8 +42,10 @@ let first_name r =
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
-let is_filtered r =
+let is_filtered r = false
+(* TODO RESULT
   List.memq r.result_network !Gui_global.networks_filtered
+*)
 
 class box s_num columns () =
   let titles = List.map Gui_columns.Result.string_of_column !!columns in
@@ -122,15 +124,17 @@ class box s_num columns () =
     method compare_by_col col r1 r2 =
       match col with
         Col_result_name -> compare (first_name r1) (first_name r2)
-      |	Col_result_md4 -> compare (Md4.to_string r1.result_md4) (Md4.to_string r2.result_md4)
+      | Col_result_uids -> compare r1.result_uids r2.result_uids
       |	Col_result_size -> compare r1.result_size r2.result_size
       |	Col_result_format -> compare r1.result_format r2.result_format
       |	Col_result_props -> compare (CommonGlobals.string_of_tags 
               r1.result_tags) (
             CommonGlobals.string_of_tags r2.result_tags)
       |	Col_result_comment -> compare r1.result_comment r2.result_comment
-      | Col_result_network -> compare r1.result_network r2.result_network
-          
+      | Col_result_network ->
+            (* TODO RESULT compare r1.gresult_network r2.gresult_network *)
+            0
+
     method compare r1 r2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
@@ -143,11 +147,13 @@ class box s_num columns () =
     method content_by_col col r =
       match col with
         Col_result_name -> shorten_name (first_name r)
-      |	Col_result_md4 -> Md4.to_string r.result_md4
+      |	Col_result_uids -> (Uid.to_string (List.hd r.result_uids))
       |	Col_result_size -> Gui_misc.size_of_int64 r.result_size
       |	Col_result_format -> r.result_format
       |	Col_result_props -> CommonGlobals.string_of_tags r.result_tags
-      | Col_result_network -> Gui_global.network_name r.result_network
+      | Col_result_network ->
+                (* TODO RESULT compare r1.gresult_network r2.gresult_network *)
+                "--"
       |	Col_result_comment -> r.result_comment 
     
     method content r =

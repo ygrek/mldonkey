@@ -19,6 +19,7 @@
 
 (** GUI for the list of servers. *)
 
+open Int64ops
 open Options
 open GToolbox
   
@@ -183,11 +184,11 @@ class box columns users wl_status =
             (Ip.string_of_addr s.server_addr) s.server_port
       |	Col_server_state -> fst (string_color_of_state s.server_state)
       |	Col_server_users ->
-          if s.server_nusers = 0 then "" 
-          else Printf.sprintf "%5d" s.server_nusers
-      |	Col_server_files ->
-          if s.server_nfiles = 0 then "" 
-          else Printf.sprintf "%7d"  s.server_nfiles
+          if s.server_nusers = zero then "" 
+          else Printf.sprintf "%5Ld" s.server_nusers
+       |	Col_server_files ->
+          if s.server_nfiles = zero then "" 
+          else Printf.sprintf "%7Ld"  s.server_nfiles
       |	Col_server_desc ->
           if s.server_name = "" then "" 
           else Printf.sprintf "%s [%s]" s.server_name s.server_description

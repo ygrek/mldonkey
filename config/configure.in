@@ -1,6 +1,6 @@
 
 AC_REVISION(norev)
-AC_PREREQ(2.5)
+AC_PREREQ(2.59)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
@@ -11,10 +11,13 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30
+CURRENT_RELEASE=30-1
+if test -d .svn; then
+  CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
+fi
 
-REQUIRED_OCAML=3.08
-DOWNLOAD_OCAML=3.08.2
+REQUIRED_OCAML=3.08.3
+DOWNLOAD_OCAML=3.08.3
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -43,6 +46,7 @@ BUILD_NEWGUI=yes
 LABLGTK_NAME=lablgtk
 
 PROFILE=no
+DEBUG=no
 SWARMING1=no
 
 MULTINET=yes
@@ -97,9 +101,9 @@ AC_ARG_ENABLE(fasttrack,     [--disable-fasttrack:      allows you to remove sup
 
 AC_ARG_ENABLE(opennap,       [--disable-opennap:        allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
 
-AC_ARG_ENABLE(directconnect, [--disable-directconnect:  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
+#AC_ARG_ENABLE(directconnect, [--disable-directconnect:  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
 
-AC_ARG_ENABLE(audiogalaxy,   [--disable-audiogalaxy:    allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
+#AC_ARG_ENABLE(audiogalaxy,   [--disable-audiogalaxy:    allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
 
 AC_ARG_ENABLE(openft,        [--disable-openft:         allows you to remove support for OpenFT], [OPENFT="$enableval"])
 
@@ -111,14 +115,15 @@ AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.08.0:   allows you to change the re
 
 AC_ARG_ENABLE(gtk2, [--enable-gtk2:   allows you to compile using GTK2], [USE_GTK2="$enableval"])
 
-AC_ARG_ENABLE(profile, [--enable-profile:   allows you to profile mlnet using gprof], [PROFILE="$enableval"])
-
-
 
 PTHREAD_LIBS=yes
-AC_ARG_ENABLE(pthread, [--enable-pthread :        allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
+AC_ARG_ENABLE(pthread, [--disable-pthread :        allows you to disable pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
 AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib :    legacy option], [PTHREAD_LIBS="$enableval"])
 
+
+AC_ARG_ENABLE(profile, [--enable-profile:   allows you to profile mlnet using gprof], [PROFILE="$enableval"])
+
+AC_ARG_ENABLE(debug, [--enable-debug:   allows you to compile mlnet with debug symbols], [DEBUG="$enableval"])
 
 
 IM=yes
@@ -206,10 +211,6 @@ else
    OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
    case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
-    3.06*);;
-    3.07*);;
-    3.08*);;
-    "$REQUIRED_OCAML_REG") ;;
     *) echo "Need build"
        BUILD_OCAML=yes;;
    esac
@@ -382,6 +383,9 @@ fi
 if test "$PROFILE" = "yes"; then
    OCAMLOPT="$OCAMLOPT -p"
 fi
+if test "$DEBUG" = "yes"; then
+    OCAMLC="$OCAMLC -g"
+fi
 
 # Sizes of various common basic types
 AC_CHECK_SIZEOF(int)
@@ -477,14 +481,14 @@ fi
     BAD_TARGETS="$BAD_TARGETS donkey"
   fi
 
-  if test "$AUDIO_GALAXY" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/audio_galaxy,AUDIO_GALAXY=yes, [
+#  if test "$AUDIO_GALAXY" = "yes" ; then
+#    AC_CHECK_FILE(../src/networks/audio_galaxy,AUDIO_GALAXY=yes, [
       AUDIO_GALAXY=no
       BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
-    ])
-  else
-    BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
-  fi
+#    ])
+#  else
+#    BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
+#  fi
 
   if test "$OPEN_NAPSTER" = "yes" ; then
     AC_CHECK_FILE(../src/networks/opennap,OPEN_NAPSTER=yes, [
@@ -495,14 +499,14 @@ fi
     BAD_TARGETS="$BAD_TARGETS open_napster"
   fi
 
-  if test "$DIRECT_CONNECT" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/direct_connect,DIRECT_CONNECT=yes, [
+#  if test "$DIRECT_CONNECT" = "yes" ; then
+#    AC_CHECK_FILE(../src/networks/direct_connect,DIRECT_CONNECT=yes, [
       DIRECT_CONNECT=no
-      BAD_TARGETS="$BAD_TARGETS direct_connect"
-    ])
-  else
-    BAD_TARGETS="$BAD_TARGETS direct_connect"
-  fi
+      BAD_TARGETS="$BAD_TARGETS direct_connect(not working)"
+#    ])
+#  else
+#    BAD_TARGETS="$BAD_TARGETS direct_connect"
+#  fi
 
   if test "$GNUTELLA" = "yes"; then
     if test "$ZLIB" = "yes"; then
@@ -782,12 +786,12 @@ if test "$USE_GTK2" = "yes" ; then
   GTK=gtk2
   GUIS="mldonkey_gui\$(EXE)"
   case "`uname -s`" in
-    *win32* | *WIN32* | MINGW* ) 
+    *win32* | *WIN32* | MINGW* )
       GTKCFLAGS="`pkg-config --cflags-only-I gtk+-2.0`"
       GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
       GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
       ;;
-    *) 
+    *)
       ;;
   esac
 else
@@ -878,11 +882,10 @@ AC_MSG_CHECKING(compile GTK GUI)
           GTOOLBOX_POPUPMENU=' ~x: button ~y: time '
           AC_MSG_RESULT(old)
         fi
+	echo "---------------------------------------------------------"
+	echo "End of GTK GUI configuration."
+	echo "---------------------------------------------------------"
   fi
-
-echo "---------------------------------------------------------"
-echo "End of GTK GUI configuration."
-echo "---------------------------------------------------------"
 
 CURRENT_DIR="./"
 case "`uname -s`" in
@@ -1062,10 +1065,6 @@ GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
 SWARMING=../src/daemon/common/commonDownloads.ml
 AC_OUTPUT(\
   Makefile.config \
-  Makefile.config.i386 \
-  Makefile.config.i486 \
-  Makefile.config.i586 \
-  Makefile.config.i686 \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new $SWARMING \
    ../packages/rpm/mldonkey.spec \

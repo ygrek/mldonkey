@@ -53,57 +53,52 @@ open DonkeyThieves
 
 module Udp = DonkeyProtoUdp
 
-let fullClientIdentifier c =
-	Printf.sprintf "%s (%s) '%s'" (Ip.to_string c.client_ip) (gbrand_to_string c.client_brand) c.client_name
+let full_client_identifier c =
+    Printf.sprintf "%s (%s) '%s'" (Ip.to_string c.client_ip) (gbrand_to_string c.client_brand) c.client_name
 
-let logTime =
-	Date.string_of_date
-		[Date.Year;Date.Dot;Date.MonthNumber;Date.Dot;Date.Day;Date.Space;Date.Hour;Date.Colon;Date.Minute;Date.Colon;Date.Second]
-		(Unix.localtime (Unix.gettimeofday ()))
-
-let logPrint cond c m =
-	if cond then
-		lprintf "%s: donkeyClient: %s %s\n"
-			logTime m (fullClientIdentifier c)
+(* Lifetime of a socket after sending interesting messages *)
+let active_lifetime = 1200.
 
 
 (*************************************************************************)
 (*              adding a source to the source-management                 *)
 (*************************************************************************)
-let addSource file ip port serverIP serverPort =
-	if (file_state file) = FileDownloading then (* man, we are receiving sources from some clients even when we release *)
-		try
-			let uid = 
-				if donkeyIsLowID ip then begin (* indirect address *)
-					try	let s = Hashtbl.find servers_by_key serverIP in (* without server, we can't request a callback *)
-						if serverPort = s.server_port then
-							Indirect_address ( serverIP, serverPort, id_of_ip ip )
-						else
-							raise Not_found
-					with _ ->
-						raise Not_found
-					end
-				else (* direct adsdess *)
-				if Ip.valid ip && ip_reachable ip then
-					if not ( is_black_address ip port ) then
-						if not ( Hashtbl.mem banned_ips ip) then
-							Direct_address ( ip, port )
-						else
-							raise Not_found
-					else
-						raise Not_found
-				else
-					raise Not_found
-			in
-			let s = DonkeySources.find_source_by_uid uid in
-				DonkeySources.set_request_result s file.file_sources File_new_source
-		with Not_found -> ()
+let add_source file ip port serverIP serverPort =
+    (* man, we are receiving sources from some clients even when we release *)
+    if (file_state file) = FileDownloading then
+	try
+	    let uid = 
+		if low_id ip then
+		  (* indirect address *)
+		  begin
+		    try
+			(* without server, we can't request a callback *)
+			let s = Hashtbl.find servers_by_key serverIP in
+			if serverPort = s.server_port then
+			    Indirect_address ( serverIP, serverPort, id_of_ip ip )
+			else
+			    raise Not_found
+		    with _ ->
+			raise Not_found
+		  end
+		else
+		  (* direct adsdess *)
+		  if Ip.valid ip && ip_reachable ip then
+		    if not ( is_black_address ip port ) then
+			if not ( Hashtbl.mem banned_ips ip) then
+			    Direct_address ( ip, port )
+			else
+			    raise Not_found
+		    else
+			raise Not_found
+		  else
+		    raise Not_found
+	    in
+	    let s = DonkeySources.find_source_by_uid uid in
+	    DonkeySources.set_request_result s file.file_sources File_new_source
+	with Not_found -> ()
 
 
-
-(* Lifetime of a socket after sending interesting messages *)
-let active_lifetime = 1200.
-  
 let is_banned c sock = 
   c.client_banned <- Hashtbl.mem banned_ips (fst (peer_addr sock))
 
@@ -120,7 +115,8 @@ let ban_client c sock msg =
   if not (Hashtbl.mem banned_ips ip) then
     let module M = DonkeyProtoClient in
     
-	logPrint !verbose c (Printf.sprintf "ban_client: %s banning:" msg);
+    if !verbose then
+        lprintf "donkeyclient has been banned: %s %s\n" msg (full_client_identifier c);
     
     count_banned c;
     c.client_banned <- true;
@@ -153,18 +149,19 @@ let request_for c file sock =
               ban_client c sock "is connecting too fast";
               raise Exit;
             end;
-
-		logPrint !verbose c "request_for: violation of min_reask_delay warning ";
-
+          if !verbose then
+              lprintf "donkeyUploader has been warned: %s\n" 
+                (full_client_identifier c);
           if !!send_warning_messages then
             client_send c ( M.SayReq  (
                 "[AUTOMATED WARNING] Your client is connecting too fast, it will get banned"))
         end else
         record.last_request <- last_time ();
-    with Not_found ->
+    with
+      Not_found ->
         Hashtbl.add old_requests (client_num c, file_num file) 
         { last_request = last_time (); nwarnings = 0; }
-    | Exit -> ()
+      | Exit -> ()
         
 let clean_requests () = (* to be called every hour *)
   Hashtbl.clear old_requests;
@@ -187,10 +184,10 @@ let _ =
           let module Q = M.AvailableSlot in
           M.AvailableSlotReq Q.t);
         
-            if !verbose then begin
-                lprintf "New uploader %s\n"
-                  (fullClientIdentifier c);
-            end;
+        if !verbose then
+            lprintf "New uploader %s\n" 
+              (full_client_identifier c);
+        
     )  
   in
   client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
@@ -454,11 +451,12 @@ let identify_client_brand c =
     c.client_brand <- (
      (* if List.exists (fun s -> Ip.equal c.client_ip s.server_ip) (connected_servers ()) then
        Brand_server
-      else *) if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+      else *)
+      if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
 	if String2.subcontains c.client_name "shareaza.com" then
-         Brand_shareaza
+          Brand_shareaza
 	else
-         Brand_newemule
+          Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
     else
@@ -604,7 +602,7 @@ let identify_client_mod_brand c tags =
            Field_UNKNOWN "mod_version" ->
                begin
                let rec iter i len =
-		   if i < len then
+                if i < len then
                  let sub = fst mod_array.(i) in
                      if  (String2.subcontains s sub) then
                         c.client_mod_brand <- snd mod_array.(i)
@@ -718,6 +716,65 @@ another better way, since this functionnality is still useful...
         ()
         
         
+(* I think query_file was this saying from HighTime about:
+    Do not ask for all files if we don't know which files it
+    have. It's maybe like 3~4 times that i fix this bug and
+    it will be the last time : i won't submit another patch
+    if you don't apply this one. It's not only save some
+    bandwidth but also it should allow us to not be banned
+    by emule which don't like to receive lots of file
+    requests.
+let query_files c sock =  
+  
+  let s = c.client_source in
+  if s.DonkeySources.source_files = [] then begin
+      lprintf "Unknown Incoming clients\n";
+      List.iter (fun file ->
+          if file_state file = FileDownloading then begin
+              DonkeySources.set_request_result s file.file_sources
+                File_possible
+            end
+      ) !current_files;
+    end *) (* else
+    lprintf "Client has %d requests to emit\n" 
+      (List.length s.DonkeySources.source_files); *)
+    
+  (*
+  let nall_queries = ref 0 in
+  let nqueries = ref 0 in
+
+(*  lprintf "Client %d:\n" (client_num c);  *)
+  let files = ref [] in
+  (if c.client_source.DonkeySources.source_files = [] then begin
+(*        lprintf "  query all files\n";  *)
+        files := !current_files 
+      
+      end else
+      List.iter (fun r ->
+          if r.request_score > File_not_found then begin
+(*              lprintf "   query file %s\n" (file_best_name r.request_file); 
+               *)
+              files := r.request_file :: !files
+            end;
+      ) c.client_source.source_files);
+
+(*
+  if !files = [] then begin
+      lprintf "   No queries to send !\n"; 
+    end;
+*)
+  
+  List.iter (fun file ->
+      incr nall_queries;
+      DonkeySources.query_file c file)
+  !files;
+  if !nqueries > 0 then
+    c.client_last_filereqs <- last_time ();
+  if !verbose then begin
+      lprintf "sent %d/%d file queries\n" !nqueries !nall_queries;
+    end
+*)
+
 external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
 let hash x = hash_param 10 100 x
 
@@ -741,8 +798,7 @@ lprintf "       ASK VIEW FILES         \n";
         end
     end
 
-  
-(*client is valid if it's not us or if it's not yet connected*)
+(* client is valid if it's not us or if it's not yet connected *)
 let is_valid_client md4 =
   md4 <> !!client_md4 &&
   md4 <> overnet_md4 &&
@@ -764,36 +820,32 @@ let client_has_file c file =
   - do not ask sources from mldonkey-clients, they are supposed to automatically send sources after an QueryFileReq
 *)
 let client_queried_file c file =
- 
-	client_has_file c file;
-	let module M = DonkeyProtoClient in
-		if file_state file = FileDownloading &&
-			M.sourceexchange c.client_emule_proto > 0 &&
-			DonkeySources.need_new_sources file.file_sources &&
-			not (client_can_receive c)
-(*      (DonkeySources.number_of_sources file.file_sources) < !!max_sources_per_file *)
-		then begin (* ask for more sources *)
-		
-			logPrint !verbose_location c (Printf.sprintf
-				"client_queried_file: %s sending EmuleRequestSources to" (file_best_name file));
-
-			let module E = M.EmuleRequestSources in
-				client_send c (M.EmuleRequestSourcesReq file.file_md4)
-		end
-
+    client_has_file c file;
+    let module M = DonkeyProtoClient in
+    if file_state file = FileDownloading
+       && M.sourceexchange c.client_emule_proto > 0
+       && DonkeySources.need_new_sources file.file_sources
+       && not (client_can_receive c)
+      then
+        (* ask for more sources *)
+	begin
+          if !verbose_location then
+	     lprintf "donkeyClient: Requesting sources from client %s that queried file %s\n"
+	         (full_client_identifier c) (file_best_name file);
+	  let module E = M.EmuleRequestSources in
+	  client_send c (M.EmuleRequestSourcesReq file.file_md4)
+	end
 
 (*Do what's need to be done when client has file chunks we want:
   - register it in sources
-  - ask for sources if necessary ... errr, where is this done?
+  - ask for sources if necessary  Edit: errr, where is this done?
 *)
 let client_is_useful c file chunks = 
   DonkeySources.set_request_result c.client_source file.file_sources File_chunk;
   DonkeyOneFile.add_client_chunks c file chunks;
   if file_state file = FileDownloading then begin
     DonkeyOneFile.request_slot c
-    end
-
-
+     end
 
 (* added in 2.5.25
 Check if the bitmap returned by a client contains a chunk that has not
@@ -861,10 +913,10 @@ let send_pending_messages c sock =
   ) c.client_pending_messages;
   c.client_pending_messages <- []
   
-let  init_client_after_first_message sock c = 
+let init_client_after_first_message sock c = 
   (* we read something on socket so ip is now know for socket *)
   c.client_ip <- peer_ip sock;
-(* Add the Connected tag and when needed the NoLimit tag *)
+  (* Add the Connected tag and when needed the NoLimit tag *)
   let t = client_type c lor client_initialized_tag in
   let t = try
       if Ip.matches (peer_ip sock) !!nolimit_ips then t lor client_nolimit_tag
@@ -878,6 +930,7 @@ let finish_client_handshake c sock =
   c.client_connect_time <- last_time ();
   send_pending_messages c sock;
   set_client_state c (Connected (-1));      
+  (* query_files c sock;  see comment at implementation*)
   DonkeySources.source_connected c.client_source;  
   query_view_files c;
   client_must_update c;
@@ -913,10 +966,10 @@ let client_to_client for_files c t sock =
       let module CR = M.Connect in
 
       if not (is_valid_client t.CR.md4) then
-       begin
-           TcpBufferedSocket.close sock (Closed_for_error "Reply of Invalid Client");
-         raise Exit
-       end;
+        begin
+          TcpBufferedSocket.close sock (Closed_for_error "Reply of Invalid Client");
+          raise Exit
+        end;
       
       if (is_black_address t.CR.ip t.CR.port) then raise Exit;
       
@@ -945,7 +998,7 @@ let client_to_client for_files c t sock =
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
         if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
-        
+
       finish_client_handshake c sock;
       (* We initiated the connection so we know which files to ask *)
       DonkeySources.query_files c.client_source
@@ -973,12 +1026,12 @@ let client_to_client for_files c t sock =
       if !!emule_mods_count then
         identify_client_mod_brand c t.CI.tags;
       
-    (* TODO : remove this comment 
-       ERR! i think the peer support eep if it send an emule client info
-       PLUS this message is sent _before_ we received an md4 so 
-       client_brand is unknown here.
+      (* TODO : remove this comment 
+          ERR! i think the peer support eep if it send an emule client info
+          PLUS this message is sent _before_ we received an md4 so 
+          client_brand is unknown here.
       if supports_eep c.client_brand then  begin
-    *)
+      *)
           let module E = M.EmuleClientInfo in
           client_send c (M.EmuleClientInfoReplyReq emule_info)
   
@@ -992,11 +1045,11 @@ let client_to_client for_files c t sock =
           lprintf "Message from client[%d] %s %s  tags: %s\n"
 	    (client_num c)
             (match c.client_kind with
-            	Indirect_address _ | Invalid_address _ -> ""
-	        | Direct_address (ip,port) ->
-            	    Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
-	    )
-            (fullClientIdentifier c)
+              Indirect_address _ | Invalid_address _ -> ""
+	      | Direct_address (ip,port) ->
+                  Printf.sprintf " [%s:%d]" (Ip.to_string ip) port;
+             )
+            (full_client_identifier c)
             (string_of_tags_list t.CI.tags)
 
 (*   lprintf "Emule Extended Protocol activated\n"; *)
@@ -1008,7 +1061,7 @@ let client_to_client for_files c t sock =
 (*       lprintf "Emule requested sources\n";  *)
       let file = find_file t in
       let sources = ref [] in
-      DonkeySources.iter_all_sources (fun s ->
+      DonkeySources.iter_qualified_sources (fun s ->
           match s.DonkeySources.source_uid with
             Indirect_address _ | Invalid_address _ -> () (* not yet supported *)
           | Direct_address (ip, port) ->
@@ -1019,26 +1072,27 @@ let client_to_client for_files c t sock =
                 List.exists (fun r ->
                     r.DonkeySources.request_score > expected_score
                 ) s.DonkeySources.source_files then
-			sources := {
-			  E.src_ip = ip;
-			  E.src_port = port;
-			  E.src_server_ip = Ip.null;
-			  E.src_server_port = 0;
+		sources := {
+		  E.src_ip = ip;
+		  E.src_port = port;
+		  E.src_server_ip = Ip.null;
+		  E.src_server_port = 0;
 (* this is not very good, but what can we do ? we don't keep sources UIDs *)
-			  E.src_md4 = Md4.null;
-			} :: !sources
+		  E.src_md4 = Md4.null;
+		} :: !sources
       ) file.file_sources;
       if !sources <> [] then
-        if !verbose_location then
-          lprintf "donkeyClient: EmuleRequestSourcesReq: Sending %d Sources to %s for file %s\n"
-                (List.length !sources) (fullClientIdentifier c) (file_best_name file);
-        client_send c (
-          M.EmuleRequestSourcesReplyReq {
-            E.md4 = t;
-            E.sources = Array.of_list !sources;
-          })  
-  
-  
+        begin
+          if !verbose_location then
+            lprintf "donkeyClient: EmuleRequestSourcesReq: Sending %d Sources to %s for file %s\n"
+              (List.length !sources) (full_client_identifier c) (file_best_name file);
+          client_send c (
+            M.EmuleRequestSourcesReplyReq {
+              E.md4 = t;
+              E.sources = Array.of_list !sources;
+            })
+	end
+
   | M.ViewFilesReplyReq t ->
 (*
       lprintf "****************************************\n";
@@ -1047,12 +1101,12 @@ let client_to_client for_files c t sock =
       let module Q = M.ViewFilesReply in
       begin
         if !verbose_msg_clients then
-		lprintf "Received ViewFilesReply\n";
+	    lprintf "Received ViewFilesReply\n";
         try
           let list = ref [] in
           List.iter (fun f ->
               match result_of_file f.f_md4 f.f_tags with
-	      | None -> ()
+	        None -> ()
               | Some r ->
 (* TODO                   let r = DonkeyIndexer.index_result_no_filter r in *)
                   client_new_file c r;
@@ -1160,10 +1214,9 @@ other one for unlimited sockets.  *)
           client_enter_upload_queue cc
         end else *)
       CommonUploads.add_pending_slot (as_client c);
-      if !verbose then begin
-          lprintf "(uploader %s couldn't get a slot)\n"
-            (fullClientIdentifier c);
-        end;
+      if !verbose then
+          lprintf "donkeyClient: uploader couldn't get a slot: %s\n" 
+            (full_client_identifier c);
 (*      end *)
   
   | M.CloseSlotReq _ ->
@@ -1247,10 +1300,10 @@ other one for unlimited sockets.  *)
 	    let file = find_file t.Q.md4 in
 	      received_client_bitmap c file t.Q.chunks
 	  with e ->
-	    lprintf "Exception %s in Query Chunks Reply file-md4: %s\n  client was %s\n"
-            (Printexc2.to_string e)
-            (Md4.to_string t.Q.md4) (fullClientIdentifier c)
-	end
+            lprintf "Exception %s in Query Chunks Reply file-md4: %s client was %s\n"
+        	    (Printexc2.to_string e) (Md4.to_string t.Q.md4)
+		        (full_client_identifier c)
+      end
   
   | M.QueryChunkMd4ReplyReq t ->
       begin
@@ -1263,7 +1316,8 @@ other one for unlimited sockets.  *)
           end;
         
         if file.file_computed_md4s <> [||] then begin
-            lprintf "[WARNING] Discarding Chunks Md4: already here\n";
+	    if !verbose_hidden_errors then
+              lprintf "[WARNING] Discarding Chunks Md4: already here\n";
           end else
         if file.file_nchunks = 1 then begin
             lprintf "[ERROR]: one chunk file without md4\n"; 
@@ -1434,16 +1488,15 @@ is checked for the file.
         
         (try client_wants_file c md4 with _ -> ());
       
-      (* Can This be removed !? .. I think it's time to eliminate that one*)
       if md4 = Md4.null && c.client_brand = Brand_edonkey then
           c.client_brand <- Brand_mldonkey1;
-          if c.client_brand = Brand_mldonkey1 || c.client_brand = Brand_mldonkey2 then begin
-	      if !verbose then 
-	          lprintf "donkeyClient: QueryFileReq: Client %s is really old mldonkey1/2 and queried file %s\n"
-		    (fullClientIdentifier c) (Md4.to_string md4);
-        	  if Random.int 100 < 3 && !!send_warning_messages then
-		   client_send c (
-    		   M.SayReq "[AUTOMATED WARNING] Please, update your MLdonkey client to at least version 2.5-16u");
+      if c.client_brand = Brand_mldonkey1 || c.client_brand = Brand_mldonkey2 then begin
+          if !verbose then
+              lprintf "donkeyClient:QueryFileReq: Client %s is realy old mldonkey1/2 and queried file %s\n"
+                  (full_client_identifier c) (Md4.to_string md4);
+          if Random.int 100 < 3 && !!send_warning_messages then
+            client_send c (
+                M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to at least version 2.5-16u!");
         end;
       
       begin try 	
@@ -1466,22 +1519,19 @@ is checked for the file.
               Q.md4 = file.file_md4;
               Q.name = published_filename
             });
-
 	  client_queried_file c file;
-
-	  (* Here's the correct place to check for emule_extension*)
+	  (* Here's the correct place to check for emule_extension *)
 	  begin
             match t.M.QueryFile.emule_extension with
 		None -> ()
               | Some (chunks, _) ->
 		  received_client_bitmap c file chunks
 	  end;
-  
           DonkeySources.query_files c.client_source
         
         with Not_found -> 
             if !verbose_unexpected_messages then
-	      lprintf "donkeyClient: QueryFileReq: Client %s queried unpublished file %s\n" (fullClientIdentifier c) (Md4.to_string md4);
+	      lprintf "donkeyClient: QueryFileReq: Client %s queried unpublished file %s\n" (full_client_identifier c) (Md4.to_string md4);
             client_send c (
               M.NoSuchFileReq md4);
             
@@ -1511,21 +1561,11 @@ is checked for the file.
 end else *)
             if !verbose_location then
 	      lprintf "donkeyClient: EmuleRequestSourcesReply: Received %d sources from %s for %s\n"
-	        (Array.length t.Q.sources) (fullClientIdentifier c) (file_best_name file);
-
-			let blackCount = ref 0 in
-			let directCount = ref 0 in
-			let indirectCount = ref 0 in
-			Array.iter (fun s ->
-(*				match addSourceByIPPort_1 file s.Q.src_ip s.Q.src_port s.Q.src_server_ip s.Q.src_server_port	with
-					"B" ->	incr blackCount
-				|	"D" ->	incr directCount
-				|	"B" ->	incr blackCount			*)
-				addSource file s.Q.src_ip s.Q.src_port s.Q.src_server_ip s.Q.src_server_port
-			) t.Q.sources;
-		if !verbose_connect && !blackCount > 0 then
-			lprintf "donkeyClient: EmuleRequestSourcesReply: Eliminated %d blacklisted sources , added %d direct and %d indirect sources\n" !blackCount !directCount !indirectCount
-
+                    (Array.length t.Q.sources) (full_client_identifier c) (file_best_name file);
+            
+            Array.iter (fun s ->
+              add_source file s.Q.src_ip s.Q.src_port s.Q.src_server_ip s.Q.src_server_port
+            ) t.Q.sources;
         with _ -> ()
       end
   
@@ -1544,15 +1584,10 @@ end else *)
             end else *)
             if !verbose_location then
               lprintf "donkeyClient: SourcesReq: Received %d sources from %s for %s\n"
-                    (List.length t.Q.sources) (fullClientIdentifier c) (file_best_name file);
-
-			let blackCount = ref 0 in
-          List.iter (fun (ip1, port, ip2) ->
-				addSource file ip1 port Ip.null 0
-          ) t.Q.sources;
-		if !verbose_connect && !blackCount > 0 then
-			lprintf "donkeyClient: SourcesReq: Eliminated %d blacklisted sources !!\n" !blackCount
-
+                    (List.length t.Q.sources) (full_client_identifier c) (file_best_name file);
+	    List.iter (fun (ip1, port, ip2) ->
+		add_source file ip1 port Ip.null 0
+            ) t.Q.sources;
         with _ -> ()
       end
   
@@ -1602,33 +1637,36 @@ end else *)
   | M.QueryChunksReq t ->
       c.client_requests_received <- c.client_requests_received + 1;
 
-(* Come on, all clients (even mldonkey) query chunks during download! This is legitimate! *)
-(*      if  !CommonUploads.has_upload = 0 && not
-      if not (!!ban_queue_jumpers && c.client_banned) then *)
-(*       banned is banned, no need to check ban_queue_jumpers here
-         besides that ... we shouldn't be connected with a banned client! Waste of resources! *)
-
+      (* All clients query chunks during download! This is legitimate!
+        !CommonUploads.has_upload = 0 && *)
+      (* banned is banned, do we need to check ban_queue_jumpers
+         here? besides that ... we shouldn't be connected with
+         a banned client! Waste of resources! Or? *)
+      if not (!!ban_queue_jumpers && c.client_banned) then
         begin
           try
             let file = find_file t in
             let chunks =
               match file.file_swarmer with
-                None -> (* [||] *)
-                       (* file was found, if we have no swarmer, we have the file complete and share it!
-                               it's save to asume that we have all chunks! *)
-                       Array.create file.file_nchunks true
+                None ->
+                    (* file was found, if we have no swarmer, we have
+		       the file complete and share it! it's save to
+		       asume that we have all chunks! *)
+                    Array.create file.file_nchunks true
               | Some swarmer ->
                   let bitmap = Int64Swarmer.verified_bitmap swarmer in
-                    Array.init (String.length bitmap) 
-                    (fun i -> bitmap.[i] = '3')
-(* This is not very smart, as we might get banned for this request.
-TODO We should probably check if we don't know already this source...
+                  Array.init (String.length bitmap) 
+    		      (fun i -> bitmap.[i] = '3')
+		  (* This is not very smart, as we might get banned for this request.
+		     TODO We should probably check if we don't know already this source...
 
-NONSENSE! We don't need to query_file! A peer requesting chunks will always have (part of) that file!
-               We would just have to add it as source ... but I think it was already done!
+		     NONSENSE! We don't need to query_file! A peer requesting
+		     chunks will always have (part of) that file!
+		     We would just have to add it as source ... but I think it was already done!
 
                   DonkeySources.query_file c.client_source file.file_sources;
-                  chunks*)
+                  chunks
+		  *)
             in
             client_send c (
               let module Q = M.QueryChunksReply in
@@ -1636,18 +1674,19 @@ NONSENSE! We don't need to query_file! A peer requesting chunks will always have
                 Q.md4 = file.file_md4;
                 Q.chunks = chunks;
               });
-          with 
-          | _ ->
-               logPrint !verbose_location c (Printf.sprintf "QueryChunksReq: chunks of unpublished file %s queried from" (Md4.to_string t));
-               client_send c ( M.NoSuchFileReq t );
+          with
+            | _ ->
+                if !verbose_unexpected_messages then
+                  lprintf "donkeyClient:QueryChunksReq: chunks of unpublished file %s queried from %s\n"
+                    (Md4.to_string t) (full_client_identifier c);
+                client_send c ( M.NoSuchFileReq t );
         end
   
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c) ->
       
-      if !verbose then begin
-          lprintf "uploader %s ask for block\n" (fullClientIdentifier c);
-        end;
+      if !verbose then
+          lprintf "donkeyClient: uploader %s ask for block\n" (full_client_identifier c);
       
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
@@ -1708,21 +1747,18 @@ NONSENSE! We don't need to query_file! A peer requesting chunks will always have
             up.up_waiting <- true
           end
       end;
-      if !verbose then begin
-        lprintf "QueryBloc treated\n";
-      end
+      if !verbose_upload then lprintf "QueryBloc treated\n"
       
   | M.NoSuchFileReq t ->
       begin
         try
           let file = find_file t in
           if !verbose_location then
-	      lprintf "donkeyClient: NoSuchFileReq: from %s for file %s\n"
-	          (fullClientIdentifier c) (file_best_name file);
+	    lprintf "donkeyClient: NoSuchFileReq: from %s for file %s\n"
+	        (full_client_identifier c) (file_best_name file);
 
           DonkeySources.set_request_result c.client_source 
             file.file_sources File_not_found;
-            
         with _ -> ()
       end
         
@@ -1846,23 +1882,23 @@ let read_first_message overnet m sock =
             { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> name := s
           | _ ->  ()
       ) t.CR.tags;
-      
-	let kind =
-	    if donkeyIsLowID t.CR.ip then
-               match t.CR.server_info with
-                   None ->
-                       Invalid_address  (!name, Md4.to_string t.CR.md4)
-                   | Some (ip,port) ->
-                       if Ip.valid ip && Ip.reachable ip then
-                           Indirect_address (ip, port, id_of_ip t.CR.ip)
-                       else
-                           Invalid_address  (!name, Md4.to_string t.CR.md4)
-            else
-               if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
-                       Direct_address (t.CR.ip, t.CR.port)
-               else
-                       Invalid_address  (!name, Md4.to_string t.CR.md4)
-            in
+
+      let kind =
+	if low_id t.CR.ip then
+            match t.CR.server_info with
+            | None ->
+                Invalid_address  (!name, Md4.to_string t.CR.md4)
+            | Some (ip,port) ->
+                if Ip.valid ip && Ip.reachable ip then
+                    Indirect_address (ip, port, id_of_ip t.CR.ip)
+                else
+                    Invalid_address  (!name, Md4.to_string t.CR.md4)
+        else
+        if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
+            Direct_address (t.CR.ip, t.CR.port)
+        else
+            Invalid_address  (!name, Md4.to_string t.CR.md4)
+      in
 
       
       let c = new_client kind in
@@ -1912,7 +1948,6 @@ let read_first_message overnet m sock =
       end;
 *)
       
-      
       set_client_name c !name t.CR.md4;
 (*      connection_try c.client_connection_control;
       connection_ok c.client_connection_control; *)
@@ -1956,12 +1991,12 @@ let read_first_message overnet m sock =
       identify_client_brand c;
 
       if supports_eep c.client_brand then
-       begin
-	(*    lprintf "Emule Extended Protocol query\n"; *)
-        let module M = DonkeyProtoClient in
-	let module E = M.EmuleClientInfo in
+        begin
+	  (* lprintf "Emule Extended Protocol query\n"; *)
+          let module M = DonkeyProtoClient in
+	  let module E = M.EmuleClientInfo in
 	  client_send c (M.EmuleClientInfoReq emule_info)
-       end;
+        end;
       
       client_send c (
         let module M = DonkeyProtoClient in
@@ -2086,23 +2121,23 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                       c.client_source.DonkeySources.source_sock <- Connection sock;
                       c.client_ip <- ip;
                       c.client_connected <- true;
-                      
                       let server_ip, server_port, server_cid = 
                         try
                           let s = DonkeyGlobals.last_connected_master () in
 			  match s.server_cid with
-			  None -> s.server_ip, s.server_port, Ip.any
-			  | Some cid -> s.server_ip, s.server_port, cid
+			    None -> s.server_ip, s.server_port, Ip.any
+			    | Some cid -> s.server_ip, s.server_port, cid
                         with _ -> Ip.localhost, 4665, Ip.any
                       in
-					let sendThisID =
-							if !!firewalled_mode && (donkeyIsLowID server_cid) && (Ip.any != server_cid) then begin
-								server_cid
-							end
-							else begin
-								client_ip None
-							end
-						in
+		      let send_this_id =
+                        if not (!!force_high_id || !!force_client_high_id)
+			    && low_id server_cid
+			    && Ip.any != server_cid
+			    then
+			  server_cid
+			else
+			  client_ip None
+		      in
                       client_send c (
                         let module M = DonkeyProtoClient in
                         let module C = M.Connect in
@@ -2120,7 +2155,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                         else
                           M.ConnectReq {
                             C.md4 = !!client_md4;
-                            C.ip = sendThisID;
+                            C.ip = send_this_id;
                             C.port = !!donkey_port;
                             C.tags = !client_to_client_tags;
                             C.version = 16;
@@ -2149,26 +2184,22 @@ let query_locations_reply s t =
     let nlocs = List.length t.Q.locs in
     
     if !verbose_location then
-        lprintf "Server: Received %d sources for %s\n" nlocs (file_best_name file);
+	lprintf "Received %d sources from donkey Server for %s\n" nlocs (file_best_name file);
     
     s.server_score <- s.server_score + 3;
-    
-(* TODO: verify that new sources are queried as soon as possible. Maybe we
-should check how many new sources this client has, and query a connection
-immediatly if they are too many. *)
 
-(* No need to care about in this place ... make need_new_sources based on ready sources,
-  then the next refill_file will query them, that's soon enough! *) 
+    (* TODO: verify that new sources are queried as soon as
+       possible. Maybe we should check how many new sources
+       this client has, and query a connection immediatly if
+       they are too many. No need to care about in this
+       place ... make need_new_sources based on ready
+       sources, then the next refill_file will query them,
+       that's soon enough!
+     *)
 
-	let blackCount = ref 0 in
     List.iter (fun l ->
-		addSource file l.Q.ip l.Q.port s.server_ip s.server_port
-    	) t.Q.locs;
-    	
-    	if !verbose_location && !blackCount > 0 then
-    		lprintf "donkeyClient: query_locations_reply: Eliminated %d blacklisted replies from answer\n" !blackCount
-    		
-    
+	add_source file l.Q.ip l.Q.port s.server_ip s.server_port
+    ) t.Q.locs;
   with Not_found -> ()
       
 let can_open_indirect_connection () =
@@ -2269,16 +2300,16 @@ let _ =
             M.QueryFile.emule_extension = emule_extension;
           });
 
-          let know_file_chunks = ref false in
+        let know_file_chunks = ref false in
+
             List.iter (fun (f,_,_) ->
-			 if f == file then know_file_chunks := true
-		      ) c.client_file_queue;
+	      if f == file then know_file_chunks := true
+	      ) c.client_file_queue;
             
             if not !know_file_chunks then
               DonkeyProtoCom.client_send c (
                 let module M = DonkeyProtoClient in
                   M.QueryChunksReq file.file_md4);
-	    
         ignore (DonkeySources.add_request c.client_source 
             file.file_sources (last_time ()))        
       with e -> 

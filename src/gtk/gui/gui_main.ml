@@ -236,9 +236,9 @@ let value_reader gui t =
             (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
         )
     
-    | CoreProtocol v -> 
+    | CoreProtocol (v, _, _) ->
         
-        let version = min v GuiEncoding.best_gui_version in
+        let version = min v GuiProto.best_gui_version in
         for i = 0 to to_gui_last_opcode do
           Gui_com.to_gui_protocol_used.(i) <- version;
         done;
@@ -518,6 +518,7 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
     | Pending l -> ()
 
     | Search s -> ()
+    | Version _ -> ()
 
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)

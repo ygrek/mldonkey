@@ -404,7 +404,7 @@ client_error = false;
 let add_download file c () =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  lprintf "Adding file to client\n";
+  if !verbose then lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
       let d = {
@@ -478,7 +478,7 @@ let disconnect_from_server nservers s reason =
           Connected _ ->
             let connection_time = Int64.to_int (
                 (int64_time ()) -- s.server_connected) in
-            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds [%s]\n" 
+              if !verbose then lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds [%s]\n" 
               (Ip.string_of_addr h.host_addr) h.host_port
               connection_time 
             (string_of_reason reason)

@@ -59,7 +59,7 @@ let servers_list_url = define_option opennap_section ["servers_list_url"]
   
 let server_connection_timeout = 
   define_option opennap_section ["server_connection_timeout"] 
-  "timeout when connecting to a server" float_option 10.
+  "timeout when connecting to a server" float_option 30.
     
 let max_shared_files = define_option opennap_section ["max_shared_files"]
   "The maximal number of files to share on a server"
@@ -68,7 +68,7 @@ let max_shared_files = define_option opennap_section ["max_shared_files"]
       
   
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "OpenNap-%s" (shortname o)
     
 let gui_opennap_options_panel = 
   (*

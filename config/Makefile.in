@@ -44,7 +44,7 @@ CRYPT_LIBS_byte=-cclib -lcrypt
 #######################################################################
 
 ifeq ("$(USE_GTK2)", "yes")
-  ICONS_CHOICE=src/gtk2/rsvg
+  ICONS_CHOICE=icons/rsvg
   SRC_GUI=src/gtk2/gui
   GUI=GTK2GUI
   IM_GUI=src/gtk2/im
@@ -53,7 +53,7 @@ else
   CONFIGWIN=src/gtk/configwin
   GPATTERN=src/gtk/gpattern
   OKEY=src/gtk/okey
-  IM_GUI=src/gtk/im
+  IM_GUI=src/im
   CHAT_GUI=src/gtk/chat
   ifeq ("$(BUILD_NEWGUI)", "yes")
     SRC_PROGRESS=src/gtk/progress
@@ -1021,108 +1021,108 @@ GTK2GUI_ICONS= \
   $(ICONS_CHOICE)/emoticon_wink.svg
 
 NEWGUI_ICONS= \
-  icons/$(ICONS_CHOICE)/extend_search.xpm \
-  icons/$(ICONS_CHOICE)/local_search.xpm \
-  icons/$(ICONS_CHOICE)/trash.xpm \
-  icons/$(ICONS_CHOICE)/subscribe_search.xpm \
-  icons/$(ICONS_CHOICE)/submit_search.xpm \
-  icons/$(ICONS_CHOICE)/close_search.xpm \
-  icons/$(ICONS_CHOICE)/stop_search.xpm \
-  icons/$(ICONS_CHOICE)/nbk_networks_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_networks_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_servers_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_servers_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_downloads_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_downloads_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_friends_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_friends_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_search_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_search_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_rooms_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_rooms_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_uploads_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_uploads_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_console_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_console_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_graphs_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_graphs_menu.xpm \
-  icons/$(ICONS_CHOICE)/about.xpm \
-  icons/$(ICONS_CHOICE)/im.xpm \
-  icons/$(ICONS_CHOICE)/settings.xpm \
-  icons/$(ICONS_CHOICE)/exit.xpm \
-  icons/$(ICONS_CHOICE)/gui.xpm \
-  icons/$(ICONS_CHOICE)/kill_core.xpm \
-  icons/$(ICONS_CHOICE)/splash_screen.xpm \
-  icons/$(ICONS_CHOICE)/album_search.xpm \
-  icons/$(ICONS_CHOICE)/movie_search.xpm \
-  icons/$(ICONS_CHOICE)/mp3_search.xpm \
-  icons/$(ICONS_CHOICE)/complex_search.xpm \
-  icons/$(ICONS_CHOICE)/sharereactor_search.xpm \
-  icons/$(ICONS_CHOICE)/jigle_search.xpm \
-  icons/$(ICONS_CHOICE)/freedb_search.xpm \
-  icons/$(ICONS_CHOICE)/imdb_search.xpm \
-  icons/$(ICONS_CHOICE)/bt.xpm \
-  icons/$(ICONS_CHOICE)/dc.xpm \
-  icons/$(ICONS_CHOICE)/ed2k.xpm \
-  icons/$(ICONS_CHOICE)/fasttrack.xpm \
-  icons/$(ICONS_CHOICE)/gnutella.xpm \
-  icons/$(ICONS_CHOICE)/napster.xpm \
-  icons/$(ICONS_CHOICE)/slsk.xpm \
-  icons/$(ICONS_CHOICE)/unknown.xpm \
-  icons/$(ICONS_CHOICE)/downloading.xpm \
-  icons/$(ICONS_CHOICE)/connect_y.xpm \
-  icons/$(ICONS_CHOICE)/connect_m.xpm \
-  icons/$(ICONS_CHOICE)/connect_n.xpm \
-  icons/$(ICONS_CHOICE)/removedhost.xpm \
-  icons/$(ICONS_CHOICE)/blacklistedhost.xpm \
-  icons/$(ICONS_CHOICE)/files_listed.xpm \
-  icons/$(ICONS_CHOICE)/server_c_high.xpm \
-  icons/$(ICONS_CHOICE)/server_c_low.xpm \
-  icons/$(ICONS_CHOICE)/server_ci.xpm \
-  icons/$(ICONS_CHOICE)/server_nc.xpm \
-  icons/$(ICONS_CHOICE)/toggle_display_all_servers.xpm \
-  icons/$(ICONS_CHOICE)/view_pending_slots.xpm \
-  icons/$(ICONS_CHOICE)/add_server.xpm \
-  icons/$(ICONS_CHOICE)/add_shared_directory.xpm \
-  icons/$(ICONS_CHOICE)/download_directory.xpm \
-  icons/$(ICONS_CHOICE)/friend_user.xpm \
-  icons/$(ICONS_CHOICE)/contact_user.xpm \
-  icons/$(ICONS_CHOICE)/normal_user.xpm \
-  icons/$(ICONS_CHOICE)/priority_0.xpm \
-  icons/$(ICONS_CHOICE)/priority_1.xpm \
-  icons/$(ICONS_CHOICE)/priority_2.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_binary.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_cdimage.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_debian.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_html.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_images.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_java.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_pdf.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_postscript.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_real.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_recycled.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_rpm.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_shellscript.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_soffice.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_sound.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_source.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_spreadsheet.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_tex.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_text.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_tgz.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_video.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_wordprocessing.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_unknown.xpm \
-  icons/$(ICONS_CHOICE)/tree_closed.xpm \
-  icons/$(ICONS_CHOICE)/tree_opened.xpm \
-  icons/$(ICONS_CHOICE)/bt_net_on.xpm \
-  icons/$(ICONS_CHOICE)/dc_net_on.xpm \
-  icons/$(ICONS_CHOICE)/ed2k_net_on.xpm \
-  icons/$(ICONS_CHOICE)/ftt_net_on.xpm \
-  icons/$(ICONS_CHOICE)/gnut_net_on.xpm \
-  icons/$(ICONS_CHOICE)/nap_net_on.xpm \
-  icons/$(ICONS_CHOICE)/slsk_net_on.xpm \
-  icons/$(ICONS_CHOICE)/mld_tux_on.xpm
+  $(ICONS_CHOICE)/extend_search.xpm \
+  $(ICONS_CHOICE)/local_search.xpm \
+  $(ICONS_CHOICE)/trash.xpm \
+  $(ICONS_CHOICE)/subscribe_search.xpm \
+  $(ICONS_CHOICE)/submit_search.xpm \
+  $(ICONS_CHOICE)/close_search.xpm \
+  $(ICONS_CHOICE)/stop_search.xpm \
+  $(ICONS_CHOICE)/nbk_networks_on.xpm \
+  $(ICONS_CHOICE)/nbk_networks_menu.xpm \
+  $(ICONS_CHOICE)/nbk_servers_on.xpm \
+  $(ICONS_CHOICE)/nbk_servers_menu.xpm \
+  $(ICONS_CHOICE)/nbk_downloads_on.xpm \
+  $(ICONS_CHOICE)/nbk_downloads_menu.xpm \
+  $(ICONS_CHOICE)/nbk_friends_on.xpm \
+  $(ICONS_CHOICE)/nbk_friends_menu.xpm \
+  $(ICONS_CHOICE)/nbk_search_on.xpm \
+  $(ICONS_CHOICE)/nbk_search_menu.xpm \
+  $(ICONS_CHOICE)/nbk_rooms_on.xpm \
+  $(ICONS_CHOICE)/nbk_rooms_menu.xpm \
+  $(ICONS_CHOICE)/nbk_uploads_on.xpm \
+  $(ICONS_CHOICE)/nbk_uploads_menu.xpm \
+  $(ICONS_CHOICE)/nbk_console_on.xpm \
+  $(ICONS_CHOICE)/nbk_console_menu.xpm \
+  $(ICONS_CHOICE)/nbk_graphs_on.xpm \
+  $(ICONS_CHOICE)/nbk_graphs_menu.xpm \
+  $(ICONS_CHOICE)/about.xpm \
+  $(ICONS_CHOICE)/im.xpm \
+  $(ICONS_CHOICE)/settings.xpm \
+  $(ICONS_CHOICE)/exit.xpm \
+  $(ICONS_CHOICE)/gui.xpm \
+  $(ICONS_CHOICE)/kill_core.xpm \
+  $(ICONS_CHOICE)/splash_screen.xpm \
+  $(ICONS_CHOICE)/album_search.xpm \
+  $(ICONS_CHOICE)/movie_search.xpm \
+  $(ICONS_CHOICE)/mp3_search.xpm \
+  $(ICONS_CHOICE)/complex_search.xpm \
+  $(ICONS_CHOICE)/sharereactor_search.xpm \
+  $(ICONS_CHOICE)/jigle_search.xpm \
+  $(ICONS_CHOICE)/freedb_search.xpm \
+  $(ICONS_CHOICE)/imdb_search.xpm \
+  $(ICONS_CHOICE)/bt.xpm \
+  $(ICONS_CHOICE)/dc.xpm \
+  $(ICONS_CHOICE)/ed2k.xpm \
+  $(ICONS_CHOICE)/fasttrack.xpm \
+  $(ICONS_CHOICE)/gnutella.xpm \
+  $(ICONS_CHOICE)/napster.xpm \
+  $(ICONS_CHOICE)/slsk.xpm \
+  $(ICONS_CHOICE)/unknown.xpm \
+  $(ICONS_CHOICE)/downloading.xpm \
+  $(ICONS_CHOICE)/connect_y.xpm \
+  $(ICONS_CHOICE)/connect_m.xpm \
+  $(ICONS_CHOICE)/connect_n.xpm \
+  $(ICONS_CHOICE)/removedhost.xpm \
+  $(ICONS_CHOICE)/blacklistedhost.xpm \
+  $(ICONS_CHOICE)/files_listed.xpm \
+  $(ICONS_CHOICE)/server_c_high.xpm \
+  $(ICONS_CHOICE)/server_c_low.xpm \
+  $(ICONS_CHOICE)/server_ci.xpm \
+  $(ICONS_CHOICE)/server_nc.xpm \
+  $(ICONS_CHOICE)/toggle_display_all_servers.xpm \
+  $(ICONS_CHOICE)/view_pending_slots.xpm \
+  $(ICONS_CHOICE)/add_server.xpm \
+  $(ICONS_CHOICE)/add_shared_directory.xpm \
+  $(ICONS_CHOICE)/download_directory.xpm \
+  $(ICONS_CHOICE)/friend_user.xpm \
+  $(ICONS_CHOICE)/contact_user.xpm \
+  $(ICONS_CHOICE)/normal_user.xpm \
+  $(ICONS_CHOICE)/priority_0.xpm \
+  $(ICONS_CHOICE)/priority_1.xpm \
+  $(ICONS_CHOICE)/priority_2.xpm \
+  $(ICONS_CHOICE)/mimetype_binary.xpm \
+  $(ICONS_CHOICE)/mimetype_cdimage.xpm \
+  $(ICONS_CHOICE)/mimetype_debian.xpm \
+  $(ICONS_CHOICE)/mimetype_html.xpm \
+  $(ICONS_CHOICE)/mimetype_images.xpm \
+  $(ICONS_CHOICE)/mimetype_java.xpm \
+  $(ICONS_CHOICE)/mimetype_pdf.xpm \
+  $(ICONS_CHOICE)/mimetype_postscript.xpm \
+  $(ICONS_CHOICE)/mimetype_real.xpm \
+  $(ICONS_CHOICE)/mimetype_recycled.xpm \
+  $(ICONS_CHOICE)/mimetype_rpm.xpm \
+  $(ICONS_CHOICE)/mimetype_shellscript.xpm \
+  $(ICONS_CHOICE)/mimetype_soffice.xpm \
+  $(ICONS_CHOICE)/mimetype_sound.xpm \
+  $(ICONS_CHOICE)/mimetype_source.xpm \
+  $(ICONS_CHOICE)/mimetype_spreadsheet.xpm \
+  $(ICONS_CHOICE)/mimetype_tex.xpm \
+  $(ICONS_CHOICE)/mimetype_text.xpm \
+  $(ICONS_CHOICE)/mimetype_tgz.xpm \
+  $(ICONS_CHOICE)/mimetype_video.xpm \
+  $(ICONS_CHOICE)/mimetype_wordprocessing.xpm \
+  $(ICONS_CHOICE)/mimetype_unknown.xpm \
+  $(ICONS_CHOICE)/tree_closed.xpm \
+  $(ICONS_CHOICE)/tree_opened.xpm \
+  $(ICONS_CHOICE)/bt_net_on.xpm \
+  $(ICONS_CHOICE)/dc_net_on.xpm \
+  $(ICONS_CHOICE)/ed2k_net_on.xpm \
+  $(ICONS_CHOICE)/ftt_net_on.xpm \
+  $(ICONS_CHOICE)/gnut_net_on.xpm \
+  $(ICONS_CHOICE)/nap_net_on.xpm \
+  $(ICONS_CHOICE)/slsk_net_on.xpm \
+  $(ICONS_CHOICE)/mld_tux_on.xpm
 
 NEWGUI_SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
@@ -1136,20 +1136,20 @@ NEWGUI_SMALL_ICONS= \
   icons/small/view_users_small.xpm
 
 OLDGUI_ICONS= \
-  icons/$(ICONS_CHOICE)/add_to_friends.xpm \
-  icons/$(ICONS_CHOICE)/cancel.xpm icons/$(ICONS_CHOICE)/connect_more.xpm \
-  icons/$(ICONS_CHOICE)/connect.xpm icons/$(ICONS_CHOICE)/disconnect.xpm \
-  icons/$(ICONS_CHOICE)/download.xpm \
-  icons/$(ICONS_CHOICE)/edit_mp3.xpm icons/$(ICONS_CHOICE)/extend_search.xpm \
-  icons/$(ICONS_CHOICE)/get_format.xpm \
-  icons/$(ICONS_CHOICE)/local_search.xpm icons/$(ICONS_CHOICE)/preview.xpm \
-  icons/$(ICONS_CHOICE)/refres.xpm \
-  icons/$(ICONS_CHOICE)/save_all.xpm icons/$(ICONS_CHOICE)/save_as.xpm \
-  icons/$(ICONS_CHOICE)/save.xpm \
-  icons/$(ICONS_CHOICE)/trash.xpm icons/$(ICONS_CHOICE)/verify_chunks.xpm \
-  icons/$(ICONS_CHOICE)/view_users.xpm \
-  icons/$(ICONS_CHOICE)/pause_resume.xpm \
-  icons/$(ICONS_CHOICE)/remove_all_friends.xpm 
+  $(ICONS_CHOICE)/add_to_friends.xpm \
+  $(ICONS_CHOICE)/cancel.xpm $(ICONS_CHOICE)/connect_more.xpm \
+  $(ICONS_CHOICE)/connect.xpm $(ICONS_CHOICE)/disconnect.xpm \
+  $(ICONS_CHOICE)/download.xpm \
+  $(ICONS_CHOICE)/edit_mp3.xpm $(ICONS_CHOICE)/extend_search.xpm \
+  $(ICONS_CHOICE)/get_format.xpm \
+  $(ICONS_CHOICE)/local_search.xpm $(ICONS_CHOICE)/preview.xpm \
+  $(ICONS_CHOICE)/refres.xpm \
+  $(ICONS_CHOICE)/save_all.xpm $(ICONS_CHOICE)/save_as.xpm \
+  $(ICONS_CHOICE)/save.xpm \
+  $(ICONS_CHOICE)/trash.xpm $(ICONS_CHOICE)/verify_chunks.xpm \
+  $(ICONS_CHOICE)/view_users.xpm \
+  $(ICONS_CHOICE)/pause_resume.xpm \
+  $(ICONS_CHOICE)/remove_all_friends.xpm 
 
 OLDGUI_SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
@@ -1671,6 +1671,7 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui
+	rm -f svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -1683,21 +1684,17 @@ tmpclean:
 moreclean: clean tmpclean
 
 releaseclean: clean moreclean
-	rm -f config/config.cache config/config.log config/config.status
-	rm -f config/config.h config/Makefile.config
-	rm -f tools/zoggy/*.cm?
-	rm -rf patches/build
 	rm -f .depend
+	rm -rf patches/build
 	rm -f config/Makefile.config
-	rm -f config/Makefile.config.i386
-	rm -f config/Makefile.config.i486
-	rm -f config/Makefile.config.i586
-	rm -f config/Makefile.config.i686
 	rm -f config/mldonkey.rc
+	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h
 	rm -f config/confdefs.h
+	rm -rf config/autom4te.cache/
 	rm -f packages/rpm/*.spec
 	rm -f packages/windows/mlnet.nsi
+	rm -f src/daemon/common/commonDownloads.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
@@ -1708,18 +1705,20 @@ releaseclean: clean moreclean
 	rm -f icons/kde/*.ml
 	rm -f icons/mldonkey/*.ml_icons
 	rm -f icons/mldonkey/*.ml
-	rm -f src/gtk2/rsvg/*.ml_icons
-	rm -f src/gtk2/rsvg/*.ml
-	rm -rf config/autom4te.cache/
+	rm -f icons/rsvg/*.ml_icons
+	rm -f icons/rsvg/*.ml
+	rm -f tools/zoggy/*.cm?
 	rm -rf mldonkey-distrib*
 	rm -f mldonkey-$(CURRENT_VERSION).*
-	rm -f src/daemon/common/commonDownloads.ml
 
 distclean: releaseclean
 	rm -rf patches/local
 
 maintainerclean: distclean
-	rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml 
+	echo rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml
+	rm -f config/configure
+	rm -f packages/rpm/Makefile
+	rm -f Makefile
 
 LOCAL=patches/build
 
@@ -1761,8 +1760,8 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
 utils: svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
-utils.byte: svg_converter.byte ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
-utils.static: svg_converter.static ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
+utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
+utils.static: svg_converter ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
 
 #######################################################################
 
@@ -1880,7 +1879,7 @@ $(SHADIR):  static distrib/Readme.txt
 auto-release:
 ## i386
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i386 config/Makefile.config
+	./configure --host=i386-pc-linux-gnu
 	rm -f mlnet mlnet.static mlnet+gui mlnet+gui.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -1889,7 +1888,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i686
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i686 config/Makefile.config
+	./configure --host=i686-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -1898,7 +1897,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i586
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i586 config/Makefile.config
+	./configure --host=i586-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -1907,7 +1906,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i486
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i486 config/Makefile.config
+	./configure --host=i486-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -1916,7 +1915,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 
 buildrpm: 
-	cp -f config/Makefile.config.i386 config/Makefile.config
+	./configure --host=i586-pc-linux-gnu
 	$(MAKE) clean
 	$(MAKE) opt
 	rm -rf ../mldonkey-rpm rpm/mldonkey

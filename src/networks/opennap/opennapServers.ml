@@ -172,18 +172,23 @@ let get_file_from_source c file =
       (Printexc2.to_string e)
 
   
-let download_file (r : result) =
-  let file = new_file (Md4.random ()) r.result_name r.result_size in
+let download_file hash (r : CommonTypes.result_info) =
+  let file = new_file (Md4.random ())
+   (List.hd r.result_names)
+   r.result_size in
 (*  lprintf "DOWNLOAD FILE %s\n" f.file_name;  *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun (user, filename) ->
+  begin
+    let sources = Hashtbl.find result_sources r.result_num in
+    List.iter (fun (user,filename) ->
       lprintf "Adding source %s (%d servers)\n" user.user_nick
         (List.length user.user_servers); 
-      let c = add_file_client file user  filename in
+      let c = add_file_client file user filename in
       get_file_from_source c file;
-  ) r.result_sources;
+  ) !sources;
+  end;
   as_file file.file_file
 
 let login_on_server s sock =
@@ -310,8 +315,8 @@ try_nick s sock;
   | OP.ServerStatsReq t ->
       DG.connection_ok s.server_connection_control;
       let module SS = OP.ServerStats in
-      s.server_nfiles <- t.SS.files;
-      s.server_nusers <- t.SS.users;
+      s.server_nfiles <- Int64.of_int t.SS.files;
+      s.server_nusers <- Int64.of_int t.SS.users;
       s.server_size <- t.SS.size;
       
   | OP.SearchReplyReq t ->
@@ -325,7 +330,7 @@ try_nick s sock;
             user.user_link <- t.SR.link_type;
             let result = new_result (basename t.SR.filename) t.SR.size in
             add_source result user t.SR.filename;
-            CommonInteractive.search_add_result true q result.result_result;
+            CommonInteractive.search_add_result true q result;
         | Some (Recover_file _) -> 
             begin
               try
@@ -355,7 +360,7 @@ try_nick s sock;
                 c.client_all_files <- Some (r :: rs);
                 client_new_file (as_client c.client_client) 
                 (Filename.dirname t.BU.filename)
-                (as_result r.result_result) 
+                r
               end
         | _ -> ()
       end

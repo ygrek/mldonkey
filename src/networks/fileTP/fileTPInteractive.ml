@@ -334,9 +334,9 @@ let get_regexp_string text r =
   let b = Str.group_end 1 in
     String.sub text a (b - a)
 
-(* This is called when a dllink is entered into the console.
-   It returns true if this file can be handled by fileTP,
-   and false otherwise.
+(* This is called when a dllink is entered into the console. 
+   It returns true if this file can be handled by fileTP, 
+   and false otherwise. 
  *)
 let rec op_network_parse_url url =
   if !verbose then lprintf "filetp.op_network_parse_url\n";
@@ -348,12 +348,12 @@ let rec op_network_parse_url url =
     if (String2.check_prefix real_url "http://") then (
       lprintf "http download\n";
       let length_regexp = "Content-Length: \\(.*\\)" in
-	try let length = get_regexp_int url (Str.regexp length_regexp) in
-	  if (length > 0) then begin
-	    download_file real_url; true
-	  end
-	  else raise Not_found
-	with Not_found -> lprintf "Unknown file length. Use a web browser\n"; false
+       try let length = get_regexp_int url (Str.regexp length_regexp) in
+         if (length > 0) then begin
+           download_file real_url; true
+         end
+         else raise Not_found
+       with Not_found -> lprintf "Unknown file length. Use a web browser\n"; false
     )
     else if (String2.check_prefix url "ftp://") || (String2.check_prefix url "ssh://") then (
       download_file url;
@@ -361,7 +361,7 @@ let rec op_network_parse_url url =
     )
     else
       false
-     
+
 let _ =
   network.op_network_parse_url <- op_network_parse_url
 
@@ -405,5 +405,12 @@ let _ =
   CommonNetwork.register_commands commands;
   (* Shut up "Network.share not implemented by FileTP" *)
   network.op_network_share <- (fun fullname codedname size -> ());
-  (* Same with Network.forget_search... *)
-  network.op_network_forget_search <- (fun s -> ())
+  (* Same with Network.search and Network.forget_search... *)
+  network.op_network_search <- (fun ss buf -> ());
+  network.op_network_forget_search <- (fun s -> ());
+  (* and Network.recover_temp *)
+  network.op_network_recover_temp <-
+    (fun _ ->
+     if !verbose_hidden_errors then
+       lprintf "recover_temp is not implemented for FileTP.\n";
+    );

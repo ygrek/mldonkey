@@ -340,7 +340,7 @@ module DonkeySources = CommonSources.Make(struct
         
       let direct_source s =
         match s with Direct_address _ -> true | _ -> false
-      
+
       let indirect_source s =
         match s with Indirect_address _ -> true | _ -> false
       

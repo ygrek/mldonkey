@@ -147,8 +147,8 @@ let new_shared dirname prio filename fullname =
   incr files_scanned;
   files_scanned_size := !files_scanned_size ++ size;
   if Unix2.is_directory fullname then begin
-  if !verbose_share then
-    lprintf "new_shared: %s is directory! Skipped network.share\n" fullname;
+    if !verbose_share then
+      lprintf "new_shared: %s is directory! Skipped network.share\n" fullname;
   end
   else begin
   CommonNetwork.networks_iter (fun n -> 

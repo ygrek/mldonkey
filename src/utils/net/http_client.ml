@@ -285,7 +285,7 @@ headers;
               with _ -> 
                   lprintf "bad content length [%s]\n" content;
         ) headers;
-          let location = "Location", Url.to_string old_url in
+        let location = "Location", Url.to_string old_url in
         let content_handler = content_handler !content_length (location::headers) in
         set_reader sock content_handler;
         let buf = TcpBufferedSocket.buf sock in
@@ -298,9 +298,10 @@ headers;
           begin
             try
               let url = List.assoc "Location" headers in
-              List.iter (fun (name, value) ->
-                  if !verbose then lprintf "[%s]=[%s]\n" name value;
-              ) headers;
+	      if !verbose then
+                List.iter (fun (name, value) ->
+                  lprintf "[%s]=[%s]\n" name value;
+                ) headers;
               
               let url = if String.length url > 0 && url.[0] <> '/' then
                   url
@@ -319,15 +320,16 @@ headers;
                 ) headers
                 
           end
-	else if !verbose then lprintf "Http_client: more than 10 redirections, aborting."
+        else lprintf "Http_client: more than 10 redirections, aborting."
           
     | 404 ->
-        if !verbose then lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
+        lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
           
     | _ ->
-        if !verbose then lprintf "Http_client: bad reply %d\n" ans_code;
+        lprintf "Http_client: bad reply %d for: %s\n"
+          ans_code (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
 

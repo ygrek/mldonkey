@@ -231,7 +231,7 @@ let search_info_mp3 filename =
   try
     let tag = Mp3tag.Id3v1.read filename in
     let info = Mp3tag.info filename in
-    lprintf "MP3 INFO FOUND\n"; 
+    (* lprintf "MP3 INFO FOUND\n"; *)
     raise (FormatFound (MP3 (tag, info)))
   with
   | FormatFound _ as e -> raise e

@@ -828,8 +828,8 @@ class box_downloads box_locs wl_status () =
       f.file_names <- f_new.file_names ;
       f.file_size <- f_new.file_size ;
       f.file_downloaded <- f_new.file_downloaded ;
-      f.file_nlocations <- f_new.file_nlocations ;
-      f.file_nclients <- f_new.file_nclients ;
+      f.file_all_sources <- f_new.file_all_sources ;
+      f.file_active_sources <- f_new.file_active_sources ;
       f.file_state <- f_new.file_state ;
       let must_redraw = 
         (f.file_chunks <> f_new.file_chunks) || 

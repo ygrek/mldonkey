@@ -63,7 +63,11 @@ let next_redirector_access = ref 0
   
 let connect () =
   if !next_redirector_access < last_time () then begin
-      next_redirector_access := last_time () + 3600;
+      (* We should only contact the redirectors
+         if we don't have enough hosts.
+         Changed it to once every day,
+         so we don't hurt the network. *)
+      next_redirector_access := last_time () + (3600*24);
       List.iter (fun url ->
           let module H = Http_client in
           let url = Printf.sprintf "%s?get=1&hostfile=1&net=gnutella2&client=MLDK&version=%s"
@@ -75,11 +79,13 @@ let connect () =
               H.req_user_agent = 
               Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
             } in
-          lprintf "Connecting G22 redirector\n";
+          if !verbose then
+            lprintf "Connecting G2 redirector\n";
           H.wget r g2_parse_redirector_page    
       ) !!redirectors;
     end else begin
-      lprintf "redirector recontacted in %d seconds \n"
-        (!next_redirector_access - last_time ())
+      if !verbose then
+        lprintf "redirector recontacted in %d seconds \n"
+          (!next_redirector_access - last_time ())
     end
     

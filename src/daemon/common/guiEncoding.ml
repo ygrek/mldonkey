@@ -71,7 +71,9 @@ let buf_array buf f list =
 (* this else block already destroys backwards compatibility *)
 (* if len <= 0xfffff, how would the gui know what to do when len == 0xffff? *)
 
-let buf_string buf s =
+let buf_string charset buf s =
+  (* charset conversion could generate longer strings *)
+  let s = charset s in
   let len = String.length s in
   if len < 0xffff then begin
       buf_int16 buf len;
@@ -82,19 +84,22 @@ let buf_string buf s =
       Buffer.add_string buf s
     end 
 
-let buf_uid buf uid =
-  buf_string buf (Uid.to_string uid)
+let buf_string_bin buf s =
+  buf_string ( fun s -> s ) buf s 
+    
+let buf_uid charset buf uid =
+  buf_string charset buf (Uid.to_string uid)
 
-let buf_float buf f =
+let buf_float charset buf f =
   let i = int_of_float f in
-  buf_string buf (Printf.sprintf "%d.%d" i (int_of_float ((f -. float_of_int i) *. 100.)))
+  buf_string charset buf (Printf.sprintf "%d.%d" i (int_of_float ((f -. float_of_int i) *. 100.)))
 
-let buf_float_date proto buf date =
+let buf_float_date proto charset buf date =
 (*  lprintf "buf_float_date(%d): %d\n" proto date; *)
   if proto > 23 then
     buf_int buf (last_time () - date)
   else
-    buf_string buf (Printf.sprintf "%.0f" (BasicSocket.date_of_int date))
+    buf_string charset buf (Printf.sprintf "%.0f" (BasicSocket.date_of_int date))
 
 let buf_int_date proto buf date =
   if proto > 23 then
@@ -114,69 +119,69 @@ let buf_int64_28 proto buf i =
   else
     buf_int64_32 buf i
   
-let rec buf_query buf q =
+let rec buf_query charset buf q =
   match q with
     Q_AND list ->
       buf_int8 buf 0;
-      buf_list buf buf_query  list
+      buf_list buf (buf_query charset) list
   | Q_OR list ->
       buf_int8 buf 1;
-      buf_list buf buf_query  list
+      buf_list buf (buf_query charset) list
   | Q_ANDNOT (q1,q2) ->
       buf_int8 buf 2;
-      buf_query buf q1;
-      buf_query buf q2
+      buf_query charset buf q1;
+      buf_query charset buf q2
   | Q_MODULE (s, q) ->
       buf_int8 buf 3;
-      buf_string buf s;
-      buf_query buf q
+      buf_string charset buf s;
+      buf_query charset buf q
   | Q_KEYWORDS (s1,s2) ->
       buf_int8 buf 4;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MINSIZE (s1,s2) ->
       buf_int8 buf 5;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MAXSIZE (s1,s2) ->
       buf_int8 buf 6;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_FORMAT (s1,s2) ->
       buf_int8 buf 7;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MEDIA (s1,s2) ->
       buf_int8 buf 8;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MP3_ARTIST (s1,s2) ->
       buf_int8 buf 9;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MP3_TITLE (s1,s2) ->
       buf_int8 buf 10;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MP3_ALBUM (s1,s2) ->
       buf_int8 buf 11;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_MP3_BITRATE (s1,s2) ->
       buf_int8 buf 12;
-      buf_string buf s1;
-      buf_string buf s2
+      buf_string charset buf s1;
+      buf_string charset buf s2
   | Q_HIDDEN list ->
       buf_int8 buf 13;
-      buf_list buf buf_query  list
+      buf_list buf (buf_query charset) list
   | Q_COMBO _ -> assert false
       
-let buf_tag buf t =
-  buf_string buf (string_of_field t.tag_name);
+let buf_tag charset buf t =
+  buf_string charset buf (string_of_field t.tag_name);
   match t.tag_value with
   | Uint64 s -> buf_int8 buf 0; buf_int64_32 buf s
   | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
-  | String s -> buf_int8 buf 2; buf_string buf s
+  | String s -> buf_int8 buf 2; buf_string charset buf s
   | Addr ip -> buf_int8 buf 3; buf_ip buf ip
   | Uint16 n -> buf_int8 buf 4; buf_int16 buf n
   | Uint8 n -> buf_int8 buf 5; buf_int8 buf n
@@ -222,38 +227,38 @@ let buf_client_type buf t =
 let buf_bool buf b =
   buf_int8 buf (if b then 1 else 0)
       
-let buf_result proto buf r =
+let buf_result proto charset buf r =
   buf_int buf r.result_num;
   buf_int buf 0;
-  buf_list buf buf_string r.result_names;
+  buf_list buf (buf_string charset) r.result_names;
   if proto < 27 then
     buf_md4 buf Md4.null
   else
-    buf_list buf buf_uid r.result_uids;
+    buf_list buf (buf_uid charset) r.result_uids;
   buf_int64_2 proto buf r.result_size;
-  buf_string buf r.result_format;
-  buf_string buf r.result_type;
-  buf_list buf buf_tag r.result_tags;
-  buf_string buf r.result_comment;
+  buf_string charset buf r.result_format;
+  buf_string charset buf r.result_type;
+  buf_list buf (buf_tag charset) r.result_tags;
+  buf_string charset buf r.result_comment;
   buf_bool buf r.result_done;
   if proto > 26 then
     let date = r.result_time in
     buf_int buf (last_time () - date)
 
-let buf_user buf u =
+let buf_user charset buf u =
   buf_int buf u.user_num;
   buf_md4 buf u.user_md4;
-  buf_string buf u.user_name;
+  buf_string charset buf u.user_name;
   buf_ip buf u.user_ip;
   buf_int16 buf u.user_port;
-  buf_list buf buf_tag u.user_tags;
+  buf_list buf (buf_tag charset) u.user_tags;
   buf_int buf u.user_server
 
 let buf_room_state buf s =
   buf_int8 buf (match s with RoomOpened -> 0 | 
       RoomClosed -> 1 | RoomPaused -> 2 )
 
-let buf_file_state proto buf s =
+let buf_file_state proto charset buf s =
   match s with
   | FileDownloading ->   buf_int8 buf 0
   | FilePaused ->   buf_int8 buf 1
@@ -265,56 +270,56 @@ let buf_file_state proto buf s =
   | FileAborted s -> 
       if proto < 12 then buf_int8 buf 1 (* File Paused *)
       else
-        (buf_int8 buf 6; buf_string buf s)
+        (buf_int8 buf 6; buf_string charset buf s)
   | FileQueued -> buf_int8 buf (if proto < 14 then 0 else 7)
 
-let buf_room proto buf r =
+let buf_room proto charset buf r =
   buf_int buf r.room_num;
   buf_int buf r.room_network;
-  buf_string buf r.room_name;
+  buf_string charset buf r.room_name;
   buf_room_state buf r.room_state;
   if proto >= 3 then
     buf_int buf r.room_nusers
 
-let buf_message buf m =
+let buf_message charset buf m =
   match m with
-    ServerMessage s ->      buf_int8 buf 0; buf_string buf s 
-  | PublicMessage (n, s) -> buf_int8 buf 1; buf_int buf n; buf_string buf s
-  | PrivateMessage (n,s) -> buf_int8 buf 2; buf_int buf n; buf_string buf s
+    ServerMessage s ->      buf_int8 buf 0; buf_string charset buf s 
+  | PublicMessage (n, s) -> buf_int8 buf 1; buf_int buf n; buf_string charset buf s
+  | PrivateMessage (n,s) -> buf_int8 buf 2; buf_int buf n; buf_string charset buf s
 
-let buf_mp3 buf t =
+let buf_mp3 charset buf t =
   let module M = Mp3tag.Id3v1 in
-  buf_string buf t.M.title;
-  buf_string buf t.M.artist;
-  buf_string buf t.M.album;
-  buf_string buf t.M.year;
-  buf_string buf t.M.comment;
+  buf_string charset buf t.M.title;
+  buf_string charset buf t.M.artist;
+  buf_string charset buf t.M.album;
+  buf_string charset buf t.M.year;
+  buf_string charset buf t.M.comment;
   buf_int buf t.M.tracknum;
   buf_int buf t.M.genre
   
-let buf_format buf f =
+let buf_format charset buf f =
   match f with
   | FormatUnknown | FormatNotComputed _ -> buf_int8 buf 0
   | FormatType (s1, s2) -> buf_int8 buf 1; 
-      buf_string buf s1; buf_string buf s2
+      buf_string charset buf s1; buf_string charset buf s2
   | AVI avi -> buf_int8 buf 2;
-      buf_string buf avi.avi_codec;
+      buf_string charset buf avi.avi_codec;
       buf_int buf avi.avi_width;
       buf_int buf avi.avi_height;
       buf_int buf avi.avi_fps;
       buf_int buf avi.avi_rate;
   | MP3 (t, _) -> 
       buf_int8 buf 3;
-      buf_mp3 buf t
+      buf_mp3 charset buf t
       
-let buf_kind buf k =
+let buf_kind charset buf k =
   match k with
     Known_location (ip, port) -> 
       buf_int8 buf 0; buf_ip buf ip; buf_int16 buf port
   | Indirect_location (name, md4) ->
-      buf_int8 buf 1; buf_string buf name; buf_md4 buf md4
+      buf_int8 buf 1; buf_string charset buf name; buf_md4 buf md4
       
-let buf_partial_file proto buf f =
+let buf_partial_file proto charset buf f =
   buf_int buf f.file_num;
   if f.file_fields.Fields_file_info.file_network then begin
       buf_int8 buf 1;
@@ -322,7 +327,7 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_names then begin
       buf_int8 buf 2;
-      buf_list buf buf_string (List.map fst f.file_names);  
+      buf_list buf (buf_string charset) (List.map fst f.file_names);  
     end;      
   if f.file_fields.Fields_file_info.file_md4 then begin
       buf_int8 buf 3;
@@ -346,38 +351,38 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_state then begin
       buf_int8 buf 8;
-      buf_file_state proto buf f.file_state;  
+      buf_file_state proto charset buf f.file_state;  
     end;
   if f.file_fields.Fields_file_info.file_chunks then begin
       buf_int8 buf 9;
-      buf_string buf f.file_chunks;  
+      buf_string charset buf f.file_chunks;  
     end;
   if f.file_fields.Fields_file_info.file_availability then begin
       buf_int8 buf 10;
       buf_list buf (fun buf (network, avail) ->
           buf_int buf network;
-          buf_string buf avail
+          buf_string_bin buf avail
       ) f.file_availability
     end;
   if f.file_fields.Fields_file_info.file_download_rate then begin
       buf_int8 buf 11;
-      buf_float buf f.file_download_rate;  
+      buf_float charset buf f.file_download_rate;  
     end;
   if f.file_fields.Fields_file_info.file_chunks_age then begin
       buf_int8 buf 12;
-      buf_array buf (buf_float_date proto) f.file_chunks_age;  
+      buf_array buf (buf_float_date proto charset) f.file_chunks_age;  
     end;
   if f.file_fields.Fields_file_info.file_age then begin
       buf_int8 buf 13;
-      buf_float_date proto buf f.file_age;
+      buf_float_date proto charset buf f.file_age;
     end;
   if f.file_fields.Fields_file_info.file_format then begin
       buf_int8 buf 14;
-      buf_format buf f.file_format;
+      buf_format charset buf f.file_format;
     end;
   if f.file_fields.Fields_file_info.file_name then begin
       buf_int8 buf 15;
-      buf_string buf f.file_name;
+      buf_string charset buf f.file_name;
     end;
   if f.file_fields.Fields_file_info.file_last_seen then begin
       buf_int8 buf 16;
@@ -389,17 +394,17 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_comment then begin
       buf_int8 buf 18;
-      buf_string buf f.file_comment
+      buf_string charset buf f.file_comment
     end          
       
-let buf_file_field proto buf field =
+let buf_file_field proto charset buf field =
   match field with
   | Fields_file_info.File_network x ->
       buf_int8 buf 1;
       buf_int buf x
   | Fields_file_info.File_names x ->
       buf_int8 buf 2;
-      buf_list buf buf_string (List.map fst x);  
+      buf_list buf (buf_string charset) (List.map fst x);  
   | Fields_file_info.File_md4 x ->
       buf_int8 buf 3;
       buf_md4 buf x
@@ -417,31 +422,31 @@ let buf_file_field proto buf field =
       buf_int buf x
   | Fields_file_info.File_state x ->
       buf_int8 buf 8;
-      buf_file_state proto buf x
+      buf_file_state proto charset buf x
   | Fields_file_info.File_chunks x ->
       buf_int8 buf 9;
-      buf_string buf x
+      buf_string charset buf x
   | Fields_file_info.File_availability x ->
       buf_int8 buf 10;
       buf_list buf (fun buf (network, avail) ->
           buf_int buf network;
-          buf_string buf avail
+          buf_string_bin buf avail
       ) x
   | Fields_file_info.File_download_rate x ->
       buf_int8 buf 11;
-      buf_float buf x
+      buf_float charset buf x
   | Fields_file_info.File_chunks_age x ->
       buf_int8 buf 12;
-      buf_array buf (buf_float_date proto) x
+      buf_array buf (buf_float_date proto charset) x
   | Fields_file_info.File_age x ->
       buf_int8 buf 13;
-      buf_float_date proto buf x
+      buf_float_date proto charset buf x
   | Fields_file_info.File_format x ->
       buf_int8 buf 14;
-      buf_format buf x
+      buf_format charset buf x
   | Fields_file_info.File_name x ->
       buf_int8 buf 15;
-      buf_string buf x
+      buf_string charset buf x
   | Fields_file_info.File_last_seen x ->
       buf_int8 buf 16;
       buf_int buf (compute_last_seen x);
@@ -450,101 +455,101 @@ let buf_file_field proto buf field =
       buf_int buf x
   | Fields_file_info.File_comment x ->
       buf_int8 buf 18;
-      buf_string buf x
+      buf_string charset buf x
     
-let buf_file proto buf f =
+let buf_file proto charset buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
-  buf_list buf buf_string (List.map fst f.file_names);  
+  buf_list buf (buf_string charset) (List.map fst f.file_names);  
   buf_md4 buf f.file_md4;  
   buf_int64_2 proto buf f.file_size;  
   buf_int64_2 proto buf f.file_downloaded;  
   buf_int buf f.file_all_sources;  
   buf_int buf f.file_active_sources;  
-  buf_file_state proto buf f.file_state;  
-  buf_string buf f.file_chunks;  
+  buf_file_state proto charset buf f.file_state;  
+  buf_string charset buf f.file_chunks;  
   if proto > 17 then
     buf_list buf (fun buf (network, avail) ->
         buf_int buf network;
-        buf_string buf avail
+        buf_string_bin buf avail
     ) f.file_availability
   else
-    buf_string buf (match f.file_availability with
+    buf_string_bin buf (match f.file_availability with
         [] -> ""
       | (_, av) :: _ -> av);
-  buf_float buf f.file_download_rate;  
-  buf_array buf (buf_float_date proto) f.file_chunks_age;  
-  buf_float_date proto buf f.file_age;
+  buf_float charset buf f.file_download_rate;  
+  buf_array buf (buf_float_date proto charset) f.file_chunks_age;  
+  buf_float_date proto charset buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
-  buf_format buf f.file_format;
+  buf_format charset buf f.file_format;
   if proto >= 8 then 
-    buf_string buf f.file_name;
+    buf_string charset buf f.file_name;
   if proto >= 9 then 
     let ls = compute_last_seen f.file_last_seen in
     buf_int buf ls;
     if proto >= 12 then
       buf_int buf f.file_priority;
     if proto > 21 then
-      buf_string buf f.file_comment
+      buf_string charset buf f.file_comment
       
-let buf_addr buf addr =
+let buf_addr charset buf addr =
   match addr with
     Ip.AddrIp ip ->
       buf_int8 buf 0;
       buf_ip buf ip
   | Ip.AddrName s ->
       buf_int8 buf 1;
-      buf_string buf s
+      buf_string charset buf s
   
-let buf_server proto buf s =
+let buf_server proto charset buf s =
   buf_int buf s.server_num;
   buf_int buf s.server_network;
   if proto < 2 then 
     buf_ip buf (Ip.ip_of_addr s.server_addr)
   else
-    buf_addr buf s.server_addr;    
+    buf_addr charset buf s.server_addr;    
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
-  buf_list buf buf_tag s.server_tags;
+  buf_list buf (buf_tag charset) s.server_tags;
   buf_int64_28 proto buf s.server_nusers;
   buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
-  buf_string buf s.server_name;
-  buf_string buf s.server_description;
+  buf_string charset buf s.server_name;
+  buf_string charset buf s.server_description;
   if proto > 28 then 
     buf_bool buf s.server_preferred
   
-let buf_client proto buf c =
+let buf_client proto charset buf c =
   buf_int buf c.client_num;
   buf_int buf c.client_network;
-  buf_kind buf c.client_kind;
+  buf_kind charset buf c.client_kind;
   buf_host_state proto buf c.client_state;
   buf_client_type buf c.client_type;
-  buf_list buf buf_tag c.client_tags;
-  buf_string buf c.client_name;
+  buf_list buf (buf_tag charset) c.client_tags;
+  buf_string charset buf c.client_name;
   buf_int buf c.client_rating;
   if proto <= 18 then begin
       buf_int buf c.client_chat_port
     end else 
     begin
-      buf_string buf c.client_software;
+      buf_string charset buf c.client_software;
       buf_int64 buf c.client_downloaded;
       buf_int64 buf c.client_uploaded;
       (match c.client_upload with
-          Some s -> buf_string buf s
-        | None -> buf_string buf "");
+          Some s -> buf_string charset buf s
+        | None -> buf_string charset buf "");
       if proto >= 20 then begin
           buf_int_date proto buf c.client_connect_time
       end;
       if proto >= 21 then
-        buf_string buf c.client_emulemod;
+        buf_string charset buf c.client_emulemod;
     end
     
-let buf_network proto buf n =
+let buf_network proto charset buf n =
   buf_int buf n.network_netnum;
-  buf_string buf n.network_netname;
+  buf_string charset buf n.network_netname;
   buf_bool buf n.network_enabled;
-  buf_string buf n.network_config_filename;
+  buf_string charset buf n.network_config_filename;
   buf_int64 buf n.network_uploaded;
   buf_int64 buf n.network_downloaded;
   if proto > 17 then begin
@@ -572,19 +577,19 @@ let buf_search_type buf t =
     | RemoteSearch -> 1
     | SubscribeSearch -> 2)
     
-let buf_search buf_query proto buf s = 
+let buf_search buf_query proto charset buf s = 
   buf_int buf s.search_num;
-  buf_query buf s.search_query;
+  buf_query charset buf s.search_query;
   buf_int buf s.search_max_hits;
   if proto >= 2 then
     buf_search_type buf s.search_type;
   if proto >= 16 then
     buf_int buf s.search_network
 
-let buf_shared_info proto buf s =
+let buf_shared_info proto charset buf s =
   buf_int buf s.shared_num;
   buf_int buf s.shared_network;
-  buf_string buf s.shared_filename;
+  buf_string charset buf s.shared_filename;
   buf_int64_2 proto buf s.shared_size;
   buf_int64 buf s.shared_uploaded;
   buf_int buf s.shared_requests;
@@ -598,7 +603,7 @@ let buf_shared_info proto buf s =
 
 ****************)
   
-let rec to_gui (proto : int array) buf t =
+let rec to_gui (proto : int array) charset buf t =
   try
     let buf_opcode buf opcode =
        if !verbose_gui_decoding then
@@ -618,17 +623,17 @@ let rec to_gui (proto : int array) buf t =
         buf_opcode buf 1; 
         buf_list buf (fun buf o ->
             let module M = Options in
-            buf_string buf o.M.option_name; buf_string buf o.M.option_value
+            buf_string charset buf o.M.option_name; buf_string charset buf o.M.option_value
         ) list
     
     | DefineSearches list -> 
         buf_opcode buf 3;
         buf_list buf (fun buf (s, query) ->
-            buf_string buf s; buf_query buf query) list
+            buf_string charset buf s; buf_query charset buf query) list
     
     | Result_info r -> buf_opcode buf 4;
         let proto = proto.(4) in
-        buf_result proto buf r
+        buf_result proto charset buf r
     
     | Search_result (n1,n2, _) -> buf_opcode buf 5;
         buf_int buf n1; buf_int buf n2
@@ -641,14 +646,14 @@ let rec to_gui (proto : int array) buf t =
         buf_opcode buf (if proto < 8 then 7 else 
           if proto < 9 then 40 else 
           if proto < 14 then 43 else 52);
-        buf_file proto buf file_info
+        buf_file proto charset buf file_info
     
     | File_downloaded (n, size, rate, last_seen) -> 
         let proto = proto.(46) in
         buf_opcode buf (if proto < 9 then 8 else 46);
         buf_int buf n; 
         buf_int64_2 proto buf size; 
-        buf_float buf rate; 
+        buf_float charset buf rate; 
         if proto > 8 then
           buf_int buf (compute_last_seen last_seen)
     
@@ -670,11 +675,11 @@ let rec to_gui (proto : int array) buf t =
     | Server_info s -> 
         let proto = proto.(26) in
         buf_opcode buf (if proto < 2 then 14 else 26);
-        buf_server proto buf s
+        buf_server proto charset buf s
     
     | Client_info client_info -> buf_opcode buf 15;
         let proto = proto.(15) in
-        buf_client proto buf client_info
+        buf_client proto charset buf client_info
     
     | Client_state (int, host_state) -> buf_opcode buf 16;
         let proto = proto.(16) in
@@ -684,26 +689,26 @@ let rec to_gui (proto : int array) buf t =
         buf_int buf int; buf_client_type buf client_type
     
     | Client_file (n1, s, n2) -> buf_opcode buf 18;
-        buf_int buf n1; buf_string buf s; buf_int buf n2
+        buf_int buf n1; buf_string charset buf s; buf_int buf n2
     
     | Console string -> buf_opcode buf 19;
-        buf_string buf string
+        buf_string charset buf string
     
     | Network_info network_info -> buf_opcode buf 20;
         let proto = proto.(20) in
-        buf_network proto buf network_info
+        buf_network proto charset buf network_info
     
     | User_info user_info -> buf_opcode buf 21;
-        buf_user buf user_info
+        buf_user charset buf user_info
     
     | Room_info room_info -> 
         let proto = proto.(31) in
         
         buf_opcode buf (if proto < 3 then 22 else 31);
-        buf_room proto buf room_info
+        buf_room proto charset buf room_info
     
     | Room_message (int, room_message) -> buf_opcode buf 23;
-        buf_int buf int; buf_message buf room_message
+        buf_int buf int; buf_message charset buf room_message
     
     | Room_add_user (n1,n2) -> buf_opcode buf 24;
         buf_int buf n1; buf_int buf n2
@@ -713,11 +718,11 @@ let rec to_gui (proto : int array) buf t =
         if protocol < 3 then
 (* This message was previously send like that ... *)
           
-          to_gui proto buf (Room_message (0, PrivateMessage(num, msg)))
+          to_gui proto charset buf (Room_message (0, PrivateMessage(num, msg)))
         else begin
             buf_opcode buf 27;
             buf_int buf num;
-            buf_string buf msg
+            buf_string charset buf msg
           end
     
     | BadPassword -> buf_opcode buf 47
@@ -727,18 +732,18 @@ let rec to_gui (proto : int array) buf t =
         buf_opcode buf (if proto < 8 then 29 else 
           if proto < 9 then 41 else
           if proto < 14 then  44 else 53);
-        buf_list buf (buf_file proto) list
+        buf_list buf (buf_file proto charset) list
     
     | DownloadedFiles list ->      
         let proto = proto.(54) in
         buf_opcode buf (if proto < 8 then 30 else 
           if proto < 9 then 42 else 
           if proto < 14 then  45 else 54);
-        buf_list buf (buf_file proto) list
+        buf_list buf (buf_file proto charset) list
     
     | ConnectedServers list ->      buf_opcode buf 28;
         let proto = proto.(28) in
-        buf_list buf (buf_server proto) list
+        buf_list buf (buf_server proto charset) list
     
     | Client_stats s -> 
         let proto = proto.(49) in
@@ -778,7 +783,7 @@ let rec to_gui (proto : int array) buf t =
     | Shared_file_info  shared_info ->       
         let proto = proto.(48) in
         buf_opcode buf (if proto < 10 then 33 else 48);
-        buf_shared_info proto buf shared_info
+        buf_shared_info proto charset buf shared_info
     
     | Shared_file_upload (num, upload,requests) ->    buf_opcode buf 34;
         buf_int buf num;
@@ -790,16 +795,16 @@ let rec to_gui (proto : int array) buf t =
     | Add_section_option (section, o) -> buf_opcode buf 36;
         let proto = proto.(36) in
         let module M = Options in
-        buf_string buf section;
+        buf_string charset buf section;
         let desc = if o.M.option_desc = "" 
           then o.M.option_name else o.M.option_desc in
-        buf_string buf desc;
-        buf_string buf o.M.option_name;
+        buf_string charset buf desc;
+        buf_string charset buf o.M.option_name;
         if proto > 16 then begin
-            buf_string buf o.M.option_type;
-            buf_string buf o.M.option_help;
-            buf_string buf o.M.option_value;
-            buf_string buf o.M.option_default;
+            buf_string charset buf o.M.option_type;
+            buf_string charset buf o.M.option_help;
+            buf_string charset buf o.M.option_value;
+            buf_string charset buf o.M.option_default;
             buf_bool buf o.M.option_advanced;
           end
         else
@@ -811,16 +816,16 @@ let rec to_gui (proto : int array) buf t =
     | Add_plugin_option (section, o) -> buf_opcode buf 38;
         let proto = proto.(38) in
         let module M = Options in
-        buf_string buf section;
+        buf_string charset buf section;
         let desc = if o.M.option_desc = "" 
           then o.M.option_name else o.M.option_desc in
-        buf_string buf desc;
-        buf_string buf o.M.option_name;
+        buf_string charset buf desc;
+        buf_string charset buf o.M.option_name;
         if proto > 16 then begin
-            buf_string buf o.M.option_type;
-            buf_string buf o.M.option_help;
-            buf_string buf o.M.option_value;
-            buf_string buf o.M.option_default;
+            buf_string charset buf o.M.option_type;
+            buf_string charset buf o.M.option_help;
+            buf_string charset buf o.M.option_value;
+            buf_string charset buf o.M.option_default;
             buf_bool buf o.M.option_advanced;
           end        
         else
@@ -836,7 +841,7 @@ let rec to_gui (proto : int array) buf t =
         let proto = proto.(9) in
         if proto < 11 then raise UnsupportedGuiMessage;
         buf_opcode buf 9;
-        buf_int buf file_num; buf_int buf client_num; buf_string buf avail
+        buf_int buf file_num; buf_int buf client_num; buf_string_bin buf avail
     
     | CleanTables (clients, servers) ->      
         let proto = proto.(11) in
@@ -851,11 +856,11 @@ let rec to_gui (proto : int array) buf t =
     
     | Search s ->
         let proto = proto.(57) in
-        buf_opcode buf 57; buf_search buf_string proto buf s
+        buf_opcode buf 57; buf_search buf_string proto charset buf s
     
     | Version s ->
         let proto = proto.(58) in
-        buf_opcode buf 58; buf_string buf s
+        buf_opcode buf 58; buf_string charset buf s
     
     | GiftServerAttach _ -> assert false
     | GiftServerStats _ -> assert false
@@ -869,7 +874,7 @@ let rec to_gui (proto : int array) buf t =
 
 ****************)
 
-let rec from_gui (proto : int array) buf t =
+let rec from_gui (proto : int array) charset buf t =
   try
     let buf_opcode buf opcode =
        if !verbose_gui_decoding then
@@ -887,9 +892,9 @@ let rec from_gui (proto : int array) buf t =
     | Password (login, pass) ->
         let proto = proto.(52) in
         buf_opcode buf (if proto < 14 then 5 else 52);
-        buf_string buf pass;
+        buf_string charset buf pass;
         if proto > 13 then 
-          buf_string buf login
+          buf_string charset buf login
     
     | Search_query search -> 
         let proto = proto.(42) in
@@ -899,22 +904,22 @@ let rec from_gui (proto : int array) buf t =
           end else begin
             buf_opcode buf 42;          
           end;
-        buf_search buf_query proto buf search
+        buf_search buf_query proto charset buf search
     | Download_query (list, int, force) -> 
         let proto = proto.(50) in
         buf_opcode buf (if proto < 14 then 7 else 50);
-        buf_list buf buf_string list; 
+        buf_list buf (buf_string charset) list; 
         buf_int buf int;
         if proto > 13 then
           buf_bool buf force
     
     | Url string -> buf_opcode buf 8;
-        buf_string buf string
+        buf_string charset buf string
     | RemoveServer_query int -> buf_opcode buf 9;
         buf_int buf int
     | SaveOptions_query list -> buf_opcode buf 10;
         buf_list buf (fun buf (s1,s2) ->
-            buf_string buf s1; buf_string buf s2) list
+            buf_string charset buf s1; buf_string charset buf s2) list
     
     | RemoveDownload_query  int -> buf_opcode buf 11;
         buf_int buf int
@@ -923,7 +928,7 @@ let rec from_gui (proto : int array) buf t =
     | ServerUsers_query  int -> buf_opcode buf 12;
         buf_int buf int
     | SaveFile (int, string) -> buf_opcode buf 13;
-        buf_int buf int; buf_string buf string
+        buf_int buf int; buf_string charset buf string
     | AddClientFriend  int -> buf_opcode buf 14;
         buf_int buf int
     | AddUserFriend  int -> buf_opcode buf 15;
@@ -932,7 +937,7 @@ let rec from_gui (proto : int array) buf t =
         buf_int buf int
     | RemoveAllFriends -> buf_opcode buf 17;
     | FindFriend string -> buf_opcode buf 18;
-        buf_string buf string
+        buf_string charset buf string
     | ViewUsers  int -> buf_opcode buf 19;
         buf_int buf int
     | ConnectAll  int -> buf_opcode buf 20;
@@ -948,7 +953,7 @@ let rec from_gui (proto : int array) buf t =
     | QueryFormat  int -> buf_opcode buf 25;
         buf_int buf int
     | ModifyMp3Tags (int, tag) -> buf_opcode buf 26;
-        buf_int buf int; buf_mp3 buf tag
+        buf_int buf int; buf_mp3 charset buf tag
     | CloseSearch  (int,bool) -> 
         let proto = proto.(53) in
         if proto < 15 then begin
@@ -960,9 +965,9 @@ let rec from_gui (proto : int array) buf t =
             buf_bool buf bool;         
           end
     | SetOption (s1, s2) -> buf_opcode buf 28;
-        buf_string buf s1; buf_string buf s2
+        buf_string charset buf s1; buf_string charset buf s2
     | Command string -> buf_opcode buf 29;
-        buf_string buf string
+        buf_string charset buf string
     | Preview  int -> buf_opcode buf 30;
         buf_int buf int
     | ConnectFriend  int -> buf_opcode buf 31;
@@ -983,7 +988,7 @@ let rec from_gui (proto : int array) buf t =
         buf_int buf int
     | SendMessage (int, room_message) -> buf_opcode buf 39;
         buf_int buf int;
-        buf_message buf room_message
+        buf_message charset buf room_message
     | EnableNetwork (int, bool) -> buf_opcode buf 40;
         buf_int buf int; buf_bool buf bool
     
@@ -994,11 +999,11 @@ let rec from_gui (proto : int array) buf t =
         let protocol = proto.(43) in
         if protocol < 3 then
 (* On previous GUIs, this was done like that ! *)
-          from_gui proto buf (SendMessage (-1, PrivateMessage(c,m)))
+          from_gui proto charset buf (SendMessage (-1, PrivateMessage(c,m)))
         else begin
             buf_opcode buf 43 ;
             buf_int buf c;
-            buf_string buf m
+            buf_string charset buf m
           end
 
 (* These messages are not supported by the core with the provided 
@@ -1046,7 +1051,7 @@ protocol version. Do not send them ? *)
         ) list
     
     | RenameFile (num, new_name) ->
-        buf_opcode buf 56; buf_int buf num; buf_string buf new_name
+        buf_opcode buf 56; buf_int buf num; buf_string charset buf new_name
 
     | GetUploaders -> buf_opcode buf 57 
     | GetPending -> buf_opcode buf 58
@@ -1054,7 +1059,7 @@ protocol version. Do not send them ? *)
     | GetSearch search_id -> buf_opcode buf 60; buf_int buf search_id
     | ConnectClient c -> buf_opcode buf 61; buf_int buf c
     | DisconnectClient c -> buf_opcode buf 62; buf_int buf c
-    | NetworkMessage (n, s) -> buf_opcode buf 63; buf_int buf n; buf_string buf s
+    | NetworkMessage (n, s) -> buf_opcode buf 63; buf_int buf n; buf_string charset buf s
     | GiftAttach _ -> assert false
     | GiftStats -> assert false
         
@@ -1120,9 +1125,9 @@ let _ =
   for best_gui_version = best_gui_version downto 20 do
 (*     lprintf "best_gui_version: %d\n" best_gui_version; *)
     let proto = Array.create (to_gui_last_opcode+1) best_gui_version in
-    let to_gui = to_gui proto in
+    let to_gui = to_gui proto (fun s -> s) in
     let check_to_gui = 
-      check to_gui (GuiDecoding.to_gui proto) in
+      check to_gui (GuiDecoding.to_gui proto (fun s -> s)) in
     assert (check_to_gui (MessageFromClient (32, "Hello")));
 (*  assert (check_to_gui (File_info file_info_test));  *)
     assert (check_to_gui (DownloadFiles [file_info_test]));
@@ -1137,7 +1142,7 @@ let _ =
   assert (check_to_gui (Add_plugin_option ("section", "message", "option", StringEntry )));
 *)  
     let check_from_gui = 
-      check (from_gui proto)  (GuiDecoding.from_gui proto) in
+      check ( from_gui proto (fun s -> s) )  (GuiDecoding.from_gui proto (fun s->s)) in
     assert (check_from_gui (MessageToClient (33, "Bye")));
     assert (check_from_gui (GuiExtensions [1, true; 2, false]));
     assert (check_from_gui GetConnectedServers);

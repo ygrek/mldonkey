@@ -62,4 +62,3 @@ val use_remaining_bytes : bandwidth_controler -> int -> unit
   
 val get_latencies : bool ref -> string
 val declare_pong : Ip.t -> unit
-  

@@ -1342,9 +1342,12 @@ let udp_client_handler t p =
       ) !overnet_searches;
   
   | OvernetUnknown (opcode, s) ->
-      lprintf () "Unknown message from %s:%d\n" (Ip.to_string other_ip) other_port;
-      lprintf () "\tCode: %d\n" opcode; dump s;
-      lprintf () "\n"
+      if !verbose_hidden_errors then
+        begin
+          lprintf () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
+          lprintf () "\tCode: %d" opcode; dump s;
+          lprintf () "\n"
+        end
   
   | OvernetSearchFilesResults (md4, results) ->      
       List.iter (fun s -> 
@@ -2516,10 +2519,10 @@ let _ =
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
-    lprintf () "========= overnet_search =========\n";
+    if !verbose then lprintf () "========= overnet_search =========\n";
     let ws = keywords_of_query q in
     List.iter (fun w -> 
-        lprintf () "overnet_search for %s\n" w;
+        if !verbose then lprintf () "overnet_search for %s\n" w;
         let s = create_keyword_search w ss in
         Hashtbl.iter (fun r_md4 r_tags -> 
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;
@@ -2552,7 +2555,7 @@ let cancel_recover_file file =
       | _ -> true) !overnet_searches
 
       
- let _ =    
+let _ =    
   CommonWeb.add_web_kind web_info (fun _ filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in

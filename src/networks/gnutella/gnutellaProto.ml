@@ -506,8 +506,11 @@ let parse pkt =
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
             (UNKNOWN i,pkt.pkt_payload) }
   with e ->
-      lprintf "Exception in parse: %s\n" (Printexc2.to_string e);
-      dump pkt.pkt_payload;
+      if !verbose_hidden_errors then
+        begin
+          lprintf "Exception in parse: %s\n" (Printexc2.to_string e);
+          dump pkt.pkt_payload;
+        end;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }
 
 let write buf t =
@@ -806,14 +809,16 @@ let server_send_push s uid uri =
   server_send s p
 
 let create_qrt_table words table_size =
-  lprintf "create_qrt_table\n";
+  if !verbose then
+    lprintf "create_qrt_table\n";
   let infinity = 7 in
   let table_length = 1 lsl table_size in
   let old_array = Array.create table_length infinity in
   let array = Array.create table_length infinity in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
-      lprintf "Position %Ld\n" pos;
+      if !verbose then
+        lprintf "Position %Ld\n" pos;
       array.(Int64.to_int pos) <- 1;
   ) words;
   let string_size = table_length/2 in

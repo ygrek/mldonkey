@@ -43,17 +43,30 @@ CRYPT_LIBS_byte=-cclib -lcrypt
 
 #######################################################################
 
-ifeq ("$(BUILD_NEWGUI)", "yes")
-  ICONS_CHOICE=tux
-  GUI=NEWGUI
-  SRC_GUI=src/$(GTK)/newgui
+ifeq ("$(USE_GTK2)", "yes")
+  ICONS_CHOICE=icons/rsvg
+  SRC_GUI=src/gtk2/gui
+  GUI=GTK2GUI
+  IM_GUI=src/gtk2/im
+  CHAT_GUI=src/gtk2/chat
 else
-  SRC_GUI=src/$(GTK)/gui
-  SRC_GUI2=src/$(GTK)/gui2
-  ICONS_CHOICE=kde
-  GUI=OLDGUI
+  CONFIGWIN=src/gtk/configwin
+  GPATTERN=src/gtk/gpattern
+  OKEY=src/gtk/okey
+  IM_GUI=src/im
+  CHAT_GUI=src/gtk/chat
+  ifeq ("$(BUILD_NEWGUI)", "yes")
+    SRC_PROGRESS=src/gtk/progress
+    ICONS_CHOICE=icons/tux
+    GUI=NEWGUI
+    SRC_GUI=src/gtk/newgui
+  else
+    SRC_GUI=src/gtk/gui
+    SRC_GUI2=src/gtk/gui2
+    ICONS_CHOICE=icons/kde
+    GUI=OLDGUI
+  endif
 endif
-
 
 CDK=src/utils/cdk
 LIB=src/utils/lib
@@ -65,11 +78,6 @@ CHAT=src/daemon/chat
 COMMON=src/daemon/common
 DRIVER=src/daemon/driver
 MP3=src/utils/mp3tagui
-
-GPATTERN=src/$(GTK)/gpattern
-OKEY=src/$(GTK)/okey
-CONFIGWIN=src/$(GTK)/configwin
-SRC_PROGRESS=src/$(GTK)/progress
 
 ifeq ("$(DEVEL)", "yes")
 
@@ -95,8 +103,7 @@ SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
 SRC_ARES=src/networks/ares
 
-IM=src/$(GTK)/im
-CHAT_GUI=src/$(GTK)/chat
+IM=src/im
 
 SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES) $(EXTRA_DIRS)
@@ -121,15 +128,12 @@ endif
 
 #######################################################################
 
-
 ifeq ("$(OS_FILES2)", "mingw")
-  LIBS_flags += -cclib  -lws2_32 -cclib resfile.o
-#  LIBS_byte += -cclib -lws2_32
+  LIBS_flags += -ccopt "$(GTKCFLAGS) $(GTKLLIBS)" -cclib "$(GTKLFLAGS) -lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o"
 endif
 
 ifeq ("$(OS_FILES2)", "cygwin")
-  LIBS_flags += -cclib  -lws2_32 -cclib resfile.o
-#  LIBS_byte += -cclib -lws2_32
+  LIBS_flags += -ccopt "$(GTKCFLAGS) $(GTKLLIBS)" -cclib "$(GTKLFLAGS) -lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o"
 endif
 
 ifeq ("$(ZLIB)" , "yes")
@@ -229,7 +233,7 @@ CHAT_SRCS = $(CHAT)/chat_messages.ml\
         $(CHAT)/chat_proto.ml\
         $(CHAT)/chat_types.ml\
         $(CHAT)/chat_options.ml\
-        $(CHAT)/chat_config.ml\
+        $(CHAT)/chat_config.ml
 
 COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/guiTypes.ml \
@@ -828,14 +832,21 @@ install:: opt
              rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
          fi
 
-
 ifeq ("$(COMPILE_GUI)" , "yes")
+  ifeq ("$(USE_GTK2)", "yes")
+    SUBDIRS += $(SRC_GUI) $(SRC_GUI)/win32 $(ICONS_CHOICE) +lablgtk2
+    GTK_LIBS_byte=-I +lablgtk2 $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
+    GTK_LIBS_opt=-I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+    GTK_STATIC_LIBS_opt=-I +lablgtk2 lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+  else
+    SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) $(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
+    GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
+    GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
+    GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
+  endif
 
-SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +labl$(GTK) $(SRC_PROGRESS)
-
-GTK_LIBS_byte=-I +labl$(GTK) $(LABLGL_CMA) lablgtk.cma
-GTK_LIBS_opt=-I +labl$(GTK)  $(LABLGL_CMXA) lablgtk.cmxa
-GTK_STATIC_LIBS_opt=-I +labl$(GTK) lablgtk.cmxa
+SVG_CONVERTER_SRCS = \
+  $(CDK_SRCS) tools/svg_converter.ml
 
 CURSES_LIBS_byte=-cclib -lncurses
 CURSES_LIBS_opt=-cclib -lncurses
@@ -853,109 +864,265 @@ GPATTERN_SRCS=  $(LIB)/gAutoconf.ml $(GPATTERN)/gpattern.ml
 
 OKEY_SRCS= $(OKEY)/okey.ml
 
+GTK2GUI_ICONS= \
+  $(ICONS_CHOICE)/splash_screen.svg \
+  $(ICONS_CHOICE)/menu_networks.svg \
+  $(ICONS_CHOICE)/menu_servers.svg \
+  $(ICONS_CHOICE)/menu_downloads.svg \
+  $(ICONS_CHOICE)/menu_friends.svg \
+  $(ICONS_CHOICE)/menu_searches.svg \
+  $(ICONS_CHOICE)/menu_rooms.svg \
+  $(ICONS_CHOICE)/menu_uploads.svg \
+  $(ICONS_CHOICE)/menu_console.svg \
+  $(ICONS_CHOICE)/menu_graph.svg \
+  $(ICONS_CHOICE)/menu_im.svg \
+  $(ICONS_CHOICE)/menu_settings.svg \
+  $(ICONS_CHOICE)/menu_quit.svg \
+  $(ICONS_CHOICE)/menu_help.svg \
+  $(ICONS_CHOICE)/menu_core.svg \
+  $(ICONS_CHOICE)/menu_core_reconnect.svg \
+  $(ICONS_CHOICE)/menu_core_connectto.svg \
+  $(ICONS_CHOICE)/menu_core_scanports.svg \
+  $(ICONS_CHOICE)/menu_core_disconnect.svg \
+  $(ICONS_CHOICE)/menu_core_kill.svg \
+  $(ICONS_CHOICE)/menu_search_album.svg \
+  $(ICONS_CHOICE)/menu_search_movie.svg \
+  $(ICONS_CHOICE)/menu_search_mp3.svg \
+  $(ICONS_CHOICE)/menu_search_complex.svg \
+  $(ICONS_CHOICE)/menu_search_freedb.svg \
+  $(ICONS_CHOICE)/menu_search_imdb.svg \
+  $(ICONS_CHOICE)/menu_mlchat.svg \
+  $(ICONS_CHOICE)/menu_interfaces.svg \
+  $(ICONS_CHOICE)/menu_tools.svg \
+  $(ICONS_CHOICE)/menu_others.svg \
+  $(ICONS_CHOICE)/net_bittorrent.svg \
+  $(ICONS_CHOICE)/net_dc.svg \
+  $(ICONS_CHOICE)/net_ed2k.svg \
+  $(ICONS_CHOICE)/net_fasttrack.svg \
+  $(ICONS_CHOICE)/net_filetp.svg \
+  $(ICONS_CHOICE)/net_gnutella1.svg \
+  $(ICONS_CHOICE)/net_gnutella2.svg \
+  $(ICONS_CHOICE)/net_napster.svg \
+  $(ICONS_CHOICE)/net_soulseek.svg \
+  $(ICONS_CHOICE)/net_multinet.svg \
+  $(ICONS_CHOICE)/net_globalshare.svg \
+  $(ICONS_CHOICE)/net_supernode.svg \
+  $(ICONS_CHOICE)/stock_shared_directory.svg \
+  $(ICONS_CHOICE)/stock_directory.svg \
+  $(ICONS_CHOICE)/stock_directory_open.svg \
+  $(ICONS_CHOICE)/stock_color.svg \
+  $(ICONS_CHOICE)/stock_font.svg \
+  $(ICONS_CHOICE)/stock_password.svg \
+  $(ICONS_CHOICE)/stock_download_directory.svg \
+  $(ICONS_CHOICE)/stock_pending_slots.svg \
+  $(ICONS_CHOICE)/stock_close.svg \
+  $(ICONS_CHOICE)/stock_close_overlay.svg \
+  $(ICONS_CHOICE)/stock_stop.svg \
+  $(ICONS_CHOICE)/stock_ok.svg \
+  $(ICONS_CHOICE)/stock_all_servers.svg \
+  $(ICONS_CHOICE)/stock_add_server.svg \
+  $(ICONS_CHOICE)/stock_subscribe_search.svg \
+  $(ICONS_CHOICE)/stock_submit_search.svg \
+  $(ICONS_CHOICE)/stock_extend_search.svg \
+  $(ICONS_CHOICE)/stock_info.svg \
+  $(ICONS_CHOICE)/stock_local_search.svg \
+  $(ICONS_CHOICE)/stock_warning.svg \
+  $(ICONS_CHOICE)/type_source_contact.svg \
+  $(ICONS_CHOICE)/type_source_friend.svg \
+  $(ICONS_CHOICE)/type_source_normal.svg \
+  $(ICONS_CHOICE)/state_server_conh.svg \
+  $(ICONS_CHOICE)/state_server_conl.svg \
+  $(ICONS_CHOICE)/state_server_init.svg \
+  $(ICONS_CHOICE)/state_server_notcon.svg \
+  $(ICONS_CHOICE)/state_server_unknown.svg \
+  $(ICONS_CHOICE)/state_source_fileslisted.svg \
+  $(ICONS_CHOICE)/state_down.svg \
+  $(ICONS_CHOICE)/state_up.svg \
+  $(ICONS_CHOICE)/state_updown.svg \
+  $(ICONS_CHOICE)/state_notupdown.svg \
+  $(ICONS_CHOICE)/mime_unknown.svg \
+  $(ICONS_CHOICE)/mime_images.svg \
+  $(ICONS_CHOICE)/mime_binary.svg \
+  $(ICONS_CHOICE)/mime_cdimage.svg \
+  $(ICONS_CHOICE)/mime_debian.svg \
+  $(ICONS_CHOICE)/mime_html.svg \
+  $(ICONS_CHOICE)/mime_java.svg \
+  $(ICONS_CHOICE)/mime_pdf.svg \
+  $(ICONS_CHOICE)/mime_postscript.svg \
+  $(ICONS_CHOICE)/mime_real.svg \
+  $(ICONS_CHOICE)/mime_recycled.svg \
+  $(ICONS_CHOICE)/mime_rpm.svg \
+  $(ICONS_CHOICE)/mime_shellscript.svg \
+  $(ICONS_CHOICE)/mime_soffice.svg \
+  $(ICONS_CHOICE)/mime_sound.svg \
+  $(ICONS_CHOICE)/mime_source.svg \
+  $(ICONS_CHOICE)/mime_spreadsheet.svg \
+  $(ICONS_CHOICE)/mime_tex.svg \
+  $(ICONS_CHOICE)/mime_text.svg \
+  $(ICONS_CHOICE)/mime_tgz.svg \
+  $(ICONS_CHOICE)/mime_video.svg \
+  $(ICONS_CHOICE)/mime_wordprocessing.svg \
+  $(ICONS_CHOICE)/emoticon_storm.svg \
+  $(ICONS_CHOICE)/emoticon_airplane.svg \
+  $(ICONS_CHOICE)/emoticon_angel.svg \
+  $(ICONS_CHOICE)/emoticon_arrogant.svg \
+  $(ICONS_CHOICE)/emoticon_asl.svg \
+  $(ICONS_CHOICE)/emoticon_bad.svg \
+  $(ICONS_CHOICE)/emoticon_baringteeth.svg \
+  $(ICONS_CHOICE)/emoticon_bat.svg \
+  $(ICONS_CHOICE)/emoticon_beer.svg \
+  $(ICONS_CHOICE)/emoticon_bowl.svg \
+  $(ICONS_CHOICE)/emoticon_boy.svg \
+  $(ICONS_CHOICE)/emoticon_cake.svg \
+  $(ICONS_CHOICE)/emoticon_cat.svg \
+  $(ICONS_CHOICE)/emoticon_cigaret.svg \
+  $(ICONS_CHOICE)/emoticon_clock.svg \
+  $(ICONS_CHOICE)/emoticon_confused.svg \
+  $(ICONS_CHOICE)/emoticon_cry.svg \
+  $(ICONS_CHOICE)/emoticon_cup.svg \
+  $(ICONS_CHOICE)/emoticon_devil.svg \
+  $(ICONS_CHOICE)/emoticon_dog.svg \
+  $(ICONS_CHOICE)/emoticon_dude_hug.svg \
+  $(ICONS_CHOICE)/emoticon_dunno.svg \
+  $(ICONS_CHOICE)/emoticon_embarrassed.svg \
+  $(ICONS_CHOICE)/emoticon_envelope.svg \
+  $(ICONS_CHOICE)/emoticon_eyeroll.svg \
+  $(ICONS_CHOICE)/emoticon_film.svg \
+  $(ICONS_CHOICE)/emoticon_girl.svg \
+  $(ICONS_CHOICE)/emoticon_girl_hug.svg \
+  $(ICONS_CHOICE)/emoticon_ip.svg \
+  $(ICONS_CHOICE)/emoticon_kiss.svg \
+  $(ICONS_CHOICE)/emoticon_lightning.svg \
+  $(ICONS_CHOICE)/emoticon_love.svg \
+  $(ICONS_CHOICE)/emoticon_megasmile.svg \
+  $(ICONS_CHOICE)/emoticon_moon.svg \
+  $(ICONS_CHOICE)/emoticon_nerd.svg \
+  $(ICONS_CHOICE)/emoticon_omg.svg \
+  $(ICONS_CHOICE)/emoticon_party.svg \
+  $(ICONS_CHOICE)/emoticon_pizza.svg \
+  $(ICONS_CHOICE)/emoticon_plate.svg \
+  $(ICONS_CHOICE)/emoticon_present.svg \
+  $(ICONS_CHOICE)/emoticon_rainbow.svg \
+  $(ICONS_CHOICE)/emoticon_sad.svg \
+  $(ICONS_CHOICE)/emoticon_sarcastic.svg \
+  $(ICONS_CHOICE)/emoticon_secret.svg \
+  $(ICONS_CHOICE)/emoticon_shade.svg \
+  $(ICONS_CHOICE)/emoticon_sick.svg \
+  $(ICONS_CHOICE)/emoticon_sleepy.svg \
+  $(ICONS_CHOICE)/emoticon_sorry.svg \
+  $(ICONS_CHOICE)/emoticon_sshh.svg \
+  $(ICONS_CHOICE)/emoticon_sun.svg \
+  $(ICONS_CHOICE)/emoticon_teeth.svg \
+  $(ICONS_CHOICE)/emoticon_thumbs_down.svg \
+  $(ICONS_CHOICE)/emoticon_thumbs_up.svg \
+  $(ICONS_CHOICE)/emoticon_tongue.svg \
+  $(ICONS_CHOICE)/emoticon_ugly.svg \
+  $(ICONS_CHOICE)/emoticon_ulove.svg \
+  $(ICONS_CHOICE)/emoticon_wink.svg
+
 NEWGUI_ICONS= \
-  icons/$(ICONS_CHOICE)/extend_search.xpm \
-  icons/$(ICONS_CHOICE)/local_search.xpm \
-  icons/$(ICONS_CHOICE)/trash.xpm \
-  icons/$(ICONS_CHOICE)/subscribe_search.xpm \
-  icons/$(ICONS_CHOICE)/submit_search.xpm \
-  icons/$(ICONS_CHOICE)/close_search.xpm \
-  icons/$(ICONS_CHOICE)/stop_search.xpm \
-  icons/$(ICONS_CHOICE)/nbk_networks_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_networks_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_servers_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_servers_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_downloads_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_downloads_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_friends_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_friends_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_search_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_search_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_rooms_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_rooms_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_uploads_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_uploads_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_console_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_console_menu.xpm \
-  icons/$(ICONS_CHOICE)/nbk_graphs_on.xpm \
-  icons/$(ICONS_CHOICE)/nbk_graphs_menu.xpm \
-  icons/$(ICONS_CHOICE)/about.xpm \
-  icons/$(ICONS_CHOICE)/im.xpm \
-  icons/$(ICONS_CHOICE)/settings.xpm \
-  icons/$(ICONS_CHOICE)/exit.xpm \
-  icons/$(ICONS_CHOICE)/gui.xpm \
-  icons/$(ICONS_CHOICE)/kill_core.xpm \
-  icons/$(ICONS_CHOICE)/splash_screen.xpm \
-  icons/$(ICONS_CHOICE)/album_search.xpm \
-  icons/$(ICONS_CHOICE)/movie_search.xpm \
-  icons/$(ICONS_CHOICE)/mp3_search.xpm \
-  icons/$(ICONS_CHOICE)/complex_search.xpm \
-  icons/$(ICONS_CHOICE)/sharereactor_search.xpm \
-  icons/$(ICONS_CHOICE)/jigle_search.xpm \
-  icons/$(ICONS_CHOICE)/freedb_search.xpm \
-  icons/$(ICONS_CHOICE)/imdb_search.xpm \
-  icons/$(ICONS_CHOICE)/bt.xpm \
-  icons/$(ICONS_CHOICE)/dc.xpm \
-  icons/$(ICONS_CHOICE)/ed2k.xpm \
-  icons/$(ICONS_CHOICE)/fasttrack.xpm \
-  icons/$(ICONS_CHOICE)/gnutella.xpm \
-  icons/$(ICONS_CHOICE)/napster.xpm \
-  icons/$(ICONS_CHOICE)/slsk.xpm \
-  icons/$(ICONS_CHOICE)/unknown.xpm \
-  icons/$(ICONS_CHOICE)/downloading.xpm \
-  icons/$(ICONS_CHOICE)/connect_y.xpm \
-  icons/$(ICONS_CHOICE)/connect_m.xpm \
-  icons/$(ICONS_CHOICE)/connect_n.xpm \
-  icons/$(ICONS_CHOICE)/removedhost.xpm \
-  icons/$(ICONS_CHOICE)/blacklistedhost.xpm \
-  icons/$(ICONS_CHOICE)/files_listed.xpm \
-  icons/$(ICONS_CHOICE)/server_c_high.xpm \
-  icons/$(ICONS_CHOICE)/server_c_low.xpm \
-  icons/$(ICONS_CHOICE)/server_ci.xpm \
-  icons/$(ICONS_CHOICE)/server_nc.xpm \
-  icons/$(ICONS_CHOICE)/toggle_display_all_servers.xpm \
-  icons/$(ICONS_CHOICE)/view_pending_slots.xpm \
-  icons/$(ICONS_CHOICE)/add_server.xpm \
-  icons/$(ICONS_CHOICE)/add_shared_directory.xpm \
-  icons/$(ICONS_CHOICE)/download_directory.xpm \
-  icons/$(ICONS_CHOICE)/friend_user.xpm \
-  icons/$(ICONS_CHOICE)/contact_user.xpm \
-  icons/$(ICONS_CHOICE)/normal_user.xpm \
-  icons/$(ICONS_CHOICE)/priority_0.xpm \
-  icons/$(ICONS_CHOICE)/priority_1.xpm \
-  icons/$(ICONS_CHOICE)/priority_2.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_binary.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_cdimage.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_debian.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_html.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_images.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_java.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_pdf.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_postscript.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_real.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_recycled.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_rpm.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_shellscript.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_soffice.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_sound.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_source.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_spreadsheet.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_tex.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_text.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_tgz.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_video.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_wordprocessing.xpm \
-  icons/$(ICONS_CHOICE)/mimetype_unknown.xpm \
-  icons/$(ICONS_CHOICE)/tree_closed.xpm \
-  icons/$(ICONS_CHOICE)/tree_opened.xpm \
-  icons/$(ICONS_CHOICE)/bt_net_on.xpm \
-  icons/$(ICONS_CHOICE)/dc_net_on.xpm \
-  icons/$(ICONS_CHOICE)/ed2k_net_on.xpm \
-  icons/$(ICONS_CHOICE)/ftt_net_on.xpm \
-  icons/$(ICONS_CHOICE)/gnut_net_on.xpm \
-  icons/$(ICONS_CHOICE)/nap_net_on.xpm \
-  icons/$(ICONS_CHOICE)/slsk_net_on.xpm \
-  icons/$(ICONS_CHOICE)/mld_tux_on.xpm
+  $(ICONS_CHOICE)/extend_search.xpm \
+  $(ICONS_CHOICE)/local_search.xpm \
+  $(ICONS_CHOICE)/trash.xpm \
+  $(ICONS_CHOICE)/subscribe_search.xpm \
+  $(ICONS_CHOICE)/submit_search.xpm \
+  $(ICONS_CHOICE)/close_search.xpm \
+  $(ICONS_CHOICE)/stop_search.xpm \
+  $(ICONS_CHOICE)/nbk_networks_on.xpm \
+  $(ICONS_CHOICE)/nbk_networks_menu.xpm \
+  $(ICONS_CHOICE)/nbk_servers_on.xpm \
+  $(ICONS_CHOICE)/nbk_servers_menu.xpm \
+  $(ICONS_CHOICE)/nbk_downloads_on.xpm \
+  $(ICONS_CHOICE)/nbk_downloads_menu.xpm \
+  $(ICONS_CHOICE)/nbk_friends_on.xpm \
+  $(ICONS_CHOICE)/nbk_friends_menu.xpm \
+  $(ICONS_CHOICE)/nbk_search_on.xpm \
+  $(ICONS_CHOICE)/nbk_search_menu.xpm \
+  $(ICONS_CHOICE)/nbk_rooms_on.xpm \
+  $(ICONS_CHOICE)/nbk_rooms_menu.xpm \
+  $(ICONS_CHOICE)/nbk_uploads_on.xpm \
+  $(ICONS_CHOICE)/nbk_uploads_menu.xpm \
+  $(ICONS_CHOICE)/nbk_console_on.xpm \
+  $(ICONS_CHOICE)/nbk_console_menu.xpm \
+  $(ICONS_CHOICE)/nbk_graphs_on.xpm \
+  $(ICONS_CHOICE)/nbk_graphs_menu.xpm \
+  $(ICONS_CHOICE)/about.xpm \
+  $(ICONS_CHOICE)/im.xpm \
+  $(ICONS_CHOICE)/settings.xpm \
+  $(ICONS_CHOICE)/exit.xpm \
+  $(ICONS_CHOICE)/gui.xpm \
+  $(ICONS_CHOICE)/kill_core.xpm \
+  $(ICONS_CHOICE)/splash_screen.xpm \
+  $(ICONS_CHOICE)/album_search.xpm \
+  $(ICONS_CHOICE)/movie_search.xpm \
+  $(ICONS_CHOICE)/mp3_search.xpm \
+  $(ICONS_CHOICE)/complex_search.xpm \
+  $(ICONS_CHOICE)/sharereactor_search.xpm \
+  $(ICONS_CHOICE)/jigle_search.xpm \
+  $(ICONS_CHOICE)/freedb_search.xpm \
+  $(ICONS_CHOICE)/imdb_search.xpm \
+  $(ICONS_CHOICE)/bt.xpm \
+  $(ICONS_CHOICE)/dc.xpm \
+  $(ICONS_CHOICE)/ed2k.xpm \
+  $(ICONS_CHOICE)/fasttrack.xpm \
+  $(ICONS_CHOICE)/gnutella.xpm \
+  $(ICONS_CHOICE)/napster.xpm \
+  $(ICONS_CHOICE)/slsk.xpm \
+  $(ICONS_CHOICE)/unknown.xpm \
+  $(ICONS_CHOICE)/downloading.xpm \
+  $(ICONS_CHOICE)/connect_y.xpm \
+  $(ICONS_CHOICE)/connect_m.xpm \
+  $(ICONS_CHOICE)/connect_n.xpm \
+  $(ICONS_CHOICE)/removedhost.xpm \
+  $(ICONS_CHOICE)/blacklistedhost.xpm \
+  $(ICONS_CHOICE)/files_listed.xpm \
+  $(ICONS_CHOICE)/server_c_high.xpm \
+  $(ICONS_CHOICE)/server_c_low.xpm \
+  $(ICONS_CHOICE)/server_ci.xpm \
+  $(ICONS_CHOICE)/server_nc.xpm \
+  $(ICONS_CHOICE)/toggle_display_all_servers.xpm \
+  $(ICONS_CHOICE)/view_pending_slots.xpm \
+  $(ICONS_CHOICE)/add_server.xpm \
+  $(ICONS_CHOICE)/add_shared_directory.xpm \
+  $(ICONS_CHOICE)/download_directory.xpm \
+  $(ICONS_CHOICE)/friend_user.xpm \
+  $(ICONS_CHOICE)/contact_user.xpm \
+  $(ICONS_CHOICE)/normal_user.xpm \
+  $(ICONS_CHOICE)/priority_0.xpm \
+  $(ICONS_CHOICE)/priority_1.xpm \
+  $(ICONS_CHOICE)/priority_2.xpm \
+  $(ICONS_CHOICE)/mimetype_binary.xpm \
+  $(ICONS_CHOICE)/mimetype_cdimage.xpm \
+  $(ICONS_CHOICE)/mimetype_debian.xpm \
+  $(ICONS_CHOICE)/mimetype_html.xpm \
+  $(ICONS_CHOICE)/mimetype_images.xpm \
+  $(ICONS_CHOICE)/mimetype_java.xpm \
+  $(ICONS_CHOICE)/mimetype_pdf.xpm \
+  $(ICONS_CHOICE)/mimetype_postscript.xpm \
+  $(ICONS_CHOICE)/mimetype_real.xpm \
+  $(ICONS_CHOICE)/mimetype_recycled.xpm \
+  $(ICONS_CHOICE)/mimetype_rpm.xpm \
+  $(ICONS_CHOICE)/mimetype_shellscript.xpm \
+  $(ICONS_CHOICE)/mimetype_soffice.xpm \
+  $(ICONS_CHOICE)/mimetype_sound.xpm \
+  $(ICONS_CHOICE)/mimetype_source.xpm \
+  $(ICONS_CHOICE)/mimetype_spreadsheet.xpm \
+  $(ICONS_CHOICE)/mimetype_tex.xpm \
+  $(ICONS_CHOICE)/mimetype_text.xpm \
+  $(ICONS_CHOICE)/mimetype_tgz.xpm \
+  $(ICONS_CHOICE)/mimetype_video.xpm \
+  $(ICONS_CHOICE)/mimetype_wordprocessing.xpm \
+  $(ICONS_CHOICE)/mimetype_unknown.xpm \
+  $(ICONS_CHOICE)/tree_closed.xpm \
+  $(ICONS_CHOICE)/tree_opened.xpm \
+  $(ICONS_CHOICE)/bt_net_on.xpm \
+  $(ICONS_CHOICE)/dc_net_on.xpm \
+  $(ICONS_CHOICE)/ed2k_net_on.xpm \
+  $(ICONS_CHOICE)/ftt_net_on.xpm \
+  $(ICONS_CHOICE)/gnut_net_on.xpm \
+  $(ICONS_CHOICE)/nap_net_on.xpm \
+  $(ICONS_CHOICE)/slsk_net_on.xpm \
+  $(ICONS_CHOICE)/mld_tux_on.xpm
 
 NEWGUI_SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
@@ -969,20 +1136,20 @@ NEWGUI_SMALL_ICONS= \
   icons/small/view_users_small.xpm
 
 OLDGUI_ICONS= \
-  icons/$(ICONS_CHOICE)/add_to_friends.xpm \
-  icons/$(ICONS_CHOICE)/cancel.xpm icons/$(ICONS_CHOICE)/connect_more.xpm \
-  icons/$(ICONS_CHOICE)/connect.xpm icons/$(ICONS_CHOICE)/disconnect.xpm \
-  icons/$(ICONS_CHOICE)/download.xpm \
-  icons/$(ICONS_CHOICE)/edit_mp3.xpm icons/$(ICONS_CHOICE)/extend_search.xpm \
-  icons/$(ICONS_CHOICE)/get_format.xpm \
-  icons/$(ICONS_CHOICE)/local_search.xpm icons/$(ICONS_CHOICE)/preview.xpm \
-  icons/$(ICONS_CHOICE)/refres.xpm \
-  icons/$(ICONS_CHOICE)/save_all.xpm icons/$(ICONS_CHOICE)/save_as.xpm \
-  icons/$(ICONS_CHOICE)/save.xpm \
-  icons/$(ICONS_CHOICE)/trash.xpm icons/$(ICONS_CHOICE)/verify_chunks.xpm \
-  icons/$(ICONS_CHOICE)/view_users.xpm \
-  icons/$(ICONS_CHOICE)/pause_resume.xpm \
-  icons/$(ICONS_CHOICE)/remove_all_friends.xpm 
+  $(ICONS_CHOICE)/add_to_friends.xpm \
+  $(ICONS_CHOICE)/cancel.xpm $(ICONS_CHOICE)/connect_more.xpm \
+  $(ICONS_CHOICE)/connect.xpm $(ICONS_CHOICE)/disconnect.xpm \
+  $(ICONS_CHOICE)/download.xpm \
+  $(ICONS_CHOICE)/edit_mp3.xpm $(ICONS_CHOICE)/extend_search.xpm \
+  $(ICONS_CHOICE)/get_format.xpm \
+  $(ICONS_CHOICE)/local_search.xpm $(ICONS_CHOICE)/preview.xpm \
+  $(ICONS_CHOICE)/refres.xpm \
+  $(ICONS_CHOICE)/save_all.xpm $(ICONS_CHOICE)/save_as.xpm \
+  $(ICONS_CHOICE)/save.xpm \
+  $(ICONS_CHOICE)/trash.xpm $(ICONS_CHOICE)/verify_chunks.xpm \
+  $(ICONS_CHOICE)/view_users.xpm \
+  $(ICONS_CHOICE)/pause_resume.xpm \
+  $(ICONS_CHOICE)/remove_all_friends.xpm 
 
 OLDGUI_SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
@@ -998,16 +1165,55 @@ OLDGUI_SMALL_ICONS= \
 ICONS= $($(GUI)_ICONS)
 SMALL_ICONS= $($(GUI)_SMALL_ICONS)
 
-ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
-ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
+ifeq ("$(USE_GTK2)", "yes")
+  ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
+  ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_svg.ml)
+else
+  ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
+  ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
+endif
 
 $(ALL_ICONS_SRCS): $(ALL_ICONS)
 
-GUI_BASE_SRCS= \
-  $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
-  $(SRC_GUI)/gui_columns.ml \
-  $(SRC_GUI)/gui_keys.ml \
-  $(SRC_GUI)/gui_options.ml
+ifeq ("$(USE_GTK2)", "yes")
+  GUI_BASE_SRCS= \
+    $(SRC_GUI)/guiUtf8.ml      $(SRC_GUI)/guiMessages.ml \
+    $(SRC_GUI)/guiColumns.ml   $(SRC_GUI)/guiOptions.ml \
+    $(SRC_GUI)/guiArt.ml       $(SRC_GUI)/guiTools.ml \
+    $(SRC_GUI)/guiTypes2.ml    $(SRC_GUI)/guiTemplates.ml \
+    $(SRC_GUI)/configWindow.ml
+else
+  GUI_BASE_SRCS= \
+    $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
+    $(SRC_GUI)/gui_columns.ml    $(SRC_GUI)/gui_keys.ml \
+    $(SRC_GUI)/gui_options.ml
+endif
+
+GTK2GUI_SRCS=  \
+  $(SRC_GUI)/guiGlobal.ml \
+  $(SRC_GUI)/guiMisc.ml \
+  $(SRC_GUI)/guiCom.ml \
+  $(SRC_GUI)/guiStatusBar.ml \
+  $(SRC_GUI)/guiUsers.ml \
+  $(SRC_GUI)/guiResults.ml \
+  $(SRC_GUI)/guiInfoWindow.ml \
+  $(SRC_GUI)/guiDownloads.ml \
+  $(SRC_GUI)/guiServers.ml \
+  $(SRC_GUI)/guiQueries.ml \
+  $(SRC_GUI)/guiRooms.ml \
+  $(SRC_GUI)/guiConsole.ml \
+  $(SRC_GUI)/guiFriends.ml \
+  $(SRC_GUI)/guiUploads.ml \
+  $(SRC_GUI)/guiNetworks.ml \
+  $(IM_GUI_CORE) \
+  $(SRC_GUI)/guiConfig.ml \
+  $(SRC_GUI)/guiWindow.ml
+
+ifeq ("$(OS_FILES2)", "mingw")
+  GTK2GUI_SRCS += $(SRC_GUI)/win32/systraystubs.c $(SRC_GUI)/win32/systray.ml
+endif
+
+GTK2GUI_SRCS += $(SRC_GUI)/guiMain.ml
 
 NEWGUI_SRCS=  \
   $(SRC_PROGRESS)/gui_progress.ml \
@@ -1071,15 +1277,30 @@ MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
 MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
-MLDONKEY_IM_SRCS= \
-   $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
-STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
-STARTER_CMXA=cdk.cmxa
+ifeq ("$(USE_GTK2)", "yes")
+  MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/guiImMain.ml  $(MAIN_SRCS)
+else
+  MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/gui_im_main.ml  $(MAIN_SRCS)
+endif
+
+ifeq ("$(USE_GTK2)", "yes")
+  STARTER_CMXA=cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+  STARTER_SRCS= $(SRC_GUI)/guiStarter.ml
+else
+  STARTER_CMXA=cdk.cmxa
+  STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
+endif
 
 INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
-INSTALLER_SRCS= \
-  $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
+
+ifeq ("$(USE_GTK2)", "yes")
+  INSTALLER_SRCS= \
+    $(SRC_GUI)/gui_installer_base.ml  $(SRC_GUI)/gui_installer.ml
+else
+  INSTALLER_SRCS= \
+    $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
+endif
 
 MLPROGRESS_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 
@@ -1093,18 +1314,28 @@ MLPROGRESS_SRCS = \
 
 #######################################################################
 
-
 CHAT_EXE_SRCS= \
-        $(CHAT)/chat_data.ml\
-        $(CHAT)/chat_icons.ml\
-        $(CHAT_GUI)/chat_gui_base.ml\
-        $(CHAT_GUI)/chat_gui.ml\
-        $(CHAT)/chat_app.ml \
-        $(CHAT)/mlchat.ml \
-        $(CHAT)/chat_args.ml \
-	$(CHAT)/chat_main.ml
+  $(CHAT)/chat_data.ml \
+  $(CHAT)/chat_args.ml
 
-MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
+ifeq ("$(USE_GTK2)", "yes")
+  CHAT_EXE_SRCS += $(CHAT_GUI)/chat_art.ml $(CHAT_GUI)/chat_configwin.ml 
+endif
+
+CHAT_EXE_SRCS += \
+  $(CHAT)/chat_icons.ml \
+  $(CHAT_GUI)/chat_gui_base.ml \
+  $(CHAT_GUI)/chat_gui.ml \
+  $(CHAT_GUI)/chat_app.ml \
+  $(CHAT)/mlchat.ml \
+  $(CHAT_GUI)/chat_main.ml
+
+ifeq ("$(USE_GTK2)", "yes")
+  MLCHAT_CMXA= cdk.cmxa gmisc.cmxa icons.cmxa
+else
+  MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
+endif
+
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
@@ -1118,9 +1349,8 @@ TARGETS +=  mlnet+gui$(EXE)
 
 #### IM stuff is now automatically included in the GUI
 
+SUBDIRS += $(IM) $(IM)/yahoo $(IM)/irc $(IM_GUI)
 
-SUBDIRS += $(IM) $(IM)/yahoo  $(IM)/irc
-  
 IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
    $(IM)/imProtocol.ml $(IM)/imIdentity.ml $(IM)/imAccount.ml \
    $(IM)/imChat.ml $(IM)/imRoom.ml \
@@ -1128,7 +1358,12 @@ IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
 
 IM_CORE +=  $(IM)/irc/irc.ml
 
-IM_GUI_CORE += $(IM)/gui_im_base.ml $(IM)/gui_im.ml
+ifeq ("$(USE_GTK2)", "yes")
+  IM_GUI_CORE += $(IM_GUI)/guiImAccounts.ml $(IM_GUI)/guiImChat.ml \
+                 $(IM_GUI)/guiImRooms.ml    $(IM_GUI)/guiIm.ml
+else
+  IM_GUI_CORE += $(IM_GUI)/gui_im_base.ml $(IM_GUI)/gui_im.ml
+endif
 
 TARGETS += mlim
 
@@ -1741,8 +1976,11 @@ mlares+gui_SRCS= $(MAIN_SRCS)
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
 libclient_SRCS= $(COMMON_CLIENT_SRCS)
-libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS)
+ifeq ("$(USE_GTK2)", "yes")
+  libgmisc_SRCS=
+else
+  libgmisc_SRCS= $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS)
+endif
 libguibase_SRCS= $(IM_CORE) $(GUI_BASE_SRCS)
 libgui_SRCS=   $(GUI_SRCS)
 libgui3_SRCS=   $(GUI3_SRCS)
@@ -2120,8 +2358,8 @@ mlgui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS)  $(MLDONKEYGUI_CMXAS)
 
 
 ifneq ("$(BUILD_NEWGUI)", "yes")
-
- 
+ ifneq ("$(USE_GTK2)", "yes")
+   
 MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS)) 
 MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS)) 
 MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS)) 
@@ -2148,7 +2386,7 @@ mlgui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS)  $(MLDONKEYGUI2_CMAS)
 mlgui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS)  $(MLDONKEYGUI2_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS)
 
-
+ endif
 endif
 
 
@@ -3124,6 +3362,32 @@ testrss.static:  $(TESTRSS_OBJS) $(TESTRSS_CMXS)  $(TESTRSS_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(TESTRSS_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(TESTRSS_CMXAS) $(TESTRSS_CMXS)
 
 
+SVG_CONVERTER_ZOG := $(filter %.zog, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_MLL := $(filter %.mll, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_MLY := $(filter %.mly, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_ML4 := $(filter %.ml4, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_MLT := $(filter %.mlt, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_MLP := $(filter %.mlcpp, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_C := $(filter %.c, $(SVG_CONVERTER_SRCS)) 
+SVG_CONVERTER_CMOS=$(foreach file, $(SVG_CONVERTER_ML),   $(basename $(file)).cmo) 
+SVG_CONVERTER_CMXS=$(foreach file, $(SVG_CONVERTER_ML),   $(basename $(file)).cmx) 
+SVG_CONVERTER_OBJS=$(foreach file, $(SVG_CONVERTER_C),   $(basename $(file)).o)    
+
+SVG_CONVERTER_CMXAS := $(foreach file, $(SVG_CONVERTER_CMXA),   build/$(basename $(file)).cmxa)
+SVG_CONVERTER_CMAS=$(foreach file, $(SVG_CONVERTER_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(SVG_CONVERTER_ML4:.ml4=.ml) $(SVG_CONVERTER_MLT:.mlt=.ml) $(SVG_CONVERTER_MLP:.mlcpp=.ml) $(SVG_CONVERTER_MLL:.mll=.ml) $(SVG_CONVERTER_MLY:.mly=.ml) $(SVG_CONVERTER_MLY:.mly=.mli) $(SVG_CONVERTER_ZOG:.zog=.ml) 
+ 
+svg_converter: $(SVG_CONVERTER_OBJS) $(SVG_CONVERTER_CMXS) $(SVG_CONVERTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(SVG_CONVERTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(SVG_CONVERTER_CMXAS) $(SVG_CONVERTER_CMXS) 
+ 
+svg_converter.byte: $(SVG_CONVERTER_OBJS) $(SVG_CONVERTER_CMOS)  $(SVG_CONVERTER_CMAS)
+	$(OCAMLC) -linkall -o $@  $(SVG_CONVERTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(SVG_CONVERTER_CMAS) $(SVG_CONVERTER_CMOS) 
+ 
+svg_converter.static:  $(SVG_CONVERTER_OBJS) $(SVG_CONVERTER_CMXS)  $(SVG_CONVERTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SVG_CONVERTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(SVG_CONVERTER_CMXAS) $(SVG_CONVERTER_CMXS)
+
 
 
 #######################################################################
@@ -3146,10 +3410,10 @@ TOP_CMXAS :=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cmxa)
 TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
- 
+
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 	$(OCAMLMKTOP) -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
- 
+
 
 
 #######################################################################
@@ -3218,6 +3482,7 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui
+	rm -f svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -3230,21 +3495,17 @@ tmpclean:
 moreclean: clean tmpclean
 
 releaseclean: clean moreclean
-	rm -f config/config.cache config/config.log config/config.status
-	rm -f config/config.h config/Makefile.config
-	rm -f tools/zoggy/*.cm?
-	rm -rf patches/build
 	rm -f .depend
+	rm -rf patches/build
 	rm -f config/Makefile.config
-	rm -f config/Makefile.config.i386
-	rm -f config/Makefile.config.i486
-	rm -f config/Makefile.config.i586
-	rm -f config/Makefile.config.i686
 	rm -f config/mldonkey.rc
+	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h
 	rm -f config/confdefs.h
+	rm -rf config/autom4te.cache/
 	rm -f packages/rpm/*.spec
 	rm -f packages/windows/mlnet.nsi
+	rm -f src/daemon/common/commonDownloads.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
@@ -3255,16 +3516,20 @@ releaseclean: clean moreclean
 	rm -f icons/kde/*.ml
 	rm -f icons/mldonkey/*.ml_icons
 	rm -f icons/mldonkey/*.ml
-	rm -rf config/autom4te.cache/
+	rm -f icons/rsvg/*.ml_icons
+	rm -f icons/rsvg/*.ml
+	rm -f tools/zoggy/*.cm?
 	rm -rf mldonkey-distrib*
 	rm -f mldonkey-$(CURRENT_VERSION).*
-	rm -f src/daemon/common/commonDownloads.ml
 
 distclean: releaseclean
 	rm -rf patches/local
 
 maintainerclean: distclean
-	rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml 
+	echo rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml
+	rm -f config/configure
+	rm -f packages/rpm/Makefile
+	rm -f Makefile
 
 LOCAL=patches/build
 
@@ -3289,6 +3554,11 @@ depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
+	if test "$(COMPILE_GUI)" = "yes"; then \
+		if test "$(USE_GTK2)" = "yes"; then \
+			$(MAKE) svg_converter; \
+		fi; \
+	fi
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
 	rm -rf $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)
@@ -3300,9 +3570,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: ed2k_hash make_torrent copysources get_range subconv dp500
+utils: svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
 utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
-utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
+utils.static: svg_converter ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
 
 #######################################################################
 
@@ -3420,7 +3690,7 @@ $(SHADIR):  static distrib/Readme.txt
 auto-release:
 ## i386
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i386 config/Makefile.config
+	./configure --host=i386-pc-linux-gnu
 	rm -f mlnet mlnet.static mlnet+gui mlnet+gui.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -3429,7 +3699,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i686
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i686 config/Makefile.config
+	./configure --host=i686-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -3438,7 +3708,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i586
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i586 config/Makefile.config
+	./configure --host=i586-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -3447,7 +3717,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 ## i486
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
-	cp -f config/Makefile.config.i486 config/Makefile.config
+	./configure --host=i486-pc-linux-gnu
 	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
@@ -3456,7 +3726,7 @@ auto-release:
 	cp mldonkey-$(CURRENT_VERSION).shared.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 
 buildrpm: 
-	cp -f config/Makefile.config.i386 config/Makefile.config
+	./configure --host=i586-pc-linux-gnu
 	$(MAKE) clean
 	$(MAKE) opt
 	rm -rf ../mldonkey-rpm rpm/mldonkey
@@ -3490,7 +3760,7 @@ rpm: sourcedist
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii .mlcpp
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii .mlcpp .svg
 
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -3511,6 +3781,10 @@ rpm: sourcedist
 	grep '"' $*_mini.xpm | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
 	echo "|]" >> $@
 	cp -f $@ $*_xpm.ml
+
+.svg.ml_icons :
+	cp $< $@
+	./svg_converter $@
 
 .ml.cmx :
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
@@ -3541,7 +3815,7 @@ rpm: sourcedist
 	$(OCAMLPP) -pp $< > $@
 
 .c.o :
-	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
+	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
 
 .cc.o :
 	$(CXX) $(CXX_FLAGS) -o $*.o $(CFLAGS) -c $<

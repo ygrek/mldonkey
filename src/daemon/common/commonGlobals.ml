@@ -27,12 +27,6 @@ open UdpSocket
 open TcpBufferedSocket
 
 
-(* This one is networkspecific, however it has to be here, since commonServer will use it! *)
-let donkeyIsLowID ip =
-  match Ip.to_ints ip with
-    | _, _, _, 0 -> true
-    | _ -> false
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         short_lazy                                    *)

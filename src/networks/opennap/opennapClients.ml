@@ -151,10 +151,10 @@ let read_stream c file sock b =
 lprint_newline ();
   *)
     TcpBufferedSocket.buf_used b b.len;
-    if c.client_pos > file_downloaded file then begin
+(*    if c.client_pos > file_downloaded file then begin
         add_file_downloaded file.file_file
         (Int64.sub c.client_pos (file_downloaded file))
-      end;
+      end; *)
     if file_downloaded file = file_size file then
       
       file_complete file             

@@ -251,11 +251,13 @@ information. *)
                 uids := (GnutellaGlobals.extract_uids s) @ !uids
           ) f.Q.info;
           
-          lprintf "Received %d uids\n" (List.length !uids);
-          List.iter (fun uid ->
-              lprintf "   %s\n" (Uid.to_string uid);
-          ) !uids;
-          
+          if !verbose then
+            begin
+              lprintf "Received %d uids\n" (List.length !uids);
+              List.iter (fun uid ->
+                lprintf "   %s\n" (Uid.to_string uid);
+              ) !uids;
+            end;
           (*
           (try
               let file = Hashtbl.find files_by_key (f.Q.name, f.Q.size) in
@@ -295,7 +297,8 @@ information. *)
                 add_download file c (FileByIndex (f.Q.index,f.Q.name));
                 GnutellaClients.connect_client c
               with _ -> 
-                  lprintf "No file with uid %s\n" (Uid.to_string uid)
+                  if !verbose_unexpected_messages then
+                    lprintf "No file with uid %s\n" (Uid.to_string uid)
           ) !uids;
           
           match s with
@@ -342,7 +345,8 @@ let init s sock gconn =
 (*************************************************************************)
   
 let udp_client_handler ip port buf =
-  lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+  if !verbose then
+    lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
   
   
 let update_shared_files () = ()

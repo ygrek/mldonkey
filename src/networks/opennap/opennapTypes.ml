@@ -44,8 +44,8 @@ type server = {
     mutable server_sock : tcp_connection; 
     mutable server_connection_control : connection_control;
     mutable server_size : int;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
+    mutable server_nusers : int64;
+    mutable server_nfiles : int64;
     mutable server_nick_num : int;
     mutable server_last_nick : string;
     mutable server_pending_searches : (

@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonTypes
   (*
 
 1. Download the .torrent file
@@ -230,10 +229,11 @@ open CommonGlobals
 open BigEndian
 open TcpBufferedSocket
 open AnyEndian
+open BTTypes
   
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t -> 
-  (string * Sha1.t * Sha1.t) -> unit)
+  (string * Sha1.t) -> unit)
 | Reader of (gconn -> TcpBufferedSocket.t -> unit)
 
 and gconn = {
@@ -254,7 +254,7 @@ module TcpMessages = struct
     | BitField of string
     | Request of int * int64 * int64
     | Piece of int * int64 * string * int * int
-    | Cancel of int64 * int64 * int64
+    | Cancel of int * int64 * int64
     | Ping  
     | PeerID of string
     
@@ -271,8 +271,9 @@ module TcpMessages = struct
           Printf.sprintf "Request %d %Ld[%Ld]" index offset len
       | Piece (index, offset, s, pos, len) -> 
           Printf.sprintf "Piece %d %Ld[%d]" index offset len
-      | Cancel _ ->  "Cancel"
-      | Ping   -> "Ping"
+      | Cancel (index, offset, len) -> 
+          Printf.sprintf "Cancel %d %Ld[%Ld]" index offset len
+      | Ping -> "Ping"
       | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
     
     let parser opcode m = 
@@ -285,6 +286,7 @@ module TcpMessages = struct
         | 5 -> BitField m
         | 6 -> Request (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
         | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
+        | 8 -> Cancel (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
         | -1 -> PeerID m
         | _ -> raise Not_found
     
@@ -318,135 +320,128 @@ module TcpMessages = struct
       str_int s 0 (String.length s - 4);
       s
   end
-  
-            
-let bt_handler parse_fun handler client_software sock =
+
+
+exception Wait_for_more of string
+let bt_handler parse_fun handler c sock =
   try
     let b = TcpBufferedSocket.buf sock in
-    let first = ref (
-      if client_software = "NULL" then 0
-      else 1
-    ) in
-(*
-    lprintf "BT HANDLER\n";
-dump (String.sub b.buf b.pos b.len);
-  *)
-    try
-      (*it is possible to connection be closed, BEFORE we use all data in buffer?*)
-      while b.len >= 4 do
-        (*lprintf "BT RECEIVED %d %d/%d \n" b.pos b.len (String.length b.buf);*)
-        (*hack: if we can guess a peer_id came in late, throw it away and parse the rest as usual
-                otherwise everything we got is thrown away*)
-        (* oo boy, o boy, what a fuck up!! What if clientid is [\0\0\0\0\0\0\0\0 ....]?? *)
-        let msg_len = get_int b.buf b.pos in
-        if !first == 0 then
+    if not c.client_received_peer_id then
+      begin
+        (* we get and parse the peer_id here because it may
+           not be sent from trackers that test us for NAT
+           (they just wait for our handshake response and
+           then drop the connection) *)
+        if b.len >= 20 then
           begin
-            if b.len < 20 then
-              begin
-                if not (closed sock) then
-                  begin
-                    lprintf "BT: Received only %d in first packet, waiting more data\n" b.len;
-                    dump (String.sub b.buf b.pos b.len);
-                    raise Not_found;
-                  end;
-                lprintf "BT: First message too small (%d), disconnected\n" b.len;
-                dump (String.sub b.buf b.pos b.len);
-                buf_used b b.len;
-              end
-            else
-              begin
-                let payload = String.sub b.buf b.pos 20 in
-                lprintf "BT: late peer_id  data_len: %i  peer_id: [%s]\n" b.len (String.escaped payload);
-                let p = parse_fun (-1) payload in
-                buf_used b 20;
-                try
-                  handler sock p;
-                  first := 1
-                with e ->
-                  lprintf "Exception %s in BTProtocol.parse_fun\n"
+            let payload = String.sub b.buf b.pos 20 in
+            let p = parse_fun (-1) payload in
+            buf_used b 20;
+            c.client_received_peer_id <- true;
+            try
+                handler sock p;
+            with e ->
+                lprintf "Exception %s in BTProtocol.parse_fun while handling peer_id\n"
                     (Printexc2.to_string e);
-                  lprintf "      PeerID\n";
-                  dump payload
-              end
-          end
-        else if msg_len < 0 || msg_len > 20000 then
-              begin
-                lprintf "BT: Unknown message dropped!! data_len: %i\n" b.len;
-                dump (String.sub b.buf b.pos b.len);
+                dump payload;
                 buf_used b b.len;
-                close sock Closed_by_user;
-              end
-        else
-          begin
-            if b.len >= 4 + msg_len then
-              begin
-                buf_used b 4;
-(*                lprintf "Message complete: %d\n" msg_len;  *)
-                if msg_len > 0 then 
-                  let opcode = get_int8 b.buf b.pos in
-                  let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
-                  buf_used b msg_len;
-(*                  lprintf "Opcode %d\n" opcode; *)
-                  try
-                    try
-                      let p = parse_fun opcode payload in
-(*                      lprintf "Parsed, calling handler\n";  *)
-                      handler sock p
-                    with Not_found -> ()
-                  with e ->
-                    lprintf "Exception %s in BTProtocol.parse_fun\n"
-                      (Printexc2.to_string e);
-                    lprintf "      Opcode: %d\n" opcode;
-                    dump payload;
-                else
-              (*received a ping*)
-                  set_lifetime sock 130.
-              end
-            else 
-(* We NEVER request pieces greater than this size, this client is
-   trying to waste our bandwidth ? *)
-              if b.len > 20000 then close sock Closed_by_user
-              else
-                raise Not_found;
+                close sock Closed_by_user
           end
-      done
-    with 
-    | Not_found -> ()
-    with e ->
+        else raise (Wait_for_more "peer_id");
+        (* must break the loop even if there is data, because the socket
+           could be closed beneath our feet and then b.buf seems to be zero length
+           regardless of what b.len tells (this is a bug somewhere in
+           tcpBufferedSocket i think) *)
+        raise (Wait_for_more "after_peer_id");
+      end;
+    while b.len >= 4 do
+        let msg_len = get_int b.buf b.pos in
+        if msg_len < 0 then
+          begin
+            let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
+            lprintf "BT: Unknown message from %s:%d dropped!! peerid:%b data_len:%i msg_len:%i software: %s\n"
+                (Ip.to_string ip) port c.client_received_peer_id b.len msg_len c.client_software;
+            dump (String.sub b.buf b.pos (min b.len 30));
+            buf_used b b.len;
+            close sock Closed_by_user;
+          end
+        else if msg_len > 20000 then
+          (* We NEVER request pieces greater than size 20000, this client is
+             trying to waste our bandwidth ? *)
+          begin
+            let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
+            lprintf "btprotocol.bt_handler: closed connection from %s:%d because of too much data!! data_len:%i msg_len:%i software: %s\n"
+                (Ip.to_string ip) port b.len msg_len c.client_software;
+            dump (String.sub b.buf b.pos (min b.len 30));
+            buf_used b b.len;
+            close sock Closed_by_user
+          end
+        else if b.len >= 4 + msg_len then
+          begin
+            buf_used b 4;
+            (* lprintf "Message complete: %d\n" msg_len;  *)
+            if msg_len > 0 then 
+                let opcode = get_int8 b.buf b.pos in
+                let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
+                buf_used b msg_len;
+                (* lprintf "Opcode %d\n" opcode; *)
+                try
+                    (* We use opcodes < 0 internaly and
+                       they don't occur in the spec
+                       *)
+                    if opcode < 0 then raise Not_found;
+                    let p = parse_fun opcode payload in
+                    (* lprintf "Parsed, calling handler\n"; *)
+                    handler sock p
+                with e ->
+                    lprintf "Exception %s in BTProtocol.parse_fun while handling message with opcode: %d\n"
+                      (Printexc2.to_string e) opcode;
+                    dump payload;
+            else
+                (*received a ping*)
+                set_lifetime sock 130.
+          end
+        else raise (Wait_for_more "message")
+    done;
+    if b.len != 0 then raise (Wait_for_more "loop")
+  with
+    | Wait_for_more s ->
+        if closed sock && s <> "after_peer_id" then
+            lprintf "bt_handler: Socket was closed while waiting for more data in %s\n" s
+    | e ->
         lprintf "Exception %s in bt_handler\n"
           (Printexc2.to_string e)
-        
+
+
 let handlers info gconn =
   let rec iter_read sock nread =
-(*    lprintf "iter_read %d\n" nread; *)
+    (* lprintf "iter_read %d\n" nread; *)
     let b = TcpBufferedSocket.buf sock in
     if b.len > 0 then
       match gconn.gconn_handler with
       | BTHeader h ->
-          
-(*          dump (String.sub b.buf b.pos (min b.len 100)); *)
+	  (* dump (String.sub b.buf b.pos (min b.len 100)); *)
           let slen = get_int8 b.buf b.pos in
-	  let peer_id = ref Sha1.null in
           if slen + 29 <= b.len then
-            let proto = String.sub b.buf (b.pos+1) slen in
-            let file_id = Sha1.direct_of_string 
-                (String.sub  b.buf (b.pos+9+slen) 20) in
-	      if slen + 49 <= b.len then
-		peer_id := Sha1.direct_of_string 
-		  (String.sub  b.buf (b.pos+29+slen) 20);
-            let proto,pos = get_string8 b.buf b.pos in
-	      if slen + 49 <= b.len then
-		buf_used b (slen+49)
-	      else 
-		buf_used b (slen+29);
-            h gconn sock (proto, file_id, !peer_id);
-            if not (TcpBufferedSocket.closed sock) then 
-              iter_read sock 0
+            begin
+              (* get proto and file_id from handshake,
+                 peer_id is not fetched here because
+                 it might be late or not present
+                 *)
+              let proto = String.sub b.buf (b.pos+1) slen in
+              let file_id = Sha1.direct_of_string
+                (String.sub b.buf (b.pos+9+slen) 20) in
+              let proto,pos = get_string8 b.buf b.pos in
+              buf_used b (slen+29);
+              h gconn sock (proto, file_id);
+	    end
+          else if (TcpBufferedSocket.closed sock) then
+              let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
+              lprintf "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i\n"
+                (Ip.to_string ip) port b.len slen;
 
       | Reader h -> 
-          let len = b.len in
-          h gconn sock;
-          if b.len < len then iter_read sock 0
+          h gconn sock
   in
   iter_read
   

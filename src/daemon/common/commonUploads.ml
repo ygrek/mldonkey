@@ -421,7 +421,7 @@ let make_tiger_tree array =
 let build_tiger_tree_file uid ttr = 
   let s = make_tiger_tree ttr in
   Unix2.safe_mkdir "ttr";
-  File.from_string (Filename.concat "ttr" (Uid.to_string uid)) s
+  File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) s
   
 let rec start_job_for sh (wanted_id, handler) = 
   let info = IndexedSharedFiles.get_result sh.shared_info in
@@ -606,7 +606,8 @@ let shared_files_timer _ =
           match sh.shared_uids_wanted with
             [] ->  waiting_shared_files := tail;
           | uid :: tail ->
-              lprintf "shared_files_timer: starting job\n";
+              if !verbose_share then
+                lprintf "shared_files_timer: starting job\n";
               sh.shared_uids_wanted <- tail;
               current_job := Some sh;
               start_job_for sh uid

@@ -69,7 +69,8 @@ let connect_urlfile () =
           H.req_user_agent = 
           Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
         } in
-      lprintf "Connecting Gnutella %s\n" url;
+      if !verbose then
+        lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_urlfile    
       
 let parse_hostfile file = 
@@ -79,7 +80,8 @@ let parse_hostfile file =
   List.iter (fun line ->
       try
         let ip, port = String2.cut_at line ':' in
-        lprintf "gnutella1: adding ultrapeer from hostfile\n";
+        if !verbose then
+          lprintf "gnutella1: adding ultrapeer from hostfile\n";
         let h = H.new_host (Ip.addr_of_string ip) (int_of_string port) Ultrapeer  in
         ()
       with _ -> ()
@@ -91,7 +93,11 @@ let connect_hostfile _ =
   match !redirectors_hostfiles with
     [] ->
       if !next_redirector_access < last_time () then begin
-          next_redirector_access := last_time () + 3600;
+          (* We should only contact the redirectors
+             if we don't have enough hosts.
+             Changed it to once every day,
+             so we don't hurt the network. *)
+          next_redirector_access := last_time () + (3600*24);
           connect_urlfile ();
           redirectors_hostfiles := !!gnutella_hostfiles
         end;
@@ -107,7 +113,8 @@ let connect_hostfile _ =
           H.req_user_agent = 
           Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
         } in
-      lprintf "Connecting Gnutella %s\n" url;
+      if !verbose then
+        lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_hostfile    
       
 let connect _ = 

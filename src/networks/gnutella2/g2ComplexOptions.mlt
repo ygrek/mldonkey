@@ -1,1 +1,3 @@
-#include "src/networks/gnutella/gnutellaComplexOptions.ml" where "Gnutella" = "G2" 
+#where "Gnutella" = "G2"
+#where "GNUT-" = "G2-"
+#include "src/networks/gnutella/gnutellaComplexOptions.ml"

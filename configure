@@ -8,9 +8,24 @@ rm -f *.cma *.cmxa *.a
 rm -f mlgnut mlnap mlbt mldonkey mlslsk mldonkey_gui*
 rm -f build/*.cma build/*.cmxa build/*.a
 touch .depend
-if [ -d config ]
-then
-	cd config; ./configure $*
+if test ! -d config; then
+    echo "Missing ./config/ directory. Re-download mldonkey"
 else
-	echo "Missing config/ directory. Re-download mldonkey"
+    cd config \
+    && if test ! -f ./configure; then
+          if which autoconf259; then
+              ac="autoconf259"
+          else if which autoconf-2.59; then
+              ac="autoconf-2.59"
+          else
+              ac="autoconf"
+          fi; fi
+          echo "Running Autoconf ($ac)..."
+          $ac
+       fi \
+    && if test ! -f ../Makefile; then
+          echo "Running m4 to generate Makefile..."
+          m4 Makefile.in > ../Makefile
+       fi \
+    && ./configure $*
 fi

@@ -84,7 +84,7 @@ let max_known_peers = define_option gnutella_section ["max_known_peers"]
     
 let server_connection_timeout = 
   define_option gnutella_section ["server_connection_timeout"] 
-  "timeout when connecting to a server" float_option 10.
+  "timeout when connecting to a server" float_option 30.
 
 let client_uid = define_option gnutella_section ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())

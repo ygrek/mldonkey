@@ -116,12 +116,16 @@ let connect_trackers file event f =
     ("port", string_of_int !!client_port) ::
     ("uploaded", Int64.to_string file.file_uploaded) ::
     ("downloaded", Int64.to_string downloaded) ::
-    ("left", Int64.to_string ((file_size file) -- downloaded)) ::
+    ("left", Int64.to_string left) ::
     ("compact","1") ::
     args
   in  
   let args = if !!numwant > -1 then
-      ("numwant", string_of_int !!numwant) :: args else args in
+      ("numwant", string_of_int !!numwant) :: args else args
+  in
+  let args = if !!force_client_ip then
+      ("ip", Ip.to_string !!set_client_ip) :: args else args
+  in
   
   List.iter (fun t ->
       (* if we have too few sources we may ask the tracker before the interval *)
@@ -160,7 +164,7 @@ let connect_trackers file event f =
           )
         end
       else
-     if !verbose_msg_servers then
+        if !verbose_msg_servers then
           lprintf "Request NOT sent to tracker %s - remaning: %d file: %s\n"
             t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) file.file_trackers
@@ -290,48 +294,23 @@ let disconnect_clients file =
           
 
 
- 
+
 (** What to do when a file is finished
   @param file the finished file
-*)         
+*)
 let download_finished file = 
-  if List.memq file !current_files then begin      
-      connect_trackers file "completed" (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
-(*CommonComplexOptions.file_completed*)    
-      file_completed (as_file file);
-      
-(* Remove the swarmer for this file as it is not useful anymore... *)
-      file.file_swarmer <- None;
-      
-(* At this point, the file state is FileDownloaded. We should not remove
-  the file. *)
-(*
-remove_file file;
-disconnect_clients file;
-*)
-      
-(* Why do we send a "stopped" event to the tracker ??? *)
-      connect_trackers file "stopped" (fun _ _ -> ());
-(* start sharing! - Copy file from torrents/download to torrent/seeded 
-Hum, this shouldn't be useful anymore as we copy downloads and share files
-  in torrents/.
-  
-      try
-        match file.file_torrent_diskname with
-          None -> ()
-        | Some torrent_diskname ->
-            let s = File.to_string torrent_diskname in  
-            if String.length s = 0 then raise Not_found;
-            let filename = Filename.concat seeded_directory 
-                ((String2.replace file.file_name '/' "") ^ ".torrent") in
-            File.from_string filename s
-      with _ ->
-        lprintf "Unable to start sharing %s\n" file.file_name
-    end
-*)
-    end
+    if List.memq file !current_files then
+      begin
+        connect_trackers file "completed" (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
+        (*CommonComplexOptions.file_completed*)
+        file_completed (as_file file);
+        (* Remove the swarmer for this file as it is not useful anymore... *)
+        file.file_swarmer <- None;
+        (* At this point, the file state is FileDownloaded. We should not remove
+           the file, because we continue to upload. *)
+      end
 
-      
+
 (** Check if a file is finished or not.
   A file is finished if all blocks are verified.
   @param file The file to check status
@@ -419,10 +398,11 @@ let counter = ref 0
   @param sock The socket we use for this client
   @param proto Not used???
   @param file_id The file hash (sha1) of the file involved in this exchange
-  @param peer_id The hash (sha1) of the client. (Should be checked)
+*)
+(* removed: @param peer_id The hash (sha1) of the client. (Should be checked)
 *)
 let rec client_parse_header counter cc init_sent gconn sock 
-    (proto, file_id, peer_id) = 
+    (proto, file_id) = 
   try
     set_lifetime sock 600.;
     if !verbose_msg_clients then
@@ -434,7 +414,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     let c = 
       match !cc with 
         None ->
-          let c = new_client file peer_id (TcpBufferedSocket.peer_addr sock) in
+          let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) in
           if !verbose_connect then lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
           cc := Some c;
           c
@@ -448,7 +428,8 @@ let rec client_parse_header counter cc init_sent gconn sock
          if c.client_uid <> peer_id then 
           c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
           c
-	*)
+	 *)
+
 (*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
               let ccc = new_client file peer_id (TcpBufferedSocket.host sock) in
@@ -471,8 +452,8 @@ let rec client_parse_header counter cc init_sent gconn sock
     
     if !verbose_msg_clients then begin
         let (ip,port) = c.client_host in
-        lprintf "CLIENT %d: Connected (%s:%d)\n"  (client_num c)
-        (Ip.to_string ip) port;
+          lprintf "CLIENT %d: Connected (%s:%d)\n" (client_num c)
+            (Ip.to_string ip) port;
       end;
     
     (match c.client_sock with
@@ -518,7 +499,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     client_to_client to be the function used when a message
     is read*)
     gconn.gconn_handler <- Reader (fun gconn sock ->
-        bt_handler TcpMessages.parser (client_to_client c) c.client_software sock
+        bt_handler TcpMessages.parser (client_to_client c) c sock
     );
     
     ()
@@ -597,6 +578,7 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
         None -> assert false
       | Some up -> up in 
     let swarmer = Int64Swarmer.uploader_swarmer up in       
+    
   try
     let num, x,y, r = 
       if !verbose_msg_clients then begin
@@ -919,17 +901,17 @@ and client_to_client c sock msg =
     | Choke ->
         begin
           set_client_state (c) (Connected (-1));
-(*remote peer will clear the list of range we sent*)
+          (*remote peer will clear the list of range we sent*)
           begin
-          match c.client_uploader with
+           match c.client_uploader with
               None ->
                 (* Afaik this is no protocolviolation and happens if the client
 		   didn't send a client bitmap after the handshake. *)
-		    let (ip,port) = c.client_host in
-		      if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
-		        (Ip.to_string ip) port (c.client_software)
+		let (ip,port) = c.client_host in
+		  if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
+		    (Ip.to_string ip) port (c.client_software)
             | Some up -> 
-	          Int64Swarmer.clear_uploader_ranges up
+	        Int64Swarmer.clear_uploader_ranges up
           end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;
@@ -978,7 +960,7 @@ and client_to_client c sock msg =
         
     
     | Ping -> ()
-	(*We don't 'generate' a Ping message.*)
+        (*We don't 'generate' a Ping message on a Ping.*)
     
     | Cancel _ -> ()
   with e ->
@@ -1294,7 +1276,7 @@ for parsing the response*)
 	to connect to them*)
         if !verbose_sources > 0 then 
           lprintf "get_sources_from_tracker: got %i sources for file %s\n" 
-          t.tracker_last_clients_num file.file_name;
+            t.tracker_last_clients_num file.file_name;
         resume_clients file
     
     | _ -> assert false    

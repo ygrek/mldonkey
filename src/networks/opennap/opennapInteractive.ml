@@ -28,6 +28,7 @@ open CommonClient
 open CommonResult
 open CommonServer
 open CommonTypes
+open CommonOptions
 open CommonComplexOptions
 open CommonFile
 open OpennapGlobals
@@ -76,7 +77,7 @@ let  _ =
         | QHasMinVal (field, value) ->
             begin
               match field with
-                Field_unknown "bitrate" ->  
+                Field_UNKNOWN "bitrate" ->  
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtLeast) };
               | Field_Size -> t
               | _ -> t
@@ -84,7 +85,7 @@ let  _ =
         | QHasMaxVal (field, value) ->
             begin
               match field with
-                Field_unknown "bitrate" -> 
+                Field_UNKNOWN "bitrate" -> 
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtBest) };
               | Field_Size -> t
               | _ -> t
@@ -112,11 +113,11 @@ let try_send buf num tail =
 let string_of_length d =
   Printf.sprintf "%02d:%02d" (d / 60) (d mod 60)
 
-
-
+(*
 let _ = 
   result_ops.CommonResult.op_result_download <- (fun r _ force ->
       OpennapServers.download_file r)
+*)
 
 let file_num file =
   file.file_file.impl_file_num
@@ -142,8 +143,8 @@ let _ =
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
+        P.file_all_sources = 0;
+        P.file_active_sources = 0;
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = 0.0;
@@ -174,11 +175,13 @@ let _ =
         P.server_description = s.server_net;
         P.server_users = None;
         P.server_banner = "";
+	P.server_preferred = false;
         }
   )
 
 module C = CommonTypes
   
+(*
 let _ =
   result_ops.op_result_info <- (fun r ->
        {
@@ -195,6 +198,7 @@ let _ =
         C.result_done = false;
       }   
   )
+*)
 
 let _ =  
   user_ops.op_user_info <- (fun user ->
@@ -252,9 +256,13 @@ let _ =
   );
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c  );
-  
-  
-  
+
+  network.op_network_recover_temp <-
+   (fun _ ->
+    if !verbose_hidden_errors then
+       lprintf "recover_temp is not implemented for Opennap.\n";
+   );
+
   network.op_network_add_server <- (fun ip port ->
       as_server (new_server (Ip.ip_of_addr ip) port).server_server
   )

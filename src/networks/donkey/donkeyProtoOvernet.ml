@@ -209,6 +209,7 @@ module Proto = struct
                     lprintf "Ill formed bcp: [%s]\n" bcp;
               )
           | _ ->
+            if !verbose_hidden_errors then
               lprintf "Unused source tag [%s]\n"
                 (escaped_string_of_field tag)
       ) r_tags;
@@ -369,9 +370,12 @@ module Proto = struct
             lprint_newline ();
             OvernetUnknown (opcode, s)
       with e ->
-          lprintf "Error %s while parsing opcode %d\n" (Printexc2.to_string e) opcode;
-          dump s;
-          lprint_newline ();
+          if !verbose_hidden_errors then
+            begin
+              lprintf "Error %s while parsing opcode %d\n" (Printexc2.to_string e) opcode;
+              dump s;
+              lprint_newline ();
+            end;
           OvernetUnknown (opcode, s)
     
     let udp_handler f sock event =
@@ -402,12 +406,12 @@ module Proto = struct
                     f t p
                   end
               with e ->
-	          if !verbose_hidden_errors then begin
+	        if !verbose_hidden_errors then begin
                   lprintf "Error %s in udp_handler, dump of packet:\n"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
-                  lprint_newline ()	    
-		  end
+                  lprint_newline ()
+                end
           );
       | _ -> ()
     

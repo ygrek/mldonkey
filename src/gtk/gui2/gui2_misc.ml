@@ -251,7 +251,7 @@ let reconnect gui =
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
-    gui_send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+    gui_send (GuiProto.GuiProtocol GuiProto.best_gui_version)
   with e ->
       lprintf "Exception %s in connecting" (Printexc2.to_string e);
       lprint_newline ();

@@ -37,7 +37,7 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 
 let new_shared_files = ref []
-  
+
 let must_share_file file codedname has_old_impl =
   match file.file_shared with
   | Some _ -> ()
@@ -125,7 +125,8 @@ let new_file_to_share sh codedname old_impl =
 		 (* If we don't verify now, it will never happen! *)
 		 Int64Swarmer.verify_all_blocks s true;
 		 *)
-                lprintf "verified map of %s = %s\n"
+                if !verbose_share then
+                  lprintf "verified map of %s = %s\n"
 		         (codedname) (Int64Swarmer.verified_bitmap s))
       | None -> if !verbose_share then lprintf "no swarmer for %s\n" codedname;
     (try 
@@ -157,30 +158,33 @@ let all_shared () =
   if !verbose_share then lprintf "%d files shared\n" (List.length !shared_files);
   !shared_files
 
-
-(*  Check whether new files are shared, and send them to connected servers.
-Do it only once per 5 minutes to prevent sending to many times all files.
-  Should I only do it for master servers, no ?
-  
-  FritzMock: 21.01.2005 just send *new* shared files to servers, they never forget a clients files untill disconnection
-  *)
+(* Check whether new files are shared, and send them to connected servers.
+   Do it only once per 5 minutes to prevent sending to many times all files.
+   Change: Just send *new* shared files to servers, they never forget a
+     clients files until disconnection.
+   Should I only do it for master servers, no ?
+*)
 let send_new_shared () =
-	if !new_shared then begin
-		new_shared := false;
-		let socks = ref [] in
-		if !new_shared_files <> [] then begin
-			List.iter (fun s ->
-				if s.server_master then
-					do_if_connected s.server_sock (fun sock ->
-						server_send_share s.server_has_zlib sock !new_shared_files))
-			(connected_servers ());
-			if !verbose_share then lprintf "donkeyShare: send_new_share: Sent %d new shared files to servers\n" (List.length !new_shared_files);
-			new_shared_files := []
-			end
-		else
-			if !verbose_share then lprintf "donkeyShare: send_new_share: No new shared files to send to servers\n"
+  if !new_shared then
+    begin
+      new_shared := false;
+      let socks = ref [] in
+      if !new_shared_files <> [] then
+        begin
+	  List.iter (fun s ->
+	    if s.server_master then
+	      do_if_connected s.server_sock (fun sock ->
+		server_send_share s.server_has_zlib sock !new_shared_files))
+	  (connected_servers ());
+	  if !verbose_share then
+              lprintf "donkey send_new_share: Sent %d new shared files to servers\n"
+		    (List.length !new_shared_files);
+	  new_shared_files := []
+	end
+      else
+          lprintf "donkey send_new_share: No new shared files to send to servers\n"
     end
-          
+
 (*
 The problem: sh.shared_fd might be closed during the execution of the
 thread. Moreover, we don't want to open all the filedescs for all the
@@ -333,7 +337,8 @@ let remember_shared_info file new_name =
           let disk_name = file_disk_name file in
           Unix32.mtime disk_name 
         with _ ->          
-            lprintf "Trying mtime on new name\n";
+	    if !verbose_hidden_errors then
+	      lprintf "Trying mtime on new name\n";
             Unix32.mtime new_name
       in
       
@@ -350,11 +355,11 @@ let remember_shared_info file new_name =
             sh_mtime = mtime;
             sh_md4s = file.file_computed_md4s;
           } in
-        
+
         known_shared_files =:= s :: !!known_shared_files;    
         Hashtbl.add shared_files_info (new_name, size, mtime) s
     with e ->
         lprintf "Exception %s in remember_shared_info\n"
           (Printexc2.to_string e)
-        
+
 let must_share_file file = must_share_file file (file_best_name file) None

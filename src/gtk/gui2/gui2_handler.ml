@@ -143,7 +143,7 @@ let gui_send t =
       lprintf "Message not sent since not connected";
       lprint_newline ();
   | Some sock ->
-      GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
+      GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used (fun s -> s)) sock t
       
 let _ = 
   (try Options.load mldonkey_gui_ini with
@@ -983,8 +983,8 @@ let value_reader (gui: gui) t sock =
         
         ignore (gui#tab_console#text#insert_text "Bad Passord" 0)
     
-    | CoreProtocol v -> 
-        gui_protocol_used := min v GuiEncoding.best_gui_version;
+    | CoreProtocol (v, _, _) -> 
+        gui_protocol_used := min v GuiProto.best_gui_version;
         lprintf "Using protocol %d for communications" !gui_protocol_used;
         lprint_newline ();
         gui#label_connect_status#set_text "Connected";

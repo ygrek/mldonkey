@@ -1,11 +1,56 @@
 ChangeLog	
 =========
 
-2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
-
+2005/03/20: spiralvoice (version 2.5.30-1 = 2.6pre13, tag release-2-5-30-1)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+This release shares the same code as Amorphous SVN release 2-5-30ab
+
+
+3792 : EDK/HTML: More readable uptime in cs
+3795 : Updated files for bugs building GTK2 GUI, GTK1 newgui and GTK1 oldgui
+3816 : New URLs in FakeCheck. Corrected Bitzi URL
+3573 : Allows for aliased commands in driverCommands
+3822 : Fix for completed files appear multiple times in upstats
+3829 : Options care
+
+3828 : Opennap compiles again
+* this does not mean the module actually works;-)
+
+3830 : Review build process
+* Ocaml 3.08.3 is now required to build MLDonkey
+* Removed config/Makefile.config.i?86.in files. If you want
+  to build for an arch that is not the build-machine then
+  use for example ./configure --host=i586-pc-linux-gnu .
+* Added the opt-binaries from utils to make clean.
+* Added configure option --enable-debug .
+* Removed the configure options for directconnect and
+  audiogalaxy, any developer wo wants to work on them can
+  add them again and nobody else should use them.
+
+3791 : Syncing 2.5.30 and Amorphous 2.5.30aa
+
+* Adapted a change to the command "sources" from savannah
+  patch #3621 that had a new command "tsources". "sources"
+  now prints it's information in a much more compact table.
+* Savannah patch #3304 has UTF 8 encoding for strings from
+  the core.
+* Changed so redirectors (gwebcaches) for gnutella/g2 are
+  only contacted once a day. This is no good solution, but
+  it should prevent us from harming the network.
+* Prevent active_udp_queue in g2 from growing over length
+  100 and eating all memory (this is a workaround and
+  should be fixed for real someday).
+* Now ./configure checks for autoconf259 and autoconf-2.59
+  and uses these instead of autoconf. AC_PREREQ in
+  configure.in is now set to 2.59 instead of 2.5 .
+* The default port for the gift gui is now 0, to disable it,
+  because it did not ask for authentication.
+
+
+2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
 
 This version solves the serious file corruption bug in version 2-5-29
 ---------------------------------------------------------------------

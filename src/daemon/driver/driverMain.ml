@@ -580,15 +580,22 @@ for config files at the end. *)
         exit 2;
   end;  
   CommonGlobals.do_at_exit (fun _ -> 
-(* If we have an error with two many file-descriptors, just close all of them *)
-      BasicSocket.close_all ();
-(* In case we have no more space on filesystem for config files, remove
-the security space file *)
+      (* If we have an error with too many file-descriptors,
+         just close all of them *)
+      (try
+         BasicSocket.close_all ();
+       with e ->
+           lprintf "Exception %s in do_at_exit while closing sockets.\n"
+             (Printexc2.to_string e);
+      );
+      (* In case we have no more space on filesystem for
+         config files, remove the security space file *)
       Sys.remove security_space_filename;
       DriverInteractive.save_config ();
 
       CommonGlobals.print_localtime ();
-      lprintf (_b "Core stopped\n"));
+      lprintf (_b "Core stopped\n")
+    );
   
   if not !keep_console_output then begin
       lprintf (_b "Disabling output to console, to enable: stdout true\n");

@@ -133,7 +133,8 @@ let enable () =
 (* Check the port returned by listen, and put the udp socket on it *)
     let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
         !!client_port udp_handler ) in
-    lprintf "Gnutella: UDP socket bound on port %d\n" !!client_port;
+    if !verbose then
+      lprintf "Gnutella: UDP socket bound on port %d\n" !!client_port;
     udp_sock := Some sock;
     
     UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
@@ -157,6 +158,12 @@ let _ =
   *)
   network.op_network_enable <- enable;
   network.network_config_file <- [gnutella_ini];
+  network.op_network_recover_temp <-
+   (fun _ ->
+    if !verbose_hidden_errors then
+       lprintf "recover_temp is not implemented for Gnutella.\n";
+   );
+
   network.op_network_info <- (fun n ->
       { 
         network_netnum = network.network_num;

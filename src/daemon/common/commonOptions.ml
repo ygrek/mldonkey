@@ -253,12 +253,10 @@ let current_section = interfaces_section
 let allowed_ips = define_option current_section ["allowed_ips"]
     ~desc: "Allowed IPs"
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
-list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* 
-! Put the IPs between quotes !
-EXAMPLE:   allowed_ips = [
-             '127.0.0.1';
-             '192.168.1.2'; 
-             '192.168.1.3';]"
+for internal command set: list separated by spaces
+example for internal command: set allowed_ips \"127.0.0.1 192.168.1.2\"
+or for editing the ini-file: allowed_ips = [ \"127.0.0.1\"; \"192.168.1.2\";]
+wildcard=255 ie: use 192.168.0.255 for 192.168.0.*"
     ip_list_option [Ip.localhost]  
         
 let gui_port = 
@@ -268,8 +266,9 @@ let gui_port =
 
 let gift_port = 
   define_option current_section ["gift_port"] 
-    ~desc: "The port to connect for GiFT GUIs"
-  "port for GiFT Graphical Interfaces interaction" int_option 1213
+    ~desc: "The port to connect for GiFT GUIs."
+  "port for GiFT Graphical Interfaces interaction. It was 1213, but the default is
+now 0 for disabled, because it does not check for a password." int_option 0
 
 let http_port = 
   define_option current_section ["http_port"] 
@@ -297,6 +296,16 @@ let print_all_sources =
     
 let improved_telnet =
   define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
+
+let alias_commands = 
+  define_option current_section ["alias_commands"] 
+  "Aliases to commands. The alias (fist string) has to be
+whitespaceless, the outcome of the alias (second string)
+may have spaces (put it in quotation then)."
+  (list_option (tuple2_option (string_option, string_option)))
+  [ "quit", "q";
+    "exit", "q";
+  ]
 
   
   
@@ -334,7 +343,7 @@ let dynamic_slots = define_option current_section ["dynamic_slots"]
 let max_connections_per_second = define_option current_section
     ["max_connections_per_second"] 
   "Maximal number of connections that can be opened per second"
-  int_option 10
+  int_option 5
 
 let loop_delay = define_expert_option current_section
   ["loop_delay"] 
@@ -489,12 +498,6 @@ let html_mods_vd_prio = define_expert_option current_section
 
 let html_mods_vd_queues = define_expert_option current_section
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
-
-let html_mods_vd_queued = define_expert_option current_section
-    ["html_mods_vd_queued"] "Whether to display queued files in vd output" bool_option true
-
-let html_mods_vd_paused = define_expert_option current_section
-    ["html_mods_vd_paused"] "Whether to display paused files in vd output" bool_option true
 
 let html_vd_barheight = define_expert_option current_section
     ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
@@ -1156,7 +1159,7 @@ let save_options_delay =
 
 let server_connection_timeout = define_expert_option current_section
   ["server_connection_timeout"] 
-  "timeout when connecting to a server" float_option 15.
+  "timeout when connecting to a server" float_option 30.
   
 let download_sample_rate = define_expert_option current_section ["download_sample_rate"]
   "The delay between one glance at a file and another" float_option 1.

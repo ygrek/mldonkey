@@ -410,7 +410,7 @@ let buf_add t b s pos1 len =
       end
     else
     if b.len + len > b.max_buf_size then begin
-        lprintf "BUFFER OVERFLOW %d+%d> %d\n" b.len len b.max_buf_size ;
+        lprintf "BUFFER OVERFLOW %d+%d> %d    " b.len len b.max_buf_size ;
 
         lprintf "MESSAGE [";
         for i = pos1 to pos1 + (mini len 20) - 1 do
@@ -1380,14 +1380,14 @@ let connect token name host port handler =
         forecast_upload t 0;    (* The TCP ACK packet *)
         t
     | e ->
-        lprintf "For host %s port %d\n" (Unix.string_of_inet_addr host)
-        port;
+        lprintf "For host %s:%d   "
+            (Unix.string_of_inet_addr host) port;
         close t Closed_connect_failed;
         raise e
   with e ->
       lprintf "EXCEPTION %s  before connect to host %s:%d\n"
           (Printexc2.to_string e) (Unix.string_of_inet_addr host) port;
-            raise e
+      raise e
       
 
 
@@ -1841,4 +1841,3 @@ let _ =
   
   
 let packet_frame_size = ref 250
-  

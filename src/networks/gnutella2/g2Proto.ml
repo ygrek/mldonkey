@@ -610,7 +610,11 @@ lprintf "\n";
   *)
   try
     if be then 
-      (lprintf "Big Endian not supported yet\n"; raise Exit);
+      (
+       if !verbose_hidden_errors then
+         lprintf "Big Endian not supported yet\n";
+       raise Exit
+      );
     let module M = G2_LittleEndian in
     match names with
     
@@ -762,9 +766,12 @@ lprintf "\n";
         UPROD_XML xml
     | _ -> raise Not_found
   with e ->
-      lprintf "Cannot parse: %s\n   " (Printexc2.to_string e);
-      List.iter (fun name -> lprintf "%s/" name) names;
-      lprintf "\n%s\n" (sdump s);
+      if !verbose_hidden_errors then
+        begin
+          lprintf "Cannot parse: %s\n   " (Printexc2.to_string e);
+          List.iter (fun name -> lprintf "%s/" name) names;
+          lprintf "\n%s\n" (sdump s);
+        end;
       Unknown (names, be, s)
   
 let rec g2_parse name has_children bigendian s = 
@@ -1122,7 +1129,8 @@ let parse_udp_packet ip port buf =
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
-            lprintf "no correct pkt_len, pkt_pos\n";
+            if !verbose_hidden_errors then
+              lprintf "no correct pkt_len, pkt_pos\n";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in
@@ -1410,12 +1418,14 @@ let server_send_push s uid uri = ()
     
 let create_qrt_table words table_size =
   let table_length = 1 lsl (table_size-3) in
-  lprintf "table_length %d\n" table_length;
+  if !verbose then
+    lprintf "table_length %d\n" table_length;
   let array = Array.create table_length 0 in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
       let pos = Int64.to_int pos in
-      lprintf "ADDING WORD %d\n" pos; 
+      if !verbose then
+        lprintf "ADDING WORD %d\n" pos; 
       let index = pos / 8 in
       let bit = (1 lsl (pos land 7)) in
       array.(pos) <- array.(pos) lor bit;
@@ -1507,7 +1517,8 @@ let print_string s buf =
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
-            lprintf "no correct pkt_len, pkt_pos\n";
+            if !verbose_hidden_errors then
+              lprintf "no correct pkt_len, pkt_pos\n";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in

@@ -241,7 +241,8 @@ let all_shared_words = ref []
 let cached_qrt_table = ref ""
 
 let update_shared_words () = 
-  lprintf "update_shared_words\n";
+  if !verbose_share then
+    lprintf "update_shared_words\n";
   all_shared_words := [];
   cached_qrt_table := "";
   let module M = CommonUploads in
@@ -255,7 +256,8 @@ let update_shared_words () =
   let rec iter node =
     List.iter (fun sh ->
         let info = IndexedSharedFiles.get_result sh.shared_info in
-        lprintf "CODED name: %s\n" sh.M.shared_codedname;
+        if !verbose_share then
+          lprintf "CODED name: %s\n" sh.M.shared_codedname;
         register_words sh.M.shared_codedname;
         List.iter (fun uid ->
             words := WordSet.add (Uid.to_string uid) !words
@@ -270,11 +272,14 @@ let update_shared_words () =
   WordSet.iter (fun s ->
       all_shared_words := s :: !all_shared_words
   ) !words;
-  lprintf "SHARED WORDS: ";
-  List.iter (fun s ->
-      lprintf "%s " s
-  ) !all_shared_words;
-  lprint_newline ()
+  if !verbose_share then
+    begin
+      lprintf "SHARED WORDS: ";
+      List.iter (fun s ->
+        lprintf "%s " s
+      ) !all_shared_words;
+      lprint_newline ()
+    end
 
         
 (*
@@ -499,7 +504,7 @@ let find_file_to_upload gconn url =
     match url.Url.args with
       [(urn,_)] ->
         let uid = Uid.of_string urn in
-        let urn = Uid.to_string uid in
+        let urn = Uid.to_file_string uid in
         let filename = Filename.concat "ttr" urn in
         if Sys.file_exists filename then
           let fd = Unix32.create_ro filename in

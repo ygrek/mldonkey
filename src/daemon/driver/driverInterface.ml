@@ -43,13 +43,17 @@ open CommonGlobals
   
 module P = GuiProto
   
+let charset_to_gui s = s
+
+let charset_from_gui s = s
+
 let binary_gui_send gui t =
   match gui.gui_sock with
     None -> 
       Fifo.put core_gui_fifo t
   | Some sock ->
       try
-        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_proto_to_gui_version) 
+        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_proto_to_gui_version charset_to_gui ) 
         sock t
       with UnsupportedGuiMessage -> 
 (* the message is probably not supported by this GUI *)
@@ -688,6 +692,10 @@ search.op_search_end_reply_handlers;
               networks_iter network_connect_servers
           
           | P.Url url ->
+              (* changed with the new header-check code from dllink, but i
+                 didn't care about the read from file functionality that
+                 perhaps worked before:
+              
               if not (networks_iter_until_true (fun n -> network_parse_url n url)) then
                 begin
                   let file = File.to_string url in
@@ -696,6 +704,45 @@ search.op_search_end_reply_handlers;
                       ignore (networks_iter_until_true (fun n -> network_parse_url n line))
                   ) lines
                 end
+              *)
+              let query_networks url = 
+                if not (networks_iter_until_true
+                    (fun n ->
+                       try
+                         network_parse_url n url
+                       with e ->
+                         lprintf "Exception %s for network %s\n"
+                           (Printexc2.to_string e) (n.network_name);
+                         false
+                    )) then
+                   lprintf "Unable to match URL\n"
+                else
+                   lprintf "done\n"
+              in
+              if (String2.starts_with url "http") then (
+                let u = Url.of_string url in
+                let module H = Http_client in
+                let r = {
+                  H.basic_request with
+                    H.req_url =  u;
+                    H.req_proxy = !CommonOptions.http_proxy;
+                    H.req_request = H.HEAD;
+                    H.req_user_agent = 
+                       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+                } in
+                H.whead r 
+                  (fun headers ->
+                    (* Combine the list of header fields into one string *)
+                    let concat_headers = 
+                      (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
+                    in
+                    ignore (query_networks concat_headers)
+                  );
+                lprintf "Parsing HTTP url..."
+                )
+              else
+                query_networks url
+          
           | P.GetUploaders ->
               gui_send gui (P.Uploaders
                   (List2.tail_map (fun c -> client_num c) 
@@ -1069,8 +1116,8 @@ let gui_handler t event =
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
               try
-                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version 
-                  opcode s in
+                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version
+                charset_from_gui opcode s in
                 gui_reader gui m sock;
               with GuiDecoding.FromGuiMessageNotImplemented -> ()
           ));

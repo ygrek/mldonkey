@@ -540,7 +540,7 @@ let new_client file peer_id kind =
           client_incoming = false;
 	  client_registered_bitfield = false;
 	  client_last_optimist = 0;
-          client_software = if peer_id != Sha1.null then
+          client_software = if peer_id != Sha1.null then 
               (parse_software (Sha1.direct_to_string peer_id))
             else "NOT_RECEIVED";
         } and impl = {

@@ -568,7 +568,8 @@ let print_stats buf =
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
-    Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+    Printf.bprintf buf "Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+        days hours mins uptime;
 
 
   if stats_all.brand_seen = 0 then
@@ -711,7 +712,8 @@ let new_print_stats buf o =
   
   if use_html_mods o then
     begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d seconds (%d+%02d:%02d)\\</div\\>" uptime days hours mins;
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
+        days hours mins uptime;
       stats_html_header buf;
       
       let counter = ref 0 in
@@ -804,7 +806,8 @@ let new_print_stats buf o =
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
       
-      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d seconds (%d+%02d:%02d)\\</div\\>" (guptime() + uptime) gdays ghours gmins;
+      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
+        gdays ghours gmins (guptime() + uptime);
       stats_html_header buf;
       
       showTotal := false;
@@ -884,7 +887,8 @@ let new_print_stats buf o =
     end
   else
     begin
-      Printf.bprintf buf "Session Uptime: %d seconds (%d days %d hours %d minutes)\n" uptime days hours mins;
+      Printf.bprintf buf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+        days hours mins uptime;
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
       
@@ -928,7 +932,8 @@ let new_print_stats buf o =
       let ghours = grem / one_hour in
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
-      Printf.bprintf buf "\nTotal Uptime: %d seconds (%d days %d hours %d minutes)\n" (guptime() + uptime) gdays ghours gmins;
+      Printf.bprintf buf "\nTotal Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+        gdays ghours gmins (guptime() + uptime);
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
       
@@ -985,7 +990,8 @@ let new_print_mod_stats buf o =
   
   if use_html_mods o then
     begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d seconds (%d+%02d:%02d)\\</div\\>" uptime days hours mins;
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
+        days hours mins uptime;
       stats_html_header buf;
       
       let counter = ref 0 in
@@ -1097,7 +1103,8 @@ let new_print_mod_stats buf o =
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
       
-      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d seconds (%d+%02d:%02d)\\</div\\>" (guptime() + uptime) gdays ghours gmins;
+      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
+        gdays ghours gmins (guptime() + uptime);
       stats_html_header buf;
       
       showTotal := false;
@@ -1177,7 +1184,8 @@ let new_print_mod_stats buf o =
     end
   else
     begin
-      Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+      Printf.bprintf buf "Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+        days hours mins uptime;
       Printf.bprintf buf "         MOD| seen      |  Downloads       |  Uploads         |  Banned\n";
       Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
       Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"

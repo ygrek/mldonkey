@@ -73,10 +73,12 @@ let send_pings () =
       lprintf "Sending ping\n";
       match s.server_query_key with
       | NoUdpSupport -> 
-          lprintf "NoUdpSupport\n";
+          if !verbose then
+            lprintf "NoUdpSupport\n";
           server_send_qkr s           
       | _ -> 
-          lprintf "Udp Support present\n";
+          if !verbose then
+            lprintf "Udp Support present\n";
           ()
   ) !connected_servers;
   Queue.iter (fun h ->

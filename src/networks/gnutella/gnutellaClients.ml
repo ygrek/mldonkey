@@ -399,9 +399,12 @@ iff Content-Length = Requested Length and
                 (start_pos, end_pos)
           with _ ->  *)
 (* A bit dangerous, no ??? *)
-          lprintf "[GDO] ERROR: Could not find/parse range header (exception %s), disconnect\n" 
-            (Printexc2.to_string e);
-          print_head first_line headers;
+          if !verbose_hidden_errors then
+            begin
+              lprintf "[GDO] ERROR: Could not find/parse range header (exception %s), disconnect\n" 
+                (Printexc2.to_string e);
+              print_head first_line headers
+            end;
           disconnect_client c (Closed_for_error "Bad HTTP Range");
           raise Exit
     in 
@@ -453,8 +456,11 @@ iff Content-Length = Requested Length and
           end)
   
   with e ->
-      lprintf "[GDO] Exception %s in client_parse_header\n" (Printexc2.to_string e);
-      print_head first_line headers;
+      if !verbose_hidden_errors then
+        begin
+          lprintf "[GDO] Exception %s in client_parse_header\n" (Printexc2.to_string e);
+          print_head first_line headers;
+        end;
       disconnect_client c (Closed_for_exception e);
       raise e
 
@@ -592,7 +598,8 @@ end;
 (*************************************************************************)
 
 and disconnect_client c r =
-  lprintf "DISCONNECT CLIENT\n";
+  if !verbose then
+    lprintf "DISCONNECT CLIENT\n";
   match c.client_sock with
   | Connection sock -> 
       (try
@@ -1052,11 +1059,10 @@ let listen () =
           match event with
             TcpServerSocket.CONNECTION (s, 
               Unix.ADDR_INET(from_ip, from_port)) ->
-              lprintf "CONNECTION RECEIVED FROM %s FOR PUSH\n"
-                (Ip.to_string (Ip.of_inet_addr from_ip))
-              ; 
-              
-              lprintf "*********** CONNECTION ***********\n";
+              if !verbose then
+                lprintf "CONNECTION RECEIVED FROM %s FOR PUSH\n%s"
+                  (Ip.to_string (Ip.of_inet_addr from_ip))
+                    "*********** CONNECTION ***********\n";
               
               let token = create_token connection_manager in
               let sock = TcpBufferedSocket.create token

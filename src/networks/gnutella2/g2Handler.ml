@@ -148,6 +148,9 @@ let g2_packet_handler s sock gconn p =
   
   | QKA ->
       H.host_queue_add active_udp_queue h (last_time ());
+      if (Queues.Queue.length active_udp_queue) > 100 then
+        let oh = H.host_queue_take active_udp_queue in
+        ();
       List.iter (fun c ->
           match c.g2_payload with
             QKA_QK key -> s.server_query_key <- UdpQueryKey key
@@ -447,8 +450,9 @@ XML ("audios",
                       tags)
                 ) user_files files
               end else begin
-                lprintf "ERROR: Not enough XML entries %d/%d\n"
-                  (List.length files) (List.length user_files);
+                if !verbose_hidden_errors then
+                  lprintf "ERROR: Not enough XML entries %d/%d\n"
+                    (List.length files) (List.length user_files);
                 user_files 
               end
             
@@ -507,8 +511,9 @@ XML ("audios",
             | Some uid ->
                 try
                   let file = Hashtbl.find files_by_uid uid in
-                  lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
-                    file.file_name; 
+                  if !verbose then
+                    lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
+                  file.file_name;
                   
                   (match size with
                       None -> ()
@@ -599,7 +604,8 @@ let udp_client_handler ip port buf =
         (parse_udp_packet ip port buf)
     with AckPacket | FragmentedPacket -> ()
   else
-    lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+    if !verbose then
+      lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
 
       
 let update_shared_files () = ()

@@ -220,7 +220,7 @@ client_error = false;
 let add_download file c url =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  lprintf "Adding file to client\n";
+  if !verbose then lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
       (*

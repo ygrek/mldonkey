@@ -138,7 +138,8 @@ let send_pings () =
       | NoUdpSupport -> 
           host_send_qkr s.server_host           
       | _ -> 
-          lprintf "Udp Support present\n";
+          if !verbose then
+            lprintf "Udp Support present\n";
           ()
   ) !connected_servers;
   new_shared_words := false;
@@ -316,7 +317,8 @@ let server_parse_headers first_line headers =
         | "content-type" ->
             List.iter (fun s ->
                 content_type := s;
-                lprintf "Content-Type: %s\n" s;
+                if !verbose then
+                  lprintf "Content-Type: %s\n" s;
                 match s with 
                   "application/x-gnutella2" -> gnutella2 := true
                 | _ -> ()
@@ -635,7 +637,8 @@ let get_file_from_source c file =
         connection_try c.client_connection_control;
         match c.client_user.user_kind with
           Indirect_location ("", uid) ->
-            lprintf "++++++ ASKING FOR PUSH +++++++++\n";   
+            if !verbose then
+              lprintf "++++++ ASKING FOR PUSH +++++++++\n";   
 
 (* do as if connection failed. If it connects, connection will be set to OK *)
             connection_failed c.client_connection_control;
@@ -658,13 +661,15 @@ let get_file_from_source c file =
 (*************************************************************************)
     
 let really_download_file (r : result_info) =
-  lprintf "download_file\n";
+  if !verbose then
+    lprintf "download_file\n";
   let file_temp = match r.result_uids with
       [] -> assert false
-    | uid :: _ -> Uid.to_string uid in
+    | uid :: _ -> Uid.to_file_string uid in
   let file = new_file file_temp
     (List.hd r.result_names) r.result_size r.result_uids in
-  lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  if !verbose then
+    lprintf "DOWNLOAD FILE %s\n" file.file_name; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;

@@ -50,10 +50,10 @@ let disable enabler () =
     end
     
 let enable () =
-  lprintf "enable\n";
+  (* lprintf "enable\n"; *)
   if not !is_enabled then
     let enabler = ref true in
-    lprintf "enabling...\n";
+    (* lprintf "enabling...\n"; *)
     Unix2.safe_mkdir old_torrents_directory;
     Unix2.safe_mkdir seeded_directory;
     Unix2.safe_mkdir tracked_directory;
@@ -89,7 +89,6 @@ let enable () =
 *)
     
 
-    lprintf "XXXXXXXXXXXXXXX\n";
     BTClients.recover_files ();  
     add_session_timer enabler 60.0 (fun timer ->
         BTClients.recover_files ();

@@ -120,8 +120,8 @@ let new_server ip port =
           server_desc = "";
           server_net = "";
           server_sock = NoConnection;
-          server_nusers = 0;
-          server_nfiles = 0;
+          server_nusers = Int64.zero;
+          server_nfiles = Int64.zero;
           server_size = 0;
           server_connection_control = DG.new_connection_control ( ());
           server_nick_num = -1;
@@ -146,6 +146,21 @@ let new_server ip port =
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
 
+let result_sources = Hashtbl.create 1000
+
+let add_result_source r (s : user) (index : string) =
+  let ss =
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+	let ss = ref [] in
+	Hashtbl.add result_sources r.stored_result_num ss;
+	ss
+  in
+  let key = (s, index) in
+  if not (List.mem key !ss) then begin
+      ss := key :: !ss
+    end
 
 let new_result file_name file_size =
   let basename = basename file_name in
@@ -153,21 +168,15 @@ let new_result file_name file_size =
   try
     Hashtbl.find results_by_file key
   with _ ->
-      let rec result = {
-          result_result = result_impl;
-          result_name = basename;
+      let r = {
+          dummy_result with
+	  result_names = [basename];
           result_size = file_size;
-          result_info = [];
-          result_sources = [];
-        } and 
-        result_impl = {
-          dummy_result_impl with
-          impl_result_val = result;
-          impl_result_ops = result_ops;
-        } in
-      new_result result_impl;
-      Hashtbl.add results_by_file key result;
-      result  
+        }
+      in
+      let r = update_result_num r in
+      Hashtbl.add results_by_file key r;
+      r
   
 let new_file file_id file_name file_size =
   let key = (file_name, file_size) in
@@ -277,9 +286,17 @@ let new_client name =
       c
 
 let add_source r user filename =
-  let key = (user,filename) in
-  if not (List.mem key r.result_sources) then begin
-      r.result_sources <- key :: r.result_sources
+  let ss =
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
+  in
+  let key = (user, filename) in
+  if not (List.memq key !ss) then begin
+      ss := key :: !ss
     end
 
 let add_file_client file user filename = 

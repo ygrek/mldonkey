@@ -91,8 +91,6 @@ let value_to_file file_size file_state assocs =
     try conv (List.assoc name assocs) with _ -> []
   in
 
-  lprintf "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
-  
   let file_name = get_value "file_filename" value_to_string in 
   let file_id = 
     try

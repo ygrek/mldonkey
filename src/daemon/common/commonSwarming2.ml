@@ -1090,9 +1090,9 @@ let verify_chunk t i =
               
               end else begin
                 
-	       if !verbose_swarming then
-                lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
-                  i (file_best_name t.t_file);
+	        if !verbose_swarming then
+		    lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
+			i (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
                 
                 if List.for_all (fun i ->
@@ -2794,14 +2794,14 @@ it is verified as soon as possible. *)
             (get_value "file_absent_chunks" 
               (value_to_list value_to_int64_pair));
         with e ->
-            if !verbose then lprintf "Exception %s while set absent\n"
+            if !verbose_hidden_errors then lprintf "Exception %s while set absent\n"
               (Printexc2.to_string e);         
       );
       if !verbose then lprintf "Downloaded after absent %Ld\n" (downloaded t);
       (try 
           let d = get_value "file_downloaded" value_to_int64 in
           
-          if d <> downloaded t && not !verbose then begin
+          if d <> downloaded t && not !verbose_hidden_errors then begin
               lprintf "ERROR: CommonSwarming: stored downloaded value not restored  !!! (%Ld/%Ld)\n" (downloaded t) d;
               lprintf "ERROR: CommonSwarming: present:\n";
               List.iter (fun (x,y) ->

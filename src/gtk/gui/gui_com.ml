@@ -42,10 +42,10 @@ let when_disconnected gui =
 
   
 let to_gui_protocol_used = Array.create (to_gui_last_opcode+1) 
-  GuiEncoding.best_gui_version
+  GuiProto.best_gui_version
 let from_gui_protocol_used = Array.create
     (from_gui_last_opcode+1) 
-  GuiEncoding.best_gui_version
+  GuiProto.best_gui_version
   
 module UseSocket = struct
   
@@ -67,7 +67,7 @@ let send t =
       lprintf "Message not sent since not connected";
       lprint_newline ();
   | Some sock ->
-      GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock t
+      GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used (fun s -> s) ) sock t
           
 let reconnect gui value_reader reason =
   (try disconnect gui reason with _ -> ());
@@ -130,7 +130,7 @@ let reconnect gui value_reader reason =
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = GuiDecoding.to_gui to_gui_protocol_used opcode s in
+            let m = GuiDecoding.to_gui to_gui_protocol_used (fun s -> s) opcode s in
             value_reader gui m;
           with e ->
               lprintf "Exception %s in decode/exec" (Printexc2.to_string e); 
@@ -138,7 +138,7 @@ let reconnect gui value_reader reason =
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
-    send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+    send (GuiProto.GuiProtocol GuiProto.best_gui_version)
   with e ->
       lprintf "Exception %s in connecting\n" (Printexc2.to_string e);
       TcpBufferedSocket.close sock (Closed_for_exception e);
@@ -181,7 +181,7 @@ module UseFifo = struct
           );
         end;      
       gui#label_connect_status#set_text "Connecting";
-      send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+      send (GuiProto.GuiProtocol GuiProto.best_gui_version)
       
     let connected _ = true
       
@@ -221,8 +221,8 @@ let scan_ports () =
                 BASIC_EVENT (RTIMEOUT) -> close sock Closed_for_timeout
               | _ -> ()
           ) in
-        GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock 
-          (GuiProto.GuiProtocol GuiEncoding.best_gui_version);
+        GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used (fun s -> s) ) sock 
+          (GuiProto.GuiProtocol GuiProto.best_gui_version);
         set_closer sock (fun _ _ -> 
             scan_port next (i+1) max);
         let proto = ref 0 in
@@ -232,10 +232,10 @@ let scan_ports () =
             GuiDecoding.gui_cut_messages
               (fun opcode s ->
                 try
-                  let m = GuiDecoding.to_gui to_gui_protocol_used
+                  let m = GuiDecoding.to_gui to_gui_protocol_used (fun s -> s)
                       opcode s in
                   match m with
-                    CoreProtocol n -> 
+                    CoreProtocol (n, _, _) ->
                       lprintf "GUI version %d on port %d" n i;
                       lprint_newline ();
                       proto := n

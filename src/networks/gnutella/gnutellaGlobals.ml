@@ -243,7 +243,8 @@ let new_result file_name file_size tags (uids : Uid.t list) sources =
     r) *)
       failwith "Result without UID dropped"
   | uid :: other_uids ->
-      lprintf "New result by UID\n"; 
+      if !verbose then
+        lprintf "New result by UID\n"; 
       let rs = 
         try
           Hashtbl.find results_by_uid (Uid.to_uid uid)
@@ -315,7 +316,8 @@ let new_file file_temporary file_name file_size file_uids =
       impl_file_best_name = file_name;
     } 
   in
-  lprintf "SET SIZE : %Ld\n" file_size;
+  if !verbose then
+    lprintf "SET SIZE : %Ld\n" file_size;
   let kernel = Int64Swarmer.create_swarmer file_temp file_size 
       (Int64.of_int (256 * 1024))  in
   let swarmer = Int64Swarmer.create kernel (as_file file) megabyte in
@@ -351,7 +353,8 @@ let new_file file_id file_name file_size file_uids =
     ) file_uids;
     let file = new_file file_id file_name file_size file_uids in
     List.iter (fun uid -> 
-        lprintf "Adding file %s\n" (Uid.to_string uid);
+        if !verbose then
+          lprintf "Adding file %s\n" (Uid.to_string uid);
         Hashtbl.add files_by_uid uid file) file_uids;
     file    
   with FileFound file ->
@@ -428,7 +431,8 @@ client_error = false;
 let add_download file c index =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  lprintf "Adding file to client\n";
+  if !verbose then
+    lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
 (*      let up = Int64Swarmer.register_uploader file.file_swarmer 
@@ -502,7 +506,8 @@ let remove_file file =
     Hashtbl.remove files_by_key (file.file_name, file.file_file.impl_file_size)
   else *)
   List.iter (fun uid ->
-      lprintf "******REMOVE %s\n" (Uid.to_string uid);
+        if !verbose then
+          lprintf "******REMOVE %s\n" (Uid.to_string uid);
         Hashtbl.remove files_by_uid uid
     ) file.file_uids;
   current_files := List2.removeq file !current_files  
@@ -521,9 +526,10 @@ let disconnect_from_server s r =
           Connected _ ->
             let connection_time = Int64.to_int (
                 Int64.sub (int64_time ()) s.server_connected) in
-            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
-              (Ip.string_of_addr h.host_addr) h.host_port
-              connection_time
+            if !verbose then
+              lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n"
+                (Ip.string_of_addr h.host_addr) h.host_port
+                connection_time
             ;
         | _ -> ()
       );

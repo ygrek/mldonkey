@@ -156,7 +156,7 @@ let rec client_parse_header c gconn sock header =
 
     (* I think this is already handeled with the new headder check before
        download start code
-     If the header contains a redirection 
+    (* If the header contains a redirection *)
     if (code = 302) then begin
       let (newurl, _) = List.assoc "location" headers in
 
@@ -171,7 +171,7 @@ let rec client_parse_header c gconn sock header =
       
       lprintf "DOWNLOAD FILE %s\n" (file_best_name  file); 
       if not (List.memq file !current_files) then begin
-	current_files := file :: !current_files;
+    current_files := file :: !current_files;
       end;
       add_download file c u;
       FileTPClients.get_file_from_source c file;
@@ -234,9 +234,10 @@ let rec client_parse_header c gconn sock header =
                 (start_pos, end_pos)
           with _ -> 
 (* A bit dangerous, no ??? *)
-              lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
-                (Printexc2.to_string e)
-              (String.escaped header);
+              if !verbose_hidden_errors then
+	        lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
+                    (Printexc2.to_string e)
+                    (String.escaped header);
               disconnect_client c (Closed_for_error "Bad HTTP Range");
               raise Exit
     in 
@@ -345,8 +346,11 @@ lprintf "READ: buf_used %d\n" to_read_int;
           end)
   
   with e ->
-      lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
-      AnyEndian.dump header;      
+      if !verbose_hidden_errors then
+        begin
+          lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
+          AnyEndian.dump header
+        end;
       disconnect_client c (Closed_for_exception e);
       raise e
       
@@ -417,8 +421,7 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should no
           f sock
         | _ -> ()
     )
-    
- 
+
 let proto =
   {
     proto_send_range_request = http_send_range_request;
@@ -427,5 +430,3 @@ let proto =
     proto_string = "http";
     proto_connect = http_connect;
   }
-  
-  

@@ -386,7 +386,7 @@ let rec find_ultrapeer queue =
 
 let ft_boot () =
   let (h : host) = 
-    lprintf "BOOTSTRAPPING FORM IMESH\n";
+    if !verbose then lprintf "BOOTSTRAPPING FORM IMESH\n";
     H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer 
   in
   connect_server h  
@@ -400,7 +400,7 @@ let try_connect_ultrapeer connect =
 (*        lprintf "not in ultrapeers_waiting_queue\n";   *)
         if !!bootstrap_from_imesh then
           let (h : host) = 
-            lprintf "BOOTSTRAPPING FORM IMESH\n";
+            if !verbose then lprintf "BOOTSTRAPPING FORM IMESH\n";
             H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
           find_ultrapeer peers_waiting_queue
         else raise Not_found
@@ -409,7 +409,7 @@ let try_connect_ultrapeer connect =
   connect h
   
 let connect_servers connect =
-  lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; 
+  (* lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; *)
   (if !!max_ultrapeers > List.length !connected_servers then
       try
         let to_connect = 3 * (!!max_ultrapeers - !nservers) in

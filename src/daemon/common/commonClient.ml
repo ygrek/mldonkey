@@ -347,7 +347,10 @@ let clients_get_all () =
   H.iter (fun c ->
       list := (client_num c) :: !list) clients_by_num;
   !list
-    
+
+(* the next line is to prevent any code after it from
+   directly accessing the hashtable.
+ *)
 let clients_by_num = ()
   
 let client_new_file (client :client) (dirname:string) r =

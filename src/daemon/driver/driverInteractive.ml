@@ -278,9 +278,6 @@ let print_table_html_mods buf lines =
   let counter = ref 0 in
   
   List.iter (fun line ->
-    match line with 
-      [||] -> ()
-    | _ -> begin
       if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=dl-1"
       else Printf.bprintf buf "\\<tr class=dl-2";
       incr counter;
@@ -289,7 +286,6 @@ let print_table_html_mods buf lines =
           Printf.bprintf buf "%s" data;
       ) line;
       Html.end_tr buf;
-    end
   ) lines;
   Html.end_table buf;
   Html.end_td buf;
@@ -589,13 +585,6 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 
   print_table_html_mods buf 
     (List.map (fun file ->
-      if not 
-        (match file.file_state with
-          | FilePaused -> !!html_mods_vd_paused
-          | FileQueued -> !!html_mods_vd_queued
-          | _ -> true)
-      then [||]
-      else
         [|
           (if downloading file then
               Printf.sprintf "
@@ -1067,7 +1056,7 @@ let old_print_search buf o results =
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>\\</td\\>"
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>\\</td\\>"
                   (size_of_int64 r.result_size)
                 !cavail
                   !csource

@@ -92,8 +92,9 @@ let find_search s =
     raise Not_found
   with M.Found s -> s
 
-let result_download r =  
-  lprintf ".............. result_download ..............\n";
+let result_download r =
+  if !verbose then
+    lprintf ".............. result_download ..............\n";
   let rec iter uids =
     match uids with
       [] -> raise IgnoreNetwork
@@ -107,7 +108,8 @@ let result_download r =
             download_file r
         | _  -> iter tail
   in
-  lprintf "%d uids\n" (List.length r.result_uids);
+  if !verbose then
+    lprintf "%d uids\n" (List.length r.result_uids);
   iter r.result_uids
 
 let declare_file _ = should_update_shared_files := true
@@ -115,44 +117,52 @@ let declare_file _ = should_update_shared_files := true
 let ask_for_uids sh =
   let info = IndexedSharedFiles.get_result sh.shared_info in
   if GnutellaNetwork.accept_ed2kuid then begin
-      lprintf "Ask for ED2K uid\n";
+      if !verbose then
+        lprintf "Ask for ED2K uid\n";
       CommonUploads.ask_for_uid sh ED2K (fun sh uid ->
           let uid = Uid.to_string uid in
           declare_word uid;
           declare_file ();
-          lprintf "Ed2k uid available (size %d)\n" 
+          if !verbose then
+            lprintf "Ed2k uid available (size %d)\n" 
             (Array.length info.CommonUploads.shared_md4s);
       );
     end;
   if GnutellaNetwork.accept_md5ext then begin
-      lprintf "Ask for MD5EXT uid\n";
+      if !verbose then
+        lprintf "Ask for MD5EXT uid\n";
       CommonUploads.ask_for_uid sh MD5EXT (fun sh uid ->
           let uid = Uid.to_string uid in
           declare_word uid;
           declare_file ();          
-          lprintf "Md5ext uid available: %s\n"  uid
+          if !verbose then
+            lprintf "Md5ext uid available: %s\n"  uid
       );
     end;
 
   if GnutellaNetwork.accept_bitprint then begin
-      lprintf "Ask for BITPRINT uid\n";
+      if !verbose then
+        lprintf "Ask for BITPRINT uid\n";
       CommonUploads.ask_for_uid sh BITPRINT (fun sh uid ->
           declare_word uid;
           declare_file ();
-          lprintf "Bitprint tree available (size %d)\n" 
-            (Array.length info.CommonUploads.shared_tiger);
+          if !verbose then
+            lprintf "Bitprint tree available (size %d)\n" 
+              (Array.length info.CommonUploads.shared_tiger);
           ()
       );
       CommonUploads.ask_for_uid sh TIGER (fun sh uid ->
           let uid = Uid.to_string uid in
           declare_word uid;
           declare_file ();
-          lprintf "Tiger tree available (size %d)\n" 
-            (Array.length info.CommonUploads.shared_tiger);
+          if !verbose then
+            lprintf "Tiger tree available (size %d)\n" 
+              (Array.length info.CommonUploads.shared_tiger);
       );
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
           let uid = Uid.to_string uid in
-          lprintf "Could share urn: %s\n" uid;
+          if !verbose_share then
+            lprintf "Could share urn: %s\n" uid;
 (* TODO : enter this shared file in the QRT *)
           declare_word uid;
           declare_file ();          

@@ -251,7 +251,7 @@ let query_bitzi_ticket ticket =
               lprintf "********** Retrieve bitzi lookup by ed2k\n";
               Http_client.wget_string 
                 (make_request
-                  (Printf.sprintf "http://bitzi.com/lookup/ed2k:%s" (Md4.to_string ed2k)))
+                  (Printf.sprintf "http://bitzi.com/lookup/urn:ed2k:%s" (Md4.to_string ed2k)))
               (parse_bitzi_lookup ticket) progress
           | Md5Ext md5ext ->
               

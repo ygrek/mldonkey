@@ -172,7 +172,17 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
                     Printf.bprintf  buf "%s %s\n" cmd help) 
               !CommonNetwork.network_commands)
           args
-    | cmd :: args ->
+    | one :: two ->
+	let cmd, args = 
+	  (try
+	     let command = List.assoc one !!alias_commands in
+	     match String2.split command ' ' with
+		 []   -> raise Not_found (* can't happen *)
+	       | [a]  -> a, two
+	       | a::b -> a, (b @ two)
+	   with
+	       Not_found -> one, two)
+	in
       if cmd = "q" then
         raise CommonTypes.CommandCloseSocket
       else

@@ -68,7 +68,6 @@ let quarter_timer timer =
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
   DonkeyChunks.duplicate_chunks ();
-(*  DonkeySources.clean_sources (); *)
   clients_root := []
 
 let second_timer timer =
@@ -81,7 +80,7 @@ let second_timer timer =
   )
 
 let halfmin_timer timer =
-  DonkeySources.clean_sources ();
+  DonkeySources.clean_sources (); (* Moved here from fivemin_timer. *)
   DonkeyServers.update_master_servers ()
 (*  DonkeyIndexer.add_to_local_index_timer () *)
 
@@ -282,9 +281,10 @@ be useful when users want to share files that they had already previously
 
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 
-	(fun _ -> 
-	   DonkeyUdp.extent_search ();
-	   DonkeyServers.udp_query_sources ());
+        (fun _ ->
+	  DonkeyUdp.extent_search ();
+	  DonkeyServers.udp_query_sources ()
+	 );
       
       add_session_option_timer enabler buffer_writes_delay 
         (fun _ -> Unix32.flush ());

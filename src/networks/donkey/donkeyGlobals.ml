@@ -148,9 +148,7 @@ let block_size = Int64.of_int 9728000
   
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
     
-(* ask connected servers for sources for 3 files
-   costs 3*16 credits; 1 minute gets us 60 credits *)
-let files_queries_per_minute = 3
+let files_queries_per_minute = 3 (* queries for 3 files cost 3*16=48 server-credits; we did get 60 (1 each second) *)
     
 let nclients = ref 0
 
@@ -287,8 +285,38 @@ let update_best_name file =
 let new_file file_diskname file_state md4 file_size filenames writable =
   
   try
-    find_file md4 
+      let file = find_file md4 in
+      if file.file_diskname <> file_diskname then
+        begin
+          if not (Sys.file_exists file.file_diskname)
+              && Sys.file_exists file_diskname
+              && file.file_shared = None
+              && Unix32.destroyed (file_fd file)
+            then
+              begin
+                if !verbose_share then
+                  lprintf "New Edonkey file with changed filename %s to %s\n"
+                    file.file_diskname file_diskname;
+                file.file_diskname <- file_diskname;
+              end
+          else
+            if !verbose_share then
+              lprintf "New Edonkey file with not changed different filename %s and %s\n"
+                file.file_diskname file_diskname;
+        end;
+      if Unix32.destroyed (file_fd file)
+          && not writable
+          && file.file_diskname = file_diskname
+        then
+          file.file_file.impl_file_fd <-
+            Unix32.create_diskfile file.file_diskname Unix32.rw_flag 0o666;
+      if Unix32.destroyed (file_fd file) then
+          lprintf "New Edonkey file with %b && %b remaining destroyed fd %s\n"
+            (not writable) (file.file_diskname = file_diskname) file.file_diskname;
+      file
   with _ ->
+      if !verbose then
+        lprintf "New Edonkey file with md4: %s\n" (Md4.to_string md4);
       let file_exists = Unix32.file_exists file_diskname in
       
       let t = 

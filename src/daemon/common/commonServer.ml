@@ -385,28 +385,41 @@ let server_print s o =
         (Ip.string_of_addr info.G.server_addr)
         end
       )
-      (if n.network_name = "Donkey" then 
-        begin
-            match impl.impl_server_state with
-            Connected _ -> begin 
-                        let cid = (server_cid s) in
-(* No! No! How often is this done wrong in mldonkey???  ... *)
-(*                        if Ip.valid cid then Printf.sprintf  *)
-                        if not (donkeyIsLowID cid) then Printf.sprintf
-                        "title=\\\"HighID: %s = %s %s\\\" \\>%s" 
-                        (Int64.to_string (Ip.to_int64 (Ip.rev cid)))  
-						(Ip.to_string cid) 
-						(if !!set_client_ip <> cid then Printf.sprintf "(clientIP: %s)" (Ip.to_string !!set_client_ip) 
-						 else "") 
-						"Hi"
-                        else Printf.sprintf "title=\\\"LowID: %s = %s\\\" \\>%s" 
-                        (Int64.to_string (Ip.to_int64 (Ip.rev cid)))
-						(Ip.to_string cid)
-						 "Lo"
-                        end
-        | _ -> "\\>"
-
-       end else "\\>" )
+      (if n.network_name = "Donkey" then
+         begin
+           let donkey_low_id ip =
+             match Ip.to_ints ip with
+             | _, _, _, 0 -> true
+             | _ -> false
+           in
+	   match impl.impl_server_state with
+	   | Connected _ ->
+	       begin
+        	 let cid = (server_cid s) in
+                 let (label,shortlabel,our_ip) =
+                   if not (donkey_low_id cid) then
+                     ("HighID","Hi",
+		      (if !!set_client_ip <> cid then
+			 Printf.sprintf "(clientIP: %s)"
+                           (Ip.to_string !!set_client_ip)
+		       else ""
+		      )
+		     )
+                   else
+                     ("LowID","Lo","")
+                 in
+                 Printf.sprintf
+                    "title=\\\"%s: %s = %s %s\\\" \\>%s"
+                      label
+                      (Int64.to_string (Ip.to_int64 (Ip.rev cid)))
+                      (Ip.to_string cid)
+                      our_ip
+                      shortlabel
+               end
+	   | _ -> "\\>"
+	 end
+       else "\\>"
+      )
       
       n.network_name
    (string_of_connection_state impl.impl_server_state)

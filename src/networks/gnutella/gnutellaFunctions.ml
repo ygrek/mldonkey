@@ -93,8 +93,9 @@ let default_handler gconn sock =
   match !default_handler_hook with
     None ->
       let b = buf sock in
-      lprintf "HttpReader: Handler not found for [%s]\n"
-        (String.escaped (String.sub b.buf b.pos b.len));
+      if !verbose_hidden_errors then
+        lprintf "HttpReader: Handler not found for [%s]\n"
+          (String.escaped (String.sub b.buf b.pos b.len));
       close sock (Closed_for_error "not recognized");
       failwith "Reply is not in the correct protocol"
   | Some f -> f gconn sock
@@ -125,8 +126,9 @@ let handlers info gconn =
                       (try 
                           default gconn sock 
                         with e ->
-                            lprintf "HttpReader: default handler raised %s\n"
-                              (Printexc2.to_string e);
+                            if !verbose_hidden_errors then
+                              lprintf "HttpReader: default handler raised %s\n"
+                                (Printexc2.to_string e);
                             close sock (Closed_for_exception e));
                       if b.len > 0 && b.len < len then 
                         let nused = len - b.len in
@@ -187,8 +189,9 @@ let handlers info gconn =
           (try
               h gconn sock;
             with e ->
-                lprintf "Reader: handler raised %s\n"
-                  (Printexc2.to_string e);
+                if !verbose_hidden_errors then
+                  lprintf "Reader: handler raised %s\n"
+                    (Printexc2.to_string e);
                 close sock (Closed_for_exception e));
           if b.len > 0 && b.len < len then 
             let nused = len - b.len in

@@ -206,6 +206,48 @@ let _ =
         "heap dumped"
     ), ":\t\t\t\tdump heap for debug";
     
+    "alias", Arg_multiple ( fun args o ->
+        let out = ref "" in
+	if List.length args = 0 then begin
+	  out := "List of aliases\n\n";
+	  List.iter (
+	    fun (a,b) ->
+	      out := !out ^ a ^ " -> " ^ b ^ "\n"
+	  ) !!alias_commands;
+	end
+	else begin
+	  match args with
+	      [] | [_] -> out := "Too few arguments"
+	    | al::def -> 
+		(try 
+		   let old_def = List.assoc al !!alias_commands in
+		   out := "removing " ^ al ^ " -> " ^ old_def ^ "\n";
+		   alias_commands =:= List.remove_assoc al !!alias_commands;
+		 with _ -> ());
+
+		let definition = String.concat " " def in
+		alias_commands =:=  (al,definition) :: !!alias_commands; 
+		out := !out ^ "Alias added";
+	end;
+
+	!out
+    ), ":\t\t\t\t\t$badd an command alias\n"
+       ^"\t\t\t\t\tfor example: \"alias ca cancel all\" makes an alias\n"
+       ^"\t\t\t\t\t\"ca\" performing \"cancel all\"\n"
+       ^"\t\t\t\t\tto substitute an alias just make a new one\n"
+       ^"\t\t\t\t\tfor example: \"alias ca vd\"$n";
+
+
+    "unalias", Arg_one ( 
+      fun arg o ->
+	(try 
+	   let old_def = List.assoc arg !!alias_commands in
+	   alias_commands =:= List.remove_assoc arg !!alias_commands;
+	   "removing " ^ arg ^ " -> " ^ old_def
+	 with _ -> "Alias not found");
+
+    ), ":\t\t\t\t\t$bdelete an command alias  example: \"unalias ca\"$n";
+
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
     ), ":\t\t\t\t\t$bclose telnet$n";
@@ -300,7 +342,7 @@ let _ =
               end
         ) activities;
         ""
-    ), " <minutes> :\t\tprint activity in the last <minutes> minutes";
+    ), " <minutes> :\t\t\tprint activity in the last <minutes> minutes";
     
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -937,8 +979,8 @@ let _ =
               G.search_network = net;
             }) buf);
         ""
-    ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n";
-
+    ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n";
+    
     "ls", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
@@ -1246,8 +1288,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_mods_vd_age; 
                         strings_of_option html_mods_vd_last; 
                         strings_of_option html_mods_vd_prio; 
-                        strings_of_option html_mods_vd_paused; 
-                        strings_of_option html_mods_vd_queued; 
                         strings_of_option html_mods_vd_queues; 
                         strings_of_option html_mods_show_pending; 
                         strings_of_option html_mods_load_message_file; 
@@ -1557,18 +1597,18 @@ let _ =
             List.iter (fun shared_dir -> 
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-		\\<td title=\\\"Click to unshare this directory\\\" 
+	\\<td title=\\\"Click to unshare this directory\\\" 
         onMouseOver=\\\"mOvr(this);\\\" 
         onMouseOut=\\\"mOut(this);\\\"
-		onClick=\\\'javascript:{ 
-		parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
+	onClick=\\\'javascript:{ 
+	parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
         setTimeout(\\\"window.location.reload()\\\",1000);}'
-		class=\\\"srb\\\"\\>Unshare\\</td\\>
-		\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-		\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
-                  (if !counter mod 2 == 0 then "dl-1" else "dl-2") 
-                shared_dir.shdir_dirname 
+	class=\\\"srb\\\"\\>Unshare\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2")
+                shared_dir.shdir_dirname
                 shared_dir.shdir_priority
                 shared_dir.shdir_dirname
                 shared_dir.shdir_strategy;
@@ -2137,7 +2177,7 @@ let _ =
 			 network_parse_url n url
                        with e ->
 			 Printf.bprintf buf "Exception %s for network %s\n"
-			 (Printexc2.to_string e) (n.network_name);
+			   (Printexc2.to_string e) (n.network_name);
 			 false
 		    )) then
             _s "Unable to match URL"
@@ -2146,7 +2186,7 @@ let _ =
 	in
         
         let url = String2.unsplit args ' ' in
-	  if (String2.starts_with url "http") then (
+	if (String2.starts_with url "http") then (
 	    let u = Url.of_string url in
 	    let module H = Http_client in
 	    let r = {
@@ -2157,17 +2197,17 @@ let _ =
 		H.req_user_agent = 
 		       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
 	    } in
-	      H.whead r 
+	    H.whead r 
 		(fun headers ->
 		   (* Combine the list of header fields into one string *)
 		   let concat_headers = 
-		     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")  in
-		     ignore (query_networks concat_headers)
+		     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
+		   in
+		   ignore (query_networks concat_headers)
 		);
-	  
-	      _s "Parsing HTTP url..."
-	  )
-	  else
+	    _s "Parsing HTTP url..."
+	    )
+	else
 	    query_networks url
 	), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
     
@@ -2419,7 +2459,7 @@ let _ =
 
     "block_list", Arg_none (fun o ->
       Ip_set.print_list o.conn_buf !Ip_set.bl;
-      _s "done"), ":\t\t\t\t\tdisplay the list of blocked IP ranges that were hit";
+      _s "done"), ":\t\t\t\tdisplay the list of blocked IP ranges that were hit";
 
     "block_test", Arg_one (fun arg o ->
       let ip = Ip.of_string arg in

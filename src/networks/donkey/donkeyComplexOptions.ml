@@ -281,12 +281,25 @@ let value_to_file file_size file_state assocs =
         get_value "file_diskname" value_to_string
       with _ ->
         let filename = Filename.concat !!temp_directory file_md4 in
-        lprintf "testing ed2k-temp-file %s .\n" filename;
+	lprintf "geting file_diskname from ini failed, testing for ed2k-temp-file %s .\n" filename;
         if Sys.file_exists filename then
           filename
         else
-          Filename.concat !!temp_directory
-            (Printf.sprintf "urn:ed2k:%s" file_md4)
+          begin
+            let filename =
+              Filename.concat
+                !!temp_directory
+                ( string_of_uid ( Ed2k (Md4.of_string file_md4) ) )
+            in
+            lprintf "geting file_diskname from ini failed, testing for ed2k-temp-file %s .\n"
+              filename;
+            if Sys.file_exists filename then
+              filename
+            else
+              Filename.concat
+                !!temp_directory
+                ( file_string_of_uid ( Ed2k (Md4.of_string file_md4) ) )
+          end
     in
     if not (Sys.file_exists filename) then
       (* I think we should die here, to prevent any corruption. *)

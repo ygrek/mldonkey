@@ -102,6 +102,10 @@ let force_high_id = define_option donkey_section ["force_high_id"]
     "immediately close connection to servers that don't grant a High ID"
     bool_option false
 
+let force_client_high_id = define_option donkey_section ["force_client_high_id"]
+    "send all clients your IP regardless of what ID was assigned by the server"
+    bool_option false
+
 let update_server_list = define_option donkey_section
     ["update_server_list"] "Set this option to false if you don't want auto
     update of servers list" bool_option true
@@ -125,8 +129,8 @@ through the list (should be greater than become_master_delay)" int_option 300
   
 let max_indirect_connections = define_option donkey_section
     ["max_indirect_connections"] 
-  "Maximal number of incoming connections at any moment (default 10000 = unlimited :)"
-  int_option 100
+  "Maximal number of indirect connections at any moment"
+  int_option (!!max_opened_connections/2)
   
 let log_clients_on_console = define_expert_option donkey_section
   ["log_clients_on_console"] 
@@ -139,8 +143,8 @@ let propagate_sources = define_expert_option donkey_section ["propagate_sources"
   
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"
-    int_option 500
-    
+    int_option 20000
+
 open Md4  
     
 let mldonkey_md4 md4 =
@@ -219,7 +223,7 @@ let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_
 
 let min_left_servers = define_expert_option donkey_section ["min_left_servers"]
   "Minimal number of servers remaining after remove_old_servers"
-    int_option 200
+    int_option 20
   
 let servers_walking_period = define_expert_option donkey_section ["servers_walking_period"]
   "How often should we check all servers (minimum 4 hours, 0 to disable)"
@@ -298,10 +302,6 @@ let immediate_master =
 let become_master_delay = 
   define_expert_option donkey_section ["become_master_delay"] 
     "(only for development tests)" int_option 120
-
-let firewalled_mode = 
-  define_expert_option donkey_section ["firewalled_mode"] 
-    "Send the ID assigned from servers in connect-requests sent to other donkey clients (doe only apply when we have a LowID assogned!)" bool_option false
 
 let gui_donkey_options_panel = 
   [

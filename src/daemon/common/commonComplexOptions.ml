@@ -81,11 +81,11 @@ module FileOption = struct
                 normalize_time (get_value "file_age" value_to_int)
             with _ -> ());
           set_file_state file file_state;       
-	  if !verbose then 
+          if !verbose then
           (match file_state with
               FileDownloading -> lprintf "New downloading file\n";
             | FileDownloaded -> lprintf "New downloaded file\n";
-            | _ -> lprintf "..........\n"
+            | _ -> lprintf "New file with other state\n"
           );
           
           (try
@@ -653,6 +653,15 @@ let sharing_incoming_files = {
     sharing_minsize = Int64.of_int 1;
     sharing_maxsize = Int64.max_int;
   }
+
+let sharing_directories = {
+      sharing_incoming = false;
+      sharing_directories = true;
+      sharing_extensions = [];
+      sharing_recursive = false;
+      sharing_minsize = Int64.of_int 1;
+      sharing_maxsize = Int64.max_int;
+    }
   
 let sharing_strategies = define_option searches_section
     ["customized_sharing"] ""
@@ -695,6 +704,8 @@ let sharing_strategies = define_option searches_section
     
 (* For incoming directory, share all files in the directory (not recursive) *)
     "only_directory", sharing_only_directory;
+    
+    "directories", sharing_directories;
   ]
 
 let _ =
@@ -720,6 +731,7 @@ let sharing_strategies name =
   | "incoming_files" -> sharing_incoming_files
   | "incoming_directories" -> sharing_incoming_directories
   | "only_directory" -> sharing_only_directory
+  | "directories" -> sharing_directories
   | _ ->
       try
         List.assoc name !!sharing_strategies

@@ -72,7 +72,7 @@ let tcp_handler t sock event =
   | CAN_READ 
   | CAN_WRITE ->
     begin
-    try
+     try
       let s,id = Unix.accept (fd sock) in
       if !verbose_bandwidth > 1 then lprintf "[BW2 %6d] accept on %s\n" (last_time ()) t.name;
       (match t.accept_control with
@@ -80,7 +80,7 @@ let tcp_handler t sock event =
             cc.nconnections_last_second <- cc.nconnections_last_second + 1);
       incr nconnections_last_second;
       t.event_handler t (CONNECTION (s,id))
-    with e->
+     with e ->
       lprintf "Exception tcp_handler: %s\n" (Printexc2.to_string e);
       raise e
     end
@@ -152,4 +152,3 @@ let _ =
             lprintf "[BW3 %6d] %20s: stop accepting connections\n" (last_time ()) cc.cc_name
       ) !connections_controlers
   )
-  

@@ -52,9 +52,8 @@ let simple date =
   
 let mail_string date =
     string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second]
-    (Unix.localtime date)
+      (Unix.localtime date)
 
 let hour_in_secs = 3600
 let day_in_secs = 24 * hour_in_secs
 let year_in_secs = 365 * day_in_secs
-  

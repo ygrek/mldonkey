@@ -58,7 +58,7 @@ let mldonkey_wget url f =
   
   
 let load_url kind url =
-  if !verbose then lprintf "QUERY URL %s\n" url; 
+  lprintf "QUERY URL %s\n" url; 
   let f = 
     try 
       (List.assoc kind !file_kinds) url
@@ -340,4 +340,3 @@ let _ =
       tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
       udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
   )
-  

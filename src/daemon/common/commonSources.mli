@@ -78,7 +78,7 @@ module Make(M:
       val value_to_source_brand: Options.option_value -> source_brand
       
       val direct_source : source_uid -> bool    
-      val indirect_source : source_uid -> bool    
+      val indirect_source : source_uid -> bool
     end) : (
     sig
 
@@ -166,7 +166,6 @@ module Make(M:
       val attach_sources_to_file : Options.options_section -> (unit -> unit)
         
       val print : Buffer.t -> unit
-      val print_tsources : Buffer.t -> unit
   
       val indirect_connections : int ref
         
@@ -179,7 +178,7 @@ module Make(M:
         
       val iter_all_sources : (source -> unit) -> file_sources_manager -> unit
       val iter_active_sources : (source -> unit) -> file_sources_manager -> unit
-      val iterQualifiedSources : (source -> unit) -> file_sources_manager -> unit
+      val iter_qualified_sources : (source -> unit) -> file_sources_manager -> unit
 
       val set_brothers : file_sources_manager list -> unit
       val get_brothers : file_sources_manager -> string list      

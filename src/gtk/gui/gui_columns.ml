@@ -163,7 +163,7 @@ module Server = Make(struct
 (** The different columns which can be displayed for a search result. *)
 type result_column = 
   Col_result_name
-| Col_result_md4
+| Col_result_uids
 | Col_result_size
 | Col_result_format
 | Col_result_props
@@ -172,7 +172,7 @@ type result_column =
   
 let result_column_strings = [
     Col_result_name, M.c_name ;
-    Col_result_md4, M.c_md4 ;
+    Col_result_uids, M.c_md4 ;
     Col_result_size, M.c_size ;
     Col_result_format, M.c_format ;
     Col_result_props, M.c_properties ;
