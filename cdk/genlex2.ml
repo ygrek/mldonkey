@@ -20,7 +20,7 @@
 type token =
     Kwd of string
   | Ident of string
-  | Int of int32
+  | Int of int64
   | Float of float
   | String of string
   | Char of char
@@ -119,7 +119,7 @@ let make_lexer keywords =
         Stream.junk strm__; let s = strm__ in store '.'; decimal_part s
     | Some ('e' | 'E') ->
         Stream.junk strm__; let s = strm__ in store 'E'; exponent_part s
-    | _ -> Some (Int (Int32.of_string (get_string ())))
+    | _ -> Some (Int (Int64.of_string (get_string ())))
   and decimal_part (strm__ : _ Stream.t) =
     match Stream.peek strm__ with
       Some ('0'..'9' as c) ->

@@ -97,8 +97,10 @@ let query_locations s n_per_round =
       in
       iter n_per_round
 
+      
+(* every 60 seconds *)
 let query_locations_timer () =
-  if DonkeySources1.need_new_sources () then 
+  if DonkeySources1.S.need_new_sources () then 
     List.iter (fun s ->
 (* During the first 20 minutes, don't send any localisation query
 to the server *)
@@ -110,7 +112,7 @@ to the server *)
     
 let _ =
   server_ops.op_server_sort <- (fun s ->
-      (3600. *. (float_of_int s.server_score)) +. 
+      (3600 * s.server_score) +
         connection_last_conn s.server_connection_control
   )
 
@@ -218,7 +220,7 @@ let client_to_server s t sock =
 number of queries that can be sent per minute (for lugdunum, it's one!).
 Once the first queries have been sent, we must wait 20 minutes before next
 queries. *)
-      if DonkeySources1.need_new_sources () then 
+      if DonkeySources1.S.need_new_sources () then 
         query_locations s (20 * !!files_queries_per_minute);
       s.server_queries_credit <- !!files_queries_initial_delay
 (*      !server_is_connected_hook s sock *)
@@ -246,7 +248,7 @@ connection from another client. In this case, we should immediatly connect.
               friend_add c
 
           | Some file ->
-              ignore (DonkeySources1.new_source (t.Q.ip, t.Q.port) file)
+              ignore (DonkeySources1.S.new_source (t.Q.ip, t.Q.port) file)
         end
 
   | M.QueryIDFailedReq t ->
@@ -460,20 +462,19 @@ position to the min_left_servers position.
       if ls1 = ls2 then 0 else if ls1 > ls2 then -1 else 1
   ) array;
 
-  if !!verbose then 
+  if !verbose then 
     for i = 0 to Array.length array - 1 do
       let ls, s = array.(i) in
-      Printf.printf "server %d last_conn %10.f" (server_num s) ls;
+      Printf.printf "server %d last_conn %d" (server_num s) ls;
       print_newline ()
     done;
 
-  let min_last_conn =  last_time () -. float_of_int !!max_server_age *. 
-    one_day in
+  let min_last_conn =  last_time () - !!max_server_age * Date.day_in_secs in
   
   for i = Array.length array - 1 downto !!min_left_servers do
     let ls, s = array.(i) in
     if ls < min_last_conn && s.server_sock = None then begin
-        if !!verbose then begin
+        if !verbose then begin
             Printf.printf "Server too old: %s:%d" 
               (Ip.to_string s.server_ip) s.server_port;
             print_newline ();
@@ -546,7 +547,7 @@ let update_master_servers _ =
                 direct_server_send_share sock (DonkeyShare.all_shared ())
           end else
         if connection_last_conn s.server_connection_control 
-            +. 120. < last_time () &&
+            + 120 < last_time () &&
           !nconnected_servers > max_allowed_connected_servers ()  then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
@@ -573,15 +574,14 @@ print_newline ();
   them , and don't send your shared files list *)
 let walker_list = ref []
 let delayed_list = ref []
-let next_walker_start = ref 0.0
-
+let next_walker_start = ref 0
   
 (* one call every 5 seconds, so 12/minute, 720/hour *)
 let walker_timer () = 
   
-  if !!servers_walking_period > 0. &&
+  if !!servers_walking_period > 0 &&
     !nservers < max_allowed_connected_servers () + !!max_walker_servers &&
-    DonkeySources1.need_new_sources () then
+    DonkeySources1.S.need_new_sources () then
     
     match !walker_list with
       [] ->
@@ -591,7 +591,7 @@ let walker_timer () =
               delayed_list := []
             end else
           if last_time () > !next_walker_start then begin
-              next_walker_start := last_time () +. !!servers_walking_period *. 3600.;
+              next_walker_start := last_time () + !!servers_walking_period * 3600;
               Hashtbl.iter (fun _ s ->
                   walker_list := s :: !walker_list
               ) servers_by_key;
@@ -603,7 +603,7 @@ let walker_timer () =
           None -> 
             if connection_can_try s.server_connection_control then begin
                 
-                if !!verbose then begin
+                if !verbose then begin
                     Printf.printf "WALKER: try connect %s" 
                       (Ip.to_string s.server_ip);
                     print_newline ();
@@ -613,7 +613,7 @@ let walker_timer () =
               end else begin
                 
                 delayed_list := s :: !delayed_list;
-                if !!verbose then begin
+                if !verbose then begin
                     Printf.printf "WALKER: connect %s delayed"
                       (Ip.to_string s.server_ip);
                     print_newline ();
@@ -628,8 +628,8 @@ let walker_timer () =
 (* Keep connecting to servers in the background. Don't stay connected to 
   them , and don't send your shared files list *)
 let udp_walker_list = ref []
-let next_udp_walker_start = ref 0.0
-
+let next_udp_walker_start = ref 0
+  
 (* one call every second, so 3600/hour, must wait one hour before
 restarting 
 Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
@@ -649,7 +649,7 @@ let udp_walker_timer () =
   match !udp_walker_list with
     [] ->
       if last_time () > !next_udp_walker_start then begin
-          next_udp_walker_start := last_time () +. 4. *. 3600.;
+          next_udp_walker_start := last_time () + 4*3600;
           Hashtbl.iter (fun _ s ->
               udp_walker_list := s :: !udp_walker_list
           ) servers_by_key;
@@ -680,7 +680,7 @@ let udp_walker_timer () =
       
 let update_master_servers _ =
 
-  if !!verbose then begin
+  if !verbose then begin
       
       print_newline ();
       print_newline ();
@@ -699,7 +699,7 @@ let update_master_servers _ =
         match s.server_sock with
           None -> s.server_master <- false
         | _ -> 
-            if !!verbose then begin
+            if !verbose then begin
                 Printf.printf "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
                 print_newline ();
               end;
@@ -707,7 +707,7 @@ let update_master_servers _ =
   ) list;
   let nmasters = ref (List.length !masters) in
   
-  if !!verbose then begin
+  if !verbose then begin
       Printf.printf "MASTER: nmaster %d" !nmasters;
       print_newline (); print_newline ();
     end;
@@ -718,7 +718,7 @@ the fewer users. *)
     match s.server_sock with
       None -> assert false
     | Some sock ->                
-        if !!verbose then begin
+        if !verbose then begin
             Printf.printf "   MASTER: %s" (Ip.to_string s.server_ip); 
             print_newline ();
           end;
@@ -735,7 +735,7 @@ the fewer users. *)
 connections *)
     if !nconnected_servers > max_allowed_connected_servers then begin
         
-        if !!verbose then begin
+        if !verbose then begin
             Printf.printf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
             print_newline ();
           end;
@@ -752,15 +752,15 @@ connections *)
       if s.server_sock <> None then begin
           incr nconnected_servers;
           
-          if !!verbose then begin
-              Printf.printf "MASTER: EXAM %s %3.0f" (Ip.to_string s.server_ip)
-              ((last_time ()) -.  connection_last_conn s.server_connection_control)
+          if !verbose then begin
+              Printf.printf "MASTER: EXAM %s %d" (Ip.to_string s.server_ip)
+              (last_time () -  connection_last_conn s.server_connection_control)
               ; 
               print_newline ();
             end;
           
           if connection_last_conn s.server_connection_control 
-              +. 120. < last_time () && not s.server_master then begin
+              + 120 < last_time () && not s.server_master then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               
@@ -779,7 +779,7 @@ now if needed *)
                     mini (ss.server_nusers + 1000) (ss.server_nusers * 5)
                     < s.server_nusers then begin
                       
-                      if !!verbose then begin
+                      if !verbose then begin
                           Printf.printf
                             "   MASTER: RAISING %s (%d) instead of %s (%d)" 
                             (Ip.to_string s.server_ip) s.server_nusers 
@@ -796,7 +796,7 @@ now if needed *)
         end)
   list;
   
-  if !!verbose then begin
+  if !verbose then begin
       Printf.printf "MASTER: clean %d connected %d masters" 
         !nconnected_servers !nmasters; print_newline ();
     end;

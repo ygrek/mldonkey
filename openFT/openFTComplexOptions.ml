@@ -77,7 +77,7 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_id"
   in
   let file_size = try
-      value_to_int32 (List.assoc "file_size" assocs) 
+      value_to_int64 (List.assoc "file_size" assocs) 
     with _ -> failwith "Bad file size"
   in
   
@@ -100,9 +100,9 @@ let value_to_file is_done assocs =
 
 let file_to_value file =
   [
-    "file_size", int32_to_value (file_size file);
+    "file_size", int64_to_value (file_size file);
     "file_name", string_to_value file.file_name;
-    "file_downloaded", int32_to_value (file_downloaded file);
+    "file_downloaded", int64_to_value (file_downloaded file);
     "file_md5", string_to_value (Md4.to_string file.file_md5);
     "file_sources", 
     list_to_value "OpenFT Sources" (fun c ->
@@ -132,7 +132,7 @@ let server_to_value s =
   
 let old_files = 
   define_option openft_ini ["old_files"]
-    "" (list_option (tuple2_option (string_option, int32_option))) []
+    "" (list_option (tuple2_option (string_option, int64_option))) []
     
     
 let save_config () =

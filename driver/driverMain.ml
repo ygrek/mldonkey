@@ -304,13 +304,13 @@ let _ =
         Printf.printf "SIGPIPE"; print_newline ()));
   MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-        if !!CommonOptions.verbose then
+        if !CommonOptions.verbose then
           BasicSocket.print_sockets ();
         DriverInteractive.save_config ();
         exit 0));
   MlUnix.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-        if !!CommonOptions.verbose then
+        if !CommonOptions.verbose then
           BasicSocket.print_sockets ();
         DriverInteractive.save_config ();
         exit 0))

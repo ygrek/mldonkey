@@ -40,20 +40,20 @@ let to_fixed_string ((a4, a3, a2, a1) as t)=
   with _ -> 
       Printf.sprintf "%03d.%03d.%03d.%03d" a4 a3 a2 a1
 
-let to_int32  ((a4, a3, a2, a1) as t) =
+let to_int64  ((a4, a3, a2, a1) as t) =
   let small = a1 + 256 * (a2 + 256 * a3) in
-  Int32.add (Int32.of_int small) (Int32.shift_left (Int32.of_int a4) 24)
+  Int64.add (Int64.of_int small) (Int64.shift_left (Int64.of_int a4) 24)
 
-let const_int32_255 = Int32.of_int 255
+let const_int32_255 = Int64.of_int 255
   
-let of_int32 i =
-  let a4 = Int32.to_int (Int32.logand (Int32.shift_right i 24) const_int32_255)
+let of_int64 i =
+  let a4 = Int64.to_int (Int64.logand (Int64.shift_right i 24) const_int32_255)
   in
-  let a3 = Int32.to_int (Int32.logand (Int32.shift_right i 16) const_int32_255)
+  let a3 = Int64.to_int (Int64.logand (Int64.shift_right i 16) const_int32_255)
   in
-  let a2 = Int32.to_int (Int32.logand (Int32.shift_right i 8) const_int32_255)
+  let a2 = Int64.to_int (Int64.logand (Int64.shift_right i 8) const_int32_255)
   in
-  let a1 = Int32.to_int (Int32.logand i const_int32_255)
+  let a1 = Int64.to_int (Int64.logand i const_int32_255)
   in
   (a4, a3, a2, a1)
   

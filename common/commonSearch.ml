@@ -32,8 +32,8 @@ let search_string q =
     | QAndNot (q1, q2) ->  Printf.sprintf "(%s) AND NOT (%s)" (iter q1) (iter q2)
     | QHasWord s -> Printf.sprintf "CONTAINS[%s]" s
     | QHasField (f,s) -> Printf.sprintf "[%s]CONTAINS[%s]" f s
-    | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%ld" f v
-    | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%ld" f v
+    | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%Ld" f v
+    | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%Ld" f v
     | QNone ->
 	prerr_endline "QNone in query";
 	""
@@ -91,13 +91,13 @@ let search_of_args args =
     match args with
       [] -> q
     | "-minsize" :: minsize :: args ->
-        let minsize = Int32.of_string minsize in
+        let minsize = Int64.of_string minsize in
         iter args ((QHasMinVal("size", minsize)) :: q)
     | "-maxsize"  :: maxsize :: args ->
-        let maxsize = Int32.of_string maxsize in
+        let maxsize = Int64.of_string maxsize in
         iter args  ((QHasMaxVal("size", maxsize)) :: q)
     | "-avail"  :: avail :: args ->
-        let avail = Int32.of_string avail in
+        let avail = Int64.of_string avail in
         iter args ((QHasMinVal("avail", avail)) :: q)
     | "-media"  :: filetype :: args ->
         iter args ((QHasField("type", filetype)) :: q)
@@ -247,9 +247,9 @@ let custom_query buf query =
 </table>
           " label (if default = "" then "" else
             try
-              let size = Int32.of_string default in
-              let size = Int32.div size (Int32.of_int 1048576) in
-              Int32.to_string size
+              let size = Int64.of_string default in
+              let size = Int64.div size (Int64.of_int 1048576) in
+              Int64.to_string size
             with _ -> "")
 
       | Q_MAXSIZE (label, default) ->
@@ -271,9 +271,9 @@ let custom_query buf query =
 </table>
           " label (if default = "" then "" else
             try
-              let size = Int32.of_string default in
-              let size = Int32.div size (Int32.of_int 1048576) in
-              Int32.to_string size
+              let size = Int64.of_string default in
+              let size = Int64.div size (Int64.of_int 1048576) in
+              Int64.to_string size
             with _ -> "")
           
       | Q_MP3_BITRATE (label, default) -> 
@@ -696,12 +696,12 @@ let rec mftp_query_of_query_entry qe =
 
   | Q_MINSIZE (_,s) ->
       (
-       try QHasMinVal ("size", Int32.of_string s)
+       try QHasMinVal ("size", Int64.of_string s)
        with _ -> QNone
       )
   | Q_MAXSIZE (_,s) ->
       (
-       try QHasMaxVal ("size", Int32.of_string s)
+       try QHasMaxVal ("size", Int64.of_string s)
        with _ -> QNone
       )
   | Q_FORMAT (_,s) ->
@@ -750,7 +750,7 @@ let rec mftp_query_of_query_entry qe =
   | Q_MP3_BITRATE (_,s) ->
       begin
         try
-          let bitrate =  Int32.of_string s
+          let bitrate =  Int64.of_string s
           in
           QHasMinVal("bitrate", bitrate)
         with _ -> QNone

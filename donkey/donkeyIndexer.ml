@@ -96,15 +96,15 @@ let buf_tag b tag =
   buf_string b tag.tag_name;
   match tag.tag_value with
     String s -> buf_int8 b 0; buf_string b s
-  | Uint32 i -> buf_int8 b 1; buf_int32_32 b i
-  | Fint32 i -> buf_int8 b 2; buf_int32_32 b i
+  | Uint64 i -> buf_int8 b 1; buf_int64_32 b i
+  | Fint64 i -> buf_int8 b 2; buf_int64_32 b i
   | Addr ip ->  buf_int8 b 3; buf_ip b ip
   
 let output_value oc h =
   let b = Buffer.create 100 in
   buf_list buf_string b h.hresult_names;
   buf_md4 b h.hresult_md4;
-  buf_int32_32 b h.hresult_size;
+  buf_int64_32 b h.hresult_size;
   buf_list buf_tag b h.hresult_tags;
   let s = Buffer.contents b in
   output_request oc s
@@ -118,10 +118,10 @@ let get_tag s pos =
       String s, pos
     else 
     if t = 1 then
-      Uint32 (get_int32_32 s (pos+1)), pos + 5
+      Uint64 (get_int64_32 s (pos+1)), pos + 5
     else
     if t = 2 then
-      Fint32 (get_int32_32 s (pos+1)), pos + 5
+      Fint64 (get_int64_32 s (pos+1)), pos + 5
     else
     let ip = get_ip s (pos+1) in
     Addr ip, pos + 5
@@ -132,7 +132,7 @@ let input_value ic =
   let s = read_request ic in
   let (names, pos) = get_list get_string s 0 in
   let md4 = get_md4 s pos in
-  let size = get_int32_32 s (pos + 16) in
+  let size = get_int64_32 s (pos + 16) in
   let pos = pos + 16 + 4 in
   let (tags, pos) = get_list get_tag s pos in
   {
@@ -285,7 +285,7 @@ let refill_add_to_local_index t_out =
       List.iter (fun name -> 
           Printf.bprintf  buf "name:%s\n" name
       ) r.result_names;
-      Printf.bprintf buf "size:%s\n" (Int32.to_string r.result_size);
+      Printf.bprintf buf "size:%s\n" (Int64.to_string r.result_size);
       Printf.bprintf buf "md4:%s\n" (Md4.to_string r.result_md4);
       if r.result_format <> "" then
         Printf.bprintf buf "format:%s\n" r.result_format;
@@ -295,9 +295,9 @@ let refill_add_to_local_index t_out =
           match tag.tag_value with
             String s ->
               Printf.bprintf buf "string_tag:%s:%s\n" tag.tag_name s
-          | Uint32 i | Fint32 i ->
+          | Uint64 i | Fint64 i ->
               Printf.bprintf buf "int_tag:%s:%s\n" tag.tag_name 
-                (Int32.to_string i)
+                (Int64.to_string i)
           | _ -> ()
       ) r.result_tags;
       Buffer.add_string buf "end result\n";

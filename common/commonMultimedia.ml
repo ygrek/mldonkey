@@ -236,10 +236,12 @@ let search_info_mp3 filename =
     raise (FormatFound (MP3 (tag, info)))
   with
   | FormatFound _ as e -> raise e
-  | x ->
+  | Not_found -> () (* The file couldn't be found *)
+  | x -> ()
+      (*
       Printf.printf "error while looking for mp3file %s: %s" filename
         (Printexc2.to_string x); print_newline ()
-
+      *)
 
 let get_info file =
   let ic = open_in file in

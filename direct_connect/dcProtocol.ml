@@ -130,7 +130,7 @@ module Direction = struct
 module Get = struct
     type t = {
         name : string;
-        pos : int32;
+        pos : int64;
       }
       
     let parse s = 
@@ -138,30 +138,30 @@ module Get = struct
       let pos = String.rindex s '$' in
       {
         name = String.sub s 0 pos; 
-        pos = Int32.of_string (String.sub s (pos+1) (len-pos-1));
+        pos = Int64.of_string (String.sub s (pos+1) (len-pos-1));
       }
       
     let print t = 
-      Printf.printf "Get [%s] %ld" (String.escaped t.name) 
+      Printf.printf "Get [%s] %Ld" (String.escaped t.name) 
       t.pos;
       print_newline () 
       
     let write buf t = 
-      Printf.bprintf buf "$Get %s$%ld" t.name t.pos
+      Printf.bprintf buf "$Get %s$%Ld" t.name t.pos
     
   end
   
 module FileLength = struct
-    type t = int32
+    type t = int64
       
-    let parse s = Int32.of_string s
+    let parse s = Int64.of_string s
       
     let print t = 
-      Printf.printf "FileLength %ld" t;
+      Printf.printf "FileLength %Ld" t;
       print_newline () 
       
     let write buf t = 
-      Printf.bprintf buf "$FileLength %ld" t
+      Printf.bprintf buf "$FileLength %Ld" t
     
   end
 
@@ -233,8 +233,8 @@ module Search = struct
             String2.replace_char words '$' ' ';
             let size = 
               match has_size, size_kind with
-                "T", "T" -> AtMost (Int32.of_float (float_of_string size))
-              |  "T", "F" -> AtLeast (Int32.of_float (float_of_string size))
+                "T", "T" -> AtMost (Int64.of_float (float_of_string size))
+              |  "T", "F" -> AtLeast (Int64.of_float (float_of_string size))
               | _ -> NoLimit
             in
             {
@@ -249,10 +249,10 @@ module Search = struct
     let print t = begin
       match t.sizelimit with
       | AtLeast n ->
-          Printf.printf "Search %s TYPE %d FOR %s of at least %ld" 
+          Printf.printf "Search %s TYPE %d FOR %s of at least %Ld" 
             t.orig t.filetype t.words n
       | AtMost n ->
-          Printf.printf "Search %s TYPE %d FOR %s of at most %ld" 
+          Printf.printf "Search %s TYPE %d FOR %s of at most %Ld" 
             t.orig t.filetype t.words n
       | NoLimit ->
           Printf.printf "Search %s TYPE %d FOR %s" 
@@ -267,8 +267,8 @@ module Search = struct
       (match t.sizelimit with
           AtMost _ -> 'T'        | _ -> 'F')
       (match t.sizelimit with
-          AtMost n -> Int32.to_string n
-        | AtLeast n -> Int32.to_string n
+          AtMost n -> Int64.to_string n
+        | AtLeast n -> Int64.to_string n
         | _  -> "0")
       t.filetype
         (let s = String.copy t.words in 
@@ -329,7 +329,7 @@ module SR = struct
     type t = {
         owner : string;
         filename : string;
-        filesize : int32;
+        filesize : int64;
         used_slots : int;
         open_slots : int;
         server_name : string;
@@ -364,7 +364,7 @@ module SR = struct
                                   {
                                     owner = owner;
                                     filename = filename;
-                                    filesize = Int32.of_string size;
+                                    filesize = Int64.of_string size;
                                     used_slots = int_of_string used_slots;
                                     open_slots = int_of_string open_slots;
                                     server_name = server_name;
@@ -388,14 +388,14 @@ module SR = struct
           end
       
     let print t = 
-      Printf.printf "SEARCH REPLY On %s (%d/%d): %s %ld" 
+      Printf.printf "SEARCH REPLY On %s (%d/%d): %s %Ld" 
         t.owner t.used_slots t.open_slots t.filename 
         t.filesize;
       print_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s %s%c%s %d/%d%c%s%s" 
-        t.owner t.filename char5 (Int32.to_string t.filesize)
+        t.owner t.filename char5 (Int64.to_string t.filesize)
       t.used_slots t.open_slots char5 t.server_name
         (match t.server_ip with
           None -> ""
@@ -819,7 +819,7 @@ let dc_handler3 c ff f r sock nread =
     let rec iter nread =
       if nread > 0 then 
         match !c with 
-          Some c when c.client_receiving <> Int32.zero ->
+          Some c when c.client_receiving <> Int64.zero ->
             r c sock nread
         | _ ->
             let pos = String.index_from b.buf (b.pos + b.len - nread) '|' in
@@ -884,7 +884,7 @@ let parse_list user s =
             let name = String.sub line all_tabs (pos-all_tabs) in
             let size = String.sub line (pos+1) (len - pos - 1) in
 (*            Printf.printf "%s : %s" name size; print_newline (); *)
-            let r = new_result name (Int32.of_string size) in
+            let r = new_result name (Int64.of_string size) in
             let filename = Filename.concat dirname name in
             add_result_source r user filename;
             iter ntabs dirname tail ((dirname, r) :: list)
@@ -923,7 +923,7 @@ let make_shared_list () =
     in
     List.iter (fun sh ->
         buf_tabs buf ntabs;
-        Printf.bprintf buf "%s|%ld\r\n" (
+        Printf.bprintf buf "%s|%Ld\r\n" (
           Filename.basename sh.shared_fullname) sh.shared_size
     ) node.shared_files;
     List.iter (fun (_, node) ->

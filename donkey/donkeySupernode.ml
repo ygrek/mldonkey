@@ -89,7 +89,7 @@ type browsed_node = {
     node_port : int;
     mutable node_files : tagged_file list;
     mutable node_md4 : Md4.t;
-    mutable node_last_browse : float;
+    mutable node_last_browse : int;
   }
 
 let supernode_browse_handler node msg sock =

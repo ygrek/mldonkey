@@ -70,7 +70,7 @@ LockReq {
 *)
 
 let init_connection nick_sent c sock =
-  c.client_receiving <- Int32.zero;
+  c.client_receiving <- Int64.zero;
   c.client_sock <- Some sock;
   connection_ok c.client_connection_control;  
   if not nick_sent then begin
@@ -151,9 +151,9 @@ let client_reader c t sock =
             Printf.printf "TRY TO DOWNLOAD FILE LIST"; print_newline ();
             debug_server_send sock (GetReq {
                 Get.name = "MyList.DcLst";
-                Get.pos = Int32.one;
+                Get.pos = Int64.one;
               });
-            c.client_pos <- Int32.zero;
+            c.client_pos <- Int64.zero;
             c.client_download <- DcDownloadList (Buffer.create 10000)
         
         | _ ->
@@ -163,7 +163,7 @@ let client_reader c t sock =
             | (file, filename) :: _ -> 
                 debug_server_send sock (GetReq {
                     Get.name = filename;
-                    Get.pos = Int32.add (file_downloaded file) Int32.one;
+                    Get.pos = Int64.add (file_downloaded file) Int64.one;
                   });
                 c.client_download <- DcDownload file;
                 c.client_pos <- (file_downloaded file);
@@ -192,7 +192,7 @@ let client_reader c t sock =
             if t = (file_size file) then begin
                 c.client_receiving <- t;
               end else begin
-                Printf.printf "Bad file size: %ld  <> %ld"
+                Printf.printf "Bad file size: %Ld  <> %Ld"
                   t
                   (file_size file);
                 print_newline ();
@@ -215,18 +215,18 @@ let client_reader c t sock =
       Printf.printf "GET REQ"; print_newline ();
       
       if t.Get.name = "MyList.DcLst" then begin
-          c.client_pos <- Int32.zero;
+          c.client_pos <- Int64.zero;
           let list = make_shared_list () in
           let list = Che3.compress list in
           c.client_download <- DcUploadList list;
           debug_server_send sock (FileLengthReq (
-              Int32.of_int (String.length list)))
+              Int64.of_int (String.length list)))
         end else begin 
 (* Upload not yet implemented *)
           try
             let sh = Hashtbl.find shared_files t.Get.name in
-            c.client_pos <- Int32.sub t.Get.pos Int32.one;
-            let rem = Int32.sub sh.shared_size c.client_pos in
+            c.client_pos <- Int64.sub t.Get.pos Int64.one;
+            let rem = Int64.sub sh.shared_size c.client_pos in
             debug_server_send sock (FileLengthReq rem);
             c.client_download <- DcUpload sh
           with _ ->
@@ -234,7 +234,7 @@ let client_reader c t sock =
         end
   
   | SendReq ->
-      c.client_pos <- Int32.zero;
+      c.client_pos <- Int64.zero;
       let refill sock =
         Printf.printf "FILL SOCKET"; print_newline ();
         let len = remaining_to_write sock in
@@ -242,13 +242,13 @@ let client_reader c t sock =
           DcUploadList list ->
             Printf.printf "DcUploadList"; print_newline ();
             let slen = String.length list in
-            let pos = Int32.to_int c.client_pos in
+            let pos = Int64.to_int c.client_pos in
             if pos < slen then begin
                 let send_len = mini (slen - pos) (8192 - len) in
                 Printf.printf "Sending %d" send_len; print_newline ();
                 TcpBufferedSocket.write sock list pos send_len;
                 Printf.printf "sent"; print_newline ();
-                c.client_pos <- Int32.add c.client_pos (Int32.of_int send_len);
+                c.client_pos <- Int64.add c.client_pos (Int64.of_int send_len);
                 
                 if pos + len = slen then begin
 (* Normally, the client should close the connection after the download,
@@ -265,16 +265,16 @@ close it after a long timeout. *)
             let pos = c.client_pos in
             if pos < slen then
               let fd = sh.shared_fd in
-              ignore (Unix32.seek32 fd pos Unix.SEEK_SET);
+              ignore (Unix32.seek64 fd pos Unix.SEEK_SET);
               let rlen = 
-                let rem = Int32.sub slen  pos in
+                let rem = Int64.sub slen  pos in
                 let can = 8192 - len in
-                if rem > Int32.of_int can then can else Int32.to_int rem
+                if rem > Int64.of_int can then can else Int64.to_int rem
               in
               let upload_buffer = String.create rlen in
               Unix2.really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
               TcpBufferedSocket.write sock upload_buffer 0 rlen;
-              c.client_pos <- Int32.add c.client_pos (Int32.of_int rlen);
+              c.client_pos <- Int64.add c.client_pos (Int64.of_int rlen);
               if c.client_pos = slen then begin
 (* Normally, the client should close the connection after the download,
 but since we don't want a buggy client to keep this connection, just
@@ -317,13 +317,13 @@ let client_downloaded c sock nread =
                 Printf.printf "In Unix32.force_fd"; print_newline ();
                 raise e
           in
-          let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
+          let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
         end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-        c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+        c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 print_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
@@ -342,10 +342,10 @@ print_newline ();
         let len = b.len in
         Buffer.add_substring buf b.buf b.pos b.len;
         buf_used sock b.len;
-        c.client_receiving <- Int32.sub c.client_receiving (Int32.of_int len);
+        c.client_receiving <- Int64.sub c.client_receiving (Int64.of_int len);
         Printf.printf "Received %d of List" len; print_newline ();
         close sock "file list received"; print_newline ();
-        if c.client_receiving = Int32.zero then begin
+        if c.client_receiving = Int64.zero then begin
             Printf.printf "----------------------------------------"; print_newline ();
             Printf.printf "RECEIVED COMPLETE FILE LIST "; print_newline ();
             Printf.printf "----------------------------------------"; print_newline ();

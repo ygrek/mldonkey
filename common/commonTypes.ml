@@ -21,7 +21,7 @@ open Md4
 type addr = {
     mutable addr_ip: Ip.t;
     mutable addr_name : string;
-    mutable addr_age : float;
+    mutable addr_age : int;
   }
 
 type query =
@@ -30,14 +30,14 @@ type query =
 | QAndNot of query * query
 | QHasWord of string
 | QHasField of string * string
-| QHasMinVal of string * int32
-| QHasMaxVal of string * int32
+| QHasMinVal of string * int64
+| QHasMaxVal of string * int64
 | QNone (** temporary, used when no value is available ;
 	   must be simplified before transforming into strings *)
 
 type tag_value =
-| Uint32 of int32
-| Fint32 of int32
+| Uint64 of int64
+| Fint64 of int64
 | String of string
 | Addr of Ip.t
   
@@ -84,9 +84,9 @@ type host_state =
 | BlackListedHost
   
 type connection_control = {
-    mutable control_last_ok : float;
-    mutable control_state : float;
-    mutable control_last_try : float;
+    mutable control_last_ok : int;
+    mutable control_state : int;
+    mutable control_last_try : int;
   }
 
 
@@ -96,7 +96,7 @@ type result_info = {
     
     mutable result_names : string list;
     mutable result_md4 : Md4.t;
-    mutable result_size : int32;
+    mutable result_size : int64;
     mutable result_format : string;
     mutable result_type : string;
     mutable result_tags : tag list;
@@ -177,7 +177,7 @@ type network = {
     mutable op_network_add_client : 
       bool -> ((string * Options.option_value) list -> client);
     mutable op_network_share : (
-      string -> string -> int32 -> unit);
+      string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
     mutable op_network_parse_url : (string -> bool);
     mutable op_network_connect_servers : (unit -> unit);
@@ -242,7 +242,7 @@ type format =
 and history_result = {
     mutable hresult_names : string list;
     hresult_md4 : Md4.t;
-    mutable hresult_size : int32;
+    mutable hresult_size : int64;
     hresult_tags : tag list;
   }
 

@@ -61,8 +61,8 @@ type file_info = {
     mutable file_name : string;
     mutable file_names : string list;
     mutable file_md4 : Md4.t;        
-    mutable file_size : int32;
-    mutable file_downloaded : int32; (* LOT OF CHANGES *)
+    mutable file_size : int64;
+    mutable file_downloaded : int64; (* LOT OF CHANGES *)
     mutable file_nlocations : int; (* MANY CHANGES *)
     mutable file_nclients: int;
 
@@ -72,9 +72,9 @@ type file_info = {
     mutable file_sources : int list option;
     mutable file_download_rate : float; (* LOT OF CHANGES *)
     mutable file_format : format;
-    mutable file_chunks_age : float array;
-    mutable file_age : float;
-    mutable file_last_seen : float;
+    mutable file_chunks_age : int array;
+    mutable file_age : int;
+    mutable file_last_seen : int;
   }
   
 type user_info = {
@@ -155,7 +155,7 @@ type shared_info = {
     shared_num : int;
     shared_network : int;
     mutable shared_filename : string;
-    mutable shared_size : int32;
+    mutable shared_size : int64;
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
     mutable shared_id : Md4.t;

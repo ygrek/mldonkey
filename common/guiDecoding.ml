@@ -226,9 +226,9 @@ let get_tag s pos =
   let value, pos =
     match get_int8 s pos with
       0 -> 
-        Uint32 (get_int32 s (pos+1)), pos+5
+        Uint64 (get_int64_32 s (pos+1)), pos+5
     | 1 -> 
-        Fint32 (get_int32 s (pos+1)), pos+5
+        Fint64 (get_int64_32 s (pos+1)), pos+5
     | 2 -> let s, pos = get_string s (pos+1) in
         String s, pos
     | 3 -> Addr (get_ip s (pos+1)), pos+5
@@ -241,7 +241,7 @@ let get_result s pos =
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int32 s (pos+16) in
+  let size = get_int64_32 s (pos+16) in
   let format, pos = get_string s (pos+20) in
   let t, pos = get_string s pos in
   let tags, pos = get_list get_tag s pos in
@@ -289,21 +289,25 @@ let get_float s pos =
   let s, pos = get_string s pos in
   float_of_string s, pos
 
+let get_int_float s pos = 
+  let s, pos = get_string s pos in
+  BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
+
 let get_file_version_0 s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int32 s (pos+16) in
-  let downloaded = get_int32 s (pos+20) in
+  let size = get_int64_32 s (pos+16) in
+  let downloaded = get_int64_32 s (pos+20) in
   let nlocations = get_int s (pos+24) in
   let nclients = get_int s (pos+28) in
   let state = get_file_state s (pos+32) in
   let chunks, pos = get_string s (pos+33) in
   let availability, pos = get_string s pos in
   let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_float s pos in
-  let age, pos = get_float s pos in
+  let chunks_age, pos = get_array get_int_float s pos in
+  let age, pos = get_int_float s pos in
   let format, pos = get_format s pos in
   {
     file_num = num;
@@ -331,16 +335,16 @@ let get_file_version_8 s pos =
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int32 s (pos+16) in
-  let downloaded = get_int32 s (pos+20) in
+  let size = get_int64_32 s (pos+16) in
+  let downloaded = get_int64_32 s (pos+20) in
   let nlocations = get_int s (pos+24) in
   let nclients = get_int s (pos+28) in
   let state = get_file_state s (pos+32) in
   let chunks, pos = get_string s (pos+33) in
   let availability, pos = get_string s pos in
   let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_float s pos in
-  let age, pos = get_float s pos in
+  let chunks_age, pos = get_array get_int_float s pos in
+  let age, pos = get_int_float s pos in
   let format, pos = get_format s pos in
   let name, pos = get_string s pos in
   {
@@ -369,16 +373,16 @@ let get_file_version_9 s pos =
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int32 s (pos+16) in
-  let downloaded = get_int32 s (pos+20) in
+  let size = get_int64_32 s (pos+16) in
+  let downloaded = get_int64_32 s (pos+20) in
   let nlocations = get_int s (pos+24) in
   let nclients = get_int s (pos+28) in
   let state = get_file_state s (pos+32) in
   let chunks, pos = get_string s (pos+33) in
   let availability, pos = get_string s pos in
   let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_float s pos in
-  let age, pos = get_float s pos in
+  let chunks_age, pos = get_array get_int_float s pos in
+  let age, pos = get_int_float s pos in
   let format, pos = get_format s pos in
   let name, pos = get_string s pos in
   let last_seen = get_int s pos in
@@ -400,7 +404,7 @@ let get_file_version_9 s pos =
     file_format = format;
     file_sources = None;
     file_name = name;
-    file_last_seen = BasicSocket.last_time () -. float_of_int last_seen;
+    file_last_seen = BasicSocket.last_time () - last_seen;
   }, pos
 
 let get_host_state s pos = 
@@ -601,7 +605,7 @@ let get_shared_info s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_int32 s pos in
+  let size = get_int64_32 s pos in
   let uploaded = get_int64 s (pos+4) in
   let requests = get_int s (pos+12) in
   {
@@ -618,7 +622,7 @@ let get_shared_info_version_10 s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_int32 s pos in
+  let size = get_int64_32 s pos in
   let uploaded = get_int64 s (pos+4) in
   let requests = get_int s (pos+12) in
   let md4 = get_md4 s (pos+16) in
@@ -875,7 +879,7 @@ let to_gui opcode s =
   
   | 8 ->
       let n = get_int s 2 in
-      let size = get_int32 s 6 in
+      let size = get_int64_32 s 6 in
       let rate, pos = get_float s 10 in
       File_downloaded (n, size, rate, BasicSocket.last_time ())
     
@@ -1112,11 +1116,11 @@ let to_gui opcode s =
   
   | 46 ->
       let n = get_int s 2 in
-      let size = get_int32 s 6 in
+      let size = get_int64_32 s 6 in
       let rate, pos = get_float s 10 in
       let last_seen = get_int s pos in
       File_downloaded (n, size, rate, 
-        BasicSocket.last_time () -. float_of_int last_seen)
+        BasicSocket.last_time () - last_seen)
 
   | 47 -> BadPassword
   

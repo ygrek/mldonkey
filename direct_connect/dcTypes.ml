@@ -34,7 +34,7 @@ type server = {
     mutable server_nick : int;
     mutable server_last_nick : string;
     mutable server_search : search option;
-    mutable server_search_timeout : float;
+    mutable server_search_timeout : int;
     mutable server_users : user list;
     mutable server_messages : (int * room_message) list;
   }
@@ -42,7 +42,7 @@ type server = {
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
-    result_size : int32;
+    result_size : int64;
     mutable result_sources : (user * string) list;
   }
   
@@ -69,9 +69,9 @@ and client = {
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_files : (file * string) list;
     mutable client_download : download_type;
-    mutable client_pos : int32;
+    mutable client_pos : int64;
     mutable client_all_files : (string * result) list option;
-    mutable client_receiving : int32;
+    mutable client_receiving : int64;
     mutable client_user : user;
     mutable client_connection_control : connection_control;
   }
@@ -79,7 +79,7 @@ and client = {
 and shared_file = {
     shared_fullname : string;
     shared_codedname : string;
-    shared_size : int32;
+    shared_size : int64;
     shared_fd : Unix32.t;
   }
 
@@ -98,6 +98,6 @@ and download_type =
 | DcDownloadList of Buffer.t
   
 type sizelimit = 
-  AtLeast of int32
-| AtMost of int32
+  AtLeast of int64
+| AtMost of int64
 | NoLimit

@@ -24,10 +24,10 @@ type t = {
     mutable filename : string;
   }
 
-external seek32 : Unix.file_descr -> int32 -> Unix.seek_command -> int32 =
-  "ml_lseek32"
-external getsize32 : string -> int32 = "ml_getsize32"
-external ftruncate32 : Unix.file_descr -> int32 -> unit = "ml_truncate32"
+external seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
+  "ml_lseek64" 
+external getsize64 : string -> int64 = "ml_getsize64"
+external ftruncate64 : Unix.file_descr -> int64 -> unit = "ml_truncate64"
 external getdtablesize : unit -> int = "ml_getdtablesize"
 
 let fds_size = getdtablesize ()
@@ -71,11 +71,11 @@ let force_fd t =
       fd
   | Some fd -> fd
   
-let seek32 t pos com =
-  seek32 (force_fd t) pos com
+let seek64 t pos com =
+  seek64 (force_fd t) pos com
   
-let ftruncate32 t len =
-  ftruncate32 (force_fd t) len
+let ftruncate64 t len =
+  ftruncate64 (force_fd t) len
   
 let close t =
   match t.fd with
@@ -96,7 +96,7 @@ let set_filename t f =
   t.filename <- f;
   close t
 
-let mtime32 filename =
+let mtime64 filename =
   let st = Unix.LargeFile.stat filename in
   st.Unix.LargeFile.st_mtime
   

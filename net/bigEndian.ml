@@ -84,3 +84,21 @@ let get_int s pos =
   let c2 = get_int8 s (pos+2) in
   let c1 = get_int8 s (pos+3) in
   c1 + (c2 lsl 8) + (c3 lsl 16) + (c4 lsl 24)           
+
+  
+let buf_int64_8 buf i =
+  Buffer.add_char buf (char_of_int (Int64.to_int (
+        Int64.logand i const_int64_255)))
+
+let get_int64_32 s pos =
+  let i1 = get_int32 s pos in
+  and64 (Int64.of_int32 i1) bits32_64
+
+     
+let buf_int64_32 oc i =
+  buf_int64_8 oc (right64 i  24);
+  buf_int64_8 oc (right64 i  16);
+  buf_int64_8 oc (right64 i  8);  
+  buf_int64_8 oc i
+
+  

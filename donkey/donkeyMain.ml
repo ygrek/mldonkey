@@ -59,15 +59,15 @@ let fivemin_timer timer =
 
 let second_timer timer =
   (try
-      if !DonkeySources1.verbose_sources then begin
+      if !verbose_src_manager then begin
           Printf.printf "Check sources"; print_newline ();
         end;
-      DonkeySources2.check_sources ();
-      if !DonkeySources1.verbose_sources then begin
+      DonkeySources1.S.check_sources DonkeyClient.reconnect_client;
+      if !verbose_src_manager then begin
           Printf.printf "Check sources done"; print_newline ();
         end;
     with e ->
-        if !DonkeySources1.verbose_sources then begin
+        if !verbose_src_manager then begin
             Printf.printf "Exception %s while checking sources" 
               (Printexc2.to_string e) ; print_newline ()
           end);
@@ -137,7 +137,7 @@ let enable () =
               try
                 let file_disk_name = file_disk_name file in
                 if Sys.file_exists file_disk_name &&
-                  Unix32.getsize32 file_disk_name <> Int32.zero then begin
+                  Unix32.getsize64 file_disk_name <> Int64.zero then begin
                     Printf.printf "FILE DOWNLOADED"; print_newline ();
                     DonkeyShare.remember_shared_info file file_disk_name;
                     Printf.printf "REMEMBERED"; print_newline ();

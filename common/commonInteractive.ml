@@ -186,17 +186,17 @@ let send_custom_query buf s args =
           let minsize = get_arg "minsize" in
           let unit = get_arg "minsize_unit" in
           if minsize = "" then raise Not_found;
-          let minsize = Int32.of_string minsize in
-          let unit = Int32.of_string unit in
-          QHasMinVal ("size", Int32.mul minsize unit)
+          let minsize = Int64.of_string minsize in
+          let unit = Int64.of_string unit in
+          QHasMinVal ("size", Int64.mul minsize unit)
 
       | Q_MAXSIZE _ ->
           let maxsize = get_arg "maxsize" in
           let unit = get_arg "maxsize_unit" in
           if maxsize = "" then raise Not_found;
-          let maxsize = Int32.of_string maxsize in
-          let unit = Int32.of_string unit in
-          QHasMaxVal ("size", Int32.mul maxsize unit)
+          let maxsize = Int64.of_string maxsize in
+          let unit = Int64.of_string unit in
+          QHasMaxVal ("size", Int64.mul maxsize unit)
 
       | Q_FORMAT _ ->
           let format = get_arg "format" in
@@ -239,7 +239,7 @@ let send_custom_query buf s args =
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
-          QHasMinVal("bitrate", Int32.of_string bitrate)
+          QHasMinVal("bitrate", Int64.of_string bitrate)
 
     in
     try
@@ -276,7 +276,7 @@ let all_simple_options () =
   !options
 
 let apply_on_fully_qualified_options name f =
-  if !!verbose then begin
+  if !verbose then begin
       Printf.printf "For option %s" name; print_newline ();
     end;
   let rec iter prefix opfile =

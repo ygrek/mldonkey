@@ -346,8 +346,8 @@ module QueryFileReply  = struct
 module Bloc  = struct 
     type t = {
         md4 : Md4.t;
-        start_pos : int32;
-        end_pos: int32;
+        start_pos : int64;
+        end_pos: int64;
         bloc_str: string;
         bloc_begin : int;
         bloc_len : int;
@@ -356,8 +356,8 @@ module Bloc  = struct
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos = get_int32_32 s 17;
-        end_pos = get_int32_32 s 21;
+        start_pos = get_int64_32 s 17;
+        end_pos = get_int64_32 s 21;
         bloc_str = s;
         bloc_begin = 25;
         bloc_len = len - 25;
@@ -365,53 +365,53 @@ module Bloc  = struct
       
     let print t = 
       Printf.printf "BLOC OF %s [%s - %s]" (Md4.to_string t.md4)
-      (Int32.to_string t.start_pos)
-      (Int32.to_string t.end_pos)
+      (Int64.to_string t.start_pos)
+      (Int64.to_string t.end_pos)
       
     let write buf t = 
       buf_md4 buf t.md4;
-      buf_int32_32 buf t.start_pos;
-      buf_int32_32 buf t.end_pos;
+      buf_int64_32 buf t.start_pos;
+      buf_int64_32 buf t.end_pos;
       Buffer.add_substring buf t.bloc_str t.bloc_begin t.bloc_len
   end
     
 module QueryBloc  = struct 
     type t = {
         md4 : Md4.t;
-        start_pos1 : int32; (* 180 ko *)
-        end_pos1: int32;
-        start_pos2 : int32;
-        end_pos2: int32;
-        start_pos3 : int32;
-        end_pos3: int32;
+        start_pos1 : int64; (* 180 ko *)
+        end_pos1: int64;
+        start_pos2 : int64;
+        end_pos2: int64;
+        start_pos3 : int64;
+        end_pos3: int64;
       }
       
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos1 = get_int32_32 s 17;
-        end_pos1 = get_int32_32 s 29;
-        start_pos2 = get_int32_32 s 21;
-        end_pos2 = get_int32_32 s 33;
-        start_pos3 = get_int32_32 s 25;
-        end_pos3 = get_int32_32 s 37;
+        start_pos1 = get_int64_32 s 17;
+        end_pos1 = get_int64_32 s 29;
+        start_pos2 = get_int64_32 s 21;
+        end_pos2 = get_int64_32 s 33;
+        start_pos3 = get_int64_32 s 25;
+        end_pos3 = get_int64_32 s 37;
       }
       
     let print t = 
       Printf.printf "QUERY BLOCS OF %s [%s - %s] [%s - %s] [%s - %s]"
       (Md4.to_string t.md4)
-      (Int32.to_string t.start_pos1) (Int32.to_string t.end_pos1)
-      (Int32.to_string t.start_pos2) (Int32.to_string t.end_pos2)
-      (Int32.to_string t.start_pos3) (Int32.to_string t.end_pos3)
+      (Int64.to_string t.start_pos1) (Int64.to_string t.end_pos1)
+      (Int64.to_string t.start_pos2) (Int64.to_string t.end_pos2)
+      (Int64.to_string t.start_pos3) (Int64.to_string t.end_pos3)
       
     let write buf t = 
       buf_md4 buf t.md4;
-      buf_int32_32 buf t.start_pos1;
-      buf_int32_32 buf t.start_pos2;
-      buf_int32_32 buf t.start_pos3;
-      buf_int32_32 buf t.end_pos1;
-      buf_int32_32 buf t.end_pos2;
-      buf_int32_32 buf t.end_pos3
+      buf_int64_32 buf t.start_pos1;
+      buf_int64_32 buf t.start_pos2;
+      buf_int64_32 buf t.start_pos3;
+      buf_int64_32 buf t.end_pos1;
+      buf_int64_32 buf t.end_pos2;
+      buf_int64_32 buf t.end_pos3
       
   end
 
@@ -900,13 +900,17 @@ let parse magic s =
     | 0xD4 -> 
           UnknownReq s        
     | _ -> 
-        Printf.printf "Strange magic: %d" magic; print_newline ();
+        if !CommonOptions.verbose_unknown_messages then begin
+            Printf.printf "Strange magic: %d" magic; print_newline ();
+          end;
         raise Not_found
   with
   | e -> 
-      Printf.printf "From client: %s" (Printexc2.to_string e); print_newline ();
-      dump s;
-      print_newline ();
+      if !CommonOptions.verbose_unknown_messages then begin
+          Printf.printf "From client: %s" (Printexc2.to_string e); print_newline ();
+          dump s;
+          print_newline ();
+        end;
       UnknownReq s
   
 let write buf t =

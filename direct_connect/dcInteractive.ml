@@ -101,7 +101,7 @@ let _ =
           | Some sock ->
               server_send sock msg; 
               s.server_search <- Some q; 
-              s.server_search_timeout <- last_time () +. !!search_timeout;
+              s.server_search_timeout <- last_time () + !!search_timeout;
               Printf.bprintf  buf "Sending search\n") !connected_servers
   );
   network.op_network_connected <- (fun _ ->
@@ -248,7 +248,7 @@ let _ =
         P.file_chunks = "0";
         P.file_availability = "0";
         P.file_format = Unknown_format;
-        P.file_chunks_age = [|0.0|];
+        P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
       }    

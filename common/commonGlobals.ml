@@ -57,46 +57,46 @@ let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 
 let printf_char c =
-  if !!verbose then 
+  if !verbose then 
     (print_char c; Pervasives.flush Pervasives.stdout)
     
 let printf_string c =
-  if !!verbose then 
+  if !verbose then 
     (print_string c; Pervasives.flush Pervasives.stdout)
 
-let minutes25 = 25. *. 60.
+let minutes25 = 25 * 60
   
 let new_connection_control () = {
-    control_last_ok = 0.0;
-    control_state = 0.0;
-    control_last_try = 0.0;
+    control_last_ok = 0;
+    control_state = 0;
+    control_last_try = 0;
   }
 
 let new_connection_control_recent_ok () = {
-    control_last_ok = last_time () -. minutes25;
-    control_state = 0.0;
-    control_last_try = 0.0;
+    control_last_ok = last_time () - minutes25;
+    control_state = 0;
+    control_last_try = 0;
   }
   
 let connection_ok cc = 
   cc.control_last_ok <- last_time ();
-  cc.control_state <- 0.
+  cc.control_state <- 0
   
 let connection_try cc =
   cc.control_last_try <- last_time ()
 
 let connection_failed cc =
-  cc.control_state <- cc.control_state +. 1.
+  cc.control_state <- cc.control_state + 1
 
 let connection_next_try cc =
-  cc.control_last_try +. min (!!min_reask_delay *. cc.control_state)
+  cc.control_last_try + mini (!!min_reask_delay * cc.control_state)
   !!max_reask_delay
 
 let connection_can_try cc =
   connection_next_try cc < last_time ()
   
 let connection_must_try cc =
-  cc.control_state <- 0.
+  cc.control_state <- 0
 
 let connection_set_last_conn cc lc =
   cc.control_last_ok <- lc
@@ -106,7 +106,7 @@ let connection_last_conn cc =
 
 let connection_delay cc = 
   cc.control_last_try <- last_time ();
-  cc.control_state <- 0.
+  cc.control_state <- 0
   
 let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
     (!!max_hard_upload_rate * 1024)
@@ -280,8 +280,8 @@ let string_of_tags tags =
           Buffer.add_string buf (Printf.sprintf "%-3s "
               (match t.tag_value with
                 String s -> s
-              | Uint32 i -> Int32.to_string i
-              | Fint32 i -> Int32.to_string i
+              | Uint64 i -> Int64.to_string i
+              | Fint64 i -> Int64.to_string i
               | _ -> "???"
             ))
   ) tags;
@@ -294,7 +294,7 @@ let gui_counter = ref 2
   
 let ip_of_addr addr = 
   if addr.addr_name <> "" then
-    if addr.addr_age +. !!ip_cache_timeout < last_time () then begin
+    if addr.addr_age + !!ip_cache_timeout < last_time () then begin
         let ip = Ip.from_name addr.addr_name in
         addr.addr_ip <- ip;
         addr.addr_age <- last_time ();
@@ -305,11 +305,11 @@ let ip_of_addr addr =
     addr.addr_ip
     
 let new_addr_ip ip = {
-    addr_ip = ip; addr_name = ""; addr_age = 0.0;
+    addr_ip = ip; addr_name = ""; addr_age = 0;
   }
   
 let new_addr_name name = {
-    addr_ip = Ip.null; addr_name = name; addr_age = 0.0
+    addr_ip = Ip.null; addr_name = name; addr_age = 0
   }
   
 let string_of_addr addr =
@@ -334,8 +334,8 @@ let rec print_tags tags =
       Printf.printf "  \"%s\" = " (String.escaped tag.tag_name);
       begin
         match tag.tag_value with
-        | Uint32 n -> Printf.printf "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.printf "%s" (Int32.to_string n)
+        | Uint64 n -> Printf.printf "%s" (Int64.to_string n)
+        | Fint64 n -> Printf.printf "%s" (Int64.to_string n)
         | Addr ip -> Printf.printf "%s" (Ip.to_string ip)
         | String s -> Printf.printf "\"%s\"" 
               (String.escaped s)
@@ -350,8 +350,8 @@ let rec fprint_tags oc tags =
       Printf.fprintf oc "%s = " (String.escaped tag.tag_name);
       begin
         match tag.tag_value with
-        | Uint32 n -> Printf.fprintf oc "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.fprintf oc "%s" (Int32.to_string n)
+        | Uint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
+        | Fint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
         | Addr ip -> Printf.fprintf oc "%s" (Ip.to_string ip)
         | String s -> Printf.fprintf oc "\"%s\"" 
               (String.escaped s)
@@ -366,8 +366,8 @@ let rec bprint_tags buf tags =
       Printf.bprintf buf "%s = " (String.escaped tag.tag_name);
       begin
         match tag.tag_value with
-        | Uint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
+        | Uint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
+        | Fint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
         | Addr ip -> Printf.bprintf buf "%s" (Ip.to_string ip)
         | String s -> Printf.bprintf buf "\"%s\"" 
               (String.escaped s)

@@ -31,8 +31,6 @@ open BasicSocket
 open TcpBufferedSocket
 open CommonOptions
   
-let verbose = ref false
-
 let buf = TcpBufferedSocket.internal_buf
 
         
@@ -41,11 +39,13 @@ let client_msg_to_string magic msg =
   buf_int8 buf magic;
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
-(*  
-  Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
-  DonkeyProtoClient.print msg; 
-  print_newline ();
-*)  
+
+  if !verbose_msg_clients then begin
+      Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
+      DonkeyProtoClient.print msg; 
+      print_newline ();
+    end;
+  
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
@@ -188,8 +188,10 @@ let udp_handler f sock event =
             let len = String.length pbuf in
             if len = 0 || 
               int_of_char pbuf.[0] <> 227 then begin
-                Printf.printf "Received unknown UDP packet"; print_newline ();
-                dump pbuf;
+                if !verbose_unknown_messages then begin
+                    Printf.printf "Received unknown UDP packet"; print_newline ();
+                    dump pbuf;
+                  end
               end else begin
                 let t = M.parse 227 (String.sub pbuf 1 (len-1)) in
 (*              M.print t; *)
@@ -234,7 +236,7 @@ let propagate_working_servers servers peers =
 
 (* Some statistics on the network *)
             buf_string buf Autoconf.current_version;
-            buf_int buf (int_of_float (last_time () -. start_time)); (* uptime in sec *)
+            buf_int buf (last_time () - start_time); (* uptime in sec *)
             let module S = CommonShared in
             let total_shared = ref Int64.zero in
             let total_uploaded = ref Int64.zero in
@@ -244,7 +246,7 @@ let propagate_working_servers servers peers =
                 total_uploaded := 
                 Int64.add !total_uploaded i.S.impl_shared_uploaded;
                 total_shared := 
-                Int64.add !total_shared (Int64.of_int32 i.S.impl_shared_size)
+                Int64.add !total_shared i.S.impl_shared_size
             );
 
             buf_int64 buf !total_shared;
@@ -279,8 +281,10 @@ let udp_basic_handler f sock event =
             let len = String.length pbuf in
             if len = 0 || 
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
-                Printf.printf "Received unknown UDP packet"; print_newline ();
-                dump pbuf;
+                if !verbose_unknown_messages then begin
+                    Printf.printf "Received unknown UDP packet"; print_newline ();
+                    dump pbuf;
+                  end;
               end else begin
                 let t = String.sub pbuf 1 (len-1) in
                 f t p
@@ -326,7 +330,7 @@ let tag_file file =
           (try
               if !verbose then begin
                   Printf.printf "%s: FIND FORMAT %s"
-                    (Date.to_string (last_time ()))
+                    (string_of_date (last_time ()))
                   (file_disk_name file); 
                   print_newline ();
                 end;

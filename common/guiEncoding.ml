@@ -26,13 +26,12 @@ open LittleEndian
 open TcpBufferedSocket
 
 let max_last_seen = 100 * 24 * 3600
-let max_last_seen_float = float_of_int max_last_seen
 
 let compute_last_seen last_seen =
-  let last_seen = BasicSocket.last_time () -. last_seen in
-  if last_seen > max_last_seen_float || last_seen < -1. then
+  let last_seen = BasicSocket.last_time () - last_seen in
+  if last_seen > max_last_seen || last_seen < -1 then
     max_last_seen
-  else int_of_float last_seen
+  else last_seen
   
 let buf = Buffer.create 1000
 
@@ -70,7 +69,11 @@ let buf_string buf s =
   Buffer.add_string buf s
 
 let buf_float buf f =
-  buf_string buf (Printf.sprintf "%2.2f" f)
+  let i = int_of_float f in
+  buf_string buf (Printf.sprintf "%d.%d" i (int_of_float ((f -. float_of_int i) *. 100.)))
+
+let buf_int_float buf f =
+  buf_string buf (Printf.sprintf "%d" (int_of_float ((BasicSocket.date_of_int f))))
   
 let rec buf_query buf q =
   match q with
@@ -131,8 +134,8 @@ let rec buf_query buf q =
 let buf_tag buf t =
   buf_string buf t.tag_name;
   match t.tag_value with
-  | Uint32 s -> buf_int8 buf 0; buf_int32 buf s
-  | Fint32 s -> buf_int8 buf 1; buf_int32 buf s
+  | Uint64 s -> buf_int8 buf 0; buf_int64_32 buf s
+  | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
   | String s -> buf_int8 buf 2; buf_string buf s
   | Addr ip -> buf_int8 buf 3; buf_ip buf ip
     
@@ -164,7 +167,7 @@ let buf_result buf r =
   buf_int buf r.result_network;
   buf_list buf buf_string r.result_names;
   buf_md4 buf r.result_md4;
-  buf_int32 buf r.result_size;
+  buf_int64_32 buf r.result_size;
   buf_string buf r.result_format;
   buf_string buf r.result_type;
   buf_list buf buf_tag r.result_tags;
@@ -245,16 +248,16 @@ let buf_file proto buf f =
   buf_int buf f.file_network;  
   buf_list buf buf_string f.file_names;  
   buf_md4 buf f.file_md4;  
-  buf_int32 buf f.file_size;  
-  buf_int32 buf f.file_downloaded;  
+  buf_int64_32 buf f.file_size;  
+  buf_int64_32 buf f.file_downloaded;  
   buf_int buf f.file_nlocations;  
   buf_int buf f.file_nclients;  
   buf_file_state buf f.file_state;  
   buf_string buf f.file_chunks;  
   buf_string buf f.file_availability;  
   buf_float buf f.file_download_rate;  
-  buf_array buf buf_float f.file_chunks_age;  
-  buf_float buf f.file_age;
+  buf_array buf buf_int_float f.file_chunks_age;  
+  buf_int_float buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format;
   if proto >= 8 then begin
@@ -325,7 +328,7 @@ let buf_shared_info proto buf s =
   buf_int buf s.shared_num;
   buf_int buf s.shared_network;
   buf_string buf s.shared_filename;
-  buf_int32 buf s.shared_size;
+  buf_int64_32 buf s.shared_size;
   buf_int64 buf s.shared_uploaded;
   buf_int buf s.shared_requests;
   if proto >= 10 then
@@ -368,7 +371,7 @@ let rec to_gui_version_0 proto buf t =
       buf_file proto buf file_info
       
   | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 8;
-      buf_int buf n; buf_int32 buf size; buf_float buf rate
+      buf_int buf n; buf_int64_32 buf size; buf_float buf rate
             
   | File_add_source (n1,n2) -> buf_int16 buf 10;
       buf_int buf n1; buf_int buf n2
@@ -548,7 +551,7 @@ let to_gui_version_9 proto buf t =
       buf_list buf (buf_file proto) files
       
   | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 46;
-      buf_int buf n; buf_int32 buf size; buf_float buf rate; 
+      buf_int buf n; buf_int64_32 buf size; buf_float buf rate; 
       buf_int buf (compute_last_seen last_seen)
       
   | _ -> to_gui_version_8 proto buf t
@@ -805,8 +808,8 @@ let _ =
       P.file_network = 873;
       P.file_names = ["toto"; "tutu"];
       P.file_md4 = Md4.random ();
-      P.file_size = Int32.of_string "68758765";
-      P.file_downloaded = Int32.of_string "68758764";
+      P.file_size = Int64.of_string "68758765";
+      P.file_downloaded = Int64.of_string "68758764";
       P.file_nlocations = 12;
       P.file_nclients = 18;
       P.file_state = FileDownloading;
@@ -815,8 +818,8 @@ let _ =
       P.file_chunks = "1010100";
       P.file_availability = "012012210";
       P.file_format = Unknown_format;
-      P.file_chunks_age = [| 2.0 |];
-      P.file_age = 3.0;
+      P.file_chunks_age = [| 2 |];
+      P.file_age = 3;
       P.file_last_seen = BasicSocket.last_time ();
     } 
 (* and    server_info = {

@@ -143,8 +143,8 @@ let redirector_parse_header sock header =
         PingReq (P.ComplexPing {
           P.ip = DO.client_ip (Some sock);
           P.port = !!client_port;
-          P.nfiles = Int32.zero;
-          P.nkb = Int32.zero;
+          P.nfiles = Int64.zero;
+          P.nkb = Int64.zero;
           P.s = "none:128:false";
         }))
     end else begin

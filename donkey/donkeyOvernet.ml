@@ -104,14 +104,17 @@ let min_peers_per_block = 2
 let min_peers_before_connect = 5
 let max_searches_for_publish = 5
 let search_max_queries = 64
-let overnet_default_ocl = define_option downloads_ini 
+
+  (*
+  let overnet_default_ocl = define_option downloads_ini 
     ["ocl_links"] ""
   (list_option string_option)
   [
     "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl";        
     "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" ;
   ]
-
+*)
+  
 let global_peers_size = Array.make 256 0
 (*let firewalled_overnet_peers = Hashtbl.create 13*)
 
@@ -183,7 +186,7 @@ let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = define_
 let overnet_search_timeout = 
   define_option downloads_ini ["overnet_search_timeout"] 
   "How long shoud a search on Overnet wait for the last answer before terminating"
-    float_option 40. 
+    int_option 140
       
 let overnet_query_peer_period = 
   define_option downloads_ini ["overnet_query_peer_period"] 
@@ -249,7 +252,7 @@ let source_hits = ref 0
 let remove_old_global_peers () =
   for i=0 to 255 do 
     Hashtbl.iter ( fun a b -> 
-      if (b.peer_last_msg < last_time () -. 14400.) && 
+      if (b.peer_last_msg < last_time () - 14400) && 
 	(global_peers_size.(i)>min_peers_per_block) then 
 	begin
 	  (*Printf.printf "REM global_peers %s\n" (Md4.to_string a);*)
@@ -398,15 +401,16 @@ let find_new_peers () =
               (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0) ) )
         (get_uniform_distribution () ) ;
       end
-      
+
+      (*
 (* Used to prevent reloading the pages too often (max is 1/hour) *)
-let next_automatic_ocl_load = ref 0.0
+let next_automatic_ocl_load = ref 0
 let automatic_ocl_load force =
   match get_uniform_distribution () with
     [] -> 
       if force || !next_automatic_ocl_load < last_time () then
         begin
-          next_automatic_ocl_load := last_time () +. 3600.;
+          next_automatic_ocl_load := last_time () + 3600;
           if !!verbose_overnet then begin
               Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
             end;
@@ -415,7 +419,8 @@ let automatic_ocl_load force =
               load_url "ocl" url) !!overnet_default_ocl;
         end
   | _ -> ()
-      
+      *)
+
 type search_for =
   FileSearch of file
 | KeywordSearch of CommonTypes.search list
@@ -423,7 +428,7 @@ type search_for =
 type overnet_search = {
     search_md4 : Md4.t;
     mutable search_kind : search_for;
-    mutable search_last_insert : float;
+    mutable search_last_insert : int;
 
     mutable search_not_asked_peers : XorSet.t;
     mutable search_asked_peers : XorSet.t;
@@ -872,7 +877,7 @@ let udp_client_handler t p =
 				  bcp (Md4.to_string md4);
 				print_newline (); *)
                                   if Ip.valid ip && Ip.reachable ip then
-                                    let c = DonkeySources1.new_source (ip, port) file in
+                                    let c = DonkeySources1.S.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->
 				Printf.printf "Ill formed bcp: %s" bcp;
@@ -1009,7 +1014,7 @@ let query_next_peers () =
 	 3/ size(not_asked)=0 && timeout *)
       
       if (s.search_hits > !!overnet_max_search_hits) || 
-        ( (s.search_last_insert +. !!overnet_search_timeout < last_time ()) && not_asked_card=0 ) ||
+        ( (s.search_last_insert + !!overnet_search_timeout < last_time ()) && not_asked_card=0 ) ||
         (  not_asked_card = 0 && asked_card = 0 ) then 
         begin
           if !!verbose_overnet then begin              
@@ -1111,7 +1116,6 @@ let enable enabler =
   (* every 30min for common operations *)
   add_session_timer enabler 1800. (fun _ ->
       recover_all_files ();
-      automatic_ocl_load false;
   );
 
   (* every 15min for light operations *)
@@ -1126,7 +1130,6 @@ let enable enabler =
   );
 
   add_timer 20. (fun timer -> 
-    automatic_ocl_load false;
     find_new_peers (); 
     (*publish is in fact controled by do_publish_shared_files, every 2 min*)   
     publish_shared_files ()
@@ -1221,7 +1224,11 @@ let _ =
     "ovweb", Arg_multiple (fun args o ->
         let urls =
           match args with
-            [] -> !!overnet_default_ocl;
+            [] -> let list = ref [] in
+              List.iter (fun (kind,_, url) ->
+                  if kind = "ocl" then list := url :: !list
+              )!!web_infos;
+              !list
           | _ -> args
         in
         List.iter (fun url ->

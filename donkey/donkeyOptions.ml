@@ -190,7 +190,8 @@ let client_md4 = define_option downloads_ini ["client_md4"]
     "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
   
 let _ =
-  option_hook client_md4 (fun _ -> let m = mldonkey_md4 !!client_md4 in
+  option_hook client_md4 (fun _ -> 
+      let m = mldonkey_md4 !!client_md4 in
       if m <> !!client_md4 then
         client_md4 =:= m)
 
@@ -276,13 +277,13 @@ let min_left_servers = define_option donkey_ini ["min_left_servers"]
   
 let servers_walking_period = define_option donkey_ini ["servers_walking_period"]
   "How often should we check all servers (minimum 4 hours, 0 to disable)"
-    float_option 6.
+    int_option 6
   
 let _ =
   option_hook servers_walking_period (fun _ ->
-    if !!servers_walking_period > 0. &&
-      !!servers_walking_period < 4. then
-	servers_walking_period =:= 4.)
+    if !!servers_walking_period > 0 &&
+      !!servers_walking_period < 4 then
+	servers_walking_period =:= 4)
 
 let network_options_prefix = define_option donkey_ini
     ["options_prefix"] "The prefix which is appended to options names
@@ -310,7 +311,7 @@ let ban_queue_jumpers = define_option donkey_ini
   
 let ban_period = define_option donkey_ini
     ["ban_period"] "Set the number of hours you want client to remain banned"
-    float_option 6.
+    int_option 6
 
 let max_emule_slots = define_option donkey_ini
     ["max_emule_slots"] "Part of the queue that Emule clients are limited to

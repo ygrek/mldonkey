@@ -38,7 +38,7 @@ type 'a shared_impl = {
     mutable impl_shared_num : int;
     mutable impl_shared_ops : 'a shared_ops;
     mutable impl_shared_uploaded : int64;
-    mutable impl_shared_size : int32;
+    mutable impl_shared_size : int64;
     mutable impl_shared_requests : int;
   }
   
@@ -93,7 +93,7 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
-      if !!verbose then begin
+      if !verbose then begin
           Printf.printf "NEW SHARED %s/%s" impl.impl_shared_codedname
             impl.impl_shared_fullname; print_newline ();
         end;
@@ -124,7 +124,7 @@ let new_shared dirname filename fullname =
         Hashtbl.add dirnames dirname name;
         name in
   let codedname = Filename.concat dirname filename in
-  let size = Unix32.getsize32 fullname in
+  let size = Unix32.getsize64 fullname in
   CommonNetwork.networks_iter (fun n -> 
       CommonNetwork.network_share n fullname codedname size)
 
@@ -160,7 +160,7 @@ let dummy_shared = {
       op_shared_info = (fun _ -> raise Not_found);
     };
     impl_shared_uploaded = Int64.zero;
-    impl_shared_size = Int32.zero;
+    impl_shared_size = Int64.zero;
     impl_shared_requests = 0;
   }
   
@@ -171,7 +171,7 @@ let shared_find num =
 let shared_iter f =
   H.iter f shareds_by_num
 
-let file_size filename = Unix32.getsize32 filename
+let file_size filename = Unix32.getsize64 filename
 let local_dirname = Sys.getcwd ()
   
 (* Prevent sharing of temp directory to avoid sending incomplete files *)
@@ -199,7 +199,7 @@ let rec shared_add_directory dirname local_dir =
             else
             try
               let size = file_size full_name in
-              if size > Int32.zero && ( !!shared_extensions = [] ||
+              if size > Int64.zero && ( !!shared_extensions = [] ||
                   List.mem (String.lowercase (Filename2.last_extension full_name)) !!shared_extensions)
               then
                 new_shared dirname local_name full_name

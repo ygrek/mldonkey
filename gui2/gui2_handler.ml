@@ -195,8 +195,8 @@ let string_of_tags tags =
           Buffer.add_string buf (Printf.sprintf "%-3s "
               (match t.tag_value with
                 String s -> s
-              | Uint32 i -> Int32.to_string i
-              | Fint32 i -> Int32.to_string i
+              | Uint64 i -> Int64.to_string i
+              | Fint64 i -> Int64.to_string i
               | _ -> "???"
             ))
   ) tags;
@@ -400,13 +400,13 @@ let (clist_downloads :
 (* FILENAME *)
     (fun f -> short_name f.file_name);
 (* SIZE *)    
-    (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_size));
+    (fun f -> Printf.sprintf "%+10s" (Int64.to_string f.file_size));
 (* DOWNLOADED *)
-    (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_downloaded));
+    (fun f -> Printf.sprintf "%+10s" (Int64.to_string f.file_downloaded));
 (* PERCENT *)
     (fun f -> 
         Printf.sprintf "%5.1f" (
-          Int32.to_float f.file_downloaded /. Int32.to_float f.file_size
+          Int64.to_float f.file_downloaded /. Int64.to_float f.file_size
           *. 100.)
         );
 (* RATE *)
@@ -539,8 +539,8 @@ let (clist_downloaded :
     ~color: (fun _ -> Some !!color_downloaded)
     [
     get_file_name;
-    (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_size));
-    (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_downloaded));
+    (fun f -> Printf.sprintf "%+10s" (Int64.to_string f.file_size));
+    (fun f -> Printf.sprintf "%+10s" (Int64.to_string f.file_downloaded));
     (fun f -> string_of_file_state f.file_state);
     (fun f -> Md4.to_string f.file_md4);    
   ]
@@ -651,7 +651,7 @@ let update_current_file () =
       None -> ""
     | Some file ->
         Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" file.file_name
-        (Int32.to_string file.file_size) 
+        (Int64.to_string file.file_size) 
         (match file.file_format with
           AVI f ->
             Printf.sprintf "AVI: %s %dx%d %d fps %d bpf"
@@ -727,7 +727,7 @@ let clist_friend_files = MyCList.create gui tab_friends#clist_friends_files
 (* FILENAME *) 
     (fun r -> (*short_name*) (first_name r));
 (* SIZE *)
-    (fun r -> Printf.sprintf "%10s" (Int32.to_string r.result_size));
+    (fun r -> Printf.sprintf "%10s" (Int64.to_string r.result_size));
 (* PROPERTIES *)
     (fun r -> string_of_tags r.result_tags);
 (* MD4 *)

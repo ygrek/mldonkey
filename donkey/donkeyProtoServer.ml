@@ -626,7 +626,7 @@ module Query  = struct (* request 22 *)
           QHasField (name, field), pos
       
       | 3 -> 
-          let field = get_int32_32 s (pos + 1) in
+          let field = get_int64_32 s (pos + 1) in
           let minmax = get_int8 s (pos + 5) in
           let name, pos = get_string s (pos + 6) in
           let name = 
@@ -674,9 +674,9 @@ module Query  = struct (* request 22 *)
       | QHasField (name, field) ->
           Printf.printf "Field[%s] = [%s]" name field
       | QHasMinVal (name, field) ->
-          Printf.printf "Field[%s] > [%s]" name (Int32.to_string field)
+          Printf.printf "Field[%s] > [%s]" name (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          Printf.printf "Field[%s] < [%s]" name (Int32.to_string field)
+          Printf.printf "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
 	  prerr_endline "print_query: QNone in query";
 	  ()
@@ -706,9 +706,9 @@ module Query  = struct (* request 22 *)
       | QHasField (name, field) ->
           Printf.fprintf oc "Field[%s] = [%s]" name field
       | QHasMinVal (name, field) ->
-          Printf.fprintf oc "Field[%s] > [%s]" name (Int32.to_string field)
+          Printf.fprintf oc "Field[%s] > [%s]" name (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          Printf.fprintf oc "Field[%s] < [%s]" name (Int32.to_string field)
+          Printf.fprintf oc "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
 	  prerr_endline "print_query: QNone in query\n";
 	  ()
@@ -758,7 +758,7 @@ module Query  = struct (* request 22 *)
             with _ -> name in
           
           buf_int8 buf 3;
-          buf_int32_32 buf field;
+          buf_int64_32 buf field;
           buf_int8 buf 1;
           buf_string buf name
 
@@ -770,7 +770,7 @@ module Query  = struct (* request 22 *)
             with _ -> name in
           
           buf_int8 buf 3;
-          buf_int32_32 buf field;
+          buf_int64_32 buf field;
           buf_int8 buf 2;
           buf_string buf name
 
@@ -1119,27 +1119,27 @@ module QueryServersReply  = struct
   end
 
 module PingServerUdp = struct (* client -> serveur pour identification ? *)
-    type t = int32
+    type t = int64
       
       
     let parse len s =
       try
-	get_int32_32 s 1(*, get_int8 s 2, get_int8 s 3*)
+	get_int64_32 s 1(*, get_int8 s 2, get_int8 s 3*)
       with _ ->
-	Int32.zero
+	Int64.zero
       
     (*let print (t1,t2,t3) = 
       Printf.printf "MESSAGE 150 UDP %d %d %d" t1 t2 t3;
       print_newline ()*)
 
     let print t =
-      Printf.printf "PING %s\n " (Int32.to_string t)
+      Printf.printf "PING %s\n " (Int64.to_string t)
             
     let fprint oc t =
-      Printf.fprintf oc "PING %s\n" (Int32.to_string t)
+      Printf.fprintf oc "PING %s\n" (Int64.to_string t)
       
     let write buf t =
-      buf_int32_32 buf t
+      buf_int64_32 buf t
                  
                    
     (* let fprint oc (t1,t2,t3) = 
@@ -1153,44 +1153,44 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
   end
 
 module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
-    type t = int32 *  int32 * int32
+    type t = int64 *  int64 * int64
       
     (*let parse len s =
       get_int8 s 1, get_int8 s 2, get_int8 s 3, get_int8 s 4,
-      get_int32_32 s 5, get_int32_32 s 9
+      get_int64_32 s 5, get_int64_32 s 9
       
     let print (t1,t2,t3,t4,t5,t6) = 
       Printf.printf "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
-        (Int32.to_string t5) (Int32.to_string t6);
+        (Int64.to_string t5) (Int64.to_string t6);
       print_newline ()
 
     let fprint oc (t1,t2,t3,t4,t5,t6) = 
       Printf.fprintf oc "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
-        (Int32.to_string t5) (Int32.to_string t6)
+        (Int64.to_string t5) (Int64.to_string t6)
       
     let write buf (t1,t2,t3,t4,t5,t6) = 
       buf_int8 buf t1;
       buf_int8 buf t2;
       buf_int8 buf t3;
       buf_int8 buf t4;
-      buf_int32_32 buf t5;
-      buf_int32_32 buf t6;*)
+      buf_int64_32 buf t5;
+      buf_int64_32 buf t6;*)
       
     let parse len s =
-        get_int32_32 s 1, get_int32_32 s 5, get_int32_32 s 9
+        get_int64_32 s 1, get_int64_32 s 5, get_int64_32 s 9
 
      let print (t1,t2,t3) =
-         Printf.printf "PING REPLY no:%s clients:%s files:%s\n" (Int32.to_string t1)
-                           (Int32.to_string t2) (Int32.to_string t3)
+         Printf.printf "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
+                           (Int64.to_string t2) (Int64.to_string t3)
       
      let fprint oc (t1,t2,t3) =
-         Printf.fprintf oc "PING REPLY no:%s clients:%s files:%s\n" (Int32.to_string t1)
-                           (Int32.to_string t2) (Int32.to_string t3)
+         Printf.fprintf oc "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
+                           (Int64.to_string t2) (Int64.to_string t3)
 
       let write buf (t1,t2,t3) =
-          buf_int32_32 buf t1;
-          buf_int32_32 buf t2;
-          buf_int32_32 buf t3;
+          buf_int64_32 buf t1;
+          buf_int64_32 buf t2;
+          buf_int64_32 buf t3;
                            
   end
   

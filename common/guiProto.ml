@@ -96,7 +96,7 @@ type to_gui =
 | Search_waiting of int * int
   
 | File_info of file_info
-| File_downloaded of int * int32 * float * float
+| File_downloaded of int * int64 * float * int
 | File_add_source of int * int
 | File_update_availability of int * int * string
 | File_remove_source of int * int

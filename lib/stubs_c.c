@@ -302,49 +302,49 @@ value ml_setsock_iptos_throughput(value sock_v)
 /*******************************************************************
 
 
-                         ml_lseek32
+                         ml_lseek64
 
 
 *******************************************************************/
 
-value ml_lseek32(value fd, value ofs, value cmd)
+value ml_lseek64(value fd, value ofs, value cmd)
 {
   long ret;
-  long pos = Int32_val(ofs);
+  long pos = Int64_val(ofs);
   ret = os_lseek(Fd_val(fd), pos,
                        seek_command_table[Int_val(cmd)]);
   if (ret == -1) uerror("lseek", Nothing);
-  return copy_int32(ret);
+  return copy_int64(ret);
 }
 
 /*******************************************************************
 
 
-                         ml_getsize32
+                         ml_getsize64
 
 
 *******************************************************************/
 
-value ml_getsize32(value path)
+value ml_getsize64(value path)
 {
   int ret;
 
-  return copy_int32(os_getfilesize(String_val(path)));
+  return copy_int64(os_getfilesize(String_val(path)));
 }
 
 
 /*******************************************************************
 
 
-                         ml_truncate32
+                         ml_truncate64
 
 
 *******************************************************************/
 
 #define ZEROS_LEN 1024
-value ml_truncate32(value fd_v, value len_v)
+value ml_truncate64(value fd_v, value len_v)
 {
-  unsigned long len = Int32_val(len_v);
+  unsigned long len = Int64_val(len_v);
   OS_FD fd = Fd_val(fd_v);  
 
   os_ftruncate(fd, len);
@@ -437,11 +437,11 @@ value ml_ints_of_string(value s_v)
 
 unsigned char hash_buffer[HASH_BUFFER_LEN];
 
-value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
+value md4_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   OS_FD fd = Fd_val(fd_v);
-  long pos = Int32_val(pos_v);
-  long len = Int32_val(len_v);
+  long pos = Int64_val(pos_v);
+  long len = Int64_val(len_v);
   unsigned char *digest = String_val(digest_v);
   MD4_CTX context;
   int nread;
@@ -474,11 +474,11 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
 
 #include "md5.h"
 
-value md5_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
+value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   OS_FD fd = Fd_val(fd_v);
-  long pos = Int32_val(pos_v);
-  long len = Int32_val(len_v);
+  long pos = Int64_val(pos_v);
+  long len = Int64_val(len_v);
   unsigned char *digest = String_val(digest_v);
   md5_state_t context;
   int nread;

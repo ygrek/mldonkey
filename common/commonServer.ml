@@ -28,7 +28,7 @@ type 'a server_impl = {
     mutable impl_server_update : int;
     mutable impl_server_state : CommonTypes.host_state;
     mutable impl_server_num : int;
-    mutable impl_server_sort : float;
+    mutable impl_server_sort : int;
     mutable impl_server_val : 'a;
     mutable impl_server_ops : 'a server_ops;
   }
@@ -38,7 +38,7 @@ and 'a server_ops = {
     mutable op_server_to_option : ('a -> (string * option_value) list);
     mutable op_server_remove : ('a -> unit);
     mutable op_server_info : ('a -> GuiTypes.server_info);
-    mutable op_server_sort : ('a -> float);
+    mutable op_server_sort : ('a -> int);
     mutable op_server_connect : ('a -> unit);
     mutable op_server_disconnect : ('a -> unit);
     mutable op_server_users : ('a -> user list);
@@ -69,7 +69,7 @@ let  dummy_server_impl = {
     impl_server_update = 1;
     impl_server_state = NewHost;
     impl_server_num = 0;
-    impl_server_sort = 0.0;
+    impl_server_sort = 0;
     impl_server_val = 0;
     impl_server_ops = Obj.magic None;
   }
@@ -155,7 +155,7 @@ let new_server_ops network =
 (*    op_server_print = (fun _ _ -> ni_ok network "server_print"); *)
       op_server_to_option = (fun _ -> fni network "server_to_option");
       op_server_info = (fun _ -> fni network "server_info");
-      op_server_sort = (fun _ -> ni_ok network "server_sort"; 0.0);
+      op_server_sort = (fun _ -> ni_ok network "server_sort"; 0);
       op_server_connect = (fun _ -> ni_ok network "server_connect");
       op_server_disconnect = (fun _ -> ni_ok network "server_disconnect");
       op_server_find_user = (fun _ -> fni network "find_user");
@@ -233,7 +233,7 @@ let server_sort () =
           list := s :: !list;
           impl.impl_server_sort <- 
             (try impl.impl_server_ops.op_server_sort impl.impl_server_val
-            with _ -> 0.0);
+            with _ -> 0);
   ) servers_by_num;
   Sort.list (fun s1 s2 -> 
       (as_server_impl s1).impl_server_sort >= (as_server_impl s2).impl_server_sort

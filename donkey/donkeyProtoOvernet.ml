@@ -32,7 +32,7 @@ type peer =
     mutable peer_ip : Ip.t;
     peer_port : int;
     peer_kind : int;
-    mutable peer_last_msg : float;
+    mutable peer_last_msg : int;
   }
   
 let buf_peer buf p =
@@ -503,8 +503,10 @@ let udp_handler f sock event =
             if len < 2 || 
               int_of_char pbuf.[0] <> 227 then 
               begin
-                Printf.printf "Received unknown UDP packet"; print_newline ();
-                dump pbuf;
+                if !CommonOptions.verbose_unknown_messages then begin
+                    Printf.printf "Received unknown UDP packet"; print_newline ();
+                    dump pbuf;
+                  end
               end 
             else 
               begin

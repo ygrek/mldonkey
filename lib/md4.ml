@@ -34,7 +34,7 @@ module type Digest = sig
     val direct_to_string : t -> string
     val random : unit -> t
     
-    val digest_subfile : Unix32.t -> int32 -> int32 -> t
+    val digest_subfile : Unix32.t -> int64 -> int64 -> t
     
     val option : t Options.option_class
     
@@ -55,7 +55,7 @@ module Make(M: sig
         
       val unsafe_string : string -> string -> int -> unit
       val unsafe_file : string -> string -> unit
-      val digest_subfile : string -> Unix.file_descr -> int32 -> int32 -> unit 
+      val digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit 
 
     end) = struct
     open M
@@ -161,8 +161,8 @@ module Md4 = Make(struct
       
       external unsafe_string : string -> string -> int -> unit = "md4_unsafe_string"
       external unsafe_file : string -> string -> unit = "md4_unsafe_file"
-      external digest_subfile : string -> Unix.file_descr -> int32 -> int32 -> unit =
-        "md4_unsafe_fd"
+      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+        "md4_unsafe64_fd"
     
     end)
   
@@ -172,8 +172,8 @@ module Md5 = Make(struct
       
       external unsafe_string : string -> string -> int -> unit = "md5_unsafe_string"
       external unsafe_file : string -> string -> unit = "md5_unsafe_file"
-      external digest_subfile : string -> Unix.file_descr -> int32 -> int32 -> unit =
-        "md5_unsafe_fd"
+      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+        "md5_unsafe64_fd"
     
     end)
   

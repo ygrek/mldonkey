@@ -114,7 +114,7 @@ let client_parse_header c sock header =
                 try
                   let npos = (String.index range 'b')+6 in
                   let dash_pos = try String.index range '-' with _ -> -10 in
-                  let start_pos = Int32.of_string 
+                  let start_pos = Int64.of_string 
                       (String.sub range npos (dash_pos - npos)) in
                   start_pos
                 with 
@@ -123,12 +123,12 @@ let client_parse_header c sock header =
                       (Printexc2.to_string e) range;
                     print_newline ();
                     raise e
-              with Not_found -> Int32.zero
+              with Not_found -> Int64.zero
             in                  
                 if d.CommonDownloads.download_pos <> start_pos then 
                   failwith (Printf.sprintf "Bad range %s for %s"
-                      (Int32.to_string start_pos)
-                    (Int32.to_string d.CommonDownloads.download_pos));
+                      (Int64.to_string start_pos)
+                    (Int64.to_string d.CommonDownloads.download_pos));
             ()
       end else begin
         if !!verbose_clients > 0 then begin
@@ -195,18 +195,18 @@ let client_reader c sock nread =
         set_rtimeout sock half_day;
         begin
           let fd = try
-              Unix32.force_fd (file_fd file) 
+              Unix64.force_fd (file_fd file) 
             with e -> 
-                Printf.printf "In Unix32.force_fd"; print_newline ();
+                Printf.printf "In Unix64.force_fd"; print_newline ();
                 raise e
           in
-          let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
+          let final_pos = Unix64.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
         end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-        c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+        c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.client_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
 print_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
@@ -260,7 +260,8 @@ let get_from_client sock (c: client) (file : file) =
       end;
   
   write_string sock (Printf.sprintf 
-      "GET %s HTTP/1.0\r\nRangeRange: bytes=%ld-%ld\r\n\r\n" file.file_name (file_downloaded file) (file_size file));
+      "GET %s HTTP/1.0\r\nRangeRange: bytes=%Ld-%Ld\r\n\r\n" file.file_name 
+    (file_downloaded file) (file_size file));
   let d = CommonDownloads.new_download sock 
       (as_client c.client_client)
     (as_file file.file_file) 1

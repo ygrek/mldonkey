@@ -61,12 +61,12 @@ let save_config () =
   ()
     
 let age_to_day date =
-  int_of_float ((last_time () -. date) /. one_day)
+  (last_time () - date) / Date.day_in_secs
 
 
 let percent file = 
-  let downloaded = Int32.to_float file.file_downloaded in
-  let size = Int32.to_float file.file_size in
+  let downloaded = Int64.to_float file.file_downloaded in
+  let size = Int64.to_float file.file_size in
   if size < 1.0
   then 0.0
   else (downloaded *. 100.) /. size
@@ -233,8 +233,8 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
                 file.file_num
                 file.file_num);
           
-          ( let size = Int32.to_float file.file_size in
-            let downloaded = Int32.to_float file.file_downloaded in
+          ( let size = Int64.to_float file.file_size in
+            let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
             Printf.sprintf "%s \\<br\\>
 \\<table cellpadding=0 cellspaceing=0 width=100%%\\>\\<tr\\>
@@ -247,8 +247,8 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
           );              	
           
           (Printf.sprintf "%5.1f" (percent file));
-          (Int32.to_string file.file_downloaded);
-          (Int32.to_string file.file_size);
+          (Int64.to_string file.file_downloaded);
+          (Int64.to_string file.file_size);
           (Printf.sprintf "%d:%s"
               (age_to_day file.file_age)
             ( 
@@ -259,7 +259,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
                 if file.file_chunks_age.(i) < !min then
                   min := file.file_chunks_age.(i)
               done;
-              if !min < 0.1 then "-" else
+              if !min = 0 then "-" else
                 string_of_int (age_to_day !min)));
           
           (if file.file_state = FilePaused then
@@ -323,8 +323,8 @@ let simple_print_file_list finished buf files format =
                   else ""));
             (short_name file);
             (Printf.sprintf "%5.1f" (percent file));
-            (Int32.to_string file.file_downloaded);
-              (Int32.to_string file.file_size);
+            (Int64.to_string file.file_downloaded);
+              (Int64.to_string file.file_size);
               (Printf.sprintf "%d:%s" (age_to_day file.file_age)
                 ( 
                   let len = Array.length file.file_chunks_age in
@@ -334,7 +334,7 @@ let simple_print_file_list finished buf files format =
                     if file.file_chunks_age.(i) < !min then
                       min := file.file_chunks_age.(i)
                   done;
-                if !min < 0.1 then "-" else
+                if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
               
             (if file.file_state = FilePaused then
@@ -371,7 +371,7 @@ let simple_print_file_list finished buf files format =
                 n.network_name)
               file.file_num);
             (short_name file);
-            (Int32.to_string file.file_size);
+            (Int64.to_string file.file_size);
             (Md4.to_string file.file_md4)
         |]
     ) files)
@@ -450,15 +450,15 @@ let old_print_search buf output results =
           if output.conn_output = HTML then 
             Printf.bprintf buf "\\</A HREF\\>";
           Printf.bprintf  buf "          %10s %10s " 
-            (Int32.to_string r.result_size)
+            (Int64.to_string r.result_size)
           (Md4.to_string r.result_md4);
           List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then string_of_int avail else
                   match t.tag_value with
                     String s -> s
-                  | Uint32 i -> Int32.to_string i
-                  | Fint32 i -> Int32.to_string i
+                  | Uint64 i -> Int64.to_string i
+                  | Fint64 i -> Int64.to_string i
                   | _ -> "???"
                 ))
           ) r.result_tags;
@@ -537,8 +537,8 @@ let print_search_html buf results format search_num =
                         (if t.tag_name = "availability" then "" else
                         match t.tag_value with
                           String s -> s
-                        | Uint32 i -> Int32.to_string i
-                        | Fint32 i -> Int32.to_string i
+                        | Uint64 i -> Int64.to_string i
+                        | Fint64 i -> Int64.to_string i
                         | _ -> "???"
                       ))
                 ) r.result_tags;
@@ -574,7 +574,7 @@ let print_search_html buf results format search_num =
                       Buffer.contents buf
                 );
                 
-                (Int32.to_string r.result_size);
+                (Int64.to_string r.result_size);
                 
                 tags_string;
                 
@@ -652,7 +652,7 @@ let print_results buf format results =
                   )
                   (if format.conn_output = HTML then "\\</A HREF\\>" else ""));
                 
-                (Int32.to_string r.result_size);
+                (Int64.to_string r.result_size);
                 
                 (let buf = Buffer.create 100 in
                   List.iter (fun t ->
@@ -660,8 +660,8 @@ let print_results buf format results =
                           (if t.tag_name = "availability" then "" else
                           match t.tag_value with
                             String s -> s
-                          | Uint32 i -> Int32.to_string i
-                          | Fint32 i -> Int32.to_string i
+                          | Uint64 i -> Int64.to_string i
+                          | Fint64 i -> Int64.to_string i
                           | _ -> "???"
                         ))
                   ) r.result_tags;

@@ -52,7 +52,7 @@ let search_handler s t =
 (*  search.search_handler (Waiting s.search_waiting) *)
     
 let udp_query_locations file s =
-  if !!verbose then begin
+  if !verbose then begin
       Printf.printf "UDP: query location %s" (Ip.to_string s.server_ip);
       print_newline ();
     end;
@@ -71,7 +71,7 @@ let find_search num = find_search_rec num !local_searches
     *)
 
 let cut_for_udp_send max_servers list =
-  let min_last_conn = last_time () -. 8. *. 3600. in
+  let min_last_conn = last_time () - 8 * 3600 in
   let rec iter list n left =
     if n = 0 then 
       left, list
@@ -130,7 +130,7 @@ let force_check_locations () =
 *)
             List.iter (fun s  ->
               if 
-                connection_last_conn s.server_connection_control +. 3600. *. 8. > last_time () &&
+                connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
                 s.server_next_udp <= last_time () then
                   match s.server_sock with
                   None -> 
@@ -141,7 +141,7 @@ let force_check_locations () =
     ) !current_files;
 
     List.iter (fun s ->
-        s.server_next_udp <- last_time () +. !!min_reask_delay) before;
+        s.server_next_udp <- last_time () + !!min_reask_delay) before;
     if !udp_servers_list = [] then
           udp_servers_list := Hashtbl2.to_list servers_by_key;
     
@@ -216,7 +216,7 @@ let udp_from_server p =
 (* set last_conn, but add a 2 minutes offset to prevent staying connected
 to this server *)
         connection_set_last_conn s.server_connection_control (
-          last_time () -. 121.);
+          last_time () - 121);
         s.server_score <- s.server_score + 3;
         s
       else raise Not_found
@@ -243,7 +243,7 @@ let udp_client_handler t p =
 let verbose_upload = false
       
 let msg_block_size_int = 10000
-let msg_block_size = Int32.of_int msg_block_size_int
+let msg_block_size = Int64.of_int msg_block_size_int
 let upload_buffer = String.create msg_block_size_int
 let max_msg_size = 15000
 
@@ -287,8 +287,8 @@ module NewUpload = struct
 (*      let len_int = Int32.to_int len in *)
       remaining_bandwidth := !remaining_bandwidth - len_int;
       try
-        if !!verbose then begin
-            Printf.printf "send_small_block(%s-%s) %ld %d"
+        if !verbose then begin
+            Printf.printf "send_small_block(%s-%s) %Ld %d"
               c.client_name (brand_to_string c.client_brand)
               (begin_pos) (len_int);
             print_newline ();
@@ -301,7 +301,7 @@ module NewUpload = struct
             M.BlocReq {  
               B.md4 = file.file_md4;
               B.start_pos = begin_pos;
-              B.end_pos = Int32.add begin_pos (Int32.of_int len_int);
+              B.end_pos = Int64.add begin_pos (Int64.of_int len_int);
               B.bloc_str = "";
               B.bloc_begin = 0;
               B.bloc_len = 0; 
@@ -314,7 +314,7 @@ module NewUpload = struct
         DonkeyProtoCom.new_string msg upload_buffer;
         
         let fd = file_fd file in
-        ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
+        ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
         Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c file uploaded;
@@ -342,14 +342,14 @@ module NewUpload = struct
 (* Is there a message to warn that a file is not shared anymore ? *)
                 c.client_upload <- None;
               end else
-            let max_len = Int32.sub up.up_end_chunk up.up_pos in
-            let max_len = Int32.to_int max_len in
+            let max_len = Int64.sub up.up_end_chunk up.up_pos in
+            let max_len = Int64.to_int max_len in
             let msg_block_size_int = mini msg_block_size_int per_client in
             if max_len <= msg_block_size_int then
 (* last block from chunk *)
               begin
                 if verbose_upload then begin
-                    Printf.printf "END OF CHUNK (%d) %ld" max_len up.up_end_chunk; 
+                    Printf.printf "END OF CHUNK (%d) %Ld" max_len up.up_end_chunk; 
                     print_newline ();
                   end;
                 send_small_block c sock up.up_file up.up_pos max_len;
@@ -371,8 +371,8 @@ module NewUpload = struct
               begin
                 send_small_block c sock up.up_file up.up_pos 
                   msg_block_size_int;
-                up.up_pos <- Int32.add up.up_pos 
-                  (Int32.of_int msg_block_size_int);
+                up.up_pos <- Int64.add up.up_pos 
+                  (Int64.of_int msg_block_size_int);
                 let per_client = per_client-msg_block_size_int in
                 if can_write_len sock max_msg_size then
                   send_client_block c sock per_client
@@ -495,13 +495,13 @@ works correctly always be complexified until it doesnot work anymore ??? *)
         
         
     let send_small_block c sock file begin_pos len = 
-      let len_int = Int32.to_int len in
+      let len_int = Int64.to_int len in
       remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
       try
 
         Printf.printf "OLD send_small_block(%s) %s %s"
           (brand_to_string c.client_brand)
-        (Int32.to_string begin_pos) (Int32.to_string len);
+        (Int64.to_string begin_pos) (Int64.to_string len);
 print_newline ();
 
         
@@ -513,7 +513,7 @@ print_newline ();
             M.BlocReq {  
               B.md4 = file.file_md4;
               B.start_pos = begin_pos;
-              B.end_pos = Int32.add begin_pos len;
+              B.end_pos = Int64.add begin_pos len;
               B.bloc_str = "";
               B.bloc_begin = 0;
               B.bloc_len = 0; 
@@ -526,7 +526,7 @@ print_newline ();
         DonkeyProtoCom.new_string msg upload_buffer;
         
         let fd = file_fd file in
-        ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
+        ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
         Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
 (*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
 print_newline (); *)
@@ -558,7 +558,7 @@ print_newline (); *)
 (* Is there a message to warn that a file is not shared anymore ? *)
                 c.client_upload <- None;
               end else
-            let max_len = Int32.sub up.up_end_chunk up.up_pos in
+            let max_len = Int64.sub up.up_end_chunk up.up_pos in
             if max_len <= msg_block_size then
 (* last block from chunk *)
               begin
@@ -576,7 +576,7 @@ print_newline (); *)
 (* small block from chunk *)
               begin
                 send_small_block c sock up.up_file up.up_pos msg_block_size;
-                up.up_pos <- Int32.add up.up_pos msg_block_size;
+                up.up_pos <- Int64.add up.up_pos msg_block_size;
                 if can_write_len sock max_msg_size then
                   send_client_block c sock (per_client-1)
               end
@@ -584,14 +584,14 @@ print_newline (); *)
             ()
     
     let rec send_client_block_partial c sock per_client =
-      let msg_block_size = Int32.of_int (per_client * 1000) in
+      let msg_block_size = Int64.of_int (per_client * 1000) in
       match c.client_upload with
       | Some ({ up_chunks = _ :: chunks } as up)  ->
           if up.up_file.file_shared = None then begin
 (* Is there a message to warn that a file is not shared anymore ? *)
               c.client_upload <- None;
             end else
-          let max_len = Int32.sub up.up_end_chunk up.up_pos in
+          let max_len = Int64.sub up.up_end_chunk up.up_pos in
           if max_len <= msg_block_size then
 (* last block from chunk *)
             begin
@@ -608,7 +608,7 @@ print_newline (); *)
 (* small block from chunk *)
             begin
               send_small_block c sock up.up_file up.up_pos msg_block_size;
-              up.up_pos <- Int32.add up.up_pos msg_block_size;
+              up.up_pos <- Int64.add up.up_pos msg_block_size;
             end
       | _ -> 
           ()

@@ -279,11 +279,11 @@ let new_file file_id file_name file_size =
       let file_temp = Filename.concat !!DO.temp_directory 
           (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
       let current_size = try
-          Unix32.getsize32 file_temp
+          Unix32.getsize64 file_temp
         with e ->
             Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
             print_newline ();
-            Int32.zero
+            Int64.zero
       in
       
       let rec file = {
@@ -346,7 +346,7 @@ let new_client ip port http_port =
 (*          client_name = name; 
           client_kind = None; *)
           client_file = None;
-(*          client_pos = Int32.zero; *)
+(*          client_pos = Int64.zero; *)
           client_all_files = None;
           client_user = u;
           client_connection_control = new_connection_control (());

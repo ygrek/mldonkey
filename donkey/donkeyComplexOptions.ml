@@ -98,9 +98,10 @@ let value_to_client is_friend assocs =
     with _ -> ());
   (try
       let last_conn =
-        (min (get_value "client_age" value_to_float) 
+        (min (get_value "client_age" value_to_int) 
           (BasicSocket.last_time ()))
       in
+      let last_conn = normalize_time last_conn in
       CommonGlobals.connection_set_last_conn l.client_connection_control
         last_conn;
     with _ -> ());
@@ -131,10 +132,10 @@ let client_to_value c =
   let list = [
       "client_md4", string_to_value (Md4.to_string c.client_md4);
       "client_name", string_to_value c.client_name;
-      "client_age", float_to_value (
+      "client_age", int_to_value (
         CommonGlobals.connection_last_conn 
         c.client_connection_control);
-      "client_last_filereqs", float_to_value c.client_last_filereqs;
+      "client_last_filereqs", int_to_value c.client_last_filereqs;
       "client_checked", bool_to_value c.client_checked;
       "client_overnet", bool_to_value c.client_overnet;
     ]
@@ -175,8 +176,8 @@ let value_to_server assocs =
         with _ -> ());
       (try
           connection_set_last_conn l.server_connection_control
-            (min (get_value "server_age" value_to_float) 
-            (BasicSocket.last_time ()));
+            (normalize_time (mini (get_value "server_age" value_to_int) 
+            (BasicSocket.last_time ())));
         with _ -> ());
       as_server l.server_server
 
@@ -184,7 +185,7 @@ let server_to_value c =
   let fields = 
     [
     "server_addr", addr_to_value c.server_ip  c.server_port;
-      "server_age", float_to_value (
+      "server_age", int_to_value (
       connection_last_conn c.server_connection_control);
   ]
   in
@@ -204,7 +205,7 @@ let server_to_value c =
 let value_to_int32pair v =
   match v with
     List [v1;v2] | SmallList [v1;v2] ->
-      (value_to_int32 v1, value_to_int32 v2)
+      (value_to_int64 v1, value_to_int64 v2)
   | _ -> 
       failwith "Options: Not an int32 pair"
 
@@ -233,8 +234,8 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_md4"
   in
   let file_size = try
-      value_to_int32 (List.assoc "file_size" assocs) 
-    with _ -> Int32.zero
+      value_to_int64 (List.assoc "file_size" assocs) 
+    with _ -> Int64.zero
   in
   
   let file_state = get_value "file_state" value_to_state in
@@ -244,7 +245,7 @@ let value_to_file is_done assocs =
     (Md4.of_string file_md4_name) file_size true in
   
   (try
-      file.file_file.impl_file_age <- get_value "file_age" value_to_float
+      file.file_file.impl_file_age <- normalize_time (get_value "file_age" value_to_int)
     with _ -> ());
   
   (try 
@@ -264,7 +265,7 @@ let value_to_file is_done assocs =
     with _ -> update_best_name file);
   
   (try
-      let mtime = Unix32.mtime32 (file_disk_name file) in
+      let mtime = Unix32.mtime64 (file_disk_name file) in
       let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
       file.file_mtime <- old_mtime;
       let file_chunks = get_value "file_all_chunks" value_to_string in
@@ -273,7 +274,7 @@ let value_to_file is_done assocs =
           let c = file_chunks.[i] in
           if c = '0' then AbsentVerified else
           if c = '2' then PresentVerified
-          else AbsentTemp
+          else PresentTemp
       )
     with _ -> 
         Printf.printf "Could not load chunks states"; print_newline (););
@@ -288,13 +289,13 @@ let value_to_file is_done assocs =
       file.file_chunks_age <-
         get_value "file_chunks_age" 
         (fun v -> 
-          let list = value_to_list value_to_float v in
+          let list = value_to_list (fun v -> normalize_time (value_to_int v)) v in
           Array.of_list list)
     with _ -> ());
   
   file.file_file.impl_file_last_seen <- (
     if file.file_chunks_age = [||]
-    then 0.0
+    then 0
     else Array2.min file.file_chunks_age);
   
   
@@ -319,25 +320,25 @@ let string_of_chunks file =
 let file_to_value file =
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_size", int32_to_value file.file_file.impl_file_size;
+    "file_size", int64_to_value file.file_file.impl_file_size;
     "file_all_chunks", string_to_value (string_of_chunks file);  
     "file_state", state_to_value (file_state file);
     "file_absent_chunks", List
       (List.map (fun (i1,i2) -> 
-          SmallList [int32_to_value i1; int32_to_value i2])
+          SmallList [int64_to_value i1; int64_to_value i2])
       file.file_absent_chunks);
     "file_filename", string_to_value (file_best_name file);
     "file_filenames", List
       (List.map (fun s -> string_to_value s) file.file_filenames);
-    "file_age", FloatValue file.file_file.impl_file_age;
+    "file_age", IntValue (Int64.of_int file.file_file.impl_file_age);
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
       file.file_md4s);
-    "file_downloaded", int32_to_value file.file_file.impl_file_downloaded;
+    "file_downloaded", int64_to_value file.file_file.impl_file_downloaded;
     "file_chunks_age", List (Array.to_list 
-        (Array.map float_to_value file.file_chunks_age));
+        (Array.map int_to_value file.file_chunks_age));
     "file_mtime", float_to_value (
-      try Unix32.mtime32 (file_disk_name file) with _ -> 0.0)
+      try Unix32.mtime64 (file_disk_name file) with _ -> 0.0)
   ]
   
 module SharedFileOption = struct
@@ -356,7 +357,7 @@ module SharedFileOption = struct
             with _ -> failwith "Bad shared file md4"
           in
           let sh_size = try
-              value_to_int32 (List.assoc "size" assocs) 
+              value_to_int64 (List.assoc "size" assocs) 
             with _ -> failwith "Bad shared file size"
           in
           let sh_name = try
@@ -379,7 +380,7 @@ module SharedFileOption = struct
         "md4s", list_to_value "Shared Md4" (fun md4 ->
             string_to_value (Md4.to_string md4)) sh.sh_md4s;
         "mtime", float_to_value sh.sh_mtime;
-        "size", int32_to_value sh.sh_size;
+        "size", int64_to_value sh.sh_size;
       ]
     
     
@@ -390,15 +391,28 @@ let value_to_module f v =
   match v with
     Module list -> f list
   | _ -> failwith "Option should be a module"
-  
+      
+let save_time = define_header_option file_sources_ini 
+    ["save_time"] "" int_option (last_time ())
+      
 module ClientOption = struct
     
     let value_to_source assocs = 
-      let get_value name conv = conv (List.assoc name assocs) in
+      let get_value names conv = conv (
+          let rec iter names =
+            match names with [] -> raise Not_found
+            | name :: tail ->
+                try
+                  List.assoc name assocs
+                with Not_found -> iter tail
+          in
+          iter names
+        ) in
       let get_value_nil name conv = 
         try conv (List.assoc name assocs) with _ -> []
       in
-      let addr = get_value "source_addr" (fun v ->
+      
+      let addr = get_value ["addr"; "source_addr"] (fun v ->
             match v with
               List [ip;port] | SmallList [ip;port] ->
                 let ip = Ip.of_string (value_to_string ip) in
@@ -406,17 +420,22 @@ module ClientOption = struct
                 (ip, port)
             | _ -> failwith  "Options: Not an source option")
       in
-      let files = get_value "source_files" (value_to_list Md4.value_to_hash) in
+      let files = get_value ["files"; "source_files"] (value_to_list 
+          Md4.value_to_hash) in
       
       let overnet_source = try
-          get_value "source_overnet" value_to_bool
+          get_value ["overnet"; "source_overnet"] value_to_bool
         with _ -> false in
+
+      let current_time = last_time () in
       
       let last_conn = 
         try
-          (min (get_value "source_age" value_to_float) (last_time ()))
-        with _ -> 0.0
+          min (get_value ["age"; "source_age"] value_to_int) current_time
+        with _ -> 0
       in
+        
+      let last_conn = normalize_time last_conn in
       
       let rec iter files =
         match files with
@@ -424,16 +443,13 @@ module ClientOption = struct
         | md4 :: tail ->
             try
               let file = find_file md4 in
-              let s = DonkeySources1.old_source addr file in
+              let s = DonkeySources1.S.old_source last_conn addr file in
               s.source_overnet <- overnet_source;
-              s.source_client <- 
-                SourceLastConnection (DonkeySources1.new_sources_queue, 
-                last_conn, CommonClient.book_client_num ());
               List.iter (fun md4 ->
                   try
                     let file = find_file md4 in
-                    if not (List.mem_assq file s.source_files) then
-                      s.source_files <- (file, 0.0) :: s.source_files
+                    DonkeySources1.add_source_request s file 0 
+                      File_expected;
                   with _ -> ()
               ) files;
               s
@@ -443,22 +459,31 @@ module ClientOption = struct
       
     let source_to_value s =
       let last_conn = match s.source_client with
-          SourceLastConnection (_, time, _) -> time
+        | SourceLastConnection (_, time, _) -> time
         | _ -> last_time ()
       in
       let (ip, port) = s.source_addr in
       
+      let files = ref [] in
+      List.iter (fun r ->
+          if r.request_result > File_not_found then
+            files := once_value (Md4.hash_to_value r.request_file.file_md4)
+            :: !files
+      ) s.source_files;
+      
       let list = [
-          "source_addr", addr_to_value ip port;
-          "source_files", list_to_value "file list" (fun (file,_) -> 
-              Md4.hash_to_value file.file_md4) s.source_files;          
+          "addr", addr_to_value ip port;
+          "files", smalllist_to_value "file list" 
+            (fun s -> s)
+          !files;
+          
         ] in
       let list = 
-        if last_conn < 1. then list else
-          ("source_age", float_to_value last_conn) :: list
+        if last_conn < 1 then list else
+          ("age", int_to_value last_conn) :: list
       in
       let list = if s.source_overnet then
-          ("source_overnet", bool_to_value true) :: list else list
+          ("overnet", bool_to_value true) :: list else list
       in
       Module list
       
@@ -526,7 +551,7 @@ let remove_server ip port =
 let sources = define_option file_sources_ini 
     ["sources"] "" 
     (listiter_option ClientOption.t) []
-
+  
       
 let load _ =
   Printf.printf "LOADING SHARED FILES AND SOURCES"; print_newline ();
@@ -539,19 +564,21 @@ let save _ =
   Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
   Options.save_with_help shared_files_ini;
   sources =:= [];
-  DonkeySources1.iter (fun s -> sources =:= s :: !!sources);
-  List.iter (fun file ->
-      Fifo.iter (fun (s,_) -> sources =:= s :: !!sources) 
-      file.file_paused_sources;
-      
-  ) !current_files;
+  DonkeySources1.S.iter (fun s -> 
+      (match s.source_client with
+        SourceClient c -> s.source_files <- c.client_files;
+      | _ -> ());      
+      sources =:= s :: !!sources);
+  
+  save_time =:= last_time ();
+  
   Options.save_with_help file_sources_ini;
   Printf.printf "SAVED"; print_newline ();
   sources =:= []
 
 let load_sources () = 
   (try 
-      Options.load file_sources_ini
+      Options.load file_sources_ini;
     with _ -> ())
 
     

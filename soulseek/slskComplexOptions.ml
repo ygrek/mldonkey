@@ -22,4 +22,4 @@ open SlskOptions
 
 let old_files = 
   define_option soulseek_ini ["old_files"]
-    "" (list_option (tuple2_option (string_option, int32_option))) []
+    "" (list_option (tuple2_option (string_option, int64_option))) []

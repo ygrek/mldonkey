@@ -121,37 +121,40 @@ let string_of_format format =
   | _ -> (gettext M.unknown)
 
 let time_to_string time =
-  let days = floor (time /. 60.0 /. 60.0 /. 24.0) in
-  let rest = int_of_float (time -. days *. 60.0 *. 60.0 *. 24.0) in
+  let days = time / 60 / 60 / 24 in
+  let rest = time - days * 60 * 60 * 24 in
   let hours = rest / 60 / 60 in
   let rest = rest - hours * 60 * 60 in
   let minutes = rest / 60 in
   let seconds = rest - minutes * 60 in
-    if days > 0.0
-    then Printf.sprintf " %.2fd " (time /. 60.0 /. 60.0 /. 24.0)
+    if days > 0
+    then Printf.sprintf " %dd " days
     else if hours > 0
     then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
     else Printf.sprintf " %d:%02d " minutes seconds
 
 let calc_file_eta f =
-  let size = Int32.to_float f.file_size in
-  let downloaded = Int32.to_float f.file_downloaded in
+  let size = Int64.to_float f.file_size in
+  let downloaded = Int64.to_float f.file_downloaded in
   let missing = size -. downloaded in
   let rate = f.file_download_rate in
   let rate =
-    if rate = 0.0
+    if rate = 0.
     then
       let time = BasicSocket.last_time () in
-      let age = time -. f.file_age in
-	if age > 0.0
-	then downloaded /. age
-	else 0.0
+      let age = time - f.file_age in
+	if age > 0
+	then downloaded /. (float_of_int age)
+	else 0.
     else rate
   in
+  let eta = 
     if rate = 0.0
     then 1000.0 *. 60.0 *. 60.0 *. 24.0
     else missing /. rate
-
+  in
+  int_of_float eta
+  
 class box columns sel_mode () =
   let titles = List.map Gui_columns.File.string_of_column columns in
   object (self)
@@ -174,8 +177,8 @@ class box columns sel_mode () =
       |	Col_file_size -> compare f1.file_size f2.file_size
       |	Col_file_downloaded -> compare f1.file_downloaded f2.file_downloaded
       |	Col_file_percent -> compare 
-	    (Int32.to_float f1.file_downloaded /. Int32.to_float f1.file_size) 
-	    (Int32.to_float f2.file_downloaded /. Int32.to_float f2.file_size) 
+	    (Int64.to_float f1.file_downloaded /. Int64.to_float f1.file_size) 
+	    (Int64.to_float f2.file_downloaded /. Int64.to_float f2.file_size) 
       |	Col_file_rate-> compare f1.file_download_rate f2.file_download_rate
       |	Col_file_state -> compare f1.file_state f2.file_state
       |	Col_file_availability ->
@@ -207,12 +210,12 @@ class box columns sel_mode () =
 	  let s_file = Gui_misc.short_name f.file_name in
 	  s_file
       |	Col_file_size ->
-	  Gui_misc.size_of_int32 f.file_size 
+	  Gui_misc.size_of_int64 f.file_size 
       |	Col_file_downloaded ->
-	  Gui_misc.size_of_int32 f.file_downloaded
+	  Gui_misc.size_of_int64 f.file_downloaded
       |	Col_file_percent ->
 	  Printf.sprintf "%5.1f" 
-	    (Int32.to_float f.file_downloaded /. Int32.to_float f.file_size *. 100.)
+	    (Int64.to_float f.file_downloaded /. Int64.to_float f.file_size *. 100.)
       |	Col_file_rate ->
 	  if f.file_download_rate > 0. then
             Printf.sprintf "%5.1f" (f.file_download_rate /. 1024.)
@@ -227,17 +230,17 @@ class box columns sel_mode () =
       | Col_file_format -> string_of_format f.file_format
       | Col_file_network -> Gui_global.network_name f.file_network
       |	Col_file_age ->
-	  let age = (BasicSocket.last_time ()) -. f.file_age in
+	  let age = (BasicSocket.last_time ()) - f.file_age in
 	    time_to_string age
       |	Col_file_last_seen ->
-	  if f.file_last_seen > 0.0
+	  if f.file_last_seen > 0
 	  then let last = (BasicSocket.last_time ())
-			  -. f.file_last_seen in
+			  - f.file_last_seen in
 	    time_to_string last
 	  else Printf.sprintf "---"
       | Col_file_eta ->
 	  let eta = calc_file_eta f in
-	    if eta >= 1000.0 *. 60. *. 60. *. 24. then
+	    if eta >= 1000 * 60 * 60 * 24 then
 	      Printf.sprintf "---"
 	    else time_to_string eta
           
@@ -556,7 +559,7 @@ class box_downloads box_locs wl_status () =
 	(
          Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
 	   (file.file_name)
-           (Int32.to_string file.file_size) 
+           (Int64.to_string file.file_size) 
            (string_of_format file.file_format)
            ;
 	);

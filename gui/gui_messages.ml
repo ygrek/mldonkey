@@ -461,6 +461,7 @@ Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
 This documentation file is now obsolete. Read the FAQ instead (either
 on the project WEB site or in the FAQ.html file).
+
 "
 
   

@@ -70,7 +70,7 @@ and client = {
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
-    result_size : int32;
+    result_size : int64;
     result_md5 : Md4.t;
     mutable result_sources : (user * string) list;
   }

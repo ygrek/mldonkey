@@ -49,7 +49,7 @@ and room = {
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
-    result_size : int32;
+    result_size : int64;
     mutable result_sources : (user * string) list;
   }
   
@@ -75,7 +75,7 @@ and client = {
     client_connection_control : CommonTypes.connection_control;
     mutable client_files : (file * string) list; 
     mutable client_all_files : (string * result) list option;
-    mutable client_receiving : int32;
+    mutable client_receiving : int64;
     mutable client_user : user;
     mutable client_requests : (int * file) list;
   }

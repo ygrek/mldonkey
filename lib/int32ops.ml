@@ -32,3 +32,14 @@ let left64 x y = Int64.shift_left x y
 let right64 x y = Int64.shift_right_logical x y
 let or64 x y = Int64.logor x y
 let and64 x y = Int64.logand x y
+
+  
+let const_int32_255 = Int32.of_int 255
+let const_int64_255 = Int64.of_int 255
+
+let bits32_64 = Int64.of_string "0xffffffff"
+  
+let int64_of_uint32 v =
+  and64 (Int64.of_int32 v) bits32_64
+  
+let int32_of_int64 v = Int64.to_int32

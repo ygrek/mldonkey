@@ -62,7 +62,7 @@ and client = {
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
-    result_size : int32;
+    result_size : int64;
     mutable result_sources : (user * int) list;
   }
 

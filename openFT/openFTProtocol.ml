@@ -400,10 +400,10 @@ module Search = struct
         words : string;
         exclude : string;
         realm : string;
-        size_min : int32;
-        size_max : int32;
-        kbps_min : int32;
-        kbps_max : int32;
+        size_min : int64;
+        size_max : int64;
+        kbps_min : int64;
+        kbps_max : int64;
       }
       
     let parse s = 
@@ -419,10 +419,10 @@ module Search = struct
       let words, pos = get_string s 6 in
       let exclude, pos = get_string s pos in
       let realm, pos = get_string s pos in
-      let size_min = get_int32 s pos in
-      let size_max = get_int32 s (pos+4) in
-      let kbps_min = get_int32 s (pos+8) in
-      let kbps_max = get_int32 s (pos+12) in
+      let size_min = get_int64_32 s pos in
+      let size_max = get_int64_32 s (pos+4) in
+      let kbps_min = get_int64_32 s (pos+8) in
+      let kbps_max = get_int64_32 s (pos+12) in
       {
         id = id;
         search_type = stype;
@@ -450,10 +450,10 @@ module Search = struct
       buf_string buf t.words;
       buf_string buf t.exclude;
       buf_string buf t.realm;
-      buf_int32 buf t.size_min;
-      buf_int32 buf t.size_max;
-      buf_int32 buf t.kbps_min;
-      buf_int32 buf t.kbps_max
+      buf_int64_32 buf t.size_min;
+      buf_int64_32 buf t.size_max;
+      buf_int64_32 buf t.kbps_min;
+      buf_int64_32 buf t.kbps_max
 
     end
 
@@ -464,7 +464,7 @@ module SearchReply = struct
         port : int;
         http_port : int;
         avail : int;
-        size : int32;
+        size : int64;
         md5 : Md4.t;
         filename : string;
       }
@@ -475,7 +475,7 @@ module SearchReply = struct
       let port = get_int16 s 22 in
       let http_port = get_int16 s 24 in
       let avail = get_int s 26 in
-      let size = get_int32 s 30 in
+      let size = get_int64_32 s 30 in
       let md5,pos = get_string s 34 in
       let filename, pos = get_string s pos in
       {
@@ -490,7 +490,7 @@ module SearchReply = struct
       }
 
     let print t =
-      Printf.printf "SearchReply for %d : %s size %ld"
+      Printf.printf "SearchReply for %d : %s size %Ld"
         t.id t.filename t.size
       
     let write buf t =
@@ -499,7 +499,7 @@ module SearchReply = struct
       buf_int16 buf t.port;
       buf_int16 buf t.http_port;
       buf_int buf t.avail;
-      buf_int32 buf t.size;
+      buf_int64_32 buf t.size;
       buf_string buf (String.lowercase (Md4.to_string t.md5));
       buf_string buf t.filename
       

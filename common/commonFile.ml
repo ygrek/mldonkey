@@ -29,15 +29,15 @@ type 'a file_impl = {
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
-    mutable impl_file_size : int32;
-    mutable impl_file_age : float;
+    mutable impl_file_size : int64;
+    mutable impl_file_age : int;
     mutable impl_file_fd : Unix32.t;
-    mutable impl_file_downloaded : int32;
-    mutable impl_file_last_downloaded : (int32 * float) list;
+    mutable impl_file_downloaded : int64;
+    mutable impl_file_last_downloaded : (int64 * int) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
     mutable impl_file_priority: int;
-    mutable impl_file_last_seen : float;
+    mutable impl_file_last_seen : int;
   }
 
 
@@ -87,15 +87,15 @@ let dummy_file_impl = {
     impl_file_num = 0;
     impl_file_val = 0;
     impl_file_ops = Obj.magic 0;
-    impl_file_size = Int32.zero;
-    impl_file_age = 0.0;
+    impl_file_size = Int64.zero;
+    impl_file_age = 0;
     impl_file_fd = Unix32.create "" [Unix.O_RDONLY] 0o666;
-    impl_file_downloaded = Int32.zero;
+    impl_file_downloaded = Int64.zero;
     impl_file_last_downloaded = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
     impl_file_priority = 0;
-    impl_file_last_seen = 0.0;
+    impl_file_last_seen = 0;
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -296,7 +296,7 @@ let file_remove_source (file : file) c =
 let rec last = function
     [x] -> x
   | _ :: l -> last l
-  | _ -> (Int32.zero, 0.0)
+  | _ -> (Int64.zero, 0)
     
 let sample_timer () =
   let trimto list length =
@@ -322,17 +322,17 @@ let sample_timer () =
 let file_download_rate impl =
   let time = BasicSocket.last_time () in
   let (last_downloaded, file_last_time) = last impl.impl_file_last_downloaded in
-  let time = time -. file_last_time in
-  let diff = Int32.sub impl.impl_file_downloaded last_downloaded in
-  let rate = if time > 0.0 && diff > Int32.zero then begin
-        (Int32.to_float diff) /. time;
+  let time = time - file_last_time in
+  let diff = Int64.sub impl.impl_file_downloaded last_downloaded in
+  let rate = if time > 0 && diff > Int64.zero then begin
+        (Int64.to_float diff) /. (float_of_int time);
       end else 0.0
   in
   impl.impl_file_last_rate <- rate;
   rate
   
 let add_file_downloaded impl n =
-  impl.impl_file_downloaded <- Int32.add impl.impl_file_downloaded n;
+  impl.impl_file_downloaded <- Int64.add impl.impl_file_downloaded n;
   file_must_update_downloaded (as_file impl)
     
 
@@ -379,8 +379,8 @@ let file_print file o =
     n.network_name (file_num file) (match info.G.file_names with
       [] -> Md4.to_string info.G.file_md4
     | name :: _ -> name)
-  (Int32.to_string info.G.file_size)
-  (Int32.to_string info.G.file_downloaded);
+  (Int64.to_string info.G.file_size)
+  (Int64.to_string info.G.file_downloaded);
 
   Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
   

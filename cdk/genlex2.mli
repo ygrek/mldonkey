@@ -55,7 +55,7 @@
 type token =
     Kwd of string
   | Ident of string
-  | Int of int32
+  | Int of int64
   | Float of float
   | String of string
   | Char of char

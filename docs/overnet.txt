@@ -1,0 +1,235 @@
+The Overnet Protocol
+--------------------
+
+ The Overnet protocol is divided in two parts: localisation and download.
+Localisation using UDP messages, while download is done using TCP/IP. The
+download protocol is mainly the same as in edonkey, except that the
+Connect/ConnectReply messages miss the server:port fields (ie they are 6
+bytes shorter).
+
+ In this draft, I focus on the localisation part.
+
+I Messages Format
+=================
+
+1) General Format:
+------------------
+
+UDP messages start with two bytes:
+byte: 227          eDonkey general magic number for messages
+byte:              the opcode of the message
+char[]:            message args
+
+2) Opcodes:
+-----------
+
+10     OvernetConnect
+11     OvernetConnectReply
+12     OvernetPublicize 
+13     OvernetPublicized
+14     OvernetSearch
+15     OvernetSearchReply
+16     OvernetGetSearchResults
+17     OvernetSearchResult
+18     OvernetNoResult
+19     OvernetPublish
+20     OvernetPublished
+
+24     OvernetFirewallConnection
+25     OvernetFirewallConnectionACK
+26     OvernetFirewallConnectionNACK
+27     OvernetGetMyIP
+28     OvernetGetMyIPResult
+29     OvernetGetMyIPDone
+
+3) Conventions:
+---------------
+
+int8: one byte
+int16: two bytes in little endian format
+int32: four bytes in little endian format
+ip: an int32, for eg 127.0.0.1 = 127 + 0 << 8 + 0 << 16 + 1 << 24
+md4: the 16 bytes md4 of the file/client
+
+peer: an overnet peer in the following format:
+  md4: the peer md4
+  ip:  the peer ip
+  int16: the peer port 
+  int8: the peer kind/uptime/last seen ?
+
+tags: 
+  int32: <n> number of tags
+  tag[n]: the array of tag (as in edonkey proto)
+
+4) Messages args:
+-----------------
+
+ OvernetConnect:
+ ---------------
+md4: client md4
+ip:  my client ip
+int16: my client port
+int8: my client kind/uptime ? 0 is ok
+
+ OvernetConnectReply:
+ --------------------
+int16: <n> number of peers propagated in this message
+peer[n]: the peers propagated
+
+ OvernetPublicize:
+ -----------------
+md4:   
+ip:    ip
+int16: port
+int8:  kind
+
+ OvernetPublicized: no args
+ ------------------
+
+ OvernetSearch:
+ --------------
+int8: kind of search ?
+md4:  the hash you are looking for
+
+ OvernetSearchReply:
+ -------------------
+md4: the hash you have asked for
+int8: <n> number of peers that could be interesting for you
+peer[n]: the better peers you should ask
+
+ OvernetGetSearchResults:
+ ------------------------
+md4: the hash you are looking for
+kind: ?
+int16: min (the range of results you want)
+int16: max 
+
+ OvernetSearchResult:
+ --------------------
+md4: the hash you have asked for
+md4: the hash of the client/file of the result (depends if you look for
+  a file description or for a localisation)
+tags: the tags describing the result
+
+ OvernetNoResult:
+ ----------------
+md4: the hash you have asked for
+
+ OvernetPublish:
+ ---------------
+md4:
+md4:
+tags:
+      
+ OvernetPublished:
+ -----------------
+md4: the hash of the published file
+
+ OvernetGetMyIP:
+ ---------------
+int8: 54
+int8: 18
+
+ OvernetGetMyIPResult:
+ ---------------------
+ip: your ip
+
+ OvernetGetMyIPDone: no args
+ ------------------- 
+
+ OvernetFirewallConnection:
+ --------------------------
+md4: the md4 of the client you want to access
+int16: ?
+
+ OvernetFirewallConnectionACK:
+ -----------------------------
+md4: 
+
+ OvernetFirewallConnectionNACK:
+md4:
+
+II Client behavior:
+===================
+
+1) Basics:
+----------
+
+In Overnet, the description and localisation of files are stored on peers
+such that the peer hash is as close as possible to the file hash.
+
+When a peer wants a file, it tries to ask the peers which have the
+closest hashs to the file it wants. These peers reply by sending the
+closest peers they know to the requested hash.
+
+The distance between two hashs is computed using what Kademlia calls a
+Xor metric: a xor is computed between the two hashs, and the result
+hash represents the distance. Two distances are then compared by using
+a lexicographical order on their bytes (ie first bytes are compared, and
+if equal, the second bytes, and so on...)
+
+For this to work, the client needs to maintain a small list of peers it 
+knows, which are as spreaded as possible in the space of possible hashs.
+
+2) Sequences:
+-------------
+
+a) Establishing a "connection" with other peers (booting)
+---------------------------------------------------------
+
+Client                                      Peer
+------------------------------------------------
+
+ 1:    -------    OvernetConnect  ------>
+
+ 2:    <-----    OvernetConnectReply ----
+
+OK, the peer is connected, it can be added to the list of available peers 
+for searches. The peers propagated in the reply can be used for new
+connections.
+
+b) Searches
+-----------
+From the keywords search, remove all keywords of 1 or 2 chars.
+Then, hash each keyword separately, and start one search per hash. When you
+will get results, you will have to filter them so that all keywords are
+matched, the protocol won't do that for you.
+
+The search works as follows. You need a set of peers to be searched for the
+hash. Typically, you take the peers with the hashes with the same first char
+as the one you search.
+
+ Then, periodically (every 5 seconds ?), you take some peers (2 ? with the
+closest hashes), and ask them for the hash:
+
+Client                                      Peer
+------------------------------------------------
+
+ 1:    ---------    OvernetSearch  ------->
+ 1':   -------  OvernetGetSearchResults -->
+
+ 2:    <-----    OvernetSearchReply -------
+ 2':   <-----   OvernetSearchResult  ------
+ 2'':  <-----     OvernetNoResult   -------
+
+1: query for better peers to ask for the hash
+2: return new peers which should be queried for the hash
+
+1': query the peer directly for the hash: do you know it ?
+2': yes, I know it, here are the files containing this keyword
+     (or the clients sharing this file if you are looking for a file-hash)
+2'': no, I have no info, try someone else...
+
+Now, when you have the results, you need to remember what you are
+searching for:
+1) keywords: results are file descriptions, closed to edonkey ones
+   (here, maybe some tags are different :)))
+2) files: you should look in the tags for one called "loc". It contains
+   a string with the format "bcp://ip:port" or "bcp://????:ip:port"
+    containing the source ip and port in ascii. 
+
+Now, you just need to connect and download ...
+
+
+    
+   

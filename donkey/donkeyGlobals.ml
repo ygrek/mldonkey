@@ -194,6 +194,7 @@ let server_must_update s =
   server_must_update (as_server s.server_server)
 
     
+let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file.file_file.impl_file_downloaded
 let file_age file = file.file_file.impl_file_age
@@ -223,12 +224,20 @@ let file_change_hook = ref (fun (file: file) -> ())
   *)
 
   (* CONSTANTS *)
-let page_size = Int32.of_int 4096    
+let page_size = Int64.of_int 4096    
 
 
 (* GLOBAL STATE *)
   
 open DonkeyMftp
+
+let memstat_functions = ref []
+  
+let add_memstat f = memstat_functions := f :: !memstat_functions
+  
+let print_memstats buf =
+  let list = List.rev !memstat_functions in
+  List.iter (fun f -> f buf) list
   
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
@@ -267,8 +276,8 @@ let xs_servers_list = ref ([] : server list)
   
 let has_upload = ref 0
 let upload_credit = ref 0
-let zone_size = Int32.of_int (180 * 1024) 
-let block_size = Int32.of_int 9728000
+let zone_size = Int64.of_int (180 * 1024) 
+let block_size = Int64.of_int 9728000
   
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
     
@@ -276,6 +285,23 @@ let nclients = ref 0
   
 let connected_server_list = ref ([]  : server list)
 
+  
+let (banned_ips : (Ip.t, int) Hashtbl.t) = Hashtbl.create 113
+let (old_requests : (int * int, request_record) Hashtbl.t) = 
+  Hashtbl.create 13013
+
+  
+let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
+let (pending_slots_fifo : int Fifo.t)  = Fifo.create ()
+
+  
+let max_file_groups = 1000
+let (file_groups_fifo : Md4.t Fifo.t) = Fifo.create ()
+
+    
+let (connected_clients : (Md4.t, client) Hashtbl.t) = Hashtbl.create 13
+
+  
 let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_server_list   
@@ -355,15 +381,15 @@ let new_file file_state file_name md4 file_size writable =
     find_file md4 
   with _ ->
       let file_size =
-        if file_size = Int32.zero then
+        if file_size = Int64.zero then
           try
-            Unix32.getsize32 file_name
+            Unix32.getsize64 file_name
           with _ ->
               failwith "Zero length file ?"
         else file_size
       in
-      let nchunks = Int32.to_int (Int32.div 
-          (Int32.sub file_size Int32.one) block_size) + 1 in
+      let nchunks = Int64.to_int (Int64.div 
+          (Int64.sub file_size Int64.one) block_size) + 1 in
       let file_exists = Sys.file_exists file_name in
       let md4s = if file_size <= block_size then
             [md4] 
@@ -378,15 +404,15 @@ let new_file file_state file_name md4 file_size writable =
           file_chunks_order = [||];
           file_chunks_age = [||];
 (*          file_all_chunks = String.make nchunks '0'; *)
-          file_absent_chunks =   [Int32.zero, file_size];
+          file_absent_chunks =   [Int64.zero, file_size];
           file_filenames = [Filename.basename file_name];
           file_nsources = 0;
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
           file_format = Unknown_format;
-          file_paused_sources = Fifo.create ();
           file_locations = Intmap.empty;
           file_mtime = 0.0;
+          file_initialized = false;
         }
       and file_impl = {
           dummy_file_impl with
@@ -397,7 +423,7 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_fd = Unix32.create file_name (if writable then
               [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666;
           impl_file_best_name = Filename.basename file_name;
-          impl_file_last_seen = last_time () -. 100. *. 24. *. 3600.;
+          impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
       update_best_name file;
@@ -414,6 +440,7 @@ let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then 
       let new_n = file.file_available_chunks.(i) + 1 in
+      if new_n  < 11 then  file_must_update file;
       file.file_available_chunks.(i) <- new_n;
   done
       
@@ -421,8 +448,9 @@ let remove_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then
       let new_n = file.file_available_chunks.(i) - 1 in
+      if new_n < 11 then file_must_update file;
       file.file_available_chunks.(i) <- new_n;
-      client_chunks.(i) <- false
+      client_chunks.(i) <- false  
   done
   
 let is_black_address ip port =
@@ -456,7 +484,7 @@ let new_server ip port score =
           server_users = [];
           server_master = false;
           server_mldonkey = false;
-          server_last_message = 0.0;
+          server_last_message = 0;
           server_queries_credit = 0;
           server_waiting_queries = [];
           server_id_requests = Fifo.create ();
@@ -498,7 +526,7 @@ let dummy_client =
       client_source = None;
       client_sock = None;
       client_md4 = Md4.null;
-      client_last_filereqs = 0.;
+      client_last_filereqs = 0;
       client_chunks = [||];
       client_block = None;
       client_zones = [];
@@ -507,7 +535,7 @@ let dummy_client =
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_next_view_files = last_time () -. 1.;
+      client_next_view_files = last_time () - 1;
       client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -523,8 +551,7 @@ let dummy_client =
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
-      client_score = Client_not_connected;
-      client_requests = [];
+      client_score = 0;
       client_files = [];
       client_next_queue = 0;
     } and
@@ -544,7 +571,7 @@ let create_client key num =
       client_source = None;
       client_sock = None;
       client_md4 = Md4.null;
-      client_last_filereqs = 0.;
+      client_last_filereqs = 0;
       client_chunks = [||];
       client_block = None;
       client_zones = [];
@@ -553,7 +580,7 @@ let create_client key num =
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_next_view_files = last_time () -. 1.;
+      client_next_view_files = last_time () - 1;
       client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -569,8 +596,7 @@ let create_client key num =
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
-      client_score = Client_not_connected;
-      client_requests = [];
+      client_score = 0;
       client_files = [];
       client_next_queue = 0;
     } and
@@ -861,10 +887,10 @@ let _ =
       Printf.printf "Clients_by_kind: %d" (List.length list);
       print_newline ();
       List.iter (fun c ->
-          Printf.printf "[%d ok: %s tried: %s next: %s state: %f rating: %d]" (client_num c)
-          (Date.to_string (c.client_connection_control.control_last_ok))
-          (Date.to_string (c.client_connection_control.control_last_try))
-          (Date.to_string (connection_next_try c.client_connection_control))
+          Printf.printf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
+          (string_of_date (c.client_connection_control.control_last_ok))
+          (string_of_date (c.client_connection_control.control_last_try))
+          (string_of_date (connection_next_try c.client_connection_control))
           c.client_connection_control.control_state
           c.client_rating
           ;
@@ -895,15 +921,15 @@ open Document
 let index = DocIndexer.create ()
 
 let check_result r tags =
-  if r.result_names = [] || r.result_size = Int32.zero then begin
-      if !!verbose then begin
+  if r.result_names = [] || r.result_size = Int64.zero then begin
+      if !verbose then begin
           Printf.printf "BAD RESULT:";
           print_newline ();
           List.iter (fun tag ->
               Printf.printf "[%s] = [%s]" tag.tag_name
                 (match tag.tag_value with
                   String s -> s
-                | Uint32 i | Fint32 i -> Int32.to_string i
+                | Uint64 i | Fint64 i -> Int64.to_string i
                 | Addr _ -> "addr");
               print_newline ();
           ) tags;
@@ -920,7 +946,7 @@ let result_of_file md4 tags =
       result_network = network.network_num;
       result_md4 = md4;
       result_names = [];
-      result_size = Int32.zero;
+      result_size = Int64.zero;
       result_tags = [];
       result_type = "";
       result_format = "";
@@ -931,7 +957,7 @@ let result_of_file md4 tags =
       match tag with
         { tag_name = "filename"; tag_value = String s } ->
           r.result_names <- s :: r.result_names
-      | { tag_name = "size"; tag_value = Uint32 v } ->
+      | { tag_name = "size"; tag_value = Uint64 v } ->
           r.result_size <- v;
       | { tag_name = "format"; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
@@ -944,3 +970,17 @@ let result_of_file md4 tags =
   ) tags;
   if check_result r tags then Some r else None
     
+let _ =
+  add_memstat (fun buf ->
+      
+      Printf.bprintf buf "DonkeyGlobals:\n"
+  )
+
+let string_of_file_state s =
+  match  s with
+  |  FileDownloading -> "FileDownloading"
+  | FilePaused -> "FilePaused"
+  | FileDownloaded -> "FileDownloaded"
+  | FileShared     -> "FileShared"
+  | FileCancelled -> "FileCancelled"
+  | FileNew -> "FileNew"

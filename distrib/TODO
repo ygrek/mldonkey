@@ -1,6 +1,77 @@
 TODO list for client
 ====================
 
+set_locale(LC_NUMERIC, "C");
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0818884e in MD4Transform ()
+(gdb) bt
+#0  0x0818884e in MD4Transform ()
+#1  0x00000000 in ?? ()
+Cannot access memory at address 0x384b8bcf
+
+- if you cancel one file, all sources that have only this file should be
+immidiately deleted
+- if you restart the donkey, the new sources queue is full of sources
+from the last session of MLdonkey and all of them have to be asked until
+any new sources that are send from servers or by source propagation can
+be asked. I think the new sources should be asked first and the old
+sources should only be asked when they have rare files
+
+I would like a state between DOWNLOADING and PAUSED that does not
+query for the file anymore but still accepts blocks for it and
+utilised queue positions.
+
+c) High memory usage is still not fixed. For the first 2-3 hours MLDonkey
+runs very well (using 15-10 MB of memory). Then suddenly it begins to
+eat memory very quickly (+ 1 MB every 10 seconds). This way MLDonkey
+slows down my machine (64 MB of RAM) and I have to kill it. The
+similar experience with 2.02-4 but this version comsumes all my memory
+after 10 minutes of running. So 2-3 hours of running is a nice
+improvement in 2.02-5 :-) I'm running Debian 3.0 Woody.
+
+BTW, I am downloading only one but very popular file.
+
+--
+on version 2.02-5 when I do a recover_temp, on a list of 19 files now I have
+only 1... what's going on???
+
+Also, the downloads option on the html doesn't work... I know that there is
+a patch somewhere on the list but how I can apply that... maybe anyone could
+fix the cvs no?
+
+o be more precise: After shutting down, the bytes are correctly written
+to the files.ini, but after a start, they are treated in an incorrect
+manner, causing the unfinished chunks to be lost.
+
+You can see this, if you copy the files.ini to a safe place and do a
+"diff -u" right after mldonkey starts.
+
+ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
+dec:
+[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
+Received unknown UDP packet
+ascii: [(197)(144)(213) 7(195)(211)(232)(6) ](8)(207) ~ ( #(29)(20)(148)(180)]
+dec:
+[(197)(144)(213)(55)(195)(211)(232)(6)(93)(8)(207)(126)(40)(35)(29)(20)(148)(180)]
+Received unknown UDP packet
+ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
+dec:
+[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
+Received unknown UDP packet
+ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
+dec:
+[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
+Received unknown UDP packet
+ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
+dec:
+[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
+Received unknown UDP packet
+
+
+******************
+
+
 Bugs in unstable-2-02-3:
  * Remove the mp3info Not_Found error
  * Installer...
@@ -14,10 +85,8 @@ Bugs in unstable-2-02-3:
  * Different black lists for clients and servers ?
  * Fix stats with sources, remove servers
  * Send a news update 2.02
- * check new sources before old new sources ...
  * Remove sources of cancelled files
- * Shorten connection lifetimes
- * Check if one client can be connected twice.
+ * Verify that file sizes are always used as positive integers
 
 donkey/:
  * New source management

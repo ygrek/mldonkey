@@ -267,7 +267,7 @@ let new_client name =
           client_addr = None;
           client_files = [];
           client_all_files = None;
-          client_receiving = Int32.zero;
+          client_receiving = Int64.zero;
           client_connection_control = new_connection_control ();
           client_user = u;
           client_requests = [];
@@ -346,11 +346,11 @@ let new_file file_id name file_size =
       let file_temp = Filename.concat !!temp_directory 
           (Printf.sprintf "SK-%s" (Md4.to_string file_id)) in
       let current_size = try
-          Unix32.getsize32 file_temp
+          Unix32.getsize64 file_temp
         with e ->
             Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
             print_newline ();
-            Int32.zero
+            Int64.zero
       in
       
       let rec file = {

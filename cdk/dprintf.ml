@@ -22,80 +22,31 @@ level of verbosity to choose when something should be printed. *)
 
 open Printf
 
-let debug_level = ref 0
-let debug_oc = ref stderr
-let line_mode = ref true
+exception DEBUG_END
   
+let debug_end = DEBUG_END
+
+let rec find_dend arg = 
+  if Obj.magic arg == debug_end then Obj.magic () else Obj.magic find_dend
   
-let printf_string level s =
-  if !debug_level >= level then begin
-      if !line_mode then line_mode := false;
-      fprintf !debug_oc "%s" s;
-      flush !debug_oc
-    end
+let fprintf cond chan fmt =
+  if cond then
+    let fmt = (Obj.magic fmt : string) in
+    let len = String.length fmt in
+    let rec doprn i =
+      if i >= len then 
+        (output_char chan '\n'; flush chan; Obj.magic ()) else
+        match String.unsafe_get fmt i with
+      | '%' -> scan_format fmt i cont_s cont_a cont_t
+      |  c  -> output_char chan c; doprn (succ i)
+    and cont_s s i =
+      output_string chan s; doprn i
+    and cont_a printer arg i =
+      output_string chan (printer arg); doprn i
+    and cont_t printer i =
+      printer chan; doprn i
+    in doprn 0
+  else 
+    (Obj.magic find_dend)
     
-let printf0 level fmt =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
-    
-let printf1 level fmt arg1 =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt arg1;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
-    
-let printf2 level fmt arg1 arg2 =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt arg1 arg2;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
-    
-let printf3 level fmt arg1 arg2 arg3 =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt arg1 arg2 arg3;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
-    
-let printf4 level fmt arg1 arg2 arg3 arg4 =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt arg1 arg2 arg3 arg4;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
-    
-let printf5 level fmt arg1 arg2 arg3 arg4 arg5 =
-    if !debug_level >= level then begin
-      if not !line_mode then begin
-          fprintf !debug_oc "\n";
-          line_mode := true;
-        end;
-      fprintf !debug_oc fmt arg1 arg2 arg3 arg4 arg5;
-      fprintf !debug_oc "\n";
-      flush !debug_oc
-    end
+let debug cond = fprintf cond stderr

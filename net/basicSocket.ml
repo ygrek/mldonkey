@@ -455,7 +455,14 @@ let close_all () =
         close s "close all"
   ) !fd_tasks
   
-let start_time = last_time ()
   
 external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
   
+let last_time () = int_of_float !current_time - 1000000000
+let start_time = last_time ()
+let date_of_int date = 
+  float_of_int (if date >= 1000000000 then date else date + 1000000000)
+  
+let string_of_date date = Date.to_string (date_of_int date)
+let normalize_time time = 
+  if time >=  1000000000 then time - 1000000000 else time

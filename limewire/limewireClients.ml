@@ -118,35 +118,35 @@ let client_parse_header c sock header =
                       let slash_pos = try String.index range '/' with _ -> -20 in
                       let star_pos = try String.index range '*' with _ -> -30 in
                       if star_pos = slash_pos-1 then
-                        Int32.zero (* "bytes */X" *)
+                        Int64.zero (* "bytes */X" *)
                       else
-                      let x = Int32.of_string (
+                      let x = Int64.of_string (
                           String.sub range npos (dash_pos - npos) )
                       in
                       if slash_pos = star_pos - 1 then 
                         x (* "bytes x-y/*" *)
                       else
                       let len = String.length range in
-                      let y = Int32.of_string (
+                      let y = Int64.of_string (
                           String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
                       in
-                      let z = Int32.of_string (
+                      let z = Int64.of_string (
                           String.sub range (slash_pos+1) (len - slash_pos -1) )
                       in
-                      if y = z then Int32.sub x Int32.one else x
+                      if y = z then Int64.sub x Int64.one else x
                     with 
                     | e ->
                         Printf.printf "Exception %s for range [%s]" 
                           (Printexc2.to_string e) range;
                         print_newline ();
                         raise e
-                  with Not_found -> Int32.zero
+                  with Not_found -> Int64.zero
                 in                  
                 if d.CommonDownloads.download_pos <> start_pos then  begin
                     Printf.printf "Asked %s Bad range %s for %s"
                       (Md4.to_string c.client_user.user_uid)
-                    (Int32.to_string start_pos)
-                    (Int32.to_string d.CommonDownloads.download_pos);
+                    (Int64.to_string start_pos)
+                    (Int64.to_string d.CommonDownloads.download_pos);
                     print_newline ();
                     raise Exit
                   end;
@@ -213,7 +213,7 @@ let client_reader c sock nread =
                     Printf.printf "In Unix32.force_fd"; print_newline ();
                     raise e
               in
-              let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
+              let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
               try
                 Unix2.really_write fd b.buf b.pos b.len;
               with e ->
@@ -224,9 +224,9 @@ let client_reader c sock nread =
                   
             end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-            c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+            c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.client_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
 print_newline ();
   *)
             TcpBufferedSocket.buf_used sock b.len;
@@ -284,20 +284,20 @@ let get_from_client sock (c: client) (file : file) =
 
   let new_pos = file_downloaded file in
   write_string sock (Printf.sprintf 
-      "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%ld-\r\n\r\n" index file.file_name new_pos);
+      "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%Ld-\r\n\r\n" index file.file_name new_pos);
   let d = CommonDownloads.new_download sock (as_client c.client_client)
     (as_file file.file_file) 
     
 (* Read at least 1000 bytes from the client before accepting the stream *)
     (mini
-        (Int32.to_int (Int32.sub (file_size file) (file_downloaded file)))
+        (Int64.to_int (Int64.sub (file_size file) (file_downloaded file)))
       1000)
     
     (on_close c)
     (on_finish file) commit_in_subdir
   in
   c.client_file <- Some d;
-  Printf.printf "Asking %s For Range %ld" (Md4.to_string c.client_user.user_uid) new_pos; print_newline ();
+  Printf.printf "Asking %s For Range %Ld" (Md4.to_string c.client_user.user_uid) new_pos; print_newline ();
   d
   
 let connect_client c =

@@ -591,7 +591,7 @@ module C2C = struct
     type file = {
         file_code : int;
         file_name : string;
-        file_size : int32;
+        file_size : int64;
         file_format : string;
         file_tags : (int * int) list;
       }
@@ -599,8 +599,8 @@ module C2C = struct
     let get_file s pos =
       let code = get_int8 s pos in
       let name, pos = get_string s (pos+1) in
-      let size = get_int32 s pos in
-      let size2 = get_int32 s (pos+4) in
+      let size = get_int64_32 s pos in
+      let size2 = get_int64_32 s (pos+4) in
       let format, pos = get_string s (pos+8) in
       let tags, pos = get_list (fun s pos ->
             (get_int s pos, get_int s (pos+4)), pos+8) s pos
@@ -682,10 +682,10 @@ module C2C = struct
 (* download *)   bool *
 (* request id *) int *
 (* file name *)  string *
-(* file size *)  int32
+(* file size *)  int64
     | TransferOKReplyReq of 
 (* request id *) int *
-(* filesize *) int32
+(* filesize *) int64
     | TransferFailedReplyReq of 
 (* request id *) int *
 (* reason *)     string
@@ -706,14 +706,14 @@ module C2C = struct
             let download = get_int s 0 = 0 in
             let req = get_int s 4 in
             let file, pos = get_string s 8 in
-            let size = get_int32 s pos in
+            let size = get_int64_32 s pos in
             TransferRequestReq (download, req, file, size)
         
         | 41 -> 
             let req = get_int s 0 in
             let allowed = get_int8 s 4 = 1 in
             if allowed then
-              let filesize = get_int32 s 5 in
+              let filesize = get_int64_32 s 5 in
               TransferOKReplyReq (req, filesize)
             else
             let reason, pos = get_string s 5 in
@@ -744,17 +744,17 @@ module C2C = struct
               List.iter (fun (dir, files) ->
                   Printf.printf "    Directory: %s" dir; print_newline ();
                   List.iter (fun file ->
-                      Printf.printf "      %50s%ld" 
+                      Printf.printf "      %50s%Ld" 
                         file.file_name file.file_size; print_newline ();
                   ) files;
               ) dirs
           ) folders
       | TransferRequestReq (download, req, file, size) ->
-          Printf.printf "TransferRequestReq %d for %s of %s %ld" req
+          Printf.printf "TransferRequestReq %d for %s of %s %Ld" req
             (if download then "Download" else "Upload") file size;
           print_newline ();
       | TransferOKReplyReq (req, file_size) ->
-          Printf.printf "TransferOKReplyReq %d for %ld" req file_size;
+          Printf.printf "TransferOKReplyReq %d for %Ld" req file_size;
           print_newline ();          
       | TransferFailedReplyReq (req, reason) ->
           Printf.printf "TransferFailedReq %d for %s" req reason;
@@ -764,7 +764,7 @@ module C2C = struct
             t.FileSearchResult.user t.FileSearchResult.id; 
           print_newline ();
           List.iter (fun file ->
-              Printf.printf "  %50s%ld" 
+              Printf.printf "  %50s%Ld" 
                 file.file_name file.file_size; print_newline ();
           ) t.FileSearchResult.files;
           
@@ -773,7 +773,7 @@ module C2C = struct
           List.iter (fun (dir, files) ->
               Printf.printf "    Directory: %s" dir; print_newline ();
               List.iter (fun file ->
-                  Printf.printf "      %50s%ld" 
+                  Printf.printf "      %50s%Ld" 
                   file.file_name file.file_size; print_newline ();
               ) files;
           ) dirs
@@ -793,13 +793,13 @@ module C2C = struct
           buf_int buf (if download then 0 else 1);
           buf_int buf req;
           buf_string buf file;
-          buf_int32 buf size
+          buf_int64_32 buf size
 
       | TransferOKReplyReq (req, filesize) ->
           buf_int buf 41;
           buf_int buf req;
           buf_int8 buf 1;
-          buf_int32 buf filesize;
+          buf_int64_32 buf filesize;
           buf_int buf 0
 
       | TransferFailedReplyReq (req, reason) ->
@@ -927,7 +927,7 @@ let init_download_connection sock file login req pos =
   
   Buffer.clear buf;
   buf_int buf req;
-  buf_int32 buf pos;
+  buf_int64_32 buf pos;
   buf_int buf 0;
   let s = Buffer.contents buf in
   write_string sock s ;

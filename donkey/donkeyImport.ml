@@ -115,7 +115,7 @@ dump (String.sub s pos len);
 module Known = struct
     
     type file = {
-        mtime : int32; 
+        mtime : int64; 
         md4 : Md4.t;
         blocks : Md4.t array;
         tags : tag list;
@@ -134,7 +134,7 @@ module Known = struct
     
     let rec read_files s pos n left =
       if n = 0 then List.rev left else
-      let mtime = get_int32_32 s pos in
+      let mtime = get_int64_32 s pos in
 (*      Printf.printf "file at pos %d" pos; print_newline (); *)
       let md4 = get_md4 s (pos+4) in
       let nblocks = get_int16 s (pos+20) in
@@ -162,7 +162,7 @@ module Known = struct
       buf_int8 buf 14;
       buf_int buf (List.length t);
       List.iter (fun file ->
-          buf_int32_32 buf file.mtime;
+          buf_int64_32 buf file.mtime;
           buf_md4 buf file.md4;
           buf_int16 buf (Array.length file.blocks);
           Array.iter (buf_md4 buf) file.blocks;
@@ -176,7 +176,7 @@ module Known = struct
           try
             Printf.printf "  FILE %s" (Md4.to_string f.md4);
             print_newline ();
-            Printf.printf "  mtime: %s" (Int32.to_string f.mtime);
+            Printf.printf "  mtime: %s" (Int64.to_string f.mtime);
             print_newline ();
             Printf.printf "  Blocks: %d" (Array.length f.blocks);
             print_newline ();
@@ -199,7 +199,7 @@ module Part = struct
         md4 : Md4.t;
         blocks : Md4.t array;
         tags : tag list;
-        absents : (int32 * int32) list;
+        absents : (int64 * int64) list;
       }
     
     let names_of_tag =
@@ -228,14 +228,14 @@ module Part = struct
         ) in
       let pos = pos + 18 + 16 * nblocks in
       let tags, pos = get_tags s pos names_of_tag in
-      let start_pos = ref Int32.zero in
+      let start_pos = ref Int64.zero in
       let absents = ref [] in
       List.iter (fun tag ->
           if tag.tag_name <> "" then
             let c = tag.tag_name.[0] in
             match c, tag.tag_value with
-              '\t', Uint32 p -> start_pos := p;
-            | '\n', Uint32 p -> 
+              '\t', Uint64 p -> start_pos := p;
+            | '\n', Uint64 p -> 
                 absents := (!start_pos, p) :: !absents;
             | _ -> ()
       ) tags;
@@ -273,8 +273,8 @@ module Part = struct
         print_newline ();
         Printf.printf " Absent blocks:"; print_newline ();
         List.iter (fun (t1,n1) ->
-            Printf.printf "%10s - %10s" (Int32.to_string t1)
-            (Int32.to_string n1); print_newline ();
+            Printf.printf "%10s - %10s" (Int64.to_string t1)
+            (Int64.to_string n1); print_newline ();
         ) f.absents;
         print_tags f.tags;
         print_newline ();

@@ -21,12 +21,19 @@ open Md4
 open CommonTypes
 
     
+type request_record = {
+  mutable last_request : int;
+  mutable nwarnings : int;
+}
+  
 type client_score =
   Client_not_connected 
 | Client_has_file
-| Client_has_new_chunk
+| Client_has_priority_file
+| Client_has_chunk
+| Client_has_priority_chunk
 | Client_has_upload
-  
+| Client_has_priority_upload
   
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
@@ -45,10 +52,10 @@ type server = (*[]*){
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users: user list;
-    mutable server_next_udp : float;
+    mutable server_next_udp : int;
     mutable server_master : bool;
     mutable server_mldonkey : bool;
-    mutable server_last_message : float; (* used only by mldonkey server *)
+    mutable server_last_message : int; (* used only by mldonkey server *)
 
     mutable server_id_requests : file option Fifo.t;
     
@@ -141,7 +148,7 @@ and client = {
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (file * availability) list;
-    mutable client_next_view_files :  float;
+    mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
@@ -154,24 +161,23 @@ and client = {
     mutable client_on_list : bool;
 (* statistics *)
     mutable client_already_counted : bool;
-    mutable client_last_filereqs : float;    
+    mutable client_last_filereqs : int;    
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
     mutable client_banned : bool;
     mutable client_has_a_slot : bool;
     mutable client_overnet : bool;
-    mutable client_score : client_score;
-    mutable client_requests : (file * float ref) list;
-    mutable client_files : file list;
+    mutable client_score : int;
+    mutable client_files : file_request list;
     mutable client_next_queue : int;
   }
   
 and upload_info = {
     mutable up_file : file;
-    mutable up_pos : int32;
-    mutable up_end_chunk : int32;
-    mutable up_chunks : (int32 * int32) list;
+    mutable up_pos : int64;
+    mutable up_end_chunk : int64;
+    mutable up_chunks : (int64 * int64) list;
     mutable up_waiting : bool;
   }
   
@@ -185,8 +191,8 @@ and chunk =
   
 and block = {
     mutable block_present: bool;
-    block_begin : int32;
-    block_end : int32;
+    block_begin : int64;
+    block_end : int64;
     mutable block_zones : zone list;
     mutable block_nclients : int;
     mutable block_pos : int;
@@ -194,27 +200,47 @@ and block = {
   }
   
 and zone = {
-    mutable zone_begin : int32;
-    mutable zone_end : int32;
+    mutable zone_begin : int64;
+    mutable zone_end : int64;
     mutable zone_nclients : int;
     mutable zone_present : bool;
     zone_file : file;
   }
   
 and source = {
+    source_num : int;
     source_addr : Ip.t * int;
-    mutable source_client: client_kind; 
-    
+    mutable source_client: client_kind;     
 (* This field is not kept up-to-date when source_client = SourceClient c,
   change c.client_source_for *)
-    mutable source_files : (file * float) list;
+    mutable source_files : file_request list;
     mutable source_overnet : bool;
+    mutable source_score : int;
+    mutable source_age : int;
   }
 
+  
+and file_request = {
+    request_file : file;
+    mutable request_time : int;
+    mutable  request_result : request_result;
+  }
+
+and request_result = 
+| File_possible (* we asked, but didn't know *)
+| File_not_found (* we asked, the file is not there *)
+| File_expected (* we asked, because it was announced *)
+| File_new_source (* we never asked *)
+| File_found    (* the file was found *)
+| File_chunk    (* the file has chunks we want *)
+| File_upload   (* we uploaded from this client *)
+  
 and client_kind = 
   SourceClient of client
-| SourceLastConnection of int * float (* last connection attempt *) * 
-  int (* booked client num *)
+| SourceLastConnection of 
+  int *
+  int * (* last connection attempt *)
+  int   (* booked client num *)
   
 and file = {
     file_file : file CommonFile.file_impl;
@@ -223,25 +249,25 @@ and file = {
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
     mutable file_chunks_order : int array;
-    mutable file_chunks_age : float array;
+    mutable file_chunks_age : int array;
 (*    mutable file_all_chunks : string; *)
-    mutable file_absent_chunks : (int32 * int32) list;
+    mutable file_absent_chunks : (int64 * int64) list;
     mutable file_filenames : string list;
     mutable file_nsources : int;
     mutable file_md4s : Md4.t list;
     mutable file_format : format;
     mutable file_available_chunks : int array;
-    mutable file_paused_sources : (source * int) Fifo.t;
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_locations : client Intmap.t; 
     mutable file_mtime : float;
+    mutable file_initialized : bool;
   }
 
 and file_to_share = {
     shared_name : string;
-    shared_size : int32;
+    shared_size : int64;
     mutable shared_list : Md4.t list;
-    mutable shared_pos : int32;
+    mutable shared_pos : int64;
     mutable shared_fd : Unix32.t;
     shared_shared : file_to_share CommonShared.shared_impl;
   }
@@ -256,7 +282,7 @@ type udp_client = {
     udp_client_ip : Ip.t;
     udp_client_port : int;
     udp_client_can_receive : bool;
-    mutable udp_client_last_conn : float;
+    mutable udp_client_last_conn : int;
   }
   
 and file_group = {
@@ -273,7 +299,7 @@ type shared_file_info = {
     sh_name : string;
     sh_md4s : Md4.t list;
     sh_mtime : float;
-    sh_size : int32;
+    sh_size : int64;
   }
 
   

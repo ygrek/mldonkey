@@ -74,10 +74,10 @@ let recover_files _ =
               Q.words = (String.lowercase (Md4.to_string file.file_md5)) ;
               Q.exclude = "";
               Q.realm = "";
-              Q.size_min = Int32.zero;
-              Q.size_max = Int32.zero;
-              Q.kbps_min = Int32.zero;
-              Q.kbps_max = Int32.zero;
+              Q.size_min = Int64.zero;
+              Q.size_max = Int64.zero;
+              Q.kbps_min = Int64.zero;
+              Q.kbps_max = Int64.zero;
             } in
           List.iter (fun s ->
               match s.server_sock with
@@ -99,10 +99,10 @@ let recover_files_from_server sock =
               Q.words = (String.lowercase (Md4.to_string file.file_md5)) ;
               Q.exclude = "";
               Q.realm = "";
-              Q.size_min = Int32.zero;
-              Q.size_max = Int32.zero;
-              Q.kbps_min = Int32.zero;
-              Q.kbps_max = Int32.zero;
+              Q.size_min = Int64.zero;
+              Q.size_max = Int64.zero;
+              Q.kbps_min = Int64.zero;
+              Q.kbps_max = Int64.zero;
             } in
           server_send sock t
         end      
@@ -120,10 +120,10 @@ let send_query keywords =
       Q.words = words;
       Q.exclude = "";
       Q.realm = "";
-      Q.size_min = Int32.zero;
-      Q.size_max = Int32.zero;
-      Q.kbps_min = Int32.zero;
-      Q.kbps_max = Int32.zero;
+      Q.size_min = Int64.zero;
+      Q.size_max = Int64.zero;
+      Q.kbps_min = Int64.zero;
+      Q.kbps_max = Int64.zero;
     } in
   List.iter (fun s ->
       match s.server_sock with
@@ -247,8 +247,8 @@ let redirector_parse_header sock header =
         PingReq (P.ComplexPing {
           P.ip = DO.client_ip (Some sock);
           P.port = !!client_port;
-          P.nfiles = Int32.zero;
-          P.nkb = Int32.zero;
+          P.nfiles = Int64.zero;
+          P.nkb = Int64.zero;
           P.s = "none:128:false";
         }))
     end else begin

@@ -58,7 +58,7 @@ let reconnect_all file =
   DonkeyOvernet.recover_file file;
   
 (* This is expensive, no ? *)
-  DonkeySources1.reschedule_sources file;
+  DonkeySources1.S.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
       | Some sock, (Connected_idle | Connected_busy) ->
@@ -154,7 +154,7 @@ let really_query_download filenames size md4 location old_file absents =
         if Sys.file_exists filename && not (
             Sys.file_exists temp_file) then
           (try 
-              if !!verbose then begin
+              if !verbose then begin
                   Printf.printf "Renaming from %s to %s" filename
                     temp_file; print_newline ();
                 end;
@@ -295,7 +295,7 @@ let import_temp temp_dir =
             let s = File.to_string met in
             let f = P.read s in
             let filenames = ref [] in
-            let size = ref Int32.zero in
+            let size = ref Int64.zero in
             List.iter (fun tag ->
                 match tag with
                   { tag_name = "filename"; tag_value = String s } ->
@@ -303,7 +303,7 @@ let import_temp temp_dir =
                     print_newline ();
                     
                     filenames := s :: !filenames;
-                | { tag_name = "size"; tag_value = Uint32 v } ->
+                | { tag_name = "size"; tag_value = Uint64 v } ->
                     size := v
                 | _ -> ()
             ) f.P.tags;
@@ -323,8 +323,8 @@ let import_config dirname =
       match tag with
       | { tag_name = "name"; tag_value = String s } ->
           client_name =:=  s
-      | { tag_name = "port"; tag_value = Uint32 v } ->
-          port =:=  Int32.to_int v
+      | { tag_name = "port"; tag_value = Uint64 v } ->
+          port =:=  Int64.to_int v
       | _ -> ()
   ) ct;
 
@@ -371,14 +371,14 @@ else *)
     *)
 
 let print_file buf file =
-  Printf.bprintf buf "[%-5d] %s %10ld %32s %s" 
+  Printf.bprintf buf "[%-5d] %s %10Ld %32s %s" 
     (file_num file)
     (file_best_name file)
   (file_size file)
   (Md4.to_string file.file_md4)
   (if file_state file = FileDownloaded then
       "done" else
-      Int32.to_string (file_downloaded file));
+      Int64.to_string (file_downloaded file));
   Buffer.add_char buf '\n';
   Printf.bprintf buf "Connected clients:\n";
   let f _ c =
@@ -389,7 +389,7 @@ let print_file buf file =
           (Ip.to_string ip)
         port
           (match c.client_sock with
-            None -> Date.to_string (connection_last_conn
+            None -> string_of_date (connection_last_conn
                   c.client_connection_control)
           | Some _ -> "Connected")
     | _ ->
@@ -397,7 +397,7 @@ let print_file buf file =
           (client_num c)
           "indirect"
           (match c.client_sock with
-            None -> Date.to_string (connection_last_conn
+            None -> string_of_date (connection_last_conn
                   c.client_connection_control)
           | Some _ -> "Connected")
   in
@@ -417,7 +417,8 @@ let print_file buf file =
   ) file.file_chunks
 
 let recover_md4s md4 =
-    let file = find_file md4 in
+  let file = find_file md4 in  
+  if file.file_chunks <> [||] then
     for i = 0 to file.file_nchunks - 1 do
       file.file_chunks.(i) <- (match file.file_chunks.(i) with
           PresentVerified -> PresentTemp
@@ -425,14 +426,14 @@ let recover_md4s md4 =
         | PartialVerified x -> PartialTemp x
         | x -> x)
     done
-
+    
 
     
 let parse_donkey_url url =
   match String2.split (String.escaped url) '|' with
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
-      query_download [name] (Int32.of_string size)
+      query_download [name] (Int64.of_string size)
       (Md4.of_string md4) None None None false;
       true
   | "ed2k://" :: "server" :: ip :: port :: _
@@ -566,7 +567,7 @@ let commands = [
               (if Ip.valid s.server_cid then
                 Ip.to_string s.server_cid
               else
-                Int32.to_string (Ip.to_int32 (Ip.rev s.server_cid)))
+                Int64.to_string (Ip.to_int64 (Ip.rev s.server_cid)))
         ) (connected_servers());
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
@@ -632,7 +633,7 @@ let commands = [
                 try
                   ignore (Hashtbl.find files_by_md4 md4)
                 with Not_found ->
-                    let size = Unix32.getsize32 (Filename.concat 
+                    let size = Unix32.getsize64 (Filename.concat 
                           !!temp_directory filename) in
                     let names = try DonkeyIndexer.find_names md4 
                       with _ -> [] in
@@ -673,7 +674,7 @@ let commands = [
     
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
-        DonkeySources2.print_sources buf;
+        DonkeySources1.S.print_sources buf;
         "done"
     ), ":\t\t\t\tshow sources currently known";
     
@@ -718,7 +719,7 @@ let commands = [
     
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
-        query_download [] (Int32.of_string size)
+        query_download [] (Int64.of_string size)
         (Md4.of_string md4) None None None false;
         "download started"
     
@@ -800,38 +801,51 @@ module P = GuiTypes
 
 let _ =
   file_ops.op_file_info <- (fun file ->
-      {
-        P.file_name = file_best_name file;
-        P.file_num = (file_num file);
-        P.file_network = network.network_num;
-        P.file_names = file.file_filenames;
-        P.file_md4 = file.file_md4;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = (
-          let nchunks = file.file_nchunks in
-          let s = String.make file.file_nchunks '0' in
-          for i = 0 to nchunks - 1 do
-            match file.file_chunks.(i) with
-              PresentTemp | PresentVerified -> s.[i] <- '1'
-            | _ -> ()
-          done;
-          s
-        );          
-        P.file_availability = String2.init file.file_nchunks (fun i ->
-	    char_of_int (min file.file_available_chunks.(i) 255));
-        P.file_format = file.file_format;
-        P.file_chunks_age = file.file_chunks_age;
-        P.file_age = file_age file;
-        P.file_last_seen = file.file_file.impl_file_last_seen;
-      }
+      try
+        let v = 
+          {
+            P.file_name = file_best_name file;
+            P.file_num = (file_num file);
+            P.file_network = network.network_num;
+            P.file_names = file.file_filenames;
+            P.file_md4 = file.file_md4;
+            P.file_size = file_size file;
+            P.file_downloaded = file_downloaded file;
+            P.file_nlocations = 0;
+            P.file_nclients = 0;
+            P.file_state = file_state file;
+            P.file_sources = None;
+            P.file_download_rate = file_download_rate file.file_file;
+            P.file_chunks = (
+              let nchunks = file.file_nchunks in
+              let s = String.make file.file_nchunks '0' in
+              if file.file_chunks <> [||] then begin
+                  for i = 0 to nchunks - 1 do
+                    match file.file_chunks.(i) with
+                      PresentTemp | PresentVerified -> 
+                        s.[i] <- '1'
+                    | _ -> ()
+                  done;
+                end;
+              s
+            );          
+            P.file_availability = String2.init file.file_nchunks (fun i ->
+                let n = min file.file_available_chunks.(i) 255 in
+                char_of_int n 
+            );
+            P.file_format = file.file_format;
+            P.file_chunks_age = file.file_chunks_age;
+            P.file_age = file_age file;
+            P.file_last_seen = file.file_file.impl_file_last_seen;
+          } in
+        v
+      with e ->
+          Printf.printf "Exception %s in op_file_info" (Printexc2.to_string e);
+          print_newline ();
+          raise e
+          
   )
-
+  
 let _ =
   server_ops.op_server_info <- (fun s ->
       {
@@ -950,7 +964,7 @@ let _ =
         old_files =:= file.file_md4 :: !!old_files;
   );
   file_ops.op_file_comment <- (fun file ->
-      Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
+      Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
         (file_best_name file)
       (file_size file)
       (Md4.to_string file.file_md4)
@@ -1003,10 +1017,10 @@ let _ =
       Printf.bprintf buf "\t\t%s (last_ok <%s> lasttry <%s> nexttry <%s> onlist %b)\n"
         c.client_name 
         (let last = c.client_connection_control.control_last_ok in
-        if last < 1. then "never" else Date.to_string last)
+        if last < 1 then "never" else string_of_date last)
         (let last = c.client_connection_control.control_last_try in
-        if last < 1. then "never" else Date.to_string last)
-      (Date.to_string (connection_next_try c.client_connection_control))
+        if last < 1 then "never" else string_of_date last)
+      (string_of_date (connection_next_try c.client_connection_control))
       c.client_on_list
   )
 

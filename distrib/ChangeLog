@@ -1,7 +1,60 @@
 ChangeLog	
 =========
 
-2003/01/12: Simon (tag unstable-2-02-5)
+2003/01/22: Simon (tag unstable-2-02-6)
+  * Mainly a bug-fix release for 2-02-5. Lots of features still missing
+     (sources' scores are not saved, lastreqs,cancelled files sources not
+      immediatly removed,...)
+
+  - Fix: problem with downloads never starting
+  - Fix: problem with partial chunks not saved
+  - Added www.mldonkey.org in the HTTP interface
+  - Better information on request results for each client
+  - New option 'verbosity' to choose which warnings to display. 
+
+2003/01/19: Simon
+  - Replaced date using floats by ints (lots of new bugs...)
+      Please, signal any incompatibility with guis (mldonkeywatch...)
+
+2003/01/17: Simon
+  - Started implementing new source management system
+
+2003/01/16: Simon
+  - Global change to use int64 instead of int32 everywhere. I hope I didnot
+      forget places, otherwise big bugs.
+
+2003/01/16: Fabrice
+  - Added doc/overnet.txt
+
+2003/01/15: Simon
+  - DonkeySources1: 
+    * Old sources are stored in two queues to always start by the best ones
+    * FIX: Connected sources are also saved
+    * FIX: Connected sources are also printed
+
+2003/01/14: Simon
+  - DonkeyInteractive: FIX: "out-of-bound" error
+  - DriverControlers: shorter help
+  - DonkeyProtoClient: 
+      * FIX: for cDonkey, send both QueryChunksReq and QueryFileReq
+  - DonkeyOneFile: fixed non-shared partial downloads at startup
+  - Options: values can be aliases to reduce space usage (
+     used in file_sources.ini)
+  - DonkeySources1: 
+      * FIX: sources are sorted to avoid recently-connected sources in 
+     front of the queue.
+      * clients ranking > 1000 put in concurrent_sources, not good sources
+  - DonkeyClient: 
+      * connection lifetime of connection set to 1 minute, and prolounged
+            if either peer uploads or downloads
+      * FIX: challenge is also send for incomning connection
+      * ban clients with queue ranking > 1000 and send them a message
+      * send a bad QueueRanking  to banned clients asking to enter
+          the queue.
+  - CommonOption: save_options_delay default set to 15 minutes
+  - config/Makefile.in: IRC compiled by default
+
+2003/01/13: Simon (tag unstable-2-02-5)
   - DonkeyClients: add md4s of connected clients to a hashtbl to prevent
       accepting two connections from the same client.
   - DonkeySources1: 
@@ -12,7 +65,7 @@ ChangeLog
   - Gui_downloads: expose events redraw the color bar 
   - DonkeyServers: black-list servers on port 4662
 
-2003/01/11: Simon
+2003/01/12: Simon
   - DonkeyGlobals: remove 1 from size to compute nchunks in new_file
   - DonkeyTypes: removed field file_all_chunks, recomputed
   - DonkeyComplexOptions: save mtime and chunk states. mldonkey should not

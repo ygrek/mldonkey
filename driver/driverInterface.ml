@@ -939,13 +939,14 @@ let compute_bandwidth uploaded_bytes downloaded_bytes bandwidth_samples =
   let last_count_time, last_uploaded_bytes, last_downloaded_bytes = 
     last !bandwidth_samples in
   
-  let delay = time -. last_count_time in
+  let delay = float_of_int (time - last_count_time) in
 
   let uploaded_bytes = Int64.to_float uploaded_bytes in
   let downloaded_bytes = Int64.to_float downloaded_bytes in
   
   let upload_rate = if delay > 0. then
-      int_of_float ( (uploaded_bytes -. last_uploaded_bytes) /. delay )
+      int_of_float ( (uploaded_bytes -. last_uploaded_bytes) /. 
+        delay )
     else 0 in
   
   let download_rate = if delay > 0. then

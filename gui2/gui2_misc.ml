@@ -134,7 +134,7 @@ let submit_search (gui: gui) local ()=
   let clist_search = MyCList.create gui new_tab#clist_search_results       
       [
 (* SIZE *)
-      (fun r -> (Printf.sprintf "%10s" (Int32.to_string r.result_size)));
+      (fun r -> (Printf.sprintf "%10s" (Int64.to_string r.result_size)));
 (* NAME *)
       (fun r -> (*short_name*) (first_name r)) ;
 (* FORMAT *)      

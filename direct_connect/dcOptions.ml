@@ -42,7 +42,7 @@ let login_messages = define_option directconnect_ini
 let search_timeout = define_option directconnect_ini
     ["search_timeout"]
   "The time a search is active"
-    float_option 60.
+    int_option 60
 
 let load_hublist = define_option directconnect_ini ["load_hublist"]
     "Download a list of servers"

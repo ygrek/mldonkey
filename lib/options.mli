@@ -58,13 +58,15 @@ with the help provided for each option. *)
 (*4 Creating options *)  
 val define_option : options_file ->
   string list ->  string -> 'a option_class -> 'a -> 'a option_record
+val define_header_option : options_file ->
+  string list ->  string -> 'a option_class -> 'a -> 'a option_record
 val option_hook : 'a option_record -> (unit -> unit) -> unit
     
 val string_option : string option_class
 val color_option : string option_class
 val font_option : string option_class
 val int_option : int option_class
-val int32_option : int32 option_class
+val int64_option : int64 option_class
 val bool_option : bool option_class
 val float_option : float option_class
 val path_option : string list option_class
@@ -106,10 +108,11 @@ val class_hook : 'a option_class -> ('a option_record -> unit) -> unit
 type option_value =
   Module of option_module
 | StringValue of  string
-| IntValue of int32
+| IntValue of int64
 | FloatValue of float
 | List of option_value list
 | SmallList of option_value list
+| OnceValue of option_value 
   
 and option_module =
   (string * option_value) list
@@ -124,8 +127,8 @@ val value_to_string : option_value -> string
 val string_to_value : string -> option_value
 val value_to_int : option_value -> int
 val int_to_value : int -> option_value
-val value_to_int32 : option_value -> int32
-val int32_to_value : int32 -> option_value
+val value_to_int64 : option_value -> int64
+val int64_to_value : int64 -> option_value
 val bool_of_string : string -> bool
 val value_to_bool : option_value -> bool
 val bool_to_value : bool -> option_value
@@ -154,3 +157,5 @@ val simple_args : options_file -> (string * Arg.spec * string) list
   
 val prefixed_args : 
   string -> options_file -> (string * Arg.spec * string) list
+
+val once_value : option_value -> option_value

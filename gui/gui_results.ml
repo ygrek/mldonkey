@@ -106,7 +106,7 @@ class box s_num columns () =
       match col with
 	Col_result_name -> shorten_name (first_name r)
       |	Col_result_md4 -> Md4.to_string r.result_md4
-      |	Col_result_size -> Gui_misc.size_of_int32 r.result_size
+      |	Col_result_size -> Gui_misc.size_of_int64 r.result_size
       |	Col_result_format -> r.result_format
       |	Col_result_props -> CommonGlobals.string_of_tags r.result_tags
           | Col_result_network -> network_name r.result_network

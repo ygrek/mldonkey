@@ -37,7 +37,7 @@ let addr_to_value addr =
     SmallList [
       string_to_value addr.addr_name;
       to_value Ip.option addr.addr_ip;
-      float_to_value addr.addr_age
+      int_to_value addr.addr_age
     ]
     
 let value_to_addr v =
@@ -51,8 +51,8 @@ let value_to_addr v =
   | SmallList [StringValue name; ip ; age]
   | List [StringValue name; ip ; age] ->
       let addr = new_addr_name name in
-      let age = value_to_float age in
-      if age +. !!ip_cache_timeout > last_time () then begin
+      let age = value_to_int age in
+      if age + !!ip_cache_timeout > last_time () then begin
           addr.addr_age <- age;
           addr.addr_ip <- from_value Ip.option ip
         end;
@@ -140,8 +140,9 @@ let rec string_of_option v =
   match v with
     Module m -> "{ MODULE }"
   | StringValue s -> Printf.sprintf "STRING [%s]" s
-  | IntValue i -> Printf.sprintf "INT [%ld]" i
+  | IntValue i -> Printf.sprintf "INT [%Ld]" i
   | FloatValue f -> Printf.sprintf "FLOAT [%f]" f
+  | OnceValue v -> string_of_option v
   | List l | SmallList l ->
       (List.fold_left (fun s v ->
             s ^ (string_of_option v) ^ ";" 
@@ -220,11 +221,11 @@ module QueryOption = struct
 
       | SmallList [StringValue "MINSIZE"; StringValue label; IntValue s]
       | List [StringValue "MINSIZE"; StringValue label; IntValue s] ->
-          Q_MINSIZE (label, Int32.to_string s)
+          Q_MINSIZE (label, Int64.to_string s)
 
       | SmallList [StringValue "MAXSIZE"; StringValue label; IntValue s]
       | List [StringValue "MAXSIZE"; StringValue label; IntValue s] ->
-          Q_MAXSIZE (label, Int32.to_string s)
+          Q_MAXSIZE (label, Int64.to_string s)
 
       | SmallList [StringValue "FORMAT"; StringValue label; StringValue s]
       | List [StringValue "FORMAT"; StringValue label; StringValue s] ->
@@ -252,7 +253,7 @@ module QueryOption = struct
 
       | SmallList [StringValue "MP3_BITRATE"; StringValue label; IntValue s]
       | List [StringValue "MP3_BITRATE"; StringValue label; IntValue s] ->
-          Q_MP3_BITRATE (label, Int32.to_string s)
+          Q_MP3_BITRATE (label, Int64.to_string s)
           
       | _ -> failwith (Printf.sprintf "Query option: error while parsing %s"
               (string_of_option  v)
@@ -444,7 +445,7 @@ let mail_for_completed_file file =
     let module M = Mailer in
     let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
 
-    let line2 = Printf.sprintf "\r\n%s\r\n%ld\r\n%s\r\n" 
+    let line2 = Printf.sprintf "\r\n%s\r\n%Ld\r\n%s\r\n" 
       (file_best_name file)
       (file_size file)
       (file_comment file)
@@ -485,7 +486,7 @@ MlUnix.fork_and_exec  !!file_completed_cmd
                               [|
                               file_name;
                               file_id;
-                              Int32.to_string (file_size file);
+                              Int64.to_string (file_size file);
                               file_best_name file
                             |]
 

@@ -16,40 +16,13 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-type t
-  
-val of_inet_addr : Unix.inet_addr -> t
-val of_string : string -> t
-val of_ints : int * int * int * int -> t
 
-val to_inet_addr : t -> Unix.inet_addr
-val to_string : t -> string
-val to_ints : t -> int * int * int * int
+(* This module implements Printf like functions that take care of the
+level of verbosity to choose when something should be printed. *)
 
-val to_fixed_string : t -> string
+open Printf
 
-val valid : t -> bool
-val reachable : t -> bool
+val debug : bool -> ('a, unit, exn -> string) format -> 'a
+val debug_end : exn
   
-val resolve_one : t -> string
-val matches : t -> t list -> bool
-  
-val localhost : t
-val to_sockaddr : t -> int -> Unix.sockaddr
-
-val from_name : string -> t
-  
-val option : t Options.option_class
-  
-val to_int64 : t -> int64
-val of_int64 : int64 -> t
-  
-val my : unit -> t
-val any : t
-val null : t
-  
-val rev:t -> t
-val equal : t -> t -> bool
-val value_to_ip : Options.option_value -> t
-val ip_to_value : t -> Options.option_value
   

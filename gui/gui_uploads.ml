@@ -79,7 +79,7 @@ class box columns () =
       |	C.Col_shared_upsize -> 
           Gui_misc.size_of_int64 si.shared_uploaded
       |	C.Col_shared_size -> 
-          Gui_misc.size_of_int32 si.shared_size
+          Gui_misc.size_of_int64 si.shared_size
     
     method content si =
       let strings = List.map 
@@ -95,7 +95,7 @@ console ???? *)
       
       let copy_ed2k_links list _ = 
         List.iter (fun si ->
-            let link = Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
+            let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
 (* Why are some files prefixed by their path ?? *)
                 (Filename.basename si.shared_filename)
               si.shared_size

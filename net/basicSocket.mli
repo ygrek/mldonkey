@@ -22,7 +22,7 @@ type t
 type handler = t -> event -> unit
 
 val infinite_timeout : float
-val last_time : unit -> float
+val last_time : unit -> int
 
   
 val fd : t -> Unix.file_descr
@@ -85,8 +85,12 @@ external use_poll : bool -> unit = "ml_use_poll"
 val prevent_close : t -> unit
 val close_all : unit -> unit
   
-val start_time : float
+val start_time : int
   
 external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
   
 external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
+val string_of_date : int -> string
+val date_of_int : int -> float
+val normalize_time : int -> int
+  

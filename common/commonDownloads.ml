@@ -38,7 +38,7 @@ A common function for all networks were the file is got in one single piece,
 type download = {
     download_file : file; (* the file being downloaded *)
     download_client : client;
-    mutable download_pos : int32; (* the position in the file *)
+    mutable download_pos : int64; (* the position in the file *)
     mutable download_sock : TcpBufferedSocket.t option;
 (* the socket for download (often shared in client structure) *)
     mutable download_on_close : (download -> unit);
@@ -85,14 +85,14 @@ let download_reader d sock nread =
             Printf.printf "In Unix32.force_fd"; print_newline ();
             raise e
       in
-      let final_pos = Unix32.seek32 (file_fd file) d.download_pos
+      let final_pos = Unix32.seek64 (file_fd file) d.download_pos
         Unix.SEEK_SET in
       Unix2.really_write fd b.buf b.pos b.len;
     end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-    d.download_pos <- Int32.add d.download_pos (Int32.of_int b.len);
+    d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.client_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
 print_newline ();
   *)
     TcpBufferedSocket.buf_used sock b.len;
@@ -128,8 +128,8 @@ upload is done linearly. *)
 type upload = {
     upload_file : file; (* the file being uploaded *)
     upload_client : client;
-    mutable upload_pos : int32; (* the position in the file *)
-    mutable upload_end : int32; (* the last position in the file to upload *)
+    mutable upload_pos : int64; (* the position in the file *)
+    mutable upload_end : int64; (* the last position in the file to upload *)
     mutable upload_sock : TcpBufferedSocket.t option; (* the socket for upload (often shared in client structure) *)
     mutable upload_on_close : (upload -> unit); (* function called when
     the socket is closed (Unix.close is already done) *)

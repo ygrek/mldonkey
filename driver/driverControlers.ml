@@ -61,12 +61,52 @@ let eval auth cmd options =
   match l with
     [] -> ()
   | cmd :: args ->
-      if cmd = "help" || cmd = "?" then begin
+      if cmd = "longhelp" || cmd = "??" then begin
           let module M = CommonMessages in
           Buffer.add_string  buf !!M.available_commands_are;
           List.iter (fun (cmd, _, help) ->
               Printf.bprintf  buf "%s %s\n" cmd help) 
           !CommonNetwork.network_commands
+        end else 
+      if cmd = "help" || cmd = "?" then begin
+          
+          let module M = CommonMessages in
+          Buffer.add_string  buf !!M.available_commands_are;
+          Buffer.add_string  buf
+            "
+          Main commands are:
+
+          Servers:
+          vm : list connected servers
+          vma : list all servers
+          c/x <num> : connect/disconnect from a server
+
+          Downloads:
+          vd : view current downloads
+          cancel/pause/resume <num> : cancel/pause/resume download <num>
+
+          Searches:
+          s  <keywords> : start a search for keywords <keywords> on the network
+          vr : view results of the last search
+          d <num> : download result number <num>
+          vs : view previous searches
+          vr <num> : view results of search <num>
+
+          General:
+          save: save configuration files
+          kill : kill mldonkey properly
+          q : quit this interface
+
+          Use 'longhelp' or '??' for all commands.
+          Use 'help command' or '? command' for help on a command.
+            ";
+          List.iter (fun arg ->
+              List.iter (fun (cmd, _, help) ->
+                  if cmd = arg then    
+                    Printf.bprintf  buf "%s %s\n" cmd help) 
+              !CommonNetwork.network_commands)
+          args
+          
         end else
       if cmd = "q" then
         raise CommonTypes.CommandCloseSocket
@@ -105,7 +145,7 @@ let calendar_options = {
       
 let check_calendar () =
   let time = last_time () in
-  let tm = Unix.localtime time in
+  let tm = Unix.localtime (date_of_int time) in
   List.iter (fun (days, hours, command) ->
       if List.mem tm.Unix.tm_wday days &&
         List.mem tm.Unix.tm_hour hours then begin
@@ -295,20 +335,8 @@ let html_open_page buf t r open_body =
   \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
   if !CommonInteractive.display_vd then begin
       Buffer.add_string buf !!CommonMessages.download_html_header;
-      let url = { r.get_url with
-          Url.server = Ip.to_string (my_ip t);
-(*
-          if !!http_bind_addr = any_ip then
-              client_ip None
-            else
-!!http_bind_addr);
-  *)
-          Url.port = !!http_port;
-          Url.proto = "http";
-          } in
       Printf.bprintf buf "<meta http-equiv=Refresh
-      content=\"%d; URL=%s\">" !!vd_reload_delay
-      (Url.to_string true url);
+      content=\"%d\">" !!vd_reload_delay;
     end else
     Buffer.add_string buf !!CommonMessages.html_header;
   Buffer.add_string buf "</HEAD>\n";
@@ -382,15 +410,15 @@ let http_handler options t r =
                           )
                       | "size" -> 
                           let old_filter = !filter in
-                          let mega5 = Int32.of_int (5 * 1024 * 1024) in
-                          let mega20 = Int32.of_int (20 * 1024 * 1024) in
-                          let mega400 = Int32.of_int (400 * 1024 * 1024) in
+                          let mega5 = Int64.of_int (5 * 1024 * 1024) in
+                          let mega20 = Int64.of_int (20 * 1024 * 1024) in
+                          let mega400 = Int64.of_int (400 * 1024 * 1024) in
                           let min, max = match value with
-                              "0to5" -> Int32.zero, mega5
+                              "0to5" -> Int64.zero, mega5
                             | "5to20" -> mega5, mega20
                             | "20to400" -> mega20, mega400
-                            | "400+" -> mega400, Int32.max_int
-                            | _ -> Int32.zero, Int32.max_int
+                            | "400+" -> mega400, Int64.max_int
+                            | _ -> Int64.zero, Int64.max_int
                           in
                           filter := (fun r ->
                               if r.result_size >= min && 

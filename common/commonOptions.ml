@@ -202,6 +202,9 @@ let web_infos = define_option downloads_ini
   [
     ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");
     ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
+    ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
+    ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
+
   ]
 
 (********************
@@ -284,12 +287,7 @@ let _ =
 let strict_bandwidth = define_option expert_ini ["strict_bandwidth"]
     "Should the bandwidth be controled more strictly ? (count IP packets)"
     bool_option true
-  
-  
-let debug_net = define_option expert_ini ["debug_net"]
-    "Set to true if you want some more information on low-level network layer"
-    bool_option false
-  
+    
 let ask_for_gui = define_option expert_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
     
@@ -448,11 +446,11 @@ let _ =
 
 let min_reask_delay = define_option expert_ini ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
-    float_option 720.
+    int_option 720
   
 let max_reask_delay = define_option expert_ini ["max_reask_delay"]
     "The maximal delay between two connections to the same client" 
-  float_option 3600.
+  int_option 3600
 
     
 let html_checkbox_file_list = define_option expert_ini
@@ -473,7 +471,7 @@ let client_buffer_size = define_option expert_ini
 let save_options_delay = 
   define_option expert_ini ["save_options_delay"] 
     "The delay between two saves of the 'downloads.ini' file (default is 4 minutes)" 
-  float_option 240.0
+  float_option 900.0
 
 let server_connection_timeout = define_option expert_ini
   ["server_connection_timeout"] 
@@ -503,12 +501,69 @@ let calendar = define_option expert_ini ["calendar"]
 let ip_cache_timeout = define_option expert_ini
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
-    float_option 3600.
+    int_option 3600
 
   
-let verbose = define_option expert_ini ["verbose"] "Only for debug"
-    bool_option false
 
+let verbosity = define_option expert_ini ["verbosity"] 
+  "A space-separated list of keywords. Each keyword triggers
+  printing information on the corresponding messages:
+  mc : debug client messages
+  ms : debug server messages
+  net : debug net
+  verb : debug other
+  sp : debug source propagation 
+  sm : debug source management
+  do : some download warnings
+  unk : unknown messages
+"
+    string_option ""
+
+let verbose_msg_servers = ref false
+let verbose_msg_clients = ref false
+let verbose_src_manager = ref false
+let verbose_src_prop = ref false
+let verbose = ref false
+let verbose_download = ref false
+let verbose_unknown_messages = ref false
+  
+let _ = 
+  option_hook verbosity (fun _ ->
+      
+      verbose_msg_clients := false;
+      verbose_msg_servers := false;
+      BasicSocket.debug := false;
+      verbose_src_prop := false;
+      verbose_src_manager := false;
+      verbose := false;
+      verbose_download := false;
+      verbose_unknown_messages := false;
+      
+      List.iter (fun s ->
+          match s with
+          | "mc" -> verbose_msg_clients := true;
+          | "ms" -> verbose_msg_servers := true;
+          | "verb" -> verbose := true;
+          | "sm" -> verbose_src_manager := true;
+          | "net" -> BasicSocket.debug := true
+          | "sp" -> verbose_src_prop := true
+          | "do" -> verbose_download := true
+          | "unk" -> verbose_unknown_messages := true
+          | "all" ->
+              
+              verbose_msg_clients := true;
+              verbose_msg_servers := true;
+              BasicSocket.debug := true;
+              verbose_src_prop := true;
+              verbose_src_manager := true;
+              verbose := true;
+              verbose_download := true;
+              verbose_unknown_messages := true;
+              
+          | _ -> ()
+              
+      ) (String2.split_simplify !!verbosity ' ')
+  )
   
 let compaction_overhead = define_option expert_ini 
     ["compaction_overhead"] 
@@ -527,7 +582,6 @@ let max_displayed_results = define_option expert_ini
     int_option 1000
   
 let _ =
-  option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net);
   option_hook filter_search_delay (fun _ ->
       if !!filter_search_delay < 1. then filter_search_delay =:= 1.)
 
@@ -583,8 +637,7 @@ let gui_options_panel = define_option expert_ini ["gui_options_panel"]
     "Mail", "SMTP port", shortname smtp_port, "T";
     "Mail", "Your Email Address", shortname mail, "T";
     
-    "Debug", "Verbose Mode", shortname verbose, "B";
-    "Debug", "Network Verbose Mode", shortname debug_net, "B";
+    "Debug", "Verbosity", shortname verbosity, "T";
     
     "Startup", "Start mldonkey_gui at beginning", shortname start_gui, "B"; 
     "Startup", "Ask for mldonkey_gui start", shortname ask_for_gui, "B";

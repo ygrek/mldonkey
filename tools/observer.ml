@@ -267,7 +267,7 @@ let dump_servers_list _ =
     File.from_string "servers.met" (Buffer.contents buf);
 (* now, what is the command to send the file to the WEB server ??? *)
       ignore
-      (Sys.command "scp -B -q servers.met patarin@subversions.gnu.org:/upload/mldonkey/network/");
+      (Sys.command "scp -B -q servers.met simon_mld@subversions.gnu.org:/upload/mldonkey/network/");
   )
 
 let dump_peers_list _ =
@@ -280,7 +280,7 @@ let dump_peers_list _ =
       ) list;
       File.from_string "peers.ocl" (Buffer.contents buf);
       ignore
-        (Sys.command "scp -B -q peers.ocl patarin@subversions.gnu.org:/upload/mldonkey/network/");
+        (Sys.command "scp -B -q peers.ocl simon_mld@subversions.gnu.org:/upload/mldonkey/network/");
 
   )
   

@@ -67,10 +67,10 @@ let buf_peer buf (ip,port) =
   buf_port buf port
 
 let int_tag s i = 
-  { tag_name = s; tag_value = Uint32 (Int32.of_int i) }
+  { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
 
 let int32_tag s i = 
-  { tag_name = s; tag_value = Uint32 i }
+  { tag_name = s; tag_value = Uint64 i }
 
 let string_tag s i = 
   { tag_name = s; tag_value = String i }
@@ -88,14 +88,14 @@ let rec buf_tags buf tags names_of_tag =
           with _ -> name in
         begin
           match tag.tag_value with
-          | Uint32 n -> 
+          | Uint64 n -> 
               buf_int8 buf 3;
               buf_string buf name;
-              buf_int32_32 buf n
-          | Fint32 n -> 
+              buf_int64_32 buf n
+          | Fint64 n -> 
               buf_int8 buf 4;
               buf_string buf name;
-              buf_int32_32 buf n
+              buf_int64_32 buf n
           | Addr ip -> assert false
           | String s -> 
               buf_int8 buf 2;
@@ -168,18 +168,18 @@ let get_tags s pos names_of_tag =
     let v, pos = match t with
       | 2 -> let v, pos = get_string s pos2 in
           String v, pos
-      | 1|3 -> let v = get_int32_32 s pos2 in
-          Uint32 
+      | 1|3 -> let v = get_int64_32 s pos2 in
+          Uint64 
             (if name = "port" then
-              let port = Int32.to_int v in
-              Int32.of_int (translate_port port)
+              let port = Int64.to_int v in
+              Int64.of_int (translate_port port)
             else v
           ), pos2+4
-      | 4 -> let v = get_int32_32 s pos2 in
-          Fint32 
+      | 4 -> let v = get_int64_32 s pos2 in
+          Fint64 
             (if name = "port" then
-              let port = Int32.to_int v in
-              Int32.of_int (translate_port port)
+              let port = Int64.to_int v in
+              Int64.of_int (translate_port port)
             else v
           ), pos2+4
       | _ -> 

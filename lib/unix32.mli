@@ -23,9 +23,9 @@ val create : string -> Unix.open_flag list -> int -> t
 val close : t -> unit
 val force_fd : t -> Unix.file_descr
   
-val seek32 : t -> int32 -> Unix.seek_command -> int32
-external getsize32 : string -> int32 = "ml_getsize32"
-val ftruncate32 : t -> int32 -> unit
+val seek64 : t -> int64 -> Unix.seek_command -> int64
+external getsize64 : string -> int64 = "ml_getsize64"
+val ftruncate64 : t -> int64 -> unit
 
 val close_all : unit -> unit
 
@@ -33,5 +33,5 @@ val fds_size : int
 val filename : t -> string
 val set_filename : t -> string -> unit
 val max_cache_size : int ref
-val mtime32 : string -> float
+val mtime64 : string -> float
   

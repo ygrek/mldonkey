@@ -77,8 +77,8 @@ grouped? (none = true) : connection speed : ultrapeer possible
     and complex_type = {
         ip : Ip.t;
         port : int;
-        nfiles : int32;
-        nkb : int32;
+        nfiles : int64;
+        nkb : int64;
         s : string;
       }
     
@@ -86,8 +86,8 @@ grouped? (none = true) : connection speed : ultrapeer possible
       if s = "" then SimplePing else
       let port = get_int16 s 0 in
       let ip = get_ip s 2 in
-      let nfiles = get_int32_32 s 6 in
-      let nkb = get_int32_32 s 10 in
+      let nfiles = get_int64_32 s 6 in
+      let nkb = get_int64_32 s 10 in
       let s = String.sub s 14 (String.length s - 15) in
       ComplexPing { ip = ip;
         port = port;
@@ -109,8 +109,8 @@ grouped? (none = true) : connection speed : ultrapeer possible
       | ComplexPing t ->
           buf_int16 buf t.port;
           buf_ip buf t.ip;
-          buf_int32_32 buf t.nfiles;
-          buf_int32_32 buf t.nkb;
+          buf_int64_32 buf t.nfiles;
+          buf_int64_32 buf t.nkb;
           buf_string buf t.s
   end
   
@@ -273,7 +273,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
     
     and file = {
         index: int;
-        size : int32;
+        size : int64;
         name : string;
         info : string;
       }
@@ -281,7 +281,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
     let rec iter_files nfiles s pos list =
       if nfiles = 0 then List.rev list, pos else
       let index = get_int s pos in
-      let size = get_int32_32 s (pos+4) in
+      let size = get_int64_32 s (pos+4) in
       let name,pos = get_string s (pos+8) in
       let info,pos = get_string s pos in
       iter_files (nfiles-1) s pos (
@@ -345,7 +345,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
       print_newline ();
       List.iter (fun f ->
           Printf.printf "   FILE %s SIZE %s INDEX %d" f.name 
-            (Int32.to_string f.size) f.index;
+            (Int64.to_string f.size) f.index;
           print_newline ();
       ) t.files
     
@@ -354,7 +354,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
         [] -> ()
       | t :: list ->
           buf_int buf t.index;
-          buf_int32_32 buf t.size;
+          buf_int64_32 buf t.size;
           buf_string buf t.name;
           buf_string buf t.info;
           write_files buf list

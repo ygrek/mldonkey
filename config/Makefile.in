@@ -81,7 +81,7 @@ LIB_SRCS=   lib/autoconf.ml \
   config/$(OS_FILES)/mlUnix.ml \
   config/$(OS_FILES)/os_stubs_c.c \
   lib/intmap.ml \
-  lib/int32ops.ml lib/options.ml lib/ip.ml  lib/numset.ml  \
+  lib/int32ops.ml lib/options.ml4 lib/ip.ml  lib/numset.ml  \
   lib/fifo.ml lib/fifo2.ml lib/intset.ml \
   lib/hole_tab.ml lib/store.ml \
   lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
@@ -539,14 +539,14 @@ TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guist
 #### IM stuff is now automatically included in the GUI
 
 
-SUBDIRS += im im/yahoo
+SUBDIRS += im im/yahoo  im/irc
   
 IM_CORE += im/imTypes.ml im/imEvent.ml \
    im/imProtocol.ml im/imIdentity.ml im/imAccount.ml \
    im/imChat.ml im/imRoom.ml \
    im/imOptions.ml
 
-IM_CORE +=   im/yahoo/yahoo.ml
+IM_CORE +=   im/yahoo/yahoo.ml  im/irc/irc.ml
 
 IM_GUI_CORE += im/gui_im_base.zog   \
     im/gui_im.ml
@@ -554,9 +554,9 @@ IM_GUI_CORE += im/gui_im_base.zog   \
 TARGETS += mlim
 
 ifeq ("$(DEVEL)", "yes")
-  SUBDIRS += im/msn im/irc
+  SUBDIRS += im/msn
 
-  IM_CORE +=    im/msn/msn.ml im/irc/irc.ml
+  IM_CORE +=    im/msn/msn.ml
 endif
 
 IM_CORE +=   im/imMain.ml
@@ -593,13 +593,14 @@ define([[EXPAND]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly, $($1_SRCS)) 
+$1_ML4 := $(filter %.ml4, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $($3_LIBS_opt) $($1_CMXS) 
@@ -891,9 +892,15 @@ buildrpm:
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icon
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icon .ml4 .mlii
+
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.ml.mlii :
+	rm -f $*.mli
+	$(OCAMLC) -i $(OFLAGS) $(INCLUDES) -c $< > $*.mlii
+	mv $*.mlii $*.mli
 
 .ml.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -921,6 +928,9 @@ buildrpm:
 
 .zog.ml:
 	$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
+
+.ml4.ml:
+	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< > $@
 
 .c.o :
 	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
