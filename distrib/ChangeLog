@@ -2,7 +2,8 @@ ChangeLog
 =========
 
 2002/12/15: Simon
-  - Applying Pango's patches (20021213b):
+  - Applied  Andre Hinrichs's patch for better help
+  - Applied Pango's patches (20021213b):
      05_save_client_last_filereqs: applied
      07_keep_user_filenames: applied
      20_vd_sharp_urls: applied

@@ -63,24 +63,24 @@ let commands = [
     "dump_heap", Arg_none (fun o ->
         Heap.dump_heap ();
         "heap dumped"
-    ), " : dump heap for debug";
+    ), ":\t\t\t\tdump heap for debug";
 
     "dump_usage", Arg_none (fun o ->
         Heap.dump_usage ();
         "usage dumped"
-    ), " : dump main structures for debug";
+    ), ":\t\t\t\tdump main structures for debug";
     
     "close_fds", Arg_none (fun o ->
         Unix32.close_all ();
         "All files closed"
-    ), " : close all files (use to free space on disk after remove)";
+    ), ":\t\t\t\tclose all files (use to free space on disk after remove)";
     
     "commit", Arg_none (fun o ->
         List.iter (fun file ->
             file_commit file
         ) !!done_files;
         "commited"
-    ) , ": move downloaded files to incoming directory";
+    ) , ":\t\t\t\tmove downloaded files to incoming directory";
     
     "vd", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -101,15 +101,15 @@ let commands = [
         | _ ->
             DriverInteractive.display_file_list buf o;
             ""    
-    ), "<num>: view file info";
+    ), "<num> :\t\t\t\tview file info";
     
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
-        ""), ": list connected servers";
+        ""), ":\t\t\t\t\tlist connected servers";
     
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
-    ), ": close telnet";
+    ), ":\t\t\t\t\tclose telnet";
     
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -117,24 +117,24 @@ let commands = [
             server_black_list =:=  ip :: !!server_black_list;
         ) args;
         "done"
-    ), " <ip1> <ip2> ... : add these IPs to the servers black list";
+    ), "<ip1> <ip2> ... :\t\t\tadd these IPs to the servers black list";
     
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets ();
-        "done"), " : for debugging only";
+        "done"), ":\t\t\t\tfor debugging only";
     
     "kill", Arg_none (fun o ->
         CommonGlobals.exit_properly ();
-        "exit"), ": save and kill the server";
+        "exit"), ":\t\t\t\t\tsave and kill the server";
     
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
-        "saved"), ": save";
+        "saved"), ":\t\t\t\t\tsave";
     
     "port", Arg_one (fun arg o ->
         port =:= int_of_string arg;
         "new port will change at next restart"),
-    " <port> : change connection port";
+    "<port> :\t\t\t\tchange connection port";
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -172,7 +172,7 @@ let commands = [
           Printf.bprintf  buf "\\</table\\>";
         
         ""
-    ), " : print options";
+    ), ":\t\t\t\t\tprint options";
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -195,7 +195,7 @@ let commands = [
               (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         "done"
-    ), " : statistics on upload";
+    ), ":\t\t\t\tstatistics on upload";
     
     "set", Arg_two (fun name value o ->
         try
@@ -227,7 +227,7 @@ let commands = [
               Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc.to_string e)
-    ), " <option_name> <option_value> : change option value";
+    ), "<option_name> <option_value> :\tchange option value";
     
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -246,11 +246,11 @@ let commands = [
                   DriverInteractive.print_search buf s o;
                   ""
             end;
-    ), "  [<num>]: view results of a search";
+    ), "[<num>] :\t\t\t\tview results of a search";
 
     "vr", Arg_none (fun o ->
         "done"
-    ), " : print last Common search results";
+    ), ":\t\t\t\t\tprint last Common search results";
     
     "s", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -263,7 +263,7 @@ let commands = [
               G.search_type = RemoteSearch;
             }) buf);
         ""
-    ), " <query> : search for files on all networks\n
+    ), "<query> :\t\t\t\tsearch for files on all networks\n
 \tWith special args:
 \t-minsize <size>
 \t-maxsize <size>
@@ -292,7 +292,7 @@ let commands = [
               G.search_type = LocalSearch;
             }) buf);
         ""
-    ), " <query> : search for files on all networks\n
+    ), "<query> :\t\t\t\tsearch for files on all networks\n
 \tWith special args:
 \t-minsize <size>
 \t-maxsize <size>
@@ -314,9 +314,8 @@ let commands = [
         List.iter (fun arg ->
             CommonInteractive.download_file o.conn_buf arg) args;
         ""),
-    " <num> : file to download";
+    "<num> :\t\t\t\tfile to download";
 
-        
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
         match !CommonGlobals.aborted_download with
@@ -324,9 +323,8 @@ let commands = [
         | Some r ->
             CommonResult.result_download (CommonResult.result_find r) [] true;
             "download forced"
-    ), " : force download of an already downloaded file";
+    ), ":\t\t\tforce download of an already downloaded file";
 
-    
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf  buf "Searching %d queries\n" (
@@ -341,7 +339,7 @@ let commands = [
             s.search_string
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
-        ) !searches; ""), ": view all queries";
+        ) !searches; ""), ":\t\t\t\t\tview all queries";
 
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -356,7 +354,7 @@ let commands = [
             else
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; ""
-    ), ": view custom queries";
+    ), ":\t\t\tview custom queries";
     
     "cancel", Arg_multiple (fun args o ->
         if args = ["all"] then
@@ -373,7 +371,7 @@ let commands = [
                     end
               ) !!files) args; 
         ""
-    ), " <num> : cancel download (use arg 'all' for all files)";
+    ), "<num> :\t\t\t\tcancel download (use arg 'all' for all files)";
     
     "pause", Arg_multiple (fun args o ->
         if args = ["all"] then
@@ -388,7 +386,7 @@ let commands = [
                       file_pause file
                     end
               ) !!files) args; ""
-    ), " <num> : pause a download (use arg 'all' for all files)";
+    ), "<num> :\t\t\t\tpause a download (use arg 'all' for all files)";
     
     "resume", Arg_multiple (fun args o ->
         if args = ["all"] then
@@ -403,7 +401,7 @@ let commands = [
                       file_resume file
                   end
             ) !!files) args; ""
-    ), " <num> : resume a paused download (use arg 'all' for all files)";
+    ), "<num> :\t\t\t\tresume a paused download (use arg 'all' for all files)";
 
     "c", Arg_multiple (fun args o ->
         match args with
@@ -418,14 +416,14 @@ let commands = [
             ) args;
             "connecting server"
     ),
-    " [<num>]: connect to more servers (or to server <num>)";
+    "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
 
     "vc", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
         client_print c o;
         ""
-    ), " <num> : view client";
+    ), "<num> :\t\t\t\tview client";
     
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
@@ -433,13 +431,13 @@ let commands = [
         if server_state s <> NotConnected then
           server_disconnect s;
         ""
-    ), " <num> : disconnect from server";
+    ), "<num> :\t\t\t\tdisconnect from server";
 
     "use_poll", Arg_one (fun arg o ->
         let b = bool_of_string arg in
         BasicSocket.use_poll b;
         Printf.sprintf "poll: %b" b
-    ), " <bool> : use poll instead of select";
+    ), "<bool> :\t\t\tuse poll instead of select";
         
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
@@ -453,13 +451,13 @@ let commands = [
                   (Printexc.to_string e); print_newline ();
         ) !!servers;
         Printf.sprintf "Servers: %d known\n" !nb_servers
-        ), ": list all known servers";
+        ), ":\t\t\t\t\tlist all known servers";
         
     "reshare", Arg_none (fun o ->
         let buf = o.conn_buf in
         shared_check_files ();
         "check done"
-    ), " : check shared files for removal";
+    ), ":\t\t\t\tcheck shared files for removal";
 
     "priority", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -478,23 +476,23 @@ let commands = [
             "Done"
         | [] -> "Bad number of args"
         
-    ), " <priority> <files numbers>: change file priorities";
+    ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
         CommonGlobals.version
-    ), " :  print mldonkey version";
-        
+    ), ":\t\t\t\tprint mldonkey version";
+
     "forget", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let num = int_of_string num in
         CommonSearch.search_forget (CommonSearch.search_find num);
         ""  
-    ), " <num> : forget search <num>";
+    ), "<num> :\t\t\t\tforget search <num>";
 
     "close_all_sockets", Arg_none (fun o ->
         BasicSocket.close_all ();
         "All sockets closed"
-    ), " : close all opened sockets";
+    ), ":\t\t\tclose all opened sockets";
     
     ]
 

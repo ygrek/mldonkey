@@ -194,7 +194,7 @@ let _ =
         Printf.bprintf buf "nb_know_other_server:%d\n" !n_dead;
         Printf.bprintf buf "client_counter:%d\n" !client_counter;
         ""
-    ),"Print server's stat";
+    ),":\t\t\t\t\tprint server's stat";
 
     "cl", Arg_none(fun o -> 
 		    let buf = o.conn_buf in
@@ -225,7 +225,7 @@ let _ =
 					     ) md4_list
 				) lst;
 			""
-		 ),"Print server's coherence failure";
+		 ),":\t\t\t\t\tprint server's coherence failure";
 
     "cc", Arg_none(fun o -> 
 		     let buf = o.conn_buf in
@@ -251,7 +251,7 @@ let _ =
 						       )  c.client_files
 				    ) clients_by_id; 
 			 ""
-		 ),"Print server's coherence failure";
+		 ),":\t\t\t\t\tprint server's coherence failure";
 
 
 
@@ -268,12 +268,13 @@ let _ =
 			      Printf.bprintf buf "I reply server and client udp message\n";
 			    Printf.bprintf buf "nb udp rely send/second : %f\n" (!nb_udp_reply_sec /. 60.);
 			    ""
-		       ), "Print number of udp and tcp packet rec";
+		       ), ":\t\t\t\tprint number of udp and tcp packet rec";
+
     "clients", Arg_one (fun arg o -> 
 			  let buf = o.conn_buf in
 			    ServerClients.bprint buf clients_by_id arg;
 			    ""
-		       ),"Print clients general info";
+		       ),":\t\t\t\tprint clients general info";
 
     "sources", Arg_none (fun o ->
 			   let buf =  o.conn_buf in
@@ -288,8 +289,8 @@ let _ =
 					    Printf.bprintf buf "-->Actualy %d sources\n" nb_source 
 				       ) lst;
 			     ""
-			),"Print files shared on the server";
-			
+			),":\t\t\t\tprint files shared on the server";
+
     "ginfo", Arg_none (fun o ->
         let buf = o.conn_buf in
 	  Printf.bprintf buf "GROUP :%d servers for %d remote sources for %d remote clients\n" !nconnected_servers !nshared_remote_md4 !nremote_clients;
@@ -297,19 +298,22 @@ let _ =
 	    Printf.bprintf buf "for %d notif nees %f info \n" x y;
           bprint_server_info buf "";
         ""
-    ),"Print info about servers in the group";
+    ),":\t\t\t\t\tprint info about servers in the group";
+
     "jg", Arg_two (fun ip port o -> 
                                let buf = o.conn_buf in
                                   Printf.bprintf buf "try to connect %s %s\n" ip port;
                                ServerServer.join_a_group (Ip.of_string ip) (int_of_string port);
                                ""
-                  ),"Try to join a server master";
+                  ),":\t\t\t\t\ttry to join a server master";
+
     "qg",Arg_none (fun o ->
                            let buf = o.conn_buf in
                                   Printf.bprintf buf "diconnect of the group %s\n" (Md4.to_string !group_id);
                           ServerServer.disconnect();
                           ""
-                   ),"Diconnect of the group";
+                   ),":\t\t\t\t\tdisconnect of the group";
+
     "tags",Arg_none (fun o ->
                        let buf = o.conn_buf in
                          Printf.bprintf buf "known tag name = ";
@@ -318,8 +322,8 @@ let _ =
                            !tag_name_list;
                          Printf.bprintf buf "\n";
                          ""
-                   ),"Gives the list of known tag name";
-  
+                   ),":\t\t\t\t\tgives the list of known tag name";
+
   ];
   
   

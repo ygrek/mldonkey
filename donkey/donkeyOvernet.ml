@@ -908,7 +908,7 @@ let _ =
         let port = int_of_string port in
         udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
         Printf.sprintf "peer %s:%d added" (Ip.to_string ip) port
-    ), " <ip> <port> : add an Overnet peer";
+    ), "<ip> <port> :\t\t\tadd an Overnet peer";
     
     
     "ovlink", Arg_multiple (fun args o ->        
@@ -917,7 +917,7 @@ let _ =
         if parse_overnet_url url then
           "download started"
         else "bad syntax"
-    ), " <fhalink> : download fha:// link";
+    ), "<fhalink> :\t\t\tdownload fha:// link";
     
     "ovstats", Arg_none (fun o ->
         let buf = o.conn_buf and sum = ref 0 in
@@ -956,7 +956,7 @@ let _ =
         ) overnet_searches;
         
         "";
-    ), ": Overnet Stats";
+    ), ":\t\t\t\tOvernet Stats";
     
     "ovweb", Arg_multiple (fun args o ->
         let urls =
@@ -972,10 +972,10 @@ let _ =
             Printf.bprintf o.conn_buf "Loading %s\n" url; 
             load_url "ocl" url) urls;
         "web boot started"
-    ), " <urls>: download .ocl URLS (no arg load default)";
+    ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
 
     "ovmd4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string overnet_md4);
-     ), " get client MD4 address on the overnet network";
+     ), ":\t\t\t\t\tget client MD4 address on the overnet network";
 
     "ovdump", Arg_none (fun o -> 
       let buf = o.conn_buf in
@@ -988,7 +988,7 @@ let _ =
 	      i (Md4.to_string a) b.peer_last_msg) !!global_peers.(i);
 	done;
       end;
-      ""), "dump overnet global_peer table";
+      ""), ":\t\t\t\tdump overnet global_peer table";
 
     "ovtst", Arg_none (fun o -> 
       for i=1 to 92 do
@@ -1000,9 +1000,9 @@ let _ =
 	peer_last_msg=1.;
       };
       done;
-      ""), "dump overnet global_peer table";
+      ""), ":\t\t\t\t\tdump overnet global_peer table";
 
-    "ovadv", Arg_none (fun o -> publicize_peers (); ""), "dump overnet global_peer table";
+    "ovadv", Arg_none (fun o -> publicize_peers (); ""), ":\t\t\t\t\tdump overnet global_peer table";
 
   ];
   add_web_kind "ocl" (fun filename ->

@@ -455,19 +455,19 @@ let commands = [
         Printf.bprintf buf "New server %s:%d\n" 
           (Ip.to_string ip) port;
         ""
-    ), " <ip> [<port>]: add a server";
+    ), "<ip> [<port>] :\t\t\tadd a server";
     
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
     
-    ), " : view upload credits";
+    ), ":\t\t\t\t\tview upload credits";
     
     "mem_stats", Arg_none (fun o -> 
         let buf = o.conn_buf in
         DonkeyGlobals.mem_stats buf;
         ""
-    ), " : print memory stats";
+    ), ":\t\t\t\tprint memory stats";
     
     
     "comments", Arg_one (fun filename o ->
@@ -475,14 +475,14 @@ let commands = [
         DonkeyIndexer.load_comments filename;
         DonkeyIndexer.save_comments ();
         "comments loaded and saved"
-    ), " <filename> : load comments from file";
+    ), "<filename> :\t\t\tload comments from file";
     
     "comment", Arg_two (fun md4 comment o ->
         let buf = o.conn_buf in
         let md4 = Md4.of_string md4 in
         DonkeyIndexer.add_comment md4 comment;
         "Comment added"
-    ), " <md4> \"<comment>\" : add comment on an md4";
+    ), "<md4> \"<comment>\" :\t\tadd comment on an md4";
     
     "nu", Arg_one (fun num o ->
         let buf = o.conn_buf in
@@ -508,7 +508,7 @@ let commands = [
             !has_upload !upload_credit
         
         else ""
-    ), " <m> : disable upload during <m> minutes (multiple of 5)";
+    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
     
     "import", Arg_one (fun dirname o ->
         let buf = o.conn_buf in
@@ -518,7 +518,7 @@ let commands = [
         with e ->
             Printf.sprintf "error %s while loading config" (
               Printexc.to_string e)
-    ), " <dirname> : import the config from dirname";
+    ), "<dirname> :\t\t\timport the config from dirname";
     
     "import_temp", Arg_one (fun dirname o ->
         let buf = o.conn_buf in
@@ -528,13 +528,13 @@ let commands = [
         with e ->
             Printf.sprintf "error %s while loading temp files" (
               Printexc.to_string e)
-    ), " <temp_dir> : import the old edonkey temp directory";
+    ), "<temp_dir> :\t\timport the old edonkey temp directory";
     
     "load_old_history", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeyIndexer.load_old_history ();
         "Old history loaded"
-    ), " : load history.dat file";
+    ), ":\t\t\tload history.dat file";
     
     "servers", Arg_one (fun filename o ->
         let buf = o.conn_buf in
@@ -543,7 +543,7 @@ let commands = [
           Printf.sprintf "%d servers loaded" n
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc.to_string e)
-    ), " <filename> : add the servers from a server.met file";
+    ), "<filename> :\t\t\tadd the servers from a server.met file";
     
     
     "id", Arg_none (fun o ->
@@ -557,7 +557,7 @@ let commands = [
                 Int32.to_string (Ip.to_int32 (Ip.rev s.server_cid)))
         ) (connected_servers());
         ""
-    ), " : print ID on connected servers";
+    ), ":\t\t\t\t\tprint ID on connected servers";
     
     "add_url", Arg_two (fun kind url o ->
         let buf = o.conn_buf in
@@ -566,8 +566,8 @@ let commands = [
           web_infos =:=  v :: !!web_infos;
         load_url kind url;
         "url added to web_infos. downloading now"
-    ), " <kind> <url> : load this file from the web. 
-    kind is either server.met (if the downloaded file is a server.met)";
+    ), "<kind> <url> :\t\t\tload this file from the web.
+\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
     
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -595,7 +595,7 @@ let commands = [
         
         ) list;
         "done";
-    ), " : print temp directory content";
+    ), ":\t\t\t\tprint temp directory content";
     
     "recover_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -617,7 +617,7 @@ let commands = [
                     (Printexc.to_string e); print_newline ();
         ) files;
         "done"
-    ), " : recover lost files from temp directory";
+    ), ":\t\t\t\trecover lost files from temp directory";
 
 (*
     
@@ -642,7 +642,7 @@ let commands = [
               (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         "done"
-    ), " : statistics on upload";
+    ), ":\t\t\tstatistics on upload";
 *)
     
     "uploaders", Arg_none (fun o ->
@@ -656,7 +656,7 @@ let commands = [
             | None -> ()
         ) (Fifo.to_list upload_clients);
         "done"
-    ), " : show users currently uploading";
+    ), ":\t\t\t\tshow users currently uploading";
     
     
     "xs", Arg_none (fun o ->
@@ -667,13 +667,13 @@ let commands = [
               "extended search done"
             with e -> Printf.sprintf "Error %s" (Printexc.to_string e)
           end else "No previous extended search"),
-    ": extended search";
+    ":\t\t\t\t\textended search";
     
     "clh", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeyIndexer.clear ();
         "local history cleared"
-    ), " : clear local history";
+    ), ":\t\t\t\t\tclear local history";
     
     "dllink", Arg_multiple (fun args o ->        
         let buf = o.conn_buf in
@@ -681,7 +681,7 @@ let commands = [
         if parse_donkey_url url then
           "download started"
         else "bad syntax"
-    ), " <ed2klink> : download ed2k:// link";
+    ), "<ed2klink> :\t\t\tdownload ed2k:// link";
     
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
@@ -689,13 +689,13 @@ let commands = [
         (Md4.of_string md4) None None None false;
         "download started"
     
-    ), "<size> <md4> : download from size and md4";
+    ), "<size> <md4> :\t\t\tdownload from size and md4";
     
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeyServers.remove_old_servers ();
         "clean done"
-    ), ": remove servers that have not been connected for several days";
+    ), ":\t\t\tremove servers that have not been connected for several days";
     
     
     
@@ -705,7 +705,7 @@ let commands = [
             port_black_list =:=  port :: !!port_black_list;
         ) args;
         "done"
-    ), " <port1> <port2> ... : add these Ports to the port black list";
+    ), "<port1> <port2> ... :\t\tadd these Ports to the port black list";
 
     "send_servers", Arg_none (fun o ->
         DonkeyProtoCom.propagate_working_servers 
@@ -714,7 +714,7 @@ let commands = [
         (DonkeyOvernet.connected_peers ())
         ;
         "done"
-    ), " : send the list of connected servers to the redirector";
+    ), ":\t\t\t\tsend the list of connected servers to the redirector";
     
   ]
   

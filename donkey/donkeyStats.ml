@@ -167,5 +167,5 @@ let _ =
 	let buf = o.conn_buf in
 	  print_stats buf;
 	  ""
-   ), " : show breakdown of download/upload by clients brand";
+   ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
   ]
