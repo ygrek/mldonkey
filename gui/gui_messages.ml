@@ -154,7 +154,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.08
+Release: 1.09
 Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -522,9 +522,11 @@ ChangeLog
 =========
 
 Release 1.09:
-  * Bug fixes: fixed bad md4 computation of the first chunk.
+  * Bug fixes: fixed bad md4 computation of the first chunk, preventing
+     completion of downloads.
   * New command 'recover_temp' to recover all lost files from the temp
      directory.
+  * See mldonkey.sourceforge.net for porting mldonkey on new OSes.
 
 Release 1.08:
   * Remove use of the 'mmap' system call.

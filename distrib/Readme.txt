@@ -2,7 +2,7 @@
                       MLDonkey
                       ========
 
-Release: 1.08
+Release: 1.09
 Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -360,12 +360,21 @@ TODO list
   * Set 'Connected locations' label.
   * Plugins.
   * Correct display of availability.
-  * Filters.
-  * Remove MD4 computation for shared files.
   * Add sleep and wakeup commands.
+  * More options in GUI
+  * Ask for passwords if they are not set. Check IP addresses too.
+  * Check if imported files are not completely downloaded.
+  * When a chunk is corrupted, try to detect bad source.
 
 ChangeLog
 =========
+
+Release 1.09:
+  * Bug fixes: fixed bad md4 computation of the first chunk, preventing
+     completion of downloads.
+  * New command 'recover_temp' to recover all lost files from the temp
+     directory.
+  * See mldonkey.sourceforge.net for porting mldonkey on new OSes.
 
 Release 1.08:
   * Remove use of the 'mmap' system call.
