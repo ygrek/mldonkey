@@ -4,8 +4,12 @@ AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
 REQUIRED_OCAML=3.05
+REQUIRED_LABLGTK=1.2.4
 
 touch install-sh
+
+BATCH=no
+AC_ARG_ENABLE(batch, [--enable-batch:       reply YES to all queries in this script], [BATCH="$enableval"])
 
 MULTINET=yes
 AC_ARG_ENABLE(multinet, [--disable-multinet:       allows you to only compile support for edonkey], [MULTINET="$enableval"])
@@ -25,6 +29,9 @@ AC_ARG_ENABLE(directconnect, [--disable-directconnect:       allows you to remov
 SOULSEEK=yes
 AC_ARG_ENABLE(soulseek, [--disable-soulseek:       allows you to remove support for SoulSeek], [SOULSEEK="$enableval"])
 
+OPENFT=yes
+AC_ARG_ENABLE(openft, [--disable-openft:       allows you to remove support for OpenFT], [OPENFT="$enableval"])
+
 DONKEY=yes
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
 
@@ -35,13 +42,94 @@ AC_PROG_CPP
 
 AC_PROG_RANLIB
 
+OCAML_PATH=
+
+AC_CHECK_PROG(GNU_MAKE, gmake, gmake)
+AC_CHECK_PROG(GNU_MAKE, make, make)
+
 AC_CHECK_PROG(OCAMLC, ocamlc.opt, ocamlc.opt)
 AC_CHECK_PROG(OCAMLC, ocamlc, ocamlrun ocamlc)
 
+cd ..
+SOURCE_DIR=`pwd`
+cd config
+
+LOCAL=$SOURCE_DIR/patches/local/
+
+LOCAL_OCAML=$LOCAL/bin
+
 test -z "$ac_cv_prog_OCAMLC" && { 
+
+  AC_CHECK_FILE("$LOCAL_OCAML"/ocamlc.opt, [
+    OCAMLC=$LOCAL_OCAML/ocamlc.opt
+    ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
+  ],[
+
   echo "********  Objective-Caml is required  *********" 1>&2; 
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
-  exit 1; } 
+  echo "Do you want this script to try to download and install ocaml"
+  echo "LOCALLY in mldonkey directory ?"
+  if test "$BATCH" = "no"; then read i; else i=yes; fi
+  case "$i" in
+   y* | Y*) 
+      cd ../patches
+      rm -rf ocaml-"$REQUIRED_OCAML"
+      if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+        echo Downloading ...
+
+        wget http://caml.inria.fr/distrib/ocaml-"$REQUIRED_OCAML".tar.gz
+      fi
+      if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
+      echo Uncompressing ...
+      gzip -cd ocaml-"$REQUIRED_OCAML".tar.gz | tar xf -
+      cd ocaml-"$REQUIRED_OCAML"
+      if test -f ../ocaml-"$REQUIRED_OCAML".patch; then
+        echo Patching ...
+        patch -p1 < ../ocaml-"$REQUIRED_OCAML".patch
+      fi
+      echo Configuring ...
+      ./configure -prefix $LOCAL
+      cd config
+      cp -f Makefile Makefile.old
+      sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
+      cd ..
+      echo Compiling ...
+      $GNU_MAKE world opt opt.opt
+      echo Installing ...
+      $GNU_MAKE install
+      cd ..
+      rm -rf ocaml-"$REQUIRED_OCAML"
+      cd ../config
+      echo Ocaml locally installed for mldonkey
+
+      if test -f "$LOCAL_OCAML"/ocamlc.opt; then
+         OCAMLC=$LOCAL_OCAML/ocamlc.opt
+         ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
+      else
+        echo "Ocaml installation failed"; exit 1
+      fi
+      ;;
+   *)  exit 1;;
+  esac
+  ])
+
+}
+
+if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
+  OCAML_PATH="$LOCAL_OCAML"/
+  OCAMLOPT=$LOCAL_OCAML/ocamlopt.opt
+  OCAMLDEP=$LOCAL_OCAML/ocamldep
+  OCAMLLEX=$LOCAL_OCAML/ocamllex.opt
+  OCAMLYACC=$LOCAL_OCAML/ocamlyacc
+  CAMLP4=$LOCAL_OCAML/camlp4
+else
+  AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
+  AC_CHECK_PROG(OCAMLDEP, ocamldep, ocamldep)
+  AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
+  AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
+  AC_CHECK_PROG(OCAMLYACC, ocamlyacc, ocamlyacc)
+  AC_CHECK_PROG(OCAMLYACC, camlp4, camlp4)
+fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlc version is $OCAMLVERSION"
@@ -52,10 +140,6 @@ test "$OCAMLVERSION" = "$REQUIRED_OCAML" || {
   exit 1; } 
 
 
-AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
-AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlrun ocamlopt )
-
-
 OCAMLOPTVERSION=`$OCAMLOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlopt version is $OCAMLOPTVERSION"
 
@@ -64,9 +148,6 @@ test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
   exit 1; } 
 
-
-AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
-AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamlrun ocamllex )
 
 # Sizes of various common basic types
 AC_CHECK_SIZEOF(int)
@@ -105,7 +186,7 @@ esac
 AC_MSG_CHECKING(Additionnal includes) 
 AC_MSG_RESULT($CONFIG_INCLUDES)
 
-OCAMLLIB=`ocamlc -where`
+OCAMLLIB=`$OCAMLC -where`
 
 if test -f $OCAMLLIB/lablgl.cma; then
   LABLGL_CMA=lablgl.cma
@@ -163,12 +244,22 @@ if test "$MULTINET" = "yes" ; then
     BAD_TARGETS="$BAD_TARGETS soulseek"
   fi
 
+  if test "$OPENFT" = "yes" ; then
+    AC_CHECK_FILE(../openFT,OPENFT=yes, [
+      OPENFT=no
+      BAD_TARGETS="$BAD_TARGETS openFT"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS openFT"
+  fi
+
 else
   AUDIO_GALAXY=no
   OPEN_NAPSTER=no
   DIRECT_CONNECT=no
   LIMEWIRE=no
   SOULSEEK=no
+  OPENFT=no
 
   BAD_TARGETS="$BAD_TARGETS audio_galaxy open_napster direct_connect limewire soulseek"
 fi
@@ -196,11 +287,10 @@ AC_CHECK_FILE(../secret, [
     ])
   ], [
     DONKEY_SERVER=no
-    BAD_TARGETS="$BAD_TARGETS closed_donkey"
+    BAD_TARGETS="$BAD_TARGETS donkey_server donkey_client"
   ])
  ],[
   DONKEY=no
-  BAD_TARGETS="$BAD_TARGETS closed_donkey"
   if test "$OCAMLOPT_DIL" = "yes"; then
     AC_CHECK_FILE(../donkey/donkey.lam, OPEN_DONKEY=yes, OPEN_DONKEY=no)
   fi
@@ -230,6 +320,37 @@ else
        echo "file of mldonkey to see how to compile lablgtk. You"
        echo "probably forgot to call 'make opt' before 'make install'."
        echo "--------------------------------"
+     else
+       echo "Do you want this script to try to download and install lablgtk"
+       echo "LOCALLY in mldonkey directory ?"
+       if test "$BATCH" = "no"; then read i; else i=yes; fi
+       case "$i" in
+        y* | Y*) 
+         cd ../patches
+         rm -rf lablgtk-"$REQUIRED_LABLGTK"
+         if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
+           echo Downloading ...
+           wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+         fi
+         if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+         echo Uncompressing ...
+         gzip -cd lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
+         (cd lablgtk-"$REQUIRED_LABLGTK"
+          PATH=$OCAML_PATH:$PATH
+          export PATH
+          echo $PATH
+          $GNU_MAKE configure
+          $GNU_MAKE
+          $GNU_MAKE opt  
+          $GNU_MAKE install
+          cd ..
+          rm -rf lablgtk-"$REQUIRED_LABLGTK"
+         )
+         cd ../config
+         LABLGTK_CONFIG=yes
+         ;;
+        *);;
+      esac
      fi
   fi
 fi
@@ -285,6 +406,10 @@ ARCH=$arch
 
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLOPT)
+AC_SUBST(OCAMLLEX)
+AC_SUBST(OCAMLYACC)
+AC_SUBST(OCAMLDEP)
+AC_SUBST(CAMLP4)
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
@@ -300,6 +425,7 @@ AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
 AC_SUBST(LIMEWIRE)
 AC_SUBST(SOULSEEK)
+AC_SUBST(OPENFT)
 AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
@@ -307,6 +433,7 @@ AC_SUBST(DONKEY_SERVER)
 AC_SUBST(OCAMLOPT_DIL)
 AC_SUBST(COMPILE_GUI)
 AC_SUBST(REQUIRED_OCAML)
+AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
 AC_SUBST(PATCHED_OCAMLOPT)
 
