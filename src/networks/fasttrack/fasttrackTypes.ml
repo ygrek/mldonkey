@@ -212,8 +212,7 @@ external cipher_free : cipher -> unit = "ml_cipher_free"
   This should be used to check whether the encryption is OK on your platform.
 
 *)
-
-  (*
+  
   open Printf2
 
 let _ =
@@ -229,4 +228,3 @@ let _ =
   lprintf "apply_cipher s = \"%s\"\n" (String.escaped s);
   cipher_free cipher;
 
-*)
