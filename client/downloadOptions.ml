@@ -55,6 +55,9 @@ let http_password =
   
 let max_upload_rate = define_option ["max_upload_rate"] 
   "The maximal upload rate you can tolerate" int_option 30
+  
+let max_download_rate = define_option ["max_download_rate"] 
+    "The maximal download rate you can tolerate (0 = no limit)" int_option 0
 
 let max_xs_packets = define_option ["max_xs_packets"] 
   "Max number of UDP packets per round for eXtended Search" int_option 30
@@ -368,13 +371,6 @@ module Md4Option = struct
     ;;
   end
 
-let client_md4 = define_option ["client_md4"]
-    "The MD4 of this client" Md4Option.t (Md4.random ())
-  
-let files = 
-  define_option ["files"] 
-  "The files currently being downloaded" (list_option FileOption.t) []
-
 let done_files = 
   define_option ["done_files"] 
   "The files whose download is finished" (list_option FileOption.t) []
@@ -386,6 +382,13 @@ let old_files =
 let known_friends = 
   define_option ["friends"] 
   "The list of known friends" (list_option ClientOption.t) []
+
+let client_md4 = define_option ["client_md4"]
+    "The MD4 of this client" Md4Option.t (Md4.random ())
+  
+let files = 
+  define_option ["files"] 
+  "The files currently being downloaded" (list_option FileOption.t) []
 
 let known_servers = define_option ["known_servers"] "List of known servers"
     (list_option ServerOption.t) []

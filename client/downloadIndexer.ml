@@ -3,6 +3,26 @@ open Options
 open DownloadTypes
 open DownloadOptions
 open Gui_types
+
+let input_result ic = 
+  let hresult = input_value ic in
+  let file = {
+      result_names = hresult.hresult_names;
+      result_md4 = hresult.hresult_md4;
+      result_size = hresult.hresult_size;
+      result_tags = hresult.hresult_tags;
+      result_filtered_out = 0;
+    }  in
+  file
+    
+let output_result oc result =
+  output_value oc 
+  {
+      hresult_names = result.result_names;
+      hresult_md4 = result.result_md4;
+      hresult_size = result.result_size;
+      hresult_tags = result.result_tags;
+    }
   
 let name_bit = 1
 (* "size" *)
@@ -78,7 +98,7 @@ let index_result r =
     _ -> 
       let doc = Indexer.make_doc index r in
       Hashtbl.add results r.result_md4 doc;
-      output_value (history_file_oc ()) r;
+      output_result (history_file_oc ()) r;
       List.iter (fun name ->
           index_name doc name
       ) r.result_names;      
@@ -203,7 +223,7 @@ let init () =
       let ic = open_in history_file in
       try
         while true do
-          let file = input_value ic in
+          let file = input_result ic in
           list := (index_result file) :: !list;
         done
       with 
@@ -215,7 +235,7 @@ let init () =
           begin try
             let oc = open_out history_file in
             List.iter (fun file ->
-                output_value oc file
+                output_result oc file
             ) !list;
             close_out oc
             with e ->            
@@ -253,7 +273,7 @@ let _ =
           Hashtbl.iter (fun _ doc ->
               let r = Indexer.value doc in
 (*              Printf.printf "Saving history 4"; print_newline (); *)
-              output_value oc r
+              output_result oc r
           ) results;
 (*          Printf.printf "Saving history 5"; print_newline (); *)
           close_out oc;

@@ -99,19 +99,31 @@ GUI= \
   $(MIN_PROTO_CMOS) \
   $(MIN_GUI_CMOS) $(GUI_CMOS)
 
-CLIENT= \
-  $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
+OPEN_CLIENT=  $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
   $(MP3TAG_CMOS) \
-  $(MIN_PROTO_CMOS)  $(PROTO_CMOS) \
+  $(MIN_PROTO_CMOS)
+
+SECRET_CLIENT= $(PROTO_CMOS) \
   $(MIN_GUI_CMOS) \
   $(CLIENT_CMOS) 
 
+CLIENT= $(OPEN_CLIENT) $(SECRET_CLIENT)
+BIN_CLIENT=client.$(EXT)
 
 all: byte
 
 .byte:
 .opt:
 .static:
+
+client.bin:  $(SECRET_CLIENT:.cmo=.ml)
+	ocaml ./secret/make_client.ml  $(SECRET_CLIENT:.cmo=.ml)
+
+client.cmo: client.bin
+	$(OCAMLC)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -pp cat -impl client.bin
+
+client.cmx: client.bin
+	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -pp cat -impl client.bin
 
 after_zoggy: gui/gui.zog
 	camlp4 pa_o.cmo -I `cdk_config -ocamllib` pa_zog.cma pr_o.cmo -impl gui/gui.zog > gui/gui_zog.ml
@@ -147,6 +159,14 @@ mldonkey$(EXE): $(CMOS) $(CLIENT) $(OBJS)
 
 mldonkey.static: $(CMOS) $(CLIENT) $(OBJS)
 	$(COMP) -ccopt -static -o mldonkey.static  $(LIBS) $(CMOS) $(CLIENT) $(OBJS)
+
+
+
+open_mldonkey$(EXE): $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+	$(COMP) -o mldonkey$(EXE) $(LIBS) $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+
+open_mldonkey.static: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+	$(COMP) -ccopt -static -o mldonkey.static  $(LIBS) $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 
 
 include Makefile.cdk

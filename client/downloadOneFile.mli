@@ -17,3 +17,4 @@ val remove_file : Md4.t -> unit
 
 val update_options : DownloadTypes.file -> unit
 val add_shared_files : string -> unit
+val download_engine : unit -> unit

@@ -49,6 +49,7 @@ val shared_files : DownloadTypes.shared_file list ref
 val files_by_md4 : (Md4.t, DownloadTypes.file) Hashtbl.t
 val download_counter : int ref
 val upload_counter : int ref
+val download_credit : int ref
 val nshared_files :  int ref
 val udp_sock : UdpSocket.t option ref
 val last_xs : int ref

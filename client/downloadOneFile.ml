@@ -118,19 +118,23 @@ let client_file c =
   match c.client_files with
     [] -> failwith "No file for this client"
   | (file, _) :: _ -> file
+
+let download_fifo = Fifo.create ()
   
+  
+      
 let query_zones c b = 
   let file = client_file c in
   sort_zones b;
   match c.client_sock with
     None -> assert false
   | Some sock ->
-
+      
       set_rtimeout (TcpClientSocket.sock sock) !queue_timeout;
-      client_send sock (
         let module M = Mftp_client in
         let module Q = M.QueryBloc in
-        M.QueryBlocReq (match c.client_zones with
+      let msg, len =           
+        match c.client_zones with
             [z] ->
               {
                 Q.md4 = file.file_md4;
@@ -140,7 +144,7 @@ let query_zones c b =
                 Q.end_pos2 = Int32.zero;
                 Q.start_pos3 = Int32.zero;
                 Q.end_pos3 = Int32.zero;
-              }
+              }, Int32.to_int (Int32.sub z.zone_end z.zone_begin)
           
           | [z1;z2] ->
               {
@@ -151,7 +155,7 @@ let query_zones c b =
                 Q.end_pos2 = z2.zone_end;
                 Q.start_pos3 = Int32.zero;
                 Q.end_pos3 = Int32.zero;
-              }
+              }, Int32.to_int (Int32.sub z1.zone_end z1.zone_begin)
           
           | [z1;z2;z3] ->
               {
@@ -162,10 +166,16 @@ let query_zones c b =
                 Q.end_pos2 = z2.zone_end;
                 Q.start_pos3 = z3.zone_begin;
                 Q.end_pos3 = z3.zone_end;
-              }
+              }, Int32.to_int (Int32.sub z1.zone_end z1.zone_begin)
           
-          | _ -> assert false));
-      printf_char '?'
+          | _ -> assert false
+      in
+      let msg = M.QueryBlocReq msg in
+      if !!max_download_rate <> 0 then
+        Fifo.put download_fifo (sock, msg, len)
+      else
+        client_send sock msg
+        
 
         
 (* create a list with all absent intervals *)
@@ -825,7 +835,8 @@ let check_files_md4s timer =
   reactivate_timer timer;
   if !new_shared != [] then
     begin
-      let msg = Mftp_server.ShareReq (DownloadServers.make_tagged !new_shared) in
+      let msg = Mftp_server.ShareReq (DownloadServers.make_tagged !new_shared) 
+      in
       new_shared := [];
       let socks = ref [] in
       List.iter (fun s ->
@@ -910,7 +921,7 @@ Mmap.munmap mmap;
                           iter tail (i+16)
                     in
                     iter md4s 0;
-                    Md4.of_string s
+                    Md4.string s
               in
               let file = new_file sh.shared_name md4 sh.shared_size in
               must_share_file file;
@@ -924,7 +935,10 @@ Mmap.munmap mmap;
                   file.file_format <- DownloadMultimedia.get_info file.file_name
                 with _ -> ());
             end
-        with _ ->
+        with e ->
+            Printf.printf "Exception %s prevents sharing"
+            (Printexc.to_string e);
+            print_newline ();
             shared_files := files
     
     
@@ -954,4 +968,24 @@ let rec add_shared_files dirname =
           } :: !shared_files
       with _ -> ()
   ) files
+  
+let download_engine () =
+  if not (Fifo.empty download_fifo) then begin
+      download_credit := !download_credit + !!max_download_rate;
+      let rec iter () =
+        if !download_credit > 0 && not (Fifo.empty download_fifo) then  
+          begin
+            (try
+                let (sock, msg, len) = Fifo.take download_fifo in
+                download_credit := !download_credit - (len / 1000 + 1);
+                client_send sock msg
+              with _ -> ());
+            iter ()
+          end
+      in
+      iter ()
+    end
+    
+  
+        
   

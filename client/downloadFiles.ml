@@ -125,6 +125,7 @@ let search_found search md4 tags =
           result_names = [!file_name];
           result_size = !file_size;
           result_tags = List.rev !new_tags;
+          result_filtered_out = 0;
         } in
 (*      Printf.printf "new reply"; print_newline ();*)
       let result =  DownloadIndexer.index_result new_result in      
@@ -456,6 +457,7 @@ let reset_upload_timer timer =
   (* timer started every 1/10 seconds *)
 let upload_timer timer =
   reactivate_timer timer;
+  download_engine ();
   try
     while !remaining_bandwidth > 0 && not (Fifo.empty upload_clients) do
       if !remaining_bandwidth < 10 then begin

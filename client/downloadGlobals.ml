@@ -97,6 +97,7 @@ let server_counter = ref 0
 let servers_list = ref []
 let location_counter = ref 0
 let upload_counter = ref 0
+let download_credit = ref 0 
 let nshared_files = ref 0
 
 let last_xs = ref (-1)

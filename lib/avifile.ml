@@ -152,6 +152,7 @@ let load file =
               let dwWidth = input_int32 ic in
               let dwHeight = input_int32 ic in
               
+              (*
               print_int32 "dwMicroSecPerFrame" dwMicroSecPerFrame ;
               print_int32 "dwMaxBytesPerSec" dwMaxBytesPerSec ;
               print_int32 "dwPaddingGranularity" dwPaddingGranularity ;
@@ -162,10 +163,10 @@ let load file =
               print_int32 "dwSuggestedBufferSize" dwSuggestedBufferSize ;
               print_int32 "dwWidth" dwWidth;
               print_int32 "dwHeight" dwHeight;
-
+*)
               seek_in ic ((Int32.to_int pos) + main_header_len +20);
               let s = input_string4 ic in
-              print_string4 "LIST:" s;
+(*              print_string4 "LIST:" s; *)
 
               let pos_in = Int32.add pos (Int32.of_int (
                     main_header_len +24)) in

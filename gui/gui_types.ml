@@ -12,6 +12,7 @@ type avi_info = {
     mutable avi_rate : int;
   }
 
+  
 type format =
   AVI of avi_info
 | Mp3 of Mp3tag.tag
@@ -22,7 +23,15 @@ and result = {
     mutable result_names : string list;
     result_md4 : Md4.t;
     mutable result_size : int32;
+    mutable result_filtered_out : int;
     result_tags : Mftp.tag list;
+  }
+
+and history_result = {
+    mutable hresult_names : string list;
+    hresult_md4 : Md4.t;
+    mutable hresult_size : int32;
+    hresult_tags : Mftp.tag list;
   }
 
 and file_state =

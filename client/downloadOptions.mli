@@ -28,6 +28,7 @@ val known_friends : DownloadTypes.client list Options.option_record
 val max_server_age : int Options.option_record
 val interface_buffer : int Options.option_record
 val max_upload_rate : int Options.option_record
+val max_download_rate : int Options.option_record
 val password : string Options.option_record
 val features : string Options.option_record
 val max_udp_sends : int Options.option_record

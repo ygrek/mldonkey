@@ -506,14 +506,13 @@ interfaces and graphical interfaces).
 
 In the console, you have access to the command-line commands.
 
-ToDo list
+TODO list
 =========
   * Chat 
   * Set 'Connected locations' label
   * Plugins
   * Correct display of availability
   * Filters
-  * Use file_name instead of MD4 in WEB interface.
 
 ChangeLog
 =========
@@ -523,6 +522,9 @@ Release 1.08:
   * Better management of delays between connection attempts.
   * Local searches use minsize/maxsize information.
   * Small improvement in MD4 computation.
+  * Maximal download rate can be specified in 'max_download_rate' option.
+    (need probably to be rewritten carefully).
+  * Bug fixes: files greater than 9mb in incoming/ can be shared.
 
 Release 1.07:
   * Exchange of sets of sources between mldonkey clients.

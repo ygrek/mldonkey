@@ -233,6 +233,7 @@ print_newline ();
                     result_names = [file_name];
                     result_size = file_size;
                     result_tags = List.rev tags;
+                    result_filtered_out = 0;
                   } in
                 DownloadIndexer.index_result result
             ) t);
