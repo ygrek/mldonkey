@@ -169,9 +169,6 @@ let search_found search md4 tags =
           ()
       
 let search_handler search t =
-  let module M = Mftp_server in
-  let module Q = M.QueryReply in
-  
   search.search_waiting <- search.search_waiting - 1;
   List.iter (fun f ->
       search_found search f.f_md4 f.f_tags

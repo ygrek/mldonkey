@@ -40,6 +40,7 @@ let result_name r =
 
 let search_of_args args =
   let query = {
+      search_max_hits = 200;
       search_words = [];
       search_maxsize = None;
       search_minsize = None;
@@ -129,6 +130,12 @@ let save_file md4 name =
                 Printf.printf "Error in rename %s (src [%s] dst [%s])"
                   (Printexc.to_string e) old_name real_name; 
                 print_newline ();
+                let new_name = Filename.concat (Filename.dirname old_name)
+                  (Filename.basename real_name) in
+                try 
+                  Sys.rename old_name new_name;
+                  file.file_name <- new_name
+                with _ -> ()
           )
           ;
           file.file_changed <- SmallChange;
@@ -568,23 +575,44 @@ let new_search query =
   }
   
 
-let start_search query buf =
-  let search = new_search query in
-  let query = make_query search in
+let send_search search query =
   last_xs := search.search_num;
-  searches := search :: !searches;
   List.iter (fun s ->
       match s.server_sock with
         None -> ()
       | Some sock ->
-          
+          Printf.printf "POST SEARCH"; print_newline ();
           let module M = Mftp_server in
           let module Q = M.Query in
           server_send sock (M.QueryReq query);
-          Fifo.put s.server_search_queries (
-            fun s  _ t -> search_handler search t)
+          let nhits = ref 0 in
+          let rec handler s _ t =
+            Printf.printf "IN HANDLER %d" (List.length t); print_newline ();
+            let nres = List.length t in
+            nhits := !nhits + nres;
+            if !last_xs = search.search_num && nres = 201 &&
+              !nhits < search.search_query.search_max_hits then
+              begin
+                Printf.printf "AGAIN ?"; print_newline ();
+                match s.server_sock with
+                  None -> ()
+                | Some sock ->
+                    Printf.printf "RE ASK"; print_newline ();
+                    server_send sock M.QueryMoreResultsReq;
+                    Fifo.put s.server_search_queries handler      
+              end;
+            search_handler search t
+          in
+          Fifo.put s.server_search_queries handler
   ) !connected_server_list;
-  make_xs search;
+  make_xs search
+  
+let start_search query buf =
+
+  let search = new_search query in
+  let query = make_query search in
+  searches := search :: !searches;  
+  send_search search query;
   Printf.bprintf buf "Query %d Sent to %d\n"
     search.search_num (List.length !connected_server_list)  
   
@@ -1291,6 +1319,7 @@ let http_handler t r =
                   in
                   let query =
                     {
+                      search_max_hits = 200;
                       search_words = String2.tokens query;
                       search_minsize = (
                         if minsize = "" then None else Some (

@@ -536,12 +536,9 @@ TODO list
   * Admin open file descrs.
   * Keep (server_ip, server_port, id) for indirect connections.
   * Manager of shared files/direcxtories.
-  * Disabling unwanted access ports.
 
 Known bugs:
 ===========
-  * in queries and download lists: under properties you show the MD4 sum, 
-    under MD4 nothing??
   * When clicking on the columns it sorts on that column, when
    clicking again it should do a reverse sort on it
   * the layout is not saved
@@ -569,8 +566,12 @@ Release 1.11:
    - 'View Options' output can be edited to modify options.
   * GUI:
    - The GUI tries to connect to the core every second until it succeeds.
+   - Corrected MD4 columns
+   - In search panel, 'Max hits' combo set the maximal number of replies
+      per server.
   * Bug fixes:
    - Don't add twice the incoming dir to shared file names.
+   - Cross-partition moves fail, but filename is renamed in temp dir.
 
 Release 1.10:
   * Default timeout for server connection set to 5 for faster connection.

@@ -246,7 +246,7 @@
           <hbox name=hbox_473 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
             <label name=_ width="-1" height="-1" text="Mes.max_hits" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
             </label>
-            <combo name=combo_max_hits width="-1" height="-1" border_width="-1" popdown_strings="[%22250%22;%22500%22;%221000%22;%222000%22;%224000%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
+            <combo name=combo_max_hits width="-1" height="-1" border_width="-1" popdown_strings="[%22200%22;%22400%22;%22800%22;%221600%22;%223200%22;%226400%22;%2212800%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
             </combo>
           </hbox>
         </vbox>

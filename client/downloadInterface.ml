@@ -394,20 +394,7 @@ let gui_reader (gui: gui_record) t sock =
           DownloadIndexer.find search
         else
         let query = make_query search in
-        last_xs := search.search_num;
-        
-        List.iter (fun s ->
-            match s.server_sock with
-              None -> ()
-            | Some sock ->
-(*                Printf.printf "sending"; print_newline (); *)
-                let module M = Mftp_server in
-                let module Q = M.Query in
-                server_send sock (M.QueryReq query);
-                Fifo.put s.server_search_queries (fun s _ t ->
-                    search_handler search t)
-        ) !connected_server_list;
-        make_xs search;
+        DownloadInteractive.send_search search  query
     
     | P.Download_query (filenames, size, md4, location) ->
 (*        Printf.printf "from gui: download"; print_newline (); *)

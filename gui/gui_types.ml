@@ -18,7 +18,7 @@
 *)
 open Mftp
 
-let version = 15
+let version = 16
   
 module Mp3tag = Mp3tag.Id3v1
   
@@ -93,4 +93,5 @@ and search_query = {
     mutable search_title : string option;
     mutable search_album : string option;
     mutable search_artist : string option;    
+    mutable search_max_hits : int;
   }

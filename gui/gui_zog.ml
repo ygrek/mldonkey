@@ -631,7 +631,9 @@ class box_searches () =
       ~packing:(hbox_473#pack ~expand:false ~fill:true) ()
   in
   let combo_max_hits =
-    GEdit.combo ~popdown_strings:(["250"; "500"; "1000"; "2000"; "4000"])
+    GEdit.combo
+      ~popdown_strings:(
+        ["200"; "400"; "800"; "1600"; "3200"; "6400"; "12800"])
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:false
       ~ok_if_empty:true ~packing:(hbox_473#pack ~expand:false ~fill:true) ()
   in

@@ -1230,8 +1230,10 @@ let submit_search (gui: gui) local ()=
   update_searches_label ();
   let s = gui#tab_searches in
   gui_send (P.Search_query (local, 
-      { P.search_query =
+      { 
+        P.search_query =
         {
+          search_max_hits = int_of_string s#combo_max_hits#entry#text;
           search_words = String2.tokens s#entry_search_words#text;
           search_minsize = (let minsize = s#entry_search_minsize#text in
             if minsize = "" then None else Some (
