@@ -41,7 +41,9 @@ type client = {
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
     mutable client_uploader : Int64Swarmer.uploader option;
-    mutable client_ranges : (int64 * int64 * Int64Swarmer.range) list;
+    mutable client_ranges_sent : (int64 * int64 * Int64Swarmer.range) list;
+    mutable client_range_waiting : 
+    (int64 * int64 * Int64Swarmer.range) option;
     mutable client_block : Int64Swarmer.block option;
     
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)
@@ -60,7 +62,7 @@ type client = {
     mutable client_uploaded : int64;
     mutable client_optimist_time : int;
     
-    mutable client_blocks_sent : (int * int64 * int64) list;
+    mutable client_blocks_sent : int list;
     mutable client_good : bool;
     mutable client_num_try : int;
     mutable client_alrd_sent_interested : bool;
@@ -85,7 +87,7 @@ and file = {
     mutable file_tracker_interval : int;
     mutable file_tracker_last_conn : int;
     mutable file_files : (string * int64) list;
-    mutable file_blocks_downloaded : (int * int64 * int64) list;
+    mutable file_blocks_downloaded : int list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)
     mutable file_uploaded : int64;
     mutable file_torr_fname : string;

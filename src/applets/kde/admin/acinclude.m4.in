@@ -3380,7 +3380,7 @@ AC_DEFUN(KDE_CHECK_THREADING,
    kde_use_threading=$enableval, kde_use_threading=$kde_check_threading_default)
 
   if test "x$kde_use_threading" = "xyes"; then
-    AC_DEFINE(HAVE_LIBPTHREAD, 1, [Define if you have a working libpthread (will enable threaded code)])
+    AC_DEFINE(HAVE_PTHREAD, 1, [Define if you have a working libpthread (will enable threaded code)])
   fi
 ])
 

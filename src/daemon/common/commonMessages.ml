@@ -480,10 +480,16 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','csm')\">eMule MODs</TD>
 <TD class=\"bu bbig\" title=\"Overnet statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','ovstats')\">Overnet</TD>
+onClick=\"mSub('output','ov_stats')\">Overnet</TD>
+<TD class=\"bu bbig\" title=\"Kademlia statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','kad_stats')\">Kademlia</TD>
 <TD class=\"bu bbig\" title=\"Gnutella statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','gstats')\">Gnutella</TD>
+<TD class=\"bu bbig\" title=\"Gnutella2 statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','g2stats')\">Gnutella2</TD>
 <TD class=\"bu bbig\" title=\"Memory statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','mem_stats 0')\">Memory</TD>

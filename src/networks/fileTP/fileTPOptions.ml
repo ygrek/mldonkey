@@ -39,7 +39,7 @@ let commit_in_subdir = define_option fileTP_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "FileTP"
 
-let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
+let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
 
 let mirrors = define_option fileTP_section ["mirrors"]
     "A list of lists, where each list contains equivalent prefixes for mirrors"

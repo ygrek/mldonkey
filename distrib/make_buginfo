@@ -12,15 +12,22 @@ echo "If you have changed your incoming/, temp/ and torrents/ directories,"
 echo "Create links incoming, temp and torrents to them before starting"
 echo "this program."
 echo
+echo "You should send this information to bug-config@mldonkey.net with the"
+echo "corresponding bug number of Savannah or the forum thread name. This"
+echo "information will be kept private to the main developers."
+echo
 echo -n "Building file 'buginfo.tar.gz'..."
 
 rm -f buginfo.tar.gz
 mkdir -p buginfo
 cp -f *.ini buginfo/
+uname -a &> buginfo/uname
+df &> buginfo/df
+(ls -lR; df .) &> buginfo/mldonkey.directory
 (cd incoming; ls -lR; df .) &> buginfo/incoming.directory
 (cd temp; ls -lR; df .) &> buginfo/temp.directory
 (cd torrents; ls -lR; df .) &> buginfo/torrents.directory
-id &> buginfo/computer
+id &> buginfo/id
 ifconfig &> buginfo/computer
 
 tar cf buginfo.tar buginfo

@@ -76,7 +76,7 @@ it will happen soon. *)
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
-    
+    mutable op_file_files : ('a -> 'a file_impl -> file list);    
 (* added in 2.5.27 to remove use of network names in global modules *)
     mutable op_file_print_sources_html_header : ('a -> Buffer.t -> GuiTypes.file_info -> unit);
     mutable op_file_debug : ('a -> string);
@@ -261,6 +261,10 @@ let file_debug (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_debug file.impl_file_val
 
+let file_files (file : file) =
+  let impl = as_file_impl file in
+  impl.impl_file_ops.op_file_files impl.impl_file_val impl
+
 let file_all_sources file =
   let impl = as_file_impl file in
   try impl.impl_file_ops.op_file_all_sources impl.impl_file_val with _ -> []
@@ -345,6 +349,9 @@ let file_disk_name file =
       
 let file_fd file =
   (as_file_impl file).impl_file_fd
+
+let set_file_fd file fd =
+  (as_file_impl file).impl_file_fd <- fd
 
 let set_file_disk_name file filename=
   Unix32.rename (file_fd file) filename
@@ -737,6 +744,7 @@ let new_file_ops network =
       op_file_to_option = (fun _ -> fni network "file_to_option");
       op_file_cancel = (fun _ -> ni_ok network "file_cancel");
       op_file_info = (fun _ -> fni network "file_info");
+      op_file_files = (fun _ impl -> [as_file impl]);
       op_file_pause = (fun _ -> ni_ok network "file_pause");
       op_file_resume = (fun _ -> ni_ok network "file_resume");
 (*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
@@ -806,7 +814,57 @@ let _ =
       Printf.bprintf buf "  files: %d\n" !counter;
   )
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         write_block                                   *)
+(*                                                                       *)
+(*************************************************************************) 
+
+let file_write file offset s pos len =
+(*
+      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
+      AnyEndian.dump_sub s pos len;
+*)
   
+  if !!CommonOptions.buffer_writes then 
+    Unix32.buffered_write_copy (file_fd file) offset s pos len
+  else
+    Unix32.write  (file_fd file) offset s pos len
+  
+let file_verify file key begin_pos end_pos =
+  Unix32.flush_fd (file_fd file);
+  if !verbose_md4 then begin
+      lprintf "Checksum to compute: %Ld-%Ld of %s\n" begin_pos end_pos
+      (file_disk_name file);
+    end;
+  let computed = match key with
+  | Ed2k md4 ->
+      let result = Md4.digest_subfile (file_fd file) 
+        begin_pos (end_pos -- begin_pos) in
+      Ed2k result
+  | Sha1 sha1 ->
+      let result = Sha1.digest_subfile (file_fd file) 
+        begin_pos (end_pos -- begin_pos) in
+      Sha1 result
+  | _ -> 
+      raise Not_found
+  in
+  let result = computed = key in
+  if !verbose_md4 then begin
+      lprintf "Checksum computed: %s against %s = %s\n"
+        (string_of_uid key) 
+      (string_of_uid computed)
+       (if result then "VERIFIED" else "CORRUPTED");
+    end;
+  result
+
+let file_mtime file = Unix32.mtime64 (file_fd file)
+  
+let file_copy file1 file2 pos1 pos2 size =
+  Unix32.copy_chunk (file_fd file1)  (file_fd file2)
+  pos1 pos2 (Int64.to_int size)
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Protect globals                               *)

@@ -21,7 +21,14 @@ open Int64ops
 open Printf2
 open Md4
 open Options
-  
+open Options
+open BasicSocket
+open TcpBufferedSocket
+open Ip_set
+
+open GuiTypes
+
+open CommonDownloads
 open CommonResult
 open CommonMessages
 open CommonGlobals
@@ -29,19 +36,16 @@ open CommonShared
 open CommonSearch
 open CommonClient
 open CommonServer
-open CommonNetwork
-open GuiTypes
+open CommonNetwork  
 open CommonTypes
 open CommonFile
 open CommonComplexOptions
-open Options
-open BasicSocket
-open TcpBufferedSocket
-open Ip_set
-open DriverInteractive
 open CommonOptions
 open CommonInteractive
 open CommonEvent
+  
+open DriverInteractive
+
 open Gettext
 open Autoconf
 
@@ -434,7 +438,7 @@ formID.msgText.value=\\\"\\\";
     
     
     "add_user", Arg_two (fun user pass o ->
-        if o.conn_user = default_user then
+        if o.conn_user == default_user then
           try
             let p = List.assoc user !!users in
             let pass = Md4.string pass in
@@ -764,8 +768,11 @@ let _ =
                   dlkbs !udp_download_rate !control_download_rate);
               ("Upload KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d)"
                   ulkbs !udp_upload_rate !control_upload_rate);
-              ("Total shared bytes (files)", "bu bbig bbig1 bb3", Printf.sprintf "Shared: %s (%d files)"
-                  (size_of_int64 !upload_counter) !nshared_files) ];
+              ("Total shared files/bytes", "bu bbig bbig1 bb4", Printf.sprintf "Shared(%d): %s"
+                !nshared_files (size_of_int64 !nshared_bytes));
+              ("Total uploaded bytes", "bu bbig bbig1 bb3", Printf.sprintf "Uploaded: %s"
+                (size_of_int64 !upload_counter) ) ];
+
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
@@ -773,7 +780,7 @@ let _ =
               dlkbs ulkbs (CommonGlobals.version ())
           end
         else 
-          Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
+          Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s | Uploaded: %s"
             (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
           !udp_download_rate
             !control_download_rate
@@ -781,6 +788,7 @@ let _ =
           !udp_upload_rate
             !control_upload_rate
             !nshared_files
+            (size_of_int64 !nshared_bytes)
             (size_of_int64 !upload_counter);
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
@@ -1279,6 +1287,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_vd_barheight; 
                         strings_of_option display_downloaded_results; 
                         strings_of_option vd_reload_delay; 
+                        strings_of_option html_use_gzip;
                       ] 
                   | 4 -> 
                       [
@@ -1655,8 +1664,8 @@ let _ =
         
         if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
         else Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %s uploaded\n" 
-          (size_of_int64 !upload_counter);
+        Printf.bprintf buf "Total: %s uploaded | Shared(%d): %s\n" 
+          (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes);
         
         let list = ref [] in
         shared_iter (fun s ->
@@ -2258,6 +2267,13 @@ let _ =
             _s "done"
           end
     ), ":\t\t\t\tdetach process from console and run in background";
+    
+    "merge", Arg_two (fun f1 f2 o ->
+        let file1 = file_find (int_of_string f1) in
+        let file2 = file_find (int_of_string f2) in
+        Int64Swarmer.merge file1 file2;
+        "The two files are now merged"
+    ), " <num1> <num2> : try to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
     
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in

@@ -53,6 +53,7 @@ and 'a file_ops = {
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
+    mutable op_file_files : ('a -> 'a file_impl -> CommonTypes.file list);    
     mutable op_file_print_sources_html_header : 
     'a -> Buffer.t -> GuiTypes.file_info -> unit;
     mutable op_file_debug : 'a -> string;
@@ -105,6 +106,7 @@ val file_print : CommonTypes.file -> CommonTypes.ui_conn -> unit
 val file_size : CommonTypes.file -> int64
 val file_disk_name : CommonTypes.file -> string
 val file_fd : CommonTypes.file -> Unix32.t
+val set_file_fd : CommonTypes.file -> Unix32.t -> unit
 val set_file_disk_name : CommonTypes.file -> string -> unit
 val file_downloaded : CommonTypes.file -> int64
 val file_network : CommonTypes.file -> CommonTypes.network
@@ -116,4 +118,11 @@ val set_file_comment : CommonTypes.file -> string -> unit
 val file_comment : CommonTypes.file -> string
   
 val recover_bytes : CommonTypes.file -> (int64 * int64) list
+val file_write : CommonTypes.file -> int64 -> string -> int -> int -> unit
+val file_verify : CommonTypes.file ->
+  CommonTypes.uid_type -> int64 -> int64 -> bool
+val file_mtime : CommonTypes.file -> float
+  val file_copy :
+  CommonTypes.file -> CommonTypes.file -> int64 -> int64 -> int64 -> unit
+val file_files : CommonTypes.file -> CommonTypes.file list
   

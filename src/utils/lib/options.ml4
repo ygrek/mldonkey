@@ -66,7 +66,12 @@ and options_file =
   { mutable file_name : string;
     mutable file_sections : options_section list;
     mutable file_rc : option_module;
-    mutable file_pruned : bool }
+    mutable file_pruned : bool;
+    
+    mutable file_before_save_hook : (unit -> unit);
+    mutable file_after_save_hook : (unit -> unit);
+    mutable file_after_load_hook : (unit -> unit);
+    }
 and options_section = {
     section_name : string list;
     section_help : string;
@@ -87,8 +92,16 @@ let file_section file section_name section_help =
   
 let create_options_file name =
   let file =
-    { file_name = name; file_sections = [];
-      file_rc = []; file_pruned = false}
+    { 
+      file_name = name; 
+      file_sections = [];
+      file_rc = []; 
+      file_pruned = false;
+      
+      file_before_save_hook = (fun _ -> ());
+      file_after_save_hook = (fun _ -> ());
+      file_after_load_hook = (fun _ -> ());
+      }
   in
   ignore (file_section file ["Header"] "These options must be read first");
   file
@@ -237,8 +250,7 @@ let really_load filename sections =
   if Sys.file_exists temp_file then
     begin
       Printf.eprintf "File %s exists\n" temp_file;
-      Printf.eprintf
-        "An error may have occurred during previous configuration save.\n";
+      Printf.eprintf "An error may have occurred during previous configuration save.\n";
       Printf.eprintf "Please, check your configurations files, and rename/remove this file\n";
       Printf.eprintf "before restarting\n";
       exit 1
@@ -285,7 +297,11 @@ let really_load filename sections =
               lprintf "  in %s\n" filename;
               lprintf "Aborting\n.";
               exit 2
-        in
+      in
+      
+(* The options are affected by sections, from the first defined one to
+the last defined one ("defined" in the order of the program execution).
+  Don't change this. *)
       List.iter (fun s ->
           List.iter affect_option s.section_options) sections;
         close_in ic;
@@ -446,7 +462,8 @@ let options_file_name f = f.file_name
 let load opfile =
   try
     opfile.file_rc <-
-      really_load opfile.file_name opfile.file_sections
+      really_load opfile.file_name opfile.file_sections;
+    opfile.file_after_load_hook ()
   with
     Not_found | Sys_error _ -> lprintf "No %s found\n" opfile.file_name
       
@@ -617,19 +634,19 @@ let rec value_to_listiter v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
   | DelayedValue _ -> failwith "Options: not a list option (Delayed)"
 
-let rec convert_list name c2v l res =
+let rec convert_list c2v l res =
   match l with
     [] -> List.rev res
   | v :: list ->
       match
         try Some (c2v v) with
           e ->
-            lprintf "Exception %s in Options.convert_list for %s\n"
-              (Printexc2.to_string e) name;
+            lprintf "Exception %s in Options.convert_list\n"
+              (Printexc2.to_string e);
             None
       with
-        None -> convert_list name c2v list res
-      | Some v -> convert_list name c2v list (v :: res)
+        None -> convert_list c2v list res
+      | Some v -> convert_list c2v list (v :: res)
 
 let option_to_value c2v o =
   match o with
@@ -652,7 +669,7 @@ let save_delayed_list_value oc indent c2v =
       Printf.fprintf oc ";"
     with _ -> ()  
         
-let list_to_value name c2v l =
+let list_to_value c2v l =
   DelayedValue
     (fun oc indent ->
        Printf.fprintf oc "[";
@@ -677,7 +694,7 @@ let hasharray_to_value x c2v l =
        done;
        Printf.fprintf oc "]")
 
-let smalllist_to_value name c2v l = SmallList (convert_list name c2v l [])
+let smalllist_to_value c2v l = SmallList (convert_list c2v l [])
 
 let value_to_path v =
   List.map Filename2.from_string
@@ -721,17 +738,17 @@ let option_option cl =
 
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
-    (list_to_value cl.class_name cl.to_value)
+    (list_to_value cl.to_value)
 
 let value_to_array from_value a =
   Array.of_list (value_to_list from_value a)
 let array_to_value to_value v =
-  list_to_value "" to_value (Array.to_list v)
+  list_to_value to_value (Array.to_list v)
   
 let array_option cl =
   define_option_class (cl.class_name ^ " Array")
     (fun v -> Array.of_list (value_to_list cl.from_value v))
-    (fun v -> list_to_value cl.class_name cl.to_value (Array.to_list v))
+    (fun v -> list_to_value cl.to_value (Array.to_list v))
 
 let hasharray_option x cl =
   define_option_class "Hashtable array" (value_to_hasharray cl.from_value)
@@ -740,7 +757,7 @@ let hasharray_option x cl =
 let safelist_option cl =
   define_option_class (cl.class_name ^ " List")
     (value_to_safelist cl.from_value)
-    (list_to_value cl.class_name cl.to_value)
+    (list_to_value cl.to_value)
 
 let intmap_option f cl =
   define_option_class (cl.class_name ^ " Intmap")
@@ -750,11 +767,11 @@ let intmap_option f cl =
 let listiter_option cl =
   define_option_class (cl.class_name ^ " List")
     (value_to_listiter cl.from_value)
-    (list_to_value cl.class_name cl.to_value)
+    (list_to_value cl.to_value)
 
 let smalllist_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
-    (smalllist_to_value cl.class_name cl.to_value)
+    (smalllist_to_value cl.to_value)
 
 let to_value cl = cl.to_value
 let from_value cl = cl.from_value
@@ -795,6 +812,7 @@ let string_of_string_list list =
 let title_opfile = ref true;;
   
 let save opfile =
+  opfile.file_before_save_hook ();
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
   let old_file = filename ^ ".old" in
@@ -813,12 +831,12 @@ let save opfile =
             if s.section_name <> [] then begin
                 Printf.fprintf oc "\n\n";
                 Printf.fprintf oc "    (************************************)\n";
-		if !title_opfile then begin
-                  Printf.fprintf oc "    (*   Never edit options files when  *)\n";
-                  Printf.fprintf oc "    (*       the daemon is running      *)\n";
-                  Printf.fprintf oc "    (************************************)\n";
-                  title_opfile := false;
-		end;
+                if !title_opfile then begin
+                    Printf.fprintf oc "    (*   Never edit options files when  *)\n";
+                    Printf.fprintf oc "    (*       the daemon is running      *)\n";
+                    Printf.fprintf oc "    (************************************)\n";
+                    title_opfile := false;
+                  end;
                 Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
                 Printf.fprintf oc "    (* %s *)\n" s.section_help;
                 Printf.fprintf oc "    (************************************)\n";
@@ -858,39 +876,40 @@ let save opfile =
         Printf.fprintf oc "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
         List.iter
           (fun (name, value) ->
-             try
-               List.iter
-                 (fun s ->
-                    List.iter
-                      (fun o ->
-                         match o.option_name with
-                           n :: _ -> if n = name then raise Exit
-                         | _ -> ())
-                      s.section_options)
-                 opfile.file_sections;
-               rem := (name, value) :: !rem;
-               Printf.fprintf oc "%s = " (safe_string name);
-               save_value "  " oc value;
-               Printf.fprintf oc "\n"
-             with
-               Exit -> ()
-             | e ->
-                 lprintf "Exception %s in Options.save\n"
-                   (Printexc2.to_string e);
-                 )
-          opfile.file_rc;
+            try
+              List.iter
+                (fun s ->
+                  List.iter
+                    (fun o ->
+                      match o.option_name with
+                        n :: _ -> if n = name then raise Exit
+                      | _ -> ())
+                  s.section_options)
+              opfile.file_sections;
+              rem := (name, value) :: !rem;
+              Printf.fprintf oc "%s = " (safe_string name);
+              save_value "  " oc value;
+              Printf.fprintf oc "\n"
+            with
+              Exit -> ()
+            | e ->
+                lprintf "Exception %s in Options.save\n"
+                  (Printexc2.to_string e);
+        )
+        opfile.file_rc;
         opfile.file_rc <- !rem
       end;
     Hashtbl.clear once_values_rev;
     close_out oc;
-    begin try Unix2.rename filename old_file with
-      _ -> ()
-    end;
-    try Unix2.rename temp_file filename with
-      _ -> ()
+    begin try Unix2.rename filename old_file with  _ -> () end;
+    begin try Unix2.rename temp_file filename with _ -> () end;
+    opfile.file_after_save_hook ();
   with
-    e -> close_out oc; raise e
-
+    e -> 
+      close_out oc; 
+      opfile.file_after_save_hook ();
+      raise e
+      
 let save_with_help opfile =
   with_help := true;
   begin try save opfile with
@@ -1182,4 +1201,13 @@ let iter_file f file =
   List.iter (iter_section f) file.file_sections
   
 let strings_of_option o = strings_of_option "" o
+  
+let set_after_load_hook file f =
+  file.file_after_load_hook <- f
+  
+let set_after_save_hook file f =
+  file.file_after_save_hook <- f
+  
+let set_before_save_hook file f =
+  file.file_before_save_hook <- f
   

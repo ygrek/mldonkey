@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+  
 open BTGlobals
 open BTRate
 open BTTypes
@@ -55,6 +57,8 @@ let choose_next_uploaders files fun_comp =
             possible_uploaders := (c::!possible_uploaders);
           end )  f.file_clients;
 
+(*      lprintf "%d clients as possible uploaders\n" 
+      (List.length !possible_uploaders); *)
 
 (*Interested clients with a connection*)
       let filtl = List.filter (fun c -> c.client_interested == true 

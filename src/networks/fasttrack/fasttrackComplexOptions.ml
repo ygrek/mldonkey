@@ -163,7 +163,7 @@ let file_to_value file =
       "file_id", string_to_value (Md4.to_string file.file_id);
       "file_hash", string_to_value (Md5Ext.to_string_case false file.file_hash);
       "file_sources", 
-      list_to_value "Fasttrack Sources" (fun c ->
+      list_to_value (fun c ->
 (*          match (find_download file c.client_downloads).download_uri with
             FileByIndex (i,n) ->  *)
               SmallList [ClientOption.client_to_value c (*; int_to_value i; 

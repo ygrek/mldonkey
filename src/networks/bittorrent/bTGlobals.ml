@@ -17,10 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
 open Int64ops
 open Printf2
 open Md4
+  
+open CommonSwarming
+open CommonInteractive
 open CommonClient
 open CommonUser
 open CommonTypes
@@ -31,6 +33,7 @@ open CommonFile
 open BasicSocket
 open CommonGlobals
 open Options
+  
 open BTRate
 open BTTypes
 open BTOptions
@@ -110,6 +113,7 @@ let listen_sock = ref (None : TcpServerSocket.t option)
 let files_by_uid = Hashtbl.create 13
   
 let max_range_len = Int64.of_int (1 lsl 14)
+let max_request_len = Int64.of_int (1 lsl 16)
   
 let check_if_interesting file c =
   
@@ -125,12 +129,17 @@ let check_if_interesting file c =
 (* All the requested ranges are useless *)
       (List.filter (fun (_,_,r) ->
             let x,y = Int64Swarmer.range_range r in
-            x < y) c.client_ranges = []) &&
+            x < y) c.client_ranges_sent = []) &&
+      (match c.client_range_waiting with
+          None -> true
+        | Some (x,y,r) ->
+            let x,y = Int64Swarmer.range_range r in
+            x < y) &&
 (* The current block is also useless *)
       (match c.client_block with
           None -> true
         | Some b -> 
-            let (block_num,_,_) = Int64Swarmer.block_block b in
+            let block_num = Int64Swarmer.block_num swarmer b in
             let bitmap = Int64Swarmer.verified_bitmap swarmer in
             bitmap.[block_num] <> '3')
     in
@@ -141,7 +150,8 @@ let check_if_interesting file c =
         send_client c NotInterested
       end
       
-let new_file file_id file_name file_size file_tracker piece_size file_u file_state = 
+let new_file file_id file_name file_size file_tracker piece_size
+    file_u file_chunks file_state = 
 (*  let t = Unix32.create_rw file_temp in*)
   let rec file = {
       file_file = file_impl;
@@ -152,7 +162,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
       file_clients = Hashtbl.create 113;
       file_swarmer = None;
       file_tracker = file_tracker;
-      file_chunks = [||];
+      file_chunks = file_chunks;
       file_tracker_connected = false;
       file_tracker_last_conn = 0;
       file_tracker_interval = 600;
@@ -171,46 +181,35 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
       impl_file_best_name = file_name;
     }
   in
-  let swarmer = Int64Swarmer.create (as_file file) piece_size 
-      (min max_range_len piece_size)  in
-  file.file_swarmer <- Some swarmer;
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
-      if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write_copy file_u offset s pos len
-      else
-        Unix32.write file_u offset s pos len
-  );
-  Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
-      if file.file_chunks = [||] then raise Not_found;
-      lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
-      Unix32.flush_fd (file_fd file);
-      let sha1 = Sha1.digest_subfile (file_fd file) 
-        begin_pos (end_pos -- begin_pos) in
-      let result = sha1 = file.file_chunks.(num) in
-      lprintf "Sha1 computed: %s against %s = %s\n"
-        (Sha1.to_string sha1) (Sha1.to_string file.file_chunks.(num))
-      (if result then "VERIFIED" else "CORRUPTED");
-      if result then begin
-          file.file_blocks_downloaded <- (num, begin_pos, end_pos) :: 
-          file.file_blocks_downloaded;
-          file_must_update file;
+  if file_state <> FileShared then begin
+    let kernel = Int64Swarmer.create_swarmer 
+        (Unix32.filename file_u) file_size
+        (min max_range_len piece_size) in
+    let swarmer = Int64Swarmer.create kernel (as_file file) piece_size in
+    file.file_swarmer <- Some swarmer;
+    Int64Swarmer.set_verifier swarmer (Verification
+        (Array.map (fun sha1 -> Sha1 sha1) file_chunks));
+    Int64Swarmer.set_verified swarmer (fun _ num ->
+        file.file_blocks_downloaded <- (num) :: 
+        file.file_blocks_downloaded;
+        file_must_update file;
 (*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
-          Hashtbl.iter (fun _ c ->
-              
-              if c.client_registered_bitfield then
-                begin
-                  match c.client_bitmap with
-                    None -> ()
-                  | Some bitmap ->
-                      if (bitmap.[num] <> '1') then
-                        send_client c (Have (Int64.of_int num));
-                      check_if_interesting file c                          
+        Hashtbl.iter (fun _ c ->
+            
+            if c.client_registered_bitfield then
+              begin
+                match c.client_bitmap with
+                  None -> ()
+                | Some bitmap ->
+                    if (bitmap.[num] <> '1') then
+                      send_client c (Have (Int64.of_int num));
+                    check_if_interesting file c                          
               end				
-          ) file.file_clients
-        end;
-      result
-  );
+        ) file.file_clients
+    
+    );
+  end;
   current_files := file :: !current_files;
   Hashtbl.add files_by_uid file_id file;
   file_add file_impl file_state;
@@ -219,7 +218,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
   
 let new_file file_id 
     file_name file_size file_tracker piece_size file_files file_temp 
-  file_state =
+  file_chunks file_state =
   try
     Hashtbl.find files_by_uid file_id;
   with Not_found -> 
@@ -230,7 +229,7 @@ let new_file file_id
           Unix32.create_rw file_temp 
       in
       new_file file_id file_name file_size file_tracker piece_size file_u
-        file_state
+        file_chunks file_state
       
 let new_download file_id 
   file_name file_size file_tracker piece_size file_files =
@@ -257,7 +256,8 @@ let new_client file peer_id kind =
           client_interested = false;
           client_uploader = None;
           client_chunks = [];
-          client_ranges = [];
+          client_ranges_sent = [];
+          client_range_waiting = None;
           client_block = None;
           client_uid = peer_id;
           client_bitmap = None;

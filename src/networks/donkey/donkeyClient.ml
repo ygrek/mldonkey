@@ -30,6 +30,7 @@ open CommonGlobals
 open CommonFile
 open CommonClient
 open CommonComplexOptions
+open CommonSwarming
   
 open GuiTypes
 open GuiProto
@@ -1216,7 +1217,7 @@ other one for unlimited sockets.  *)
                   let module M = DonkeyProtoClient in
                   M.QueryChunksReq file.file_md4);
               
-              if file.file_md4s = [||] then begin
+              if file.file_computed_md4s = [||] then begin
                   client_send c (
                     let module M = DonkeyProtoClient in
                     let module C = M.QueryChunkMd4 in
@@ -1241,14 +1242,17 @@ other one for unlimited sockets.  *)
             lprintf "MD4 FOR CHUNKS RECEIVED\n"; 
           end;
         
-        if file.file_md4s <> [||] then begin
+        if file.file_computed_md4s <> [||] then begin
             lprintf "[WARNING] Discarding Chunks Md4: already here\n";
           end else
         if file.file_nchunks = 1 then begin
             lprintf "[ERROR]: one chunk file without md4\n"; 
-            Int64Swarmer.set_checksums file.file_swarmer 
-              [| Ed2k file.file_md4 |];
-            file.file_md4s <- [|file.file_md4|]
+            file.file_computed_md4s <- [|file.file_md4|];
+            match file.file_swarmer with
+              None -> ()
+            | Some swarmer ->
+                Int64Swarmer.set_verifier swarmer 
+                  (Verification [| Ed2k file.file_md4 |])
           end else
         if t.Q.chunks = [||] then begin
             lprintf "[ERROR]: empty multiple chunks message\n";
@@ -1277,9 +1281,13 @@ is checked for the file.
                 lprintf "[ERROR]: Bad list of MD4s, discarding\n"; 
               end else begin
                 file_md4s_to_register := file :: !file_md4s_to_register;
-                Int64Swarmer.set_checksums file.file_swarmer 
-                  (Array.map (fun m -> Ed2k m) md4s);
-                file.file_md4s <- md4s
+                file.file_computed_md4s <- md4s;
+                match file.file_swarmer with
+                  None -> ()
+                | Some swarmer ->
+                    Int64Swarmer.set_verifier swarmer 
+                      (Verification (Array.map (fun m -> Ed2k m) md4s))
+
               end
           
           
@@ -1409,7 +1417,7 @@ is checked for the file.
           c.client_brand <- Brand_mldonkey1;
           if Random.int 100 < 2 && !!send_warning_messages then
             client_send c (
-              M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to version 2.5-4+2");
+              M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to version 2.5-16a");
         end;
       
       begin try 	
@@ -1434,9 +1442,17 @@ is checked for the file.
             });
           DonkeySources.query_file c.client_source file.file_sources
         
-        with _ -> 
+        with Not_found -> 
             client_send c (
-              M.NoSuchFileReq md4)
+              M.NoSuchFileReq md4);
+            
+            lprintf "DUMPING File table\n";
+            Hashtbl.iter (fun md4 _ ->
+                lprintf "    %s\n" (Md4.to_string md4)
+                ) files_by_md4;
+        | e -> 
+            lprintf "Exception %s in QueryFileReq\n"
+              (Printexc.to_string e)
       end;
       
       begin
@@ -1537,7 +1553,7 @@ end else *)
       
       let file = find_file t in
       begin
-        match file.file_md4s with
+        match file.file_computed_md4s with
           [||] -> () (* should not happen *)
         | md4s ->
             client_send c (
@@ -1557,21 +1573,27 @@ end else *)
         begin
           try
             let file = find_file t in
-            match file.file_swarmer with
-              None -> failwith "QueryChunksReq: no swarmer for file"
-            | Some swarmer ->
-                let bitmap = Int64Swarmer.verified_bitmap swarmer in
-                let chunks = 
-                  Array.init (String.length bitmap) 
-                  (fun i -> bitmap.[i] = '3')
-                in
-                client_send c (
-                  let module Q = M.QueryChunksReply in
-                  M.QueryChunksReplyReq {
-                    Q.md4 = file.file_md4;
-                    Q.chunks = chunks;
-                  });
-                DonkeySources.query_file c.client_source file.file_sources
+            let chunks =
+              match file.file_swarmer with
+                None -> [||]
+              | Some swarmer ->
+                  let bitmap = Int64Swarmer.verified_bitmap swarmer in
+                  let chunks = 
+                    Array.init (String.length bitmap) 
+                    (fun i -> bitmap.[i] = '3')
+                  in
+(* This is not very smart, as we might get banned for this request.
+TODO We should probably check if we don't know already this source...
+  *)
+                  DonkeySources.query_file c.client_source file.file_sources;
+                  chunks
+            in
+            client_send c (
+              let module Q = M.QueryChunksReply in
+              M.QueryChunksReplyReq {
+                Q.md4 = file.file_md4;
+                Q.chunks = chunks;
+              });
           with 
           | _ -> ()
         end
@@ -2284,5 +2306,3 @@ a FIFO from where they are removed after 30 minutes. What about using
     	     (Printexc2.to_string e);
 	end
   )
-  
-  

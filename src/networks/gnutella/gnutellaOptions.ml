@@ -71,7 +71,7 @@ let commit_in_subdir = define_option gnutella_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Gnutella"
 
-let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
+let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
 
 let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"

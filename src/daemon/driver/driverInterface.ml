@@ -991,7 +991,7 @@ search.op_search_end_reply_handlers;
   | e ->
       gui_send gui (Console (    
           Printf.sprintf "from_gui: exception %s for message %s\n" (
-            Printexc2.to_string e) (GuiProto.from_gui_to_string t)))
+            Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
 
 let gui_events () = 
   {

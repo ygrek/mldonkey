@@ -115,7 +115,7 @@ static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *dige
 }
 
 
-#ifndef HAVE_LIBPTHREAD
+#ifndef HAVE_PTHREAD
 
 #define MAX_CHUNK_SIZE 1000000
 static OS_FD job_fd;

@@ -98,3 +98,7 @@ val usage : (string * spec * string) list -> string -> unit
 val current : int ref
 (** Position (in {!Sys.argv}) of the argument being processed.  You can
     change this value, e.g. to force {!Arg.parse} to skip some arguments.*)
+
+  
+val parse2 :
+  (string * spec * string) list -> (string -> unit) -> string -> unit

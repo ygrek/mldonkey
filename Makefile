@@ -118,7 +118,12 @@ endif
 #######################################################################
 
 
-ifeq ("$(OS_FILES)", "mingw")
+ifeq ("$(OS_FILES2)", "mingw")
+  LIBS_flags += -cclib  -lws2_32 -cclib resfile.o
+#  LIBS_byte += -cclib -lws2_32
+endif
+
+ifeq ("$(OS_FILES2)", "cygwin")
   LIBS_flags += -cclib  -lws2_32 -cclib resfile.o
 #  LIBS_byte += -cclib -lws2_32
 endif
@@ -244,6 +249,8 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonChunks.ml \
   $(COMMON)/commonSwarming.ml \
+  $(COMMON)/commonSwarming1.ml \
+  $(COMMON)/commonSwarming2.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
   $(COMMON)/commonSources.ml

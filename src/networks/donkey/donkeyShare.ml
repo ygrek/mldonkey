@@ -55,6 +55,7 @@ let must_share_file file codedname has_old_impl =
         } in
       file.file_shared <- Some impl;
       incr CommonGlobals.nshared_files;
+      CommonShared.shared_calculate_total_bytes ();
       match has_old_impl with
         None -> update_shared_num impl
       | Some old_impl -> replace_shared old_impl impl
@@ -86,7 +87,7 @@ let new_file_to_share sh codedname old_impl =
     
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
     must_share_file file codedname old_impl;
-    file.file_md4s <- md4s;
+    file.file_computed_md4s <- md4s;
     file_md4s_to_register := file :: !file_md4s_to_register;
     let sh_name = Filename.basename sh.sh_name in
     if not (List.mem_assoc sh_name file.file_filenames) then begin
@@ -111,7 +112,7 @@ let new_file_to_share sh codedname old_impl =
      * regardless of the mtime being set.)
      *)
     match file.file_swarmer with
-      Some s -> (let len = Array.length file.file_md4s in
+      Some s -> (let len = Array.length md4s in
 		 let ver_str = String.make len '3' in
 		     Int64Swarmer.set_verified_bitmap s ver_str;
 		 (*
@@ -242,6 +243,7 @@ let local_dirname = Sys.getcwd ()
   
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
+      lprintf "********** NETWORK SHARE ************\n";
       if !verbose_share then begin
           lprintf "FULLNAME %s\n" fullname; 
         end;
@@ -312,7 +314,7 @@ let remember_shared_info file new_name =
     CommonShared.new_shared, so it should be done here too. *)
   let new_name = Filename2.normalize new_name in
 (*  lprintf "******  remember_shared_info for new file %s\n" new_name; *)
-  if file.file_md4s <> [||] then
+  if file.file_computed_md4s <> [||] then
     try
       let mtime = 
         try
@@ -334,7 +336,7 @@ let remember_shared_info file new_name =
             sh_name = new_name;
             sh_size = size;
             sh_mtime = mtime;
-            sh_md4s = file.file_md4s;
+            sh_md4s = file.file_computed_md4s;
           } in
         
         known_shared_files =:= s :: !!known_shared_files;    

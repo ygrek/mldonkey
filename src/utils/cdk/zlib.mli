@@ -35,3 +35,4 @@ external update_crc: int32 -> string -> int -> int -> int32
 val uncompress_string : string -> string
 val uncompress_string2 : string -> string
 val compress_string : ?level:int -> string -> string
+val gzip_string : ?level:int -> string -> string

@@ -84,3 +84,24 @@ let rec assoc_inv x = function
 let safe_iter f list =
   List.iter (fun v -> try f v with _ -> ()) list
   
+let min list =
+  let rec iter m tail =
+    match tail with 
+      [] -> m
+    | m' :: tail ->
+        iter (min m' m) tail
+  in
+  match list with
+    [] -> raise Not_found
+  | m :: tail -> iter m tail  
+      
+let max list =
+  let rec iter m tail =
+    match tail with 
+      [] -> m
+    | m' :: tail ->
+        iter (max m' m) tail
+  in
+  match list with
+    [] -> raise Not_found
+  | m :: tail -> iter m tail

@@ -307,7 +307,7 @@ be useful when users want to share files that they had already previously
                   match file.file_swarmer with
                     None -> ()
                   | Some swarmer ->
-                      Int64Swarmer.verify_one_block swarmer
+                      Int64Swarmer.verify_one_chunk swarmer
               ) !current_files
             with _ -> ()
           );

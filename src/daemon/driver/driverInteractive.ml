@@ -142,9 +142,6 @@ let number_of_sources gf =
   number_of_sources gf
     
 let number_of_active_sources gf =
-  if gf.file_all_sources > 0 then 
-    gf.file_active_sources
-  else
   let nasrcs = ref 0 in
   List.iter (fun fsrc ->
     match (client_state fsrc) with
@@ -154,9 +151,12 @@ let number_of_active_sources gf =
   !nasrcs
 
 let number_of_active_sources gf =
-  ShortLazy.compute ("number_of_active_sources", gf.file_num, 0)
-  number_of_active_sources gf
-  
+  if gf.file_all_sources > 0 then 
+    gf.file_active_sources
+  else begin
+      ShortLazy.compute ("number_of_active_sources", gf.file_num, 0)
+      number_of_active_sources gf
+    end  
   
 let net_name gf =
 	let n = network_find_by_num gf.file_network in

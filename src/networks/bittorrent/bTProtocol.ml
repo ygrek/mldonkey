@@ -309,7 +309,7 @@ dump (String.sub b.buf b.pos b.len);
                   let opcode = get_int8 b.buf b.pos in
                   let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
                   buf_used b msg_len;
-                  lprintf "Opcode %d\n" opcode; 
+(*                  lprintf "Opcode %d\n" opcode; *)
                   try
                     try
                       let p = parse_fun opcode payload in

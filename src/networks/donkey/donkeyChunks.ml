@@ -200,8 +200,8 @@ let verify_chunks file =
   match file.file_swarmer with
     None -> failwith "verify_chunks: no swarmer to verify chunks"
   | Some swarmer ->
-      if file.file_md4s <> [||] then
-        Int64Swarmer.verify_all_blocks swarmer true
+      if file.file_computed_md4s <> [||] then
+        Int64Swarmer.verify_all_chunks swarmer true
 
         (*
         let b = file.file_chunks.(i)  in

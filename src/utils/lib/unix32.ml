@@ -1135,7 +1135,7 @@ let close t =
   | DiskFile t -> DiskFile.close t
   | MultiFile t -> MultiFile.close t
   | SparseFile t -> SparseFile.close t
-  | Destroyed -> failwith "Unix32.close on destroyed FD"
+  | Destroyed -> () (* failwith "Unix32.close on destroyed FD" *)
 
 let destroy t =
   if t.file_kind <> Destroyed then begin

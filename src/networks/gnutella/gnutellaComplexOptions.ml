@@ -167,7 +167,7 @@ let file_to_value file =
       "file_downloaded", int64_to_value (file_downloaded file);
       "file_id", string_to_value (Md4.to_string file.file_id);
       "file_sources", 
-      list_to_value "Gnutella Sources" (fun c ->
+      list_to_value (fun c ->
           match (find_download file c.client_downloads).download_uri with
             FileByIndex (i,n) -> 
               SmallList [ClientOption.client_to_value c; int_to_value i; 
@@ -177,7 +177,7 @@ let file_to_value file =
                 string_to_value s] 
       ) file.file_clients
       ;
-      "file_uids", list_to_value "toto" (fun uid ->
+      "file_uids", list_to_value (fun uid ->
           string_to_value  (Uid.to_string uid))
       file.file_uids;
 (*      "file_present_chunks", List

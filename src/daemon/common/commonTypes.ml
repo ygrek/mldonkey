@@ -42,7 +42,7 @@ type uid_type =
 | TigerTree of TigerTree.t
 | Md5Ext of Md5Ext.t     (* for Fasttrack *)
 | BTUrl of Sha1.t
-  
+
 and file_uid_id = 
 | BITPRINT
 | SHA1
@@ -51,6 +51,50 @@ and file_uid_id =
 | MD5EXT
 | TIGER
 
+let string_of_uid uid = 
+  match uid with
+    Bitprint (sha1,ttr) -> 
+      Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
+      (TigerTree.to_string ttr)
+  | Sha1 sha1 -> 
+      Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1)
+  | Ed2k ed2k -> 
+      Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k)
+  | Md5 md5 -> 
+      Printf.sprintf "urn:md5:%s" (Md5.to_string md5)
+  | TigerTree ttr -> 
+      Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr)
+  | Md5Ext md5 -> 
+      Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
+  | BTUrl url ->
+      Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
+
+(* Maybe it would be better to raise an exception for errors ? *)      
+let uid_of_string s =
+  let s = String.lowercase s in
+  let (urn, rem) = String2.cut_at s ':' in
+  if urn <> "urn" then failwith "Illegal UID";
+  let (sign, rem) = String2.cut_at rem ':' in
+  match sign with
+  | "ed2k" -> Ed2k (Md4.of_string rem)
+  | "bitprint" | "bp" -> 
+      let (sha1, ttr) = String2.cut_at rem '.' in
+      let sha1 = Sha1.of_string sha1 in
+      let tiger = TigerTree.of_string ttr in
+      Bitprint (sha1, tiger)
+  | "sha1" -> Sha1 (Sha1.of_string rem)
+  | "tree" ->
+      let (tiger, rem) = String2.cut_at rem ':' in
+      if tiger <> "tiger" then 
+        failwith (Printf.sprintf "Illformed URN [%s]" s);
+      TigerTree (TigerTree.of_string rem)
+  | "ttr" -> TigerTree (TigerTree.of_string rem)
+  | "md5" ->  Md5 (Md5.of_string rem)
+  | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
+  | "bt" | "bittorrent" -> 
+      BTUrl (Sha1.of_string rem)
+  | _ -> failwith "Illegal UID"
+      
 module Uid : sig
     type t     
     val create : uid_type -> t
@@ -65,6 +109,7 @@ module Uid : sig
       
     val compare : t -> t -> int
     val no : t
+      
   end = struct
     
     type t = {
@@ -88,56 +133,12 @@ module Uid : sig
           uid_string = Some s;
           uid_type = None;
         }
-    
-    let uid_to_string uid = 
-      match uid with
-        Bitprint (sha1,ttr) -> 
-          Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
-          (TigerTree.to_string ttr)
-      | Sha1 sha1 -> 
-          Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1)
-      | Ed2k ed2k -> 
-          Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k)
-      | Md5 md5 -> 
-          Printf.sprintf "urn:md5:%s" (Md5.to_string md5)
-      | TigerTree ttr -> 
-          Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr)
-      | Md5Ext md5 -> 
-          Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
-      | BTUrl url ->
-          Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
-
-(* Maybe it would be better to raise an exception for errors ? *)      
-    let uid_of_string s =
-      let s = String.lowercase s in
-      let (urn, rem) = String2.cut_at s ':' in
-      if urn <> "urn" then failwith "Illegal UID";
-      let (sign, rem) = String2.cut_at rem ':' in
-      match sign with
-      | "ed2k" -> Ed2k (Md4.of_string rem)
-      | "bitprint" | "bp" -> 
-          let (sha1, ttr) = String2.cut_at rem '.' in
-          let sha1 = Sha1.of_string sha1 in
-          let tiger = TigerTree.of_string ttr in
-          Bitprint (sha1, tiger)
-      | "sha1" -> Sha1 (Sha1.of_string rem)
-      | "tree" ->
-          let (tiger, rem) = String2.cut_at rem ':' in
-          if tiger <> "tiger" then 
-            failwith (Printf.sprintf "Illformed URN [%s]" s);
-          TigerTree (TigerTree.of_string rem)
-      | "ttr" -> TigerTree (TigerTree.of_string rem)
-      | "md5" ->  Md5 (Md5.of_string rem)
-      | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
-      | "bt" | "bittorrent" -> 
-          BTUrl (Sha1.of_string rem)
-      | _ -> failwith "Illegal UID"
-    
+        
     let to_string t =
       match t.uid_string, t.uid_type with 
         Some s, _ -> s
       | None, Some uid -> 
-          let s = uid_to_string uid in
+          let s = string_of_uid uid in
           t.uid_string <- Some s;
           s
       | None, None -> ""

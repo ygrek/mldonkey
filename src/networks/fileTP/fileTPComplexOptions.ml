@@ -129,7 +129,7 @@ let file_to_value file =
       "file_downloaded", int64_to_value (file_downloaded file);
       "file_id", string_to_value (Md4.to_string file.file_id);
       "file_sources", 
-      list_to_value "FileTP Sources" (fun c ->
+      list_to_value (fun c ->
           lprintf "SAVING: find_client...\n";
           let n = (find_download file c.client_downloads).download_url in
           lprintf "SAVING: find_client...done...saving\n"; 

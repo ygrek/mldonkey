@@ -25,6 +25,7 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 
+open CommonSwarming
 open CommonSources
 open CommonDownloads
 open CommonInteractive
@@ -113,6 +114,7 @@ let unshare_file file =
   | Some s -> 
       file.file_shared <- None;
       decr nshared_files;
+      CommonShared.shared_calculate_total_bytes ();
       (try Unix32.close  (file_fd file) with _ -> ());
       
       begin
@@ -210,13 +212,13 @@ let add_client_chunks c file client_chunks =
             if f != file then iter tail
             else begin
                 Int64Swarmer.update_uploader up
-                (Int64Swarmer.AvailableBoolBitmap client_chunks);
+                (AvailableBoolBitmap client_chunks);
                 Array.blit client_chunks 0 chunks 0 (Array.length chunks)
               end
             
         | [] ->
             let up = Int64Swarmer.register_uploader swarmer (as_client c) 
-              (Int64Swarmer.AvailableBoolBitmap client_chunks) in
+              (AvailableBoolBitmap client_chunks) in
             c.client_file_queue <-  c.client_file_queue @
               [file, client_chunks, up]
       in
@@ -353,6 +355,8 @@ let rec get_from_client c =
       with Not_found ->
 (*          lprintf "get_from_client: no range\n"; *)
           try
+            let swarmer = Int64Swarmer.uploader_swarmer up in       
+            (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
             let b = Int64Swarmer.find_block up in
             get_from_client c
             

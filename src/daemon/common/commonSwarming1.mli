@@ -17,27 +17,4 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val load : unit -> unit
-val save : unit -> unit
-  
-val done_files :  CommonTypes.file list Options.option_record
-val files :  CommonTypes.file list Options.option_record
-
-val servers : CommonTypes.server Intmap.t Options.option_record
-val friends : CommonTypes.client list Options.option_record
-val contacts : CommonTypes.client list ref
-  
-val customized_queries : unit ->
-  (string * CommonTypes.query_entry) list 
-val special_queries : (string * string) list Options.option_record
-  
-val sharing_strategies :
-  (string * CommonTypes.sharing_strategy) list Options.option_record
-
-val shared_directories : 
-  CommonTypes.shared_directory list Options.option_record
-val sharing_only_directory : CommonTypes.sharing_strategy
-
-val swarmers_section : Options.options_section
-  
-  
+module Make : CommonSwarming.Maker

@@ -203,6 +203,12 @@ let _ =
           as_client c
       ) file.file_clients
   );
+  file_ops.op_file_files <- (fun file impl -> 
+      match file.file_swarmer with
+        None -> [CommonFile.as_file impl]
+      | Some swarmer ->
+          Int64Swarmer.subfiles swarmer)
+  ;
   file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
   file_ops.op_file_recover <- (fun file ->
       FasttrackServers.recover_file file;

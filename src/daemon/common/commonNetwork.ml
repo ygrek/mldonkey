@@ -197,7 +197,10 @@ let network_connected n = n.op_network_connected ()
   
 let network_clean_servers r = r.op_network_clean_servers ()
 
-let network_parse_url n url = n.op_network_parse_url url
+let network_parse_url n url = 
+  let url = try Url.decode url with _ -> url in
+  n.op_network_parse_url url
+    
 let network_info n = n.op_network_info ()
 
 let new_network name flags prefix_option subdir_option = 

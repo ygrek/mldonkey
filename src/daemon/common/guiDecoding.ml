@@ -35,8 +35,6 @@ open TcpBufferedSocket
 
 exception FromGuiMessageNotImplemented
 
-let verbose_gui_decoding = ref false
-  
 (*
 gui_cut_messages is a reader for TcpBufferedSocket.t that will cut the stream
   in GUI messages, and call f on each message.

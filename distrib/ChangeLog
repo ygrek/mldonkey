@@ -1,6 +1,37 @@
 ChangeLog	
 =========
 
+2004/08/18: Fabrice (version 2.5.28 = 2.6pre10, tag release-2-5-28)
+  - Tested CommonSwarming2 with Edonkey and BT (should also work with 
+      Fasttrack).
+ 
+2004/08/17: Fabrice
+  - Applied patches: #3279 (cygwin), #3288 (aclocal), #3291 (maildate),
+      #3292 (no gtk-config), #3554 (sharedbytes), #3561 (htmlpref),
+      #3574 (gziphtml)
+
+2004/08/16: Fabrice
+  - Bug fixes:
+      * CommonSwarming: one bug causing BAD WRITE, and one bug causing bad
+          selection of the block to download first.
+  - CommmonSwarming2:
+      * New "merge f1 f2" command to declare that data from file f2 should be
+          saved in file f1. Not that all the data already downloaded to f2 is
+          currently lost.
+
+2004/08/12: Fabrice
+  - Bug fixes:
+      * DriverCommands: add_user shouldn't raise exception anymore (bug #9990) 
+
+2004/08/11: Fabrice
+  - Bug fixes:
+      * DonkeyOptions: compute_md4_delay forced above 0.1 (bug #8812)
+      * CommonNetwork: use Url.decode on urls 
+      * Http_client: correct Host header (bug #8705)
+  - Applied patch #2974 (wget)
+  - CommonSwarming2: new implementation for multi-network swarming (not
+      working yet). Not used anyway unless -enable-swarming2 is specified.
+
 2004/08/10: Fabrice (version 2.5.27 = 2.6pre9, tag release-2-5-27)
   - Applied patch #3276 (gui proto 29)
   - Bug fixes:

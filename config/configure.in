@@ -11,12 +11,12 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=27
+CURRENT_RELEASE=28
 
 REQUIRED_OCAML=3.08
 DOWNLOAD_OCAML=3.08.0
 
-REQUIRED_LABLGTK=1.2.6
+REQUIRED_LABLGTK=1.2.7
 
 touch install-sh
 
@@ -38,6 +38,9 @@ FORCE_MINGW=no
 
 BUILD_GUI=yes
 BUILD_NEWGUI=yes
+
+PROFILE=no
+SWARMING2=no
 
 MULTINET=yes
 AC_ARG_ENABLE(multinet,      [--disable-multinet:       allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
@@ -101,6 +104,8 @@ AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.08.0:   allows you to change the re
 
 AC_ARG_ENABLE(gtk2, [--enable-gtk2:   allows you to compile using GTK2], [USE_GTK2="$enableval"])
 
+AC_ARG_ENABLE(profile, [--enable-profile:   allows you to profile mlnet using gprof], [PROFILE="$enableval"])
+
 
 
 PTHREAD_LIBS=yes
@@ -117,6 +122,8 @@ ifelse(AC_ACVERSION, [2.13], [],
    AC_SYS_LARGEFILE
 
 ])
+
+AC_ARG_ENABLE(swarming2, [--enable-swarming2:           very experimental], [SWARMING2="$enableval"])
 
 AC_CANONICAL_HOST
 AC_CHECK_PROG(CC,gcc3,"gcc3")
@@ -360,6 +367,9 @@ else
 
 fi
 
+if test "$PROFILE" = "yes"; then
+   OCAMLOPT="$OCAMLOPT -p"
+fi
 
 # Sizes of various common basic types
 AC_CHECK_SIZEOF(int)
@@ -386,6 +396,7 @@ if test "$ZLIB" = "yes"; then
   HAS_ZLIB=true
   ZLIB__UNCOMPRESS_STRING2="Zlib.uncompress_string2 s"
   ZLIB__COMPRESS_STRING="Zlib.compress_string s"
+  ZLIB__GZIP_STRING="Zlib.gzip_string s"
 else
   echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
@@ -404,6 +415,7 @@ AC_CHECK_HEADERS(endian.h byteswap.h,,[
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
 OS_FILES=unix
+OS_FILES2=unix
 case $host in
         *linux*)   
            AC_CHECK_HEADERS(linux/limits.h,, [
@@ -413,7 +425,11 @@ case $host in
              CPPFLAGS=$OLD_CPPFLAGS]
            )
         ;;
-        *mingw*) OS_FILES=mingw;;
+        *mingw*)
+           OS_FILES=mingw
+           OS_FILES2=mingw
+        ;;
+        *cygwin*) OS_FILES2=cygwin;;
         *)         ;;
 esac
 
@@ -586,15 +602,6 @@ fi
 
 
 # Check for GTK only if we want to build the GUI
-if test "$BUILD_GUI" = "yes"; then
-  if test "$OS_FILES" = "mingw"; then
-    AC_CHECK_PROG(GTK_CONFIG, pkg-config, pkg-config, no)
-  else
-  AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
-  fi
-else
-  GTK_CONFIG=no
-fi
 
 if test "$USE_GTK2" = "yes" ; then
   GTK=gtk2
@@ -605,64 +612,60 @@ else
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
 fi
 
-if test "$GTK_CONFIG" = "no"; then
-     LABLGTK_CONFIG=no
+AC_MSG_CHECKING(Checking for native code lablgtk)
+if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
+   AC_MSG_RESULT(yes)
+   LABLGTK_CONFIG=yes
 else
-  AC_MSG_CHECKING(Checking for native code lablgtk)
-  if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
-     AC_MSG_RESULT(yes)
-     LABLGTK_CONFIG=yes
-  else
-     AC_MSG_RESULT(no)
-     LABLGTK_CONFIG=no
-     if test -f `$OCAMLC -where`/labl$GTK/lablgtk.cma; then
-       echo "--------------------------------"
-       echo "Lablgtk is not installed properly. See the INSTALL.txt"
-       echo "file of mldonkey to see how to compile lablgtk. You"
-       echo "probably forgot to call 'make opt' before 'make install'."
-       echo "--------------------------------"
-     else
-       echo "Do you want this script to try to download and install lablgtk"
-       echo "LOCALLY in mldonkey directory ?"
-       if test "$BATCH" = "no"; then read i; else i=yes; fi
-       case "$i" in
-        y* | Y*) 
+   AC_MSG_RESULT(no)
+   LABLGTK_CONFIG=no
+   if test -f `$OCAMLC -where`/labl$GTK/lablgtk.cma; then
+     echo "--------------------------------"
+     echo "Lablgtk is not installed properly. See the INSTALL.txt"
+     echo "file of mldonkey to see how to compile lablgtk. You"
+     echo "probably forgot to call 'make opt' before 'make install'."
+     echo "--------------------------------"
+   else
+     echo "Do you want this script to try to download and install lablgtk"
+     echo "LOCALLY in mldonkey directory ?"
+     if test "$BATCH" = "no"; then read i; else i=yes; fi
+     case "$i" in
+      y* | Y*) 
 
-         cd $PATCH_DIR
-         rm -rf lablgtk-"$REQUIRED_LABLGTK"
-         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
-           echo Downloading ...
-           $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
-         fi
-         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+       cd $PATCH_DIR
+       rm -rf lablgtk-"$REQUIRED_LABLGTK"
+       if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
+	 echo Downloading ...
+	 $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+       fi
+       if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
 
-         mkdir -p $BUILD_DIR
-         cd $BUILD_DIR
-         echo Uncompressing ...
-         gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
-         (cd lablgtk-"$REQUIRED_LABLGTK"
-          PATH=$OCAML_PATH:$PATH
-          export PATH
-          echo $PATH
-          $GNU_MAKE configure
-          $GNU_MAKE
-          $GNU_MAKE opt  
-          $GNU_MAKE install
-          cd ..
-          rm -rf lablgtk-"$REQUIRED_LABLGTK"
-         )
-         cd $CONFIG_DIR
-         if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
-            LABLGTK_CONFIG=yes
-         else
-            echo "Installation of lablgtk failed"
-            LABLGTK_CONFIG=no
-         fi
-         ;;
-        *);;
-      esac
-     fi
-  fi
+       mkdir -p $BUILD_DIR
+       cd $BUILD_DIR
+       echo Uncompressing ...
+       gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
+       (cd lablgtk-"$REQUIRED_LABLGTK"
+	PATH=$OCAML_PATH:$PATH
+	export PATH
+	echo $PATH
+	$GNU_MAKE configure
+	$GNU_MAKE
+	$GNU_MAKE opt  
+	$GNU_MAKE install
+	cd ..
+	rm -rf lablgtk-"$REQUIRED_LABLGTK"
+       )
+       cd $CONFIG_DIR
+       if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
+	  LABLGTK_CONFIG=yes
+       else
+	  echo "Installation of lablgtk failed"
+	  LABLGTK_CONFIG=no
+       fi
+       ;;
+      *);;
+    esac
+   fi
 fi
 
 if test "$IM" = "yes" ; then
@@ -723,16 +726,6 @@ AC_MSG_CHECKING(compile GTK GUI)
         RELEASENAME="$RELEASENAME-nogui"
   else
         MORE_TARGETS="$MORE_TARGETS $GUIS"
-	if test "$OS_FILES" = "mingw"; then
-		GTK_LIBS=`$GTK_CONFIG --libs gtk+-1.3-win32-production`
-		GTK_CFLAGS=`$GTK_CONFIG --cflags gtk+-1.3-win32-production`
-		GTK_VERSION=`$GTK_CONFIG --modversion gtk+-1.3-win32-production`
-		COMPILE_GUI=yes
-		AC_MSG_RESULT(yes)
-	else
-        GTK_LIBS=`$GTK_CONFIG --libs`
-        GTK_CFLAGS=`$GTK_CONFIG --cflags`
-        GTK_VERSION=`$GTK_CONFIG --version`
         COMPILE_GUI=yes
         AC_MSG_RESULT(yes)
         if test "$BUILD_NEWGUI" = "yes"; then
@@ -740,7 +733,6 @@ AC_MSG_CHECKING(compile GTK GUI)
         else
         echo "compiling oldgui"
         fi
-	fi
         AC_MSG_CHECKING(GToolbox.popup_menu args)
         if test "$OS_FILES" = "mingw"; then
 	   GTOOLBOX="`$OCAMLC -where`\lablgtk\gToolbox.mli"
@@ -810,6 +802,15 @@ AC_CHECK_FILE(../src/spider/ecrawler/spiderMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/s
 AC_CHECK_FILE(../src/btview/btviewMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/btview", )
 AC_CHECK_FILE(../src/cluster/clusterMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/cluster", )
 
+
+
+if test "$SWARMING2" = "yes"; then
+    COMMONSWARMING=CommonSwarming2
+else
+    COMMONSWARMING=CommonSwarming1
+fi
+
+
 AC_SUBST(EXTRA_DIRS)
 
 AC_SUBST(TYPE_FORMAT)
@@ -871,6 +872,7 @@ AC_SUBST(CURRENT_VERSION)
 AC_SUBST(CURRENT_RELEASE)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
+AC_SUBST(OS_FILES2)
 AC_SUBST(MYCONFIG_ARGS)
 AC_SUBST(MYCONFIG_ARGS_DEFINED)
 AC_SUBST(TARGET_TYPE)
@@ -880,9 +882,13 @@ AC_SUBST(GTK)
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
 AC_SUBST(ZLIB__COMPRESS_STRING)
+AC_SUBST(ZLIB__GZIP_STRING)
+
+AC_SUBST(COMMONSWARMING)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
+SWARMING=../src/daemon/common/commonDownloads.ml
 AC_OUTPUT(\
   Makefile.config \
   Makefile.config.i386 \
@@ -890,7 +896,7 @@ AC_OUTPUT(\
   Makefile.config.i586 \
   Makefile.config.i686 \
   mldonkey.rc \
-  $AUTOCONF.new $GTK_AUTOCONF.new \
+  $AUTOCONF.new $GTK_AUTOCONF.new $SWARMING \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
    ../packages/windows/mlnet.nsi)
@@ -901,12 +907,12 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 
 cd ..
 
-if test "$OS_FILES" = "mingw"; then
+if test "$OS_FILES2" = "mingw"; then
    echo "compiling win32 resource file"
    windres -o resfile.o config/mldonkey.rc
 fi
 
-if test "$OS_FILES" = "cygwin"; then
+if test "$OS_FILES2" = "cygwin"; then
    echo "compiling win32 resource file"
    windres -o resfile.o config/mldonkey.rc
 fi

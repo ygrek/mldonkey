@@ -303,6 +303,7 @@ let server_print_html_header buf ext =
 		( "1", "srh", "Server number", "#" ) ; 
 		( "0", "srh", "Connect|Disconnect", "C/D" ) ; 
 		( "0", "srh", "Remove", "Rem" ) ; 
+    ( "0", "srh", "Preferred", "P" ) ; 
 		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ; 
 		( "0", "srh", "Network name", "Network" ) ; 
 		( "0", "srh", "Connection status", "Status" ) ; 
@@ -324,6 +325,7 @@ let server_print s o =
 
     Printf.bprintf buf "
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
+    %s
     %s
     %s
     \\<td class=\\\"sr\\\" %s\\</td\\>
@@ -364,7 +366,21 @@ let server_print s o =
         onClick=\\\"parent.fstatus.location.href='submit?q=rem+%d'\\\"\\>Rem\\</TD\\>"
       snum
       )
-      
+      (
+        if info.G.server_preferred then begin
+        Printf.sprintf
+        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\" title=\\\"Unset preferred\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+false+%s'\\\"\\>T\\</TD\\>"
+        (Ip.string_of_addr info.G.server_addr)
+        end else begin
+        Printf.sprintf
+        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\" title=\\\"Set preferred\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>F\\</TD\\>"
+        (Ip.string_of_addr info.G.server_addr)
+        end
+      )
       (if n.network_name = "Donkey" then 
         begin
             match impl.impl_server_state with

@@ -25,7 +25,7 @@ open BasicSocket
   
 open CommonInteractive
 open CommonInteractive
-open CommonShared
+
 open CommonTypes
 open CommonOptions
 open CommonGlobals
@@ -442,13 +442,13 @@ let _ =
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
 
-  shared_add_directory {
+  CommonShared.shared_add_directory {
     shdir_dirname = !!incoming_directory;
     shdir_priority = !!incoming_directory_prio;
     shdir_strategy = "only_directory";
     shdir_networks = [];
   };
-  List.iter shared_add_directory !!CommonComplexOptions.shared_directories;  
+  List.iter CommonShared.shared_add_directory !!CommonComplexOptions.shared_directories;  
   
   add_infinite_timer 1800. (fun timer ->
       DriverInteractive.browse_friends ());

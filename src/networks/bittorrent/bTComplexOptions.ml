@@ -87,6 +87,11 @@ let value_to_file file_size file_state assocs =
     with _ -> failwith "Bad file_tracker"
   in
   
+  let file_chunks =  
+    get_value "file_hashes" (value_to_array
+          (from_value Sha1.option))
+  in
+  
   let file =  
     try
       let file_files = 
@@ -100,28 +105,19 @@ let value_to_file file_size file_state assocs =
             ))) in
       let file_t = 
         new_download file_id file_name file_size file_tracker 
-          file_piece_size file_files file_state in
+          file_piece_size file_files file_chunks file_state in
       file_t.file_files <- file_files;
       file_t
     
     with _ -> 
         new_download file_id file_name file_size file_tracker 
-          file_piece_size [] file_state
+          file_piece_size [] file_chunks file_state
   in
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs) 
     with _ -> zero
   in
   file.file_uploaded <- file_uploaded;
-  
-  
-  (try
-      file.file_chunks <- get_value "file_hashes" (value_to_array
-          (from_value Sha1.option))
-    with e -> 
-        lprintf "Exception %s while loading chunks\n"
-          (Printexc2.to_string e); 
-  );
   
   (match file.file_swarmer with
       None -> ()
@@ -148,17 +144,17 @@ let value_to_file file_size file_state assocs =
   as_file file
   
 let file_to_value file =
-  let sources = Hashtbl2.to_list file.file_clients in
-
-  let assocs =
-    [
-    "file_piece_size", int64_to_value (file.file_piece_size);
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_uploaded", int64_to_value  (file.file_uploaded);
-    "file_id", string_to_value (Sha1.to_string file.file_id);
-    "file_tracker", string_to_value file.file_tracker;
-    "file_torrent_name", string_to_value file.file_torr_fname;
+  try
+    let sources = Hashtbl2.to_list file.file_clients in
+    
+    let assocs =
+      [
+        "file_piece_size", int64_to_value (file.file_piece_size);
+        "file_name", string_to_value file.file_name;
+        "file_uploaded", int64_to_value  (file.file_uploaded);
+        "file_id", string_to_value (Sha1.to_string file.file_id);
+        "file_tracker", string_to_value file.file_tracker;
+        "file_torrent_name", string_to_value file.file_torr_fname;
 (* OK, but I still don't like the idea of forgetting all the clients.
 We should have a better strategy, ie rating the clients and connecting
 to them depending on the results of our last connections. And then,
@@ -170,19 +166,23 @@ send us more clients.
         ClientOption.to_value c) sources
 ;
   *)
-    "file_hashes", array_to_value 
-      (to_value Sha1.option) file.file_chunks;
-    "file_files", list_to_value ""
-      (fun (name, p1) ->
-        SmallList [string_to_value name; int64_to_value p1])
-    file.file_files;
-  ]
-  in
-  match file.file_swarmer with
-    None -> assocs 
-  | Some swarmer ->
-      Int64Swarmer.swarmer_to_value swarmer assocs
-  
+        "file_hashes", array_to_value 
+          (to_value Sha1.option) file.file_chunks;
+        "file_files", list_to_value
+          (fun (name, p1) ->
+            SmallList [string_to_value name; int64_to_value p1])
+        file.file_files;
+      ]
+    in
+    match file.file_swarmer with
+      None -> assocs 
+    | Some swarmer ->
+        Int64Swarmer.swarmer_to_value swarmer assocs
+  with
+    e ->
+      lprintf "BTComplexOptions: exception %s in file_to_value\n"
+        (Printexc2.to_string e); raise e
+
 let old_files = 
   define_option bittorrent_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []

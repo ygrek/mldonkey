@@ -388,6 +388,7 @@ let addr_is_ip addr = addr.addr_name = ""
 let  upload_counter = ref Int64.zero
 let  download_counter = ref Int64.zero
 let nshared_files = ref 0
+let nshared_bytes = ref Int64.zero
 let shared_counter = ref Int64.zero
 
 let tag_name tag =
@@ -495,8 +496,7 @@ let default_user = {
   }
   
 let ui_users = ref [default_user]
-  
-      
+        
 let find_ui_user user =
   let rec iter list =
     match list with

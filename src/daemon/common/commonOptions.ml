@@ -506,7 +506,8 @@ let html_checkbox_vd_file_list = define_expert_option current_section
 let html_checkbox_search_file_list = define_expert_option current_section
     ["html_checkbox_search_file_list"] "Whether to use checkboxes in the WEB interface for search result list" bool_option false
   
-  
+let html_use_gzip = define_expert_option current_section
+    ["html_use_gzip"] "Use gzip compression on web pages" bool_option false
 
   
   

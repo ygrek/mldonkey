@@ -605,7 +605,7 @@ and file = {
 (*    mutable file_absent_chunks : (int64 * int64) list; *)
     mutable file_filenames : (string * GuiTypes.ips_list) list;
 (*    mutable file_nsources : int; *)
-    mutable file_md4s : Md4.t array;
+    mutable file_computed_md4s : Md4.t array; 
     mutable file_format : format;
 (*    mutable file_available_chunks : int array; *)
     mutable file_shared : file CommonShared.shared_impl option;

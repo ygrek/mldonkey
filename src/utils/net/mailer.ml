@@ -21,6 +21,7 @@
 open Printf2
 open Options
 open Unix
+open Date
   
 type mail = {
     mail_to : string;
@@ -52,20 +53,24 @@ let read_response ic =
     bad_response ()
 
 let make_mail mail new_style =
+  let mail_date = Printf.sprintf "%s" Date.mail_string in
+  
   if new_style then
-      Printf.sprintf 
-        "From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n%s"
-	  mail.mail_from
-	  mail.mail_to
-	  mail.mail_subject
-	  mail.mail_body
+	Printf.sprintf 
+	"From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\nDate: %s\r\n\r\n%s"
+	mail.mail_from
+	mail.mail_to
+	mail.mail_subject
+	mail_date
+	mail.mail_body
     else
-  Printf.sprintf 
-	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n%s"
-  mail.mail_from
-  mail.mail_to
-  mail.mail_subject
-  mail.mail_body
+	Printf.sprintf 
+	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\nDate: %s\r\n\r\n%s"
+	mail.mail_from
+	mail.mail_to
+	mail.mail_subject
+	mail_date
+	mail.mail_body
 
 let canon_addr s = 
   let len = String.length s in

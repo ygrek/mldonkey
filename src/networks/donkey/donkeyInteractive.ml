@@ -410,7 +410,7 @@ let recover_md4s md4 =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      Int64Swarmer.verify_all_blocks swarmer false
+      Int64Swarmer.verify_all_chunks swarmer false
   
   (*
   if file.file_chunks <> [||] then
@@ -1104,7 +1104,12 @@ let _ =
         (file_best_name file)
       (file_size file)
       (Md4.to_string file.file_md4)
-  )
+  );
+  file_ops.op_file_files <- (fun file impl -> 
+      match file.file_swarmer with
+        None -> [CommonFile.as_file impl]
+      | Some swarmer ->
+          Int64Swarmer.subfiles swarmer)
   
 let _ =
   network.op_network_extend_search <- (fun s e ->
@@ -1372,6 +1377,7 @@ let _ =
   
 let _ =
   shared_ops.op_shared_unshare <- (fun file ->
+      lprintf "************ UNSHARE FILE ************\n";
       unshare_file file;
       
 (* Should we or not ??? *)

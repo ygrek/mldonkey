@@ -101,34 +101,70 @@ name.
 let file_commit file =
   let impl = as_file_impl file in
   if impl.impl_file_state = FileDownloaded then
-    let new_name = file_commited_name file in
-    try
-      set_file_disk_name file new_name;
-      let best_name = file_best_name file in  
-      Unix32.destroy (file_fd file);
-      (* Commit the file first, and share it after... *)
-      impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
-      if not (Unix2.is_directory new_name) then 
-        ignore (CommonShared.new_shared 
-            !!incoming_directory !!incoming_directory_prio best_name new_name);
-      done_files =:= List2.removeq file !!done_files;
-      update_file_state impl FileShared;
-    with e ->
-      lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e)
-      
+    let subfiles = file_files file in
+    match subfiles with
+      file :: secondary_files ->
+        let new_name = file_commited_name file in
+        (try
+            set_file_disk_name file new_name;
+            let best_name = file_best_name file in  
+            Unix32.destroy (file_fd file);
+            lprintf "destroyed\n";
+            let impl = as_file_impl file in
+            impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
+            
+            begin
+              try
+                if not (Unix2.is_directory new_name) then 
+                  ignore (CommonShared.new_shared 
+                      !!incoming_directory !!incoming_directory_prio
+                      best_name new_name);
+              with e ->
+                  lprintf "Exception %s while trying to share commited file\n"
+                    (Printexc2.to_string e);
+            end;
+            
+            update_file_state impl FileShared;
+            done_files =:= List2.removeq file !!done_files;
+            files =:= List2.removeq file !!files;
+            
+            lprintf "going to secondaries...\n";
+            List.iter (fun file ->
+(* Commit the file first, and share it after... *)
+                try
+                  let impl = as_file_impl file in
+                  impl.impl_file_ops.op_file_cancel impl.impl_file_val;
+                  update_file_state impl FileCancelled;
+                  done_files =:= List2.removeq file !!done_files;
+                  files =:= List2.removeq file !!files;
+                  
+                with e ->
+                    lprintf "Exception %s in file_commit secondaries\n" (Printexc2.to_string e);
+            ) secondary_files
+          with e ->
+              lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e))
+    | _ -> assert false
+        
 let file_cancel file =
   try
     let impl = as_file_impl file in    
-    if impl.impl_file_state <> FileCancelled then begin
-        update_file_state impl FileCancelled;
-        impl.impl_file_ops.op_file_cancel impl.impl_file_val;
-        (try  Unix32.remove (file_fd file)  with e -> 
-              lprintf "Sys.remove %s exception %s\n" 
-                (file_disk_name file)
-              (Printexc2.to_string e); );
-        Unix32.destroy (file_fd file);
-        files =:= List2.removeq file !!files;
-    end
+    if impl.impl_file_state <> FileCancelled then 
+      let subfiles = file_files file in
+      if file != List.hd subfiles then
+        failwith "Cannot cancel non primary file";
+      List.iter (fun file ->
+          try
+            impl.impl_file_ops.op_file_cancel impl.impl_file_val;
+            update_file_state impl FileCancelled;
+            files =:= List2.removeq file !!files;
+          with e ->
+              lprintf "Exception %s in file_cancel\n" (Printexc2.to_string e);
+      ) subfiles;
+      (try  Unix32.remove (file_fd file)  with e -> 
+            lprintf "Sys.remove %s exception %s\n" 
+              (file_disk_name file)
+            (Printexc2.to_string e); );
+      Unix32.destroy (file_fd file);
   with e ->
       lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
 
@@ -138,12 +174,17 @@ let mail_for_completed_file file =
     let module M = Mailer in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in
 
-    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nComment: %s\r\n" 
+    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\n" 
       (file_best_name file)
       (file_size file)
-      (file_comment file)
     in
     
+    let line3 = if (file_comment file) <> "" then
+	Printf.sprintf "\r\nComment: %s\r\n" (file_comment file)
+      else
+        Printf.sprintf "";
+    in
+
     let subject = if !!filename_in_subject then
         Printf.sprintf "[mldonkey] file received - %s"
         (file_best_name file)
@@ -151,7 +192,7 @@ let mail_for_completed_file file =
         Printf.sprintf "mldonkey, file received";        
     in
 
-    let line3 = if !!url_in_mail <> "" then
+    let line4 = if !!url_in_mail <> "" then
 	Printf.sprintf "\r\n%s/%s\r\n" !!url_in_mail (file_best_name file)
       else
         Printf.sprintf "";
@@ -161,7 +202,7 @@ let mail_for_completed_file file =
         M.mail_to = !!mail;
         M.mail_from = !!mail;
         M.mail_subject = subject;
-        M.mail_body = line1 ^ line2 ^ line3;
+        M.mail_body = line1 ^ line2 ^ line3 ^ line4;
       } in
     M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 

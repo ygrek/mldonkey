@@ -26,30 +26,30 @@ How shareaza knows the correspondances between URNs:
 ascii: [ H T T P / 1 . 1   5 0 3   B u s y(10)(10) S e r v e r :   S h a r e a z a   1 . 8 . 8 . 0(10)(10) R e m o t e - I P :   8 1 . 1 0 0 . 8 6 . 1 4 3(10)(10) C o n n e c t i o n :   K e e p - A l i v e(10)(10) A c c e p t - R a n g e s :   b y t e s(10)(10) X - P e r H o s t :   2(10)(10) X - N i c k :   B i l l o u t 6 6 6(10)(10) X - C o n t e n t - U R N :   u r n : b i t p r i n t : U K 4 B I K S O X 5 D 3 N C W 3 5 G Y A L U H A T U 5 4 C D I V . E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y(10)(10) X - C o n t e n t - U R N :   e d 2 k : 9 a 9 4 c 7 8 9 5 8 9 7 f f a 5 d 7 c f e 5 8 0 b e a 9 7 2 8 6(10)(10) X - T i g e r T r e e - P a t h :   / g n u t e l l a / t i g e r t r e e / v 3 ? u r n : t r e e : t i g e r / : E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y(10)(10) X - T h e x - U R I :   / g n u t e l l a / t h e x / v 1 ? u r n : t r e e : t i g e r / : E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y & d e p t h = 9 & e d 2 k = 0(10)(10) C o n t e n t - T y p e :   t e x t / h t m l(10)(10) C o n t e n t - L e n g t h :   2 1 2 5(10)(10)(10)]
 
 *)
-
+open Options
+open BasicSocket
+open TcpBufferedSocket
 open Int64ops
+open Printf2
+open Md4
+
+open CommonSwarming
 open CommonShared
 open CommonUploads
-open Printf2
 open CommonOptions
 open CommonDownloads
-open Md4
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open CommonFile
-open Options
-open BasicSocket
-open TcpBufferedSocket
-
 open CommonGlobals
 open CommonDownloads  
+  
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 open GnutellaComplexOptions
-
 open GnutellaProtocol
 
 let http_ok = "HTTP 200 OK"
@@ -582,7 +582,7 @@ an upload request *)
                             let chunks = [ Int64.zero, file_size file ] in
                             let bs = Int64Swarmer.register_uploader swarmer 
                                 (as_client c)
-                                (Int64Swarmer.AvailableRanges chunks) in
+                                (AvailableRanges chunks) in
                             d.download_uploader <- Some bs
                       ) c.client_downloads;
                       

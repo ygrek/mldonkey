@@ -22,6 +22,7 @@ For each file on disk that has to be shared, call
   network_share file_name codedname file_size  
 *)
 
+open Int64ops
 open Printf2
 open Md4
 
@@ -77,6 +78,11 @@ let ni n m =
 let fni  n m =  failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
+let shared_calculate_total_bytes () =
+  nshared_bytes := Int64.zero;
+  H.iter (fun s ->
+    nshared_bytes := (Int64.add !nshared_bytes (as_shared_impl s).impl_shared_size)
+  ) shareds_by_num
     
 let shared_must_update shared =
   let impl = as_shared_impl shared in
@@ -118,7 +124,7 @@ let dirnames_prio = ref []
 let dirname_counter = ref 0
 
 let files_scanned = ref 0
-let files_scanned_size = ref Int64.zero
+let files_scanned_size = ref zero
   
 let new_shared dirname prio filename fullname =
 (*  lprintf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s\n"
@@ -139,13 +145,15 @@ let new_shared dirname prio filename fullname =
 
   let size = Unix32.getsize fullname in
   incr files_scanned;
-  files_scanned_size := Int64.add !files_scanned_size size;
+  files_scanned_size := !files_scanned_size ++ size;
   if Unix2.is_directory fullname then begin
     lprintf "new_shared: %s is directory! Skipped network.share\n" fullname;
   end
-  else 
+  else begin
   CommonNetwork.networks_iter (fun n -> 
-      CommonNetwork.network_share n fullname codedname size)
+      CommonNetwork.network_share n fullname codedname size);
+  shared_calculate_total_bytes ();
+  end
 
 let shared_num shared =
   let impl = as_shared_impl  shared in
@@ -193,8 +201,8 @@ let dummy_shared = {
       op_shared_unshare = (fun _ -> raise Not_found);
       op_shared_info = (fun _ -> raise Not_found);
     };
-    impl_shared_uploaded = Int64.zero;
-    impl_shared_size = Int64.zero;
+    impl_shared_uploaded = zero;
+    impl_shared_size = zero;
     impl_shared_id = Md4.null;
     impl_shared_requests = 0;
   }
@@ -298,8 +306,11 @@ let shared_check_files () =
       if not (Unix32.file_exists name) then list := s :: !list
   ) shareds_by_num;
   List.iter (fun s -> shared_unshare s) !list;
+  files_scanned_size := zero;
+  files_scanned := 0;
   List.iter (fun s -> shared_add_directory s) 
-  !!  CommonComplexOptions.shared_directories
+  !!  CommonComplexOptions.shared_directories;
+  shared_calculate_total_bytes ()
   
 let impl_shared_info impl =
   let module T = GuiTypes in

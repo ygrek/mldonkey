@@ -120,14 +120,16 @@ let set_file_size file size =
         )
       in
       file.file_file.impl_file_size <- size;
-      let swarmer = Int64Swarmer.create (as_file file) 
-          file_chunk_size min_range_size in
+      let file_temp = Unix32.filename (file_fd file) in
+      let kernel = Int64Swarmer.create_swarmer file_temp size min_range_size in
+      let swarmer = Int64Swarmer.create kernel (as_file file) 
+          file_chunk_size in
       file.file_swarmer <- Some swarmer;    
       lprintf "Swarmer set\n";
-      Int64Swarmer.set_verifier swarmer (fun _ _ _ ->
+      Int64Swarmer.set_verified swarmer (fun _ _ ->
           file_must_update (as_file file);
-          true  
       );
+      (*
       Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
 
 (*
@@ -139,7 +141,7 @@ let set_file_size file size =
             Unix32.buffered_write_copy (file_fd file) offset s pos len
           else
             Unix32.write  (file_fd file) offset s pos len
-      )
+      ) *)
     end
     
 let new_file file_id file_name file_size = 

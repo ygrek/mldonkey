@@ -90,7 +90,7 @@ let make_full_request r =
         Url.put_args url args
     in
     url);
-  Printf.bprintf res " HTTP/1.0\r\nHost: %s\r\n" url.server;
+  Printf.bprintf res " HTTP/1.0\r\nHost: %s%s\r\n" url.server (if url.port != 80 then Printf.sprintf ":%d" url.port else "");
   List.iter (fun (a,b) ->
       Printf.bprintf res "%s: %s\r\n" a b      
   ) r.req_headers;

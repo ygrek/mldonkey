@@ -731,6 +731,10 @@ lprintf "bool1 %b len %d bool2 %b upload %d\n" bool1 len bool2 upload_rate;
   b
 
 let upload_to_one_client () =
+(*  lprintf "upload_to_one_client %d %d\n" (Fifo.length upload_clients)
+  !remaining_bandwidth;
+Fifo.iter (fun c -> lprintf "   client %d\n" (client_num c))
+upload_clients; *)
   if !remaining_bandwidth < 10000 then begin
       let c = Fifo.take upload_clients in
       client_can_upload c  !remaining_bandwidth
@@ -775,9 +779,7 @@ let next_uploads () =
       (if !!max_hard_upload_rate = 0 then 10000 * 1024
         else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
       complete_bandwidth := !total_bandwidth;
-(*      if !verbose_upload then begin
-          lprintf "Init to %d\n" !total_bandwidth; 
-        end; *)
+(*      lprintf "Init to %d\n" !total_bandwidth;  *)
       remaining_bandwidth := 0          
     end;
   
@@ -794,16 +796,13 @@ let next_uploads () =
         lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
       done; *)
       
-    end; *)
-  
+    end; *)  
   remaining_bandwidth := mini (mini (mini 
         (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) 
       !total_bandwidth) !complete_bandwidth) 
   (!total_bandwidth - !last_sec);
   complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
-(*  if !verbose_upload then begin
-      lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth; 
-    end; *)
+(*  lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth;  *)
   sent_bytes.(!counter-1) <- !remaining_bandwidth;
   if !remaining_bandwidth > 0 then 
     next_uploads ()

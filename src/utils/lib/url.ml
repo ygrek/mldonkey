@@ -54,29 +54,38 @@ let encode s =
   String.sub res 0 !pos
 
 (* decode using x-www-form-urlencoded form *)
+
+let digit_hexa x =
+  match x with
+  | 'a' .. 'f' -> (Char.code x) + 10 - (Char.code 'a')
+  | 'A' .. 'F' -> (Char.code x) + 10 - (Char.code 'A')
+  | '0' .. '9' -> (Char.code x) - (Char.code '0')
+  | _ -> failwith "Not an hexa number (encode.ml)" 
+
 let decode s =
   let len = String.length s in
-  let res = String.create len in
-  let pos_s = ref 0 in
-  let pos_r = ref 0 in
-  let digit_hexa x =
-    match x with
-    | 'a' .. 'f' -> (Char.code x) + 10 - (Char.code 'a')
-    | 'A' .. 'F' -> (Char.code x) + 10 - (Char.code 'A')
-    | '0' .. '9' -> (Char.code x) - (Char.code '0')
-    | _ -> failwith "Not an hexa number (encode.ml)" in
-  while !pos_s < len do
-    (match s.[!pos_s] with
-    | '+' -> res.[!pos_r] <- ' '; incr pos_s
-    | '%' ->
-        let fst = digit_hexa s.[!pos_s+1] in
-        let snd = digit_hexa s.[!pos_s+2] in
-        res.[!pos_r] <- Char.chr (fst*16 + snd);
-        pos_s := !pos_s + 3
-    | c -> res.[!pos_r] <- c; incr pos_s);
-    incr pos_r
-  done;
-  String.sub res 0 !pos_r
+  let r = Buffer.create len in
+  let rec iter i =
+    if i < len then
+      match s.[i] with
+      | '+' -> Buffer.add_char r  ' '; iter (i+1)
+      | '%' ->
+          let n = 
+            try
+              let fst = digit_hexa s.[i+1] in
+              let snd = digit_hexa s.[i+2] in
+              Buffer.add_char r (char_of_int (fst*16 + snd));
+              3
+            with _ ->
+                Buffer.add_char r '%';
+                1
+          in
+          iter (i+n)
+          
+      | c -> Buffer.add_char r c; iter (i+1)
+  in
+  iter 0;
+  Buffer.contents r
 
 
 let to_string url =

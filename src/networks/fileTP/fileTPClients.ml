@@ -25,7 +25,8 @@ open Options
 
 open BasicSocket
 open TcpBufferedSocket
-  
+
+open CommonSwarming
 open CommonShared
 open CommonUploads
 open CommonOptions
@@ -274,7 +275,7 @@ that the connection will not be aborted (otherwise, disconnect_client
                             let chunks = [ Int64.zero, file_size file ] in
                             let up = Int64Swarmer.register_uploader swarmer 
                               (as_client c)
-                                (Int64Swarmer.AvailableRanges chunks) in
+                                (AvailableRanges chunks) in
                             d.download_uploader <- Some up
                       ) c.client_downloads;
                       

@@ -10,6 +10,9 @@ typedef unsigned int uint;
 #include <netdb.h>
 #include <sys/socket.h>
 #else
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #endif
 

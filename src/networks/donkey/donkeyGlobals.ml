@@ -18,28 +18,29 @@
 *)
 
 open Int64ops
-open CommonDownloads
-
-open CommonInteractive
 open TcpBufferedSocket
 open Queues
 open Printf2
 open Md4
+open Options
+open BasicSocket
+  
+open CommonDownloads
+open CommonSwarming
+open CommonInteractive
 open CommonResult
 open CommonFile
 open CommonServer
 open CommonComplexOptions
 open CommonClient
-open Options
 open CommonTypes
-open DonkeyTypes
-open BasicSocket
 open CommonOptions
+open CommonGlobals  
+open CommonNetwork
+  
+open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
-open CommonGlobals
-  
-open CommonNetwork
 
       
 (*************************************************************
@@ -310,7 +311,7 @@ let new_file file_state file_name md4 file_size writable =
               failwith "Zero length file ?"
         else file_size
       in
-
+      
       if file_size <> zero then
         Unix32.ftruncate64 t file_size;
       
@@ -326,7 +327,7 @@ let new_file file_state file_name md4 file_size writable =
           file_swarmer = None;
           file_nchunks = nchunks;
           file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
-          file_md4s = Array.of_list md4s;
+          file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
           file_sources = DonkeySources.create_file_sources_manager
             (Md4.to_string md4) 
@@ -345,9 +346,14 @@ let new_file file_state file_name md4 file_size writable =
       
       file.file_sources.DonkeySources.manager_file <- (fun () -> as_file file);
       
-      (let swarmer = Int64Swarmer.create (as_file file) block_size zone_size
-        in
-        file.file_swarmer <- Some swarmer;
+      (match file_state with
+          FileShared -> ()
+        | _ ->
+            let kernel = Int64Swarmer.create_swarmer file_name file_size zone_size in
+            let swarmer = Int64Swarmer.create kernel (as_file file) block_size
+            in
+            file.file_swarmer <- Some swarmer;
+(*
         Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
 (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
@@ -358,32 +364,18 @@ let new_file file_state file_name md4 file_size writable =
               Unix32.buffered_write_copy t offset s pos len
             else
               Unix32.write  t offset s pos len
-        );
-        Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
-            if file.file_md4s = [||] then raise Int64Swarmer.VerifierNotReady;
-	    if !verbose then begin
-                lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
-	    end;
-            Unix32.flush_fd (file_fd file);
-            let md4 = Md4.digest_subfile (file_fd file) 
-              begin_pos (end_pos -- begin_pos) in
-            let result = md4 = file.file_md4s.(num) in
-	    if !verbose then begin
-                lprintf "Md4 computed: %s against %s = %s\n"
-                (Md4.to_string md4) 
-                (Md4.to_string file.file_md4s.(num))
-                (if result then "VERIFIED" else "CORRUPTED");
-	    end;
-            if result then begin
-                let bitmap = Int64Swarmer.verified_bitmap swarmer in
-                try ignore (String.index bitmap '3')
-                with _ -> 
+        ); *)
+            Int64Swarmer.set_verifier swarmer 
+              (if md4s = [] then VerificationNotAvailable else
+                Verification (Array.of_list (List.map (fun md4 -> Ed2k md4) md4s))
+            );
+            Int64Swarmer.set_verified swarmer (fun nblocks num ->
+                if nblocks = 1 then begin
                     new_shared_files := file :: !new_shared_files;
-                    file_must_update file;
-              end;
-            result)
-        );
-        
+                    file_must_update file
+                  end)
+      );
+      
       update_best_name file;
       file_add file_impl file_state;
       Heap.set_tag file tag_file;

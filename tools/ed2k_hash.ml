@@ -153,6 +153,27 @@ let ed2k_hash_file fd file_size partial =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         sha1_hash_file                                *)
+(*                                                                       *)
+(*************************************************************************)
+
+let sha1_hash_filename block_size filename =
+  let fd = Unix32.create_rw filename in
+  let file_size = Unix32.getsize64 fd in
+  let nchunks = Int64.to_int (Int64.div 
+        (Int64.sub file_size Int64.one) block_size) + 1 in
+  for i = 0 to nchunks - 1 do
+    let begin_pos = block_size ** i  in
+    let end_pos = begin_pos ++ block_size in
+    let end_pos = min end_pos file_size in
+    let len = end_pos -- begin_pos in
+    let md4 = Sha1.digest_subfile fd begin_pos len in
+    lprintf "  Partial %3d (%Ld-%Ld) : %s\n" i begin_pos end_pos
+      (Sha1.to_string md4);
+  done
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         ed2k_hash_filename                            *)
 (*                                                                       *)
 (*************************************************************************)
@@ -319,6 +340,68 @@ let check_external_functions size =
             (Printexc2.to_string e) name size)
   file_types
 
+let max_diff_size = Int64.of_int 30000000
+  
+let diff_chunk args =
+  let filename1 = args.(0) in
+  let filename2 = args.(1) in
+  let begin_pos = Int64.of_string args.(2) in
+  let end_pos = Int64.of_string args.(3) in
+  
+  let total = ref 0 in
+  
+  if end_pos -- begin_pos > max_diff_size then
+    failwith (Printf.sprintf "Cannot diff chunk > %Ld bytes" max_diff_size);
+  let len = Int64.to_int (end_pos -- begin_pos) in
+  let s1 = String.create len in
+  let s2 = String.create len in
+  let fd1 = Unix32.create_rw filename1 in
+  let fd2 = Unix32.create_rw filename2 in
+  Unix32.read fd1 begin_pos s1 0 len;
+  Unix32.read fd2 begin_pos s2 0 len;
+  
+  let rec iter_in old_pos pos =
+    if pos < len then 
+      if s1.[pos] <> s2.[pos] then begin
+          lprintf "  common %Ld-%Ld %d\n"
+            (begin_pos ++ Int64.of_int old_pos)
+          (begin_pos ++ Int64.of_int (pos-1))
+          (pos - old_pos);
+          iter_out pos (pos+1)
+        end else
+        iter_in old_pos (pos+1)
+    else
+      lprintf "  common %Ld-%Ld %d\n"
+        (begin_pos ++ Int64.of_int old_pos)
+      (begin_pos ++ Int64.of_int (pos-1))
+      (pos - old_pos)
+      
+  and iter_out old_pos pos =
+    if pos < len then
+      if s1.[pos] <> s2.[pos] then 
+        iter_out old_pos (pos+1) 
+      else
+        begin
+          lprintf "  diff   %Ld-%Ld %d\n"
+            (begin_pos ++ Int64.of_int old_pos)
+          (begin_pos ++ Int64.of_int (pos-1))
+          (pos - old_pos);
+          total := !total + (pos - old_pos);
+          iter_in (pos-1) (pos+1)
+        end
+    else begin
+        lprintf "  diff   %Ld-%Ld %d\n"
+        (begin_pos ++ Int64.of_int old_pos)
+        (begin_pos ++ Int64.of_int (pos-1))
+        (pos - old_pos);    
+        total := !total + (pos - old_pos);
+        end
+  in
+  iter_in 0 0;
+  lprintf "Diff Total: %d/%d bytes\n" !total len
+  
+  
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)
@@ -327,17 +410,25 @@ let check_external_functions size =
 
 
 let hash = ref ""
-
+let chunk_size = ref zero
+  
 let _ =
 (*  set_strings_file "mlnet_strings"; *)
   let partial = ref false in
-  Arg.parse [
-    "-hash", Arg.String ( (:=) hash), _s " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)";
-    "-partial", Arg.Unit (fun _ -> partial := true), _s ": enable display of partial hash values";
-    "-check", Arg.Int check_external_functions, _s " <nth size>: check C file functions";
+  Arg2.parse2 [
+    "-diff_chunk", Arg2.Array (4, diff_chunk), 
+    "<filename1> <filename2> <begin_pos> <end_pos> : compute diff between the two files";
+    "-hash", Arg2.String ( (:=) hash), _s " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)";
+    "-sha1", Arg2.String (fun size ->
+        hash := "sha1";
+        chunk_size := Int64.of_string size;
+    ), " <chunk_size> : Set hash type to sha1 and chunk_size to <chunk_size>";
+    "-partial", Arg2.Unit (fun _ -> partial := true), _s ": enable display of partial hash values";
+    "-check", Arg2.Int check_external_functions, _s " <nth size>: check C file functions";
   ] (fun filename ->
       match !hash with
       | "ed2k" -> ed2k_hash_filename filename partial
+      | "sha1" -> sha1_hash_filename !chunk_size filename
       | "sig2dat" -> sig2dat_hash_filename filename partial
       | "bp" -> bitprint_filename filename partial
       | _ -> 

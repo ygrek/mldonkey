@@ -40,7 +40,7 @@
 #undef HAVE_ZLIB_H
 
 /* Define if you have the pthread library (-lpthread).  */
-#undef HAVE_LIBPTHREAD
+#undef HAVE_PTHREAD
 
 #undef HAVE_ENDIAN_H
 #undef HAVE_BYTESWAP_H

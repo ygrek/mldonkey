@@ -20,19 +20,20 @@
 open Printf2
 open BasicSocket
 open Md4
+open Options
   
 open CommonDownloads
-  
+open CommonSwarming  
 open CommonClient
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open Options
 open CommonTypes
-open DonkeyTypes
-open DonkeyOptions
 open CommonOptions
 open CommonGlobals
+  
+open DonkeyTypes
+open DonkeyOptions
 open DonkeyGlobals
 
 let shared_files_ini = create_options_file (
@@ -318,11 +319,19 @@ let value_to_file file_size file_state assocs =
     with _ -> 
         lprintf "Could not load chunks states\n"; );
 *)
+  let md4s = get_value "file_md4s" (value_to_array value_to_md4) in
+  
+  if md4s <> [||] then file.file_computed_md4s <- md4s;
   
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
         Int64Swarmer.value_to_swarmer swarmer assocs;
+        Int64Swarmer.set_verifier swarmer (if md4s = [||] then
+            VerificationNotAvailable
+          else
+            Verification
+            (Array.map (fun md4 -> Ed2k md4) md4s))
   );
   
 (*
@@ -346,8 +355,6 @@ let value_to_file file_size file_state assocs =
     else Array2.min file.file_chunks_age);
 *)
   
-  let md4s = get_value "file_md4s" (value_to_array value_to_md4) in
-  file.file_md4s <- (if md4s = [||] then file.file_md4s else md4s);
   file_md4s_to_register := file :: !file_md4s_to_register;
   as_file file
   
@@ -375,10 +382,10 @@ let file_to_value file =
         (List.map (fun (i1,i2) -> 
             SmallList [int64_to_value i1; int64_to_value i2])
         file.file_absent_chunks); *)
+      ("file_md4s", 
+        array_to_value Md4.hash_to_value file.file_computed_md4s);
       "file_filenames", List
         (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
-      "file_md4s", array_to_value Md4.hash_to_value 
-        file.file_md4s;
 (*      "file_mtime", float_to_value (
         try Unix32.mtime (file_disk_name file) with _ -> 0.0) *)
     ]
@@ -386,8 +393,8 @@ let file_to_value file =
   let fields = 
   match file.file_swarmer with
     None -> fields
-  | Some swarmer ->
-      Int64Swarmer.swarmer_to_value swarmer fields
+    | Some swarmer ->
+        Int64Swarmer.swarmer_to_value swarmer fields
   in
   fields
     

@@ -6,6 +6,17 @@ Before 2.6:
   * Re-implement contributors in CommonSwarming
   * Re-implement already downloaded files.
 
+  * Why does a BT client appears twice in the upload_fifo ?
+  * Secondary file should have '2' if primary file has not 3...
+  * Use a strategy for each network that tries to finish partially
+      downloaded chunks for itself or the primary network.
+  * Do we query FileChunksReq too often ?
+  * Does the PartialChunk strategy work ?
+  * Why are chunks verified before completeness ?
+  * After a while, shared files are not shared anymore ! why ???
+  * When a connection succeeds and downloads, we should retry the connection
+     ASAP.
+
 URGENT:
  * Understand why we ask several times for the same chunks
  * Propagate client bitmaps to GUI

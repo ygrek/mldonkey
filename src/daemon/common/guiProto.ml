@@ -21,6 +21,8 @@ open CommonTypes
 open GuiTypes
     
 exception UnsupportedGuiMessage
+let verbose_gui_decoding = ref false
+  
 
 type gift_command = 
   GiftCommand of string * string option * gift_command list
@@ -207,7 +209,7 @@ type to_gui =
 | GiftServerStats of (string * string * string * string) list
   
   
-let from_gui_to_string t = 
+let string_of_from_gui t = 
   match t with
   | GuiProtocol _ -> "GuiProtocol"
   | ConnectMore_query -> "ConnectMore_query"

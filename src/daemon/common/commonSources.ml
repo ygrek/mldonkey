@@ -925,8 +925,7 @@ we will probably query for the other file almost immediatly. *)
           ("sscore", int_to_value s.source_score ) ::
           ("addr", M.source_uid_to_value s.source_uid ) ::
           ("brand", M.source_brand_to_value s.source_brand ) ::
-          ("files", smalllist_to_value "file list" 
-              (fun s -> s)
+          ("files", smalllist_to_value (fun s -> s)
             !requests) ::
           ("age", int_to_value s.source_age ) ::
           assocs

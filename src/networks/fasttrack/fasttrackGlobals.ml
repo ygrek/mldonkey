@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
 open Int64ops
 open Queues
 open Printf2
@@ -26,6 +25,8 @@ open BasicSocket
 open Options
 open TcpBufferedSocket
 
+open CommonInteractive
+open CommonSwarming
 open CommonHosts
 open CommonOptions
 open CommonClient
@@ -318,15 +319,17 @@ let new_file file_id file_name file_size file_hash =
     } 
   in
   incr search_num;
-  let swarmer = Int64Swarmer.create (as_file file) 
-      file_chunk_size min_range_size in
+  let kernel = Int64Swarmer.create_swarmer file_temp file_size min_range_size in
+  let swarmer = Int64Swarmer.create kernel (as_file file) 
+      file_chunk_size in
   file.file_swarmer <- Some swarmer;
   Hashtbl.add searches_by_uid search.search_id search;
 (*  lprintf "SET SIZE : %Ld\n" file_size;*)
-  Int64Swarmer.set_verifier swarmer (fun _ _ _ ->
+  Int64Swarmer.set_verifier swarmer NoVerification;
+  Int64Swarmer.set_verified swarmer (fun _ _ ->
       file_must_update file;
-      true  
   );
+  (*
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       
       (*
@@ -338,7 +341,7 @@ let new_file file_id file_name file_size file_hash =
         Unix32.buffered_write_copy t offset s pos len
       else
         Unix32.write  t offset s pos len
-  );
+  ); *)
   current_files := file :: !current_files;
   file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)

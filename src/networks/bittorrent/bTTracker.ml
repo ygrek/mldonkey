@@ -384,14 +384,18 @@ let http_handler t r =
 (* Return the 20 best peers *)
                   
                   let list = ref [] in
-                  
+                  lprintf "Tracker collecting peers:\n";
                   (try
                       for i = 0 to 19 do
                         let peer = Fifo.take tracker.tracker_peers in
+                        lprintf "   %s:%d\n" (Ip.to_string peer.peer_ip)
+                        peer.peer_port;
                         list := peer :: !list
                       done
                     with _ -> ());
+
                   
+                  lprintf "Tracker sending %d peers\n" (List.length !list);
                   List.iter (fun p ->
                       lprintf "Tracker send: %s:%d\n" 
                         (Ip.to_string p.peer_ip) p.peer_port;
@@ -465,6 +469,7 @@ let scan_tracked_directory _ =
           try
             Hashtbl.find old_tracked_files info_hash
           with Not_found ->
+              lprintf "New tracked file %s\n" filename;
               {
                 tracker_table = Hashtbl.create 13;
                 tracker_peers = Fifo.create ();

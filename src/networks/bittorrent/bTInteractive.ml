@@ -61,6 +61,12 @@ let _ =
       ) file.file_clients;
       !list
   );
+  file_ops.op_file_files <- (fun file impl -> 
+      match file.file_swarmer with
+        None -> [CommonFile.as_file impl]
+      | Some swarmer ->
+          Int64Swarmer.subfiles swarmer)
+  ;
   file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
   file_ops.op_file_debug <- (fun file ->
       let buf = Buffer.create 100 in
@@ -163,10 +169,9 @@ let load_torrent_string s =
   let file = new_download file_id torrent.torrent_name 
       torrent.torrent_length 
       torrent.torrent_announce torrent.torrent_piece_size 
-      torrent.torrent_files FileDownloading
+      torrent.torrent_files torrent.torrent_pieces FileDownloading
   in
   file.file_files <- torrent.torrent_files;
-  file.file_chunks <- torrent.torrent_pieces;
   file.file_torr_fname <- "/dev/null";
   BTClients.get_sources_from_tracker file;
   file
@@ -219,14 +224,14 @@ let try_share_file filename =
     in
     lprintf "Sharing file %s\n" filename;
     
-    
     let file = new_file file_id torrent.torrent_name 
         torrent.torrent_length 
         torrent.torrent_announce torrent.torrent_piece_size 
-        torrent.torrent_files filename FileShared
+        torrent.torrent_files filename torrent.torrent_pieces FileShared
     in
     file.file_torr_fname <- ss;
 
+    (*
     let swarmer = match file.file_swarmer with 
         None -> assert false 
       | Some swarmer -> swarmer in
@@ -234,10 +239,10 @@ let try_share_file filename =
     let verified = Int64Swarmer.verified_bitmap swarmer in
     let verified = String.make (String.length verified) '3' in
     Int64Swarmer.set_verified_bitmap swarmer verified;
-
+*)
+    
     lprintf "......\n";
     file.file_files <- torrent.torrent_files;
-    file.file_chunks <- torrent.torrent_pieces;
     BTClients.connect_tracker file "completed" 
       (parse_tracker_reply file)
 
@@ -283,7 +288,7 @@ let _ =
                 H.req_url = u;
                 H.req_proxy = !CommonOptions.http_proxy;
                 H.req_user_agent = 
-                Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+                Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
 		H.req_headers = try
 		  let cookies = List.assoc u.Url.server !!BTOptions.cookies in
 		  [ ( "Cookie", List.fold_left (fun res (key, value) ->

@@ -599,18 +599,27 @@ let http_add_gen_header r =
   add_reply_header r "Server" "MLdonkey";
   add_reply_header r "Connection" "close"
 
+let add_gzip_headers r =
+  if Autoconf.has_zlib && !!html_use_gzip then begin
+    add_reply_header r "Content-Encoding" "gzip";
+    add_reply_header r "Vary" "Accept-Encoding";
+  end 
+
 let http_add_html_header r = 
   http_add_gen_header r;
   add_reply_header r "Pragma" "no-cache";
-  add_reply_header r "Content-Type" "text/html; charset=iso-8859-1"
+  add_reply_header r "Content-Type" "text/html; charset=iso-8859-1";
+  add_gzip_headers r
 
 let http_add_css_header r = 
   http_add_gen_header r;
-  add_reply_header r "Content-Type" "text/css; charset=iso-8859-1"
+  add_reply_header r "Content-Type" "text/css; charset=iso-8859-1";
+  add_gzip_headers r
 
 let http_add_js_header r =
   http_add_gen_header r;
-  add_reply_header  r "Content-Type" "text/javascript; charset=iso-8859-1"
+  add_reply_header  r "Content-Type" "text/javascript; charset=iso-8859-1";
+  add_gzip_headers r
   
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
@@ -1074,7 +1083,7 @@ let http_handler o t r =
   if !html_page then  html_close_page buf;
   let s = Buffer.contents buf in
   let s = dollar_escape o !!use_html_frames s in
-  r.reply_content <- s
+  r.reply_content <- if Autoconf.has_zlib && !!html_use_gzip then Autoconf.zlib__gzip_string s else s
         
 let http_options = { 
     conn_buf = Buffer.create 10000;

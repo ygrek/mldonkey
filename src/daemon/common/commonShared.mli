@@ -20,6 +20,7 @@ val dirnames_prio : (string * int) list ref
 val as_shared : 'a shared_impl -> CommonTypes.shared
 val as_shared_impl : CommonTypes.shared -> 'a shared_impl
 val shared_num : CommonTypes.shared -> int
+val shared_calculate_total_bytes : unit -> unit
 val shared_counter : int ref
 val shared_must_update : CommonTypes.shared -> unit
 val shared_must_update_downloaded : CommonTypes.shared -> unit

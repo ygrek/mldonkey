@@ -67,7 +67,7 @@ let connect_urlfile () =
           H.req_url = Url.of_string url;
           H.req_proxy = !CommonOptions.http_proxy;
           H.req_user_agent = 
-          Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+          Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
         } in
       lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_urlfile    
@@ -105,7 +105,7 @@ let connect_hostfile _ =
           H.req_url = Url.of_string url;
           H.req_proxy = !CommonOptions.http_proxy;
           H.req_user_agent = 
-          Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+          Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
         } in
       lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_hostfile    

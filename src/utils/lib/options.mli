@@ -52,6 +52,10 @@ val options_file_name : options_file -> string
 val set_options_file : options_file -> string -> unit
 val prune_file : options_file -> unit  
 (*4 Operations on option files *)
+
+val set_before_save_hook : options_file -> (unit -> unit) -> unit
+val set_after_save_hook : options_file -> (unit -> unit) -> unit
+val set_after_load_hook : options_file -> (unit -> unit) -> unit
   
 val load : options_file -> unit
 (*d [load ()] loads the option file. All options whose value is specified
@@ -158,8 +162,8 @@ val float_to_value : float -> option_value
 val value_to_string2 : option_value -> string * string
 val string2_to_value : string * string -> option_value
 val value_to_list : (option_value -> 'a) -> option_value -> 'a list
-val list_to_value : string -> ('a -> option_value) -> 'a list -> option_value
-val smalllist_to_value : string -> ('a -> option_value) -> 'a list -> option_value
+val list_to_value : ('a -> option_value) -> 'a list -> option_value
+val smalllist_to_value : ('a -> option_value) -> 'a list -> option_value
 val value_to_path : option_value -> string list
 val path_to_value : string list -> option_value
 
@@ -201,4 +205,5 @@ val strings_of_section_options :
 val section_name : options_section -> string
 val iter_file : (Obj.t option_record -> unit) -> options_file -> unit
 val iter_section : (Obj.t option_record -> unit) -> options_section -> unit
+  
   

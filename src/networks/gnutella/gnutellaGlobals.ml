@@ -336,16 +336,17 @@ let new_file file_id file_name file_size =
   in
   Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" file_size;
-  let swarmer = Int64Swarmer.create (as_file file) megabyte 
-    (Int64.of_int (256 * 1024)) 
-  in
+  let kernel = Int64Swarmer.create_swarmer file_temp file_size 
+      (Int64.of_int (256 * 1024))  in
+  let swarmer = Int64Swarmer.create kernel (as_file file) megabyte in
   file.file_swarmer <- Some swarmer;
+  (*
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
         Unix32.buffered_write_copy t offset s pos len
       else
         Unix32.write  t offset s pos len
-  );
+  ); *)
   current_files := file :: !current_files;
   file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)

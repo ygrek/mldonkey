@@ -17,10 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Autoconf
 open Int64ops
 open Xml_types
 open Printf2
 open Md4
+open Options
+open BasicSocket
+  
+open CommonDownloads
 open CommonSearch
 open CommonGlobals
 open CommonUser
@@ -32,14 +37,12 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonInteractive
-open Options
+open CommonHosts
+  
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 open GnutellaComplexOptions
-open BasicSocket
-open CommonHosts
-open Autoconf
 open GnutellaProtocol
 
 (* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
@@ -201,6 +204,12 @@ let _ =
           as_client c
       ) file.file_clients
   );
+  file_ops.op_file_files <- (fun file impl -> 
+      match file.file_swarmer with
+        None -> [CommonFile.as_file impl]
+      | Some swarmer ->
+          Int64Swarmer.subfiles swarmer)
+;
   file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
   file_ops.op_file_recover <- (fun file ->
       GnutellaServers.recover_file file;

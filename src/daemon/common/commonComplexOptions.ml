@@ -114,6 +114,7 @@ module FileOption = struct
   end
 
 
+let swarmers_section = file_section files_ini [] ""
 let files_section = file_section files_ini [] "" 
   
 let done_files = 
@@ -196,7 +197,7 @@ module ResultOption = struct
       
       let list = [] in
       let list =  if !tags = [] then list else
-          ("tags", list_to_value "taglist" tag_to_value !tags) :: list
+          ("tags", list_to_value tag_to_value !tags) :: list
       in
       let list = if r.result_format = "" then list else
           ("format", string_to_value r.result_format) :: list
@@ -601,7 +602,7 @@ module SharingOption = struct
       let list = [
           "recursive", bool_to_value s.sharing_recursive;
           "extensions", 
-          list_to_value "ExtList" string_to_value s.sharing_extensions;
+          list_to_value string_to_value s.sharing_extensions;
           "minsize", int64_to_value s.sharing_minsize;
           "maxsize", int64_to_value s.sharing_maxsize;
         ]
@@ -710,7 +711,7 @@ module SharedDirectoryOption = struct
       let list = [
           "dirname", filename_to_value s.shdir_dirname;
           "networks", 
-          list_to_value "NetList" string_to_value s.shdir_networks;
+          list_to_value string_to_value s.shdir_networks;
           "strategy", 
           string_to_value  s.shdir_strategy;
           "priority", int_to_value s.shdir_priority;

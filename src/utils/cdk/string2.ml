@@ -298,3 +298,9 @@ let iteri f s =
     f i s.[i]
   done
   
+let init n f =
+  let s = String.create n in
+  for i = 0 to n - 1 do
+    s.[i] <- f i 
+  done;
+  s
