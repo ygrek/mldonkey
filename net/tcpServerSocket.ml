@@ -55,12 +55,12 @@ let tcp_handler t sock event =
       
 let dummy_sock = Obj.magic 0  
   
-let create port handler =
+let create addr port handler =
   try
     let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt fd Unix.SO_REUSEADDR true;
     Unix.set_close_on_exec fd;
-    Unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
+    Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
     Unix.listen fd 10;
     let t = {
         sock = dummy_sock;

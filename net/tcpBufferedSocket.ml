@@ -58,6 +58,7 @@ and bandwidth_controler = {
     mutable nconnections : int;
     mutable connections : t list;
     allow_io : bool ref;
+    mutable last_remaining : int;
   }
 
 
@@ -424,6 +425,7 @@ let create_read_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
+      last_remaining = 0;
     } in
   read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
   bc
@@ -435,6 +437,7 @@ let create_write_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
+      last_remaining = 0;
     } in
   write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
   bc
@@ -581,11 +584,13 @@ let _ =
   BasicSocket.add_timer 1.0 (fun timer ->
       reactivate_timer timer;
       List.iter (fun bc ->
+          bc.last_remaining <- bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
-          bc.remaining_bytes <- bc.total_bytes;
+          bc.last_remaining <- bc.remaining_bytes;
+          bc.remaining_bytes <- bc.total_bytes;          
 (*          Printf.printf "WRITE remaining_bytes: %d" bc.remaining_bytes;  
           print_newline (); *)
       ) !write_bandwidth_controlers
@@ -656,3 +661,10 @@ let buf_size  t =
   
 let can_fill t =
   t.wbuf.len < (t.wbuf.max_buf_size / 2)
+  
+let if_possible bc len = 
+  if bc.last_remaining >= len then begin
+      bc.last_remaining <- bc.last_remaining - len;
+      true;
+    end else false
+    

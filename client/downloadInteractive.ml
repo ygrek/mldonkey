@@ -264,8 +264,7 @@ let really_query_download filenames size md4 location old_file absents =
             
             | _ -> 
                 if not (Intmap.mem c.client_num file.file_known_locations) then
-                  file.file_known_locations <- Intmap.add c.client_num c
-                    file.file_known_locations
+                  new_known_location file c
           );
           if not (List.memq file c.client_files) then
             c.client_files <- file :: c.client_files;
@@ -382,7 +381,7 @@ let longest_name file =
 
 let saved_name file =
   let name = longest_name file in
-  if !!use_mp3_tags then
+(*  if !!use_mp3_tags then
     match file.file_format with
       Mp3 tags ->
         let module T = Mp3tag in
@@ -398,7 +397,8 @@ let saved_name file =
           else name in
         name          
     | _ -> name
-  else name
+else *)
+  name
       
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10s %32s %s" 

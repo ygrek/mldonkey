@@ -31,3 +31,6 @@ val update_options : unit -> unit
 val walker_timer : BasicSocket.timer -> unit
   
 val verify_ip : TcpBufferedSocket.t -> unit
+  
+val udp_send_if_possible : UdpSocket.t -> Unix.sockaddr -> Mftp_server.t -> unit
+  

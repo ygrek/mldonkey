@@ -185,16 +185,14 @@ let remove_old_clients () =
   List.iter (fun file ->
       let locs = file.file_known_locations in
       file.file_known_locations <- Intmap.empty;
+      file.file_nlocations <- 0;
       Intmap.iter (fun _ c ->
-          if connection_last_conn c.client_connection_control < min_last_conn then
-            begin
-              set_client_state c Removed
-            end
-          else 
-            file.file_known_locations <- Intmap.add c.client_num c
-              file.file_known_locations) locs
+          if connection_last_conn c.client_connection_control >= min_last_conn 
+            then
+            new_known_location file c
+            ) locs
   ) !!files
-
+  
 let check_clients _ =
   (* how many clients we try to connect per second ? *)
   let n = !!max_clients_per_second in
@@ -369,8 +367,7 @@ let udp_client_handler t p =
               let c = new_client (Known_location (ip, port)) in
               if not (Intmap.mem c.client_num file.file_known_locations) then begin
                   Printf.printf "New location by File Group !!"; print_newline ();
-                  file.file_known_locations <- Intmap.add c.client_num c 
-                    file.file_known_locations;
+                  new_known_location file c;
                 end;
               if not (List.memq file c.client_files) then
                 c.client_files <- file :: c.client_files;

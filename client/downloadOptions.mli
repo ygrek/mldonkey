@@ -102,8 +102,17 @@ val filter_table_threshold : int Options.option_record
 val client_buffer_size :  int Options.option_record
 val new_print_search : bool Options.option_record
   
-val use_mp3_tags :  bool Options.option_record
+(* val use_mp3_tags :  bool Options.option_record *)
 val max_upload_slots : int Options.option_record
 val compaction_delay : int Options.option_record
   
 val vd_reload_delay : int Options.option_record
+val http_bind_addr : Ip.t Options.option_record
+val gui_bind_addr : Ip.t Options.option_record
+val telnet_bind_addr : Ip.t Options.option_record
+val donkey_bind_addr : Ip.t Options.option_record
+  
+val propagate_sources : bool Options.option_record
+  
+val max_sources_per_file : int Options.option_record
+  

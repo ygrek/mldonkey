@@ -154,5 +154,7 @@ let of_string s =
   let file = s in
   create ~proto: "file"  file
 
+  (*
 let to_string with_args url = 
   if with_args then url.string else to_string false url
+*)

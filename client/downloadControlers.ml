@@ -154,8 +154,10 @@ let http_add_header buf =
   Buffer.add_string  buf "Connection: close\r\n";
   Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
   Buffer.add_string  buf "\r\n"
+
+let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
-let html_open_page buf r =
+let html_open_page buf r open_body =
   Buffer.clear buf;
   
   http_add_header buf;
@@ -164,12 +166,23 @@ let html_open_page buf r =
   "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
   \"http://www.w3.org/TR/html4/frameset.dtd\"><HTML>\n<HEAD>\n";
   Buffer.add_string buf !!html_header;
-  if !display_vd then
-    Printf.bprintf buf "<meta http-equiv=Refresh
-    content=\"%d; URL=%s\">" !!vd_reload_delay (Url.to_string true r.get_url);
+  if !display_vd then begin
+      let url = { r.get_url with
+          Url.server = Ip.to_string (
+            if !!http_bind_addr = any_ip then
+              !!client_ip
+            else
+              !!http_bind_addr);
+          Url.port = !!http_port;
+          Url.proto = "http";
+          } in
+      Printf.bprintf buf "<meta http-equiv=Refresh
+      content=\"%d; URL=%s\">" !!vd_reload_delay
+      (Url.to_string true url);
+    end;
   Buffer.add_string buf "</HEAD>\n";
-  if not !!use_html_frames then
-    add_simple_commands buf;
+  if open_body then Buffer.add_string buf "<BODY>\n";    
+  if not !!use_html_frames then add_simple_commands buf;
   ()
   
 let html_close_page buf =
@@ -187,14 +200,14 @@ let http_handler options t r =
       end
   else
     begin
-      html_open_page buf r;
       try
         match r.get_url.Url.file with
         | "/commands.html" ->
-            Buffer.add_string buf "<BODY>\n";  
+            html_open_page buf r true;
             Buffer.add_string buf !!web_common_header
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
+                html_open_page buf r false;
                 Printf.bprintf buf "
             <frameset src=\"index\" rows=\"%d,2*\">
                <frameset src=\"index\" cols=\"5*,1*\">
@@ -203,16 +216,17 @@ let http_handler options t r =
                </frameset>
                <frame name=\"output\" src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height             
-              end
-        
+              end else
+              html_open_page buf r true
         | "/complex_search.html" ->
-            Buffer.add_string buf "<BODY>\n";  
+            html_open_page buf r true;
             complex_search buf
         | "/noframe.html"
-        | "/oneframe.html" -> ()
+        | "/oneframe.html" ->
+            html_open_page buf r true
         
         | "/filter" ->
-            Buffer.add_string buf "<BODY>\n";  
+            html_open_page buf r true;
             let b = Buffer.create 10000 in 
             let filter = ref (fun _ -> ()) in
             begin              
@@ -266,7 +280,7 @@ let http_handler options t r =
             end
             
         | "/results" ->
-            Buffer.add_string buf "<BODY>\n";  
+            html_open_page buf r true;
             let b = Buffer.create 10000 in
             List.iter (fun (arg, value) ->
                 match arg with
@@ -292,7 +306,7 @@ let http_handler options t r =
             
             
         | "/files" ->
-            Buffer.add_string buf "<BODY>\n";  
+            
             List.iter (fun (arg, value) ->
                 match arg with
                   "cancel" -> 
@@ -335,15 +349,16 @@ let http_handler options t r =
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
             Buffer.add_string b (display_file_list b options);
+            
+            html_open_page buf r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
             
         | "/submit" ->
-            Buffer.add_string buf "<BODY>\n";  
             begin
               match r.get_url.Url.args with
               | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
-                  if !!use_html_frames then
-                    html_open_page buf r;
+                  html_open_page buf r true;
+(*                  if !!use_html_frames then html_open_page buf r; *)
                   query_download [] (Int32.of_string size_string)
                   (Md4.of_string md4_string) None None None;
                   Printf.bprintf buf  "\n<pre>\nDownload started\n</pre>\n";
@@ -363,16 +378,19 @@ let http_handler options t r =
                     eval (ref true) b cmd options;
                     html_escaped (Buffer.contents b)
                   in
+                  html_open_page buf r true;
                   Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
 
               | [ ("custom", query) ] ->
-                  
+                  html_open_page buf r true;
                   custom_query buf query
                   
               | ("custom", query) :: args ->
+                  html_open_page buf r true;
                   send_custom_query buf query args
   
               | [ "setoption", _ ; "option", name; "value", value ] ->
+                  html_open_page buf r true;
                   Options.set_simple_option downloads_ini name value;
                   Buffer.add_string buf "Option value changed"
                   
@@ -383,7 +401,8 @@ let http_handler options t r =
                   
                   raise Not_found
             end
-        | cmd -> 
+        | cmd ->
+            html_open_page buf r true;
             Printf.bprintf buf "No page named %s" cmd
       with e ->
           Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);
@@ -407,6 +426,7 @@ let http_options = {
   
 let create_http_handler () = 
   create {
+    bind_addr = Ip.to_inet_addr !!http_bind_addr;
     port = !!http_port;
     requests = [];
     addrs = !!allowed_ips;

@@ -145,3 +145,5 @@ val half_day : float
   
 val udp_servers_replies : (Md4.t, DownloadTypes.server) Hashtbl.t
   
+val new_known_location : DownloadTypes.file -> DownloadTypes.client -> unit
+  

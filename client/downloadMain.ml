@@ -243,8 +243,8 @@ let _ =
       end;
     
     if !!telnet_port <> 0 then begin try
-          ignore(TcpServerSocket.create !!telnet_port 
-            DownloadControlers.telnet_handler);  
+          ignore(TcpServerSocket.create (Ip.to_inet_addr !!telnet_bind_addr)
+            !!telnet_port DownloadControlers.telnet_handler);  
         with e ->
             Printf.printf "Exception %s while starting telnet interface"
             (Printexc.to_string e);
@@ -252,7 +252,8 @@ let _ =
       end;
     
     begin try
-        udp_sock := Some (UdpSocket.create (!!port + 4) 
+        udp_sock := Some (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+          (!!port + 4) 
           (udp_handler DownloadFiles.udp_client_handler));
       with e ->
           Printf.printf "Exception %s while binding UDP socket"
@@ -270,7 +271,8 @@ let _ =
                   TcpServerSocket.close sock "gui server restart"
             end;
             gui_server_sock := Some 
-              (TcpServerSocket.create !!gui_port gui_handler);  
+              (TcpServerSocket.create (Ip.to_inet_addr !!gui_bind_addr)
+              !!gui_port gui_handler);  
         );
         try
           !restart_gui_server ();
@@ -280,7 +282,8 @@ let _ =
             print_newline ();
       end;
     
-    let sock = TcpServerSocket.create !!port client_connection_handler in
+    let sock = TcpServerSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+      !!port client_connection_handler in
     
     begin
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
@@ -301,7 +304,8 @@ let _ =
     
     begin
       try
-        ignore (TcpServerSocket.create sport client_connection_handler);
+        ignore (TcpServerSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+          sport client_connection_handler);
       with _ ->
           Printf.printf "Unable to open Second listening port\n";
           Printf.printf "mldonkey will be enable to receive indirect\n";

@@ -185,6 +185,7 @@ and file = {
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
     mutable file_known_locations : client Intmap.t;
+    mutable file_nlocations : int;
     mutable file_indirect_locations : client Intmap.t;
     mutable file_md4s : Md4.t list;
     mutable file_downloaded : int32;

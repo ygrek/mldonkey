@@ -68,6 +68,7 @@ val create_write_bandwidth_controler : int -> bandwidth_controler
 val set_read_controler : t -> bandwidth_controler -> unit
 val set_write_controler : t -> bandwidth_controler -> unit
 val change_rate : bandwidth_controler -> int -> unit
+
   
 val exec_command : string -> string array -> handler -> t * t
   
@@ -77,3 +78,4 @@ val stats :  Buffer.t -> t -> unit
 val buf_size : t -> int * int
 val can_fill : t -> bool
   
+val if_possible : bandwidth_controler -> int -> bool

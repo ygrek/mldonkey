@@ -739,7 +739,12 @@ TODO list for client
   * efficient management of buffers
   * background searches: 
    - search and automatically download files
-
+Before 1.16:
+ + remove unused sources (cleanly remove them at least once per hour)
+ + set buffer size to 200k
+ + don't compute md4 for files being downloaded if timestamps show they have
+    not been modified.
+ + commit page to select saved name
 
 TODO list for server
 ====================
@@ -759,17 +764,21 @@ ChangeLog
 =========
 
 Release 1.16:
-  * Compaction forced every 'compaction_delay' hours (default is 6).
+  * Compaction forced every 'compaction_delay' hours (default is 2).
   * File age computed for files smaller than one chunk.
   * Servers sending extended search results are remembered, and immediatly
      asked if their files are downloaded.
   * Predicates in Indexer should work in most cases.
-  * WEB interface can be configured through 'html_header', 'web_common_header'
-     and 'vd_reload_delay'
-
-TODO before release:
-  * Option to enable/disable sources propagation between peers.
-  * use_mp3_tags should work correctly
+  * Fixed #100833: new options 'http_bind_addr', 'gui_bind_addr', 
+     'telnet_bind_addr' and 'telnet_bind_addr'.
+  * Started implementing 'use_tags', a program to rename mp3s from tags (and
+      maybe from freedb, someone interested ?)
+  * New option 'propagate_sources' to allow mldonkey to propagate sources
+     to other peers. When enabled, send far fewer messages than in 1.15.
+  * Fixed #100870: WEB interface can be configured through 'html_header', 
+     'web_common_header' and 'vd_reload_delay'
+  * GUI buffer size increased. Can be set by 'interface_buffer' in 
+     ~/.mldonkey_gui.ini
 
 Release 1.15:
   * Started implementing mldonkey_s (eDonkey compatible server)

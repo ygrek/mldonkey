@@ -228,6 +228,7 @@ let new_file file_name md4 file_size writable =
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [];
           file_known_locations = Intmap.empty;
+          file_nlocations = 0;
           file_indirect_locations = Intmap.empty;
           file_md4s = md4s;
           file_downloaded = Int32.zero;
@@ -584,6 +585,7 @@ let remove_file_clients file =
   let other_locs = file.file_indirect_locations in
   file.file_indirect_locations <- Intmap.empty;
   file.file_known_locations <- Intmap.empty;
+  file.file_nlocations <- 0;
   Intmap.iter (fun _ c ->
       if not (List.memq file c.client_files) then 
         (Printf.printf "direct location wasn't known by client"; print_newline ())
@@ -602,3 +604,20 @@ let remove_file_clients file =
 
 let last_search = ref Intmap.empty
 
+  
+(* when purging location, what to do with the client. 
+Maybe it is still useful ? *)
+  
+let new_known_location file c =
+  if file.file_nlocations = !!max_sources_per_file then begin
+(* find the oldest location, and remove it *)
+      (*
+      Intmap.iter (fun _ c ->
+          if connection_last_conn c.client_connection_control >= min_last_conn then
+            new_known_location file c) locs
+*)
+      ()
+    end else
+    file.file_nlocations <- file.file_nlocations + 1;
+  file.file_known_locations <- Intmap.add c.client_num c 
+    file.file_known_locations

@@ -34,8 +34,8 @@ let _ =
         Options.save_with_help server_ini
   end;
   Options.save_with_help server_ini;
-  ignore(TcpServerSocket.create !!server_port ServerClients.handler);
-  let udp_sock = UdpSocket.create (!!server_port + 4) ServerUdp.udp_handler in
+  ignore(TcpServerSocket.create Unix.inet_addr_any !!server_port ServerClients.handler);
+  let udp_sock = UdpSocket.create Unix.inet_addr_any (!!server_port + 4) ServerUdp.udp_handler in
   begin
     match !!seed_ip with
       None -> ()

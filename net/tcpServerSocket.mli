@@ -25,6 +25,6 @@ type t
 and handler = t -> event -> unit
 
 val sock : t -> BasicSocket.t
-val create : int -> handler -> t
+val create : Unix.inet_addr -> int -> handler -> t
 val close : t -> string -> unit
   

@@ -277,3 +277,4 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
   );
 
   loop ()
+  

@@ -122,6 +122,7 @@ stream_out : Stream_out.t;
 and handler = TcpBufferedSocket.t -> request -> unit
 
 and config = {
+    bind_addr : Unix.inet_addr;
     port : int;
     requests : (string * handler) list;
     addrs : Ip.t list;
@@ -752,6 +753,7 @@ let handler config t event =
   | _ -> ()
 
 let create config =
-  let t = TcpServerSocket.create config.port (handler config) in
+  let t = TcpServerSocket.create config.bind_addr 
+    config.port (handler config) in
   t
   

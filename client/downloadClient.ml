@@ -31,6 +31,10 @@ open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
 
+let client_send_if_possible sock msg =
+  if can_write_len sock (!!client_buffer_size/2) then
+    client_send sock msg
+  
 let verbose_group = ref false
 
 let tag_udp_client = 203
@@ -59,47 +63,50 @@ let new_udp_client c group =
       group.group <- UdpClientMap.add c.client_kind uc group.group
 
       
+let udp_sock () =
+  match !udp_sock with
+    None -> failwith "No UDP socket"
+  | Some sock -> sock
+      
 let udp_client_send uc t =
-  Mftp_comm.udp_send (match !udp_sock with
-      None -> failwith "No UDP socket"
-    | Some sock -> sock)  
-  (Unix.ADDR_INET (Ip.to_inet_addr uc.udp_client_ip,uc.udp_client_port+4))
+  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control 
+    (Unix.ADDR_INET (Ip.to_inet_addr uc.udp_client_ip,uc.udp_client_port+4))
   t
 
 let client_udp_send ip port t =
-  Mftp_comm.udp_send (match !udp_sock with
-      None -> failwith "No UDP socket"
-    | Some sock -> sock)  
+  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
   (Unix.ADDR_INET (Ip.to_inet_addr ip,port+4))
   t
 
 let find_sources_in_groups c md4 =
-  try
-    let group = Hashtbl.find file_groups md4 in
+  if !!propagate_sources then
     try
-      let uc = UdpClientMap.find c.client_kind group.group in
-      uc.udp_client_last_conn <- last_time ()
+      let group = Hashtbl.find file_groups md4 in
+      try
+        let uc = UdpClientMap.find c.client_kind group.group in
+        uc.udp_client_last_conn <- last_time ()
 (* the client is already known *)
-    with _ -> 
+      with _ -> 
 (* a new client for this group *)
-        if c.client_is_mldonkey >= 2 then begin
-            match c.client_sock with
-              None -> ()
-            | Some sock ->
+          if c.client_is_mldonkey >= 2 then begin
+              match c.client_sock with
+                None -> ()
+              | Some sock ->
 (* send the list of members of the group to the client *)
-                let list = ref [] in
-                UdpClientMap.iter (fun _ uc ->
-                    list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
-                ) group.group;
-                if !list <> [] then begin
-                    Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
-                    direct_client_send sock (
-                      let module Q = Mftp_client.Sources in
-                      Mftp_client.SourcesReq {
-                        Q.md4 = md4;
-                        Q.sources = !list;
-                      }
-                    )
+                  let list = ref [] in
+                  UdpClientMap.iter (fun _ uc ->
+                      list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
+                  ) group.group;
+                  if !list <> [] then begin
+                      Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
+                      let msg = client_msg (
+                          let module Q = Mftp_client.Sources in
+                          Mftp_client.SourcesReq {
+                            Q.md4 = md4;
+                            Q.sources = !list;
+                          }
+                        ) in
+                    client_send_if_possible sock msg 
                   end
           end else
           begin
@@ -224,8 +231,7 @@ let client_has_chunks c file chunks =
     match c.client_kind with
       Known_location _ ->
         if not (Intmap.mem c.client_num file.file_known_locations) then begin
-            file.file_known_locations <- Intmap.add c.client_num c
-              file.file_known_locations;
+            new_known_location file c;
             file.file_new_locations <- true
           end
     | _ ->
@@ -255,82 +261,91 @@ let client_has_chunks c file chunks =
   | _ -> 
       c.client_file_queue <- c.client_file_queue @ [file, chunks]
 
-
-
 let add_new_location sock file c =
+  
+  let is_new = ref false in
   let module M = Mftp_client in
-  let send_locations = ref 10 in
   (match c.client_kind with
       Known_location (ip, port) ->
         if not (Intmap.mem c.client_num file.file_known_locations) then begin
-            file.file_known_locations <- Intmap.add c.client_num c 
-              file.file_known_locations;
+            new_known_location file c; 
+            is_new := true;
             file.file_new_locations <- true;
-            
-            (try
-(* send this location to at most 10 other locations, 
-  connected in the last hour *)
-                let counter = ref 10 in
-                let time = last_time () -. 3600. in
-                Intmap.iter (fun _ cc ->
-                    if cc.client_checked &&
-                      connection_last_conn c.client_connection_control  
-                        > time then begin
-                        decr counter;
-                        if !counter = 0 then raise Exit;
-                        match cc.client_kind with
-                          Known_location (src_ip, src_port) -> 
-                            client_udp_send src_ip src_port (
-                              let module Q = Mftp_server.QueryLocationReply in
-                              Mftp_server.QueryLocationReplyUdpReq {
-                                Q.md4 = file.file_md4;
-                                Q.locs = [{ 
-                                    Q.ip = ip;
-                                    Q.port = port;
-                                  }];
-                              });
-                        | _ -> ()
-                      end
-                ) file.file_known_locations;
-              with _ -> ());
-
-(* send this location to at all connected locations *)
-            let msg = client_msg (
-                let module Q = M.Sources in
-                M.SourcesReq {
-                  Q.md4 = file.file_md4;
-                  Q.sources = [(ip, port, ip)];
-                })                    
-            in
-            Intmap.iter (fun _ cc ->
-                if cc.client_is_mldonkey > 1 then
-                  match cc.client_sock with 
-                    None -> ()
-                  | Some sock ->
-                      client_send sock msg
-            ) file.file_indirect_locations;
           
           end
     | Indirect_location -> 
         if not (Intmap.mem c.client_num file.file_indirect_locations) then begin
             file.file_indirect_locations <- Intmap.add c.client_num c
               file.file_indirect_locations;
+            is_new := true;
             file.file_new_locations <- true
           end
   );
   
   if not (List.memq file c.client_files) then
     c.client_files <- file :: c.client_files;
+  
+  if last_time () -.               
+    DownloadGlobals.connection_last_conn c.client_connection_control < 300.
+    && !!propagate_sources then
+  let send_locations = ref 10 in
 
 (* Send the known sources to the client. Use UDP for normal clients, TCP
 for mldonkey clients .*)
   begin
     match c.client_kind with
+      Known_location (ip, port) ->
+        (try
+(* send this location to at most 10 other locations, 
+  connected in the last quarter *)
+            let counter = ref 10 in
+            let time = last_time () -. 900. in
+            Intmap.iter (fun _ cc ->
+                if cc.client_checked &&
+                  connection_last_conn c.client_connection_control  
+                    > time then begin
+                    decr counter;
+                    if !counter = 0 then raise Exit;
+                    match cc.client_kind with
+                      Known_location (src_ip, src_port) -> 
+                        client_udp_send src_ip src_port (
+                          let module Q = Mftp_server.QueryLocationReply in
+                          Mftp_server.QueryLocationReplyUdpReq {
+                            Q.md4 = file.file_md4;
+                            Q.locs = [{ 
+                                Q.ip = ip;
+                                Q.port = port;
+                              }];
+                          });
+                    | _ -> ()
+                  end
+            ) file.file_known_locations;
+          with _ -> ());
+
+(* send this location to  all connected locations *)
+        let msg = client_msg (
+            let module Q = M.Sources in
+            M.SourcesReq {
+              Q.md4 = file.file_md4;
+              Q.sources = [(ip, port, ip)];
+            })                    
+        in
+        Intmap.iter (fun _ cc ->
+            if cc.client_is_mldonkey > 1 then
+              match cc.client_sock with 
+                None -> ()
+              | Some sock -> client_send_if_possible sock msg
+          ) file.file_indirect_locations;
+      | _ -> ()
+    end;
+  begin
+    match c.client_kind with
       Indirect_location when c.client_is_mldonkey < 2 -> ()
     | _ ->
-(* send at most 10 sources connected in the last hour to this new location *)
+        
+(* send at most 10 sources connected in the last quarter to this new location *)
         let sources = ref [] in
-        let time = last_time () -. 3600. in
+        let time = last_time () -. 900. in
         (try (* simply send the last found location *)
             Intmap.iter (fun _ c ->
                 if c.client_checked &&
@@ -343,17 +358,17 @@ for mldonkey clients .*)
                       if !send_locations = 0 then
                         raise Not_found
                   | _ -> ()
-            ) file.file_known_locations;                  
+            ) file.file_known_locations;
           with _ -> ());
         
         if !sources <> [] then
           if c.client_is_mldonkey = 2 then begin
-              direct_client_send sock (
+              client_send_if_possible sock (client_msg (
                 let module Q = M.Sources in
                 M.SourcesReq {
                   Q.md4 = file.file_md4;
                   Q.sources = !sources;
-                })
+                }))
             end else begin
               match c.client_kind with
                 Indirect_location -> ()
@@ -892,8 +907,7 @@ Mmap.munmap m;
               if Ip.valid ip1 then
                 let c = new_client (Known_location (ip1, port)) in
                 if not (Intmap.mem c.client_num file.file_known_locations) then
-                  file.file_known_locations <- Intmap.add c.client_num c
-                    file.file_known_locations;
+                  new_known_location file c;
                 if not (List.memq file c.client_files) then
                   c.client_files <- file :: c.client_files;
                 clients_list := (c, [file]) :: !clients_list;
@@ -1078,9 +1092,7 @@ let query_id s sock ip =
   )
 
 let udp_server_send s t =
-  Mftp_comm.udp_send (match !udp_sock with
-      None -> failwith "No UDP socket"
-    | Some sock -> sock)  
+  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
   (Unix.ADDR_INET (Ip.to_inet_addr s.server_ip,s.server_port+4))
   t
   

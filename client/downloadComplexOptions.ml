@@ -228,8 +228,7 @@ module FileOption = struct
             with _ -> ());
           
           List.iter (fun c ->
-              file.file_known_locations <- Intmap.add c.client_num  c
-                file.file_known_locations;
+              DownloadGlobals.new_known_location file  c;
               if not (List.memq file c.client_files) then
                 c.client_files <- file :: c.client_files;                  
           )

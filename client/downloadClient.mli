@@ -41,3 +41,5 @@ val client_wants_file : DownloadTypes.client -> Md4.t -> unit
   
 val clean_groups : unit -> unit
   
+val client_send_if_possible : TcpBufferedSocket.t -> 
+  Mftp_comm.client_msg -> unit

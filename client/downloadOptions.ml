@@ -374,7 +374,7 @@ let master_server_min_users = define_option downloads_ini
     int_option 0
   
 let update_server_list = define_option downloads_ini
-    ["dont_update_server_list"] "Unset this option if you don't want auto
+    ["update_server_list"] "Set this option to false if you don't want auto
     update of servers list" bool_option true
   
 let minor_heap_size = define_option downloads_ini
@@ -421,11 +421,12 @@ let _ =
       TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
   )
   
-  
+(*  
 let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"] 
   "Use mp3 tag content to save mp3 files"
     bool_option false
-  
+    *)
+
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"
     int_option 20
@@ -438,7 +439,7 @@ let _ =
   
 let compaction_delay = define_option downloads_ini ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"
-    int_option 6
+    int_option 2
   
 let vd_reload_delay = define_option downloads_ini ["vd_reload_delay"]
     "The delay between reloads of the vd output in the WEB interface"
@@ -451,3 +452,29 @@ let html_header = define_option downloads_ini ["html_header"]
   MLdonkey WEB Interface\n
   </TITLE>\n
     "
+  
+  
+let http_bind_addr = define_option downloads_ini ["http_bind_addr"]
+    "The IP address used to bind the http server"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+  
+let gui_bind_addr = define_option downloads_ini ["gui_bind_addr"]
+    "The IP address used to bind the gui server"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+  
+let telnet_bind_addr = define_option downloads_ini ["telnet_bind_addr"]
+    "The IP address used to bind the telnet server"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+  
+let donkey_bind_addr = define_option downloads_ini ["donkey_bind_addr"]
+    "The IP address used to bind the donkey client"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+    
+let propagate_sources = define_option downloads_ini ["propagate_sources"]
+    "Allow mldonkey to propagate your sources to other donkey clients"
+    bool_option true
+  
+let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
+    "Maximal number of sources for each file"
+    int_option 1000
+  

@@ -144,10 +144,10 @@ p.content); print_newline ();
         end      
   | _ -> t.event_handler t (BASIC_EVENT event)
 
-let create port handler =
+let create addr port handler =
   let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
   Unix.setsockopt fd Unix.SO_REUSEADDR true;
-  Unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
+  Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
   let t = {
       rlist = [];
       wlist = [];
@@ -171,3 +171,6 @@ let create_sendonly () =
   t.sock <- sock;
   t
     
+let can_write t =
+  t.wlist = []
+  

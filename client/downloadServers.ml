@@ -28,7 +28,9 @@ open DownloadOptions
 open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
-  
+
+let udp_send_if_possible sock addr msg =
+  udp_send_if_possible sock upload_control addr msg
   
 let first_name file =
   match file.file_filenames with

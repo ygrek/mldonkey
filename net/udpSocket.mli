@@ -23,11 +23,11 @@ type event =
   | BASIC_EVENT of BasicSocket.event
 type udp_packet = { content : string; addr : Unix.sockaddr; } 
 type t = {
-  mutable sock : BasicSocket.t;
-  mutable rlist : udp_packet list;
-  mutable wlist : udp_packet list;
-  mutable event_handler : handler;
-} 
+    mutable sock : BasicSocket.t;
+    mutable rlist : udp_packet list;
+    mutable wlist : udp_packet list;
+    mutable event_handler : handler;
+  }  
 and handler = t -> event -> unit
 val read : t -> udp_packet
 val set_handler : t -> event -> (t -> unit) -> unit
@@ -37,5 +37,7 @@ val sock : t -> BasicSocket.t
 val closed : t -> bool
 val close : t -> string -> unit
 val write : t -> string -> int -> int -> Unix.sockaddr -> unit
-val create : int -> handler -> t
+val create : Unix.inet_addr -> int -> handler -> t
 val create_sendonly : unit -> t
+val can_write : t -> bool
+  
