@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# Startup script for Mldonkey
+#
+# Laurent Culioli <laurent@pschit.net>
+#
+# chkconfig: 2345 90 15
+# description: Mldonkey is client to access multiple peer-to-peer network
+# processname: mldonkey
+# config: /etc/sysconfig/mldonkey
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source some options 
+. /etc/sysconfig/mldonkey
+
+RETVAL=0
+
+# Path to the mldonkey binarie.
+fullpath=/usr/lib/mldonkey/mldonkey-bin
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+
+
+start() {
+        gprintf "Starting Mldonkey: "
+	daemon --user mldonkey --check mldonkey $NICE "$fullpath  > /dev/null 2>&1 &"
+	touch /var/lock/subsys/mldonkey
+	echo
+}
+stop() {
+        gprintf "Stopping Mldonkey: "
+        killproc mldonkey-bin
+	rm -fr /var/lock/subsys/mldonkey
+	echo
+}
+
+
+# See how we were called.
+case "$1" in
+        start)
+                start
+		;;
+        stop)
+                stop
+                ;;
+        restart|reload)
+                stop
+                start
+                ;;
+        status)
+	        status mldonkey
+		;;
+	*)
+                gprintf "Usage: mldonkey {start|stop|restart|reload|status}\n"
+                RETVAL=1
+esac
+exit $RETVAL

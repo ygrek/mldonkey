@@ -1,0 +1,176 @@
+%define name       mldonkey
+%define Name       Mldonkey
+%define summary    Door to the 'donkey' network
+%define version    @CURRENT_VERSION@
+%define release    @CURRENT_RELEASE@
+
+Name:           %{name}
+Version:        %{version}
+Release:        %{release}
+Summary:        %{summary}
+License:        GPL
+Source0:        %{name}.sources.tar.bz2
+Source4:        mldonkey.init
+Source6:	mldonkey.sysconfig
+Source7:	mldonkey.sh
+URL:            http://www.mldonkey.net/
+Group:          System/Servers
+BuildRoot:      %{_tmppath}/%{name}-buildroot
+
+%description
+MLDonkey is a door to the 'donkey' network, a decentralized network used to
+exchange big files on the Internet. It is written in a wonderful language,
+called Objective-Caml, and present most features of the basic Windows donkey
+client, plus some more:
+  - It should work on most UNIX-compatible platforms.
+  - You can remotely command your client, either by telnet, on a WEB browser,
+    or with the GTK interface.
+  - You can connect to several servers, and each search will query all the
+     connected servers.
+  - You can select mp3s by bitrates in queries (useful ?).
+  - You can select the name of a downloaded file before moving it to your
+    incoming directory.
+  - You can have several queries in the graphical user interface at the same
+     time.
+  - You can remember your old queries results in the command-line interface.
+  - You can search in the history of all files you have seen on the network.
+
+
+It can also access other peer-to-peer networks :
+- Direct Connect
+- Open Napster
+- Gnutella LimeWire
+- Soulseek
+- Audio Galaxy
+- OpenFT
+
+%package gui
+Summary:	Graphical frontend for mldonkey based on GTK
+Group:		Networking/Other
+
+%description gui
+The GTK interface for mldonkey provides a convenient way of managing
+all mldonkey operations. It gives details about conected servers,
+downloaded files, friends and lets one search for files in a pleasing
+way.
+
+%package init
+prereq:		rpm-helper
+Summary:	Init to launch mldonkey
+Group:		System/Server
+Requires:	mldonkey
+
+%description init
+contains init to launch mldonkey as a service
+
+%package ed2k_submit
+Summary:	This tool gives you an easy way to add a ed2k-link
+Group:		Graphical desktop/KDE
+Requires:	kdebase
+Requires:	perl-libwww-perl
+
+%description ed2k_submit
+This tool gives you an easy way to add a ed2k-link 
+(like ed2k://|file|filename.exe|21352658|72b0b287cab7d875ccc1d89ebe910b9g|) 
+with a single click to your mldonkey download queue.
+
+You need to edit /etc/sysconfig/mldonkey_submit
+
+%prep
+rm -rf $RPM_BUILD_ROOT
+%setup -n %{name}
+
+%build
+
+perl -pi -e 's|/etc/sysconfig/mldonkey|/etc/sysconfig/mldonkey_submit|'  distrib/ed2k_submit/mldonkey_submit
+
+%install
+
+DONT_GPRINTIFY=1
+export DONT_GPRINTIFY
+
+# core
+install -d -m 755 %{buildroot}%{_bindir}
+install -d -m 755 %{buildroot}%{_libdir}/mldonkey
+install -m 755  %{SOURCE7} %{buildroot}%{_bindir}/mldonkey
+install -m 755  mldonkey %{buildroot}%{_libdir}/mldonkey/mldonkey-bin
+install -m 755  use_tags %{buildroot}%{_libdir}/mldonkey/use_tags
+install -m 755  distrib/mldonkey_command %{buildroot}%{_bindir}/mldonkey_command
+install -m 755  distrib/kill_mldonkey %{buildroot}%{_bindir}/kill_mldonkey
+
+# gui
+install -m 755  mldonkey_gui %{buildroot}%{_bindir}/mldonkey_gui
+install -m 755  mldonkey_gui2 %{buildroot}%{_bindir}/mldonkey_gui2
+install -m 755  mldonkey_guistarter %{buildroot}%{_bindir}/mldonkey_guistarter
+install -m 755  mlchat %{buildroot}%{_bindir}/mlchat
+install -m 755  distrib/mldonkey_previewer %{buildroot}%{_bindir}/mldonkey_previewer
+
+# init 
+install -d -m 755 %{buildroot}%{_initrddir}
+install -d -m 755 %{buildroot}/var/lib/mldonkey
+install -d -m 755 %{buildroot}/var/cache/mldonkey
+install -d -m 755 %{buildroot}/var/lib/mldonkey/incoming
+install -d -m 755 %{buildroot}%{_sysconfdir}/sysconfig
+install -m 755 %{SOURCE4} %{buildroot}%{_initrddir}/mldonkey
+install -m 644 %{SOURCE6} %{buildroot}%{_sysconfdir}/sysconfig/mldonkey
+
+# ed2k_submit
+install -d -m 755 %{buildroot}%{_datadir}/services/
+install -m 755 distrib/ed2k_submit/mldonkey_submit %{buildroot}%{_bindir}/mldonkey_submit
+install -m 644 distrib/ed2k_submit/mldonkey %{buildroot}%{_sysconfdir}/sysconfig/mldonkey_submit
+install -m 644 distrib/ed2k_submit/ed2k.protocol  %{buildroot}%{_datadir}/services/ed2k.protocol
+
+%pre init
+%_pre_useradd mldonkey /var/lib/mldonkey /bin/bash
+			
+%post init
+%_post_service mldonkey
+
+%post gui
+%update_menus
+
+%preun init
+%_preun_service mldonkey
+
+%postun init
+%_postun_userdel mldonkey
+
+%postun gui
+%clean_menus
+
+%files
+%defattr(-,root,root)
+%doc COPYING docs/* distrib/AUTHORS distrib/BUGS distrib/ChangeLog  distrib/Developers.txt  distrib/directconnect.ini  distrib/ed2k_links.txt  distrib/FAQ.html  distrib/Readme.txt  distrib/TODO
+%{_libdir}/mldonkey/mldonkey-bin
+%{_libdir}/mldonkey/use_tags
+%{_bindir}/mldonkey
+%{_bindir}/mldonkey_command
+%{_bindir}/kill_mldonkey
+
+%files gui
+%defattr(-,root,root)
+%doc COPYING
+%{_bindir}/mlchat
+%{_bindir}/mldonkey_gui*
+%{_bindir}/mldonkey_previewer
+
+%files init
+%defattr(-,root,root)
+%doc COPYING
+%config(noreplace) %{_sysconfdir}/sysconfig/mldonkey
+%config(noreplace) %{_initrddir}/mldonkey
+%attr(700,mldonkey,mldonkey) %dir /var/lib/mldonkey/incoming
+%attr(700,mldonkey,mldonkey) %dir /var/cache/mldonkey
+%attr(700,mldonkey,mldonkey) %dir /var/lib/mldonkey
+
+%files ed2k_submit
+%defattr(-,root,root)
+%doc COPYING distrib/ed2k_submit/README.MLdonkeySubmit 
+%config(noreplace) %{_sysconfdir}/sysconfig/mldonkey_submit
+%{_bindir}/mldonkey_submit
+%{_datadir}/services/ed2k.protocol
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%changelog

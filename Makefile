@@ -763,14 +763,14 @@ use_tags: $(USE_TAGS_CMXS) $(USE_TAGS_OBJS)
 use_tags.static: $(USE_TAGS_CMXS)  $(USE_TAGS_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -cclib -static -o $@  $(USE_TAGS_OBJS)  str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS)
 
-use_tags.byte: $(USE_TAGS_CMOS) 
+use_tags.byte: $(USE_TAGS_CMOS)   $(USE_TAGS_OBJS)
 	$(OCAMLC) -o $@ str.cma $(USE_TAGS_OBJS)  $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) 
 
 ######## MLCHAT
 mlchat: $(MLCHAT_CMXS)   $(MLCHAT_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@   $(MLCHAT_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS)  
 
-mlchat.byte: $(MLCHAT_CMOS) 
+mlchat.byte: $(MLCHAT_CMOS)    $(MLCHAT_OBJS)
 	$(OCAMLC) -o $@   $(MLCHAT_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLCHAT_CMOS) 
 
 mlchat.static: $(MLCHAT_CMXS)   $(MLCHAT_OBJS)
@@ -781,10 +781,10 @@ mlchat.static: $(MLCHAT_CMXS)   $(MLCHAT_OBJS)
 mldonkey_gui: $(MLDONKEYGUI_CMXS)   $(MLDONKEYGUI_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS)  $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS)
 
-mldonkey_gui.byte: $(MLDONKEYGUI_CMOS)  
+mldonkey_gui.byte: $(MLDONKEYGUI_CMOS)     $(MLDONKEYGUI_OBJS)
 	$(OCAMLC) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) 
 
-mldonkey_gui.static: $(MLDONKEYGUI_CMXS)  
+mldonkey_gui.static: $(MLDONKEYGUI_CMXS)     $(MLDONKEYGUI_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) 
 
 ######## MLDONKEY_IM
@@ -792,10 +792,10 @@ mldonkey_gui.static: $(MLDONKEYGUI_CMXS)
 mldonkey_im: $(MLDONKEY_IM_CMXS)   $(MLDONKEY_IM_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEY_IM_OBJS)  $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEY_IM_CMXS)
 
-mldonkey_im.byte: $(MLDONKEY_IM_CMOS)  
+mldonkey_im.byte: $(MLDONKEY_IM_CMOS)   $(MLDONKEY_IM_OBJS)
 	$(OCAMLC) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEY_IM_CMOS) 
 
-mldonkey_im.static: $(MLDONKEY_IM_CMXS)  
+mldonkey_im.static: $(MLDONKEY_IM_CMXS)   $(MLDONKEY_IM_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEY_IM_CMXS) 
 
 ######## STARTER
@@ -1057,6 +1057,17 @@ auto-release:
 	$(MAKE) shared
 	cp mldonkey-$(CURRENT_VERSION).shared.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 
+buildrpm: 
+	cp -f config/Makefile.config.i386 config/Makefile.config
+	$(MAKE) clean
+	$(MAKE) opt
+	rm -rf ../mldonkey-rpm rpm/mldonkey
+	rm -f rpm/mldonkey.sources.tar.bz2
+	cp -dpR . ../mldonkey-rpm
+	mv ../mldonkey-rpm rpm/mldonkey
+	cd rpm/mldonkey; rm -rf **/*.cm? **/*.o 
+	cd rpm; tar jcf mldonkey.sources.tar.bz2 mldonkey
+	rm -rf rpm/mldonkey
 
 #######################################################################
 

@@ -4,6 +4,7 @@ AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
 CURRENT_VERSION=2.01
+CURRENT_RELEASE=1
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -266,11 +267,11 @@ AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
 # available.
 case $host in
         *linux*)   
-           AC_CHECK_HEADERS(linux/limits.h,,
+           AC_CHECK_HEADERS(linux/limits.h,, [
              OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
              AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
-             CPPFLAGS=$OLD_CPPFLAGS
+             CPPFLAGS=$OLD_CPPFLAGS]
            )
         ;;
         *)         ;;
@@ -605,12 +606,20 @@ AC_SUBST(COMPRESS_EXT)
 AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
 AC_SUBST(CURRENT_VERSION)
+AC_SUBST(CURRENT_RELEASE)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 
 
 AUTOCONF=../lib/autoconf.ml
 GTK_AUTOCONF=../lib/gAutoconf.ml
-AC_OUTPUT(Makefile.config $AUTOCONF.new $GTK_AUTOCONF.new)
+AC_OUTPUT(\
+  Makefile.config \
+  Makefile.config.i386 \
+  Makefile.config.i486 \
+  Makefile.config.i586 \
+  Makefile.config.i686 \
+  $AUTOCONF.new $GTK_AUTOCONF.new \
+   ../rpm/mldonkey.spec)
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
