@@ -2,6 +2,10 @@ ChangeLog
 =========
 
 2003/11/28: Fabrice
+  * Unix32: some bug fixes which may have caused bad Sha1 computation in BT at 
+      inner file borders.
+
+2003/11/28: Fabrice
   * Applied GUI patches #2372 (renamefile), #2373 (newgui), 
        #2374 (configwin), #2375 (im), #2376 (configure)
   * Applied HTML patches #2151, #2264

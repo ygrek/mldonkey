@@ -709,12 +709,6 @@ let create_diskfile filename r a =
 let create_multifile filename r a files =
   create filename r a (fun f r a -> MultiFile (MultiFile.create f r a files))
   
-let fd_of_chunk t pos len = 
-  match t.file_kind with
-  | DiskFile t -> DiskFile.fd_of_chunk t pos len
-  | MultiFile t -> MultiFile.fd_of_chunk t pos len
-  | SparseFile t -> SparseFile.fd_of_chunk t pos len
-
 let ftruncate64 t len =
   match t.file_kind with
   | DiskFile t -> DiskFile.ftruncate64 t len
@@ -1003,6 +997,14 @@ let close t =
 let create_ro filename = create_diskfile filename [Unix.O_RDONLY] 0o666
 let create_rw filename = create_diskfile filename 
     [Unix.O_CREAT; Unix.O_RDWR] 0o666
+
+let fd_of_chunk t pos len = 
+  match t.file_kind with
+  | DiskFile t -> DiskFile.fd_of_chunk t pos len
+  | MultiFile tt -> 
+      flush_fd t;
+      MultiFile.fd_of_chunk tt pos len
+  | SparseFile t -> SparseFile.fd_of_chunk t pos len
 
 let exists t = 
   flush_fd t;
