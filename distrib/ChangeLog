@@ -1,0 +1,265 @@
+
+ChangeLog
+=========
+
+Release 1.16:
+  * Compaction forced every 'compaction_delay' hours (default is 2).
+  * File age computed for files smaller than one chunk. Better downloads for
+      these files.
+  * Servers sending extended search results are remembered, and immediatly
+     asked if their files are downloaded.
+  * Predicates in Indexer should work in most cases.
+  * Fixed #100833: new options 'http_bind_addr', 'gui_bind_addr', 
+     'telnet_bind_addr' and 'telnet_bind_addr'.
+  * Started implementing 'use_tags', a program to rename mp3s from tags (and
+      maybe from freedb, someone interested ?)
+  * New option 'propagate_sources' to allow mldonkey to propagate sources
+     to other peers. When enabled, send far fewer messages than in 1.15.
+  * Fixed #100870: WEB interface can be configured through 'html_header', 
+     'web_common_header' and 'vd_reload_delay'
+  * GUI buffer size increased. Can be set by 'interface_buffer' in 
+     ~/.mldonkey_gui.ini
+  * Fixed bug making mldonkey use 100% CPU for long periods.
+  * Fixed option name for 'update_server_list'
+  * New options 'max_sources_per_file' to limit the number of sources for
+    a given file. One source is removed each time a new source is added 
+    above this number.
+  * New command 'id' to display ID numbers for connected servers.
+  * 'client_buffer_size' set to 500000 by default.
+  * Fixed bug in ocaml patch that made open_mldonkey never finish downloads.
+
+Release 1.15:
+  * Started implementing mldonkey_s (eDonkey compatible server)
+  * GUI:
+    - Should fit in 640x480 screens.
+    - Server can be specified by ip:port in Add Server entry.
+    - Removed some non-tailrecursive functions.
+  * Core acts now with all (direct) clients as a server to diffuse sources
+     for files. Indirect mldonkey clients can also receive information.
+  * WEB interface:
+    - New option 'customized_searches' that can be used to add new
+       queries in the WEB interface (see new option file searches.ini
+       for examples).
+    - Improved searches (work also in the GTK GUI): 
+       * In the keyword/artist/title/album fields, a '-' in front of
+        a word means 'without'. Words separated by
+        spaces must appear in the reply. 
+       * In the format field: you can specify several formats, separated by
+        spaces. A '-' in front of a format means you don't want that format.
+    - New options 'web_header' and 'web_header_frame' to customize the header
+       displayed by the Web interface.
+    - Generate correct HTML with HEAD and TITLE :)
+    - Downloads can be sorted by name/percent/downloaded/size/rate.
+    - Paused downloads are correctly displayed.
+    - Use tables instead of spaces (for non-fixed fonts).
+    - Added option 'use_html_frames'. When frames are enabled, clicking
+       on a result to download will only modify the second frame.
+    - Checklist of downloads and results can be activated/desactivated with
+      the option 'html_checkbox_file_list'.
+    - The number of days since the file was last seen complete is now displayed
+  * Core:
+    - New option 'file_completed_cmd' for a command which is called when 
+     a file download is completed with as arguments: 
+     <filename on disk> <md4> <size> <names on the edonkey networks>*
+    - Started moving local indexation from mldonkey to an auxiliary program,
+     controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
+     See the 'Using auxiliary programs for local indexation' section in
+     the help (in progress, doesn't work).
+    - New command line option -client_ip that can be used to force the
+     IP used by mldonkey (if you have a firewall). Be careful with
+     dynamic IPs.
+    - Delay between md4 computation can be set by 'compute_md4_delay' option.
+     Chunks downloaded improve to reduce long md4 computations.
+  * Most problems with ed2k:// links should be fixed (/ at the end, and
+     spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
+  * Improved implementation of indexation. Documents description are
+     stored on disk. Different choices of indexation.
+  * Server black list: 'bs <ip1> <ip2> ...' in console to add IPs to the
+    server blacklist. Servers on this black list are eventually removed,
+    and will never be added again.
+  * New option 'master_server_min_users' that prevent mldonkey from remaining
+     connected to a server with too few users.
+  * New option 'dont_update_server_list' to disable automatic update of
+     server lists.
+  * Telnet interface: 
+     - New command 'remove_old_servers'
+  * New (less-aggressive) management of sources:
+     - New option 'max_source_age' (in days) to remove old sources.
+     - New option 'max_clients_per_second' to prevent bursts of connections.
+  * Faster computation of md4s for i486/i586/i686 Linux systems.
+  * Fixed bugs:  
+   - #100662: only valid server IPs are accepted.
+   - Use IP returned by getsockname instead of the one from gethostbyname.
+   - #100761: new option 'update_server_list' to choose whether you want 
+     mldonkey to automatically add new servers to your server list.
+   - Fixed bug preventing sharing of in-download files after restart.
+   - Fixed bug making history.met always increase.
+
+Release 1.14:
+  * Bandwidth is now controled by the 'max_hard_download_rate' and
+      'max_hard_upload_rate' options. Old rate options are obsolete.
+  * All simple options can now be set by arguments on the command line (use 
+     -help to show arguments).
+  * Bug fixes:
+    - Removed non-tailrecursive function in options.ml causing segfault when
+       loading files.ini.
+    - Connected clients without names in GUI should not appear anymore.
+    - Remove 2 minutes timeout for queued clients.
+
+Release 1.13:
+  * Annotations on files in file 'comments.met'. Commands 'comments <filename>'
+    to load a file, and 'comment <md4> <comment>' to add a new comment.
+    Such comments could be downloaded from web sites (sharereactor.com).
+  * New option 'web_infos' and new command 'add_url' on console: allow
+    to download a file from the WEB automatically everyday (or less 
+    frequently). Currently, only server.met and comments.met files are
+    supported.
+  * GUI:
+     - New config file in $HOME/.mldonkey_gui.ini with GUI options
+     - colors added in lists (see .mldonkey_gui.ini)
+     - Layout is saved.
+     - File locations are updated.
+     - Improved protocol to decrease bandwidth
+     - Comments are displayed in searches, and can be added in contextual menu.
+     - Shortcuts can be configured by options.
+  * Mailer accept non-canonnical addresses.
+  * Option 'verbose': '#' for download, 'U' for upload, and other messages.
+  * When possible, find extra names for files in history.
+  * Console:
+      - New command 'close_fds' to close all open files, to free space on disk 
+        after remove.
+      - New command 'pause' and 'resume' to pause and resume downloads (use
+         arg 'all' to apply to all files).
+  * Some control on how many connections can be opened per minute.
+  * Better scheduling of compaction (new option 'compaction_overhead')
+     in both core and GUI that caused delay when exiting.
+  * Bug fixes:
+    - Remove block change causing many 'exceeding block boundaries'
+    - history.dat changed to history.met, using more secure marshaling.
+    - OVERFLOW with GUI should not appear anymore.
+    - Compaction makes GUI memory usage better.
+
+Release 1.12:
+  * Bug fixes:
+    - Remove error 'bad file descriptor' when saving files.
+    - Remove possible infinite loop in upload function.
+
+Release 1.11:
+  * Option 'shared_directories' to specify other directories where files to
+   share can be found.
+  * Setting 'telnet_port', 'http_port' or 'gui_port' to 0 disables the
+      corresponding access.
+  * Console: 
+   - Sort results by size in vr.
+   - When 'd' fails with Already_done, you can use 'force_download' to force
+      an already downloaded file to be restarted.
+   - New command 'dllink' taking an ed2k URL to download as argument.
+   - Command 'set' can be used to set the allowed_ips option:
+       set allowed_ips '127.0.0.1 128.91.255.255' 
+     255 is for networks.
+   - shorten names in 'vd' output (see 'max_name_len' option). 
+  * WEB:
+   - New Cancel links in 'vd' output.
+   - New 'Complex Search' link in interface.
+   - 'View Options' output can be edited to modify options.
+  * GUI:
+   - The GUI tries to connect to the core every second until it succeeds.
+   - Corrected MD4 columns
+   - In search panel, 'Max hits' combo set the maximal number of replies
+      per server.
+  * Bug fixes:
+   - Don't add twice the incoming dir to shared file names.
+   - Cross-partition moves fail, but filename is renamed in temp dir.
+   - Limited open fds for files to 50 (doesn't limit shared files
+       and downloaded files).
+   - Execute entry on WEB interface always displayed.
+   - Removed a timeout closing all client connection after 2 minutes.
+   - Shared files are opened in read-only mode.
+
+Release 1.10:
+  * Default timeout for server connection set to 5 for faster connection.
+  * Options are now divided into four configuration files: downloads.ini,
+      servers.ini, friends.ini and files.ini.
+  * Console: better display of downloads.
+  * Verification of IP addresses for admin ('allowed_ips' option).
+  * WEB interface: added pragma no-cache. 
+  * Keep checking servers in the background.
+  * GUI: Auto-resize is now delayed. Default selection
+     mode is EXTENDED. Contextual menu items to switch between
+    auto-resize/manual resize and EXTENDED/MULTIPLE selection.
+  * Send a mail when download is finished. You must complete the
+    'smtp_server', 'smtp_port' and 'mail' options.
+  * Bug fixes: partial page in WEB interface fixed (often with vr).
+      Removed two minutes timeout on good client connections.
+      NoSpaceLeft causes pause in download.
+
+Release 1.09:
+  * Bug fixes: fixed bad md4 computation of the first chunk, preventing
+     completion of downloads.
+  * New command 'recover_temp' to recover all lost files from the temp
+     directory.
+  * See  http://www.freesoftware.fsf.org/mldonkey/ for porting mldonkey on new OSes.
+
+Release 1.08:
+  * Remove use of the 'mmap' system call.
+  * Better management of delays between connection attempts.
+  * Local searches use minsize/maxsize information.
+  * More information on availability on WEB/console interface.
+  * Small improvement in MD4 computation. Shared files MD4s are saved in
+     a 'shared_files.ini' file to avoid computating them again.
+  * Filters on replies: set the 'filters' option to a string containing
+     sub-words you want to remove, separated by spaces.
+  * Maximal download rate can be specified in 'max_download_rate' option.
+   (need probably to be rewritten more carefully).
+  * Bug fixes: files greater than 9mb in incoming/ can now be shared,
+      ftruncate replaced by lseek (for vfat FS), multiple connections to
+      the same client fixed.
+
+Release 1.07:
+  * Exchange of sets of sources between mldonkey clients.
+  * Started implementing chat between friends.
+  * GUI allows adding friends by specifying IP and port. New 
+     'Connect friend' menu. Better properties of files.
+  * New menu item 'preview' in GUI, associated with option 'previewer'.
+  * New menu 'Select All' in lists.
+  * Bug fixes: in mp3 tags edition, in connected servers count, in
+    displaying friends files, in passive connections.
+
+Release 1.06:
+  * History of seen files. New commands: 'ls' for local search on the history,
+    of search on servers, 'clh' for clear local history. New options: 
+    'use_file_history' to allow history on files, 'save_file_history' to
+    save the history on disk. For now, search only by words (not size).
+  * Authentification by the 'auth' command on the telnet client.
+  * Bug fixes: servers disconnected viewed as connected.
+
+Release 1.05:
+ * UDP protocol implemented: extended searches to all servers.
+ * Improved HTTP interface (port 4080).
+ * Limitation on minimal upload dropped to 1 kB/s.
+ * Fixed bug preventing queries on multiple words.
+
+Release 1.04:
+  * Improved WEB interface (download files by clicking).
+  * Stats on upload.
+
+Release 1.03:
+  * Upload can be disabled temporarily, if your client has been running long
+   enough.
+
+Release 1.02:
+  * max_upload_rate is not modified automically anymore.
+  * command-line client available from the GUI.
+
+Release 1.01:
+  * New command 'set' in command-line client to change options values
+  * Command-line client accessible from the GUI or any 
+   WEB browser (at http://localhost:4080/)
+
+Release 1.00:
+  * Upload/download works
+  * Friends works
+  * Complex queries works
+  * Command-line interface works
+  * Graphical interface works
+  * Import old config works

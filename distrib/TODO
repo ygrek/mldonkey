@@ -1,0 +1,88 @@
+TODO list for client
+====================
+  * Plugins.
+  * Correct display of availability.
+  * Popup
+  * Keep (server_ip, server_port, id) for indirect connections.
+  * Manager of shared files/directories.
+  * Add Friends in console and WEB. 
+  * Allow hostname instead of IPs in servers and friends.
+  * Queue uploads per chunk.
+  * Add prefered servers.
+  * Save options in a modular way (each server in a file ?).
+  * Recommandation for upload.
+  * Download priorities (what does it mean ?).
+  * Use source groups for local downloads.
+  * Use a cache of data to help diffusing files.
+  * Check that program exists before trying to execute.
+  * Correct boolean searches
+  * List of prefered servers
+  * Fix BUFFER OVERFLOW bug !!!!!
+  * Customized queries in GUI
+  * Clean the clients_by_num table from clients which are not useful anymore.
+  * remove locations of downloaded files.
+  * check that 'cancelled' files cannot be shared also in incoming/
+  * don't add sources to files already downloaded.
+  * efficient management of buffers
+  * background searches: 
+   - search and automatically download files
+Before 1.16:
+ + remove unused sources (cleanly remove them at least once per hour)
+ + don't compute md4 for files being downloaded if timestamps show they have
+    not been modified.
+ + commit page to select saved name
+ + display search results in different pages
+ + id of clients
+ + Rename with different names when a file already exists in incoming/ 
+   directory.
+
+TODO list for server
+====================
+* Send a ping to all clients every minute
+* Implement the whole protocol for TCP clients
+* Implement the whole protocol for UDP clients
+* Implement the protocol for UDP servers
+* Implement indexation
+* Implement localisation
+
+
+
+KNOWN COMMENTS (from savannah and forum):
+========================================
+Browser: Mozilla/4.75 [en] (X11; U; Linux 2.4.17 i686; Nav) On the help page, it still says you can't set uploads
+under 1K. 
+If a server IP along with a colon seperated port number
+is specified in the Server IP box, and enter hit, then
+it gets added. This would make copy/paste from a list
+of servers lots easier. Saving upstats would be nice, as well as some way of
+resetting it, to get a better idea of which files to
+keep shared. The downloads panel is a little busy, and not good for
+small screens (some people still have to use 640x480) Perhaps move the 'save files' to an incoming tab?
+(which can flash when it's got files in) On the same lines, why not show the filename/details
+(the one above the colour bar) in a line, with name in
+one box, size in the next (perhaps with bytes/Mb
+added), and the format in another, with the colour bar
+as the last item in the line, taking up the whole width
+of the client, with the 'connections' panel only
+popping up over the right-hand-side of the screen when
+a filename is double-clicked (or when show connections
+is picked from the menu)
+The MD4 recover might move to the incoming tab, and the
+ed2k file to below the filename/colourbar line, and
+automatically change when a new file is clicked,
+to show the ed2k: link.
+Maybe the cancel/retry-connect could move to the
+connections panel? On the search results tab, it would be nice to indicate
+number of results per file, to give at least an
+indication of availability.
+
+===========================================
+The only problem is that since I use it (.10) it eats lots of memory and cpu
+resources.. this is the 'top' line, using 90.3% of the cpu and 22.5% RAM 32294 runa      14   0 86612  84M   796 R    90.3 22.5 275:55 mldonkey
+============================================
+
+
+============================================
+
+============================================
+
