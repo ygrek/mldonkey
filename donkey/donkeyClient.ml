@@ -1429,11 +1429,12 @@ let init_client sock c =
               Fifo.put upload_clients c
             end
   );
+(*
   set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
       connection_delay c.client_connection_control;
       printf_string "-!C";
       close s "timeout"
-  );
+  ); *)
   c.client_block <- None;
   c.client_zones <- [];
   c.client_file_queue <- [];

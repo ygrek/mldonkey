@@ -134,7 +134,6 @@ let set_request_result c file rs =
           (r.request_result <- rs; raise Exit)
     ) c.client_files;
     Printf.printf "Error: setting result to no request"; print_newline ();
-    exit 2
   with Exit -> ()
   
 let query_file c file =

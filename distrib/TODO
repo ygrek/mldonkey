@@ -1,6 +1,14 @@
 TODO list for client
 ====================
 
+>  recompute_ready_sources on sources not implemented
+>  Error: setting result to no request
+
+-> remove exit
+
+fix /files page
+
+use the lattest patch !
 
 Downloads seem to work only from firewalled hosts...
 
