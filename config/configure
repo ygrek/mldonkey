@@ -3032,7 +3032,6 @@ fi
 if test "$PTHREAD_LIBS" = "no"; then
   echo "Dont use threads"
 else
-  PTHREAD_LIBS=""
   
 
 
@@ -3058,9 +3057,9 @@ if test x"$PTHREAD_LIBS$PTHREAD_CFLAGS" != x; then
         save_LIBS="$LIBS"
         LIBS="$PTHREAD_LIBS $LIBS"
         echo $ac_n "checking for pthread_join in LIBS=$PTHREAD_LIBS with CFLAGS=$PTHREAD_CFLAGS""... $ac_c" 1>&6
-echo "configure:3062: checking for pthread_join in LIBS=$PTHREAD_LIBS with CFLAGS=$PTHREAD_CFLAGS" >&5
+echo "configure:3061: checking for pthread_join in LIBS=$PTHREAD_LIBS with CFLAGS=$PTHREAD_CFLAGS" >&5
         cat > conftest.$ac_ext <<EOF
-#line 3064 "configure"
+#line 3063 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -3071,7 +3070,7 @@ int main() {
 pthread_join()
 ; return 0; }
 EOF
-if { (eval echo configure:3075: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3074: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   acx_pthread_ok=yes
 else
@@ -3138,18 +3137,18 @@ for flag in $acx_pthread_flags; do
         case $flag in
                 none)
                 echo $ac_n "checking whether pthreads work without any flags""... $ac_c" 1>&6
-echo "configure:3142: checking whether pthreads work without any flags" >&5
+echo "configure:3141: checking whether pthreads work without any flags" >&5
                 ;;
 
                 -*)
                 echo $ac_n "checking whether pthreads work with $flag""... $ac_c" 1>&6
-echo "configure:3147: checking whether pthreads work with $flag" >&5
+echo "configure:3146: checking whether pthreads work with $flag" >&5
                 PTHREAD_CFLAGS="$flag"
                 ;;
 
                 *)
                 echo $ac_n "checking for the pthreads library -l$flag""... $ac_c" 1>&6
-echo "configure:3153: checking for the pthreads library -l$flag" >&5
+echo "configure:3152: checking for the pthreads library -l$flag" >&5
                 PTHREAD_LIBS="-l$flag"
                 ;;
         esac
@@ -3169,7 +3168,7 @@ echo "configure:3153: checking for the pthreads library -l$flag" >&5
         # functions on Solaris that doesn't have a non-functional libc stub.
         # We try pthread_create on general principles.
         cat > conftest.$ac_ext <<EOF
-#line 3173 "configure"
+#line 3172 "configure"
 #include "confdefs.h"
 #include <pthread.h>
 int main() {
@@ -3178,7 +3177,7 @@ pthread_t th; pthread_join(th, 0);
                      pthread_create(0,0,0,0); pthread_cleanup_pop(0); 
 ; return 0; }
 EOF
-if { (eval echo configure:3182: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3181: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   acx_pthread_ok=yes
 else
@@ -3210,16 +3209,16 @@ if test "x$acx_pthread_ok" = xyes; then
         # Detect AIX lossage: threads are created detached by default
         # and the JOINABLE attribute has a nonstandard name (UNDETACHED).
         echo $ac_n "checking for joinable pthread attribute""... $ac_c" 1>&6
-echo "configure:3214: checking for joinable pthread attribute" >&5
+echo "configure:3213: checking for joinable pthread attribute" >&5
         cat > conftest.$ac_ext <<EOF
-#line 3216 "configure"
+#line 3215 "configure"
 #include "confdefs.h"
 #include <pthread.h>
 int main() {
 int attr=PTHREAD_CREATE_JOINABLE;
 ; return 0; }
 EOF
-if { (eval echo configure:3223: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3222: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ok=PTHREAD_CREATE_JOINABLE
 else
@@ -3231,14 +3230,14 @@ fi
 rm -f conftest*
         if test x"$ok" = xunknown; then
                 cat > conftest.$ac_ext <<EOF
-#line 3235 "configure"
+#line 3234 "configure"
 #include "confdefs.h"
 #include <pthread.h>
 int main() {
 int attr=PTHREAD_CREATE_UNDETACHED;
 ; return 0; }
 EOF
-if { (eval echo configure:3242: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3241: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ok=PTHREAD_CREATE_UNDETACHED
 else
@@ -3261,7 +3260,7 @@ EOF
         fi
 
         echo $ac_n "checking if more special flags are required for pthreads""... $ac_c" 1>&6
-echo "configure:3265: checking if more special flags are required for pthreads" >&5
+echo "configure:3264: checking if more special flags are required for pthreads" >&5
         flag=no
         case "${host_cpu}-${host_os}" in
                 *-aix* | *-freebsd*)     flag="-D_THREAD_SAFE";;
@@ -3279,7 +3278,7 @@ echo "configure:3265: checking if more special flags are required for pthreads" 
         # Extract the first word of "cc_r", so it can be a program name with args.
 set dummy cc_r; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3283: checking for $ac_word" >&5
+echo "configure:3282: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_PTHREAD_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3337,7 +3336,7 @@ fi
 
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:3341: checking compile GTK GUI" >&5
+echo "configure:3340: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
@@ -3352,7 +3351,7 @@ echo "configure:3341: checking compile GTK GUI" >&5
         echo "$ac_t""yes" 1>&6
 
         echo $ac_n "checking GToolbox.popup_menu args""... $ac_c" 1>&6
-echo "configure:3356: checking GToolbox.popup_menu args" >&5
+echo "configure:3355: checking GToolbox.popup_menu args" >&5
         GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
@@ -3372,7 +3371,7 @@ esac
 # Extract the first word of "bzip2", so it can be a program name with args.
 set dummy bzip2; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3376: checking for $ac_word" >&5
+echo "configure:3375: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3401,7 +3400,7 @@ fi
 # Extract the first word of "gzip", so it can be a program name with args.
 set dummy gzip; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3405: checking for $ac_word" >&5
+echo "configure:3404: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else

@@ -576,7 +576,6 @@ fi
 if test "$PTHREAD_LIBS" = "no"; then
   echo "Dont use threads"
 else
-  PTHREAD_LIBS=""
   ACX_PTHREAD
 fi
 
