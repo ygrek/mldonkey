@@ -171,11 +171,11 @@ let buf_host_state proto buf t =
       
     
 let buf_client_type buf t =
-  buf_int8 buf (match t with
-      NormalClient -> 0
-    | FriendClient -> 1
-    | ContactClient -> 2)
-
+  buf_int8 buf (
+    if t land client_friend_tag <> 0 then 1 else
+    if t land client_contact_tag <> 0 then 2 else
+      0)
+  
 let buf_bool buf b =
   buf_int8 buf (if b then 1 else 0)
       
@@ -268,7 +268,7 @@ let buf_kind buf k =
 let buf_file proto buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
-  buf_list buf buf_string f.file_names;  
+  buf_list buf buf_string (List.map fst f.file_names);  
   buf_md4 buf f.file_md4;  
   buf_int64_32 buf f.file_size;  
   buf_int64_32 buf f.file_downloaded;  

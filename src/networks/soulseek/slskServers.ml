@@ -117,12 +117,9 @@ let server_to_client s m sock =
         try
           let c = Hashtbl.find clients_by_name name in
           c.client_addr <- Some (ip, port);
-(* Which good reason with have to ask for his address ? *)
-          match client_type c with
-          | FriendClient | ContactClient -> 
+
+          if client_browsed_tag land client_type c <> 0 then
                SlskClients.connect_peer c 300 [C2C.GetSharedFileListReq]
-     
-          | _ -> ()
           
         with Not_found ->
             lprintf "Client %s not found\n" name; 

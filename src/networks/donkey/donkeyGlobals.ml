@@ -245,7 +245,7 @@ let update_best_name file =
       let rec good_name file list =
         match list with
           [] -> raise Not_found;
-        | t :: q -> if t <> md4_name then
+        | (t,_) :: q -> if t <> md4_name then
               (String2.replace t '/' "::") else good_name file q in
       
       set_file_best_name (as_file file.file_file) 
@@ -287,7 +287,7 @@ let new_file file_state file_name md4 file_size writable =
           file_chunks_age = [||];
 (*          file_all_chunks = String.make nchunks '0'; *)
           file_absent_chunks =   [Int64.zero, file_size];
-          file_filenames = [Filename.basename file_name];
+          file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
           file_nsources = 0;
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
@@ -544,6 +544,9 @@ let find_client_by_key key =
 let client_type c =
   client_type (as_client c.client_client)
 
+let set_client_type c t=
+  set_client_type (as_client c.client_client) t
+
 let friend_add c =
   friend_add (as_client c.client_client)
       
@@ -562,7 +565,7 @@ let set_client_name c name md4 =
       try      
         let kind = Indirect_location (name, md4) in
         let cc = H.find clients_by_kind { dummy_client with client_kind = kind } in
-        if cc != c && client_type cc = FriendClient then
+        if cc != c && client_type cc land client_friend_tag <> 0 then
           friend_add c
       with _ -> ()
     end

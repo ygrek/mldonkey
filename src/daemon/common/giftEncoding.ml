@@ -135,7 +135,7 @@ let translate gui t =
           GiftCommand("size", Some (Int64.to_string file.file_size), []);
           GiftCommand("file", Some (match file.file_names with
                 [] -> "no name"
-              | name :: _ -> name), []);
+              | (name,_) :: _ -> name), []);
           GiftCommand("shared", Some "1", []);
           
           GiftCommand("throughput", 

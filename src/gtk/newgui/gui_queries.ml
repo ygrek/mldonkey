@@ -495,9 +495,10 @@ class paned () =
     val mutable static_results = ([] : Gui_cdget.url_results list)
       
     val mutable wnote_main = GPack.notebook () 
-    val mutable wnote_results = GPack.notebook () 
+(*    val mutable wnote_results = GPack.notebook ()   
+    method wnote_results = wnote_results  
 
-    method set_wnote_results w = wnote_results <- w
+    method set_wnote_results w = wnote_results <- w *)
     method set_wnote_main w = wnote_main <- w
     
     method set_list_bg bg font =

@@ -96,7 +96,7 @@ let friend_source =
     ~colormap:(Gdk.Color.get_system_colormap ()) ()
   in
   let pixmap = fake_tree_pixmap pixmap in
-  let pix1 = Gui_friends.type_pix FriendClient in
+  let pix1 = Gui_friends.type_pix client_friend_tag in
   pix_with_mask pixmap pix1
 
 let contact_source =
@@ -104,7 +104,7 @@ let contact_source =
     ~colormap:(Gdk.Color.get_system_colormap ()) ()
   in
   let pixmap = fake_tree_pixmap pixmap in
-  let pix1 = Gui_friends.type_pix ContactClient in
+  let pix1 = Gui_friends.type_pix client_contact_tag in
   pix_with_mask pixmap pix1
 
 let normal_source =
@@ -112,30 +112,29 @@ let normal_source =
     ~colormap:(Gdk.Color.get_system_colormap ()) ()
   in
   let pixmap = fake_tree_pixmap pixmap in
-  let pix1 = Gui_friends.type_pix NormalClient in
+  let pix1 = Gui_friends.type_pix 0 in
   pix_with_mask pixmap pix1
 
 let get_source_pix client_type =
-  match client_type with
-      FriendClient -> friend_source
-    | ContactClient -> contact_source
-    | NormalClient -> normal_source
+  if client_friend_tag land client_type <> 0 then friend_source else
+  if client_contact_tag land client_type <> 0 then contact_source else
+    normal_source
 
 
   
 let save_menu_items file =
   List.map
-    (fun name ->
+    (fun (name,_) ->
       `I (name, 
         (fun _ -> 
-          match file.data.gfile_state with
- 	      FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+            match file.data.gfile_state with
+              FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
             | _  ->  Gui_com.send (GuiProto.RenameFile (List.hd (file.data.gfile_num), name))
         )
       )
   ) 
   file.data.gfile_names
-
+  
 let file_first_name f = f.data.gfile_name
 
 let save_as file () = 
@@ -480,7 +479,7 @@ class box columns sel_mode () =
           Printf.sprintf "%5.1f" 
                  (Int64.to_float f.data.gfile_downloaded /. Int64.to_float f.data.gfile_size *. 100.)
               else ""
-            else List.hd f.data.gfile_names
+            else fst (List.hd f.data.gfile_names)
       |	Col_file_rate ->
           if (List.length f.data.gfile_num) = 1 then
             if f.data.gfile_download_rate > 0. then
@@ -853,7 +852,7 @@ class box_downloads wl_status () =
         (* Printf.printf "Child %d - Client %d\n" (List.hd (List.rev child.data.gfile_num)) c.gclient_num;
         flush stdout;*)
         child.data.gfile_network <- c.gclient_network;
-        child.data.gfile_names <- [c.gclient_software];
+        child.data.gfile_names <- [c.gclient_software, noips()];
         child.data.gfile_size <- c.gclient_uploaded;
         child.data.gfile_downloaded <- c.gclient_downloaded;
         child.data.gfile_state  <- client_to_general_state c.gclient_state;
@@ -1185,7 +1184,7 @@ class box_downloads wl_status () =
             gfile_num = [List.hd file.data.gfile_num; client_num];
             gfile_network = file.data.gfile_network;
             gfile_name = Printf.sprintf "Client %d" client_num;
-            gfile_names = [""];
+            gfile_names = ["", noips()];
             gfile_md4 = file.data.gfile_md4;
             gfile_size = Int64.of_string "0";
             gfile_downloaded = Int64.of_string "0";

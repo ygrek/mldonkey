@@ -71,6 +71,10 @@ LockReq {
 });  
 *)
 
+let should_browse c =
+  let cc = as_client c.client_client in
+  c.client_all_files = None && ((is_friend  cc) || (is_contact  cc)) 
+  
 let init_connection nick_sent c sock =
   c.client_receiving <- Int64.zero;
   c.client_sock <- Some sock;
@@ -83,24 +87,23 @@ let init_connection nick_sent c sock =
       server_send !verbose_msg_clients sock (MyNickReq my_nick);
       server_send !verbose_msg_clients sock (create_key ());
     end;
-  match c.client_all_files, client_type c with
-  | Some _, _  (* we already have browsed this client *)
-  | None, NormalClient ->
-      if c.client_files = [] then
-        server_send !verbose_msg_clients sock (DirectionReq { 
-            Direction.direction = Upload;
-            Direction.level = 666;
-          }) else
-        server_send !verbose_msg_clients sock (DirectionReq { 
-            Direction.direction = Download;
-            Direction.level = 666;
-          })
-  | _ ->
-      server_send !verbose_msg_clients sock (DirectionReq { 
-          Direction.direction = Download;
-          Direction.level = 31666;
-        })      
+  if should_browse c then
+    server_send !verbose_msg_clients sock (DirectionReq { 
+        Direction.direction = Download;
+        Direction.level = 31666;
+      })      
+  else  
+  if c.client_files = [] then
+    server_send !verbose_msg_clients sock (DirectionReq { 
+        Direction.direction = Upload;
+        Direction.level = 666;
+      }) else
+    server_send !verbose_msg_clients sock (DirectionReq { 
+        Direction.direction = Download;
+        Direction.level = 666;
+      })
 
+    
 
       
 let read_first_message nick_sent t sock =
@@ -146,12 +149,9 @@ let client_reader c t sock =
   | LockReq lock ->
       server_send !verbose_msg_clients sock (
         KeyReq { Key.key = DcKey.gen lock.Lock.key });
+      let cc = as_client c.client_client in
       begin
-        match client_type c, c.client_all_files with
-        | (FriendClient | ContactClient), None ->
-
-(* So, we cannot downlaod anything else from a friend ??? *)
-            
+        if should_browse c then begin            
             
             lprintf "TRY TO DOWNLOAD FILE LIST"; lprint_newline ();
             server_send !verbose_msg_clients sock (GetReq {
@@ -160,29 +160,29 @@ let client_reader c t sock =
               });
             c.client_pos <- Int64.zero;
             c.client_download <- DcDownloadList (Buffer.create 10000)
-        
-        | _ ->
-            let rec iter_files files =
-              match files with
-              | [] -> lprintf "NO FILE TO UPLOAD"; lprint_newline ();
-              
-              | (file, filename) :: tail -> 
-                  if file_state file = FileDownloading then begin
-                      lprintf "GET: file downloaded %Ld"  (file_downloaded file);
-                      lprint_newline ();
-                      server_send !verbose_msg_clients sock (GetReq {
-                          Get.name = filename;
-                          Get.pos = Int64.add (file_downloaded file) Int64.one;
-                        });
-                      c.client_download <- DcDownload file;
-                      c.client_pos <- (file_downloaded file);
-                    end
-                  else 
-                    iter_files tail
-            in
-            iter_files c.client_files
+          
+          end else 
+        let rec iter_files files =
+          match files with
+          | [] -> lprintf "NO FILE TO UPLOAD"; lprint_newline ();
+          
+          | (file, filename) :: tail -> 
+              if file_state file = FileDownloading then begin
+                  lprintf "GET: file downloaded %Ld"  (file_downloaded file);
+                  lprint_newline ();
+                  server_send !verbose_msg_clients sock (GetReq {
+                      Get.name = filename;
+                      Get.pos = Int64.add (file_downloaded file) Int64.one;
+                    });
+                  c.client_download <- DcDownload file;
+                  c.client_pos <- (file_downloaded file);
+                end
+              else 
+                iter_files tail
+        in
+        iter_files c.client_files
       end
-  
+      
   | KeyReq _ ->
       lprintf "DISCARD KEY ..."; lprint_newline ();
   

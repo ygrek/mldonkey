@@ -77,3 +77,16 @@ val set_client_has_a_slot : CommonTypes.client -> bool -> unit
   
 val uploaders : CommonTypes.client Intmap.t ref
   
+val is_friend : CommonTypes.client -> bool
+val is_contact : CommonTypes.client -> bool
+val is_nolimit : CommonTypes.client -> bool
+val is_initialized : CommonTypes.client -> bool
+  
+val set_friend : CommonTypes.client -> unit
+val set_contact : CommonTypes.client -> unit
+val set_nolimit : CommonTypes.client -> unit
+val set_initialized : CommonTypes.client -> unit
+  
+val set_not_friend : CommonTypes.client -> unit
+val set_not_contact : CommonTypes.client -> unit
+  

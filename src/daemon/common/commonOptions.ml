@@ -218,7 +218,7 @@ let allowed_ips = define_option current_section ["allowed_ips"]
     ~desc: "Allowed IPs"
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
 list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
-    ip_list_option [Ip.of_string "127.0.0.1"]  
+    ip_list_option [Ip.localhost]  
         
 let gui_port = 
   define_option current_section ["gui_port"] 
@@ -296,13 +296,19 @@ let max_connections_per_second = define_option current_section
   "Maximal number of connections that can be opened per second
 (will supersede max_clients_per_second in the future)"
   int_option 10
-  
+
 let loop_delay = define_expert_option current_section
   ["loop_delay"] 
 "The delay in milliseconds to wait in the event loop. Can be decreased to
 increase the bandwidth usage, or increased to lower the CPU usage."
   int_option 30
   
+let nolimit_ips = define_option current_section ["nolimit_ips"]
+    ~desc: "No-limit IPs"
+  "list of IP addresses allowed to connect to the core with no limit on
+upload/download and upload slots.  List separated by spaces, wildcard=255 
+ie: use 192.168.0.255 for 192.168.0.* "
+    ip_list_option [Ip.localhost]  
   
   
   
@@ -502,25 +508,6 @@ let http_proxy_port = define_option current_section ["http_proxy_port"]
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
     "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)" 
     bool_option false
-
-let http_proxy = ref None
-let http_proxy_tcp_update _ =
-  if !!http_proxy_tcp then
-    TcpBufferedSocket.http_proxy := !http_proxy
-  else
-    TcpBufferedSocket.http_proxy := None
-
-let _ =
-  let proxy_update _ =
-    http_proxy := 
-    (match !!http_proxy_server with
-        "" -> None
-      | _  -> Some (!!http_proxy_server, !!http_proxy_port));
-    http_proxy_tcp_update ()
-  in
-  option_hook http_proxy_server proxy_update;
-  option_hook http_proxy_port proxy_update;
-  option_hook http_proxy_tcp http_proxy_tcp_update
   
   
   
@@ -932,7 +919,11 @@ let download_sample_size = define_expert_option current_section ["download_sampl
     "How many samples go into an estimate of transfer rates" int_option 10
 
 let calendar = define_expert_option current_section ["calendar"]
-  "This option defines a set of date at which some commands have to be executed"
+  "This option defines a set of date at which some commands have to be executed.
+  For each tuple, the first argument is a list of week days (from 0 to 6), 
+  the second is a list of hours (from 0 to 23) and the last one a command to
+  execute. Can be used with 'pause all' and 'resume all' for example to
+  resume and pause downloads automatically for the night."
     (list_option (tuple3_option (list_option int_option,list_option int_option,
       string_option)))
   []
@@ -1236,6 +1227,25 @@ let _ =
               false
             with Not_found -> true)
       else (fun _ -> true))
+
+let http_proxy = ref None
+let http_proxy_tcp_update _ =
+  if !!http_proxy_tcp then
+    TcpBufferedSocket.http_proxy := !http_proxy
+  else
+    TcpBufferedSocket.http_proxy := None
+
+let _ =
+  let proxy_update _ =
+    http_proxy := 
+    (match !!http_proxy_server with
+        "" -> None
+      | _  -> Some (!!http_proxy_server, !!http_proxy_port));
+    http_proxy_tcp_update ()
+  in
+  option_hook http_proxy_server proxy_update;
+  option_hook http_proxy_port proxy_update;
+  option_hook http_proxy_tcp http_proxy_tcp_update
   
 (*  
     

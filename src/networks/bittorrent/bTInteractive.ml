@@ -121,7 +121,7 @@ let _ =
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [file.file_name];
+        P.file_names = [file.file_name, P.noips()];
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
@@ -300,7 +300,9 @@ let _ =
         let announce = Printf.sprintf "http://%s:%d/tracker"
           (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
 
-        BTTracker.generate_torrent announce filename;
+        BTTracker.generate_torrent announce
+          (Printf.sprintf "%s.torrent" filename)
+        filename;
         ".torrent file generated"
     ), " <filename> : generate the corresponding <filename>.torrent file";
         

@@ -664,7 +664,7 @@ let publish_file (file : DonkeyTypes.file) =
         s.search_publish_files <- file :: s.search_publish_files;
         files_to_be_published := s :: !files_to_be_published;	 
       in
-      List.iter (fun name -> List.iter index_string (String2.stem name) ) 
+      List.iter (fun (name,_) -> List.iter index_string (String2.stem name) ) 
       file.file_filenames;
     end
     

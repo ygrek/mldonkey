@@ -500,76 +500,77 @@ let connect_client c =
             ConnectionAborted -> c.client_sock <- NoConnection
           | Connection _ | NoConnection -> ()
           | _ ->
-          try
-          if !verbose_msg_clients then begin
-              lprintf "connect_client\n";
-            end;
-            match c.client_user.user_kind with
-              Indirect_location _ -> ()
-            | Known_location (ip, port) ->
+              try
                 if !verbose_msg_clients then begin
-                    lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                    lprintf "connect_client\n";
                   end;
-                let sock = connect "gnutella download" 
-                    (Ip.to_inet_addr ip) port
-                    (fun sock event ->
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                          disconnect_client c Closed_for_timeout
-                      | BASIC_EVENT (CLOSED s) ->
-                          disconnect_client c s
-                      | _ -> ()
-                  )
-                in
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
-                
-                c.client_host <- Some (ip, port);
-                set_client_state c Connecting;
-                c.client_sock <- Connection sock;
-                TcpBufferedSocket.set_closer sock (fun _ s ->
-                    disconnect_client c s
-                );
-                set_rtimeout sock 30.;
-                match c.client_downloads with
-                  [] -> 
+                match c.client_user.user_kind with
+                  Indirect_location _ -> ()
+                | Known_location (ip, port) ->
+                    if !verbose_msg_clients then begin
+                        lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                      end;
+                    let sock = connect "gnutella download" 
+                        (Ip.to_inet_addr ip) port
+                        (fun sock event ->
+                          match event with
+                            BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                              disconnect_client c Closed_for_timeout
+                          | BASIC_EVENT (CLOSED s) ->
+                              disconnect_client c s
+                          | _ -> ()
+                      )
+                    in
+                    TcpBufferedSocket.set_read_controler sock download_control;
+                    TcpBufferedSocket.set_write_controler sock upload_control;
+                    
+                    c.client_host <- Some (ip, port);
+                    set_client_state c Connecting;
+                    c.client_sock <- Connection sock;
+                    TcpBufferedSocket.set_closer sock (fun _ s ->
+                        disconnect_client c s
+                    );
+                    set_rtimeout sock 30.;
+                    match c.client_downloads with
+                      [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
-                    
-                    if !verbose_msg_clients then begin
-                        lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
-                      end;
-                    if client_type c = NormalClient then                
-                      disconnect_client c (Closed_for_error "Nothing to download");
-                    set_gnutella_sock sock !verbose_msg_clients
-                      (HttpHeader (friend_parse_header c));
-                    let s = add_header_fields 
-                        "GNUTELLA CONNECT/0.6\r\n" sock 
-                        (Printf.sprintf "Remote-IP: %s\r\n\r\n" (Ip.to_string ip))
-                    in
+                        
+                        if !verbose_msg_clients then begin
+                            lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
+                          end;
+                        
+                        if client_browsed_tag land client_type c = 0 then
+                          disconnect_client c (Closed_for_error "Nothing to download");
+                        set_gnutella_sock sock !verbose_msg_clients
+                          (HttpHeader (friend_parse_header c));
+                        let s = add_header_fields 
+                            "GNUTELLA CONNECT/0.6\r\n" sock 
+                            (Printf.sprintf "Remote-IP: %s\r\n\r\n" (Ip.to_string ip))
+                        in
 (*
         lprintf "SENDING\n";
         AP.dump s;
   *)
-                    write_string sock s;
-                
-                
-                | d :: _ ->
-                    if !verbose_msg_clients then begin
-                        lprintf "READY TO DOWNLOAD FILE\n";
-                      end;
+                        write_string sock s;
                     
-                    get_from_client sock c;
-                    set_gnutella_sock sock !verbose_msg_clients
-                      (HttpHeader (client_parse_header c))
-          
-          with e ->
-              lprintf "Exception %s while connecting to client\n" 
-                (Printexc2.to_string e);
-              disconnect_client c (Closed_for_exception e)
+                    
+                    | d :: _ ->
+                        if !verbose_msg_clients then begin
+                            lprintf "READY TO DOWNLOAD FILE\n";
+                          end;
+                        
+                        get_from_client sock c;
+                        set_gnutella_sock sock !verbose_msg_clients
+                          (HttpHeader (client_parse_header c))
+              
+              with e ->
+                  lprintf "Exception %s while connecting to client\n" 
+                    (Printexc2.to_string e);
+                  disconnect_client c (Closed_for_exception e)
       );
       c.client_sock <- ConnectionWaiting
-
+      
 (*
   
 1022569854.519 24.102.10.39:3600 -> 212.198.235.45:51736 of len 82

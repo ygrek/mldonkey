@@ -94,7 +94,7 @@ let client_num c =
   c.impl_client_num
   
 let dummy_client_impl = {
-    impl_client_type = NormalClient;
+    impl_client_type = 0;
     impl_client_state = NewHost;
     impl_client_update = 1;
     impl_client_has_slot = false;
@@ -395,3 +395,33 @@ let client_print c o =
       info.G.client_name
     end
 
+
+let is_friend c =
+  (client_type c) land client_friend_tag <> 0
+  
+let is_contact c = 
+  (client_type c) land client_contact_tag <> 0
+  
+let set_friend c =
+  set_client_type c (client_type c lor client_friend_tag)
+  
+let set_contact c =
+  set_client_type c (client_type c lor client_contact_tag)
+  
+let set_not_friend c =
+  set_client_type c (client_type c land (lnot client_friend_tag))
+  
+let set_not_contact c =
+  set_client_type c (client_type c land (lnot client_contact_tag))
+  
+let is_nolimit c =
+  (client_type c) land client_nolimit_tag <> 0
+  
+let set_nolimit c =
+  set_client_type c (client_type c lor client_nolimit_tag)
+  
+let is_initialized c =
+  client_type c land client_initialized_tag <> 0
+    
+let set_initialized c =
+  set_client_type c (client_type c lor client_initialized_tag)

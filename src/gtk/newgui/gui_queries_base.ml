@@ -101,14 +101,14 @@ class paned () =
     GPack.notebook ~tab_pos:`TOP ~show_tabs:true ~homogeneous_tabs:true
       ~show_border:true ~scrollable:true ~popup:true
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
-  in
+  in 
   object
     val vbox = vbox
     val wnote_queries = wnote_queries
-    val wnote_results = wnote_results
+    val wnote_results = wnote_results 
     method vbox = vbox
     method wnote_queries = wnote_queries
-    method wnote_results = wnote_results
+    method wnote_results = wnote_results 
     method coerce = vbox#coerce
   end
 

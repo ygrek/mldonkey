@@ -339,7 +339,9 @@ SPIDER_SRCS= \
   src/spider/spiderUtils.ml \
   src/spider/spiderDependencies.ml \
   src/spider/spiderFiles.ml \
+  src/spider/spiderGenTables.ml \
   src/spider/spiderTables.ml \
+  src/spider/spiderCommands.ml \
   src/spider/spiderClustering.ml \
   src/spider/spiderCorruption.ml \
   src/spider/spiderRoutes.ml \

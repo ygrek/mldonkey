@@ -426,8 +426,19 @@ let rec connect_one_server () =
               end;
             
             raise Not_found;
-          end;
-        connect_one_server ()
+          end else begin
+            
+(* sort the servers list so that last connected servers are connected first
+  (ie decreasing order of last connections)
+  *)
+            servers_list := List.sort (fun s1 s2 ->
+                compare 
+                (connection_last_conn s2.server_connection_control) 
+                (connection_last_conn s1.server_connection_control)
+            ) !servers_list;
+            
+            connect_one_server ();
+          end
     | s :: list ->
         servers_list := list;
         if connection_can_try s.server_connection_control then

@@ -263,7 +263,7 @@ let useful_client source_of_client reconnect_client c =
       if not downloading then (lprintf "Not downloading"; 
         lprint_newline ()); *)
     if downloading || 
-      (client_type c <> NormalClient &&
+      (client_browsed_tag land client_type c <> 0 &&
         c.client_next_view_files < last_time ()) then
       (
         if !verbose_sources then begin
@@ -309,7 +309,7 @@ let rank_level rank =
 let stats_ranks = ref (Array.create 10 0)
     
 let keep_client c =
-  client_type c <> NormalClient ||
+  client_browsed_tag land client_type c <> 0 ||
   (                
     List.exists (fun r -> 
         if r.request_result >= File_chunk then

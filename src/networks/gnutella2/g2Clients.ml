@@ -553,7 +553,7 @@ an upload request *)
                     if !verbose_msg_clients then begin
                         lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
                       end;
-                    if client_type c = NormalClient then                
+                    if client_browsed_tag land client_type c = 0 then
                       disconnect_client c (Closed_for_error "Nothing to download");
                     set_gnutella_sock (Connection sock) !verbose_msg_clients
                       (HttpHeader (friend_parse_header c));

@@ -59,7 +59,7 @@ GPATTERN=src/gtk/gpattern
 OKEY=src/gtk/okey
 CONFIGWIN=src/gtk/configwin
 SRC_GUI2=src/gtk/gui2
-
+SRC_PROGRESS=src/gtk/progress
 
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
@@ -76,7 +76,7 @@ SRC_DIRECTCONNECT=src/networks/direct_connect
 IM=src/im
 
 SUBDIRS=$(CDK) $(CHAT) $(LIB) $(NET) tools \
-   $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
+   $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES) $(EXTRA_DIRS)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
@@ -180,6 +180,7 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonBitzi.ml \
   $(COMMON)/guiDecoding.ml \
   $(COMMON)/guiEncoding.ml \
   $(COMMON)/giftLexer.mll \
@@ -188,6 +189,7 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/giftDecoding.ml \
   $(COMMON)/commonChat.ml \
   $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonHosts.ml \
   $(COMMON)/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
@@ -202,6 +204,7 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
+  $(COMMON)/commonWeb.ml \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
@@ -253,9 +256,6 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyGlobals.ml \
   $(SRC_DONKEY)/donkeyProtoCom.ml  \
   $(SRC_DONKEY)/donkeySourcesMisc.ml \
-  $(SRC_DONKEY)/donkeySources1.ml  \
-  $(SRC_DONKEY)/donkeySources2.ml  \
-  $(SRC_DONKEY)/donkeySources3.ml  \
   $(SRC_DONKEY)/donkeySources.ml  \
  \
   $(SRC_DONKEY)/donkeyComplexOptions.ml \
@@ -288,6 +288,76 @@ ED2K_HASH_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS) \
   tools/ed2k_hash.ml
+
+MLPIC_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/pic/picTypes.ml \
+  src/pic/picOptions.ml \
+  src/pic/picGlobals.ml \
+  src/pic/picDB.ml \
+  src/pic/picGenerator.ml \
+  src/pic/picThemeFrames.ml \
+  src/pic/picThemeFilm.ml \
+  src/pic/picThemeEditor.ml \
+  src/pic/picThemeAlbum.ml \
+  src/pic/picHttp.ml \
+  src/pic/picMain.ml
+
+SPIDER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonHasher_c.c \
+  \
+  src/spider/spiderTypes.ml \
+  src/spider/spiderOptions.ml \
+  src/spider/spiderMftp.ml \
+  src/spider/spiderImport.ml \
+  src/spider/spiderOpenProtocol.ml \
+  src/spider/spiderProtoClient.ml \
+  src/spider/spiderProtoServer.ml  \
+  src/spider/spiderProtoUdp.ml  \
+  \
+  src/spider/spiderGlobals.ml \
+  src/spider/spiderArgs.ml \
+  src/spider/spiderProtoCom.ml  \
+ \
+  src/spider/spiderComplexOptions.ml \
+  src/spider/spiderSupernode.ml \
+  src/spider/spiderIndexer.ml \
+  src/spider/spiderShare.ml \
+  src/spider/spiderReliability.ml \
+  src/spider/spiderChunks.ml \
+  src/spider/spiderOneFile.ml \
+  \
+  src/spider/spiderUtils.ml \
+  src/spider/spiderDependencies.ml \
+  src/spider/spiderFiles.ml \
+  src/spider/spiderGenTables.ml \
+  src/spider/spiderTables.ml \
+  src/spider/spiderCommands.ml \
+  src/spider/spiderClustering.ml \
+  src/spider/spiderCorruption.ml \
+  src/spider/spiderRoutes.ml \
+  src/spider/spiderStats.ml \
+  \
+  src/spider/spiderClient.ml \
+  src/spider/spiderProtoOvernet.ml \
+  \
+  src/spider/spiderTrap.ml \
+  src/spider/spiderOvernet.ml \
+  src/spider/spiderServers.ml \
+  src/spider/spiderSearch.ml \
+  src/spider/spiderInteractive.ml \
+  \
+  src/spider/spiderMain.ml \
+  src/daemon/common/commonMain.ml
 
 COPYSOURCES_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
@@ -509,7 +579,7 @@ install:: opt
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk 
+SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
 
 GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
 GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
@@ -680,12 +750,13 @@ GUI_BASE_SRCS= \
   $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
   $(SRC_GUI)/gui_columns.ml \
   $(SRC_GUI)/gui_keys.ml \
-  $(SRC_GUI)/gui_options.ml 
+  $(SRC_GUI)/gui_options.ml \
+  $(SRC_PROGRESS)/gui_progress.ml \
+  $(SRC_GUI)/gui_misc.ml \
+  $(SRC_GUI)/gui_com.ml 
 
 NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_types.ml \
-  $(SRC_GUI)/gui_misc.ml \
-  $(SRC_GUI)/gui_com.ml \
   $(SRC_GUI)/gui_graph_base.ml $(SRC_GUI)/gui_graph.ml \
   $(SRC_GUI)/gui_console_base.zog $(SRC_GUI)/gui_console.ml \
   $(SRC_GUI)/gui_users_base.ml $(SRC_GUI)/gui_users.ml \
@@ -703,6 +774,8 @@ NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_config.ml \
   $(SRC_GUI)/gui_main.ml
 
+PROGRESS_SRCS = \
+  $(SRC_PROGRESS)/gui_progress_main.ml
 
 OLDGUI_SRCS=  \
   $(SRC_GUI)/gui_misc.ml \
@@ -739,13 +812,18 @@ MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
 MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEY_IM_SRCS= \
-   $(GUI_BASE_SRCS) $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
+   $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 
 INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
 INSTALLER_SRCS= \
-  $(GUI_BASE_SRCS) $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
+  $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
+
+MLPROGRESS_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+
+MLPROGRESS_SRCS = \
+  $(PROGRESS_SRCS) $(MAIN_SRCS)
 
 
 #######################################################################
@@ -769,7 +847,7 @@ MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE)
+TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE) mlprogress$(EXE)
 
 TARGETS +=  mlnet+gui$(EXE)
 
@@ -1248,9 +1326,9 @@ libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
 libclient_SRCS= $(COMMON_CLIENT_SRCS)
 libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS)
-libguibase_SRCS= $(IM_CORE)
-libgui_SRCS=   $(GUI_BASE_SRCS) $(GUI_SRCS)
-libgui3_SRCS=   $(GUI_BASE_SRCS) $(GUI3_SRCS)
+libguibase_SRCS= $(IM_CORE) $(GUI_BASE_SRCS)
+libgui_SRCS=   $(GUI_SRCS)
+libgui3_SRCS=   $(GUI3_SRCS)
 libicons_SRCS= $(ALL_ICONS_SRCS)
 
 
@@ -1510,6 +1588,31 @@ mldonkey+gui.byte: $(mldonkey+gui_OBJS) $(mldonkey+gui_CMOS)  $(mldonkey+gui_CMA
  
 mldonkey+gui.static:  $(mldonkey+gui_OBJS) $(mldonkey+gui_CMXS)  $(mldonkey+gui_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mldonkey+gui_CMXAS) $(mldonkey+gui_CMXS)
+
+
+MLPROGRESS_ZOG := $(filter %.zog, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_MLL := $(filter %.mll, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_MLY := $(filter %.mly, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_ML4 := $(filter %.ml4, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_C := $(filter %.c, $(MLPROGRESS_SRCS)) 
+MLPROGRESS_CMOS=$(foreach file, $(MLPROGRESS_ML),   $(basename $(file)).cmo) 
+MLPROGRESS_CMXS=$(foreach file, $(MLPROGRESS_ML),   $(basename $(file)).cmx) 
+MLPROGRESS_OBJS=$(foreach file, $(MLPROGRESS_C),   $(basename $(file)).o)    
+
+MLPROGRESS_CMXAS := $(foreach file, $(MLPROGRESS_CMXA),   build/$(basename $(file)).cmxa)
+MLPROGRESS_CMAS=$(foreach file, $(MLPROGRESS_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(MLPROGRESS_ML4:.ml4=.ml) $(MLPROGRESS_MLL:.mll=.ml) $(MLPROGRESS_MLY:.mly=.ml) $(MLPROGRESS_MLY:.mly=.mli) $(MLPROGRESS_ZOG:.zog=.ml) 
+ 
+mlprogress: $(MLPROGRESS_OBJS) $(MLPROGRESS_CMXS) $(MLPROGRESS_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLPROGRESS_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLPROGRESS_CMXAS) $(MLPROGRESS_CMXS) 
+ 
+mlprogress.byte: $(MLPROGRESS_OBJS) $(MLPROGRESS_CMOS)  $(MLPROGRESS_CMAS)
+	$(OCAMLC) -linkall -o $@  $(MLPROGRESS_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLPROGRESS_CMAS) $(MLPROGRESS_CMOS) 
+ 
+mlprogress.static:  $(MLPROGRESS_OBJS) $(MLPROGRESS_CMXS)  $(MLPROGRESS_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLPROGRESS_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLPROGRESS_CMXAS) $(MLPROGRESS_CMXS)
 
 
 MLDONKEYGUI_ZOG := $(filter %.zog, $(MLDONKEYGUI_SRCS)) 
@@ -2112,6 +2215,56 @@ mldonkey_installer.static:  $(INSTALLER_OBJS) $(INSTALLER_CMXS)  $(INSTALLER_CMX
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(INSTALLER_CMXAS) $(INSTALLER_CMXS)
 
 
+MLPIC_ZOG := $(filter %.zog, $(MLPIC_SRCS)) 
+MLPIC_MLL := $(filter %.mll, $(MLPIC_SRCS)) 
+MLPIC_MLY := $(filter %.mly, $(MLPIC_SRCS)) 
+MLPIC_ML4 := $(filter %.ml4, $(MLPIC_SRCS)) 
+MLPIC_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(MLPIC_SRCS)) 
+MLPIC_C := $(filter %.c, $(MLPIC_SRCS)) 
+MLPIC_CMOS=$(foreach file, $(MLPIC_ML),   $(basename $(file)).cmo) 
+MLPIC_CMXS=$(foreach file, $(MLPIC_ML),   $(basename $(file)).cmx) 
+MLPIC_OBJS=$(foreach file, $(MLPIC_C),   $(basename $(file)).o)    
+
+MLPIC_CMXAS := $(foreach file, $(MLPIC_CMXA),   build/$(basename $(file)).cmxa)
+MLPIC_CMAS=$(foreach file, $(MLPIC_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(MLPIC_ML4:.ml4=.ml) $(MLPIC_MLL:.mll=.ml) $(MLPIC_MLY:.mly=.ml) $(MLPIC_MLY:.mly=.mli) $(MLPIC_ZOG:.zog=.ml) 
+ 
+mlpic: $(MLPIC_OBJS) $(MLPIC_CMXS) $(MLPIC_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLPIC_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(MLPIC_CMXAS) $(MLPIC_CMXS) 
+ 
+mlpic.byte: $(MLPIC_OBJS) $(MLPIC_CMOS)  $(MLPIC_CMAS)
+	$(OCAMLC) -linkall -o $@  $(MLPIC_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(MLPIC_CMAS) $(MLPIC_CMOS) 
+ 
+mlpic.static:  $(MLPIC_OBJS) $(MLPIC_CMXS)  $(MLPIC_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLPIC_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(MLPIC_CMXAS) $(MLPIC_CMXS)
+
+
+SPIDER_ZOG := $(filter %.zog, $(SPIDER_SRCS)) 
+SPIDER_MLL := $(filter %.mll, $(SPIDER_SRCS)) 
+SPIDER_MLY := $(filter %.mly, $(SPIDER_SRCS)) 
+SPIDER_ML4 := $(filter %.ml4, $(SPIDER_SRCS)) 
+SPIDER_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(SPIDER_SRCS)) 
+SPIDER_C := $(filter %.c, $(SPIDER_SRCS)) 
+SPIDER_CMOS=$(foreach file, $(SPIDER_ML),   $(basename $(file)).cmo) 
+SPIDER_CMXS=$(foreach file, $(SPIDER_ML),   $(basename $(file)).cmx) 
+SPIDER_OBJS=$(foreach file, $(SPIDER_C),   $(basename $(file)).o)    
+
+SPIDER_CMXAS := $(foreach file, $(SPIDER_CMXA),   build/$(basename $(file)).cmxa)
+SPIDER_CMAS=$(foreach file, $(SPIDER_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(SPIDER_ML4:.ml4=.ml) $(SPIDER_MLL:.mll=.ml) $(SPIDER_MLY:.mly=.ml) $(SPIDER_MLY:.mly=.mli) $(SPIDER_ZOG:.zog=.ml) 
+ 
+mlspider: $(SPIDER_OBJS) $(SPIDER_CMXS) $(SPIDER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(SPIDER_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(SPIDER_CMXAS) $(SPIDER_CMXS) 
+ 
+mlspider.byte: $(SPIDER_OBJS) $(SPIDER_CMOS)  $(SPIDER_CMAS)
+	$(OCAMLC) -linkall -o $@  $(SPIDER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(SPIDER_CMAS) $(SPIDER_CMOS) 
+ 
+mlspider.static:  $(SPIDER_OBJS) $(SPIDER_CMXS)  $(SPIDER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SPIDER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(SPIDER_CMXAS) $(SPIDER_CMXS)
+
+
 
 
 #######################################################################
@@ -2218,12 +2371,23 @@ releaseclean: clean
 	rm -f $(TMPSOURCES)
 	rm -rf patches/build
 	rm -f .depend
+	rm -f config/Makefile.config
+	rm -f config/Makefile.config.i386
+	rm -f config/Makefile.config.i486
+	rm -f config/Makefile.config.i586
+	rm -f config/Makefile.config.i686
+	rm -f config/mldonkey.rc
+	rm -f config/config.h
 	rm -f packages/rpm/*.spec
-	rm -f windows/mlnet.nsi
+	rm -f packages/windows/mlnet.nsi
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
 	rm -f src/utils/lib/gAutoconf.ml.new
+	rm -f icons/tux/*.ml_icons
+	rm -f icons/tux/*.ml
+	rm -f icons/mldonkey/*.ml_icons
+	rm -f icons/mldonkey/*.ml
 
 distclean: releaseclean
 	rm -rf patches/local
@@ -2255,6 +2419,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
+
+utils: ed2k_hash make_torrent copysources
+utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte
 
 #######################################################################
 

@@ -146,7 +146,8 @@ let really_query_download filenames size md4 location old_file absents =
   let filenames = List.fold_left (fun names name ->
         if List.mem name names then names else names @ [name]
     ) filenames other_names in 
-  file.file_filenames <- file.file_filenames @ filenames ;
+  file.file_filenames <- file.file_filenames @ (List.map 
+    (fun name -> name , { ips=[]; nips=0}) filenames);
   update_best_name file;
 
   DonkeyOvernet.recover_file file;
@@ -780,6 +781,10 @@ let _ =
 
 module P = GuiTypes
 
+(* How often is this function called when the interface is running ?
+is it called when no interface is connected ? it should be as fast
+as possible. *)
+  
 let _ =
   file_ops.op_file_info <- (fun file ->
       try
@@ -945,7 +950,7 @@ let _ =
 
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
-      file.file_filenames <- [name];
+      file.file_filenames <- [name, noips()];
       set_file_best_name (as_file file.file_file) name
   );
   file_ops.op_file_set_format <- (fun file format ->

@@ -34,7 +34,8 @@ let ( // ) x y = Int64.div x y
 open BTTypes
 
 let announce = ref ""
-
+let torrent_filename = ref ""
+  
 let check_tracker () =
   if !announce = "" then begin
       Printf.printf "You must specify the tracker url with -tracker <url>";
@@ -42,24 +43,36 @@ let check_tracker () =
       exit 2;
     end
   
+let check_torrent () =
+  if !torrent_filename = "" then begin
+      Printf.printf "You must specify the .torrent filename with -torrent <filename>";
+      print_newline (); 
+      exit 2;
+    end
+    
 let _ =
   Arg.parse [
     "-tracker", Arg.String ((:=) announce),
     "<url> : set the tracker to put in the torrent file";
-    "-change", Arg.String (fun filename ->
+    "-torrent", Arg.String ((:=) torrent_filename),
+    "<filename.torrent> : the .torrent file to use";
+    
+    "-change", Arg.Unit (fun _ ->
         check_tracker ();
-        let s = File.to_string filename in
+        check_torrent ();
+        let s = File.to_string !torrent_filename in
         let torrent_id, torrent = BTTracker.decode_torrent s in
         let torrent = { torrent with BTTypes.torrent_announce = !announce } in
         let torrent_id, encoded =  BTTracker.encode_torrent torrent in
         let s = Bencode.encode encoded in
-        File.from_string filename s;
+        File.from_string !torrent_filename s;
         Printf.printf "Torrent file of %s modified" (Sha1.to_string torrent_id);
         print_newline ();
-    ), "<filename.torrent>: change the tracker inside a .torrent file";
-    "-print", Arg.String (fun filename ->
-        check_tracker ();
-        let s = File.to_string filename in
+    ), ": change the tracker inside a .torrent file";
+    
+    "-print", Arg.Unit (fun filename ->
+        check_torrent ();
+        let s = File.to_string !torrent_filename in
         let torrent_id, torrent = BTTracker.decode_torrent s in
         Printf.printf "Torrent name: %s\n" torrent.torrent_name;
         Printf.printf "        length: %Ld\n" torrent.torrent_length;
@@ -77,15 +90,51 @@ let _ =
           end;
         print_newline ();
     ), "<filename.torrent>: change the tracker inside a .torrent file";
+    
     "-create", Arg.String (fun filename ->
         check_tracker ();
-        BTTracker.generate_torrent !announce filename;
+        check_torrent ();
+        BTTracker.generate_torrent !announce !torrent_filename filename;
         Printf.printf "Torrent file generated";
         print_newline ();
-    )," <filename> : compute hashes of filenames";
+    )," <filename> : compute hashes of filenames and generate a .torrent file";
+    
+    "-split", Arg.String (fun filename ->
+        check_torrent ();
+        
+        let s = File.to_string !torrent_filename in
+        let torrent_id, torrent = BTTracker.decode_torrent s in
+        
+        let base_dir_name = 
+          String.sub !torrent_filename 0 ((String.length !torrent_filename) - 8)
+        in
+        
+        let bt_fd = Unix32.create_ro filename in
+        let rec iter begin_pos list =
+          match list with
+            [] -> ()
+          | (filename, size) :: tail ->
+              let end_pos = begin_pos ++ size in
+              let filename = Filename.concat base_dir_name filename in
+              let dirname = Filename.dirname filename in
+              Unix2.safe_mkdir dirname;
+              lprintf "Copying %Ld %Ld to 0\n"
+                begin_pos (end_pos -- begin_pos);
+              let fd = Unix32.create_rw filename in
+              Unix32.copy_chunk bt_fd fd begin_pos zero 
+                (Int64.to_int (end_pos -- begin_pos));
+              Unix32.close fd;
+              
+              iter end_pos tail
+        in
+        iter zero torrent.torrent_files;
+        Unix32.close bt_fd;
+    
+    ), "<filename> : split a file corresponding to a .torrent file";
     
     "-check", Arg.String (fun filename ->
-        let s = File.to_string (filename ^ ".torrent") in
+        check_torrent ();
+        let s = File.to_string !torrent_filename in
         let torrent_id, torrent = BTTracker.decode_torrent s in
         
         if torrent.torrent_name <> Filename.basename filename then begin
@@ -140,7 +189,7 @@ let _ =
         Printf.printf "Torrent file verified !!!";
         print_newline ();
 
-    ), " <filename> : check that <filename> is well encoded by <filename>.torrent";
+    ), " <filename> : check that <filename> is well encoded by a .torrent";
   ]
     (fun s ->
       Printf.printf "Don't know what to do with %s\n" s;

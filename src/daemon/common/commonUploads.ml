@@ -816,7 +816,7 @@ let add_pending_slot c =
 let remove_pending_slot c =
   if Intmap.mem (client_num c) !pending_slots_map then
     pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
-    
+
 let rec give_a_slot c =
   remove_pending_slot c;
   if not (client_is_connected c) then begin

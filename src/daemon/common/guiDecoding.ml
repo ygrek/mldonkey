@@ -300,7 +300,8 @@ let get_int_float s pos =
 let get_file proto s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
-  let names, pos = get_list get_string s (pos+8) in
+  let names, pos = 
+    get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
   let size = get_int64_32 s (pos+16) in
   let downloaded = get_int64_32 s (pos+20) in
@@ -346,7 +347,9 @@ let get_file proto s pos =
 assert (last_seen = file_info.file_last_seen);
   assert (name = file_info.file_name);
 assert (priority = file_info.file_priority);
-  *)
+*)
+  let names = List.map (fun name -> name, noips()) names in
+  
   {
     file_num = num;
     file_network = net;
@@ -444,9 +447,9 @@ let get_server proto s pos =
 
 let get_client_type s pos = 
   match get_int8 s pos with
-    0 -> NormalClient
-  | 1 -> FriendClient
-  | 2 -> ContactClient
+    0 -> 0
+  | 1 -> client_friend_tag
+  | 2 -> client_contact_tag
   | _ -> assert false
 
 let get_kind s pos =

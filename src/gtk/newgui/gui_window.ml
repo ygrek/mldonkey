@@ -74,7 +74,7 @@ class window () =
 
       window#show ();
       
-      tab_queries#set_wnote_results self#wnote_results;
+(*      tab_queries#set_wnote_results self#wnote_results; *)
       tab_queries#set_wnote_main notebook;
 
       ignore (tab_downloads#box_downloads#ask_clients#connect#clicked

@@ -250,11 +250,11 @@ let make_torrent announce filename =
     torrent_pieces = pieces;
   }
 
-let generate_torrent announce filename =
+let generate_torrent announce torrent_filename filename =
   let torrent = make_torrent announce filename in
   let file_id, encoded = encode_torrent torrent in
   let encoded = Bencode.encode encoded in
-  File.from_string (Printf.sprintf "%s.torrent" filename) encoded 
+  File.from_string torrent_filename encoded 
 
 
 open Http_server

@@ -1,5 +1,4 @@
 /*
- * $Id$
  *
  * Copyright (C) 2003 giFT-FastTrack project
  * http://developer.berlios.de/projects/gift-fasttrack

@@ -17,13 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options  
 open Printf2
-open CommonGlobals
 open BasicSocket
+  
+open CommonGlobals
 open CommonClient
 open CommonServer
 open CommonNetwork
-open Options
 open CommonOptions
 open CommonTypes
 open CommonFile
@@ -563,57 +564,53 @@ let contacts = ref []
 
 let friend_add c =
   let impl = as_client_impl c in
-  match impl.impl_client_type with
-    FriendClient -> ()
-  | old_state ->
-      impl.impl_client_type <- FriendClient;
+  if not (is_friend c) then begin
+      set_friend c;
       client_must_update c;
       friends =:= c :: !!friends;
       contacts := List2.removeq c !contacts;
-      if old_state <> ContactClient then
-        impl.impl_client_ops.op_client_browse impl.impl_client_val true
-
+      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+    end
+    
 (* Maybe we should not add the client to the contact list and completely remove
 it ? *)
 let friend_remove c =
   try
     let impl = as_client_impl c in
-    match  impl.impl_client_type with 
-      FriendClient ->
-        impl.impl_client_type <- NormalClient;
+    if is_friend c then begin
+        set_not_friend c;
         client_must_update c;
         friends =:= List2.removeq c !!friends;
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-    | ContactClient ->
-        impl.impl_client_type <- NormalClient;
+      end else
+    if is_contact c then begin
+        set_not_contact c;
         client_must_update c;
         contacts := List2.removeq c !contacts;
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-        
-    | _ -> ()
+      end        
+      
   with e ->
       lprintf "Exception in friend_remove: %s\n" (Printexc2.to_string e)
   
 let contact_add c =
   let impl = as_client_impl c in
-  match impl.impl_client_type with
-    FriendClient | ContactClient -> ()
-  | _ ->
-      impl.impl_client_type <- ContactClient;
+  if not (is_friend c || is_contact c) then begin
+      set_contact c;
       client_must_update c;
       contacts := c :: !contacts;
       impl.impl_client_ops.op_client_browse impl.impl_client_val true
-
+    end
+    
 let contact_remove c =
   try
     let impl = as_client_impl c in
-    match  impl.impl_client_type with 
-      ContactClient ->
-        impl.impl_client_type <- NormalClient;
+    if is_contact c then begin
+        set_not_contact c;
         client_must_update c;
         contacts := List2.removeq c !contacts;
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-    | _ -> ()
+      end
   with e ->
       lprintf "Exception in contact_remove: %s\n" (Printexc2.to_string e)
 

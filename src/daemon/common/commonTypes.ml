@@ -79,10 +79,14 @@ type tag = {
     mutable tag_value : tag_value;
   }
 
-type client_type =
-  NormalClient  (* all clients *)
-| FriendClient  (* to be remembered as a friend *)
-| ContactClient (* displayed with friends, but removed after disconnect *)
+  
+  
+type client_type = int
+let client_friend_tag = 1
+let client_contact_tag = 2
+let client_nolimit_tag = 4
+let client_initialized_tag = 8
+let client_browsed_tag = client_contact_tag lor client_friend_tag
 
 type query_entry = 
   Q_AND of query_entry list

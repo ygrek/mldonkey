@@ -29,6 +29,8 @@ open CommonGlobals
 open CommonFile
 open CommonClient
 open CommonComplexOptions
+  
+open GuiTypes
 open GuiProto
 open CommonResult
 open CommonTypes
@@ -213,6 +215,10 @@ let disconnect_client c reason =
           TcpBufferedSocket.close sock reason;
           printf_string "-c"; 
           set_client_has_a_slot (as_client c.client_client) false;
+          
+          (* Remove the Connected and NoLimit tags *)
+          set_client_type c (client_type c
+              land (lnot (client_initialized_tag lor client_nolimit_tag)));
           c.client_chunks <- [||];
           c.client_sock <- None;
           save_join_queue c;
@@ -552,7 +558,7 @@ let shared_of_file file =
     | Some sh	-> Some (as_shared sh)
 
 let query_view_files c =
-  if client_type c <> NormalClient then begin
+  if client_browsed_tag land client_type c <> 0 then begin
     if last_time () > c.client_next_view_files then begin
 (*
             lprintf "****************************************";
@@ -588,6 +594,18 @@ let send_pending_messages c sock =
       direct_client_send c (M.SayReq m)
   ) c.client_pending_messages;
   c.client_pending_messages <- []
+  
+let  init_client_after_first_message sock c = 
+  
+(* Add the Connected tag and when needed the NoLimit tag *)
+  let t = client_type c lor client_initialized_tag in
+  let t = try
+      if Ip.matches (peer_ip sock) !!nolimit_ips then t lor client_nolimit_tag
+      else t
+    with _ -> t in
+  set_client_type c t;
+  ()
+  
       
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
@@ -610,6 +628,10 @@ let client_to_client for_files c t sock =
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
       
+      
+      c.client_ip <- peer_ip sock;
+      init_client_after_first_message sock c;
+      
       c.client_checked <- true;
       set_client_has_a_slot (as_client c.client_client) false;
       
@@ -620,19 +642,19 @@ let client_to_client for_files c t sock =
       if t.CR.md4 = !!client_md4 ||
         t.CR.md4 = overnet_md4 then
         TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
-
+      
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
-	if !!ban_identity_thieves then
+        if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
-      
+
 (* Test if the client is already connected *)
-      if Hashtbl.mem connected_clients t.CR.md4 then begin
+        if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected"; lprint_newline (); *)
-          close sock (Closed_for_error "Already connected");
-          raise Exit
-        end;
-      
-      c.client_tags <- t.CR.tags;
+            close sock (Closed_for_error "Already connected");
+            raise Exit
+          end;
+        
+        c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
             { tag_name = "name"; tag_value = String s } -> 
@@ -651,17 +673,17 @@ let client_to_client for_files c t sock =
       end;
       
       identify_client_brand c;
-
+      
       init_client_connection c sock;
       send_pending_messages c sock;
-
+      
       set_client_state c (Connected (-1));      
       
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
-	if !!ban_identity_thieves then
+        if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
-      
-      query_files c sock;
+        
+        query_files c sock;
       query_view_files c;
       client_must_update c;      
       is_banned c sock
@@ -675,6 +697,8 @@ let client_to_client for_files c t sock =
         ban_client c sock "has an infinite queue"; *)
   
   | M.EmuleClientInfoReq t ->      
+      
+      c.client_ip <- peer_ip sock;
 (*      lprintf "Emule Extended Protocol asked"; lprint_newline (); *)
       let module CI = M.EmuleClientInfo in
       identify_emule_compatible c t.CI.tags;
@@ -833,8 +857,24 @@ let client_to_client for_files c t sock =
           set_lifetime sock one_day;
           add_pending_slot c
         
-        with _ -> *)
-      CommonUploads.add_pending_slot (as_client c.client_client);
+with _ -> *)
+      
+      let cc = as_client c.client_client in
+
+(* If the client is in the nolimit_ips list, he doesn't need a slot, so put
+it immediatly in the upload queue... but what will happen in the queue
+since the client upload should not be taken into account ! 
+
+What we need: put the upload and download engines inside the bandwidth
+controler, and use two bandwidth controlers, one for limited sockets, the
+other one for unlimited sockets.  *)
+      
+(* NOT IMPLEMENTED YET
+      if is_nolimit cc then begin
+          set_client_has_a_slot cc true;
+          client_enter_upload_queue cc
+        end else *)
+        CommonUploads.add_pending_slot (as_client c.client_client);
       if !verbose then begin
           lprintf "(uploader %s: brand %s, couldn't get a slot)" 
             c.client_name (brand_to_string c.client_brand);
@@ -881,17 +921,28 @@ let client_to_client for_files c t sock =
           
           DonkeySourcesMisc.set_request_result c file File_found;
           
-          if not (List.mem t.Q.name file.file_filenames) then begin
-              file.file_filenames <- file.file_filenames @ [t.Q.name] ;
-              update_best_name file
-            end;
+          begin
+            let ips = 
+              try
+                List.assoc t.Q.name file.file_filenames
+              with Not_found ->
+                  let ips = noips() in
+                  file.file_filenames <- file.file_filenames @ [t.Q.name, ips];
+                  update_best_name file;
+                  ips
+            in
+            if not (List.mem c.client_ip ips.ips) then begin
+                ips.ips <- c.client_ip :: ips.ips;
+                ips.nips <- 1 + ips.nips;
+              end
+          end;
           
           if file_size file <= block_size then 
             client_has_chunks c file [| true |];
-	      
-        DonkeyProtoCom.direct_client_send c (
-          let module M = DonkeyProtoClient in
-          M.QueryChunksReq file.file_md4);      
+          
+          DonkeyProtoCom.direct_client_send c (
+            let module M = DonkeyProtoClient in
+            M.QueryChunksReq file.file_md4);      
         
         with _ -> ()
       end  
@@ -1029,8 +1080,8 @@ is checked for the file.
       c.client_rating <- c.client_rating + 10;
       (match file_state file with
         | FilePaused 
-      | FileAborted _ 
-      | FileCancelled ->   next_file c; raise Not_found
+        | FileAborted _ 
+        | FileCancelled ->   next_file c; raise Not_found
         | _ -> ());
       
       let begin_pos = t.Q.start_pos in
@@ -1054,7 +1105,7 @@ is checked for the file.
             
             if bb.block_present || begin_pos < bb.block_begin
                 || begin_pos >= bb.block_end || end_pos > bb.block_end
-              then 
+            then 
               let chunk_num = Int64.to_int (Int64.div begin_pos block_size) 
               in
               lprintf "%d: Exceeding block boundaries" (client_num c);
@@ -1160,11 +1211,22 @@ is checked for the file.
                 in
                 Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
 *)
-                with 
+                with
                 | e ->
-                    lprintf "Error %s while writing block. Pausing download\n"
-                      (Printexc2.to_string e);
-                    file_pause (as_file file.file_file);      
+		    let m =
+		      Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e) 
+			(match e with 
+			   Unix.Unix_error (Unix.ENOSPC, _, _) -> " (Disk full?)"
+			 | _ -> "") in
+                    Printf2.lprint_string m;
+		    CommonEvent.add_event (Console_message_event m);
+		    if e <> End_of_file then begin
+		      let m = "File paused.\n" in
+		      Printf2.lprint_string m;
+		      CommonEvent.add_event (Console_message_event m);
+		      file_pause (as_file file.file_file);
+		      raise e
+		    end
               end;
               (try
                   List.iter (update_zone file begin_pos end_pos) c.client_zones;
@@ -1196,10 +1258,10 @@ is checked for the file.
 
 (* Upload requests *)
   | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && 
-                          (match !!allow_browse_share with
-			     1 -> client_type c = FriendClient
-			   | 2 -> true
-			   | _ -> false) -> 
+    (match !!allow_browse_share with
+        1 -> client_friend_tag land client_type c <> 0
+      | 2 -> true
+      | _ -> false) -> 
       let files = DonkeyShare.all_shared () in
       let published_files = ref [] in
       List.iter (fun f ->
@@ -1211,7 +1273,7 @@ is checked for the file.
        lprintf "ASK VIEW FILES"; lprint_newline ();
        *)
       direct_client_send_files sock !published_files
-  
+      
   | M.QueryFileReq t ->
       c.client_requests_received <- c.client_requests_received + 1;
       
@@ -1412,8 +1474,12 @@ end else *)
                     (Int64.of_int !client_upload_lifetime)
                     c.client_downloaded)
                   c.client_uploaded);
-        if last_time() > c.client_connect_time + !client_upload_lifetime + 5 * prio then
-        begin
+        if last_time() > c.client_connect_time + 
+          !client_upload_lifetime + 5 * prio then
+          begin
+            
+(* And what happens if we were downloading from this client also ? *)
+            
           disconnect_client c (Closed_for_error "Upload lifetime expired");
           raise Not_found
         end;
@@ -1504,8 +1570,14 @@ let client_handler2 c sock event =
       
 let init_connection sock =
 (*  ignore (setsock_iptos_throughput (fd (TcpBufferedSocket.sock sock))); *)
-  TcpBufferedSocket.set_read_controler sock download_control;
-  TcpBufferedSocket.set_write_controler sock upload_control;
+  
+  let nolimit = try
+      Ip.matches (peer_ip sock) !!nolimit_ips
+    with _ -> false in
+  if not nolimit then begin
+      TcpBufferedSocket.set_read_controler sock download_control;
+      TcpBufferedSocket.set_write_controler sock upload_control;
+    end;
   set_rtimeout sock !!client_timeout;
   
 (* Fix a lifetime for the connection. If we are not able to connect and
@@ -1605,7 +1677,8 @@ let read_first_message overnet m sock =
             c.client_connected <- false;
             init_client sock c;
             c.client_connect_time <- last_time ();
-        
+            init_client_after_first_message sock c
+            
         | Some _ -> 
             close sock (Closed_for_error "already connected");
             raise Not_found

@@ -1,6 +1,75 @@
 ChangeLog	
 =========
 
+2003/12/22: Fabrice
+  * make_torrent: 
+     * .torrent filename is specified by -torrent
+     * New option "-split <filename>" that will split <filename> in smaller
+         files according to a .torrent file.
+  * Applied pause.patch 
+
+2003/12/17: Fabrice
+  * Applied upload_slots patch again
+	
+2003/12/16: Dek
+  * mldonkey CVS moved to berlios until savannah is back again.
+     see https://developer.berlios.de/cvs/?group_id=610 
+     for server-details, web-CVS etc.
+  
+2003/12/16: Fabrice
+  * Applied patches from spiralvoice page: prevent_interface_close, xmule,
+     emule_tags, upload_cnum, suxx_wap, mld_cb10, remove_challenge,
+     upload_slots, html_gnutella2, amule
+     
+
+2003/12/15: Fabrice
+  * Modified "forget" command
+  * Bittorrent: crash when commiting directories fixed
+
+2003/12/09: Fabrice
+  * Opennap: removed redondant client_port option
+  * Gnutella2: removed options with same values as for Gnutella
+
+2003/12/08: Fabrice
+  * New option 'allow_local_network' to allow connections on the local
+     network for debugging purpose.
+  * Bittorrent:
+      * If 'tracker_port' is not nul, a WEB server is started inside mldonkey
+         that is used as a tracker, with url:
+                 http://YOUR-IP:<tracker_port>/tracker
+      * New option 'shared_torrent_files', a list of pairs:
+          torrent_files = [
+               ("/test_bt.torrent", "../../one_torrent_file.torrent");
+          ]
+        where the first string in the pair is the relative url on the 
+        tracker web-server http://YOUR-IP:<tracker_port>/test_bt.torrent
+        and the second is the filename .torrent on the disk to be served.
+      * New option 'tracked_files': a list of the filenames of the .torrent
+          files that should be tracked.
+      * New option 'shared_files': a list of pairs (path to .torrent file, 
+          path to corresponding shared file).
+
+2003/12/06: Fabrice
+  * New option file_started_cmd (by default "mlprogress") used when a
+     new download is started to display a progress popup. Set to "" to
+     disable.
+  * Improved progress popup.
+
+2003/12/06: Fabrice
+  * Added 'mlprogress <num>' program that popup a window to display the
+     download of file <num> (thx to b8_zoggy). Not tested yet.
+
+2003/12/06: Fabrice
+  * Applied Spiralvoice patches ban.clients, win.patch, patch_pack2c
+  * Added option 'allow_any_command' to use ! instead of !! for 
+     arbitrary commands (false by default for security reasons)
+  
+2003/12/05: Fabrice
+  * Merged devel/ and stable/ branches for Gnutella2
+
+2003/12/04: Fabrice
+  * Added module CommonBitzi (merge with devel version)
+
 2003/12/03: Fabrice
   * Updated ed2k_hash to compute Sig2dat and Bitprints. For Mac users, you can
      check whether bitprints with tiger-trees are correctly computed:
@@ -2358,4 +2427,3 @@ Release 1.00:
   * Command-line interface works
   * Graphical interface works
   * Import old config works
-

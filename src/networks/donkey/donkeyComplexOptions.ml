@@ -224,9 +224,9 @@ let value_to_server assocs =
 let server_to_value c =
   let fields = 
     [
-    "server_addr", addr_to_value c.server_ip  c.server_port;
+      "server_addr", addr_to_value c.server_ip  c.server_port;
       "server_age", int_to_value (
-      connection_last_conn c.server_connection_control);
+        connection_last_conn c.server_connection_control);
   ]
   in
   
@@ -298,7 +298,8 @@ let value_to_file is_done assocs =
     with _ -> ()                );
   
   file.file_filenames <-
-    get_value_nil "file_filenames" (value_to_list value_to_string);
+    List.map (fun name -> name, GuiTypes.noips()) 
+  (get_value_nil "file_filenames" (value_to_list value_to_string));
   (try
       set_file_best_name (as_file file.file_file)
       (get_value "file_filename" value_to_string)
@@ -369,7 +370,7 @@ let file_to_value file =
       file.file_absent_chunks);
     "file_filename", string_to_value (file_best_name file);
     "file_filenames", List
-      (List.map (fun s -> string_to_value s) file.file_filenames);
+      (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
     "file_age", IntValue (Int64.of_int file.file_file.impl_file_age);
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 

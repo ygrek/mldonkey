@@ -97,10 +97,9 @@ let client_pix c =
 
 
 let type_pix t =
-  match t with
-      FriendClient -> O.gdk_pix M.o_xpm_friend_user
-    | ContactClient -> O.gdk_pix M.o_xpm_contact_user
-    | NormalClient -> O.gdk_pix M.o_xpm_normal_user
+  if t land client_friend_tag <> 0 then O.gdk_pix M.o_xpm_friend_user else
+  if t land client_contact_tag <> 0 then  O.gdk_pix M.o_xpm_contact_user else
+    O.gdk_pix M.o_xpm_normal_user
 
 
 let get_friend_pix c =
@@ -292,10 +291,10 @@ class box columns friend_tab =
       match col with
         Col_client_name -> shorten !!O.max_client_name_len f.gclient_name
       | Col_client_state -> fst (string_color_of_client friend_tab f)
-      | Col_client_type -> (match f.gclient_type with
-              FriendClient -> gettext M.friend
-            | ContactClient -> gettext M.contact
-            | NormalClient -> "Y")
+      | Col_client_type -> (let t =  f.gclient_type in
+            if t land client_friend_tag <> 0 then gettext M.friend else
+            if t land client_contact_tag <> 0 then gettext M.contact else
+              "Y")
       | Col_client_network -> Gui_global.network_name f.gclient_network
       | Col_client_kind -> (
           match f.gclient_kind with
@@ -356,8 +355,8 @@ class box_friends box_files friend_tab =
     
     val mutable box_friends_is_visible = (false : bool)
     val mutable icons_are_used = (!!O.use_icons : bool)
-
-
+    
+    
     method filter = is_filtered    
     
     method filter_networks = self#refresh_filter
@@ -379,7 +378,7 @@ class box_friends box_files friend_tab =
           Gui_com.send (GuiProto.FindFriend s)
     
     method on_select c =
-    (* in case we select several rows it is not necessary
+(* in case we select several rows it is not necessary
     to display the files of each client selected (10 clients selected = 10 updates of files list).
     It is a non sens because the user do not select several rows
     for that purpose, but instead would prefer to suppress them ...
@@ -390,37 +389,37 @@ class box_friends box_files friend_tab =
     block everything => see with Soulseek *)
       if c = List.hd (List.rev self#selection) then
         match c.gclient_files with
-        None -> 
+          None -> 
 (*          lprintf "No file for friend %d" c.client_num; lprint_newline (); *)
-                Gui_com.send (GuiProto.GetClient_files c.gclient_num)
-
-      |	Some tree -> 
+            Gui_com.send (GuiProto.GetClient_files c.gclient_num)
+        
+        |	Some tree -> 
 (*          lprintf "%d files for friend %d" (List.length l) c.client_num; 
           lprint_newline (); *)
             begin
               let w = self#wlist#misc#window in
               box_files#update_gdk_window w;
-              (* Printf.printf "Gui_friends on_select %d\n" c.gclient_num;
+(* Printf.printf "Gui_friends on_select %d\n" c.gclient_num;
               flush stdout;*)
               let (row, fi) = self#find_client c.gclient_num in
               let f = self#to_core_client fi in
               fi.gclient_pixmap <-
-                if icons_are_used then
-                  Some (get_friend_pix f)
-                  else None;
+              if icons_are_used then
+                Some (get_friend_pix f)
+              else None;
               self#update_row fi row;
-          box_files#update_tree (Some tree)
+              box_files#update_tree (Some tree)
             end
     
     method on_deselect f =
-      (* Printf.printf "Gui_friends on_deselect %d\n" f.gclient_num;
+(* Printf.printf "Gui_friends on_deselect %d\n" f.gclient_num;
       flush stdout;*)
       box_files#update_tree None
     
     val mutable on_double_click = (fun _ -> ())
-
+    
     method set_on_double_click f = on_double_click <- f
-
+    
     method on_double_click f = on_double_click f
     
     method menu =
@@ -450,7 +449,7 @@ class box_friends box_files friend_tab =
         client_upload = c.gclient_upload;
 (*        client_sock_addr = c.gclient_sock_addr;*)
       }
-
+    
     method to_gui_client c =
       {
         gclient_num = c.client_num;
@@ -469,48 +468,47 @@ class box_friends box_files friend_tab =
         gclient_upload = c.client_upload;
         gclient_sock_addr = string_of_kind c.client_kind;
         gclient_net_pixmap =
-          if icons_are_used then
-            Some (Gui_options.network_pix
-                   (Gui_global.network_name c.client_network))
-            else None;
+        if icons_are_used then
+          Some (Gui_options.network_pix
+              (Gui_global.network_name c.client_network))
+        else None;
         gclient_pixmap =
-          if icons_are_used then
-            Some (get_friend_pix c)
-            else None;
+        if icons_are_used then
+          Some (get_friend_pix c)
+        else None;
       }
-
+    
     method update_friend f_new =
-      match f_new.client_type with
-          NormalClient ->
-            self#h_remove_friend f_new.client_num
-        | _ ->
+      if client_browsed_tag land f_new.client_type = 0 then
+        self#h_remove_friend f_new.client_num
+      else
       try
-              begin
-        let (row, f) = self#find_client f_new.client_num in
-                f.gclient_state <- f_new.client_state;
-                f.gclient_type <- f_new.client_type;
-                f.gclient_pixmap <-
-                  if icons_are_used then
-                    Some (get_friend_pix f_new)
-                    else None;
-                f.gclient_name <- f_new.client_name;
-                f.gclient_kind <- f_new.client_kind;
-                (* added *)
-                f.gclient_tags <- f_new.client_tags;
-                f.gclient_rating <- f_new.client_rating;
-                f.gclient_connect_time <-  f_new.client_connect_time;
-                f.gclient_software <- f_new.client_software;
-                f.gclient_downloaded <- f_new.client_downloaded;
-                f.gclient_uploaded <- f_new.client_uploaded;
-                f.gclient_upload <- f_new.client_upload;
-                f.gclient_sock_addr <- string_of_kind f_new.client_kind;
-                if box_friends_is_visible then self#update_row f row
-              end
+        begin
+          let (row, f) = self#find_client f_new.client_num in
+          f.gclient_state <- f_new.client_state;
+          f.gclient_type <- f_new.client_type;
+          f.gclient_pixmap <-
+          if icons_are_used then
+            Some (get_friend_pix f_new)
+          else None;
+          f.gclient_name <- f_new.client_name;
+          f.gclient_kind <- f_new.client_kind;
+(* added *)
+          f.gclient_tags <- f_new.client_tags;
+          f.gclient_rating <- f_new.client_rating;
+          f.gclient_connect_time <-  f_new.client_connect_time;
+          f.gclient_software <- f_new.client_software;
+          f.gclient_downloaded <- f_new.client_downloaded;
+          f.gclient_uploaded <- f_new.client_uploaded;
+          f.gclient_upload <- f_new.client_upload;
+          f.gclient_sock_addr <- string_of_kind f_new.client_kind;
+          if box_friends_is_visible then self#update_row f row
+        end
       with
         Not_found ->
-                let fi = self#to_gui_client f_new in
-                self#add_item fi
-
+          let fi = self#to_gui_client f_new in
+          self#add_item fi
+    
     method is_visible b =
       box_friends_is_visible <- b
     
@@ -527,25 +525,26 @@ class box_friends box_files friend_tab =
         let (row, fi) = self#find_client num in
         fi.gclient_state <- state;
         fi.gclient_pixmap <-
-          if icons_are_used then
-            Some (get_friend_pix (self#to_core_client fi))
-            else None;
+        if icons_are_used then
+          Some (get_friend_pix (self#to_core_client fi))
+        else None;
         if box_friends_is_visible then self#update_row fi row
       with
         Not_found -> ()
-
+    
     method update_friend_type (num, friend_kind) =
       try
         let (row, fi) = self#find_client num in
-        match friend_kind with
-            NormalClient -> self#h_remove_friend num
-          | _ ->
+        if client_browsed_tag land friend_kind = 0 then
+          self#h_remove_friend num
+        else begin
             fi.gclient_type <- friend_kind;
             fi.gclient_pixmap <-
             if icons_are_used then
               Some (get_friend_pix (self#to_core_client fi))
-              else None;
+            else None;
             if box_friends_is_visible then self#update_row fi row
+          end
       with
         Not_found -> ()
 

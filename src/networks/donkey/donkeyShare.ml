@@ -92,8 +92,8 @@ let new_file_to_share sh codedname old_impl =
     file.file_md4s <- md4s;
     file_md4s_to_register := file :: !file_md4s_to_register;
     let sh_name = Filename.basename sh.sh_name in
-    if not (List.mem sh_name file.file_filenames) then begin
-        file.file_filenames <- file.file_filenames @ [sh_name];
+    if not (List.mem_assoc sh_name file.file_filenames) then begin
+        file.file_filenames <- file.file_filenames @ [sh_name, GuiTypes.noips()];
         update_best_name file;
       end;
     file.file_chunks <- Array.make file.file_nchunks PresentVerified;

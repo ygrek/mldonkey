@@ -22,6 +22,79 @@ open Md4
 open CommonTypes
 
   (*
+  
+module MyList = struct
+    type 'a mylist = 
+      Nil
+    | Cons of int * 'a * 'a mylist
+
+    type ('a,'b) assoc = 
+      { 
+        v1 : 'a;
+        mutable v2 : 'b;
+      }
+      
+    let nil = Nil
+    let length list = 
+      match list with Nil -> 0 | Cons (len,_,_) -> len
+      
+    let add v list = Cons (1+ length list, v, list)
+    let head list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,v,_) -> v
+          
+    let tail list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,_,tail) -> tail
+
+    let rec mem v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv = v || mem v tail
+
+    let rec memq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv == v || memq v tail
+
+    let assoc x y = { v1 = x; v2 = y; }
+    let assoc_get x = x.v2
+    let assoc_set x y = x.v2 <- y
+      
+    let rec find_assoc v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          if vv.v1 = v then vv else find_assoc v tail
+
+    let rec find_assq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          if vv.v1 == v then vv else find_assq v tail
+          
+    let rec mem_assoc v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv.v1 = v || mem_assoc v tail
+
+    let rec mem_assq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv.v1 == v || mem_assq v tail
+          
+  end
+
+open MyList
+    *)
+
+  (*
 type client_tag_name =
   CT_CLIENT_NAME
 | CT_CLIENT_PORT
@@ -331,7 +404,7 @@ and file = {
     mutable file_chunks_age : int array;
 (*    mutable file_all_chunks : string; *)
     mutable file_absent_chunks : (int64 * int64) list;
-    mutable file_filenames : string list;
+    mutable file_filenames : (string * GuiTypes.ips_list) list;
     mutable file_nsources : int;
     mutable file_md4s : Md4.t list;
     mutable file_format : format;

@@ -454,77 +454,77 @@ let file_print file o =
   let srcs = file_sources file in
 
 
-	(* TODO: make multinet aware *)
-
-	if use_html_mods o then begin
-
-        html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
-          ( "0", "srh br", "File Info", "Info" ) ; 
-          ( "0", "srh", "Value", "Value" ) ]; 
-
-			Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
-			 html_mods_td buf [
-    		("File number/Network", "sr br", "[#] Network");
-    		("", "sr", Printf.sprintf "[%d] %s" (file_num file) n.network_name) ];
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-			 html_mods_td buf [
-    		("Downloaded/Total size", "sr br", "DLed/Size");
-    		("", "sr", Printf.sprintf "%s bytes of %s bytes" 
-			(Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-			 html_mods_td buf [
-    		("File priority", "sr br", "Priority");
-    		("", "sr", Printf.sprintf "%d" (file_priority file)) ];
-			
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-			 html_mods_td buf [
-    		("Number of file sources", "sr br", "Sources");
-    		("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-			 html_mods_td buf [
-    		("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr br", "Chunks");
-    		("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr", info.G.file_chunks) ];
-
+(* TODO: make multinet aware *)
+  
+  if use_html_mods o then begin
+      
+      html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
+        ( "0", "srh br", "File Info", "Info" ) ; 
+        ( "0", "srh", "Value", "Value" ) ]; 
+      
+      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("File number/Network", "sr br", "[#] Network");
+        ("", "sr", Printf.sprintf "[%d] %s" (file_num file) n.network_name) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      html_mods_td buf [
+        ("Downloaded/Total size", "sr br", "DLed/Size");
+        ("", "sr", Printf.sprintf "%s bytes of %s bytes" 
+            (Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("File priority", "sr br", "Priority");
+        ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      html_mods_td buf [
+        ("Number of file sources", "sr br", "Sources");
+        ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr br", "Chunks");
+        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr", info.G.file_chunks) ];
+      
       (match n.network_name with 
           "BitTorrent" -> (
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-			 html_mods_td buf [
-    		("Filename", "sr br", "Filename");
-    		("", "sr", (file_best_name file)) ]; )
-
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              html_mods_td buf [
+                ("Filename", "sr br", "Filename");
+                ("", "sr", (file_best_name file)) ]; )
+        
         | _ -> (
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-			 html_mods_td buf [
-    		("Fake check links", "sr br", "Fakecheck");
-    		("", "sr", Printf.sprintf "\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
+              
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              html_mods_td buf [
+                ("Fake check links", "sr br", "Fakecheck");
+                ("", "sr", Printf.sprintf "\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
     				\\<a href=\\\"http://www.sharereactor.com/fakesearch.php\\?search=ed2k://|file|%s|%s|%s|/\\\"\\>[ShareReactor Fakecheck]\\</a\\>" 
-					(Md4.to_string info.G.file_md4) 
-					(info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
-
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-
-			 html_mods_td buf [
-    		("ed2k link", "sr br", "ed2k link");
-    		("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>" 
-						(info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)
-						(info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
-
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-			let optionlist = ref "" in
-			List.iter (fun name -> 
+                    (Md4.to_string info.G.file_md4) 
+                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
+              
+              
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+              
+              html_mods_td buf [
+                ("ed2k link", "sr br", "ed2k link");
+                ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>" 
+                    (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)
+                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
+              
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              let optionlist = ref "" in
+              List.iter (fun (name,_) -> 
                   optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
-            ) info.G.file_names;
- 
-
-			let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
-			 html_mods_td buf [
-    		("Rename file by selecting an alternate name", "sr br", "Filename");
-    		("Rename file", "sr", Printf.sprintf "\\<script language=javascript\\>
+              ) info.G.file_names;
+              
+              
+              let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
+              html_mods_td buf [
+                ("Rename file by selecting an alternate name", "sr br", "Filename");
+                ("Rename file", "sr", Printf.sprintf "\\<script language=javascript\\>
 \\<!-- 
 function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
@@ -534,32 +534,32 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 }
 //--\\>
 \\</script\\>" (file_num file) 
-              
-			  ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
-              ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
-              ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
-              ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
-			  ^ !optionlist 
-              ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
-			  ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>") ];
-
+                  
+                  ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
+                    ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
+                    ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
+                    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
+                  ^ !optionlist 
+                    ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
+                    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>") ];
+            
             )
       );
-
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
-			Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
+      
+      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
+      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
     
-	end else
-	begin
-		Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
-			n.network_name (file_num file) (match info.G.file_names with
-			[] -> Md4.to_string info.G.file_md4
-			| name :: _ -> name)
-			(Int64.to_string info.G.file_size)
-			(Int64.to_string info.G.file_downloaded)
-			(file_priority file);
-		Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
-		List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+    end else
+    begin
+      Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
+        n.network_name (file_num file) (match info.G.file_names with
+          [] -> Md4.to_string info.G.file_md4
+        | (name,_) :: _ -> name)
+      (Int64.to_string info.G.file_size)
+      (Int64.to_string info.G.file_downloaded)
+      (file_priority file);
+      Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
+      List.iter (fun (name,_) -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
 	end;
   
   (try

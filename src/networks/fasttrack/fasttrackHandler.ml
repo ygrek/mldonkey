@@ -194,8 +194,8 @@ let server_msg_handler sock s msg_type m =
                 let c = new_client user.user_kind in
                 add_download file c (FileByUrl url);
                 
-                if not (List.mem result_name file.file_filenames) then 
-                  file.file_filenames <- file.file_filenames @ [result_name] ;
+                if not (List.mem_assoc result_name file.file_filenames) then 
+                  file.file_filenames <- file.file_filenames @ [result_name, GuiTypes.noips()] ;
                 
             | _ -> ()
           end;

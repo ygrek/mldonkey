@@ -45,6 +45,13 @@ type options = {
   }
     *)
 
+type ips_list = {
+    mutable nips : int;
+    mutable ips : Ip.t list;
+  }
+
+let noips () = { ips = []; nips = 0; }
+  
 type 'a search_request = {
     mutable search_num : int;
     mutable search_type : search_type;
@@ -58,7 +65,7 @@ type file_info = {
     file_network : int;
     
     mutable file_name : string;
-    mutable file_names : string list;
+    mutable file_names : (string * ips_list) list;
     mutable file_md4 : Md4.t;        
     mutable file_size : int64;
     mutable file_downloaded : int64; (* LOT OF CHANGES *)
@@ -230,7 +237,7 @@ let file_info_test =
     file_name = "tratra";
     file_num = 356;
     file_network = 873;
-    file_names = ["toto"; "tutu"];
+    file_names = ["toto", noips(); "tutu", noips()];
     file_md4 = Md4.random ();
     file_size = Int64.of_string "68758765";
     file_nlocations = 12;

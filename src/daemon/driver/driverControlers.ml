@@ -207,9 +207,8 @@ let check_calendar () =
       if (List.mem tm.Unix.tm_wday days || days = [])  &&
         (List.mem tm.Unix.tm_hour hours || hours = []) then begin
           eval (ref true) command calendar_options;
-          lprintf "Calendar execute: %s\n%s" command
+          lprintf "Calendar execute: %s\n%s\n" command
             (Buffer.contents calendar_options.conn_buf);
-          lprint_newline ();
           Buffer.clear calendar_options.conn_buf;          
         end
   ) !!calendar
@@ -658,31 +657,31 @@ let http_handler o t r =
     begin
       let user = find_ui_user user  in
       let o = match user.ui_http_conn with
-        Some oo -> oo.conn_buf <- o.conn_buf; oo
-      | None -> let oo = { o with conn_user = user } in
-           user.ui_http_conn <- Some oo; oo
+          Some oo -> oo.conn_buf <- o.conn_buf; oo
+        | None -> let oo = { o with conn_user = user } in
+            user.ui_http_conn <- Some oo; oo
       in
       try
         match r.get_url.Url.file with
-	| "/wap.wml" ->
-	begin
-	Buffer.clear buf;  
-	  Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-	  Buffer.add_string  buf "Server: MLdonkey\r\n";
-	  Buffer.add_string  buf "Connection: close\r\n";
-	  Buffer.add_string  buf "Content-Type: text/vnd.wap.wml\r\n";
-           let dlkbs = 
-              (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
-            let ulkbs =
-              (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in 
-	Printf.bprintf buf "
+        | "/wap.wml" ->
+            begin
+              Buffer.clear buf;  
+              Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
+              Buffer.add_string  buf "Server: MLdonkey\r\n";
+              Buffer.add_string  buf "Connection: close\r\n";
+              Buffer.add_string  buf "Content-Type: text/vnd.wap.wml\r\n";
+              let dlkbs = 
+                (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
+              let ulkbs =
+                (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in 
+              Printf.bprintf buf "
 <?xml version=\"1.0\"?>
 <!DOCTYPE wml PUBLIC \"-//WAPFORUM//DTD WML 1.1//EN\" \"http://www.wapforum.org/DTD/wml_1.1.xml\">
 
 <wml>
 <card id=\"main\" title=\"MLDonkey Index Page\">  ";
 (* speed *)
-Printf.bprintf buf "<p align=\"left\">
+              Printf.bprintf buf "<p align=\"left\">
    <small>
     DL %.1f KB/s (%d|%d) UL: %.1f KB/s (%d|%d)
    </small>
@@ -690,51 +689,50 @@ Printf.bprintf buf "<p align=\"left\">
 
 
 (* functions *)
-List.iter (fun (arg, value) ->
-match arg with
-  "VDC" -> 
-    let num = int_of_string value in
-    let file = file_find num in
-    file_cancel file
-| "VDP" -> 
-    let num = int_of_string value in
-    let file = file_find num in
-    file_pause file
-| "VDR" -> 
-    let num = int_of_string value in
-    let file = file_find num in
-    file_resume file
-| _ -> ()
-) r.get_url.Url.args;
+              List.iter (fun (arg, value) ->
+                  match arg with
+                    "VDC" -> 
+                      let num = int_of_string value in
+                      let file = file_find num in
+                      file_cancel file
+                  | "VDP" -> 
+                      let num = int_of_string value in
+                      let file = file_find num in
+                      file_pause file
+                  | "VDR" -> 
+                      let num = int_of_string value in
+                      let file = file_find num in
+                      file_resume file
+                  | _ -> ()
+              ) r.get_url.Url.args;
 
 (* downloads *)
-Printf.bprintf buf "<p align=\"left\"><small>";
-let mfiles = List2.tail_map file_info !!files in
-    (List.map (fun file ->
-          [|
-            Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable(Int64.sub file.file_size file.file_downloaded)) (print_human_readable file.file_size);
-	  |]
-      ) mfiles);
-Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
-Printf.bprintf buf "</small></p>";
-
-
-Printf.bprintf buf "</card></wml>";
-     end	
+              Printf.bprintf buf "<p align=\"left\"><small>";
+              let mfiles = List2.tail_map file_info !!files in
+              List.iter (fun file ->
+                  Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable(Int64.sub file.file_size file.file_downloaded)) (print_human_readable file.file_size);
+              
+              ) mfiles;
+              Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
+              Printf.bprintf buf "</small></p>";
+              
+              
+              Printf.bprintf buf "</card></wml>";
+            end	
         | "/commands.html" ->
             html_open_page buf t r true;
-			let this_page = "commands.html" in 
+            let this_page = "commands.html" in 
             Buffer.add_string buf (
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					read_theme_page this_page else
-				if !!html_mods then !!CommonMessages.web_common_header_mods0
-              	else !!CommonMessages.web_common_header_old)
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !!CommonMessages.web_common_header_mods0
+              else !!CommonMessages.web_common_header_old)
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
-				let this_page = "frames.html" in 
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					Buffer.add_string buf (read_theme_page this_page) else
+                let this_page = "frames.html" in 
+                if !!html_mods_theme != "" && theme_page_exists this_page then
+                  Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
                   Printf.bprintf buf "
 			 <frameset src=\"index\" rows=\"%d,25,*\">
@@ -812,7 +810,7 @@ Printf.bprintf buf "</card></wml>";
                     { o with conn_filter = !filter };
                   
                   Buffer.add_string buf (html_escaped 
-                    (Buffer.contents b))
+                      (Buffer.contents b))
               
               | _ -> 
                   Buffer.add_string buf "Bad filter"
@@ -887,7 +885,7 @@ Printf.bprintf buf "</card></wml>";
             DriverInteractive.display_file_list b o;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
-
+        
         | "/submit" ->
             begin
               match r.get_url.Url.args with
@@ -910,23 +908,23 @@ Printf.bprintf buf "</card></wml>";
                   in
                   html_open_page buf t r true;
 
-				(* Konqueror doesn't like html within <pre> *)
-			  	  let drop_pre = ref false in
-				  let rawcmd = ref cmd in
-
-				  if String.contains cmd ' ' then
-					 rawcmd := String.sub cmd 0 (String.index cmd ' ');
-				  
-				  (match !rawcmd with 
-					| "vm" | "vma" | "view_custom_queries"  | "xs" | "vr" | "afr" | "friend_remove" | "reshare" | "recover_temp"
-					| "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log" | "friend_add" | "remove_old_servers"
-					| "downloaders" | "uploaders" | "scan_temp" | "cs" | "version" | "rename" | "force_download" | "close_fds"
-					| "vd" | "vo" | "voo" | "upstats" | "shares" | "share" | "unshare" -> drop_pre := true;
-					| _ -> ());
-
+(* Konqueror doesn't like html within <pre> *)
+                  let drop_pre = ref false in
+                  let rawcmd = ref cmd in
+                  
+                  if String.contains cmd ' ' then
+                    rawcmd := String.sub cmd 0 (String.index cmd ' ');
+                  
+                  (match !rawcmd with 
+                    | "vm" | "vma" | "view_custom_queries"  | "xs" | "vr" | "afr" | "friend_remove" | "reshare" | "recover_temp"
+                    | "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log" | "friend_add" | "remove_old_servers"
+                    | "downloaders" | "uploaders" | "scan_temp" | "cs" | "version" | "rename" | "force_download" | "close_fds"
+                    | "vd" | "vo" | "voo" | "upstats" | "shares" | "share" | "unshare" -> drop_pre := true;
+                    | _ -> ());
+                  
                   Printf.bprintf buf "%s\n" 
-					(if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
-
+                    (if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
+              
               | [ ("custom", query) ] ->
                   html_open_page buf t r true;
                   CommonSearch.custom_query buf query
