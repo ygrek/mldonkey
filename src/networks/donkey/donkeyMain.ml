@@ -246,6 +246,8 @@ let enable () =
         int_tag "version" !!DonkeyOptions.protocol_version;
         int_tag "port" !client_port;
       ];      
+      if Autoconf.has_zlib then
+	client_tags := (int_tag "extended" 1)::!client_tags;
       overnet_connect_tags :=
       [
         string_tag "name" (local_login ());

@@ -2,9 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <netinet/in.h>
+
+
+#if defined(__MINGW32__)
+typedef unsigned int uint;
+#include <winsock.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#else
+#include <netinet/in.h>
+#endif
+
+
 
 #include <fcntl.h>
 #include <errno.h>

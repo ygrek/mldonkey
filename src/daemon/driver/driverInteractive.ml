@@ -361,7 +361,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a href=http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
+          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a href=http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
               file.file_num
               file.file_num
               (Int64.to_string file.file_size)
@@ -694,7 +694,16 @@ let html_mods_done_files buf files =
         |]
     ) files);
   Printf.bprintf buf "\\</form\\>"
-  
+
+let print_human_readable size =
+ (if Int64.to_float size > 1024. && Int64.to_float size < 1048576. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1024.) ("kb") )
+  else if size > Int64.of_float 1048576. && Int64.to_float size < 1073741824. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1048576.) ("mb") )
+  else if size > Int64.of_float 1073741824. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
+  else (Printf.sprintf "%7s%s" (Int64.to_string size) ("b") ) )
+
 let simple_print_file_list finished buf files format =
   let print_table = if format.conn_output = HTML then print_table_html 2
     else print_table_text in
@@ -726,7 +735,8 @@ let simple_print_file_list finished buf files format =
             "File";
             "Percent"; 
             "Downloaded";
-            "Size";
+            "    Size";
+            "    Left";
             "Old";
             "Rate";
 	    "Priority";
@@ -746,8 +756,9 @@ let simple_print_file_list finished buf files format =
                       file.file_download_rate /. 1024.), "$b"
             in
             [|
-              (Printf.sprintf "%s[%s %-5d]%s"
-                color
+              (Printf.sprintf "%s[%10s %-5d]%s"
+                (if !!term_ansi then (color)
+                 else "")
                 (net_name file)
                 file.file_num
                   (if format.conn_output = HTML then  
@@ -759,8 +770,12 @@ let simple_print_file_list finished buf files format =
                   else ""));
               (short_name file);
               (Printf.sprintf "%5.1f" (percent file));
-              (Int64.to_string file.file_downloaded);
-              (Int64.to_string file.file_size);
+              (if !!improved_telnet then (print_human_readable file.file_downloaded)
+               else (Int64.to_string file.file_downloaded) );
+              (if !!improved_telnet then (print_human_readable file.file_size)
+               else (Int64.to_string file.file_size) );
+              (if !!improved_telnet then (print_human_readable (Int64.sub file.file_size file.file_downloaded))
+               else (Int64.to_string (Int64.sub file.file_size file.file_downloaded)) );
               (Printf.sprintf "%d:%s" (age_to_day file.file_age)
                 ( 
                   let len = Array.length file.file_chunks_age in

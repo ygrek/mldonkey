@@ -62,8 +62,8 @@ let register_client_hash ip hash =
 	(* The new hash is original, that's acceptable *)
 	true
       else begin
-	lprintf "That hash was already used somewhere else, that's certainly a theft!";
-        lprint_newline ();
+(*	lprintf "That hash was already used somewhere else, that's certainly a theft!";
+        lprint_newline (); *)
 	false
       end
     end

@@ -62,8 +62,8 @@ input.txt {background: @C6@}
 input.txt2 {background: @C11@;
 font: 12px courier; padding: 0px;
 width: 38px; height: 18px; line-height: 14px; color: #000;
-BORDER-RIGHT: #fff 1px solid; BORDER-TOP: #000 2px solid;
-BORDER-LEFT: #000 2px solid; BORDER-BOTTOM: #fff 1px solid;
+BORDER-RIGHT: #000 2px solid; BORDER-TOP: #fff 1px solid;
+BORDER-LEFT: #fff 1px solid; BORDER-BOTTOM: #000 2px solid;
 }
 input.but2 {background: @C14@;
 border: 0px; padding: 0px; font: bold 10px verdana; 
@@ -377,7 +377,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</TD></TR></TBODY></TABLE></TD>
 <FORM name=cmdFormular action=submit target=output>
 <TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
-<TD style=\"padding: 0px; padding-left: 4px; border: 0px;\" title=\"Input mldonkey command here\">
+<TD style=\"padding: 0px; border: 0px;\" title=\"Input mldonkey command here\">
 <INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
 </TD></TR></TBODY></TABLE></TD><TD noWrap>
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
@@ -459,6 +459,9 @@ onClick=\"mSub('fstatus','c')\">Connect to more servers</TD>
 <TD class=\"bu bbig\" title=\"Remove old servers\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
+<TD class=\"bu bbig\" title=\"Open Serverlist\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"top.output.location.href='http://ed2k.2x4u.de/list.html'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab4\" style=\"display: none\">

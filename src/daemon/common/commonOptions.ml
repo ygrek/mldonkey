@@ -244,9 +244,11 @@ let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let all_sources_on_telnet =
-  define_option current_section ["all_sources_on_telnet"] "Should *all* sources be shown on telnet vd <num>" bool_option true
-  
-  
+  define_expert_option current_section ["all_sources_on_telnet"] "Should *all* sources be shown on telnet vd <num>" bool_option true
+    
+let improved_telnet =
+  define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
+
   
   
   

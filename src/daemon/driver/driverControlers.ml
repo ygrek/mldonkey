@@ -804,9 +804,7 @@ let http_handler o t r =
                       | "Avail" -> o.conn_sortvd <- ByAvail
                       | _ -> ()
                     end
-                | _ -> 
-                    lprintf "files: Unbound argument \"%s=%s\"" arg value;
-                    lprint_newline ();
+                | _ -> ()
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
             
@@ -919,7 +917,7 @@ end
              			else !!CommonMessages.download_html_js_old)
         | cmd ->
             html_open_page buf t r true;
-            Printf.bprintf buf "No page named %s" cmd
+            Printf.bprintf buf "No page named %s" (html_escaped cmd)
       with e ->
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
     end;

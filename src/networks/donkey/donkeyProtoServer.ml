@@ -64,6 +64,7 @@ module Connect = struct
         1, "name";
         17, "version";
         15, "port";
+	32, "extended";
       ]
     
     let parse len s =
@@ -1089,11 +1090,13 @@ let mldonkey_extensions len s =
       Mldonkey_CloseSubscribeReq num
   | _ -> raise Not_found
   
-let parse magic s =
+let rec parse magic s =
   try 
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
+      match magic with 
+	  227 -> begin
 (*    lprintf "opcode: %d" opcode; lprint_newline (); *)
     match opcode with 
     | 1 -> ConnectReq (Connect.parse len s)
@@ -1130,6 +1133,19 @@ let parse magic s =
     | 250 -> mldonkey_extensions len s
     | _ ->
 	raise Not_found
+	  end
+   | 0xD4 -> (* 212 *)
+
+        if Autoconf.has_zlib then
+          let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Printf.sprintf "%c%s" (char_of_int opcode) s in 
+            parse 227 s
+        else
+          failwith "No Zlib to uncompress packet"
+   | _ ->   
+       lprintf "From server:"; lprint_newline ();
+       dump s;
+       UnknownReq s
   with
     e -> 
       lprintf "From server:"; lprint_newline ();

@@ -747,7 +747,8 @@ the name between []"
           html_mods_table_header buf "upstatsTable" "upstats" [ 
             ( "1", "srh", "Total file requests", "Reqs" ) ; 
             ( "1", "srh", "Total bytes sent", "Total" ) ; 
-            ( "0", "srh", "Filename", "Filename" ) ]; 
+            ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
+	    ( "0", "srh", "Filename", "Filename" ) ]; 
         
         let counter = ref 0 in 
         
@@ -769,10 +770,14 @@ the name between []"
                 
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+
+		let uploaded = Int64.to_float impl.impl_shared_uploaded in
+		let size = Int64.to_float impl.impl_shared_size in
                 
                 html_mods_td buf [
                   ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
                   ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
+		  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
                   ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
                       ed2k (Filename.basename impl.impl_shared_codedname)) ];
                 Printf.bprintf buf "\\</tr\\>\n";
@@ -977,7 +982,8 @@ the name between []"
             href=\\\"http://www.filenexus.com/\\\" name=\\\"FileNexus\\\" target=\\\"$O\\\"\\>FN\\</a\\> \\<a
             href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FH\\</a\\> \\<a
             href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\> \\<a
-            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> ";
+            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> \\<a
+            href=\\\"http://filewatcher.org\\\" name=\\\"FileWatcher\\\" target=\\\"$O\\\"\\>FW\\</a\\> ";
         
         ""
     ), ":\t\t\tview custom queries";

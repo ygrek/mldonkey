@@ -500,7 +500,7 @@ let file_print file o =
 			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
 			 html_mods_td buf [
     		("Fake check links", "sr br", "Fakecheck");
-    		("", "sr", Printf.sprintf "\\<a href=\\\"http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
+    		("", "sr", Printf.sprintf "\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
     				\\<a href=\\\"http://www.sharereactor.com/fakesearch.php\\?search=ed2k://|file|%s|%s|%s|/\\\"\\>[ShareReactor Fakecheck]\\</a\\>" 
 					(Md4.to_string info.G.file_md4) 
 					(info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];

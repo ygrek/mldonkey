@@ -191,9 +191,7 @@ let udp_handler f sock event =
                 (String.sub pbuf 1 (len-1)) in
 (*              M.print t; *)
               f t p
-          with e ->
-              lprintf "Error %s in udp_handler"
-                (Printexc2.to_string e); lprint_newline () 
+          with e -> ()
       ) ;
   | _ -> ()
       

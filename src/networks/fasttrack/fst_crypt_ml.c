@@ -2,11 +2,16 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-#include <netinet/in.h>
+
 #include "caml/mlvalues.h"
 #include "caml/fail.h"
 
-
+#if defined(__MINGW32__)
+typedef unsigned int uint;
+#include <winsock.h>
+#else
+#include <netinet/in.h>
+#endif
 /************************************************************************/
 
 

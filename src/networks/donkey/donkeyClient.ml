@@ -931,7 +931,11 @@ let client_to_client challenge for_files c t sock =
             end;
           
           if file_size file <= block_size then 
-            client_has_chunks c file [| true |]
+            client_has_chunks c file [| true |];
+	      
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+          M.QueryChunksReq file.file_md4);      
         
         with _ -> ()
       end  
@@ -1428,7 +1432,8 @@ end else *)
       
       if  !CommonUploads.has_upload = 0 && not 
           (!!ban_queue_jumpers && c.client_banned) then
-        
+      begin
+      try
         let file = find_file t in
         let chunks = if file.file_chunks = [||] then
             Array.create file.file_nchunks false
@@ -1446,6 +1451,9 @@ end else *)
             Q.chunks = chunks;
           });
         DonkeySourcesMisc.query_file c file
+      with 
+	| _ -> ()
+      end
   
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c.client_client) ->
@@ -1975,8 +1983,8 @@ let client_connection_handler overnet t event =
         end     
       
       else begin
-          lprintf "***** CONNECTION PREVENTED by limitations *****";
-          lprint_newline ();
+          (* lprintf "***** CONNECTION PREVENTED by limitations *****";
+          lprint_newline (); *)
           Unix.close s
         end;
   | _ -> 

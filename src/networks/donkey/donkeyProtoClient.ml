@@ -155,6 +155,7 @@ module ConnectReply  = struct
         1, "name";
         17, "version";
         15, "port";
+	32, "extended";
       ]
     
     let parse len s =

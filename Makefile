@@ -93,7 +93,7 @@ TARGETS= mlnet$(EXE)
 
 
 ifeq ("$(OS_FILES)", "mingw")
-  LIBS_flags += -cclib  -lws2_32
+  LIBS_flags += -cclib  -lws2_32 -cclib resfile.o
 #  LIBS_byte += -cclib -lws2_32
 endif
 
@@ -211,10 +211,10 @@ all: Makefile config/Makefile.config $(TARGET_TYPE)
 config/configure: config/configure.in
 	cd config; autoconf
 
-ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
+ifeq ("$(MYCONFIG_ARGS_DEFINED)" , "yes")
 
 config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in packages/rpm/Makefile.in
-	./configure $(CONFIG_ARGS)
+	./configure $(MYCONFIG_ARGS)
 
 else
 

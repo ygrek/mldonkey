@@ -58,7 +58,7 @@ let use_napigator = define_option opennap_section ["use_napigator"]
 
 let servers_list_url = define_option opennap_section ["servers_list_url"]
     "The URL from which servers list is downloaded"
-    string_option  "http://www.napigator.com/servers/"
+    string_option  "http://beta34.napigator.com/servers/?sort=network&dir=asc"
   
 let server_connection_timeout = 
   define_option opennap_section ["server_connection_timeout"] 

@@ -16,7 +16,7 @@
 
 #if defined(__MINGW32__)
 typedef unsigned int uint;
-#include <w32api/winsock.h>
+#include <winsock.h>
 #else
 
 #include <sys/ioctl.h>
