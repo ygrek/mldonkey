@@ -499,7 +499,7 @@ donkey/donkey.cmx: donkey/donkey.lam donkey/donkey.cmi
 	$(OCAMLOPT) $(PLUGIN_FLAG)  $(INCLUDES) -c -dil -impl donkey/donkey.lam
 
 lib/md4_cc.o: lib/md4.c
-	ocamlc.opt -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
+	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
 
 lib/md4_as.o: lib/md4_$(MD4ARCH).s
 	as -o lib/md4_as.o lib/md4_$(MD4ARCH).s
