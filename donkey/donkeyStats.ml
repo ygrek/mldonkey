@@ -43,6 +43,7 @@ let brand_to_int b =
   | Brand_server -> 6
   | Brand_mldonkey3 -> 7
   | Brand_cdonkey -> 8
+  | Brand_lmule -> 9
       
 let brand_of_int b =
   match b with
@@ -55,6 +56,7 @@ let brand_of_int b =
   | 6 -> Brand_server
   | 7 -> Brand_mldonkey3
   | 8 -> Brand_cdonkey
+  | 9 -> Brand_lmule
   | _ -> raise Not_found
       
 let gbrand_to_string b =
@@ -67,6 +69,7 @@ let gbrand_to_string b =
   | Brand_mldonkey3 -> "tML"
   | Brand_overnet -> "OVR"
   | Brand_newemule -> "nEM"
+  | Brand_lmule -> "lMU"
   | Brand_server -> "SER"
 
 let stats_all = dummy_stats 

@@ -159,6 +159,7 @@ module UseFifo = struct
       Fifo.clear gui_core_fifo;
       
       if not !timer_set then begin
+          timer_set := true;
           BasicSocket.add_infinite_timer 0.1 (fun _ -> 
               try
                 while true do

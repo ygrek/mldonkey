@@ -100,10 +100,9 @@ lprint_newline ();
 lprint_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
-        if d.download_pos > file_downloaded file then begin
-            (as_file_impl file).impl_file_downloaded <- d.download_pos;
-            file_must_update file;
-          end;
+        if d.download_pos > file_downloaded file then 
+          add_file_downloaded (as_file_impl file)
+          (Int64.sub d.download_pos (file_downloaded file));
         if file_downloaded file = file_size file then
           file_complete d
     

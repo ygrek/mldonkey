@@ -61,7 +61,7 @@ let is_banned c sock =
 (* Supports Emule Extended Protocol *)
 let supports_eep cb = 
   match cb with
-    Brand_newemule | Brand_cdonkey | Brand_mldonkey3 -> true
+    Brand_lmule | Brand_newemule | Brand_cdonkey | Brand_mldonkey3 -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -475,12 +475,17 @@ let identify_client_brand c =
     else
       if c.client_overnet then Brand_overnet else Brand_edonkey)
 
-let identify_cdonkey c tags = 
+let identify_emule_compatible c tags = 
 	List.iter (fun tag -> 
 		match tag.tag_name with
 	      "compatible" -> (match tag.tag_value with
-                  		  Uint64 i -> if i = Int64.of_int 1 then
-									c.client_brand <- Brand_cdonkey
+                  		  Uint64 i -> begin 
+									let intof64 = (Int64.to_int i) in
+									match intof64 with 
+									1 -> c.client_brand <- Brand_cdonkey
+								  | 2 -> c.client_brand <- Brand_lmule
+								  | _ -> ()
+								  end
                   		| _ -> ())
 		  | _ -> ()
 	) tags
@@ -739,7 +744,7 @@ lprint_newline ();
   | M.EmuleClientInfoReq t ->      
 (*      lprintf "Emule Extended Protocol asked"; lprint_newline (); *)
       let module CI = M.EmuleClientInfo in
-      identify_cdonkey c t.CI.tags;
+      identify_emule_compatible c t.CI.tags;
       
       if supports_eep c.client_brand then  begin
           let module E = M.EmuleClientInfo in
@@ -801,7 +806,7 @@ lprint_newline ();
       
       let module CI = M.EmuleClientInfo in
       
-      identify_cdonkey c t.CI.tags
+      identify_emule_compatible c t.CI.tags
 
 
 (*   lprintf "Emule Extended Protocol activated"; lprint_newline (); *)

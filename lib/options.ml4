@@ -631,10 +631,13 @@ let rec value_to_option v2c v =
 let save_delayed_list_value oc indent c2v =
   let indent = indent ^ "  " in
   fun v ->
-    Printf.fprintf oc "\n%s" indent;
-    save_value indent oc (c2v v);
-    Printf.fprintf oc ";"
-  
+    try
+      let v = c2v v in
+      Printf.fprintf oc "\n%s" indent;
+      save_value indent oc v;
+      Printf.fprintf oc ";"
+    with _ -> ()  
+        
 let list_to_value name c2v l =
   DelayedValue
     (fun oc indent ->

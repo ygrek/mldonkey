@@ -87,7 +87,7 @@ val close_all : unit -> unit
   
 val start_time : int
   
-external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
+(* external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"*)
   
 external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
 val string_of_date : int -> string

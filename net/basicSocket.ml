@@ -462,7 +462,7 @@ let close_all () =
   ) !fd_tasks
   
   
-external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
+(*  external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput" *)
   
 let last_time () = int_of_float !current_time - 1000000000
 let start_time = last_time ()

@@ -67,9 +67,10 @@ type brand =
 | Brand_mldonkey3
 | Brand_overnet
 | Brand_newemule
+| Brand_lmule
 | Brand_server
   
-let brand_count = 9
+let brand_count = 10
   
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;

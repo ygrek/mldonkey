@@ -84,7 +84,7 @@ let server_must_update s =
     
 let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file.file_file.impl_file_downloaded
+let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file.file_file)
@@ -735,6 +735,7 @@ let brand_to_string b =
   | Brand_mldonkey3 -> "trusted mldonkey"
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
+  | Brand_lmule -> "lMule"
   | Brand_server -> "server"
 
 

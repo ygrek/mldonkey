@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/03/20: Simon (v 2.04rc1-7)
+  - Build libraries before building executables
+  - Applied patch #1300, #1302, #1303, #1307
+  - Use file_add_downloaded in all plugins: display correct download rate
+
 2003/03/19: Simon (v 2.04rc1-6)
   - Applied patch #1297, #1298
   - New command 'rename'

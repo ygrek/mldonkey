@@ -505,9 +505,11 @@ module ANSI = struct
   
   end
   
+  (*
 external get_screen_size : Unix.file_descr -> bool = "ml_get_screen_size"
 external screen_width : unit -> int = "ml_screen_width"
 external screen_height : unit -> int = "ml_screen_height"
+*)
   
 (* How do you get the size associated with a socket ? I have no book here,
 I think we have to associate a pseudo-tty with the socket, but I don't

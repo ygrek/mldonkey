@@ -381,7 +381,7 @@ let commands = [
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
           end
     
-    ), ":\t\t\t\tselect html_mods_style <#>";
+    ), ":\t\t\tselect html_mods_style <#>";
     
     
     
@@ -1562,7 +1562,7 @@ formID.msgText.value=\\\"\\\";
         calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
         :: !!calendar;
         "action added"
-    ), " <hour> \"...command...\": add a command to be executed every day";
+    ), " <hour> \"<command>\":\t\tadd a command to be executed every day";
 
     "rename", Arg_two (fun arg new_name o ->
         let num = int_of_string arg in
@@ -1571,7 +1571,7 @@ formID.msgText.value=\\\"\\\";
           set_file_best_name file new_name;
           Printf.sprintf "Download %d renamed to %s" num new_name
         with _ -> Printf.sprintf "No file number %d" num
-    ), "<num> \"<new name>\" :\t\t\tchange name of download <num> to <new name>";
+    ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
  
     ]

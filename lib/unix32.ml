@@ -218,7 +218,6 @@ let buffered_write t offset s pos_s len_s =
           if !buffered_bytes > !max_buffered then flush ()
         end
   | Some e -> 
-      t.error <- None; 
       raise e
 
 let write t offset s pos_s len_s =  

@@ -37,9 +37,11 @@ cdk/zlib.cmx: cdk/zlib.cmi
 cdk/printf2.cmi: lib/autoconf.cmo lib/fifo.cmi 
 cdk/xmlyacc.cmi: cdk/xmltypes.cmi 
 chat/chat_app.cmo: chat/chat_data.cmo chat/chat_gui.cmo \
-    chat/chat_messages.cmo chat/chat_proto.cmo chat/chat_types.cmo 
+    chat/chat_messages.cmo chat/chat_proto.cmo chat/chat_types.cmo \
+    configwin/configwin.cmo 
 chat/chat_app.cmx: chat/chat_data.cmx chat/chat_gui.cmx \
-    chat/chat_messages.cmx chat/chat_proto.cmx chat/chat_types.cmx 
+    chat/chat_messages.cmx chat/chat_proto.cmx chat/chat_types.cmx \
+    configwin/configwin.cmx 
 chat/chat_args.cmo: chat/chat_config.cmo chat/chat_messages.cmo 
 chat/chat_args.cmx: chat/chat_config.cmx chat/chat_messages.cmx 
 chat/chat_config.cmo: chat/chat_messages.cmo chat/chat_options.cmi 
@@ -50,10 +52,10 @@ chat/chat_data.cmx: chat/chat_config.cmx chat/chat_options.cmx \
     chat/chat_proto.cmx chat/chat_types.cmx 
 chat/chat_gui.cmo: chat/chat_data.cmo chat/chat_gui_base.cmo \
     chat/chat_icons.cmo chat/chat_messages.cmo chat/chat_proto.cmo \
-    chat/chat_types.cmo 
+    chat/chat_types.cmo okey/okey.cmi 
 chat/chat_gui.cmx: chat/chat_data.cmx chat/chat_gui_base.cmx \
     chat/chat_icons.cmx chat/chat_messages.cmx chat/chat_proto.cmx \
-    chat/chat_types.cmx 
+    chat/chat_types.cmx okey/okey.cmx 
 chat/chat_gui_base.cmo: chat/chat_messages.cmo 
 chat/chat_gui_base.cmx: chat/chat_messages.cmx 
 chat/chat_main.cmo: chat/chat_args.cmo chat/chat_messages.cmo chat/mlchat.cmi 
@@ -65,13 +67,15 @@ chat/chat_options.cmo: cdk/printexc2.cmi cdk/printf2.cmi \
 chat/chat_options.cmx: cdk/printexc2.cmx cdk/printf2.cmx \
     chat/chat_options.cmi 
 chat/chat_proto.cmo: chat/chat_messages.cmo chat/chat_misc.cmo \
-    cdk/printexc2.cmi 
+    config/mingw/mlUnix.cmo cdk/printexc2.cmi 
 chat/chat_proto.cmx: chat/chat_messages.cmx chat/chat_misc.cmx \
-    cdk/printexc2.cmx 
+    config/mingw/mlUnix.cmx cdk/printexc2.cmx 
 chat/mlchat.cmo: chat/chat_app.cmo chat/chat_config.cmo \
     chat/chat_messages.cmo chat/chat_proto.cmo chat/mlchat.cmi 
 chat/mlchat.cmx: chat/chat_app.cmx chat/chat_config.cmx \
     chat/chat_messages.cmx chat/chat_proto.cmx chat/mlchat.cmi 
+lib/autoconf.cmo: cdk/zlib.cmi 
+lib/autoconf.cmx: cdk/zlib.cmx 
 lib/avifile.cmo: cdk/printf2.cmi 
 lib/avifile.cmx: cdk/printf2.cmx 
 lib/cddb_file.cmo: lib/cddb_lexer.cmo cdk/file.cmi cdk/printexc2.cmi \
@@ -249,12 +253,12 @@ common/commonDownloads.cmo: net/basicSocket.cmi common/commonClient.cmo \
     common/commonComplexOptions.cmi common/commonFile.cmo \
     common/commonGlobals.cmo common/commonInteractive.cmo \
     common/commonOptions.cmo common/commonTypes.cmo lib/options.cmi \
-    cdk/printf2.cmi net/tcpBufferedSocket.cmi cdk/unix2.cmo lib/unix32.cmi 
+    cdk/printf2.cmi net/tcpBufferedSocket.cmi lib/unix32.cmi 
 common/commonDownloads.cmx: net/basicSocket.cmx common/commonClient.cmx \
     common/commonComplexOptions.cmx common/commonFile.cmx \
     common/commonGlobals.cmx common/commonInteractive.cmx \
     common/commonOptions.cmx common/commonTypes.cmx lib/options.cmx \
-    cdk/printf2.cmx net/tcpBufferedSocket.cmx cdk/unix2.cmx lib/unix32.cmx 
+    cdk/printf2.cmx net/tcpBufferedSocket.cmx lib/unix32.cmx 
 common/commonEvent.cmo: common/commonTypes.cmo lib/intmap.cmi 
 common/commonEvent.cmx: common/commonTypes.cmx lib/intmap.cmx 
 common/commonFile.cmo: net/basicSocket.cmi common/commonClient.cmo \
@@ -508,7 +512,8 @@ driver/driverInterface.cmx: net/basicSocket.cmx common/commonClient.cmx \
     cdk/printf2.cmx cdk/string2.cmx net/tcpBufferedSocket.cmx \
     net/tcpServerSocket.cmx net/udpSocket.cmx driver/driverInterface.cmi 
 driver/driverMain.cmo: lib/autoconf.cmo net/basicSocket.cmi \
-    common/commonChat.cmo common/commonClient.cmo common/commonFile.cmo \
+    common/commonChat.cmo common/commonClient.cmo \
+    common/commonComplexOptions.cmi common/commonFile.cmo \
     common/commonGlobals.cmo common/commonInteractive.cmo \
     common/commonMultimedia.cmi common/commonNetwork.cmo \
     common/commonOptions.cmo common/commonResult.cmo common/commonServer.cmo \
@@ -518,7 +523,8 @@ driver/driverMain.cmo: lib/autoconf.cmo net/basicSocket.cmi \
     config/mingw/mlUnix.cmo lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
     cdk/string2.cmi cdk/unix2.cmo lib/unix32.cmi 
 driver/driverMain.cmx: lib/autoconf.cmx net/basicSocket.cmx \
-    common/commonChat.cmx common/commonClient.cmx common/commonFile.cmx \
+    common/commonChat.cmx common/commonClient.cmx \
+    common/commonComplexOptions.cmx common/commonFile.cmx \
     common/commonGlobals.cmx common/commonInteractive.cmx \
     common/commonMultimedia.cmx common/commonNetwork.cmx \
     common/commonOptions.cmx common/commonResult.cmx common/commonServer.cmx \
@@ -540,10 +546,12 @@ mp3tagui/mp3_misc.cmo: mp3tagui/mp3_genres.cmo
 mp3tagui/mp3_misc.cmx: mp3tagui/mp3_genres.cmx 
 mp3tagui/mp3_tag.cmo: mp3tagui/mp3_misc.cmo cdk/unix2.cmo 
 mp3tagui/mp3_tag.cmx: mp3tagui/mp3_misc.cmx cdk/unix2.cmx 
-mp3tagui/mp3_ui.cmo: mp3tagui/mp3_genres.cmo mp3tagui/mp3_messages.cmo \
-    mp3tagui/mp3_misc.cmo mp3tagui/mp3tag.cmi mp3tagui/mp3_ui.cmi 
-mp3tagui/mp3_ui.cmx: mp3tagui/mp3_genres.cmx mp3tagui/mp3_messages.cmx \
-    mp3tagui/mp3_misc.cmx mp3tagui/mp3tag.cmx mp3tagui/mp3_ui.cmi 
+mp3tagui/mp3_ui.cmo: configwin/configwin.cmo mp3tagui/mp3_genres.cmo \
+    mp3tagui/mp3_messages.cmo mp3tagui/mp3_misc.cmo mp3tagui/mp3tag.cmi \
+    mp3tagui/mp3_ui.cmi 
+mp3tagui/mp3_ui.cmx: configwin/configwin.cmx mp3tagui/mp3_genres.cmx \
+    mp3tagui/mp3_messages.cmx mp3tagui/mp3_misc.cmx mp3tagui/mp3tag.cmx \
+    mp3tagui/mp3_ui.cmi 
 mp3tagui/mp3tag.cmo: mp3tagui/mp3_genres.cmo mp3tagui/mp3_info.cmi \
     mp3tagui/mp3_misc.cmo mp3tagui/mp3_tag.cmo mp3tagui/mp3tag.cmi 
 mp3tagui/mp3tag.cmx: mp3tagui/mp3_genres.cmx mp3tagui/mp3_info.cmx \
@@ -552,6 +560,378 @@ mp3tagui/mp3tagui.cmo: mp3tagui/mp3_ui.cmi mp3tagui/mp3tagui.cmi
 mp3tagui/mp3tagui.cmx: mp3tagui/mp3_ui.cmx mp3tagui/mp3tagui.cmi 
 mp3tagui/mp3_ui.cmi: mp3tagui/mp3tag.cmi 
 mp3tagui/mp3tagui.cmi: mp3tagui/mp3tag.cmi 
+gui/gui_cdget.cmo: net/basicSocket.cmi common/commonTypes.cmo cdk/file.cmi \
+    lib/gettext.cmi common/guiProto.cmo gui/gui_com.cmi gui/gui_messages.cmo \
+    gui/gui_misc.cmo gui/gui_options.cmo gui/gui_results_base.cmo \
+    net/http_client.cmi lib/options.cmi cdk/printf2.cmi cdk/sysenv.cmi \
+    lib/url.cmi 
+gui/gui_cdget.cmx: net/basicSocket.cmx common/commonTypes.cmx cdk/file.cmx \
+    lib/gettext.cmx common/guiProto.cmx gui/gui_com.cmx gui/gui_messages.cmx \
+    gui/gui_misc.cmx gui/gui_options.cmx gui/gui_results_base.cmx \
+    net/http_client.cmx lib/options.cmx cdk/printf2.cmx cdk/sysenv.cmx \
+    lib/url.cmx 
+gui/gui_columns.cmo: lib/gettext.cmi gui/gui_messages.cmo cdk/list2.cmi \
+    lib/options.cmi 
+gui/gui_columns.cmx: lib/gettext.cmx gui/gui_messages.cmx cdk/list2.cmx \
+    lib/options.cmx 
+gui/gui_com.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonTypes.cmo lib/fifo.cmi lib/gettext.cmi \
+    common/guiDecoding.cmi common/guiEncoding.cmi common/guiProto.cmo \
+    gui/gui_global.cmo gui/gui_messages.cmo gui/gui_options.cmo net/ip.cmi \
+    lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
+    net/tcpBufferedSocket.cmi gui/gui_com.cmi 
+gui/gui_com.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonTypes.cmx lib/fifo.cmx lib/gettext.cmx \
+    common/guiDecoding.cmx common/guiEncoding.cmx common/guiProto.cmx \
+    gui/gui_global.cmx gui/gui_messages.cmx gui/gui_options.cmx net/ip.cmx \
+    lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
+    net/tcpBufferedSocket.cmx gui/gui_com.cmi 
+gui/gui_config.cmo: configwin/configwin.cmo lib/gettext.cmi \
+    common/guiProto.cmo common/guiTypes.cmo gui/gui_columns.cmo \
+    gui/gui_com.cmi gui/gui_global.cmo gui/gui_messages.cmo gui/gui_misc.cmo \
+    gui/gui_options.cmo lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi 
+gui/gui_config.cmx: configwin/configwin.cmx lib/gettext.cmx \
+    common/guiProto.cmx common/guiTypes.cmx gui/gui_columns.cmx \
+    gui/gui_com.cmx gui/gui_global.cmx gui/gui_messages.cmx gui/gui_misc.cmx \
+    gui/gui_options.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx 
+gui/gui_console.cmo: common/commonTypes.cmo lib/fifo.cmi \
+    gpattern/gpattern.cmi common/guiProto.cmo gui/gui_com.cmi \
+    gui/gui_console_base.cmo gui/gui_messages.cmo gui/gui_options.cmo \
+    okey/okey.cmi lib/options.cmi cdk/string2.cmi 
+gui/gui_console.cmx: common/commonTypes.cmx lib/fifo.cmx \
+    gpattern/gpattern.cmx common/guiProto.cmx gui/gui_com.cmx \
+    gui/gui_console_base.cmx gui/gui_messages.cmx gui/gui_options.cmx \
+    okey/okey.cmx lib/options.cmx cdk/string2.cmx 
+gui/gui_console_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+gui/gui_console_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+gui/gui_downloads.cmo: net/basicSocket.cmi common/commonTypes.cmo \
+    lib/gAutoconf.cmo lib/gettext.cmi gpattern/gpattern.cmi \
+    common/guiProto.cmo common/guiTypes.cmo gui/gui_columns.cmo \
+    gui/gui_com.cmi gui/gui_downloads_base.cmo gui/gui_friends.cmo \
+    gui/gui_global.cmo gui/gui_messages.cmo gui/gui_misc.cmo \
+    gui/gui_options.cmo cdk/hashtbl2.cmi lib/intmap.cmi lib/intset.cmi \
+    cdk/list2.cmi lib/md4.cmi mp3tagui/mp3_ui.cmi mp3tagui/mp3tag.cmi \
+    okey/okey.cmi lib/options.cmi 
+gui/gui_downloads.cmx: net/basicSocket.cmx common/commonTypes.cmx \
+    lib/gAutoconf.cmx lib/gettext.cmx gpattern/gpattern.cmx \
+    common/guiProto.cmx common/guiTypes.cmx gui/gui_columns.cmx \
+    gui/gui_com.cmx gui/gui_downloads_base.cmx gui/gui_friends.cmx \
+    gui/gui_global.cmx gui/gui_messages.cmx gui/gui_misc.cmx \
+    gui/gui_options.cmx cdk/hashtbl2.cmx lib/intmap.cmx lib/intset.cmx \
+    cdk/list2.cmx lib/md4.cmx mp3tagui/mp3_ui.cmx mp3tagui/mp3tag.cmx \
+    okey/okey.cmx lib/options.cmx 
+gui/gui_downloads_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+gui/gui_downloads_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+gui/gui_friends.cmo: net/basicSocket.cmi common/commonTypes.cmo \
+    lib/gettext.cmi gpattern/gpattern.cmi common/guiProto.cmo \
+    common/guiTypes.cmo gui/gui_columns.cmo gui/gui_com.cmi \
+    gui/gui_friends_base.cmo gui/gui_global.cmo gui/gui_messages.cmo \
+    gui/gui_misc.cmo gui/gui_options.cmo gui/gui_results.cmo lib/intmap.cmi \
+    cdk/list2.cmi okey/okey.cmi lib/options.cmi 
+gui/gui_friends.cmx: net/basicSocket.cmx common/commonTypes.cmx \
+    lib/gettext.cmx gpattern/gpattern.cmx common/guiProto.cmx \
+    common/guiTypes.cmx gui/gui_columns.cmx gui/gui_com.cmx \
+    gui/gui_friends_base.cmx gui/gui_global.cmx gui/gui_messages.cmx \
+    gui/gui_misc.cmx gui/gui_options.cmx gui/gui_results.cmx lib/intmap.cmx \
+    cdk/list2.cmx okey/okey.cmx lib/options.cmx 
+gui/gui_global.cmo: net/basicSocket.cmi common/commonTypes.cmo \
+    common/guiTypes.cmo lib/intmap.cmi cdk/printf2.cmi 
+gui/gui_global.cmx: net/basicSocket.cmx common/commonTypes.cmx \
+    common/guiTypes.cmx lib/intmap.cmx cdk/printf2.cmx 
+gui/gui_help.cmo: lib/autoconf.cmo common/commonTypes.cmo \
+    gpattern/gpattern.cmi common/guiProto.cmo gui/gui_help_base.cmo \
+    gui/gui_messages.cmo gui/gui_options.cmo lib/options.cmi 
+gui/gui_help.cmx: lib/autoconf.cmx common/commonTypes.cmx \
+    gpattern/gpattern.cmx common/guiProto.cmx gui/gui_help_base.cmx \
+    gui/gui_messages.cmx gui/gui_options.cmx lib/options.cmx 
+gui/gui_installer.cmo: configwin/configwin_ihm.cmo \
+    configwin/configwin_types.cmo gui/gui_installer_base.cmo net/ip.cmi \
+    lib/options.cmi cdk/printf2.cmi cdk/unix2.cmo 
+gui/gui_installer.cmx: configwin/configwin_ihm.cmx \
+    configwin/configwin_types.cmx gui/gui_installer_base.cmx net/ip.cmx \
+    lib/options.cmx cdk/printf2.cmx cdk/unix2.cmx 
+gui/gui_installer_base.cmo: lib/gettext.cmi gui/gui_messages.cmo \
+    gui/gui_options.cmo lib/options.cmi 
+gui/gui_installer_base.cmx: lib/gettext.cmx gui/gui_messages.cmx \
+    gui/gui_options.cmx lib/options.cmx 
+gui/gui_main.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonTypes.cmo lib/gettext.cmi common/guiEncoding.cmi \
+    common/guiProto.cmo common/guiTypes.cmo gui/gui_com.cmi \
+    gui/gui_config.cmo gui/gui_global.cmo gui/gui_messages.cmo \
+    gui/gui_misc.cmo gui/gui_options.cmo gui/gui_rooms.cmo gui/gui_window.cmo \
+    cdk/list2.cmi lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi 
+gui/gui_main.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonTypes.cmx lib/gettext.cmx common/guiEncoding.cmx \
+    common/guiProto.cmx common/guiTypes.cmx gui/gui_com.cmx \
+    gui/gui_config.cmx gui/gui_global.cmx gui/gui_messages.cmx \
+    gui/gui_misc.cmx gui/gui_options.cmx gui/gui_rooms.cmx gui/gui_window.cmx \
+    cdk/list2.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx 
+gui/gui_messages.cmo: common/commonOptions.cmo lib/gettext.cmi \
+    lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi 
+gui/gui_messages.cmx: common/commonOptions.cmx lib/gettext.cmx \
+    lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx 
+gui/gui_misc.cmo: common/commonTypes.cmo common/guiProto.cmo \
+    common/guiTypes.cmo gui/gui_global.cmo gui/gui_options.cmo \
+    lib/options.cmi 
+gui/gui_misc.cmx: common/commonTypes.cmx common/guiProto.cmx \
+    common/guiTypes.cmx gui/gui_global.cmx gui/gui_options.cmx \
+    lib/options.cmx 
+gui/gui_options.cmo: icons/kde/add_to_friends_xpm.cmo \
+    icons/kde/cancel_xpm.cmo common/commonOptions.cmo \
+    icons/kde/connect_more_xpm.cmo icons/kde/connect_xpm.cmo \
+    icons/kde/disconnect_xpm.cmo icons/kde/download_xpm.cmo \
+    icons/kde/edit_mp3_xpm.cmo icons/kde/extend_search_xpm.cmo \
+    icons/kde/get_format_xpm.cmo lib/gettext.cmi gui/gui_columns.cmo \
+    gui/gui_keys.cmo gui/gui_messages.cmo icons/kde/local_search_xpm.cmo \
+    lib/options.cmi icons/kde/pause_resume_xpm.cmo icons/kde/preview_xpm.cmo \
+    icons/kde/refres_xpm.cmo icons/kde/remove_all_friends_xpm.cmo \
+    icons/kde/save_all_xpm.cmo icons/kde/save_as_xpm.cmo \
+    icons/kde/save_xpm.cmo icons/kde/trash_xpm.cmo \
+    icons/kde/verify_chunks_xpm.cmo icons/kde/view_users_xpm.cmo 
+gui/gui_options.cmx: icons/kde/add_to_friends_xpm.cmx \
+    icons/kde/cancel_xpm.cmx common/commonOptions.cmx \
+    icons/kde/connect_more_xpm.cmx icons/kde/connect_xpm.cmx \
+    icons/kde/disconnect_xpm.cmx icons/kde/download_xpm.cmx \
+    icons/kde/edit_mp3_xpm.cmx icons/kde/extend_search_xpm.cmx \
+    icons/kde/get_format_xpm.cmx lib/gettext.cmx gui/gui_columns.cmx \
+    gui/gui_keys.cmx gui/gui_messages.cmx icons/kde/local_search_xpm.cmx \
+    lib/options.cmx icons/kde/pause_resume_xpm.cmx icons/kde/preview_xpm.cmx \
+    icons/kde/refres_xpm.cmx icons/kde/remove_all_friends_xpm.cmx \
+    icons/kde/save_all_xpm.cmx icons/kde/save_as_xpm.cmx \
+    icons/kde/save_xpm.cmx icons/kde/trash_xpm.cmx \
+    icons/kde/verify_chunks_xpm.cmx icons/kde/view_users_xpm.cmx 
+gui/gui_queries.cmo: common/commonTypes.cmo lib/gettext.cmi \
+    gpattern/gpattern.cmi common/guiProto.cmo common/guiTypes.cmo \
+    gui/gui_cdget.cmo gui/gui_columns.cmo gui/gui_com.cmi \
+    gui/gui_messages.cmo gui/gui_misc.cmo gui/gui_options.cmo \
+    gui/gui_queries_base.cmo gui/gui_results.cmo cdk/list2.cmi okey/okey.cmi \
+    lib/options.cmi 
+gui/gui_queries.cmx: common/commonTypes.cmx lib/gettext.cmx \
+    gpattern/gpattern.cmx common/guiProto.cmx common/guiTypes.cmx \
+    gui/gui_cdget.cmx gui/gui_columns.cmx gui/gui_com.cmx \
+    gui/gui_messages.cmx gui/gui_misc.cmx gui/gui_options.cmx \
+    gui/gui_queries_base.cmx gui/gui_results.cmx cdk/list2.cmx okey/okey.cmx \
+    lib/options.cmx 
+gui/gui_queries_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+gui/gui_queries_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+gui/gui_results.cmo: common/commonGlobals.cmo common/commonTypes.cmo \
+    cdk/filename2.cmi lib/gettext.cmi gpattern/gpattern.cmi \
+    common/guiProto.cmo common/guiTypes.cmo gui/gui_columns.cmo \
+    gui/gui_com.cmi gui/gui_global.cmo gui/gui_messages.cmo gui/gui_misc.cmo \
+    gui/gui_options.cmo gui/gui_results_base.cmo cdk/list2.cmi lib/md4.cmi \
+    lib/options.cmi 
+gui/gui_results.cmx: common/commonGlobals.cmx common/commonTypes.cmx \
+    cdk/filename2.cmx lib/gettext.cmx gpattern/gpattern.cmx \
+    common/guiProto.cmx common/guiTypes.cmx gui/gui_columns.cmx \
+    gui/gui_com.cmx gui/gui_global.cmx gui/gui_messages.cmx gui/gui_misc.cmx \
+    gui/gui_options.cmx gui/gui_results_base.cmx cdk/list2.cmx lib/md4.cmx \
+    lib/options.cmx 
+gui/gui_rooms.cmo: net/basicSocket.cmi common/commonTypes.cmo lib/gettext.cmi \
+    gpattern/gpattern.cmi common/guiProto.cmo common/guiTypes.cmo \
+    gui/gui_columns.cmo gui/gui_com.cmi gui/gui_global.cmo \
+    gui/gui_messages.cmo gui/gui_misc.cmo gui/gui_options.cmo \
+    gui/gui_rooms_base.cmo gui/gui_users.cmo gui/gui_users_base.cmo \
+    cdk/list2.cmi okey/okey.cmi lib/options.cmi cdk/printexc2.cmi \
+    cdk/printf2.cmi 
+gui/gui_rooms.cmx: net/basicSocket.cmx common/commonTypes.cmx lib/gettext.cmx \
+    gpattern/gpattern.cmx common/guiProto.cmx common/guiTypes.cmx \
+    gui/gui_columns.cmx gui/gui_com.cmx gui/gui_global.cmx \
+    gui/gui_messages.cmx gui/gui_misc.cmx gui/gui_options.cmx \
+    gui/gui_rooms_base.cmx gui/gui_users.cmx gui/gui_users_base.cmx \
+    cdk/list2.cmx okey/okey.cmx lib/options.cmx cdk/printexc2.cmx \
+    cdk/printf2.cmx 
+gui/gui_servers.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonTypes.cmo lib/gettext.cmi gpattern/gpattern.cmi \
+    common/guiProto.cmo common/guiTypes.cmo gui/gui_columns.cmo \
+    gui/gui_com.cmi gui/gui_friends.cmo gui/gui_global.cmo \
+    gui/gui_messages.cmo gui/gui_misc.cmo gui/gui_options.cmo \
+    gui/gui_queries.cmo gui/gui_servers_base.cmo gui/gui_users.cmo \
+    cdk/list2.cmi lib/options.cmi cdk/string2.cmi 
+gui/gui_servers.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonTypes.cmx lib/gettext.cmx gpattern/gpattern.cmx \
+    common/guiProto.cmx common/guiTypes.cmx gui/gui_columns.cmx \
+    gui/gui_com.cmx gui/gui_friends.cmx gui/gui_global.cmx \
+    gui/gui_messages.cmx gui/gui_misc.cmx gui/gui_options.cmx \
+    gui/gui_queries.cmx gui/gui_servers_base.cmx gui/gui_users.cmx \
+    cdk/list2.cmx lib/options.cmx cdk/string2.cmx 
+gui/gui_servers_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+gui/gui_servers_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+gui/gui_uploads.cmo: common/commonTypes.cmo configwin/configwin.cmo \
+    lib/gettext.cmi gpattern/gpattern.cmi common/guiProto.cmo \
+    common/guiTypes.cmo gui/gui_columns.cmo gui/gui_com.cmi \
+    gui/gui_global.cmo gui/gui_messages.cmo gui/gui_misc.cmo \
+    gui/gui_options.cmo gui/gui_uploads_base.cmo cdk/list2.cmi lib/md4.cmi \
+    lib/options.cmi cdk/printf2.cmi 
+gui/gui_uploads.cmx: common/commonTypes.cmx configwin/configwin.cmx \
+    lib/gettext.cmx gpattern/gpattern.cmx common/guiProto.cmx \
+    common/guiTypes.cmx gui/gui_columns.cmx gui/gui_com.cmx \
+    gui/gui_global.cmx gui/gui_messages.cmx gui/gui_misc.cmx \
+    gui/gui_options.cmx gui/gui_uploads_base.cmx cdk/list2.cmx lib/md4.cmx \
+    lib/options.cmx cdk/printf2.cmx 
+gui/gui_uploads_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+gui/gui_uploads_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+gui/gui_users.cmo: common/commonGlobals.cmo common/commonTypes.cmo \
+    lib/gettext.cmi gpattern/gpattern.cmi common/guiProto.cmo \
+    common/guiTypes.cmo gui/gui_columns.cmo gui/gui_com.cmi \
+    gui/gui_messages.cmo gui/gui_misc.cmo gui/gui_options.cmo \
+    gui/gui_users_base.cmo net/ip.cmi cdk/list2.cmi lib/options.cmi 
+gui/gui_users.cmx: common/commonGlobals.cmx common/commonTypes.cmx \
+    lib/gettext.cmx gpattern/gpattern.cmx common/guiProto.cmx \
+    common/guiTypes.cmx gui/gui_columns.cmx gui/gui_com.cmx \
+    gui/gui_messages.cmx gui/gui_misc.cmx gui/gui_options.cmx \
+    gui/gui_users_base.cmx net/ip.cmx cdk/list2.cmx lib/options.cmx 
+gui/gui_window.cmo: common/commonTypes.cmo lib/gettext.cmi \
+    common/guiProto.cmo gui/gui_com.cmi gui/gui_global.cmo \
+    gui/gui_messages.cmo gui/gui_misc.cmo gui/gui_options.cmo \
+    gui/gui_window_base.cmo okey/okey.cmi lib/options.cmi 
+gui/gui_window.cmx: common/commonTypes.cmx lib/gettext.cmx \
+    common/guiProto.cmx gui/gui_com.cmx gui/gui_global.cmx \
+    gui/gui_messages.cmx gui/gui_misc.cmx gui/gui_options.cmx \
+    gui/gui_window_base.cmx okey/okey.cmx lib/options.cmx 
+gui/gui_window_base.cmo: lib/gettext.cmi gui/gui_console.cmo \
+    gui/gui_downloads.cmo gui/gui_friends.cmo gui/gui_help.cmo \
+    gui/gui_messages.cmo gui/gui_options.cmo gui/gui_rooms.cmo \
+    gui/gui_servers.cmo gui/gui_uploads.cmo lib/options.cmi 
+gui/gui_window_base.cmx: lib/gettext.cmx gui/gui_console.cmx \
+    gui/gui_downloads.cmx gui/gui_friends.cmx gui/gui_help.cmx \
+    gui/gui_messages.cmx gui/gui_options.cmx gui/gui_rooms.cmx \
+    gui/gui_servers.cmx gui/gui_uploads.cmx lib/options.cmx 
+gui/gui_com.cmi: common/guiProto.cmo 
+gui2/gui2.cmo: gui2/gui2_GList.cmo gui2/gui2_messages.cmo 
+gui2/gui2.cmx: gui2/gui2_GList.cmx gui2/gui2_messages.cmx 
+gui2/gui2_config.cmo: configwin/configwin.cmo gui2/gui2_messages.cmo \
+    gui2/gui2_misc.cmo gui2/gui2_options.cmi lib/options.cmi 
+gui2/gui2_config.cmx: configwin/configwin.cmx gui2/gui2_messages.cmx \
+    gui2/gui2_misc.cmx gui2/gui2_options.cmx lib/options.cmx 
+gui2/gui2_handler.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonTypes.cmo configwin/configwin.cmo gui2/gui2.cmo \
+    gui2/gui2_messages.cmo gui2/gui2_options.cmi common/guiEncoding.cmi \
+    common/guiProto.cmo common/guiTypes.cmo net/ip.cmi lib/md4.cmi \
+    mp3tagui/mp3_ui.cmi mp3tagui/mp3tag.cmi gui2/myCList.cmi lib/options.cmi \
+    cdk/printexc2.cmi cdk/printf2.cmi net/tcpBufferedSocket.cmi 
+gui2/gui2_handler.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonTypes.cmx configwin/configwin.cmx gui2/gui2.cmx \
+    gui2/gui2_messages.cmx gui2/gui2_options.cmx common/guiEncoding.cmx \
+    common/guiProto.cmx common/guiTypes.cmx net/ip.cmx lib/md4.cmx \
+    mp3tagui/mp3_ui.cmx mp3tagui/mp3tag.cmx gui2/myCList.cmx lib/options.cmx \
+    cdk/printexc2.cmx cdk/printf2.cmx net/tcpBufferedSocket.cmx 
+gui2/gui2_main.cmo: net/basicSocket.cmi common/commonTypes.cmo \
+    lib/gAutoconf.cmo gui2/gui2.cmo gui2/gui2_config.cmo \
+    gui2/gui2_handler.cmo gui2/gui2_messages.cmo gui2/gui2_misc.cmo \
+    gui2/gui2_options.cmi common/guiProto.cmo common/guiTypes.cmo \
+    gui2/myCList.cmi okey/okey.cmi lib/options.cmi net/tcpClientSocket.cmi 
+gui2/gui2_main.cmx: net/basicSocket.cmx common/commonTypes.cmx \
+    lib/gAutoconf.cmx gui2/gui2.cmx gui2/gui2_config.cmx \
+    gui2/gui2_handler.cmx gui2/gui2_messages.cmx gui2/gui2_misc.cmx \
+    gui2/gui2_options.cmx common/guiProto.cmx common/guiTypes.cmx \
+    gui2/myCList.cmx okey/okey.cmx lib/options.cmx net/tcpClientSocket.cmx 
+gui2/gui2_misc.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonTypes.cmo gui2/gui2.cmo gui2/gui2_handler.cmo \
+    gui2/gui2_messages.cmo gui2/gui2_options.cmi common/guiDecoding.cmi \
+    common/guiEncoding.cmi common/guiProto.cmo common/guiTypes.cmo net/ip.cmi \
+    lib/md4.cmi gui2/myCList.cmi lib/options.cmi cdk/printexc2.cmi \
+    cdk/printf2.cmi net/tcpBufferedSocket.cmi 
+gui2/gui2_misc.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonTypes.cmx gui2/gui2.cmx gui2/gui2_handler.cmx \
+    gui2/gui2_messages.cmx gui2/gui2_options.cmx common/guiDecoding.cmx \
+    common/guiEncoding.cmx common/guiProto.cmx common/guiTypes.cmx net/ip.cmx \
+    lib/md4.cmx gui2/myCList.cmx lib/options.cmx cdk/printexc2.cmx \
+    cdk/printf2.cmx net/tcpBufferedSocket.cmx 
+gui2/gui2_options.cmo: common/commonOptions.cmo gui2/gui2_keys.cmo \
+    gui2/gui2_messages.cmo lib/options.cmi gui2/gui2_options.cmi 
+gui2/gui2_options.cmx: common/commonOptions.cmx gui2/gui2_keys.cmx \
+    gui2/gui2_messages.cmx lib/options.cmx gui2/gui2_options.cmi 
+gui2/myCList.cmo: net/basicSocket.cmi lib/gAutoconf.cmo gui2/gui2.cmo \
+    gui2/gui2_options.cmi common/guiProto.cmo cdk/list2.cmi lib/options.cmi \
+    cdk/printexc2.cmi cdk/printf2.cmi gui2/myCList.cmi 
+gui2/myCList.cmx: net/basicSocket.cmx lib/gAutoconf.cmx gui2/gui2.cmx \
+    gui2/gui2_options.cmx common/guiProto.cmx cdk/list2.cmx lib/options.cmx \
+    cdk/printexc2.cmx cdk/printf2.cmx gui2/myCList.cmi 
+gui2/gui2_options.cmi: lib/options.cmi 
+gui2/myCList.cmi: net/basicSocket.cmi gui2/gui2.cmo gui2/gui2_options.cmi \
+    common/guiProto.cmo 
+configwin/configwin.cmo: configwin/configwin_ihm.cmo \
+    configwin/configwin_types.cmo 
+configwin/configwin.cmx: configwin/configwin_ihm.cmx \
+    configwin/configwin_types.cmx 
+configwin/configwin_ihm.cmo: configwin/configwin_messages.cmo \
+    configwin/configwin_types.cmo 
+configwin/configwin_ihm.cmx: configwin/configwin_messages.cmx \
+    configwin/configwin_types.cmx 
+okey/okey.cmo: cdk/printf2.cmi okey/okey.cmi 
+okey/okey.cmx: cdk/printf2.cmx okey/okey.cmi 
+gpattern/gpattern.cmo: lib/gAutoconf.cmo lib/intmap.cmi cdk/printexc2.cmi \
+    cdk/printf2.cmi gpattern/gpattern.cmi 
+gpattern/gpattern.cmx: lib/gAutoconf.cmx lib/intmap.cmx cdk/printexc2.cmx \
+    cdk/printf2.cmx gpattern/gpattern.cmi 
+im/gui_im.cmo: chat/chat_messages.cmo common/commonGlobals.cmo \
+    configwin/configwin.cmo gpattern/gpattern.cmi gui/gui_global.cmo \
+    im/gui_im_base.cmo gui/gui_messages.cmo gui/gui_options.cmo \
+    im/imAccount.cmo im/imChat.cmo im/imEvent.cmo im/imIdentity.cmo \
+    im/imOptions.cmo im/imProtocol.cmo im/imRoom.cmo im/imTypes.cmo \
+    okey/okey.cmi lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi 
+im/gui_im.cmx: chat/chat_messages.cmx common/commonGlobals.cmx \
+    configwin/configwin.cmx gpattern/gpattern.cmx gui/gui_global.cmx \
+    im/gui_im_base.cmx gui/gui_messages.cmx gui/gui_options.cmx \
+    im/imAccount.cmx im/imChat.cmx im/imEvent.cmx im/imIdentity.cmx \
+    im/imOptions.cmx im/imProtocol.cmx im/imRoom.cmx im/imTypes.cmx \
+    okey/okey.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx 
+im/gui_im_base.cmo: lib/gettext.cmi gui/gui_messages.cmo 
+im/gui_im_base.cmx: lib/gettext.cmx gui/gui_messages.cmx 
+im/gui_im_main.cmo: net/basicSocket.cmi im/gui_im.cmo 
+im/gui_im_main.cmx: net/basicSocket.cmx im/gui_im.cmx 
+im/gui_im_rooms.cmo: gpattern/gpattern.cmi gui/gui_columns.cmo \
+    im/gui_im_base.cmo im/imIdentity.cmo im/imTypes.cmo 
+im/gui_im_rooms.cmx: gpattern/gpattern.cmx gui/gui_columns.cmx \
+    im/gui_im_base.cmx im/imIdentity.cmx im/imTypes.cmx 
+im/imAccount.cmo: im/imEvent.cmo im/imProtocol.cmo im/imTypes.cmo \
+    lib/options.cmi cdk/printf2.cmi cdk/weak2.cmi 
+im/imAccount.cmx: im/imEvent.cmx im/imProtocol.cmx im/imTypes.cmx \
+    lib/options.cmx cdk/printf2.cmx cdk/weak2.cmx 
+im/imChat.cmo: im/imProtocol.cmo im/imTypes.cmo cdk/weak2.cmi 
+im/imChat.cmx: im/imProtocol.cmx im/imTypes.cmx cdk/weak2.cmx 
+im/imEvent.cmo: im/imTypes.cmo cdk/list2.cmi 
+im/imEvent.cmx: im/imTypes.cmx cdk/list2.cmx 
+im/imIdentity.cmo: im/imProtocol.cmo im/imTypes.cmo cdk/weak2.cmi 
+im/imIdentity.cmx: im/imProtocol.cmx im/imTypes.cmx cdk/weak2.cmx 
+im/imMain.cmo: net/basicSocket.cmi im/imAccount.cmo im/imOptions.cmo \
+    im/imTypes.cmo cdk/list2.cmi lib/options.cmi cdk/printf2.cmi 
+im/imMain.cmx: net/basicSocket.cmx im/imAccount.cmx im/imOptions.cmx \
+    im/imTypes.cmx cdk/list2.cmx lib/options.cmx cdk/printf2.cmx 
+im/imOptions.cmo: common/commonOptions.cmo lib/gettext.cmi im/imAccount.cmo \
+    im/imProtocol.cmo lib/options.cmi 
+im/imOptions.cmx: common/commonOptions.cmx lib/gettext.cmx im/imAccount.cmx \
+    im/imProtocol.cmx lib/options.cmx 
+im/imProtocol.cmo: im/imTypes.cmo lib/options.cmi cdk/printf2.cmi \
+    cdk/weak2.cmi 
+im/imProtocol.cmx: im/imTypes.cmx lib/options.cmx cdk/printf2.cmx \
+    cdk/weak2.cmx 
+im/imRoom.cmo: im/imProtocol.cmo im/imTypes.cmo cdk/weak2.cmi 
+im/imRoom.cmx: im/imProtocol.cmx im/imTypes.cmx cdk/weak2.cmx 
+im/imTypes.cmo: lib/options.cmi 
+im/imTypes.cmx: lib/options.cmx 
+im/yahoo/yahoo.cmo: net/basicSocket.cmi net/bigEndian.cmo cdk/hashtbl2.cmi \
+    im/imAccount.cmo im/imChat.cmo im/imEvent.cmo im/imIdentity.cmo \
+    im/imOptions.cmo im/imProtocol.cmo im/imRoom.cmo im/imTypes.cmo \
+    net/ip.cmi net/littleEndian.cmo lib/md4.cmi lib/options.cmi \
+    cdk/printexc2.cmi cdk/printf2.cmi cdk/string2.cmi \
+    net/tcpBufferedSocket.cmi 
+im/yahoo/yahoo.cmx: net/basicSocket.cmx net/bigEndian.cmx cdk/hashtbl2.cmx \
+    im/imAccount.cmx im/imChat.cmx im/imEvent.cmx im/imIdentity.cmx \
+    im/imOptions.cmx im/imProtocol.cmx im/imRoom.cmx im/imTypes.cmx \
+    net/ip.cmx net/littleEndian.cmx lib/md4.cmx lib/options.cmx \
+    cdk/printexc2.cmx cdk/printf2.cmx cdk/string2.cmx \
+    net/tcpBufferedSocket.cmx 
+im/irc/irc.cmo: net/basicSocket.cmi net/bigEndian.cmo im/imAccount.cmo \
+    im/imChat.cmo im/imEvent.cmo im/imIdentity.cmo im/imOptions.cmo \
+    im/imProtocol.cmo im/imRoom.cmo im/imTypes.cmo net/ip.cmi lib/md4.cmi \
+    lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi cdk/string2.cmi \
+    net/tcpBufferedSocket.cmi 
+im/irc/irc.cmx: net/basicSocket.cmx net/bigEndian.cmx im/imAccount.cmx \
+    im/imChat.cmx im/imEvent.cmx im/imIdentity.cmx im/imOptions.cmx \
+    im/imProtocol.cmx im/imRoom.cmx im/imTypes.cmx net/ip.cmx lib/md4.cmx \
+    lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx cdk/string2.cmx \
+    net/tcpBufferedSocket.cmx 
 direct_connect/dcClients.cmo: net/basicSocket.cmi direct_connect/che3.cmo \
     common/commonClient.cmo common/commonComplexOptions.cmi \
     common/commonFile.cmo common/commonGlobals.cmo \
@@ -562,8 +942,7 @@ direct_connect/dcClients.cmo: net/basicSocket.cmi direct_connect/che3.cmo \
     direct_connect/dcKey.cmo direct_connect/dcOptions.cmo \
     direct_connect/dcProtocol.cmo direct_connect/dcTypes.cmo net/ip.cmi \
     cdk/list2.cmi lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
-    net/tcpBufferedSocket.cmi net/tcpServerSocket.cmi cdk/unix2.cmo \
-    lib/unix32.cmi 
+    net/tcpBufferedSocket.cmi net/tcpServerSocket.cmi lib/unix32.cmi 
 direct_connect/dcClients.cmx: net/basicSocket.cmx direct_connect/che3.cmx \
     common/commonClient.cmx common/commonComplexOptions.cmx \
     common/commonFile.cmx common/commonGlobals.cmx \
@@ -574,8 +953,7 @@ direct_connect/dcClients.cmx: net/basicSocket.cmx direct_connect/che3.cmx \
     direct_connect/dcKey.cmx direct_connect/dcOptions.cmx \
     direct_connect/dcProtocol.cmx direct_connect/dcTypes.cmx net/ip.cmx \
     cdk/list2.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
-    net/tcpBufferedSocket.cmx net/tcpServerSocket.cmx cdk/unix2.cmx \
-    lib/unix32.cmx 
+    net/tcpBufferedSocket.cmx net/tcpServerSocket.cmx lib/unix32.cmx 
 direct_connect/dcComplexOptions.cmo: net/basicSocket.cmi \
     common/commonClient.cmo common/commonComplexOptions.cmi \
     common/commonFile.cmo common/commonGlobals.cmo common/commonResult.cmo \
@@ -704,7 +1082,7 @@ opennap/opennapClients.cmo: net/basicSocket.cmi \
     opennap/opennapOptions.cmo opennap/opennapProtocol.cmo \
     opennap/opennapTypes.cmo lib/options.cmi cdk/printexc2.cmi \
     cdk/printf2.cmi net/tcpBufferedSocket.cmi net/tcpServerSocket.cmi \
-    cdk/unix2.cmo lib/unix32.cmi 
+    lib/unix32.cmi 
 opennap/opennapClients.cmx: net/basicSocket.cmx \
     common/commonComplexOptions.cmx common/commonFile.cmx \
     common/commonGlobals.cmx common/commonInteractive.cmx \
@@ -713,7 +1091,7 @@ opennap/opennapClients.cmx: net/basicSocket.cmx \
     opennap/opennapOptions.cmx opennap/opennapProtocol.cmx \
     opennap/opennapTypes.cmx lib/options.cmx cdk/printexc2.cmx \
     cdk/printf2.cmx net/tcpBufferedSocket.cmx net/tcpServerSocket.cmx \
-    cdk/unix2.cmx lib/unix32.cmx 
+    lib/unix32.cmx 
 opennap/opennapComplexOptions.cmo: net/basicSocket.cmi common/commonFile.cmo \
     common/commonGlobals.cmo common/commonServer.cmo common/commonTypes.cmo \
     net/ip.cmi lib/md4.cmi opennap/opennapGlobals.cmo \
@@ -968,8 +1346,8 @@ donkey/donkeyClient.cmo: cdk/array2.cmo net/basicSocket.cmi \
     donkey/donkeyTypes.cmo lib/fifo.cmi common/guiProto.cmo cdk/heap.cmo \
     lib/intmap.cmi net/ip.cmi net/littleEndian.cmo lib/md4.cmi \
     lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi cdk/string2.cmi \
-    net/tcpBufferedSocket.cmi net/tcpServerSocket.cmi cdk/unix2.cmo \
-    lib/unix32.cmi donkey/donkeyClient.cmi 
+    net/tcpBufferedSocket.cmi net/tcpServerSocket.cmi lib/unix32.cmi \
+    donkey/donkeyClient.cmi 
 donkey/donkeyClient.cmx: cdk/array2.cmx net/basicSocket.cmx \
     common/commonClient.cmx common/commonComplexOptions.cmx \
     common/commonEvent.cmx common/commonFile.cmx common/commonGlobals.cmx \
@@ -985,8 +1363,8 @@ donkey/donkeyClient.cmx: cdk/array2.cmx net/basicSocket.cmx \
     donkey/donkeyTypes.cmx lib/fifo.cmx common/guiProto.cmx cdk/heap.cmx \
     lib/intmap.cmx net/ip.cmx net/littleEndian.cmx lib/md4.cmx \
     lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx cdk/string2.cmx \
-    net/tcpBufferedSocket.cmx net/tcpServerSocket.cmx cdk/unix2.cmx \
-    lib/unix32.cmx donkey/donkeyClient.cmi 
+    net/tcpBufferedSocket.cmx net/tcpServerSocket.cmx lib/unix32.cmx \
+    donkey/donkeyClient.cmi 
 donkey/donkeyComplexOptions.cmo: cdk/array2.cmo net/basicSocket.cmi \
     common/commonClient.cmo common/commonComplexOptions.cmi \
     common/commonFile.cmo common/commonGlobals.cmo common/commonOptions.cmo \
@@ -1013,7 +1391,7 @@ donkey/donkeyFiles.cmo: net/basicSocket.cmi common/commonClient.cmo \
     donkey/donkeyProtoUdp.cmo donkey/donkeyStats.cmi donkey/donkeyTypes.cmo \
     lib/fifo.cmi common/guiProto.cmo cdk/hashtbl2.cmi net/ip.cmi lib/md4.cmi \
     lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
-    net/tcpBufferedSocket.cmi net/udpSocket.cmi cdk/unix2.cmo lib/unix32.cmi \
+    net/tcpBufferedSocket.cmi net/udpSocket.cmi lib/unix32.cmi \
     donkey/donkeyFiles.cmi 
 donkey/donkeyFiles.cmx: net/basicSocket.cmx common/commonClient.cmx \
     common/commonComplexOptions.cmx common/commonFile.cmx \
@@ -1027,7 +1405,7 @@ donkey/donkeyFiles.cmx: net/basicSocket.cmx common/commonClient.cmx \
     donkey/donkeyProtoUdp.cmx donkey/donkeyStats.cmx donkey/donkeyTypes.cmx \
     lib/fifo.cmx common/guiProto.cmx cdk/hashtbl2.cmx net/ip.cmx lib/md4.cmx \
     lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
-    net/tcpBufferedSocket.cmx net/udpSocket.cmx cdk/unix2.cmx lib/unix32.cmx \
+    net/tcpBufferedSocket.cmx net/udpSocket.cmx lib/unix32.cmx \
     donkey/donkeyFiles.cmi 
 donkey/donkeyGlobals.cmo: net/basicSocket.cmi common/commonClient.cmo \
     common/commonComplexOptions.cmi common/commonFile.cmo \
@@ -1157,7 +1535,7 @@ donkey/donkeyOneFile.cmo: net/basicSocket.cmi common/commonClient.cmo \
     donkey/donkeyProtoCom.cmi donkey/donkeyReliability.cmo \
     donkey/donkeyShare.cmi donkey/donkeyTypes.cmo lib/fifo.cmi cdk/list2.cmi \
     lib/md4.cmi lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
-    lib/store.cmi net/tcpBufferedSocket.cmi cdk/unix2.cmo lib/unix32.cmi \
+    lib/store.cmi net/tcpBufferedSocket.cmi lib/unix32.cmi \
     donkey/donkeyOneFile.cmi 
 donkey/donkeyOneFile.cmx: net/basicSocket.cmx common/commonClient.cmx \
     common/commonComplexOptions.cmx common/commonEvent.cmx \
@@ -1171,7 +1549,7 @@ donkey/donkeyOneFile.cmx: net/basicSocket.cmx common/commonClient.cmx \
     donkey/donkeyProtoCom.cmx donkey/donkeyReliability.cmx \
     donkey/donkeyShare.cmx donkey/donkeyTypes.cmx lib/fifo.cmx cdk/list2.cmx \
     lib/md4.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
-    lib/store.cmx net/tcpBufferedSocket.cmx cdk/unix2.cmx lib/unix32.cmx \
+    lib/store.cmx net/tcpBufferedSocket.cmx lib/unix32.cmx \
     donkey/donkeyOneFile.cmi 
 donkey/donkeyOpenProtocol.cmo: net/ip.cmi lib/md4.cmi 
 donkey/donkeyOpenProtocol.cmx: net/ip.cmx lib/md4.cmx 
@@ -1440,3 +1818,113 @@ donkey/donkeySources1.cmi: donkey/donkeyTypes.cmo net/ip.cmi
 donkey/donkeySources2.cmi: donkey/donkeyTypes.cmo net/ip.cmi 
 donkey/donkeySources3.cmi: donkey/donkeyTypes.cmo net/ip.cmi 
 donkey/donkeyStats.cmi: common/commonTypes.cmo donkey/donkeyTypes.cmo 
+soulseek/slskClients.cmo: net/basicSocket.cmi common/commonClient.cmo \
+    common/commonComplexOptions.cmi common/commonDownloads.cmo \
+    common/commonFile.cmo common/commonGlobals.cmo \
+    common/commonInteractive.cmo common/commonOptions.cmo \
+    common/commonResult.cmo common/commonRoom.cmo common/commonSearch.cmo \
+    common/commonServer.cmo common/commonShared.cmo common/commonTypes.cmo \
+    common/commonUser.cmo cdk/filename2.cmi common/guiProto.cmo net/ip.cmi \
+    cdk/list2.cmi lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
+    soulseek/slskComplexOptions.cmo soulseek/slskGlobals.cmo \
+    soulseek/slskOptions.cmo soulseek/slskProtocol.cmo soulseek/slskTypes.cmo \
+    net/tcpBufferedSocket.cmi 
+soulseek/slskClients.cmx: net/basicSocket.cmx common/commonClient.cmx \
+    common/commonComplexOptions.cmx common/commonDownloads.cmx \
+    common/commonFile.cmx common/commonGlobals.cmx \
+    common/commonInteractive.cmx common/commonOptions.cmx \
+    common/commonResult.cmx common/commonRoom.cmx common/commonSearch.cmx \
+    common/commonServer.cmx common/commonShared.cmx common/commonTypes.cmx \
+    common/commonUser.cmx cdk/filename2.cmx common/guiProto.cmx net/ip.cmx \
+    cdk/list2.cmx lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
+    soulseek/slskComplexOptions.cmx soulseek/slskGlobals.cmx \
+    soulseek/slskOptions.cmx soulseek/slskProtocol.cmx soulseek/slskTypes.cmx \
+    net/tcpBufferedSocket.cmx 
+soulseek/slskComplexOptions.cmo: lib/options.cmi soulseek/slskOptions.cmo 
+soulseek/slskComplexOptions.cmx: lib/options.cmx soulseek/slskOptions.cmx 
+soulseek/slskGlobals.cmo: net/basicSocket.cmi common/commonClient.cmo \
+    common/commonComplexOptions.cmi common/commonFile.cmo \
+    common/commonGlobals.cmo common/commonNetwork.cmo \
+    common/commonOptions.cmo common/commonResult.cmo common/commonRoom.cmo \
+    common/commonServer.cmo common/commonShared.cmo common/commonTypes.cmo \
+    common/commonUser.cmo cdk/filename2.cmi common/guiProto.cmo lib/md4.cmi \
+    lib/options.cmi cdk/printexc2.cmi cdk/printf2.cmi \
+    soulseek/slskOptions.cmo soulseek/slskTypes.cmo lib/unix32.cmi 
+soulseek/slskGlobals.cmx: net/basicSocket.cmx common/commonClient.cmx \
+    common/commonComplexOptions.cmx common/commonFile.cmx \
+    common/commonGlobals.cmx common/commonNetwork.cmx \
+    common/commonOptions.cmx common/commonResult.cmx common/commonRoom.cmx \
+    common/commonServer.cmx common/commonShared.cmx common/commonTypes.cmx \
+    common/commonUser.cmx cdk/filename2.cmx common/guiProto.cmx lib/md4.cmx \
+    lib/options.cmx cdk/printexc2.cmx cdk/printf2.cmx \
+    soulseek/slskOptions.cmx soulseek/slskTypes.cmx lib/unix32.cmx 
+soulseek/slskInteractive.cmo: net/basicSocket.cmi common/commonClient.cmo \
+    common/commonComplexOptions.cmi common/commonFile.cmo \
+    common/commonGlobals.cmo common/commonResult.cmo common/commonRoom.cmo \
+    common/commonSearch.cmo common/commonServer.cmo common/commonTypes.cmo \
+    common/commonUser.cmo common/guiTypes.cmo net/ip.cmi cdk/list2.cmi \
+    lib/md4.cmi lib/options.cmi cdk/printf2.cmi soulseek/slskClients.cmo \
+    soulseek/slskGlobals.cmo soulseek/slskOptions.cmo \
+    soulseek/slskProtocol.cmo soulseek/slskServers.cmo soulseek/slskTypes.cmo \
+    cdk/string2.cmi 
+soulseek/slskInteractive.cmx: net/basicSocket.cmx common/commonClient.cmx \
+    common/commonComplexOptions.cmx common/commonFile.cmx \
+    common/commonGlobals.cmx common/commonResult.cmx common/commonRoom.cmx \
+    common/commonSearch.cmx common/commonServer.cmx common/commonTypes.cmx \
+    common/commonUser.cmx common/guiTypes.cmx net/ip.cmx cdk/list2.cmx \
+    lib/md4.cmx lib/options.cmx cdk/printf2.cmx soulseek/slskClients.cmx \
+    soulseek/slskGlobals.cmx soulseek/slskOptions.cmx \
+    soulseek/slskProtocol.cmx soulseek/slskServers.cmx soulseek/slskTypes.cmx \
+    cdk/string2.cmx 
+soulseek/slskMain.cmo: net/basicSocket.cmi common/commonGlobals.cmo \
+    common/commonInteractive.cmo common/commonOptions.cmo \
+    common/commonServer.cmo common/commonTypes.cmo cdk/hashtbl2.cmi \
+    cdk/list2.cmi lib/options.cmi soulseek/slskClients.cmo \
+    soulseek/slskGlobals.cmo soulseek/slskOptions.cmo \
+    soulseek/slskServers.cmo soulseek/slskTypes.cmo 
+soulseek/slskMain.cmx: net/basicSocket.cmx common/commonGlobals.cmx \
+    common/commonInteractive.cmx common/commonOptions.cmx \
+    common/commonServer.cmx common/commonTypes.cmx cdk/hashtbl2.cmx \
+    cdk/list2.cmx lib/options.cmx soulseek/slskClients.cmx \
+    soulseek/slskGlobals.cmx soulseek/slskOptions.cmx \
+    soulseek/slskServers.cmx soulseek/slskTypes.cmx 
+soulseek/slskOptions.cmo: lib/autoconf.cmo common/commonOptions.cmo \
+    lib/options.cmi 
+soulseek/slskOptions.cmx: lib/autoconf.cmx common/commonOptions.cmx \
+    lib/options.cmx 
+soulseek/slskProtocol.cmo: common/commonGlobals.cmo common/commonOptions.cmo \
+    common/commonTypes.cmo net/ip.cmi net/littleEndian.cmo cdk/printexc2.cmi \
+    cdk/printf2.cmi soulseek/slskTypes.cmo net/tcpBufferedSocket.cmi \
+    cdk/zlib.cmi 
+soulseek/slskProtocol.cmx: common/commonGlobals.cmx common/commonOptions.cmx \
+    common/commonTypes.cmx net/ip.cmx net/littleEndian.cmx cdk/printexc2.cmx \
+    cdk/printf2.cmx soulseek/slskTypes.cmx net/tcpBufferedSocket.cmx \
+    cdk/zlib.cmx 
+soulseek/slskServers.cmo: net/basicSocket.cmi common/commonClient.cmo \
+    common/commonComplexOptions.cmi common/commonFile.cmo \
+    common/commonGlobals.cmo common/commonOptions.cmo common/commonResult.cmo \
+    common/commonRoom.cmo common/commonServer.cmo common/commonShared.cmo \
+    common/commonTypes.cmo common/commonUser.cmo cdk/file.cmi \
+    common/guiProto.cmo net/ip.cmi cdk/list2.cmi lib/options.cmi \
+    cdk/printexc2.cmi cdk/printf2.cmi soulseek/slskClients.cmo \
+    soulseek/slskGlobals.cmo soulseek/slskOptions.cmo \
+    soulseek/slskProtocol.cmo soulseek/slskTypes.cmo cdk/string2.cmi \
+    net/tcpBufferedSocket.cmi 
+soulseek/slskServers.cmx: net/basicSocket.cmx common/commonClient.cmx \
+    common/commonComplexOptions.cmx common/commonFile.cmx \
+    common/commonGlobals.cmx common/commonOptions.cmx common/commonResult.cmx \
+    common/commonRoom.cmx common/commonServer.cmx common/commonShared.cmx \
+    common/commonTypes.cmx common/commonUser.cmx cdk/file.cmx \
+    common/guiProto.cmx net/ip.cmx cdk/list2.cmx lib/options.cmx \
+    cdk/printexc2.cmx cdk/printf2.cmx soulseek/slskClients.cmx \
+    soulseek/slskGlobals.cmx soulseek/slskOptions.cmx \
+    soulseek/slskProtocol.cmx soulseek/slskTypes.cmx cdk/string2.cmx \
+    net/tcpBufferedSocket.cmx 
+soulseek/slskTypes.cmo: common/commonClient.cmo common/commonDownloads.cmo \
+    common/commonFile.cmo common/commonResult.cmo common/commonRoom.cmo \
+    common/commonServer.cmo common/commonTypes.cmo common/commonUser.cmo \
+    net/ip.cmi lib/md4.cmi net/tcpBufferedSocket.cmi 
+soulseek/slskTypes.cmx: common/commonClient.cmx common/commonDownloads.cmx \
+    common/commonFile.cmx common/commonResult.cmx common/commonRoom.cmx \
+    common/commonServer.cmx common/commonTypes.cmx common/commonUser.cmx \
+    net/ip.cmx lib/md4.cmx net/tcpBufferedSocket.cmx 

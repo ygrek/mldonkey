@@ -336,7 +336,6 @@ let sample_timer () =
             impl.impl_file_last_rate > 0. then
             file_must_update_downloaded file
       | _ -> ()
-
   ) files_by_num
 
 let file_download_rate impl =
@@ -436,15 +435,23 @@ let file_print file o =
       (info.G.file_name) 
       (Int64.to_string info.G.file_size)
       (Md4.to_string info.G.file_md4);
+
+            Printf.bprintf buf "\\<script language=javascript\\>
+\\<!-- 
+function submitRenameForm() {
+var formID = document.getElementById(\\\"renameForm\\\")
+var regExp = new RegExp (' ', 'gi') ;
+var renameTextOut = formID.newName.value.replace(regExp, '+');
+parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
+}
+//--\\>
+\\</script\\>" (file_num file);
       
-      Printf.bprintf buf "\\<form\\>\\<select\\>";
-      let counter = ref 0 in
+      Printf.bprintf buf "\\<form name=\\\"renameForm\\\" id=\\\"renameForm\\\" action=\\\"javascript:submitRenameForm();\\\"\\>";
+	  Printf.bprintf buf "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>";
+      Printf.bprintf buf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file);
       List.iter (fun name -> 
-          incr counter;
-          Printf.bprintf buf "\\<option";
-          if !counter = 2 then Printf.bprintf buf " selected";
-          Printf.bprintf buf "\\>%s\n" name
-      
+          Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
       ) info.G.file_names;
       
       Printf.bprintf buf "\\</select\\>\\</form\\>\n";
@@ -542,8 +549,7 @@ let file_fd file =
 let set_file_disk_name file filename=
   Unix32.set_filename (file_fd file) filename
   
-let file_downloaded file = 
-  (as_file_impl file).impl_file_downloaded  
+let file_downloaded file = (as_file_impl file).impl_file_downloaded
 
 let file_network file =
   (as_file_impl file).impl_file_ops.op_file_network

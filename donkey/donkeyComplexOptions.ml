@@ -334,7 +334,7 @@ let file_to_value file =
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
       file.file_md4s);
-    "file_downloaded", int64_to_value file.file_file.impl_file_downloaded;
+    "file_downloaded", int64_to_value (file_downloaded file);
     "file_chunks_age", List (Array.to_list 
         (Array.map int_to_value file.file_chunks_age));
     "file_mtime", float_to_value (
@@ -608,12 +608,27 @@ let load _ =
         Options.save_with_help shared_files_ini)
   
 let guptime = define_option stats_ini ["guptime"] "" int_option 0
+  
+let new_stats_array () = 
+  Array.init brand_count (fun _ ->
+      { dummy_stats with brand_seen = 0 }
+  )
+  
 let gstats_by_brand = define_option stats_ini ["stats"] "" 
-  (array_option StatsOption.t)
-    (Array.init brand_count (fun _ ->
-        { dummy_stats with brand_seen = 0 }
-    ))
+    (array_option StatsOption.t) (new_stats_array ())
 
+let _ =
+  option_hook gstats_by_brand (fun _ ->
+      let old_stats = !!gstats_by_brand in
+      let old_len = Array.length old_stats in
+      if old_len <> brand_count then
+        let t = new_stats_array () in
+        for i = 0 to old_len - 1 do
+          t.(i) <- old_stats.(i)
+        done;
+        gstats_by_brand =:= t
+  )
+  
 let diff_time = ref 0
 
 let save _ =

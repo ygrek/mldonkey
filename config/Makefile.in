@@ -22,9 +22,9 @@ ICONS_CHOICE=kde
 
 ##################################################################
 
-NO_LIBS_byte=str.cma
-NO_LIBS_opt=str.cmxa
-NO_STATIC_LIBS_opt=str.cmxa
+NO_LIBS_byte=
+NO_LIBS_opt=
+NO_STATIC_LIBS_opt=
 
 
 LIBS_byte=-custom unix.cma str.cma
@@ -54,20 +54,20 @@ TARGETS= use_tags$(EXE) mlnet$(EXE)
 
 
 ifeq ("$(OS_FILES)", "mingw")
-  LIBS_opt += -cclib  -lws2_32
-  LIBS_byte += -cclib -lws2_32
+  LIBS_flags += -cclib  -lws2_32
+#  LIBS_byte += -cclib -lws2_32
 endif
 
 ifeq ("$(ZLIB)" , "yes")
-  LIBS_opt += -cclib -lz
-  LIBS_byte += -cclib -lz
+  LIBS_flags += -cclib -lz
+#  LIBS_byte += -cclib -lz
   CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
 endif
 
 
 ifeq ("$(ICONV)" , "yes")
-  LIBS_opt += -cclib -liconv
-  LIBS_byte += -cclib -liconv
+  LIBS_flags += -cclib -liconv
+#  LIBS_byte += -cclib -liconv
 endif
 
 CDK_SRCS += lib/autoconf.ml
@@ -83,13 +83,13 @@ CDK_SRCS+= lib/fifo.ml  cdk/printf2.ml \
 
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
-  LIBS_opt += -ccopt "$(PTHREAD_CFLAGS)"
-  LIBS_byte += -ccopt "$(PTHREAD_CFLAGS)"
+  LIBS_flags += -ccopt "$(PTHREAD_CFLAGS)"
+#  LIBS_byte += -ccopt "$(PTHREAD_CFLAGS)"
 endif
 
 ifneq ("$(PTHREAD_LIBS)" , "")
-  LIBS_opt += -cclib "$(PTHREAD_LIBS)"
-  LIBS_byte += -cclib "$(PTHREAD_LIBS)"
+  LIBS_flags += -cclib "$(PTHREAD_LIBS)"
+#  LIBS_byte += -cclib "$(PTHREAD_LIBS)"
 endif
 
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
@@ -165,7 +165,7 @@ config/configure: config/configure.in
 
 ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
 
-config/Makefile.config: Makefile config/configure config/Makefile.config.in lib/autoconf.ml.new.in
+config/Makefile.config: config/configure config/Makefile.config.in lib/autoconf.ml.new.in
 	./configure $(CONFIG_ARGS)
 
 else
@@ -337,13 +337,13 @@ KDE_APPLET=yes
 
 ifeq ("$(CYMES)" , "yes")
 SUBDIRS += cymes
-CORE_PLUGINS += $(CYMES_SRCS)
+CORE_SRCS += $(CYMES_SRCS)
 endif
 
 ifeq ("$(OPENFT)" , "yes")
 SUBDIRS += openFT
 
-CORE_PLUGINS += $(OPENFT_SRCS)
+CORE_SRCS += $(OPENFT_SRCS)
 
 endif
 
@@ -353,7 +353,7 @@ limewire_plugin:
 ifeq ("$(AUDIO_GALAXY)" , "yes")
 SUBDIRS += audio_galaxy
 
-CORE_PLUGINS += $(AUDIOGALAXY_SRCS)
+CORE_SRCS += $(AUDIOGALAXY_SRCS)
 endif
 
 DRIVER_SRCS= \
@@ -367,39 +367,9 @@ MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   tools/mlcast.ml
 
-
-
-define(EXPAND_PROGRAM,[[
-
-ifeq ("$($2)" , "yes")
-
-TARGETS += $1$(EXE)
-endif
-
-$1_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $($3_SRCS) \
-  \
-  $(DRIVER_SRCS) $(MAIN_SRCS)
-
-]])
-
-
-MLNET_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(CORE_PLUGINS) \
-  \
-  $(DRIVER_SRCS) $(MAIN_SRCS)
+CDK_CMXA=cdk.cmxa
+MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
+MLNET_SRCS= $(MAIN_SRCS)
 
 
 
@@ -493,36 +463,21 @@ GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
   gui2/gui2_misc.ml gui2/gui2_config.ml \
   gui2/gui2_main.ml
 
+MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa gui.cmxa
+MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
-MLDONKEYGUI_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
-  $(MAIN_SRCS)
+MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
+MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
+MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa guibase.cmxa
 MLDONKEY_IM_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) \
-  $(GUI_BASE_SRCS) $(IM_GUI_CORE) \
-  im/gui_im_main.ml  $(MAIN_SRCS)
+   $(GUI_BASE_SRCS) $(IM_GUI_CORE) im/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
-INSTALLER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_BASE_SRCS) \
-  gui/gui_installer_base.zog \
-  gui/gui_installer.ml
 
-MLDONKEYGUI2_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS) $(MAIN_SRCS)
+INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
+INSTALLER_SRCS= \
+  $(GUI_BASE_SRCS) gui/gui_installer_base.zog gui/gui_installer.ml
 
 TOP_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
@@ -545,8 +500,8 @@ CHAT_EXE_SRCS= \
 	chat/chat_args.ml \
 	chat/chat_main.ml
 
-MLCHAT_SRCS=   $(CDK_SRCS)  $(LIB_SRCS) \
-  $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
+MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
+MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
 TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 
@@ -568,7 +523,7 @@ IM_CORE += im/imTypes.ml im/imEvent.ml \
    im/imChat.ml im/imRoom.ml \
    im/imOptions.ml
 
-IM_CORE +=   im/yahoo/yahoo.ml  im/irc/irc.ml
+IM_CORE +=  im/irc/irc.ml
 
 IM_GUI_CORE += im/gui_im_base.zog   \
     im/gui_im.ml
@@ -578,7 +533,7 @@ TARGETS += mlim
 ifeq ("$(DEVEL)", "yes")
   SUBDIRS += im/msn
 
-  IM_CORE +=    im/msn/msn.ml
+  IM_CORE +=    im/yahoo/yahoo.ml   im/msn/msn.ml
 endif
 
 IM_CORE +=   im/imMain.ml
@@ -586,12 +541,34 @@ IM_CORE +=   im/imMain.ml
 endif
 
 
+define([[EXPAND_LIB]],[[
+$1_ZOG := $(filter %.zog, $($1_SRCS)) 
+$1_MLL := $(filter %.mll, $($1_SRCS)) 
+$1_MLY := $(filter %.mly, $($1_SRCS)) 
+$1_ML4 := $(filter %.ml4, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
+$1_C := $(filter %.c, $($1_SRCS)) 
+$1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
+$1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
+$1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+ 
+$2.cmxa: $($1_OBJS) $($1_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
+ 
+$2.cma: $($1_OBJS) $($1_CMOS) 
+	$(OCAMLC) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
+ 
+]])
+
+
 define(EXPAND_DRIVER,[[
 
 ifeq ("$($2)" , "yes")
 SUBDIRS += $3
 
-CORE_PLUGINS += $($2_SRCS)
+CORE_SRCS += $($2_SRCS)
 
 TARGETS += $1$(EXE)
 
@@ -603,32 +580,15 @@ endif
 endif
 
 
+$1_CMXA= cdk.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa
+$1_SRCS= $(MAIN_SRCS)
 
-$1_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $($2_SRCS) \
-  \
-  $(DRIVER_SRCS) $(MAIN_SRCS)
+EXPAND_LIB($2,$1)
 
-$1+gui_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $($2_SRCS) \
-  \
-  $(DRIVER_SRCS) \
-  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
-  $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
-  $(MAIN_SRCS)
+$1+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa $1.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+$1+gui_SRCS= $(MAIN_SRCS)
 
 ]])
 
@@ -638,6 +598,22 @@ EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
+libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
+libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
+libclient_SRCS= $(COMMON_CLIENT_SRCS)
+libgmisc_SRCS=  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS)
+libguibase_SRCS= $(IM_CORE)
+libgui_SRCS=   $(GUI_BASE_SRCS) $(GUI_SRCS)
+
+EXPAND_LIB(libcdk,cdk)
+EXPAND_LIB(libcommon,common)
+EXPAND_LIB(libclient,client)
+EXPAND_LIB(DRIVER,driver)
+EXPAND_LIB(CORE,core)
+EXPAND_LIB(libgmisc,gmisc)
+EXPAND_LIB(libgui,gui)
+EXPAND_LIB(libguibase,guibase)
 
 
 #######################################################################
@@ -646,10 +622,8 @@ EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
 #######################################################################
 
-
+USE_TAGS_CMXA=cdk.cmxa
 USE_TAGS_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
   lib/cddb_lexer.mll lib/cddb_file.ml \
   tools/use_tags.ml
 
@@ -664,6 +638,7 @@ HASH_FILES_SRCS = \
 
 ######################################################################
 
+NO_CMXA=
 
 define([[EXPAND]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
@@ -676,41 +651,42 @@ $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo)
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
+$1_CMXAS := $($4_CMXA)
+$1_CMAS=$(foreach file, $($1_CMXAS),   $(basename $(file)).cma)    
+
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
-$2: $($1_OBJS) $($1_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $($3_LIBS_opt) $($1_CMXS) 
+$2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) $($1_CMXAS) $($1_CMXS) 
  
-$2.byte: $($1_OBJS) $($1_CMOS) 
-	$(OCAMLC) -o $[[@]]  $($1_OBJS) $(LIBS_byte)  $($3_LIBS_byte) $($1_CMOS) 
+$2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
+	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) $($1_CMAS) $($1_CMOS) 
  
-$2.static:  $($1_OBJS) $($1_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt)  $($3_STATIC_LIBS_opt) $($1_CMXS) 
+$2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_STATIC_LIBS_opt) $(1_CMXAS) $($1_CMXS) 
 ]])
 
-EXPAND(mldonkey,mldonkey)
-EXPAND(mldonkey+gui,mldonkey+gui,GTK)
-EXPAND(MLDONKEYGUI,mldonkey_gui,GTK)
-EXPAND(MLDONKEYGUI2,mldonkey_gui2,GTK)
-EXPAND(mldc,mldc)
-EXPAND(mldc+gui,mldc+gui,GTK)
-EXPAND(mlnap,mlnap)
-EXPAND(mlnap+gui,mlnap+gui,GTK)
-EXPAND(MLNET,mlnet)
-EXPAND(mlgnut,mlgnut)
-EXPAND(mlgnut+gui,mlgnut+gui,GTK)
-EXPAND(mlslsk,mlslsk)
-EXPAND(mlslsk+gui,mlslsk+gui,GTK)
-EXPAND(MLDONKEY_IM,mlim,GTK)
+EXPAND(mldonkey,mldonkey,NO,mldonkey)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui)
+EXPAND(MLDONKEYGUI,mldonkey_gui,GTK,MLDONKEYGUI)
+EXPAND(MLDONKEYGUI2,mldonkey_gui2,GTK,MLDONKEYGUI2)
+EXPAND(mldc,mldc,NO,mldc)
+EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui)
+EXPAND(mlnap,mlnap,NO,mlnap)
+EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui)
+EXPAND(MLNET,mlnet,NO,MLNET)
+EXPAND(mlgnut,mlgnut,NO,mlgnut)
+EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui)
+EXPAND(mlslsk,mlslsk,NO,mlslsk)
+EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui)
+EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
 EXPAND(STARTER,mldonkey_guistarter,GTK)
-EXPAND(TOP,mldonkeytop)
-EXPAND(MLCHAT,mlchat,GTK)
+#EXPAND(TOP,mldonkeytop)
+EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
-EXPAND(USE_TAGS,use_tags)
+EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
 EXPAND(HASH_FILES,hash_files)
-EXPAND(INSTALLER,mldonkey_installer,GTK)
-
-
+EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
 
 #######################################################################
 
@@ -773,7 +749,7 @@ zogml:
 
 
 clean: 
-	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core *.static
+	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \

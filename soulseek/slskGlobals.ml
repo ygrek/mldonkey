@@ -187,7 +187,7 @@ let file_must_update s = file_must_update (as_file s.file_file)
 let user_num  u = user_num  (as_user u.user_user)
   
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file.file_file.impl_file_downloaded
+let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
   
