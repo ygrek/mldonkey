@@ -228,24 +228,24 @@ let update_source s t =
   c
     *)
 
-let disconnect_server s =
+let disconnect_server s r =
       match s.server_sock with
         None -> ()
   | Some sock -> 
       
-      (try close sock "user disconnect" with _ -> ());
+      (try close sock r with _ -> ());
       decr nservers;
 (*      lprintf "%s:%d CLOSED received by server"
       (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
 *)
       DG.connection_failed (s.server_connection_control);
       s.server_sock <- None;
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (r, -1));
       connected_servers := List2.removeq s !connected_servers
 
 let server_handler s sock event = 
   match event with
-    BASIC_EVENT (CLOSED _) -> disconnect_server s      
+    BASIC_EVENT (CLOSED r) -> disconnect_server s r
   | _ -> ()
 
 let client_to_server s t sock =
@@ -450,7 +450,7 @@ let connect_server s =
       set_reader sock (OpennapProtocol.opennap_handler (client_to_server s));
       set_rtimeout sock !!server_connection_timeout;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          close s "timeout"  
+          close s Closed_for_timeout
       );
       s.server_nick_num <- 0;
       s.server_searches <- None;
@@ -466,7 +466,7 @@ let connect_server s =
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         decr nservers;
         s.server_sock <- None;
-        set_server_state s (NotConnected (-1));
+        set_server_state s (NotConnected (Closed_connect_failed, -1));
         DG.connection_failed s.server_connection_control
         
 let rec connect_one_server () =
@@ -506,7 +506,8 @@ let ask_for_files () =
     
 let _ =
   server_ops.op_server_connect <- connect_server;
-  server_ops.op_server_disconnect <- disconnect_server;
+  server_ops.op_server_disconnect <- (fun s ->
+					  disconnect_server s Closed_by_user);
 (*
 (*  server_ops.op_server_query_users <- (fun s -> *)
       match s.server_sock with
@@ -519,7 +520,7 @@ let _ =
 );
   *)
   server_ops.op_server_remove <- (fun s ->
-      disconnect_server s;
+      disconnect_server s Closed_by_user;
       server_remove s
   );
   

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.sourceforge.net)
+ * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -12,68 +12,26 @@
  * General Public License for more details.
  */
 
-// #include "fst_fasttrack.h"
 
 #include "../../utils/lib/md5.h"
 #include "fst_crypt.h"
-
-#include <netinet/in.h>
-#include "caml/mlvalues.h"
-#include "caml/fail.h"
-
-/* These functions can be used to layout the integers stored in memory
-as on a 32-bits LittleEndian computer. They have to be called everytime
-an integer as to be stored or loaded, in this file, and in the
-enc_type_*.c files.
-*/
-void leint_to_string(int x, char *s)
-{
-  s[0] = x & 0xff;
-  s[1] = (x >> 8) & 0xff;
-  s[2] = (x >> 16) & 0xff;
-  s[3] = (x >> 24) & 0xff;
-}
-
-unsigned int leint_of_string(unsigned char *s)
-{
-  return s[0] | ((s[1] | ((s[2] | (s[3] << 8)) << 8)) << 8);
-}
-
-
-void string_to_ints(char *s, int n)
-{
-  uint32 *ints = (uint32*)s;
-  int i;
-  
-  for(i=0; i<n; i++)
-    ints[i] = leint_of_string(s+4*i);
-}
-
-void ints_to_string(char *s, int n)
-{
-  uint32 *ints = (uint32*)s;
-  int i;
-  
-  for(i=0; i<n; i++)
-    leint_to_string(ints[i], s+4*i);
-}
 
 /*****************************************************************************/
 
 // crypt functions
 void enc_type_1 (unsigned char *out_key, unsigned char *in_key);
-void enc_type_2 (unsigned char *key, unsigned int seed);
-void enc_type_20 (unsigned char *key, unsigned int seed);
-
+void enc_type_2 (unsigned int *key, unsigned int seed);
+void enc_type_20 (unsigned int *key, unsigned int seed);
 
 /*****************************************************************************/
 
-static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
+static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
 static unsigned char clock_cipher(FSTCipher *cipher);
 static unsigned int calculate_num_xor(unsigned int seed);
 static int calculate_num(unsigned int *num, int val);
 static unsigned int seed_step(unsigned int seed);
 static int qsort_cmp_func(const void *ap, const void *bp);
+static void reverse_bytes (unsigned int *buf, unsigned int longs);
 
 /*****************************************************************************/
 
@@ -119,9 +77,7 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 	FST_DBG_2 ("init_cipher: seed = 0x%08x, enc_type = 0x%02x", seed, enc_type);
 
-	seed = pad_init(seed, enc_type, cipher->pad, sizeof(cipher->pad));
-
-/*	printf("seed after pad_init: %ld\n", seed); */
+	pad_init(&seed, enc_type, cipher->pad, sizeof(cipher->pad));
 
 	// adjust pad
 	c = 0;
@@ -136,24 +92,13 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 	cipher->pos = ((temp << 6) - temp) >> 16;
 
 	// init cipher->lookup
-	for(i=0; i<sizeof(cipher->lookup); i++){
+	for(i=0; i<sizeof(cipher->lookup); i++)
 		cipher->lookup[i] = (unsigned char)i;
-/*	    printf("%02X", cipher->lookup[i]); */
-	}
-/*
-	printf("\n");
-	{
-	  int k;
-	  for(k=0; k<sizeof(cipher->pad);k++)
-	    printf("%02X", cipher->pad[k]);
-	  printf("\n");
-	} */
 
 	if(enc_type & 0x08)
 	{
 		MD5Context ctx;
 		unsigned char md5[MD5_HASH_LEN];
-                unsigned int md5_header;
 
 		FST_HEAVY_DBG ("init_cipher: enc_type & 0x08");
 
@@ -161,14 +106,13 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 		MD5Update(&ctx, cipher->pad, sizeof(cipher->pad));
 		MD5Final(md5, &ctx);
 
-                md5_header = leint_of_string(md5);
+		// correct md5 byte order on big-endian since it's converted to (unsigned int*) below
+		reverse_bytes ((unsigned int*)&md5, 4);
 
 		// modify cipher->lookup
 		for(i=0; i<sizeof(cipher->lookup); i++)
 		{
-
-		  /* BIG ENDIAN */
-			if( (j = calculate_num(&md5_header, 0x100 - i) + i) != i)
+			if( (j = calculate_num((unsigned int*) &md5, 0x100 - i) + i) != i)
 			{
 				unsigned char a = cipher->lookup[j];
 				unsigned char b = cipher->lookup[i];
@@ -188,7 +132,7 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 	// sort cipher->pad
 	sortpos = ((cipher->pos * cipher->pos) + 2) % (sizeof(cipher->pad)-4);
 	qsort(cipher->pad + sortpos, 5, 1, qsort_cmp_func);
-	
+
 	// modify every third byte of cipher->pad
 	for(i=5; i<sizeof(cipher->pad); i+=3) 
 	{
@@ -197,7 +141,8 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 		cipher->pad[i] = c | 1;
 	}
 
-	//print_bin_data(cipher->lookup, sizeof(cipher->lookup));
+//	print_bin_data(cipher->pad, sizeof(cipher->pad));
+//	print_bin_data(cipher->lookup, sizeof(cipher->lookup));
 }
 
 /*****************************************************************************/
@@ -216,71 +161,46 @@ unsigned int fst_cipher_decode_enc_type(unsigned int seed, unsigned int crypted_
 
 /*****************************************************************************/
 
-static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
+static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
 {
 	int i;
 	unsigned int temp;
+	unsigned int seed = *pseed;
 	
 	memset(pad, 0, pad_size);
 
 	if((enc_type & 1) || !(enc_type & 0x1E7))
 	{
-		unsigned char key_256[256];
-		unsigned char key3_256[256];
+		unsigned char key_256_in[256];
+		unsigned char key_256_out[256];
 
 		FST_HEAVY_DBG ("pad_init: enc_type & 1");
-/*		printf("\nkey_256="); */
+
 		for(i=0; i<0xFF; i++)
 		{
 			seed = seed_step(seed);
 			temp = seed >> 0x11;
-			key_256[i] = (unsigned char) (temp % 0xE0);
-/*			printf("%02X", key_256[i]); */
+			key_256_in[i] = (unsigned char) (temp % 0xE0);
 		}
-/* 		printf("\n"); */
 
-                  string_to_ints(key_256, 32); 
-/*		printf("\nkey_256="); 
-		for(i=0; i<0xFF; i++)
-			printf("%02X", key_256[i]);
-		printf("\n"); */
-
-		enc_type_1 (key3_256, key_256);
-
-/*		printf("\nkey3_256=");
-		for(i=0; i<0xFF; i++)
-			printf("%02X", key3_256[i]);
-		printf("\n");
-*/
-                  ints_to_string(key3_256, 32); 
-
-/*
-		printf("\nkey3_256=");
-		for(i=0; i<0xFF; i++)
-			printf("%02X", key3_256[i]);
-		printf("\n");
-		printf("\npad=");
-*/
+		enc_type_1 (key_256_out, key_256_in);
 
 		// merge with pad
-		for(i=0; i<pad_size; i++){
-			pad[i] ^= key3_256[i];
-/*			printf("%02X", pad[i]); */
-		}
-/*		printf("\n"); */
+		for(i=0; i<pad_size; i++)
+			pad[i] ^= key_256_out[i];
 
 	}
 
 	if(enc_type & 0x1E6)
 	{
-		unsigned char p_key[80];
+		unsigned int key_80[20];
 
 		FST_HEAVY_DBG ("pad_init: enc_type & 0x1E6");
 
 		for(i=0; i<20; i++)
 		{
 			seed = seed_step(seed);
-			leint_to_string(seed, p_key+i*4);
+			key_80[i] = seed;
 		}
 
 		if(enc_type & 0x02)
@@ -288,14 +208,13 @@ static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad
 			FST_HEAVY_DBG ("pad_init: enc_type & 0x02");
 			seed = seed_step(seed);
 
-			enc_type_2 (p_key, seed);
+			enc_type_2 (key_80, seed);
 		}
 
 		if(enc_type & 0x04)
 		{
 			FST_DBG ("pad_init: enc_type & 0x04, WARNING: not implemented");
 			seed = seed_step(seed);
-
 		}
 
 		if(enc_type & 0x20)
@@ -303,29 +222,29 @@ static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad
 			FST_HEAVY_DBG ("pad_init: enc_type & 0x20");
 			seed = seed_step(seed);
 
-			enc_type_20 (p_key, seed);
+			enc_type_20 (key_80, seed);
 		}
 
 		if(enc_type & 0x80)
 		{
 			FST_DBG ("pad_init: enc_type & 0x80, WARNING: not implemented");
 			seed = seed_step(seed);
-
 		}
 
 		if(enc_type & 0x100)
 		{
 			FST_DBG ("pad_init: enc_type & 0x100, WARNING: not implemented");
 			seed = seed_step(seed);
-
 		}
+
+		// correct byte order on big-endian before merging
+		reverse_bytes (key_80, 20);
 
 		// merge with pad
 		for(i=0; i<pad_size; i++)
-			pad[i] ^= p_key[i];
-
+			pad[i] ^= ((unsigned char*)key_80)[i];
 	}
-	return seed;
+	*pseed = seed;
 }
 
 /**
@@ -393,6 +312,51 @@ static unsigned char clock_cipher(FSTCipher *cipher)
 		{
 			cipher->add_to_lookup++;
 		}
+
+/*
+		if (cipher->enc_type & 0x10)
+		{
+			unsigned int val;
+			char i;
+			unsigned char temp2;
+			char pointer = cipher->pad[0x20] & 0x1f;
+			temp = cipher->pad[0x1f] & 0x0f;
+
+			FST_DBG ("clock_cipher: check me 1");
+
+			for (i = 0; i < 6; i++)
+			{
+				val = ((unsigned int *)(cipher->buf))[i];
+				val = val >> temp;
+				temp2 = cipher->pad[i + pointer];
+				temp2 = temp2 ^ (unsigned char)val;
+				cipher->pad[i+pointer] = temp2;
+			}
+			temp = cipher->pad[0x0A] & 7;
+			temp2 = cipher->pad[pointer + 4];
+			temp = 1 << temp;
+			temp2 = temp2 | temp;
+			cipher->pad[pointer + 4] = temp2;
+
+			if (!(cipher->wrapcount & 15))
+			{
+				unsigned int seed = cipher->wrapcount;
+				unsigned char *p_key = cipher->buf;
+
+				FST_DBG ("clock_cipher: improve me 2");
+				for(i=0; i<20; i++)
+				{
+					seed = seed_step(seed);
+					((unsigned int *)cipher->buf)[i] = seed;
+				}
+				
+				seed = seed_step(seed);
+
+				enc_type_2 (p_key, seed);
+			}
+			// recalculate
+		}
+*/
 	}
 	temp = cipher->add_to_lookup + xor;
 	xor = cipher->lookup[temp];
@@ -401,19 +365,19 @@ static unsigned char clock_cipher(FSTCipher *cipher)
 
 static unsigned int calculate_num_xor(unsigned int seed)
 {
-	unsigned char key_80[80];
+	unsigned int key_80[20];
 	int i;
 
 	for(i=0; i<20; i++)
 	{
 		seed = seed_step(seed);
-		leint_to_string(seed, key_80+i*4);
+		key_80[i] = seed;
 	}
 
 	seed = seed_step(seed);
 	enc_type_2 (key_80, seed);
 
-	return leint_of_string(key_80+7*4);
+	return key_80[7];
 }
 
 
@@ -424,8 +388,6 @@ static int calculate_num(unsigned int *num, int val)
 
 	if (!(val > 0x10001))
 	{
-/*	  printf("*num = %d\n", *num); */
-
 		temp = temp * 5;
 		temp = temp << 8;
 		temp = temp - (*num);
@@ -437,8 +399,6 @@ static int calculate_num(unsigned int *num, int val)
 		temp2 = (int) temp;
 		temp2 = temp2 * val;
 		temp2 = temp2 >> 16;
-
-/*	  printf("*num = %d, temp2 = %d\n", *num, temp2); */
 		return temp2;
 	}
 	else
@@ -477,7 +437,6 @@ static unsigned int seed_step(unsigned int seed)
  */
 static int qsort_cmp_func(const void *ap, const void *bp)
 {
-
     int a = (int)*(unsigned char *)ap;
     int b = (int)*(unsigned char *)bp;
 
@@ -490,118 +449,16 @@ static int qsort_cmp_func(const void *ap, const void *bp)
 */
 }
 
-/************************************************************************/
 
-
-/*                    Functions for MLdonkey                            */
-
-
-/************************************************************************/
-
-value ml_create_cipher(value unit)
+/* simple byte reversal function for endianess correction
+ * this is a noop on little-endian
+ */
+static void reverse_bytes (unsigned int *buf, unsigned int longs)
 {
-  return (value) fst_cipher_create();
-}
+	unsigned char *cbuf = (unsigned char*)buf;
 
-value ml_apply_cipher(value cipher_v, value s_v, value pos_v, value len_v)
-{
-  FSTCipher* cipher = (FSTCipher*) cipher_v;
-  char *s = String_val(s_v);
-  int pos = Int_val(pos_v);
-  int len = Int_val(len_v);
-
-/*  printf("Apply cipher %X on %d [from %d]\n", cipher, len, pos); */
-
-  fst_cipher_crypt(cipher, s+pos, len);
-
-  return Val_unit;
-}
-
-value ml_init_cipher(value cipher_v, value seed_v, value encode_v)
-{
-  FSTCipher* cipher = (FSTCipher*) cipher_v;
-  unsigned int seed = Int32_val(seed_v);
-  unsigned int encode = Int_val(encode_v);
-
-  fst_cipher_init(cipher, seed, encode);
-
-  return Val_unit;
-}
-
-value ml_set_cipher(value cipher_v, value seed_v, value encode_v)
-{
-  FSTCipher* cipher = (FSTCipher*) cipher_v;
-  unsigned int seed = Int32_val(seed_v);
-  unsigned int encode = Int_val(encode_v);
-
-/*  printf("ml_set_cipher %X seed:%X enc_type: %X\n", cipher, seed, encode); */
-
-  cipher->enc_type = encode;
-  cipher->seed = seed;
-
-  return Val_unit;
-}
-
-value ml_cipher_packet_get(value s_v, value pos_v, 
-  value in_cipher_v, value out_cipher_v)
-{
-  FSTCipher* in_cipher = (FSTCipher*) in_cipher_v;
-  FSTCipher* out_cipher = (FSTCipher*) out_cipher_v;
-  char *s = String_val(s_v);
-  int pos = Int_val(pos_v);
-  unsigned int seed;
-  unsigned int enc_type;
-
-/*
-  printf("ml_cipher_packet_get IN:%X OUT:%X pos %d\n", in_cipher, out_cipher, pos);
-
-  printf("out seed:%X enc_type: %X\n", out_cipher->seed, out_cipher->enc_type);
-*/
-
-  seed = htonl  (((unsigned int*)(s+pos))[0]);
-  enc_type = htonl (((unsigned int*)(s+pos+4))[0]);
-  enc_type = fst_cipher_decode_enc_type (seed, enc_type);
-
-/*  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type);  */
-
-  if(enc_type > 0x29)    failwith ("ERROR: unsupported encryption");
-
-  out_cipher->seed ^= seed; /* xor send cipher with received seed */
-  fst_cipher_init(out_cipher, out_cipher->seed, out_cipher->enc_type);
-  fst_cipher_init(in_cipher, seed, enc_type);
-
-  return Val_unit;
-}
-
-value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
-{
-  FSTCipher* cipher = (FSTCipher*) cipher_v;
-  char *s = String_val(s_v);
-  int pos = Int_val(pos_v);
-
-/*
-  printf("ml_cipher_packet_set %X seed:%X enc_type:%X\n", cipher,
-    cipher->seed, cipher->enc_type
-  );
-*/
-
-/* in OCAML: "\250\000\182\043" */
-  /* ((unsigned int*)(s+pos))[0] = 0x02BB600FA; random number? */
-  s[pos] = 250;
-  s[pos+1] = 0;
-  s[pos+2] = 182;
-  s[pos+3] = 43;
-  ((unsigned int*)(s+pos+4))[0] = htonl(cipher->seed);
-  ((unsigned int*)(s+pos+8))[0] = htonl(
-    fst_cipher_encode_enc_type(cipher->seed, cipher->enc_type));
-
-  return Val_unit;
-}
-
-value ml_cipher_free(value cipher_v)
-{
-  FSTCipher* cipher = (FSTCipher*) cipher_v;
-  fst_cipher_free(cipher);
-
-  return Val_unit;
+	for(; longs; longs--, buf++, cbuf+=4) {
+		*buf = ((unsigned int) cbuf[3] << 8 | cbuf[2]) << 16 |
+			   ((unsigned int) cbuf[1] << 8 | cbuf[0]);
+	}
 }

@@ -18,13 +18,14 @@
 *)
 
 val disconnect :
-    < clear : 'a; label_connect_status : < set_text : string -> 'b; .. >;
-      .. > ->
-    unit
+  < 
+  clear : 'a; 
+  label_connect_status : < set_text : string -> 'b; .. >;
+      .. > -> BasicSocket.close_reason -> unit
 val send : GuiProto.from_gui -> unit
 val reconnect :  (< clear : 'b; label_connect_status : < set_text : string -> 'c; .. >;
        .. > as 'a) ->
-    ('a -> GuiProto.to_gui -> unit) -> unit
+    ('a -> GuiProto.to_gui -> unit) -> BasicSocket.close_reason -> unit
 val connected : unit -> bool
   
 val gui_protocol_used : int ref

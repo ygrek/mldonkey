@@ -263,7 +263,8 @@ let _ =
         (if s.server_gnutella2 then g2_nservers else g1_nservers)
       s.server_gnutella2 
       GnutellaServers.retry_and_fake s.server_host []);
-  server_ops.op_server_disconnect <- GnutellaServers.disconnect_server;
+  server_ops.op_server_disconnect <-
+(fun s -> GnutellaServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes

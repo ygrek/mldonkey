@@ -29,24 +29,30 @@ open OpenFTGlobals
 open OpenFTTypes
 open CommonTypes
 open OpenFTServers
-  
+
+let is_enabled = ref false
+    
 let disable enabler () =
-  enabler := false;
-  Hashtbl2.safe_iter (fun s -> disconnect_from_server s) servers_by_key;
-  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_num;
-  (match !listen_sock with None -> ()
-    | Some sock -> 
-        listen_sock := None;
-        TcpServerSocket.close sock "");
-  if !!enable_openft then enable_openft =:= false
+  if !enabler then begin
+      is_enabled := false;
+      enabler := false;
+      Hashtbl2.safe_iter (fun s -> disconnect_from_server s) servers_by_key;
+      Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_num;
+      (match !listen_sock with None -> ()
+        | Some sock -> 
+            listen_sock := None;
+            TcpServerSocket.close sock "");
+      if !!enable_openft then enable_openft =:= false
+    end
     
 let enable () =
-
-  let enabler = ref true in
-  network.op_network_disable <- disable enabler;
-  
-  if not !!enable_openft then enable_openft =:= true;
-
+  if not !is_enabled then
+    let enabler = ref true in
+    is_enabled := true;
+    network.op_network_disable <- disable enabler;
+    
+    if not !!enable_openft then enable_openft =:= true;
+    
   (*
   Hashtbl.iter (fun _ file ->
       if file_state file <> FileDownloaded then
@@ -70,6 +76,9 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_openft);
+  option_hook enable_ (fun _ ->
+      if !!enable_ then network_enable network
+      else network_disable network);
 (*
   network.op_network_save_simple_options <- OpenFTComplexOptions.save_config;
   network.op_network_load_simple_options <- 

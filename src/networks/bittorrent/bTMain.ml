@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonNetwork
+
 open BTClients
 open CommonOptions
 open CommonFile
@@ -28,21 +30,27 @@ open BTOptions
 open BTGlobals
 open BTTypes
 open CommonTypes
+
+let is_enabled = ref false
   
 let disable enabler () =
-  enabler := false;
-  List.iter (fun file ->
-      Hashtbl2.safe_iter (fun c -> disconnect_client c) 
-      file.file_clients) !current_files;
-  (match !listen_sock with None -> ()
-    | Some sock -> 
-        listen_sock := None;
-        TcpServerSocket.close sock "");
-  if !!enable_bittorrent then enable_bittorrent =:= false
+  if !enabler then begin
+      is_enabled := false;
+      enabler := false;
+      List.iter (fun file ->
+          Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) 
+          file.file_clients) !current_files;
+      (match !listen_sock with None -> ()
+        | Some sock -> 
+            listen_sock := None;
+            TcpServerSocket.close sock Closed_by_user);
+      if !!enable_bittorrent then enable_bittorrent =:= false
+    end
     
 let enable () =
-
-  let enabler = ref true in
+  if not !is_enabled then
+    let enabler = ref true in
+    is_enabled := true;
   network.op_network_disable <- disable enabler;
   
   if not !!enable_bittorrent then enable_bittorrent =:= true;
@@ -73,6 +81,9 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_bittorrent);
+  option_hook enable_bittorrent (fun _ ->
+      if !!enable_bittorrent then network_enable network
+      else network_disable network);
 (*
   network.op_network_save_simple_options <- BTComplexOptions.save_config;
   network.op_network_load_simple_options <- 

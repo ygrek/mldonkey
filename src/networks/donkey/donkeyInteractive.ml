@@ -879,18 +879,19 @@ let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true
   )
-let disconnect_server s =
+let disconnect_server s r =
   match s.server_sock with
     None -> ()
   | Some sock ->
-      TcpBufferedSocket.shutdown sock "user disconnect"
+      TcpBufferedSocket.shutdown sock r
       
 let _ =
   server_ops.op_server_remove <- (fun s ->
       DonkeyComplexOptions.remove_server s.server_ip s.server_port
   );
   server_ops.op_server_connect <- connect_server;
-  server_ops.op_server_disconnect <- disconnect_server;
+  server_ops.op_server_disconnect <- (fun s ->
+      disconnect_server s Closed_by_user);
 
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with

@@ -309,6 +309,7 @@ let new_file file_id file_name file_size file_hash =
       file_partition = partition;
       file_search = search;
       file_hash = file_hash;
+      file_filenames = [file_name];
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -510,16 +511,16 @@ let disconnect_from_server nservers s reason =
           Connected _ ->
             let connection_time = Int32.to_int (
                 Int32.sub (int32_time ()) s.server_connected) in
-            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds: %s\n" 
+            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
               (Ip.string_of_addr h.host_addr) h.host_port
-              connection_time reason
+              connection_time 
             ;
         | _ -> ()
       );
-      (try close sock "" with _ -> ());
+      (try close sock reason with _ -> ());
       s.server_sock <- NoConnection;
       free_ciphers s;            
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (reason, -1));
       s.server_need_qrt <- true;
       decr nservers;
       if List.memq s !connected_servers then

@@ -19,10 +19,12 @@
 type event =
     WRITE_DONE
   | CAN_REFILL
+  | CONNECTED
   | BUFFER_OVERFLOW
   | READ_DONE of int
   | BASIC_EVENT of BasicSocket.event
 
+  
 and buf = {
   mutable buf : string;
   mutable pos : int;
@@ -60,12 +62,12 @@ val set_refill : t -> (t -> unit) -> unit
 val write: t -> string -> int -> int -> unit
 val write_string: t -> string -> unit
 val connect: string -> Unix.inet_addr -> int -> handler -> t
-val close : t -> string -> unit
+val close : t -> BasicSocket.close_reason -> unit
 val closed : t -> bool
-val shutdown : t -> string -> unit
-val error: t -> string
+val shutdown : t -> BasicSocket.close_reason -> unit
+val error: t -> BasicSocket.close_reason
 val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit
-val set_closer : t -> (t -> string -> unit) -> unit
+val set_closer : t -> (t -> BasicSocket.close_reason -> unit) -> unit
 val nread : t -> int
 val set_max_write_buffer : t -> int -> unit  
 val can_write : t -> bool  

@@ -329,6 +329,9 @@ let _ =
   
   network.network_config_file <- Some server_ini;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_server);
+  option_hook enable_ (fun _ ->
+      if !!enable_ then network_enable network
+      else network_disable network);
   network.op_network_enable <- enable;
   network.op_network_info <- (fun n ->
       { 

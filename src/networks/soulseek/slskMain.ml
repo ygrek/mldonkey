@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonNetwork
 open CommonInteractive
 open CommonGlobals
 open CommonOptions
@@ -28,51 +29,59 @@ open SlskTypes
 open SlskGlobals
 open SlskOptions  
 
-
+let is_enabled = ref false
+  
 let disable enabler () =
-  enabler := false;
-  Hashtbl2.safe_iter (fun s -> SlskServers.disconnect_server s)
-  servers_by_addr;
+  if !enabler then begin
+      is_enabled := false;
+      enabler := false;
+      Hashtbl2.safe_iter (fun s -> 
+          SlskServers.disconnect_server s Closed_by_user)
+      servers_by_addr;
 (*  List.iter (fun file -> ()) !current_files; *)
-  if !!enable_soulseek then enable_soulseek =:= false
-
+      if !!enable_soulseek then enable_soulseek =:= false
+    end
     
 let enable () =
-
-  let enabler = ref true in
-  network.op_network_disable <- disable enabler;
+  if not !is_enabled then
+    let enabler = ref true in
+    is_enabled := true;
+    network.op_network_disable <- disable enabler;
 
 (*  load_url slsk_kind "http://www.slsk.org/slskinfo2"; *)
 
-  (*
+(*
   let main_server = new_server (new_addr_name !!main_server_name)
     !!main_server_port in
 *)  
-  if not !!enable_soulseek then enable_soulseek =:= true;
-
-  List.iter (fun (server_name, server_port) ->
-      ignore (new_server (Ip.addr_of_string server_name) server_port)
-  ) !!SlskComplexOptions.servers;
-  
-  add_session_timer enabler 5.0 (fun timer ->
-      SlskServers.connect_servers ());
-
-  add_session_timer enabler 300. (fun timer ->
-      SlskServers.recover_files ()
-  );
-
-  add_session_timer enabler 60. (fun timer ->
-      SlskServers.ask_for_files ()
-  );
-  
-  SlskClients.listen ();
+    if not !!enable_soulseek then enable_soulseek =:= true;
+    
+    List.iter (fun (server_name, server_port) ->
+        ignore (new_server (Ip.addr_of_string server_name) server_port)
+    ) !!SlskComplexOptions.servers;
+    
+    add_session_timer enabler 5.0 (fun timer ->
+        SlskServers.connect_servers ());
+    
+    add_session_timer enabler 300. (fun timer ->
+        SlskServers.recover_files ()
+    );
+    
+    add_session_timer enabler 60. (fun timer ->
+        SlskServers.ask_for_files ()
+    );
+    
+    SlskClients.listen ();
 (*  SlskServers.connect_server main_server; *)
 (*  network.command_vm <- SlskInteractive.print_connected_servers *)
     ()
-  
+    
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !! CommonOptions.enable_soulseek);
+  option_hook enable_soulseek (fun _ ->
+      if !!enable_soulseek then network_enable network
+      else network_disable network);
   network.op_network_save_complex_options <- SlskComplexOptions.save_config;
 (*
   network.op_network_load_simple_options <- (fun _ -> 

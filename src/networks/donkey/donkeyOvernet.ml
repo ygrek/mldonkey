@@ -1273,7 +1273,7 @@ let disable () =
     None -> ()
   | Some sock -> 
       udp_sock := None;
-      UdpSocket.close sock "disabled"
+      UdpSocket.close sock Closed_by_user
 
 let parse_overnet_url url =
   match String2.split (String.escaped url) '|' with

@@ -51,7 +51,7 @@ val as_client_impl : CommonTypes.client -> 'a client_impl
 val client_num : CommonTypes.client -> int
 val client_state : CommonTypes.client -> CommonTypes.host_state
 val set_client_state : CommonTypes.client -> CommonTypes.host_state -> unit
-val set_client_disconnected : CommonTypes.client -> unit
+val set_client_disconnected : CommonTypes.client -> BasicSocket.close_reason -> unit
 val new_client : 'a client_impl -> unit
 val book_client_num : unit -> int
 val new_client_with_num : 'a client_impl -> int -> unit

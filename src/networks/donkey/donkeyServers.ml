@@ -125,12 +125,12 @@ let _ =
         connection_last_conn s.server_connection_control
   )
 
-let disconnect_server s =
+let disconnect_server s reason =
   match s.server_sock with
     None -> ()
   | Some sock ->
       decr nservers;
-      TcpBufferedSocket.close sock "closed";
+      TcpBufferedSocket.close sock reason;
       (*
             lprintf "%s:%d CLOSED received by server"
 (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
@@ -139,17 +139,17 @@ let disconnect_server s =
       s.server_sock <- None;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (reason, -1));
       s.server_master <- false;
 	  s.server_banner <- "";
       remove_connected_server s
       
 let server_handler s sock event = 
   match event with
-    BASIC_EVENT (CLOSED _) ->
-      disconnect_server s
+    BASIC_EVENT (CLOSED r) ->
+      disconnect_server s r
   | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
-          close sock "timeout"  
+          close sock Closed_for_timeout
 
   | _ -> ()
       
@@ -166,7 +166,7 @@ let client_to_server s t sock =
   match t with
     M.SetIDReq t ->
       if not (Ip.valid t) && !!force_high_id then
-	disconnect_server s
+	disconnect_server s (Closed_for_error "Low ID")
       else begin
 	s.server_cid <- Some t;
 	set_rtimeout sock !!connected_server_timeout; 
@@ -387,13 +387,13 @@ let connect_server s =
               C.tags = !client_tags;
             }
           );
-    with _ -> 
+    with e -> 
 (*
       lprintf "%s:%d IMMEDIAT DISCONNECT "
       (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
 *)
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-        disconnect_server s
+        disconnect_server s (Closed_for_exception e)
         
 let print_empty_list = ref true
         
@@ -578,7 +578,7 @@ lprint_newline ();
 
               | Some sock ->
   (*                lprintf "shutdown"; lprint_newline (); *)
-                  (shutdown sock "max allowed"));
+                  (shutdown sock (Closed_for_error "No more slots")));
           end
   ) 
   (* reverse the list, so that first servers to connect are kept ... *)

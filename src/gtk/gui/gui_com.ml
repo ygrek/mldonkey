@@ -49,11 +49,11 @@ let (!!) = Options.(!!)
 
 let connection = ref None
 
-let disconnect gui = 
+let disconnect gui reason = 
   match !connection with
     None -> ()
   | Some sock ->
-      TcpBufferedSocket.close sock "user close";
+      TcpBufferedSocket.close sock reason;
       connection := None;
       when_disconnected gui
 
@@ -65,8 +65,8 @@ let send t =
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
           
-let reconnect gui value_reader =
-  (try disconnect gui with _ -> ());
+let reconnect gui value_reader reason =
+  (try disconnect gui reason with _ -> ());
   let hostname = if !!O.hostname = "" then Unix.gethostname () 
     else !!O.hostname in
   let sock = TcpBufferedSocket.connect ""
@@ -119,7 +119,7 @@ let reconnect gui value_reader =
     TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
     (fun _ -> 
         lprintf "BUFFER OVERFLOW"; lprint_newline ();
-        TcpBufferedSocket.close sock "overflow");
+        TcpBufferedSocket.close sock Closed_for_overflow);
     TcpBufferedSocket.set_reader sock (
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
@@ -134,9 +134,8 @@ let reconnect gui value_reader =
     gui#label_connect_status#set_text "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
-      lprintf "Exception %s in connecting" (Printexc2.to_string e);
-      lprint_newline ();
-      TcpBufferedSocket.close sock "error";
+      lprintf "Exception %s in connecting\n" (Printexc2.to_string e);
+      TcpBufferedSocket.close sock (Closed_for_exception e);
       connection := None
       
 let connected _ = !connection <> None
@@ -149,11 +148,11 @@ module UseFifo = struct
     
     let send m = Fifo.put gui_core_fifo (copy_message m)
     
-    let disconnect gui = 
+    let disconnect gui reason = 
       when_disconnected gui
     
-    let reconnect gui value_reader =       
-      disconnect gui;      
+    let reconnect gui value_reader reason =       
+      disconnect gui reason;      
       gui_reconnected := true;
       Fifo.clear core_gui_fifo;
       Fifo.clear gui_core_fifo;
@@ -210,7 +209,7 @@ let scan_ports () =
       try
         let sock = TcpBufferedSocket.connect "" addr i (fun sock e -> 
               match e with
-                BASIC_EVENT (RTIMEOUT) -> close sock ""
+                BASIC_EVENT (RTIMEOUT) -> close sock Closed_for_timeout
               | _ -> ()
           ) in
         GuiEncoding.gui_send (GuiEncoding.from_gui 1) sock 
@@ -249,8 +248,8 @@ let scan_ports () =
                           
                         end
                       
-                  | _ -> close sock ""
-              with e -> close sock ""
+                  | _ -> close sock Closed_by_user
+              with e -> close sock Closed_by_user
             ) sock nread
             
             );

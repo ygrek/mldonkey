@@ -287,13 +287,13 @@ let set_client_has_a_slot c b =
       impl.impl_client_has_slot <- b
     end
     
-let set_client_disconnected c =
+let set_client_disconnected c reason =
   let impl = as_client_impl c in
   set_client_has_a_slot c false;
   
   match impl.impl_client_state with
-    Connected n -> set_client_state c (NotConnected n)
-  | _ ->  set_client_state c (NotConnected (-1))
+    Connected n -> set_client_state c (NotConnected (reason, n))
+  | _ ->  set_client_state c (NotConnected (reason, -1))
     
 let new_client (client : 'a client_impl) =
   incr client_counter;

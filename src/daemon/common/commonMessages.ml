@@ -704,26 +704,33 @@ top.fstatus.document.writeln(\"</head><body><center><table cellspacing=0 cellpad
 function close_page() {
 top.fstatus.document.writeln(\"</tr></table></body></html>\");
 top.fstatus.document.close(); }
-function draw_td (tooltip,link,name,frame_name) {
+
+function draw_td (tooltip,link,command,frame_name) {
 if (frame_name==\"\") { frame_name='fstatus'} else frame_name='output';
-top.fstatus.document.writeln(\"<td width=80 class='bu bbig' title='\" + tooltip + \"' onMouseOver=mOvr(this); onMouseOut=mOut(this); onClick=parent.\" + frame_name + \".location.href='\" + \"submit?q=\" + link + \"';>\" + name + \"</a></td>\"); }
+top.fstatus.document.writeln(\"<td width=80 class='bu bbig' title='\" + tooltip + \"' onMouseOver=mOvr(this); onMouseOut=mOut(this); onClick=parent.\" + frame_name + \".location.href='\" + \"submit?q=\" + link + \"';>\" + command + \"</a></td>\"); }
+
 function draw_scan_opts() { draw_middle_header();
 draw_td('recover temp','recover_temp','recover temp','');close_page(); }
+
 function draw_server_opts() {
 draw_middle_header();
 draw_td('view all servers','vma','view all','o');
-draw_td('connect more','c','connect more','');
-draw_td('remove old','remove_old_servers', 'remove old','');
+draw_td('connect more servers','c','connect more','');
+draw_td('remove old servers','remove_old_servers', 'remove old','');
+draw_td('remove all servers','rem%20all', 'remove all','');
 close_page(); }
-function draw_xs_search() { draw_middle_header ();
+
+function draw_xs_search() { draw_middle_header();
 draw_td('extend search','xs','extend search','');close_page(); }
+
 function draw_stats() { draw_middle_header();
 draw_td('overnet statistics','ovstats','overnet','o');
 draw_td('sources statistics','sources','sources','o');
 draw_td('memory statistics','mem_stats','memory','o');
 draw_td('old style statistics','client_stats','old style','o');
 close_page(); }
-function draw_options() {draw_middle_header ();
+
+function draw_options() {draw_middle_header();
 draw_td('client','voo+1','client','o');
 draw_td('ports','voo+2','ports','o');
 draw_td('display','voo+3','display','o');
@@ -732,7 +739,8 @@ draw_td('files','voo+5','files','o');
 draw_td('mail','voo+6','mail','o');
 draw_td('net','voo+7','net','o');
 draw_td('all','voo','all','o');
- close_page(); }
+close_page(); }
+
 //-->
 "
 
@@ -797,7 +805,7 @@ title=\"Custom search\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','view_custom_queries')\">Search
+onClick=\"top.output.location.href='submit?custom=Complex Search';mSub('$S','view_custom_queries')\">Search
 </td>
 <td 
 title=\"Scan temp directory for files\"

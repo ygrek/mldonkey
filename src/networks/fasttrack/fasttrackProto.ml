@@ -105,7 +105,7 @@ let server_send_pong s =
   
 let server_send_query s ss = 
   match ss.search_search with
-    UserSearch (sss, words, exclude, realm) ->
+    UserSearch (sss, words, realm, tags) ->
       
       lprintf "UserSearch [%s] for %d\n" words ss.search_id;
       let b = Buffer.create 100 in
@@ -128,39 +128,34 @@ let server_send_query s ss =
         | _ -> 0x3f);
 
 (* number of search terms *)
-      buf_int8 b 0x01;
-
-(* if(search->type == SearchTypeSearch) *)
+      buf_int8 b (
+        (if words <> "" then 1 else 0)
+        + List.length tags);
+      
+      if words <> "" then begin
 (* cmp type of first term *)
-      buf_int8 b   0x05; (* QUERY_CMP_SUBSTRING *)
+          buf_int8 b   0x05; (* QUERY_CMP_SUBSTRING *)
 (* field to cmp of first term *)
-      buf_int8 b 0;  (* FILE_TAG_ANY *)
+          buf_int8 b 0;  (* FILE_TAG_ANY *)
 (* length of query string *)
-      buf_dynint b (Int64.of_int (String.length words));
+          buf_dynint b (Int64.of_int (String.length words));
 (* query string *)
-      Buffer.add_string b words;
-
-(*
-	else if(search->type == SearchTypeLocate)
-	{
-		unsigned char hash[FST_HASH_LEN];
-		// convert hash string to binary 
-		if(fst_hash_set_string (hash, search->query) == FALSE)
-		{
-			fst_packet_free (packet);
-			return FALSE;
-		}
-
-		// cmp type of first term
-		fst_packet_put_uint8 (packet, (fst_uint8)QUERY_CMP_EQUALS);
-		// field to cmp of first term
-		fst_packet_put_uint8 (packet, (fst_uint8)FILE_TAG_HASH);
-		// length of query string
-		fst_packet_put_dynint (packet, FST_HASH_LEN);
-		// query string
-		fst_packet_put_ustr (packet, hash, FST_HASH_LEN);
-	}
-*)
+          Buffer.add_string b words;
+        end;
+      List.iter (fun term ->
+          let code, tag, s =
+            match term with
+              AtMost (tag,v)  -> 2, tag, dynint v
+            | AtLeast (tag, v) -> 4, tag, dynint v
+            | Substring (tag, v) -> 5, tag, v
+          in
+          buf_int8 b code;
+          buf_int8 b (List.assoc tag name_of_tag);
+          buf_dynint b (Int64.of_int (String.length s));
+          Buffer.add_string b s;
+              
+      ) tags;
+      
       let m = Buffer.contents b in
       lprintf "Sending Query\n";
       dump m;
@@ -182,15 +177,6 @@ let server_send_query s ss =
 (* realm is video/..., audio/..., and strings like that. Avoid them currently.*)
       buf_int8 b 191; (* from one example ... *)
       
-      (*(match realm with
-          "audio" -> 0x21
-        | "video" -> 0x22
-        | "image" -> 0x23
-        | "text" -> 0x24
-        | "application" -> 0x25
-        | _ -> 0x3f);
-*)
-      
 (* number of search terms *)
       buf_int8 b 0x02;
 
@@ -209,75 +195,3 @@ let server_send_query s ss =
       server_send s 0x06 m
       
   | _ -> ()
-
-(*
-  Sending Query
-ascii: [(0)(1)(0) d(0)(0)(1) ?(1)(5)(0) a l b u m]
-dec: [(0)(1)(0)(100)(0)(0)(1)(63)(1)(5)(0)(97)(108)(98)(117)(109)]
-*)
-      
-(*
-Query For 58412f398fa7cb2ce782213e66ab1838dbddfb28
-
-  dec: [(0)(0)(0)(10)(93)(58)(1)(191)(2)(0)(3)(20)(88)(65)(47)(57)(143)(167)(203)(44)(231)(130)(33)(62)(102)(171)(24)(56)(219)(221)(251)(40)(6)(37)(1)(2)]
-
-          
-      Message 6:
-SessMsgQuery (len 36)
-ascii: [(0)(0)(0)(10) ] :(1)(191)(2)(0)(3)(20) X A / 9(143)(167)(203) ,(231)(130) ! > f(171)(24) 8(219)(221)(251) ((6) %(1)(2)]
-dec: [
-(0)(0) search header
-(0)(10) max results
-(93)(58) search number
-(1)  unknown
-(191) realm
-(2) search terms
-(0) comp QUERY_CMP_EQUALS
-(3) tag  FILE_TAG_HASH
-(20) len of string
-(88)(65)(47)(57)(143)(167)(203)(44)(231)(130)(33)(62)(102)(171)(24)(56)(219)(221)(251)(40)
-(6) comp
-(37) tag
-(1) len
-(2) string
-]
-  ascii: [(0)(1)(0)(200)(211)(185)(1)(161)(3)(5)(0)(9) e l l i s   m p 3(4) !(3)(159)(160)(0)(6) %(1)(2)]
-
-(0)(1)
-(0)(200)
-(211)(185)
-(1)
-(161)
-(3) terms
-(5) SUBSTRING
-(0) FILE_TAG_ANY
-(9) ellis mp3
-(4) AT_LEAST
-(33) FILE_TAG_SIZE
-(3)(159)(160)(0) dynint = 512 kB
-(6) ????????
-(37) ??????
-(1)
-(2)
-]
-
-  ascii: [(0)(1)(0)(200) C a(1)(162)(3)(5)(0)(3) x x x(2) !(4)(132)(226)(173)(0)(6) %(1)(2)]
-dec: 
-[
-(0)(1)
-(0)(200)
-(67)(97)
-(1)
-(162)
-(3) terms
-(5) SUBSTRING
-(0)
-(3) yyy
-(2) AT MOST
-(33) FILE_TAG_SIZE
-(4)(132)(226)(173)(0) 
-(6)(37)(1)(2)
-
-*)
-    
-    

@@ -397,7 +397,8 @@ let remove_server ip port =
     servers_list := List2.removeq s !servers_list ;
     (match s.server_sock with
         None -> ()
-      | Some sock -> shutdown (TcpBufferedSocket.sock sock) "remove server");
+      | Some sock -> 
+          shutdown (TcpBufferedSocket.sock sock) Closed_by_user);
     server_remove (as_server s.server_server)
   with _ -> ()
 

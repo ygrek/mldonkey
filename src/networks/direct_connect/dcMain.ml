@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonNetwork
 open DcClients
 open DcServers
 open CommonOptions
@@ -29,20 +30,25 @@ open DcGlobals
 open DcOptions  
 
   
+let is_enabled = ref false
+  
 let disable enabler () =
-  enabler := false;
-  Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_addr;
-  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_name;
-  (match !listen_sock with None -> ()
-    | Some sock -> 
-        listen_sock := None;
-        TcpServerSocket.close sock "");
-  if !!enable_directconnect then enable_directconnect =:= false
-  
+  if !enabler then begin
+      is_enabled := false;
+      enabler := false;
+      Hashtbl2.safe_iter (fun s -> disconnect_server s Closed_by_user) servers_by_addr;
+      Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) clients_by_name;
+      (match !listen_sock with None -> ()
+        | Some sock -> 
+            listen_sock := None;
+            TcpServerSocket.close sock Closed_by_user);
+      if !!enable_directconnect then enable_directconnect =:= false
+    end
+    
 let enable () =
-
+  if not !is_enabled then
   let enabler = ref true in
-  
+  is_enabled := true;
   network.op_network_disable <- disable enabler;
   
   if not !!enable_directconnect then enable_directconnect =:= true;
@@ -72,6 +78,9 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_directconnect);
+  option_hook enable_directconnect (fun _ ->
+      if !!enable_directconnect then network_enable network
+      else network_disable network);
 (*  
   network.op_network_save_simple_options <- DcComplexOptions.save_config;
   network.op_network_load_simple_options <- (fun _ -> 

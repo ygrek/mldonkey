@@ -149,11 +149,12 @@ NET_SRCS = \
   $(NET)/ip.ml $(NET)/mailer.ml \
   $(NET)/anyEndian.ml $(NET)/bigEndian.ml $(NET)/littleEndian.ml \
   $(NET)/tcpBufferedSocket.ml \
-  $(NET)/tcpClientSocket.ml $(NET)/tcpServerSocket.ml \
+  $(NET)/tcpServerSocket.ml \
   $(NET)/udpSocket.ml $(NET)/http_server.ml $(NET)/http_client.ml \
   $(NET)/multicast.ml $(NET)/multicast_c.c  \
   $(NET)/terminal.ml
 
+#  $(NET)/tcpClientSocket.ml 
 
 CHAT_SRCS = $(CHAT)/chat_messages.ml\
 	$(CHAT)/chat_misc.ml\
@@ -350,6 +351,7 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/enc_type_2.c \
   $(SRC_FASTTRACK)/enc_type_20.c \
   $(SRC_FASTTRACK)/fst_crypt.c \
+  $(SRC_FASTTRACK)/fst_crypt_ml.c \
   $(SRC_FASTTRACK)/fasttrackTypes.ml \
   $(SRC_FASTTRACK)/fasttrackOptions.ml \
   $(SRC_FASTTRACK)/fasttrackGlobals.ml \

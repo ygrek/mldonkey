@@ -158,7 +158,7 @@ let buf_host_state proto buf t =
       | BlackListedHost -> if proto < 10 then 0 else 8)
   else    
   match t with
-  | NotConnected (-1) -> buf_int8 buf 0
+  | NotConnected (_, -1) -> buf_int8 buf 0
   | Connecting -> buf_int8 buf  1
   | Connected_initiating -> buf_int8 buf 2
   | Connected_downloading -> buf_int8 buf 3
@@ -167,7 +167,7 @@ let buf_host_state proto buf t =
   | NewHost -> buf_int8 buf 6
   | RemovedHost -> buf_int8 buf 7
   | BlackListedHost -> buf_int8 buf (if proto < 10 then 0 else 8)
-  | NotConnected n -> buf_int8 buf 9; buf_int buf n
+  | NotConnected (_,n) -> buf_int8 buf 9; buf_int buf n
       
     
 let buf_client_type buf t =

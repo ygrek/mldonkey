@@ -40,13 +40,13 @@ open SlskGlobals
 open TcpBufferedSocket
 open SlskProtocol
   
-let disconnect_server s =
+let disconnect_server s r =
   match s.server_sock with
     None -> ()
   | Some sock ->
-      close sock "";
+      close sock r;
       s.server_sock <- None;
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (r, -1));
       connected_servers := List2.removeq s !connected_servers
 
 let server_to_client s m sock =
@@ -69,7 +69,7 @@ let server_to_client s m sock =
         | S2C.LoginAck.Failure message ->
             lprintf "Rejected from server: %s" message;
             lprint_newline ();
-            disconnect_server s
+            disconnect_server s (Closed_for_error message)
         
       end
   | S2C.RoomListReq t ->
@@ -124,11 +124,11 @@ let server_to_client s m sock =
           | _ -> ()
           
         with Not_found ->
-            lprintf "Client %s not found" name; lprint_newline ();
+            lprintf "Client %s not found\n" name; 
       end
       
   | _ -> 
-      lprintf "Unused message from server:"; lprint_newline ();
+      lprintf "Unused message from server:\n";
       SlskProtocol.S2C.print m;
       lprint_newline () 
       
@@ -155,9 +155,9 @@ let connect_server s =
               set_rtimeout sock 20.;
               set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
                   lprintf "Connection timeout"; lprint_newline ();
-                  close s "timeout"  
+                  close s Closed_for_timeout
               );
-              set_closer sock (fun _ _ -> disconnect_server s);
+              set_closer sock (fun _ r -> disconnect_server s r);
               s.server_nick <- 0;
               s.server_sock <- Some sock;
               server_send sock (
@@ -172,10 +172,8 @@ let connect_server s =
                 lprintf "%s:%d IMMEDIAT DISCONNECT %s"
                   (Ip.string_of_addr s.server_addr) s.server_port
                   (Printexc2.to_string e); lprint_newline ();
-(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-                s.server_sock <- None;
-                set_server_state s (NotConnected (-1));
-                connection_failed s.server_connection_control
+                disconnect_server s (Closed_for_exception e)
+
   )
   
 let recover_files () = ()

@@ -122,7 +122,7 @@ let supernode_browse_handler node msg sock =
               (Printexc2.to_string e); lprint_newline ();
       end;
       node.node_last_browse <- last_time ();
-      close sock "browsed"
+      close sock Closed_by_user
 
   | M.ConnectReplyReq t ->      
       printf_string "******* [BROWSE CCONN OK] ********"; 
@@ -141,7 +141,7 @@ let supernode_browse_client node =
     set_rtimeout sock !!client_timeout;
     set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
         printf_string "[BR?]";
-        close s "timeout"
+        close s Closed_for_timeout
     );
     set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
         (supernode_browse_handler node));

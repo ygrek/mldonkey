@@ -39,7 +39,7 @@ val set_refill : t -> (t -> unit) -> unit
 val set_reader : t -> (t -> unit) -> unit
 val sock : t -> BasicSocket.t
 val closed : t -> bool
-val close : t -> string -> unit
+val close : t -> BasicSocket.close_reason -> unit
 val write : t -> string -> Ip.t -> int -> unit
 val create : Unix.inet_addr -> int -> handler -> t
 val create_sendonly : unit -> t

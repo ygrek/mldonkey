@@ -363,7 +363,7 @@ assert (priority = file_info.file_priority);
 let get_host_state proto s pos =
   if proto < 12 then
   (match get_int8 s pos with
-  | 0 -> NotConnected (-1)
+  | 0 -> NotConnected (BasicSocket.Closed_by_user, -1)
   | 1 -> Connecting
   | 2 -> Connected_initiating
   | 3 -> Connected_downloading
@@ -372,11 +372,11 @@ let get_host_state proto s pos =
   | 6 -> NewHost
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
-  | 9 -> NotConnected 0
+  | 9 -> NotConnected (BasicSocket.Closed_by_user,0)
   | _ -> assert false), pos+1
   else
   match get_int8 s pos with
-  | 0 -> NotConnected (-1), pos+1
+  | 0 -> NotConnected (BasicSocket.Closed_by_user,-1), pos+1
   | 1 -> Connecting, pos+1
   | 2 -> Connected_initiating, pos+1
   | 3 -> Connected_downloading, pos+1
@@ -385,7 +385,8 @@ let get_host_state proto s pos =
   | 6 -> NewHost, pos+1
   | 7 -> RemovedHost, pos+1
   | 8 -> BlackListedHost, pos+1
-  | 9 -> NotConnected (get_int s (pos+1)), pos+5
+  | 9 -> NotConnected (BasicSocket.Closed_by_user,
+     get_int s (pos+1)), pos+5
   | _ -> assert false
 
 

@@ -26,5 +26,5 @@ and handler = t -> event -> unit
 
 val sock : t -> BasicSocket.t
 val create : string -> Unix.inet_addr -> int -> handler -> t
-val close : t -> string -> unit
+val close : t -> BasicSocket.close_reason -> unit
   

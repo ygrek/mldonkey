@@ -89,7 +89,7 @@ support the charge, at least, currently. *)
             (fun sock event ->
               match event with
               | BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
-                  TcpBufferedSocket.close sock "timeout redirector"
+                  TcpBufferedSocket.close sock Closed_for_timeout
               | _ -> ())
         in
         TcpBufferedSocket.set_rtimeout sock 30.;
@@ -118,7 +118,7 @@ support the charge, at least, currently. *)
               load_file "motd.conf" motd_conf_file;              
               
               lprintf "Redirector info loaded\n";
-              TcpBufferedSocket.close sock "info received"
+              TcpBufferedSocket.close sock Closed_by_user
           ))
       with e -> 
           lprintf "Exception %s while connecting redirector\n"

@@ -46,20 +46,22 @@ open BTProtocol
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
   
-let disconnect_client c =
+let disconnect_client c reason =
   if !verbose_msg_clients then
     lprintf "CLIENT %d: disconnected\n" (client_num c);
   match c.client_sock with
     NoConnection | ConnectionWaiting | ConnectionAborted -> ()
   | Connection sock -> 
-      close sock "disconnect_client";
+      close sock reason;
       try
         List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
         c.client_ranges <- [];
         c.client_block <- None;
-        connection_failed c.client_connection_control;
-        set_client_disconnected c;
-        (try close sock "closed" with _ -> ());
+        if not c.client_good then
+          connection_failed c.client_connection_control;
+        c.client_good <- false;
+        set_client_disconnected c reason;
+        (try close sock reason with _ -> ());
         c.client_sock <- NoConnection;
         let file = c.client_file in
         c.client_chunks <- [];
@@ -76,7 +78,7 @@ let disconnect_clients file =
   Hashtbl.iter (fun _ c ->
       if !verbose_msg_clients then
         lprintf "disconnect since download is finished\n";
-      disconnect_client c
+      disconnect_client c Closed_by_user
   ) file.file_clients
           
 let download_finished file = 
@@ -136,7 +138,7 @@ let rec client_parse_header counter cc init_sent gconn sock
               (match ccc.client_sock with 
                   Connection _ -> 
                     lprintf "This client is already connected\n";
-                    close sock "already connected"; c
+                    close sock (Closed_for_error "Already connected"); c
                 | _ -> 
                     lprintf "CLIENT %d: recovered by UID\n" (client_num ccc);
                     cc := Some ccc;
@@ -160,7 +162,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       | Connection s when s != sock -> 
           if !verbose_msg_clients then 
             lprintf "CLIENT %d: IMMEDIATE RECONNECTION\n" (client_num c);
-          disconnect_client c;
+          disconnect_client c (Closed_for_error "Reconnected");
           c.client_sock <- Connection sock;
       | Connection _ -> ()
     );
@@ -200,7 +202,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     ()
   with e ->
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
-      close sock "error";
+      close sock (Closed_for_exception e);
       raise e
             
 and update_client_bitmap c =
@@ -325,7 +327,8 @@ and client_to_client c sock msg =
         
         set_lifetime sock 600.;
         set_client_state c Connected_downloading;
-        
+
+        c.client_good <- true;
         if file_state file = FileDownloading then
           let file = c.client_file in
           let position = offset ++ file.file_piece_size ** num in
@@ -465,7 +468,7 @@ let connect_client c =
           if closed sock then
             (
               lprintf "Sock is already closed\n";
-              disconnect_client c;          true)
+              disconnect_client c Closed_by_user; true)
           else false
       | ConnectionWaiting -> false
       | ConnectionAborted ->
@@ -495,18 +498,18 @@ let connect_client c =
                       BASIC_EVENT LTIMEOUT ->
                         if !verbose_msg_clients then
                           lprintf "CLIENT %d: LIFETIME\n" (client_num c);
-                        close sock "timeout"
+                        close sock Closed_for_timeout
                     | BASIC_EVENT RTIMEOUT ->
                         if !verbose_msg_clients then
                           lprintf "CLIENT %d: RTIMEOUT (%d)\n" (client_num c)
                           (last_time ())
                           ;
-                        close sock "timeout"
-                    | BASIC_EVENT (CLOSED _) ->
+                        close sock Closed_for_timeout
+                    | BASIC_EVENT (CLOSED r) ->
                         begin
                           match c.client_sock with
                           | Connection s when s == sock -> 
-                              disconnect_client c
+                              disconnect_client c r
                           | _ -> ()
                         end;
                     | _ -> ()
@@ -532,7 +535,7 @@ let connect_client c =
             with e ->
                 lprintf "Exception %s while connecting to client\n" 
                   (Printexc2.to_string e);
-                disconnect_client c
+                disconnect_client c (Closed_for_exception e)
       );
       c.client_sock <- ConnectionWaiting;
     end
@@ -556,7 +559,7 @@ let listen () =
                   (fun sock event -> 
                     match event with
                       BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
-                        close sock "timeout"
+                        close sock Closed_for_timeout
                     | _ -> ()
                 )
               in
@@ -564,12 +567,12 @@ let listen () =
               TcpBufferedSocket.set_write_controler sock upload_control;
               
               let c = ref None in
-              TcpBufferedSocket.set_closer sock (fun _ s ->
+              TcpBufferedSocket.set_closer sock (fun _ r ->
                   match !c with
                     Some c ->  begin
                         match c.client_sock with
                         | Connection s when s == sock -> 
-                            disconnect_client c
+                            disconnect_client c r
                         | _ -> ()
                       end
                   | None -> ()
@@ -589,6 +592,8 @@ let listen () =
 let get_file_from_source c file =
   if connection_can_try c.client_connection_control then begin
       connect_client c
+    end else begin
+      print_control c.client_connection_control
     end
   
   
@@ -608,7 +613,9 @@ let resume_clients file =
   Hashtbl.iter (fun _ c ->
       try
         match c.client_sock with 
-        | Connection sock -> get_from_client sock c
+        | Connection sock -> 
+            lprintf "RESUME: Client is already conencted\n";
+            get_from_client sock c
         | _ ->
             (try get_file_from_source c file with _ -> ())
       with e -> ()
@@ -616,90 +623,88 @@ let resume_clients file =
   ) file.file_clients
   
 let connect_tracker file url = 
-  if file.file_tracker_last_conn + file.file_tracker_interval 
-      < last_time () then
-    let f filename = 
-      file.file_tracker_connected <- true;
-
-      let v = Bencode.decode (File.to_string filename) in
-      file.file_tracker_connected <- true;
-      file.file_tracker_last_conn <- last_time ();
-      let interval = ref 600 in
-      match v with
-        Dictionary list ->
-          List.iter (fun (key,value) ->
-              match (key, value) with
-                String "interval", Int n -> 
-                  file.file_tracker_interval <- Int64.to_int n
-              | String "peers", List list ->
-                  List.iter (fun v ->
-                      match v with
-                        Dictionary list ->
-                          let peer_id = ref Sha1.null in
-                          let peer_ip = ref Ip.null in
-                          let port = ref 0 in
-                          
-                          List.iter (fun v ->
-                              match v with
-                                String "peer id", String id -> 
-                                  peer_id := Sha1.direct_of_string id
-                              | String "ip", String ip ->
-                                  peer_ip := Ip.of_string ip
-                              | String "port", Int p ->
-                                  port := Int64.to_int p
-                              | _ -> ()
-                          ) list;
-                          
-                          if !peer_id != Sha1.null &&
-                            !peer_ip != Ip.null && !port <> 0 then
-                            let c = new_client file !peer_id (!peer_ip,!port)
-                            in 
-                            ()
-                      
-                      
-                      | _ -> assert false
-                  
-                  ) list
-              | _ -> ()
-          ) list;
-          resume_clients file
-      
-      | _ -> assert false    
+  let f filename = 
+    file.file_tracker_connected <- true;
     
-    in       
-    let args = [
-        ("info_hash", Sha1.direct_to_string file.file_id);
-        ("peer_id", Sha1.direct_to_string !!client_uid) ;
+    let v = Bencode.decode (File.to_string filename) in
+    file.file_tracker_connected <- true;
+    file.file_tracker_last_conn <- last_time ();
+    let interval = ref 600 in
+    match v with
+      Dictionary list ->
+        List.iter (fun (key,value) ->
+            match (key, value) with
+              String "interval", Int n -> 
+                file.file_tracker_interval <- Int64.to_int n
+            | String "peers", List list ->
+                List.iter (fun v ->
+                    match v with
+                      Dictionary list ->
+                        let peer_id = ref Sha1.null in
+                        let peer_ip = ref Ip.null in
+                        let port = ref 0 in
+                        
+                        List.iter (fun v ->
+                            match v with
+                              String "peer id", String id -> 
+                                peer_id := Sha1.direct_of_string id
+                            | String "ip", String ip ->
+                                peer_ip := Ip.of_string ip
+                            | String "port", Int p ->
+                                port := Int64.to_int p
+                            | _ -> ()
+                        ) list;
+                        
+                        if !peer_id != Sha1.null &&
+                          !peer_ip != Ip.null && !port <> 0 then
+                          let c = new_client file !peer_id (!peer_ip,!port)
+                          in 
+                          ()
+                    
+                    
+                    | _ -> assert false
+                
+                ) list
+            | _ -> ()
+        ) list;
+        resume_clients file
+    
+    | _ -> assert false    
+  
+  in       
+  let args = [
+      ("info_hash", Sha1.direct_to_string file.file_id);
+      ("peer_id", Sha1.direct_to_string !!client_uid) ;
 (*      ("ip", Ip.to_string (client_ip None)) ; *)
-        ("port", string_of_int !!client_port) ; 
-        ("uploaded", "0" ) ;
-        ("downloaded", "0" ) ;
-        ("left", Int64.to_string ((file_size file) -- 
-          (Int64Swarmer.downloaded file.file_swarmer)) ) ; 
-        ("event", 
+      ("port", string_of_int !!client_port) ; 
+      ("uploaded", "0" ) ;
+      ("downloaded", "0" ) ;
+      ("left", Int64.to_string ((file_size file) -- 
+            (Int64Swarmer.downloaded file.file_swarmer)) ) ; 
+      ("event", 
 (*          "completed" *)
-          if file.file_tracker_connected then "" else "started" ) ;
-      ]
-    in
-
-    let module H = Http_client in
-    let r = {
-        H.basic_request with
-        H.req_url = Url.of_string ~args: args url;
-        H.req_user_agent = 
-        Printf.sprintf "MLdonkey %s" Autoconf.current_version;
-      } in
-    H.wget r f
-    
-let file_resume file =
-  resume_clients file;
-  (try connect_tracker file file.file_tracker  with _ -> ())
-
+        if file.file_tracker_connected then "" else "started" ) ;
+    ]
+  in
+  
+  let module H = Http_client in
+  let r = {
+      H.basic_request with
+      H.req_url = Url.of_string ~args: args url;
+      H.req_user_agent = 
+      Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+    } in
+  H.wget r f
+  
 let recover_files () =
   List.iter (fun file ->
       (try check_finished file with e -> ());
-      if file_state file = FileDownloading then 
-        file_resume file
+      if file_state file = FileDownloading then begin
+          resume_clients file;
+          if file.file_tracker_last_conn + file.file_tracker_interval 
+              < last_time () then
+            (try connect_tracker file file.file_tracker  with _ -> ())
+        end
   ) !current_files
 
 let upload_buffer = String.create 100000
@@ -740,7 +745,11 @@ let client_can_upload c allowed =
           c.client_allowed_to_write <- 
             c.client_allowed_to_write ++ (Int64.of_int allowed);
           iter_upload sock c
-  
+
+let file_resume file = 
+  resume_clients file;
+  (try connect_tracker file file.file_tracker  with _ -> ())
+
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
   file_ops.op_file_resume <- file_resume;
@@ -748,7 +757,7 @@ let _ =
   file_ops.op_file_pause <- (fun file -> 
       Hashtbl.iter (fun _ c ->
           match c.client_sock with
-            Connection sock -> close sock "pause"
+            Connection sock -> close sock Closed_by_user
           | _ -> ()
       ) file.file_clients
   );

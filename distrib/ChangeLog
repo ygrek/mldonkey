@@ -1,6 +1,20 @@
 ChangeLog	
 =========
 
+2003/05/23: Simon  (release-2-4-5)
+  - Fasttrack:
+      * Ask for a range only after the connection has succeeded
+      * Support for Complex queries
+      * Works on PPC now
+  - Bittorrent:
+      * Force flush with "buffer_writes" option before Sha1 computation
+  - Applied patches #1512, #1513
+
+2003/05/21: Simon
+  - Applied patch #1510
+  - "set enable_... true/false" should now immediatly trigger the network 
+      (before that, a restart was necessary)
+
 2003/05/20: Simon (release-2-4-4)
   - Bug fix: the bug causing too many open file descriptors and pausing
       recovered files maybe fixed.

@@ -42,7 +42,7 @@ let string_color_of_state state =
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
   | Connected 0 -> gettext M.queued, Some !!O.color_connected
   | Connected n -> Printf.sprintf "Ranked %d" n, Some !!O.color_connected
-  | NotConnected n -> 
+  | NotConnected (_,n) -> 
       if n = -1 then
         "", None
       else

@@ -49,18 +49,18 @@ let requests = ref 0
     
 let listen () = ()
       
-let disconnect_peer c =
+let disconnect_peer c reason =
   match c.client_peer_sock with
     None -> ()
   | Some sock ->
       lprintf "DISCONNECTED FROM PEER"; lprint_newline ();
-      close sock "";
+      close sock reason;
       c.client_peer_sock <- None;
       c.client_requests <- []
 
 let disconnect_result c sock =
   lprintf "DISCONNECTED FROM RESULT"; lprint_newline ();
-  close sock "";
+  close sock Closed_by_user;
   c.client_result_socks <- List2.removeq sock c.client_result_socks
   
 module Download = CommonDownloads.Make(struct 
@@ -243,7 +243,7 @@ let connect_peer c token msgs =
                 (Ip.to_inet_addr ip) port
                 (fun _ _ -> ())
             in
-            set_closer sock (fun _ _ -> disconnect_peer c);
+            set_closer sock (fun _ r -> disconnect_peer c r);
             TcpBufferedSocket.set_read_controler sock download_control;
             TcpBufferedSocket.set_write_controler sock upload_control;
             set_rtimeout sock 30.;
@@ -253,10 +253,9 @@ let connect_peer c token msgs =
             init_peer_connection sock (login ()) token;
             List.iter (fun t -> client_send sock t) msgs
       with e ->
-          lprintf "Exception %s while connecting to client" 
+          lprintf "Exception %s while connecting to client\n" 
             (Printexc2.to_string e);
-          lprint_newline ();
-          disconnect_peer c
+          disconnect_peer c (Closed_for_exception e)
 
 let connect_result c token =
   try

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.sourceforge.net)
+ * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -23,9 +23,11 @@ typedef unsigned int u32;
 
 static u32 mix_major0(u32 *state, u32 extra_state);
 
-void enc_type_2 (unsigned char *key, unsigned int seed)
+/* this all works on unsigned ints so endianess is not an issue */
+
+void enc_type_2 (unsigned int *key, unsigned int seed)
 {
-	mix_major0 ((unsigned int *)key, seed);
+	mix_major0 (key, seed);
 }
 
 static u32 mix_major0(u32 *state, u32 extra_state);

@@ -54,11 +54,11 @@ module Make(M: sig
     end) = 
   struct
     
-    let disconnect_download (d : (M.f, M.c) download) =
+    let disconnect_download (d : (M.f, M.c) download) reason =
       match d.download_sock with
         None -> ()
       | Some sock ->
-          close sock "";
+          close sock reason;
           (try M.client_disconnected d with _ -> ());
           lprintf "DISCONNECTED FROM SOURCE\n"; 
           d.download_sock <- None
@@ -113,7 +113,7 @@ module Make(M: sig
           download_pos = file_downloaded (M.file file);
           download_min_read = min_read;
         } in
-      set_closer sock (fun _ _ -> disconnect_download d);
+      set_closer sock (fun _ reason -> disconnect_download d reason);
       TcpBufferedSocket.set_read_controler sock download_control;
       TcpBufferedSocket.set_write_controler sock upload_control;
       set_rtimeout sock 30.;

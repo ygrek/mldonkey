@@ -30,11 +30,13 @@ open CommonResult
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
+open CommonInteractive
 open Options
 open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 open FasttrackComplexOptions
+open BasicSocket
 
 open FasttrackProtocol
 
@@ -69,37 +71,10 @@ let find_search s =
     ) searches_by_uid;
     raise Not_found
   with M.Found s -> s
-
-      (*
-let xml_to_string xml = 
-  "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
-      
-let audio_schema tags = 
-  XML ("audios",
-    [("xsi:nonamespaceschemalocation",
-        "http://www.limewire.com/schemas/audio.xsd")],
-    [XML ("audio", tags, [])])
-*)
-(*
-[
-("artist", "Tom Jones");
-("album", "Mars Attacks Soundtrack");
-("title", "It&apos;s Not Unusal");
-
-("sampleRate", "44100"); 
-("seconds", "239"); 
-("index", "0");
-("bitrate", "128")
-("track", "1"); 
-("description", "Tom Jones, hehe"); 
-("genre", "Retro");
-("year", "1997")
-] 
-
-*)
   
 let parse_query q =
 
+  let realm = ref "" in
   let keywords = ref [] in
   let add_words w =
     keywords := (String2.split_simplify w ' ') @ !keywords
@@ -115,36 +90,52 @@ let parse_query q =
     | QHasField(field, w) ->
         begin
           match field with
-            Field_Type -> 
-              begin
-                match String.lowercase w with
-                  "audio" -> audio := true
-                | _ -> add_words w
-              end
+            Field_Type -> realm := String.lowercase w 
           | Field_Format ->
               begin
                 match String.lowercase w with
                 | "mp3" | "wav" -> 
                     add_words w;
-                    audio := true
+                    realm := "audio"
                 | _ -> add_words w
               end
-          | Field_Album -> tags := ("album", w) :: !tags; add_words w
-          | Field_Artist -> tags := ("artist", w) :: !tags; add_words w
-          | Field_Title -> tags := ("title", w) :: !tags; add_words w
-          | _ -> add_words w
+          | Field_Album -> tags := (Substring ("album", w)) :: !tags
+          | Field_Artist -> tags := (Substring ("artist", w)) :: !tags
+          | Field_Title -> tags := (Substring ("title", w)) :: !tags
+          | Field_unknown tag ->
+              if List.mem_assoc tag name_of_tag then
+                tags := (Substring (tag, w)) :: !tags
+          | Field_Filename ->
+              tags := (Substring ("filename", w)) :: !tags
+          | Field_Size -> ()
         end
-    | QHasMinVal (field, value) -> ()
-    | QHasMaxVal (field, value) -> ()
+    | QHasMinVal (field, value) -> 
+        begin
+          match field with
+          | Field_Size -> tags := (AtLeast ("size", value)) :: !tags
+          | Field_unknown tag -> 
+              if List.mem_assoc tag name_of_tag then
+                tags := (AtLeast (tag, value)) :: !tags
+          | _ -> ()
+        end
+    | QHasMaxVal (field, value) -> 
+        begin
+          match field with
+            Field_Size -> tags := (AtMost ("size", value)) :: !tags
+          | Field_unknown tag -> 
+              if List.mem_assoc tag name_of_tag then
+                tags := (AtMost (tag, value)) :: !tags
+          | _ -> ()
+        end
     | QNone ->  ()
   in
   iter q;
-  !keywords, ""
+  !keywords, !realm, !tags
       
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
-      let words, realm = parse_query query in
+      let words, realm, tags = parse_query query in
       let words = String2.unsplit words ' ' in
 
 (* Maybe we could generate the id for the query from the query itself, so
@@ -153,7 +144,7 @@ that we can reuse queries *)
       
       let s = {
           (* no exclude, no realm *)
-          search_search = UserSearch (search, words, "", "");
+          search_search = UserSearch (search, words, realm, tags);
           search_id = !search_num;
         } in
       incr search_num;
@@ -217,7 +208,7 @@ let _ =
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [file.file_name];
+        P.file_names = file.file_filenames;
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
@@ -258,7 +249,8 @@ let _ =
   );
   server_ops.op_server_connect <- (fun s ->
       FasttrackServers.connect_server s.server_host);
-  server_ops.op_server_disconnect <- FasttrackServers.disconnect_server;
+  server_ops.op_server_disconnect <- (fun s ->
+      FasttrackServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes
@@ -461,12 +453,68 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
-		P.client_sock_addr = "";
+		P.client_sock_addr = (match c.client_user.user_kind with
+						| Known_location (ip,port) -> Ip.to_string ip
+						| _ -> "");
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c
-  )
+  );
+    client_ops.op_client_bprint <- (fun c buf ->
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        Printf.bprintf buf "%s (%s)\n"
+          cinfo.GuiTypes.client_name
+          cinfo.GuiTypes.client_sock_addr
+    );
+    client_ops.op_client_bprint_html <- (fun c buf file ->
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+
+        html_mods_td buf [
+          ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
+          ("", "sr br", cinfo.GuiTypes.client_name);
+          ("", "sr", cinfo.GuiTypes.client_sock_addr);
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
+          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
+    );
+   client_ops.op_client_dprint <- (fun c o file ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c.client_client in 
+        let cinfo = client_info cc in
+        client_print cc o;
+        Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
+          "fT" (* cinfo.GuiTypes.client_software *)
+          (Int64.to_string cinfo.GuiTypes.client_downloaded)
+        (Int64.to_string cinfo.GuiTypes.client_uploaded);
+        Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+    );    
+    client_ops.op_client_dprint_html <- (fun c o file str ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+    onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
+        
+        html_mods_td buf [ 
+          ("", "srb ar", Printf.sprintf "%d" (client_num cc));
+          ((string_of_connection_state (client_state cc)), "sr",
+            (short_string_of_connection_state (client_state cc)));
+          ("", "sr", cinfo.GuiTypes.client_name);
+          ("", "sr", "fT"); (* cinfo.GuiTypes.client_software *)
+          ("", "sr", "F");
+          ("", "sr ar", Printf.sprintf "%d" 
+              (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+          ("", "sr", "D");
+          ("", "sr", (cinfo.GuiTypes.client_sock_addr));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
+          ("", "sr", info.GuiTypes.file_name); ];
+        true
+    )     
   
   
 let _ =  

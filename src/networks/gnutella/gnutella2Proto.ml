@@ -384,7 +384,8 @@ let buf_uid buf s = match s with
   | TigerTree (_, ttr) ->
       Buffer.add_string buf "ttr\000"; 
       Buffer.add_string buf (Tiger.direct_to_string ttr)
-
+  | _ -> ()
+      
 let g2_encode_payload msg = 
   let module M = G2_LittleEndian in
   Buffer.clear buf;

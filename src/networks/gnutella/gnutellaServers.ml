@@ -236,7 +236,8 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
     if code <> "200" then begin
         s.server_connected <- int32_time ();
         if retry_fake then begin
-            GnutellaGlobals.disconnect_from_server nservers s;
+            GnutellaGlobals.disconnect_from_server nservers s
+(Closed_for_error "Bad HTTP code");
             connect_server nservers with_accept false s.server_host
             !keep_headers
           end else
@@ -280,7 +281,7 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
   | e -> 
       if !verbose_msg_servers then
         lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e); 
-      disconnect_from_server nservers s
+      disconnect_from_server nservers s (Closed_for_exception e)
 
 and connect_server nservers with_accept retry_fake h headers =  
   let s = match h.host_server with
@@ -318,7 +319,7 @@ end;  *)
                       match event with
                         BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  lprintf "RTIMEOUT\n"; *)
-                          disconnect_from_server nservers s
+                          disconnect_from_server nservers s Closed_for_timeout
                       | _ -> ()
                   ) in
                 TcpBufferedSocket.set_read_controler sock download_control;
@@ -333,7 +334,7 @@ end;  *)
                 );
                 set_closer sock (fun _ error -> 
 (*            lprintf "CLOSER %s\n" error; *)
-                    disconnect_from_server nservers s);
+                    disconnect_from_server nservers s error);
                 set_rtimeout sock !!server_connection_timeout;
                 
                 let s = 
@@ -396,8 +397,9 @@ Printf.bprintf buf "X-Degree: %d\r\n" !!g1_max_ultrapeers;
                 if !verbose_msg_servers then
                   lprintf "SENDING %s\n" (String.escaped s);
                 write_string sock s;
-              with _ ->
+              with e ->
                   disconnect_from_server nservers s
+                     (Closed_for_exception e)
       )
 
 let get_file_from_source c file =
@@ -522,9 +524,9 @@ Remote-IP: 207.5.238.35
   *)
 *)
   
-let disconnect_server s =
+let disconnect_server s r =
   match s.server_sock with
-  | Connection sock -> close sock "user disconnect"
+  | Connection sock -> close sock r
   | ConnectionWaiting -> s.server_sock <- ConnectionAborted
   | _ -> ()
     
@@ -550,9 +552,10 @@ let udp_handler p =
     lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
       
 let _ =
-  server_ops.op_server_disconnect <- disconnect_server;
+  server_ops.op_server_disconnect <- (fun s -> disconnect_server s
+Closed_by_user);
   server_ops.op_server_remove <- (fun s ->
-      disconnect_server s;
+      disconnect_server s Closed_by_user; 
   )
   
 let manage_host h =

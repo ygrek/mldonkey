@@ -75,21 +75,21 @@ let server_msg_handler sock s msg_type m =
         ();
       done;
       if s.server_host.host_kind = IndexServer then
-        close sock "disconnect from IndexServer after SessMsgNodeList"
+        close sock Closed_by_user
       else begin
           List.iter (fun file ->
               Fifo.put s.server_searches file.file_search
           ) !current_files;
         end
-
+  
   | 0x06 -> (* SessMsgQuery *)
       lprintf "SessMsgQuery\n";
-      
+
 (*
 
 
 *)
-      
+  
   | 0x07 -> (* SessMsgQueryReply *)
       lprintf "SessMsgQueryReply\n";
 
@@ -103,7 +103,7 @@ let server_msg_handler sock s msg_type m =
       
       let nresults = BigEndian.get_int16 m 8 in
       lprintf "Results: %d\n" nresults;
-
+      
       let len = String.length m in
       let rec iter pos n = 
         if n > 0 && pos + 32 < len then
@@ -133,7 +133,7 @@ let server_msg_handler sock s msg_type m =
           
           lprintf "   Result %s size: %Ld tags: %d\n" 
             (Md5Ext.to_string_case false result_hash) result_size ntags;
-
+          
           
           let rec iter_tags name pos n tags =
             if n > 0 && pos < len-2 then
@@ -156,15 +156,15 @@ let server_msg_handler sock s msg_type m =
           let result_name, tags, pos = iter_tags "Unknown" pos ntags [] in
           List.iter (fun tag ->
               lprintf "      Tag: %s --> %s\n" tag.tag_name (string_of_tag
-                tag.tag_value);
+                  tag.tag_value);
           ) tags;
           let user = new_user (Known_location (user_ip, user_port)) in
-          (*
+(*
           let url = Printf.sprintf 
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
           let url = Printf.sprintf 
-            "/.hash=%s" (Md5Ext.to_string_case false result_hash) in 
+              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in 
           begin
             match s.search_search with
               UserSearch (sss, _,_,_) ->
@@ -172,10 +172,14 @@ let server_msg_handler sock s msg_type m =
                 let r = new_result result_name result_size tags result_hash in
                 add_source r user (FileByUrl url);
                 CommonInteractive.search_add_result false sss r.result_result
-
+            
             | FileSearch file ->
                 let c = new_client user.user_kind in
-                add_download file c (FileByUrl url)
+                add_download file c (FileByUrl url);
+                
+                if not (List.mem result_name file.file_filenames) then 
+                  file.file_filenames <- file.file_filenames @ [result_name] ;
+                
             | _ -> ()
           end;
           iter pos (n-1)

@@ -371,6 +371,7 @@ let remaining_bytes bc =
 let use_remaining_bytes bc n =
   bc.remaining_bytes <- bc.remaining_bytes - n
 
+(*
 let set_socks_proxy t ss =
   try
 
@@ -435,3 +436,4 @@ let set_socks_proxy t ss =
     lprintf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
       (Printexc2.to_string e); lprint_newline ();
     close t "socks proxy error"; raise e
+*)

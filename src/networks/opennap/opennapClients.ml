@@ -36,18 +36,18 @@ module OG = OpennapGlobals
 module DO = CommonOptions  
 module DG = CommonGlobals
 
-let disconnect_client c =
+let disconnect_client c r =
   match c.client_sock with
     None -> ()
-  | Some sock -> close sock "client disconnected"
+  | Some sock -> close sock r
       
 let client_handler c sock event = 
   match event with
     BASIC_EVENT (CLOSED s) ->      
 (*      lprintf "CONNECTION WITH CLIENT LOST (%s)" s; lprint_newline (); *)
-      disconnect_client c
+      disconnect_client c s
   | BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-      disconnect_client c
+      disconnect_client c Closed_for_timeout
   | _ -> ()
 
 
@@ -182,11 +182,11 @@ let client_reader c =
                   iter sock (nread - 1)
               | _ -> 
                   lprintf "No file or source"; lprint_newline ();
-                  disconnect_client c
+                  disconnect_client c (Closed_for_error "No file to download");
             end
           else begin
               lprintf "bad non 1 reply"; lprint_newline ();
-              disconnect_client c
+              disconnect_client c (Closed_for_error "Bad reply")
             end
         end
       else
@@ -214,7 +214,7 @@ let client_reader c =
             iter sock (nread - len)
         end else 
       match c.client_file with
-        None -> close sock "not downloading"
+        None -> close sock (Closed_for_error "Nothing to download")
       | Some file -> read_stream c file sock b
   in
   iter 
@@ -262,7 +262,7 @@ let client_reader2 c sock nread =
                     cc.client_sock <- Some sock;
                     c := Some cc
                 | Some sock ->
-                    close sock "already connected";
+                    close sock (Closed_for_error "Already Connected");
                     raise Not_found
           ) file.file_clients
         
@@ -274,7 +274,7 @@ let client_reader2 c sock nread =
       end
   | Some c ->
       match c.client_file with
-        None -> close sock "not downloading"
+        None -> close sock (Closed_for_error "Nothing to download")
       | Some file ->
           read_stream c file sock b
           
@@ -324,7 +324,7 @@ let listen () =
                   match !c with
                     None -> ()
                   | Some c ->
-                      disconnect_client c
+                      disconnect_client c s
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
               

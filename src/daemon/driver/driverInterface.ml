@@ -326,7 +326,7 @@ send_update_old
 let console_messages = Fifo.create ()
         
 let gui_closed gui sock  msg =
-  lprintf "DISCONNECTED FROM GUI %s" msg; lprint_newline (); 
+(*  lprintf "DISCONNECTED FROM GUI %s" msg; lprint_newline (); *)
   guis := List2.removeq gui !guis
 
 let gui_reader (gui: gui_record) t _ =
@@ -357,7 +357,7 @@ let gui_reader (gui: gui_record) t _ =
               gui_send gui BadPassword;                  
               set_lifetime sock 5.;
               lprintf "BAD PASSWORD"; lprint_newline ();
-              TcpBufferedSocket.close sock "bad password"
+              TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
           
           | _ ->
               let connecting = ref true in
@@ -540,9 +540,9 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                 (try
                     if bool then network_enable n else network_disable n;
                   with e ->
-                      lprintf "Exception %s in network enable/disable" 
+                      lprintf "Exception %s in network enable/disable\n" 
                         (Printexc2.to_string e);
-                      lprint_newline ());
+                );
               gui_send gui (P.Network_info (network_info n))
           
           | P.ExtendedSearch (num, e) ->
@@ -882,7 +882,7 @@ let gui_handler t event =
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> 
             lprintf "BUFFER OVERFLOW"; lprint_newline ();
-            close sock "overflow");
+            close sock Closed_for_overflow);
         (* sort GUIs in increasing order of their num *)
         
       else begin

@@ -564,13 +564,12 @@ let irc_login account =
       lprintf "connecting to irc %s" account.account_identity.identity_login; lprint_newline ()
 
       with e ->
-          lprintf "Exception %s in irc_login" (Printexc2.to_string e);
-          lprint_newline ();
+          lprintf "Exception %s in irc_login\n" (Printexc2.to_string e);
           (match account.account_sock with
               None -> ()
             | Some sock ->
                 account.account_sock <- None;
-                close sock "exception");
+                close sock (Closed_for_exception e));
           set_account_status (as_account account) Status_offline          
           
 let irc_keepalive account = ()
@@ -598,7 +597,7 @@ let _ =
       match account.account_sock with
         None -> ()
       | Some sock ->
-          close sock "";
+          close sock Closed_by_user;
           set_account_status (as_account account) Status_offline
   );
   account_ops.op_account_has_rooms <- (fun account -> 

@@ -779,7 +779,8 @@ and next_file c =
               if not c.client_has_a_slot then begin
                   connection_delay c.client_connection_control;
 (* This guy could still want to upload from us !!! *)
-                  TcpBufferedSocket.close sock "useless client";            
+                  TcpBufferedSocket.close sock
+                    (Closed_for_error "No file to download");
                   raise Block_selected
                 end
           | _ ->

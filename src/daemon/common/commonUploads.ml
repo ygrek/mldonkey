@@ -599,14 +599,14 @@ let add_pending_slot c =
   let csh = client_upload c in
   let cdir = shared_dir csh in
   let cprio = ref (shared_prio csh) in
-  if cdir <> "" then
-    lprintf "Testing cdir %s\n" cdir;
+  (* if cdir <> "" then
+    lprintf "Testing cdir %s\n" cdir; *)
   Intmap.iter (fun _ c -> 
     let sh = client_upload c in
     if shared_dir sh = cdir then decr cprio
   ) !CommonClient.uploaders;
-  if cdir <> "" then
-    lprintf "Testing cprio %d\n" !cprio;
+  (* if cdir <> "" then
+    lprintf "Testing cprio %d\n" !cprio; *)
   if !cprio > 0 then begin
     remove_pending_slot c;
     if client_is_connected c then begin

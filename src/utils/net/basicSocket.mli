@@ -16,7 +16,20 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-type event = CLOSED of string | RTIMEOUT | WTIMEOUT | LTIMEOUT | CAN_READ | CAN_WRITE
+
+type close_reason =
+  Closed_for_timeout    (* timeout exceeded *)
+| Closed_for_lifetime   (* lifetime exceeded *)
+| Closed_by_peer        (* end of file *)
+| Closed_for_error of string
+| Closed_by_user         (* the operation was completed *)
+| Closed_for_overflow
+| Closed_connect_failed
+| Closed_for_exception of exn
+
+type event = 
+  CLOSED of close_reason
+| RTIMEOUT | WTIMEOUT | LTIMEOUT | CAN_READ | CAN_WRITE
 
 type t
 type handler = t -> event -> unit
@@ -41,8 +54,8 @@ val closed : t -> bool
 val create : string -> Unix.file_descr -> handler -> t
 val create_blocking : string -> Unix.file_descr -> handler -> t
 val set_printer : t -> (unit -> string) -> unit
-val close : t -> string -> unit
-val shutdown : t -> string -> unit
+val close : t -> close_reason -> unit
+val shutdown : t -> close_reason -> unit
 
 val set_before_select_hook : (unit -> unit) -> unit
 val set_after_select_hook : (unit -> unit) -> unit

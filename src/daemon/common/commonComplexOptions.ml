@@ -548,7 +548,7 @@ let server_add impl =
   if impl.impl_server_state = NewHost then begin
       server_update_num impl;
       servers =:= Intmap.add (server_num server) server !!servers;
-      impl.impl_server_state <- NotConnected (-1)
+      impl.impl_server_state <- NewHost
     end
 
 let contacts = ref []

@@ -253,11 +253,11 @@ let load_config () =
 used. For example, we can add new web_infos... *)
   if !!options_version < 1 then begin
       lprintf "Updating options to level 1"; lprint_newline ();
-      web_infos =:= 
+    (*  web_infos =:= 
         (
         ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
         ):: 
-      !!web_infos;
+      !!web_infos;*)
     end;
   if !!options_version < 2 then begin
       lprintf "Updating options to level 2"; lprint_newline ();

@@ -112,7 +112,7 @@ let server_parse_after s gconn sock =
   with e -> 
       lprintf "Exception %s in server_parse_after\n"
         (Printexc2.to_string e);
-      close sock "not understood"
+      close sock (Closed_for_error "Reply not understood")
       
 let greet_supernode s =
   let b = Buffer.create 100 in
@@ -212,7 +212,7 @@ let connect_server h =
                       match event with
                         BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  lprintf "RTIMEOUT\n"; *)
-                          disconnect_from_server nservers s "TIMEOUT"
+                          disconnect_from_server nservers s Closed_for_timeout
                       | _ -> ()
                   ) in
                 TcpBufferedSocket.set_read_controler sock download_control;
@@ -248,7 +248,7 @@ let connect_server h =
                   end;
                 write_string sock s;
               with _ ->
-                  disconnect_from_server nservers s "Error during Connect"
+                  disconnect_from_server nservers s Closed_connect_failed
       )
 
 let get_file_from_source c file =
@@ -275,9 +275,9 @@ let get_file_from_source c file =
     
 let exit = Exit
   
-let disconnect_server s =
+let disconnect_server s r =
   match s.server_sock with
-  | Connection sock -> close sock "user disconnect"
+  | Connection sock -> close sock r
   | ConnectionWaiting -> 
       s.server_sock <- ConnectionAborted;
       free_ciphers s
@@ -331,9 +331,10 @@ let udp_handler p =
     *)
 
 let _ =
-  server_ops.op_server_disconnect <- disconnect_server;
+  server_ops.op_server_disconnect <- (fun s ->
+    disconnect_server s Closed_by_user);
   server_ops.op_server_remove <- (fun s ->
-      disconnect_server s;
+      disconnect_server s Closed_by_user
   )
   
 let manage_host h =

@@ -50,5 +50,5 @@ val print_connected_servers : Buffer.t -> unit
 
 *)
   
-val disconnect_server : DonkeyTypes.server -> unit
+(* val disconnect_server : DonkeyTypes.server -> unit*)
   

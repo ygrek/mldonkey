@@ -17,6 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(*
+Two solutions:
+1) Limit the number of connection attempts: if we have 10 ranges to download,
+only allow 10 concurrent connections, so that we will download each
+range only from one client
+2) Don't ask for the range immediatly, wait for the connection to be
+accepted (using the refill function of the socket ?), and check which range
+to ask at that point.
+*)
 
 
 (*
@@ -25,14 +34,81 @@ Asking 00000000000000000000000000000000 For Range 0-262143
 Disconnected from source
 CLIENT PARSE HEADER
 HEADER FROM CLIENT:
-ascii: [ H T T P / 1 . 0   5 0 1   N o t   I m p l e m e n t e d(10) X - K a z a a - U s e r n a m e :   r c b(13)(10) X - K a z a a - N e t w o r k :   K a Z a A(13)(10) X - K a z a a - I P :   1 6 8 . 2 2 6 . 1 1 2 . 1 3 5 : 1 9 5 9(13)(10) X - K a z a a - S u p e r n o d e I P :   2 0 0 . 7 5 . 2 2 9 . 2 1 2 : 1 2 1 4(13)(10)]
+ascii: [
+HTTP/1.0 501 Not Implemented
+X-Kazaa-Username: rcb(13)
+X-Kazaa-Network: KaZaA(13)
+X-Kazaa-IP: 168.226.112.135:1959(13)
+X-Kazaa-SupernodeIP: 200.75.229.212:1214(13)
+]
 
 
-ascii: [ H T T P / 1 . 0   5 0 3   S e r v i c e   U n a v a i l a b l e(10) R e t r y - A f t e r :   2 8 4(13)(10) X - K a z a a - U s e r n a m e :   j o h n l(13)(10) X - K a z a a - N e t w o r k :   K a Z a A(13)(10) X - K a z a a - I P :   6 2 . 2 5 1 . 1 1 5 . 2 9 : 1 4 5 7(13)(10) X - K a z a a - S u p e r n o d e I P :   1 9 5 . 1 6 9 . 2 1 1 . 2 5 : 3 5 3 4(13)(10)]
+ascii:[
+HTTP/1.0 503 Service Unavailable
+Retry-After: 284(13)
+X-Kazaa-Username: johnl(13)
+X-Kazaa-Network: KaZaA(13)
+X-Kazaa-IP: 62.251.115.29:1457(13)
+X-Kazaa-SupernodeIP: 195.169.211.25:3534(13)
+]
 
-  ascii: [ H T T P / 1 . 1   2 0 6   P a r t i a l   C o n t e n t(13)(10) C o n t e n t - R a n g e :   b y t e s   3 1 4 5 7 2 8 - 3 4 0 7 8 7 1 / 6 1 2 8 4 5 3(13)(10) C o n t e n t - L e n g t h :   2 6 2 1 4 4(13)(10) A c c e p t - R a n g e s :   b y t e s(13)(10) D a t e :   T h u ,   1 5   M a y   2 0 0 3   2 2 : 2 8 : 3 8   G M T(13)(10) S e r v e r :   K a z a a C l i e n t   N o v     3   2 0 0 2   2 0 : 2 9 : 0 3(13)(10) C o n n e c t i o n :   c l o s e(13)(10) L a s t - M o d i f i e d :   S a t ,   2 2   F e b   2 0 0 3   1 9 : 5 8 : 5 2   G M T(13)(10) X - K a z a a - U s e r n a m e :   d e f a u l t u s e r(13)(10) X - K a z a a - N e t w o r k :   K a Z a A(13)(10) X - K a z a a - I P :   2 1 2 . 8 . 7 4 . 2 4 : 1 2 1 4(13)(10) X - K a z a a - S u p e r n o d e I P :   1 9 3 . 2 0 4 . 3 4 . 2 1 4 : 2 0 9 3(13)(10) X - K a z a a T a g :   4 = A   s o l a s   c o n   m i   c o r a z o n(13)(10) X - K a z a a T a g :   6 = R o s a(13)(10) X - K a z a a T a g :   8 = R o s a(13)(10) X - K a z a a T a g :   1 4 = P o p(13)(10) X - K a z a a T a g :   1 = 2 0 0 2(13)(10) X - K a z a a T a g :   2 6 = h t t p : / / w w w . e l i t e m p 3 . n e t(13)(10) X - K a z a a T a g :   1 0 = e s(13)(10) X - K a z a a T a g :   1 2 = 1(186)   a l b u m   -   2 9 - 0 4 - 2 0 0 2(13)(10) X - K a z a a T a g :   5 = 3 8 6(13)(10) X - K a z a a T a g :   2 1 = 1 2 8(13)(10) X - K a z a a T a g :   3 = = q y W z R b 1 Q v n k 4 m t a B y t I M 1 i H Q u K 8 =(13)(10) C o n t e n t - T y p e :   a u d i o / m p e g(13)(10)(13)]
+ascii:[
+HTTP/1.1 206 Partial Content(13)
+Content-Range: bytes 3145728-3407871/6128453(13)
+Content-Length: 262144(13)
+Accept-Ranges: bytes(13)
+Date: Thu, 15 May 2003 22:28:38 GMT(13)
+Server: KazaaClient Nov  3 2002 20:29:03(13)
+Connection: close(13)
+Last-Modified: Sat, 22 Feb 2003 19:58:52 GMT(13)
+X-Kazaa-Username: defaultuser(13)
+X-Kazaa-Network: KaZaA(13)
+X-Kazaa-IP: 212.8.74.24:1214(13)
+X-Kazaa-SupernodeIP: 193.204.34.214:2093(13)
+X-KazaaTag: 4=A solas con mi corazon(13)
+X-KazaaTag: 6=Rosa(13)
+X-KazaaTag: 8=Rosa(13)
+X-KazaaTag: 14=Pop(13)
+X-KazaaTag: 1=2002(13)
+X-KazaaTag: 26=http://www.elitemp3.net(13)
+X-KazaaTag: 10=es(13)
+X-KazaaTag: 12=1(186) album - 29-04-2002(13)
+X-KazaaTag: 5=386(13)
+X-KazaaTag: 21=128(13)
+X-KazaaTag: 3==qyWzRb1Qvnk4mtaBytIM1iHQuK8=(13)
+Content-Type: audio/mpeg(13)
+(13)]
 
-HTTP/1.1 206 Partial Content\n\nContent-Range: bytes 0-262143/3937679\n\nContent-Length: 262144\n\nAccept-Ranges: bytes\n\nDate: Thu, 15 May 2003 22:18:12 GMT\n\nServer: KazaaClient Nov  3 2002 20:29:03\n\nConnection: close\n\nLast-Modified: Mon, 05 May 2003 04:14:57 GMT\n\nX-Kazaa-Username: shaz2003\n\nX-Kazaa-Network: KaZaA\n\nX-Kazaa-IP: 81.103.29.119:3641\n\nX-Kazaa-SupernodeIP: 131.111.202.241:2674\n\nX-KazaaTag: 5=246\n\nX-KazaaTag: 21=128\n\nX-KazaaTag: 4=Fighter\n\nX-KazaaTag: 6=Christina Aguliera\n\nX-KazaaTag: 8=Stripped\n\nX-KazaaTag: 14=Other\n\nX-KazaaTag: 1=2002\n\nX-KazaaTag: 26=© christinas_eyedol 2002\n\nX-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera\n\nX-KazaaTag: 10=en\n\nX-KazaaTag: 18=Video Clip\n\nX-KazaaTag: 28=div3\n\nX-KazaaTag: 17=24\n\nX-KazaaTag: 9=241229701\n\nX-KazaaTag: 24=http://www.MusicInter.com\n\nX-KazaaTag: 3==kd8c6QgrXm0wvCYl5Uo0Aa9C7qg=\n\nContent-Type: audio/mpeg\n\n\n
+HTTP/1.1206 Partial Content(13)
+Content-Range: bytes 0-262143/3937679(13)
+Content-Length: 262144(13)
+Accept-Ranges: bytes(13)
+Date: Thu, 15 May 2003 22:18:12 GMT(13)
+Server: KazaaClient Nov  3 2002 20:29:03(13)
+Connection: close(13)
+Last-Modified: Mon, 05 May 2003 04:14:57 GMT(13)
+X-Kazaa-Username: shaz2003(13)
+X-Kazaa-Network: KaZaA(13)
+X-Kazaa-IP: 81.103.29.119:3641(13)
+X-Kazaa-SupernodeIP: 131.111.202.241:2674(13)
+X-KazaaTag: 5=246(13)
+X-KazaaTag: 21=128(13)
+X-KazaaTag: 4=Fighter(13)
+X-KazaaTag: 6=Christina Aguliera(13)
+X-KazaaTag: 8=Stripped(13)
+X-KazaaTag: 14=Other(13)
+X-KazaaTag: 1=2002(13)
+X-KazaaTag: 26=© christinas_eyedol 2002(13)
+X-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera(13)
+X-KazaaTag: 10=en(13)
+X-KazaaTag: 18=Video Clip(13)
+X-KazaaTag: 28=div3(13)
+X-KazaaTag: 17=24(13)
+X-KazaaTag: 9=241229701(13)
+X-KazaaTag: 24=http://www.MusicInter.com(13)
+X-KazaaTag: 3==kd8c6QgrXm0wvCYl5Uo0Aa9C7qg=(13)
+Content-Type: audio/mpeg(13)
+\n
 
   
 *)
@@ -69,7 +145,7 @@ let download_finished file =
       c.client_downloads <- remove_download file c.client_downloads
   ) file.file_clients
   
-let disconnect_client c =
+let disconnect_client c r =
   match c.client_sock with
   | Connection sock -> 
       (try
@@ -78,8 +154,8 @@ let disconnect_client c =
             end;
           c.client_requests <- [];
           connection_failed c.client_connection_control;
-          set_client_disconnected c;
-          close sock "closed";
+          set_client_disconnected c r;
+          close sock r;
           c.client_sock <- NoConnection;
           if c.client_reconnect then
             Fifo.put reconnect_clients c
@@ -204,7 +280,7 @@ let rec client_parse_header c gconn sock header =
               lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
                 (Printexc2.to_string e)
               (String.escaped header);
-              disconnect_client c;
+              disconnect_client c (Closed_for_error "Bad HTTP Range");
               raise Exit
     in 
     (try
@@ -299,7 +375,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
   with e ->
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
       AnyEndian.dump header;      
-      disconnect_client c;
+      disconnect_client c (Closed_for_exception e);
       raise e
 
 and get_from_client sock (c: client) =
@@ -416,51 +492,53 @@ let connect_client c =
           | Connection _ | NoConnection -> ()
           | _ ->
               if List.exists (fun d ->
-                  file_state d.download_file = FileDownloading
+                    file_state d.download_file = FileDownloading
                 ) c.client_downloads 
               then
-                  try
-                    if !verbose_msg_clients then begin
-                        lprintf "connect_client\n";
-                      end;
-                    match c.client_user.user_kind with
-                      Indirect_location _ -> ()
-                    | Known_location (ip, port) ->
-                        if !verbose_msg_clients then begin
-                            lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
-                          end;
-                        c.client_reconnect <- false;
-                        let sock = connect "gnutella download" 
-                            (Ip.to_inet_addr ip) port
-                            (fun sock event ->
-                              match event with
-                                BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                                  disconnect_client c
-                              | BASIC_EVENT (CLOSED _) ->
-                                  disconnect_client c
-                              | _ -> ()
-                          )
-                        in
-                        init_client sock;                
-                        c.client_host <- Some (ip, port);
-                        set_client_state c Connecting;
-                        c.client_sock <- Connection sock;
-                        TcpBufferedSocket.set_closer sock (fun _ _ ->
-                            disconnect_client c
-                        );
-                        set_rtimeout sock 30.;
-                        if !verbose_msg_clients then begin
-                            lprintf "READY TO DOWNLOAD FILE\n";
-                          end;
-                        
-                        get_from_client sock c;
-                        set_fasttrack_sock sock !verbose_msg_clients
-                          (HttpHeader (client_parse_header c))
-                  
+                try
+                  if !verbose_msg_clients then begin
+                      lprintf "connect_client\n";
+                    end;
+                  match c.client_user.user_kind with
+                    Indirect_location _ -> ()
+                  | Known_location (ip, port) ->
+                      if !verbose_msg_clients then begin
+                          lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                        end;
+                      c.client_reconnect <- false;
+                      let sock = connect "gnutella download" 
+                          (Ip.to_inet_addr ip) port
+                          (fun sock event ->
+                            match event with
+                              BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                                disconnect_client c Closed_for_timeout
+                            | BASIC_EVENT (CLOSED s) ->
+                                disconnect_client c s
+                            
+                            | CONNECTED ->
+                                lprintf "CONNECTED !!! Asking for range...\n";
+                                get_from_client sock c
+                            | _ -> ()
+                        )
+                      in
+                      init_client sock;                
+                      c.client_host <- Some (ip, port);
+                      set_client_state c Connecting;
+                      c.client_sock <- Connection sock;
+                      TcpBufferedSocket.set_closer sock (fun _ s ->
+                          disconnect_client c s
+                      );
+                      set_rtimeout sock 30.;
+                      if !verbose_msg_clients then begin
+                          lprintf "READY TO DOWNLOAD FILE\n";
+                        end;
+                      set_fasttrack_sock sock !verbose_msg_clients
+                        (HttpHeader (client_parse_header c))
+                      
                   with e ->
                       lprintf "Exception %s while connecting to client\n" 
                         (Printexc2.to_string e);
-                      disconnect_client c
+                      disconnect_client c (Closed_for_exception e)
       );
       c.client_sock <- ConnectionWaiting
       
@@ -499,7 +577,7 @@ let push_handler cc gconn sock header =
             if !verbose_msg_clients then begin
                 lprintf "ALREADY CONNECTED\n"; 
               end;
-            close sock "already connected";
+            close sock (Closed_for_error "already connected");
             raise End_of_file
         | _ ->
             if !verbose_msg_clients then begin
@@ -523,7 +601,7 @@ let push_handler cc gconn sock header =
             with e ->
                 lprintf "Exception %s during client connection\n"
                   (Printexc2.to_string e);
-                disconnect_client c;
+                disconnect_client c (Closed_for_exception e);
                 raise End_of_file
       end
     else begin
@@ -670,27 +748,11 @@ BUG:
   with e ->
       lprintf "Exception %s in push_handler: %s\n" (Printexc2.to_string e)
       (String.escaped header);
-      (match !cc with Some c -> disconnect_client c | _ -> ());
+      (match !cc with Some c -> disconnect_client c (Closed_for_exception e)
+| _ -> ());
       raise e
 
       (*
-let client_parse_header2 c sock header = 
-    match !c with
-    Some c ->
-      client_parse_header c sock header
-  | _ -> assert false
-      
-
-let client_reader2 c sock nread = 
-  match !c with
-    None -> assert false
-  | Some c ->
-      match c.client_file with
-        None -> assert false
-      | Some d ->
-          Download.download_reader d sock nread
-            *)
-
 let listen () =
   try
     let sock = TcpServerSocket.create "gnutella client server" 
@@ -709,7 +771,8 @@ let listen () =
                   "gnutella client connection" s 
                   (fun sock event -> 
                     match event with
-                      BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock "timeout"
+                      BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
+                        close sock Closed_for_timeout
                     | _ -> ()
                 )
               in
@@ -719,7 +782,7 @@ let listen () =
               let c = ref None in
               TcpBufferedSocket.set_closer sock (fun _ s ->
                   match !c with
-                    Some c ->  disconnect_client c
+                    Some c ->  disconnect_client c s
                   | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
@@ -732,4 +795,4 @@ let listen () =
   with e ->
       lprintf "Exception %s while init gnutella server\n" 
         (Printexc2.to_string e)
-    
+*)    

@@ -18,6 +18,7 @@
 *)
 
 open Printf2
+open CommonNetwork
 
 open GnutellaClients
 open CommonOptions
@@ -31,28 +32,34 @@ open GnutellaGlobals
 open GnutellaTypes
 open CommonTypes
 open GnutellaServers
-  
-let disable enabler () =
-  enabler := false;
-  Hashtbl2.safe_iter (fun h -> 
-      match h.host_server with
-        None -> ()
-      | Some s -> GnutellaServers.disconnect_server s) hosts_by_key;
-  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_uid;
-  (match !listen_sock with None -> ()
-    | Some sock -> 
-        listen_sock := None;
-        TcpServerSocket.close sock "");
-  if !!enable_gnutella then enable_gnutella =:= false;
-  match !udp_sock with
-    None -> ()
-  | Some sock -> 
-      udp_sock := None;
-      UdpSocket.close sock "disabled"
-      
-let enable () =
 
-  let enabler = ref true in
+let is_enabled = ref false
+   
+let disable enabler () =
+  if !enabler then begin
+      enabler := false;
+      Hashtbl2.safe_iter (fun h -> 
+          match h.host_server with
+            None -> ()
+          | Some s -> GnutellaServers.disconnect_server s Closed_by_user)
+      hosts_by_key;
+      Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) clients_by_uid;
+      (match !listen_sock with None -> ()
+        | Some sock -> 
+            listen_sock := None;
+            TcpServerSocket.close sock Closed_by_user);
+      if !!enable_gnutella then enable_gnutella =:= false;
+      match !udp_sock with
+        None -> ()
+      | Some sock -> 
+          udp_sock := None;
+          UdpSocket.close sock Closed_by_user
+    end
+    
+let enable () =
+  if not !is_enabled then
+    let enabler = ref true in
+    is_enabled := true;
   network.op_network_disable <- disable enabler;
   
   if not !!enable_gnutella then enable_gnutella =:= true;
@@ -102,6 +109,9 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella);
+  option_hook enable_gnutella (fun _ ->
+      if !!enable_gnutella then network_enable network
+      else network_disable network);
   network.op_network_save_complex_options <- GnutellaComplexOptions.save_config;
   (*
   network.op_network_load_simple_options <- 

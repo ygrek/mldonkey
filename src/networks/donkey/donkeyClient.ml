@@ -19,12 +19,6 @@
 (* The function handling the cooperation between two clients. Most used 
 functions are defined in downloadOneFile.ml *)
 
-(* Some things about Emule:
-- If a client asks for a file more often than 590 seconds, ie 10 minutes,
-  it gets a BAD REQUEST
-- If a client has 2 BAD REQUESTS, it get banned !
-*)
-
 open Printf2
 open Md4
 
@@ -197,7 +191,7 @@ let log_client_info c sock =
   let m = Buffer.contents buf in
   CommonEvent.add_event (Console_message_event m)
   
-let disconnect_client c =
+let disconnect_client c reason =
   match c.client_sock with
     None -> ()
   | Some sock ->
@@ -211,14 +205,14 @@ let disconnect_client c =
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
           CommonUploads.remove_pending_slot (as_client c.client_client);
           connection_failed c.client_connection_control;
-          TcpBufferedSocket.close sock "closed";
+          TcpBufferedSocket.close sock reason;
           printf_string "-c"; 
           c.client_has_a_slot <- false;
           c.client_chunks <- [||];
           c.client_sock <- None;
           save_join_queue c;
           c.client_slot <- SlotNotAsked;
-          set_client_disconnected c;
+          set_client_disconnected c reason;
           let files = c.client_file_queue in
           List.iter (fun (file, chunks) -> 
               remove_client_chunks file chunks)  
@@ -418,21 +412,21 @@ let identify_client_brand c =
       if c.client_overnet then Brand_overnet else Brand_edonkey)
 
 let identify_emule_compatible c tags = 
-	List.iter (fun tag -> 
-		match tag.tag_name with
-	      "compatible" -> (match tag.tag_value with
-                  		  Uint64 i -> begin 
-									let intof64 = (Int64.to_int i) in
-									match intof64 with 
-									1 -> c.client_brand <- Brand_cdonkey
-								  | 2 -> c.client_brand <- Brand_lmule
-								  | 4 -> c.client_brand <- Brand_shareaza
-								  | _ -> ()
-								  end
-                  		| _ -> ())
-		  | _ -> ()
-	) tags
-    
+  List.iter (fun tag -> 
+      match tag.tag_name with
+        "compatible" -> (match tag.tag_value with
+              Uint64 i -> begin 
+                  let intof64 = (Int64.to_int i) in
+                  match intof64 with 
+                    1 -> c.client_brand <- Brand_cdonkey
+                  | 2 -> c.client_brand <- Brand_lmule
+                  | 4 -> c.client_brand <- Brand_shareaza
+                  | _ -> ()
+                end
+            | _ -> ())
+      | _ -> ()
+  ) tags
+  
 let query_files c sock =  
   let nall_queries = ref 0 in
   let nqueries = ref 0 in
@@ -634,13 +628,13 @@ let client_to_client challenge for_files c t sock =
       
       if t.CR.md4 = !!client_md4 ||
         t.CR.md4 = overnet_md4 then
-        TcpBufferedSocket.close sock "connected to myself";
+        TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
 
 
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected"; lprint_newline (); *)
-          close sock "already connected";
+          close sock (Closed_for_error "Already connected");
           raise Exit
         end;
       
@@ -1044,7 +1038,7 @@ is checked for the file.
           lprintf "Receiving data from unreliable client, disconnect";
           lprint_newline ();
           corruption_warning c;
-          disconnect_client c;
+          disconnect_client c (Closed_for_error "Unreliable Source");
           raise Not_found
         end;
       
@@ -1493,11 +1487,11 @@ end else *)
 let client_handler c sock event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      disconnect_client c;
+      disconnect_client c s;
 
   | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
       printf_string "[TO?]";
-      close sock "timeout"
+      close sock Closed_for_timeout;
 
       (*
       if c.client_name <> "" then begin
@@ -1522,7 +1516,7 @@ let client_handler2 c sock event =
       
       | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
           printf_string "[TO?]";
-          close sock "timeout"
+          close sock Closed_for_timeout
           
       | _ -> ()
       
@@ -1580,14 +1574,14 @@ let read_first_message overnet challenge m sock =
       
       if t.CR.md4 = !!client_md4 ||
         t.CR.md4 = overnet_md4 then begin
-          TcpBufferedSocket.close sock "connected to myself";
+          TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
           raise End_of_file
         end;
 
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected"; lprint_newline (); *)
-          close sock "already connected";
+          close sock (Closed_for_error "already connected");
           raise Exit
         end;
       let name = ref "" in
@@ -1631,7 +1625,8 @@ let read_first_message overnet challenge m sock =
             c.client_connect_time <- last_time ();
         
         | Some _ -> 
-            close sock "already connected"; raise Not_found
+            close sock (Closed_for_error "already connected");
+            raise Not_found
       end;
       
       begin
@@ -1740,7 +1735,7 @@ let read_first_message overnet challenge m sock =
   | _ -> 
       lprintf "BAD MESSAGE FROM CONNECTING CLIENT"; lprint_newline ();
       M.print m; lprint_newline ();
-      close sock "bad connecting message";
+      close sock (Closed_for_error "bad connecting message");
       raise Not_found
       
       
@@ -1821,11 +1816,10 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
               )
             
             with e -> 
-                lprintf "Exception %s in client connection"
+                lprintf "Exception %s in client connection\n"
                   (Printexc2.to_string e);
-                lprint_newline ();
                 connection_failed c.client_connection_control;
-                set_client_disconnected c
+                set_client_disconnected c (Closed_for_exception e)
     end  
     
 let query_id s sock ip file =

@@ -92,7 +92,8 @@ let _ =
 let _ =
   let module P = GuiTypes in
   server_ops.op_server_connect <- SlskServers.connect_server;
-  server_ops.op_server_disconnect <- SlskServers.disconnect_server;
+  server_ops.op_server_disconnect <- (fun s ->
+      SlskServers.disconnect_server s Closed_by_user);
 (*
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock with

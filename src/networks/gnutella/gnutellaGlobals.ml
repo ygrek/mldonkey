@@ -567,7 +567,7 @@ let client_ip sock =
   CommonOptions.client_ip
   (match sock with Connection sock -> Some sock | _ -> None)
 
-let disconnect_from_server nservers s =
+let disconnect_from_server nservers s r =
   match s.server_sock with
   | Connection sock ->
       let h = s.server_host in
@@ -581,9 +581,9 @@ let disconnect_from_server nservers s =
             ;
         | _ -> ()
       );
-      (try close sock "" with _ -> ());
+      (try close sock r with _ -> ());
       s.server_sock <- NoConnection;
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (r, -1));
       s.server_need_qrt <- true;
       decr nservers;
       if s.server_gnutella2 then

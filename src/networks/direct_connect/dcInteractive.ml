@@ -179,7 +179,8 @@ module P = GuiTypes
     
 let _ =
   server_ops.op_server_connect <- DcServers.connect_server;
-  server_ops.op_server_disconnect <- DcServers.disconnect_server;
+  server_ops.op_server_disconnect <- (fun s -> 
+					  DcServers.disconnect_server s Closed_by_user);
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock with
         None -> ()
@@ -193,7 +194,7 @@ let _ =
       !list
   );
   server_ops.op_server_remove <- (fun s ->
-      DcServers.disconnect_server s;
+      DcServers.disconnect_server s Closed_by_user;
       server_remove s
   )
 

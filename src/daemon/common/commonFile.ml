@@ -527,6 +527,17 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
 	in
 
+	let fastTrackHeader () = 
+
+		html_mods_table_header buf "sourcesTable" "sources" [ 
+		( "1", "srh br ac", "Client number", "Num" ) ; 
+		( "0", "srh br", "Client Name", "Name" ) ; 
+		( "0", "srh", "IP address", "IP address" ) ; 
+		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]
+
+	in
+
 	let defaultHeader () = 
 
 		html_mods_table_header buf "sourcesTable" "sources" [ 
@@ -566,6 +577,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
 	  (match n.network_name with 
 	  	"BitTorrent" ->  bitTorrentHeader ();
+	   | "Fasttrack" ->  fastTrackHeader ();
        | _ -> defaultHeader ();)
 	
 	  end;

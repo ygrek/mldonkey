@@ -111,7 +111,7 @@ We have to add more information on what has happened to the
 connection in the NotConnected state.
 *)
 type host_state =
-| NotConnected of int (* >= 0 Queued *)
+| NotConnected of BasicSocket.close_reason * int (* >= 0 Queued *)
 | Connecting
 | Connected_initiating
 | Connected of int    (* >= 0 Queued *)
@@ -414,7 +414,7 @@ let is_connected state =
 let string_of_connection_state s = 
   match s with
   | Connected (-1) -> "Connected"
-  | NotConnected n -> 
+  | NotConnected (_,n) -> 
       if n = -1 then "" else
       if n = 0 then  "Queued Out" else
       if n > 0 then
@@ -435,10 +435,10 @@ let string_of_connection_state s =
 let short_string_of_connection_state s = 
   match s with
   | Connected (-1) ->    "Cn'd"
-  | NotConnected (-1) -> ""
-  | NotConnected 0 ->    "Qout"
+  | NotConnected (_,-1) -> ""
+  | NotConnected (_,0) ->    "Qout"
   | Connected  0 ->      "Qued"
-  | NotConnected n ->    "Rout" 
+  | NotConnected (_,n) ->    "Rout" 
   | Connected  n ->      "Rank" 
   | Connecting ->        "Cing"
   | Connected_initiating -> "Init"
@@ -456,10 +456,10 @@ type file_uid =
 | Md5 of string * Md5.t
 | Ed2k of string * Md4.t
 | TigerTree of string * Tiger.t
+| Md5Ext of string * Md5Ext.t     (* for Fasttrack *)
   
 and file_uid_id = 
   BITPRINT | SHA1 | ED2K | MD5
-
   
 let string_of_uid uid = 
   match uid with
@@ -468,8 +468,47 @@ let string_of_uid uid =
   | Ed2k (s,_) -> s
   | Md5 (s,_) -> s
   | TigerTree (s,_) -> s
+  | Md5Ext (s, _) -> s
       
-
+(* Fill the UID with a correct string representation *)
+let uid_of_uid uid = 
+  match uid with
+    Bitprint (_,sha1,ttr) -> 
+      Bitprint (Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
+        (Tiger.to_string ttr), sha1, ttr)
+  | Sha1 (_,sha1) -> 
+      Sha1 (Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1),  sha1)
+  | Ed2k (_,ed2k) -> 
+      Ed2k (Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k), ed2k)
+  | Md5 (_,md5) -> 
+      Md5 (Printf.sprintf "urn:md5:%s" (Md5.to_string md5), md5)
+  | TigerTree (_,ttr) -> 
+      TigerTree (Printf.sprintf "urn:ttr:%s"  (Tiger.to_string ttr), ttr)
+  | Md5Ext (_,md5) -> 
+      Md5Ext (Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5), md5)
+  
+let uid_of_string s =
+  let s = String.lowercase s in
+  let (urn, rem) = String2.cut_at s ':' in
+  if urn <> "urn" then  failwith (Printf.sprintf "Illformed URN [%s]" s);
+  let (sign, rem) = String2.cut_at rem ':' in
+  uid_of_uid (match sign with
+    | "ed2k" -> Ed2k ("", Md4.of_string rem)
+    | "bitprint" | "bp" -> 
+        let (sha1, ttr) = String2.cut_at rem '.' in
+        Bitprint ("", Sha1.of_string sha1, Tiger.of_string ttr)
+    | "sha1" -> Sha1 ("", Sha1.of_string rem)
+    | "tree" ->
+        let (tiger, rem) = String2.cut_at rem ':' in
+        if tiger <> "tiger" then 
+          failwith (Printf.sprintf "Illformed URN [%s]" s);
+        TigerTree ("", Tiger.of_string rem)
+    | "ttr" -> TigerTree ("", Tiger.of_string rem)
+    | "md5" ->  Md5 ("", Md5.of_string rem)
+    | "sig2dat" -> Md5Ext ("", Md5Ext.of_base32 rem)
+    | _ -> 
+        failwith (Printf.sprintf "Illformed URN [%s]" s))
+  
 exception IgnoreNetwork
   
 let string_of_tag tag =

@@ -511,6 +511,7 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
                         strings_of_option_html enable_overnet; 
                         strings_of_option_html enable_donkey; 
                         strings_of_option_html enable_bittorrent; 
+                        strings_of_option_html enable_fasttrack; 
                         strings_of_option_html enable_opennap; 
                         strings_of_option_html enable_soulseek; 
                         strings_of_option_html enable_audiogalaxy; 

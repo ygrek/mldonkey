@@ -41,5 +41,5 @@ val client_send_if_possible : DonkeyTypes.client -> TcpBufferedSocket.t ->
   
 val clean_requests : unit -> unit
 
-val disconnect_client : DonkeyTypes.client -> unit
+val disconnect_client : DonkeyTypes.client -> BasicSocket.close_reason -> unit
   

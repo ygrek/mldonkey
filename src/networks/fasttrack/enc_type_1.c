@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.sourceforge.net)
+ * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,6 +17,10 @@
  * Used for encryption version 0x01
  *
  * Thanks to weinholt for reverse engineering most parts of this file.
+ *
+ * The code in this file is very close to the original assembler code.
+ * It particularly uses unsigned int to store pointers which leads to
+ * crashes on machines where pointers are larger than 32 bit.
  */
 
 #include <string.h>	// memcpy()

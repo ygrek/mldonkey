@@ -21,9 +21,21 @@ open Printf2
 open Options
 
 let debug = ref false
-    
+
+(* Try to better display the errors related to connections *)
+
+type close_reason =
+    Closed_for_timeout    (* timeout exceeded *)
+  | Closed_for_lifetime   (* lifetime exceeded *)
+  | Closed_by_peer       (* end of file *)
+  | Closed_for_error of string
+  | Closed_by_user
+  | Closed_for_overflow
+  | Closed_connect_failed
+  | Closed_for_exception of exn
+  
 type event = 
-| CLOSED of string (* called when a task has been closed *)
+| CLOSED of close_reason
 | RTIMEOUT (* called after a timeout on reading *)
 | WTIMEOUT (* called after a timeout on writing *)
 | LTIMEOUT (* called after a timeout on lifetime *)
@@ -51,7 +63,7 @@ type t = {
     mutable lifetime : float;
     
     mutable event_handler : handler;
-    mutable error : string;
+    mutable error : close_reason;
 
     mutable name : unit -> string;
     born : float;
@@ -206,7 +218,7 @@ let create_blocking name fd handler =
       write_allowed = allow_write;
       
       event_handler = handler;
-      error = "";
+      error = Closed_by_peer;
 (*      before_select = default_before_select; *)
       name = (fun _ -> name);
       born = last_time();
@@ -353,7 +365,6 @@ let loop () =
       exec_hooks !after_select_hooks;
       exec_timers !timers;
 
-      
       while !closed_tasks <> [] do
         match !closed_tasks with
           [] -> ()
@@ -458,7 +469,7 @@ let prevent_close s = s.can_close <- false
 let close_all () =
   List.iter (fun s ->
       if s.can_close then
-        close s "close all"
+        close s Closed_by_user
   ) !fd_tasks
   
   

@@ -47,6 +47,7 @@ type client = {
     mutable client_uploaded : int64;
     
     mutable client_blocks_sent : Int64Swarmer.block list;
+    mutable client_good : bool;
   }
 
 and file = {

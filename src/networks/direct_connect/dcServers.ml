@@ -164,11 +164,11 @@ let recover_files_from_server s =
 let server_addr s = Ip.string_of_addr s.server_addr
 
   
-let disconnect_server s =
+let disconnect_server s reason =
   match s.server_sock with
     None -> ()
   | Some sock -> 
-      (try close sock "user disconnect" with _ -> ());      
+      (try close sock reason with _ -> ());      
       decr nservers;
       if !verbose_msg_servers then begin
           lprintf "%s:%d CLOSED received by server"
@@ -179,7 +179,7 @@ let disconnect_server s =
       if !verbose_msg_servers then begin
           lprintf "******** NOT CONNECTED *****"; lprint_newline ();
         end;
-      set_server_state s (NotConnected (-1));
+      set_server_state s (NotConnected (reason, -1));
       connected_servers := List2.removeq s !connected_servers;
       s.server_messages <- 
         (room_new_message (as_room s.server_room) 
@@ -190,7 +190,7 @@ let disconnect_server s =
       
 let server_handler s sock event = 
   match event with
-    BASIC_EVENT (CLOSED _) -> disconnect_server s      
+    BASIC_EVENT (CLOSED r) -> disconnect_server s r     
   | _ -> ()
 
       
@@ -214,7 +214,7 @@ let rec client_to_server s m sock =
   | ForceMoveReq t ->
       
       let new_s = new_server (Ip.addr_of_string t) 411 in
-      close sock "force move";
+      close sock (Closed_for_error "Redirected");
       if s != new_s then connect_server s
   
   | RevConnectToMeReq t -> 
@@ -452,7 +452,7 @@ and connect_server s =
               set_reader sock (DcProtocol.dc_handler verbose_msg_servers (client_to_server s));
               set_rtimeout sock 60.;
               set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-                  close s "timeout"  
+                  close s Closed_for_timeout
               );
               s.server_nick <- 0;
               s.server_sock <- Some sock;
@@ -465,7 +465,7 @@ and connect_server s =
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
                 decr nservers;
                 s.server_sock <- None;
-                set_server_state s (NotConnected (-1));
+                set_server_state s (NotConnected (Closed_connect_failed, -1));
                 connection_failed s.server_connection_control)
                 
 let try_connect_server s =

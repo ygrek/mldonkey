@@ -159,7 +159,8 @@ let handlers info gconn =
 end; *)
                     
                     (try h gconn sock header with
-                        e -> close sock "");
+                        e -> close sock 
+			(BasicSocket.Closed_for_exception e));
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
 (*                        lprintf "HEADER: buf_used %d\n" nused; *)

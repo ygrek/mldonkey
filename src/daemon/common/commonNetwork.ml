@@ -27,7 +27,7 @@ open CommonTypes
 let ni n m = 
   let s = Printf.sprintf "Network.%s not implemented by %s" 
       m n in
-  lprint_string s; lprint_newline ();
+  lprintf "%s\n" s; 
   s
   
 let fni n m =  failwith (ni n m)
@@ -44,57 +44,12 @@ let networks_by_name = Hashtbl.create 11
 let networks_by_num = Hashtbl.create 11
 
 let networks_ops = ref []
-let new_network name prefix_option subdir_option = 
-  let r =
-    {
-      network_name = name;
-      network_num = network_uid ();
-      network_prefix = prefix_option;
-      network_incoming_subdir = subdir_option;
-      network_config_file = [];
-      op_network_connected_servers = (fun _ -> fni name "connected_servers");
-      op_network_is_enabled =  (fun _ -> fni name "is_enabled");
-      op_network_save_complex_options =  (fun _ -> ni_ok name "save_complex_options");
-      op_network_load_complex_options =  (fun _ -> ni_ok name "load_complex_options");
-      op_network_enable =  (fun _ -> ni_ok name "enable");
-      op_network_disable =  (fun _ -> ni_ok name "disable");
-      op_network_server_of_option =  (fun _ -> fni name "op_network_server_of_option");
-      op_network_file_of_option =  (fun _ _ -> fni name "op_network_file_of_option");
-      op_network_client_of_option =  (fun _ -> fni name "op_network_client_of_option");
-      op_network_search = (fun _ _ -> ni_ok name "search");
-      op_network_share = (fun _ _ _ -> ni_ok name "share");
-      op_network_private_message = (fun _ _ -> ni_ok name "private message");
-      op_network_connect_servers = (fun _ -> ni_ok name "connect_servers");
-      op_network_forget_search = (fun _ -> ni_ok name "forget_search");
-      op_network_close_search = (fun _ -> ni_ok name "close_search");
-      op_network_extend_search = (fun _ _ -> ni_ok name "extend search");
-      op_network_clean_servers = (fun _ -> ni_ok name "clean servers");
-      op_network_parse_url = (fun _ -> ni_ok name "parse_url"; false);
-      op_network_info = (fun _ -> fni name "network_info");
-      op_network_connected = (fun _ -> ni_ok name "connected"; false);
-      op_network_add_server = (fun _ -> fni name "op_network_add_server");
-    }
-  in
-  let rr = (Obj.magic r: network) in
-  networks_ops := (rr, { rr with network_name = rr.network_name })
-  :: !networks_ops;
-  networks := r :: !networks;
-  Hashtbl.add networks_by_name r.network_name r;
-  Hashtbl.add networks_by_num r.network_num r;
-  if !networks_string = "" then
-    networks_string := r.network_name
-  else
-    networks_string := Printf.sprintf "%s %s" !networks_string r.network_name;
-  lprintf "Network %s registered" r.network_name;
-  lprint_newline ();
-  r
 
 let check_network_implementations () =
-  lprintf "\n---- Methods not implemented for CommonNetwork ----\n";
-  lprint_newline ();
+  lprintf "\n---- Methods not implemented for CommonNetwork ----\n\n";
   List.iter (fun (c, cc) ->
       let n = c.network_name in
-      lprintf "\n  Network %s\n" n; lprint_newline ();
+      lprintf "\n  Network %s\n\n" n; 
       if c.network_config_file == cc.network_config_file then 
         lprintf "network_config_file\n";
       if c.op_network_connected_servers == cc.op_network_connected_servers then 
@@ -232,4 +187,48 @@ let network_clean_servers r = r.op_network_clean_servers ()
 
 let network_parse_url n url = n.op_network_parse_url url
 let network_info n = n.op_network_info ()
+
+let new_network name prefix_option subdir_option = 
+  let r =
+    {
+      network_name = name;
+      network_num = network_uid ();
+      network_prefix = prefix_option;
+      network_incoming_subdir = subdir_option;
+      network_config_file = [];
+      op_network_connected_servers = (fun _ -> fni name "connected_servers");
+      op_network_is_enabled =  (fun _ -> fni name "is_enabled");
+      op_network_save_complex_options =  (fun _ -> ni_ok name "save_complex_options");
+      op_network_load_complex_options =  (fun _ -> ni_ok name "load_complex_options");
+      op_network_enable =  (fun _ -> ni_ok name "enable");
+      op_network_disable =  (fun _ -> ni_ok name "disable");
+      op_network_server_of_option =  (fun _ -> fni name "op_network_server_of_option");
+      op_network_file_of_option =  (fun _ _ -> fni name "op_network_file_of_option");
+      op_network_client_of_option =  (fun _ -> fni name "op_network_client_of_option");
+      op_network_search = (fun _ _ -> ni_ok name "search");
+      op_network_share = (fun _ _ _ -> ni_ok name "share");
+      op_network_private_message = (fun _ _ -> ni_ok name "private message");
+      op_network_connect_servers = (fun _ -> ni_ok name "connect_servers");
+      op_network_forget_search = (fun _ -> ni_ok name "forget_search");
+      op_network_close_search = (fun _ -> ni_ok name "close_search");
+      op_network_extend_search = (fun _ _ -> ni_ok name "extend search");
+      op_network_clean_servers = (fun _ -> ni_ok name "clean servers");
+      op_network_parse_url = (fun _ -> ni_ok name "parse_url"; false);
+      op_network_info = (fun _ -> fni name "network_info");
+      op_network_connected = (fun _ -> ni_ok name "connected"; false);
+      op_network_add_server = (fun _ -> fni name "op_network_add_server");
+    }
+  in
+  let rr = (Obj.magic r: network) in
+  networks_ops := (rr, { rr with network_name = rr.network_name })
+  :: !networks_ops;
+  networks := r :: !networks;
+  Hashtbl.add networks_by_name r.network_name r;
+  Hashtbl.add networks_by_num r.network_num r;
+  if !networks_string = "" then
+    networks_string := r.network_name
+  else
+    networks_string := Printf.sprintf "%s %s" !networks_string r.network_name;
+  lprintf "Network %s registered\n" r.network_name;
+  r
   

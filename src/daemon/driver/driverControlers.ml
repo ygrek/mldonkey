@@ -385,7 +385,7 @@ let user_reader o telnet sock nread  =
   with
   | CommonTypes.CommandCloseSocket ->
     (try
-       shutdown sock "user quit";
+       shutdown sock Closed_by_user;
      with _ -> ());
   | e -> 
       before_telnet_output o sock;
@@ -815,7 +815,23 @@ let http_handler o t r =
                     html_escaped (Buffer.contents b)
                   in
                   html_open_page buf t r true;
-                  Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
+
+				(* Konqueror doesn't like html within <pre> *)
+			  	  let drop_pre = ref false in
+				  let rawcmd = ref cmd in
+
+				  if String.contains cmd ' ' then
+					 rawcmd := String.sub cmd 0 (String.index cmd ' ');
+				  
+				  (match !rawcmd with 
+					| "vm" | "vma" | "view_custom_queries"  | "xs" | "vr"
+					| "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log"
+					| "downloaders" | "uploaders" | "scan_temp" | "cs" | "version"
+					| "vo" | "voo" | "upstats" -> drop_pre := true;
+					| _ -> ());
+
+                  Printf.bprintf buf "%s\n" 
+					(if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
 
               | [ ("custom", query) ] ->
                   html_open_page buf t r true;

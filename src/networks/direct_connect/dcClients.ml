@@ -39,14 +39,14 @@ open DcOptions
 open DcGlobals
 open DcProtocol
 
-let disconnect_client c = 
+let disconnect_client c reason = 
   match c.client_sock with
     None -> ()
   | Some sock ->
       connection_failed c.client_connection_control;      
       lprintf "CLOSE SOCKET"; lprint_newline ();
-      close sock "client close";
-      set_client_disconnected c;
+      close sock reason;
+      set_client_disconnected c reason;
       if c.client_files = [] then
         remove_client c
 
@@ -113,7 +113,7 @@ let read_first_message nick_sent t sock =
         let c = new_client n in
         match c.client_sock with
           Some sock -> lprintf "Already connected"; lprint_newline ();
-            close sock "already connected";
+            close sock (Closed_for_error "already connected");
             raise Not_found
             
         | None ->
@@ -123,7 +123,7 @@ let read_first_message nick_sent t sock =
   | _ ->
       lprintf "BAD MESSAGE"; 
       print t; lprint_newline ();
-      close sock "bad message";
+      close sock (Closed_for_error "bad message");
       raise Not_found
   
 let client_reader c t sock =
@@ -139,7 +139,7 @@ let client_reader c t sock =
       if c.client_name != n then begin
           lprintf "Bad nickname for client %s/%s" n c.client_name; 
           lprint_newline ();
-          disconnect_client c;
+          disconnect_client c (Closed_for_error "Bad Nickname");
           raise Not_found
         end;
   
@@ -210,7 +210,7 @@ let client_reader c t sock =
                   t
                   (file_size file);
                 lprint_newline ();
-                disconnect_client c;
+                disconnect_client c (Closed_for_error "Bad file size");
                 raise Not_found
               end
         
@@ -219,7 +219,7 @@ let client_reader c t sock =
         
         | _ ->
             lprintf "Not downloading any thing"; lprint_newline ();
-            disconnect_client c;
+            disconnect_client c (Closed_for_error "Nothing to download");
             raise Not_found
       end;
       server_send !verbose_msg_clients sock SendReq
@@ -301,7 +301,7 @@ close it after a long timeout. *)
       set_refill sock refill;
       set_handler sock WRITE_DONE (fun sock -> 
           lprintf "CLOSE SOCK AFTER REFILL DONE"; lprint_newline ();
-          close sock "write done")
+          close sock Closed_by_user)
         
   | _ ->
       lprintf "###UNUSED CLIENT MESSAGE###########"; lprint_newline ();
@@ -349,7 +349,7 @@ lprint_newline ();
             (Int64.sub c.client_pos (file_downloaded file));
           end;
         if (file_downloaded file) = (file_size file) then begin
-            close sock "file downloaded";
+            close sock Closed_by_user;
             file_complete file 
           end
           
@@ -360,31 +360,29 @@ lprint_newline ();
         Buffer.add_substring buf b.buf b.pos b.len;
         buf_used sock b.len;
         c.client_receiving <- Int64.sub c.client_receiving (Int64.of_int len);
-        lprintf "Received %d of List" len; lprint_newline ();
-        close sock "file list received"; lprint_newline ();
+        lprintf "Received %d of List\n" len; 
+        close sock Closed_by_user; 
         if c.client_receiving = Int64.zero then begin
-            lprintf "----------------------------------------"; lprint_newline ();
-            lprintf "RECEIVED COMPLETE FILE LIST "; lprint_newline ();
-            lprintf "----------------------------------------"; lprint_newline ();
+            lprintf "----------------------------------------\n"; 
+            lprintf "RECEIVED COMPLETE FILE LIST \n"; 
+            lprintf "----------------------------------------\n"; 
             
             let s = Buffer.contents buf in
             let s = Che3.decompress s in
             try
-              lprintf "LIST: [%s]" (String.escaped s);
-              lprint_newline (); 
+              lprintf "LIST: [%s]\n" (String.escaped s);
               let files = parse_list c.client_user s in
-              lprintf "PARSED"; lprint_newline (); 
+              lprintf "PARSED\n"; 
               c.client_all_files <- Some files;
               List.iter (fun (dirname,r) ->
-                  lprintf "NEW FILE in %s" dirname; lprint_newline (); 
+                  lprintf "NEW FILE in %s\n" dirname; 
                   client_new_file (as_client c.client_client) dirname
                     (as_result r.result_result)
               ) files;
               ()
             with e ->
-                lprintf "Exception %s in parse client files"
+                lprintf "Exception %s in parse client files\n"
                   (Printexc2.to_string e);
-                ; lprint_newline ();
           end
     | _ -> assert false
 
@@ -396,10 +394,10 @@ let init_anon_client init_sent sock =
   
   let c = ref None in
   TcpBufferedSocket.set_closer sock (fun _ s ->
-      lprintf "DISCONNECTED FROM CLIENT"; lprint_newline ();
+      lprintf "DISCONNECTED FROM CLIENT\n"; 
       match !c with
         None -> ()
-      | Some c ->  disconnect_client c
+      | Some c ->  disconnect_client c s
   );
   TcpBufferedSocket.set_reader sock (
     dc_handler3 verbose_msg_clients c (read_first_message init_sent) client_reader
@@ -414,11 +412,9 @@ let listen () =
           match event with
             TcpServerSocket.CONNECTION (s, 
               Unix.ADDR_INET(from_ip, from_port)) ->
-              lprintf "CONNECTION RECEIVED FROM %s FOR PUSH"
+              lprintf "CONNECTION RECEIVED FROM %s FOR PUSH\n"
               (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
-              lprint_newline ();
-              
               
               let sock = TcpBufferedSocket.create
                   "DC client connection" s (fun _ _ -> ()) in
@@ -429,9 +425,8 @@ let listen () =
     listen_sock := Some sock;
     ()
   with e ->
-      lprintf "Exception %s while init DC server" 
-        (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception %s while init DC server\n" 
+        (Printexc2.to_string e)
 
 let connect_client c =
   try
@@ -444,9 +439,9 @@ let connect_client c =
             (fun sock event ->
               match event with
               | BASIC_EVENT (RTIMEOUT | LTIMEOUT) ->
-                  disconnect_client c
-              | BASIC_EVENT (CLOSED _) ->
-                  disconnect_client c
+                  disconnect_client c Closed_for_timeout
+              | BASIC_EVENT (CLOSED s) ->
+                  disconnect_client c s
               | _ -> ()
           )
         in
@@ -460,13 +455,12 @@ let connect_client c =
         init_connection false c sock;
           
   with e ->
-      lprintf "Exception %s while connecting to client" 
+      lprintf "Exception %s while connecting to client\n" 
         (Printexc2.to_string e);
-      lprint_newline ();
-      disconnect_client c
+      disconnect_client c Closed_connect_failed
 
 let connect_anon s ip port =
-  lprintf "CONNECT ANON"; lprint_newline ();
+  lprintf "CONNECT ANON\n"; 
   try
     let sock = connect "client download" 
         (Ip.to_inet_addr ip) port
@@ -478,7 +472,6 @@ let connect_anon s ip port =
       create_key ());
           
   with e ->
-      lprintf "Exception %s while connecting to  anon client" 
-        (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception %s while connecting to  anon client\n" 
+        (Printexc2.to_string e)
       

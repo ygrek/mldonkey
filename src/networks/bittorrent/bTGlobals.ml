@@ -144,6 +144,7 @@ let new_file file_id file_name file_size file_tracker piece_size =
       if file.file_chunks = [||] then raise Not_found;
       let num, begin_pos, end_pos = Int64Swarmer.block_block b in
       lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+      Unix32.flush_fd (file_fd file);
       let sha1 = Sha1.digest_subfile (file_fd file) 
         begin_pos (end_pos -- begin_pos) in
       let result = sha1 = file.file_chunks.(num) in
@@ -195,6 +196,7 @@ let new_client file peer_id kind =
           client_downloaded = zero;
           client_blocks_sent = [];
           client_new_chunks = [];
+          client_good = false;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

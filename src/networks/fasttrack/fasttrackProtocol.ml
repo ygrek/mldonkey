@@ -17,18 +17,21 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open FasttrackGlobals
 
+open BasicSocket
 open Printf2
-open CommonOptions
-open FasttrackOptions
 open Options
 open Md4
-open CommonGlobals
 open LittleEndian
-open TcpBufferedSocket
 open AnyEndian
+open TcpBufferedSocket
+
+open CommonOptions
+open CommonGlobals
+
+open FasttrackOptions
 open FasttrackTypes
+open FasttrackGlobals
 
 type ghandler =
   HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)
@@ -68,7 +71,7 @@ let handlers info gconn =
 end; *)
                     
                     (try h gconn sock header with
-                        e -> close sock "");
+                        e -> close sock (Closed_for_exception e));
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
 (*                        lprintf "HEADER: buf_used %d\n" nused; *)
@@ -249,6 +252,12 @@ let buf_dynint b data =
     data := Int64.shift_right_logical !data  7;
   done;
   Buffer.add_string b (String.sub buf 0 len)
+
+let dynint v =
+  let b = Buffer.create 10 in
+  buf_dynint b v;
+  Buffer.contents b
+  
   
 let get_dynint s pos =
   let len = String.length s in

@@ -83,7 +83,7 @@ let new_connection_control () = {
     control_last_try = 0;
     control_min_reask = !!min_reask_delay;
   }
-
+  
 let new_connection_control_recent_ok () = {
     control_last_ok = last_time () - minutes25;
     control_state = 0;
@@ -107,6 +107,10 @@ let connection_next_try cc =
 
 let connection_can_try cc =
   connection_next_try cc < last_time ()
+
+let print_control c =
+  lprintf "Connection Control: ok = %d seconds ago, state = %d, last tried = %d seconds ago, delay = %d, next in %d seconds\n"
+    (last_time () - c.control_last_ok) c.control_state (last_time () - c.control_last_try) c.control_min_reask (connection_next_try c - last_time ())
   
 let connection_must_try cc =
   cc.control_state <- 0

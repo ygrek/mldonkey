@@ -150,7 +150,7 @@ let parse_header headers_handler sock header =
       try
         headers_handler sock ans_code headers;
       with _ -> 
-          TcpBufferedSocket.close sock "bad header"
+          TcpBufferedSocket.close sock (Closed_for_error "bad header")
   
 let read_header header_handler  sock nread =  
   let b = TcpBufferedSocket.buf sock in
@@ -307,12 +307,12 @@ headers;
           
     | 404 ->
         lprintf "Http_client 404: Not found %s\n" (Url.to_string false r.req_url);
-        close sock "bad reply";
+        close sock (Closed_for_error "bad reply");
         raise Not_found
           
     | _ ->
         lprintf "Http_client: bad reply %d\n" ans_code;
-        close sock "bad reply";
+        close sock (Closed_for_error "bad reply");
         raise Not_found
 
   in get_url 0 r
@@ -338,7 +338,7 @@ let wget r f =
           buf_used sock left;
           file_size := !file_size + left;
           if nread > left then
-            TcpBufferedSocket.close sock "end read"
+            TcpBufferedSocket.close sock Closed_by_user
         end)
   (fun _ ->  
       let s = Buffer.contents file_buf in
@@ -377,7 +377,7 @@ let wget_string r f progress =
           buf_used sock left;
           file_size := !file_size + left;
           if nread > left then
-            TcpBufferedSocket.close sock "end read"
+            TcpBufferedSocket.close sock Closed_by_user
         end)
   (fun _ ->  
       f (Buffer.contents file_buf)

@@ -517,7 +517,7 @@ let generate_connect_menu gui =
     ignore (menu_item#connect#activate ~callback:(fun _ ->
           O.hostname =:= hostname;
           O.port =:= port;
-          Com.reconnect gui value_reader
+          Com.reconnect gui value_reader BasicSocket.Closed_by_user
       ));
   in
   List.iter (fun child -> child#destroy ()) gui#cores_menu#children;
@@ -570,15 +570,15 @@ let main () =
 
   CommonGlobals.do_at_exit (fun _ ->
       Gui_misc.save_gui_options gui;
-      Gui_com.disconnect gui);  
+      Gui_com.disconnect gui BasicSocket.Closed_by_user);  
 (** menu actions *)
   ignore (gui#itemQuit#connect#activate (fun () ->
         CommonGlobals.exit_properly 0)) ;
   ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
   ignore (gui#itemReconnect#connect#activate 
-      (fun () ->Com.reconnect gui value_reader));
+      (fun () ->Com.reconnect gui value_reader BasicSocket.Closed_by_user));
   ignore (gui#itemDisconnect#connect#activate 
-	    (fun () -> Com.disconnect gui));
+	    (fun () -> Com.disconnect gui BasicSocket.Closed_by_user));
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
   ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 1));
   ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));
@@ -600,7 +600,7 @@ let main () =
   );
   
   (** connection with core *)
-  Com.reconnect gui value_reader ;
+  Com.reconnect gui value_reader BasicSocket.Closed_by_user ;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
@@ -610,7 +610,7 @@ let main () =
       
       if !never_connected && not (Com.connected ()) then  begin
           BasicSocket.reactivate_timer timer;
-          Com.reconnect gui value_reader
+          Com.reconnect gui value_reader BasicSocket.Closed_by_user
         end else
         never_connected := false
   )

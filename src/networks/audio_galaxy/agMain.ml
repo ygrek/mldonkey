@@ -29,12 +29,19 @@ open AgTypes
 open AgGlobals
 open AgOptions
 
-let disable enabler () =
-  enabler := false
+let is_enabled = ref false
   
+let disable enabler () =
+  if !enabler then begin
+      is_enabled := false;
+      if !!enable_audiogalaxy then enable_audiogalaxy =:= false;
+      enabler := false
+    end
+    
 let enable  () =
-
+  if not !is_enabled then
   let enabler = ref true in
+  is_enabled := true;
   network.op_network_disable <- disable enabler;
   if not !!enable_audiogalaxy then enable_audiogalaxy =:= true;
   
@@ -80,6 +87,10 @@ Relais bete: on forward simplement la requete sans la modifier !
 let _ =
   network.op_network_is_enabled <- (
     fun _ -> !!CommonOptions.enable_audiogalaxy);
+  option_hook enable_audiogalaxy (fun _ ->
+      if !!enable_audiogalaxy then network_enable network
+      else network_disable network);
+      
   (*
   network.op_network_save_simple_options <- AgOptions.save_config;
   network.op_network_load_simple_options <- 

@@ -62,7 +62,7 @@ let download_finished file =
       c.client_downloads <- remove_download file c.client_downloads
   ) file.file_clients
   
-let disconnect_client c =
+let disconnect_client c r =
   match c.client_sock with
   | Connection sock -> 
       (try
@@ -71,8 +71,8 @@ let disconnect_client c =
           end;
         c.client_requests <- [];
         connection_failed c.client_connection_control;
-        set_client_disconnected c;
-        close sock "closed";
+        set_client_disconnected c r;
+        close sock r;
         c.client_sock <- NoConnection
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
@@ -259,7 +259,7 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
               lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
                 (Printexc2.to_string e)
               (String.escaped header);
-              disconnect_client c;
+              disconnect_client c (Closed_for_error "Bad range");
               raise Exit
     in 
     (try
@@ -353,7 +353,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
   with e ->
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
       AnyEndian.dump header;      
-      disconnect_client c;
+      disconnect_client c (Closed_for_exception e);
       raise e
       
 and friend_parse_header c gconn sock header =
@@ -387,7 +387,7 @@ and friend_parse_header c gconn sock header =
   with e -> 
       lprintf "Exception %s in friend_parse_header\n" 
         (Printexc2.to_string e); 
-      disconnect_client c
+      disconnect_client c (Closed_for_exception e)
 
 and get_from_client sock (c: client) =
   match c.client_downloads with
@@ -502,9 +502,9 @@ let connect_client c =
                     (fun sock event ->
                       match event with
                         BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                          disconnect_client c
-                      | BASIC_EVENT (CLOSED _) ->
-                          disconnect_client c
+                          disconnect_client c Closed_for_timeout
+                      | BASIC_EVENT (CLOSED s) ->
+                          disconnect_client c s
                       | _ -> ()
                   )
                 in
@@ -514,8 +514,8 @@ let connect_client c =
                 c.client_host <- Some (ip, port);
                 set_client_state c Connecting;
                 c.client_sock <- Connection sock;
-                TcpBufferedSocket.set_closer sock (fun _ _ ->
-                    disconnect_client c
+                TcpBufferedSocket.set_closer sock (fun _ s ->
+                    disconnect_client c s
                 );
                 set_rtimeout sock 30.;
                 match c.client_downloads with
@@ -527,7 +527,7 @@ an upload request *)
                         lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
                       end;
                     if client_type c = NormalClient then                
-                      disconnect_client c;
+                      disconnect_client c (Closed_for_error "Nothing to download");
                     set_gnutella_sock sock !verbose_msg_clients
                       (HttpHeader (friend_parse_header c));
                     let s = add_header_fields 
@@ -553,7 +553,7 @@ an upload request *)
           with e ->
               lprintf "Exception %s while connecting to client\n" 
                 (Printexc2.to_string e);
-              disconnect_client c
+              disconnect_client c (Closed_for_exception e)
       );
       c.client_sock <- ConnectionWaiting
 
@@ -611,7 +611,7 @@ let push_handler cc gconn sock header =
             if !verbose_msg_clients then begin
                 lprintf "ALREADY CONNECTED\n"; 
               end;
-            close sock "already connected";
+            close sock (Closed_for_error "already connected");
             raise End_of_file
         | _ ->
             if !verbose_msg_clients then begin
@@ -635,7 +635,7 @@ let push_handler cc gconn sock header =
             with e ->
                 lprintf "Exception %s during client connection\n"
                   (Printexc2.to_string e);
-                disconnect_client c;
+                disconnect_client c (Closed_for_exception e);
                 raise End_of_file
       end
     else begin
@@ -782,7 +782,8 @@ BUG:
   with e ->
       lprintf "Exception %s in push_handler: %s\n" (Printexc2.to_string e)
       (String.escaped header);
-      (match !cc with Some c -> disconnect_client c | _ -> ());
+      (match !cc with Some c -> disconnect_client c (Closed_for_exception e)
+        | _ -> ());
       raise e
 
       (*
@@ -821,7 +822,7 @@ let listen () =
                   "gnutella client connection" s 
                   (fun sock event -> 
                     match event with
-                      BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock "timeout"
+                      BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock Closed_for_timeout
                     | _ -> ()
                 )
               in
@@ -831,7 +832,7 @@ let listen () =
               let c = ref None in
               TcpBufferedSocket.set_closer sock (fun _ s ->
                   match !c with
-                    Some c ->  disconnect_client c
+                    Some c ->  disconnect_client c s
                   | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
@@ -851,7 +852,7 @@ let push_connection guid index ip port =
       (Ip.to_inet_addr ip) port
       (fun sock event -> 
         match event with
-          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock "timeout"
+          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock Closed_for_timeout
         | _ -> ()
     )
   in
@@ -863,7 +864,7 @@ let push_connection guid index ip port =
   let c = ref None in
   TcpBufferedSocket.set_closer sock (fun _ s ->
       match !c with
-        Some c ->  disconnect_client c
+        Some c ->  disconnect_client c s
       | None -> ()
   );
   BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;

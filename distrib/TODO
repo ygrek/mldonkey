@@ -6,20 +6,21 @@ ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
 Fasttrack:
 ==========
  * Add more headers to GET requests
- * Use multiranges instead of ranges: contrary to ranges, which cannot be 
-    split, and thus, impose that multiple clients download the same part, 
-    multiranges could be split.
- * Better Queries
  * Add names found on the network
  * If a client replies with HTTP/1.1, then use the connection for multiple 
     requests
- 
+  
 Corruption ?? What to do to avoid it ? Maybe enter a special mode where 
 every byte must be downloaded from different clients to be sure ? This
 could be done by keeping the chunk in memory (9 MB is not big :) ), or just
 the diff (ie we have downloaded it once, it is corrupted, so we have:
  * ranges which are similar to those written on disk
  * ranges that are different
+
+What is this UDP message for :
+EmuleReaskFilePingUdpReq 40351E4E097708BCBDEB336CDDAEE092
+
+Associate kinds with networks, and only download useful urls
 
 Let's schedule our work:
 ------------------------

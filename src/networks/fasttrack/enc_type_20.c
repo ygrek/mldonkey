@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.sourceforge.net)
+ * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -32,7 +32,7 @@ typedef int THROWS_RET;
 
 /* some constants and helper funcs */ 
 
-double math_const_1 = 1.e-003;
+double math_const_1 = 0.001;
 double math_const_2 = 0;
 
 static unsigned int ROR(unsigned int value, unsigned int count)
@@ -53,12 +53,13 @@ static unsigned int my_ftol (double var)
 }
 
 /* the entry point of this mess */
+/* this all works on unsigned ints so endianess is not an issue */
 
 THROWS_RET enc_20_mix (unsigned char *key, unsigned int seed);
 
-void enc_type_20 (unsigned char *key, unsigned int seed)
+void enc_type_20 (unsigned int *key, unsigned int seed)
 {
-	enc_20_mix (key, seed);
+	enc_20_mix ((unsigned char*)key, seed);
 }
 
 /* major functions which make calls to other funcs */

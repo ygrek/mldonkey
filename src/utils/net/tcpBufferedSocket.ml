@@ -25,6 +25,7 @@ open BasicSocket
 type event = 
   WRITE_DONE
 | CAN_REFILL
+| CONNECTED
 | BUFFER_OVERFLOW
 | READ_DONE of int
 | BASIC_EVENT of BasicSocket.event
@@ -42,7 +43,7 @@ type t = {
     mutable rbuf : buf;
     mutable wbuf : buf;
     mutable event_handler : handler;
-    mutable error : string;
+    mutable error : close_reason;
     mutable nread : int;
     mutable ndown_packets : int;
     mutable nwrite : int;
@@ -154,7 +155,7 @@ end;
             upload_ip_packets t 1;
             forecast_download_ip_packet t;
           end;
-        close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
+        close t.sock s (* (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite) *)
       with e ->
           lprintf "Exception %s in TcpBufferedSocket.close\n" 
             (Printexc2.to_string e); 
@@ -320,12 +321,12 @@ end; *)
                 bc.moved_bytes <-
                 Int64.add bc.moved_bytes (Int64.of_int nw));
           t.nwrite <- t.nwrite + nw;
-          if nw = 0 then (close t "closed on write"; pos2) else
+          if nw = 0 then (close t Closed_by_peer; pos2) else
             pos1 + nw
         with
           Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.EAGAIN | Unix.ENOTCONN), _, _) -> pos1
         | e ->
-            t.error <- Printf.sprintf "Write Error: %s" (Printexc2.to_string e);
+            t.error <- Closed_for_error (Printf.sprintf "Write Error: %s" (Printexc2.to_string e));
             close t t.error;
             
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e);  *)
@@ -364,7 +365,7 @@ let can_read_handler t sock max_len =
         (
           t.event_handler t BUFFER_OVERFLOW; 
           lprintf "[OVERFLOW] in %s" (info sock); 
-          close t "buffer overflow"; 
+          close t Closed_for_overflow;
           raise exn_exit; 
           0
         )
@@ -398,7 +399,7 @@ let can_read_handler t sock max_len =
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
-          t.error <- Printf.sprintf "Can Read Error: %s" (Printexc2.to_string e);
+          t.error <- Closed_for_error (Printf.sprintf "Can Read Error: %s" (Printexc2.to_string e));
           close t t.error;
 
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e); *)
@@ -425,7 +426,7 @@ let can_read_handler t sock max_len =
         upload_ip_packets t 1;
       end;
     if nread = 0 then begin
-      close t "closed on read";
+      close t Closed_by_peer;
     end else begin
       let curpos = b.pos in
       b.len <- b.len + nread;
@@ -437,7 +438,7 @@ let can_read_handler t sock max_len =
       | e ->
 (*                if t.monitored then
    (lprintf "Exception in READ DONE\n"; ); *)
-          t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc2.to_string e);
+          t.error <- Closed_for_error (Printf.sprintf "READ_DONE Error: %s" (Printexc2.to_string e));
           close t t.error;
 
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e);  *)
@@ -467,7 +468,7 @@ let can_write_handler t sock max_len =
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;
-        if nw = 0 then close t "closed on write" else
+        if nw = 0 then close t Closed_by_peer else
         if b.len = 0 then begin
             b.pos <- 0;
             delete_string b.buf;
@@ -476,7 +477,7 @@ let can_write_handler t sock max_len =
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN ), _,_) as e -> raise e
       | e ->
-          t.error <- Printf.sprintf "Can Write Error: %s" (Printexc2.to_string e);
+          t.error <- Closed_for_error (Printf.sprintf "Can Write Error: %s" (Printexc2.to_string e));
           close t t.error;
 
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e);  *)
@@ -519,6 +520,8 @@ let tcp_handler t sock event =
       end
   | CAN_WRITE ->
 (*      lprintf "CAN_WRITE\n";  *)
+      (try if t.nwrite = 0 then
+            t.event_handler t CONNECTED with _ -> ());
       begin
         match t.write_control with
           None ->
@@ -614,7 +617,7 @@ let create name fd handler =
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
-      error = "";
+      error = Closed_by_peer;
       nread = 0;
       ndown_packets = 0;
       nwrite = 0;
@@ -646,7 +649,7 @@ let create_blocking name fd handler =
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
-      error = "";
+      error = Closed_by_peer;
       nread = 0;
       ndown_packets = 0;
       nwrite = 0;
@@ -688,7 +691,7 @@ let connect name host port handler =
     | e -> 
         lprintf "For host %s port %d\n" (Unix.string_of_inet_addr host)
         port; 
-        close t "connect failed";
+        close t Closed_connect_failed;
         raise e
   with e -> 
       lprintf "+++ Exception BEFORE CONNECT %s\n" (Printexc2.to_string e);
@@ -712,11 +715,11 @@ let not_buffer_more t max =
   
 let close_after_write t =
   if t.wbuf.len = 0 then begin
-      shutdown t "close after write"
+      shutdown t Closed_by_user
     end
   else
     set_handler t WRITE_DONE (fun t -> 
-        shutdown t "close after write")
+        shutdown t Closed_by_user)
 
 let set_monitored t =
   t.monitored <- true
