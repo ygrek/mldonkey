@@ -91,7 +91,7 @@ CLIENT_CMOS=client/downloadTypes.$(EXT) client/downloadGlobals.$(EXT) \
   client/downloadInteractive.$(EXT)  client/downloadInterface.$(EXT) \
   client/downloadMain.$(EXT)
 
-TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE)
+TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE) open_mldonkey$(EXE)
 
 GUI= \
   $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
@@ -116,14 +116,15 @@ all: byte
 .opt:
 .static:
 
-client.bin:  $(SECRET_CLIENT:.cmo=.ml)
-	ocaml ./secret/make_client.ml  $(SECRET_CLIENT:.cmo=.ml)
+lambda:  $(SECRET_CLIENT:.$(EXT)=.ml)
+	ocaml ./secret/make_client.ml  $(SECRET_CLIENT:.$(EXT)=.ml)
+	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dol client.ml	
 
-client.cmo: client.bin
-	$(OCAMLC)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -pp cat -impl client.bin
+client.cmo: client.lam
+	$(OCAMLC)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
 
-client.cmx: client.bin
-	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -pp cat -impl client.bin
+client.cmx: client.lam
+	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
 
 after_zoggy: gui/gui.zog
 	camlp4 pa_o.cmo -I `cdk_config -ocamllib` pa_zog.cma pr_o.cmo -impl gui/gui.zog > gui/gui_zog.ml
@@ -162,8 +163,10 @@ mldonkey.static: $(CMOS) $(CLIENT) $(OBJS)
 
 
 
-open_mldonkey$(EXE): $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+open_mldonkey: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 	$(COMP) -o mldonkey$(EXE) $(LIBS) $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+
+open_mldonkey.byte:
 
 open_mldonkey.static: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 	$(COMP) -ccopt -static -o mldonkey.static  $(LIBS) $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
