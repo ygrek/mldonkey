@@ -9,6 +9,14 @@ ChangeLog
        (otherwise, it segfaults)
      * Added poll support, that allows to use more than 1024 fds and
         is used by default.
+  - fix: better control of the number of used fds
+  - add: message in GUI starter about the 'ask_for_gui' option
+  - fix: faster sharing of downloaded files (probably present chunks are
+     checked first)
+  - fix: Ip.valid check for class D addresses
+  - add: new option 'verbose_overnet'
+  - fix: a file name is changed only if it was the MD4 before.
+  - fix: don't query blocks for Paused files
 
 2002/09/27: mldonkey
   - fix: upload improvements

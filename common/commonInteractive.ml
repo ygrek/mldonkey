@@ -302,7 +302,9 @@ let all_simple_options () =
   !options
 
 let set_fully_qualified_options name value =
-  Printf.printf "For option %s" name; print_newline ();
+  if !!verbose then begin
+      Printf.printf "For option %s" name; print_newline ();
+    end;
   let rec iter prefix opfile =
     let args = simple_options opfile in
     List.iter (fun (old_name, old_value) ->
@@ -319,7 +321,7 @@ let set_fully_qualified_options name value =
                 None -> false
               | Some opfile ->
                   let prefix = r.network_prefix in
-                  iter (if !!prefix = "" then "" else !!prefix^"-") opfile;
+                  iter !!prefix opfile;
                   false
             with Exit -> true
         )) then begin

@@ -395,7 +395,7 @@ let rec connect_one_server () =
 
 let force_check_server_connections user =
 (*  Printf.printf "force_check_server_connections"; print_newline (); *)
-  if user || !nservers <     max_allowed_connected_servers ()  then begin
+  if user || !nservers < max_allowed_connected_servers ()  then begin
       if !nservers < !!max_connected_servers then
         begin
           for i = !nservers to !!max_connected_servers-1 do

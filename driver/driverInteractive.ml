@@ -214,7 +214,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[%-5d] %s" 
+          (Printf.sprintf "[%-5d] %s " 
               file.file_num
               (let n = network_find_by_num file.file_network in
               n.network_name)            
@@ -415,7 +415,7 @@ let old_print_search buf output results =
           incr counter;
           if !counter >= !!max_displayed_results then raise Exit;          
           last_results := (!counter, rs) :: !last_results;
-          Printf.bprintf  buf "[%5d] %s" 
+          Printf.bprintf  buf "[%5d] %s " 
             !counter
             (let n = network_find_by_num r.result_network in
             n.network_name);

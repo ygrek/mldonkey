@@ -32,4 +32,5 @@ val close_all : unit -> unit
 val fds_size : int
 val filename : t -> string
 val set_filename : t -> string -> unit
+val max_cache_size : int ref
   

@@ -214,8 +214,8 @@ let rec client_to_server s m sock =
         Printf.printf "From %s:%d"
           (server_addr s) s.server_port; print_newline ();
         DcProtocol.print m;
-        
-        (*
+
+(*
         let c = new_client t.ConnectToMe.nick in
         c.client_addr <- Some (t.ConnectToMe.ip, t.ConnectToMe.port);
         match c.client_sock with 
@@ -227,11 +227,11 @@ print_newline ()
 *)
         DcClients.connect_anon s t.ConnectToMe.ip t.ConnectToMe.port
       end
-      
+  
   | HubNameReq t ->
       s.server_name <- t;
       server_must_update s
-      
+  
   | HelloReq t ->
       if t = s.server_last_nick then begin
           set_rtimeout sock half_day;
@@ -254,15 +254,15 @@ print_newline ()
             });
           recover_files_from_server s
         end  else
-          ignore (user_add s t)
-
+        ignore (user_add s t)
+  
   | OpListReq list ->
       List.iter (fun nick ->
           let u = user_add s nick in
           u.user_admin <- true;
           user_must_update (as_user u.user_user)
       ) list
-        
+  
   | MyINFOReq t ->
       if t.MyINFO.nick <> s.server_last_nick then begin
           let u = user_add s t.MyINFO.nick in
@@ -270,7 +270,7 @@ print_newline ()
           u.user_data <- t.MyINFO.size;
           user_must_update (as_user u.user_user)
         end
-        
+  
   | ToReq t ->
       let orig = user_add s t.To.orig in
       let message = t.To.message in
@@ -278,27 +278,27 @@ print_newline ()
       s.server_messages <- (
         room_new_message (as_room s.server_room)
         (PrivateMessage (orig.user_user.impl_user_num,
-          message))) :: s.server_messages;
+            message))) :: s.server_messages;
       room_must_update (as_room s.server_room)
-
+  
   | QuitReq t ->
-      (*user_remove (user_add s t) *) ()
-        
+(*user_remove (user_add s t) *) ()
+  
   | NickListReq t ->
       List.iter (fun t  -> ignore (user_add s t)) t
-        
+  
   | MessageReq t ->
       s.server_messages <- (room_new_message
           (as_room s.server_room) 
         (ServerMessage t)) :: s.server_messages;
-	 room_must_update (as_room s.server_room)
-
+      room_must_update (as_room s.server_room)
+  
   | SearchReq t ->
       let orig = t.Search.orig in
       if String.sub orig 0 4 = "Hub:" then
         let nick = String.sub orig 4 (String.length orig - 4) in
         ignore (user_add s nick)
-      
+  
   | SRReq t ->
       begin
         if s.server_search_timeout < last_time () then
@@ -312,58 +312,61 @@ print_newline ()
             try_connect_client c      
           with _ -> ()
         end;
-
+        
         match s.server_search with 
           None -> ()
         | Some q -> 
 (*            add_source result t s; *)
             let result = new_result t.SR.filename t.SR.filesize in
-          let user = new_user (Some s) t.SR.owner in
+            let user = new_user (Some s) t.SR.owner in
             add_result_source result user t.SR.filename;
             search_add_result q result.result_result
       end
-      
+  
   | UnknownReq "" -> ()
-      
+  
   | _ -> 
       Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();
       DcProtocol.print m
 
-      
-      
-and connect_server s =
-  if can_open_connection () then
-    try
-      connection_try s.server_connection_control;
-      incr nservers;
-      printf_char 's'; 
-      let ip = ip_of_addr s.server_addr
-      in
-      let sock = TcpBufferedSocket.connect "directconnect to server" (
-          Ip.to_inet_addr ip)
-        s.server_port (server_handler s)  in
-  
-      set_server_state s Connecting;
-      set_read_controler sock download_control;
-      set_write_controler sock upload_control;
-      
-      set_reader sock (DcProtocol.dc_handler (client_to_server s));
-      set_rtimeout sock 60.;
-      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          close s "timeout"  
-      );
-      s.server_nick <- 0;
-      s.server_sock <- Some sock;
-    with e -> 
-        Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
-          (string_of_addr s.server_addr) s.server_port
-          (Printexc.to_string e); print_newline ();
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
-        decr nservers;
-        s.server_sock <- None;
-        set_server_state s NotConnected;
-        connection_failed s.server_connection_control
 
+
+and connect_server s =
+  match s.server_sock with
+  | Some _ -> ()
+  | None ->
+      if can_open_connection () then
+        try
+          connection_try s.server_connection_control;
+          incr nservers;
+          printf_char 's'; 
+          let ip = ip_of_addr s.server_addr
+          in
+          let sock = TcpBufferedSocket.connect "directconnect to server" (
+              Ip.to_inet_addr ip)
+            s.server_port (server_handler s)  in
+          
+          set_server_state s Connecting;
+          set_read_controler sock download_control;
+          set_write_controler sock upload_control;
+          
+          set_reader sock (DcProtocol.dc_handler (client_to_server s));
+          set_rtimeout sock 60.;
+          set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+              close s "timeout"  
+          );
+          s.server_nick <- 0;
+          s.server_sock <- Some sock;
+        with e -> 
+            Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
+              (string_of_addr s.server_addr) s.server_port
+              (Printexc.to_string e); print_newline ();
+(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+            decr nservers;
+            s.server_sock <- None;
+            set_server_state s NotConnected;
+            connection_failed s.server_connection_control
+            
 let try_connect_server s =
   if connection_can_try s.server_connection_control then
       match s.server_sock with

@@ -37,6 +37,11 @@ let upload_timeout =
   define_option donkey_ini ["upload_timeout"] 
     "How long can a silent client stay in the upload queue"
     float_option 1800. 
+      
+let verbose_overnet = 
+  define_option donkey_ini ["verbose_overnet"] 
+    "Should overnet be verbatim ?"
+    bool_option false
 
 let connected_server_timeout = 
   define_option donkey_ini ["connected_server_timeout"]
@@ -94,8 +99,10 @@ let gui_donkey_options_panel =
     "Maximal Server Age", shortname max_server_age, "T";
     "Update Server List", shortname update_server_list, "B";
     "Min Users on Master Servers", shortname master_server_min_users, "T";
+    "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
   ]
+

@@ -74,7 +74,7 @@ let resolve_one t =
       end;
       to_fixed_string t
 
-let valid (j,_,_,i) = i != 0 && j != 0
+let valid (j,_,_,i) = i != 0 && j != 0 && i != 255 && j < 224
 
 let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with

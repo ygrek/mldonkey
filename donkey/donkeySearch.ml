@@ -198,7 +198,6 @@ let new_search search =
             
 let _ =
   network.op_network_search <- (fun ss buf ->
-      Printf.printf "SEARCH ON DONKEY"; print_newline ();
       let search = new_search ss in
       let query = search.search_search.search_query in
       local_searches := search :: !local_searches;
@@ -208,7 +207,6 @@ let _ =
           Printf.bprintf buf "Query %d Sent to %d\n"
             ss.search_num (List.length (connected_servers()))
       | LocalSearch ->
-          Printf.printf "LOCAL SEARCH"; print_newline ();
           DonkeyIndexer.find ss;
       | SubscribeSearch ->
           send_subscribe search query;

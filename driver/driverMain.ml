@@ -350,5 +350,8 @@ let _ =
   
   save_mlsubmit_reg ();
   DriverInteractive.save_config ();
+
+  Unix32.max_cache_size := 
+  maxi 3 ((Unix32.fds_size - !!max_opened_connections) / 2);
   
   BasicSocket.loop ()

@@ -517,7 +517,7 @@ let find s =
       comment_result r doc;
 
 (*    merge_result s doc.num; *)
-      Printf.printf "search_add_result"; print_newline ();
+(*      Printf.printf "search_add_result"; print_newline ();*)
       search_add_result s rs.result_result
   ) docs
   

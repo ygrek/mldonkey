@@ -91,8 +91,10 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
-      Printf.printf "NEW SHARED %s/%s" impl.impl_shared_codedname
-        impl.impl_shared_fullname; print_newline ();
+      if !!verbose then begin
+          Printf.printf "NEW SHARED %s/%s" impl.impl_shared_codedname
+            impl.impl_shared_fullname; print_newline ();
+        end;
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
       H.add shareds_by_num (as_shared impl);

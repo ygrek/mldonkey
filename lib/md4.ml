@@ -83,7 +83,6 @@ let file s =
   digest
   
 let digest_subfile fd pos len =
-  Printf.printf "MD4 OF %ld+%ld" pos len; print_newline ();
   let digest = String.create 16 in
   digest_subfile digest (Unix32.force_fd fd) pos len;
   digest

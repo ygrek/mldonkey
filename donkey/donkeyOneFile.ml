@@ -343,7 +343,9 @@ let verify_chunk file i =
   let end_pos = chunk_end file i in
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
-  Printf.printf "verify_chunk"; print_newline ();
+  if !!verbose then begin
+      Printf.printf "verify_chunk %ld[%ld]" begin_pos len; print_newline ();
+    end;
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   (*
   let mmap = Mmap.mmap file.file_name 
@@ -424,12 +426,12 @@ print_newline ();
 and print_client_zones n b c =
   (match c.client_block with
       None -> Printf.printf "\n%d: CLIENT ZONES WITH NO BLOCK %d" 
-        (client_num c) n;
+          (client_num c) n;
         print_newline ();
     | Some bb ->
         if b != bb then begin
             Printf.printf "\n%d: CLIENT ZONES WITH BAD BLOCK %d" 
-            (client_num c) n;
+              (client_num c) n;
             print_newline ();
           end);          
   if !!verbose then begin
@@ -440,7 +442,7 @@ and print_client_zones n b c =
       ) c.client_zones;
       print_newline ();
     end;
-          
+
 and find_zone3 c b z1 z2 zones =
   match zones with
     [] -> 
@@ -512,7 +514,7 @@ and check_file_block c file i max_clients =
           b.block_nclients <- 1;            
           if !!verbose then begin
               Printf.printf "\n%d: NEW BLOCK [%ld - %ld]" (client_num c)
-                (b.block_begin) (b.block_end);
+              (b.block_begin) (b.block_end);
               print_newline ();
             end;
           c.client_block <- Some b;
@@ -525,7 +527,7 @@ and check_file_block c file i max_clients =
           c.client_block <- Some b;
           if !!verbose then begin
               Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%ld - %ld]" (client_num c)
-                (b.block_begin) (b.block_end);
+              (b.block_begin) (b.block_end);
               print_newline ();
             end;
           
@@ -572,6 +574,8 @@ and find_client_block c =
     [] -> assert false
   | (file, _) :: files -> 
       
+      if file_state file <> FileDownloading then next_file c else 
+      let _ = () in
       begin
         match c.client_block with 
           None ->
@@ -593,7 +597,7 @@ and find_client_block c =
             ) then
             check_file_block c file i 1
         done;        
-        
+
 (* rare chunks *)
         let rare_blocks = ref [] in
         for i = 0 to file.file_nchunks - 1 do
@@ -612,7 +616,7 @@ and find_client_block c =
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i 1
         done;
-        
+
 (* chunks with several clients *)
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i max_int
@@ -620,9 +624,9 @@ and find_client_block c =
 (* THIS CLIENT CANNOT HELP ANYMORE: USELESS FOR THIS FILE *)
         printf_string "[NEXT]";
         next_file c
-      
-      with _ -> ()
-
+      with e -> 
+          ()
+          
 and next_file c =
   
   match c.client_file_queue with
@@ -920,11 +924,32 @@ let check_file_downloaded file =
       
     with _ -> ()
 
+(* 
+This function is called periodically, to compute md4s of files being 
+downloaded. If a file is completely present, it is only added to the
+downloaded list when all chunks have been verified.
+*)
+        
 let check_downloaded_files () =
   List.iter check_file_downloaded !current_files;  
   (try
       List.iter (fun file ->
-          if file.file_md4s <> [] then
+          if file.file_md4s <> [] then 
+(* First check only md4s of potentially present chunks. This
+will allow to fasten the sharing of these chunks. *)
+            Array.iteri (fun i b ->
+                match b with
+                | PresentTemp ->
+(*                      Printf.printf "verify file md4 %d %d"
+                        file.file_num i; print_newline (); *)
+                    verify_file_md4 file i b;
+                    compute_size file;
+                    raise Not_found
+                | _ -> ()
+            ) file.file_chunks) !current_files;
+      List.iter (fun file ->
+          if file.file_md4s <> [] then 
+(* First check only md4s of potentially present chunks *)
             Array.iteri (fun i b ->
                 match b with
                   PartialVerified _ | AbsentVerified
@@ -936,7 +961,7 @@ let check_downloaded_files () =
                     compute_size file;
                     raise Not_found
             ) file.file_chunks
-      ) !current_files;
+            ) !current_files;
     with _ -> ())
 
 let _ = 

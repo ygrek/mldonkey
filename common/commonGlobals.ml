@@ -77,7 +77,14 @@ let connection_delay cc =
 
     
 let can_open_connection () =
-  nb_sockets () < !!max_opened_connections 
+  let ns = nb_sockets () in
+  let max = mini !!max_opened_connections 
+      (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2)) in
+  if !!debug_net then begin
+      Printf.printf "CAN OPEN (%d < %d)" ns max;
+      print_newline ();
+    end;
+  ns < max
   
 let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
     (!!max_hard_upload_rate * 1024)

@@ -216,7 +216,6 @@ let mail = define_option downloads_ini ["mail"]
   "Your e-mail if you want to receive mails when downloads are completed"
     string_option ""
 
-
 let max_allowed_connected_servers () = 
   mini 5 !!max_connected_servers
 
@@ -225,7 +224,8 @@ let verbose = define_option downloads_ini ["verbose"] "Only for debug"
 
   
 let max_opened_connections = define_option downloads_ini
-    ["max_opened_connections"] "Maximal number of opened connections" int_option (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2))
+    ["max_opened_connections"] "Maximal number of opened connections" 
+  int_option (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2))
 
 let web_infos = define_option downloads_ini
     ["web_infos"] "A list of lines to download on the WEB: each line has 
@@ -654,7 +654,7 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     
     "Bandwidth", "Maximal Download Bandwidth in kB/s", shortname max_hard_download_rate, "T";
     "Bandwidth", "Maximal Upload Bandwidth in kB/s", shortname max_hard_upload_rate, "T";
-    "Bandwidth", "Maximal Number of Connected Servers", shortname max_connected_servers, "T";
+    "Bandwidth", "Maximal Number of Sockets Used", shortname max_opened_connections, "T";
     "Bandwidth", "Socket Buffer Size", shortname client_buffer_size, "T";
     
     "Delays", "Save Options Delay", shortname save_options_delay, "T";

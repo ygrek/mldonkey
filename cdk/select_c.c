@@ -90,7 +90,6 @@ value ml_select(value fdlist, value timeout) /* ML */
   
   if(ufds == NULL){
     ufds_size = getdtablesize();
-    printf("alloc for %d\n", ufds_size);
     ufds = (struct pollfd*) malloc (sizeof(struct pollfd) * ufds_size);
     pfds = (value*) malloc (sizeof(value) * ufds_size);
   }

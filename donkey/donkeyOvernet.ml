@@ -81,6 +81,7 @@ let gui_overnet_options_panel =
     "Max Connected Peers", shortname overnet_max_connected_peers, "T";
     "Search Timeout", shortname overnet_search_timeout, "T";
     "Search Internal Period", shortname overnet_query_peer_period, "T";
+    "Verbose", shortname verbose_overnet, "B";
   ]
   
   
@@ -98,10 +99,12 @@ let udp_send ip port msg =
         buf_int8 buf 227;
         DonkeyProtoOvernet.write buf msg;
         let s = Buffer.contents buf in
-        Printf.printf "Sending UDP to %s:%d" (Ip.to_string ip) port;
-        print_newline ();
-        dump s;
-        print_newline ();
+        if !!verbose_overnet then begin            
+            Printf.printf "Sending UDP to %s:%d" (Ip.to_string ip) port;
+            print_newline ();
+            dump s;
+            print_newline ();
+          end;
         let len = String.length s in
         UdpSocket.write sock s 0 (String.length s) addr
       with e ->
@@ -169,7 +172,7 @@ let create_simple_search kind md4 =
       search_next_peers = XorSet.empty;
       search_kind = kind;
     } in
-  Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline ();
+(*   Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline (); *)
   Hashtbl.add overnet_searches md4 search;
   search
 
@@ -200,8 +203,10 @@ let udp_client_handler t p =
           peer :: tail ->
             add_peer peer;
             connected_peers := peer :: !connected_peers;
-            Printf.printf "Connected %d to %s:%d" !nconnected_peers(Ip.to_string peer.peer_ip)
-            peer.peer_port; print_newline ();
+            if !!verbose_overnet then begin                
+                Printf.printf "Connected %d to %s:%d" !nconnected_peers(Ip.to_string peer.peer_ip)
+                peer.peer_port; print_newline ();
+              end;
             incr nconnected_peers;
             List.iter add_peer tail;
             Hashtbl.iter (fun _ search ->
@@ -234,15 +239,19 @@ let udp_client_handler t p =
             with _ -> Printf.printf "Sender firewalled ?"; print_newline ();
                 raise Not_found in
           udp_send s_ip s_port (OvernetGetSearchResults (md4,0,0,100));
-          Printf.printf "DISTANCES: origin %s from %s" (Md4.to_string
-              (Md4.xor sender.peer_md4 md4))
-          (Md4.to_string sender.peer_md4)
-          ; print_newline ();
-          List.iter (fun p ->
-              Printf.printf "DISTANCES: peer   %s from %s" (Md4.to_string
-                  (Md4.xor p.peer_md4 md4))
-              (Md4.to_string p.peer_md4)
+          if !!verbose_overnet then begin
+              Printf.printf "DISTANCES: origin %s from %s" (Md4.to_string
+                  (Md4.xor sender.peer_md4 md4))
+              (Md4.to_string sender.peer_md4)
               ; print_newline ();
+            end;
+          List.iter (fun p ->
+              if !!verbose_overnet then begin
+                  Printf.printf "DISTANCES: peer   %s from %s" (Md4.to_string
+                      (Md4.xor p.peer_md4 md4))
+                  (Md4.to_string p.peer_md4)
+                  ; print_newline ();
+                end;
               add_search_peer s p
           ) peers
         with _ ->
@@ -267,10 +276,11 @@ let udp_client_handler t p =
                   Hashtbl.find s.search_known_peers s_addr 
                 with _ -> Printf.printf "Sender firewalled ?"; print_newline ();
                     raise Not_found in
-              Printf.printf "REPLY FROM %s --> %s:%d" 
-                (Md4.to_string sender.peer_md4) (Ip.to_string s_ip) s_port;
-              print_newline ();
-              
+              if !!verbose_overnet then begin
+                  Printf.printf "REPLY FROM %s --> %s:%d" 
+                    (Md4.to_string sender.peer_md4) (Ip.to_string s_ip) s_port;
+                  print_newline ();
+                end;
               match s.search_kind with
                 FileSearch file ->
                   
@@ -286,10 +296,11 @@ let udp_client_handler t p =
                                 | [ip;port] ->
                                     let ip = Ip.of_string ip in
                                     let port = int_of_string port in
-                                    Printf.printf "Creating client %s:%d"
-                                      (Ip.to_string ip) port;
-                                    print_newline ();
-                                    
+                                    if !!verbose_overnet then begin
+                                        Printf.printf "Creating client %s:%d"
+                                          (Ip.to_string ip) port;
+                                        print_newline ();
+                                      end;
                                     let c = new_client (Known_location (ip, port)) in
                                     if not (Intmap.mem (client_num c) file.file_sources) then
                                       new_source file c;
@@ -311,22 +322,27 @@ let udp_client_handler t p =
             with _ -> 
                 Printf.printf "No info on sender"; print_newline ();
           end;
-          
-          Printf.printf "RESULT:"; print_newline ();
-          print_tags r_tags; print_newline ();
+          if !!verbose_overnet then begin
+              Printf.printf "RESULT:"; print_newline ();
+              print_tags r_tags; print_newline ();
+            end;
         
         with _ ->
             Printf.printf "NO SUCH SEARCH ??"; print_newline ();
       end
       
       
-  | _ -> Printf.printf "UNUSED MESSAGE"; print_newline ()
+  | _ -> 
+      if !!verbose_overnet then begin
+          Printf.printf "UNUSED MESSAGE"; print_newline ()
+        end
     
 let query_min_peer s =
   try
     let (_,p) as e = XorSet.min_elt s.search_next_peers in
-    Printf.printf "Query New Peer"; print_newline ();
-    
+    if !!verbose_overnet then begin
+        Printf.printf "Query New Peer"; print_newline ();
+      end;
     s.search_next_peers <- XorSet.remove e s.search_next_peers;
     s.search_last_packet <- last_time ();
     udp_send p.peer_ip p.peer_port  (OvernetSearch (2, s.search_md4))     
@@ -338,8 +354,11 @@ let query_next_peers () =
       query_min_peer s;
       if s.search_last_packet +. !!overnet_search_timeout < last_time () then
         begin
-          Printf.printf "Search for %s finished" (Md4.to_string s.search_md4);
-          print_newline ();
+          if !!verbose_overnet then begin              
+              Printf.printf "Search for %s finished"
+              (Md4.to_string s.search_md4);
+              print_newline ();
+            end;
           Hashtbl.remove overnet_searches s.search_md4
         end        
   ) overnet_searches

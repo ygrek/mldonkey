@@ -257,8 +257,11 @@ let make_tagged sock files =
             tag_value = String (
               
               let name = file_best_name file in
-              Printf.printf "SHARING %s" name; print_newline ();
+              if !verbose then begin
+                  Printf.printf "SHARING %s" name; print_newline ();
+                end;
               name
+                  
               ); } ::
           { tag_name = "size";
             tag_value = Uint32 file.file_file.impl_file_size; } ::
@@ -297,7 +300,10 @@ let make_tagged sock files =
 let direct_server_send_share sock msg =
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in
-  Printf.printf "SENDING SHARES"; print_newline ();
+  if !verbose then begin
+      Printf.printf "SENDING SHARES"; print_newline ();
+    end;
+
   Buffer.clear buf;
   buf_int8 buf 227;
   buf_int buf 0;

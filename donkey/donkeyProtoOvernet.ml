@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
+open DonkeyOptions
 open CommonTypes
 open LittleEndian
 open CommonGlobals
@@ -40,7 +42,9 @@ let get_peer s pos =
   let md4 = get_md4 s pos in
   let ip = get_ip s (pos+16) in
   let port = get_int16 s (pos+20) in
-  Printf.printf "PEER %s:%d" (Ip.to_string ip) port; print_newline ();
+  if !!verbose_overnet then begin
+      Printf.printf "PEER %s:%d" (Ip.to_string ip) port; print_newline ();
+    end;
   let kind = get_int8 s (pos+22) in
   {
     peer_md4 = md4;
@@ -209,29 +213,39 @@ let parse opcode s =
   try
     match opcode with  
     | 10 -> 
-        Printf.printf "OK: CONNECT MESSAGE"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: CONNECT MESSAGE"; print_newline ();
+          end;
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
         let port = get_int16 s 20 in
         let kind = get_int8 s 22 in
         OvernetConnect (md4, ip, port, kind)
     | 11 -> 
-        Printf.printf "OK: CONNECT REPLY"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: CONNECT REPLY"; print_newline ();
+          end;
         let peers, pos = get_list16 get_peer s 0 in
         OvernetConnectReply peers
     | 14 -> 
-        Printf.printf "OK: SEARCH MESSAGE"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: SEARCH MESSAGE"; print_newline ();
+          end;
         let kind = get_int8 s 0 in
         let md4 = get_md4 s 1 in
         OvernetSearch (kind, md4)
     | 15 -> 
-        Printf.printf "OK: SEARCH REPLY"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: SEARCH REPLY"; print_newline ();
+          end;
         let md4 = get_md4 s 0 in
         let peers, pos = get_list8 get_peer s 16 in
         OvernetSearchReply (md4, peers)
     
     | 16 ->
-        Printf.printf "OK: SEARCH GET REPLIES"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: SEARCH GET REPLIES"; print_newline ();
+          end;
         let md4 = get_md4 s 0 in
         let kind = get_int8 s 16 in
         let min = get_int16 s 17 in
@@ -240,7 +254,9 @@ let parse opcode s =
     
     
     | 17 ->
-        Printf.printf "OK: ONE REPLY"; print_newline ();
+        if !!verbose_overnet then begin
+            Printf.printf "OK: ONE REPLY"; print_newline ();
+          end;
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
         let ntags = get_int s 32 in

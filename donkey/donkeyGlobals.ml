@@ -326,18 +326,23 @@ let longest_name file =
   let max = ref md4_name in (* default is md4 *)
   let maxl = ref 0 in
   List.iter (fun name ->
-      Printf.printf "TEST %s" name; print_newline ();
+      if !!verbose then begin
+          Printf.printf "TEST %s" name; print_newline ();
+        end;
       (* prevent it from using the md4 is another name is available *)
       if name <> md4_name && String.length name > !maxl then begin
           maxl := String.length name;
           max := name
         end
   ) file.file_filenames;
-  Printf.printf "LONGEST %s" !max; print_newline ();
+  if !!verbose then begin
+      Printf.printf "LONGEST %s" !max; print_newline ();
+    end;
   !max
           
 let update_best_name file =
-  set_file_best_name (as_file file.file_file) (longest_name file)
+  if file_best_name file = Md4.to_string file.file_md4 then
+    set_file_best_name (as_file file.file_file) (longest_name file)
   
 let new_file file_state file_name md4 file_size writable =
   try

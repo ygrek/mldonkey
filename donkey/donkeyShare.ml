@@ -180,27 +180,38 @@ let local_dirname = Sys.getcwd ()
   
         
 let _ =
-  network.op_network_share <- (fun fullname codedname size ->       
-      Printf.printf "FULLNAME %s" fullname; print_newline ();
+  network.op_network_share <- (fun fullname codedname size ->
+      if !!verbose then begin
+        Printf.printf "FULLNAME %s" fullname; print_newline ();
+        end;
       let codedname = Filename.basename codedname in
-      Printf.printf "CODEDNAME %s" codedname; print_newline ();
+      if !!verbose then begin
+          Printf.printf "CODEDNAME %s" codedname; print_newline ();
+        end;
       try
-        Printf.printf "Searching %s" fullname; print_newline ();
+        (*
+Printf.printf "Searching %s" fullname; print_newline ();
+*)
         let s = Hashtbl.find shared_files_info fullname in
         let mtime = (Unix.stat fullname).Unix.st_mtime in
         if s.sh_mtime = mtime && s.sh_size = size then begin
-            Printf.printf "USING OLD MD4s for %s" fullname;
-            print_newline (); 
+            if !!verbose then begin
+                Printf.printf "USING OLD MD4s for %s" fullname;
+                print_newline (); 
+              end;
             new_file_to_share s
           end else begin
-            Printf.printf "Shared file %s has been modified" fullname;
-            print_newline ();
+            if !!verbose then begin                
+                Printf.printf "Shared file %s has been modified" fullname;
+                print_newline ();
+              end;
             Hashtbl.remove shared_files_info fullname;
             known_shared_files =:= List2.removeq s !!known_shared_files
           end
       with Not_found ->
-          Printf.printf "No info on %s" fullname; print_newline (); 
-
+          if !!verbose then begin
+              Printf.printf "No info on %s" fullname; print_newline (); 
+            end;
           let rec impl = {
               impl_shared_update = 1;
               impl_shared_fullname = fullname;
@@ -231,7 +242,9 @@ let remember_shared_info file new_name =
       let disk_name = file_disk_name file in
       let mtime = (Unix.stat disk_name).Unix.st_mtime in
       
-      Printf.printf "Remember %s" new_name; print_newline ();
+      if !!verbose then begin
+          Printf.printf "Remember %s" new_name; print_newline ();
+        end;
       Hashtbl.add shared_files_info new_name {
         sh_name = new_name;
         sh_size = file_size file;

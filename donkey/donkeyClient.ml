@@ -627,7 +627,7 @@ is checked for the file.
       begin
         match c.client_block with
           None -> 
-            Printf.printf "NO BLOCK EXPECTED FROM CLIENT"; print_newline ();
+            printf_string "NO BLOCK EXPECTED FROM CLIENT";
             raise Not_found
         | Some b ->
             let str_begin = Int32.of_int t.Q.bloc_begin in
@@ -1097,31 +1097,35 @@ let client_connection_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       
-      begin
-        try
-          let c = ref None in
-          let sock = 
-            TcpBufferedSocket.create "donkey client connection" s 
-            (client_handler2 c) 
+      if can_open_connection () then
+        begin
+          try
+            let c = ref None in
+            let sock = 
+              TcpBufferedSocket.create "donkey client connection" s 
+                (client_handler2 c) 
 (*client_msg_to_string*)
-          in
-          init_connection sock;
-          set_write_power sock !!upload_power;
-          
-          (try
-              set_reader sock 
-                (DonkeyProtoCom.client_handler2 c read_first_message
-                (client_to_client []));
+            in
+            init_connection sock;
+            set_write_power sock !!upload_power;
+            
+            (try
+                set_reader sock 
+                  (DonkeyProtoCom.client_handler2 c read_first_message
+                    (client_to_client []));
               
-            with e -> Printf.printf "Exception %s in init_connection"
-                  (Printexc.to_string e);
-                print_newline ());
-        with e ->
-            Printf.printf "Exception %s in client_connection_handler"
-              (Printexc.to_string e);
-            print_newline ();
-            Unix.close s
-      end      
+              with e -> Printf.printf "Exception %s in init_connection"
+                    (Printexc.to_string e);
+                  print_newline ());
+          with e ->
+              Printf.printf "Exception %s in client_connection_handler"
+                (Printexc.to_string e);
+              print_newline ();
+              Unix.close s
+        end      
+      else begin
+          Unix.close s
+        end;
   | _ -> 
       ()      
       

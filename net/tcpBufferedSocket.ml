@@ -584,14 +584,15 @@ let connect name host port handler =
     with 
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
     | e -> 
-        Printf.printf "+++ Exception while CONNECT %s" (Printexc.to_string e);
-        print_newline ();
-        t
+        Printf.printf "For host %s port %d" (Unix.string_of_inet_addr host)
+        port; print_newline ();
+        close t "connect failed";
+        raise e
   with e -> 
       Printf.printf "+++ Exception BEFORE CONNECT %s" (Printexc.to_string e);
       print_newline ();
       raise e
-
+      
   
   
 let exec_command cmd args handler =

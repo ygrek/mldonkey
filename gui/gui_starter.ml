@@ -4,10 +4,10 @@ open GMain
 let main () =
   ignore (GMain.Main.init ());
   let window = GWindow.window ~title:"MLdonkey GUI starter" ~border_width:10
-    ~width:300 ~height:100 () in
+    ~width:300 ~height:150 () in
   let vbox_2 = GPack.vbox ~homogeneous:false ~packing: window#add ()in
   let wl_3 =
-    GMisc.label ~text:"     Start the GTK gui ?     " ~justify:`CENTER ~line_wrap:true
+    GMisc.label ~text:"\n     Start the GTK gui ?     \n\nChange the 'ask_for_gui' option to false to remove this message.\n\n" ~justify:`CENTER ~line_wrap:true
       ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(vbox_2#pack ~expand:true ~fill:true) ()
   in

@@ -80,7 +80,17 @@ let set_reader t f =
 let sock t = t.sock
 let closed t = closed t.sock
 let close t = close t.sock
-    
+
+let print_addr addr =
+  begin
+    match addr with
+      Unix.ADDR_INET(ip, port) ->
+        Printf.printf "ADDR_INET (%s, %d)" (Unix.string_of_inet_addr ip) port
+    | Unix.ADDR_UNIX s ->
+        Printf.printf "ADDR_UNIX (%s)" s;
+  end;
+  print_newline ()
+  
 let write t s pos len addr =
   if not (closed t) then 
     match t.wlist with
@@ -108,6 +118,7 @@ let write t s pos len addr =
               Printf.printf "Exception %s in sendto"
               (Printexc.to_string e);
               print_newline ();
+              print_addr addr;
               raise e
         end
     | _ -> 

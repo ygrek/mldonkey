@@ -38,7 +38,7 @@ let _ =
 
 (* at most 50 files can be opened simultaneously *)
   
-let max_cache_size = 50
+let max_cache_size = ref 50
 let cache_size = ref 0
 let cache = Fifo.create ()
   
@@ -62,7 +62,7 @@ let rec close_one () =
 let force_fd t =
   match t.fd with
     None ->
-      if !cache_size = max_cache_size then
+      if !cache_size >= !max_cache_size then
         close_one ()
       else incr cache_size;
       let fd = Unix.openfile t.filename t.rights t.access in

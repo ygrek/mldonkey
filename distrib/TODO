@@ -44,6 +44,8 @@ For 2.00:
 - SegFault when RetryConnect with more than 1024 sources.
 - Cancel and Redownload doesnot work
 - What happens when a shared file cannot be read ?
+- We should close sockets when CONNECT failed
+- Shared files should signal whether they are partial or not ...
 
 *********
 
