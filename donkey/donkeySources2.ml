@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open DonkeyGlobals
 open CommonTypes
 open Options
@@ -42,8 +43,18 @@ let useful_client c =
       (
         if !verbose_sources then begin
             Printf.printf "Connect to source"; print_newline ();
+            (match c.client_kind with Indirect_location _ -> 
+                  Printf.printf "Indirect localtion ?"; print_newline ();
+              | _ -> ());
           end;
-        DonkeyClient.reconnect_client c; true)
+        DonkeyClient.reconnect_client c; 
+        if client_state c = NotConnected then begin
+            if !verbose_sources then begin
+                Printf.printf "Connection to source failed"; print_newline ();
+              end;
+            source_of_client c; false
+          end else 
+          true)
     else raise Not_found
   with _ ->
       if client_type c <> NormalClient then
@@ -112,22 +123,24 @@ let check_sources _ =
 and if we have not exceeded the max number of clients   *)
 
 (* Find the total number of slots. Should be only computed once... *)
+  let nsources = ref 0 in  
   let nslots = ref 0 in
   for i = 0 to nqueues - 1 do 
     if !verbose_sources then begin
         Printf.printf "queue[%s]: %d sources" sources_name.(i)
-        (if i <= last_clients_queue then
-            Fifo.length clients_queues.(i)
-          else 
-            Fifo.length sources_queues.(i));
+        (let n = if i <= last_clients_queue then
+              Fifo.length clients_queues.(i)
+            else 
+              Fifo.length sources_queues.(i) in
+          nsources := !nsources + n; n);
         print_newline ();
       end;
     nslots := !nslots + sources_slots.(i);
   done;
   let nslots = !nslots in
   if !verbose_sources then begin
-      Printf.printf "nslots: %d" nslots; print_newline ();
-    end;
+      Printf.printf "nslots: %d nsources:%d" nslots !nsources; print_newline ();
+      end;
   
   
 (* Find which queue we have to start with *)
@@ -160,7 +173,7 @@ and if we have not exceeded the max number of clients   *)
         Printf.printf "iter nclients:%d index:%d slot:%d (slots_counter: %d)" nclients index slot !slots_counter;
         print_newline ();
       end;
-    if index < nqueues then begin
+    if can_open_connection () && index < nqueues then begin
         if nclients > 0 then begin
             
             let (nclients, index, slot) =

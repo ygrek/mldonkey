@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/01/10: Simon (tag unstable-2-02-3)
+  - DonkeySources2: fixes from 2003/01/08 had been reverted by CVS. 
+      Sources were dropped under heavy usage
+
 2003/01/09: Simon (tag unstable-2-02-2)
   - DonkeyClient/DonkeyProtoClient: complete implementation of Emule 
       client-to-client source propagation.
