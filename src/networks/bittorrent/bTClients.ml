@@ -674,19 +674,20 @@ let connect_tracker file url =
     | _ -> assert false    
   
   in       
-  let args = [
-      ("info_hash", Sha1.direct_to_string file.file_id);
-      ("peer_id", Sha1.direct_to_string !!client_uid) ;
+  let args = 
+    if file.file_tracker_connected then [] else
+      [("event", "started" )]
+  in
+  let args = 
+    ("info_hash", Sha1.direct_to_string file.file_info.file_info_id) ::
+    ("peer_id", Sha1.direct_to_string !!client_uid) ::
 (*      ("ip", Ip.to_string (client_ip None)) ; *)
-      ("port", string_of_int !!client_port) ; 
-      ("uploaded", "0" ) ;
-      ("downloaded", "0" ) ;
-      ("left", Int64.to_string ((file_size file) -- 
-            (Int64Swarmer.downloaded file.file_swarmer)) ) ; 
-      ("event", 
-(*          "completed" *)
-        if file.file_tracker_connected then "" else "started" ) ;
-    ]
+    ("port", string_of_int !!client_port) ::
+    ("uploaded", "0" ) ::
+    ("downloaded", "0" ) ::
+    ("left", Int64.to_string ((file_size file.file_shared) -- 
+        (Int64Swarmer.downloaded file.file_shared.file_swarmer)) ) ::
+    args
   in
   
   let module H = Http_client in
