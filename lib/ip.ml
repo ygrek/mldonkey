@@ -68,8 +68,9 @@ let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with
     [] -> false
   | ((b4,b3,b2,b1) as b) :: tail ->
-      ((a4 = b4 || b4 = 255) &&
-      (a3 = b3 || b3 = 255) &&
-      (a2 = b2 || b2 = 255) &&
-      (a1 = b1 || b1 = 255)) || (matches a tail)
+      ( (a4 = b4 || b4 = 255) &&
+        (a3 = b3 || b3 = 255) &&
+        (a2 = b2 || b2 = 255) &&
+        (a1 = b1 || b1 = 255))
+      || (matches a tail)
       

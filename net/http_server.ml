@@ -739,12 +739,15 @@ let handler config t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
 (* check here if ip is OK *)
-
-      let sock = TcpClientSocket.create_simple s in
-      TcpClientSocket.set_reader sock (request_handler config);
-      TcpClientSocket.set_closer sock request_closer;
-      TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
-        (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );  ()
+      let from_ip = Ip.of_inet_addr from_ip in
+      if Ip.matches from_ip config.addrs then 
+        let sock = TcpClientSocket.create_simple s in
+        TcpClientSocket.set_reader sock (request_handler config);
+        TcpClientSocket.set_closer sock request_closer;
+        TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
+          (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );  ()
+      else
+        Unix.close s
   | _ -> ()
 
 let create config =

@@ -84,7 +84,7 @@ MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 GUI_CMOS= gui/gui_messages.$(EXT) gui/gui.$(EXT)
 
 CLIENT_CMOS=client/downloadTypes.$(EXT) client/downloadGlobals.$(EXT) \
-  client/downloadOptions.$(EXT) \
+  client/downloadOptions.$(EXT)  lib/mailer.$(EXT) \
   client/downloadMultimedia.$(EXT) client/downloadIndexer.$(EXT) \
   client/downloadServers.$(EXT) client/downloadOneFile.$(EXT) \
   client/downloadClient.$(EXT) client/downloadFiles.$(EXT)  \
@@ -99,11 +99,11 @@ GUI= \
   $(MIN_PROTO_CMOS) \
   $(MIN_GUI_CMOS) $(GUI_CMOS)
 
-OPEN_CLIENT=  $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
-  $(MP3TAG_CMOS) \
-  $(MIN_PROTO_CMOS)
+OPEN_CLIENT=  $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS)  $(MP3TAG_CMOS) 
 
-SECRET_CLIENT= $(PROTO_CMOS) \
+SECRET_CLIENT=  \
+  $(MIN_PROTO_CMOS) \
+  $(PROTO_CMOS) \
   $(MIN_GUI_CMOS) \
   $(CLIENT_CMOS) 
 

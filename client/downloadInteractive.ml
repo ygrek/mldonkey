@@ -1030,7 +1030,7 @@ let create_http_handler () =
   create {
     port = !!http_port;
     requests = [];
-    addrs = [];
+    addrs = !!allowed_ips;
     base_ref = "";
     default = http_handler;
   }
