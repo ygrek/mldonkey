@@ -1,6 +1,56 @@
 ChangeLog	
 =========
 
+2003/01/25: Simon
+  - Direct-Connect:
+       * Better management of users in servers/rooms
+       * Servers headers displayed in GUI console
+       * Active Searches enabled if not "firewalled"
+           (don't forget to set the 'firewalled' option if needed, or
+           to set 'force_client_ip' since IP detection does not work
+          as in edonkey) 
+  - GUI:
+       * Queries moved to server tab
+       * FIX: rooms work correctly
+       * Console:
+          - limited to 500 lines
+          - FIX: Font "fixed" is not required anymore 
+          - Combo/history of commands
+  - Donkey:
+       * New option 'log_clients_on_console' to log client disconnections
+          on GUI console
+  - Emule Support:
+       * Propagate max 20 direct sources, not older than 10 minutes, verified.
+
+2003/01/24: Simon
+  - Emule Support: 
+       * Compressed packets are accepted (not yet requested)
+       * Second Sources packet format accepted
+  - Direct-Connect:
+       * Respect the timeout between searches
+       * Take file state into account
+  - FIX: 
+       * don't touch client_ip if not changed
+       * correctly remove "Bad clients"
+  - DonkeySources1: 
+       * remove sources not connected since
+                max_source_age * 12 h (half-days instead of days). 
+       * correctly save source_age
+       * take priority and popularity into account for score
+
+2003/01/23: Simon
+  - FIX:
+       * Opennap plugin should compile again
+       * Last chunk always downloaded first
+  - Patch applied: new_client_stats (cs command)
+  - DonkeySources:
+       * Improved 'sources' command stats
+       * Scores of sources are saved
+       * File state is taken into account for the score
+       * Sources with rank > 300 are not kept in good clients
+  - Direct-Connect: no leeching anymore !
+       * mldc replies correctly to passive searches (ie on the same hub)
+       
 2003/01/22: Simon (tag unstable-2-02-6)
   * Mainly a bug-fix release for 2-02-5. Lots of features still missing
      (sources' scores are not saved, lastreqs,cancelled files sources not
