@@ -210,8 +210,10 @@ type to_gui =
 | Options_info of (string * string) list (*  options *)
 | GuiConnected
 | DefineSearches of (string * CommonTypes.query_entry) list
+
+| Result_info of result_info
   
-| Search_result of int * result_info
+| Search_result of int * int
 | Search_waiting of int * int
   
 | File_info of file_info
@@ -227,7 +229,7 @@ type to_gui =
 | Client_info of client_info
 | Client_state of int * host_state
 | Client_friend of int * client_type
-| Client_file of int * result_info
+| Client_file of int * int
 
 | LocalInfo of local_info
 | Console of string

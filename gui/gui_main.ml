@@ -112,16 +112,17 @@ let canon_client gui c =
       in
       if is_in_locations then
         gui#tab_downloads#h_update_location c;
-
+      
       if c.client_files <> None then cc.client_files <- c.client_files;
       cc.client_state <- c.client_state;
       begin
-        if c.client_type <> cc.client_type then
-          match c.client_type, cc.client_type with
-          | NormalClient, _ ->
-              box_friends#h_remove_friend c.client_num
-          | _  ->
-              box_friends#h_update_friend c
+        if c.client_type <> cc.client_type then begin
+            match c.client_type, cc.client_type with
+            | NormalClient, _ ->
+                box_friends#h_remove_friend c.client_num
+            | _  ->
+                box_friends#h_update_friend c
+          end
       end;
       cc.client_type <- c.client_type;
       cc.client_rating <- c.client_rating;
@@ -132,6 +133,7 @@ let canon_client gui c =
       
       cc
     with _ ->
+        Printf.printf "New client %d" c.client_num; print_newline ();
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with
@@ -169,6 +171,7 @@ let value_reader gui t sock =
 	  )
  
     | Search_result (num,r) -> 
+        let r = Hashtbl.find G.results r in
         gui#tab_queries#h_search_result num r
 
     | Search_waiting (num,waiting) -> 
@@ -177,7 +180,7 @@ let value_reader gui t sock =
     | File_source (num, src) -> 
 	gui#tab_downloads#h_file_location num src
 
-    | File_downloaded (num, downloaded, rate) ->
+     | File_downloaded (num, downloaded, rate) ->
 	gui#tab_downloads#h_file_downloaded num downloaded rate
       
     | File_availability (num, chunks, avail) ->
@@ -277,9 +280,14 @@ let value_reader gui t sock =
            Com.send (GetClient_info num)
 	)
 
-    | Client_file (num, file) ->
+    | Result_info r ->
+        if not (Hashtbl.mem G.results r.result_num) then
+          Hashtbl.add G.results r.result_num r
+        
+    | Client_file (num , file_num) ->
         (
-	 try
+          try
+            let file = Hashtbl.find G.results file_num in
             let c = Hashtbl.find G.locations num in
             let files = match c.client_files with
                 None -> []

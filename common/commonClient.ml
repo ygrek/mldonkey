@@ -170,3 +170,10 @@ let client_type c =
   
 let clients_by_num = ()
   
+
+let client_new_files = ref []
+    
+let client_new_file client c =
+  let key = (client_num client, (c : result)) in
+  if not (List.mem key !client_new_files) then  
+    client_new_files := key :: !client_new_files  

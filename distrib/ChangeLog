@@ -1,7 +1,7 @@
 ChangeLog
 =========
 
-Release 1.99:
+Pre-Release 1.99:
   Complete change of the architecture. mldonkey should now support multiple
    peer-to-peer networks. Currently, download is possible from:
 
@@ -28,6 +28,15 @@ Release 1.99:
      2) You can connect to some hubs and search for files. Download
       is not yet working, nor sharing, so that you will probably be
       kicked fast.
+
+  IMPORTANT:
+   If you want to test some of these networks, edit the downloads.ini to
+   enable them. There are a lot of debugging messages (pipe to /dev/null,
+   don't kill the terminal). Most telnet commmands should work, but it is
+   not sure. In the GUI, use the File->Settings->GUI->Columns panel and,
+   for each type of structure, add the Network column to see in which 
+   network a server or a file is located.
+
   * Improved server implementation (enable_server option). Not working yet.
   * Started implementing freedb bridge. Not working yet.
   * replace Sys.rename with Unix2.rename (to allow cross-device moves)
@@ -35,6 +44,8 @@ Release 1.99:
 	for custom searches. See file ~/.mldonkey_gui.ini for changing icons
 	and keyboard shortcuts. Searches skeletons are defined in the
 	searches.ini file in the directory where you launched the mldonkey core.
+
+
 Release 1.16:
   * Compaction forced every 'compaction_delay' hours (default is 2).
   * File age computed for files smaller than one chunk. Better downloads for

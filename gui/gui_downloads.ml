@@ -455,7 +455,8 @@ class box_downloads box_locs () =
       f.file_state <- f_new.file_state ;
       f.file_chunks <- f_new.file_chunks ;
       f.file_availability <- f_new.file_availability ;
-      f.file_sources <- f_new.file_sources ;
+      if f_new.file_sources <> None then
+        f.file_sources <- f_new.file_sources ;
       f.file_download_rate <- f_new.file_download_rate ;
       f.file_format <- f_new.file_format;
       self#update_row f row
@@ -500,16 +501,20 @@ class box_downloads box_locs () =
 
     method h_file_location num src =
       try
-	let (row, f) = self#find_file num in
-	self#update_file f 
-	  { f with 
-          file_sources = Some (src ::
+        Printf.printf "Source %d for %d" src num;  print_newline ();
+        let (row, f) = self#find_file num in
+        self#update_file f 
+        { f with 
+          file_sources = Some (
             (match f.file_sources with
-                None -> []
-              | Some list -> list))
-	  } 
-	  row
-      with Not_found -> ()
+                None -> [src]
+              | Some list -> if not (List.mem src list) then
+                    list@[src] else list ))
+        } 
+          row
+      with Not_found -> 
+          Printf.printf "No such file %d" num;
+          print_newline ()
 
     initializer
       ignore

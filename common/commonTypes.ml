@@ -229,6 +229,7 @@ type gui_record = {
     mutable gui_files : file list;
     mutable gui_friends : client list;
     mutable gui_servers : server list; 
+    mutable gui_sources : (client list * file) option;
   }
   
 exception Avifile_info of avi_info

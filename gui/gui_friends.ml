@@ -230,7 +230,9 @@ class box_list () =
 
     method add_to_friends () = 
       List.iter
-	(fun c -> Gui_com.send (AddFriend c.client_num))
+        (fun c -> 
+          if c.client_name <> "" then
+            Gui_com.send (AddFriend c.client_num))
 	self#selection
 
     method menu =
@@ -280,7 +282,6 @@ class box_list () =
 	);
 	if c_new.client_files <> None then c.client_files <- c_new.client_files;
 	c.client_state <- c_new.client_state;
-	c.client_type <- c_new.client_type;
 	c.client_rating <- c_new.client_rating;
 	c.client_name <- c_new.client_name;
 	

@@ -105,7 +105,9 @@ let find_sources_in_groups c md4 =
                       list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
                   ) group.group;
                   if !list <> [] then begin
-                      Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
+                      if !verbose_group then begin
+                          Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
+                        end;
                       let msg = client_msg (
                           let module Q = Mftp_client.Sources in
                           Mftp_client.SourcesReq {
@@ -519,7 +521,9 @@ let client_to_client for_files c t sock =
                     | _ ->
                         r.result_tags <- tag :: r.result_tags
                 ) tags;
-                DonkeyIndexer.index_result_no_filter r
+                let r = DonkeyIndexer.index_result_no_filter r in
+                client_new_file c r;
+                r
             ) t);
           client_must_update c
         

@@ -40,6 +40,9 @@ let nclocations = ref 0
 (** Information on locations. *)
 let (locations : (int, Gui_proto.client_info) Hashtbl.t) = Hashtbl.create 103
 
+(** Information on locations. *)
+let (results : (int, CommonTypes.result_info) Hashtbl.t) = Hashtbl.create 103
+
 (** Search counter. *)
 let search_counter = ref 0
 

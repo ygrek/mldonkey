@@ -125,7 +125,8 @@ val set_server_state :
   DonkeyTypes.server -> CommonTypes.host_state -> unit
 
 val file_state :   DonkeyTypes.file -> CommonTypes.file_state
-
+val client_new_file : DonkeyTypes.client -> DonkeyTypes.result -> unit
+  
 val file_must_update :   DonkeyTypes.file -> unit
   
 val client_state : 

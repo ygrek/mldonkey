@@ -385,9 +385,11 @@ let server_add impl =
     end
 
 let friend_add c =
+  Printf.printf "friend add"; print_newline ();
   let impl = as_client_impl c in
   match impl.impl_client_type with
-    FriendClient -> ()
+    FriendClient -> 
+      Printf.printf "Already a friend"; print_newline ();
   | _ ->
       impl.impl_client_type <- FriendClient;
       client_must_update c;

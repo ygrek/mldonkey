@@ -45,7 +45,8 @@ let restart_gui_server = ref (fun _ -> ())
 let send_result gui num r =
   if List.mem    num gui.gui_search_nums then begin
     let module P = Gui_proto in
-      gui_send gui (P.Search_result (num, result_info r))
+      gui_send gui (P.Result_info (result_info r));
+      gui_send gui (P.Search_result (num, result_num r))
     end
   
 let send_waiting gui num r =
@@ -103,11 +104,11 @@ print_newline ();
     | P.ForgetSearch num ->
         let s = search_find num in
         search_forget s
-
+    
     | P.SendMessage (num, msg) ->
         let room = room_find num in
         room_send_message room msg
-        
+    
     | P.ExtendedSearch ->
         networks_iter network_extend_search
     
@@ -128,24 +129,41 @@ print_newline ();
                 if !connecting then
                   try
                     while TcpBufferedSocket.can_write sock do
-                      match gui.gui_files with
-                        file :: files ->
-                          gui.gui_files <- files;
+                      match gui.gui_sources with
+                        Some (c :: clients, file) ->
+                          gui.gui_sources <- Some(clients, file);
+                          (try 
+                              send_client_info gui c;
+                              gui_send gui
+                                (P.File_source (file_num file, client_num c))
+                            with _ -> ());
                           
-                          (try send_file_info gui file with _ -> ())
-                      | [] -> 
-                          match gui.gui_friends with
-                            c :: friends ->
-                              gui.gui_friends <- friends;
-                              (try 
-                                  send_client_info gui c;
-                                  
-                                  List.iter (fun r ->
-                                      gui_send gui
-                                      (P.Client_file (client_num c, result_info r))
-                                      ) (client_files c)
-                                with _ -> ());
+
+                      | _ -> 
+                          gui.gui_sources <- None;
+                          match gui.gui_files with
+                            file :: files ->
+                              gui.gui_files <- files;
                               
+                              (try send_file_info gui file with _ -> ());
+                              gui.gui_sources <- Some (file_sources file, file)
+                          | _ -> 
+                              gui.gui_files <- [];
+                              match gui.gui_friends with
+                                c :: friends ->
+                                  gui.gui_friends <- friends;
+                                  (try 
+                                      send_client_info gui c;
+                                      
+                                      List.iter (fun r ->
+                                          gui_send gui
+                                            (P.Result_info (result_info r));
+                                          gui_send gui
+                                            (P.Client_file (client_num c, 
+                                              result_num r))
+                                          ) (client_files c)
+                                    with _ -> ());
+                                  
                           | [] ->
                               match gui.gui_servers with
                                 s :: servers ->
@@ -235,7 +253,8 @@ print_newline ();
     | P.GetClient_files num ->        
         let c = client_find num in
         List.iter (fun r ->
-            gui_send gui (P.Client_file (num, result_info r))
+(* delay sending to update *)
+            client_new_file c r
         ) (client_files c)
         
     | P.GetClient_info num ->
@@ -249,21 +268,21 @@ print_newline ();
         let s = server_find num in
         let users = server_users s in
         List.iter (fun user ->
-            gui_send gui (P.Server_user (num, user_num user));
+            server_new_user s user
         ) users
         
     | P.GetServer_info num ->
-        gui_send gui (P.Server_info (server_info (server_find num)))
+        server_must_update (server_find num)
         
     | P.GetFile_locations num ->
         let file = file_find num in
         let clients = file_sources file in
         List.iter (fun c ->
-            gui_send gui (P.File_source (num, client_num c))
+            file_new_source file c
         ) clients
                   
     | P.GetFile_info num ->
-        gui_send gui (P.File_info (file_info (file_find num)))
+        file_must_update  (file_find num)
         
     | P.ConnectFriend num ->
         let c = client_find num in
@@ -386,7 +405,8 @@ let gui_handler t event =
             gui_searches = [];
             gui_sock = sock;
             gui_search_nums = [];
-                        
+            
+            gui_sources = None;
             gui_files = !!files @ !!CommonComplexOptions.done_files;
             gui_friends = !!friends;
             gui_servers = !!servers;
@@ -396,7 +416,9 @@ let gui_handler t event =
             (gui_reader gui));
         TcpBufferedSocket.set_closer sock (gui_closed gui);
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
-          (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );
+          (fun _ -> 
+            Printf.printf "BUFFER OVERFLOW"; print_newline ();
+            close sock "overflow");
         guis := gui :: !guis;
         gui_send gui (P.Connected CommonTypes.version);
         networks_iter_all (fun n ->
@@ -416,12 +438,9 @@ let gui_handler t event =
       else 
         Unix.close s
   | _ -> ()
-
-(* We should probably only send "update" to the current state of
-the info already sent to *)
-let update_gui_info timer =
-  reactivate_timer timer;
   
+
+let update_files () =    
   let map = !files_update_map in
   files_update_map := Intmap.empty;
   Intmap.iter (fun _ file ->
@@ -429,8 +448,9 @@ let update_gui_info timer =
         let file_info = P.File_info (file_info file) in
         List.iter (fun gui -> gui_send gui file_info) !guis;
       with _ -> ()
-  ) map;
+  ) map
   
+let update_servers () =
   let map = !servers_update_map in
   servers_update_map := Intmap.empty;
   Intmap.iter (fun _ server ->
@@ -438,8 +458,9 @@ let update_gui_info timer =
         let server_info = P.Server_info (server_info server) in
         List.iter (fun gui -> gui_send gui server_info) !guis;
       with _ -> ()
-  ) map;
+  ) map
   
+let update_clients () =
   let map = !clients_update_map in
   clients_update_map := Intmap.empty;
   Intmap.iter (fun _ client ->
@@ -447,8 +468,9 @@ let update_gui_info timer =
         let client_info = P.Client_info (client_info client) in
         List.iter (fun gui -> gui_send gui client_info) !guis;
       with _ -> ()
-  ) map;
+  ) map
   
+let update_users () =
   let map = !users_update_map in
   users_update_map := Intmap.empty;
   Intmap.iter (fun _ user ->
@@ -456,9 +478,9 @@ let update_gui_info timer =
         let user_info = P.User_info (user_info user) in
         List.iter (fun gui -> gui_send gui user_info) !guis;
       with _ -> ()
-  ) map;
+  ) map
   
-  
+let update_rooms () =
   if !guis <> [] then begin
       let map = !rooms_update_map in
       rooms_update_map := Intmap.empty;
@@ -474,9 +496,9 @@ let update_gui_info timer =
             ) !guis;
           with _ -> ()
       ) map;
-    end;
-  
-
+    end
+    
+let update_file_sources () =
   let map = !file_new_sources in
   file_new_sources := [];
   List.iter (fun (file_num, client_num) ->
@@ -484,8 +506,9 @@ let update_gui_info timer =
         let msg = File_source (file_num, client_num) in
         List.iter (fun gui -> gui_send gui msg) !guis;       
       with _ -> ()
-  ) map;
-
+  ) map
+  
+let update_server_users () =
   let map = !server_new_users in
   server_new_users := [];
   List.iter (fun (server_num, user) ->
@@ -493,8 +516,21 @@ let update_gui_info timer =
         let msg = Server_user (server_num, user_num user) in
         List.iter (fun gui -> gui_send gui msg) !guis;       
       with _ -> ()
-  ) map;
-
+  ) map
+  
+let update_client_files () =
+  let map = !client_new_files in
+  client_new_files := [];
+  List.iter (fun (client_num, r) ->
+      try
+        let result_msg = Result_info (result_info r) in
+        let msg = Client_file (client_num, result_num r) in
+        List.iter (fun gui -> 
+            gui_send gui msg) !guis;       
+      with _ -> ()
+  ) map
+  
+let update_room_users () =
   let map = !room_new_users in
   room_new_users := [];
   List.iter (fun (room_num, user) ->
@@ -505,68 +541,52 @@ let update_gui_info timer =
             gui_send gui user_msg;
             gui_send gui msg) !guis;       
       with _ -> ()
-  ) map;
-  ()
+  ) map
+
   
-  (*
-  let rec last = function
-      [x] -> x
-    | _ :: l -> last l
-    | _ -> Int32.zero
+let update_functions = ref [
+    "update_files", update_files;
+    "update_servers",update_servers;
+    "update_clients",update_clients;
+    "update_users",update_users;
+    "update_rooms",update_rooms;
+    "update_file_sources",update_file_sources;
+    "update_server_users",update_server_users;
+    "update_client_files",update_client_files;
+    "update_room_users",update_room_users;
+  ]
+      
+(* We should probably only send "update" to the current state of
+the info already sent to *)
+let update_gui_info timer =
+  reactivate_timer timer;
+
+  let rec iter functions functions_done =
+    if List.exists (fun gui -> not (can_fill gui.gui_sock)) !guis then begin
+        Printf.printf "Wait for some update functions"; print_newline ();
+        functions @ (List.rev functions_done)
+      end else
+    match functions with
+      [] -> List.rev functions_done
+    | (name,f) :: tail ->
+        Printf.printf "BEFORE %s" name; print_newline ();
+        List.iter (fun gui ->
+            let (_,w) = buf_size gui.gui_sock in
+            Printf.printf "SIZE: %d" w; print_newline ();
+        ) !guis;
+        (try f () with _ -> ());
+        Printf.printf "AFTER %s" name; print_newline ();
+        List.iter (fun gui ->
+            let (_,w) = buf_size gui.gui_sock in
+            Printf.printf "SIZE: %d" w; print_newline ();
+        ) !guis;
+        iter tail ((name,f) :: functions_done)
+        
+    
   in
-  List.iter (fun client ->
-      let time = last_time () -. file.file_last_time in
-      let last_downloaded = last file.file_last_downloaded in
-      let diff = Int32.sub file.file_downloaded last_downloaded in
-      file.file_last_time <- last_time ();
-      let rate = if time > 0.0 && diff > Int32.zero then begin
-            (Int32.to_float diff) /. time;
-          end else 0.0
-      in
-      if rate <> file.file_last_rate || 
-        file.file_downloaded <> last_downloaded then begin
-          file.file_last_rate <- rate;
-          let m = P.File_downloaded (file.file_num, file.file_downloaded,
-              rate) in
-          List.iter (fun gui ->
-              gui_send gui m) !guis;
-        end;
-      
-      begin
-        match file.file_changed with
-          NoFileChange -> ()
-        | FileAvailabilityChange ->
-            let m = P.File_availability (file.file_num,
-                file.file_all_chunks,
-                String2.init file.file_nchunks (fun i ->
-                    if file.file_available_chunks.(i) > 1 then '2' else
-                    if file.file_available_chunks.(i) > 0 then '1' else
-                      '0'))
-            in
-          List.iter (fun gui ->
-              gui_send gui m) !guis;
-            
-        | FileInfoChange ->
-            List.iter (fun gui -> send_file_info gui (as_file file.file_file)) !guis;
-      end;
-      file.file_changed <- NoFileChange;
-      
-      if file.file_new_locations then begin
-          file.file_new_locations <- false;
-          
-          let m = file_locations file in
-          List.iter (fun gui -> gui_send gui m) !guis;
-          
-        end
-  ) !current_files;
-  let msg = P.LocalInfo {
-      P.upload_counter = !upload_counter;
-      P.shared_files = !nshared_files;
-    } in
-  List.iter (fun gui -> gui_send gui msg) !guis
-
-    *)
-
+  update_functions := iter !update_functions []
+  
+  
 let install_hooks () = 
   List.iter (fun (name,_) ->
       set_option_hook downloads_ini name (fun _ ->

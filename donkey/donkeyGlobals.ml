@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open CommonResult
 open CommonFile
 open CommonServer
 open CommonComplexOptions
@@ -615,6 +615,9 @@ let file_must_update file =
     
 let client_state client =
   CommonClient.client_state (as_client client.client_client)
+    
+let client_new_file client r =
+  client_new_file (as_client client.client_client) (as_result r.result_result)
     
 let server_state server =
   CommonServer.server_state (as_server server.server_server)

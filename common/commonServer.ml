@@ -190,7 +190,9 @@ let com_servers_by_num = servers_by_num
 let server_new_users = ref []
     
 let server_new_user server c =
-  server_new_users := (server_num server, (c : user)) :: !server_new_users  
+  let key = (server_num server, (c : user)) in
+  if not (List.mem key !server_new_users) then
+    server_new_users := key :: !server_new_users  
 
 
 let servers_by_num = ()
