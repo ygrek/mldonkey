@@ -103,11 +103,10 @@ grouped? (none = true) : connection speed : ultrapeer possible
     let print t = 
       match t with
         SimplePing -> 
-          lprintf "SIMPLE PING"; lprint_newline ();
+          lprintf "SIMPLE PING\n";
       | ComplexPing t ->
-          lprintf "PING FROM %s:%d" (Ip.to_string t.ip) t.port;
-          lprint_newline () 
-    
+          lprintf "PING FROM %s:%d\n" (Ip.to_string t.ip) t.port
+          
     let write buf t =
       match t with
         SimplePing -> ()
@@ -140,8 +139,7 @@ module Pong = struct (* PONG *)
       }
       
     let print t = 
-      lprintf "PONG FROM %s:%d" (Ip.to_string t.ip) t.port;
-      lprint_newline () 
+      lprintf "PONG FROM %s:%d\n" (Ip.to_string t.ip) t.port
       
     let write buf t =
       buf_int16 buf t.port;
@@ -172,9 +170,8 @@ module Push = struct (* PUSH *)
       }
       
     let print t = 
-      lprintf "PUSH TO %s:%d OF %d" 
-        (Ip.to_string t.ip) t.port t.index;
-      lprint_newline () 
+      lprintf "PUSH TO %s:%d OF %d\n" 
+        (Ip.to_string t.ip) t.port t.index
       
     let write buf t =
       buf_md4 buf t.guid;
@@ -215,8 +212,7 @@ f a r m e r   m y l e n e  (0) < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d
       }
       
     let print t = 
-      lprintf "QUERY FOR %s (%s)" t.keywords t.xml_query;
-      lprint_newline () 
+      lprintf "QUERY FOR %s (%s)\n" t.keywords t.xml_query
       
     let write buf t =
       buf_int16 buf t.min_speed;
@@ -348,12 +344,10 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
       }
     
     let print t = 
-      lprintf "QUERY REPLY FROM %s:%d" (Ip.to_string t.ip) t.port;
-      lprint_newline ();
+      lprintf "QUERY REPLY FROM %s:%d\n" (Ip.to_string t.ip) t.port;
       List.iter (fun f ->
-          lprintf "   FILE %s SIZE %s INDEX %d" f.name 
+          lprintf "   FILE %s SIZE %s INDEX %d\n" f.name 
             (Int64.to_string f.size) f.index;
-          lprint_newline ();
       ) t.files
     
     let rec write_files buf files =
@@ -500,8 +494,7 @@ let parse pkt =
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
           (UNKNOWN i,pkt.pkt_payload) }
   with e ->
-      lprintf "Exception in parse: %s" (Printexc2.to_string e);
-      lprint_newline ();
+      lprintf "Exception in parse: %s\n" (Printexc2.to_string e);
       dump pkt.pkt_payload;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }
         
@@ -530,7 +523,7 @@ let print p =
   | QueryReq t -> Query.print t
   | QueryReplyReq t -> QueryReply.print t
   | UnknownReq (i,s) -> 
-      lprintf "UNKNOWN message:"; lprint_newline ();
+      lprintf "UNKNOWN message:\n";
       dump s
       
 let buf = Buffer.create 1000
@@ -557,7 +550,7 @@ let server_msg_to_string pkt =
   let len = String.length s - 23 in
   str_int s 19 len;
   if !verbose_msg_servers then begin
-      lprintf "SENDING :"; lprint_newline ();
+      lprintf "SENDING :\n";
       dump s;
     end;
   s 
@@ -585,10 +578,21 @@ let server_send_new sock t =
   
 let server_send sock t =
   write_string sock (server_msg_to_string t)
-      
+
+  
+type ghandler =
+  HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)
+| Reader of (gconn -> TcpBufferedSocket.t -> int -> unit)
+
+and gconn = {
+    mutable gconn_handler : ghandler;
+    mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
+    mutable gconn_close_on_write : bool;
+  }
+    
 let gnutella_handler parse f handler sock nread =
   let b = TcpBufferedSocket.buf sock in
-  lprintf "GNUTELLA HANDLER"; lprint_newline ();
+  lprintf "GNUTELLA HANDLER\n";
   dump (String.sub b.buf b.pos b.len);
   try
     while b.len >= 23 do
@@ -653,10 +657,9 @@ let handler info header_handler body_handler =
                     buf_used sock nused;              
                     if nread - nused > 20 then begin
 (*
-                  lprintf "BEGINNING OF BLOC (6 bytes from header)";
-                  lprint_newline ();
+                  lprintf "BEGINNING OF BLOC (6 bytes from header)\n";
                   dump (String.sub b.buf (b.pos-6) (min 20 (b.len - b.pos + 6)));
-lprintf "LEFT %d" (nread - nused); lprint_newline ();
+lprintf "LEFT %d\n" (nread - nused); 
 *)
                         ()
                       end;
@@ -668,7 +671,7 @@ lprintf "LEFT %d" (nread - nused); lprint_newline ();
             iter (i+1) false
         else begin
             if info then (
-                lprintf "END OF HEADER WITHOUT END"; lprint_newline ();
+                lprintf "END OF HEADER WITHOUT END\n";
                 let header = String.sub b.buf b.pos b.len in
                 LittleEndian.dump header;
               );
@@ -676,51 +679,79 @@ lprintf "LEFT %d" (nread - nused); lprint_newline ();
       in
       iter begin_pos false
     with e ->
-        lprintf "Exception %s in handler" (Printexc2.to_string e); 
-        lprint_newline ();
+        lprintf "Exception %s in handler\n" (Printexc2.to_string e); 
         raise e
           *)
-
-type handler =
-  HttpHeader of ((handler ref) -> TcpBufferedSocket.t -> string -> unit)
-| Reader of ((handler ref) -> TcpBufferedSocket.t -> int -> unit)
   
-let handlers info handler =
-  let handler = ref handler in
-  let rec iter_read  sock nread =
+let handlers info gconn =
+  let rec iter_read sock nread =
     let b = TcpBufferedSocket.buf sock in
-    match !handler with
-    | HttpHeader h ->
-        lprintf "header handler\n"; 
-        let end_pos = b.pos + b.len in
-        let begin_pos = max b.pos (end_pos - nread - 3) in
-        let rec iter i n_read =
-          if i < end_pos then
-            if b.buf.[i] = '\r' then
-              iter (i+1) n_read
-            else
-            if b.buf.[i] = '\n' then
-              if n_read then begin
-                  let header = String.sub b.buf b.pos (i - b.pos) in
-                  if info then begin
-                      lprintf "HEADER : ";
-                      dump header; lprint_newline ();
-                    end;
-                  h handler sock header;
-                  if not (TcpBufferedSocket.closed sock) then begin
-                      let nused = i - b.pos + 1 in
-                      buf_used sock nused;
-                      iter_read sock (nread - nused)
-                    end
-                end else
-                iter (i+1) true
-            else
-              iter (i+1) false
-        in
-        iter begin_pos false
-    | Reader h -> h handler sock nread
+    if b.len > 0 then
+      match gconn.gconn_handler with
+      | HttpHeader h ->
+          lprintf "header handler\n"; 
+          let end_pos = b.pos + b.len in
+          let begin_pos = max b.pos (end_pos - nread - 3) in
+          let rec iter i n_read =
+            if i < end_pos then
+              if b.buf.[i] = '\r' then
+                iter (i+1) n_read
+              else
+              if b.buf.[i] = '\n' then
+                if n_read then begin
+                    let header = String.sub b.buf b.pos (i - b.pos) in
+                    if info then begin
+                        lprintf "HEADER : ";
+                        dump header; lprint_newline ();
+                      end;
+                    h gconn sock header;
+                    if not (TcpBufferedSocket.closed sock) then begin
+                        let nused = i - b.pos + 1 in
+                        buf_used sock nused;
+                        iter_read sock (nread - nused)
+                      end
+                  end else
+                  iter (i+1) true
+              else
+                iter (i+1) false
+          in
+          iter begin_pos false
+      | Reader h -> h gconn sock nread
+    else 
+      lprintf "Nothing to read\n"
   in
   iter_read
+  
+let set_gnutella_sock sock info ghandler = 
+  let gconn = {
+      gconn_handler = ghandler;
+      gconn_refill = [];
+      gconn_close_on_write = false;
+    } in
+  TcpBufferedSocket.set_reader sock (handlers info gconn);
+  lprintf "setting refill handler\n"; 
+  TcpBufferedSocket.set_refill sock (fun sock ->
+      lprintf "calling major with %d refill handlers\n"
+        (List.length gconn.gconn_refill);
+      match gconn.gconn_refill with
+        [] -> ()
+      | refill :: _ -> refill sock
+  );
+  TcpBufferedSocket.set_handler sock TcpBufferedSocket.WRITE_DONE (
+    fun sock ->
+      lprintf "write done...\n";
+      match gconn.gconn_refill with
+        [] -> ()
+      | _ :: tail -> 
+          gconn.gconn_refill <- tail;
+          match tail with
+            [] -> 
+              if gconn.gconn_close_on_write then 
+                set_lifetime sock 30.
+(*                TcpBufferedSocket.close sock "write done" *)
+          | refill :: _ -> refill sock)
+              
+      
 
 let vendors = [
     "ACQX", "Acquisition" ;
@@ -761,17 +792,15 @@ let vendors = [
   ]
 
 let add_header_fields header sock trailer =
-  Printf.sprintf "%sUser-Agent: %s\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\n%s"
-    header
-    user_agent
-    (Ip.to_string (client_ip (Some sock))) !!client_port
-    trailer
-  
-let add_simplified_header_fields header trailer =
-  Printf.sprintf "%sUser-Agent: %s\r\n%s"
-    header
-    user_agent
-    trailer
+  let buf = Buffer.create 100 in
+  Printf.bprintf buf "%s" header;
+  Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+  Printf.bprintf buf "X-My-Address: %s:%d\r\n"
+      (Ip.to_string (client_ip (Some sock))) !!client_port;
+  Printf.bprintf buf "X-Ultrapeer: False\r\n";
+  Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
+  Printf.bprintf buf "%s" trailer;
+  Buffer.contents buf
   
 (* A standard session with gtk-gnutella as ultrapeer:
 
@@ -787,4 +816,46 @@ QUERY FOR agprotocol ()
   download:
 PUSH HEADER: [GET /get/3/shared1/agProtocol.ml HTTP/1.1\013\nHost: 127.0.0.1:6550\013\nUser-Agent: gtk-gnutella/0.92u (30/01/2003; X11; Linux 2.4.18-18.8.0 i686)\013\n\013]
 *)
+  
+let parse_range range =
+  try
+    let npos = (String.index range 'b')+6 in
+    let dash_pos = try String.index range '-' with _ -> -10 in
+    let slash_pos = try String.index range '/' with _ -> -20 in
+    let star_pos = try String.index range '*' with _ -> -30 in
+    if star_pos = slash_pos-1 then
+      Int64.zero, None, None (* "bytes */X" *)
+    else
+    let len = String.length range in
+    let x = Int64.of_string (
+        String.sub range npos (dash_pos - npos) )
+    in
+    if len = dash_pos + 1 then
+(* bytes x- *)
+      x, None, None
+    else
+    let y = Int64.of_string (
+        String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
+    in
+    if slash_pos = star_pos - 1 then 
+      x, Some y, None (* "bytes x-y/*" *)
+    else
+(* bytes x-y/len *)
+
+    let z = Int64.of_string (
+        String.sub range (slash_pos+1) (len - slash_pos -1) )
+    in
+    x, Some y, Some z
+  with 
+  | e ->
+      lprintf "Exception %s for range [%s]\n" 
+        (Printexc2.to_string e) range;
+      raise e
+      
+let parse_range range =
+  let x, y, z = parse_range range in
+  lprintf "Range parsed: %Ld-%s/%s" x
+    (match y with None -> "" | Some y -> Int64.to_string y)    
+  (match z with None -> "*" | Some y -> Int64.to_string y);
+  x, y, z
   

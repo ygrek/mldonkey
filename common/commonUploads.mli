@@ -1,10 +1,30 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
 type shared_file = {
-  shared_fullname : string;
-  shared_codedname : string;
-  shared_size : int64;
-  shared_fd : Unix32.t;
-  shared_id : int;
-  shared_format : CommonTypes.format;
+    shared_fullname : string;
+    shared_codedname : string;
+    shared_size : int64;
+    shared_fd : Unix32.t;
+    shared_id : int;
+    shared_format : CommonTypes.format;
+    shared_impl : shared_file CommonShared.shared_impl;
 } 
 and shared_tree = {
   shared_dirname : string;
@@ -22,56 +42,12 @@ and upload = {
   upload_on_finish : upload -> unit;
 } 
 
-  (*
-  val shareds_counter : int ref
-val shared_counter : int64 ref
-val shared_files : (string, shared_file) Hashtbl.t
-module Document :
-  sig
-    type t = shared_file
-    val num : shared_file -> int
-    val filtered : 'a -> bool
-    val filter : 'a -> 'b -> unit
-  end
-module DocIndexer :
-  sig
-    type index = Indexer2.FullMake(Document).index
-    val create : unit -> index
-    val add : index -> string -> Document.t -> int -> unit
-    val clear : index -> unit
-    val filter_words : index -> string list -> unit
-    val clear_filter : index -> unit
-    val filtered : Document.t -> bool
-    val query : index -> Document.t Indexer.query -> Document.t array
-    val query_map : index -> Document.t Indexer.query -> Document.t Intmap.t
-  end
-val index : DocIndexer.index
-val table : (int, shared_file) Hashtbl.t
-module Indexer :
-  sig
-    val stem : string -> string list
-    val name_bit : int
-    val artist_bit : int
-    val title_bit : int
-    val album_bit : int
-    val media_bit : int
-    val format_bit : int
-    val index_string : Document.t -> string -> int -> unit
-    val index_name : Document.t -> string -> unit
-    val index_file : Document.t -> CommonTypes.tagged_file -> unit
-    val bit_of_field : string -> int
-    val query_to_query : CommonTypes.query -> 'a Indexer.query
-    val find : Document.t Indexer.query -> Document.t array
-    val find_map : Document.t Indexer.query -> Document.t Intmap.t
-  end
-  
-    *)
-
 val new_shared_dir : string -> shared_tree
 val shared_tree : shared_tree
 val add_shared_file : shared_tree -> shared_file -> string list -> unit
 val add_shared : string -> string -> int64 -> unit
 val query: CommonTypes.query -> shared_file array
-val find : string -> shared_file
+val find_by_name : string -> shared_file
+val find_by_num : int -> shared_file
   
 val filesize_field : string

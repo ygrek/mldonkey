@@ -1376,9 +1376,9 @@ formID.msgText.value=\\\"\\\";
           begin
             
             let dlkbs = 
-              (( (float_of_int !udp_download_rate) +. (float_of_int !tcp_download_rate)) /. 1024.0) in
+              (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
             let ulkbs =
-              (( (float_of_int !udp_upload_rate) +. (float_of_int !tcp_upload_rate)) /. 1024.0) in
+              (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
             
             
             Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
@@ -1391,10 +1391,10 @@ formID.msgText.value=\\\"\\\";
               
               dlkbs
               !udp_download_rate
-              !tcp_download_rate
+              !control_download_rate
               ulkbs
               !udp_upload_rate
-              !tcp_upload_rate
+              !control_upload_rate
               (size_of_int64 !upload_counter)
               !nshared_files;
             
@@ -1408,12 +1408,12 @@ formID.msgText.value=\\\"\\\";
         
         else 
           Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
-            (( (float_of_int !udp_download_rate) +. (float_of_int !tcp_download_rate)) /. 1024.0)
+            (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
             !udp_download_rate
-            !tcp_download_rate
-            (( (float_of_int !udp_upload_rate) +. (float_of_int !tcp_upload_rate)) /. 1024.0)
+            !control_download_rate
+            (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0)
             !udp_upload_rate
-            !tcp_upload_rate
+            !control_upload_rate
             !nshared_files
             (size_of_int64 !upload_counter);
         ""

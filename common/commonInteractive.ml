@@ -371,7 +371,7 @@ let all_simple_options () =
         None -> ()
       | Some opfile ->
           let args = simple_options opfile in
-          let prefix = !!(r.network_prefix) in
+          let prefix = r.network_prefix () in
           let args = 
             if prefix = "" then args else 
               List2.tail_map (fun (arg, value) ->
@@ -389,7 +389,7 @@ let all_simple_options_html () =
         None -> ()
       | Some opfile ->
           let args = simple_options_html opfile in
-          let prefix = !!(r.network_prefix) in
+          let prefix = r.network_prefix () in
           let args = 
             if prefix = "" then args else 
               List2.tail_map (fun (arg, value, def, help) ->
@@ -419,8 +419,8 @@ let apply_on_fully_qualified_options name f =
               match r.network_config_file with
                 None -> false
               | Some opfile ->
-                  let prefix = r.network_prefix in
-                  iter !!prefix opfile;
+                  let prefix = r.network_prefix () in
+                  iter prefix opfile;
                   false
             with Exit -> true
         )) then begin

@@ -109,7 +109,7 @@ LIB_SRCS=   \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
   lib/date.ml \
   lib/md4_comp.c lib/md4_c.c \
-  lib/gettext.ml lib/md5_c.c \
+  lib/gettext.ml lib/md5_c.c lib/sha1_c.c \
   lib/stubs_c.c
 
 NET_SRCS = \

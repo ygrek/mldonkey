@@ -66,7 +66,9 @@ open CommonNetwork
 *)
   
 let network = new_network "LimeWire"  
-  network_options_prefix commit_in_subdir
+    (fun _ -> !!network_options_prefix)
+  (fun _ -> !!commit_in_subdir)
+(*  network_options_prefix commit_in_subdir *)
   (*
      op_result_network : network;
      op_result_download : ('a -> string list -> unit);
@@ -253,8 +255,7 @@ let new_file file_id file_name file_size =
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
-            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
-            lprint_newline ();
+            lprintf "Exception %s in current_size\n" (Printexc2.to_string e); 
             Int64.zero
       in
       
@@ -279,11 +280,11 @@ let new_file file_id file_name file_size =
           FileDownloading in
       
       if state = FileDownloading then begin
-          lprintf "ADDING FILE %s" file_name; lprint_newline ();
+          lprintf "ADDING FILE %s\n" file_name; 
           current_files := file :: !current_files
         end;
       file_add file_impl state;
-(*      lprintf "ADD FILE TO DOWNLOAD LIST"; lprint_newline (); *)
+(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
       Hashtbl.add files_by_key key file;
       file
 
@@ -329,6 +330,7 @@ client_error = false;
           client_user = user;
           client_connection_control = new_connection_control (());
           client_downloads = [];
+          client_pos = Int64.zero;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -347,7 +349,7 @@ let add_source r s index =
 let add_download file c index =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  lprintf "Adding file to client"; lprint_newline ();
+  lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       c.client_downloads <- (file, index) :: c.client_downloads;
       file.file_clients <- c :: file.file_clients;

@@ -1,6 +1,18 @@
 ChangeLog	
 =========
 
+2003/03/23: Simon (v 2.04rc1-10)
+  - Gnutella/Limewire:
+    * Upload tested successfully with gtk-gnutella
+    * Push message understood (danger: unlimited number of connections)
+    * Added computation of sha1 digests in Md4 module, digests of shared
+         files are not yet computed.
+  - Bug fixes:
+    * Bandwidth should be displayed correctly in WEB interface: the
+       control_ bandwidth should be displayed instead of tcp_ which includes
+       interfaces.
+  - Applied patch #1320
+
 2003/03/22: Simon (v 2.04rc1-9)
   - Bug fixes:
     * log_file with -daemon option

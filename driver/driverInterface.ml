@@ -450,13 +450,14 @@ end;
 lprintf "options for net %s" r.network_name; lprint_newline ();
 *)
                           let args = simple_options opfile in
-                          let prefix = r.network_prefix in
+                          let prefix = r.network_prefix () in
 (*
 lprintf "Sending for %s" prefix; lprint_newline ();
  *)
                           gui_send gui (P.Options_info (
                               List.map (fun (arg, value) ->
-                                  let long_name = Printf.sprintf "%s%s" !!prefix arg in
+                                  let long_name = Printf.sprintf "%s%s" 
+                                    prefix arg in
                                   (long_name, value)
                               )  args)
                           );
@@ -1028,9 +1029,9 @@ let install_hooks () =
         None -> ()
       | Some opfile ->
           let args = simple_options opfile in
-          let prefix = r.network_prefix in
+          let prefix = r.network_prefix()  in
           List.iter (fun (arg, value) ->
-              let long_name = Printf.sprintf "%s%s" !!prefix arg in
+              let long_name = Printf.sprintf "%s%s" prefix arg in
               set_option_hook opfile arg (fun _ ->
                   with_guis (fun gui ->
                       gui_send gui (P.Options_info [long_name, 

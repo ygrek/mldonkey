@@ -238,7 +238,7 @@ let client_reader c t sock =
         end else begin 
 (* Upload not yet implemented *)
           try
-            let sh = CommonUploads.find t.Get.name in
+            let sh = CommonUploads.find_by_name t.Get.name in
             c.client_pos <- Int64.sub t.Get.pos Int64.one;
             let rem = Int64.sub sh.shared_size c.client_pos in
             server_send !verbose_msg_clients sock (FileLengthReq rem);
@@ -249,51 +249,54 @@ let client_reader c t sock =
   
   | SendReq ->
       c.client_pos <- Int64.zero;
-      let refill sock =
+      let rec refill sock =
         lprintf "FILL SOCKET"; lprint_newline ();
         let len = remaining_to_write sock in
-        match c.client_download with
-          DcUploadList list ->
-            lprintf "DcUploadList"; lprint_newline ();
-            let slen = String.length list in
-            let pos = Int64.to_int c.client_pos in
-            if pos < slen then begin
-                let send_len = mini (slen - pos) (8192 - len) in
-                lprintf "Sending %d" send_len; lprint_newline ();
-                TcpBufferedSocket.write sock list pos send_len;
-                lprintf "sent"; lprint_newline ();
-                c.client_pos <- Int64.add c.client_pos (Int64.of_int send_len);
-                
-                if pos + len = slen then begin
+        let can = maxi (8192 - len) 0 in
+        if can > 0 then
+          match c.client_download with
+            DcUploadList list ->
+              lprintf "DcUploadList"; lprint_newline ();
+              let slen = String.length list in
+              let pos = Int64.to_int c.client_pos in
+              if pos < slen then begin
+                  let send_len = mini (slen - pos) can in
+                  lprintf "Sending %d" send_len; lprint_newline ();
+                  TcpBufferedSocket.write sock list pos send_len;
+                  lprintf "sent"; lprint_newline ();
+                  c.client_pos <- Int64.add c.client_pos (Int64.of_int send_len);
+                  
+                  if pos + len = slen then begin
 (* Normally, the client should close the connection after the download,
 but since we don't want a buggy client to keep this connection, just
 close it after a long timeout. *)
-                    set_lifetime sock 120.
-                  end
-              
-              end 
-        
-        | DcUpload sh -> 
-            lprintf "DcUpload"; lprint_newline ();            
-            let slen = sh.shared_size in
-            let pos = c.client_pos in
-            if pos < slen then
-              let rlen = 
-                let rem = Int64.sub slen  pos in
-                let can = 8192 - len in
-                if rem > Int64.of_int can then can else Int64.to_int rem
-              in
-              let upload_buffer = String.create rlen in
-              Unix32.read sh.shared_fd pos upload_buffer 0 rlen;
-              TcpBufferedSocket.write sock upload_buffer 0 rlen;
-              c.client_pos <- Int64.add c.client_pos (Int64.of_int rlen);
-              if c.client_pos = slen then begin
+                      set_lifetime sock 120.
+                    end else
+                  if remaining_to_write sock = 0 then refill sock
+                
+                end 
+          
+          | DcUpload sh -> 
+              lprintf "DcUpload"; lprint_newline ();            
+              let slen = sh.shared_size in
+              let pos = c.client_pos in
+              if pos < slen then
+                let rlen = 
+                  let rem = Int64.sub slen  pos in
+                  if rem > Int64.of_int can then can else Int64.to_int rem
+                in
+                let upload_buffer = String.create rlen in
+                Unix32.read sh.shared_fd pos upload_buffer 0 rlen;
+                TcpBufferedSocket.write sock upload_buffer 0 rlen;
+                c.client_pos <- Int64.add c.client_pos (Int64.of_int rlen);
+                if c.client_pos = slen then begin
 (* Normally, the client should close the connection after the download,
 but since we don't want a buggy client to keep this connection, just
 close it after a long timeout. *)
                     set_lifetime sock 120. 
-                end
-          | _ -> assert false
+                  end else
+                if remaining_to_write sock = 0 then refill sock
+                  | _ -> assert false
       in
       set_refill sock refill;
       set_handler sock WRITE_DONE (fun sock -> 

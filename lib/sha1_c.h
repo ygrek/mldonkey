@@ -1,36 +1,15 @@
 /*
  *
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
- *
- *   Copyright (c) 2002, Raphael Manfredi
- *
- *----------------------------------------------------------------------
- * This file is part of gtk-gnutella.
- *
- *  gtk-gnutella is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  gtk-gnutella is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with gtk-gnutella; if not, write to the Free Software
- *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *----------------------------------------------------------------------
  */
 
 #ifndef _SHA1_H_
 #define _SHA1_H_
 
-// Not needed in gtk-gnutella, we use <glib.h> instead
-// #include <stdint.h>
+#include "os_stubs.h"
+#include <stdint.h>
 
-#include <glib.h>
+typedef unsigned char uint8;
 
 /*
  * If you do not have the ISO standard stdint.h header file, then you
@@ -60,14 +39,14 @@ enum
  */
 typedef struct SHA1Context
 {
-    guint32 Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
+    uint32 Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
 
-    guint32 Length_Low;            /* Message length in bits      */
-    guint32 Length_High;           /* Message length in bits      */
+    uint32 Length_Low;            /* Message length in bits      */
+    uint32 Length_High;           /* Message length in bits      */
 
                                /* Index into message block array   */
-    gint Message_Block_Index;
-    guint8 Message_Block[64];      /* 512-bit message blocks      */
+    int Message_Block_Index;
+    uint8 Message_Block[64];      /* 512-bit message blocks      */
 
     int Computed;               /* Is the digest computed?         */
     int Corrupted;             /* Is the message digest corrupted? */
@@ -77,12 +56,13 @@ typedef struct SHA1Context
  *  Function Prototypes
  */
 
+#define SHA1_CTX SHA1Context
 
-int SHA1Reset(  SHA1Context *);
-int SHA1Input(  SHA1Context *,
-                const guint8 *,
+int sha1_init(  SHA1Context *);
+int sha1_append(  SHA1Context *,
+                const uint8 *,
                 unsigned int);
-int SHA1Result( SHA1Context *,
-                guint8 Message_Digest[SHA1HashSize]);
+int sha1_finish( SHA1Context *,
+                uint8 Message_Digest[SHA1HashSize]);
 
 #endif

@@ -97,4 +97,9 @@ extern int os_getfdsize(OS_FD fd);
 extern int os_getfilesize(char *path);
 extern void os_set_nonblock(OS_SOCKET fd);
 
+
+#define HASH_BUFFER_LEN 131072
+extern unsigned char hash_buffer[HASH_BUFFER_LEN];
+
+
 #endif

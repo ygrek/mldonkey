@@ -66,7 +66,7 @@ let file_num file =
 
 let _ =
   file_ops.op_file_sources <- (fun file ->
-      lprintf "file_sources"; lprint_newline ();
+      lprintf "file_sources\n"; 
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
@@ -182,7 +182,7 @@ let _ =
   )
 
 let browse_client c = 
-  lprintf "Limewire: browse client not implemented"; lprint_newline ();
+  lprintf "Limewire: browse client not implemented\n";
   ()
   
 let _ =

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonShared
 open Printf2
 open CommonInteractive
 open CommonClient
@@ -48,6 +49,7 @@ type shared_file = {
     shared_fd : Unix32.t;
     shared_id : int;
     shared_format : CommonTypes.format;
+    shared_impl : shared_file shared_impl;
   }
 
 and shared_tree =
@@ -72,6 +74,13 @@ type upload = {
 (* A function to call when upload is finished ! *)    
   }
 
+    
+let network = CommonNetwork.new_network "Global Shares"
+    (fun _ -> "")
+    (fun _ -> "")
+
+let (shared_ops : shared_file CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
     
 (*******************************************************************
 
@@ -296,14 +305,31 @@ let rec add_shared_file node sh dir_list =
 let add_shared full_name codedname size =
   if not( Hashtbl.mem shared_files codedname) then begin
       incr shareds_counter;
-      let sh = {
+      
+      let rec impl = {
+          impl_shared_update = 1;
+          impl_shared_fullname = full_name;
+          impl_shared_codedname = codedname;
+          impl_shared_size = size;
+          impl_shared_id = Md4.Md4.random ();
+          impl_shared_num = 0;
+          impl_shared_uploaded = Int64.zero;
+          impl_shared_ops = shared_ops;
+          impl_shared_val = sh;
+          impl_shared_requests = 0;
+        } 
+      and sh = {
           shared_fullname = full_name;
           shared_codedname = codedname;
           shared_size = size;
           shared_id = !shareds_counter;
           shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
           shared_format = CommonMultimedia.get_info full_name;
+          shared_impl = impl;
         } in
+      
+      update_shared_num impl;
+      
       lprintf "FILE ADDED: %s" codedname; lprint_newline ();
       Hashtbl.add table !shareds_counter sh;
       Hashtbl.add shared_files codedname sh;
@@ -316,5 +342,6 @@ let add_shared full_name codedname size =
     
 let query q = Indexer.find (Indexer.query_to_query q)
   
-let find name = Hashtbl.find shared_files name
+let find_by_name name = Hashtbl.find shared_files name
   
+let find_by_num num = Hashtbl.find table num

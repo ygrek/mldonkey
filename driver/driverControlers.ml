@@ -612,8 +612,9 @@ let http_handler o t r =
       Buffer.clear buf;  
       need_auth buf !!http_realm
     end
-  else begin
-      o.conn_user <- find_ui_user user;
+  else
+    begin
+      let o = { o with conn_user = find_ui_user user } in
       try
         match r.get_url.Url.file with
         | "/commands.html" ->

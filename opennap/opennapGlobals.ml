@@ -65,7 +65,9 @@ OK  mutable op_network_search : (search -> Buffer.t -> unit);
 *)
   
 let network = new_network "Open Napster"
-    network_options_prefix commit_in_subdir
+    (fun _ -> !!network_options_prefix)
+  (fun _ -> !!commit_in_subdir)
+(*    network_options_prefix commit_in_subdir *)
 
   (*
 OK   op_result_download : ('a -> string list -> unit);

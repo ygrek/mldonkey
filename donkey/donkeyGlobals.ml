@@ -45,7 +45,9 @@ plugin.
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey"
-    network_options_prefix commit_in_subdir
+    (fun _ -> !!network_options_prefix)
+  (fun _ -> !!commit_in_subdir)
+(*    network_options_prefix commit_in_subdir *)
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network

@@ -62,10 +62,6 @@ let fivemin_timer timer =
 
 let second_timer timer =
   (try 
-     update_link_stats () 
-   with e -> 
-     lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
-  (try 
      DonkeyClient.refill_upload_slots ()
    with e -> 
      lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());

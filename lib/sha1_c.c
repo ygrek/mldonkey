@@ -2,26 +2,6 @@
  *
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
- *   Copyright (c) 2002, Raphael Manfredi
- *
- *----------------------------------------------------------------------
- * This file is part of gtk-gnutella.
- *
- *  gtk-gnutella is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  gtk-gnutella is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with gtk-gnutella; if not, write to the Free Software
- *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *----------------------------------------------------------------------
  */
 
 /*
@@ -55,7 +35,7 @@
  *
  */
 
-#include "sha1.h"
+#include "sha1_c.h"
 
 /*
  *  Define the SHA1 circular left shift macro
@@ -82,7 +62,7 @@ void SHA1ProcessMessageBlock(SHA1Context *);
  *      sha Error Code.
  *
  */
-int SHA1Reset(SHA1Context *context)
+int sha1_init(SHA1Context *context)
 {
     if (!context)
     {
@@ -124,8 +104,8 @@ int SHA1Reset(SHA1Context *context)
  *      sha Error Code.
  *
  */
-int SHA1Result( SHA1Context *context,
-                guint8 Message_Digest[SHA1HashSize])
+int sha1_finish( SHA1Context *context,
+                uint8 Message_Digest[SHA1HashSize])
 {
     int i;
 
@@ -181,8 +161,8 @@ int SHA1Result( SHA1Context *context,
  *      sha Error Code.
  *
  */
-int SHA1Input(    SHA1Context    *context,
-                  const guint8  *message_array,
+int sha1_append(    SHA1Context    *context,
+                  const uint8  *message_array,
                   unsigned       length)
 {
     if (!length)
@@ -254,16 +234,16 @@ int SHA1Input(    SHA1Context    *context,
  */
 void SHA1ProcessMessageBlock(SHA1Context *context)
 {
-    const guint32 K[] =    {       /* Constants defined in SHA-1   */
+    const uint32 K[] =    {       /* Constants defined in SHA-1   */
                             0x5A827999,
                             0x6ED9EBA1,
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
     int           t;                 /* Loop counter                */
-    guint32      temp;              /* Temporary word value        */
-    guint32      W[80];             /* Word sequence               */
-    guint32      A, B, C, D, E;     /* Word buffers                */
+    uint32      temp;              /* Temporary word value        */
+    uint32      W[80];             /* Word sequence               */
+    uint32      A, B, C, D, E;     /* Word buffers                */
 
     /*
      *  Initialize the first 16 words in the array W
@@ -407,4 +387,55 @@ void SHA1PadMessage(SHA1Context *context)
     context->Message_Block[63] = context->Length_Low;
 
     SHA1ProcessMessageBlock(context);
+}
+
+
+/**************************************************************************
+
+
+                      Ocaml stubs (copied from md4_c.c)
+ 
+
+***************************************************************************/
+
+#include "caml/mlvalues.h"
+#include "caml/fail.h"
+#include "caml/alloc.h"
+
+value sha1_unsafe_string(value digest_v, value string_v, value len_v)
+{
+  unsigned char *digest = String_val(digest_v);
+  unsigned char *string = String_val(string_v);
+  long len = Long_val(len_v);
+  SHA1_CTX context;
+
+  sha1_init (&context);
+  sha1_append (&context, string, len);
+  sha1_finish (&context, digest);
+ 
+  return Val_unit;
+}
+
+#include <stdio.h>
+
+value sha1_unsafe_file (value digest_v, value filename_v)
+{
+  char *filename  = String_val(filename_v);
+  unsigned char *digest = String_val(digest_v);
+  FILE *file;
+  SHA1_CTX context;
+  int len;
+
+  if ((file = fopen (filename, "rb")) == NULL)
+    raise_not_found();
+
+  else {
+    sha1_init (&context);
+    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)))
+      sha1_append (&context, hash_buffer, len);
+    sha1_finish (&context, digest);
+
+    fclose (file);
+  }
+  return Val_unit;
 }

@@ -48,7 +48,13 @@ let hourly_timer timer =
   CommonShared.shared_check_files ();
   if !hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ()
-    
+
+let second_timer timer =
+  (try 
+      update_link_stats () 
+    with e -> 
+        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ())
+  
 let start_interfaces () =
   
   
@@ -75,8 +81,8 @@ let start_interfaces () =
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;  
 
-  add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
-
+  add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info;
+  add_infinite_timer 1. second_timer
 
 
 let _ =
@@ -234,9 +240,9 @@ used. For example, we can add new web_infos... *)
         None -> ()
       | Some opfile ->
           let args = simple_args opfile in
-          let prefix = r.network_prefix in
+          let prefix = r.network_prefix () in
           let args = List2.tail_map (fun (arg, spec, help) ->
-                (Printf.sprintf "-%s%s" !!prefix arg, spec, help)) args
+                (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
             in
           more_args := !more_args @ args);
   

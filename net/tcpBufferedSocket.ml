@@ -301,7 +301,7 @@ let write t s pos1 len =
               bc.total_bytes = 0)
       then 
         try
-(*          lprintf "try write %d\n" len; *)
+          lprintf "try immediat write %d\n" len; 
           let fd = fd t.sock in
           let nw = MlUnix.write fd s pos1 len in
           
@@ -482,6 +482,7 @@ let can_write_handler t sock max_len =
     
     end;
   if not (closed t) then begin
+      lprintf "send can refill\n";
       t.event_handler t CAN_REFILL;
       if b.len = 0 then begin
           delete_string b.buf;

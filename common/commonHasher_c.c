@@ -41,6 +41,9 @@ extern void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len,
 extern void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
   unsigned char *digest);
 
+extern void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest);
+
 #ifndef HAVE_LIBPTHREAD
 
 value ml_job_start(value job_v, value fd_v)
@@ -49,13 +52,16 @@ value ml_job_start(value job_v, value fd_v)
   long pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
   long len = Int64_val(Field(job_v, JOB_LEN));
   unsigned char *digest = String_val(Field(job_v, JOB_RESULT));
-
+  
   if(Field(job_v, JOB_METHOD) == METHOD_MD4)
-    { md4_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
-
+  { md4_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  
   if(Field(job_v, JOB_METHOD) == METHOD_MD5)
-    { md5_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
-
+  { md5_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  
+  if(Field(job_v, JOB_METHOD) == METHOD_SHA1)
+  { sha1_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  
   printf("commonHasher_c.c: method sha1 not implemented\n");
   exit(2);
 
@@ -118,7 +124,7 @@ static void * hasher_thread(void * arg)
   nice(19);
   
   pthread_mutex_lock(&mutex);
-
+  
   while(1){
     gettimeofday(&now, NULL);
     timeout.tv_sec = now.tv_sec + 10;
@@ -136,14 +142,16 @@ static void * hasher_thread(void * arg)
       else
         if( job_method == METHOD_MD5)
           md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
-        else {
-          printf("commonHasher_c.c: method sha1 not implemented\n");
-          exit(2);
-        
-        }    
-/*        fprintf(stderr,"job finished\n");  */
+        else
+          if( job_method == METHOD_SHA1)
+            sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+          else {
+            printf("commonHasher_c.c: method sha1 not implemented\n");
+            exit(2);
+          }
+        /*        fprintf(stderr,"job finished\n");  */
         job_done = 1;
-    }
+      }
   }
     
   return NULL;

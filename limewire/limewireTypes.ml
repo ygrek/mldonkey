@@ -49,7 +49,11 @@ and user = {
     mutable user_speed : int;
     mutable user_uid : Md4.t;
   }
-  
+
+(* In a client structure, we only have on socket, whereas in gnutella,
+client connections are directed, ie we could need two sockets if we
+want both upload and download from the same client. We could maybe use
+two different tables to look up for clients ? *)
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_downloads : (file * int) list;
@@ -58,6 +62,15 @@ and client = {
     mutable client_user : user;
     mutable client_file : (file, client) CommonDownloads.download option;
     mutable client_all_files : file list option;
+    mutable client_pos : int64;
+  }
+
+and upload_client = {
+    uc_sock : TcpBufferedSocket.t;
+    uc_file : CommonUploads.shared_file;
+    mutable uc_chunk_pos : int64;
+    uc_chunk_len : int64;
+    uc_chunk_end : int64;
   }
   
 and result = {

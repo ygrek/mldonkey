@@ -111,9 +111,8 @@ let value_to_file is_done assocs =
               | _ -> failwith "Bad source"
           )))
     with e -> 
-        lprintf "Exception %s while loading source"
+        lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
-        lprint_newline ();
   );
   as_file file.file_file
 
@@ -140,7 +139,7 @@ let save_config () =
   let list = Fifo.to_list ultrapeers_queue in
   ultrapeers =:= (List.map (fun s ->
         (s.server_ip, s.server_port)) !connected_servers) @ list;
-  lprintf "SAVE OPTIONS"; lprint_newline ();
+  lprintf "SAVE OPTIONS\n";
   Options.save_with_help limewire_ini
 
   

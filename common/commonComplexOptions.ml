@@ -388,9 +388,9 @@ let file_commited_name file =
   let best_name = file_best_name file in
   let file_name = file_disk_name file in
   let incoming_dir =
-    if (!!((network.network_incoming_subdir))) <> "" then
+    if network.network_incoming_subdir () <> "" then
       Filename.concat !!incoming_directory
-        !!(network.network_incoming_subdir)
+        (network.network_incoming_subdir ())
     else !!incoming_directory
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());

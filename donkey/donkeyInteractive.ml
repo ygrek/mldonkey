@@ -464,7 +464,7 @@ let commands = [
           | [ip] -> ip, "4661"
           | _ -> failwith "n <ip> [<port>]: bad argument number"
         in
-        let ip = Ip.of_string ip in
+        let ip = Ip.from_name ip in
         let port = int_of_string port in
         
         let s = add_server ip port in
@@ -479,9 +479,9 @@ let commands = [
           match args with
             [ip ; port] -> ip, port
           | [ip] -> ip, "4662"
-          | _ -> failwith "gfr <ip> [<port>]: bad argument number"
+          | _ -> failwith "afr <ip> [<port>]: bad argument number"
         in
-        let ip = Ip.of_string ip in
+        let ip = Ip.from_name ip in
         let port = int_of_string port in
         let c = new_client (Known_location (ip,port)) in
         friend_add c;
@@ -713,7 +713,7 @@ let commands = [
         let buf = o.conn_buf in
         DonkeySources.recompute_ready_sources ();
         "done"
-    ), ":\t\t\trecompute order of connections to sources(experimental)";
+    ), ":\t\t\trecompute order of connections to sources (experimental)";
     
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in

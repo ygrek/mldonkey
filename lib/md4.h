@@ -54,9 +54,6 @@ typedef unsigned int UINT4;
 #define PROTO_LIST(list) ()
 #endif
 
-#define HASH_BUFFER_LEN 131072
-extern unsigned char hash_buffer[HASH_BUFFER_LEN];
-
 /* MD4 context. */
 typedef struct {
   UINT4 state[4];                                   /* state (ABCD) */

@@ -72,7 +72,9 @@ open CommonNetwork
 *)
   
 let network = new_network "Soulseek"  
-    network_options_prefix commit_in_subdir
+    (fun _ -> !!network_options_prefix)
+  (fun _ -> !!commit_in_subdir)
+(*    network_options_prefix commit_in_subdir *)
   (*
      op_result_network : network;
      op_result_download : ('a -> string list -> unit);

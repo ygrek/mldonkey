@@ -44,10 +44,12 @@ module type Digest = sig
     val up : t -> int
     val up2 : t -> int
     val up3 : t -> int
-      
+
+    val length : int
   end
 
 module Md4 : Digest    
 module Md5 : Digest
+module Sha1 : Digest
   
   

@@ -513,11 +513,14 @@ let valid_password user pass =
     password = pass 
   with _ -> false
 
+(* control_: means that it is the limited bandwidth, not the unlimited one
+  used by the interfaces. tcp_: the full bandwidth (limited+unlimited) *)
+      
 let udp_upload_rate = ref 0
-let tcp_upload_rate = ref 0
+(* let tcp_upload_rate = ref 0 *)
 let control_upload_rate = ref 0
 let udp_download_rate = ref 0
-let tcp_download_rate = ref 0
+(* let tcp_download_rate = ref 0 *)
 let control_download_rate = ref 0
 
 let sd_udp_upload_rate = ref 0
@@ -530,52 +533,56 @@ let short_delay_bandwidth_samples = Fifo2.create ()
 let nmeasures = 6
 let dummy_sample = Array.make nmeasures 0.
 
-let update_link_stats () =
+let trimto n samples =
+  let len = ref (Fifo2.length samples) in
+  while !len > n do
+    ignore (Fifo2.take samples);
+    decr len
+  done
 
+let last samples =
+  try
+    Fifo2.read samples
+  with _ ->
+      (last_time (), dummy_sample) 
+
+let derive (t1, sample1) (t2, sample2) =
+  let dt = t2 - t1 in
+  if dt <> 0 then
+    let fdt = float_of_int dt in
+    (dt, Array.init nmeasures 
+        (fun i -> int_of_float ((sample2.(i) -. sample1.(i)) /. fdt)))
+  else
+    (0, Array.make nmeasures 0) 
+
+let update_link_stats () =
+  
   let put time sample samples =
     assert (Array.length sample = nmeasures);
     Fifo2.put samples (time, sample) in
-
-  let trimto n samples =
-    let len = ref (Fifo2.length samples) in
-    while !len > n do
-      ignore (Fifo2.take samples);
-      decr len
-    done in
-
-  let last samples =
-    try
-      Fifo2.read samples
-    with _ ->
-      (last_time (), dummy_sample) in
-
-  let derive (t1, sample1) (t2, sample2) =
-    let dt = t2 - t1 in
-    if dt <> 0 then
-      let fdt = float_of_int dt in
-      (dt, Array.init nmeasures 
-             (fun i -> int_of_float ((sample2.(i) -. sample1.(i)) /. fdt)))
-    else
-      (0, Array.make nmeasures 0) in
-
+  
   let last_count_time, last_sample = 
     last bandwidth_samples in
   let time = last_time () in
-  let sample = [|Int64.to_float !tcp_uploaded_bytes;
-		 Int64.to_float !tcp_downloaded_bytes;
-		 Int64.to_float (moved_bytes upload_control);
-		 Int64.to_float (moved_bytes download_control);
-		 Int64.to_float !udp_uploaded_bytes;
-		 Int64.to_float !udp_downloaded_bytes;|] in
-    
+  let sample = [|
+      Int64.to_float !tcp_uploaded_bytes;
+      Int64.to_float !tcp_downloaded_bytes;
+      Int64.to_float (moved_bytes upload_control);
+      Int64.to_float (moved_bytes download_control);
+      Int64.to_float !udp_uploaded_bytes;
+      Int64.to_float !udp_downloaded_bytes;|] in
+  
   (match derive (last_count_time, last_sample) (time, sample) with
       _, [|tur; tdr; cur; cdr; uur; udr|] ->
-	tcp_upload_rate := tur;
-	tcp_download_rate := tdr;
-	control_upload_rate := cur;
-	control_download_rate := cdr;
-	udp_upload_rate := uur;
-	udp_download_rate := udr
+        
+(*
+  tcp_upload_rate := tur;
+  tcp_download_rate := tdr;
+  *)
+        control_upload_rate := cur;
+        control_download_rate := cdr;
+        udp_upload_rate := uur;
+        udp_download_rate := udr
     | _ -> failwith "wrong number of measures");
 
 (*
@@ -585,19 +592,19 @@ let update_link_stats () =
 *) 
   put time sample bandwidth_samples;
   trimto 20 bandwidth_samples;
-
+  
   let sd_last_count_time, sd_last_sample = 
     last short_delay_bandwidth_samples in
   (match derive (sd_last_count_time, sd_last_sample) (time, sample) with
       _, [|tur; _; cur; _; uur; _|] ->
-	sd_tcp_upload_rate := tur;
-	sd_control_upload_rate := cur;
-	sd_udp_upload_rate := uur
+        sd_tcp_upload_rate := tur;
+        sd_control_upload_rate := cur;
+        sd_udp_upload_rate := uur
     | _ -> failwith "wrong number of measures");
-
+  
   put time sample short_delay_bandwidth_samples;
   trimto 5 short_delay_bandwidth_samples
-
+  
 let history_size = 6
 let upload_history = Fifo2.create ()
   

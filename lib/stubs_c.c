@@ -439,6 +439,13 @@ value ml_ints_of_string(value s_v)
   return res;
 }
 
+/*******************************************************************
+
+
+                     md4
+
+
+*******************************************************************/
 
 #include "md4.h"
 
@@ -511,6 +518,13 @@ void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len,
   return;
 }
 
+/*******************************************************************
+
+
+                     md5
+
+
+*******************************************************************/
 #include "md5.h"
 
 value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
@@ -531,7 +545,7 @@ value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
     nread = os_read (fd, hash_buffer, max_nread);
 
     if(nread < 0) {
-      unix_error(errno, "md4_safe_fd: Read", Nothing);
+      unix_error(errno, "md5_safe_fd: Read", Nothing);
     }
 
     if(nread == 0){
@@ -564,7 +578,7 @@ void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len,
     nread = os_read (fd, hash_buffer, max_nread);
 
     if(nread < 0) {
-      unix_error(errno, "md4_safe_fd: Read", Nothing);
+      unix_error(errno, "md5_safe_fd: Read", Nothing);
     }
 
     if(nread == 0){
@@ -579,6 +593,89 @@ void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len,
   md5_finish (&context, digest);
 }
 
+
+/*******************************************************************
+
+
+                     sha1
+
+
+*******************************************************************/
+#include "sha1_c.h"
+
+value sha1_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
+{
+  OS_FD fd = Fd_val(fd_v);
+  long pos = Int64_val(pos_v);
+  long len = Int64_val(len_v);
+  unsigned char *digest = String_val(digest_v);
+  SHA1_CTX context;
+  int nread;
+
+  sha1_init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "sha1_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      sha1_finish (&context, digest);
+
+      return Val_unit;
+    }
+
+    sha1_append (&context, hash_buffer, nread);
+    len -= nread;
+  }
+  sha1_finish (&context, digest);
+
+  return Val_unit;
+}
+
+
+void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  SHA1_CTX context;
+  int nread;
+
+  sha1_init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "sha1_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      sha1_finish (&context, digest);
+
+      return;
+    }
+
+    sha1_append (&context, hash_buffer, nread);
+    len -= nread;
+  }
+  sha1_finish (&context, digest);
+}
+
+/*******************************************************************
+
+
+                     setlcnumeric
+
+
+*******************************************************************/
 
 #include <locale.h>
 

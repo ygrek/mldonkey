@@ -92,7 +92,7 @@ let compute_md4 name begin_pos len f =
       job_begin = begin_pos;
       job_len = len;
       job_method = MD4;
-      job_result = String.create 16;
+      job_result = String.create Md4.Md4.length;
       job_handler = f;
       job_error = false;
     } in
