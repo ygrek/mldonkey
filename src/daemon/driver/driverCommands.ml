@@ -2113,7 +2113,30 @@ let _ =
     "vd", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
         match args with
-          [arg] ->
+	    ["queued"] ->
+	      let list = List2.tail_map file_info !!files in	   
+	      let list = List.filter ( fun f -> f.file_state = FileQueued ) list in
+	      let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
+	      simple_print_file_list false buf list o; ""
+	  | ["paused"] ->
+	      let list = List2.tail_map file_info !!files in	   
+	      let list = List.filter ( fun f -> f.file_state = FilePaused ) list in
+	      let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
+	      simple_print_file_list false buf list o; ""
+	  | ["downloading"] ->
+	      let list = List2.tail_map file_info !!files in	   
+	      let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
+	      let list = Sort.list ( fun f1 f2 -> 
+		  Int64.sub f2.file_size f2.file_downloaded <= 
+		    Int64.sub f1.file_size f1.file_downloaded
+	      ) list in
+	      simple_print_file_list false buf list o;
+	      if !!done_files <> [] then begin
+		simple_print_file_list true buf 
+		  (List2.tail_map file_info !!done_files) o; 
+		Printf.bprintf buf "Use 'commit' to move downloaded files to the incoming directory"
+	      end; ""
+	  | [arg] ->
             let num = int_of_string arg in
             if o.conn_output = HTML then
               begin

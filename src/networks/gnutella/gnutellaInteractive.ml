@@ -306,7 +306,7 @@ let _ =
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file);
-        P.file_uids = [];
+        P.file_uids = file.file_uids;
       }    
   )
   
@@ -411,12 +411,15 @@ let _ =
         P.client_state = client_state (as_client c);
         P.client_type = client_type c;
         P.client_tags = [];
-        P.client_name = (match c.client_user.user_kind with
+        P.client_name = c.client_user.user_nick;
+(*
+          (match c.client_user.user_kind with
           | Known_location (ip, port) ->
               Printf.sprintf "%s:%d" (Ip.to_string ip) port
           | Indirect_location (_, id) -> 
               Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
         );
+*)
         P.client_files = None;
         P.client_num = (client_num (as_client c));
         P.client_rating = 0;

@@ -34,6 +34,7 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonDownloads
+open CommonShared
 open CommonInteractive
 open Autoconf
   
@@ -284,7 +285,7 @@ let op_file_info file =
     P.file_age = file_age file;
     P.file_last_seen = BasicSocket.last_time ();
     P.file_priority = file_priority (as_file file);
-    P.file_uids = [];
+    P.file_uids = [Uid.create (BTUrl file.file_id)];
   }    
 
 let op_ft_info ft =
@@ -335,6 +336,7 @@ let load_torrent_string s =
         torrent_diskname;
   let file = new_download file_id torrent torrent_diskname in
   BTClients.get_sources_from_tracker file;
+  BTShare.must_share_file file;
   file
 
 let load_torrent_file filename =
@@ -402,6 +404,7 @@ let try_share_file torrent_diskname =
     
     let file = new_file file_id torrent torrent_diskname 
         filename FileShared in
+    BTShare.must_share_file file;
     if !verbose_share then lprintf "Sharing file %s\n" filename;
     BTClients.connect_trackers file "started" 
       (parse_tracker_reply file)
@@ -737,3 +740,18 @@ let _ =
   client_ops.op_client_dprint_html <- op_client_dprint_html;
   
   CommonNetwork.register_commands commands;
+
+  shared_ops.op_shared_unshare <- (fun file ->
+      (if !verbose_share then lprintf "************ UNSHARE FILE ************\n");
+      BTShare.unshare_file file);
+  shared_ops.op_shared_info <- (fun file ->
+   let module T = GuiTypes in
+     match file.file_shared with
+        None -> assert false
+      | Some impl ->
+          { (impl_shared_info impl) with 
+            T.shared_network = network.network_num;
+            T.shared_filename = file_best_name (as_file file);
+            T.shared_uids = [Uid.create (Sha1 file.file_id)];
+            }
+  )

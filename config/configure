@@ -1330,12 +1330,17 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30-1
+CURRENT_RELEASE=30-2
 if test -d .svn; then
   CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
 fi
 
+if test -f ./subrelease; then
+  CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
+fi
+
 REQUIRED_OCAML=3.08.3
+DOWNLOAD_OCAML_MAJOR=3.08
 DOWNLOAD_OCAML=3.08.3
 
 REQUIRED_LABLGTK=1.2.7
@@ -4217,13 +4222,26 @@ BUILD_OCAML=no
 if test -z "$ac_cv_prog_OCAMLC"; then
    BUILD_OCAML=yes
 else
-   echo "Testing ocaml version"
-   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-   case "$OCAMLVERSION" in
+  echo "Testing ocaml version"
+  OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+  case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
-    *) echo "Need build"
-       BUILD_OCAML=yes;;
-   esac
+    3.08.2*)
+        if test "$system" = "rhapsody"; then
+            case "$OCAMLVERSION" in
+                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
+                *)
+                    echo "Need build"
+                    BUILD_OCAML=yes
+                    ;;
+            esac
+        fi
+        ;;
+    *)
+        echo "Need build"
+        BUILD_OCAML=yes
+        ;;
+  esac
 fi
 
 if test "$BUILD_OCAML" = "yes"; then
@@ -4249,14 +4267,29 @@ echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
 if test `eval echo '${'$as_ac_File'}'` = yes; then
 
     OCAMLVERSION=`$LOCAL_OCAML/ocamlc.opt -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"* | 3.06*)
-       BUILD_OCAML=no
-       OCAMLC=$LOCAL_OCAML/ocamlc.opt
-       ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
-       ;;
-    *) echo "Need build"
-    esac
+    REBUILD_OCAML=no
+  case "$OCAMLVERSION" in
+    "$REQUIRED_OCAML"*) ;;
+    3.08.2*)
+        if test "$system" = "rhapsody"; then
+            case "$OCAMLVERSION" in
+                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
+                *)
+                    REBUILD_OCAML=yes
+                    ;;
+            esac
+        fi
+        ;;
+    *)
+        REBUILD_OCAML=yes
+        ;;
+  esac
+    if test "$REBUILD_OCAML" = "no"; then
+        echo "Need rebuild"
+        BUILD_OCAML=no
+        OCAMLC=$LOCAL_OCAML/ocamlc.opt
+        ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
+    fi
 
 fi
 
@@ -4430,10 +4463,9 @@ if test "$BUILD_OCAML" = "yes"; then
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
 
-        $WGET        http://pauillac.inria.fr/caml/distrib/ocaml-3.08/ocaml-"$DOWNLOAD_OCAML".tar.gz
-
-#        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
-#        $WGET  http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
+        $WGET http://pauillac.inria.fr/caml/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$DOWNLOAD_OCAML".tar.gz
+        # $WGET http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
+        # $WGET http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then exit 1; fi
 
@@ -4835,15 +4867,28 @@ fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlc version is $OCAMLVERSION"
-
-case "$OCAMLVERSION" in
- "$REQUIRED_OCAML"* | 3.06* ) ;;
- *)
-  echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
-  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
-  exit 1;
- ;;
-esac
+    REBUILD_OCAML=no
+  case "$OCAMLVERSION" in
+    "$REQUIRED_OCAML"*) ;;
+    3.08.2*)
+        if test "$system" = "rhapsody"; then
+            case "$OCAMLVERSION" in
+                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
+                *)
+                    REBUILD_OCAML=yes
+                    ;;
+            esac
+        fi
+        ;;
+    *)
+        REBUILD_OCAML=yes
+        ;;
+  esac
+    if test "$REBUILD_OCAML" = "yes"; then
+      echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
+      echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
+      exit 1;
+    fi
 
 
 if test "$OCAMLOPT" = "no"; then

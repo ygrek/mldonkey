@@ -729,20 +729,20 @@ let rate_to_string rate =
     else ""
 
 let source_upload_rate s_new s =
-  if (s_new.source_connect_time - s.source_connect_time) <= 0 ||
+  if (s_new.source_last_seen -. s.source_last_seen) <= 0. ||
       Int64.to_int s_new.source_uploaded = 0
   then 0.
   else max 0.
     ((Int64.to_float s_new.source_uploaded -. Int64.to_float s.source_uploaded) /.
-     (float_of_int s_new.source_connect_time -. float_of_int s.source_connect_time))
+     (s_new.source_last_seen -. s.source_last_seen))
 
 let source_download_rate s_new s =
-  if (s_new.source_connect_time - s.source_connect_time) <= 0 ||
+  if (s_new.source_last_seen -. s.source_last_seen) <= 0. ||
       Int64.to_int s_new.source_downloaded = 0
   then 0.
   else max 0.
     ((Int64.to_float s_new.source_downloaded -. Int64.to_float s.source_downloaded) /.
-     (float_of_int s_new.source_connect_time -. float_of_int s.source_connect_time))
+     (s_new.source_last_seen -. s.source_last_seen))
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1231,7 +1231,8 @@ let client_to_source c =
      source_files = None;
      source_rating = c.client_rating;
      source_chat_port = c.client_chat_port;
-     source_connect_time = c.client_connect_time;
+     source_connect_time = BasicSocket.last_time () - c.client_connect_time;
+     source_last_seen = BasicSocket.current_time ();
      source_software = concat_strings c.client_software c.client_emulemod;
      source_downloaded = c.client_downloaded;
      source_uploaded = c.client_uploaded;
@@ -1244,3 +1245,14 @@ let client_to_source c =
     }
   in
   s
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        uid_list_to_string                             *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uid_list_to_string l =
+  match l with
+      [] -> ""
+    | uid :: _ -> U.simple_utf8_of (Uid.to_string uid)

@@ -234,7 +234,7 @@ type shared_info = {
     mutable shared_size : int64;
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
-    mutable shared_id : Md4.t;
+    mutable shared_uids : Uid.t list; (* net file UID *)
   }
   
   

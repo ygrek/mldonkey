@@ -1492,11 +1492,11 @@ is checked for the file.
           c.client_brand <- Brand_mldonkey1;
       if c.client_brand = Brand_mldonkey1 || c.client_brand = Brand_mldonkey2 then begin
           if !verbose then
-              lprintf "donkeyClient:QueryFileReq: Client %s is realy old mldonkey1/2 and queried file %s\n"
+              lprintf "donkeyClient:QueryFileReq: Client %s is really old mldonkey1/2 and queried file %s\n"
                   (full_client_identifier c) (Md4.to_string md4);
           if Random.int 100 < 3 && !!send_warning_messages then
             client_send c (
-                M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to at least version 2.5-16u!");
+                M.SayReq "[AUTOMATED WARNING] Please, update your MLdonkey client to at least version 2.5-16v!");
         end;
       
       begin try 	

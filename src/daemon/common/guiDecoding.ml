@@ -404,7 +404,12 @@ let get_file proto charset s pos =
     else "", pos in
   let names = List.map (fun name -> name, noips()) names in
   let last_seen = BasicSocket.last_time () - last_seen in
-  
+  let uids, pos = 
+    if proto < 31 then
+      [], pos
+    else
+      get_list (get_uid charset) s pos
+  in
   (*
   assert (num = file_info_test.file_num);
   assert (net = file_info_test.file_network);
@@ -448,7 +453,7 @@ let get_file proto charset s pos =
     file_name = name;
     file_last_seen = last_seen;
     file_priority = priority;
-    file_uids = [];
+    file_uids = uids;
   }, pos
 
 let get_host_state proto s pos =
@@ -731,7 +736,7 @@ let get_shared_info proto charset s pos =
     shared_size = size;
     shared_uploaded = uploaded;
     shared_requests = requests;
-    shared_id = Md4.null;
+    shared_uids = [];
   }
 
 let get_shared_info_version_10 proto charset s pos =
@@ -741,7 +746,12 @@ let get_shared_info_version_10 proto charset s pos =
   let size,pos = get_uint64_2 proto s pos in
   let uploaded = get_int64 s pos in
   let requests = get_int s (pos+8) in
-  let md4 = get_md4 s (pos+12) in
+  let uids, pos = 
+    if proto < 31 then
+      [], pos+12
+    else
+      get_list (get_uid charset) s (pos+12)
+  in
   {
     shared_num = num;
     shared_network = network;
@@ -749,7 +759,7 @@ let get_shared_info_version_10 proto charset s pos =
     shared_size = size;
     shared_uploaded = uploaded;
     shared_requests = requests;
-    shared_id = md4;
+    shared_uids = uids;
   }
 
   

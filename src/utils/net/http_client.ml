@@ -143,6 +143,9 @@ let parse_header headers_handler sock header =
       let ans_code = int_of_string (String.sub ans 9 3) in
       let headers = List.map (fun s ->
             let sep = String.index s ':' in
+            (* TODO: we should lowercase the names here!
+               The header-names are case-insensitive,
+               therefore we only use lowercased names. *)
             let name_head = String.sub s 0 sep in
             let size = String.length s in
             let content_head = String.sub s (sep+2) (size-sep-2) in
@@ -259,23 +262,24 @@ let get_page r content_handler f =
     )
   
   and default_headers_handler old_url level sock ans_code headers =
-(*
-    List.iter (fun (name, value) ->
+    let print_headers =
+      List.iter
+        (fun (name, value) ->
         lprintf "[%s]=[%s]" name value;
     ) headers;
-*)
+    in
+    (* print_headers; *)
     match ans_code with
       200 ->
 (*
   lprintf "ans_code: %d\n" ans_code;
-  List.iter (fun (name, content) ->
-      lprintf "HEADER %s:%s" name content;
-      ) 
-headers;
+        print_headers;
 *)
-        TcpBufferedSocket.set_closer sock (fun _ _ -> 
+        TcpBufferedSocket.set_closer sock
+            (fun _ _ -> 
 (*            lprintf "default_headers_handler closer\n"; *)
-            f ());
+              f ()
+            );
         
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
@@ -297,17 +301,20 @@ headers;
         if level < 10 then
           begin
             try
-              let url = List.assoc "Location" headers in
-	      if !verbose then
-                List.iter (fun (name, value) ->
-                  lprintf "[%s]=[%s]\n" name value;
+              let url = ref "" in
+              List.iter
+                (fun (name, content) ->
+                  if String.lowercase name = "location" then
+                    url := content;
                 ) headers;
-              
-              let url = if String.length url > 0 && url.[0] <> '/' then
-                  url
+              if !verbose then
+                print_headers;
+              let url =
+                if String.length !url > 0 && !url.[0] <> '/' then
+                  !url
                 else
                   Printf.sprintf "http://%s:%d%s"
-                    old_url.Url.server old_url.Url.port url 
+                    old_url.Url.server old_url.Url.port !url
               in
               if !verbose then lprintf "Redirected to %s\n" url;               
               let r = { r with req_url = Url.of_string url } in
@@ -315,9 +322,7 @@ headers;
             
             with e ->
 		lprintf "Http_client: error understanding redirect response %d\n" ans_code;
-                List.iter (fun (name, value) ->
-                    lprintf "[%s]=[%s]\n" name value;
-                ) headers
+                print_headers
                 
           end
         else lprintf "Http_client: more than 10 redirections, aborting."

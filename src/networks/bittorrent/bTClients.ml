@@ -949,6 +949,14 @@ and client_to_client c sock msg =
                   | _ -> ());
                 c.client_upload_requests <- 
                   c.client_upload_requests @ [n,pos,len];
+                let file = c.client_file in
+                match file.file_shared with
+                    None -> ()
+                  | Some s ->
+                      begin
+                        s.impl_shared_requests <- s.impl_shared_requests + 1;
+                        shared_must_update (as_shared s)
+                      end
               end
             else
               begin
@@ -1340,6 +1348,15 @@ let rec iter_upload sock c =
 (*update uploade rate from len bytes*)
           Rate.update c.client_upload_rate  (float_of_int len);
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
+          let _ =
+            match file.file_shared with
+                None -> ()
+              | Some s ->
+                  begin
+                    s.impl_shared_uploaded <- file.file_uploaded;
+                    shared_must_update (as_shared s)
+                  end
+          in
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c

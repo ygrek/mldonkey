@@ -1,10 +1,43 @@
 ChangeLog	
 =========
 
-2005/03/20: spiralvoice (version 2.5.30-1 = 2.6pre13, tag release-2-5-30-1)
+2005/04/04: spiralvoice (version 2.5.30-2 = 2.6pre14, tag release-2-5-30-2)
+  This release shares the same code as Amorphous SVN revision 249.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3864: html-interface: slightly easier renaming
+3867: bug fixes for the new GTK2 GUI
+
+3873: Syncing Amorphous 2-5-30ac with 2-5-30-1 
+* Now really fixed the infinite loop in the sourcemanagement.
+* The check for the version of ocaml in the configure file
+should be fixed now. Now 3.08.3* and 3.08.2* (for mac only
+3.08.2+4 to +8) are recognized. If needed 3.08.3 should be
+downloaded correctly.
+* Some debug-output cleaning.
+* Updated warning message for old mldonkey clients, they
+should at least upgrade to 16v.
+* Removed option master_server_min_users as it was not used
+in the code.
+
+3874: Extend vd command with parameters
+* add telnet commands
+vd queued
+vd downloading
+vd paused
+shows only chosen downloads
+tip: use aliases vdd -> vd downloading
+vdq -> vd queued
+vdp -> vd paused
+
+3876: Support subrelease in configure.in
+3877: Identify more bt peer ids (client software)
+3882: Decode http-header-name location case-insensitive
+---------------------------------------------------------------------
+
+2005/03/20: spiralvoice (version 2.5.30-1 = 2.6pre13, tag release-2-5-30-1)
 
 This release shares the same code as Amorphous SVN release 2-5-30ab
 except the fact is needs Ocaml 3.08.3
@@ -53,7 +86,7 @@ except the fact is needs Ocaml 3.08.3
   configure.in is now set to 2.59 instead of 2.5 .
 * The default port for the gift gui is now 0, to disable it,
   because it did not ask for authentication.
-
+---------------------------------------------------------------------
 
 2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
 

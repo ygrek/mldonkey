@@ -195,6 +195,7 @@ type source_info =
     mutable source_rating : int;
     mutable source_chat_port : int;
     mutable source_connect_time : int;
+    mutable source_last_seen : float;
     mutable source_software : string;
     mutable source_downloaded : int64;
     mutable source_uploaded : int64;

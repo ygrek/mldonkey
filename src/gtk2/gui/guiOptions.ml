@@ -548,7 +548,7 @@ let shared_files_up_columns = define_option current_section
    (C.Col_shared_size     , 0.1);
    (C.Col_shared_requests , 0.1);
    (C.Col_shared_upsize   , 0.1);
-   (C.Col_shared_md4      , 0.1);
+   (C.Col_shared_uid      , 0.1);
   ] 
 
 let account_columns = define_option current_section

@@ -1660,10 +1660,10 @@ we will probably query for the other file almost immediatly. *)
                         iter nsources m.manager_sources.(do_not_try_queue) (do_not_try_queue)
                       else
                         if queue = do_not_try_queue then
-                          iter nsources m.manager_sources.(new_sources_queue) (do_not_try_queue)
+                          iter nsources m.manager_sources.(new_sources_queue) (new_sources_queue)
                         else
                           if queue = new_sources_queue then 
-                            iter nsources m.manager_sources.(old_sources2_queue) (old_sources2_queue)
+                            iter nsources m.manager_sources.(waiting_saved_sources_queue) (waiting_saved_sources_queue)
                           else
                             if queue > good_sources_queue then 
                               iter nsources m.manager_sources.(queue-1) (queue-1)

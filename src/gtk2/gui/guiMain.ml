@@ -65,43 +65,6 @@ let chmod_config () =
       ()
   end
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         load_gui_options                              *)
-(*                                                                       *)
-(*************************************************************************)
-
-let load_gui_options () =
-  List.iter (fun opt_section ->
-    let section = Options.section_name opt_section in
-    List.iter (fun o ->
-      GuiConfig.add_option (section, o)
-    ) (Options.strings_of_section_options "" opt_section)
-  ) (Options.sections O.gui_ini)
-
-let _ =
-  (try Options.load O.gui_ini with
-      Sys_error _ ->
-	(try Options.save O.gui_ini with _ -> ())
-     | e ->
-        Printf2.lprintf "Exception %s in load options %s\n" 
-	 (Printexc2.to_string e)
-	 (Options.options_file_name O.gui_ini);
-  );
-  let args = Options.simple_args "" O.gui_ini in
-  Arg.parse args (Arg.usage args)  "mlgui: the GUI to use with mldonkey";
-  load_gui_options () (* ;
-  match !!O.gtk_client_lang with
-      U.EN -> ()
-    | _ ->
-      begin
-        let s = U.lang_to_string !!O.gtk_client_lang in
-        let ext = String.lowercase s in
-        Gettext.set_strings_file M.filename ~ext ();
-        M.load_messages ()
-      end
-*)
-
 (* {2 Handling core messages} *)
 
 open CommonTypes
@@ -137,7 +100,6 @@ let value_reader gui t =
         done;
         ( if !!verbose then lprintf' "Using protocol %d for communications\n" version);
         gui.set_corestatus Core_Connected;
-        load_gui_options ();
         if version >= G.interested_in_sources_version
           then begin
             ( if !!verbose then lprintf' "-----  not interested in sources -----\n");
@@ -395,21 +357,18 @@ let value_reader gui t =
              end
           );
           let source = Mi.client_to_source client in
-          let source_new =
-            {source with source_connect_time = (BasicSocket.last_time () - source.source_connect_time)}
-          in
           let s_new =
             try
-              let s = Hashtbl.find G.sources source_new.source_num in
-              { source_new with
+              let s = Hashtbl.find G.sources source.source_num in
+              { source with
                 source_files = s.source_files;
                 source_has_upload = s.source_has_upload;
                 source_availability = s.source_availability;
                 source_files_requested = s.source_files_requested;
-                source_upload_rate = Mi.source_upload_rate source_new s;
-                source_download_rate =Mi.source_download_rate source_new s;
+                source_upload_rate = Mi.source_upload_rate source s;
+                source_download_rate = Mi.source_download_rate source s;
               }
-            with _ -> source_new
+            with _ -> source
           in
           GuiDownloads.h_update_source s_new;
           GuiUploads.h_update_uploader s_new;
@@ -509,7 +468,7 @@ let generate_connect_menu gui menu =
       let label = U.utf8_of (Printf.sprintf "%s:%d" hostname port) in
       GMenu.menu_item ~label
       ~packing:menu#add ()
-      in
+    in
     ignore (menu_item#connect#activate ~callback:(fun _ ->
           O.gtk_client_hostname =:= hostname;
           O.gtk_client_port =:= port;
@@ -553,13 +512,16 @@ let core_menu gui on_quit =
           ~packing:menu#add ()
       in
       let reconnect_to_menu = GMenu.menu ~packing:(reconnect_to#set_submenu) () in
-      generate_connect_menu gui reconnect_to_menu;
+      ignore (reconnect_to#connect#activate ~callback:
+        (fun _ ->
+           generate_connect_menu gui reconnect_to_menu
+      ));
       ignore (GMenu.separator_item ~packing:menu#add ());
       ignore (reconnect#connect#activate 
         (fun _ -> GuiCom.reconnect gui value_reader gui BasicSocket.Closed_by_user
       ));
-      ignore (disconnect#connect#activate 
-        (fun _ -> GuiCom.disconnect gui BasicSocket.Closed_by_user
+      ignore (disconnect#connect#activate
+        (fun _ -> (try GuiCom.disconnect gui BasicSocket.Closed_by_user with _ -> ())
       ));
       ignore (scanports#connect#activate
         (fun _ -> GuiCom.scan_ports ()
@@ -593,7 +555,7 @@ let core_menu gui on_quit =
     (fun _ -> GuiWindow.display_im gui ()
   ));
   ignore (settings#connect#activate 
-    (fun _ -> GuiWindow.display_settings gui ()
+    (fun _ -> GuiWindow.display_settings gui value_reader ()
   ));
   ignore (quit#connect#activate 
     (fun _ -> on_quit ()
@@ -648,7 +610,7 @@ let tray_menu gui on_quit =
         (fun _ -> GuiCom.reconnect gui value_reader gui BasicSocket.Closed_by_user
       ));
       ignore (disconnect#connect#activate 
-        (fun _ -> GuiCom.disconnect gui BasicSocket.Closed_by_user
+        (fun _ -> (try GuiCom.disconnect gui BasicSocket.Closed_by_user with _ -> ())
       ));
       ignore (scanports#connect#activate
         (fun _ -> GuiCom.scan_ports ()
@@ -676,7 +638,7 @@ let tray_menu gui on_quit =
     (fun _ -> GuiWindow.display_im gui ()
   ));
   ignore (settings#connect#activate 
-    (fun _ -> GuiWindow.display_settings gui ()
+    (fun _ -> GuiWindow.display_settings gui value_reader ()
   ));
   ignore (quit#connect#activate 
     (fun _ -> on_quit ()
@@ -844,7 +806,7 @@ let main () =
        if Autoconf.system = "windows"
          then begin
            w#misc#hide ();
-           let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.SMALL () in
+           let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.LARGE () in
            G.tray.create_tray icon "MLDonkey";
            true
          end else begin
@@ -908,8 +870,8 @@ let main () =
 
   (* connection with core *)
 
-  GuiCom.reconnect gui value_reader gui BasicSocket.Closed_by_user ;
-
+  GuiCom.reconnect gui value_reader gui BasicSocket.Closed_by_user
+(*
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
       if !never_connected && not (GuiCom.connected ()) then  begin
@@ -918,6 +880,7 @@ let main () =
         end else
         never_connected := false
   )
+*)
 
 let _ = 
   CommonGlobals.gui_included := true;

@@ -86,7 +86,7 @@ class g_shared () =
   let shared_size_str     = shared_cols#add Gobject.Data.string in
   let shared_uploaded_str = shared_cols#add Gobject.Data.string in
   let shared_requests     = shared_cols#add Gobject.Data.int in
-  let shared_md4          = shared_cols#add Gobject.Data.string in
+  let shared_uid          = shared_cols#add Gobject.Data.string in
   object (self)
 
     inherit Uploads.g_list shared_cols
@@ -105,7 +105,7 @@ class g_shared () =
       store#set ~row ~column:shared_size_str (Mi.size_of_int64 si.shared_size);
       store#set ~row ~column:shared_uploaded_str (Mi.size_of_int64 si.shared_uploaded);
       store#set ~row ~column:shared_requests si.shared_requests;
-      store#set ~row ~column:shared_md4 (U.utf8_of (Md4.to_string si.shared_id))
+      store#set ~row ~column:shared_uid (Mi.uid_list_to_string si.shared_uids)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -134,9 +134,9 @@ class g_shared () =
         then begin
           store#set ~row ~column:shared_requests si_new.shared_requests;
         end;
-      if si.shared_id <> si_new.shared_id
+      if si.shared_uids <> si_new.shared_uids
         then begin
-          store#set ~row ~column:shared_md4 (U.utf8_of (Md4.to_string si_new.shared_id))
+          store#set ~row ~column:shared_uid (Mi.uid_list_to_string si_new.shared_uids)
         end
 
 (*************************************************************************)
@@ -196,11 +196,11 @@ class g_shared () =
               col#add_attribute renderer "text" shared_size_str
             end
 
-        | Col_shared_md4 ->
+        | Col_shared_uid ->
             begin
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack renderer;
-              col#add_attribute renderer "text" shared_md4
+              col#add_attribute renderer "text" shared_uid
             end
 
         | Col_shared_network ->
@@ -230,7 +230,7 @@ class g_shared () =
         | Col_shared_upsize -> compare si1.shared_uploaded si2.shared_uploaded
         | Col_shared_requests -> compare si1.shared_requests si2.shared_requests
         | Col_shared_size -> compare si1.shared_size si2.shared_size
-        | Col_shared_md4 -> compare si1.shared_id si2.shared_id
+        | Col_shared_uid -> compare (Mi.uid_list_to_string si1.shared_uids) (Mi.uid_list_to_string si2.shared_uids)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -601,12 +601,21 @@ let update_uploaders_label () =
 let copy_ed2k_links sel () = 
   let buf = Buffer.create 100 in
   List.iter (fun s ->
-    let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
-                (Filename.basename s.shared_filename)
-                 s.shared_size
-                (Md4.to_string s.shared_id)
-    in
-    Printf.bprintf buf "%s\n" link;
+    match s.shared_uids with
+        uid :: _ -> (
+          match (Uid.to_uid uid) with
+              Ed2k md4 ->
+                begin
+                  let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
+                             (Filename.basename s.shared_filename)
+                             s.shared_size
+                             (Md4.to_string md4)
+                  in
+                  Printf.bprintf buf "%s\n" link;
+                end
+            | _ -> ())
+
+      | _ -> ()
   ) sel;
   let link = Buffer.contents buf in
   GuiConsole.insert link;

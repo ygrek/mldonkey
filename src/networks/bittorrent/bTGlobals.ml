@@ -85,6 +85,9 @@ let network = new_network "BT" "BitTorrent"
 
 let connection_manager = network.network_connection_manager
 
+let (shared_ops : file CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
+
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 
@@ -199,6 +202,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
           file_uploaded = Int64.zero;
           file_torrent_diskname = torrent_diskname;
           file_completed_hook = (fun _ -> ());
+          file_shared = None;
         } and file_impl =  {
           dummy_file_impl with
           impl_file_fd = file_fd;
@@ -276,17 +280,34 @@ let new_ft file_name =
   file_add file_impl FileDownloading;
   ft
   
-  
-let dot_string s =
+let _dot_string s h =
   let len = String.length s in
+  let char2hex c = 
+    let ic = int_of_char c in
+    if ic >= 65 && ic <= 70 then
+      string_of_int (ic - 55)
+    else begin
+      if ic >= 97 && ic <= 102 then
+        string_of_int (ic - 87)
+      else
+        Printf.sprintf "%c" c
+    end
+  in
   let rec iter i b =
     if i < len then begin
-      Buffer.add_char b s.[i];
+      if h then Buffer.add_string b (char2hex s.[i])
+           else Buffer.add_char b s.[i];
       if i < len-1 then Buffer.add_char b '.';
       iter (i+1) b;
     end else b;
   in
   Buffer.contents (iter 0 (Buffer.create (len*2)))
+
+let dot_string s =
+  _dot_string s false
+
+let dot_string_h s =
+  _dot_string s true
 
 let dot_string_of_list s l =
   let buf = Buffer.create (List.length l) in
@@ -306,10 +327,13 @@ let decode_az_style s =
       | "AZ" -> "Azureus"
       | "BB" -> "BitBuddy"
       | "BX" -> "Bittorrent X"
+      | "BS" -> "BTSlave"
+      | "CT" -> "CTorrent"
       | "LT" -> "libTorrent"
-      | "TN" -> "TorrentDotNET"
+      | "TN" -> "Torrent.NET"
       | "TS" -> "TorrentStorm"
       | "SS" -> "SwarmScope"
+      | "SN" -> "ShareNET"
       | "MT" -> "MoonlightTorrent"
       | "XT" -> "XanTorrent"
       | "bk" -> "BitKitten (libtorrent)"
@@ -321,18 +345,24 @@ let decode_az_style s =
   end else "" 
 
 let decode_tornado_style s =
-  if check_all s 45 [4;5;6;7;8] then begin
-    let s_id = String.sub s 0 1 in
-    let result = ref
-     (match s_id with
+  let result = ref "" in
+  if check_all s 45 [4;5] then begin
+    let check_id s = 
+     match s with
      | "T" -> "BitTornado"
      | "A" -> "ABC"
-     | _ -> "")
+     | _ -> ""
     in
-    if not (!result = "") then
-      result := !result ^ " " ^ dot_string (String.sub s 1 3);
-    !result;
-  end else ""
+    if check_all s 45 [6;7;8] then
+      let t = ref (check_id (String.sub s 0 1)) in
+      if not (!t = "") then 
+        result := !t ^ " " ^ dot_string_h (String.sub s 1 3);
+    else if s.[6] = (char_of_int 48) then 
+      let t = ref (check_id (String.sub s 0 1)) in
+      if not (!t = "") then
+        result := !t ^ " LM " ^ dot_string_h (String.sub s 1 3);
+  end;
+  !result 
 
 let decode_mainline_style s =
   if check_all s 45 [2;4;6;7] then begin
@@ -360,7 +390,10 @@ let decode_simple_style s =
       (4, "btfans", "SimpleBT");
       (0, "btuga", "BTugaXP");
       (0, "DansClient", "XanTorrent");
-      (0, "Deadman Walking-", "Deadman") ]
+      (0, "Deadman Walking-", "Deadman");
+      (0, "a00---0", "Swarmy");
+      (0, "a02---0", "Swarmy");
+      (0, "T00---0", "Teeweety") ]
   in
   let len = List.length !simple_list in
   let rec check pos =
@@ -375,6 +408,21 @@ let decode_simple_style s =
 let decode_mburst s = 
   if "Mbrst" = String.sub s 0 5 then
      "Burst! " ^ (dot_string_of_list s [5;7;9])
+  else ""
+
+let decode_plus s =
+  if "Plus" = String.sub s 0 4 then
+     "Plus " ^ (dot_string_of_list s [4;5;6])
+  else ""
+
+let decode_bow s =
+  if "BOW" = String.sub s 0 3 then
+    "BitsOnWheels " ^ (String.sub s 4 3)
+  else ""
+
+let decode_exeem s = 
+  if "eX" = String.sub s 0 2 then
+    "eXeem [" ^ (String.sub s 2 18) ^ "]"
   else ""
 
 let decode_turbo s =
@@ -451,14 +499,14 @@ let decode_non_zero s =
         find_non_zero (pos+1)
   in
   let result = ref "" in
-  let fnz = find_non_zero 0 in
-  if fnz = 9 then begin
-    if check_all s 3 [9;10;11] then 
+  (match find_non_zero 0 with 
+     8 -> (if "UDP0" = String.sub s 16 4 then
+            result := "BitComet UDP";
+          if "HTTPBT" = String.sub s 14 6 then
+            result := "BitComet HTTP";)
+  |  9 -> if check_all s 3 [9;10;11] then 
       result := "Snark";
-  end
-  else begin 
-    if fnz = 12 then begin
-      if check_all s 97 [12;13] then
+  | 12 -> if check_all s 97 [12;13] then
         result := "Experimental 3.2.1b2"
       else begin
         if check_all s 0 [12;13] then
@@ -466,14 +514,14 @@ let decode_non_zero s =
         else
           result := "Mainline"
       end;
-    end;
-  end;
+  | _ -> ()
+  );
   !result
 
 let parse_software s =
   try 
   let rec try_styles i =
-    if i > 13 then "UNKNOWN" else begin
+    if i > 16 then "UNKNOWN" else begin
     let res = ref
       (match i with
          | 0 -> decode_az_style s
@@ -482,14 +530,17 @@ let parse_software s =
          | 3 -> decode_simple_style s
          | 4 -> decode_mburst s
          | 5 -> decode_turbo s
-         | 6 -> decode_xbt s
-         | 7 -> decode_shadow s
-         | 8 -> decode_bitspirit s
-         | 9 -> decode_upnp s
-         | 10 -> decode_bitcomet s
-         | 11 -> decode_shareaza s
-         | 12 -> decode_non_zero s
-         | 13 -> if (Sha1.null) = (Sha1.direct_of_string s) then
+         | 6 -> decode_plus s
+         | 7 -> decode_xbt s
+         | 8 -> decode_bow s
+         | 9 -> decode_exeem s
+         | 10 -> decode_shadow s
+         | 11 -> decode_bitspirit s
+         | 12 -> decode_upnp s
+         | 13 -> decode_bitcomet s
+         | 14 -> decode_shareaza s
+         | 15 -> decode_non_zero s
+         | 16 -> if (Sha1.null) = (Sha1.direct_of_string s) then
                      "NULL" else ""
          | _ -> "ERROR"
        )

@@ -583,14 +583,6 @@ module Config = ConfigWindow.ConfigPanel (struct
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         clear                                         *)
-(*                                                                       *)
-(*************************************************************************)
-
-let clear = Config.clear
-
-(*************************************************************************)
-(*                                                                       *)
 (*                         add_option                                    *)
 (*                                                                       *)
 (*************************************************************************)
@@ -605,6 +597,31 @@ let add_option (section, o) = add_preference (section, o) Config.preferences_val
 (*************************************************************************)
 
 let update_options options_list = update_preferences options_list Config.preferences_values
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         load_gui_options                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let load_gui_options () =
+  List.iter (fun opt_section ->
+    let section = Options.section_name opt_section in
+    List.iter (fun o ->
+      add_option (section, o)
+    ) (Options.strings_of_section_options "" opt_section)
+  ) (Options.sections O.gui_ini)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         clear                                         *)
+(*                                                                       *)
+(*************************************************************************)
+
+let clear =
+  (fun _ ->
+     Config.clear ();
+     load_gui_options ())
 
 (*************************************************************************)
 (*                                                                       *)
@@ -627,7 +644,7 @@ let rec iter items =
           iter tail
         end
 
-let config_window gui f =
+let config_window gui value_reader f =
   let use_icons = !!O.gtk_look_use_icons in
   let use_avail_bars = !!O.gtk_look_graphical_availability in
   let language = !!O.gtk_client_lang in
@@ -635,8 +652,11 @@ let config_window gui f =
   let small_icon = !!O.gtk_look_lists_icon_size in
   let medium_icon = !!O.gtk_look_toolbars_icon_size in
   let large_icon = !!O.gtk_look_main_toolbar_icon_size in
+  let (hostname, port) = (!!O.gtk_client_hostname, !!O.gtk_client_port) in
   let on_ok () =
     G.get_metrics_from_gtk_font_list ();
+    (if (hostname, port) <> (!!O.gtk_client_hostname, !!O.gtk_client_port)
+       then GuiCom.reconnect gui value_reader gui BasicSocket.Closed_by_user);
     (if use_icons <> !!O.gtk_look_use_icons ||
         saturation <> !!O.gtk_look_icon_saturation ||
         small_icon <> !!O.gtk_look_lists_icon_size ||
@@ -696,3 +716,21 @@ let config_window gui f =
     gui.update_current_page ();
   in
   Config.config_window ~on_ok
+
+
+let _ =
+  (try Options.load O.gui_ini with _ -> ());
+  (try Options.save O.gui_ini with _ -> ());
+  let args = Options.simple_args "" O.gui_ini in
+  Arg.parse args (Arg.usage args)  "mlgui: the GUI to use with mldonkey";
+  load_gui_options () (* ;
+  match !!O.gtk_client_lang with
+      U.EN -> ()
+    | _ ->
+      begin
+        let s = U.lang_to_string !!O.gtk_client_lang in
+        let ext = String.lowercase s in
+        Gettext.set_strings_file M.filename ~ext ();
+        M.load_messages ()
+      end
+*)

@@ -78,6 +78,7 @@ let dummy_source =
      source_rating = 0;
      source_chat_port = 0;
      source_connect_time = 0;
+     source_last_seen = BasicSocket.current_time ();
      source_software = "tML";
      source_downloaded = Int64.zero;
      source_uploaded = Int64.zero;
@@ -121,7 +122,7 @@ class g_download () =
   let download_network_pixb      = download_cols#add Gobject.Data.gobject_option in
   let download_name              = download_cols#add Gobject.Data.string in
   let download_name_pixb         = download_cols#add Gobject.Data.gobject_option in
-  let download_md4               = download_cols#add Gobject.Data.string in
+  let download_uid               = download_cols#add Gobject.Data.string in
   let download_size              = download_cols#add Gobject.Data.string in
   let download_downloaded        = download_cols#add Gobject.Data.string in
   let download_percent           = download_cols#add Gobject.Data.string in
@@ -155,7 +156,7 @@ class g_download () =
               store#set ~row ~column:download_network_pixb (Mi.network_pixb f.file_network ~size:A.SMALL ());
               store#set ~row ~column:download_name (U.utf8_of f.file_name);
               store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.file_name ~size:A.SMALL);
-              store#set ~row ~column:download_md4 (U.utf8_of (Md4.to_string f.file_md4));
+              store#set ~row ~column:download_uid (Mi.uid_list_to_string f.file_uids);
               store#set ~row ~column:download_size (Mi.size_of_int64 f.file_size);
               store#set ~row ~column:download_downloaded (Mi.size_of_int64 f.file_downloaded);
               store#set ~row ~column:download_percent (Mi.get_percent_of f.file_downloaded f.file_size);
@@ -216,9 +217,9 @@ class g_download () =
                       store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f_new.file_name ~size:A.SMALL);
                     end
                 end;
-              if f.file_md4 <> f_new.file_md4
+              if f.file_uids <> f_new.file_uids
                 then begin
-                  store#set ~row ~column:download_md4 (U.utf8_of (Md4.to_string f_new.file_md4));
+                  store#set ~row ~column:download_uid (Mi.uid_list_to_string f.file_uids);
                 end;
               if (f.file_size, f.file_downloaded, f.file_download_rate, f.file_age) <>
                  (f_new.file_size, f_new.file_downloaded, f_new.file_download_rate, f_new.file_age)
@@ -415,11 +416,11 @@ class g_download () =
                 end
             end
 
-        | Col_file_md4 ->
+        | Col_file_uid ->
             begin
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack renderer;
-              col#add_attribute renderer "text" download_md4
+              col#add_attribute renderer "text" download_uid
             end
 
         | Col_file_format ->
@@ -508,7 +509,7 @@ class g_download () =
                  | Col_file_state -> compare (Mi.string_of_file_state f1.file_state f1.file_download_rate)
                                              (Mi.string_of_file_state f2.file_state f2.file_download_rate)
                  | Col_file_availability -> compare f1.file_availability f2.file_availability
-                 | Col_file_md4 -> compare f1.file_md4 f2.file_md4
+                 | Col_file_uid -> compare (Mi.uid_list_to_string f1.file_uids) (Mi.uid_list_to_string f2.file_uids)
                  | Col_file_format -> compare f1.file_format f2.file_format
                  | Col_file_network -> compare f1.file_network f2.file_network
                  | Col_file_age -> compare f1.file_age f2.file_age

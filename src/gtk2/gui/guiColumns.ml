@@ -88,7 +88,7 @@ module Column(C: sig
 (* The different columns which can be displayed for a file. *)
 type file_column = 
   Col_file_name
-| Col_file_md4
+| Col_file_uid
 | Col_file_size
 | Col_file_downloaded
 | Col_file_percent
@@ -106,7 +106,7 @@ type file_column =
 
 let file_column_strings = [
     Col_file_name         , M.c_name       , 0  ;
-    Col_file_md4          , M.c_md4        , 1  ;
+    Col_file_uid          , M.c_uid        , 1  ;
     Col_file_size         , M.c_size       , 2  ;
     Col_file_downloaded   , M.c_downloaded , 3  ;
     Col_file_percent      , M.c_percent    , 4  ;
@@ -300,7 +300,7 @@ type shared_file_up_column =
 | Col_shared_upsize
 | Col_shared_requests
 | Col_shared_size
-| Col_shared_md4
+| Col_shared_uid
 
 let shared_file_up_column_strings = [
     Col_shared_file     , M.c_filename , 0 ;
@@ -308,7 +308,7 @@ let shared_file_up_column_strings = [
     Col_shared_upsize   , M.c_uploaded , 2 ;
     Col_shared_requests , M.c_requests , 3 ;
     Col_shared_size     , M.c_size     , 4 ;
-    Col_shared_md4      , M.c_md4      , 5 ;
+    Col_shared_uid      , M.c_uid      , 5 ;
   ] 
   
 module Shared_files_up = Column

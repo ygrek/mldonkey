@@ -384,13 +384,14 @@ let popup_progress ~label ~items ~f ~step =
 *)
 
 let create_bold_markup s =
-  let str = U.utf8_of s in
+  let str = Glib.Markup.escape_text (U.utf8_of s) in
   Printf.sprintf "<span foreground=\"%s\" weight=\"bold\">%s</span>" 
     "#0000FF" str
 
-let create_default_bold_markup s = 
+let create_default_bold_markup s =
+  let str = Glib.Markup.escape_text (U.utf8_of s) in
   Printf.sprintf "<span foreground=\"%s\" weight=\"bold\">%s</span>" 
-      !!O.gtk_color_default s
+      !!O.gtk_color_default str
 
 (* **
    [create_markup s] returns a string which is

@@ -918,7 +918,7 @@ let _ =
             P.file_chunks_age = last_seen;
             P.file_age = file_age file;
             P.file_last_seen = file.file_file.impl_file_last_seen;
-            P.file_uids = [];
+            P.file_uids = [Uid.create (Ed2k file.file_md4)];
           } in
         v
       with e ->
@@ -1130,7 +1130,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
    ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
    ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
-   ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
+   ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"javascript:renameForm2.newName.value=renameForm1.newName.options[renameForm1.newName.selectedIndex].value;this.form.submit();\\\"\\>"
    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
    ^ !optionlist
    ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
@@ -1523,7 +1523,7 @@ let _ =
           { (impl_shared_info impl) with 
             T.shared_network = network.network_num;
             T.shared_filename = file_best_name file;
-            T.shared_id = file.file_md4;
+            T.shared_uids = [Uid.create (Ed2k file.file_md4)];
             }
   );
   pre_shared_ops.op_shared_info <- (fun s ->

@@ -93,11 +93,6 @@ let server_black_list = define_option donkey_section
     Servers on this list can't be added, and will eventually be removed"
     (list_option Ip.option) []
   
-let master_server_min_users = define_option donkey_section
-    ["master_server_min_users"] "The minimal number of users for a server
-    to be admitted as one of the 5 master servers"
-    int_option 0
-  
 let force_high_id = define_option donkey_section ["force_high_id"] 
     "immediately close connection to servers that don't grant a High ID"
     bool_option false
@@ -309,7 +304,6 @@ let gui_donkey_options_panel =
     "Maximal Server Age", shortname max_server_age, "T";
     "Min Left Servers After Clean", shortname min_left_servers, "T";
     "Update Server List", shortname update_server_list, "B";
-    "Min Users on Master Servers", shortname master_server_min_users, "T";
     "Servers Walking Period", shortname servers_walking_period, "T";
     "Force High ID", shortname force_high_id, "B";
     "Max Number of Connected Servers", shortname max_connected_servers, "T";

@@ -490,7 +490,9 @@ let buf_file proto charset buf f =
     if proto >= 12 then
       buf_int buf f.file_priority;
     if proto > 21 then
-      buf_string charset buf f.file_comment
+      buf_string charset buf f.file_comment;
+    if proto > 30 then
+      buf_list buf (buf_uid charset) f.file_uids
       
 let buf_addr charset buf addr =
   match addr with
@@ -594,9 +596,11 @@ let buf_shared_info proto charset buf s =
   buf_int64 buf s.shared_uploaded;
   buf_int buf s.shared_requests;
   if proto >= 10 then
-    buf_md4 buf s.shared_id
-    
-  
+    if proto < 31 then
+      buf_md4 buf Md4.null
+    else
+      buf_list buf (buf_uid charset) s.shared_uids
+
 (***************
 
        Encoding of messages from the Core to the GUI 

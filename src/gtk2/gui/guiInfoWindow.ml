@@ -132,7 +132,7 @@ let item_info_of_item item =
         let avail = Mi.main_availability_of f.file_network f.file_availability in
         [
          [!M.fW_lb_file_format; Mi.format_to_string f.file_format];
-         [!M.fW_lb_file_hash;   Md4.to_string f.file_md4];
+         [!M.fW_lb_file_hash;   Mi.uid_list_to_string f.file_uids];
          [!M.fW_lb_file_size;   Mi.size_of_int64 f.file_size;
           !M.fW_lb_file_state;  Mi.string_of_file_state f.file_state f.file_download_rate];
          [!M.fW_lb_file_chunks; Mi.chunks_to_string f.file_chunks;
@@ -165,7 +165,7 @@ let transfer_info_of_item item (table : GPack.table) =
           !M.fW_lb_file_complete_chunks; Mi.completed_chunks_to_string f.file_chunks];
          [!M.fW_lb_last_seen;            Mi.time_to_string f.file_last_seen;
           !M.fW_lb_file_eta;            (Mi.calc_eta_inst f.file_size f.file_downloaded f.file_download_rate) ^ " / " ^
-                                       (Mi.calc_eta_average f.file_size f.file_downloaded f.file_age)]
+                                        (Mi.calc_eta_average f.file_size f.file_downloaded f.file_age)]
         ]
 
     | Source (s, files) ->

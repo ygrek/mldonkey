@@ -365,9 +365,12 @@ module Proto = struct
             OvernetPeerNotFound peer
         
         | _ ->
-            lprintf "UNKNOWN: opcode %d\n" opcode;
-            dump s;
-            lprint_newline ();
+            if !verbose_unknown_messages then
+              begin
+                lprintf "UNKNOWN: opcode %d\n" opcode;
+                dump s;
+                lprint_newline ();
+              end;
             OvernetUnknown (opcode, s)
       with e ->
           if !verbose_hidden_errors then

@@ -165,8 +165,8 @@ let display_im gui () =
 (*                                                                       *)
 (*************************************************************************)
 
-let rec display_settings gui =
-  GuiConfig.config_window gui fill_tool_bar
+let rec display_settings gui value_reader =
+  GuiConfig.config_window gui value_reader fill_tool_bar
 
 and fill_tool_bar gui =
   let bNetworks = gui.wtool#add_toggle_button

@@ -31,7 +31,7 @@ let gui_extension_poll = 1
   
 let to_gui_last_opcode = 58
 let from_gui_last_opcode = 65
-let best_gui_version = 30
+let best_gui_version = 31
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -45,7 +45,14 @@ Version 27:
   GUI -> Core: new message [INTERESTED_IN_SOURCES]
     By sending (INTERESTED_IN_SOURCES interestedp), a GUI can declare
      whether it wants or not to receive information on sources.
-  
+
+Version 31:
+  Core -> GUI: message 52 [FILE_INFO]
+    Field file_uids is now encoded (string list) for protocol > 30
+  Core -> GUI: message 48 [SHARED_FILE_INFO]
+    Field shared_id (md4 - 16 bytes) has been replaced by shared_uids (string list)
+    For protocols < 31, the MD4 sent is now invalid (filled with zeroes). Don't use it !
+
   *)
   
   

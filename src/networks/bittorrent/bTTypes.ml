@@ -98,6 +98,7 @@ and file = {
     mutable file_trackers : tracker_info list;
     mutable file_tracker_connected : bool;
     mutable file_completed_hook : (file -> unit);
+    mutable file_shared : file CommonShared.shared_impl option;
   }
 
 and ft = {
