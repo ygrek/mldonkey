@@ -371,7 +371,7 @@ module MyCList: sig
 let update_sizes timer = 
   reactivate_timer timer;
   List.iter (fun clist -> 
-      try GToolbox.autosize_clist clist with _ -> ()) !clists_need_resize;
+      try clist#columns_autosize () with _ -> ()) !clists_need_resize;
   clists_need_resize := []
   
   

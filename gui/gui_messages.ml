@@ -534,6 +534,7 @@ TODO list
   * More options in GUI
   * Ask for passwords if they are not set. 
   * Popup et historique des dialogues.
+  * Admin open file descrs.
 
 ChangeLog
 =========
