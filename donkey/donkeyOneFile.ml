@@ -352,21 +352,21 @@ and find_zone1 c b zones =
       file.file_chunks.(b.block_pos) <- PresentTemp;
       let state = verify_chunk file b.block_pos in
       if state = PresentVerified then begin
-	valid_block_detected b;
-	file.file_chunks.(b.block_pos) <- state;
-	file.file_absent_chunks <- List.rev (find_absents file);
-	c.client_block <- None;
-      end else begin
-	let message = Printf.sprintf "CORRUPTION DETECTED file %s chunk %d\n" (file_best_name file) b.block_pos in
-	CommonEvent.add_event (Console_message_event message);
-	corrupted_block_detected b;
-	b.block_zones <- create_zones file b.block_begin b.block_end [];
-	b.block_unknown_origin <- false;
-	b.block_present <- false;
-	b.block_contributors <- [];
-	file.file_chunks.(b.block_pos) <- PartialVerified b;
-	c.client_block <- Some b
-      end;
+          valid_block_detected b;
+          file.file_chunks.(b.block_pos) <- state;
+          file.file_absent_chunks <- List.rev (find_absents file);
+          c.client_block <- None;
+        end else begin
+          let message = Printf.sprintf "CORRUPTION DETECTED file %s chunk %d\n" (file_best_name file) b.block_pos in
+          CommonEvent.add_event (Console_message_event message);
+          corrupted_block_detected b;
+          b.block_zones <- create_zones file b.block_begin b.block_end [];
+          b.block_unknown_origin <- false;
+          b.block_present <- false;
+          b.block_contributors <- [];
+          file.file_chunks.(b.block_pos) <- PartialVerified b;
+          c.client_block <- Some b
+        end;
       find_client_block c
   
   | z :: zones ->
@@ -438,18 +438,18 @@ and check_file_block c file i max_clients force =
               lprint_newline ();
             end;
           zero_block file i;
-	  b.block_unknown_origin <- false;
+          b.block_unknown_origin <- false;
           c.client_block <- Some b;
           file.file_chunks.(i) <- PartialVerified b;
-	  add_client_trust b c;
+          add_client_trust b c;
           find_client_zone c;
           raise Not_found
       
       | PartialVerified b ->
           if b.block_nclients < max_clients && 
-	     allowed_by_trust b c force then begin
-	      if force then
-		b.block_unknown_origin <- true;
+            allowed_by_trust b c force then begin
+              if force then
+                b.block_unknown_origin <- true;
               b.block_nclients <- b.block_nclients + 1;            
               c.client_block <- Some b;
               if !verbose then begin
@@ -460,7 +460,7 @@ and check_file_block c file i max_clients force =
                 end;
               
               file.file_chunks.(i) <- PartialVerified b;
-	      add_client_trust b c;
+              add_client_trust b c;
               find_client_zone c;
               raise Not_found
             end      
@@ -490,7 +490,7 @@ and start_download c =
     end
 
 and restart_download c = 
-  if !verbose_download then begin
+  if !verbose_download || c.client_debug then begin
       lprintf "restart_download..."; lprint_newline ();
     end;
   match c.client_sock with
@@ -522,21 +522,21 @@ and restart_download c =
 and find_client_block c =
 (* find an available block *)
   
-  if !verbose_download then begin
+  if !verbose_download || c.client_debug then begin
       lprintf "find_client_block: started"; lprint_newline ();
     end;
   match c.client_file_queue with
     [] ->
-    (* Emule may reconnect and give the slot without us asking for it.
+(* Emule may reconnect and give the slot without us asking for it.
     We have to fix this behavior in the future. *)
-      if !verbose_download then begin    
+      if !verbose_download || c.client_debug then begin    
           lprintf "Client %d: NO FILE IN QUEUE" (client_num c); 
           lprint_newline ();
         end
-        
+  
   | (file, (chunks)) :: files -> 
       
-      if !verbose_download then begin
+      if !verbose_download || c.client_debug then begin
           lprintf "File %s state %s"
             (file_best_name file)
           (string_of_file_state 
@@ -544,11 +544,11 @@ and find_client_block c =
         end;
       if file_state file <> FileDownloading then next_file c else 
       
-      if !verbose_download then begin
+      if !verbose_download || c.client_debug then begin
           lprintf "find_client_block: continuing"; lprint_newline ();
         end;
       
-      if !verbose then begin
+      if !verbose || c.client_debug  then begin
           for i = 0 to file.file_nchunks - 1 do
             lprint_char (match file.file_chunks.(i) with
               | PartialVerified _ -> 'P'
@@ -569,155 +569,155 @@ and find_client_block c =
         | Some _ ->
             printf_string "[USED]";
       end;
-
+      
       try  
-	let aux force =
-
-        let last = file.file_nchunks - 1 in
-        
-        if !!random_order_download then begin
-            
-            if !verbose_download then begin
-                lprintf "find_client_block: random_order_download"; lprint_newline ();
-              end;
+        let aux force =
+          
+          let last = file.file_nchunks - 1 in
+          
+          if !!random_order_download then begin
+              
+              if !verbose_download || c.client_debug then begin
+                  lprintf "find_client_block: random_order_download"; lprint_newline ();
+                end;
 
 (* chunks with MD4 already computed *)
-            for i = 0 to last do
-              let j = file.file_chunks_order.(i) in
-              if c.client_chunks.(j) && 
-                (match file.file_chunks.(j) with
-                    AbsentVerified -> true
-                  | PartialVerified b when b.block_nclients = 0 -> true
-                  | _ -> false
-                ) then
-                check_file_block c file j !!sources_per_chunk force
-            done;        
+              for i = 0 to last do
+                let j = file.file_chunks_order.(i) in
+                if c.client_chunks.(j) && 
+                  (match file.file_chunks.(j) with
+                      AbsentVerified -> true
+                    | PartialVerified b when b.block_nclients = 0 -> true
+                    | _ -> false
+                  ) then
+                  check_file_block c file j !!sources_per_chunk force
+              done;        
 
 (* chunks whose computation will probably lead to only one MD4 *)
-            for i = 0 to last do
-              let j = file.file_chunks_order.(i) in
-              if c.client_chunks.(j) && 
-                (match file.file_chunks.(j) with
-                    AbsentTemp -> true
-                  | PartialTemp b when b.block_nclients = 0 -> true
-                  | _ -> false
-                ) then
-                check_file_block c file j  !!sources_per_chunk force
-            done;        
+              for i = 0 to last do
+                let j = file.file_chunks_order.(i) in
+                if c.client_chunks.(j) && 
+                  (match file.file_chunks.(j) with
+                      AbsentTemp -> true
+                    | PartialTemp b when b.block_nclients = 0 -> true
+                    | _ -> false
+                  ) then
+                  check_file_block c file j  !!sources_per_chunk force
+              done;        
 
 (* rare chunks *)
 (* while different clients should try to get different chunks, each client
    should try to complete the chunks it started: if the rare sources
    disappear, all partial chunks will become useless *)
-            for i = 0 to last do
-              let j = file.file_chunks_order.(i) in
-              if c.client_chunks.(j) && file.file_available_chunks.(j) = 1 then
-                check_file_block c file j max_int force;
-            done;
+              for i = 0 to last do
+                let j = file.file_chunks_order.(i) in
+                if c.client_chunks.(j) && file.file_available_chunks.(j) = 1 then
+                  check_file_block c file j max_int force;
+              done;
 
 (* chunks with no client *)
-            for i = 0 to last do
-              let j = file.file_chunks_order.(i) in
-              check_file_block c file j  !!sources_per_chunk force
-            done;
+              for i = 0 to last do
+                let j = file.file_chunks_order.(i) in
+                check_file_block c file j  !!sources_per_chunk force
+              done;
 
 (* chunks with several clients *)
-            for i = 0 to last do
-              let j = file.file_chunks_order.(i) in
-              check_file_block c file j max_int force
-            done;
-          
-          end else begin
+              for i = 0 to last do
+                let j = file.file_chunks_order.(i) in
+                check_file_block c file j max_int force
+              done;
             
-            if !verbose_download then begin
-                lprintf "find_client_block: NOT RANDOM ORDER (last = %d)" last;
-                lprint_newline ();
-              end;
-            
-            if c.client_chunks.(last) then
-              check_file_block c file last max_int force;
-            if last > 0 && c.client_chunks.(last-1) then
-              check_file_block c file (last-1) max_int force;
+            end else begin
+              
+              if !verbose_download then begin
+                  lprintf "find_client_block: NOT RANDOM ORDER (last = %d)" last;
+                  lprint_newline ();
+                end;
+              
+              if c.client_chunks.(last) then
+                check_file_block c file last max_int force;
+              if last > 0 && c.client_chunks.(last-1) then
+                check_file_block c file (last-1) max_int force;
 
 (* chunks with MD4 already computed *)
-            for i = 0 to file.file_nchunks - 1 do
-              if c.client_chunks.(i) && (match file.file_chunks.(i) with
-                    AbsentVerified -> true
-                  | PartialVerified b when b.block_nclients = 0 -> true
-                  | _ -> false
-                ) then
-                check_file_block c file i  !!sources_per_chunk force
-            done;        
+              for i = 0 to file.file_nchunks - 1 do
+                if c.client_chunks.(i) && (match file.file_chunks.(i) with
+                      AbsentVerified -> true
+                    | PartialVerified b when b.block_nclients = 0 -> true
+                    | _ -> false
+                  ) then
+                  check_file_block c file i  !!sources_per_chunk force
+              done;        
 
 (* chunks whose computation will probably lead to only one MD4 *)
-            for i = 0 to file.file_nchunks - 1 do
-              if c.client_chunks.(i) && (match file.file_chunks.(i) with
-                    AbsentTemp -> true
-                  | PartialTemp b when b.block_nclients = 0 -> true
-                  | _ -> false
-                ) then
-                check_file_block c file i  !!sources_per_chunk force
-            done;        
+              for i = 0 to file.file_nchunks - 1 do
+                if c.client_chunks.(i) && (match file.file_chunks.(i) with
+                      AbsentTemp -> true
+                    | PartialTemp b when b.block_nclients = 0 -> true
+                    | _ -> false
+                  ) then
+                  check_file_block c file i  !!sources_per_chunk force
+              done;        
 
 (* rare chunks *)
-            let rare_blocks = ref [] in
-            for i = 0 to file.file_nchunks - 1 do
-              if c.client_chunks.(i) && file.file_available_chunks.(i) = 1 then
-                rare_blocks := (Random.int 1000, i) :: !rare_blocks
-            done;        
-            
-            let rare_blocks = Sort.list (fun (c1,_) (c2,_) -> c1 <= c2)
-              !rare_blocks in
-            
-            List.iter (fun (_,i) ->
-                check_file_block c file i max_int force) rare_blocks;
+              let rare_blocks = ref [] in
+              for i = 0 to file.file_nchunks - 1 do
+                if c.client_chunks.(i) && file.file_available_chunks.(i) = 1 then
+                  rare_blocks := (Random.int 1000, i) :: !rare_blocks
+              done;        
+              
+              let rare_blocks = Sort.list (fun (c1,_) (c2,_) -> c1 <= c2)
+                !rare_blocks in
+              
+              List.iter (fun (_,i) ->
+                  check_file_block c file i max_int force) rare_blocks;
 
 (* chunks with no client *)
-            check_file_block c file last max_int force;
-            if last > 0 then  check_file_block c file (last-1) max_int force;
-            for i = 0 to file.file_nchunks - 1 do
-              check_file_block c file i  !!sources_per_chunk force
-            done;
+              check_file_block c file last max_int force;
+              if last > 0 then  check_file_block c file (last-1) max_int force;
+              for i = 0 to file.file_nchunks - 1 do
+                check_file_block c file i  !!sources_per_chunk force
+              done;
 
 (* chunks with several clients *)
+              for i = 0 to file.file_nchunks - 1 do
+                check_file_block c file i max_int force
+              done
+            
+            end in
+        
+        aux false;
+        aux true;
+        
+        if !verbose_download || c.client_debug then begin
+            lprintf "No block found ???"; lprint_newline ();
             for i = 0 to file.file_nchunks - 1 do
-              check_file_block c file i max_int force
-            done
-
-	  end in
-
-	    aux false;
-	    aux true;
-            
-            if !verbose_download then begin
-                lprintf "No block found ???"; lprint_newline ();
-                for i = 0 to file.file_nchunks - 1 do
-                  
-                  lprintf "%d: client %c source %s"
-                    i
-                    (if chunks.(i) then '1' else '0')
-                  (match file.file_chunks.(i) with
-                      PresentTemp -> "p"
-                    | PresentVerified -> "P"
-                    | AbsentTemp -> "a"
-                    | AbsentVerified -> "A"
-                    | PartialTemp _ -> "d"
-                    | PartialVerified _ -> "D");
-                  lprint_newline ();
-                done;
-              end;
               
-            
+              lprintf "%d: client %c source %s"
+                i
+                (if chunks.(i) then '1' else '0')
+              (match file.file_chunks.(i) with
+                  PresentTemp -> "p"
+                | PresentVerified -> "P"
+                | AbsentTemp -> "a"
+                | AbsentVerified -> "A"
+                | PartialTemp _ -> "d"
+                | PartialVerified _ -> "D");
+              lprint_newline ();
+            done;
+          end;
+
+
 (* THIS CLIENT CANNOT HELP ANYMORE: USELESS FOR THIS FILE *)
         printf_string "[NEXT]";
         next_file c
-with e -> 
-    if !verbose_download then begin
-        lprintf "find_client_block: exception %s"
-          (Printexc2.to_string e); lprint_newline ();
-        ()
-      end
-          
+      with e -> 
+          if !verbose_download || c.client_debug then begin
+              lprintf "find_client_block: exception %s"
+                (Printexc2.to_string e); lprint_newline ();
+              ()
+            end
+            
 and next_file c =
   
   lprintf "next_file..."; lprint_newline ();

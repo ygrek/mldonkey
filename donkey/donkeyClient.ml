@@ -853,9 +853,15 @@ lprint_newline ();
                         lprintf "Recovered file queue by md4\n";
                       v
                 in
+                let file = List.map (fun (file, chunks) ->
+                      file, Array.copy chunks) files in
                 List.iter (fun (file, chunks) ->
                     add_client_chunks file chunks) files;
-                c.client_file_queue <- files @ c.client_file_queue
+                c.client_file_queue <- files @ c.client_file_queue;
+                c.client_asked_for_slot <- true;
+                DonkeyOneFile.restart_download c
+                    
+                
               with _ -> ()
       end;
       DonkeyOneFile.find_client_block c

@@ -831,3 +831,11 @@ let empty_password user =
 let mlnet_redirector = define_option downloads_ini ["redirector"]
     "IP:port of the network redirector"
     addr_option ("128.93.52.5", 3999)
+
+let log_file = define_option downloads_ini ["log_file"]
+  "The file in which you want mldonkey to log its debug messages. If you
+  set this option, mldonkey will log this info in the file until you use the
+'close_log' command. The log file may become very large. You can
+    also enable logging in a file after startup using the 'log_file' command."
+  string_option ""
+  

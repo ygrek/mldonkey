@@ -26,6 +26,7 @@ val client_file : DonkeyTypes.client -> DonkeyTypes.file
 val find_client_block : DonkeyTypes.client -> unit
 val set_file_size : DonkeyTypes.file -> int64 -> unit
 val start_download : DonkeyTypes.client -> unit
+val restart_download : DonkeyTypes.client -> unit
 val next_file : DonkeyTypes.client -> unit
   
 val remove_file : Md4.t -> unit

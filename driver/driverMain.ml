@@ -400,9 +400,23 @@ let _ =
 let _ =
   lprintf "Core started\n"; 
   core_included := true;
+  
   if not !keep_console_output then begin
       lprintf "Disabling output to console, to enable: stdout true\n";
-      lprintf_to_stdout := false;
+      
+      if !!log_file <> "" then begin
+          try
+            let oc = open_out !!log_file in
+            lprintf "Logging in %s\n" !!log_file;
+            (match !lprintf_output with
+                None -> () | Some oc -> close_out oc);
+            lprintf_output := Some oc;
+          with e ->
+              lprintf "Exception %s while opening log file: %s\n"
+                (Printexc2.to_string e) !!log_file
+        end else
+              lprintf_to_stdout := false;
+            
       
 (* Question: is-it not to late to go in background ? Is-it possible that
 we have started some threads already ? What happens then ? *)

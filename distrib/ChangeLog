@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/03/11: Simon (v 2.04rc1-1)
+  - New changes for Emule compatibility.
+  - Added option 'log_file' in downloads.ini
+
 2003/03/10: Simon (release-2-04rc1)
   - Changes in replies to Emule AvailableSlot
   - Applied patches #1250, #1251

@@ -2,7 +2,7 @@ TODO list for client
 ====================
 
 *******************
-Before 2.03:
+Before 2.04 :)
 *******************
 
 * Force connect to friends from time to time to see the shared-file lists.
@@ -21,12 +21,15 @@ Before 2.03:
 * try to ensure that clients that have a pending slot are correctly
    added/removed.
 * Replace network column by network icons, file state by icons too
-* Queues of downloads: option 'max_current_downloads', new file state
-   FileQueued, and all files with lower priority are in state FileQueued
-   until files with higher priority are downloaded.
 * tty mode in telnet ?
 * Sort commands for ?? like options
 * Button "New Shared Directory" in upload
+* Apply some pango's patches:
+  * lots of obsolete parameters in "08_better_default_parameters"
+  * Remove "a la mldonkey" source propagation
+  * have a look at reliable_sources
+* Add a "log_file" option or argument.
+
 
 Core:
 =====
