@@ -1055,8 +1055,8 @@ let _ =
         with e ->
             lprintf "Exception %s while opening log file: %s\n"
               (Printexc2.to_string e) !!log_file
-      else
-        lprintf_to_stdout := false
+(*      else
+        lprintf_to_stdout := false *)
   );  
   option_hook max_upload_slots (fun _ ->
       if !!max_upload_slots < 3 then
