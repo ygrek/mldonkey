@@ -443,14 +443,17 @@ let commands = [
         
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
-        Printf.bprintf  buf "Servers: %d known\n" (List.length !!servers);
-        List.iter (fun s ->
+        let nb_servers = ref 0 in
+        Intmap.iter (fun _ s ->
             try
+              incr nb_servers;
               server_print s o
             with e ->
                 Printf.printf "Exception %s in server_print"
                   (Printexc.to_string e); print_newline ();
-        ) !!servers; ""), ": list all known servers";
+        ) !!servers;
+        Printf.sprintf "Servers: %d known\n" !nb_servers
+        ), ": list all known servers";
         
     "reshare", Arg_none (fun o ->
         let buf = o.conn_buf in

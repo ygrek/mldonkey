@@ -301,7 +301,7 @@ let add_global_peer peer =
 	end
       end
   else
-    if !!verbose then
+    if !!verbose_overnet then
       begin
 	Printf.printf "Tried to add myself as a peer: %s/%s %s/%s\n" 
 	  (Ip.to_string peer.peer_ip) (Ip.to_string !!donkey_bind_addr)
@@ -322,13 +322,15 @@ let publicize_peers () =
       begin
       let global_dist = get_uniform_distribution () in
       let local_dist = get_local_distribution overnet_md4 in
-      List.iter (fun a -> Printf.printf "UNIFORM DIST: %s" (Md4.to_string a.peer_md4); print_newline () ) global_dist; 
+      if !!verbose_overnet then 
+        List.iter (fun a -> Printf.printf "UNIFORM DIST: %s" (Md4.to_string a.peer_md4); print_newline () ) global_dist; 
       List.iter (fun a -> 
           udp_send a.peer_ip a.peer_port
             (OvernetPublicize(overnet_md4,
               !!donkey_bind_addr,!!overnet_port, 0) ) ) 
       global_dist;
-      List.iter (fun a -> Printf.printf "LOCAL DIST: %s" (Md4.to_string a.peer_md4); print_newline () ) local_dist;
+      if !!verbose_overnet then
+        List.iter (fun a -> Printf.printf "LOCAL DIST: %s" (Md4.to_string a.peer_md4); print_newline () ) local_dist;
       List.iter (fun a -> 
           udp_send a.peer_ip a.peer_port
             (OvernetPublicize(overnet_md4,
@@ -340,7 +342,9 @@ let publicize_peers () =
 let find_new_peers () =
   if !!overnet_search_sources || !!overnet_search_keyword then
     begin
-      Printf.printf "FINDING NEW PEERS"; print_newline ();
+      if !!verbose_overnet then begin
+          Printf.printf "FINDING NEW PEERS"; print_newline ();
+        end;
       try 
         for i=0 to 255 do 
           if global_peers_size.(i) <= 4 then raise Not_found;
@@ -522,7 +526,7 @@ let udp_client_handler t p =
           peer :: tail ->
             
             let other_ip = ip_of_udp_packet p in
-	    if !!verbose then begin
+	    if !!verbose_overnet then begin
               Printf.printf "sender IP was %s" (Ip.to_string peer.peer_ip); print_newline ();	    
 	    end;
 	    peer.peer_ip <- (change_private_address peer.peer_ip other_ip);
@@ -554,7 +558,7 @@ let udp_client_handler t p =
   | OvernetPublicize (md4, ip, port, kind ) ->
       begin
         let other_ip = ip_of_udp_packet p in
- 	if !!verbose then
+ 	if !!verbose_overnet then
 	  begin
 	    Printf.printf "sender IP was %s - packet was from %s" 
 	      (Ip.to_string ip) (Ip.to_string other_ip); 
@@ -598,8 +602,10 @@ let udp_client_handler t p =
 		      udp_send s_ip s_port (OvernetGetSearchResults (md4,0,0,100));
 
                     List.iter (fun file ->
-                        Printf.printf "TRY TO PUBLISH FILE FOR KEYWORD";
-                        print_newline ();
+                        if !!verbose_overnet then begin
+                            Printf.printf "TRY TO PUBLISH FILE FOR KEYWORD";
+                            print_newline ();
+                          end;
                         udp_send s_ip s_port 
                           (OvernetPublish (md4, file.file_md4, DonkeyProtoCom.tag_file file))
                     ) s.search_publish_files
@@ -626,7 +632,10 @@ let udp_client_handler t p =
                   (Md4.to_string sender.peer_md4)
                   ; print_newline ();
                 end;
-            with _ -> Printf.printf "Sender firewalled ?"; print_newline ();
+            with _ -> 
+                if !!verbose_overnet then begin
+                    Printf.printf "Sender firewalled ?"; print_newline ();
+                  end;
           end;
           List.iter (fun p ->
               if !!verbose_overnet then begin

@@ -42,7 +42,6 @@ let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey)
 
 let hourly_timer timer =
-  DonkeyServers.remove_old_servers ();
   DonkeyClient.clean_groups ();
   DonkeyProtoCom.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
@@ -51,9 +50,10 @@ let hourly_timer timer =
   Hashtbl.clear udp_servers_replies
     
 let quarter_timer timer =
-  ()
+  DonkeyServers.remove_old_servers ()
 
 let fivemin_timer timer =
+  DonkeyFiles.remove_old_clients ();
   DonkeyFiles.fill_clients_list ();
   DonkeyShare.send_new_shared ()
 
@@ -62,7 +62,6 @@ let second_timer timer =
   DonkeyFiles.reset_upload_timer ()
 
 let halfmin_timer timer =
-  DonkeyFiles.remove_old_clients ();
   DonkeyServers.update_master_servers ();
   DonkeyFiles.upload_credit_timer ();
   DonkeyIndexer.add_to_local_index_timer ()

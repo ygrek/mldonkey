@@ -1260,36 +1260,42 @@ let client_connection_handler t event =
   printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      
+
+(*
       if can_open_connection () then
-        begin
-          try
-            let c = ref None in
-            let sock = 
-              TcpBufferedSocket.create "donkey client connection" s 
-                (client_handler2 c) 
+begin
+*)
+      (try
+          let c = ref None in
+          let sock = 
+            TcpBufferedSocket.create "donkey client connection" s 
+              (client_handler2 c) 
 (*client_msg_to_string*)
-            in
-            init_connection sock;
+          in
+          init_connection sock;
+          
+          (try
+              set_reader sock 
+                (DonkeyProtoCom.client_handler2 c read_first_message
+                  (client_to_client []));
             
-            (try
-                set_reader sock 
-                  (DonkeyProtoCom.client_handler2 c read_first_message
-                    (client_to_client []));
-              
-              with e -> Printf.printf "Exception %s in init_connection"
-                    (Printexc.to_string e);
-                  print_newline ());
-          with e ->
-              Printf.printf "Exception %s in client_connection_handler"
-                (Printexc.to_string e);
-              print_newline ();
-              Unix.close s
-        end      
+            with e -> Printf.printf "Exception %s in init_connection"
+                  (Printexc.to_string e);
+                print_newline ());
+        with e ->
+            Printf.printf "Exception %s in client_connection_handler"
+              (Printexc.to_string e);
+            print_newline ();
+            Unix.close s)
+(*
+end     
+
       else begin
           Printf.printf "***** CONNECTION PREVENTED by limitations *****";
           print_newline ();
           Unix.close s
-        end;
+end;
+  *)
   | _ -> 
       ()      
+      

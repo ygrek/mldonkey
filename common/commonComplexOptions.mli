@@ -37,7 +37,7 @@ val contact_remove : CommonTypes.client -> unit
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
 
-val servers : CommonTypes.server list Options.option_record
+val servers : CommonTypes.server Intmap.t Options.option_record
 val friends : CommonTypes.client list Options.option_record
 val contacts : CommonTypes.client list ref
   

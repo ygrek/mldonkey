@@ -452,6 +452,28 @@ let value_to_safelist v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
 ;;
 
+let value_to_intmap f v2c v =
+  match v with
+    List l | SmallList l -> 
+      let rec iter map left =
+        match left with
+          [] -> map
+        | x :: tail ->
+            let map = try 
+                let v = v2c x in
+                let num = f v in
+                Intmap.add num v map with _ -> map
+            in
+            iter map tail
+      in
+      iter Intmap.empty l
+  | StringValue s -> failwith (Printf.sprintf 
+        "Options: not a list option (StringValue [%s])" s)
+  | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
+  | IntValue _ -> failwith "Options: not a list option (IntValue)"
+  | Module _ -> failwith "Options: not a list option (Module)"
+;;
+
 let value_to_listiter v2c v =
   match v with
     List l | SmallList l -> List.iter (fun v -> ignore(v2c v)) l; 
@@ -492,6 +514,13 @@ let value_to_option v2c v =
       
 let list_to_value name c2v l =
   List (convert_list name c2v l [])
+  
+let intmap_to_value name c2v map =
+  let list = ref [] in
+  Intmap.iter (fun _ v ->
+      list := v :: !list
+  ) map;
+  list_to_value name c2v !list
   
 let hasharray_to_value x c2v l =
   let res = ref [] in
@@ -561,6 +590,12 @@ let safelist_option cl =
   define_option_class (cl.class_name ^ " List") 
   (value_to_safelist cl.from_value)
   (list_to_value cl.class_name cl.to_value)
+;;
+
+let intmap_option f cl =
+  define_option_class (cl.class_name ^ " Intmap") 
+  (value_to_intmap f cl.from_value)
+  (intmap_to_value cl.class_name cl.to_value)
 ;;
 
 let listiter_option cl =

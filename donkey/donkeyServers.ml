@@ -410,46 +410,63 @@ let rec check_server_connections () =
 
 let remove_old_servers () =
   Printf.printf "REMOVE OLD SERVERS";  print_newline ();
+  let t1 = Unix.gettimeofday () in
 (*
 The new tactic: we sort the servers (the more recently connected first,
 the black-listed ones at the end), and we start checking from the last
 position to the min_left_servers position.
 *)
 
-  let array = Array.of_list (Hashtbl2.to_list servers_by_key)  in
-  Array.sort (fun s1 s2 ->
-      
-      let bl1 = is_black_address s1.server_ip s1.server_port in
-      let bl2 = is_black_address s2.server_ip s2.server_port in
-      if bl1 = bl2 then
-        let ls1 = connection_last_conn s1.server_connection_control in
-        let ls2 = connection_last_conn s2.server_connection_control in
-        if ls1 = ls2 then 0 else if ls1 > ls2 then 1 else -1
+  let to_remove = ref [] in
+  let to_keep = ref [] in
+  Hashtbl.iter (fun _ s ->
+      if is_black_address s.server_ip s.server_port then
+        to_remove := s :: !to_remove
       else
-      if bl1 then -1 else 1
-  ) array;
+        to_keep := (connection_last_conn s.server_connection_control, s) :: 
+        !to_keep
+  ) servers_by_key;
+  let t2 = Unix.gettimeofday () in
+  Printf.printf "Delay to detect black-listed servers: %2.2f" (t2 -. t1); print_newline ();
   
-  for i = 0 to Array.length array - 1 do
-    let s = array.(i) in
-    Printf.printf "server %d last_conn %10.f" (server_num s) 
-      (connection_last_conn s.server_connection_control);
-    print_newline ()
-  done;
+  let array = Array.of_list !to_keep in
+  Array.sort (fun (ls1,_) (ls2,_) ->
+      if ls1 = ls2 then 0 else if ls1 > ls2 then 1 else -1
+  ) array;
 
-  let min_last_conn =  last_time () -. 
-    float_of_int !!max_server_age *. one_day in
+  if !!verbose then 
+    for i = 0 to Array.length array - 1 do
+      let ls, s = array.(i) in
+      Printf.printf "server %d last_conn %10.f" (server_num s) ls;
+      print_newline ()
+    done;
 
+  let min_last_conn =  last_time () -. float_of_int !!max_server_age *. 
+    one_day in
+  
   for i = Array.length array - 1 downto !!min_left_servers do
-    let s = array.(i) in
-    if connection_last_conn s.server_connection_control < min_last_conn ||
-      is_black_address s.server_ip s.server_port then  begin
-          Printf.printf "Server too old: %s:%d" 
-            (Ip.to_string s.server_ip) s.server_port;
-          print_newline ();
-          server_remove (as_server s.server_server);
-          Hashtbl.remove servers_by_key (s.server_ip, s.server_port);
-    end
+    let ls, s = array.(i) in
+    if ls < min_last_conn then begin
+        if !!verbose then begin
+            Printf.printf "Server too old: %s:%d" 
+              (Ip.to_string s.server_ip) s.server_port;
+            print_newline ();
+          end;
+        to_remove := s :: !to_remove
+      end
   done;
+  let t3 = Unix.gettimeofday () in
+  Printf.printf "Delay to detect old servers: %2.2f" (t3 -. t2); 
+  print_newline ();
+
+  List.iter (fun s ->
+      server_remove (as_server s.server_server);
+      Hashtbl.remove servers_by_key (s.server_ip, s.server_port))
+  !to_remove;
+
+  let t4 = Unix.gettimeofday () in
+  Printf.printf "Delay to finally remove servers: %2.2f" (t4 -. t3); 
+  print_newline ();
   
 (*
   let removed_servers = ref [] in
@@ -467,7 +484,8 @@ position to the min_left_servers position.
       Printf.printf "Not enough remaining servers: %d" !servers_left;  
       print_newline ()
     end; *)
-  Printf.printf "REMOVE OLD SERVERS DONE";  print_newline ()
+  Printf.printf "REMOVE %d OLD SERVERS DONE" (List.length !to_remove);  
+  print_newline ()
   
 (* Don't let more than max_allowed_connected_servers running for
 more than 5 minutes *)

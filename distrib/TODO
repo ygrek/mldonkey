@@ -10,6 +10,9 @@ TODO list for client
 
 2) Extended search doesnot work after connect because no ping was sent.
 
+3) vm and uploaders doesnot work in gui
+
+4) print source propagation footprint
 
 All the last changes should be tested carefully before committing:
 - Test Soulseek with new rooms

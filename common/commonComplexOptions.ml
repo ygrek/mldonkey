@@ -133,7 +133,7 @@ module ServerOption = struct
 
 let servers = define_option servers_ini
     ["known_servers"] "List of known servers"
-    (safelist_option ServerOption.t) []
+    (intmap_option (fun s -> server_num s) ServerOption.t) Intmap.empty
 
 
 let rec string_of_option v =
@@ -358,7 +358,7 @@ let load () =
 let save () = 
   networks_iter (fun n -> network_save_complex_options n);
   
-  servers =:= server_sort ();
+(*  servers =:= server_sort (); *)
   
   Options.save_with_help files_ini;
   Options.save_with_help searches_ini;
@@ -546,11 +546,10 @@ let server_remove server =
   try
     let impl = as_server_impl server in
     if impl.impl_server_state <> RemovedHost then begin
-        Printf.printf "server_remove: removed"; print_newline ();
         set_server_state server RemovedHost;
         (try impl.impl_server_ops.op_server_remove impl.impl_server_val
           with _ -> ());
-        servers =:= List2.removeq server !!servers;
+        servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
       Printf.printf "Exception in server_remove: %s" (Printexc.to_string e);
@@ -560,7 +559,7 @@ let server_add impl =
   let server = as_server impl in
   if impl.impl_server_state = NewHost then begin
       server_update_num impl;
-      servers =:= server :: !!servers;
+      servers =:= Intmap.add (server_num server) server !!servers;
       impl.impl_server_state <- NotConnected;
     end
 
