@@ -264,3 +264,52 @@ If we move to old sources after 1 failed attempt = 10 minutes,
 5 failed attempts = 25 hours
 
 
+******************************************************************
+
+How it should work:
+
+For each file, we have:    
+
+    ...
+
+    mutable file_sources : client Intmap.t; 
+    
+    mutable file_emerging_sources : source Fifo.t;
+    mutable file_concurrent_sources : source Fifo.t;
+    mutable file_old_sources : source Intmap.t;
+
+}
+
+and source = {
+    source_addr : Ip.t * int;
+    mutable source_client: client_kind; 
+  }
+
+and client_kind = 
+  SourceClient of client
+| SourceRecord of float (* last connection attempt *)
+  
+When we receive a new source from anywhere:
+- Never seen it: add it to 'file_emerging_sources'
+- Already seen:
+     * If in concurrent_sources: do nothing
+     * If in normal_sources: do nothing
+     * If in emerging_sources: do nothing
+     * If in old_sources: move it to emerging_sources
+
+The options:
+*  max_clients_per_second
+
+Constraints:
+* Check all clients every 10 minutes = 600 seconds
+    max_all_sources = 600 * max_clients_per_second
+
+What we have:
+* a set of files with current sources.
+
+How should it work ????
+
+At the beginning, when mldonkey starts, all the sources are emerging.
+
+Every second, we call the function "check_sources".
+

@@ -52,6 +52,10 @@ let search_handler s t =
 (*  search.search_handler (Waiting s.search_waiting) *)
     
 let udp_query_locations file s =
+  if !!verbose then begin
+      Printf.printf "UDP: query location %s" (Ip.to_string s.server_ip);
+      print_newline ();
+    end;
   let module M = DonkeyProtoServer in
   udp_server_send s (M.QueryLocationUdpReq file.file_md4)
 
@@ -375,9 +379,13 @@ let force_check_locations () =
             ) (connected_servers());
 *)
             List.iter (fun s  ->
-                if s.server_next_udp <= last_time () then
+              if 
+                connection_last_conn s.server_connection_control +. 3600. *. 8. > last_time () &&
+                s.server_next_udp <= last_time () then
                   match s.server_sock with
-                    None -> udp_query_locations file s
+                  None -> 
+                    
+                    udp_query_locations file s
                   | _ -> ()
             ) before
     ) !current_files;

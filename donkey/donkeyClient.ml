@@ -986,7 +986,13 @@ is checked for the file.
 let client_handler c sock event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      disconnect_client c
+      disconnect_client c;
+      if c.client_name <> "" then begin
+          Printf.printf "client %s(%s) disconnected: reason %s"
+            c.client_name (brand_to_string c.client_brand) s;
+          print_newline ();
+        end
+
   | _ -> ()
 
 let client_handler2 c sock event = 
@@ -1361,3 +1367,16 @@ end;
   | _ -> 
       ()      
       
+(* This function should be called every second *)
+      
+let all_sources = Fifo.create ()
+let nsources = ref 0
+  
+let check_sources () =
+  
+(* first of all, do we have new available slots in the sources *)
+  let nmax_sources = 
+    (int_of_float !!min_reask_delay) * !!max_clients_per_second in
+  ()
+  
+  

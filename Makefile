@@ -393,13 +393,21 @@ GUI_BASE_SRCS= \
 gui/gui_messages.ml   gui/gui_global.ml
 
 
+ICONS_CHOICE=kde
+
 ICONS= \
-  icons/big/add_to_friends.xpm icons/big/cancel.xpm icons/big/connect_more.xpm \
-  icons/big/connect.xpm icons/big/disconnect.xpm icons/big/download.xpm \
-  icons/big/edit_mp3.xpm icons/big/extend_search.xpm icons/big/get_format.xpm \
-  icons/big/local_search.xpm icons/big/preview.xpm icons/big/refres.xpm \
-  icons/big/save_all.xpm icons/big/save_as.xpm icons/big/save.xpm \
-  icons/big/trash.xpm icons/big/verify_chunks.xpm icons/big/view_users.xpm \
+  icons/$(ICONS_CHOICE)/add_to_friends.xpm \
+  icons/$(ICONS_CHOICE)/cancel.xpm icons/$(ICONS_CHOICE)/connect_more.xpm \
+  icons/$(ICONS_CHOICE)/connect.xpm icons/$(ICONS_CHOICE)/disconnect.xpm \
+  icons/$(ICONS_CHOICE)/download.xpm \
+  icons/$(ICONS_CHOICE)/edit_mp3.xpm icons/$(ICONS_CHOICE)/extend_search.xpm \
+  icons/$(ICONS_CHOICE)/get_format.xpm \
+  icons/$(ICONS_CHOICE)/local_search.xpm icons/$(ICONS_CHOICE)/preview.xpm \
+  icons/$(ICONS_CHOICE)/refres.xpm \
+  icons/$(ICONS_CHOICE)/save_all.xpm icons/$(ICONS_CHOICE)/save_as.xpm \
+  icons/$(ICONS_CHOICE)/save.xpm \
+  icons/$(ICONS_CHOICE)/trash.xpm icons/$(ICONS_CHOICE)/verify_chunks.xpm \
+  icons/$(ICONS_CHOICE)/view_users.xpm \
  
 SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \

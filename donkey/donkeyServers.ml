@@ -438,7 +438,7 @@ position to the min_left_servers position.
   
   let array = Array.of_list !to_keep in
   Array.sort (fun (ls1,_) (ls2,_) ->
-      if ls1 = ls2 then 0 else if ls1 > ls2 then 1 else -1
+      if ls1 = ls2 then 0 else if ls1 > ls2 then -1 else 1
   ) array;
 
   if !!verbose then 
@@ -553,19 +553,26 @@ print_newline ();
 (* Keep connecting to servers in the background. Don't stay connected to 
   them , and don't send your shared files list *)
 let walker_list = ref []
+let delayed_list = ref []
 let next_walker_start = ref 0.0
+
   
 (* one call every 5 seconds, so 12/minute, 720/hour *)
 let walker_timer () = 
   match !walker_list with
     [] ->
-      if !walker_list <> [] &&
-        last_time () > !next_walker_start then begin
-          next_walker_start := last_time () +. 4. *. 3600.;
-          Hashtbl.iter (fun _ s ->
-              walker_list := s :: !walker_list
-          ) servers_by_key;
-        end
+      begin      
+        if !delayed_list <> [] then begin
+            walker_list := !delayed_list;
+            delayed_list := []
+          end else
+          if last_time () > !next_walker_start then begin
+              next_walker_start := last_time () +. 4. *. 3600.;
+              Hashtbl.iter (fun _ s ->
+                  walker_list := s :: !walker_list
+              ) servers_by_key;
+            end
+      end
   | s :: tail ->
       walker_list := tail;
       match s.server_sock with
@@ -580,6 +587,7 @@ let walker_timer () =
               connect_server s
             end else begin
 
+              delayed_list := s :: !delayed_list;
               if !!verbose then begin
                   Printf.printf "WALKER: connect %s delayed" (Ip.to_string s.server_ip);
                   print_newline ();
@@ -614,8 +622,7 @@ let _ =
 let udp_walker_timer () = 
   match !udp_walker_list with
     [] ->
-      if !udp_walker_list <> [] &&
-        last_time () > !next_udp_walker_start then begin
+      if last_time () > !next_udp_walker_start then begin
           next_udp_walker_start := last_time () +. 4. *. 3600.;
           Hashtbl.iter (fun _ s ->
               udp_walker_list := s :: !udp_walker_list
@@ -727,7 +734,7 @@ connections *)
             end;
           
           if connection_last_conn s.server_connection_control 
-              +. 10. < last_time () && not s.server_master then begin
+              +. 60. < last_time () && not s.server_master then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               

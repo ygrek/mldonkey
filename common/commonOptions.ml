@@ -75,7 +75,7 @@ let _ =
 
 let min_reask_delay = define_option downloads_ini ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
-  float_option 720.
+    float_option 720.
   
 let max_reask_delay = define_option downloads_ini ["max_reask_delay"]
     "The maximal delay between two connections to the same client" 

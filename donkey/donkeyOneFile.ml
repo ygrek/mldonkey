@@ -1142,30 +1142,6 @@ let search_found search md4 tags =
       match result_of_file md4 tags with
         None -> ()
       | Some new_result ->
-(*
-          let new_result = { 
-          result_num = 0;
-          result_network = network.network_num;
-          result_md4 = md4;
-          result_names = [!file_name];
-          result_size = !file_size;
-          result_format = "";
-          result_type = "";
-          result_tags = List.rev !new_tags;
-          result_comment = "";
-          result_done = false;
-        } in
-      List.iter (fun tag ->
-          match tag with
-            { tag_name = "format"; tag_value = String s } ->
-              new_result.result_format <- s
-          | { tag_name = "type"; tag_value = String s } ->
-              new_result.result_type <- s
-          | _ -> ()
-      ) new_result.result_tags;
-*)
-          
-(*      Printf.printf "new reply"; print_newline ();*)
       try
         let rs = DonkeyIndexer.index_result new_result in      
         let doc = rs.result_index in
