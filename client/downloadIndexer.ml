@@ -302,3 +302,4 @@ let _ =
         end
   )
   
+let index_result_no_filter r = Indexer.value (index_result_no_filter r)

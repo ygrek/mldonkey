@@ -58,17 +58,28 @@ value ml_getsize32(value path)
   return copy_int32(buf.st_size);
 }
 
-
+#define ZEROS_LEN 1024
 value ml_truncate32(value fd_v, value len_v)
 {
-  long len = Int32_val(len_v);
+  unsigned long len = Int32_val(len_v);
   int fd = Int_val(fd_v);  
+  struct stat buf;
+  unsigned long cursize;
   if(!fd)
     failwith("ftruncate32: file is closed");
 
-  if(ftruncate(fd, len) < 0){
+  
+  if(fstat(fd, &buf) < 0)
+    uerror("ml_truncate32: error in fstat",Nothing);
 
-    uerror("ml_truncate32: error in ftruncate",Nothing);
-  }
+  cursize = buf.st_size;
+  if(cursize < len){
+    int zero = 0;
+    lseek(fd, len-1, SEEK_SET);
+    write(fd, &zero, 1);
+  } else
+    if(ftruncate(fd, len) < 0) 
+      uerror("ml_truncate32: error in ftruncate",Nothing);
+      
   return Val_unit;
 }

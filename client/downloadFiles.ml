@@ -128,10 +128,13 @@ let search_found search md4 tags =
           result_filtered_out = 0;
         } in
 (*      Printf.printf "new reply"; print_newline ();*)
-      let result =  DownloadIndexer.index_result new_result in      
-      search.search_handler (Result result);
-      Hashtbl.add search.search_files md4 (result, availability);
-      search.search_nresults <- search.search_nresults + 1
+      try
+        let result =  DownloadIndexer.index_result new_result in      
+        Hashtbl.add search.search_files md4 (result, availability);
+        search.search_nresults <- search.search_nresults + 1;
+        search.search_handler (Result result);
+      with _ ->  (* the file was probably filtered *)
+          ()
       
 let search_handler search t =
   let module M = Mftp_server in

@@ -235,7 +235,7 @@ print_newline ();
                     result_tags = List.rev tags;
                     result_filtered_out = 0;
                   } in
-                DownloadIndexer.index_result result
+                DownloadIndexer.index_result_no_filter result
             ) t);
           c.client_changed <- BigChange;
           !client_change_hook c
