@@ -4,33 +4,18 @@ TODO list for client
 - RPM package
 - Send QH2 in reply to Q2
 - Find "Bad File Descriptor" reason
-- Search by UID is a bad thing, always add a search by keywords on Gnutella
 - Should we send a PI UDP with the QKR ?
-
-Check zlib support again in Gnutella
-
 
 Gnutella2:
   * Understand MD when no DN field is present
-  * Limit total number of hosts
-  * As soon as a new host is discovered, spread searches on it
-
-Gnutella:
-  * Don't perform more than one search per minute on each ultrapeer
-  * Generic module for server management:
-      - Never seen servers (to try)
-      - Recent servers (servers that have been connected recently)
-      - Bad servers (not to try)
+  * Use urlfiles
+  * How to activate separately Gnutella and Gnutella2 ? Edonkey and Overnet ?
 
 Short schedule:
 ---------------
-* Verify that sha1 hashes are correctly computed for big files
 * Propagate them to Query-Routing
 * Update Query-Routing tables as soon as possible
 * Use NSI installer for Windows
-
-Edonkey: changes with -11 ??
- ask_for_slot ?
 
 Let's schedule our work:
 ------------------------
@@ -67,7 +52,8 @@ For 2.8:
       * Implementation of sparse-files
       * CD get and Collections
 
-
+For 2.9:
+  - WinMX and Piolet
 
 Bittorrent:
 -----------

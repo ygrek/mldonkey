@@ -474,7 +474,7 @@ let keywords_of_query query =
   iter query;
   !keywords
 
-let gui_options_panels = ref ([] : (string * (string * string * string) list option_record) list)
+let gui_options_panels = ref ([] : (string * (string * string * string) list) list)
   
 let register_gui_options_panel name panel =
   if not (List.mem_assoc name !gui_options_panels) then

@@ -30,6 +30,8 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonOptions
 open CommonGlobals
+  
+open GnutellaGlobals
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaProtocol
@@ -603,7 +605,7 @@ let udp_send ip port msg =
       try
         let s = server_msg_to_string msg in
         let len = String.length s in
-        if !GnutellaGlobals.verbose_udp then begin
+        if !verbose_msg_servers then begin
             lprintf "Sending on UDP to %s:%d:\n%s\n"
               (Ip.to_string ip) port
             (String.escaped s);
@@ -753,14 +755,15 @@ let server_ask_uid s quid fuid =
     } in
   server_send s p
   
-let server_recover_file file quid sock s =
-  match file.file_uids with
-    [] ->
-      let keywords = get_name_keywords file.file_name in
-      let words = String2.unsplit keywords ' ' in
-      server_send_query quid words sock s
-  | fuid :: _ ->
-      server_ask_uid s quid fuid
+let server_recover_file file sock s =
+  List.iter (fun ss ->
+      match ss.search_search with
+        FileUidSearch (file, fuid) ->
+          server_ask_uid s ss.search_uid fuid
+      | FileWordSearch (file, words) ->
+          server_send_query ss.search_uid words sock s;          
+      | _ -> ()          
+  ) file.file_searches
   
 let server_send_ping s =
   let pl =

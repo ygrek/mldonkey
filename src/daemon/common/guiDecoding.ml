@@ -676,7 +676,7 @@ let from_gui proto opcode s =
     
     | 27 ->
         let int = get_int s 2 in 
-        ForgetSearch  int
+        CloseSearch  (int, true)
     
     | 28 ->
         let s1, pos = get_string s 2 in
@@ -775,6 +775,12 @@ let from_gui proto opcode s =
         let pass,pos = get_string s 2 in
         let login,pos = get_string s pos in
         Password (login, pass)
+            
+    | 53 ->
+        let int = get_int s 2 in 
+        let bool = get_bool s 6 in 
+        CloseSearch  (int, bool)
+
     | _ -> 
         lprintf "FROM GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found

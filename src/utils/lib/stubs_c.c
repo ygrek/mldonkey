@@ -329,6 +329,25 @@ value ml_getsize64(value path)
 /*******************************************************************
 
 
+                         mld_ftruncate_64
+
+
+*******************************************************************/
+
+#define ZEROS_LEN 1024
+value mld_ftruncate_64(value fd_v, value len_v)
+{
+  unsigned long len = Int64_val(len_v);
+  OS_FD fd = Fd_val(fd_v);  
+
+  os_ftruncate(fd, len);
+    
+  return Val_unit;
+}
+
+/*******************************************************************
+
+
                          ml_strstr
 
 

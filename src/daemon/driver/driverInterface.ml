@@ -474,7 +474,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                           | "F" -> FileEntry 
                           | _ -> StringEntry
                         )))
-                  !! gui_options_panel;
+                  gui_options_panel;
 
 (* Options panels defined in each plugin *)
                   List.iter (fun (section, list) ->
@@ -487,7 +487,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                               | "F" -> FileEntry 
                               | _ -> StringEntry
                             )))
-                      !!list)
+                      (List.rev list))
                   ! CommonInteractive.gui_options_panels;
                   
                   gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
@@ -516,9 +516,10 @@ lprintf "Sending for %s" prefix; lprint_newline ();
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
           
-          | P.ForgetSearch num ->
+          | P.CloseSearch (num, forget) ->
               let s = List.assoc num gui.gui_searches in
-              search_forget gui.gui_conn.conn_user s
+              if forget then search_forget gui.gui_conn.conn_user s
+              else search_close s
           
           | P.SendMessage (num, msg) ->
               begin

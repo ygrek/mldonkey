@@ -654,7 +654,9 @@ let search_forget user s =
   networks_iter (fun n -> network_forget_search n s);
   Hashtbl.remove searches_by_num s.search_num;
   user.ui_user_searches <- List2.removeq s user.ui_user_searches
-  
+
+let search_close s =
+  networks_iter (fun n -> network_close_search n s)
   
 let search_media_list = 
   [ "Program", "Pro";

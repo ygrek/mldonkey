@@ -165,12 +165,12 @@ let http_password =
 let max_hard_upload_rate = define_option downloads_ini ["max_hard_upload_rate"] 
   "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
-control and data messages." int_option 0
+control and data messages." int_option 7
   
 let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rate"] 
   "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
-control and data messages." int_option 0
+control and data messages." int_option 50
 
 
   (*
@@ -824,10 +824,14 @@ let options_version = define_option expert_ini ["options_version"]
     "(internal option)"
     int_option 0  
   
-let gui_options_panel = define_option expert_ini ["gui_options_panel"]
+let gui_options_panel = 
+(*
+  define_option expert_ini ["gui_options_panel"]
   "Which options are configurable in the GUI option panel, and in which
     sections. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple4_option (string_option, string_option, string_option, string_option)))
+(list_option (tuple4_option (string_option, string_option, string_option, string_option)))
+*)
+  
   [
     "Identification", "Your client name", (shortname client_name), "T";
     (*

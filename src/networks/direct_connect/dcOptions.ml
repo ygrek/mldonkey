@@ -102,10 +102,12 @@ let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
     
 let gui_dc_options_panel = 
+  (*
   define_option directconnect_ini ["gui_dc_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   dc section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
     "Login (nothing for global one)", shortname login, "T";
     "Description", shortname client_description, "T";
@@ -113,21 +115,12 @@ let gui_dc_options_panel =
     "Hub List URL", shortname servers_list_url, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Search Timeout", shortname search_timeout, "T";
+    ("Max Connected Servers", shortname max_connected_servers, "T");
+    ("Firewalled", shortname firewalled, "B");
+    ("Client Speed", shortname client_speed, "T");
+    ("Shared Offset", shortname shared_offset, "T");
   ]
 
 let client_options_version = define_option directconnect_ini
     ["client_options_version"] "To automatically update your options"
     int_option 0
-  
-let _ =
-  if !!client_options_version < 2 then begin
-      gui_dc_options_panel =:= 
-        ("Max Connected Servers", shortname max_connected_servers, "T") ::
-      ("Firewalled", shortname firewalled, "B") ::
-      ("Client Speed", shortname client_speed, "T") ::
-      ("Shared Offset", shortname shared_offset, "T") ::
-
-      !!gui_dc_options_panel;
-      
-      client_options_version =:= 2;
-    end;

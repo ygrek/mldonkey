@@ -14,6 +14,7 @@ type englob_op = IN_NOOP | IN_AND | IN_OR
 val custom_query : Buffer.t -> string -> unit
 val complex_search : Buffer.t -> unit
 val search_forget : CommonTypes.ui_user -> CommonTypes.search -> unit
+val search_close : CommonTypes.search -> unit
 val search_media_list : (string * string) list
 val or_comb : CommonTypes.query -> CommonTypes.query -> CommonTypes.query
 val and_comb : CommonTypes.query -> CommonTypes.query -> CommonTypes.query

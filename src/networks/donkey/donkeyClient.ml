@@ -582,6 +582,28 @@ let shared_of_file file =
     | None	-> None
     | Some sh	-> Some (as_shared sh)
 
+let init_client_connection c sock =
+  let module M = DonkeyProtoClient in
+  
+  if supports_eep c.client_brand then begin
+(*    lprintf "Emule Extended Protocol query"; lprint_newline ();*)
+      let module E = M.EmuleClientInfo in
+      emule_send sock (M.EmuleClientInfoReq {
+          E.version = !!emule_protocol_version; 
+          E.protversion = 0x1;
+          E.tags = [
+(*           int_tag "compression" 0; *)
+            int_tag "udp_port" (!!port+4)
+          ]
+        })
+    end;
+  
+  List.iter (fun m ->
+      direct_client_send c (M.SayReq m)
+  ) c.client_pending_messages;
+  c.client_pending_messages <- [];
+  ()  
+      
 let client_to_client challenge for_files c t sock = 
   let module M = DonkeyProtoClient in
   
@@ -641,19 +663,8 @@ let client_to_client challenge for_files c t sock =
       end;
       
       identify_client_brand c;
-      
-      if supports_eep c.client_brand then begin
-(*    lprintf "Emule Extended Protocol query"; lprint_newline ();*)
-          let module E = M.EmuleClientInfo in
-          emule_send sock (M.EmuleClientInfoReq {
-              E.version = !!emule_protocol_version; 
-              E.protversion = 0x1;
-              E.tags = [
-(*           int_tag "compression" 0; *)
-                int_tag "udp_port" (!!port+4)
-              ]
-            })
-        end;
+
+      init_client_connection c sock;
       
       set_client_state c (Connected (-1));      
       
@@ -1686,20 +1697,9 @@ let read_first_message overnet challenge m sock =
             C.left_bytes = left_bytes;
           }
       );
-      
-      if supports_eep c.client_brand then  begin
-(*          lprintf "Emule Extended Protocol query"; lprint_newline (); *)
-          let module E = M.EmuleClientInfo in
-          emule_send sock (M.EmuleClientInfoReq {
-              E.version = !!emule_protocol_version; 
-              E.protversion = 0x1;
-              E.tags = [
-(*                int_tag "compression" 0; *)
-                int_tag "udp_port" (!!port+4)
-              ]
-            })
-        end;
-      
+
+      init_client_connection c sock;
+            
       set_client_state c (Connected (-1));      
       
       challenge.challenge_md4 <-  Md4.random ();

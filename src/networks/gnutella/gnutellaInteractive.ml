@@ -54,9 +54,10 @@ type query =
 let find_search s =
   let module M = struct exception Found of local_search end in
   try
-    
     Hashtbl.iter (fun _ ss ->
-        if s == ss.search_search then raise (M.Found ss)
+        match ss.search_search with
+          UserSearch (sss, _) when s == sss -> raise (M.Found ss)
+        | _ -> ()
     ) searches_by_uid;
     raise Not_found
   with M.Found s -> s
@@ -70,17 +71,22 @@ let _ =
 (* Maybe we could generate the id for the query from the query itself, so
 that we can reuse queries *)
       let uid = Md4.random () in
+      
+      let s = {
+          search_search = UserSearch (search, words);
+          search_uid = uid;
+          search_hosts = Intset.empty;
+        } in
+      
       if !!g1_enabled then  Gnutella1.send_query uid words;
       if !!g2_enabled then  Gnutella2.send_query uid words;
       
-      let s = {
-          search_search = search;
-          search_uid = uid;
-          search_words = words;
-        } in
       Hashtbl.add searches_by_uid uid s;
       ());
   network.op_network_close_search <- (fun s ->
+      Hashtbl.remove searches_by_uid (find_search s).search_uid  
+  );
+  network.op_network_forget_search <- (fun s ->
       Hashtbl.remove searches_by_uid (find_search s).search_uid  
   );
   network.op_network_connected <- (fun _ ->
@@ -109,8 +115,7 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      if !!g1_enabled then Gnutella1.recover_file file;          
-      if !!g2_enabled then Gnutella2.recover_file file;          
+      GnutellaServers.recover_file file;
       List.iter (fun c ->
           GnutellaServers.get_file_from_source c file
       ) file.file_clients
@@ -123,6 +128,9 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
       file_cancel (as_file file.file_file);
+      List.iter (fun s ->
+          Hashtbl.remove searches_by_uid s.search_uid
+      ) file.file_searches
   );
   file_ops.op_file_info <- (fun file ->
       {
@@ -189,9 +197,9 @@ let _ =
         C.result_size = r.result_size;
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
-        C.result_tags = List.map (fun uid ->
+        C.result_tags = r.result_tags @ (List.map (fun uid ->
             string_tag "urn" (string_of_uid uid)
-        ) r.result_uids;
+        ) r.result_uids);
         C.result_comment = "";
         C.result_done = false;
       }   

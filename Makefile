@@ -271,6 +271,8 @@ ED2K_HASH_SRCS = \
   $(CHAT_SRCS) \
   tools/ed2k_hash.ml
 
+COPYSOURCES_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -611,6 +613,9 @@ IM_CORE +=   $(IM)/imMain.ml
 endif
 
 top: mldonkeytop
+runtop: top
+	./mldonkeytop $(INCLUDES)
+
 TOP_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
@@ -1671,6 +1676,31 @@ ed2k_hash.static:  $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS)  $(ED2K_HASH_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS)
 
 
+COPYSOURCES_ZOG := $(filter %.zog, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_MLL := $(filter %.mll, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_MLY := $(filter %.mly, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_ML4 := $(filter %.ml4, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_C := $(filter %.c, $(COPYSOURCES_SRCS)) 
+COPYSOURCES_CMOS=$(foreach file, $(COPYSOURCES_ML),   $(basename $(file)).cmo) 
+COPYSOURCES_CMXS=$(foreach file, $(COPYSOURCES_ML),   $(basename $(file)).cmx) 
+COPYSOURCES_OBJS=$(foreach file, $(COPYSOURCES_C),   $(basename $(file)).o)    
+
+COPYSOURCES_CMXAS := $(foreach file, $(COPYSOURCES_CMXA),   build/$(basename $(file)).cmxa)
+COPYSOURCES_CMAS=$(foreach file, $(COPYSOURCES_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(COPYSOURCES_ML4:.ml4=.ml) $(COPYSOURCES_MLL:.mll=.ml) $(COPYSOURCES_MLY:.mly=.ml) $(COPYSOURCES_MLY:.mly=.mli) $(COPYSOURCES_ZOG:.zog=.ml) 
+ 
+copysources: $(COPYSOURCES_OBJS) $(COPYSOURCES_CMXS) $(COPYSOURCES_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(COPYSOURCES_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(COPYSOURCES_CMXAS) $(COPYSOURCES_CMXS) 
+ 
+copysources.byte: $(COPYSOURCES_OBJS) $(COPYSOURCES_CMOS)  $(COPYSOURCES_CMAS)
+	$(OCAMLC) -linkall -o $@  $(COPYSOURCES_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(COPYSOURCES_CMAS) $(COPYSOURCES_CMOS) 
+ 
+copysources.static:  $(COPYSOURCES_OBJS) $(COPYSOURCES_CMXS)  $(COPYSOURCES_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(COPYSOURCES_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(COPYSOURCES_CMXAS) $(COPYSOURCES_CMXS)
+
+
 USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS)) 
 USE_TAGS_MLL := $(filter %.mll, $(USE_TAGS_SRCS)) 
 USE_TAGS_MLY := $(filter %.mly, $(USE_TAGS_SRCS)) 
@@ -2026,6 +2056,20 @@ buildrpm:
 	cd rpm/mldonkey; rm -rf **/*.cm? **/*.o 
 	cd rpm; tar jcf mldonkey.sources.tar.bz2 mldonkey
 	rm -rf rpm/mldonkey
+
+
+
+sourcedist: copysources
+	./copysources
+	cp packages/rpm/mldonkey.spec /tmp/mldonkey/
+	cp packages/rpm/mldonkey.init /tmp/mldonkey/distrib/
+	cp packages/rpm/mldonkey.sysconfig /tmp/mldonkey/distrib/
+	cd /tmp; tar jcf /tmp/mldonkey.sources.tar.bz2 mldonkey
+	cp /tmp/mldonkey.sources.tar.bz2 .
+
+rpm: sourcedist
+	$(RPMBUILD) -ta mldonkey.sources.tar.bz2
+
 
 #######################################################################
 

@@ -59,10 +59,12 @@ let xml_profile () =
   
 let g2_packet_handler s sock gconn p = 
   let h = s.server_host in
-  lprintf "Received %s packet from %s:%d: \n%s\n" 
-    (match sock with Connection _ -> "TCP" | _ -> "UDP")
-  (Ip.to_string h.host_ip) h.host_port
-  (Print.print p);
+  if !verbose_msg_servers then begin
+      lprintf "Received %s packet from %s:%d: \n%s\n" 
+        (match sock with Connection _ -> "TCP" | _ -> "UDP")
+      (Ip.to_string h.host_ip) h.host_port
+        (Print.print p);
+    end;
   match p.g2_payload with 
   | PI -> 
       server_send sock s (packet PO []);
@@ -71,16 +73,16 @@ let g2_packet_handler s sock gconn p =
           s.server_need_qrt <- false;
           send_qrt_sequence s false
         end
-
+  
   | PO -> ()
   | UPROC -> 
       server_send sock s 
         (packet UPROD [
           (packet (UPROD_XML (xml_profile ())) [])
         ])
-      
+  
   | UPROD -> ()
-      
+  
   | LNI ->
       List.iter (fun p ->
           match p.g2_payload with
@@ -103,11 +105,15 @@ let g2_packet_handler s sock gconn p =
       ) p.g2_children;
 (* Now, we can extend our current searches on this host *)
       Hashtbl.iter (fun _ ss ->
-          server_send_query ss.search_uid ss.search_words NoConnection s
+          if not (Intset.mem h.host_num ss.search_hosts) then 
+            match ss.search_search with
+            | UserSearch (_,words) ->
+                server_send_query ss.search_uid words NoConnection s
+            | FileWordSearch (_,words) -> ()
+(*                server_send_query ss.search_uid words NoConnection s *)
+            | FileUidSearch (file, uid) ->
+                server_ask_uid NoConnection s ss.search_uid uid file.file_name
       ) searches_by_uid;
-      List.iter (fun file ->
-          server_recover_file file NoConnection s
-      ) !current_files
 
 (*      
   | Q2 md4 ->
@@ -185,7 +191,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
 (*            lprintf "Query browse\n"    *)
       end
 *)
-      
+  
   | KHL ->
       List.iter (fun c ->
           match c.g2_payload with
@@ -205,7 +211,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                       ((h.host_ip, h.host_port), int32_time ()))
                   [
                     (packet (KHL_CH_V s.server_vendor) [])
-                    ] in
+                  ] in
                 children := p :: !children
             | _ -> ()
       ) !g2_connected_servers;
@@ -214,18 +220,30 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
           (packet (KHL_TS (int64_time ())) !children) 
         ]
       )
-
-  | QA _ ->
+  
+  | QA suid ->
+      let ss = try Some (
+            let ss = Hashtbl.find searches_by_uid suid in
+            ss.search_hosts <- Intset.add h.host_num ss.search_hosts;
+            ss
+          )
+        with _ -> None in
       List.iter (fun c ->
           match c.g2_payload with
             QA_D ((ip,port),_)
           | QA_S ((ip,port),_) -> 
               let h = new_host ip port true 2 in
               h.host_connected <- last_time ();
-              
+              begin
+                match ss with
+                  None -> ()
+                | Some ss ->
+                    ss.search_hosts <- Intset.add h.host_num ss.search_hosts
+              end
+          
           | _ -> ()
       ) p.g2_children
-      
+  
   | QH2 (_, suid) ->
 
 (*
@@ -235,7 +253,6 @@ XML ("audios",
  [("xsi:nonamespaceschemalocation",
   "http://www.limewire.com/schemas/audio.xsd")],
  [XML ("audio", [], [])])
-
   
 Xml.parse_string
 - : Xml.xml =
@@ -263,12 +280,21 @@ XML ("audios",
    [])])
 
 *)
-            
+      
+      let s = 
+        try 
+          let s = Hashtbl.find searches_by_uid suid in
+          Some s with
+          _ -> 
+            lprintf "***** No Corresponding Search ****\n";
+            None 
+      in
       let user_nick = ref "" in
       let user_uid = ref Md4.null in
       let user_addr = ref None in
       let user_vendor = ref None in
       let user_files = ref [] in
+      let xml_info = ref None in
       List.iter (fun c ->
           match c.g2_payload with
             QH2_GU uid -> user_uid := uid
@@ -292,28 +318,44 @@ XML ("audios",
                   | QH2_H_DN s ->
                       res_name := s
                   | QH2_H_SZDN (sz, s) ->
-                        if !res_size = None then 
-                          res_size := Some sz;
+                      if !res_size = None then 
+                        res_size := Some sz;
                       res_name := s
                   | QH2_H_SZ sz -> res_size := Some sz
                   | _ -> ()
               ) c.g2_children;
-              user_files := (!res_urn, !res_size, !res_name, !res_url) ::
+              user_files := (!res_urn, !res_size, !res_name, !res_url, []) ::
               !user_files
+          | QH2_MD xml ->
+              begin
+                try
+                  let xml = Xml.parse_string xml in
+                  xml_info := Some xml
+                with e ->
+                    lprintf "Exception %s while parsing: \n%s\n"
+                      (Printexc2.to_string e) xml
+                    
+              end
           | _ -> ()              
       ) p.g2_children;
       
-      lprintf "Results Received: \n";
-      List.iter (fun (urn, size, name, url) ->
-          lprintf "    %s [size %s] %s -- %s\n"
-            name (match size with
-              None -> "??" | Some sz -> Int64.to_string sz) 
-          (match urn with
-              None -> "no URN"
-            | Some urn -> string_of_uid urn)
-          url
-      ) !user_files;
+      let user_files = List.rev !user_files in
+      let user_files = match !xml_info with
+          None -> user_files
+        | Some _ -> user_files in
       
+      if !verbose_msg_servers then begin
+          lprintf "Results Received: \n";
+          List.iter (fun (urn, size, name, url, tags) ->
+              lprintf "    %s [size %s] %s -- %s\n"
+                name (match size with
+                  None -> "??" | Some sz -> Int64.to_string sz) 
+              (match urn with
+                  None -> "no URN"
+                | Some urn -> string_of_uid urn)
+              url
+          ) user_files;
+        end;      
       
       let user = 
         let user = new_user (match !user_addr with
@@ -327,14 +369,8 @@ XML ("audios",
         user
       in
       
-      let s = 
-        try 
-          let s = Hashtbl.find searches_by_uid suid in
-          Some s with
-          _ -> None 
-      in
 (*          lprintf "ADDING RESULTS\n";*)
-      List.iter (fun (urn, size, name, url) ->
+      List.iter (fun (urn, size, name, url, tags) ->
 (*              lprintf "NEW RESULT %s\n" f.Q.name; *)
           
           let url = match urn with
@@ -382,17 +418,21 @@ XML ("audios",
               let uids = match urn with 
                   None -> [] | Some uid -> [uid] in
               let r = new_result name size uids in
-                            
+              
               add_source r user (FileByUrl url);
               
-              CommonInteractive.search_add_result s.search_search 
-                r.result_result;
+              begin
+                match s.search_search with
+                  UserSearch (s,_) ->
+                    CommonInteractive.search_add_result s r.result_result
+                | _ -> ()
+              end
           | _ -> ()
-      ) !user_files;
+      ) user_files;
       
   | _ -> 
       if !verbose_unknown_messages then
-      lprintf "g2_packet_handler: unexpected packet %s\n"
+        lprintf "g2_packet_handler: unexpected packet %s\n"
         (Print.print p)
 
           

@@ -51,7 +51,7 @@ let attrib = 1 lsl 30
 (**************** UNIX I/O FUNCTIONS *******************)  
   
 external ftruncate64 : Unix.file_descr -> int64 -> unit = 
-  "unix_ftruncate_64"
+  "mld_ftruncate_64"
 external seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
   "unix_lseek_64"
 

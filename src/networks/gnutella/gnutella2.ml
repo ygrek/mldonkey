@@ -65,24 +65,17 @@ let recover_file file =
   let f s = server_recover_file file s.server_sock s in
   List.iter f !g2_connected_servers;
   extend_query f
-
-
-let recover_files () =
-  List.iter (fun file ->
-      recover_file file 
-  ) !current_files;
-  ()
          
 let send_pings () =
   List.iter (fun s ->
       server_send_ping s.server_sock s;
-      lprintf "Sending ping\n";
+(*      lprintf "Sending ping\n"; *)
       match s.server_query_key with
       | NoUdpSupport -> 
-          lprintf "NoUdpSupport\n";
+(*          lprintf "NoUdpSupport\n"; *)
           host_send_qkr s.server_host
       | _ -> 
-          lprintf "Udp Support present\n";
+(*          lprintf "Udp Support present\n"; *)
           ()
   ) !g2_connected_servers
   (*
@@ -102,7 +95,7 @@ let udp_handler ip port buf =
   try
     Gnutella2Handler.udp_packet_handler ip port
       (parse_udp_packet ip port buf)
-  with AckPacket -> ()
+  with AckPacket | FragmentedPacket -> ()
       
       
 let rec find_ultrapeer queue =
@@ -127,15 +120,15 @@ let try_connect_ultrapeer connect =
     try
       find_ultrapeer g2_ultrapeers_waiting_queue
     with _ ->
-        lprintf "not in g2_ultrapeers_waiting_queue\n";
+(*        lprintf "not in g2_ultrapeers_waiting_queue\n"; *)
         try
           find_ultrapeer g0_ultrapeers_waiting_queue
         with _ ->
-            lprintf "not in g0_ultrapeers_waiting_queue\n"; 
+(*            lprintf "not in g0_ultrapeers_waiting_queue\n";  *)
             Gnutella2Redirector.connect ();
             find_ultrapeer g2_peers_waiting_queue
   in
-  lprintf "contacting..\n";
+(*  lprintf "contacting..\n"; *)
   connect g2_nservers true false h []
   
 let connect_servers connect =
@@ -146,14 +139,14 @@ let connect_servers connect =
       try
         let to_connect = 3 * (!!g2_max_ultrapeers - !g2_nservers) in
         for i = 1 to to_connect do
-          lprintf "try_connect_ultrapeer...\n";
+(*          lprintf "try_connect_ultrapeer...\n"; *)
           try_connect_ultrapeer connect
         done
       with _ -> ());
   (try 
       for i = 0 to 3 do
         let h = host_queue_take g2_waiting_udp_queue in
-        lprintf "g2_waiting_udp_queue\n";
+(*        lprintf "g2_waiting_udp_queue\n"; *)
         if (
             match h.host_server with
               None -> true
@@ -162,7 +155,7 @@ let connect_servers connect =
                   UdpQueryKey _ -> false
                 | _ -> true
           ) then begin
-            lprintf "host_send_qkr...\n";
+(*            lprintf "host_send_qkr...\n"; *)
             h.host_udp_request <- last_time ();
             host_send_qkr h
           end

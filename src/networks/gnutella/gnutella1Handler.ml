@@ -252,8 +252,10 @@ information. *)
               
               add_source r user (FileByIndex (f.Q.index,f.Q.name));
               
-              CommonInteractive.search_add_result s.search_search 
-                r.result_result;
+              match s.search_search with
+                UserSearch (s,_) ->
+                  CommonInteractive.search_add_result s r.result_result
+              | _ -> ()
       ) t.Q.files;
   | _ -> ()
 

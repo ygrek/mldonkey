@@ -443,6 +443,7 @@ let dummy_client =
       client_indirect_address = None;
       client_slot = SlotNotAsked;
       client_debug = false;
+      client_pending_messages = [];
       } and
     client_impl = {
       dummy_client_impl with            
@@ -498,6 +499,7 @@ let create_client key num =
       client_indirect_address = None;      
       client_slot = SlotNotAsked; 
       client_debug = Intset.mem num !debug_clients;
+      client_pending_messages = [];
     } and
     client_impl = {
       dummy_client_impl with            

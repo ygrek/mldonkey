@@ -1,5 +1,6 @@
 #!/bin/sh
 
+mkdir -p build
 rm -f icons/big/*.ml_icon
 rm -f icons/small/*.ml_icon
 rm -f icons/*.ml_icon

@@ -271,6 +271,8 @@ ED2K_HASH_SRCS = \
   $(CHAT_SRCS) \
   tools/ed2k_hash.ml
 
+COPYSOURCES_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -611,6 +613,9 @@ IM_CORE +=   $(IM)/imMain.ml
 endif
 
 top: mldonkeytop
+runtop: top
+	./mldonkeytop $(INCLUDES)
+
 TOP_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
@@ -762,6 +767,7 @@ EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
 EXPAND(ED2K_HASH,ed2k_hash)
+EXPAND(COPYSOURCES,copysources)
 EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
 EXPAND(HASH_FILES,hash_files)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
@@ -1046,6 +1052,20 @@ buildrpm:
 	cd rpm/mldonkey; rm -rf **/*.cm? **/*.o 
 	cd rpm; tar jcf mldonkey.sources.tar.bz2 mldonkey
 	rm -rf rpm/mldonkey
+
+
+
+sourcedist: copysources
+	./copysources
+	cp packages/rpm/mldonkey.spec /tmp/mldonkey/
+	cp packages/rpm/mldonkey.init /tmp/mldonkey/distrib/
+	cp packages/rpm/mldonkey.sysconfig /tmp/mldonkey/distrib/
+	cd /tmp; tar jcf /tmp/mldonkey.sources.tar.bz2 mldonkey
+	cp /tmp/mldonkey.sources.tar.bz2 .
+
+rpm: sourcedist
+	$(RPMBUILD) -ta mldonkey.sources.tar.bz2
+
 
 #######################################################################
 

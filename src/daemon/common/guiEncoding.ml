@@ -639,8 +639,15 @@ let rec from_gui proto buf t =
       buf_int buf int
   | ModifyMp3Tags (int, tag) -> buf_int16 buf 26;
       buf_int buf int; buf_mp3 buf tag
-  | ForgetSearch  int -> buf_int16 buf 27;
-      buf_int buf int
+  | CloseSearch  (int,bool) -> 
+      if proto < 15 then begin
+          buf_int16 buf 27;
+          buf_int buf int
+        end else begin
+          buf_int16 buf 53;
+          buf_int buf int;         
+          buf_bool buf bool;         
+        end
   | SetOption (s1, s2) -> buf_int16 buf 28;
       buf_string buf s1; buf_string buf s2
   | Command string -> buf_int16 buf 29;
@@ -712,7 +719,7 @@ protocol version. Do not send them ? *)
         buf_int16 buf 51; buf_int buf num; buf_int buf prio
 
 
-let best_gui_version = 14
+let best_gui_version = 15
   
   
 (********** Some assertions *********)
@@ -791,3 +798,4 @@ let _ =
   assert (check_from_gui RefreshUploadStats) ; 
   assert (check_from_gui (SetFilePriority (5,6)));
   assert (check_from_gui (Password ("mldonkey", "toto")));
+  

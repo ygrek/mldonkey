@@ -39,6 +39,41 @@ open CommonNetwork
 open GnutellaTypes
 open GnutellaOptions
 
+                  
+let extension_list = [
+    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
+]
+      
+let rec remove_short list list2 =
+  match list with
+    [] -> List.rev list2
+  | s :: list -> 
+      if List.mem s extension_list then 
+        remove_short list (s :: list2) else 
+      
+      if String.length s < 5 then (* keywords should had list be 5 bytes *)
+        remove_short list list2
+      else
+        remove_short list (s :: list2)
+
+let stem s =
+  let s = String.lowercase (String.copy s) in
+  for i = 0 to String.length s - 1 do
+    match s.[i] with
+      'a'..'z' | '0' .. '9' -> ()
+    | _ -> s.[i] <- ' '
+  done;
+  lprintf "STEM %s\n" s;
+  remove_short (String2.split s ' ') []
+
+let get_name_keywords file_name =
+  match stem file_name with 
+    [] | [_] -> 
+      lprintf "Not enough keywords to recover %s\n" file_name;
+      [file_name]
+  | l -> l
+
+  
   
 let network = new_network "Gnutella"  
     (fun _ -> !!network_options_prefix)
@@ -149,7 +184,7 @@ let host_queue_take q =
       h.host_queues <- List2.removeq q h.host_queues 
     end;
   h
-
+      
 let hosts_counter = ref 0
   
 let new_host ip port ultrapeer kind = 
@@ -250,6 +285,7 @@ let new_result file_name file_size uids =
                 result_size = file_size;
                 result_sources = [];
                 result_uids = [];
+                result_tags = [];
               } and
               result_impl = {
                 dummy_result_impl with
@@ -270,6 +306,7 @@ let new_result file_name file_size uids =
                 result_name = file_name;
                 result_size = file_size;
                 result_sources = [];
+                result_tags = [];
                 result_uids = [uid];
               } and
               result_impl = {
@@ -312,6 +349,8 @@ let new_file file_id file_name file_size =
   let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
   let swarmer = Int64Swarmer.create () in
   let partition = fixed_partition swarmer megabyte in
+    let keywords = get_name_keywords file_name in
+  let words = String2.unsplit keywords ' ' in
   let rec file = {
       file_file = file_impl;
       file_id = file_id;
@@ -320,6 +359,7 @@ let new_file file_id file_name file_size =
       file_uids = [];
       file_swarmer = swarmer;
       file_partition = partition;
+      file_searches = [search];
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -329,8 +369,13 @@ let new_file file_id file_name file_size =
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
       impl_file_best_name = file_name;
-    }
+    } and search = {
+      search_search = FileWordSearch (file, words);
+      search_hosts = Intset.empty;
+      search_uid = Md4.random ();
+    } 
   in
+  Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" file_size;
   Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
@@ -517,8 +562,6 @@ let remove_file file =
   current_files := List2.removeq file !current_files  
 
 let udp_sock = ref (None : UdpSocket.t option)
-
-let verbose_udp = ref true
 
 let client_ip sock =
   CommonOptions.client_ip

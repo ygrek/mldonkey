@@ -60,10 +60,7 @@ class box s_num columns () =
       columns <- l;
       self#set_titles (List.map Gui_columns.Result.string_of_column !!columns);
       self#update
-    
-    
-    
-    
+        
     method column_menu  i = 
       [
         `I ("Sort", self#resort_column i);
@@ -132,7 +129,7 @@ class box s_num columns () =
             CommonGlobals.string_of_tags r2.result_tags)
       |	Col_result_comment -> compare r1.result_comment r2.result_comment
       | Col_result_network -> compare r1.result_network r2.result_network
-    
+          
     method compare r1 r2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
@@ -160,9 +157,9 @@ class box s_num columns () =
       (strings, None)
     
     method set_tb_style tb = 
-        if Options.(!!) Gui_options.mini_toolbars then
-          (wtool1#misc#hide (); wtool2#misc#show ()) else
-          (wtool2#misc#hide (); wtool1#misc#show ());
+      if Options.(!!) Gui_options.mini_toolbars then
+        (wtool1#misc#hide (); wtool2#misc#show ()) else
+        (wtool2#misc#hide (); wtool1#misc#show ());
       wtool2#set_style tb;
       wtool1#set_style tb
     
@@ -253,9 +250,9 @@ class box_dir_files () =
     method box_results = results
     
     method set_tb_style st =
-        if Options.(!!) Gui_options.mini_toolbars then
-          (wtool1#misc#hide (); wtool2#misc#show ()) else
-          (wtool2#misc#hide (); wtool1#misc#show ());
+      if Options.(!!) Gui_options.mini_toolbars then
+        (wtool1#misc#hide (); wtool2#misc#show ()) else
+        (wtool2#misc#hide (); wtool1#misc#show ());
       results#set_tb_style st;
       wtool1#set_style st;
       wtool2#set_style st
@@ -331,6 +328,6 @@ class box_dir_files () =
       ~icon: (M.o_xpm_download)
       ~callback: self#download_selected_dir
         ()
-      
-      
-  end
+
+
+end

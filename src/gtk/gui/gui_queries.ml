@@ -407,7 +407,8 @@ class paned () =
     inherit Gui_queries_base.paned ()
 
 (** Associations (numéro de query de gui, boite affichant les résultats) *)
-    val mutable results = ([] : (int * (Gui_results.search_result_box * GPack.box)) list)
+    val mutable results = ([] : (int * 
+          (Gui_results.search_result_box * GPack.box)) list)
     
     val mutable queries_box = ([] : box list)
     val mutable static_queries_box = ([] : url_box list)
@@ -424,12 +425,14 @@ class paned () =
       results <- [] ;
     
     
-    method close_query num () =
+    method close_query num forget () =
       try
-        let (box_res, vb) = List.assoc num results in
-        vb#destroy ();
-        results <- List.filter (fun (n,_) -> n <> num) results;
-        Gui_com.send (GuiProto.ForgetSearch num)
+        if forget then  begin
+            let (box_res, vb) = List.assoc num results in
+            vb#destroy ();
+            results <- List.filter (fun (n,_) -> n <> num) results;
+          end;
+        Gui_com.send (GuiProto.CloseSearch (num, forget))
       with
         Not_found ->
           ()
@@ -445,7 +448,12 @@ class paned () =
         ~packing: (vbox#pack ~expand: false)
         ()
       in
-      ignore (wb_close#connect#clicked (self#close_query s.GuiTypes.search_num));
+      let wb_stop = GButton.button ~label: (gettext M.stop_search)
+        ~packing: (vbox#pack ~expand: false)
+        ()
+      in
+      ignore (wb_close#connect#clicked (self#close_query s.GuiTypes.search_num true));
+      ignore (wb_stop#connect#clicked (self#close_query s.GuiTypes.search_num false));
       wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
       wnote_results#goto_page 0;
       wnote_main#goto_page 3;

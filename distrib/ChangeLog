@@ -1,7 +1,26 @@
 ChangeLog	
 =========
 
-2003/05/05: Simon (release-2-4-rc10)
+2003/05/08: Simon (release-2-4-rc11)
+  - RPM: new Makefile rule 'rpm' to build rpms for mldonkey
+  - Gnutella: 
+     * Use both keyword and uid searches to recover files
+     * Make a recover search at download startup (next one every hour)
+     * Compiled only if Zlib is available
+     * Gnutella2 support working (no upload yet... for sunday). To try,
+        set enable_gnutella first to true, then set enable_gnutella2 to true
+        in the gnutella plugin (and maybe enable_gnutella1 to false...)
+     * Remove hosts older than 3 hours
+  - Donkey:
+     * Keeps pending messages to clients
+  - ftruncate64 implementation rewritten
+  - GUI:  
+     * options panels are not options anymore
+     * Protocol version 15:
+       * ForgetSearch is replaced by CloseSearch which takes 2 args and 
+          opcode 53
+
+2003/05/07: Simon (release-2-4-rc10)
   - Applied patches #1459, #1460 and #1462
   - Soulseek: 
      * New option 'servers', with mail.slsk.org:2240 by default

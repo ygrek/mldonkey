@@ -218,11 +218,14 @@ let overnet_max_search_hits =
     int_option 200 
       
 let gui_overnet_options_panel = 
+  (*
   define_option downloads_ini ["gui_overnet_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   Overnet section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
+    "Enable Overnet", shortname enable_overnet, "B";
     "Port", shortname overnet_port, "T";
     "Search for keywords", shortname overnet_search_keyword, "B";
     "Search Timeout", shortname overnet_search_timeout, "T";
@@ -1163,15 +1166,6 @@ let check_curent_downloads () =
     ) !DonkeyGlobals.current_files
 
 let enable enabler = 
-  
-  if !!overnet_options_version < 1 then begin
-  
-      gui_overnet_options_panel =:= 
-        ("Enable Overnet", shortname enable_overnet, "B")
-      :: !!gui_overnet_options_panel;
-  
-      overnet_options_version =:= 1;    
-    end;
   
   let sock = (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
       (!!overnet_port) (udp_handler udp_client_handler)) in

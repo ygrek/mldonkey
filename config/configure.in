@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.4
-CURRENT_RELEASE=rc10
+CURRENT_RELEASE=rc11
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -191,6 +191,8 @@ if test "$BUILD_OCAML" = "yes"; then
   ])
 fi
 
+AC_CHECK_PROG(RPMBUILD,rpmbuild,rpmbuild)
+AC_CHECK_PROG(RPMBUILD,rpm,rpm)
 AC_CHECK_PROG(WGET, wget, wget)
 if test -z "$ac_cv_prog_WGET"; then 
   $CC -o wget wget.c || echo "Cannot compile wget.c"
@@ -417,12 +419,18 @@ fi
     BAD_TARGETS="$BAD_TARGETS direct_connect"
   fi
 
-  if test "$GNUTELLA" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA=yes, [
-      GNUTELLA=no
-      BAD_TARGETS="$BAD_TARGETS gnutella"
-    ])
+  if test "$GNUTELLA" = "yes"; then
+    if test "$ZLIB" = "yes"; then
+       AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA=yes, [
+         GNUTELLA=no
+         BAD_TARGETS="$BAD_TARGETS gnutella"
+       ])
+    else
+       GNUTELLA=no
+       BAD_TARGETS="$BAD_TARGETS gnutella(no Zlib)"
+    fi
   else
+    GNUTELLA=no
     BAD_TARGETS="$BAD_TARGETS gnutella"
   fi
 
@@ -435,11 +443,16 @@ fi
     BAD_TARGETS="$BAD_TARGETS bittorrent"
   fi
 
-  if test "$SOULSEEK" = "yes" && test "$ZLIB" = "yes"; then
-    AC_CHECK_FILE(../src/networks/soulseek,SOULSEEK=yes, [
-      SOULSEEK=no
-      BAD_TARGETS="$BAD_TARGETS soulseek"
-    ])
+  if test "$SOULSEEK" = "yes"; then
+    if test "$ZLIB" = "yes"; then
+       AC_CHECK_FILE(../src/networks/soulseek,SOULSEEK=yes, [
+         SOULSEEK=no
+         BAD_TARGETS="$BAD_TARGETS soulseek"
+       ])
+    else
+       SOULSEEK=no
+       BAD_TARGETS="$BAD_TARGETS soulseek(no Zlib)"
+    fi
   else
     SOULSEEK=no
     BAD_TARGETS="$BAD_TARGETS soulseek"
@@ -709,6 +722,7 @@ AC_SUBST(OS_FILES)
 AC_SUBST(CONFIG_ARGS)
 AC_SUBST(CONFIG_ARGS_DEFINED)
 AC_SUBST(TARGET_TYPE)
+AC_SUBST(RPMBUILD)
 
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)

@@ -86,11 +86,9 @@ let enable () =
       Gnutella2.send_pings ();
   );
 
-  Gnutella1.recover_files ();
-  Gnutella2.recover_files ();
+  GnutellaServers.recover_files ();
   add_session_timer enabler 3600.0 (fun timer ->
-      Gnutella1.recover_files ();
-      Gnutella2.recover_files ();
+      GnutellaServers.recover_files ();
   );
 
   GnutellaClients.listen ();
@@ -126,7 +124,8 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  CommonInteractive.register_gui_options_panel "Gnutella" gui_gnutella_options_panel
+  CommonInteractive.register_gui_options_panel "Gnutella" 
+  gui_gnutella_options_panel
   
   
 let main (toto: int) = ()

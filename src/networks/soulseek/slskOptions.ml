@@ -89,10 +89,12 @@ let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
     
 let gui_soulseek_options_panel = 
+  (*
   define_option soulseek_ini ["gui_soulseek_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   soulseek section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
     "Port", shortname slsk_port, "T";
 (*

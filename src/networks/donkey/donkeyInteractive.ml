@@ -736,16 +736,8 @@ let _ =
         let c = DonkeyGlobals.find_client_by_name iddest in
         match c.client_sock with
           None -> 
-            (
-(* A VOIR  : est-ce que c'est bien de fait comme ça ? *)
-              DonkeyClient.reconnect_client c;
-              match c.client_sock with
-                None ->
-                  CommonChat.send_text !!CommonOptions.chat_console_id None 
-                    (Printf.sprintf "client %s : could not connect (client_sock=None)" iddest)
-              | Some sock ->
-                  direct_client_send c (DonkeyProtoClient.SayReq s)
-            )
+            DonkeyClient.reconnect_client c;
+            c.client_pending_messages <- c.client_pending_messages @ [s];
         | Some sock ->
             direct_client_send c (DonkeyProtoClient.SayReq s)
       with
@@ -985,7 +977,9 @@ when sending a message? emule or ml problem? *)
 let _ =
   client_ops.op_client_say <- (fun c s ->
       match c.client_sock with
-        None -> ()
+        None -> 
+          DonkeyClient.reconnect_client c;
+          c.client_pending_messages <- c.client_pending_messages @ [s];
       | Some sock ->
           direct_client_send c (DonkeyProtoClient.SayReq s)
   );  

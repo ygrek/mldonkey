@@ -64,11 +64,16 @@ and server = {
     mutable server_host : host;
     mutable server_query_key : query_key;
   }
+
+type search_type =
+  UserSearch of search * string
+| FileUidSearch of file * file_uid
+| FileWordSearch of file * string
   
-type local_search = {
-    search_search : search;
+and local_search = {
+    search_search : search_type;
     search_uid : Md4.t;
-    search_words : string;
+    mutable search_hosts : Intset.t;
   }
 
 and user = {
@@ -113,6 +118,7 @@ and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int64;
+    mutable result_tags : tag list;
     mutable result_sources : (user * file_uri) list;
     mutable result_uids : file_uid list;
   }
@@ -125,6 +131,7 @@ and file = {
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_uids : file_uid list; 
+    mutable file_searches : local_search list;
   }
 
 and download = {

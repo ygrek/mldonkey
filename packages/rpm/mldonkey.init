@@ -18,7 +18,7 @@
 RETVAL=0
 
 # Path to the mldonkey binarie.
-fullpath=/usr/lib/mldonkey/mldonkey-bin
+fullpath=/usr/bin/mlnet
 
 # Source networking configuration.
 . /etc/sysconfig/network
@@ -26,16 +26,15 @@ fullpath=/usr/lib/mldonkey/mldonkey-bin
 # Check that networking is up.
 [ ${NETWORKING} = "no" ] && exit 0
 
-
-
 start() {
-        gprintf "Starting Mldonkey: "
+        gprintf "Starting Mldonkey (mlnet): "
+         cd $DIRECTORY
 	daemon --user mldonkey --check mldonkey $NICE "$fullpath  > /dev/null 2>&1 &"
 	touch /var/lock/subsys/mldonkey
 	echo
 }
 stop() {
-        gprintf "Stopping Mldonkey: "
+        gprintf "Stopping Mldonkey (mlnet): "
         killproc mldonkey-bin
 	rm -fr /var/lock/subsys/mldonkey
 	echo

@@ -59,7 +59,7 @@ int os_read(OS_FD fd, char *buf, int len)
  
 void os_ftruncate(OS_FD fd, int64 len)
 {
-  unsigned long cursize;
+  int64 cursize;
   if(!fd) failwith("ftruncate32: file is closed");
   
   cursize = os_getfdsize(fd);

@@ -143,6 +143,9 @@ module G2_LittleEndian = struct
     let buf_addr buf (ip,port) =
       buf_ip buf ip;
       buf_int16 buf port
+
+    let buf_short_addr buf (ip,port) =
+      buf_ip buf ip
       
     let get_string s pos len =
       try
@@ -194,6 +197,9 @@ module Print = struct
     module M = struct
         let buf_addr buf (ip,port) =
           Printf.bprintf buf " %s:%d " (Ip.to_string ip) port
+          
+        let buf_short_addr buf (ip,port) =
+          Printf.bprintf buf " %s " (Ip.to_string ip)
         
         let buf_int64_32 buf v = Printf.bprintf buf " %Ld " v
         let buf_int64 buf v = Printf.bprintf buf " %Ld " v
@@ -268,7 +274,9 @@ module Print = struct
         | QKR -> "QKR"
         | QKR_RNA addr -> M.buf_addr buf addr; "RNA" 
         | QKA -> "QKA"
-        | QKA_SNA addr -> M.buf_addr buf addr; "SNA" 
+        | QKA_QK i32 -> M.buf_int32 buf i32; "QK"
+
+        | QKA_SNA addr -> M.buf_short_addr buf addr; "SNA" 
         | QKA_QNA addr -> M.buf_addr buf addr; "QNA" 
         
         | Q2 md4 -> buf_md4 buf md4; "Q2"
@@ -335,7 +343,6 @@ module Print = struct
                   Printf.bprintf buf "/%s" s) names;
               Printf.bprintf buf "\n DUMP: %s" (AnyEndian.sdump s));
             "UNKNOWN"
-        | QKA_QK i32 -> M.buf_int32 buf i32; "QKA_QK"
       
       
       in  
@@ -422,8 +429,9 @@ let g2_encode_payload msg =
     | QKR -> "QKR"
     | QKR_RNA addr -> M.buf_addr buf addr; "RNA" 
     | QKA -> "QKA"
-    | QKA_SNA addr -> M.buf_addr buf addr; "SNA" 
+    | QKA_SNA addr -> M.buf_short_addr buf addr; "SNA" 
     | QKA_QNA addr -> M.buf_addr buf addr; "QNA" 
+    | QKA_QK i32 -> M.buf_int32 buf i32; "QK"
     
     | Q2 md4 -> buf_md4 buf md4; "Q2"
     | Q2_UDP (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "UDP"
@@ -496,7 +504,6 @@ let g2_encode_payload msg =
         
         Buffer.add_string buf "\000\000\000\016\000\001"; "QHT"
       
-    | QKA_QK i32 -> M.buf_int32 buf i32; "QKA_QK"
     | Unknown _ -> failwith "Unknown packet"
   in  
   name, Buffer.contents buf
@@ -524,8 +531,8 @@ ______________________
   
     *)
 
-let rec g2_encode header pkt =   
-  let children = List.map (g2_encode "") pkt.g2_children in
+let rec g2_encode pkt =   
+  let children = List.map (g2_encode) pkt.g2_children in
   let name, payload = g2_encode_payload pkt.g2_payload in
   let name_len = String.length name in
   let size = ref (String.length payload) in
@@ -534,7 +541,7 @@ let rec g2_encode header pkt =
       List.iter (fun c -> size := !size + String.length c) children
     end;
   let buf = Buffer.create 100 in
-  Buffer.add_string buf header;
+(*  Buffer.add_string buf header;*)
   let len_len = 
     if !size < 256 then 1 else 
     if !size < 65536 then 2 else 3
@@ -699,10 +706,11 @@ lprintf "\n";
             } in 
           if p.QrtPatch.compressor = 1 then
             (try
-                lprintf "Decompressing\n";
+(*                lprintf "Decompressing\n"; *)
                 let s = Autoconf.zlib__uncompress_string2 p.QrtPatch.table in
-                lprintf "Size %d: %s\n" (String.length s)
-                (String.escaped (String.sub s 0 40));
+(*                lprintf "Size %d: %s\n" (String.length s)
+(String.escaped (String.sub s 0 40)); *)
+                ()
               with e ->
                   lprintf "Exception in uncompress %s\n"
                     (Printexc2.to_string e)
@@ -797,7 +805,7 @@ and g2_extract_packet root_name cb s be pos len =
   g2_parse (name :: root_name) has_children be packet, pos + msg_len
 
 let socket_send sock p =
-  let m = g2_encode "" p in
+  let m = g2_encode p in
   (*
   lprintf "DUMP SENT: \n";
   dump m; *)
@@ -806,12 +814,17 @@ let socket_send sock p =
   
   
 let udp_counter = ref 0
-let udp_header () = 
+let udp_header compress = 
   incr udp_counter;
-  Printf.sprintf "GND\002%c%c\001\001" 
-    (char_of_int (!udp_counter land 0xff))
+  if compress then
+    Printf.sprintf "GND\003%c%c\001\001" 
+      (char_of_int (!udp_counter land 0xff))
     (char_of_int ((!udp_counter lsr 8) land 0xff))
-
+  else
+    Printf.sprintf "GND\002%c%c\001\001" 
+      (char_of_int (!udp_counter land 0xff))
+    (char_of_int ((!udp_counter lsr 8) land 0xff))
+    
 let udp_packet_waiting_for_ack = Fifo.create ()
   
 let resend_udp_packets () =
@@ -841,15 +854,22 @@ let resend_udp_packets () =
             raise Not_found
         done
       with _ -> ()
+
+let max_uncompress_packet = 1200
           
 let udp_send ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
       try
-        let s = g2_encode (udp_header ()) msg in
-        let len = String.length s in
-        if !verbose_udp then begin
+        let s = g2_encode msg in
+        let s = if String.length s > max_uncompress_packet then
+            (udp_header true) ^ (Autoconf.zlib__compress_string s)
+          else
+            (udp_header false) ^ s
+        in
+            
+        if !verbose_msg_servers then begin
             lprintf "Sending on UDP(%d) to %s:%d:\n%s\n%s\n"
               !udp_counter
               (Ip.to_string ip) port
@@ -885,8 +905,9 @@ let host_send sock h p =
   let port = h.host_port in
   match sock with
   | Connection sock ->
-      lprintf "Sending on TCP to %s:%d: \n%s\n" 
-        (Ip.to_string ip) port (Print.print p);
+      if !verbose_msg_servers then
+        lprintf "Sending on TCP to %s:%d: \n%s\n" 
+          (Ip.to_string ip) port (Print.print p);
       socket_send sock p
   | _ -> 
       udp_send ip port p
@@ -932,9 +953,43 @@ AnyEndian.dump (String.sub b.buf b.pos b.len);
   | Not_found -> ()
 
 exception AckPacket
+exception FragmentedPacket
 
 let udp_fragmented_packets = Fifo.create ()
   
+let parse s s_pos =
+  let cb = get_int8 s s_pos in
+  let len_len = (cb lsr 6) land 3 in
+  if String.length s - s_pos < 1 + len_len then raise Not_found;
+  let be = cb land 2 <> 0 in
+  
+  let len, pos = match len_len, be with
+    | 1, true -> get_int8 s (s_pos+1), 2 
+    | 2, true -> BigEndian.get_int16 s (s_pos+1), 3 
+    | 3, true -> BigEndian.get_int24 s (s_pos+1), 4
+    | 1, false -> get_int8 s (s_pos+1), 2 
+    | 2, false -> LittleEndian.get_int16 s (s_pos+1), 3 
+    | 3, false -> LittleEndian.get_int24 s (s_pos+1), 4
+    | _ -> 0, 1
+  in
+  let name_len = ((cb lsr 3) land 7) + 1 in
+  let msg_len = 1 + len_len + name_len + len in
+  if String.length s - s_pos < msg_len then raise Not_found;
+
+(*  lprintf "One gnutella2 packet received\n"; *)
+  let name = String.sub s (s_pos + pos) name_len in
+  let packet = String.sub s (s_pos + pos + name_len) len in
+  let has_children = cb land 4 <> 0 in
+
+(*
+  lprintf "PACKET: \n";
+  dump (String.sub s s_pos msg_len);
+  lprintf "\n";
+*)  
+  let p = g2_parse [name] has_children be packet in
+  
+  p, String.sub s s_pos msg_len, s_pos + msg_len
+
 let parse_udp_packet ip port buf =
 
 (*  lprintf "\n\nNEW UDP PACKET   \n%s\n" (String.escaped buf); *)
@@ -977,14 +1032,13 @@ let parse_udp_packet ip port buf =
   let buf = 
     if nCount > 1 then begin
         let my_part = (get_int8 buf 6)-1 in
-        lprintf "part %d on %d\n" my_part nCount;
+(*        lprintf "part %d on %d\n" my_part nCount; *)
         let needed = Array.create nCount None in
         Fifo.iter (fun (p_ip, p_port, nSeq, nPart, nFlags, data) ->
             if p_port = port && nSeq = nSequence
                 && p_ip = ip then needed.(nPart) <- Some data
         ) udp_fragmented_packets;
-        if needed.(my_part) <> None then
-          failwith "Fragmented packet already present\n";
+        if needed.(my_part) <> None then raise FragmentedPacket;
         needed.(my_part) <- Some buf;
         let b = Buffer.create 100 in
         for i = 0 to nCount - 1 do
@@ -994,29 +1048,34 @@ let parse_udp_packet ip port buf =
                 (ip,port,nSequence, my_part, nFlags, buf);
               if Fifo.length udp_fragmented_packets > 50 then
                 ignore (Fifo.take udp_fragmented_packets);
-              failwith "Fragmented packet part not present\n";
+              raise FragmentedPacket
           | Some buf ->
               Buffer.add_string b (if i = 0 then buf else
                   String.sub buf 8 (String.length buf - 8))
         done;
 (* All needed packets are present *)
-        lprintf "Fragmented packet built";
+(*        lprintf "Fragmented packet built"; *)
         Buffer.contents b
-        
-        
-        
+      
+      
+      
       end else buf
   in
   try
     let len = String.length buf in
-    let buf,pos = if nFlags land 1 <> 0 then
-        let trailer = String.sub buf 8 (len - 8) in
-        lprintf "Uncompress\n";
-        Autoconf.zlib__uncompress_string2 trailer, 0
-      else buf, 8
+    let trailer = String.sub buf 8 (len - 8) in
+    let buf = 
+      if nFlags land 1 <> 0 then 
+        Autoconf.zlib__uncompress_string2 trailer
+      else trailer
     in
+    
+    
+    
+(*    lprintf "DUMP udp packet: %s\n" (String.escaped buf); *)
     let len = String.length buf in
     try
+      let pos = 0 in
       let cb = get_int8 buf pos in
       let len_len = (cb lsr 6) land 3 in
       let be = cb land 2 <> 0 in
@@ -1052,11 +1111,40 @@ let parse_udp_packet ip port buf =
       let packet = String.sub buf (pkt_pos + pos + name_len) pkt_len in
       let has_children = cb land 4 <> 0 in
       let p = g2_parse [name] has_children be packet in
-      lprintf "PACKET: %s\n" (Print.print p);
+      if !verbose_msg_servers then
+        lprintf "PACKET: %s\n" (Print.print p); 
+      
+      (*
+      (try
+          let encoded = g2_encode p in
+          lprintf "encoded:\n";
+          dump encoded;
+          let pp, _, _ = parse encoded 0 in
+                    
+          if buf <> encoded then begin
+              lprintf "ENCODER / DECODER ERROR:\n";
+              lprintf "CORRECT:\n";
+              dump buf;
+              lprintf "INCORRECT:\n";
+              dump encoded;
+              lprintf "______________________\n";
+            end;
+          
+          assert (pp = p);
+        with e ->
+            lprintf "Exception %s in Encoding\n" 
+              (Printexc2.to_string e));
+      
+*)
+
+
+
+
       p      
     
     with
     | AckPacket as e -> raise e
+    | FragmentedPacket as e -> raise e
     | e ->
         lprintf "EXCEPTION AFTER DECOMP: %s\n" (Printexc2.to_string e);
         dump buf;
@@ -1064,6 +1152,7 @@ let parse_udp_packet ip port buf =
 
   with 
   | AckPacket as e -> raise e
+  | FragmentedPacket as e -> raise e
   | e ->
       lprintf "EXCEPTION: %s\n" (Printexc2.to_string e);
       dump buf;
@@ -1193,76 +1282,7 @@ mary="fab"/></identity></gProfile>'
 *)
 *)  
   
-let parse s s_pos =
-  let cb = get_int8 s s_pos in
-  let len_len = (cb lsr 6) land 3 in
-  if String.length s - s_pos < 1 + len_len then raise Not_found;
-  let be = cb land 2 <> 0 in
-  
-  let len, pos = match len_len, be with
-    | 1, true -> get_int8 s (s_pos+1), 2 
-    | 2, true -> BigEndian.get_int16 s (s_pos+1), 3 
-    | 3, true -> BigEndian.get_int24 s (s_pos+1), 4
-    | 1, false -> get_int8 s (s_pos+1), 2 
-    | 2, false -> LittleEndian.get_int16 s (s_pos+1), 3 
-    | 3, false -> LittleEndian.get_int24 s (s_pos+1), 4
-    | _ -> 0, 1
-  in
-  let name_len = ((cb lsr 3) land 7) + 1 in
-  let msg_len = 1 + len_len + name_len + len in
-  if String.length s - s_pos < msg_len then raise Not_found;
-
-(*  lprintf "One gnutella2 packet received\n"; *)
-  let name = String.sub s (s_pos + pos) name_len in
-  let packet = String.sub s (s_pos + pos + name_len) len in
-  let has_children = cb land 4 <> 0 in
-
-(*
-  lprintf "PACKET: \n";
-  dump (String.sub s s_pos msg_len);
-  lprintf "\n";
-*)  
-  let p = g2_parse [name] has_children be packet in
-  
-  p, String.sub s s_pos msg_len, s_pos + msg_len
-
-  
-let parse_string s =
-  let rec iter pos =
-(*          lprintf "iter %d\n" pos; *)
-    if pos < String.length s then
-      let p, decoded, pos = parse s pos in
-
-      (*
-      lprintf "decoded:\n";
-      dump decoded;
-*)
-      
-      (try
-          let encoded = g2_encode "" p in
-(*
-                lprintf "encoded:\n";
-dump encoded;
-  *)
-          let pp, _, _ = parse encoded 0 in
-          
-          if encoded <> decoded then begin
-              lprintf "ENCODER / DECODER ERROR:\n";
-              lprintf "CORRECT:\n";
-              dump decoded;
-              lprintf "INCORRECT:\n";
-              dump encoded;
-              lprintf "______________________\n";
-            end;
-        with e ->
-            lprintf "Exception %s in Encoding\n" 
-              (Printexc2.to_string e));
-      
-      lprintf "Packet: \n%s\n" (Print.print p);
-      iter pos
-  in
-  iter 0
-  
+    
 let server_send sock s =
   host_send sock s.server_host
 
@@ -1274,7 +1294,7 @@ let server_send_qrt_patch s m =
 
   
 let host_send_qkr h =
-  lprintf "server_send_qkr\n";
+(*  lprintf "server_send_qkr\n"; *)
   host_send NoConnection h
     (packet QKR
       [
@@ -1283,7 +1303,7 @@ let host_send_qkr h =
 
   
 let server_send_query quid words sock s = 
-  lprintf "*********8 server_ask_query *********\n";
+(*  lprintf "*********8 server_ask_query *********\n"; *)
   
   let xml_query = 
     "<?xml version=\"1.0\"?><audios xsi:noNamespaceSchemaLocation=\"http://www.limewire.com/schemas/audio.xsd\"><audio/></audios>"
@@ -1292,7 +1312,7 @@ let server_send_query quid words sock s =
         [
       packet (Q2_DN words) []; 
       packet (Q2_MD xml_query) [];  
-      packet (Q2_I ["URL"; "DN"; "MD";(* "COM";*) "PFS"]) [];
+      packet (Q2_I ["URL"; "DN"; "MD";"COM"; "PFS";""]) [];
     ]
   in
   let args = match sock, s.server_query_key with
@@ -1308,10 +1328,14 @@ let server_send_query quid words sock s =
   in
   server_send sock s (packet (Q2 quid) args)
     
-let server_ask_uid sock s uid words =   
+let server_ask_uid sock s quid fuid file_name =   
+  let dn = 
+    Printf.sprintf "magnet?xt=%s&dn=%s"
+      (string_of_uid fuid) file_name
+  in
   let args = [
-      packet (Q2_DN words) [];
-      packet (Q2_I ["URL"; "DN"; "MD"; "COM"; "PFS"]) [];
+      packet (Q2_DN dn) [];
+      packet (Q2_I ["URL"; "DN"; "MD"; "COM"; "PFS"; ""]) [];
     ]
   in
   let args = match sock, s.server_query_key with
@@ -1322,21 +1346,24 @@ let server_ask_uid sock s uid words =
                 | UdpQueryKey k -> Some k
                 | _ -> 
                     host_send_qkr s.server_host;
-                    (* Some Int32.zero *) None
+(* Some Int32.zero *) None
               ))) []) :: args
   in
-  server_send sock s (packet (Q2 uid) args)
-
-let server_recover_file file =
-  let dn = 
-    match file.file_uids with 
-      [] -> file.file_name
-    | fuid :: tail ->
-        Printf.sprintf "magnet?xt=%s&dn=%s"
-          (string_of_uid fuid) file.file_name
-  in
-  fun sock s ->
-    server_ask_uid sock s file.file_id dn
+  server_send sock s (packet (Q2 quid) args)
+  
+let server_recover_file file sock s =
+  List.iter (fun ss ->
+      match ss.search_search with
+        
+      | UserSearch (_,words) ->
+(*          server_send_query ss.search_uid words NoConnection s *)
+          ()
+      | FileWordSearch (_,words) ->
+(*          server_send_query ss.search_uid words NoConnection s *)
+          ()
+      | FileUidSearch (file, uid) ->
+          server_ask_uid NoConnection s ss.search_uid uid file.file_name        
+  ) file.file_searches
   
 let server_send_ping sock s = 
   server_send sock s
@@ -1522,15 +1549,7 @@ module Pandora = struct
       String2.replace_char s '\r' ' ';s
     
     let rec iter s pos =
-      if s.[pos] = '\n' then
-        if s.[pos+1] = '\n' then pos+2
-        else
-        if s.[pos+1] = '\r' then
-          if s.[pos+2] = '\n' then pos+3
-          else iter s (pos+1)
-        else iter s (pos+1)
-      else 
-      if s.[pos] = '\r' then
+      if pos < String.length s then
         if s.[pos] = '\n' then
           if s.[pos+1] = '\n' then pos+2
           else
@@ -1538,54 +1557,119 @@ module Pandora = struct
             if s.[pos+2] = '\n' then pos+3
             else iter s (pos+1)
           else iter s (pos+1)
-        else
-          iter s (pos+1)
-      else iter s (pos+1)
+        else 
+        if s.[pos] = '\r' then
+          if s.[pos] = '\n' then
+            if s.[pos+1] = '\n' then pos+2
+            else
+            if s.[pos+1] = '\r' then
+              if s.[pos+2] = '\n' then pos+3
+              else iter s (pos+1)
+            else iter s (pos+1)
+          else
+            iter s (pos+1)
+        else iter s (pos+1)
+      else pos
     
+    let parse_string s =
+      lprintf "Parse string:\n %s\n" (String.escaped s);
+      let rec iter pos =
+(*          lprintf "iter %d\n" pos; *)
+        if pos < String.length s then
+          let p, decoded, pos = parse s pos in
+          
+          lprintf "decoded:\n";
+          dump decoded;
+          
+          (try
+              let encoded = g2_encode p in
+              lprintf "encoded:\n";
+              dump encoded;
+              let pp, _, _ = parse encoded 0 in
+              
+              if encoded <> decoded then begin
+                  lprintf "ENCODER / DECODER ERROR:\n";
+                  lprintf "CORRECT:\n";
+                  dump decoded;
+                  lprintf "INCORRECT:\n";
+                  dump encoded;
+                  lprintf "______________________\n";
+                end;
+              assert (pp = p)
+            with e ->
+                lprintf "Exception %s in Encoding\n" 
+                  (Printexc2.to_string e));
+          
+          lprintf "Packet: \n%s\n" (Print.print p);
+          iter pos
+      in
+      iter 0
+      
     let piter s1 deflate h msgs = 
       let len = String.length s1 in
-      if deflate && len>0 then
-        try
-          let z = Zlib.inflate_init true in
-          let s =  
-            let s2 = String.make 100000 '\000' in
-            let f = Zlib.Z_SYNC_FLUSH in
-            let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2 0 100000 f in
-            lprintf "decompressed %d/%d\n" used_out len;
-            String.sub s2 0 used_out
-          in
-          let z = Zlib.inflate_init true in
-          let rec iter list offset rem =
-            match list with
-              [] -> ()
-            | m :: tail ->
-                let len = String.length m in
-                if len <= offset then iter tail (offset - len) rem else
-                let m = if offset > 0 then String.sub m offset (len - offset) else m in
-                let rem = rem ^ m in
-                let len = String.length rem in
-                let s2 = String.make 100000 '\000' in
-                let f = Zlib.Z_SYNC_FLUSH in
-                lprintf "deflating %d bytes\n" len;
-                let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
-                lprintf "decompressed %d/%d[%d]\n" used_out len used_in;
-                let m = String.sub s2 0 used_out in
-                
-                (try parse_string m with
-                    e ->
-                      lprintf "Execption %s while parse_string\n"
-                        (Printexc2.to_string e));
-                
-                
-                let rem = 
-                  if used_in < len then String.sub rem used_in len else "" in
-                iter tail 0 rem
-          in
-          iter msgs h ""
-        with e ->
-            lprintf "Execption %s while deflating \n O\nCUT:%s\n"
-              (Printexc2.to_string e) (String.escaped s1)
-    
+      try
+        if len > 0 then
+          if deflate then
+            let z = Zlib.inflate_init true in
+            let s =  
+              let s2 = String.make 100000 '\000' in
+              let f = Zlib.Z_SYNC_FLUSH in
+              let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2 0 100000 f in
+              lprintf "decompressed %d/%d\n" used_out len;
+              String.sub s2 0 used_out
+            in
+            begin
+(* First of all, deflate in one pass *)
+              try
+                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1);
+                let z = Zlib.inflate_init true in
+                let s =  
+                  let s2 = String.make 1000000 '\000' in
+                  let f = Zlib.Z_SYNC_FLUSH in
+                  let len = String.length s1 in
+                  let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2
+                      0 1000000 f in
+                  String.sub s2 0 used_out
+                in
+                parse_string s;
+                lprintf "...PARSE ONE END\n";
+              with e ->
+                  lprintf "Exception %s in deflate1\n" (Printexc2.to_string e)
+            end;
+            let z = Zlib.inflate_init true in
+            let rec iter list offset rem =
+              match list with
+                [] -> ()
+              | m :: tail ->
+                  let len = String.length m in
+                  if len <= offset then iter tail (offset - len) rem else
+                  let m = if offset > 0 then String.sub m offset (len - offset) else m in
+                  let rem = rem ^ m in
+                  let len = String.length rem in
+                  let s2 = String.make 100000 '\000' in
+                  let f = Zlib.Z_SYNC_FLUSH in
+                  lprintf "deflating %d bytes\n" len;
+                  let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
+                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in;
+                  let m = String.sub s2 0 used_out in
+                  
+                  (try parse_string m with
+                      e ->
+                        lprintf "Execption %s while parse_string\n"
+                          (Printexc2.to_string e));
+                  
+                  
+                  let rem = 
+                    if used_in < len then String.sub rem used_in len else "" in
+                  iter tail 0 rem
+            in
+            iter msgs h ""
+          else
+            parse_string s1
+      with e ->
+          lprintf "Execption %s while deflating \n O\nCUT:%s\n"
+            (Printexc2.to_string e) (String.escaped s1)
+          
     let commit () =  
       Hashtbl.iter (fun _ cnx ->
           let buf = Buffer.create 1000 in
@@ -1615,14 +1699,13 @@ module Pandora = struct
                 lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
                   cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
                 
-		  let s1 = (String.sub s h1 (len-h1)) in
-		  let s2 = (String.sub s 0 h1) in
+                let s1 = (String.sub s h1 (len-h1)) in
+                let s2 = (String.sub s 0 h1) in
                 lprintf "Header 1: \n%s\n" (hescaped s2);
                 let deflate = try ignore (String2.search_from s2 0 "deflate");
-		lprintf "deflate\n"; true with _ -> false in
+                    lprintf "deflate\n"; true with _ -> false in
                 piter s1 deflate h1 cnx.buf
-              end else ()
-(*
+              end else 
             if String2.starts_with s "GET" then begin
                 lprintf "Http connect to\n";
                 let h1 = iter s 0 in
@@ -1634,15 +1717,13 @@ module Pandora = struct
                 lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
               end else 
               lprintf "Starting %s\n" (String.escaped
-(String.sub s 0 (min len 20)))
-  *)
+                  (String.sub s 0 (min len 20)))
           with 
           
           | e ->
-(*
               lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
-              (String.escaped s)
-*) ()            
+              (String.escaped s);
+              ()            
       ) connections;
       lprintf "\n\n#use \"limewire.ml\";;\n\n"
 end

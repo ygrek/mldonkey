@@ -63,16 +63,9 @@ let send_query uid words =
 
   
 let recover_file file =
-  let f s = server_recover_file file file.file_id s.server_sock s in
+  let f s = server_recover_file file s.server_sock s in
   List.iter f !g1_connected_servers;
   extend_query f
-
-
-let recover_files () =
-  List.iter (fun file ->
-      recover_file file 
-  ) !current_files;
-  ()
          
 let send_pings () =
   List.iter (fun s ->

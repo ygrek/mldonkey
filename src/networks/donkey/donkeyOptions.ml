@@ -328,10 +328,12 @@ per minute. Greater values are bad for server ressources.  *)
         files_queries_per_minute =:= 5)
   
 let gui_donkey_options_panel = 
+  (*
   define_option donkey_ini ["gui_donkey_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
     eDonkey section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
     "Maximal Source Age", shortname max_sources_age, "T";
     "Maximal Server Age", shortname max_server_age, "T";

@@ -80,10 +80,12 @@ let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
     
 let gui_opennap_options_panel = 
+  (*
   define_option opennap_ini ["gui_opennap_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
     dc section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
     "Password", shortname client_password, "T";
     "Description", shortname client_info, "T";

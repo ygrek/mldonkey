@@ -423,6 +423,39 @@ let get_file_from_source c file =
           GnutellaClients.connect_client c
     end
 
+let exit = Exit
+  
+let recover_file file = 
+  
+  List.iter (fun fuid ->
+      try
+        List.iter (fun s ->
+            match s.search_search with
+              FileUidSearch (ss,uid) when uid = fuid -> raise exit
+            | _ -> ()
+        ) file.file_searches;
+        
+        let s = {
+          search_search = FileUidSearch (file, fuid);
+          search_hosts = Intset.empty;
+          search_uid = Md4.random ();          
+          }  in
+        
+        Hashtbl.add searches_by_uid s.search_uid s;
+        file.file_searches <- s :: file.file_searches
+      with _ -> ()
+  ) file.file_uids;
+  
+  if !!g1_enabled then Gnutella1.recover_file file;
+  if !!g2_enabled then Gnutella2.recover_file file;
+  ()
+
+let recover_files () =
+  List.iter (fun file ->
+      recover_file file 
+  ) !current_files;
+  ()
+    
 let download_file (r : result) =
   let file = new_file (Md4.random ()) 
     r.result_name r.result_size r.result_uids in
@@ -435,6 +468,7 @@ let download_file (r : result) =
       add_download file c index;
       get_file_from_source c file;
   ) r.result_sources;
+  recover_file file;
   ()
 
       (*
@@ -525,83 +559,93 @@ let manage_host h =
   try
     let current_time = last_time () in
 (*    lprintf "host queue before %d\n" (List.length h.host_queues); *)
-    host_queue_add workflow h current_time;
+
 (*    lprintf "host queue after %d\n" (List.length h.host_queues); *)
 (* Don't do anything with hosts older than one hour and not responding *)
-    if max h.host_connected h.host_age > last_time () - 3600 then
+    if max h.host_connected h.host_age > last_time () - 3600 then begin
+        host_queue_add workflow h current_time;
 (* From here, we must dispatch to the different queues *)
-      match h.host_kind with
-        1 ->
-          if h.host_udp_request + 600 < last_time () then begin
+        match h.host_kind with
+          1 ->
+            if h.host_udp_request + 600 < last_time () then begin
 (*              lprintf "g1_waiting_udp_queue\n"; *)
-              host_queue_add g1_waiting_udp_queue h current_time;
-            end;
-          if h.host_tcp_request + 600 < last_time () then begin
-              host_queue_add (if h.host_ultrapeer then begin
+                host_queue_add g1_waiting_udp_queue h current_time;
+              end;
+            if h.host_tcp_request + 600 < last_time () then begin
+                host_queue_add (if h.host_ultrapeer then begin
 (*                    lprintf "g1_ultrapeers_waiting_queue"; *)
-                    g1_ultrapeers_waiting_queue
-                  end else begin
+                      g1_ultrapeers_waiting_queue
+                    end else begin
 (*                    lprintf "g1_peers_waiting_queue"; *)
-                    g1_peers_waiting_queue
-                  end) h current_time;
-            end
-      | 2 ->        
-          if h.host_udp_request + 600 < last_time () then begin
+                      g1_peers_waiting_queue
+                    end) h current_time;
+              end
+        | 2 ->        
+            if h.host_udp_request + 600 < last_time () then begin
 (*              lprintf "g2_waiting_udp_queue\n"; *)
-              host_queue_add g2_waiting_udp_queue h current_time;
-            end;
-          if h.host_tcp_request + 600 < last_time () then
-            host_queue_add (if h.host_ultrapeer then begin
+                host_queue_add g2_waiting_udp_queue h current_time;
+              end;
+            if h.host_tcp_request + 600 < last_time () then
+              host_queue_add (if h.host_ultrapeer then begin
 (*                  lprintf "g2_ultrapeers_waiting_queue"; *)
-                  g2_ultrapeers_waiting_queue
-                end else begin
+                    g2_ultrapeers_waiting_queue
+                  end else begin
 (*                  lprintf "g2_peers_waiting_queue"; *)
-                  g2_peers_waiting_queue
-                
-                end) h current_time;
-      | _ ->
-          if h.host_udp_request + 600 < last_time () then begin
+                    g2_peers_waiting_queue
+                  
+                  end) h current_time;
+        | _ ->
+            if h.host_udp_request + 600 < last_time () then begin
 (*              lprintf "g01_waiting_udp_queue\n"; *)
-              host_queue_add g1_waiting_udp_queue h current_time;
-              host_queue_add g2_waiting_udp_queue h current_time;
-            end;
-          if h.host_tcp_request + 600 < last_time () then
-            host_queue_add (if h.host_ultrapeer then begin
+                host_queue_add g1_waiting_udp_queue h current_time;
+                host_queue_add g2_waiting_udp_queue h current_time;
+              end;
+            if h.host_tcp_request + 600 < last_time () then
+              host_queue_add (if h.host_ultrapeer then begin
 (*                  lprintf "g0_ultrapeers_waiting_queue"; *)
-                  g0_ultrapeers_waiting_queue
-                end else begin
+                    g0_ultrapeers_waiting_queue
+                  end else begin
 (*                  lprintf "g0_peers_waiting_queue"; *)
-                  g0_peers_waiting_queue
-                end) h current_time;
+                    g0_peers_waiting_queue
+                  end) h current_time;
+      end    else 
+    if max h.host_connected h.host_age > last_time () - 3 * 3600 then begin
+        host_queue_add workflow h current_time;      
+      end else
+(* This host is too old, remove it *)
+      ()
           
   with e ->
       lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)
       
 let manage_hosts () = 
-  lprintf "g0_ultrapeers_waiting_queue: %d\n" 
-    (Queue.length g0_ultrapeers_waiting_queue);
-  lprintf "g1_ultrapeers_waiting_queue: %d\n" 
-    (Queue.length g1_ultrapeers_waiting_queue);
-  lprintf "g2_ultrapeers_waiting_queue: %d\n" 
-    (Queue.length g2_ultrapeers_waiting_queue);
-  lprintf "g0_peers_waiting_queue: %d\n" 
-    (Queue.length g0_peers_waiting_queue);
-  lprintf "g1_peers_waiting_queue: %d\n" 
-    (Queue.length g1_peers_waiting_queue);
-  lprintf "g2_peers_waiting_queue: %d\n" 
-    (Queue.length g2_peers_waiting_queue);
-  lprintf "g1_active_udp_queue: %d\n" 
-    (Queue.length g1_active_udp_queue);
-  lprintf "g2_active_udp_queue: %d\n" 
-    (Queue.length g2_active_udp_queue);
-  lprintf "g1_waiting_udp_queue: %d\n" 
-    (Queue.length g1_waiting_udp_queue);
-  lprintf "g2_waiting_udp_queue: %d\n" 
-    (Queue.length g2_waiting_udp_queue);
+(*
+      lprintf "g0_ultrapeers_waiting_queue: %d\n" 
+        (Queue.length g0_ultrapeers_waiting_queue);
+      lprintf "g1_ultrapeers_waiting_queue: %d\n" 
+        (Queue.length g1_ultrapeers_waiting_queue);
+      lprintf "g2_ultrapeers_waiting_queue: %d\n" 
+        (Queue.length g2_ultrapeers_waiting_queue);
+      lprintf "g0_peers_waiting_queue: %d\n" 
+        (Queue.length g0_peers_waiting_queue);
+      lprintf "g1_peers_waiting_queue: %d\n" 
+        (Queue.length g1_peers_waiting_queue);
+      lprintf "g2_peers_waiting_queue: %d\n" 
+        (Queue.length g2_peers_waiting_queue);
+      lprintf "g1_active_udp_queue: %d\n" 
+        (Queue.length g1_active_udp_queue);
+      lprintf "g2_active_udp_queue: %d\n" 
+        (Queue.length g2_active_udp_queue);
+      lprintf "g1_waiting_udp_queue: %d\n" 
+        (Queue.length g1_waiting_udp_queue);
+      lprintf "g2_waiting_udp_queue: %d\n" 
+        (Queue.length g2_waiting_udp_queue);
+*)
   let rec iter () =
     let h = host_queue_take workflow in
     manage_host h;
     iter ()
   in
   try iter () with _ -> 
-      lprintf "done (set %d len)\n" (Queue.length workflow);
+(*      lprintf "done (set %d len)\n" (Queue.length workflow); *)
+      ()

@@ -27,12 +27,12 @@ let gnutella_ini = create_options_file (
     Filename.concat file_basedir "gnutella.ini")
 
 let g1_max_ultrapeers = define_option gnutella_ini
-    ["gnutella1"; "max_ultrapeers"]
+    ["g1_max_ultrapeers"]
   "Maximal number of ultrapeers connected on Gnutella1"
     int_option 5
   
 let g2_max_ultrapeers = define_option gnutella_ini
-    [ "gnutella2"; "g2_max_ultrapeers"]
+    [ "g2_max_ultrapeers"]
   "Maximal number of ultrapeers connected on Gnutella2"
     int_option 5
 
@@ -49,17 +49,17 @@ let client_port = define_option gnutella_ini ["client_port"]
     int_option 6346
   
 let g1_enabled = define_option gnutella_ini
-    ["gnutella1"; "enabled"]
+    ["gnutella1_enabled"]
     "Do you want to support Gnutella1 protocol"
     bool_option true
   
 let g2_enabled = define_option gnutella_ini
-    ["gnutella2";"enabled"]
+    ["gnutella2_enabled"]
     "Do you want to support Gnutella2 protocol (not yet supported)"
     bool_option false
 
 let gnutella1_hostfiles = define_option gnutella_ini 
-    ["gnutella1_hostfiles"]
+    ["gnutella1"; "hostfiles"]
   "A list of GWCache urls"
     (list_option string_option)
   [
@@ -154,16 +154,23 @@ let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
   
 let gui_gnutella_options_panel = 
+  (*
   define_option gnutella_ini ["gui_gnutella_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
   gnutella section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-    (list_option (tuple3_option (string_option, string_option, string_option)))
+(list_option (tuple3_option (string_option, string_option, string_option)))
+  *)
   [
     "Port", shortname client_port, "T";
-(*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T"; *)
+(*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 
     "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
-    "Max Known Peers", shortname max_known_peers, "T";    
+    "Max Known Peers", shortname max_known_peers, "T";    *)
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+    
+    "Gnutella: Enabled", shortname g1_enabled, "B";
+    "          Max Connected Ultrapeers", shortname g1_max_ultrapeers, "T"; 
+    "Gnutella2: Enabled", shortname g2_enabled, "B";
+    "           Max Connected Ultrapeers", shortname g2_max_ultrapeers, "T"; 
   ]
   
   

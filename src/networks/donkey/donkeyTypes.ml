@@ -191,6 +191,7 @@ and client = {
     mutable client_indirect_address : (Ip.t * Ip.t * int) option;
     mutable client_slot : slot_status;
     mutable client_debug : bool;
+    mutable client_pending_messages: string list;
   }
 
 and slot_status = 

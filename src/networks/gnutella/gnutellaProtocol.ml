@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open GnutellaGlobals
+
 open Printf2
 open CommonOptions
 open GnutellaOptions
@@ -27,7 +29,6 @@ open LittleEndian
 open TcpBufferedSocket
 open AnyEndian
 open GnutellaTypes
-
 
 
 type ghandler =
@@ -279,32 +280,6 @@ module WordSet = Set.Make(struct
   
 let new_shared_words = ref false
 let all_shared_words = ref []
-                
-let extension_list = [
-    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
-]
-      
-let rec remove_short list list2 =
-  match list with
-    [] -> List.rev list2
-  | s :: list -> 
-      if List.mem s extension_list then 
-        remove_short list (s :: list2) else 
-      
-      if String.length s < 5 then (* keywords should had list be 5 bytes *)
-        remove_short list list2
-      else
-        remove_short list (s :: list2)
-
-let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    match s.[i] with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' '
-  done;
-  lprintf "STEM %s\n" s;
-  remove_short (String2.split s ' ') []
 
 let update_shared_words () = 
   all_shared_words := [];
@@ -351,11 +326,4 @@ let udp_handler f sock event =
       ) ;
   | _ -> ()
 
-      
-let get_name_keywords file_name =
-  match stem file_name with 
-    [] | [_] -> 
-      lprintf "Not enough keywords to recover %s\n" file_name;
-      [file_name]
-  | l -> l
       

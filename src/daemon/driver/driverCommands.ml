@@ -564,7 +564,7 @@ Printf.bprintf buf "
                     Printf.bprintf buf "  $b%s$n\n" section;
                     sections := section :: !sections
                   end
-            ) !! gui_options_panel;
+            ) gui_options_panel;
             
             List.iter (fun (section, list) ->
                 if not (List.mem section !sections) then begin
@@ -582,7 +582,7 @@ Printf.bprintf buf "
                       Printf.bprintf buf "  %s [$r%s$n]= $b%s$n\n" 
                         message option 
                         (get_fully_qualified_options option)
-                ) !! gui_options_panel;
+                ) gui_options_panel;
                 
                 List.iter (fun (section, list) ->
                     if s = section then                    
@@ -590,7 +590,7 @@ Printf.bprintf buf "
                           Printf.bprintf buf "  %s [$b%s$n]= $b%s$n\n" 
                             message option 
                             (get_fully_qualified_options option)
-                      ) !!list)
+                      ) list)
                 ! CommonInteractive.gui_options_panels;
             ) sections;
             "\nUse '$rset option \"value\"$n' to change a value where options is

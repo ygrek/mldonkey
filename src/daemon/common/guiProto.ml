@@ -53,7 +53,7 @@ type from_gui =
 | VerifyAllChunks of int
 | QueryFormat of int
 | ModifyMp3Tags of int * Mp3tag.Id3v1.tag
-| ForgetSearch of int
+| CloseSearch of int * bool
 | SetOption of string * string
 | Command of string
 | Preview of int
@@ -182,7 +182,7 @@ let from_gui_to_string t =
   | VerifyAllChunks _ -> "VerifyAllChunks"
   | QueryFormat _ -> "QueryFormat"
   | ModifyMp3Tags _ -> "ModifyMp"
-  | ForgetSearch _ -> "ForgetSearch"
+  | CloseSearch _ -> "CloseSearch"
   | SetOption _ -> "SetOption"
   | Command _ -> "Command"
   | Preview _ -> "Preview"
