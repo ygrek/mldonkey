@@ -198,12 +198,23 @@ let _ =
   (try Options.load files_ini with _ -> ());
   (try Options.load friends_ini with _ -> ());
   (try Options.load searches_ini with _ -> ());
-
+  
   Options.save_with_help servers_ini;
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
-
+  
+  
+  if not !!force_client_ip then begin
+      ip_verified := 0;
+      (try
+          client_ip =:= Ip.my ();
+          Printf.printf "SETTIGN CLIENT IP TO %s" (Ip.to_string !!client_ip); 
+          print_newline ();
+          
+        with _ -> ());
+    end;
+  
   networks_iter_all (fun r -> 
       Printf.printf "Network %s %s" r.network_name
         (if network_is_enabled r then "enabled" else "disabled");

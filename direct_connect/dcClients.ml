@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open BasicSocket
 open CommonOptions
 open TcpBufferedSocket
@@ -38,6 +39,7 @@ let client_close c =
   match c.client_sock with
     None -> ()
   | Some sock ->
+      Printf.printf "CLOSE SOCKET"; print_newline ();
       close sock "client close";
       set_client_state c NotConnected;
       if c.client_files = [] then
@@ -52,8 +54,18 @@ let create_key () =
   for i = 0 to len - 1 do
     key.[i] <- char_of_int (char_percent + Random.int (char_z - char_percent))
   done;
-  key
-        
+  LockReq { 
+    Lock.info = "Pk=mldonkey"; 
+    Lock.key = key
+  }
+
+(*
+LockReq { 
+  Lock.info = "Pk=DCPLUSPLUS0.177ABCABC"; 
+  Lock.key = "EXTENDEDPROTOCOLABCABCABCABCABCABC"
+});  
+*)
+
 let init_connection nick_sent c sock =
   c.client_receiving <- Int32.zero;
   c.client_sock <- Some sock;
@@ -62,19 +74,26 @@ let init_connection nick_sent c sock =
           None -> !!client_name
         | Some s -> s.server_last_nick 
       in
-      server_send sock (MyNickReq my_nick);
-      server_send sock (
-        LockReq { Lock.info = ""; Lock.key = create_key ()});
+      debug_server_send sock (MyNickReq my_nick);
+      debug_server_send sock (create_key ());
     end;
-  if c.client_files = [] then
-    server_send sock (DirectionReq { 
-        Direction.download = false;
-        Direction.level = 666;
-      }) else
-    server_send sock (DirectionReq { 
-        Direction.download = true;
-        Direction.level = 666;
-      })
+  match c.client_all_files, client_type c with
+  | Some _, _ 
+  | None, NormalClient ->
+      if c.client_files = [] then
+        debug_server_send sock (DirectionReq { 
+            Direction.direction = Upload;
+            Direction.level = 666;
+          }) else
+        debug_server_send sock (DirectionReq { 
+            Direction.direction = Download;
+            Direction.level = 666;
+          })
+  | _ ->
+      debug_server_send sock (DirectionReq { 
+          Direction.direction = Download;
+          Direction.level = 31666;
+        })      
     
 let read_first_message nick_sent t sock =
   Printf.printf "FIRST MESSAGE"; print_newline ();
@@ -111,12 +130,12 @@ let client_reader c t sock =
         end;
   
   | LockReq lock ->
-      server_send sock (
+      debug_server_send sock (
         KeyReq { Key.key = DcKey.gen lock.Lock.key });
       begin
         match client_type c, c.client_all_files with
         | (FriendClient | ContactClient), None ->
-            server_send sock (GetReq {
+            debug_server_send sock (GetReq {
                 Get.name = "MyList.DcLst";
                 Get.pos = Int32.one;
               });
@@ -128,7 +147,7 @@ let client_reader c t sock =
               [] -> Printf.printf "NO FILE TO UPLOAD"; print_newline ();
             
             | (file, filename) :: _ -> 
-                server_send sock (GetReq {
+                debug_server_send sock (GetReq {
                     Get.name = filename;
                     Get.pos = Int32.add file.file_downloaded Int32.one;
                   });
@@ -171,7 +190,9 @@ let client_reader c t sock =
             Printf.printf "Not downloading any thing"; print_newline ();
             client_close c;
             raise Not_found
-      end
+      end;
+      debug_server_send sock SendReq
+
   
   | _ ->
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
@@ -235,6 +256,22 @@ print_newline ();
           end;
         if file.file_downloaded = file.file_size then
           file_complete file 
+          
+    | DcDownloadList buf ->
+        let b = TcpBufferedSocket.buf sock in        
+        let len = b.len in
+        Buffer.add_substring buf b.buf b.pos b.len;
+        buf_used sock b.len;
+        c.client_receiving <- Int32.sub c.client_receiving (Int32.of_int len);
+        if c.client_receiving = Int32.zero then begin
+            Printf.printf "----------------------------------------"; print_newline ();
+            Printf.printf "RECEIVED COMPLETE FILE LIST "; print_newline ();
+            Printf.printf "----------------------------------------"; print_newline ();
+            let s = Buffer.contents buf in
+            let s = Che3.decompress s in
+            Printf.printf "LIST: [%s]" (String.escaped s);
+            print_newline ();
+          end
     | _ -> assert false
 
 let init_anon_client init_sent sock =
@@ -297,6 +334,7 @@ let connect_client c =
               | _ -> ()
           )
         in
+        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
         set_rtimeout sock 30.;
@@ -319,11 +357,11 @@ let connect_anon s ip port =
         (Ip.to_inet_addr ip) port
         (fun _ _ -> ())
     in
+    verify_ip sock;
     init_anon_client true sock;
-    server_send sock (MyNickReq s.server_last_nick);
-    server_send sock (
-      LockReq { Lock.info = ""; Lock.key = create_key ()});
-    
+    debug_server_send sock (MyNickReq s.server_last_nick);
+    debug_server_send sock (
+      create_key ());
           
   with e ->
       Printf.printf "Exception %s while connecting to  anon client" 

@@ -246,6 +246,7 @@ let connect_source s =
           | _ -> ()
       )
     in
+    verify_ip sock;
     TcpBufferedSocket.set_read_controler sock download_control;
     TcpBufferedSocket.set_write_controler sock upload_control;
     

@@ -19,5 +19,6 @@
 
 
 external decompress : string -> string = "ml_che3_decompress"
+external compress : string -> string = "ml_che3_compress"
   
   

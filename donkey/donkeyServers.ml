@@ -171,6 +171,7 @@ let connect_server s =
         (
           Ip.to_inet_addr s.server_ip) s.server_port 
           (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+      verify_ip sock;
       set_server_state s Connecting;
       set_read_controler sock download_control;
       set_write_controler sock upload_control;

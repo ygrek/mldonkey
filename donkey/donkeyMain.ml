@@ -176,13 +176,6 @@ let enable () =
       | _ -> failwith "Bad socket address"
     end;
     
-    if not !!force_client_ip then begin
-        ip_verified := 0;
-        (try
-            client_ip =:= Ip.my ()
-          with _ -> ());
-      end;
-    
     let port = !client_port in
     let sport = (port mod 256) * 256 + (port / 256) in
     

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open Options
 open TcpBufferedSocket
 open AgGlobals	
@@ -56,7 +57,7 @@ let redirect_to sock ip port =
   let sock = connect  "audio_galaxy to server"
       (Ip.to_inet_addr ip) port (fun _ _ -> ())
   in
-
+  verify_ip sock;
 (* Now, really connect to the server *)
   message_counter := 0;
   checked_file_transfer := false;
@@ -101,6 +102,7 @@ let connect_server () =
                 else !!redirection_server_ip))
             21 (fun _ _ -> ())
           in
+          verify_ip sock;
           server_connection_state := Connecting_to_redirector;
           TcpBufferedSocket.set_reader sock (AgProtocol.redirection_handler
               redirect_to);

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
@@ -170,7 +171,7 @@ let init_file_transfer t =
                 client_close c sock
             | _ -> ())
       in
-      
+      verify_ip sock;      
       c.client_sock <- Some sock;
 (* Now, really connect to the server *)
 

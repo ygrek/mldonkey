@@ -32,8 +32,7 @@ Release: 1.99
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
   
-let ip_verified = ref 0
-  
+
 let printf_char c =
   if !!verbose then 
     (print_char c; Pervasives.flush Pervasives.stdout)
@@ -86,8 +85,10 @@ let upload_control = TcpBufferedSocket.create_write_bandwidth_controler
 let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
     (!!max_hard_download_rate * 1024)
 
-  
+let ip_verified = ref 0
+    
 let verify_ip sock =
+  if !ip_verified < 10 then
 (*  Printf.printf "VERIFY IP";  print_newline (); *)
   try
     incr ip_verified;

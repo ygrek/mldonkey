@@ -132,30 +132,34 @@ let server_handler s sock event =
       
   | _ -> ()
 
-let rec client_to_server s t sock = 
+let rec client_to_server s m sock = 
 (*
   Printf.printf "From %s:%d"
     (server_addr s) s.server_port; print_newline ();
 DcProtocol.print t;
 
   *)
-  match t with
+  match m with
     LockReq lock ->
       server_send sock (
         KeyReq { Key.key = DcKey.gen lock.Lock.key });
       let nick = login s in
       server_send sock (
         ValidateNickReq nick)
-
+  
   | ForceMoveReq t ->
       
       let s = new_server (AddrName t) in
       close sock "force move";
       connect_server s
-
+  
   | ConnectToMeReq t ->
 (* nick/ip/port *)
       begin
+        Printf.printf "From %s:%d"
+          (server_addr s) s.server_port; print_newline ();
+        DcProtocol.print m;
+        
         (*
         let c = new_client t.ConnectToMe.nick in
         c.client_addr <- Some (t.ConnectToMe.ip, t.ConnectToMe.port);
@@ -248,7 +252,7 @@ print_newline ()
       
   | _ -> 
       Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();
-      DcProtocol.print t
+      DcProtocol.print m
 
       
       
@@ -277,6 +281,8 @@ and connect_server s =
       let sock = TcpBufferedSocket.connect "directconnect to server" (
           Ip.to_inet_addr ip)
         s.server_port (server_handler s)  in
+      verify_ip sock;
+  
       set_server_state s Connecting;
       set_read_controler sock download_control;
       set_write_controler sock upload_control;
@@ -422,7 +428,7 @@ let ask_for_file file =
                   server_send sock (
                     let module C = ConnectToMe in
                     ConnectToMeReq {
-                      C.nick = s.server_last_nick;
+                      C.nick = c.client_name;
                       C.ip = !!CO.client_ip;
                       C.port = !!dc_port;
                     }

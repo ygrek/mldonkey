@@ -173,6 +173,13 @@ let client_remove c =
 let client_type c =
   let impl = as_client_impl c in
   impl.impl_client_type
+
+let set_client_type c t =
+  let impl = as_client_impl c in
+  if impl.impl_client_type <> t then begin
+      impl.impl_client_type <- t;
+      client_must_update c
+    end
   
 let clients_by_num = ()
   

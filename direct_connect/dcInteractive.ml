@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonClient
 open CommonFile
 open CommonUser
 open CommonChatRoom
@@ -221,4 +222,60 @@ let _ =
         P.file_chunks_age = [|0.0|];
         P.file_age = 0.0;
       }    
+  )
+
+let client_of_user user t =
+  let c = new_client user.user_nick in
+  set_client_type (as_client c.client_client) t;
+  begin
+    match c.client_sock with
+    | Some _ -> ()
+    | None -> 
+        let s = match c.client_server with
+            None -> c.client_server <- Some user.user_server; user.user_server
+          | Some s -> s
+        in
+        match s.server_sock with
+          None -> ()
+(* we should remember that this user is a friend, so that we can recognize a
+friend when we receive the NickList of the server. Maybe should we link the
+client and the servers ? *)
+        | Some sock ->
+            Printf.printf "ASK FRIEND TO CONNECT"; print_newline ();
+            debug_server_send sock (
+              let module C = ConnectToMe in
+              ConnectToMeReq {
+                C.nick = c.client_name;
+                C.ip = !!CO.client_ip;
+                C.port = !!dc_port;
+              }
+            );
+  end;
+  c
+  
+let _ =
+  user_ops.op_user_browse_files <- (fun user ->
+      let c = client_of_user user ContactClient in
+      ()
+  );
+  user_ops.op_user_set_friend <- (fun user ->
+      let c = client_of_user user FriendClient in
+      ()
+  )
+  
+  
+let _ =
+  client_ops.op_client_info <- (fun c ->
+      {
+        P.client_network = network.network_num;
+        P.client_kind = Indirect_location (c.client_name, Md4.null);
+        P.client_state = client_state (as_client c.client_client);
+        P.client_type = client_type c;
+        P.client_tags = [];
+        P.client_name = c.client_name;
+        P.client_files = None;
+        P.client_num = (client_num (as_client c.client_client));
+        P.client_rating = Int32.zero;
+        P.client_chat_port = None ;
+      }
   )

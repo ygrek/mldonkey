@@ -937,7 +937,7 @@ let reconnect_client cid files c =
               Ip.to_inet_addr ip) 
             port 
               (client_handler c) (*client_msg_to_string*) in
-          
+          verify_ip sock;          
           init_connection sock;
           init_client sock c files;
           

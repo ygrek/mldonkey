@@ -166,6 +166,7 @@ let connect_to_redirector () =
 (*                  Printf.printf "TIMEOUT FROM REDIRECTOR"; print_newline ()*)
               | _ -> ()
           ) in
+        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
 
@@ -445,6 +446,7 @@ print_newline ();
                   disconnect_from_server s
               | _ -> ()
           ) in
+        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
 

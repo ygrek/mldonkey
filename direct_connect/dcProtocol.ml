@@ -95,26 +95,35 @@ module Lock = struct
       Printf.bprintf buf " %s %s" t.key t.info
   end
   
+type direction = Upload | Download
+  
 module Direction = struct
     type t = {
-        download : bool;
+        direction : direction;
         level : int;
       }
       
     let parse s = 
       match String2.split s ' ' with
-      | ["Download"; level] -> { download = true; level = int_of_string level }
-      | ["Upload"; level] -> { download = true; level = int_of_string level }
+      | ["Download"; level] -> { 
+            direction = Download; 
+            level = int_of_string level }
+      | ["Upload"; level] -> { 
+            direction = Upload; 
+            level = int_of_string level }
       | _ -> assert false
       
     let print t = 
       Printf.printf "Direction %s %d" (
-        if t.download then "Download" else "Upload") t.level;
+        match t.direction with
+          Download -> "Download" 
+        | Upload -> "Upload") t.level;
       print_newline () 
       
     let write buf t = 
-      Printf.bprintf buf "$Direction %s %d" (
-        if t.download then "Download" else "Upload") t.level
+      Printf.bprintf buf "$Direction %s %d" (match t.direction with
+          Download -> "Download" 
+        | Upload -> "Upload") t.level
     
   end
   
@@ -681,7 +690,10 @@ AgProtocol.dump s;
 
                 
             | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
-            | "$ConnectToMe" -> ConnectToMeReq (ConnectToMe.parse args)
+            | "$ConnectToMe" -> 
+                Printf.printf "Message [%s]" (String.escaped s);
+                print_newline ();
+                ConnectToMeReq (ConnectToMe.parse args)
             | "$MultiConnectToMe" -> MultiConnectToMeReq 
                 (MultiConnectToMe.parse args)
             | _ -> UnknownReq s
@@ -832,4 +844,14 @@ let server_send sock m =
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
 (*  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();  *)
+  write_string sock s
+      
+let debug_server_send sock m =
+  Printf.printf "SENDING"; print_newline ();
+  print m; 
+  Buffer.clear buf;
+  write buf m;
+  Buffer.add_char buf '|';
+  let s = Buffer.contents buf in
+  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();  
   write_string sock s

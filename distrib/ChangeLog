@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+2002/06/30:
+ - HE3 compress/decompress code completely working for DirectConnect
+ - Can download file list in DirectConnect (not display it)
+ - Client IP correctly detected.
+
 2002/06/29:
  - Added columns configuration for users in GUI.
  - Added message BrowseUser from GUI to Core and user_ops.op_user_browse_files.
