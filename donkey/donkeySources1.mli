@@ -32,7 +32,7 @@ val remove_file_location : DonkeyTypes.file -> DonkeyTypes.client -> unit
   
 (* Specific to the source management used *)
 module S : sig
-    val old_source : int -> Ip.t * int -> DonkeyTypes.file -> source
+    val old_source : int -> int -> Ip.t * int -> DonkeyTypes.file -> source
     val iter : (DonkeyTypes.source -> unit) -> unit
     val source_of_client : DonkeyTypes.client -> unit    
     val reschedule_sources : DonkeyTypes.file -> unit
@@ -40,5 +40,7 @@ module S : sig
     val need_new_sources : unit -> bool
     val check_sources :     (DonkeyTypes.client -> unit) -> unit
     val print_sources : Buffer.t -> unit
+    val recompute_ready_sources : unit -> unit
+    val client_connected : DonkeyTypes.client -> unit
   end
   

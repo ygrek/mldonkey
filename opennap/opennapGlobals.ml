@@ -265,11 +265,11 @@ let new_file file_id file_name file_size =
       let file_temp = Filename.concat !!DO.temp_directory 
           (Printf.sprintf "ON-%s" (Md4.to_string file_id)) in
       let current_size = try
-          Unix32.getsize32 file_temp
+          Unix32.getsize64 file_temp
         with e ->
             Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
             print_newline ();
-            Int32.zero
+            Int64.zero
       in
       
       let rec file = {
@@ -349,7 +349,7 @@ let new_client name =
           client_addr = None;
           client_files = [];
           client_file = None;
-          client_pos = Int32.zero;
+          client_pos = Int64.zero;
           client_all_files = None;
           client_user = user;
           client_error = false;

@@ -28,6 +28,7 @@ open DcTypes
 open DcGlobals
 open DcOptions  
 
+  
 let disable enabler () =
   enabler := false;
   Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_addr;
@@ -50,7 +51,11 @@ let enable () =
       DcServers.connect_servers ());
 
   add_session_timer enabler 300. (fun timer ->
-      DcServers.recover_files ()
+      DcServers.recover_files_clients ()
+  );
+
+  add_session_timer enabler 20. (fun timer ->
+      DcServers.recover_files_searches ()
   );
 
   add_session_timer enabler 60. (fun timer ->
@@ -90,6 +95,6 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  network.op_network_share <- add_shared;
+  network.op_network_share <- CommonUploads.add_shared;
   CommonInteractive.register_gui_options_panel 
   "DC" !!gui_dc_options_panel;

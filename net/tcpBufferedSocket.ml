@@ -804,3 +804,6 @@ let exec_command cmd args handler =
       (t_in, t_out)
   )
   
+let nread t = t.nread
+let nwritten t = t.nwrite
+  

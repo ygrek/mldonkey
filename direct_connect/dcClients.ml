@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonUploads
 open CommonInteractive
 
 open CommonClient
@@ -78,23 +79,23 @@ let init_connection nick_sent c sock =
           [] -> !!client_name
         | s :: _ -> s.server_last_nick 
       in
-      debug_server_send sock (MyNickReq my_nick);
-      debug_server_send sock (create_key ());
+      server_send !verbose_msg_clients sock (MyNickReq my_nick);
+      server_send !verbose_msg_clients sock (create_key ());
     end;
   match c.client_all_files, client_type c with
   | Some _, _  (* we already have browsed this client *)
   | None, NormalClient ->
       if c.client_files = [] then
-        debug_server_send sock (DirectionReq { 
+        server_send !verbose_msg_clients sock (DirectionReq { 
             Direction.direction = Upload;
             Direction.level = 666;
           }) else
-        debug_server_send sock (DirectionReq { 
+        server_send !verbose_msg_clients sock (DirectionReq { 
             Direction.direction = Download;
             Direction.level = 666;
           })
   | _ ->
-      debug_server_send sock (DirectionReq { 
+      server_send !verbose_msg_clients sock (DirectionReq { 
           Direction.direction = Download;
           Direction.level = 31666;
         })      
@@ -125,9 +126,12 @@ let read_first_message nick_sent t sock =
       raise Not_found
   
 let client_reader c t sock =
-  Printf.printf "FROM CLIENT %s" c.client_name; print_newline ();
-  print t;
-  print_newline ();
+  if !verbose_msg_clients then begin
+      Printf.printf "FROM CLIENT %s" c.client_name; print_newline ();
+      print t;
+      print_newline ();
+    end;
+  
   match t with
     MyNickReq n ->
       connection_ok c.client_connection_control;
@@ -139,7 +143,7 @@ let client_reader c t sock =
         end;
   
   | LockReq lock ->
-      debug_server_send sock (
+      server_send !verbose_msg_clients sock (
         KeyReq { Key.key = DcKey.gen lock.Lock.key });
       begin
         match client_type c, c.client_all_files with
@@ -149,7 +153,7 @@ let client_reader c t sock =
             
             
             Printf.printf "TRY TO DOWNLOAD FILE LIST"; print_newline ();
-            debug_server_send sock (GetReq {
+            server_send !verbose_msg_clients sock (GetReq {
                 Get.name = "MyList.DcLst";
                 Get.pos = Int64.one;
               });
@@ -157,16 +161,25 @@ let client_reader c t sock =
             c.client_download <- DcDownloadList (Buffer.create 10000)
         
         | _ ->
-            match c.client_files with
-              [] -> Printf.printf "NO FILE TO UPLOAD"; print_newline ();
-            
-            | (file, filename) :: _ -> 
-                debug_server_send sock (GetReq {
-                    Get.name = filename;
-                    Get.pos = Int64.add (file_downloaded file) Int64.one;
-                  });
-                c.client_download <- DcDownload file;
-                c.client_pos <- (file_downloaded file);
+            let rec iter_files files =
+              match files with
+              | [] -> Printf.printf "NO FILE TO UPLOAD"; print_newline ();
+              
+              | (file, filename) :: tail -> 
+                  if file_state file = FileDownloading then begin
+                      Printf.printf "GET: file downloaded %Ld"  (file_downloaded file);
+                      print_newline ();
+                      server_send !verbose_msg_clients sock (GetReq {
+                          Get.name = filename;
+                          Get.pos = Int64.add (file_downloaded file) Int64.one;
+                        });
+                      c.client_download <- DcDownload file;
+                      c.client_pos <- (file_downloaded file);
+                    end
+                  else 
+                    iter_files tail
+            in
+            iter_files c.client_files
       end
   
   | KeyReq _ ->
@@ -178,7 +191,7 @@ let client_reader c t sock =
 (* this client wants something from us ... *)
 
 (* is this OK (we sent two Direction messages !) ? *)
-          debug_server_send sock (DirectionReq { 
+          server_send !verbose_msg_clients sock (DirectionReq { 
               Direction.direction = Upload;
               Direction.level = 666;
             });
@@ -208,7 +221,7 @@ let client_reader c t sock =
             disconnect_client c;
             raise Not_found
       end;
-      debug_server_send sock SendReq
+      server_send !verbose_msg_clients sock SendReq
   
   | GetReq t ->
 (* this client REALLY wants to download from us !! *)
@@ -219,15 +232,15 @@ let client_reader c t sock =
           let list = make_shared_list () in
           let list = Che3.compress list in
           c.client_download <- DcUploadList list;
-          debug_server_send sock (FileLengthReq (
+          server_send !verbose_msg_clients sock (FileLengthReq (
               Int64.of_int (String.length list)))
         end else begin 
 (* Upload not yet implemented *)
           try
-            let sh = Hashtbl.find shared_files t.Get.name in
+            let sh = CommonUploads.find t.Get.name in
             c.client_pos <- Int64.sub t.Get.pos Int64.one;
             let rem = Int64.sub sh.shared_size c.client_pos in
-            debug_server_send sock (FileLengthReq rem);
+            server_send !verbose_msg_clients sock (FileLengthReq rem);
             c.client_download <- DcUpload sh
           with _ ->
               ()
@@ -385,7 +398,7 @@ let init_anon_client init_sent sock =
       | Some c ->  disconnect_client c
   );
   TcpBufferedSocket.set_reader sock (
-    dc_handler3 c (read_first_message init_sent) client_reader
+    dc_handler3 verbose_msg_clients c (read_first_message init_sent) client_reader
       client_downloaded)  
   
 let listen () =
@@ -437,7 +450,7 @@ let connect_client c =
         TcpBufferedSocket.set_write_controler sock upload_control;
         set_rtimeout sock 30.;
         TcpBufferedSocket.set_reader sock (
-          dc_handler3 (ref (Some c)) (read_first_message false) client_reader
+          dc_handler3 verbose_msg_clients (ref (Some c)) (read_first_message false) client_reader
             client_downloaded);
         
         init_connection false c sock;
@@ -456,8 +469,8 @@ let connect_anon s ip port =
         (fun _ _ -> ())
     in
     init_anon_client true sock;
-    debug_server_send sock (MyNickReq s.server_last_nick);
-    debug_server_send sock (
+    server_send !verbose_msg_clients sock (MyNickReq s.server_last_nick);
+    server_send !verbose_msg_clients sock (
       create_key ());
           
   with e ->

@@ -47,36 +47,41 @@ let is_connected state =
 
 
 class window () =
+  
   object(self)
     inherit Gui_window_base.window ()
 
     val mutable current_page = 0
-
+      
     method clear =
       tab_servers#clear;
       tab_downloads#clear;
       tab_friends#clear;
-      tab_queries#clear;
       List.iter wnote_results#remove wnote_results#children;
       tab_rooms#clear;
       label_connect_status#set_text (gettext M.not_connected);
       List.iter menu_display#remove menu_display#children;
       List.iter menu_networks#remove menu_networks#children;
 
+    method tab_queries = tab_servers#tab_queries
+      
     initializer
-      window#show ();
-      tab_queries#set_wnote_results self#wnote_results;
-      tab_queries#set_wnote_main notebook;
 
+      window#show ();
+      tab_servers#tab_queries#set_wnote_results self#wnote_results;
+      tab_servers#tab_queries#set_wnote_main notebook;
+      
       ignore (notebook#connect#switch_page 
 		(fun n -> current_page <- n));
 
       (* set the size of panes as they were the last time. *)
-      Mi.set_hpaned tab_servers#hpaned !!O.servers_hpane_left;
-      Mi.get_hpaned self tab_servers#hpaned O.servers_hpane_left;
-
+      Mi.set_hpaned tab_servers#hpaned_servers O.servers_hpane_left;
+      Mi.get_hpaned self tab_servers#hpaned_servers O.servers_hpane_left;
+      Mi.set_vpaned tab_servers#vpaned_servers O.servers_vpane_up;
+      Mi.get_vpaned self tab_servers#vpaned_servers O.servers_vpane_up;
+      
       notebook#goto_page 1;
-      Mi.set_hpaned tab_downloads#hpaned !!O.downloads_hpane_left;
+      Mi.set_hpaned tab_downloads#hpaned O.downloads_hpane_left;
       Mi.get_hpaned self tab_downloads#hpaned O.downloads_hpane_left;  
       Mi.set_vpaned tab_downloads#vpaned O.downloads_vpane_up;
       Mi.get_vpaned self tab_downloads#vpaned O.downloads_vpane_up;
@@ -84,17 +89,17 @@ class window () =
       Mi.get_vpaned self tab_downloads#clients_wpane O.downloads_wpane_up;
       
       notebook#goto_page 2;
-      Mi.set_hpaned tab_friends#hpaned !!O.friends_hpane_left;
+      Mi.set_hpaned tab_friends#hpaned O.friends_hpane_left;
       Mi.get_hpaned self tab_friends#hpaned O.friends_hpane_left;
 
       Mi.set_vpaned tab_friends#vpaned O.friends_vpane_up;
       Mi.get_vpaned self tab_friends#vpaned O.friends_vpane_up;
 
-      Mi.set_hpaned tab_friends#box_files#wpane !!O.friends_hpane_dirs;
+      Mi.set_hpaned tab_friends#box_files#wpane O.friends_hpane_dirs;
       Mi.get_hpaned self tab_friends#box_files#wpane O.friends_hpane_dirs;
 
-      notebook#goto_page 5;
-      Mi.set_hpaned tab_rooms#hpaned !!O.rooms_hpane_left;
+      notebook#goto_page 4;
+      Mi.set_hpaned tab_rooms#hpaned O.rooms_hpane_left;
       Mi.get_hpaned self tab_rooms#hpaned O.rooms_hpane_left;
       
 (*

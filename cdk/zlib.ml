@@ -107,8 +107,7 @@ let uncompress ?(header = true) refill flush =
     uncompr 0 0;
     inflate_end zs
 
-(*****
-let uncompress_string inbuf =
+let uncompress_string2 inbuf =
   let zs = inflate_init true in
   let rec uncompr inpos outbuf outpos =
     let inavail = String.length inbuf - inpos in
@@ -127,17 +126,16 @@ let uncompress_string inbuf =
   inflate_end zs;
   res
 
-*****)
-
 let uncompress_string s =
   let buf = Buffer.create (2 * String.length s) in
   let pos = ref 0 in
   let len = String.length s in
   uncompress ~header: true (fun b ->
       let n = min (String.length b) (len - !pos) in
+      if n < 1 then 0 else begin
       String.blit s !pos b 0 n;
       pos := !pos + n;
-      n
+      n end
   ) (fun s len -> Buffer.add_string buf (String.sub s 0 len));
   Buffer.contents buf
   

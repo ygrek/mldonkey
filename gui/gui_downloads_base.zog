@@ -7,26 +7,36 @@
 <entity name=paned>
   <hbox name=box homogeneous="false" tab_label="%22Downloads%22" expand="false" fill="true" width="-1" height="-1" border_width="-1" spacing="-1" padding="-1">
     <vbox name=_ homogeneous="false" expand="true" fill="true" width="-1" height="-1" border_width="-1" spacing="-1" tab_label="" padding="-1">
-      <hbox name=_ homogeneous="false" expand="false" fill="true" padding="3" width="-1" height="-1" border_width="-1" spacing="-1" tab_label="" expanded="false">
-        <label name=_ text="Gettext.gettext Gui_messages.ed2k" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true" width="-1" height="-1" x_padding="-1" y_padding="-1" tab_label="" padding="-1">
-        </label>
-        <entry name=entry_ed2k_url width="500" visibility="true" editable="true" expand="false" fill="true" height="-1" max_length="-1" text="" tab_label="" padding="-1">
-        </entry>
-        <label name=_ text="Gettext.gettext Gui_messages.recover_md4" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true" width="-1" height="-1" x_padding="-1" y_padding="-1" tab_label="" padding="-1">
-        </label>
-        <entry name=entry_md4 visibility="true" editable="true" expand="false" fill="true" width="-1" height="-1" max_length="-1" text="" tab_label="" padding="-1">
-        </entry>
-      </hbox>
       <hpaned name=hpaned expand="true" fill="true" width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" padding="-1">
         <vbox name=_ width="600" homogeneous="false" expand="true" fill="true" height="-1" border_width="-1" spacing="-1" tab_label="" padding="-1">
           <vpaned name=vpaned expand="true" fill="true" width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" padding="-1">
+            <frame name=downloads width="-1" height="-1" border_width="5" label="%22Running+Downloads%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+            </frame>
+            <frame name=downloaded width="-1" height="-1" border_width="5" label="%22Completed+Downloads%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+            </frame>
           </vpaned>
         </vbox>
         <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-          <vpaned name=clients_wpane width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
-          </vpaned>
+          <frame name=wf_29 width="-1" height="-1" border_width="5" label="%22Sources%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="true" fill="true" padding="-1">
+            <vpaned name=clients_wpane width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+            </vpaned>
+          </frame>
         </vbox>
       </hpaned>
+      <hbox name=_ homogeneous="false" expand="false" fill="true" padding="3" width="-1" height="-1" border_width="-1" spacing="-1" tab_label="">
+        <label name=_ text="Gettext.gettext+Gui_messages.ed2k" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true" width="-1" height="-1" x_padding="-1" y_padding="-1" tab_label="" padding="-1">
+        </label>
+        <entry name=entry_ed2k_url width="700" visibility="true" editable="true" expand="false" fill="true" height="-1" max_length="-1" text="" tab_label="" padding="-1">
+        </entry>
+      </hbox>
     </vbox>
   </hbox>
+</entity>
+<entity name=saved>
+  <vbox name=vbox_35 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+    <label name=_ text="Gettext.gettext+Gui_messages.recover_md4" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" expand="false" fill="true" width="-1" height="-1" x_padding="-1" y_padding="-1" tab_label="" padding="-1">
+    </label>
+    <entry name=entry_md4 visibility="true" editable="true" expand="false" fill="true" width="-1" height="-1" max_length="-1" text="" tab_label="" padding="-1">
+    </entry>
+  </vbox>
 </entity>

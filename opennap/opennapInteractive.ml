@@ -74,7 +74,7 @@ let  _ =
             begin
               match field with
                 "bitrate" ->  
-                  { t with S.bitrate = Some (Int32.to_int value, OP.AtLeast) };
+                  { t with S.bitrate = Some (Int64.to_int value, OP.AtLeast) };
               | "size" -> t
               | _ -> t
             end
@@ -82,7 +82,7 @@ let  _ =
             begin
               match field with
                 "bitrate" -> 
-                  { t with S.bitrate = Some (Int32.to_int value, OP.AtBest) };
+                  { t with S.bitrate = Some (Int64.to_int value, OP.AtBest) };
               | "size" -> t
               | _ -> t
             end
@@ -144,8 +144,8 @@ let _ =
         P.file_chunks = "0";
         P.file_availability = "0";
         P.file_format = Unknown_format;
-        P.file_chunks_age = [|0.0|];
-        P.file_age = 0.0;
+        P.file_chunks_age = [|0 |];
+        P.file_age = 0;
         P.file_last_seen = BasicSocket.last_time ();
       }    
   )

@@ -451,17 +451,31 @@ let _ =
   
 (** {2 Help text, change log} *)
     
-let help_text = "
+let help_string version = Printf.sprintf "
 
                       MLDonkey
                       ========
 
-Release: 1.99
-Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
+Release: %s
+Authors: MLDonkey project, http://www.mldonkey.net/
 
 This documentation file is now obsolete. Read the FAQ instead (either
 on the project WEB site or in the FAQ.html file).
 
-"
+For help, see:
+
+IRC channel: irc.freenode.net, chat #mldonkey
+
+Web sites:
+http://www.mldonkey.net/         Official site, bug reports
+http://www.mldonkeyworld.com/    English forum
+http://www.mldonkey.org/         German forum
+
+Mailing-lists:
+mldonkey-users@nongnu.org
+Archives: http://mail.nongnu.org/mailman/listinfo/mldonkey-users
+
+In the console, use '?' for help on commands.
+" version
 
   

@@ -186,6 +186,46 @@ let print_stats buf =
   end
 
 
+let new_print_stats buf =
+  let one_minute = 60 in
+  let one_hour = 3600 in
+  let one_day = 86400 in
+  let uptime = last_time () - start_time in
+  let days = uptime / one_day in
+  let rem = uptime - days * one_day in
+  let hours = rem / one_hour in
+  let rem = rem - hours * one_hour in
+  let mins = rem / one_minute in
+    Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+
+  Printf.bprintf buf "      Client| seen     |  Downloads       |  Uploads        |  Banned\n";
+  Printf.bprintf buf "------------+----------+------------------+-----------------+----------\n";
+  Printf.bprintf buf "%-12s|%5d     | %6.1f %5.1f     | %5.1f %5.1f     | %3d %3.0f%%\n"
+    "Total"
+    stats_all.brand_seen
+    ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
+    ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+    ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
+    ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+    stats_all.brand_banned 
+    (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen));
+
+  for i=1 to brand_count-2 do
+    Printf.bprintf buf "%-12s|%5d %3.f%%| %6.1f %5.1f %3.0f%%| %5.1f %5.1f %3.0f%%| %3d %3.0f%%\n"
+      (brand_to_string (brand_of_int i))
+      stats_by_brand.(i).brand_seen 
+      (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+      ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+      (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
+      ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
+      (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
+      stats_by_brand.(i).brand_banned 
+      (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_by_brand.(i).brand_seen))
+  done
+
+
 let _ =
   register_commands 
     [
@@ -194,4 +234,10 @@ let _ =
 	  print_stats buf;
 	  ""
    ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
+
+   "cs", Arg_none (fun o ->
+	let buf = o.conn_buf in
+	  new_print_stats buf;
+	  ""
+   ), ":\t\t\t\tshow table of download/upload by clients brand";
   ]

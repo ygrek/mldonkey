@@ -20,7 +20,7 @@
 open Md4
 
 open CommonTypes
-
+  
 type server = {
     server_server: server CommonServer.server_impl;
     server_room: server CommonRoom.room_impl;
@@ -35,8 +35,9 @@ type server = {
     mutable server_last_nick : string;
     mutable server_search : search option;
     mutable server_search_timeout : int;
-    mutable server_users : user list;
+    mutable server_users : user StringMap.t;
     mutable server_messages : (int * room_message) list;
+    mutable server_searches : string Fifo.t;
   }
 
 and result = {
@@ -75,24 +76,10 @@ and client = {
     mutable client_user : user;
     mutable client_connection_control : connection_control;
   }
-
-and shared_file = {
-    shared_fullname : string;
-    shared_codedname : string;
-    shared_size : int64;
-    shared_fd : Unix32.t;
-  }
-
-and shared_tree =
-  { 
-    shared_dirname : string;
-    mutable shared_files : shared_file list;
-    mutable shared_dirs : (string * shared_tree) list;
-  }
   
 and download_type =
   DcIdle
-| DcUpload of shared_file
+| DcUpload of CommonUploads.shared_file
 | DcDownload of file
 | DcUploadList of string
 | DcDownloadList of Buffer.t

@@ -181,6 +181,20 @@ module Say = struct
     let write buf t =
       buf_string buf t
   end
+
+module EmuleFileDesc = struct
+    type t = string
+      
+    let parse len s =
+      let (s, p) = get_string s 1 in
+      s
+      
+    let print t =
+      Printf.printf "EMULE FILE DESC %s" t
+      
+    let write buf t =
+      buf_string buf t
+  end
   
 module OneMd4 = functor(M: sig val m : string end) -> (struct 
     type t = Md4.t
@@ -693,17 +707,35 @@ module EmuleRequestSourcesReply = struct
     
     let parse len s = 
       let md4 = get_md4 s 1 in
-      let nsources = get_int16 s 17 in
-      let sources = Array.create nsources dummy_source in
-      for i = 0 to nsources-1 do
-        let pos = 19 + i *12 in
-        sources.(i) <- {
-          ip = get_ip s pos;
-          port = get_int16 s (pos+4);
-          server_ip = get_ip s (pos+6);
-          server_port = get_int16 s (pos+10);
-        }
-      done;
+      let ncount = get_int16 s 17 in
+      let sources =
+        if len = 1 + 16 + ncount * 6 then
+          let nsources = 2 * ncount in
+          let sources = Array.create nsources dummy_source in
+          for i = 0 to nsources-1 do
+            let pos = 19 + i * 6 in
+            sources.(i) <- {
+              ip = get_ip s pos;
+              port = get_int16 s (pos+4);
+              server_ip = Ip.null;
+              server_port = 0;
+            }
+          done;
+          sources
+        else
+        let nsources = ncount in
+        let sources = Array.create nsources dummy_source in
+        for i = 0 to nsources-1 do
+          let pos = 19 + i *12 in
+          sources.(i) <- {
+            ip = get_ip s pos;
+            port = get_int16 s (pos+4);
+            server_ip = get_ip s (pos+6);
+            server_port = get_int16 s (pos+10);
+          }
+        done;
+        sources
+      in
       {
         md4 = md4;
         sources = sources;
@@ -762,7 +794,7 @@ type t =
 | EmuleQueueRankingReq of EmuleQueueRanking.t
 | EmuleRequestSourcesReq of EmuleRequestSources.t
 | EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
-
+| EmuleFileDescReq of EmuleFileDesc.t
         
 let print t =
   begin
@@ -802,6 +834,8 @@ let print t =
     | EmuleRequestSourcesReplyReq t -> 
         EmuleRequestSourcesReply.print t
         
+    | EmuleFileDescReq t -> EmuleFileDesc.print t
+        
     | UnknownReq s ->  
         let len = String.length s in
         Printf.printf "UnknownReq:\n";
@@ -824,6 +858,38 @@ let print t =
         Printf.printf "]\n"
   end
 
+let parse_emule_packet opcode len s =
+(*
+  Printf.printf "Emule magic: %d opcode %d:" magic opcode; print_newline ();
+          dump s; print_newline ();
+  *)        
+  let t = match opcode with
+    | 1 -> EmuleClientInfoReq (EmuleClientInfo.parse len s)
+    | 2 -> EmuleClientInfoReplyReq (EmuleClientInfo.parse len s)
+    | 0x60 -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
+    | 0x81 -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
+    | 0x82 -> EmuleRequestSourcesReplyReq (
+          EmuleRequestSourcesReply.parse len s)
+    | 0x61 -> EmuleFileDescReq (EmuleFileDesc.parse len s)
+
+(*
+#define OP_COMPRESSEDPART       0x40
+#define OP_FILEDESC             0x61
+#define OP_VERIFYUPSREQ         0x71
+#define OP_VERIFYUPSANSWER      0x72
+#define OP_UDPVERIFYUPREQ       0x73
+#define OP_UDPVERIFYUPA         0x74
+*)
+    
+    | _ -> raise Not_found
+  in
+(*
+          Printf.printf "EMULE MESSAGE: "; print_newline ();
+          print t;
+          print_newline (); *)
+  t
+  
+  
 let parse magic s =
   try 
     let len = String.length s in
@@ -864,41 +930,24 @@ let parse magic s =
         end 
 
     | 0xc5  -> (* emule extended protocol *)
-        begin
-(*
-  Printf.printf "Emule magic: %d opcode %d:" magic opcode; print_newline ();
-          dump s; print_newline ();
-  *)        
-          let t = match opcode with
-            | 1 -> EmuleClientInfoReq (EmuleClientInfo.parse len s)
-            | 2 -> EmuleClientInfoReplyReq (EmuleClientInfo.parse len s)
-            | 0x60 -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
-            | 0x81 -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
-            | 0x82 -> EmuleRequestSourcesReplyReq (
-                  EmuleRequestSourcesReply.parse len s)
+        parse_emule_packet opcode len s
 
-
-                (*
-#define OP_COMPRESSEDPART       0x40
-#define OP_FILEDESC             0x61
-#define OP_VERIFYUPSREQ         0x71
-#define OP_VERIFYUPSANSWER      0x72
-#define OP_UDPVERIFYUPREQ       0x73
-#define OP_UDPVERIFYUPA         0x74
-*)
-
-            | _ -> raise Not_found
-          in
-          (*
-          Printf.printf "EMULE MESSAGE: "; print_newline ();
-          print t;
-          print_newline (); *)
-          t
-        end              
-
-        (* Compressed packet, probably sent by cDonkey ? *)
-    | 0xD4 -> 
-          UnknownReq s        
+(* Compressed packet, probably sent by cDonkey ? *)
+        
+    | 0xD4 ->
+        
+        let s = Autoconf.zlib_uncompress (String.sub s 1 (len-1)) in
+        let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
+        parse_emule_packet opcode (String.length s) s
+        
+        (*
+        Printf.printf "Compressed message decompressed with opcode %d" opcode; print_newline ();
+        if !CommonOptions.verbose_unknown_messages then begin       
+            let tmp_file = Filename.temp_file "comp" "unpak" in
+            File.from_string tmp_file s;
+            Printf.printf "Saved compressed packet %s" tmp_file; print_newline ();
+          end;	   
+        UnknownReq s        *)
     | _ -> 
         if !CommonOptions.verbose_unknown_messages then begin
             Printf.printf "Strange magic: %d" magic; print_newline ();
@@ -907,7 +956,12 @@ let parse magic s =
   with
   | e -> 
       if !CommonOptions.verbose_unknown_messages then begin
-          Printf.printf "From client: %s" (Printexc2.to_string e); print_newline ();
+          Printf.printf "Unknown message From client: %s (magic %d)"
+              (Printexc2.to_string e) magic; print_newline ();
+	      	     let tmp_file = Filename.temp_file "comp" "pak" in
+	     File.from_string tmp_file s;
+	     Printf.printf "Saved unknown packet %s" tmp_file; print_newline ();
+
           dump s;
           print_newline ();
         end;
@@ -1000,6 +1054,10 @@ let write buf t =
   | EmuleRequestSourcesReplyReq t ->
       buf_int8 buf 0x82;
       EmuleRequestSourcesReply.write buf t
+  | EmuleFileDescReq t ->
+      buf_int8 buf 0x61;
+      EmuleFileDesc.write buf t
+      
       
   | UnknownReq s ->
       Buffer.add_string buf s

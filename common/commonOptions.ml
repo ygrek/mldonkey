@@ -652,7 +652,7 @@ let client_ip sock =
     None -> !!client_ip
   | Some sock ->
       let ip = TcpBufferedSocket.my_ip sock in
-      if ip <> Ip.localhost then client_ip =:= ip;
+      if ip <> Ip.localhost && !!client_ip <> ip then  client_ip =:= ip;
       ip
 
       

@@ -48,6 +48,10 @@ let load_hublist = define_option directconnect_ini ["load_hublist"]
     "Download a list of servers"
     bool_option true
   
+let firewalled = define_option directconnect_ini ["firewalled"]
+  "Is this client firewalled (use passive searches)"
+    bool_option false
+  
 let shared_offset = define_option directconnect_ini
     ["shared_offset"]
     "An amount of bytes to add to the shared total (can help to connect)"
@@ -110,3 +114,20 @@ let gui_dc_options_panel =
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Search Timeout", shortname search_timeout, "T";
   ]
+
+let client_options_version = define_option directconnect_ini
+    ["client_options_version"] "To automatically update your options"
+    int_option 0
+  
+let _ =
+  if !!client_options_version < 2 then begin
+      gui_dc_options_panel =:= 
+        ("Max Connected Servers", shortname max_connected_servers, "T") ::
+      ("Firewalled", shortname firewalled, "B") ::
+      ("Client Speed", shortname client_speed, "T") ::
+      ("Shared Offset", shortname shared_offset, "T") ::
+
+      !!gui_dc_options_panel;
+      
+      client_options_version =:= 2;
+    end;

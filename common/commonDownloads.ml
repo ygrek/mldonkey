@@ -121,20 +121,4 @@ let new_download sock c file min_read on_close on_finish subdir_option  =
   set_rtimeout sock 30.;
   d  
 
-(* We should implement a common uploader too for all networks where
-upload is done linearly. *)
   
-  
-type upload = {
-    upload_file : file; (* the file being uploaded *)
-    upload_client : client;
-    mutable upload_pos : int64; (* the position in the file *)
-    mutable upload_end : int64; (* the last position in the file to upload *)
-    mutable upload_sock : TcpBufferedSocket.t option; (* the socket for upload (often shared in client structure) *)
-    mutable upload_on_close : (upload -> unit); (* function called when
-    the socket is closed (Unix.close is already done) *)
-    upload_subdir : string Options.option_record;
-(* The subdir option for the commit *)
-    upload_on_finish : (upload -> unit);
-(* A function to call when upload is finished ! *)    
-  }

@@ -515,7 +515,8 @@ let udp_handler f sock event =
                 f t p
               end
           with e ->
-              Printf.printf "Error %s in udp_handler, dump of packet:\n" (Printexc.to_string e); 
+              Printf.printf "Error %s in udp_handler, dump of packet:\n"
+                (Printexc2.to_string e); 
               dump p.UdpSocket.content;
               print_newline ()	    
       );

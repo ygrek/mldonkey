@@ -61,7 +61,7 @@ let create name addr port handler =
     Unix.setsockopt fd Unix.SO_REUSEADDR true; 
     MlUnix.set_close_on_exec fd;  
     Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
-    Unix.listen fd 10;
+    Unix.listen fd 20;
     let t = {
         sock = dummy_sock;
         event_handler = handler;

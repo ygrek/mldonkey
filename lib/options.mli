@@ -159,3 +159,5 @@ val prefixed_args :
   string -> options_file -> (string * Arg.spec * string) list
 
 val once_value : option_value -> option_value
+val strings_of_option : 'a option_record -> string * string
+  

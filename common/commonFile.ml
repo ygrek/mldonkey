@@ -94,7 +94,7 @@ let dummy_file_impl = {
     impl_file_last_downloaded = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
-    impl_file_priority = 0;
+    impl_file_priority = 10;
     impl_file_last_seen = 0;
   }
   

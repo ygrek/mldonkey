@@ -74,31 +74,31 @@ let eval auth cmd options =
           Buffer.add_string  buf !!M.available_commands_are;
           Buffer.add_string  buf
             "
-          Main commands are:
+Main commands are:
 
-          Servers:
+Servers:
           vm : list connected servers
           vma : list all servers
           c/x <num> : connect/disconnect from a server
 
-          Downloads:
+Downloads:
           vd : view current downloads
           cancel/pause/resume <num> : cancel/pause/resume download <num>
 
-          Searches:
+Searches:
           s  <keywords> : start a search for keywords <keywords> on the network
           vr : view results of the last search
           d <num> : download result number <num>
           vs : view previous searches
           vr <num> : view results of search <num>
 
-          General:
+General:
           save: save configuration files
           kill : kill mldonkey properly
           q : quit this interface
 
-          Use 'longhelp' or '??' for all commands.
-          Use 'help command' or '? command' for help on a command.
+Use 'longhelp' or '??' for all commands.
+Use 'help command' or '? command' for help on a command.
             ";
           List.iter (fun arg ->
               List.iter (fun (cmd, _, help) ->
@@ -106,7 +106,7 @@ let eval auth cmd options =
                     Printf.bprintf  buf "%s %s\n" cmd help) 
               !CommonNetwork.network_commands)
           args
-          
+
         end else
       if cmd = "q" then
         raise CommonTypes.CommandCloseSocket

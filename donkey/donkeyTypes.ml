@@ -133,6 +133,7 @@ and brand =
 
 and challenge = {
     mutable challenge_md4 : Md4.t;
+    mutable challenge_solved : Md4.t;
     mutable challenge_ok : bool;
   }
   
@@ -171,6 +172,10 @@ and client = {
     mutable client_score : int;
     mutable client_files : file_request list;
     mutable client_next_queue : int;
+    mutable client_rank : int;
+    mutable client_connect_time : int;
+    mutable client_requests_received : int;
+    mutable client_requests_sent: int;
   }
   
 and upload_info = {

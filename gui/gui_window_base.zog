@@ -58,8 +58,6 @@
         </custom>
         <custom name=tab_friends width="-1" height="-1" border_width="-1" function="new+Gui_friends.pane_friends" tab_label="Gettext.gettext+Gui_messages.mFriends" expand="false" fill="true" padding="-1">
         </custom>
-        <custom name=tab_queries width="-1" height="-1" border_width="-1" function="new+Gui_queries.paned" tab_label="Gettext.gettext+Gui_messages.mQueries" expand="false" fill="true" padding="-1">
-        </custom>
         <notebook name=wnote_results width="" height="" border_width="" tab_position="`LEFT" tab_border="" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="Gettext.gettext+Gui_messages.mResults" expand="false" fill="true" padding="">
         </notebook>
         <custom name=tab_rooms width="" height="" border_width="" function="new+Gui_rooms.pane_rooms" tab_label="Gettext.gettext+Gui_messages.mRooms" expand="false" fill="true" padding="">

@@ -267,7 +267,7 @@ let save_gui_options gui =
 
 let set_hpaned (hpaned : GPack.paned) prop =
   let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
-  let ndx1 = (w1 * prop) / 100 in
+  let ndx1 = (w1 * !!prop) / 100 in
   hpaned#child1#misc#set_geometry ~width: ndx1 ();
   hpaned#child2#misc#set_geometry ~width: (w1 - ndx1 - hpaned#handle_size) ()
 

@@ -256,6 +256,11 @@ let servers_hpane_left = define_option mldonkey_gui_ini
     "Size in % of left part of the servers hpane"
     int_option 80
 
+let servers_vpane_up = define_option mldonkey_gui_ini
+    ["layout"; "servers_vpane_up"]
+  "Size in % of upper part of the servers hpane"
+    int_option 39
+
 let rooms_hpane_left = define_option mldonkey_gui_ini
     ["layout"; "rooms_hpane_left"]
     "Size in % of left part of the rooms hpane"

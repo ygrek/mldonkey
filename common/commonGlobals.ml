@@ -305,7 +305,7 @@ let ip_of_addr addr =
     addr.addr_ip
     
 let new_addr_ip ip = {
-    addr_ip = ip; addr_name = ""; addr_age = 0;
+    addr_ip = ip; addr_name = Ip.to_string ip; addr_age = 0;
   }
   
 let new_addr_name name = {

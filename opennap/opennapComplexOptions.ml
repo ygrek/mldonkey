@@ -61,7 +61,7 @@ let value_to_server assocs =
     with _ -> ());
   (try
       connection_set_last_conn l.server_connection_control
-        (min (get_value "server_age" value_to_float) 
+        (min (get_value "server_age" value_to_int) 
         (BasicSocket.last_time ()));
     with _ -> ());
   as_server l.server_server
@@ -71,7 +71,7 @@ let server_to_value c = [
     "server_addr", addr_to_value c.server_ip  c.server_port;
     "server_desc", string_to_value c.server_desc;
     "server_net", string_to_value c.server_net;
-    "server_age", float_to_value (
+    "server_age", int_to_value (
       connection_last_conn c.server_connection_control);
   ]
 
@@ -96,7 +96,7 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_id"
   in
   let file_size = try
-      value_to_int32 (List.assoc "file_size" assocs) 
+      value_to_int64 (List.assoc "file_size" assocs) 
     with _ -> failwith "Bad file size"
   in
   
@@ -137,9 +137,9 @@ let value_to_file is_done assocs =
 
 let file_to_value file =
   [
-    "file_size", int32_to_value (file_size file);
+    "file_size", int64_to_value (file_size file);
     "file_name", string_to_value file.file_name;
-    "file_downloaded", int32_to_value (file_downloaded file);
+    "file_downloaded", int64_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
     list_to_value "Opennap Sources" (fun c ->
@@ -167,7 +167,7 @@ let done_files =
 
 let old_files = 
   define_option opennap_ini ["old_files"]
-    "" (list_option (tuple2_option (string_option, int32_option))) []  
+    "" (list_option (tuple2_option (string_option, int64_option))) []  
       
 let _ =
   network.op_network_add_file <- value_to_file;

@@ -118,3 +118,6 @@ val exec_command : string -> string array -> handler -> t * t
   
 val not_buffer_more : t -> int -> bool
   
+val nread : t -> int
+val nwritten : t -> int
+  

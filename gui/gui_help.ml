@@ -33,5 +33,5 @@ class box () =
     inherit Gui_help_base.box () as box
 
     initializer
-      wtext#insert Gui_messages.help_text
+      wtext#insert (Gui_messages.help_string Autoconf.current_version)
   end

@@ -833,6 +833,6 @@ class pane_downloads () =
       
       clients_wpane#add1 locs#coerce;
       clients_wpane#add2 client_info_box#coerce;
-      vpaned#add1 dled#coerce;
-      vpaned#add2 dls#coerce ;
+      downloaded#add dled#coerce;
+      downloads#add dls#coerce ;
   end

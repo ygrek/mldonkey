@@ -720,10 +720,9 @@ and find_client_block c =
                 print_newline ();
               end;
             
-            if c.client_chunks.(last) && file.file_available_chunks.(last) = 1 then
+            if c.client_chunks.(last) then
               check_file_block c file last max_int;
-            if last > 0 && c.client_chunks.(last-1) && 
-              file.file_available_chunks.(last-1) = 1 then
+            if last > 0 && c.client_chunks.(last-1) then
               check_file_block c file (last-1) max_int;
 
 (* chunks with MD4 already computed *)

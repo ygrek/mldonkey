@@ -154,26 +154,68 @@ and find_pending_slot () =
     iter ()
   with _ -> ()
 
+let log_client_info c sock = 
+  let buf = Buffer.create 100 in
+  let date = BasicSocket.date_of_int (last_time ()) in
+  Printf.bprintf buf "%-12s: %-30s[%-14s %-20s] connected for %5d secs %-10s bw %5d/%-5d %-6s %2d/%-2d reqs " 
+    (Date.simple date) (
+    let s = c.client_name in
+    let len = String.length s in 
+    if len > 30 then String.sub s 0 30 else s)
+    
+    (DonkeyStats.brand_to_string c.client_brand)
+    (match c.client_kind with Indirect_location _ -> "LowID"
+    | Known_location (ip,port) -> Printf.sprintf "%s:%d"
+          (Ip.to_string ip) port)
+  (last_time () - c.client_connect_time)
+  (if c.client_rank > 0 then
+      Printf.sprintf "rank %d" c.client_rank
+    else "")
+  (nwritten sock) (nread sock)
+  (if c.client_banned then "banned" else "")
+  c.client_requests_received
+  c.client_requests_sent
+  ;
+  List.iter (fun r ->
+      match r.request_result with
+      | File_chunk -> Buffer.add_char buf 'C'
+      | File_upload -> Buffer.add_char buf 'U'
+      | File_not_found -> Buffer.add_char buf '-'
+      | File_found -> Buffer.add_char buf '+'
+      | File_possible -> ()
+      | File_expected -> ()
+      | File_new_source -> ()
+  ) c.client_files;
+  Buffer.add_char buf '\n';
+  let m = Buffer.contents buf in
+  CommonEvent.add_event (Console_message_event m)
+  
 let disconnect_client c =
   match c.client_sock with
     None -> ()
   | Some sock ->
-      (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
-      remove_pending_slot c;
-      connection_failed c.client_connection_control;
-      TcpBufferedSocket.close sock "closed";
-      printf_string "-c"; 
-      c.client_has_a_slot <- false;
-      c.client_chunks <- [||];
-      c.client_sock <- None;
-      set_client_state c NotConnected;
-      let files = c.client_file_queue in
-      List.iter (fun (file, chunks) -> 
-          remove_client_chunks file chunks)  
-      files;    
-      c.client_file_queue <- [];
-      if c.client_upload != None then find_pending_slot ();
-      DonkeyOneFile.clean_client_zones c;
+      (try
+          if !!log_clients_on_console && c.client_name <> "" then 
+              log_client_info c sock
+            ;
+          (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
+          remove_pending_slot c;
+          connection_failed c.client_connection_control;
+          TcpBufferedSocket.close sock "closed";
+          printf_string "-c"; 
+          c.client_has_a_slot <- false;
+          c.client_chunks <- [||];
+          c.client_sock <- None;
+          set_client_state c NotConnected;
+          let files = c.client_file_queue in
+          List.iter (fun (file, chunks) -> 
+              remove_client_chunks file chunks)  
+          files;    
+          c.client_file_queue <- [];
+          if c.client_upload != None then find_pending_slot ();
+          DonkeyOneFile.clean_client_zones c;
+        with e -> Printf.printf "Exception %s in disconnect_client"
+              (Printexc2.to_string e); print_newline ());
       DonkeySources1.S.source_of_client c
   
 let client_send_if_possible sock msg =
@@ -575,7 +617,7 @@ let client_to_client challenge for_files c t sock =
       M.print t;
       print_newline ();
     end;
-
+  
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
@@ -583,9 +625,7 @@ let client_to_client challenge for_files c t sock =
       c.client_checked <- true;
       c.client_has_a_slot <- false;
       
-      c.client_score <- 0;  
-  
-
+      DonkeySources1.S.client_connected c;  
       
       let module CR = M.ConnectReply in
       
@@ -636,11 +676,11 @@ let client_to_client challenge for_files c t sock =
       
       set_client_state c Connected_idle;      
       
-      let challenge_md4 =  Md4.random () in
+      challenge.challenge_md4 <- Md4.random ();
       direct_client_send sock (
         let module M = DonkeyProtoClient in
-        M.QueryFileReq challenge_md4);
-      challenge.challenge_md4 <- solve_challenge challenge_md4;
+        M.QueryFileReq challenge.challenge_md4);
+      challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
       
       query_files c sock;
       client_must_update c;      
@@ -661,6 +701,7 @@ print_newline ();
       is_banned c sock
   
   | M.EmuleQueueRankingReq t ->
+      c.client_rank <- t;
       if t > 1000 then 
         ban_client c sock "has an infinite queue";
       if t > 500 then c.client_score <- -20;
@@ -681,8 +722,39 @@ print_newline ();
   
   
   | M.EmuleRequestSourcesReq t ->
+      let module E = M.EmuleRequestSourcesReply in
+      
 (*       Printf.printf "Emule requested sources"; print_newline (); *)
-      ()
+      let file = find_file t in
+      let sources = ref [] in
+      Intmap.iter (fun _ c ->
+          match c.client_kind with
+            Indirect_location _ -> () (* not yet supported *)
+          | Known_location (ip, port) ->
+              match c.client_source with
+                None -> ()
+              | Some s ->
+                  if s.source_age > last_time () - 600 &&
+                    List.exists (fun r ->
+                        match r.request_result with
+                          File_not_found | File_possible | File_expected ->
+                            false
+                        | _ -> true
+                    ) c.client_files then
+                    sources := {
+                      E.ip = ip;
+                      E.port = port;
+                      E.server_ip = Ip.null;
+                      E.server_port = 0;
+                    } :: !sources
+      ) file.file_locations;
+      if !sources <> [] then        
+        direct_client_send sock (
+          M.EmuleRequestSourcesReplyReq {
+            E.md4 = t;
+            E.sources = Array.of_list !sources;
+          })  
+        
   
   | M.EmuleClientInfoReplyReq t -> 
 (*   Printf.printf "Emule Extended Protocol activated"; print_newline (); *)
@@ -729,7 +801,7 @@ print_newline ();
       end
   
   | M.JoinQueueReq _ ->
-      (*
+(*
       if !!ban_queue_jumpers && c.client_banned then
         direct_client_send sock (M.EmuleQueueRankingReq 
           (900 + Random.int 100))
@@ -1051,19 +1123,22 @@ is checked for the file.
        *)
       direct_client_send_files sock !published_files
   
-  | M.QueryFileReq t when !has_upload = 0 && 
-    not (!!ban_queue_jumpers && c.client_banned) ->
+  | M.QueryFileReq t ->
+      c.client_requests_received <- c.client_requests_received + 1;
+      
+      if  !has_upload = 0 && 
+        not (!!ban_queue_jumpers && c.client_banned) then
       
       
       let could_be_challenge = ref false in
       
-      if challenge.challenge_md4 = t then begin
+      if challenge.challenge_solved = t then begin
 (*      Printf.printf "Client replied to challenge !!"; print_newline (); *)
           c.client_brand <- Brand_mldonkey3;
           could_be_challenge := true;
         end;
       
-      if not challenge.challenge_ok  then begin
+      if not challenge.challenge_ok  && t <> challenge.challenge_md4 then begin
           could_be_challenge := true;
           DonkeyProtoCom.direct_client_send sock (
             let module M = DonkeyProtoClient in
@@ -1105,8 +1180,8 @@ is checked for the file.
               Q.md4 = file.file_md4;
               Q.name = published_filename
             });
-          
-          DonkeySources1.add_file_location file c
+          DonkeySources1.query_file sock c file
+        
         with _ -> 
             direct_client_send sock (
               M.NoSuchFileReq t)
@@ -1196,27 +1271,30 @@ is checked for the file.
       
       end
   
-  | M.QueryChunksReq t when !has_upload = 0 && not 
-      (!!ban_queue_jumpers && c.client_banned) ->
-            
-      let file = find_file t in
-      let chunks = if file.file_chunks = [||] then
-          Array.create file.file_nchunks false
-        else
-          Array.map (fun state ->
-              match state with
-                PresentVerified -> true 
-              | _ -> false
-          ) file.file_chunks
-      in
-      direct_client_send sock (
-        let module Q = M.QueryChunksReply in
-        M.QueryChunksReplyReq {
-          Q.md4 = file.file_md4;
-          Q.chunks = chunks;
-        });
-      DonkeySources1.query_file sock c file
-  
+  | M.QueryChunksReq t ->
+      c.client_requests_received <- c.client_requests_received + 1;
+      
+      if  !has_upload = 0 && not 
+          (!!ban_queue_jumpers && c.client_banned) then
+        
+        let file = find_file t in
+        let chunks = if file.file_chunks = [||] then
+            Array.create file.file_nchunks false
+          else
+            Array.map (fun state ->
+                match state with
+                  PresentVerified -> true 
+                | _ -> false
+            ) file.file_chunks
+        in
+        direct_client_send sock (
+          let module Q = M.QueryChunksReply in
+          M.QueryChunksReplyReq {
+            Q.md4 = file.file_md4;
+            Q.chunks = chunks;
+          });
+        DonkeySources1.query_file sock c file
+        
   | M.QueryBlocReq t when !has_upload = 0 && c.client_has_a_slot ->
       if !verbose then begin
           Printf.printf "uploader %s(%s) ask for block" c.client_name
@@ -1302,11 +1380,12 @@ let init_connection sock =
   
 (* Fix a lifetime for the connection. If we are not able to connect and
 query file within this delay, the connection is aborted. 
-
+  
 With 150 connections of 1 minute, it means we can at most make 
 make 1500 connections/10 minutes.  *)
   
-(*  set_lifetime sock 60.; *)
+  set_lifetime sock 60.; 
+  
   set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
       printf_string "[TO?]";
       close s "timeout"
@@ -1331,9 +1410,10 @@ let init_client sock c =
   c.client_zones <- [];
   c.client_file_queue <- [];
   c.client_has_a_slot <- false;
-  c.client_upload <- None
-
-  
+  c.client_upload <- None;
+  c.client_rank <- 0;
+  c.client_requests_received <- 0;
+  c.client_requests_sent <- 0
         
 let read_first_message overnet challenge m sock =
   let module M = DonkeyProtoClient in
@@ -1365,7 +1445,6 @@ let read_first_message overnet challenge m sock =
           close sock "already connected";
           raise Exit
         end;
-      
       let name = ref "" in
       List.iter (fun tag ->
           match tag with
@@ -1383,7 +1462,9 @@ let read_first_message overnet challenge m sock =
           None -> 
             c.client_sock <- Some sock;
             c.client_connected <- false;
-            init_client sock c
+            init_client sock c;
+            c.client_connect_time <- last_time ();
+            
         | Some _ -> 
             close sock "already connected"; raise Not_found
       end;
@@ -1453,11 +1534,11 @@ let read_first_message overnet challenge m sock =
       
       set_client_state c Connected_idle;      
             
-      let challenge_md4 =  Md4.random () in
+      challenge.challenge_md4 <-  Md4.random ();
       direct_client_send sock (
         let module M = DonkeyProtoClient in
-        M.QueryFileReq challenge_md4);
-      challenge.challenge_md4 <- solve_challenge challenge_md4;
+        M.QueryFileReq challenge.challenge_md4);
+      challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
 
       query_files c sock; 
 
@@ -1513,11 +1594,13 @@ let reconnect_client c =
                 (client_handler c) (*client_msg_to_string*) in
             TcpBufferedSocket.set_write_power sock c.client_power;
             TcpBufferedSocket.set_read_power sock c.client_power;
+            c.client_connect_time <- last_time ();
             init_connection sock;
             init_client sock c;
             
             let challenge = {
                 challenge_md4 = Md4.null;
+                challenge_solved = Md4.null;
                 challenge_ok = false;
               } in
             set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
@@ -1642,6 +1725,7 @@ begin
               
               let challenge = {
                   challenge_md4 = Md4.null;
+                  challenge_solved = Md4.null;
                   challenge_ok = false;
                 } in
               set_reader sock 

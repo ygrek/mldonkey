@@ -14,3 +14,6 @@ let check_string s pos =
 let check_array s pos =
   if check_bounds && pos >= Array.length s then
     raise outofboundsaccess
+
+let has_zlib = @HAS_ZLIB@
+let zlib_uncompress s = @ZLIB_UNCOMPRESS@

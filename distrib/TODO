@@ -1,128 +1,44 @@
 TODO list for client
 ====================
 
-******************
-* Keep the result of a request to a given source: remove the file from
-   source_files if needed. Define a record type for file requests:
-   file * last_req * result (File_expected | File_not_found | File_found | File_chunk | File_upload)
-* Remove the fucking assertion failure
-* Add paused sources when resuming a download
-* Is files.ini being removed ?
+For Zoggy:
+----------
+1) Could you move all the licences to GPL instead of QPL ?
+2) In gpattern, could the selection be cleared only when REALLY necessary ?
+3) In gpattern, if an item from the selection is removed, the selection is
+     not updated
 
-set_locale(LC_NUMERIC, "C");
+2003/01/25: For this week-end
+ * Check all networks and update the Development Status table
+    * Opennap: share files
+    * Soulseek: 
+       + Check the protocol for pyslsk page
+       + Directory download in subdir ?
+ * GUI: 
+    * Add an option tab similar to the one of mldonkeywatch
+    * Send all the locations to the GUI with their chunks
+    * set_locale(LC_NUMERIC, "C");
 
-max_opened_connections  - 924 is for most users too high
-max_reask_delay         - 3600 is too high for emule queues
-save_options_delay      - do we really need saving every 4 Minutes?
-server_connection_timeout - 5 is way too low for most servers
-use_file_history        - a lot of users complain about mem-problems
-max_upload_slots        - 10 is too high for most users (i guess)
+ * Core:
+    * SIGSEGV in MD4Transform
+    * Immediatly remove sources of Cancelled files
+    * Call update_sources when priority/state change
 
-
-OP_REASKFILEPING (0x90) (size=16)
-OP_QUEUEFULL (0x93)
-OP_REASKACK (0x91) (size=2)
-OP_FILENOTFOUND (0x92)
-
-ClientUDPSocket.(h|cpp)
-
-
-Program received signal SIGSEGV, Segmentation fault.
-0x0818884e in MD4Transform ()
-(gdb) bt
-#0  0x0818884e in MD4Transform ()
-#1  0x00000000 in ?? ()
-Cannot access memory at address 0x384b8bcf
-
-- if you cancel one file, all sources that have only this file should be
-immidiately deleted
-- if you restart the donkey, the new sources queue is full of sources
-from the last session of MLdonkey and all of them have to be asked until
-any new sources that are send from servers or by source propagation can
-be asked. I think the new sources should be asked first and the old
-sources should only be asked when they have rare files
-
-I would like a state between DOWNLOADING and PAUSED that does not
-query for the file anymore but still accepts blocks for it and
-utilised queue positions.
-
-I can confirm this one, but I think the bytes are saved, just the
-counters of the missing bytes in the files.ini are not updated. In a
-correct way.
-
-Ok, the bytes are saved, the byte-counters are updated, BUT: After
-restarting and rehashing, mldonkey marks the incomplete chunks as
-missing and throws the already downloaded bytes away, resetting the
-byte-counters to the chunk-borders.
-
->  yes, there is a little think to do. there is no link to mldonkey.org in
->  your web-interface. it would be very nice, if you could add us too.
-
-c) High memory usage is still not fixed. For the first 2-3 hours MLDonkey
-runs very well (using 15-10 MB of memory). Then suddenly it begins to
-eat memory very quickly (+ 1 MB every 10 seconds). This way MLDonkey
-slows down my machine (64 MB of RAM) and I have to kill it. The
-similar experience with 2.02-4 but this version comsumes all my memory
-after 10 minutes of running. So 2-3 hours of running is a nice
-improvement in 2.02-5 :-) I'm running Debian 3.0 Woody.
-
-BTW, I am downloading only one but very popular file.
-
---
-on version 2.02-5 when I do a recover_temp, on a list of 19 files now I have
-only 1... what's going on???
-
-Also, the downloads option on the html doesn't work... I know that there is
-a patch somewhere on the list but how I can apply that... maybe anyone could
-fix the cvs no?
-
-o be more precise: After shutting down, the bytes are correctly written
-to the files.ini, but after a start, they are treated in an incorrect
-manner, causing the unfinished chunks to be lost.
-
-You can see this, if you copy the files.ini to a safe place and do a
-"diff -u" right after mldonkey starts.
-
-ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
-dec:
-[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
-Received unknown UDP packet
-ascii: [(197)(144)(213) 7(195)(211)(232)(6) ](8)(207) ~ ( #(29)(20)(148)(180)]
-dec:
-[(197)(144)(213)(55)(195)(211)(232)(6)(93)(8)(207)(126)(40)(35)(29)(20)(148)(180)]
-Received unknown UDP packet
-ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
-dec:
-[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
-Received unknown UDP packet
-ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
-dec:
-[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
-Received unknown UDP packet
-ascii: [(197)(144)(197)(217) 6(255) C(204)(226) a o(234) 6 T(28)(140) % ;]
-dec:
-[(197)(144)(197)(217)(54)(255)(67)(204)(226)(97)(111)(234)(54)(84)(28)(140)(37)(59)]
-Received unknown UDP packet
-
-
-******************
+Questions:
+* How do you know your IP in Direct-Connect if you are behind a firewall
+* Send replies to active searches
 
 
 Bugs in unstable-2-02-3:
- * Remove the mp3info Not_Found error
  * Installer...
- * prevent duplicates in sources_for
  * add an option for overnet access
  * add an option for locale (or verify that LANG is set correctly LANG=C ??)
- * keep connecting to bad sources with earlier times if we are not using
-    all the connection slots...
  * Stop connecting to sources when download bandwidth is fully used.
  * Change the color of tabs when things change
  * Different black lists for clients and servers ?
  * Fix stats with sources, remove servers
  * Send a news update 2.02
  * Remove sources of cancelled files
- * Verify that file sizes are always used as positive integers
 
 donkey/:
  * New source management
@@ -138,10 +54,10 @@ donkey/:
 direct_connect/:
  * When a download is finished, can the link be reused ?
  * Don't always download from incoming peer the files list
- * Reply to search requests
+ * Reply to active search requests
+ * For some reason, mldc cannot talk on some servers... France AVI for example.
 
 gui/:
- * Popup when clicking on a file with stats on sources
  * Show list of file names for files being downloaded
  * Add preview for downloaded files
 

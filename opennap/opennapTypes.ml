@@ -74,7 +74,7 @@ and client = {
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
     mutable client_sock : TcpBufferedSocket.t option;
-    mutable client_pos : int32;
+    mutable client_pos : int64;
     mutable client_error : bool;
     mutable client_files : (file * string) list;
     mutable client_file : file option;
@@ -85,7 +85,7 @@ and client = {
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
-    result_size : int32;
+    result_size : int64;
     result_info : CommonTypes.tag list;
     mutable result_sources : (user * string) list;
   }
@@ -100,7 +100,7 @@ and file = {
 and shared_file = {
     shared_fullname : string;
     shared_codedname : string;
-    shared_size : int32;
+    shared_size : int64;
     shared_fd : Unix32.t;
     shared_format : Mp3tag.Id3v1.tag * Mp3tag.info;
   }

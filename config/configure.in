@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=6
+CURRENT_RELEASE=7
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -272,6 +272,13 @@ ZLIB=no
 AC_CHECK_LIB(z,inflate,[ZLIB=yes])
 AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
 
+if test "$ZLIB" = "yes"; then
+  HAS_ZLIB=true
+  ZLIB_UNCOMPRESS="Zlib.uncompress_string2 s"
+else
+  HAS_ZLIB=false
+  ZLIB_UNCOMPRESS=s
+fi
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
@@ -623,6 +630,9 @@ AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(CONFIG_ARGS)
 AC_SUBST(CONFIG_ARGS_DEFINED)
+
+AC_SUBST(HAS_ZLIB)
+AC_SUBST(ZLIB_UNCOMPRESS)
 
 AUTOCONF=../lib/autoconf.ml
 GTK_AUTOCONF=../lib/gAutoconf.ml

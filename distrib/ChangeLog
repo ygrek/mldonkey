@@ -1,7 +1,7 @@
 ChangeLog	
 =========
 
-2003/01/25: Simon
+2003/01/25: Simon (tag unstable-2-02-7) 
   - Direct-Connect:
        * Better management of users in servers/rooms
        * Servers headers displayed in GUI console

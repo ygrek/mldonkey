@@ -80,7 +80,7 @@ MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
 LIB_SRCS=   lib/autoconf.ml \
   config/$(OS_FILES)/mlUnix.ml \
   config/$(OS_FILES)/os_stubs_c.c \
-  lib/intmap.ml \
+  lib/intmap.ml lib/stringMap.ml \
   lib/int32ops.ml lib/options.ml4 lib/ip.ml  lib/numset.ml  \
   lib/fifo.ml lib/fifo2.ml lib/intset.ml \
   lib/hole_tab.ml lib/store.ml \
@@ -134,7 +134,8 @@ COMMON_CLIENT_SRCS= \
   common/commonSearch.ml \
   common/commonMultimedia.ml \
   common/commonInteractive.ml \
-  common/commonDownloads.ml
+  common/commonDownloads.ml \
+  common/commonUploads.ml
 
 all: Makefile config/Makefile.config opt
 
@@ -143,7 +144,7 @@ config/configure: config/configure.in
 	
 ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
 
-config/Makefile.config: Makefile config/configure config/Makefile.config.in
+config/Makefile.config: Makefile config/configure config/Makefile.config.in lib/autoconf.ml.new.in
 	./configure $(CONFIG_ARGS)
 
 else
@@ -471,8 +472,8 @@ GUI_SRCS=  \
   gui/gui_results_base.zog gui/gui_results.ml \
   gui/gui_rooms_base.zog gui/gui_rooms.ml \
   gui/gui_friends_base.zog gui/gui_friends.ml \
-  gui/gui_servers_base.zog gui/gui_servers.ml \
   gui/gui_queries_base.zog gui/gui_queries.ml \
+  gui/gui_servers_base.zog gui/gui_servers.ml \
   gui/gui_downloads_base.zog gui/gui_downloads.ml \
   gui/gui_window_base.zog gui/gui_window.ml \
   $(IM_GUI_CORE) \

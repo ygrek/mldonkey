@@ -204,3 +204,62 @@ let from_gui_to_string t =
       
   | RefreshUploadStats -> "RefreshUploadStats"
       
+let string_of_to_gui t =
+  match t with
+  
+  | CoreProtocol _ -> "CoreProtocol"
+  
+  | Options_info _ -> "Options_info"
+  | DefineSearches _ -> "DefineSearches"
+  
+  | Result_info _ -> "Result_info"
+  
+  | Search_result _ -> "Search_result"
+  | Search_waiting _ -> "Search_waiting"
+  
+  | File_info _ -> "File_info"
+  | File_downloaded _ -> "File_downloaded"
+  | File_add_source _ -> "File_add_source"
+  | File_update_availability _ -> "File_update_availability"
+  | File_remove_source _ -> "File_remove_source"
+  
+  | Server_busy _ -> "Server_busy"
+  | Server_user _ -> "Server_user"
+  | Server_state _ -> "Server_state"
+  | Server_info _ -> "Server_info"
+  
+  | Client_info _ -> "Client_info"
+  | Client_state _ -> "Client_state"
+  | Client_friend _ -> "Client_friend"
+  | Client_file _ -> "Client_file"
+  
+  | Console _ -> "Console"
+  
+  | Network_info _ -> "Network_info"
+  | User_info _ -> "User_info"
+  
+  | Room_info r -> Printf.sprintf "Room_info %d" r.room_num
+  | Room_message _ -> "Room_message"
+  | Room_add_user _ -> "Room_add_user"
+  
+  | Client_stats _ -> "Client_stats"
+
+(* New messages from protocol 3 *)
+  | ConnectedServers _ -> "ConnectedServers"
+  | DownloadFiles _ -> "DownloadFiles"
+  | DownloadedFiles _ -> "DownloadedFiles"
+  | MessageFromClient _ -> "MessageFromClient"
+
+(* New message for protocol 4  *)
+  | Room_remove_user _ -> "Room_remove_user"
+  | Shared_file_info _ -> "Shared_file_info"
+  | Shared_file_upload _ -> "Shared_file_upload"
+  | Shared_file_unshared _ -> "Shared_file_unshared"
+
+(* New message for protocol 5 *)
+  | Add_section_option _ -> "Add_section_option"
+
+(* New message for protocol 6 *)
+  | Add_plugin_option _ -> "Add_plugin_option"
+  
+  | BadPassword -> "BadPassword"

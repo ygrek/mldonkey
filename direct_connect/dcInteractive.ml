@@ -18,6 +18,7 @@
 *)
 
 open Md4
+open CommonOptions
 open CommonGlobals
 open BasicSocket
 open CommonComplexOptions
@@ -55,7 +56,7 @@ let _ =
       let query = q.search_query in
       let module S = Search in
       let words = ref [] in
-      let filetype = ref 0 in
+      let filetype = ref 1 in
       let sizelimit = ref NoLimit in
       let rec iter q =
         match q with
@@ -66,7 +67,26 @@ let _ =
         | QHasField(field, w) ->
             begin
               match field with
-(*            "type" -> () *)
+              | "type" -> begin
+(*
+1 for any file type
+2 for audio files ("mp3", "mp2", "wav", "au", "rm", "mid", "sm")
+3 for compressed files ("zip", "arj", "rar", "lzh", "gz", "z", "arc", "pak")
+4 for documents ("doc", "txt", "wri", "pdf", "ps", "tex")
+5 for executables ("pm", "exe", "bat", "com")
+6 for pictures ("gif", "jpg", "jpeg", "bmp", "pcx", "png", "wmf", "psd")
+7 for video ("mpg", "mpeg", "avi", "asf", "mov")
+8 for folders
+*)
+                    
+                    match w with
+                    | "Audio" -> filetype := 2
+                    | "Video" -> filetype := 7
+                    | "Doc" -> filetype := 4
+                    | _ -> Printf.printf "Unknown document type [%s]" w;
+                        print_newline ();
+                  end
+                  
               | _ -> words := w :: !words
             end
         | QHasMinVal (field, value) ->
@@ -90,16 +110,23 @@ let _ =
       searches := q :: !searches;
       let words = String2.unsplit !words ' ' in
       List.iter (fun s ->
-          let msg = SearchReq {
-              S.orig = Printf.sprintf "Hub:%s" s.server_last_nick;
+          match s.server_sock with
+            None -> ()
+              | Some sock ->
+              let msg = SearchReq {
+              S.orig = 
+              (if !!firewalled then
+                  Printf.sprintf "Hub:%s" s.server_last_nick
+                else
+                  Printf.sprintf "%s:%d" (
+                    Ip.to_string (CO.client_ip (Some sock)))
+                  !!dc_port
+              );
               S.sizelimit = !sizelimit;
               S.filetype = !filetype;
               S.words = words;
             } in
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
-              server_send sock msg; 
+              server_send !CommonOptions.verbose_msg_servers sock msg; 
               s.server_search <- Some q; 
               s.server_search_timeout <- last_time () + !!search_timeout;
               Printf.bprintf  buf "Sending search\n") !connected_servers
@@ -147,6 +174,27 @@ let _ =
 
 module P = GuiTypes
   
+    
+let _ =
+  server_ops.op_server_connect <- DcServers.connect_server;
+  server_ops.op_server_disconnect <- DcServers.disconnect_server;
+  server_ops.op_server_query_users <- (fun s ->
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          server_send !verbose_msg_servers sock (GetNickListReq)
+  );
+  server_ops.op_server_users <- (fun s ->
+      let list = ref [] in
+      StringMap.iter (fun _ u -> list := as_user u.user_user :: !list) 
+      s.server_users;
+      !list
+  );
+  server_ops.op_server_remove <- (fun s ->
+      DcServers.disconnect_server s;
+      server_remove s
+  )
+
 let _ =
   room_ops.op_room_info <- (fun s ->
       {
@@ -158,12 +206,10 @@ let _ =
             u.user_user.impl_user_num
         ) s.server_users*) [];
         P.room_messages = [];
-        P.room_nusers = List.length s.server_users;
+        P.room_nusers = StringMap.length s.server_users;
       }
   );
-  room_ops.op_room_users <- (fun s ->
-      List2.tail_map (fun u -> as_user u.user_user) s.server_users  
-  );
+  room_ops.op_room_users <- server_ops.op_server_users;
   room_ops.op_room_messages <- (fun s age ->
       extract_messages s.server_messages age);
   room_ops.op_room_send_message <- (fun s m ->
@@ -173,7 +219,7 @@ let _ =
           match m with
             PublicMessage (0,m) ->
               let m = Printf.sprintf "<%s> %s" s.server_last_nick m in
-              server_send sock (MessageReq m)
+              server_send !verbose_msg_servers sock (MessageReq m)
           | _ -> assert false
   );
   room_ops.op_room_name <- (fun s ->

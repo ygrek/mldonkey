@@ -299,7 +299,7 @@ print_newline (); *)
                   {
                     M.filename = sh.shared_codedname;
                     M.md5 = Md5.to_string Md5.null;
-                    M.size = Int32.of_int info.Mp3tag.filesize;
+                    M.size = Int64.of_int info.Mp3tag.filesize;
                     M.bitrate = info.Mp3tag.bitrate;
                     M.freq = 0;
                     M.length = info.Mp3tag.duration;

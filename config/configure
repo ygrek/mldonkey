@@ -560,7 +560,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=6
+CURRENT_RELEASE=7
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -2340,6 +2340,13 @@ fi
 done
 
 
+if test "$ZLIB" = "yes"; then
+  HAS_ZLIB=true
+  ZLIB_UNCOMPRESS="Zlib.uncompress_string2 s"
+else
+  HAS_ZLIB=false
+  ZLIB_UNCOMPRESS=s
+fi
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
@@ -2350,17 +2357,17 @@ case $host in
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:2354: checking for $ac_hdr" >&5
+echo "configure:2361: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2359 "configure"
+#line 2366 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2364: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2371: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2387,17 +2394,17 @@ OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
              ac_safe=`echo "linux/types.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for linux/types.h""... $ac_c" 1>&6
-echo "configure:2391: checking for linux/types.h" >&5
+echo "configure:2398: checking for linux/types.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2396 "configure"
+#line 2403 "configure"
 #include "confdefs.h"
 #include <linux/types.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2401: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2408: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2429,7 +2436,7 @@ done
 esac
 
 echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
-echo "configure:2433: checking Additionnal includes" >&5 
+echo "configure:2440: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
 OCAMLLIB=`$OCAMLC -where`
@@ -2446,7 +2453,7 @@ fi
     
 ac_safe=`echo "../audio_galaxy" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../audio_galaxy""... $ac_c" 1>&6
-echo "configure:2450: checking for ../audio_galaxy" >&5
+echo "configure:2457: checking for ../audio_galaxy" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2479,7 +2486,7 @@ fi
     
 ac_safe=`echo "../opennap" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../opennap""... $ac_c" 1>&6
-echo "configure:2483: checking for ../opennap" >&5
+echo "configure:2490: checking for ../opennap" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2512,7 +2519,7 @@ fi
     
 ac_safe=`echo "../direct_connect" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../direct_connect""... $ac_c" 1>&6
-echo "configure:2516: checking for ../direct_connect" >&5
+echo "configure:2523: checking for ../direct_connect" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2545,7 +2552,7 @@ fi
     
 ac_safe=`echo "../limewire" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../limewire""... $ac_c" 1>&6
-echo "configure:2549: checking for ../limewire" >&5
+echo "configure:2556: checking for ../limewire" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2578,7 +2585,7 @@ fi
     
 ac_safe=`echo "../soulseek" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../soulseek""... $ac_c" 1>&6
-echo "configure:2582: checking for ../soulseek" >&5
+echo "configure:2589: checking for ../soulseek" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2612,7 +2619,7 @@ fi
     
 ac_safe=`echo "../openFT" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../openFT""... $ac_c" 1>&6
-echo "configure:2616: checking for ../openFT" >&5
+echo "configure:2623: checking for ../openFT" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2645,7 +2652,7 @@ fi
     
 ac_safe=`echo "../cymes" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../cymes""... $ac_c" 1>&6
-echo "configure:2649: checking for ../cymes" >&5
+echo "configure:2656: checking for ../cymes" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2679,7 +2686,7 @@ if test "$DONKEY" = "yes" ; then
   
 ac_safe=`echo "../donkey" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../donkey""... $ac_c" 1>&6
-echo "configure:2683: checking for ../donkey" >&5
+echo "configure:2690: checking for ../donkey" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2700,7 +2707,7 @@ if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
     
 ac_safe=`echo "../server" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../server""... $ac_c" 1>&6
-echo "configure:2704: checking for ../server" >&5
+echo "configure:2711: checking for ../server" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2743,7 +2750,7 @@ fi
 # Extract the first word of "gtk-config", so it can be a program name with args.
 set dummy gtk-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2747: checking for $ac_word" >&5
+echo "configure:2754: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_GTK_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2774,7 +2781,7 @@ if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
   echo $ac_n "checking Checking for native code lablgtk""... $ac_c" 1>&6
-echo "configure:2778: checking Checking for native code lablgtk" >&5
+echo "configure:2785: checking Checking for native code lablgtk" >&5
   if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
      echo "$ac_t""yes" 1>&6
      LABLGTK_CONFIG=yes
@@ -2835,7 +2842,7 @@ fi
     
 ac_safe=`echo "../im" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../im""... $ac_c" 1>&6
-echo "configure:2839: checking for ../im" >&5
+echo "configure:2846: checking for ../im" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2867,7 +2874,7 @@ fi
 if test "$IM" = "yes"; then
   CRYPTOKIT=no
   echo $ac_n "checking Checking for CryptoKit""... $ac_c" 1>&6
-echo "configure:2871: checking Checking for CryptoKit" >&5
+echo "configure:2878: checking Checking for CryptoKit" >&5
   if test -f $OCAMLLIB/cryptokit.cmxa; then
     CRYPTOKIT=yes
     echo "$ac_t""yes" 1>&6
@@ -2878,7 +2885,7 @@ echo "configure:2871: checking Checking for CryptoKit" >&5
   if test "$CRYPTOKIT" = "yes"; then
     YAXPO=no
     echo $ac_n "checking Checking for Yaxpo""... $ac_c" 1>&6
-echo "configure:2882: checking Checking for Yaxpo" >&5
+echo "configure:2889: checking Checking for Yaxpo" >&5
     if test -f $OCAMLLIB/yaxpo.cmxa; then
       YAXPO=yes
       echo "$ac_t""yes" 1>&6
@@ -2890,7 +2897,7 @@ echo "configure:2882: checking Checking for Yaxpo" >&5
   if test "$YAXPO" = "yes"; then
     JABBR=no
     echo $ac_n "checking Checking for Jabbr""... $ac_c" 1>&6
-echo "configure:2894: checking Checking for Jabbr" >&5
+echo "configure:2901: checking Checking for Jabbr" >&5
     if test -f $OCAMLLIB/jabbr.cmxa; then
       JABBR=yes
       echo "$ac_t""yes" 1>&6
@@ -2902,7 +2909,7 @@ fi
 
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:2906: checking compile GTK GUI" >&5
+echo "configure:2913: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
@@ -2917,7 +2924,7 @@ echo "configure:2906: checking compile GTK GUI" >&5
         echo "$ac_t""yes" 1>&6
 
         echo $ac_n "checking GToolbox.popup_menu args""... $ac_c" 1>&6
-echo "configure:2921: checking GToolbox.popup_menu args" >&5
+echo "configure:2928: checking GToolbox.popup_menu args" >&5
         GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
@@ -2971,7 +2978,7 @@ esac
 # Extract the first word of "bzip2", so it can be a program name with args.
 set dummy bzip2; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2975: checking for $ac_word" >&5
+echo "configure:2982: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3000,7 +3007,7 @@ fi
 # Extract the first word of "gzip", so it can be a program name with args.
 set dummy gzip; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3004: checking for $ac_word" >&5
+echo "configure:3011: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3044,6 +3051,9 @@ case $host in
 esac
 
 ARCH=$arch
+
+
+
 
 
 
@@ -3293,6 +3303,8 @@ s%@GTOOLBOX_POPUPMENU@%$GTOOLBOX_POPUPMENU%g
 s%@OS_FILES@%$OS_FILES%g
 s%@CONFIG_ARGS@%$CONFIG_ARGS%g
 s%@CONFIG_ARGS_DEFINED@%$CONFIG_ARGS_DEFINED%g
+s%@HAS_ZLIB@%$HAS_ZLIB%g
+s%@ZLIB_UNCOMPRESS@%$ZLIB_UNCOMPRESS%g
 
 CEOF
 EOF

@@ -165,7 +165,8 @@ class box columns users wl_status =
                 | _ -> ()
             );
           delayed_users_update <- Some l
-                
+
+(*
     method add_server () =
       let (server_ip, server_port) =
         let server = we_ip#text in
@@ -184,7 +185,8 @@ class box columns users wl_status =
       );
       we_ip#set_text "";
       we_port#set_text ""
-    
+*)
+          
     method on_deselect s = users#clear
     
     method menu =
@@ -310,7 +312,7 @@ class box columns users wl_status =
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
-      ignore (wb_add#connect#clicked self#add_server);
+(*      ignore (wb_add#connect#clicked self#add_server); *)
 
       ignore
 	(wtool#insert_button 
@@ -377,37 +379,42 @@ class box columns users wl_status =
   end
 
 class pane_servers () =
-  let users = new Gui_users.box_users () in
+  let box_users = new Gui_users.box_users () in
   let wl_status = GMisc.label ~text: "" ~show: true () in
-  let servers = new box !!O.servers_columns users wl_status in
+  let box_servers = new box !!O.servers_columns box_users wl_status in
+  let box_queries = new Gui_queries.paned () in
+
   object (self)
-    inherit Gui_servers_base.paned ()
+    inherit Gui_servers_base.pane ()
 
     method wl_status = wl_status
-    method box_servers = servers
-    method box_users = users
-    method hpaned = wpane
+    method box_servers = box_servers
+    method box_users = box_users
+    method hpaned = hpaned_servers
 
     method set_tb_style st = 
-      users#set_tb_style st ;
-      servers#set_tb_style st
+      box_users#set_tb_style st ;
+      box_servers#set_tb_style st
 
     method clear =
       wl_status#set_text "";
-      servers#clear ;
-      users#clear ;
+      box_servers#clear ;
+      box_users#clear ;
+      box_queries#clear
 
+    method tab_queries = box_queries
+      
     (** {2 Handling core messages} *)
 
-    method h_server_filter_networks = servers#h_server_filter_networks
-    method h_server_info = servers#h_server_info
-    method h_server_state = servers#h_server_state
-    method h_server_busy = servers#h_server_busy
-    method h_server_user = servers#h_server_user
+    method h_server_filter_networks = box_servers#h_server_filter_networks
+    method h_server_info = box_servers#h_server_info
+    method h_server_state = box_servers#h_server_state
+    method h_server_busy = box_servers#h_server_busy
+    method h_server_user = box_servers#h_server_user
       
-
     initializer
-      wpane#add1 servers#coerce;
-      wpane#add2 users#coerce 
+      servers_frame#add box_servers#coerce;
+      users_frame#add box_users#coerce;
+      queries_frame#add box_queries#coerce;
   end
 

@@ -311,7 +311,8 @@ let string_of_chunks file =
   for i = 0 to nchunks - 1 do
     s.[i] <- (match file.file_chunks.(i) with
       | PresentVerified -> '2'
-      | AbsentVerified -> '0'
+      | AbsentVerified 
+      | PartialVerified _ -> '0'
       | _ -> '1' (* don't know ? *)
     )
   done;
@@ -421,21 +422,23 @@ module ClientOption = struct
             | _ -> failwith  "Options: Not an source option")
       in
       let files = get_value ["files"; "source_files"] (value_to_list 
-          Md4.value_to_hash) in
+            Md4.value_to_hash) in
       
       let overnet_source = try
           get_value ["overnet"; "source_overnet"] value_to_bool
         with _ -> false in
-
+      
       let current_time = last_time () in
       
       let last_conn = 
         try
           min (get_value ["age"; "source_age"] value_to_int) current_time
-        with _ -> 0
+        with _ -> current_time
       in
-        
+      
       let last_conn = normalize_time last_conn in
+
+      let basic_score = try get_value ["score"] value_to_int with _ -> -10 in
       
       let rec iter files =
         match files with
@@ -443,7 +446,7 @@ module ClientOption = struct
         | md4 :: tail ->
             try
               let file = find_file md4 in
-              let s = DonkeySources1.S.old_source last_conn addr file in
+              let s = DonkeySources1.S.old_source basic_score last_conn addr file in
               s.source_overnet <- overnet_source;
               List.iter (fun md4 ->
                   try
@@ -456,22 +459,33 @@ module ClientOption = struct
             with _ -> iter tail
       in 
       iter files
-      
+    
     let source_to_value s =
-      let last_conn = match s.source_client with
-        | SourceLastConnection (_, time, _) -> time
-        | _ -> last_time ()
+      let last_conn, basic_score = match s.source_client with
+        | SourceLastConnection (basic_score, time, _) -> time, basic_score
+        | SourceClient c -> last_time (), c.client_score
       in
       let (ip, port) = s.source_addr in
       
       let files = ref [] in
+      let score = ref basic_score in
       List.iter (fun r ->
-          if r.request_result > File_not_found then
-            files := once_value (Md4.hash_to_value r.request_file.file_md4)
-            :: !files
+          if r.request_result > File_not_found then begin
+              files := once_value (Md4.hash_to_value r.request_file.file_md4)
+              :: !files;
+              score := !score + (match r.request_result with
+                | File_possible
+                | File_not_found -> 0
+                | File_expected -> 1
+                | File_new_source -> 1
+                | File_found -> 20
+                | File_chunk -> 40
+                | File_upload -> 60)
+            end
       ) s.source_files;
       
       let list = [
+          "score", int_to_value !score;
           "addr", addr_to_value ip port;
           "files", smalllist_to_value "file list" 
             (fun s -> s)
@@ -480,7 +494,7 @@ module ClientOption = struct
         ] in
       let list = 
         if last_conn < 1 then list else
-          ("age", int_to_value last_conn) :: list
+          ("age", int_to_value s.source_age) :: list
       in
       let list = if s.source_overnet then
           ("overnet", bool_to_value true) :: list else list

@@ -39,6 +39,10 @@ let to_string date =
 let to_full_string date =
   string_of_date [Hour;Colon;Minute;Space; Space; WeekDay; Space; Day; Space;Month; Space;Year]
     (Unix.localtime date)
+
+let simple date = 
+  string_of_date [Hour;Colon;Minute;Colon;Second;Space; Space; WeekDay]
+    (Unix.localtime date)
   
 let hour_in_secs = 3600
 let day_in_secs = 24 * hour_in_secs

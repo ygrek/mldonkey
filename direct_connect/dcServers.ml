@@ -49,27 +49,33 @@ let try_connect_client c =
                 match s.server_sock with
                   None -> ()
                 | Some sock ->
-                    debug_server_send sock (
-                      let module C = ConnectToMe in
-                      ConnectToMeReq {
-                        C.nick = c.client_name;
-                        C.ip = CO.client_ip (Some sock);
-                        C.port = !!dc_port;
-                      }
-                    );
-                                        
-                    debug_server_send sock (
-                      let module C = RevConnectToMe in
-                      RevConnectToMeReq {
-                        C.orig = s.server_last_nick;
-                        C.dest = c.client_name;
-                      }
-                    );
+                    if !!firewalled then
+                      
+                      server_send !verbose_msg_servers sock (
+                        let module C = RevConnectToMe in
+                        RevConnectToMeReq {
+                          C.orig = s.server_last_nick;
+                          C.dest = c.client_name;
+                        }
+                      )
+                    else
+                      server_send !verbose_msg_servers sock (
+                        let module C = ConnectToMe in
+                        ConnectToMeReq {
+                          C.nick = c.client_name;
+                          C.ip = CO.client_ip (Some sock);
+                          C.port = !!dc_port;
+                        }
+                      );
             )                    
             c.client_user.user_servers 
         | Some (ip, port) ->
             DcClients.connect_client c
-  
+
+            
+let add_search s words =
+  if not (Fifo.mem s.server_searches words) then
+    Fifo.put s.server_searches words
     
 let rec remove_short list list2 =
   match list with
@@ -91,9 +97,10 @@ let stem s =
   remove_short (String2.split s ' ') []
            
 let ask_for_file file =
-  List.iter (fun c ->
-      try_connect_client c
-  ) file.file_clients
+  if file_state file = FileDownloading then
+    List.iter (fun c ->
+        try_connect_client c
+    ) file.file_clients
   
 let ask_for_files () =
   Hashtbl.iter (fun _ file ->
@@ -102,59 +109,55 @@ let ask_for_files () =
      
 let recover_files_from_server s = 
   List.iter (fun file ->
-      
-      List.iter (fun c ->
-          match c.client_sock with
-          | Some _ -> ()
-          | None -> 
-              match c.client_addr with
-                Some _ -> ()
-              | None ->
-                  match s.server_sock with
-                    None -> ()
-                  | Some sock ->
-                      debug_server_send sock (
-                        let module C = ConnectToMe in
-                        ConnectToMeReq {
-                          C.nick = c.client_name;
-                          C.ip = CO.client_ip (Some sock);
-                          C.port = !!dc_port;
-                        }
-                      );
-                      
-                      debug_server_send sock (
-                        let module C = RevConnectToMe in
-                        RevConnectToMeReq {
-                          C.orig = s.server_last_nick;
-                          C.dest = c.client_name;
-                        }
-                      );
-      )                    
-      file.file_clients;
-      
-      
+      if file_state file = FileDownloading then begin
+          
+          List.iter (fun c ->
+              match c.client_sock with
+              | Some _ -> ()
+              | None -> 
+                  match c.client_addr with
+                    Some _ -> ()
+                  | None ->
+                      match s.server_sock with
+                        None -> ()
+                      | Some sock ->
+
+(* TODO: Get Information on this client to have its IP address, and
+  directly connect to him *)
+                          if !!firewalled then 
+                            
+                            server_send !verbose_msg_servers sock (
+                              let module C = RevConnectToMe in
+                              RevConnectToMeReq {
+                                C.orig = s.server_last_nick;
+                                C.dest = c.client_name;
+                              }
+                            )
+                          else
+                            server_send !verbose_msg_servers sock (
+                              let module C = ConnectToMe in
+                              ConnectToMeReq {
+                                C.nick = c.client_name;
+                                C.ip = CO.client_ip (Some sock);
+                                C.port = !!dc_port;
+                              }
+                            );
+          )                    
+          file.file_clients;
+          
+
 (* try to find new sources by queries *)
-      let keywords = 
-        match stem file.file_name with 
-          [] | [_] -> 
+          let keywords = 
+            match stem file.file_name with 
+              [] | [_] -> 
 (*            Printf.printf "Not enough keywords to recover %s" f.file_name;
             print_newline (); *)
-            [file.file_name]
-        | l -> l
-      in
-      let words = String2.unsplit keywords ' ' in
-(*      ignore (send_query (Recover_file keywords) keywords) *)
-      let module S = Search in
-      let msg = SearchReq {
-          S.orig = Printf.sprintf "Hub:%s" s.server_last_nick;
-          S.sizelimit = NoLimit;
-          S.filetype = 0;
-          S.words = words;
-        } in
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
-          debug_server_send sock msg; 
+                [file.file_name]
+            | l -> l
+          in
+          let words = String2.unsplit keywords ' ' in
+          add_search s words
+        end
   ) !current_files;
   ()
   
@@ -167,18 +170,22 @@ let disconnect_server s =
   | Some sock -> 
       (try close sock "user disconnect" with _ -> ());      
       decr nservers;
-      Printf.printf "%s:%d CLOSED received by server"
-        (server_addr s) s.server_port; print_newline ();
+      if !verbose_msg_servers then begin
+          Printf.printf "%s:%d CLOSED received by server"
+            (server_addr s) s.server_port; print_newline ();
+        end;
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
-      Printf.printf "******** NOT CONNECTED *****"; print_newline ();
+      if !verbose_msg_servers then begin
+          Printf.printf "******** NOT CONNECTED *****"; print_newline ();
+        end;
       set_server_state s NotConnected;
-      set_room_state s RoomClosed;
       connected_servers := List2.removeq s !connected_servers;
       s.server_messages <- 
         (room_new_message (as_room s.server_room) 
           (ServerMessage "************* CLOSED ***********\n"))
         :: s.server_messages;
+      set_room_state s RoomClosed;
       room_must_update (as_room s.server_room)
       
 let server_handler s sock event = 
@@ -189,30 +196,49 @@ let server_handler s sock event =
       
       
 let rec client_to_server s m sock = 
-
-  Printf.printf "From %s:%d"
-    (server_addr s) s.server_port; print_newline ();
-  DcProtocol.print m;
+  
+  if !CommonOptions.verbose_msg_servers then begin
+      Printf.printf "From %s:%d"
+        (server_addr s) s.server_port; print_newline ();
+      DcProtocol.print m;
+    end;
   match m with
-    LockReq lock ->
-      server_send sock (
+  
+  | LockReq lock ->
+      server_send !verbose_msg_servers sock (
         KeyReq { Key.key = DcKey.gen lock.Lock.key });
       let nick = login s in
-      server_send sock (
+      server_send !verbose_msg_servers sock (
         ValidateNickReq nick)
   
   | ForceMoveReq t ->
       
-      let s = new_server (new_addr_name t) 411 in
+      let new_s = new_server (new_addr_name t) 411 in
       close sock "force move";
-      connect_server s
+      if s != new_s then connect_server s
   
+  | RevConnectToMeReq t -> 
+      let dest = t.RevConnectToMe.dest in
+      if not !!firewalled then
+        let c = new_client dest in
+        
+        server_send !verbose_msg_servers sock (
+          let module C = ConnectToMe in
+          ConnectToMeReq {
+            C.nick = c.client_name;
+            C.ip = CO.client_ip (Some sock);
+            C.port = !!dc_port;
+          }
+        );
+        
   | ConnectToMeReq t ->
 (* nick/ip/port *)
       begin
-        Printf.printf "From %s:%d"
-          (server_addr s) s.server_port; print_newline ();
-        DcProtocol.print m;
+        if !verbose_msg_servers then begin
+            Printf.printf "From %s:%d"
+              (server_addr s) s.server_port; print_newline ();
+            DcProtocol.print m;
+          end;
 
 (*
         let c = new_client t.ConnectToMe.nick in
@@ -235,14 +261,17 @@ print_newline ()
       if t = s.server_last_nick then begin
           set_rtimeout sock half_day;
           List.iter (fun m ->
-              server_send sock (UnknownReq m);
+              server_send !verbose_msg_servers sock (UnknownReq m);
           ) !!login_messages;
-          Printf.printf "*****  CONNECTED  ******"; print_newline (); 
+          
+          if !verbose_msg_servers then begin
+              Printf.printf "*****  CONNECTED  ******"; print_newline (); 
+            end;
           set_server_state s Connected_idle;
           set_room_state s RoomOpened;
           connected_servers := s :: !connected_servers;
           let module I = MyINFO in
-          server_send sock (MyINFOReq {
+          server_send !verbose_msg_servers sock (MyINFOReq {
               I.dest = "$ALL";
               I.nick = s.server_last_nick;
               I.description = !!client_description;
@@ -271,17 +300,26 @@ print_newline ()
         end
   
   | ToReq t ->
+      
+      String2.replace_char t.To.message '\r' ' ';
+      
+      if t.To.orig = "Hub" then
+        let m = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n%s\n"
+            s.server_name (string_of_addr s.server_addr) s.server_port 
+          t.To.message in
+        
+        CommonEvent.add_event (Console_message_event m);
+      else
       let orig = user_add s t.To.orig in
-      let message = t.To.message in
       
       s.server_messages <- (
         room_new_message (as_room s.server_room)
         (PrivateMessage (orig.user_user.impl_user_num,
-            message))) :: s.server_messages;
+            t.To.message))) :: s.server_messages;
       room_must_update (as_room s.server_room)
   
   | QuitReq t ->
-(*user_remove (user_add s t) *) ()
+      user_remove s t
   
   | NickListReq t ->
       List.iter (fun t  -> ignore (user_add s t)) t
@@ -292,12 +330,65 @@ print_newline ()
         (ServerMessage t)) :: s.server_messages;
       room_must_update (as_room s.server_room)
   
-  | SearchReq t ->
-      let orig = t.Search.orig in
-      if String.sub orig 0 4 = "Hub:" then
-        let nick = String.sub orig 4 (String.length orig - 4) in
-        ignore (user_add s nick)
-  
+  | SearchReq t -> begin
+        try
+          let orig = t.Search.orig in
+          
+          Printf.printf "SEARCH from %s !!!" orig; print_newline ();
+          if String.sub orig 0 5 = " Hub:" then
+            let nick = String.sub orig 5 (String.length orig - 5) in
+            Printf.printf "nick: %s/%s" nick s.server_last_nick;
+            print_newline ();
+            if nick <> s.server_last_nick then begin
+                ignore (user_add s nick);
+                try
+                  Printf.printf "SEARCH RECEIVED"; print_newline ();
+                  let files = CommonUploads.query (
+                      let q = 
+                        match String2.split_simplify t.Search.words ' ' with
+                          [] -> raise Not_found
+                        | s :: tail ->
+                            List.fold_left (fun q s ->
+                                QAnd (q, (QHasWord s))
+                            ) (QHasWord s) tail
+                      in
+                      match t.Search.sizelimit with
+                      | NoLimit -> q
+                      | AtMost n -> 
+                          QAnd (QHasMaxVal (CommonUploads.filesize_field, n),q)
+                      | AtLeast n -> 
+                          QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
+                    ) in
+                  Printf.printf "%d replies found" (Array.length files); 
+                  print_newline ();
+                  for i = 0 to mini (Array.length files - 1) 50 do 
+                    let sh = files.(i) in
+                    server_send !verbose_msg_servers sock (SRReq (
+                        let module S = SR in
+                        {
+                          S.owner = s.server_last_nick (* Printf.sprintf "Hub:%s" nick *);
+                          S.filename = sh.CommonUploads.shared_codedname;
+                          S.filesize = sh.CommonUploads.shared_size;
+                          S.open_slots = 1;
+                          S.all_slots = 1;      (* TODO *)
+                          S.server_name = s.server_name; (* BUG VERIFY TODO *)
+                          S.server_ip = Some (Printf.sprintf "%s:%d" (Ip.to_string s.server_addr.addr_ip) s.server_port);
+                          S.to_nick = Some nick;
+                        }
+                      ))
+                  done
+                with Not_found -> 
+                    Printf.printf "NO REPLY TO SEARCH"; print_newline ();
+              end else
+              (Printf.printf "MY NICK %s" orig;print_newline ();)
+          else
+            (Printf.printf "NOT STARTING BY Hub: [%s]" orig;print_newline ();)
+with e ->
+            Printf.printf "Exception %s" (Printexc2.to_string e);
+            print_newline ();
+      end;
+      Printf.printf "END OF SEARCH"; print_newline ();
+
   | SRReq t ->
       begin
         if s.server_search_timeout < last_time () then
@@ -305,10 +396,14 @@ print_newline ()
         begin
           try
             let file = find_file (Filename2.basename t.SR.filename) t.SR.filesize in 
-            Printf.printf "**** FILE RECOVERED ****"; print_newline ();
+            if !verbose_msg_servers then begin
+                Printf.printf "**** FILE RECOVERED on user %s ****"
+                  t.SR.owner; print_newline ();
+              end;
             let user = new_user (Some s) t.SR.owner in
             let c = add_file_client file user t.SR.filename in
-            try_connect_client c      
+            if file_state file = FileDownloading then
+              try_connect_client c      
           with _ -> ()
         end;
         
@@ -325,8 +420,10 @@ print_newline ()
   | UnknownReq "" -> ()
   
   | _ -> 
-      Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();
-      DcProtocol.print m
+      if !verbose_msg_servers then begin
+          Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();
+          DcProtocol.print m
+        end
 
 
 
@@ -349,7 +446,10 @@ and connect_server s =
           set_read_controler sock download_control;
           set_write_controler sock upload_control;
           
-          set_reader sock (DcProtocol.dc_handler (client_to_server s));
+          Fifo.clear s.server_searches;
+          s.server_search_timeout <- last_time () + 30;
+          
+          set_reader sock (DcProtocol.dc_handler verbose_msg_servers (client_to_server s));
           set_rtimeout sock 60.;
           set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
               close s "timeout"  
@@ -357,9 +457,11 @@ and connect_server s =
           s.server_nick <- 0;
           s.server_sock <- Some sock;
         with e -> 
-            Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
-              (string_of_addr s.server_addr) s.server_port
-              (Printexc2.to_string e); print_newline ();
+            if !verbose_msg_servers then begin
+                Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
+                  (string_of_addr s.server_addr) s.server_port
+                  (Printexc2.to_string e); print_newline ();
+              end;
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             decr nservers;
             s.server_sock <- None;
@@ -435,66 +537,73 @@ let _ =
         P.server_users = None;
         }
       else raise Not_found)
-     
-let recover_files () = 
+
+let recover_files_clients () = 
   List.iter (fun file ->
 (* try to connect to known sources *)
-      List.iter (fun c ->
-          Printf.printf "ATTEMPT TO RECOVER CONNECTION TO %s"
-            c.client_user.user_nick; print_newline ();
-          try_connect_client c;
-          List.iter (fun s ->
-              match s.server_sock with
-                Some _ -> ()
-              | None ->
-                  try_connect_server s
-          ) c.client_user.user_servers
-      ) file.file_clients;
+      if file_state file = FileDownloading then begin
+          List.iter (fun c ->
+              if !verbose_msg_servers then begin
+                  Printf.printf "ATTEMPT TO RECOVER CONNECTION TO %s"
+                    c.client_user.user_nick; print_newline ();
+                end;
+              try_connect_client c;
+              List.iter (fun s ->
+                  match s.server_sock with
+                    Some _ -> ()
+                  | None ->
+                      try_connect_server s
+              ) c.client_user.user_servers
+          ) file.file_clients;
 
 
+          
 (* try to find new sources by queries *)
-      let keywords = 
-        match stem file.file_name with 
-          [] | [_] -> 
+          let keywords = 
+            match stem file.file_name with 
+              [] | [_] -> 
 (*            Printf.printf "Not enough keywords to recover %s" f.file_name;
             print_newline (); *)
-            [file.file_name]
-        | l -> l
-      in
-      let words = String2.unsplit keywords ' ' in
+                [file.file_name]
+            | l -> l
+          in
+          let words = String2.unsplit keywords ' ' in
 (*      ignore (send_query (Recover_file keywords) keywords) *)
-      List.iter (fun s ->
-          if s.server_search_timeout < last_time () then
-            let module S = Search in
-            let msg = SearchReq {
-                S.orig = Printf.sprintf "Hub:%s" s.server_last_nick;
-                S.sizelimit = NoLimit;
-                S.filetype = 0;
-                S.words = words;
-              } in
-            match s.server_sock with
-              None -> ()
-            | Some sock ->
-                debug_server_send sock msg; 
-                Printf.bprintf  buf "Sending search\n") !connected_servers
+          List.iter (fun s ->
+              add_search s words
+              
+              ) !connected_servers
+        end
   ) !current_files;
   ()
-  
-let _ =
-  server_ops.op_server_connect <- connect_server;
-  server_ops.op_server_disconnect <- disconnect_server;
-  server_ops.op_server_query_users <- (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
-          server_send sock (GetNickListReq)
-  );
-  server_ops.op_server_users <- (fun s ->
-      List2.tail_map (fun u -> as_user u.user_user) s.server_users
-  );
-  server_ops.op_server_remove <- (fun s ->
-      disconnect_server s;
-      server_remove s
-  )
+
+let recover_files_searches () =
+  List.iter (fun s ->
+      try
+        if s.server_search_timeout < last_time () then
+          match s.server_sock with
+            None -> ()
+          | Some sock ->
+              let words = Fifo.take s.server_searches in
+              s.server_search_timeout <- last_time () + !!search_timeout;
+              let module S = Search in
+              let msg = SearchReq {
+                  S.orig = 
+                  (if !!firewalled then
+                      Printf.sprintf "Hub:%s" s.server_last_nick
+                    else
+                      Printf.sprintf "%s:%d" (
+                        Ip.to_string (CO.client_ip (Some sock)))
+                      !!dc_port);
+                  S.sizelimit = NoLimit;
+                  S.filetype = 0;
+                  S.words = words;
+                } in
+              server_send !verbose_msg_servers sock msg; 
+              if !verbose_msg_servers then begin
+                  Printf.bprintf  buf "Sending search\n"
+                end
+      with _ -> ()
+  ) !connected_servers
   
   

@@ -94,6 +94,25 @@ let iter f t =
           f t.array.(i)
         done        
       end
+
+let mem t v =
+  try
+    if not t.empty then 
+      if t.inpos > t.outpos then 
+        for i = t.outpos to t.inpos - 1 do
+          if t.array.(i) = v then raise Exit;
+        done
+      else begin
+          for i = t.outpos to t.size do
+            if t.array.(i) = v then raise Exit
+          done;
+          for i = 0 to t.inpos - 1 do
+            if t.array.(i) = v then raise Exit
+          done        
+        end;
+      false
+  with _ -> true
+
       
   
 let realloc t =

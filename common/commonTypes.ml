@@ -122,10 +122,10 @@ type connection_options = {
   }
   
 type room_state = 
-  RoomOpened
+| RoomOpened
 | RoomClosed
 | RoomPaused
-    
+  
 type file
 type server
 type client

@@ -67,10 +67,40 @@ let rec form_of_entry f_submit qe =
     Q_AND le ->
       let wf = GBin.frame ~label: "&" () in
       let vbox = GPack.vbox ~packing: wf#add () in
+      
+      let rec iter l = 
+        match l with
+          [] -> []
+        | (Q_MODULE (s1, qe1) ) :: (Q_MODULE (s2, qe2) ) :: tail ->
+            let hbox = GPack.hbox ~packing: vbox#add () in
+            
+            let wf1 = GBin.frame ~label: s1 () in
+            let (w1,e1,f1) = form_of_entry f_submit qe1 in
+            wf1#add w1;
+            
+            let wf2 = GBin.frame ~label: s2 () in
+            let (w2,e2,f2) = form_of_entry f_submit qe2 in
+            wf2#add w2;
+
+            hbox#pack ~padding: 2 ~expand: e1 wf1#coerce;            
+            hbox#pack ~padding: 2 ~expand: e2 wf2#coerce;
+            
+            (QF_MODULE f1) :: (QF_MODULE f2) :: (iter tail)
+            
+        | qe :: tail ->
+            let (w, expand, form) = form_of_entry f_submit qe in
+            vbox#pack ~padding: 2 ~expand w;
+            form :: (iter tail)
+      in
+      let le = QF_AND (iter le) in
+      
+(*
       let l = List.map (form_of_entry f_submit) le in
       List.iter (fun (w,expand,form) -> vbox#pack ~padding: 2 ~expand w) l;
-      (wf#coerce, false, 
-       QF_AND (List.map (fun (_,_,f) -> f) l))
+*)
+      
+      (wf#coerce, false, le)
+(*       QF_AND (List.map (fun (_,_,f) -> f) l)) *)
 
   | Q_OR le ->
       let wf = GBin.frame ~label: "||" () in
@@ -134,7 +164,8 @@ let rec form_of_entry f_submit qe =
       let wcombo = GEdit.combo
 	  ~popdown_strings: [""; "64"; "96"; "128"; "160"; "192"]
 	  ~value_in_list: false
-	  ~ok_if_empty: true  
+          ~ok_if_empty: true  
+        ~width: 60
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
       in
       wcombo#entry#set_text v;
@@ -145,12 +176,12 @@ let rec form_of_entry f_submit qe =
       let wl = GMisc.label ~text: (label^":")
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
-      let we = GEdit.entry ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
+      let we = GEdit.entry ~width: 100 ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
       let wcombo = GEdit.combo
 	  ~popdown_strings: ["" ; "Mo"; "ko"]
 	  ~value_in_list: false
 	  ~ok_if_empty: true
-	  ~width: 80
+	  ~width: 60
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
       in
       we#set_text v;
@@ -161,12 +192,12 @@ let rec form_of_entry f_submit qe =
       let wl = GMisc.label ~text: (label^":")
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
-      let we = GEdit.entry ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
+      let we = GEdit.entry ~width: 100 ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
       let wcombo = GEdit.combo
 	  ~popdown_strings: ["" ; "Mo"; "ko"]
 	  ~value_in_list: false
 	  ~ok_if_empty: true
-	  ~width: 80
+	  ~width: 60
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
       in
       we#set_text v;

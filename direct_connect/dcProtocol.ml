@@ -330,19 +330,20 @@ module SR = struct
         owner : string;
         filename : string;
         filesize : int64;
-        used_slots : int;
         open_slots : int;
+        all_slots : int;
         server_name : string;
         server_ip : string option;
+        to_nick : string option;
       }
-      
+    
     let parse s = 
       let owner_and_filename , size_and_slots, server_info =
         match String2.split s char5 with
           [owner_and_filename; size_and_slots; server_info] -> 
             owner_and_filename , size_and_slots, server_info
         | [ owner_and_filename; server_info] ->
-        
+            
             let pos = String.rindex owner_and_filename ' ' in
             let len = String.length owner_and_filename in
             let size_and_slots = Printf.sprintf "0 %s" 
@@ -354,52 +355,61 @@ module SR = struct
       in
       begin
         match String2.splitn owner_and_filename ' ' 1 with
-              [owner; filename] -> begin
-                  match String2.splitn size_and_slots ' ' 1 with
-                    [size; slots] -> begin
-                        match String2.splitn slots '/' 1 with
-                          [used_slots; open_slots] -> begin
-                              match String2.split server_info ' ' with
-                                server_name :: server_tail ->
-                                  {
-                                    owner = owner;
-                                    filename = filename;
-                                    filesize = Int64.of_string size;
-                                    used_slots = int_of_string used_slots;
-                                    open_slots = int_of_string open_slots;
-                                    server_name = server_name;
-                                    server_ip = match server_tail with
-                                      [] -> None
-                                    | [server_ip] ->
-                                        let len = String.length server_ip in
-                                        if len > 2 then
-                                          Some (String.sub server_ip 1 (len-2))
-                                        else None
-                                    | _ -> None
-                                  }
-                                  
-                              | _ -> assert false
-                            end
-                        | _ -> assert false
-                      end
-                  | _ -> assert false
-                end
-            | _ -> assert false
-          end
+          [owner; filename] -> begin
+              match String2.splitn size_and_slots ' ' 1 with
+                [size; slots] -> begin
+                    match String2.splitn slots '/' 1 with
+                      [open_slots; all_slots] -> begin
+                          match String2.split server_info ' ' with
+                            server_name :: server_tail ->
+                              {
+                                owner = owner;
+                                filename = filename;
+                                filesize = Int64.of_string size;
+                                open_slots = int_of_string open_slots;
+                                all_slots = int_of_string all_slots;
+                                server_name = server_name;
+                                to_nick = Some "not_implemented";
+                                server_ip = match server_tail with
+                                  [] -> None
+                                | [server_ip] ->
+                                    let len = String.length server_ip in
+                                    if len > 2 then
+                                      Some (String.sub server_ip 1 (len-2))
+                                    else None
+                                | _ -> None
+                              }
+                          
+                          | _ -> assert false
+                        end
+                    | _ -> assert false
+                  end
+              | _ -> assert false
+            end
+        | _ -> assert false
+      end
       
     let print t = 
       Printf.printf "SEARCH REPLY On %s (%d/%d): %s %Ld" 
-        t.owner t.used_slots t.open_slots t.filename 
+        t.owner t.open_slots t.all_slots t.filename 
         t.filesize;
       print_newline () 
+
+      (*
+      opendchub-0.6.7/src/commands.c: * $SR fromnick filename\5filesize openslots/totalslots\5hubname (hubip:hubport)\5tonick| */
+*)
       
     let write buf t = 
       Printf.bprintf buf " %s %s%c%s %d/%d%c%s%s" 
         t.owner t.filename char5 (Int64.to_string t.filesize)
-      t.used_slots t.open_slots char5 t.server_name
+      t.open_slots t.all_slots char5 t.server_name
         (match t.server_ip with
           None -> ""
-        | Some server_ip -> Printf.sprintf " (%s)" server_ip)
+        | Some server_ip -> Printf.sprintf " (%s)" server_ip);
+      match t.to_nick with
+        None -> ()
+      | Some nick ->
+          Printf.bprintf buf "%c%s" char5 nick
     
   end
     
@@ -646,12 +656,13 @@ type t =
 | SendReq
 | CanceledReq
   
-let parse s = 
+let parse debug s = 
   try
-(*
-  Printf.printf "PARSE:"; print_newline ();
-AgProtocol.dump s;
-  *)
+    
+    if debug then begin
+      Printf.printf "PARSE: {%s}" (String.escaped s); print_newline ();
+      end;
+    
     let ws = String2.splitn s ' ' 1 in
     match ws with
     | [] -> UnknownReq s
@@ -797,7 +808,7 @@ let print m =
   end;
   print_newline () 
   
-let dc_handler f sock nread =
+let dc_handler debug f sock nread =
   let b = TcpBufferedSocket.buf sock in
   try
     let rec iter nread =
@@ -806,14 +817,14 @@ let dc_handler f sock nread =
           if pos < b.pos + b.len then
             let s = String.sub b.buf b.pos (pos - b.pos) in
             buf_used sock (pos - b.pos + 1);
-            f (parse s) sock;
+            f (parse !debug s) sock;
             iter b.len
         end
     in
     iter nread
   with Not_found -> ()
 
-let dc_handler3 c ff f r sock nread =
+let dc_handler3 debug c ff f r sock nread =
   let b = TcpBufferedSocket.buf sock in
   try
     let rec iter nread =
@@ -826,7 +837,7 @@ let dc_handler3 c ff f r sock nread =
             if pos < b.pos + b.len then
               let s = String.sub b.buf b.pos (pos - b.pos) in
               buf_used sock (pos - b.pos + 1);
-              let m = parse s in
+              let m = parse !debug s in
               match !c with
                 None -> 
                   c := ff m sock;
@@ -841,14 +852,16 @@ let dc_handler3 c ff f r sock nread =
       
 let buf = Buffer.create 100
       
-let server_send sock m =
+let server_send debug sock m =
 (*  Printf.printf "SENDING"; print_newline ();
   print m; *)
   Buffer.clear buf;
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
-  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();
+  if debug then begin
+      Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();
+    end;
   write_string sock s
       
 let debug_server_send sock m =
@@ -909,7 +922,9 @@ let rec buf_tabs buf n =
       Buffer.add_char buf '\t';
       buf_tabs buf (n-1)
     end
-  
+
+open CommonUploads
+    
 let make_shared_list () =
   let buf = Buffer.create 1000 in
   let rec iter ntabs node =

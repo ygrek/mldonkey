@@ -5,12 +5,12 @@
       </text>
     </scrolled_window>
     <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-      <label name=_ width="180" height="-1" text="Gettext.gettext Gui_messages.command" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <label name=_ width="180" height="-1" text="Gettext.gettext+Gui_messages.command" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
       </label>
-      <entry name=we_command width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
-      </entry>
+      <combo name=we_command width="-1" height="-1" border_width="-1" popdown_strings="[]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="true" fill="true" padding="-1">
+      </combo>
       <button name=wb_clear_console width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
-        <label name=_ width="180" height="-1" text="Gettext.gettext Gui_messages.clear_console" justification="`RIGHT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <label name=_ width="180" height="-1" text="Gettext.gettext+Gui_messages.clear_console" justification="`RIGHT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
         </label>
       </button>
     </hbox>

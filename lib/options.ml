@@ -1110,7 +1110,7 @@ let simple_args opfile =
        "-" ^ name,
        Arg.String
          (fun s ->
-            Printf.printf "Settig option %s" name;
+            Printf.printf "Setting option %s" name;
             print_newline ();
             set_simple_option opfile name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
@@ -1127,4 +1127,12 @@ let prefixed_args prefix file =
 let option_type o = (get_class o).class_name
 
 let once_value v = OnceValue v
-  
+    
+let strings_of_option o =
+  match o.option_name with
+    [] | _ :: _ :: _ -> failwith "Complex option"
+  | [name] ->
+      name,
+      (match o.string_wrappers with
+         None -> value_to_string (o.option_class.to_value o.option_value)
+       | Some (to_string, _) -> to_string o.option_value)

@@ -358,7 +358,7 @@ module SearchReply = struct
     type t = {
     filename : string;
     md5 : string;
-    size : int32;
+    size : int64;
     bitrate : int;
     freq : int;
     length : int;
@@ -385,11 +385,11 @@ module SearchReply = struct
               | weight :: _ -> int_of_string weight
             in
             
-            let size = Int32.of_string size_s in
+            let size = Int64.of_string size_s in
             let bitrate = int_of_string bitrate_s in
             let freq = int_of_string freq_s in
             let length = int_of_string length_s in
-            let ip = Ip.of_int32 (Int32.of_string ip_s) in
+            let ip = Ip.of_int64 (Int64.of_string ip_s) in
             let link_type = link_of_int (int_of_string link_type_s) in
             
             { 
@@ -410,14 +410,14 @@ module SearchReply = struct
       
     let print t = 
       Printf.printf "SEARCH REPLY \"%s\" %s %s %d %d %d %s %s %s %d"
-        t.filename t.md5 (Int32.to_string t.size) t.bitrate t.freq t.length
+        t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq t.length
         t.nick (Ip.to_string t.ip) 
       (string_of_link t.link_type) t.weight
       
     let write buf t =
       Printf.bprintf buf "\"%s\" %s %s %d %d %d %s %s %d %d"
-        t.filename t.md5 (Int32.to_string t.size) t.bitrate t.freq t.length
-        t.nick (Int32.to_string (Ip.to_int32 t.ip))
+        t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq t.length
+        t.nick (Int64.to_string (Ip.to_int64 t.ip))
       (int_of_link t.link_type) t.weight      
   end
   
@@ -563,7 +563,7 @@ module DownloadAck = struct
       Printf.printf "DOWNLOAD ACK [%s]" s; print_newline ();
       match get_strings s 0 with
         [ nick ; ip_s; port_s; filename; md5; linespeed_s ] -> 
-          let ip = Ip.rev (Ip.of_int32 (Int32.of_string ip_s)) in
+          let ip = Ip.rev (Ip.of_int64 (Int64.of_string ip_s)) in
           Printf.printf "IP %s = %s" ip_s (Ip.to_string ip);
           print_newline ();
           { nick = nick; 
@@ -582,7 +582,7 @@ module DownloadAck = struct
       
     let write buf t = 
       Printf.bprintf buf "%s %s %d \"%s\" %s %d" 
-        t.nick (Int32.to_string (Ip.to_int32 (Ip.rev t.ip))) t.port
+        t.nick (Int64.to_string (Ip.to_int64 (Ip.rev t.ip))) t.port
         t.filename t.md5 (int_of_link t.linespeed)
   end
   
@@ -649,23 +649,23 @@ module ServerStats = struct
 module Resume = struct
     type t = {
         md5  : string;
-        filesize : int32;
+        filesize : int64;
       }
       
     let parse s = 
       match get_strings s 0 with
         [ md5 ; filesize_s ] -> 
           { md5 = md5;
-            filesize = Int32.of_string filesize_s;
+            filesize = Int64.of_string filesize_s;
           }
       | _ -> raise Not_found
       
     let print t = 
       Printf.printf "RequestResume  %s %s" 
-        t.md5 (Int32.to_string t.filesize)
+        t.md5 (Int64.to_string t.filesize)
       
     let write buf t = 
-      Printf.bprintf buf "%s %s" t.md5 (Int32.to_string t.filesize)
+      Printf.bprintf buf "%s %s" t.md5 (Int64.to_string t.filesize)
   end
   
 module ResumeReply = DownloadAck
@@ -679,7 +679,7 @@ module BrowseUserReply = struct
         nick : string;
         filename : string;
         md5 : string;
-        size : int32;
+        size : int64;
         bitrate : int;
         freq : int;
         length : int;
@@ -695,7 +695,7 @@ module BrowseUserReply = struct
         freq_s ::
         length_s ::
         tail -> begin
-            let size = Int32.of_string size_s in
+            let size = Int64.of_string size_s in
             let bitrate = int_of_string bitrate_s in
             let freq = int_of_string freq_s in
             let length = int_of_string length_s in
@@ -714,13 +714,58 @@ module BrowseUserReply = struct
       
     let print t = 
       Printf.printf "BROWSE REPLY %s \"%s\" %s %s %d %d %d"
-        t.nick t.filename t.md5 (Int32.to_string t.size) t.bitrate t.freq 
+        t.nick t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq 
       t.length
         
     let write buf t =
       Printf.bprintf buf "%s \"%s\" %s %s %d %d %d"
         t.nick t.filename t.md5
-      (Int32.to_string t.size) t.bitrate t.freq t.length
+      (Int64.to_string t.size) t.bitrate t.freq t.length
+  end
+  
+module AddFile = struct
+    type t = {
+        filename : string;
+        md5 : string;
+        size : int64;
+        bitrate : int;
+        freq : int;
+        length : int;
+      }
+      
+    let parse s =
+      match get_strings s 0 with
+        filename ::
+        md5 ::
+        size_s ::
+        bitrate_s ::
+        freq_s ::
+        length_s ::
+        tail -> begin
+            let size = Int64.of_string size_s in
+            let bitrate = int_of_string bitrate_s in
+            let freq = int_of_string freq_s in
+            let length = int_of_string length_s in
+            { 
+              filename = filename;
+              md5 = md5;
+              size = size;
+              bitrate = bitrate;
+              freq = freq;
+              length = length;
+            }
+          end
+      | _ -> failwith "Bad number of args in browse reply"            
+
+      
+    let print t = 
+      Printf.printf "ADD FILE \"%s\" %s %s %d %d %d"
+      t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq t.length
+        
+    let write buf t =
+      Printf.bprintf buf "\"%s\" %s %s %d %d %d"
+        t.filename t.md5
+      (Int64.to_string t.size) t.bitrate t.freq t.length
   end
 
 module Msg = struct
@@ -768,6 +813,8 @@ type t =
 | BrowseUserReq of BrowseUser.t
 | BrowseUserReplyReq of BrowseUserReply.t
 | BrowseUserReplyEndReq
+
+| AddFileReq of AddFile.t
   
 | UnknownReq of int * string
   
@@ -784,6 +831,9 @@ let parse msg_type data msg_len =
     | 8 -> NickUnusedReq
     | 9 -> NickAlreadyUsedReq
     | 10 -> NickInvalidReq
+        
+    | 100 -> AddFileReq (AddFile.parse data)
+        
     | 200 -> SearchReq (Search.parse data)
     | 201 -> SearchReplyReq (SearchReply.parse data)
     | 202 -> EndOfSearchReplyReq
@@ -807,7 +857,7 @@ let parse msg_type data msg_len =
     | 500 -> AlternateDownloadRequestReq (DownloadRequest.parse data)
     | _ -> raise Not_found
   with e -> 
-      Printf.printf "EXception %s in parse" (Printexc.to_string e); print_newline ();
+      Printf.printf "EXception %s in parse" (Printexc2.to_string e); print_newline ();
       UnknownReq (msg_type,data)
       
 let print t =
@@ -826,7 +876,9 @@ let print t =
     | SearchReq t -> Search.print t
     | SearchReplyReq t -> SearchReply.print t
     | EndOfSearchReplyReq -> EndOfSearchReply.print ()
-    
+
+    | AddFileReq t -> AddFile.print t
+        
     | DownloadRequestReq t -> DownloadRequest.print t
     | DownloadAckReq t -> DownloadAck.print t
     | PrivateMessageReq t -> PrivateMessage.print t
@@ -883,7 +935,10 @@ let write buf t =
     | NickAlreadyUsedReq -> 
         buf_int16 buf 9
     | NickInvalidReq  -> 
-        buf_int16 buf 10
+        buf_int16 buf 10        
+    | AddFileReq t ->
+        buf_int16 buf 100;
+        AddFile.write buf t
     | SearchReq t -> 
         buf_int16 buf 200;
         Search.write buf t

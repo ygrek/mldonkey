@@ -57,7 +57,42 @@ let execute_command arg_list output cmd args =
     in
     iter arg_list
   with Not_found -> ()
-      
+
+let list_options o list = 
+  let buf = o.conn_buf in
+  if o.conn_output = HTML then
+    Printf.bprintf  buf "\\<table border=0\\>";
+  List.iter (fun (name, value) ->
+      if String.contains value '\n' then begin
+          if o.conn_output = HTML then
+            Printf.bprintf buf "
+                  \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+                  \\<input type=hidden name=setoption value=q\\>
+                  \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
+                  \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
+                  %s
+                  \\</textarea\\>
+                  \\<input type=submit value=Modify\\>
+                  \\</td\\>\\</tr\\>
+                  \\</form\\>
+                  " name name value
+        end
+      else
+      if o.conn_output = HTML then
+        Printf.bprintf buf "
+              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+\\<input type=hidden name=setoption value=q\\>
+\\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
+              \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
+\\</td\\>\\</tr\\>
+\\</form\\>
+              " name name value
+      else
+        Printf.bprintf buf "%s = %s\n" name value)
+  list;
+  if o.conn_output = HTML then
+    Printf.bprintf  buf "\\</table\\>"
+  
 let commands = [
     
     "dump_heap", Arg_none (fun o ->
@@ -125,39 +160,17 @@ let commands = [
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
-        if o.conn_output = HTML then
-          Printf.bprintf  buf "\\<table border=0\\>";
-        List.iter (fun (name, value) ->
-            if String.contains value '\n' then begin
-                if o.conn_output = HTML then
-                  Printf.bprintf buf "
-                  \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
-                  \\<input type=hidden name=setoption value=q\\>
-                  \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
-                  \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
-                  %s
-                  \\</textarea\\>
-                  \\<input type=submit value=Modify\\>
-                  \\</td\\>\\</tr\\>
-                  \\</form\\>
-                  " name name value
-              end
-            else
-            if o.conn_output = HTML then
-              Printf.bprintf buf "
-              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
-\\<input type=hidden name=setoption value=q\\>
-\\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
-              \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
-\\</td\\>\\</tr\\>
-\\</form\\>
-              " name name value
-            else
-              Printf.bprintf buf "%s = %s\n" name value)
-        (CommonInteractive.all_simple_options ());
-        if o.conn_output = HTML then
-          Printf.bprintf  buf "\\</table\\>";
-        
+        list_options o  (
+          List.map Options.strings_of_option 
+            [max_hard_upload_rate; max_hard_download_rate;
+            telnet_port; gui_port; http_port]
+        );        
+        "\nUse 'voo' for all options"    
+    ), ":\t\t\t\t\tdisplay options";
+
+    "voo", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        list_options o  (CommonInteractive.all_simple_options ());
         ""
     ), ":\t\t\t\t\tprint options";
     

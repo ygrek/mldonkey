@@ -172,8 +172,19 @@ let canon_client gui c =
   in
   c
 
+let verbose_gui_messages = ref false
+  
 let value_reader gui t sock =
   try
+    
+    if !verbose_gui_messages then begin
+        Printf.printf "MESSAGE RECEIVED: %s" 
+          (string_of_to_gui t);
+        print_newline ();
+        
+      end;
+    
+    
     match t with
     | Console text ->
         gui#tab_console#insert text
@@ -447,8 +458,8 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 *)
 
 
-    | Room_message (_, PrivateMessage(num, mes))
-    | Room_message (0, PublicMessage(num, mes))
+    | Room_message (_, PrivateMessage(num, mes) )
+    | Room_message (0, PublicMessage(num, mes) )
     | MessageFromClient (num, mes) ->
 	(
 	 try
@@ -456,9 +467,15 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 	   let d = gui#tab_friends#get_dialog c in
 	   d#handle_message mes
 	 with
-	   Not_found ->
-	     Printf.printf "Client %d not found in reader.MessageFromClient" num;
-	     print_newline ()
+            Not_found ->
+              try
+                match t with
+                  Room_message (num, msg) ->
+                    gui#tab_rooms#add_room_message num msg                
+                | _ -> raise Not_found
+              with Not_found ->
+                  Printf.printf "Client %d not found in reader.MessageFromClient" num;
+                  print_newline ()
         )    
         
     | Room_message (num, msg) ->
@@ -486,7 +503,9 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
       print_newline ()
 
 let main () =
+  Printf.printf "1"; print_newline ();
   let gui = new Gui_window.window () in
+  Printf.printf "1"; print_newline ();
   let w = gui#window in
   let quit () = 
     (try

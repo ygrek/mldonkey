@@ -135,17 +135,16 @@ between servers" int_option 1
     
 let max_sources_age = define_option downloads_ini
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
-    int_option 2
+    int_option 3
   
 let max_clients_per_second = define_option downloads_ini
     ["max_clients_per_second"] "Maximal number of connections to sources per second"
     int_option 5
   
-(*  
-let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"] 
-  "Use mp3 tag content to save mp3 files"
-    bool_option false
-    *)
+let log_clients_on_console = define_option downloads_ini
+  ["log_clients_on_console"] 
+  ""
+    bool_option true
 
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"

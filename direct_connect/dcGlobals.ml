@@ -19,6 +19,7 @@
 
 open Md4
 
+open CommonFile
 open CommonResult
 open BasicSocket
 open CommonGlobals
@@ -27,7 +28,6 @@ open CommonClient
 open CommonComplexOptions
 open GuiProto
 open Options
-open CommonFile
 open CommonUser
 open CommonRoom
 open CommonTypes
@@ -145,7 +145,7 @@ let (client_ops : client CommonClient.client_ops) =
   CommonClient.new_client_ops network
 
     
-let (shared_ops : shared_file CommonShared.shared_ops) = 
+let (shared_ops : CommonUploads.shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
 
 let file_disk_name file = file_disk_name (as_file file.file_file)
@@ -188,46 +188,6 @@ let server_state s = server_state (as_server s.server_server)
 let file_state s = file_state (as_file s.file_file)
 let server_must_update s = server_must_update (as_server s.server_server)
 let file_must_update s = file_must_update (as_file s.file_file)
-
-let shared_counter = ref (Int64.zero)
-let shared_files = Hashtbl.create 13 
-
-  
-let new_shared_dir dirname = {
-    shared_dirname = dirname;
-    shared_files = [];
-    shared_dirs = [];
-  }
-
-let shared_tree = new_shared_dir ""
-
-let rec add_shared_file node sh dir_list =
-  match dir_list with
-    [] -> assert false
-  | [filename] ->
-      node.shared_files <- sh :: node.shared_files
-  | dirname :: dir_tail ->
-      let node =
-        try
-          List.assoc dirname node.shared_dirs
-        with _ ->
-            let new_node = new_shared_dir dirname in
-            node.shared_dirs <- (dirname, new_node) :: node.shared_dirs;
-            new_node
-      in
-      add_shared_file node sh dir_tail
-  
-let add_shared full_name codedname size =
-  let sh = {
-      shared_fullname = full_name;
-      shared_codedname = codedname;
-      shared_size = size;
-      shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
-    } in
-  Hashtbl.add shared_files codedname sh;
-  add_shared_file shared_tree sh (String2.split codedname '/');
-  Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
-  print_newline () 
   
 exception Found of user  
 
@@ -264,17 +224,26 @@ let new_user server name =
         end;
       u
         
-let user_add server name =
+let user_add s name =
   try
-    List.iter (fun user -> if user.user_nick = name then raise (Found user)) 
-    server.server_users;
-    let user = new_user (Some server) name in
-    server_new_user (as_server server.server_server) (as_user user.user_user);
-    room_add_user (as_room server.server_room) (as_user user.user_user);
-    server.server_users <- user :: server.server_users;
-    user
-  with Found user -> user
-  
+    StringMap.find name s.server_users
+  with _ ->
+      let user = new_user (Some s) name in
+      server_new_user (as_server s.server_server) (as_user user.user_user);
+      room_add_user (as_room s.server_room) (as_user user.user_user);
+      s.server_users <- StringMap.add name user s.server_users;
+      user
+      
+let user_remove s name = 
+  try
+    let user = StringMap.find name s.server_users in
+    s.server_users <- StringMap.remove user.user_nick s.server_users;
+(* server_remove_user (as_server s.server_server) (as_user user.user_user); *)
+    room_remove_user (as_room s.server_room) (as_user user.user_user);
+    
+  with _ -> ()
+      
+      
 let new_file file_id name file_size =
   let key = (name, file_size) in
   try
@@ -305,7 +274,14 @@ let new_file file_id name file_size =
           impl_file_age = last_time ();          
           impl_file_best_name = name;
         } in
-      let state = if current_size = file_size then FileDownloaded else begin
+      
+      Printf.printf "FILE %s: %Ld =? %Ld" name current_size file_size;
+      print_newline ();
+      
+      let state = if current_size = file_size then begin
+            Printf.printf "File %s downloaded " name; print_newline ();
+            FileDownloaded
+          end else begin
             current_files := file :: !current_files;
             FileDownloading
           end
@@ -386,7 +362,7 @@ let client_type c =
     
 let new_server addr port=
   try
-    Hashtbl.find servers_by_addr (addr, port) 
+    Hashtbl.find servers_by_addr (addr.addr_name, port) 
   with _ ->
       incr nknown_servers;
       let rec h = { 
@@ -403,8 +379,9 @@ let new_server addr port=
           server_last_nick = "";
           server_search = None;
           server_search_timeout = 0;
-          server_users = [];
+          server_users = StringMap.empty;
           server_messages = [];
+          server_searches = Fifo.create ();
         } and 
         server_impl = {
           dummy_server_impl with
@@ -419,7 +396,7 @@ let new_server addr port=
       in
       server_add server_impl;
       room_add room_impl;
-      Hashtbl.add servers_by_addr (addr, port) h;
+      Hashtbl.add servers_by_addr (addr.addr_name, port) h;
       h
   
 let new_result filename filesize =
@@ -446,7 +423,7 @@ let new_result filename filesize =
       
 let server_remove s =
   server_remove (as_server s.server_server);
-  Hashtbl.remove servers_by_addr (s.server_addr, s.server_port);
+  Hashtbl.remove servers_by_addr (s.server_addr.addr_name, s.server_port);
   decr nknown_servers;
   servers_list := List2.removeq s !servers_list
 

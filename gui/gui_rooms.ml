@@ -43,7 +43,8 @@ class rooms_box columns () =
   
   let titles = List.map Gui_columns.Room.string_of_column columns in 
   object (self)
-    inherit [GuiTypes.room_info] Gpattern.plist `SINGLE titles true (fun r -> r.room_num) as pl
+    inherit [GuiTypes.room_info] Gpattern.filtered_plist `SINGLE titles true
+    (fun r -> r.room_num) as pl
       inherit Gui_users_base.box () as box
     
     val mutable columns = columns
@@ -51,7 +52,12 @@ class rooms_box columns () =
       columns <- l;
       self#set_titles (List.map Gui_columns.Room.string_of_column columns);
       self#update
-    
+
+    method filter r =
+      match r.room_state with
+      | RoomClosed -> true
+      | _ -> false
+      
     method compare_by_col col f1 f2 =
       match col with
         Col_room_name -> compare f1.room_name f2.room_name
@@ -100,19 +106,6 @@ class box_users room =
   object (self)
     
     inherit Gui_users.box_users ()
-    
-    initializer
-      
-      ignore
-        (wtool#insert_button 
-          ~text: (gettext M.close_room)
-          ~tooltip: (gettext M.close_room)
-          ~icon: (Gui_options.pixmap M.o_xpm_close_room)#coerce
-          ~callback: (fun _ ->  
-            Gui_com.send (GuiProto.SetRoomState (
-                room.room_num, RoomClosed)))
-        ()
-      );
 
 end
 
@@ -123,11 +116,19 @@ class opened_rooms_box on_select =
     
     method add_room room =
       box_rooms#add_room room;
-      let w = box_rooms#wlist in
-      w#select (w#rows - 1) 0
+      
+    initializer 
+      BasicSocket.add_infinite_timer 1. (fun _ ->
+          if self#selection = [] then begin
+            let w = box_rooms#wlist in
+            let rows = w#rows in
+            if rows > 0 then
+                w#select (rows - 1) 0 end
+      )
 
 (*     method rooms = data *)
-    method on_select room = on_select room
+    method on_select room = on_select (Some room)
+    method on_deselect room = on_select None
 end
 
 class paused_rooms_box () =
@@ -141,10 +142,8 @@ class paused_rooms_box () =
 end
 
 let add_room_user room user_num =
-  Printf.printf "ADD ROOM USER"; print_newline ();
   if not (List.memq user_num room.room_users) then begin
       room.room_users <- user_num :: room.room_users;
-      Printf.printf "Should have added user"; print_newline ();
     end
     
 let insert_text (messages: box) ?user ?(priv=false) s =
@@ -221,18 +220,25 @@ class pane_rooms () =
   let opened_rooms = new opened_rooms_box (fun room -> !select room) in
   let paused_rooms = new paused_rooms_box () in
   
+  let users_box = GPack.vbox ~homogeneous:false () in
+  let messages_box = GPack.vbox ~homogeneous:false () in
+  
+  let current_widgets = ref (-1) in
+  
   object(self)
     inherit Gui_rooms_base.box2 ()
     
     method clear_widgets room = 
       try
         let (users, messages) = Hashtbl.find widgets room.room_num in
-        users#coerce#misc#unmap ();
-        messages#coerce#misc#unmap ();
-        users#coerce#misc#unparent ();
-        messages#coerce#misc#unparent ();
+        if !current_widgets = room.room_num then 
+          current_widgets := -1;
+        users#coerce#destroy ();
+        messages#coerce#destroy ();
         Hashtbl.remove widgets room.room_num
-      with _ -> ()
+      with e -> 
+          Printf.printf "Clear widget: %s" (Printexc2.to_string e);
+          print_newline ();
     
     method room_info room =
       begin
@@ -240,41 +246,44 @@ class pane_rooms () =
           let (num, old_room) = try
               opened_rooms#find_room room.room_num 
             with _ -> paused_rooms#find_room room.room_num in
+          
           if old_room.room_state <> room.room_state then begin
-              (match old_room.room_state with
-                  RoomPaused -> paused_rooms#remove_room num old_room
-                | RoomOpened -> 
-                    opened_rooms#remove_room num old_room;
-                    self#clear_widgets room;
-                | _ -> assert false);
-              match room.room_state with
-              | RoomPaused -> paused_rooms#add_room room
-              | RoomOpened -> opened_rooms#add_room room
-              | RoomClosed -> ()
+              
+              match old_room.room_state, room.room_state with
+              | (RoomPaused | RoomClosed), RoomOpened ->
+                  paused_rooms#remove_room num old_room;
+                  opened_rooms#add_room room              
+              | RoomOpened, RoomPaused ->
+                  opened_rooms#remove_room num old_room;
+                  self#clear_widgets room;
+                  paused_rooms#add_room room
+              | _ -> 
+                  old_room.room_state <- room.room_state
             end
         with Not_found ->
+            Printf.printf "ADDING ROOM %d" room.room_num; print_newline ();
             match room.room_state with
-            | RoomPaused -> paused_rooms#add_room room
+            | RoomPaused
+            | RoomClosed -> paused_rooms#add_room room
             | RoomOpened -> opened_rooms#add_room room
-            | RoomClosed -> ()
       end
 (* Maybe automatic selection is not that good ?:
       ;
       match opened_rooms#rooms with
         [room] -> opened_rooms#on_select room
       | _ -> () *)
-    
+      
     
     method add_room_message room_num msg =
       try
         let (num, room) = try
             opened_rooms#find_room room_num 
           with _ -> paused_rooms#find_room room_num in
-        room.room_messages <- msg :: room.room_messages;
         try
           let (users, messages) = Hashtbl.find widgets room_num in
           append_message room messages msg
-        with _ -> ()
+        with _ -> 
+            room.room_messages <- msg :: room.room_messages;
       with e -> 
           Printf.printf "ROOM %d Exception %s" room_num (Printexc2.to_string e);
           print_newline ();
@@ -298,14 +307,14 @@ class pane_rooms () =
             room.room_users <- List2.removeq user_num room.room_users;
             try
               let (users, messages) = Hashtbl.find widgets room_num in
-              update_users room users
+              let row, user = users#find user_num in
+              users#remove_item row user
             with _ -> ()
           end                
       with _ -> ()
     
     
     method  add_room_user room_num user_num =
-      Printf.printf "add romm user"; print_newline ();
       try
         let (num, room) = try
             opened_rooms#find_room room_num 
@@ -314,8 +323,7 @@ class pane_rooms () =
             room.room_users <- user_num :: room.room_users;
             try
               let (users, messages) = Hashtbl.find widgets room_num in
-              Printf.printf "update_users"; print_newline ();
-              update_users room users
+              users#add_item (Hashtbl.find G.users user_num)
             with _ -> ()
           end
       with _ -> ()
@@ -323,29 +331,91 @@ class pane_rooms () =
     initializer
       rooms_pane#add1 opened_rooms#coerce;
       rooms_pane#add2 paused_rooms#coerce;
+      room_pane#add1 users_box#coerce;
+      room_pane#add2 messages_box#coerce;
+      
+      
+      let clean_widgets () = 
+        
+        (try
+            let (users, messages) = Hashtbl.find widgets !current_widgets
+            in
+            users#coerce#misc#hide ();
+            messages#coerce#misc#hide ();
+            current_widgets := (-1)
+          with e -> 
+              Printf.printf "Normal exception %s in unmap old users/messages?"
+                (Printexc2.to_string e));
+      in
+      
       select := (fun room ->      
-          let (users, messages) = try Hashtbl.find widgets room.room_num 
-            with _ ->
-                let users = new box_users room in
-                let messages = new box () () in
-                let  on_entry_return () =
-                  match messages#we_11#text with
-                    "" -> ()
-                  |	s ->
-                      Gui_com.send
-                        (GuiProto.SendMessage (room.room_num,  
-                          PublicMessage (0,s)));
-                      messages#we_11#set_text "";
+          match room with
+            None -> clean_widgets ()
+          
+          | Some room ->
+              
+              let (users, messages) = try Hashtbl.find widgets room.room_num 
+                with _ ->
+                    let users = new box_users room in
+                    
+                    let messages = new box () () in
+                    let  on_entry_return () =
+                      match messages#we_11#text with
+                        "" -> ()
+                      |	s ->
+                          
+                          Gui_com.send
+                            (GuiProto.SendMessage (room.room_num,  
+                              PublicMessage (0,s)));
+                          messages#we_11#set_text "";
 (*self#insert_text (Printf.sprintf "> %s\n" s) *)
-                in          
-                Okey.add messages#we_11 ~mods: [] GdkKeysyms._Return
-                  on_entry_return;
-                Hashtbl.add widgets room.room_num (users, messages);
-                users, messages
-          in
-          room_pane#add1 users#coerce;
-          room_pane#add2 messages#coerce;
-          update_users room users
+                    in          
+                    Okey.add messages#we_11 ~mods: [] GdkKeysyms._Return
+                      on_entry_return;
+                    Hashtbl.add widgets room.room_num (users, messages);
+                    
+                    
+                    ignore
+                      (users#wtool#insert_button 
+                        ~text: (gettext M.close_room)
+                      ~tooltip: (gettext M.close_room)
+                      ~icon: (Gui_options.pixmap M.o_xpm_close_room)#coerce
+                        ~callback: (fun _ ->  
+                          match room.room_state with
+                            RoomOpened ->
+                              Gui_com.send (GuiProto.SetRoomState (
+                                  room.room_num, RoomClosed))
+                          | _ -> 
+                              try
+                                let (num, old_room) = 
+                                  opened_rooms#find_room room.room_num in
+                                opened_rooms#remove_room num old_room;
+                                self#clear_widgets room;
+                                paused_rooms#add_room room
+                              with e -> 
+                                  Printf.printf "Exception %s in close room"
+                                    (Printexc2.to_string e); print_newline ();
+                      )
+                      ()
+                    );
+
+                    List.iter (fun msg ->
+                        append_message room messages msg
+                    ) (List.rev room.room_messages);
+                    room.room_messages <- [];
+                    
+                    users_box#add users#coerce;
+                    messages_box#add messages#coerce;
+                    
+                    users, messages
+              in
+              clean_widgets ();
+              
+              users#coerce#misc#show ();
+              messages#coerce#misc#show ();
+              current_widgets := room.room_num;
+              
+              update_users room users
       )      
 end
 

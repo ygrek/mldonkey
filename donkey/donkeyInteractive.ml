@@ -678,6 +678,12 @@ let commands = [
         "done"
     ), ":\t\t\t\tshow sources currently known";
     
+    "update_sources", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        DonkeySources1.S.recompute_ready_sources ();
+        "done"
+    ), ":\t\t\t\trecompute order of connections to sources(experimental)";
+    
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
         Fifo.iter (fun c ->

@@ -33,4 +33,5 @@ external update_crc: int32 -> string -> int -> int -> int32
                    = "camlzip_update_crc32"
 
 val uncompress_string : string -> string
+val uncompress_string2 : string -> string
   

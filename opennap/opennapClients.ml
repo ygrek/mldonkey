@@ -132,13 +132,13 @@ let read_stream c file sock b =
             Printf.printf "In Unix32.force_fd"; print_newline ();
             raise e
       in
-      let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
+      let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
       Unix2.really_write fd b.buf b.pos b.len;
     end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-    c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+    c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
+      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 print_newline ();
   *)
     TcpBufferedSocket.buf_used sock b.len;
@@ -168,7 +168,7 @@ let client_reader c =
                 (file, filename) :: _ ->
                   c.client_file <- Some file;
                   connection_ok c.client_connection_control;
-                  let s =  (Printf.sprintf "%s \"%s\" %ld"
+                  let s =  (Printf.sprintf "%s \"%s\" %Ld"
                         (match c.client_user.user_servers with
                           [] -> !!CommonOptions.client_name
                         | s :: _ -> s.server_last_nick) filename 
@@ -205,7 +205,7 @@ let client_reader c =
             let size = String.sub b.buf b.pos len in
             buf_used sock len;            
 (*            Printf.printf "SIZE READ : [%s]" size; print_newline ();*)
-            let total_size = Int32.of_string size in
+            let total_size = Int64.of_string size in
             state := 2;
             iter sock (nread - len)
         end else 
@@ -246,7 +246,7 @@ let client_reader2 c sock nread =
           
           let file_name = OpennapGlobals.basename file_name in
           let file = OpennapGlobals.find_file 
-              file_name (Int32.of_string size) in
+              file_name (Int64.of_string size) in
           
           List.iter (fun cc ->
               if cc.client_name = nick then 
@@ -254,7 +254,7 @@ let client_reader2 c sock nread =
                   None ->
                     cc.client_file <- Some file;
                     cc.client_pos <- file_downloaded file;
-                    write_string sock (Int32.to_string cc.client_pos);
+                    write_string sock (Int64.to_string cc.client_pos);
                     cc.client_sock <- Some sock;
                     c := Some cc
                 | Some sock ->

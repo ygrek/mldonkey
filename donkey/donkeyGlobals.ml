@@ -554,6 +554,10 @@ let dummy_client =
       client_score = 0;
       client_files = [];
       client_next_queue = 0;
+      client_rank = 0;
+      client_connect_time = 0;
+      client_requests_sent = 0;
+      client_requests_received = 0;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -599,7 +603,11 @@ let create_client key num =
       client_score = 0;
       client_files = [];
       client_next_queue = 0;
-    } and
+      client_rank = 0;
+      client_connect_time = 0;
+      client_requests_received = 0;
+      client_requests_sent = 0;
+      } and
     client_impl = {
       dummy_client_impl with            
       impl_client_val = c;
@@ -701,7 +709,7 @@ let mem_stats buf =
   let waiting_msgs = ref 0 in
   let connected_clients_by_num = Hashtbl.create 100 in
   H.iter (fun c ->
-      (*
+(*
       if c.client_num <> num then begin
           incr bad_numbered_clients;
           try
@@ -732,8 +740,23 @@ end;
           if BasicSocket.closed (TcpBufferedSocket.sock sock) then
             incr closed_connections;
   ) clients_by_kind;
+  
+  let bad_clients_in_files = ref 0 in
+  Hashtbl.iter (fun _ file ->
+      Intmap.iter (fun _ c ->
+          match c.client_sock with
+            None -> begin
+                match c.client_kind with
+                  Indirect_location _ -> incr bad_clients_in_files
+                | _ -> ()
+              end
+          | Some sock -> ()              
+      ) file.file_locations;
+  ) files_by_md4;
+  
   Printf.bprintf buf "Clients: %d\n" !client_counter;
-  Printf.bprintf buf "   Bad Clients: %d\n" !unconnected_unknown_clients;
+  Printf.bprintf buf "   Bad Clients: %d/%d\n" !unconnected_unknown_clients
+    !bad_clients_in_files;
   Printf.bprintf buf "   Read Buffers: %d\n" !buffers;
   Printf.bprintf buf "   Write Messages: %d\n" !waiting_msgs;
   Printf.bprintf buf "   Uninteresting clients: %d\n" !uninteresting_clients;
