@@ -235,7 +235,9 @@ let query_download filenames size md4 location old_file absents =
   begin
     match absents with
       None -> ()
-    | Some absents -> file.file_absent_chunks <- absents;
+    | Some absents -> 
+        let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
+        file.file_absent_chunks <- absents;
   end;
   file.file_filenames <- filenames @ file.file_filenames;
   file.file_state <- FileDownloading;

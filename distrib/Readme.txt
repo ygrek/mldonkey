@@ -354,19 +354,33 @@ interfaces and graphical interfaces).
 
 In the console, you have access to the command-line commands.
 
-ToDo list
+TODO list
 =========
-  * Chat 
-  * Set 'Connected locations' label
-  * Plugins
+  * Chat.
+  * Set 'Connected locations' label.
+  * Plugins.
+  * Correct display of availability.
+  * Filters.
+  * Remove MD4 computation for shared files.
+  * Add sleep and wakeup commands.
 
 ChangeLog
 =========
 
 Release 1.08:
-  * Remove dependencies to the 'mmap' system call.
+  * Remove use of the 'mmap' system call.
   * Better management of delays between connection attempts.
   * Local searches use minsize/maxsize information.
+  * More information on availability on WEB/console interface.
+  * Small improvement in MD4 computation. Shared files MD4s are saved in
+     a 'shared_files.ini' file to avoid computating them again.
+  * Filters on replies: set the 'filters' option to a string containing
+     sub-words you want to remove, separated by spaces.
+  * Maximal download rate can be specified in 'max_download_rate' option.
+   (need probably to be rewritten more carefully).
+  * Bug fixes: files greater than 9mb in incoming/ can now be shared,
+      ftruncate replaced by lseek (for vfat FS), multiple connections to
+      the same client fixed.
 
 Release 1.07:
   * Exchange of sets of sources between mldonkey clients.
