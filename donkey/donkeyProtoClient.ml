@@ -621,7 +621,7 @@ module Sources = struct
 module EmuleClientInfo = struct 
 
     type t = {
-        version : int; (* CURRENT_VERSION_SHORT = 0x24*)
+        version : int; (* CURRENT_VERSION_SHORT = !!emule_protocol_version *)
         protversion : int; (* EMULE_PROTOCOL_VERSION = 0x1 *)
         tags : tag list;
       }

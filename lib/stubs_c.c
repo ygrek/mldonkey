@@ -735,6 +735,9 @@ value ml_ip_job_done(value job_v)
 }
 
 
+value ml_has_pthread(value unit)
+{ return Val_false; }
+
 #else
 
 #include <string.h>
@@ -833,5 +836,8 @@ value ml_ip_job_start(value job_v)
 
   return Val_unit;
 }
+
+value ml_has_pthread(value unit)
+{ return Val_true; }
 
 #endif

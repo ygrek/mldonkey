@@ -112,7 +112,8 @@ let clean_client_zones c =
       b.block_nclients <- b.block_nclients - 1;
       List.iter (fun z ->
           z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
-      sort_zones b      
+      sort_zones b;
+      c.client_zones <- []
   
       
 let query_zones c b = 
@@ -648,9 +649,11 @@ and find_client_block c =
     [] ->
     (* Emule may reconnect and give the slot without us asking for it.
     We have to fix this behavior in the future. *)
-    
-      Printf.printf "Client %d: NO FILE IN QUEUE" (client_num c); 
-      print_newline ();
+      if !verbose_download then begin    
+          Printf.printf "Client %d: NO FILE IN QUEUE" (client_num c); 
+          print_newline ();
+        end
+        
   | (file, (_, chunks)) :: files -> 
       
       if !verbose_download then begin

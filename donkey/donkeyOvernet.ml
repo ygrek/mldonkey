@@ -1378,6 +1378,8 @@ let _ =
 	try
           match String2.split_simplify s ',' with
             name :: port :: _ ->
+              let name = String2.replace name '"' "" in
+              let port = String2.replace port '"' "" in
               let ip = Ip.from_name name in
                 let port = int_of_string port in
                 if !verbose_overnet then begin

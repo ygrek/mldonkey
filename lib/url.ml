@@ -92,6 +92,8 @@ let to_string with_args url =
   contents res
 
 let cut_args url_end =
+  if url_end = "" then []
+  else
   let args = String2.split url_end '&' in
   List.map (fun s -> 
         let (name, value) = String2.cut_at s '=' in

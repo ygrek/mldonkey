@@ -531,7 +531,7 @@ let http_handler options t r =
                       | _ -> ()
                     end
                 | _ -> 
-                    Printf.printf "FILE: Unbound argument %s/%s" arg value;
+                    Printf.printf "/files: Unbound argument \"%s=%s\"" arg value;
                     print_newline ();
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in

@@ -327,12 +327,6 @@ var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
 document.cmdFormular.submit();
 }
-
-function colored_chunks(c) {
-  for(var i=0;i<c.length;i++) {
-    document.write(\"<TD class='chunk\" + c.charAt(i) + \"'>&nbsp;</td>\")
-  }
-}
 //-->
 </script>
 "

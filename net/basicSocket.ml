@@ -467,3 +467,6 @@ let string_of_date date = Date.to_string (date_of_int date)
 let normalize_time time = 
   if time >=  1000000000 then time - 1000000000 else time
 
+let use_threads = ref true
+external has_threads : unit -> bool = "ml_has_pthread"
+  

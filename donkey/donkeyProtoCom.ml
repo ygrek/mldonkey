@@ -74,7 +74,7 @@ let direct_client_sock_send sock m =
   
 let client_send c m =
   if !verbose_msg_clients then begin
-      Printf.printf "Received from client %s(%s)"
+      Printf.printf "Sent to client %s(%s)"
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
           Indirect_location _ -> ()

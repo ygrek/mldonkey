@@ -433,6 +433,8 @@ let parse_donkey_url url =
   match String2.split (String.escaped url) '|' with
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
+      let md4 = if String.length md4 > 32 then
+        String.sub md4 0 32 else md4 in
       query_download [name] (Int64.of_string size)
       (Md4.of_string md4) None None None false;
       true
@@ -1288,24 +1290,14 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
           
           (
             let qfiles = c.client_file_queue in
-            let found = ref 0 in
             
-            if List.length qfiles > 0 then Printf.bprintf buf  
-                "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>\\<script language=\\\"javascript\\\"\\>\\<!--\n";
-            
-            
-            List.iter (fun (qfile, (qchunks, _)) ->
-                if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
-                  begin
-                    incr found;
-                    Printf.bprintf buf "colored_chunks(\\\"%s\\\")"
-                      (Array.fold_left (fun s b ->
-                          (if b then s ^ "1" else s ^ "0") 
-                      ) "" qchunks)
-                  end;
-            ) qfiles;
-            
-            if List.length qfiles > 0 then Printf.bprintf buf "\n//--\\>\n\\</script\\>\\</tr\\>\\</table\\>";
+            if qfiles <> [] then begin
+	      try
+		let _, (qchunks, _) = List.find (fun (qfile, _) ->
+		  qfile = (as_file_impl file).impl_file_val) qfiles in
+		CommonFile.colored_chunks buf qchunks
+	      with Not_found -> ();
+	    end
           
           );
           

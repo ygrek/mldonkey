@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=20
+CURRENT_RELEASE=21
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -75,7 +75,8 @@ AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_G
 
 
 PTHREAD_LIBS=no
-AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib=pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
+AC_ARG_ENABLE(pthread, [--enable-pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
+AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib :  legacy option], [PTHREAD_LIBS="$enableval"])
 
 
 

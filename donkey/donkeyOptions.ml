@@ -212,8 +212,13 @@ let port_black_list = define_option downloads_ini
    
 let protocol_version = 
   define_option donkey_ini ["protocol_version"] 
-    "The version of the protocol that should be sent to servers (need restart) "
+    "The version of the protocol that should be sent to servers "
     int_option 61
+  
+let emule_protocol_version = 
+  define_option donkey_ini ["emule_protocol_version"] 
+    "The version of the protocol that should be sent to eMule peers "
+    int_option 0x26
   
 let queued_timeout = 
   define_option donkey_ini ["queued_timeout"] 

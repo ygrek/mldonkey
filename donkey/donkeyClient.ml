@@ -113,10 +113,20 @@ let clean_requests () = (* to be called every hour *)
 
   
 let add_pending_slot c =
-  if not (Intmap.mem (client_num c) !pending_slots_map) then begin
-      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
-      Fifo.put pending_slots_fifo (client_num c)
-    end
+  if not (Intmap.mem (client_num c) !pending_slots_map) then
+    if c.client_has_a_slot then begin
+	Printf.printf "Avoided inserting an uploader in pending slots!";
+	print_newline ()
+      end 
+    else begin
+(* This is useless since it is the goal of the pending_slots_map 
+        else if Fifo.mem pending_slots_fifo (client_num c) then begin
+	Printf.printf "Avoided inserting a client twice in pending slots";
+	print_newline ()
+      end else *)
+        pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
+        Fifo.put pending_slots_fifo (client_num c)
+      end
   
 let remove_pending_slot c =
   if Intmap.mem (client_num c) !pending_slots_map then
@@ -220,16 +230,19 @@ let disconnect_client c =
           List.iter (fun (file, (chunks, _) ) -> 
               remove_client_chunks file chunks)  
           files;    
-          
+
+          (*
           if c.client_file_queue <> [] then begin
               Printf.printf "Client %d: " (client_num c);
               List.iter (fun (file, _) -> 
                   Printf.printf "%d " (file_num file)) c.client_file_queue;
               print_newline ();
-            end;
+end;
+  *)
 (*        c.client_file_queue <- [];  *)
           if c.client_upload != None then find_pending_slot ();
           DonkeyOneFile.clean_client_zones c;
+          
         with e -> Printf.printf "Exception %s in disconnect_client"
               (Printexc2.to_string e); print_newline ());
 (*      Printf.printf "Client %d to source:" (client_num c);
@@ -719,7 +732,7 @@ let client_to_client challenge for_files c t sock =
 (*    Printf.printf "Emule Extended Protocol query"; print_newline ();*)
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReq {
-              E.version = 0x24; 
+              E.version = !!emule_protocol_version; 
               E.protversion = 0x1;
               E.tags = [
 (*           int_tag "compression" 0; *)
@@ -767,7 +780,7 @@ print_newline ();
       if c.client_brand = Brand_newemule then  begin
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReplyReq {
-              E.version = 0x26; 
+              E.version = !!emule_protocol_version; 
               E.protversion = 0x1;
               E.tags = [
                 int_tag "compression" 0;
@@ -856,11 +869,12 @@ print_newline ();
 (* how long should we wait for a block ? *)
       begin
         match c.client_block with
-          None -> DonkeyOneFile.find_client_block c
+          None -> ()
         | Some b ->
             Printf.printf "[QUEUED WITH BLOCK]"; print_newline ();
-      end
-  
+            DonkeyOneFile.clean_client_zones c;
+      end;
+      DonkeyOneFile.find_client_block c
   | M.JoinQueueReq _ ->
 (*
       if !!ban_queue_jumpers && c.client_banned then
@@ -911,7 +925,9 @@ print_newline ();
         match c.client_file_queue with
           [] -> ()
         | _ -> 
-            Printf.printf "CloseSlotReq"; print_newline ();
+            if !verbose_download then begin
+                Printf.printf "CloseSlotReq"; print_newline ();
+              end;
             DonkeyOneFile.start_download c;
             set_rtimeout sock !!queued_timeout;
       end
@@ -946,7 +962,7 @@ print_newline ();
           
           if file_size file <= block_size then 
             client_has_chunks c file [| true |]
-              
+        
         with _ -> ()
       end  
   
@@ -1190,60 +1206,60 @@ is checked for the file.
       
       if  !has_upload = 0 && 
         not (!!ban_queue_jumpers && c.client_banned) then
-      
-      
-      let could_be_challenge = ref false in
-      
-      if challenge.challenge_solved = t then begin
-(*      Printf.printf "Client replied to challenge !!"; print_newline (); *)
-          c.client_brand <- Brand_mldonkey3;
-          could_be_challenge := true;
-        end;
-      
-      if not challenge.challenge_ok  && t <> challenge.challenge_md4 then begin
-          could_be_challenge := true;
-          DonkeyProtoCom.direct_client_send c (
-            let module M = DonkeyProtoClient in
-            M.QueryFileReq (solve_challenge t));
-          challenge.challenge_ok <- true;
-        end;
-      
-      (try if not !could_be_challenge then
-            client_wants_file c t with _ -> ());
-      
-      
-      if t = Md4.null && c.client_brand = Brand_edonkey then  begin
-          c.client_brand <- Brand_mldonkey1;
-          if Random.int 100 < 2 && !!send_warning_messages then
-            direct_client_send c (
-              M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
-        end;
-      
-      begin try 	
-          count_filerequest c;
-          let file = find_file t in
-          (match file.file_shared with
-              None -> ()
-            | Some impl ->
-                shared_must_update_downloaded (as_shared impl);
-                impl.impl_shared_requests <- impl.impl_shared_requests + 1);
-          request_for c file sock;
-          direct_client_send c (
-            let module Q = M.QueryFileReply in
-            let filename = file_best_name file in
-            let published_filename = if String.length filename < 7 ||
-                String.sub filename 0 7 <> "hidden." then filename
-              else String.sub filename 7 (String.length filename - 7) in
-            M.QueryFileReplyReq {
-              Q.md4 = file.file_md4;
-              Q.name = published_filename
-            });
-          DonkeySourcesMisc.query_file c file
         
-        with _ -> 
+        
+        let could_be_challenge = ref false in
+        
+        if challenge.challenge_solved = t then begin
+(*      Printf.printf "Client replied to challenge !!"; print_newline (); *)
+            c.client_brand <- Brand_mldonkey3;
+            could_be_challenge := true;
+          end;
+        
+        if not challenge.challenge_ok  && t <> challenge.challenge_md4 then begin
+            could_be_challenge := true;
+            DonkeyProtoCom.direct_client_send c (
+              let module M = DonkeyProtoClient in
+              M.QueryFileReq (solve_challenge t));
+            challenge.challenge_ok <- true;
+          end;
+        
+        (try if not !could_be_challenge then
+              client_wants_file c t with _ -> ());
+        
+        
+        if t = Md4.null && c.client_brand = Brand_edonkey then  begin
+            c.client_brand <- Brand_mldonkey1;
+            if Random.int 100 < 2 && !!send_warning_messages then
+              direct_client_send c (
+                M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
+          end;
+        
+        begin try 	
+            count_filerequest c;
+            let file = find_file t in
+            (match file.file_shared with
+                None -> ()
+              | Some impl ->
+                  shared_must_update_downloaded (as_shared impl);
+                  impl.impl_shared_requests <- impl.impl_shared_requests + 1);
+            request_for c file sock;
             direct_client_send c (
-              M.NoSuchFileReq t)
-      end
+              let module Q = M.QueryFileReply in
+              let filename = file_best_name file in
+              let published_filename = if String.length filename < 7 ||
+                  String.sub filename 0 7 <> "hidden." then filename
+                else String.sub filename 7 (String.length filename - 7) in
+              M.QueryFileReplyReq {
+                Q.md4 = file.file_md4;
+                Q.name = published_filename
+              });
+            DonkeySourcesMisc.query_file c file
+          
+          with _ -> 
+              direct_client_send c (
+                M.NoSuchFileReq t)
+        end
   
   
   | M.EmuleRequestSourcesReplyReq t ->
@@ -1262,7 +1278,7 @@ end else *)
               print_newline ();
               Printf.printf "Client: Received %d sources for %s" (Array.length t.Q.sources) (file_best_name file);
             end;
-              Array.iter (fun s ->
+          Array.iter (fun s ->
               if Ip.valid s.Q.ip && Ip.reachable s.Q.ip then
                 ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
               else
@@ -1280,7 +1296,7 @@ end else *)
           ) t.Q.sources
         with _ -> ()
       end
-  
+      
   
   | M.SourcesReq t ->
       
@@ -1621,7 +1637,7 @@ let read_first_message overnet challenge m sock =
 (*          Printf.printf "Emule Extended Protocol query"; print_newline (); *)
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReq {
-              E.version = 0x24; 
+              E.version = !!emule_protocol_version; 
               E.protversion = 0x1;
               E.tags = [
 (*                int_tag "compression" 0; *)
@@ -1785,8 +1801,9 @@ But if we receive them, take them !
         let ip = l.Q.ip in
         let port = l.Q.port in
         
-        if Ip.valid ip  && Ip.reachable ip  then
-          ignore (DonkeySources.new_source (ip, port) file)
+        if Ip.valid ip then
+          (if Ip.reachable ip  then 
+              ignore (DonkeySources.new_source (ip, port) file))
         else
         match s.server_sock with
           None ->

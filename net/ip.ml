@@ -191,17 +191,17 @@ let current_job = ref None
 let ip_fifo = Fifo.create ()
   
 let async_ip name f =
-  try
-    let current_time = Unix.gettimeofday () in
-    let (ip, time) = Hashtbl.find ip_cache name in
-    if time < current_time then begin
-        Hashtbl.remove ip_cache name;
-        raise Not_found
-      end;
-    (try f ip with _ -> ())
-  with _ ->
-      Fifo.put ip_fifo (name, f)
-      
+    try
+      let current_time = Unix.gettimeofday () in
+      let (ip, time) = Hashtbl.find ip_cache name in
+      if time < current_time then begin
+          Hashtbl.remove ip_cache name;
+          raise Not_found
+        end;
+      (try f ip with _ -> ())
+    with _ ->
+        Fifo.put ip_fifo (name, f)
+        
 (* We check for names every 1/10 second. Too long ? *)
 let _ = 
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
@@ -215,18 +215,22 @@ let _ =
                 if time < current_time then begin
                     Hashtbl.remove ip_cache name;
                     raise Not_found
-                    end;
+                  end;
                 (try f ip with _ -> ())
               with _ ->
-                  let job = {
-                      handler = f;
-                      name = name;
-                      entries = [||];
-                      error = false;
-                    }
-                  in 
-                  current_job := Some job;
-                  job_start job
+                  if !BasicSocket.use_threads && 
+                    BasicSocket.has_threads () then    
+                    let job = {
+                        handler = f;
+                        name = name;
+                        entries = [||];
+                        error = false;
+                      }
+                    in 
+                    current_job := Some job;
+                    job_start job
+                  else
+                    f (from_name name)
             )
         | Some job ->
             if job_done job then begin
@@ -238,7 +242,7 @@ let _ =
                     in
                     Printf.printf "Ip found for %s: %s"
                       job.name (to_string ip); print_newline ();
-                    Hashtbl.add ip_cache job.name (ip, current_time);
+                    Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin
                     Printf.printf "Error: %s: address not found" job.name;

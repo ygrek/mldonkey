@@ -150,6 +150,7 @@ let set_request_result c file rs =
         request_result = rs;
       } in
     c.client_files <- r :: c.client_files;
+    (*
     match rs with
     | File_not_found | File_possible | File_expected  -> ()
     |  _ ->
@@ -157,7 +158,8 @@ let set_request_result c file rs =
         (*
         c.client_from_queues <- file :: c.client_from_queues
 *)
-        
+*)
+    
   with Exit -> ()
   
 let query_file c file =

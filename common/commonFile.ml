@@ -351,6 +351,30 @@ let files_by_num = ()
 
 module G = GuiTypes
   
+let colored_chunks buf chunks =
+  let previous = ref false in
+  let runlength = ref 0 in
+  let nextbit b =
+    if b = !previous then
+      incr runlength
+    else begin
+      if !runlength > 0 then begin
+	Printf.bprintf buf "\\<TD class=%s\\>"
+          (if !previous then "chunk1" else "chunk0");
+	while !runlength > 0 do
+          Printf.bprintf buf "\\&nbsp;";
+          decr runlength
+	done;
+	Printf.bprintf buf "\\</td\\>"
+      end;
+      previous := b;
+      runlength := 1
+    end in
+  Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
+  Array.iter (fun b -> nextbit b) chunks;
+  nextbit (not !previous);
+  Printf.bprintf buf "\\</tr\\>\\</table\\>"
+
 let file_print file o = 
   let impl = as_file_impl file in
   let info = file_info file in
@@ -403,7 +427,7 @@ let file_print file o =
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
-      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then begin
+      if o.conn_output = HTML && srcs <> [] && !!html_mods then begin
         Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\" name=\\\"sourcesTable\\\" class=\\\"sources\\\"\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
@@ -429,7 +453,7 @@ let file_print file o =
 \\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
 ";
 	
-		Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>\\<script language=\\\"javascript\\\"\\>\\<!--\ncolored_chunks(\\\"%s\\\")\n//--\\>\n\\</script\\>\\</tr\\>\\</table\\>" info.G.file_chunks;
+		colored_chunks buf (Array.init (String.length info.G.file_chunks) (fun i -> info.G.file_chunks.[i] = '1'));
 
 Printf.bprintf buf "\\</td\\> \\</tr\\>";
 

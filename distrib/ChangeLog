@@ -1,6 +1,29 @@
 ChangeLog	
 =========
 
+2002/02/26: Simon (v 2.02-21)
+  - eDonkey: 
+      * Save hashes of commited files in shared_files.ini to remove
+        rehashing commited files on startup
+      * Remove / after the md4 in ed2k links      
+      * Full-Chunks SUPPORTED
+  - Applied patch #1185
+  - Applied pango's patches:
+       63_revert_optimize_chunks_display
+       65_fix_file_unbound_argument, 
+       66_fix_ocl_parsing,
+       67_can_download_from_uploaders,
+       70_fix_duplicates_in_pending_slots_fifo
+       74_emule_protocol_version
+     Comments on patches not applied: 
+      * 73: should not use Weak.t but remove the client when disconnected.
+      * 58: not sure what it does exactly
+      * 60: emule quotas remain until full-chunk is fixed
+      * 69: no full-chunk until we and edonkey can support it
+      * other ones (51, 68, 71, 72): touch the internals of the sensible
+         upload/download engine. need more time to check
+  - Fix: correctly cache IPs in Ip.async_ip
+
 2002/02/25: Simon (v 2.02-20)
   - Applied patch #1174, #1177, #1178
   - With threads, asynchronous DNS resolution of urls

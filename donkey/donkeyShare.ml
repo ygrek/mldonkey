@@ -323,12 +323,14 @@ let remember_shared_info file new_name =
       if !verbose_share then begin
           Printf.printf "Remember %s" new_name; print_newline ();
         end;
-      Hashtbl.add shared_files_info new_name {
+	let s = {
         sh_name = new_name;
         sh_size = file_size file;
         sh_mtime = mtime;
         sh_md4s = file.file_md4s;
-      }
+      } in
+      known_shared_files =:= s :: !!known_shared_files;    
+      Hashtbl.add shared_files_info new_name s
     with e ->
         Printf.printf "Exception %s in remember_shared_info"
           (Printexc2.to_string e);

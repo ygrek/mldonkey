@@ -94,3 +94,6 @@ val string_of_date : int -> string
 val date_of_int : int -> float
 val normalize_time : int -> int
   
+val use_threads : bool ref
+external has_threads : unit -> bool = "ml_has_pthread"
+  

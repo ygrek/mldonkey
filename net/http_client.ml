@@ -263,12 +263,12 @@ headers;
           content_handler sock buf.len 
           
     | 302 ->
-        Printf.printf "INDIRECTION"; print_newline ();
+        Printf.printf "Http_client 302: Redirect"; print_newline ();
         if level < 10 then
           begin
             try
               let url = List.assoc "Location" headers in
-              Printf.printf "Indirection %s" url; print_newline ();
+              Printf.printf "Redirected to %s" url; print_newline ();
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
@@ -279,6 +279,12 @@ headers;
                 ) headers
                 
           end
+          
+    | 404 ->
+        Printf.printf "Http_client 404: Not found %s" (Url.to_string false r.req_url);
+        print_newline ();
+        close sock "bad reply";
+        raise Not_found
           
     | _ ->
         Printf.printf "Http_client: bad reply %d" ans_code;

@@ -126,8 +126,10 @@ r.request_time <- time;
             else 
               old_saved_sources_queue) (time, s);
       if List.memq file s.source_in_queues then begin
-          Printf.printf "Source is already queued for this file"; 
-          print_newline ();
+          if !verbose_sources then begin
+              Printf.printf "Source is already queued for this file"; 
+              print_newline ();
+            end
         end else
       s.source_in_queues <- file :: s.source_in_queues
 
@@ -553,6 +555,8 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                   end;
                 
                 s.source_in_queues <- List2.removeq file s.source_in_queues;
+                DonkeySourcesMisc.query_file c file;
+                
                 
                 raise Not_found
             
