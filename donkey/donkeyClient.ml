@@ -376,9 +376,7 @@ let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
     c.client_brand <- (
-      if md4.[5] = Char.chr 13 && md4.[14] = Char.chr 110 then
-        Brand_oldemule
-      else if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+      if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
 	Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
@@ -838,15 +836,13 @@ print_newline ();
                         (c.client_brand = Brand_mldonkey2 ||
                           c.client_brand = Brand_mldonkey3) then raise Exit)
                   upload_clients
-            | Brand_oldemule
             | Brand_newemule ->
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   raise Exit;
                 let nemule = ref 0 in
                 Fifo.iter (fun c -> 
                     if c.client_sock <> None && 
-                      ( c.client_brand = Brand_oldemule || 
-                        c.client_brand = Brand_newemule)
+                      ( c.client_brand = Brand_newemule)
                     then incr nemule) upload_clients;
                 if !nemule > (!!max_upload_slots * !!max_emule_slots) / 100
                 then raise Exit
@@ -1483,7 +1479,19 @@ let read_first_message overnet challenge m sock =
           | _ ->  ()
       ) t.CR.tags;
 
-      let kind = Indirect_location (!name,t.CR.md4) in
+      let kind, indirect = try
+          match t.CR.server_info with
+            Some (ip, port) -> 
+              if not (Ip.valid t.CR.ip) then
+                if Ip.valid ip then
+                  Indirect_location (!name,t.CR.md4),
+                  Some (t.CR.ip, ip, port)
+                else
+                  raise Not_found
+              else
+                Known_location (t.CR.ip, t.CR.port), None
+          | None ->  raise Not_found
+        with _ -> Indirect_location (!name,t.CR.md4), None in
       let c = new_client kind in
 
       Hashtbl.add connected_clients t.CR.md4 c;
@@ -1500,6 +1508,15 @@ let read_first_message overnet challenge m sock =
             close sock "already connected"; raise Not_found
       end;
 
+      begin
+        match c.client_source, kind with
+          None, Known_location (ip, port) ->
+            let s = DonkeySourcesMisc.create_source 0 (last_time ()) (ip, port) in
+            c.client_source <- Some s
+        | _ -> 
+            c.client_indirect_address <- indirect;
+      end;
+      
       c.client_checked <- true;
       
       set_write_power sock c.client_power;
@@ -1691,11 +1708,6 @@ let query_id s sock ip file =
     M.QueryIDReq ip
   );
   Fifo.put s.server_id_requests file
-
-let udp_server_send s t =
-  DonkeyProtoCom.udp_send (get_udp_sock ())
-  s.server_ip (s.server_port+4)
-  t
   
 let query_locations_reply s t =
   let module M = DonkeyProtoServer in

@@ -757,6 +757,14 @@ let commands = [
         ""
     ), ":\t\t\t\tprint memory stats";
     
+    "rem", Arg_multiple (fun args o ->
+        List.iter (fun servnum ->
+            let num = int_of_string servnum in
+            server_remove (server_find num)
+        ) args;
+        Printf.sprintf "%d servers removed" (List.length args)
+    ), "<serv1> ... <servx>\t\t\tremove servers";
+    
     ]
 
 let _ =

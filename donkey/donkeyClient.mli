@@ -31,8 +31,6 @@ val client_connection_handler : bool -> 'a -> TcpServerSocket.event -> unit
 
 val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
   
-val udp_server_send : DonkeyTypes.server -> DonkeyProtoServer.t -> unit
-  
 val client_wants_file : DonkeyTypes.client -> Md4.t -> unit
   
 val clean_groups : unit -> unit

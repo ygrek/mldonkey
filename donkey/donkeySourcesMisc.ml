@@ -133,7 +133,13 @@ let set_request_result c file rs =
         if r.request_file == file then
           (r.request_result <- rs; raise Exit)
     ) c.client_files;
-    Printf.printf "Error: setting result to no request"; print_newline ();
+    let r = {
+        request_file = file;
+        request_time = last_time ();
+        request_result = rs;
+      } in
+    c.client_files <- r :: c.client_files
+        
   with Exit -> ()
   
 let query_file c file =
@@ -347,3 +353,32 @@ let half_day = 12 * 3600
 exception SourceTooOld
   
   
+
+let create_source new_score source_age addr = 
+  let ip, port = addr in
+  if !verbose_sources then begin
+      Printf.printf "queue_new_source %s:%d" (Ip.to_string ip) port; 
+      print_newline ();
+    end;
+  try
+    let finder =  { dummy_source with source_addr = addr } in
+    let s = H.find sources finder in
+    
+    incr stats_new_sources;
+    s
+  
+  with _ ->
+      let s = { dummy_source with
+          source_num = (incr source_counter;!source_counter);
+          source_addr = addr;
+          source_age = source_age;
+          source_client = SourceLastConnection (
+            new_score, source_age, CommonClient.book_client_num ());
+          source_files = [];
+        }  in
+      H.add sources s;
+      incr stats_sources;
+      if !verbose_sources then begin
+          Printf.printf "Source %d added" s.source_num; print_newline ();
+        end;
+      s

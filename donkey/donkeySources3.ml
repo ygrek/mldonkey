@@ -71,7 +71,8 @@ let old_sources2_queue = 4
 let old_sources3_queue = 5
 let old_sources4_queue = 6
 let nqueues = 7
-  
+
+let indirect_fifo = Fifo.create ()
   
 let queue_name = [|
     "new_sources";
@@ -141,6 +142,13 @@ let iter f =
       Array.iter (fun ss -> SourcesQueue.iter f ss) file.file_sources;
   ) !current_files
 
+(* If the file is popular, and we cannot connect, just drop the source ! *)
+let popular_file file =
+  (Fifo.length file.file_clients) +
+  (SourcesQueue.length file.file_sources.(new_sources_queue)) +
+  (SourcesQueue.length file.file_sources.(old_sources1_queue)) 
+  > 1000
+  
 
 let source_of_client c = 
   outside_queue := Intmap.remove (client_num c) !outside_queue;      
@@ -156,10 +164,28 @@ let source_of_client c =
       if !verbose_sources then begin
           Printf.printf "%d --> indirect" (client_num c); print_newline ();
         end;
+
+      begin
+        match c.client_indirect_address with
+          None -> ()
+        | Some addr ->
+            let keep_source = ref false in
+            List.iter (fun r ->
+                match r.request_result with
+                  File_chunk | File_found | File_upload ->
+                    keep_source := true
+                | _ -> ()
+            ) c.client_files;
+                  
+            if !keep_source then Fifo.put indirect_fifo (addr, last_time ())
+
+      end;
+      
       List.iter (fun r -> 
           remove_file_location r.request_file c) c.client_files;
       c.client_files <- [];
-      c.client_from_queues <- [];      
+      c.client_from_queues <- [];
+      
       raise Exit
   
   | Some s ->
@@ -185,13 +211,17 @@ let source_of_client c =
                     if c.client_score >= -10 then 
                       old_sources1_queue
                     else 
+                    if popular_file file then begin
+                        remove_file_location file c;
+                        raise Exit
+                      end else
                     if c.client_score >= -20 then
                       old_sources2_queue
                     else
                     if c.client_score >= -40 then
                       old_sources3_queue                    
                     else begin
-                        c.client_files <- List2.removeq r c.client_files;
+(*                       c.client_files <- List2.removeq r c.client_files; *)
                         remove_file_location file c;
                         raise Exit
                       end
@@ -256,7 +286,7 @@ let client_connected c =
       s.source_age <- last_time ()
       
 let recompute_ready_sources f =
-  Printf.printf "recompute_ready_sources on sources not implemented"; print_newline ()
+(*  Printf.printf "recompute_ready_sources on sources not implemented"; print_newline () *) ()
 
 (* Change a source structure into a client structure before attempting
   a connection. *)
@@ -438,10 +468,18 @@ let print_sources buf =
   let nupload = ref 0 in
   let nfound = ref 0 in
   let nnotfound = ref 0 in
+  let scores = Array.create 10 0 in
   iter (fun s ->
-      (match s.source_client with 
-          SourceClient c -> s.source_files <- c.client_files;
-        | _ -> ());
+      let score = match s.source_client with 
+          SourceClient c -> 
+            s.source_files <- c.client_files; c.client_score
+        | SourceLastConnection (score,_,_) -> score
+      in
+      let score = - score in
+      let score = 
+        if score < 0 then 0 else 
+        if score > 99 then 99 else score in
+      scores.(score/10) <- scores.(score/10) +1;
       
       List.iter (fun r ->
           match r.request_result with
@@ -452,11 +490,13 @@ let print_sources buf =
           | _ -> ()
       ) s.source_files;
       
-      if s.source_score >= 0 then incr positive_sources else
-        incr negative_sources);
+  );
   
-  Printf.bprintf buf "Positive/Negative: %d/%d\n" !positive_sources
-    !negative_sources; 
+  Printf.bprintf buf "Scores: ";
+  for i = 0 to 9 do
+    Printf.bprintf buf "%d " scores.(i)
+  done;
+  Printf.bprintf buf "\n";
   Printf.bprintf buf "NotFound/Found/Chunk/Upload: %d/%d/%d/%d\n\n"
     !nnotfound !nfound !nchunks !nupload;
   Printf.bprintf buf "Ranks: ";
@@ -556,7 +596,7 @@ let print_sources buf =
       
 let check_sources reconnect_client = 
 
-  (*
+(*
   let buf = Buffer.create 100 in
   print_sources buf;
   Printf.printf "\n\nSTATS: %s" (Buffer.contents buf);
@@ -593,6 +633,39 @@ let check_sources reconnect_client =
       stats_ranks := Array.create 10 0;
     
     end;
+  
+  (try
+      while true do
+        let (addr, time) = Fifo.head indirect_fifo in
+        if time + !!min_reask_delay < last_time () then
+          let ((id, ip, port), _) = Fifo.take indirect_fifo in
+          
+          try
+            let s = find_server ip port in
+            match s.server_sock with
+              None -> raise Not_found
+            | Some sock ->
+                DonkeyProtoCom.direct_server_send sock (
+                  let module M = DonkeyProtoServer in
+                  let module C = M.QueryID in
+                  M.QueryIDReq id
+                );
+          with _ ->
+              
+              let module Q = DonkeyProtoServer.QueryCallUdp in
+              
+              
+              DonkeyProtoCom.udp_send (get_udp_sock ())
+              ip (port+4)
+              (DonkeyProtoServer.QueryCallUdpReq {
+                  Q.ip = client_ip None;
+                  Q.port = !client_port;
+                  Q.id = id;
+                })
+        else raise Not_found
+      done;
+    with _ -> ());
+  
   
   let rec iter_first n =
     if CommonGlobals.can_open_connection () && n > 0 then 

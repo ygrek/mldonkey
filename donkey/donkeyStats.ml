@@ -30,7 +30,7 @@ open BasicSocket (* last_time *)
 open CommonInteractive
 
   
-let brand_count = 9
+let brand_count = 8
 
 let brand_to_int b =
   match b with
@@ -39,10 +39,9 @@ let brand_to_int b =
   | Brand_mldonkey1 -> 2
   | Brand_mldonkey2 -> 3
   | Brand_overnet -> 4
-  | Brand_oldemule -> 5
-  | Brand_newemule -> 6
-  | Brand_server -> 7
-  | Brand_mldonkey3 -> 8
+  | Brand_newemule -> 5
+  | Brand_server -> 6
+  | Brand_mldonkey3 -> 7
       
 let brand_of_int b =
   match b with
@@ -51,10 +50,9 @@ let brand_of_int b =
   | 2 -> Brand_mldonkey1
   | 3 -> Brand_mldonkey2
   | 4 -> Brand_overnet
-  | 5 -> Brand_oldemule
-  | 6 -> Brand_newemule
-  | 7 -> Brand_server
-  | 8 -> Brand_mldonkey3
+  | 5 -> Brand_newemule
+  | 6 -> Brand_server
+  | 7 -> Brand_mldonkey3
   | _ -> raise Not_found
       
 let gbrand_to_string b =
@@ -65,7 +63,6 @@ let gbrand_to_string b =
   | Brand_mldonkey2 -> "nML"
   | Brand_mldonkey3 -> "tML"
   | Brand_overnet -> "OVR"
-  | Brand_oldemule -> "oEM"
   | Brand_newemule -> "nEM"
   | Brand_server -> "SER"
 

@@ -561,6 +561,7 @@ let dummy_client =
       client_requests_sent = 0;
       client_requests_received = 0;
       client_from_queues = [];
+      client_indirect_address = None;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -609,6 +610,7 @@ let create_client key num =
       client_requests_received = 0;
       client_requests_sent = 0;
       client_from_queues = [];
+      client_indirect_address = None;      
       } and
     client_impl = {
       dummy_client_impl with            
@@ -1023,6 +1025,5 @@ let brand_to_string b =
   | Brand_mldonkey2 -> "new mldonkey"
   | Brand_mldonkey3 -> "trusted mldonkey"
   | Brand_overnet -> "Overnet"
-  | Brand_oldemule -> "old eMule"
-  | Brand_newemule -> "new eMule"
+  | Brand_newemule -> "eMule"
   | Brand_server -> "server"

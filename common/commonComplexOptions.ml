@@ -445,9 +445,9 @@ let file_cancel file =
 let mail_for_completed_file file =
   if !!mail <> "" then
     let module M = Mailer in
-    let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
+    let line1 = "mldonkey has completed the download of:\r\n\r\n" in
 
-    let line2 = Printf.sprintf "\r\n%s\r\n%Ld\r\n%s\r\n" 
+    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nComment: %s\r\n" 
       (file_best_name file)
       (file_size file)
       (file_comment file)
@@ -456,7 +456,7 @@ let mail_for_completed_file file =
     let mail = {
         M.mail_to = !!mail;
         M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
-        M.mail_subject = Printf.sprintf "mldonkey completed download";
+        M.mail_subject = Printf.sprintf "mldonkey, file received";
         M.mail_body = line1 ^ line2;
       } in
     M.sendmail !!smtp_server !!smtp_port mail

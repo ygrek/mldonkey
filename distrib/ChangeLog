@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2002/02/19: Simon
+  - Applied patch #1136: better mail output
+  - Applied patch adding "rem" command
+  - Applied patch #1128: Adding chunk_width edit option
+  - Applied patch #890: FakeCheck link
+  - Donkey:
+     * Try to recover direct address from connecting client
+     * Try to ask good connecting clients to reconnect (either by tcp or udp)
+
 2002/02/19: Simon (v 2.02-14)
   - Bug fix: vd <num> (patch #1135)
 

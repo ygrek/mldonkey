@@ -434,3 +434,7 @@ let direct_client_send_files sock msg =
   str_int s 1 len;
   str_int s 6 nfiles;
   write_string sock s
+
+  
+let udp_server_send s t =
+  udp_send (get_udp_sock ()) s.server_ip (s.server_port+4)  t

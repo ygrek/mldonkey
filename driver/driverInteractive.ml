@@ -311,12 +311,16 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[\\<a href=/submit\\?q\\=vd+%d\\>%-5d\\</a\\>] %s " 
+          (Printf.sprintf "[\\<a href=/submit\\?q\\=vd+%d\\>%-5d\\</a\\> \\<a href=http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
               file.file_num
               file.file_num
-              (let n = network_find_by_num file.file_network in
+              (Int64.to_string file.file_size)
+            (Md4.to_string file.file_md4)
+            (let n = network_find_by_num file.file_network in
               n.network_name)            
           );
+          
+
           (if file.file_state = FileDownloading then
               Printf.sprintf 
                 "\\<input name=pause type=checkbox value=%d\\> R

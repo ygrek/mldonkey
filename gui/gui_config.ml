@@ -271,6 +271,12 @@ let create_gui_params () =
       (gettext M.o_use_relative_availability)
       !!GO.use_relative_availability
   in
+  let chunk_width = string
+      ~f: (safe_int_of_string GO.chunk_width)
+      ~help: (gettext M.h_chunk_width)
+      (gettext M.o_chunk_width)
+      (string_of_int !!GO.chunk_width)
+  in
   let misc_options = Section
       ((gettext M.o_misc),
        [
@@ -278,6 +284,7 @@ let create_gui_params () =
 	 use_size_suffixes ;
 	 use_availability_height ;
 	 use_relative_availability ;
+	 chunk_width ;
        ]
       )
   in

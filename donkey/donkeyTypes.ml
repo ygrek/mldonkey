@@ -145,7 +145,6 @@ and brand =
 | Brand_mldonkey2
 | Brand_mldonkey3
 | Brand_overnet
-| Brand_oldemule
 | Brand_newemule
 | Brand_server
 
@@ -193,6 +192,7 @@ and client = {
     mutable client_requests_received : int;
     mutable client_requests_sent: int;
     mutable client_from_queues : file list;
+    mutable client_indirect_address : (Ip.t * Ip.t * int) option;
   }
   
 and upload_info = {

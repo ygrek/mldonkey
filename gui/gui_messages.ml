@@ -313,6 +313,9 @@ let o_use_availability_height = message "o_use_availability_height" (T.option T.
 let h_use_relative_availability = message "h_use_relative_availability" (T.option T.format) "Calculate %% availability ignoring already present chunks"
 let o_use_relative_availability = message "o_use_relative_availability" (T.option T.format) "Use relative %% availability"
 
+let h_chunk_width = message "h_chunk_width" (T.option T.format) "Width of a chunk in availability bar"
+let o_chunk_width = message "o_chunk_width" (T.option T.format) "Chunk width"
+
 let h_toolbars_style = message "h_toolbars_style" (T.option T.format) "What is displayed in toolbar buttons : text, icon or both"
 let o_toolbars_style = message "o_toolbars_style" (T.option T.format) "Style of toolbars"
 
