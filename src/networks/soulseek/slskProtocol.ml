@@ -165,70 +165,66 @@ module C2S = struct
     let parse opcode s =
       try
         match opcode with
-        | 1 -> LoginReq (Login.parse s)
-        | 2 -> SetWaitPortReq (SetWaitPort.parse s)
-        | 3 -> 
+        | 1 (*SERVERCODE*) -> LoginReq (Login.parse s)
+        | 2 (*SERVERCODE*)  -> SetWaitPortReq (SetWaitPort.parse s)
+        | 3 (*SERVERCODE*)  -> 
             let user, _ = get_string s 0 in
             GetPeerAddressReq user
-        | 5 -> 
+        | 5 (*SERVERCODE*)  -> 
             let user, _ = get_string s 0 in
             AddUserReq user
-        | 13 ->
+        | 13 (*SERVERCODE*)  ->
             let room, pos = get_string s 0 in
             let msg, pos = get_string s pos in
             SayChatroomReq (room, msg)
-        | 14 -> 
+        | 14 (*SERVERCODE*)  -> 
             let room, _ = get_string s 0 in
             JoinRoomReq room
-        | 15 ->             
+        | 15 (*SERVERCODE*)  ->             
             let room, _ = get_string s 0 in
             LeaveRoomReq room
-(*        | 22 ->
+(*        | 22 (*SERVERCODE*)  ->
 (* MessageUserReq *)
             string : username
               string : message
 *)
             
-        | 26 -> FileSearchReq (FileSearch.parse s)
-(*
-        | 28 -> 
-(* SetStatus *)
-            int : new status (0=offline,1=away,2=online)
+        | 26 (*SERVERCODE*)  -> FileSearchReq (FileSearch.parse s)
+(*        | 28 (*SERVERCODE*)  ->  *)
+(* SetStatus 
+            int : new status (0=offline,1=away,2=online) *)
         
-        | 35 ->
+(*        | 35 (*SERVERCODE*)  ->
 (* SharedFoldersFiles *)
             int: folder count
               int: file count
 *)        
-        | 36 -> 
+        | 36 (*SERVERCODE*)  -> 
             let user, _ = get_string s 0 in
             GetUserStatsReq user
-(*      
-        | 60 ->
-(* PlaceInLineResponse *)
+(*       | 60 (*SERVERCODE*)  ->
+ PlaceInLineResponse 
             string: username
               int : token
               int : place
+*)
+            
+(*        | 67 (*SERVERCODE*)  -> GlobalUserList *)
         
-        | 67 ->
-(* GlobalUserList *)
-        
-        | 68 ->
-(* TunneledMessage *)
+(*        | 68 (*SERVERCODE*)  ->
+ TunneledMessage 
             string : username
               int : code
               int : token
               int : IP address
               int : port
               int : message
-            
-        | 69 ->
-(* PriviledgedUsers *)
-
-        | 92 ->
-(* CheckPrivileges *)
 *)
-        | 1001 -> 
+            
+(*        | 69 (*SERVERCODE*)  -> PriviledgedUsers *)
+
+(*        | 92 (*SERVERCODE*)  -> CheckPrivileges *)
+        | 1001 (*SERVERCODE*)  -> 
             let user, _ = get_string s 0 in
             CantConnectToPeerReq user
         | _ -> raise Not_found
@@ -461,13 +457,38 @@ module S2C = struct
       end
     
     
+    module FileSearch = struct
+        type t = {
+            id : int;
+            words : string;
+          }
+        
+        let parse s =  
+          let id = get_int s 0 in
+          let s, pos = get_string s 4 in
+          { id = id; words = s }
+        
+        let print t =
+          lprintf "SEARCH %d FOR %s" t.id t.words;
+          lprint_newline () 
+        
+        let write buf t =
+          buf_int buf t.id;
+          buf_string buf t.words
+      
+      end
+      
     
     type t = 
     | LoginAckReq of LoginAck.t
     | RoomListReq of RoomList.t
     | PriviledgedUsersReq of PriviledgedUsers.t
     | ConnectToPeerReq of ConnectToPeer.t
-    
+
+    | FileSearchReq of 
+(* user *)      string * 
+(* request id *)      int * 
+(* search term *)      string
     | GetPeerAddressReplyReq of 
 (* nick *) string * 
 (* ip *)   Ip.t * 
@@ -503,6 +524,15 @@ module S2C = struct
                    GlobalUserList:67,TunneledMessage:68,PrivilegedUsers:69,
 CantConnectToPeer:1001}
 
+                   Msg83:83,Msg84:84,Msg85:85,ParentInactivityTimeout:86,
+                   SearchInactivityTimeout:87,MinParentsInCache:88,
+                   Msg89:89,DistribAliveInterval:90,
+                   AddToPrivileged:91,CheckPrivileges:92,CantConnectToPeer:1001,
+                   HaveNoParent:71,SearchRequest:93,NetInfo:102,
+                   WishlistSearch:103,WishlistInterval:104,
+                   RoomTickerState:113,RoomTickerAdd:114,
+                   RoomTickerRemove:115,RoomTickerSet:116}
+
 
 Unknown: opcode 36
 ascii: [
@@ -519,103 +549,117 @@ ascii: [
     let parse opcode s =
       try
         match opcode with
-        | 1 -> LoginAckReq (LoginAck.parse s)
-        | 3 -> 
+        | 1 (*SERVERCODE*)  -> LoginAckReq (LoginAck.parse s)
+        | 3 (*SERVERCODE*)  -> 
             let name, pos = get_string s 0 in
             let ip = get_ip s pos in
             let port = get_int s (pos+4) in
             GetPeerAddressReplyReq (name, ip, port)
-        | 5 -> 
+        | 5 (*SERVERCODE*)  -> 
             let s, pos = get_string s 0 in
             let present = get_uint8 s pos in
             AddUserReplyReq (s, present = 1)
-        | 7 -> 
+        | 7 (*SERVERCODE*)  -> 
             let user, pos = get_string s 0 in
             let status = get_int s pos in
             UserStatusReq (user, status)
-        | 13 -> 
+        | 13 (*SERVERCODE*)  -> 
             let room_name, pos = get_string s 0 in
             let user_name, pos = get_string s pos in
             let message, pos = get_string s pos in
             SayChatroomReq (room_name, user_name, message)
         
-        | 14 -> JoinRoomReplyReq (JoinRoomReply.parse s)
-        | 16 ->
+        | 14 (*SERVERCODE*)  -> JoinRoomReplyReq (JoinRoomReply.parse s)
+        | 16 (*SERVERCODE*)  ->
             let room, pos = get_string s 0 in
             let user, pos = get_string s pos in
             let status, pos = get_user_status s pos in            
             UserJoinedRoomReq (room, user, status)
-        | 17 -> 
+        | 17 (*SERVERCODE*)  -> 
             let room, pos = get_string s 0 in
             let user, pos = get_string s pos in
             UserLeftRoomReq (room, user)
             
-        | 18 -> ConnectToPeerReq (ConnectToPeer.parse s)
-(*            
-        | 22 -> (* Message User *)
+        | 18 (*SERVERCODE*)  -> ConnectToPeerReq (ConnectToPeer.parse s)
+(*      | 22 (*SERVERCODE*)  -> (* Message User *)
             
             int: message ID
             int: timestamp
               string: username
             string: message
+*)
             
-        | 23 ->
+(*        | 23 (*SERVERCODE*)  ->
 (* MessageAcked : otherwise, the server keeps sending *)
             int : message ID
+*)
+
+        | 26 ->
+            let user, pos = get_string s 0 in
+            let search_id = get_int s pos in
+            let search_term, pos = get_string s (pos+4) in
+            FileSearchReq (user, search_id, search_term)
             
-        | 36 ->
-(* GetUserStats *)
+(*        | 36 (*SERVERCODE*) ->
+ GetUserStats 
             string: username
             int: avgspeed
               ...
+*)
             
-        | 40 ->
-(* Queued Downloads *)
+(*        | 40 (*SERVERCODE*) ->
+ Queued Downloads 
             string : username
               int : slotsfull
+*)
             
-        | 60 ->
-(* PlaceInLineResponse *)
+(*        | 60 (*SERVERCODE*) ->
+ PlaceInLineResponse 
             string: username
               int : token
             int : place
-
-        | 62 ->
-(* RoomAdded *)
-            string : room name
+*)
             
-        | 63 ->
-(* RoomRemoved *)
+(*        | 62 (*SERVERCODE*) ->
+ RoomAdded 
+string : room name
+  *)
+            
+(*        | 63 (*SERVERCODE*) ->
+ RoomRemoved 
             string : room name
 *)            
-        | 64 -> RoomListReq (RoomList.parse s)
-(*
-        | 65 ->
-(* ExactFileSearch *)
+
+        | 64 (*SERVERCODE*) -> RoomListReq (RoomList.parse s)
+(*        | 65 (*SERVERCODE*) ->
+ ExactFileSearch 
             int : token
               string : filename
               string : folder
               int : size
               int : checksum
             string : username
+*)
             
-        | 66 ->
-(* AdminMessage *)
+(*        | 66 (*SERVERCODE*) ->
+  AdminMessage 
             string : message
-            
-        | 67 ->
-(* GlobalUserList : comme JoinRoom *)
+*)
+  
+(*        | 67 (*SERVERCODE*) ->
+ GlobalUserList : comme JoinRoom 
 *)
             
             
-        | 69 -> PriviledgedUsersReq (PriviledgedUsers.parse s)
-(*            
-        | 92 ->
-(* CheckPrivileges *)
+        | 69 (*SERVERCODE*) -> PriviledgedUsersReq (PriviledgedUsers.parse s)
+            
+(*        | 92 (*SERVERCODE*) ->
+ CheckPrivileges 
             int : number of days left
-
-        | 1001 ->
-(* Cannot connect to peer *)
+*)
+  
+(*        | 1001 (*SERVERCODE*) ->
+ Cannot connect to peer 
             int : token
 *)            
         | _ -> raise Not_found
@@ -651,6 +695,9 @@ ascii: [
           lprintf "SAID ON %s BY %s: %s" room user message;
           lprint_newline ();
       | UnknownReq (opcode, s) ->  unknown opcode s
+      | FileSearchReq (user, search_id, search_term) ->
+          lprintf "FileSearchReq (%s,%d,%s)\n"
+            user search_id search_term
     
     let write buf t =
       match t with
@@ -683,7 +730,7 @@ ascii: [
           buf_int buf 7;
           buf_string buf user;
           buf_int buf status
-
+          
       | SayChatroomReq (room, user, message) ->
           buf_int buf 13;
           buf_string buf room;
@@ -693,7 +740,13 @@ ascii: [
       | UnknownReq (opcode, s) -> 
           buf_int buf opcode;
           Buffer.add_string buf s
-  
+
+      | FileSearchReq (user, search_id, search_term) ->
+          buf_int buf 26;
+          buf_string buf user;
+          buf_int buf search_id;
+          buf_string buf search_term
+          
   end
   
   
@@ -801,20 +854,33 @@ module C2C = struct
 (* request id *) int *
 (* reason *)     string
     | FolderContentsReq of string
+      
+    | FileSearchRequestReq of 
+(* request id *) int *
+(* search term *) string
+      
     | UnknownReq of int * string
-    
+      (*
+    peercodes = {GetSharedFileList:4, SharedFileList:5, FileSearchRequest:8,
+                FileSearchResult:9,
+                UserInfoRequest:15,UserInfoReply:16, FolderContentsRequest:36,
+                FolderContentsResponse:37, TransferRequest:40,
+                TransferResponse:41,PlaceholdUpload:42,QueueUpload:43,
+                PlaceInQueue:44,UploadFailed:46,QueueFailed:50,PlaceInQueueRequest:51}
+*)
+      
     let parse opcode s =
       try
         match opcode with          
         | 4 -> GetSharedFileListReq
         | 5 -> SharedFileListReq (SharedFileList.parse s)
+        | 8 -> 
+            let search_id = get_int s 0 in
+            let search_term, pos = get_string s 4 in
+            FileSearchRequestReq (search_id, search_term)
         | 9 -> FileSearchResultReq (FileSearchResult.parse s)
-(*        
-        | 15 -> 
-(* UserInfoRequest *)
-        
-        | 16 -> 
-(* UserInfoReply *)
+(*      | 15 ->  UserInfoRequest *)
+(*      | 16 ->  UserInfoReply 
             string : user description
               byte: has a picture ?
               string : present if pic = 1
@@ -844,32 +910,27 @@ module C2C = struct
             else
             let reason, pos = get_string s 5 in
             TransferFailedReplyReq (req, reason)
-(*
-        | 42 ->
-(* PlaceholdUpload *)
+(*        | 42 -> PlaceholdUpload 
             string : filename 
+*)
             
-        | 43 -> 
-(* QueueUpload *)
+(*        | 43 -> QueueUpload 
             string : filename
-            
-        | 44 -> 
-(* PlaceInQueue *)
+*)            
+(*        | 44 ->  PlaceInQueue 
             string : filename
               int : place
-            
-        | 46 ->
-(* UploalFailed *)
+*)
+
+(*         | 46 -> UploalFailed 
             string : filename
-            
-        | 50 ->
-(* QueueFailed *)
+*)
+
+(*        | 50 -> QueueFailed 
             string : filename
               string : reason
-            
-        | 51 ->
-(* PlaceInQueueRequest *)
-*)            
+*)
+(*        | 51 -> PlaceInQueueRequest *)            
             
         | _ -> raise Not_found
       with
@@ -885,6 +946,9 @@ module C2C = struct
           lprintf "GetSharedFileListReq"; lprint_newline () 
       | FolderContentsReq folder ->
           lprintf "FolderContentsReq"; lprint_newline ();
+      | FileSearchRequestReq (search_id, search_term) ->
+          lprintf "FileSearchRequestReq (%d, %s)"
+            search_id search_term
       | FolderContentsReplyReq folders ->
           lprintf "FolderContentsReplyReq"; lprint_newline ();
           List.iter (fun (s, dirs) ->
@@ -945,7 +1009,12 @@ module C2C = struct
           buf_int buf req;
           buf_string buf file;
           buf_int64_32 buf size
-
+          
+      | FileSearchRequestReq (search_id, search_term) ->
+          buf_int buf 8;
+          buf_int buf search_id;
+          buf_string buf search_term
+          
       | TransferOKReplyReq (req, filesize) ->
           buf_int buf 41;
           buf_int buf req;

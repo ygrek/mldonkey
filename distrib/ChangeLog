@@ -4,6 +4,9 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/05: Fabrice (version 2.5.5, tag release-2-5-5)
+  * Change in the version numbers, keep only 3 digits :)
+
 2004/02/04: Fabrice (version 2.5.4+8, tag release-2-5-4-8)
   * Bittorrent:
      * New version of uploaders choice.
