@@ -17,23 +17,20 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open BasicSocket
-open Options
 open Printf2
-  
 open CommonNetwork
+open FasttrackClients
 open CommonOptions
 open CommonFile
 open CommonComplexOptions
-open CommonTypes
-open CommonHosts
-  
+open BasicSocket
+open Options
 open FasttrackComplexOptions
 open FasttrackOptions
 open FasttrackGlobals
 open FasttrackTypes
+open CommonTypes
 open FasttrackServers
-open FasttrackClients
   
 let is_enabled = ref false
  
@@ -45,7 +42,7 @@ let disable enabler () =
           match h.host_server with
             None -> ()
           | Some s -> FasttrackServers.disconnect_server s Closed_by_user) 
-      H.hosts_by_key;
+      hosts_by_key;
       Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) 
       clients_by_uid;
       (match !listen_sock with None -> ()
@@ -89,10 +86,10 @@ let enable () =
     if not !!enable_fasttrack then enable_fasttrack =:= true;
     
     List.iter (fun (ip,port) -> 
-        ignore (H.new_host ip port Ultrapeer)) !!ultrapeers;
+        ignore (new_host ip port Ultrapeer)) !!ultrapeers;
     
     List.iter (fun (ip,port) -> 
-        ignore (H.new_host ip port Peer)) !!peers;
+        ignore (new_host ip port Peer)) !!peers;
     
     add_session_timer enabler 1.0 (fun timer ->
         FasttrackServers.manage_hosts ();

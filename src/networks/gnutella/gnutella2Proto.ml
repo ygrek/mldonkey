@@ -27,8 +27,6 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonTypes
 open CommonOptions
-open CommonHosts
-open CommonDownloads.SharedDownload
   
 open GnutellaOptions
 open GnutellaTypes
@@ -905,7 +903,7 @@ let udp_send_ack ip port counter =
 
           
 let host_send sock h p = 
-  let ip = h.host_addr in
+  let ip = h.host_ip in
   let port = h.host_port in
   match sock with
   | Connection sock ->
@@ -914,7 +912,7 @@ let host_send sock h p =
           (Ip.to_string ip) port (Print.print p);
       socket_send sock p
   | _ -> 
-      udp_send (ip) port p
+      udp_send ip port p
 
 let packet p list = { g2_children = list; g2_payload = p }
 
@@ -1367,8 +1365,7 @@ let server_recover_file file sock s =
 (*          server_send_query ss.search_uid words NoConnection s *)
           ()
       | FileUidSearch (file, uid) ->
-          server_ask_uid NoConnection s ss.search_uid uid 
-          file.file_shared.file_name        
+          server_ask_uid NoConnection s ss.search_uid uid file.file_name        
   ) file.file_searches
   
 let server_send_ping sock s = 

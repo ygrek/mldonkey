@@ -324,6 +324,13 @@ type old_result = result
 exception NoSpecifiedFile
 exception Already_done
 
+type shared_file_info = {
+    sh_name : string;
+    sh_md4s : Md4.t list;
+    sh_mtime : float;
+    sh_size : int64;
+  }
+
   
 open CommonFile
 open CommonClient

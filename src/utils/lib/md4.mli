@@ -73,5 +73,4 @@ module Md5Ext : Digest
   
 module Base16 : Base
 module Base32 : Base
-module Base6427 : Base
   

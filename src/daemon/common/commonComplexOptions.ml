@@ -356,6 +356,23 @@ module ClientOption = struct
 let friends = 
   define_option friends_ini ["friends"] 
     "The list of known friends" (listiter_option (ClientOption.t true)) []
+  
+let load () = 
+  Options.load files_ini;
+  Options.load servers_ini;
+  Options.load searches_ini;
+  Options.load friends_ini
+  
+let save () = 
+  networks_iter (fun n -> network_save_complex_options n);
+  
+(*  servers =:= server_sort (); *)
+  
+  Options.save_with_help files_ini;
+  Options.save_with_help searches_ini;
+  Options.save_with_help friends_ini;
+  Options.save_with_help servers_ini;
+  lprintf "Options correctly saved\n"
 
 (*************  ADD/REMOVE FUNCTIONS ************)
 

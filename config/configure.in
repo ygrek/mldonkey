@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=2
+CURRENT_RELEASE=3
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -24,7 +24,6 @@ SOULSEEK=yes
 OPENFT=no
 CYMES=no
 DONKEY=yes
-OPEN_DONKEY=no
 BITTORRENT=yes
 FASTTRACK=yes
 
@@ -72,8 +71,6 @@ AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cy
 
 AC_ARG_ENABLE(fasttrack, [--disable-fasttrack:       allows you to remove support for FastTrack], [FASTTRACK="$enableval"])
 
-AC_ARG_ENABLE(open_donkey, [--disable-open_donkey:       allows you to remove support for unstable donkey plugin], [OPEN_DONKEY="$enableval"])
-
 AC_ARG_ENABLE(bittorrent, [--disable-bittorrent:       allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
@@ -86,6 +83,8 @@ AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_G
 PTHREAD_LIBS=no
 AC_ARG_ENABLE(pthread, [--enable-pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
 AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib :  legacy option], [PTHREAD_LIBS="$enableval"])
+
+
 
 IM=yes
 AC_ARG_ENABLE(devel, [--enable-devel:       (undocumented)], [DEVEL="$enableval"])

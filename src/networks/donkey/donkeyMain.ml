@@ -180,6 +180,19 @@ let enable () =
               (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
     ) files_by_md4;
 
+    let list = ref [] in
+(* Normally, we should check that downloaded files are still there.
+  
+  *)    
+    let list = ref [] in
+    List.iter (fun file ->
+        if Unix32.file_exists file.sh_name then begin
+            Hashtbl.add shared_files_info file.sh_name file;
+            list := file :: !list
+          end
+    ) !!known_shared_files;
+    known_shared_files =:= !list;
+
 (**** CREATE WAITING SOCKETS ****)
     let rec find_port new_port =
       try

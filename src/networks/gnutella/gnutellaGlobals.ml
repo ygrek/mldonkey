@@ -35,8 +35,6 @@ open CommonFile
 open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
-open CommonHosts
-open CommonDownloads.SharedDownload  
   
 open GnutellaTypes
 open GnutellaOptions
@@ -93,18 +91,26 @@ let (room_ops : server CommonRoom.room_ops) =
 let (user_ops : user CommonUser.user_ops) = 
   CommonUser.new_user_ops network
   
+let (file_ops : file CommonFile.file_ops) = 
+  CommonFile.new_file_ops network
+  
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
-  
-let (network_file_ops: file_network) = new_file_network "Gnutella"
-let (file_ops: file network_file) = new_network_file network_file_ops
+    
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+let file_disk_name file = file_disk_name (as_file file.file_file)
+let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
 
-  
 let current_files = ref ([] : GnutellaTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
+let hosts_by_key = Hashtbl.create 103
+
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
 
   (*
@@ -114,11 +120,11 @@ let redirectors_to_try = ref ( [] : string list)
   *)
 
 let files_by_uid = Hashtbl.create 13
-(* let files_by_key = Hashtbl.create 13 *)
+let files_by_key = Hashtbl.create 13
 
 let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
-(* let results_by_key = Hashtbl.create 127 *)
+let results_by_key = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
   
 (***************************************************************
@@ -164,35 +170,52 @@ let g2_nservers = ref 0
 let g1_connected_servers = ref ([] : server list)
 let g2_connected_servers = ref ([] : server list)
   
-module H = CommonHosts.Make(struct
-      include GnutellaTypes
-      type ip = Ip.t
-      
-      let requests = 
-        [ Tcp_Connect, 
-          (600, (fun kind ->
-                [ match kind with
-                  | (2, true) -> g2_ultrapeers_waiting_queue
-                  | (2, _) -> g2_peers_waiting_queue
-                  | (1, true) -> g1_ultrapeers_waiting_queue
-                  | (1, _) -> g1_peers_waiting_queue
-                  | (_, true) -> g0_ultrapeers_waiting_queue
-                  | _ -> g0_peers_waiting_queue
-                ]
-            ));
-          Udp_Connect,
-          (600, (fun kind ->
-                match kind with
-                  (2,_) -> [g2_waiting_udp_queue]
-                | (1,_) -> [g1_waiting_udp_queue]
-                | _ -> [g2_waiting_udp_queue; g1_waiting_udp_queue]
-            ))]
-        
-      let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
-    end)
+  
 
+let host_queue_add q h time =
+  if not (List.memq q h.host_queues) then begin
+      Queue.put q (time, h);
+      h.host_queues <- q :: h.host_queues
+    end
+
+let host_queue_take q =
+  let (time,h) = Queue.take q in
+  if List.memq q h.host_queues then begin
+      h.host_queues <- List2.removeq q h.host_queues 
+    end;
+  h
+      
+let hosts_counter = ref 0
+  
+let new_host ip port ultrapeer kind = 
+  let key = (ip,port) in
+  try
+    let h = Hashtbl.find hosts_by_key key in
+    h.host_age <- last_time ();
+    h
+  with _ ->
+      incr hosts_counter;
+      let host = {
+          host_num = !hosts_counter;
+          host_server = None;
+          host_ip = ip;
+          host_port = port;
+          
+          host_age = last_time ();
+          host_tcp_request = 0;
+          host_udp_request = 0;
+          host_connected = 0;
+          
+          host_kind = kind;
+          host_ultrapeer = ultrapeer;
+          host_queues = [];
+        } in
+      Hashtbl.add hosts_by_key key host;
+      host_queue_add workflow host 0;
+      host
+      
 let new_server ip port =
-  let h = H.new_host ip port (0, true) in
+  let h = new_host ip port true 0 in
   match h.host_server with
     Some s -> s
   | None ->
@@ -222,8 +245,7 @@ let new_server ip port =
       server_add server_impl;
       h.host_server <- Some s;
       s
-
-      (*
+      
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -242,7 +264,6 @@ let extract_uids arg =
           Printf.sprintf "urn:bitprint:%s.%s" sha1_s tiger_s,
           sha1, tiger)]
 | _ -> []
-        *)
 
 let add_source r s index =
   let key = (s, index) in
@@ -251,51 +272,103 @@ let add_source r s index =
     end
 
 let new_result file_name file_size tags uids =
-  let uids = expand_uids uids in
-  let result = ref None in
-  List.iter (fun uid ->
-      match uid with
-        Sha1 (_, sha1) ->
-          let r = 
-            try
-              Hashtbl.find results_by_uid sha1
-            with _ -> 
-                let rec result = {
-                    result_result = result_impl;
-                    result_name = file_name;
-                    result_size = file_size;
-                    result_sources = [];
-                    result_tags = tags;
-                    result_uids = [];
-                  } and
-                  result_impl = {
-                    dummy_result_impl with
-                    impl_result_val = result;
-                    impl_result_ops = result_ops;
-                  } in
-                new_result result_impl;
-                Hashtbl.add results_by_uid sha1 result;
-                result
-          in
-          r.result_uids <- expand_uids (uids @ r.result_uids);
-          result := Some r;
-      | _ -> ()) uids;
-  match !result with None -> raise Not_found
-  | Some r -> r
+  match uids with
+    [] -> (
+(*        lprintf "New result by key\n"; *)
+        let key = (file_name, file_size) in
+        try
+          Hashtbl.find results_by_key key
+        with _ ->
+            let rec result = {
+                result_result = result_impl;
+                result_name = file_name;
+                result_size = file_size;
+                result_sources = [];
+                result_uids = [];
+                result_tags = tags;
+              } and
+              result_impl = {
+                dummy_result_impl with
+                impl_result_val = result;
+                impl_result_ops = result_ops;
+              } in
+            new_result result_impl;
+            Hashtbl.add results_by_key key result;
+            result)
+  | uid :: other_uids ->
+(*      lprintf "New result by UID\n"; *)
+      let r = 
+        try
+          Hashtbl.find results_by_uid uid
+        with _ -> 
+            let rec result = {
+                result_result = result_impl;
+                result_name = file_name;
+                result_size = file_size;
+                result_sources = [];
+                result_tags = tags;
+                result_uids = [uid];
+              } and
+              result_impl = {
+                dummy_result_impl with
+                impl_result_val = result;
+                impl_result_ops = result_ops;
+              } in
+            new_result result_impl;
+            Hashtbl.add results_by_uid uid result;
+            result
+      in
+      let rec iter_uid uid =
+        if not (List.mem uid r.result_uids) then begin
+            r.result_uids <- uid :: r.result_uids;
+            (try
+                let rr = Hashtbl.find results_by_uid uid in
+                if r != rr then 
+                  let result_uids = rr.result_uids in
+                  rr.result_uids <- [];
+                  List.iter (fun uid -> 
+                      Hashtbl.remove results_by_uid uid) result_uids;
+                  List.iter (fun uid -> iter_uid uid) result_uids;
+                  List.iter (fun (s, index) ->
+                      add_source r s index
+                  ) rr.result_sources;
+                  rr.result_sources <- [];
+              with _ -> ());
+            
+            Hashtbl.add results_by_uid uid r;
+          end
+      in
+      List.iter iter_uid other_uids;
+      r
 
 let megabyte = Int64.of_int (1024 * 1024)
-
-let new_download = ref None
-  
-let new_file file_shared = 
-  let partition = fixed_partition file_shared.file_swarmer megabyte in
-  let keywords = get_name_keywords file_shared.file_name in
+      
+let new_file file_id file_name file_size = 
+  let file_temp = Filename.concat !!temp_directory 
+      (Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
+  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+  let swarmer = Int64Swarmer.create () in
+  let partition = fixed_partition swarmer megabyte in
+    let keywords = get_name_keywords file_name in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
-      file_shared = file_shared;
+      file_file = file_impl;
+      file_id = file_id;
+      file_name = file_name;
       file_clients = [];
+      file_uids = [];
+      file_swarmer = swarmer;
       file_partition = partition;
       file_searches = [search];
+    } and file_impl =  {
+      dummy_file_impl with
+      impl_file_fd = t;
+      impl_file_size = file_size;
+      impl_file_downloaded = Int64.zero;
+      impl_file_val = file;
+      impl_file_ops = file_ops;
+      impl_file_age = last_time ();          
+      impl_file_best_name = file_name;
     } and search = {
       search_search = FileWordSearch (file, words);
       search_hosts = Intset.empty;
@@ -303,45 +376,47 @@ let new_file file_shared =
     } 
   in
   Hashtbl.add searches_by_uid search.search_uid search;
-  lprintf "SET SIZE : %Ld\n" (file_size file_shared);
+  lprintf "SET SIZE : %Ld\n" file_size;
+  Int64Swarmer.set_size swarmer file_size;  
+  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+      if !!CommonOptions.buffer_writes then 
+        Unix32.buffered_write_copy t offset s pos len
+      else
+        Unix32.write  t offset s pos len
+  );
   current_files := file :: !current_files;
-  new_download := Some file;
+  file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
 
 exception FileFound of file
   
-let new_file file_shared =
-  let file_name = file_shared.file_name in
-  let file_size = file_size file_shared in
-  let file_uids = file_shared.file_uids in
-  let file = ref None in
-  let good_hash = ref false in
-  List.iter (fun uid ->
-      match uid with
-        Sha1 _ | Ed2k _ | TigerTree _ | Bitprint _ ->
-          good_hash := true;
-          (try file := Some (Hashtbl.find files_by_uid uid) with _ -> ())
-      | _ -> ()) file_uids;
-  match !file with
-    None -> 
-      if !good_hash then
-        let file = new_file file_shared in
-        List.iter (fun uid ->
-            match uid with
-              Sha1 _ | Ed2k _ | TigerTree _ | Bitprint _ ->
-                Hashtbl.add files_by_uid uid file
-            | _ -> ()) file_uids;
+let new_file file_id file_name file_size file_uids =
+  if file_uids = [] then 
+    try Hashtbl.find files_by_key (file_name, file_size) with
+      _ -> 
+        let file = new_file file_id file_name file_size in
+        Hashtbl.add files_by_key (file_name, file_size) file;
         file
-      else raise Not_found
-  | Some file -> file
-  
-let _ =
-  register_network network_file_ops;
-  network_file_ops.op_download_start <-   (fun file ->
-      try ignore (new_file file) with _ -> ())
-
-      
+  else
+  try
+    List.iter (fun uid ->
+        try  raise (FileFound (Hashtbl.find files_by_uid uid))
+        with Not_found -> ()
+    ) file_uids;
+    let file = new_file file_id file_name file_size in
+    file.file_uids <- file_uids;
+    List.iter (fun uid -> Hashtbl.add files_by_uid uid file) file_uids;
+    file    
+  with FileFound file ->
+      List.iter (fun uid ->
+          if not (List.mem uid file.file_uids) then begin
+              file.file_uids <- uid :: file.file_uids;
+              Hashtbl.add files_by_uid uid file;
+            end
+      ) file_uids;
+      file
+              
 let new_user kind =
   try
     let s = Hashtbl.find users_by_uid kind in
@@ -404,7 +479,7 @@ let add_download file c index =
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
-      let chunks = [ Int64.zero, file_size file.file_shared ] in
+      let chunks = [ Int64.zero, file_size file ] in
       let bs = Int64Swarmer.register_uploader file.file_partition chunks in
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
@@ -415,7 +490,7 @@ let add_download file c index =
           download_block = None;
         }];
       file.file_clients <- c :: file.file_clients;
-      file_add_source (as_file file.file_shared.file_file) (as_client c.client_client)
+      file_add_source (as_file file.file_file) (as_client c.client_client)
     end
     
 let rec find_download file list = 
@@ -443,9 +518,14 @@ let remove_download file list =
   in
   iter file list []
   
-let file_state file =  file_state file.file_shared
+let file_state file =
+  file_state (as_file file.file_file)
   
-let file_num file =  file_num  file.file_shared
+let file_num file =
+  file_num (as_file file.file_file)
+  
+let file_must_update file =
+  file_must_update (as_file file.file_file)
 
 let server_num s =
   server_num (as_server s.server_server)
@@ -473,11 +553,12 @@ let set_client_disconnected client =
   
   
 let remove_file file = 
-  let file_shared = file.file_shared in
-  let uids = file_shared.file_uids in
+  if file.file_uids = [] then
+    Hashtbl.remove files_by_key (file.file_name, file.file_file.impl_file_size)
+  else
     List.iter (fun uid ->
-      Hashtbl.remove files_by_uid uid
-  ) uids;
+        Hashtbl.remove files_by_uid uid
+    ) file.file_uids;
   current_files := List2.removeq file !current_files  
 
 let udp_sock = ref (None : UdpSocket.t option)
@@ -495,7 +576,7 @@ let disconnect_from_server nservers s r =
             let connection_time = Int32.to_int (
                 Int32.sub (int32_time ()) s.server_connected) in
             lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
-              (Ip.to_string h.host_addr) h.host_port
+              (Ip.to_string h.host_ip) h.host_port
               connection_time
             ;
         | _ -> ()
@@ -515,6 +596,29 @@ let disconnect_from_server nservers s r =
             g1_connected_servers := List2.removeq s !g1_connected_servers)
   | _ -> ()
 
+    
+let parse_magnet url =
+  let url = Url.of_string url in
+  if url.Url.file = "magnet:" then 
+    let uids = ref [] in
+    let name = ref "" in
+    List.iter (fun (value, arg) ->
+        if String2.starts_with value "xt" then
+          uids := (extract_uids arg) @ !uids
+        else 
+        if String2.starts_with value "dn" then
+          name := Url.decode arg
+        else 
+        if arg = "" then
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+          name := Printf.sprintf "%s&%s" !name value
+        else
+          lprintf "MAGNET: unused field %s = %s\n"
+            value arg
+    ) url.Url.args;
+    !name, !uids
+  else raise Not_found
     
     
 let clean_file s =

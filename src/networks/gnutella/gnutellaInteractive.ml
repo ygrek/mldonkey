@@ -20,9 +20,6 @@
 open Xml
 open Printf2
 open Md4
-open Options
-  
-  
 open CommonSearch
 open CommonGlobals
 open CommonUser
@@ -34,9 +31,7 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonInteractive
-open CommonHosts
-open CommonDownloads.SharedDownload
-
+open Options
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
@@ -193,28 +188,57 @@ let _ =
   result_ops.op_result_download <- (fun result _ force ->
       GnutellaServers.download_file result)
 
+let file_num file =
+  file.file_file.impl_file_num
+
 let _ =
-  file_ops.op_download_sources <- (fun file ->
+  file_ops.op_file_sources <- (fun file ->
       lprintf "file_sources\n"; 
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
   );
-  file_ops.op_download_recover <- (fun file ->
+  file_ops.op_file_recover <- (fun file ->
       GnutellaServers.recover_file file;
       List.iter (fun c ->
           GnutellaServers.get_file_from_source c file
       ) file.file_clients
-  );
-  file_ops.op_download_finish <- (fun file ->
-      remove_file file;
-      List.iter (fun s ->
-          Hashtbl.remove searches_by_uid s.search_uid
-      ) file.file_searches
   )
 
   
 module P = GuiTypes
+  
+let _ =
+  file_ops.op_file_cancel <- (fun file ->
+      remove_file file;
+      file_cancel (as_file file.file_file);
+      List.iter (fun s ->
+          Hashtbl.remove searches_by_uid s.search_uid
+      ) file.file_searches
+  );
+  file_ops.op_file_info <- (fun file ->
+      {
+        P.file_name = file.file_name;
+        P.file_num = (file_num file);
+        P.file_network = network.network_num;
+        P.file_names = [file.file_name];
+        P.file_md4 = Md4.null;
+        P.file_size = file_size file;
+        P.file_downloaded = file_downloaded file;
+        P.file_nlocations = 0;
+        P.file_nclients = 0;
+        P.file_state = file_state file;
+        P.file_sources = None;
+        P.file_download_rate = file_download_rate file.file_file;
+        P.file_chunks = "0";
+        P.file_availability = "0";
+        P.file_format = FormatNotComputed 0;
+        P.file_chunks_age = [|0|];
+        P.file_age = file_age file;
+        P.file_last_seen = BasicSocket.last_time ();
+        P.file_priority = file_priority (as_file file.file_file);
+      }    
+  )
   
 let _ =
   server_ops.op_server_info <- (fun s ->
@@ -222,7 +246,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
+          P.server_addr = Ip.addr_of_ip s.server_host.host_ip;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];

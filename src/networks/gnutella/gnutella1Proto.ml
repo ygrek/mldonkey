@@ -30,7 +30,6 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonOptions
 open CommonGlobals
-open CommonHosts
   
 open GnutellaGlobals
 open GnutellaTypes
@@ -627,7 +626,7 @@ let server_send s t =
         match s.server_query_key with
           GuessSupport ->
             let h = s.server_host in
-            udp_send (h.host_addr) h.host_port t
+            udp_send h.host_ip h.host_port t
         | _ -> ()
       end
   | Connection sock ->

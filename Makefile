@@ -55,7 +55,6 @@ SRC_GUI2=src/gtk/gui2
 
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
-SRC_OPEN_DONKEY=src/networks/donkey_devel
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
@@ -139,7 +138,7 @@ LIB_SRCS=   \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
   $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
-  $(LIB)/date.ml $(LIB)/fst_hash.c \
+  $(LIB)/date.ml \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
@@ -189,12 +188,10 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
-  $(COMMON)/commonSwarming.ml \
-  $(COMMON)/commonUploads.ml \
+  $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonDownloads.ml \
-  $(COMMON)/commonSources.ml \
-  $(COMMON)/commonHosts.ml \
-  $(COMMON)/commonInteractive.ml 
+  $(COMMON)/commonUploads.ml \
+  $(COMMON)/commonSwarming.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
@@ -264,42 +261,6 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeySearch.ml \
   $(SRC_DONKEY)/donkeyInteractive.ml \
   $(SRC_DONKEY)/donkeyMain.ml
-
-OPEN_DONKEY_SRCS= \
-  \
-  $(SRC_OPEN_DONKEY)/donkeyTypes.ml \
-  $(SRC_OPEN_DONKEY)/donkeyOptions.ml \
-  $(SRC_OPEN_DONKEY)/donkeyMftp.ml $(SRC_OPEN_DONKEY)/donkeyImport.ml \
-  $(SRC_OPEN_DONKEY)/donkeyOpenProtocol.ml \
-  $(SRC_OPEN_DONKEY)/donkeyProtoClient.ml \
-  $(SRC_OPEN_DONKEY)/donkeyProtoServer.ml  \
-  $(SRC_OPEN_DONKEY)/donkeyProtoUdp.ml  \
-  \
-  $(SRC_OPEN_DONKEY)/donkeyGlobals.ml \
-  $(SRC_OPEN_DONKEY)/donkeyProtoCom.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySourcesMisc.ml \
-  $(SRC_OPEN_DONKEY)/donkeySources1.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySources2.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySources3.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySources.ml  \
- \
-  $(SRC_OPEN_DONKEY)/donkeyComplexOptions.ml \
-  $(SRC_OPEN_DONKEY)/donkeySupernode.ml \
-  $(SRC_OPEN_DONKEY)/donkeyIndexer.ml \
-  $(SRC_OPEN_DONKEY)/donkeyShare.ml \
-  $(SRC_OPEN_DONKEY)/donkeyReliability.ml \
-  $(SRC_OPEN_DONKEY)/donkeyChunks.ml \
-  $(SRC_OPEN_DONKEY)/donkeyOneFile.ml \
-  $(SRC_OPEN_DONKEY)/donkeyStats.ml \
-  $(SRC_OPEN_DONKEY)/donkeyClient.ml \
-  $(SRC_OPEN_DONKEY)/donkeyProtoOvernet.ml \
-  \
-  $(SRC_OPEN_DONKEY)/donkeyOvernet.ml \
-  $(SRC_OPEN_DONKEY)/donkeyFiles.ml  \
-  $(SRC_OPEN_DONKEY)/donkeyServers.ml \
-  $(SRC_OPEN_DONKEY)/donkeySearch.ml \
-  $(SRC_OPEN_DONKEY)/donkeyInteractive.ml \
-  $(SRC_OPEN_DONKEY)/donkeyMain.ml
 
 
 OBSERVER_SRCS = \
@@ -498,17 +459,17 @@ install:: opt
              done; \
          fi
 	if test -e mlgui; then \
-             rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
+             rm -f $(prefix)/bin/mlgui; cp -f mlnet $(prefix)/bin/mlgui; \
              rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
-             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
+             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet $(prefix)/bin/mlnet+gui; \
              for link in mlslsk+gui mldonkey+gui mlgnut+gui mldc+gui mlbt+gui; do \
                rm -f $(prefix)/bin/$$link; ln -s mlnet+gui $(prefix)/bin/$$link; \
              done; \
          fi
 	if test -e mlim; then \
-             rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
+             rm -f $(prefix)/bin/mlim; cp -f mlnet $(prefix)/bin/mlim; \
          fi
 
 
@@ -921,56 +882,6 @@ mlbt+gui_SRCS= $(MAIN_SRCS)
 
 
 
-ifeq ("$(OPEN_DONKEY)", "yes")
-  
-
-ifeq ("$(OPEN_DONKEY)" , "yes")
-SUBDIRS += src/networks/donkey_devel
-
-CORE_SRCS += $(OPEN_DONKEY_SRCS)
-
-## TARGETS += mldonkey$(EXE)
-
-ifeq ("$(COMPILE_GUI)" , "yes")
-
-## BUNDLE_TARGETS += mldonkey+gui$(EXE)
-
-endif
-endif
-
-
-mldonkey_CMXA= cdk.cmxa common.cmxa client.cmxa mldonkey.cmxa driver.cmxa
-mldonkey_SRCS= $(MAIN_SRCS)
-
-
-OPEN_DONKEY_ZOG := $(filter %.zog, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_MLL := $(filter %.mll, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_MLY := $(filter %.mly, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_ML4 := $(filter %.ml4, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_C := $(filter %.c, $(OPEN_DONKEY_SRCS)) 
-OPEN_DONKEY_CMOS=$(foreach file, $(OPEN_DONKEY_ML),   $(basename $(file)).cmo) 
-OPEN_DONKEY_CMXS=$(foreach file, $(OPEN_DONKEY_ML),   $(basename $(file)).cmx) 
-OPEN_DONKEY_OBJS=$(foreach file, $(OPEN_DONKEY_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(OPEN_DONKEY_ML4:.ml4=.ml) $(OPEN_DONKEY_MLL:.mll=.ml) $(OPEN_DONKEY_MLY:.mly=.ml) $(OPEN_DONKEY_MLY:.mly=.mli) $(OPEN_DONKEY_ZOG:.zog=.ml) 
- 
-build/mldonkey.cmxa: $(OPEN_DONKEY_OBJS) $(OPEN_DONKEY_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(OPEN_DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPEN_DONKEY_CMXS) 
- 
-build/mldonkey.cma: $(OPEN_DONKEY_OBJS) $(OPEN_DONKEY_CMOS) 
-	$(OCAMLC) -a -o $@  $(OPEN_DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPEN_DONKEY_CMOS) 
- 
-
-
-mldonkey+gui_CMXA=cdk.cmxa \
-   common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
-   gmisc.cmxa guibase.cmxa gui.cmxa
-mldonkey+gui_SRCS= $(MAIN_SRCS)
-
-
-else
-  
 
 ifeq ("$(DONKEY)" , "yes")
 SUBDIRS += src/networks/donkey
@@ -1016,8 +927,6 @@ mldonkey+gui_CMXA=cdk.cmxa \
    gmisc.cmxa guibase.cmxa gui.cmxa
 mldonkey+gui_SRCS= $(MAIN_SRCS)
 
-
-endif
 
 
 

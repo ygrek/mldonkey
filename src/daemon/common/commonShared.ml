@@ -31,9 +31,6 @@ open CommonGlobals
 open Options
 open CommonTypes
 
-
-  
-  
 type 'a shared_impl = {
     impl_shared_fullname : string;
     impl_shared_codedname : string;
@@ -111,6 +108,7 @@ let update_shared_num impl =
 let replace_shared old_impl impl =
   H.remove shareds_by_num (as_shared old_impl);
   impl.impl_shared_num <- old_impl.impl_shared_num;
+  H.add shareds_by_num (as_shared impl);
   shared_must_update (as_shared impl)
     
 let shared_remove impl =
@@ -217,7 +215,7 @@ let waiting_directories = ref []
 let shared_add_directory dirname prio local_dir =
   waiting_directories := (dirname, prio, local_dir) :: !waiting_directories
   
-let shared_add_directory dirname prio local_dir =
+let shared_scan_directory dirname prio local_dir =
   let dirname = 
     if Filename.is_relative dirname then
       Filename.concat file_basedir dirname
@@ -262,7 +260,12 @@ let _ =
         [] -> ()
       | (dirname, prio, local_dir) :: tail ->
           waiting_directories := tail;
-          shared_add_directory dirname prio local_dir;
+          let dirname = 
+            if Filename.is_relative dirname then
+              Filename.concat (Sys.getcwd ()) dirname
+            else dirname 
+          in
+          shared_scan_directory dirname prio local_dir;
           (*
           lprintf "Shared %d files %Ld bytes"
             !files_scanned !files_scanned_size;
@@ -321,5 +324,4 @@ let shareds_by_num = ()
   Options.set_string_wrappers shared_directories
     Filepath.semipath_to_string
     Filepath.string_to_semipath*)
-
 

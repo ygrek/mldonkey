@@ -17,11 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(*
 val load : unit -> unit
 val save : unit -> unit
-*)
-
+  
 val file_commit : CommonTypes.file -> unit
 val file_cancel : CommonTypes.file -> unit
 val file_completed : CommonTypes.file -> unit

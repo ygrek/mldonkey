@@ -25,12 +25,10 @@ val check_add_server : Ip.t -> int -> DonkeyTypes.server
 val safe_add_server : Ip.t -> int -> unit
 
 val remove_server : Ip.t -> int -> unit
-
-  (*
+  
 val known_shared_files : DonkeyTypes.shared_file_info 
   list Options.option_record
-*)
-  
+
 val old_files : Md4.t list Options.option_record
 
   

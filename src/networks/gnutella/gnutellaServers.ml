@@ -18,23 +18,20 @@
 *)
 
 open Queues
+open CommonSwarming
 open Printf2
 open Md4
-open BasicSocket
-open TcpBufferedSocket
-open Options
-  
-open CommonSwarming
 open CommonOptions
 open CommonSearch
 open CommonServer
 open CommonComplexOptions
 open CommonFile
+open BasicSocket
+open TcpBufferedSocket
+
 open CommonTypes
 open CommonGlobals
-open CommonHosts
-open CommonDownloads.SharedDownload  
-  
+open Options
 open GnutellaTypes
 open GnutellaGlobals
 open GnutellaOptions
@@ -218,11 +215,11 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
     List.iter (fun (ip,port,ultrapeer) ->
         if !gnutella2 && !!g2_enabled then begin
             lprintf "gnutella2: adding ultrapeer from %s\n" s.server_agent;
-            ignore (H.new_host ip port (2,ultrapeer) )
+            ignore (new_host ip port ultrapeer 2)
           end else
         if (not !gnutella2) && !!g1_enabled then begin
             lprintf "gnutella1: adding ultrapeer from %s\n" s.server_agent;
-            ignore (H.new_host ip port (1,ultrapeer))
+            ignore (new_host ip port ultrapeer 1)
           end
     ) !x_ultrapeers;    
     server_must_update (as_server s.server_server);
@@ -289,7 +286,7 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
 and connect_server nservers with_accept retry_fake h headers =  
   let s = match h.host_server with
       None -> 
-        let s = new_server h.host_addr h.host_port in
+        let s = new_server h.host_ip h.host_port in
         h.host_server <- Some s;
         s
     | Some s -> s
@@ -308,14 +305,14 @@ and connect_server nservers with_accept retry_fake h headers =
           | Connection _ | NoConnection -> ()
           | ConnectionWaiting ->
               try
-                if not (Ip.valid s.server_host.host_addr) then
+                if not (Ip.valid s.server_host.host_ip) then
                   failwith "Invalid IP for server\n";
-                let ip = s.server_host.host_addr in
+                let ip = s.server_host.host_ip in
                 let port = s.server_host.host_port in
 (*        if !verbose_msg_servers then begin
             lprintf "CONNECT TO %s:%d\n" (Ip.to_string ip) port;
 end;  *)
-                H.set_request h Tcp_Connect;
+                h.host_tcp_request <- last_time ();
                 let sock = connect "gnutella to server"
                     (Ip.to_inet_addr ip) port
                     (fun sock event -> 
@@ -347,7 +344,7 @@ end;  *)
                   Printf.bprintf buf "Listen-IP: %s:%d\r\n"
                     (Ip.to_string (client_ip (Connection sock))) !!client_port;
                   Printf.bprintf buf "Remote-IP: %s\r\n"
-                    (Ip.to_string s.server_host.host_addr);
+                    (Ip.to_string s.server_host.host_ip);
                   
                   if headers = [] then begin
                       Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
@@ -449,7 +446,7 @@ let recover_file file =
         Hashtbl.add searches_by_uid s.search_uid s;
         file.file_searches <- s :: file.file_searches
       with _ -> ()
-  ) file.file_shared.file_uids;
+  ) file.file_uids;
   
   if !!g1_enabled then Gnutella1.recover_file file;
   if !!g2_enabled then Gnutella2.recover_file file;
@@ -462,26 +459,20 @@ let recover_files () =
   ()
     
 let download_file (r : result) =
-  new_download := None;
-  ignore (CommonDownloads.SharedDownload.new_download
-    r.result_name r.result_size r.result_uids);
-  match !new_download with
-    None -> () (* The file was probably already downloading *)
-  | Some file ->
-      new_download := None;
-      let file_shared = file.file_shared in
-      lprintf "DOWNLOAD FILE %s\n" file_shared.file_name; 
-      if not (List.memq file !current_files) then begin
-          current_files := file :: !current_files;
-        end;
-      List.iter (fun (user, index) ->
-          let c = new_client user.user_kind in
-          add_download file c index;
-          get_file_from_source c file;
-      ) r.result_sources;
-      recover_file file;
-      ()
-      
+  let file = new_file (Md4.random ()) 
+    r.result_name r.result_size r.result_uids in
+  lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  if not (List.memq file !current_files) then begin
+      current_files := file :: !current_files;
+    end;
+  List.iter (fun (user, index) ->
+      let c = new_client user.user_kind in
+      add_download file c index;
+      get_file_from_source c file;
+  ) r.result_sources;
+  recover_file file;
+  ()
+
       (*
 
 (*
@@ -566,8 +557,7 @@ Closed_by_user);
   server_ops.op_server_remove <- (fun s ->
       disconnect_server s Closed_by_user; 
   )
-
-  (*
+  
 let manage_host h =
   try
     let current_time = last_time () in
@@ -576,7 +566,7 @@ let manage_host h =
 (*    lprintf "host queue after %d\n" (List.length h.host_queues); *)
 (* Don't do anything with hosts older than one hour and not responding *)
     if max h.host_connected h.host_age > last_time () - 3600 then begin
-        H.host_queue_add workflow h current_time;
+        host_queue_add workflow h current_time;
 (* From here, we must dispatch to the different queues *)
         match h.host_kind with
           1 ->
@@ -640,4 +630,3 @@ let manage_hosts () =
   try iter () with _ -> 
 (*      lprintf "done (set %d len)\n" (Queue.length workflow); *)
       ()
-*)

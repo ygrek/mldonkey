@@ -31,48 +31,30 @@ let ( // ) x y = Int64.div x y
   
 let block_size = Int64.of_int 9728000
 
-let ed2k_hash_filename filename = 
-  let fd = Unix32.create filename  [Unix.O_RDONLY] 0o666 in
-  let file_size = Unix32.getsize64 filename in
-  let nchunks = Int64.to_int (Int64.div 
-        (Int64.sub file_size Int64.one) block_size) + 1 in
-  let md4 = if nchunks = 1 then
-      Md4.digest_subfile fd zero file_size        
-    else
-    let chunks = String.create (nchunks*16) in
-    for i = 0 to nchunks - 1 do
-      let begin_pos = block_size ** i  in
-      let end_pos = begin_pos ++ block_size in
-      let end_pos = min end_pos file_size in
-      let len = end_pos -- begin_pos in
-      let md4 = Md4.digest_subfile fd begin_pos len in
-      lprintf "  Partial %3d : %s\n" i (Md4.to_string md4);
-      let md4 = Md4.direct_to_string md4 in
-      String.blit md4 0 chunks (i*16) 16;
-    done;
-    Md4.string chunks
-  in
-  lprintf "ed2k://|file|%s|%Ld|%s|\n" 
-    filename
-    file_size
-    (Md4.to_string md4)
-  
-let sig2dat_hash_filename filename =
-  let md5ext = Md5Ext.file filename in
-  let file_size = Unix32.getsize64 filename in
-  lprintf "sig2dat://|File: %s|Length: %Ld Bytes|UUHash: %s|/\n"
-    filename file_size (Md5Ext.to_string md5ext);
-  lprintf "    Hash: %s\n" (Md5Ext.to_hexa_case false md5ext);
-  ()
-    
-let hash = ref "ed2k"
-  
 let _ =
-  Arg.parse [
-    "-hash", Arg.String ( (:=) hash), " <hash> : Set hash type you want to compute (ed2k, sig2dat)";
-    ] (fun filename ->
-      match !hash with
-        "ed2k" -> ed2k_hash_filename filename
-      | "sig2dat" -> sig2dat_hash_filename filename
-      | _ -> lprintf "Unknown Hash format: [%s]\n" !hash
+  Arg.parse [] (fun filename ->
+      let fd = Unix32.create filename  [Unix.O_RDONLY] 0o666 in
+      let file_size = Unix32.getsize64 filename in
+      let nchunks = Int64.to_int (Int64.div 
+            (Int64.sub file_size Int64.one) block_size) + 1 in
+      let md4 = if nchunks = 1 then
+          Md4.digest_subfile fd zero file_size        
+      else
+        let chunks = String.create (nchunks*16) in
+        for i = 0 to nchunks - 1 do
+          let begin_pos = block_size ** i  in
+          let end_pos = begin_pos ++ block_size in
+          let end_pos = min end_pos file_size in
+          let len = end_pos -- begin_pos in
+          let md4 = Md4.digest_subfile fd begin_pos len in
+          lprintf "  Partial %3d : %s\n" i (Md4.to_string md4);
+          let md4 = Md4.direct_to_string md4 in
+          String.blit md4 0 chunks (i*16) 16;
+        done;
+        Md4.string chunks
+      in
+      lprintf "ed2k://|file|%s|%Ld|%s|\n" 
+      filename
+      file_size
+      (Md4.to_string md4)
   ) " <filenames> : compute hashes of filenames"

@@ -449,7 +449,7 @@ let send_init file c sock =
   let buf = Buffer.create 100 in
   buf_string8 buf  "BitTorrent protocol";
   Buffer.add_string buf zero8;
-  Buffer.add_string buf (Sha1.direct_to_string file.file_info.file_info_id);
+  Buffer.add_string buf (Sha1.direct_to_string file.file_id);
   Buffer.add_string buf (Sha1.direct_to_string c.client_uid);
   let s = Buffer.contents buf in
   write_string sock s

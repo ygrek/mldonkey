@@ -18,21 +18,19 @@
 *)
 
 open Printf2
-open BasicSocket
-open Options
-  
+open CommonNetwork
+
+open GnutellaClients
 open CommonOptions
 open CommonFile
 open CommonComplexOptions
-open CommonTypes
-open CommonNetwork
-open CommonHosts
-
-open GnutellaClients
+open BasicSocket
+open Options
 open GnutellaComplexOptions
 open GnutellaOptions
 open GnutellaGlobals
 open GnutellaTypes
+open CommonTypes
 open GnutellaServers
 
 let is_enabled = ref false
@@ -44,7 +42,7 @@ let disable enabler () =
           match h.host_server with
             None -> ()
           | Some s -> GnutellaServers.disconnect_server s Closed_by_user)
-      H.hosts_by_key;
+      hosts_by_key;
       Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) clients_by_uid;
       (match !listen_sock with None -> ()
         | Some sock -> 
@@ -67,19 +65,19 @@ let enable () =
   if not !!enable_gnutella then enable_gnutella =:= true;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (1,true))) !!g1_ultrapeers;
+      ignore (new_host ip port true 1)) !!g1_ultrapeers;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (2,true))) !!g2_ultrapeers;
+      ignore (new_host ip port true 2)) !!g2_ultrapeers;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (1,false))) !!g1_peers;
+      ignore (new_host ip port false 1)) !!g1_peers;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (2,false))) !!g2_peers;
+      ignore (new_host ip port false 2)) !!g2_peers;
   
   add_session_timer enabler 1.0 (fun timer ->
-      H.manage_hosts ();
+      GnutellaServers.manage_hosts ();
       Gnutella2Proto.resend_udp_packets ();
       if !!g1_enabled then
         Gnutella1.connect_servers GnutellaServers.connect_server;      

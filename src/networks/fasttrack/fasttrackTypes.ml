@@ -22,9 +22,7 @@ open Md4
 
 open CommonTypes
 open CommonSwarming
-open CommonHosts
-open CommonDownloads
-  
+
 (* any = 0 *)
 let name_of_tag = 
   [
@@ -63,8 +61,20 @@ type ciphers = {
     mutable in_xinu : int64;
     mutable out_xinu : int64;
   }
-
-type host = (server, host_kind, unit, Ip.addr) CommonHosts.host
+  
+type host = {
+    host_num : int;
+    mutable host_server : server option;
+    host_addr : Ip.addr;
+    host_port : int;
+    mutable host_age : int;
+    mutable host_udp_request : int;
+    mutable host_tcp_request : int;
+    mutable host_connected : int;
+    mutable host_kind : host_kind;
+    
+    mutable host_queues : host Queue.t list;
+  }
 
 and server = {
     server_server : server CommonServer.server_impl;
@@ -85,6 +95,28 @@ and server = {
     
     mutable server_searches : local_search Fifo.t;
   }
+
+(*
+typedef enum
+{	QUERY_REALM_EVERYTHING	= 0x3f,
+	QUERY_REALM_AUDIO		= 0x21,
+	QUERY_REALM_VIDEO		= 0x22,
+	QUERY_REALM_IMAGES		= 0x23,
+	QUERY_REALM_DOCUMENTS	= 0x24,
+	QUERY_REALM_SOFTWARE	= 0x25
+} FSTQueryRealm;
+
+typedef enum
+{
+	QUERY_CMP_EQUALS=0x00,
+	QUERY_CMP_ATMOST=0x02,
+	QUERY_CMP_APPROX=0x03,
+	QUERY_CMP_ATLEAST=0x04,
+	QUERY_CMP_SUBSTRING=0x05
+} FSTQueryCmp;
+
+/*****************************************************************************/
+  *)
 
 and query_term =
   AtMost of string * int64
@@ -152,14 +184,15 @@ and result = {
   }
 
 and file = {
-(* The part of the file structure which is used for all networks *)
-    file_shared : SharedDownload.file;
-    
-(* The part of the file structure which is only needed for this network *)
+    file_file : file CommonFile.file_impl;
+    file_id : Md4.t;
+    mutable file_name : string;
+    file_swarmer : Int64Swarmer.t;
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_search : local_search;
     mutable file_hash : Md5Ext.t;
+    mutable file_filenames : string list;
     mutable file_clients_queue : client Queues.Queue.t;
     mutable file_nconnected_clients : int;
   }
