@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Printf2
 open Options
 open CommonOptions
@@ -657,8 +657,8 @@ let string_tag s i =
 
 (* Name,FrameHeight *)
 let html_mods_styles = ref
-  [| ("Green",45) ; ("Tang",45); ("L.Blue",45); 
-	 ("L.Purple",45); ("Monochrome",45); ("Corona",45); |]
+  [| ("Green",42) ; ("Tang",42); ("L.Blue",42); 
+	 ("L.Purple",42); ("Monochrome",42); ("Corona",42); |]
 
 let partial_chunk c =
   match c with
@@ -672,7 +672,7 @@ module Connections = struct
       
 let parse_magnet url =
   let url = Url.of_string url in
-  if url.Url.file = "magnet:" then 
+  if url.Url.short_file = "magnet:" then 
     let uids = ref [] in
     let name = ref "" in
     List.iter (fun (value, arg) ->

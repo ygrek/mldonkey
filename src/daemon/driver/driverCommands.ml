@@ -1607,8 +1607,8 @@ let _ =
     "share", Arg_multiple (fun args o ->
         let (prio, arg, strategy) = match args with
           | [prio; arg; strategy] -> int_of_string prio, arg, strategy
-          | [prio; arg] -> int_of_string prio, arg, "only_directory"
-          | [arg] -> 0, arg, "only_directory"
+          | [prio; arg] -> int_of_string prio, arg, !!default_sharing_strategy
+          | [arg] -> 0, arg, !!default_sharing_strategy
           | _  -> failwith "Bad number of arguments"
         in
 

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -60,7 +60,7 @@ let http_send_range_request c range sock d =
 
   let buf = Buffer.create 100 in
   
-  Printf.bprintf buf "GET %s HTTP/1.0\r\n" url;
+  Printf.bprintf buf "GET %s HTTP/1.0\r\n" url.Url.full_file;
 
 (*
             (match d.download_uri with
@@ -258,8 +258,11 @@ end_pos !counter_pos b.len to_read;
 (*
   lprintf "CHUNK: %s\n" 
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
+        let swarmer = match file.file_swarmer with
+            None -> assert false | Some sw -> sw
+        in
         let old_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+          Int64Swarmer.downloaded swarmer in
 (*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)  
         d.download_ranges; *)
         
@@ -278,7 +281,7 @@ end_pos !counter_pos b.len to_read;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
         let new_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+          Int64Swarmer.downloaded swarmer in
         
         (match d.download_ranges with
             [] -> lprintf "EMPTY Ranges !!!\n"
@@ -341,11 +344,11 @@ let http_set_sock_handler c sock =
 (*                                                                       *)
 (*************************************************************************)
   
-let http_check_size u url start_download_file =
+let http_check_size url start_download_file =
   let module H = Http_client in
   let r = {
       H.basic_request with
-      H.req_url = u;
+      H.req_url = url;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_request = H.HEAD;
       H.req_user_agent = user_agent;
@@ -364,7 +367,7 @@ let http_check_size u url start_download_file =
       match !content_length with
         None -> failwith "Unable to start download (HEAD failed)"
       | Some result_size ->
-          start_download_file u url result_size)
+          start_download_file result_size)
 
 (*************************************************************************)
 (*                                                                       *)

@@ -18,7 +18,7 @@
 *)
 
 open BasicSocket
-open Int32ops
+open Int64ops
 open Printf2
 open Md4
   
@@ -61,8 +61,12 @@ let gui_cut_messages f sock nread =
 
 let get_string s pos = 
   let len = get_int16 s pos in
-  String.sub s (pos+2) len, pos+2+len
-
+  if len land 0xffff = 0xffff then
+    let len = get_int s (pos+2) in
+    String.sub s (pos+6) len, pos+6+len
+  else
+    String.sub s (pos+2) len, pos+2+len
+    
 let get_list f s pos =
   let len = get_int16 s pos in
   let rec iter n pos =
@@ -746,7 +750,8 @@ let from_gui (proto : int array) opcode s =
         Download_query (list, result_num, false)
     
     | 8 -> let string, pos = get_string s 2 in
-        Url string
+        lprintf "Received string: [%s]\n" (String.escaped string);
+        Url string 
     | 9 -> let int = get_int s 2 in RemoveServer_query int
     | 10 ->
         let list, pos = get_list (fun s pos ->
@@ -960,6 +965,11 @@ let from_gui (proto : int array) opcode s =
         
     | 62 ->
         DisconnectClient (get_int s 2)
+        
+    | 63 ->
+        let n = get_int s 2 in
+        let s, pos = get_string s 6 in
+        NetworkMessage (n, s)
         
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 

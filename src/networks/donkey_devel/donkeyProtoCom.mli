@@ -70,7 +70,7 @@ val direct_client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
 val direct_client_sock_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 val direct_server_send_share : 
-  TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit
+  bool -> TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit
 val direct_client_send_files : 
     TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
   

@@ -280,3 +280,7 @@ let init s sock gconn =
   (*
     Gnutella.recover_files_from_server s;    
 *)
+  
+let udp_handler ip port buf =
+  lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+  

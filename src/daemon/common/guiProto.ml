@@ -27,7 +27,7 @@ type gift_command =
   
 let gui_extension_poll = 1
 let to_gui_last_opcode = 57
-let from_gui_last_opcode = 62
+let from_gui_last_opcode = 63
 
 type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
@@ -117,6 +117,8 @@ the messages (it will use the version specified in CoreProtocol instead
   
 | GiftAttach of string * string * string
 | GiftStats  
+
+| NetworkMessage of int * string
   
 type to_gui =
 (* This message is the first message sent by the core *)
@@ -251,6 +253,7 @@ let from_gui_to_string t =
 
   | ConnectClient _ -> "ConnectClient"
   | DisconnectClient _ -> "DisconnectClient"
+  | NetworkMessage _ -> "NetworkMessage"
       
   | GiftAttach _ -> "GiftAttach"
   | GiftStats -> "GiftStats"

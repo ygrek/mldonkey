@@ -47,17 +47,25 @@
 #include <sys/mman.h>
 #endif
 
-int64 os_lseek(OS_FD fd, int64 pos, int dir)
+int64 os_lseek(OS_FD fd, off_t pos, int dir)
 {
-  return lseek(fd, pos, dir);
+  off_t result =  lseek(fd, pos, dir);
+
+  if(result < 0) unix_error(errno, "os_lseek", Nothing);
+
+  return result;
 }
 
 int os_read(OS_FD fd, char *buf, int len)
 {
-  return read(fd, buf, len);
+  int result = read(fd, buf, len);
+
+  if(result < 0) unix_error(errno, "os_read", Nothing);
+
+  return result;
 }
  
-void os_ftruncate(OS_FD fd, int64 len)
+void os_ftruncate(OS_FD fd, off_t len)
 {
   int64 cursize;
   if(!fd) failwith("ftruncate32: file is closed");
@@ -65,7 +73,9 @@ void os_ftruncate(OS_FD fd, int64 len)
   cursize = os_getfdsize(fd);
   if(cursize < len){
     int zero = 0;
-    lseek(fd, len-1, SEEK_SET);
+    off_t result = lseek(fd, len-1, SEEK_SET);
+    if(result < 0) unix_error(errno, "os_ftruncate", Nothing);
+
     write(fd, &zero, 1);
   } else
     if((cursize != len) && (ftruncate(fd, len) < 0)) {

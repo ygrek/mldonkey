@@ -16,8 +16,9 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-open CommonNetwork
 
+open CommonNetwork
+open CommonInteractive
 open Printf2
 open CommonClient
 open CommonFile
@@ -35,6 +36,7 @@ open DonkeyFiles
 open DonkeyTypes  
 open DonkeyGlobals
 open DonkeyClient
+open DonkeyThieves
 open DonkeyOptions
 open CommonOptions
 open CommonGlobals
@@ -47,7 +49,7 @@ let _ =
         if !!enable_donkey then network_enable network
         else network_disable network);
   network.network_config_file <- [
-    donkey_ini; donkey_expert_ini]
+    donkey_ini]
 
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
@@ -56,7 +58,8 @@ let hourly_timer timer =
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
     (DonkeyOvernet.connected_peers ())
     ;
-  Hashtbl.clear udp_servers_replies
+  Hashtbl.clear udp_servers_replies;
+  DonkeyThieves.clean_thieves ()
     
 let quarter_timer timer =
   DonkeyServers.remove_old_servers ();
@@ -64,8 +67,7 @@ let quarter_timer timer =
 
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
-(*  DonkeyChunks.duplicate_chunks ()*)
-  ()
+  DonkeyChunks.duplicate_chunks ()
 
 let second_timer timer =
   (try
@@ -88,6 +90,9 @@ let halfmin_timer timer =
   DonkeyServers.update_master_servers ()
 (*  DonkeyIndexer.add_to_local_index_timer () *)
 
+
+let local_login () =
+  if !!login = "" then !!global_login else !!login
   
 let is_enabled = ref false
   
@@ -116,23 +121,58 @@ let disable enabler () =
       if !!enable_donkey then enable_donkey =:= false;
       DonkeyOvernet.disable ()
     end
-    
+
+let reset_tags () =
+  client_to_client_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "port" !client_port;
+  ];      
+  client_to_server_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "port" !client_port;
+  ];      
+  if Autoconf.has_zlib then
+    client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
+  emule_info_tags := [
+    int_tag "compression" 0;
+    int_tag "udpport" (!!port+4);
+    int_tag "sourceexchange" 1;
+    int_tag "comments" 1;
+    int_tag "compatableclient" 10; 
+    int_tag "extendedrequest" 1;
+    int_tag "udpver" 1;
+  ];
+  overnet_connect_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
+  ];
+  overnet_connectreply_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
+  ]
+  
 let enable () =
   if not !is_enabled then 
     let enabler = ref true in
     is_enabled := true;
-  network.op_network_disable <- disable enabler;
-  
-  if not !!enable_donkey then enable_donkey =:= true;
-  
-  try
+    network.op_network_disable <- disable enabler;
+    
+    if not !!enable_donkey then enable_donkey =:= true;
+    
+    try
 (*  DonkeyClient.verbose := true; *)
 
 (**** LOAD OTHER OPTIONS ****)
-    
-    DonkeyIndexer.load_comments comment_filename;
-    DonkeyIndexer.install_hooks ();
-    CommonGlobals.do_at_exit (fun _ -> DonkeyIndexer.save_history ());
+      
+      DonkeyIndexer.load_comments comment_filename;
+      DonkeyIndexer.install_hooks ();
+      CommonGlobals.do_at_exit (fun _ -> DonkeyIndexer.save_history ());
 
 (*
     BasicSocket.add_timer 10. (fun timer ->
@@ -145,132 +185,131 @@ let enable () =
                 indexer := None;
               end)
 *)
-    
-    Hashtbl.iter (fun _ file ->
-        try
-          if file_state file <> FileDownloaded then begin
-              current_files := file :: !current_files;
-              set_file_size file (file_size file)
-            end else begin
-              try
-                let file_disk_name = file_disk_name file in
-                if Unix32.file_exists file_disk_name &&
-                  Unix32.getsize64 file_disk_name <> Int64.zero then begin
-                    lprintf "FILE DOWNLOADED"; lprint_newline ();
-                    DonkeyShare.remember_shared_info file file_disk_name;
-                    lprintf "REMEMBERED"; lprint_newline ();
-                    file_completed (as_file file.file_file);
-                    let file_id = Filename.basename file_disk_name in
-                    ignore (CommonShared.new_shared "completed" 0 (
-                        file_best_name file )
-                      file_disk_name);
-                    
-                    lprintf "COMPLETED"; lprint_newline ();
-                    (try
-                        let format = CommonMultimedia.get_info file_disk_name
-                        in
-                        file.file_format <- format
-                      with _ -> ());        
-                  end
-                else raise Not_found
-              with _ -> 
-                  file_commit (as_file file.file_file)
+      
+      Hashtbl.iter (fun _ file ->
+          try
+            if file_state file <> FileDownloaded then begin
+                current_files := file :: !current_files;
+                set_file_size file (file_size file)
+              end else begin
+                try
+                  let file_disk_name = file_disk_name file in
+                  if Unix32.file_exists file_disk_name &&
+                    Unix32.getsize file_disk_name <> Int64.zero then begin
+                      lprintf "FILE DOWNLOADED"; lprint_newline ();
+                      DonkeyShare.remember_shared_info file file_disk_name;
+                      lprintf "REMEMBERED"; lprint_newline ();
+                      file_completed (as_file file.file_file);
+                      let file_id = Filename.basename file_disk_name in
+                      ignore (CommonShared.new_shared "completed" 0 (
+                          file_best_name file )
+                        file_disk_name);
+                      
+                      lprintf "COMPLETED"; lprint_newline ();
+                      (try
+                          let format = CommonMultimedia.get_info file_disk_name
+                          in
+                          file.file_format <- format
+                        with _ -> ());        
+                    end
+                  else raise Not_found
+                with _ -> 
+                    file_commit (as_file file.file_file)
+              end
+          with e ->
+              lprintf "Exception %s while recovering download %s"
+                (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
+      ) files_by_md4;
+      
+      let list = ref [] in
+(* Normally, we should check that downloaded files are still there.
+  
+  *)    
+      let list = ref [] in
+      List.iter (fun file ->
+          if Unix32.file_exists file.sh_name then begin
+              Hashtbl.add shared_files_info file.sh_name file;
+              list := file :: !list
             end
-        with e ->
-            lprintf "Exception %s while recovering download %s"
-              (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
-    ) files_by_md4;
+      ) !!known_shared_files;
+      known_shared_files =:= !list;
 
 (**** CREATE WAITING SOCKETS ****)
-    let rec find_port new_port =
-      try
-        let sock = TcpServerSocket.create 
-            "donkey client server"
-            (Ip.to_inet_addr !!donkey_bind_addr)
-          !!port (client_connection_handler false) in
-        
-        listen_sock := Some sock;
-        port =:= new_port;
-        
-        begin try
-            let sock =
-              (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
-                (!!port + 4) 
-                (udp_handler DonkeyFiles.udp_client_handler))
-            in
-            udp_sock := Some sock;
-            UdpSocket.set_write_controler sock udp_write_controler;
-          with e ->
-              lprintf "Exception %s while binding UDP socket"
-                (Printexc2.to_string e);
-              lprint_newline ();
-        end;
-        sock
-      with e ->
-          if !find_other_port then find_port (new_port+1)
-          else  raise e
-    in
-    let sock = find_port !!port in
-    DonkeyOvernet.enable enabler;
-    
-    begin
-      match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
-        Unix.ADDR_INET (ip, port) ->
-          client_port :=  port
-      | _ -> failwith "Bad socket address"
-    end;
-    
-    let port = !client_port in
+      let rec find_port new_port =
+        try
+          let sock = TcpServerSocket.create 
+              "donkey client server"
+              (Ip.to_inet_addr !!client_bind_addr)
+            !!port (client_connection_handler false) in
+          
+          listen_sock := Some sock;
+          port =:= new_port;
+          
+          begin try
+              let sock =
+                (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
+                  (!!port + 4) 
+                  (udp_handler DonkeyUdp.udp_client_handler))
+              in
+              udp_sock := Some sock;
+              UdpSocket.set_write_controler sock udp_write_controler;
+            with e ->
+                lprintf "Exception %s while binding UDP socket"
+                  (Printexc2.to_string e);
+                lprint_newline ();
+          end;
+          sock
+        with e ->
+            if !find_other_port then find_port (new_port+1)
+            else  raise e
+      in
+      let sock = find_port !!port in
+      DonkeyOvernet.enable enabler;
+      
+      begin
+        match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
+          Unix.ADDR_INET (ip, port) ->
+            client_port :=  port
+        | _ -> failwith "Bad socket address"
+      end;
+      
+      let port = !client_port in
+      
+      reset_tags ();
+      
+      Options.option_hook DonkeyOptions.protocol_version reset_tags;
+      Options.option_hook global_login reset_tags;
+      Options.option_hook login reset_tags;
 
-    let reset_tags () =
-      client_tags :=
-      [
-        string_tag "name" !!client_name;
-        int_tag "version" !!DonkeyOptions.protocol_version;
-        int_tag "port" !client_port;
-      ];      
-      overnet_connect_tags :=
-      [
-        string_tag "name" !!client_name;
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
-      ];
-      overnet_connectreply_tags :=
-      [
-        string_tag "name" !!client_name;
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
-      ]
-    in
-    reset_tags ();
-
-    Options.option_hook DonkeyOptions.protocol_version reset_tags;
-    Options.option_hook client_name reset_tags;
-    
 (**** START TIMERS ****)
-    add_session_option_timer enabler check_client_connections_delay 
-      DonkeyFiles.force_check_locations;
-
-    add_session_option_timer enabler buffer_writes_delay 
-      (fun _ -> Unix32.flush ());
-    
-    add_session_option_timer enabler check_connections_delay 
-      DonkeyServers.check_server_connections;
-(*      add_session_option_timer enabler compute_md4_delay 
-      DonkeyOneFile.check_files_md4s;   *)
-    add_session_timer enabler 5.0 DonkeyServers.walker_timer;
-    add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
-    
-    add_session_timer enabler 3600. hourly_timer;
-    add_session_timer enabler 30. halfmin_timer;
-    add_session_timer enabler 300. fivemin_timer;
-    add_session_timer enabler 900. quarter_timer;
-    add_session_timer enabler 1. second_timer;
-    add_session_timer enabler 60. DonkeyServers.query_locations_timer;
-
+      add_session_option_timer enabler check_client_connections_delay 
+        DonkeyUdp.force_check_locations;
+      
+      add_session_option_timer enabler buffer_writes_delay 
+        (fun _ -> Unix32.flush ());
+      
+      add_session_option_timer enabler check_connections_delay 
+        DonkeyServers.check_server_connections;
+      add_session_option_timer enabler compute_md4_delay DonkeyOneFile.check_files_md4s;  
+      add_session_timer enabler 5.0 DonkeyServers.walker_timer;
+      add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
+      
+      add_session_timer enabler 3600. hourly_timer;
+      add_session_timer enabler 30. halfmin_timer;
+      add_session_timer enabler 300. fivemin_timer;
+      add_session_timer enabler 900. quarter_timer;
+      add_session_timer enabler 1. second_timer;
+      add_session_timer enabler 60. DonkeyServers.query_locations_timer;
+      add_session_timer enabler 60. (fun _ ->
+          List.iter (fun file -> DonkeyShare.must_share_file file) 
+          !new_shared_files;  
+          new_shared_files := [];
+      );
     
     DonkeyComplexOptions.load_sources ();
     
 (**** START PLAYING ****)  
-    (try force_check_locations () with _ -> ());
+    (try DonkeyUdp.force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
 
   with e ->
@@ -297,9 +336,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length (connected_servers ());
       });
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;

@@ -1,0 +1,7 @@
+
+#where "enable_gnutella" = "enable_gnutella2"
+
+#include "src/networks/gnutella/gnutellaMain.ml" where "Gnutella" = "G2" 
+  
+  
+  

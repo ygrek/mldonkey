@@ -95,8 +95,11 @@ let _ =
 *)
   );
   file_ops.op_file_info <- (fun file ->
+      let last_seen = match file.file_swarmer with
+          None -> [| last_time () |]
+        | Some swarmer -> Int64Swarmer.last_seen swarmer in
       {
-        P.file_comment = file_comment (as_file file.file_file);
+        P.file_comment = file_comment (as_file file);
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
@@ -109,14 +112,18 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = Int64Swarmer.verified_bitmap file.file_swarmer;
-        P.file_availability = 
-        [network.network_num,Int64Swarmer.availability file.file_swarmer];
+        P.file_chunks = (match file.file_swarmer with
+          None -> "" | Some swarmer ->
+            Int64Swarmer.verified_bitmap swarmer);
+        P.file_availability =  
+        [network.network_num,(match file.file_swarmer with
+          None -> "" | Some swarmer ->
+                Int64Swarmer.availability swarmer)];
         P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = [|0|];
+        P.file_chunks_age = last_seen;
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
+        P.file_priority = file_priority (as_file file);
         P.file_uids = [];
       }    
   )
@@ -125,13 +132,8 @@ module C = CommonTypes
             
 open Bencode
   
-let load_torrent_file filename =
-  let s = File.to_string filename in  
   
-  let download_filename = Filename.concat downloads_directory
-      (Filename.basename filename) in
-  File.from_string download_filename s;
-  
+let load_torrent_string s =  
   let file_id, torrent = BTTracker.decode_torrent s in
   let file = new_download file_id torrent.torrent_name 
       torrent.torrent_length 
@@ -142,7 +144,14 @@ let load_torrent_file filename =
   file.file_chunks <- torrent.torrent_pieces;
   BTClients.get_sources_from_tracker file torrent.torrent_announce;
   ()
-
+  
+let load_torrent_file filename =
+  let s = File.to_string filename in  
+  
+  let download_filename = Filename.concat downloads_directory
+      (Filename.basename filename) in
+  File.from_string download_filename s;
+  load_torrent_string s
 
 let try_share_file filename =
   lprintf "BTInteractive.try_share_file: %s\n" filename;
@@ -167,15 +176,20 @@ let try_share_file filename =
         torrent.torrent_files filename FileShared
     in
 
-    let verified = Int64Swarmer.verified_bitmap file.file_swarmer in
+    let swarmer = match file.file_swarmer with 
+        None -> assert false 
+      | Some swarmer -> swarmer in
+    
+    let verified = Int64Swarmer.verified_bitmap swarmer in
     let verified = String.make (String.length verified) '3' in
-    Int64Swarmer.set_verified_bitmap file.file_swarmer verified;
+    Int64Swarmer.set_verified_bitmap swarmer verified;
 
     lprintf "......\n";
     file.file_files <- torrent.torrent_files;
     file.file_chunks <- torrent.torrent_pieces;
     BTClients.connect_tracker file torrent.torrent_announce "completed" 
       (fun _ -> ())
+
     
 (* Call one minute after start, and then every 20 minutes. Should 
   automatically contact the tracker. *)    
@@ -273,7 +287,10 @@ let _ = (
        (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
 *)
           ("", "sr ar", (let fc = ref 0 in 
-              (String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );
+              (match c.client_bitmap with
+                  None -> ()
+                | Some bitmap ->
+                    String.iter (fun s -> if s = '1' then incr fc) bitmap );
               (Printf.sprintf "%d" !fc) ) ) ];
     );
     client_ops.op_client_dprint <- (fun c o file ->
@@ -365,4 +382,15 @@ in torrents/tracked/. The file is automatically tracked, and seeded if
 *)    
         
   ]
+
+open LittleEndian
   
+let gui_message s =
+  match get_int16 s 0 with
+    0 ->
+      let text = String.sub s 2 (String.length s - 2) in
+      load_torrent_string s
+  | opcode -> failwith (Printf.sprintf "BT: Unknown message opcode %d" opcode)
+  
+let _ =
+  network.op_network_gui_message <- gui_message

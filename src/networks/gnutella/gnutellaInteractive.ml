@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Xml
 open Printf2
 open Md4
@@ -38,7 +38,7 @@ open GnutellaOptions
 open GnutellaGlobals
 open GnutellaComplexOptions
 open BasicSocket
-
+open CommonHosts
 open GnutellaProtocol
 
 (* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
@@ -145,24 +145,28 @@ let xml_query_of_query q =
       
 let _ =
   network.op_network_search <- (fun search buf ->
-      let query = search.search_query in
-      let words, xml_query = xml_query_of_query query in
-      let words = String2.unsplit words ' ' in
+      match search.search_type with
+        LocalSearch -> ()
+      | _ ->
+          
+          let query = search.search_query in
+          let words, xml_query = xml_query_of_query query in
+          let words = String2.unsplit words ' ' in
 
 (* Maybe we could generate the id for the query from the query itself, so
 that we can reuse queries *)
-      let uid = Md4.random () in
-      
-      let s = {
-          search_search = UserSearch (search, words, xml_query);
-          search_uid = uid;
-          search_hosts = Intset.empty;
-        } in
-      
-      Gnutella.send_query uid words;
-      
-      Hashtbl.add searches_by_uid uid s;
-      ());
+          let uid = Md4.random () in
+          
+          let s = {
+              search_search = UserSearch (search, words, xml_query);
+              search_uid = uid;
+              search_hosts = Intset.empty;
+            } in
+          
+          GnutellaScheduler.send_query uid words xml_query;
+          
+          Hashtbl.add searches_by_uid uid s;
+          ());
   network.op_network_close_search <- (fun s ->
       Hashtbl.remove searches_by_uid (find_search s).search_uid  
   );
@@ -175,13 +179,11 @@ that we can reuse queries *)
   network.op_network_share <- (fun fullname codedname size ->
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
-        incr shared_files_counter;
-      GnutellaProtocol.new_shared_words := true;
-      let sh = CommonUploads.add_shared fullname codedname size in
-      CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
-            lprintf "Could share urn\n";
-            ())
-      end
+          incr shared_files_counter;
+          GnutellaProtocol.new_shared_words := true;
+          let sh = CommonUploads.add_shared fullname codedname size in
+          GnutellaProto.ask_for_uids sh
+        end
   )
   
 let _ =
@@ -195,7 +197,7 @@ let _ =
   file_ops.op_file_sources <- (fun file ->
 (*      lprintf "file_sources\n";  *)
       List2.tail_map (fun c ->
-          as_client c.client_client
+          as_client c
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
@@ -211,14 +213,14 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
-      file_cancel (as_file file.file_file);
+      file_cancel (as_file file);
       List.iter (fun s ->
           Hashtbl.remove searches_by_uid s.search_uid
       ) file.file_searches
   );
   file_ops.op_file_info <- (fun file ->
       {
-        P.file_comment = file_comment (as_file file.file_file);
+        P.file_comment = file_comment (as_file file);
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
@@ -237,7 +239,7 @@ let _ =
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
+        P.file_priority = file_priority (as_file file);
         P.file_uids = [];
       }    
   )
@@ -248,7 +250,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_ip;
+          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -263,10 +265,7 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server 
-        (nservers)
-      s.server_gnutella2 
-      GnutellaServers.retry_and_fake s.server_host []);
+      GnutellaServers.connect_server s.server_host []);
   server_ops.op_server_disconnect <-
 (fun s -> GnutellaServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
@@ -311,12 +310,12 @@ let _ =
           let md4 = Md4.of_string uid in
           let c = new_client (Known_location (ip, port)) in
           c.client_user.user_uid <- md4;
-          friend_add (as_client c.client_client);
+          friend_add (as_client c);
           true
       | "gnut://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
           let c = new_client (Indirect_location ("", md4)) in
-          friend_add (as_client c.client_client);
+          friend_add (as_client c);
           true
       
       | _ -> 
@@ -340,7 +339,7 @@ let _ =
       {
         P.client_network = network.network_num;
         P.client_kind = c.client_user.user_kind;
-        P.client_state = client_state (as_client c.client_client);
+        P.client_state = client_state (as_client c);
         P.client_type = client_type c;
         P.client_tags = [];
         P.client_name = (match c.client_user.user_kind with
@@ -350,7 +349,7 @@ let _ =
               Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
         );
         P.client_files = None;
-        P.client_num = (client_num (as_client c.client_client));
+        P.client_num = (client_num (as_client c));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
@@ -369,14 +368,14 @@ let _ =
   );
 
     client_ops.op_client_bprint <- (fun c buf ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf "%s (%s)\n"
           cinfo.GuiTypes.client_name
           (string_of_kind cinfo.GuiTypes.client_kind)
     );    
     client_ops.op_client_bprint_html <- (fun c buf file ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         
         html_mods_td buf [
@@ -389,7 +388,7 @@ let _ =
    client_ops.op_client_dprint <- (fun c o file ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         client_print cc o; 
         Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
@@ -401,7 +400,7 @@ let _ =
     client_ops.op_client_dprint_html <- (fun c o file str ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;

@@ -51,9 +51,17 @@ let read_response ic =
   else 
     bad_response ()
 
-let make_mail mail =
+let make_mail mail new_style =
+  if new_style then
+      Printf.sprintf 
+        "From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n%s"
+	  mail.mail_from
+	  mail.mail_to
+	  mail.mail_subject
+	  mail.mail_body
+    else
   Printf.sprintf 
-    "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n%s"
+	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n%s"
   mail.mail_from
   mail.mail_to
   mail.mail_subject
@@ -105,7 +113,7 @@ let sendmail smtp_server smtp_port new_style mail =
       Printf.fprintf oc "DATA\r\n"; flush oc;
       if read_response ic <> 354 then bad_response ();
 
-      let body = make_mail mail in
+      let body = make_mail mail new_style in
       Printf.fprintf oc "%s\r\n.\r\n" body; flush oc;
       if read_response ic <> 250 then bad_response ();
       

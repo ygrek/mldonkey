@@ -1,0 +1,7 @@
+
+#where "enable_gnutella" = "enable_gnutella2" 
+#where "gstats" = "g2stats"
+#where "Gnutella" = "G2"
+#include "src/networks/gnutella/gnutellaInteractive.ml" 
+  
+  

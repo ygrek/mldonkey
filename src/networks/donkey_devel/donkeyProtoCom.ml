@@ -54,7 +54,7 @@ let server_msg_to_string msg =
   
   
   if !verbose_msg_servers then begin
-      lprintf "MESSAGE TO SERVER:";  lprint_newline (); 
+      lprintf "MESSAGE TO SERVER:\n";  
       DonkeyProtoServer.print msg; 
       lprint_newline ();
     end;
@@ -87,10 +87,8 @@ let client_send c m =
       DonkeyProtoClient.print m;
       lprint_newline ();
     end;
-  match c.client_sock with
-    None -> ()
-  | Some sock ->
-      direct_client_sock_send sock m
+  do_if_connected c.client_sock (fun sock ->
+      direct_client_sock_send sock m)
 
 let emule_send sock m =
   let m = client_msg_to_string 0xc5 m in
@@ -120,7 +118,7 @@ let client_handler2 c ff f =
     let b = TcpBufferedSocket.buf sock in
     try
       while b.len >= 5 do
-        let opcode = get_int8 b.buf b.pos in
+        let opcode = get_uint8 b.buf b.pos in
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
@@ -129,7 +127,7 @@ let client_handler2 c ff f =
                 lprint_newline ();
               end;
             let s = String.sub b.buf (b.pos+5) msg_len in
-            TcpBufferedSocket.buf_used sock  (msg_len + 5);
+            buf_used b  (msg_len + 5);
             let t = M.parse opcode s in
 (*          M.print t;   
 lprint_newline (); *)
@@ -151,7 +149,7 @@ let cut_messages parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
-      let opcode = get_int8 b.buf b.pos in
+      let opcode = get_uint8 b.buf b.pos in
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
@@ -160,7 +158,7 @@ let cut_messages parse f sock nread =
               lprint_newline ();
             end;
           let s = String.sub b.buf (b.pos+5) msg_len in
-          TcpBufferedSocket.buf_used sock (msg_len + 5);
+          buf_used b (msg_len + 5);
           let t = parse opcode s in
           f t sock
         end
@@ -191,9 +189,7 @@ let udp_handler f sock event =
                 (String.sub pbuf 1 (len-1)) in
 (*              M.print t; *)
               f t p
-          with e ->
-              lprintf "Error %s in udp_handler"
-                (Printexc2.to_string e); lprint_newline () 
+          with e -> ()
       ) ;
   | _ -> ()
       
@@ -226,7 +222,7 @@ let propagate_working_servers servers peers =
             buf_ip buf ip; (* The client IP *)
 
 (* The server IPs *)
-            buf_list buf_peer buf servers; (* The servers he is connected to *)
+            buf_list buf_addr buf servers; (* The servers he is connected to *)
 
 (* Some statistics on the network *)
             buf_string buf Autoconf.current_version;
@@ -242,24 +238,25 @@ let propagate_working_servers servers peers =
                 total_shared := 
                 Int64.add !total_shared i.S.impl_shared_size
             );
-
+            
             buf_int64 buf !total_shared;
             buf_int64 buf !total_uploaded;
-            
+
 (* Overnet peers *)
-	    buf_int buf (List.length peers);
+            buf_int buf (List.length peers);
             List.iter (fun (ip,port) -> 
                 buf_ip buf ip; buf_int16 buf port) peers;
 
 (* Statistics for Supernode creation *)
-	    buf_int16 buf !!max_hard_upload_rate;
-	    buf_int16 buf !!max_hard_download_rate;
-	    buf_int buf (compute_lost_byte upload_control);
-	    buf_int buf (compute_lost_byte download_control);
-
+            buf_int16 buf !!max_hard_upload_rate;
+            buf_int16 buf !!max_hard_download_rate;
+            buf_int buf (compute_lost_byte upload_control);
+            buf_int buf (compute_lost_byte download_control);
+            
             let s = Buffer.contents buf in    
             let name, port = !!mlnet_redirector in
-            UdpSocket.write propagation_socket s (Ip.from_name name) port
+            UdpSocket.write propagation_socket s (Ip.from_name name) port;
+            
           with e ->
               lprintf "Exception %s in udp_sendonly" (Printexc2.to_string e);
               lprint_newline () 
@@ -369,8 +366,8 @@ let make_tagged sock files =
         }
     ) files)
   
-let direct_server_send_share sock msg =
-  
+let direct_server_send_share compressed sock msg =
+
 (*  lprintf "SEND %d FILES TO SHARE" (List.length msg); lprint_newline ();*)
   
   let max_len = !!client_buffer_size - 100 - 
@@ -378,21 +375,40 @@ let direct_server_send_share sock msg =
   if !verbose then begin
       lprintf "SENDING SHARES"; lprint_newline ();
     end;
-
+  
   Buffer.clear buf;
-  buf_int8 buf 227;
-  buf_int buf 0;
-  buf_int8 buf 21; (* ShareReq *)
-  buf_int buf 0;
-  let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
-      make_tagged (Some sock) msg) 0 max_len in
-  let s = Buffer.contents buf in
-  let s = String.sub s 0 prev_len in
+  let s = 
+    if compressed && Autoconf.has_zlib then begin
+        buf_int buf 0;
+        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
+            make_tagged (Some sock) msg) 0 max_len in
+        let s = Buffer.contents buf in
+        str_int s 0 nfiles;
+        let s = String.sub s 0 prev_len in        
+        let s = Autoconf.zlib__compress_string s in
+        
+        Buffer.clear buf;        
+        buf_int8 buf 0xD4;
+        buf_int buf 0;
+        buf_int8 buf 21; (* ShareReq *)
+        Buffer.add_string buf s;
+        Buffer.contents buf
+      end else begin
+        buf_int8 buf 227;
+        buf_int buf 0;
+        buf_int8 buf 21; (* ShareReq *)
+        buf_int buf 0;
+        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
+            make_tagged (Some sock) msg) 0 max_len in
+        let s = Buffer.contents buf in
+        str_int s 6 nfiles;
+        String.sub s 0 prev_len 
+      end
+  in
   let len = String.length s - 5 in
   str_int s 1 len;
-  str_int s 6 nfiles;
   write_string sock s
-        
+  
 let direct_client_send_files sock msg =
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in

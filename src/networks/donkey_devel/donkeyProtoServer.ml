@@ -24,19 +24,21 @@ open Autoconf
 open LittleEndian
 open CommonTypes
 open CommonGlobals
+  
+open DonkeyTypes
 open DonkeyMftp
 
   
 let field_of_tagname s =
-  match String.lowercase s with
-    "size" -> Field_Size
+  match s with
+  | "size" -> Field_Size
   | "filename" -> Field_Filename
-  | "artist" -> Field_Artist
-  | "album" -> Field_Album
-  | "title" -> Field_Title
+  | "Artist" -> Field_Artist
+  | "Album" -> Field_Album
+  | "Title" -> Field_Title
   | "format" -> Field_Format
   | "type" -> Field_Type
-  | _ -> Field_unknown s
+  | s -> Field_unknown s
       
   
 let tagname_of_field field =
@@ -56,21 +58,22 @@ module Connect = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
+       "\001", "name";
+       "\017", "version";
+       "\015", "port";
+       "\032", "extended";
       ]
     
     let parse len s =
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      lprintf "port: %d" port; lprint_newline ();*)
+(*      lprintf "port: %d\n" port;*)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -118,7 +121,7 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
     type t = channel list
       
     let parse len s =
-      let nchans = get_int8 s 1 in
+      let nchans = get_uint8 s 1 in
       let rec iter s pos nchans =
         if nchans = 0 then [] else
         let name, pos = get_string s pos in
@@ -130,15 +133,13 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
     let print t =
       lprintf "CHANNELS:\n";
       List.iter (fun c ->
-          lprintf "  %s: %d" c.name c.number;
-          lprint_newline ();
+          lprintf "  %s: %d\n" c.name c.number;
       ) t
 
      let bprint oc t =
       Printf.bprintf oc "CHANNELS:\n";
       List.iter (fun c ->
-          Printf.bprintf oc "  %s: %d" c.name c.number;
-          lprint_newline ();
+          Printf.bprintf oc "  %s: %d\n" c.name c.number;
       ) t
 
     let write buf t =
@@ -148,22 +149,24 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
           buf_int buf c.number) t
       
   end
-  
+
 module SetID = struct 
-    type t = Ip.t
+    type t = bool * Ip.t
       
     
-    let parse len s = get_ip s 1 
+    let parse len s = 
+      len = 9, get_ip s 1
     
-    let print t = 
-      lprintf "SET_ID:\n";
+    let print (zlib, t) = 
+      lprintf "SET_ID: %s\n" (if zlib then "Zlib" else "");
       lprintf "id: %s\n" (Ip.to_string t)
 
-    let bprint oc t = 
-      Printf.bprintf oc "SET_ID:\n";
+    let bprint oc (zlib, t) = 
+      Printf.bprintf oc "SET_ID: %s\n"  (if zlib then "Zlib" else "");
       Printf.bprintf oc "id: %s\n" (Ip.to_string t)
     
-    let write buf t =
+    let write buf (zlib, t) =
+      if zlib then buf_int buf 1;
       buf_ip buf t
   
   end
@@ -211,10 +214,10 @@ module Share = struct
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
       ]
     
     let rec get_files  s pos n =
@@ -295,6 +298,10 @@ module Info = struct
     type t = int * int
     
     let parse len s =
+      
+      if len <> 9 then begin
+          lprintf "SERVER INFO WITH LENGTH %d !!!!!!\n" len;
+        end;
       let users = get_int s 1 in
       let files = get_int s 5 in
       users, files
@@ -321,7 +328,7 @@ module ServerList = struct
     type t = server list
       
     let parse len s = 
-      let n = get_int8 s 1 in
+      let n = get_uint8 s 1 in
       let rec iter i  =
         if i = n then [] else
         let ip = get_ip s (2 + i * 6) in
@@ -331,11 +338,9 @@ module ServerList = struct
       iter 0
           
     let print t = 
-      lprintf "SERVER LIST";
-      lprint_newline ();
+      lprintf "SERVER LIST\n";
       List.iter (fun l -> 
-          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
-          lprint_newline ();
+          lprintf "   %s : %d\n" (Ip.to_string l.ip) l.port;
       ) t
 
     let bprint oc t = 
@@ -359,20 +364,20 @@ module ServerInfo = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        11, "description";
+        "\001", "name";
+        "\011", "description";
       ]
     
     let parse len s =
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      lprintf "port: %d" port; lprint_newline (); *)
+(*      lprintf "port: %d\n" port; *)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -411,11 +416,11 @@ module QueryReply  = struct
     type t = tagged_file list
 
     let names_of_tag = [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
+        "\021", "availability";
       ]        
 
           
@@ -516,17 +521,17 @@ module Query  = struct (* request 22 *)
     
     let names_of_tag =
       [
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
+        "\021", "availability";
       ]
-        
+    
     let rec parse_query s pos =
-      let t = get_int8 s pos in
+      let t = get_uint8 s pos in
       match t with
         0 -> 
-          let t = get_int8 s (pos+1) in
+          let t = get_uint8 s (pos+1) in
           begin
             match t with
               0 -> 
@@ -547,25 +552,21 @@ module Query  = struct (* request 22 *)
       | 2 -> 
           let field, pos = get_string s (pos + 1) in
           let name, pos = get_string s pos in          
-          let name = 
-            if String.length name = 1 then
-              try
-                List.assoc (get_int8 name 0) names_of_tag
-              with _ -> name 
-            else name in
+          let name = try
+              List.assoc name names_of_tag
+            with _ -> name
+          in
           
           QHasField (field_of_tagname name, field), pos
       
       | 3 -> 
-          let field = get_int64_32 s (pos + 1) in
-          let minmax = get_int8 s (pos + 5) in
+          let field = get_uint64_32 s (pos + 1) in
+          let minmax = get_uint8 s (pos + 5) in
           let name, pos = get_string s (pos + 6) in
-          let name = 
-            if String.length name = 1 then
-              try
-                List.assoc (get_int8 name 0) names_of_tag
-              with _ -> name 
-            else name in
+          let name = try
+              List.assoc name names_of_tag
+            with _ -> name
+          in
           begin
             match minmax with
               1 -> QHasMinVal (field_of_tagname name, field)
@@ -609,15 +610,15 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           lprintf "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
-	  lprintf "print_query: QNone in query\n";
-	  ()
+          lprintf "print_query: QNone in query\n";
+          ()
     
     let  print t = 
       lprintf "QUERY";
       print_query t
     
-
-     let rec bprint_query oc t =
+    
+    let rec bprint_query oc t =
       match t with
         QOr (q1, q2) -> 
           print_query q1; 
@@ -641,15 +642,15 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           Printf.bprintf oc "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
-	  lprintf "print_query: QNone in query\n";
-	  ()
-
-
+          lprintf "print_query: QNone in query\n";
+          ()
+    
+    
     let bprint oc t = 
       Printf.bprintf oc "QUERY:\n";
       bprint_query oc t;
       Printf.bprintf oc "\n"
-
+    
     let rec write buf t = 
       match t with
         QOr (q1, q2) -> 
@@ -674,21 +675,20 @@ module Query  = struct (* request 22 *)
           
           let name = tagname_of_field name in
           let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
+                rev_assoc name names_of_tag
             with _ -> name in
           
           buf_int8 buf 2;
           buf_string buf field;
           buf_string buf name
-          
+      
       | QHasMinVal (name, field) ->
           
           let name = tagname_of_field name in
-          let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
-            with _ -> name in
+          let name = try 
+              rev_assoc name names_of_tag
+            with _ -> name
+          in
           
           buf_int8 buf 3;
           buf_int64_32 buf field;
@@ -699,10 +699,9 @@ module Query  = struct (* request 22 *)
           
           let name = tagname_of_field name in
           let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
-            with _ -> name in
-          
+              rev_assoc name names_of_tag
+              with _ -> name in
+
           buf_int8 buf 3;
           buf_int64_32 buf field;
           buf_int8 buf 2;
@@ -721,20 +720,18 @@ module QueryUsers = struct (* request 26 *)
     type t = string
       
     let parse len s =
-      let targ = get_int8 s 1 in
+      let targ = get_uint8 s 1 in
       match targ with
         4 -> ""
       | 1 -> 
           let name, pos = get_string s 2 in
           name
       | _ -> 
-          lprintf "QueryUsers: unknown tag %d" targ;
-          lprint_newline ();
+          lprintf "QueryUsers: unknown tag %d\n" targ;
           raise Not_found
           
     let print t =
-      lprintf "QUERY USERS [%s]" t;
-      lprint_newline () 
+      lprintf "QUERY USERS [%s]\n" t
 
      let bprint oc t =
       Printf.bprintf oc "QUERY USERS [%s]\n" t
@@ -760,9 +757,9 @@ module QueryUsersReply = struct (* request 67 *)
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
       ]
     
     let rec parse_clients s pos nclients left =
@@ -799,7 +796,7 @@ module QueryUsersReply = struct (* request 67 *)
           Printf.bprintf oc "%s\n" (Ip.to_string t.ip);
           Printf.bprintf oc "%d\n" t.port;
           Printf.bprintf oc "TAGS:\n";
-          bprint_tags oc t.tags;
+          bprint_tags oc  t.tags;
 	  Printf.bprintf oc "\n"
           ) t
     
@@ -841,7 +838,7 @@ module QueryLocationReply  = struct
       
     let parse len s = 
       let md4 = get_md4 s 1 in
-      let n = get_int8 s 17 in
+      let n = get_uint8 s 17 in
       let rec iter i  =
         if i = n then [] else
         let ip = get_ip s (18 + i * 6) in
@@ -852,11 +849,10 @@ module QueryLocationReply  = struct
       { locs =locs; md4 = md4 }
           
     let print t = 
-      lprintf "LOCATION OF %s" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
-          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
-          lprint_newline ();
+          lprintf "   %s : %d\n" (Ip.to_string l.ip) l.port;
+          
       ) t.locs
 
      let bprint oc t = 
@@ -919,8 +915,7 @@ module QueryIDReply  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      lprintf "IDENTIFICATION %s : %d" (Ip.to_string t.ip) t.port;
-      lprint_newline ()
+      lprintf "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
 
     let bprint oc t = 
       Printf.bprintf oc "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
@@ -944,8 +939,7 @@ module QueryServers  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      lprintf "QUERY SERVERS %s : %d" (Ip.to_string t.ip) t.port;
-      lprint_newline ()
+      lprintf "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
 
     let bprint oc t = 
       Printf.bprintf oc "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
@@ -980,21 +974,19 @@ module QueryServersReply  = struct
       try
 	let ip = get_ip s 1 in
 	let port = get_port s 5 in
-	let nservers = get_int8 s 7 in
+	let nservers = get_uint8 s 7 in
 	let servers = parse_servers nservers s 8 in
 	  { server_ip = ip; server_port = port; servers = servers }
       with _ ->
-	let nservers = get_int8 s 1 in
+	let nservers = get_uint8 s 1 in
 	let servers = parse_servers nservers s 2 in
 	  { server_ip = Ip.null; server_port = 0; servers = servers }  
       
     let print t = 
-      lprintf "SERVERS QUERY REPLY %s : %d" (
+      lprintf "SERVERS QUERY REPLY %s : %d\n" (
         Ip.to_string t.server_ip) t.server_port;
-      lprint_newline ();
       List.iter (fun s -> 
-          lprintf "   %s:%d" (Ip.to_string s.ip) s.port; 
-          lprint_newline ();
+          lprintf "   %s:%d\n" (Ip.to_string s.ip) s.port; 
       ) t.servers
 
      let bprint oc t = 
@@ -1036,6 +1028,7 @@ type t =
 | ConnectReq of Connect.t
 | SetIDReq of SetID.t
 | AckIDReq of AckID.t
+| BadProtocolVersionReq
 | MessageReq of Message.t
 | ShareReq of Share.t
 | InfoReq of Info.t
@@ -1048,12 +1041,13 @@ type t =
 | QueryIDReq of QueryID.t
 | QueryIDFailedReq of QueryIDFailed.t
 | QueryIDReplyReq of QueryIDReply.t
-| UnknownReq of string
 | ChatRoomsReq of ChatRooms.t
 | QueryUsersReq of QueryUsers.t
 | QueryUsersReplyReq of QueryUsersReply.t
 | QueryMoreResultsReq
-  
+
+| UnknownReq of string
+
 (****************
                      MLdonkey extensions messages 
 ***************)
@@ -1089,51 +1083,74 @@ let mldonkey_extensions len s =
       Mldonkey_CloseSubscribeReq num
   | _ -> raise Not_found
   
-let parse magic s =
+let rec parse magic s =
   try 
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-(*    lprintf "opcode: %d" opcode; lprint_newline (); *)
-    match opcode with 
-    | 1 -> ConnectReq (Connect.parse len s)
-(*    | 5 -> BadProtocolVersion *)
-    | 20 -> AckIDReq (AckID.parse len s)
-    | 21 -> ShareReq (Share.parse len s)
-    | 22 -> QueryReq (Query.parse len s)
-    | 25 -> QueryLocationReq (QueryLocation.parse len s)
-    | 26 -> QueryUsersReq (QueryUsers.parse len s)
-    | 28 -> QueryIDReq (QueryID.parse len s)
+    match magic with 
+      227 -> begin
+(*    lprintf "opcode: %d\n" opcode; *)
+          match opcode with 
+          | 1 -> ConnectReq (Connect.parse len s)
+          | 5 -> BadProtocolVersionReq 
+          | 20 -> AckIDReq (AckID.parse len s)
+          | 21 -> ShareReq (Share.parse len s)
+          | 22 -> QueryReq (Query.parse len s)
+          | 25 -> QueryLocationReq (QueryLocation.parse len s)
+          | 26 -> QueryUsersReq (QueryUsers.parse len s)
+          | 28 -> QueryIDReq (QueryID.parse len s)
 (*    | 29 -> QueryChats (C->S) *)
 (*    | 30 -> ChatMessage (C->S) *)
 (*    | 31 -> JoinRoom (C->S) *)
-    | 33 -> QueryMoreResultsReq
-    | 50 -> ServerListReq (ServerList.parse len s)
-    | 51 -> QueryReplyReq (QueryReply.parse len s)
-    | 52 -> InfoReq (Info.parse len s)
-    | 53 -> QueryIDReplyReq (QueryIDReply.parse len s)
-    | 54 -> QueryIDFailedReq (QueryIDFailed.parse len s)
-    | 56 -> MessageReq (Message.parse len s)
-    | 57 -> ChatRoomsReq (ChatRooms.parse len s)
+          | 33 -> QueryMoreResultsReq
+          | 50 -> ServerListReq (ServerList.parse len s)
+          | 51 -> QueryReplyReq (QueryReply.parse len s)
+          | 52 -> InfoReq (Info.parse len s)
+          | 53 -> QueryIDReplyReq (QueryIDReply.parse len s)
+          | 54 -> QueryIDFailedReq (QueryIDFailed.parse len s)
+          | 56 -> MessageReq (Message.parse len s)
+          | 57 -> ChatRoomsReq (ChatRooms.parse len s)
 (*    | 58 -> ChatBroadcastMessage (S->C) *)
 (*    | 59 -> ChatUserJoin (S->C) *)
 (*    | 60 -> ChatUserLeave (S->C) *)
 (*    | 61 -> ChatUsers (S->C) *)
-    | 64 -> SetIDReq (SetID.parse len s)
-    | 65 -> ServerInfoReq (ServerInfo.parse len s)
-    | 66 -> QueryLocationReplyReq (QueryLocationReply.parse len s)
-    | 67 -> QueryUsersReplyReq (QueryUsersReply.parse len s)
+          | 64 -> SetIDReq (SetID.parse len s)
+          | 65 -> ServerInfoReq (ServerInfo.parse len s)
+          | 66 -> QueryLocationReplyReq (QueryLocationReply.parse len s)
+          | 67 -> QueryUsersReplyReq (QueryUsersReply.parse len s)
 (* UDP *)
-    
+
 
 (* MLDONKEY *)
-    | 250 -> mldonkey_extensions len s
-    | _ ->
-	raise Not_found
+          | 250 -> mldonkey_extensions len s
+          | _ ->
+              raise Not_found
+        end
+    | 0xD4 -> (* 212 *)
+        
+(*        lprintf "Compressed Message...\n"; *)
+        
+        if Autoconf.has_zlib then
+          let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Printf.sprintf "%c%s" (char_of_int opcode) s in 
+          parse 227 s
+        else
+          failwith "No Zlib to uncompress packet"
+    | _ ->   
+        failwith (Printf.sprintf "Unkown opcode %d from server\n" opcode)
   with
     e -> 
-      lprintf "From server:"; lprint_newline ();
-      dump s;
+      if !CommonOptions.verbose_unknown_messages then begin
+          lprintf "Unknown message From server: %s (magic %d)\n"
+            (Printexc2.to_string e) magic; 
+          let tmp_file = Filename.temp_file "comp" "pak" in
+          File.from_string tmp_file s;
+          lprintf "Saved unknown packet %s\n" tmp_file; 
+          
+          dump s;
+          lprint_newline ();
+        end;
       UnknownReq s
       
 let print t =
@@ -1143,6 +1160,7 @@ let print t =
     | SetIDReq t -> SetID.print t
     | AckIDReq t -> AckID.print t
     | MessageReq t -> Message.print t
+    | BadProtocolVersionReq -> lprintf "BAD PROTOCOL VERSION"
     | ShareReq t -> Share.print t
     | InfoReq t -> Info.print t
     | ServerListReq t -> ServerList.print t
@@ -1162,18 +1180,18 @@ let print t =
     | ChatRoomsReq t -> ChatRooms.print t
 
     | QueryMoreResultsReq -> 
-        lprintf "QUERY MORE RESULTS"; lprint_newline ()
+        lprintf "QUERY MORE RESULTS\n"; 
     | Mldonkey_MldonkeyUserReplyReq ->
-        lprintf "MLDONKEY USER"; lprint_newline ()
+        lprintf "MLDONKEY USER\n"; 
     | Mldonkey_SubscribeReq (num, lifetime, t) -> 
-        lprintf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS" num lifetime; 
-        lprint_newline ();
+        lprintf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS\n" num lifetime; 
+        
         Query.print t
     | Mldonkey_NotificationReq (num,t) ->
-        lprintf "MLDONKEY NOTIFICATIONS TO %d" num; lprint_newline ();
+        lprintf "MLDONKEY NOTIFICATIONS TO %d\n" num; 
         QueryReply.print t
     | Mldonkey_CloseSubscribeReq num ->
-        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d" num; lprint_newline ();
+        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d\n" num; 
     | UnknownReq s -> 
         let len = String.length s in
         lprintf "UnknownReq:\n";
@@ -1194,9 +1212,9 @@ let print t =
           lprintf "(%d)" n            
         done;
         lprintf "]\n";
-        lprint_newline ()
   end;
   lprint_newline ()
+
 
 let bprint oc t =
   begin
@@ -1205,6 +1223,7 @@ let bprint oc t =
     | SetIDReq t -> SetID.bprint oc t
     | AckIDReq t -> AckID.bprint oc t
     | MessageReq t -> Message.bprint oc t
+    | BadProtocolVersionReq -> Printf.bprintf oc "BAD PROTOCOL VERSION\n"
     | ShareReq t -> Share.bprint oc t
     | InfoReq t -> Info.bprint oc t
     | ServerListReq t -> ServerList.bprint oc t
@@ -1264,6 +1283,8 @@ let write buf t =
   | ConnectReq t -> 
       buf_int8 buf 1;
       Connect.write buf t
+  | BadProtocolVersionReq ->
+      buf_int8 buf 5
   | SetIDReq t -> 
       buf_int8 buf 64;
       SetID.write buf  t
@@ -1350,4 +1371,13 @@ let to_string m =
   let b = Buffer.create 100 in
   bprint b m;
   Buffer.contents b
-  
+
+  (*
+let _ =
+  let s = "abcdefghijklmnopqrstuvwxyz" in
+  let compressed = Autoconf.zlib__compress_string s in
+  let ss = Autoconf.zlib__uncompress_string2 compressed in
+  lprintf "[%s] <> [%s]\n" s (String.escaped ss);
+  assert (s = ss);
+  exit 2
+  *)

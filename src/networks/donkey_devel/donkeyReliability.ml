@@ -93,14 +93,12 @@ contributor.
 From several choices, prefer the one of lowest level.
  *)
 open Printf2
-open TcpBufferedSocket
 
-open GuiTypes
 open CommonTypes
 open CommonNetwork
-open CommonSwarming.Int64Swarmer
-
-  open DonkeyTypes
+open GuiTypes
+open TcpBufferedSocket
+open DonkeyTypes
 open DonkeyGlobals
 
 let (reliable_ips : (Ip.t, reliability) Hashtbl.t) = Hashtbl.create 1023
@@ -132,6 +130,8 @@ let client_reliability c =
 	  lprint_newline ();
 	  ip_reliability c.client_ip *)
 
+
+  (*
 let block_reliability b =
   let rec aux ips r n s l =
     match ips with
@@ -142,7 +142,8 @@ let block_reliability b =
 	    | Reliability_neutral -> aux q r (n + 1) s l
 	    | Reliability_suspicious ipl ->
 		aux q r n (s + 1) (min l ipl) in
-    aux (block_contributors b) 0 0 0 max_int
+    aux b.block_contributors 0 0 0 max_int
+    *)
 
 let print_reliability ip =
   lprintf "%s is %s" (Ip.to_string ip)
@@ -169,19 +170,19 @@ let bprint_reliability_table buf =
 let set_ip_reliability ip reliability =
   Hashtbl.replace reliable_ips ip reliability
 
+(*
 let valid_block_detected b =
   List.iter (fun ip -> 
     set_ip_reliability ip Reliability_reliable;
     print_reliability ip
-  ) (block_contributors b)
+  ) b.block_contributors
 
 let corrupted_block_detected b =
   let r, n, s, l = block_reliability b in
-  let n = if block_legacy b then n + 1 else n in
+  let n = if b.block_legacy then n + 1 else n in
   let r, contributors = if n + s > 0 then 
-      0, List.filter (fun ip -> 
-          ip_reliability ip <> Reliability_reliable) (block_contributors b)
-  else r, (block_contributors b) in
+    0, List.filter (fun ip -> ip_reliability ip <> Reliability_reliable) b.block_contributors
+  else r, b.block_contributors in
   let max_neighbors = (r + n + s) / 2 in
 	  List.iter (fun ip -> 
             set_ip_reliability ip (Reliability_suspicious max_neighbors);
@@ -193,7 +194,7 @@ let corrupted_block_detected b =
 
 let allowed_by_reliability b c =
   let r, n, s, l = block_reliability b in
-  let n = if block_legacy b then n + 1 else n in
+  let n = if b.block_legacy then n + 1 else n in
   match client_reliability c with
       Reliability_reliable ->
 	if s > 0 then 3
@@ -208,17 +209,39 @@ let allowed_by_reliability b c =
 	if r > 0 || n > 0 then max_int
 	else if n + s + 1 > min l crl then max_int
 	else 1
+          *)
 
 let _ =
   register_commands
     [
-      "dump_reliability", Arg_none (fun o ->
+      "dump_reliability", "Network/Donkey", Arg_none (fun o ->
 	let buf = o.conn_buf in
 	bprint_reliability_table buf;
 	""
       ), ":\t\t\tdisplay the reliability of sources";
     ]
 
+  
+open Md4
+(* TODO: add timers to remove old entries *)
+
+let (client_hashes : (Ip.t, Md4.t) Hashtbl.t) = Hashtbl.create 1023
+
+let register_client_hash ip hash =
+  try
+    let old_hash = Hashtbl.find client_hashes ip in
+    let hashes_match = (hash = old_hash) in
+    if not hashes_match then begin
+        lprintf "client hash clash %s: %s/%s\n"
+        (Ip.to_string ip) (Md4.to_string old_hash) (Md4.to_string hash);
+      Hashtbl.replace client_hashes ip hash;
+    end;
+    hashes_match
+  with Not_found ->
+    Hashtbl.add client_hashes ip hash;
+    true
+
+  
 module Marshal = struct
 
     let to_string v _ =

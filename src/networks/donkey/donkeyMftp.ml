@@ -22,7 +22,7 @@ open AnyEndian
 open Printf2
 open CommonTypes
 open LittleEndian
-open Int32ops
+open Int64ops
 open TcpBufferedSocket
 
 let const_int32_255 = Int64.of_int 255

@@ -28,6 +28,7 @@ have time to do it.
 open Printf2
 open Options
 open CommonOptions
+open CommonGlobals
 open DonkeyOptions
 open CommonTypes
 open BasicSocket
@@ -173,9 +174,6 @@ let really_query_file c file r =
         DonkeyProtoCom.direct_client_send c (
           let module M = DonkeyProtoClient in
           M.QueryFileReq file.file_md4);      
-        DonkeyProtoCom.direct_client_send c (
-          let module M = DonkeyProtoClient in
-          M.QueryChunksReq file.file_md4);      
         
         r.request_time <- last_time ();
         match r.request_result with
@@ -213,14 +211,17 @@ let add_file_location file c =
       file.file_locations <- Intmap.add (client_num c) c file.file_locations;
       CommonFile.file_add_source (CommonFile.as_file file.file_file) 
       (CommonClient.as_client c.client_client);
-      match c.client_sock, client_state c with
-        Some sock, (Connected_downloading
-          | Connected _) ->
-          query_file c file
-      | _ -> ()
+      do_if_connected c.client_sock (fun sock ->
+          match client_state c with
+            Connected_downloading _
+          | Connected _ ->
+              query_file c file
+          | _ -> ())
     end
     
 let remove_file_location file c = 
+  CommonFile.file_remove_source (CommonFile.as_file file.file_file)
+    (CommonClient.as_client c.client_client);
   file.file_locations <- Intmap.remove (client_num c) file.file_locations
 
 let purge_requests files =
@@ -265,7 +266,7 @@ let useful_client source_of_client reconnect_client c =
       if not downloading then (lprintf "Not downloading"; 
         lprint_newline ()); *)
     if downloading || 
-      (client_type c <> NormalClient &&
+      (client_browsed_tag land client_type c <> 0 &&
         c.client_next_view_files < last_time ()) then
       (
         if !verbose_sources then begin
@@ -311,7 +312,7 @@ let rank_level rank =
 let stats_ranks = ref (Array.create 10 0)
     
 let keep_client c =
-  client_type c <> NormalClient ||
+  client_browsed_tag land client_type c <> 0 ||
   (                
     List.exists (fun r -> 
         if r.request_result >= File_chunk then
@@ -419,3 +420,18 @@ let create_source new_score source_age addr =
           lprintf "Source %d added" s.source_num; lprint_newline ();
         end;
       s
+
+
+let ask_indirect_connection_by_udp ip port id =
+  let client_ip = client_ip None in
+  if ip_reachable client_ip then
+    let module Q = DonkeyProtoUdp.QueryCallUdp in
+      
+    DonkeyProtoCom.udp_send (get_udp_sock ())
+    ip (port+4)
+    (DonkeyProtoUdp.QueryCallUdpReq {
+        Q.ip = client_ip;
+        Q.port = !client_port;
+        Q.id = id;
+      })
+  

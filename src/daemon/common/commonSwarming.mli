@@ -23,6 +23,8 @@ type strategy =
   LinearStrategy    (* one after the other one *)
 | AdvancedStrategy  (* first chunks first, rarest chunks second, 
      complete first third, and random final *)
+
+exception VerifierNotReady
   
 module type Swarmer =
   sig
@@ -34,9 +36,11 @@ module type Swarmer =
     type chunks =
       AvailableRanges of (int64 * int64) list
 (* A bitmap is encoded with '0' for empty, '1' for present *)
-    | AvailableBitmap of string 
+    | AvailableCharBitmap of string 
+(* A bitmap encoded as an array of boolean *)
+    | AvailableBoolBitmap of bool array
     
-    val create : int64 -> int64 -> int64 -> t
+    val create : file -> int64 -> int64 -> t
     val set_writer : t -> (int64 -> string -> int -> int -> unit) -> unit
     val set_verifier : t -> (int -> int64 -> int64 -> bool) -> unit
     
@@ -46,7 +50,7 @@ module type Swarmer =
     val verified_bitmap : t -> string
     val set_verified_bitmap : t -> string -> unit
     
-    val register_uploader : t -> chunks -> uploader
+    val register_uploader : t -> client -> chunks -> uploader
     val update_uploader : uploader -> chunks -> unit
     val disconnect_uploader : uploader -> unit      
     
@@ -66,7 +70,12 @@ module type Swarmer =
     val compute_bitmap : t -> unit
     val is_interesting : uploader -> bool	
     val print_uploader : uploader -> unit
+      
+    val last_seen : t -> int array
     val print_uploaders : t -> unit    
+      
+    val uploader_swarmer : uploader -> t
+      
     val swarmer_to_value : t ->
       (string * Options.option_value) list ->
       (string * Options.option_value) list

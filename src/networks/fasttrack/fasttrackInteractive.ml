@@ -18,7 +18,7 @@
 *)
 
 open CommonSwarming
-open Int32ops
+open Int64ops
 open Xml
 open Printf2
 open Md4
@@ -189,7 +189,7 @@ let _ =
   file_ops.op_file_sources <- (fun file ->
 (*      lprintf "file_sources\n";  *)
       List2.tail_map (fun c ->
-          as_client c.client_client
+          as_client c
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
@@ -205,12 +205,12 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
-      file_cancel (as_file file.file_file);
-          Hashtbl.remove searches_by_uid  file.file_search.search_id
+      file_cancel (as_file file);
+      Hashtbl.remove searches_by_uid  file.file_search.search_id
   );
   file_ops.op_file_info <- (fun file ->
       {
-        P.file_comment = file_comment (as_file file.file_file);
+        P.file_comment = file_comment (as_file file);
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
@@ -223,14 +223,19 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = Int64Swarmer.verified_bitmap file.file_swarmer;
-        P.file_availability = 
-        [network.network_num,Int64Swarmer.availability file.file_swarmer];
+        P.file_chunks = (match file.file_swarmer with
+            None -> "" | Some swarmer ->
+              Int64Swarmer.verified_bitmap swarmer);
+        P.file_availability =   [network.network_num,
+          (match file.file_swarmer with
+          None -> "" | Some swarmer ->
+                Int64Swarmer.availability swarmer)];
+
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
+        P.file_priority = file_priority (as_file file);
         P.file_uids = [];
       }    
   )
@@ -366,12 +371,12 @@ let _ =
           let md4 = Md4.of_string uid in
           let c = new_client (Known_location (ip, port)) in
           c.client_user.user_uid <- md4;
-          friend_add (as_client c.client_client);
+          friend_add (as_client c);
           true
       | "ft://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
           let c = new_client (Indirect_location ("", md4)) in
-          friend_add (as_client c.client_client);
+          friend_add (as_client c);
           true
       | _ -> false);
   ()
@@ -390,7 +395,7 @@ let _ =
       {
         P.client_network = network.network_num;
         P.client_kind = c.client_user.user_kind;
-        P.client_state = client_state (as_client c.client_client);
+        P.client_state = client_state (as_client c);
         P.client_type = client_type c;
         P.client_tags = [];
         P.client_name = (match c.client_user.user_kind with
@@ -400,7 +405,7 @@ let _ =
               Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
         );
         P.client_files = None;
-        P.client_num = (client_num (as_client c.client_client));
+        P.client_num = (client_num (as_client c));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
@@ -416,14 +421,14 @@ let _ =
       browse_client c
   );
     client_ops.op_client_bprint <- (fun c buf ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf "%s (%s)\n"
           cinfo.GuiTypes.client_name
           (string_of_client_addr c)
     );
     client_ops.op_client_bprint_html <- (fun c buf file ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
 
         html_mods_td buf [
@@ -436,7 +441,7 @@ let _ =
    client_ops.op_client_dprint <- (fun c o file ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in 
+        let cc = as_client c in 
         let cinfo = client_info cc in
         client_print cc o;
         Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
@@ -448,7 +453,7 @@ let _ =
     client_ops.op_client_dprint_html <- (fun c o file str ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;

@@ -19,10 +19,135 @@
 
 open Queues
 open Md4
-  
-open CommonTypes
 open CommonSwarming
+open CommonTypes
+
+  (*
   
+module MyList = struct
+    type 'a mylist = 
+      Nil
+    | Cons of int * 'a * 'a mylist
+
+    type ('a,'b) assoc = 
+      { 
+        v1 : 'a;
+        mutable v2 : 'b;
+      }
+      
+    let nil = Nil
+    let length list = 
+      match list with Nil -> 0 | Cons (len,_,_) -> len
+      
+    let add v list = Cons (1+ length list, v, list)
+    let head list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,v,_) -> v
+          
+    let tail list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,_,tail) -> tail
+
+    let rec mem v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv = v || mem v tail
+
+    let rec memq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv == v || memq v tail
+
+    let assoc x y = { v1 = x; v2 = y; }
+    let assoc_get x = x.v2
+    let assoc_set x y = x.v2 <- y
+      
+    let rec find_assoc v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          if vv.v1 = v then vv else find_assoc v tail
+
+    let rec find_assq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          if vv.v1 == v then vv else find_assq v tail
+          
+    let rec mem_assoc v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv.v1 = v || mem_assoc v tail
+
+    let rec mem_assq v list =
+      match list with
+        Nil -> raise Not_found
+      | Cons (_,vv,tail) ->
+          vv.v1 == v || mem_assq v tail
+          
+  end
+
+open MyList
+    *)
+
+  (*
+type client_tag_name =
+  CT_CLIENT_NAME
+| CT_CLIENT_PORT
+| CT_CLIENT_VERSION
+| CT_CLIENT_EXTENDED
+| CT_CLIENT_UDPPORT
+  
+type server_tag_name =
+| ST_SERVER_NAME
+| ST_SERVER_DESCRIPTION
+| ST_SERVER_PORT
+| ST_SERVER_IP
+| ST_SERVER_PING
+| ST_SERVER_PROF
+| ST_SERVER_HISTORY
+  
+type file_tag_name =
+| FT_FILE_FILENAME
+| FT_FILE_SIZE
+| FT_FILE_TYPE
+| FT_FILE_FORMAT
+| FT_FILE_AVAILABILITY
+| FT_FILE_TITLE
+| FT_FILE_ARTIST
+| FT_FILE_ALBUM
+| FT_FILE_LOC
+| FT_FILE_DOWNLOADED
+| FT_FILE_DISKNAME
+| FT_FILE_PRIORITY
+| FT_FILE_STATUS
+*)  
+type emule_tag_name =
+| ET_COMPRESSION
+| ET_UDPPORT
+| ET_UDPVER
+| ET_SOURCEEXCHANGE
+| ET_COMMENTS
+| ET_EXTENDEDREQUEST
+| ET_COMPATABLECLIENT
+| ET_MOD_FEATURESET
+| ET_MOD_PROTOCOL
+| ET_MOD_VERSION
+| ET_MOD_TAROD
+| ET_TAROD_VERSION
+| ET_MOD_PLUS
+(*  
+type pref_tag_name =
+| PT_PREF_NAME
+| PT_PREF_PORT
+| PT_PREF_VERSION
+| PT_PREF_TEMP
+    *)
 type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
@@ -54,15 +179,93 @@ type brand =
 | Brand_lmule
 | Brand_shareaza
 | Brand_server
+| Brand_amule
+| Brand_lphant
   
-let brand_count = 11
+let brand_count = 13
   
+type brand_mod =
+  Brand_mod_unknown
+| Brand_mod_extasy
+| Brand_mod_hunter
+| Brand_mod_sivka
+| Brand_mod_ice
+| Brand_mod_plus
+| Brand_mod_lsd
+| Brand_mod_maella
+| Brand_mod_pille
+| Brand_mod_morphkad
+| Brand_mod_efmod
+| Brand_mod_xtreme
+| Brand_mod_bionic
+| Brand_mod_pawcio
+| Brand_mod_zzul
+| Brand_mod_blackhand
+| Brand_mod_lovelace
+| Brand_mod_morphnext
+| Brand_mod_fincan
+| Brand_mod_ewombat
+| Brand_mod_morph
+| Brand_mod_mortillo
+| Brand_mod_lh
+| Brand_mod_emulespana
+| Brand_mod_blackrat
+| Brand_mod_enkeydev
+| Brand_mod_gnaddelwarz
+| Brand_mod_phoenixkad
+| Brand_mod_koizo
+| Brand_mod_ed2kfiles
+| Brand_mod_athlazan
+| Brand_mod_cryptum
+| Brand_mod_lamerzchoice
+| Brand_mod_notdead
+| Brand_mod_peace
+| Brand_mod_goldicryptum
+| Brand_mod_eastshare
+| Brand_mod_mfck
+| Brand_mod_echanblard
+| Brand_mod_sp4rk
+| Brand_mod_powermule
+| Brand_mod_bloodymad
+| Brand_mod_roman2k
+| Brand_mod_gammaoh
+| Brand_mod_elfenwombat
+| Brand_mod_o2
+| Brand_mod_dm
+| Brand_mod_sfiom
+| Brand_mod_magic_elseve
+| Brand_mod_schlumpmule
+| Brand_mod_lc
+| Brand_mod_noamson
+| Brand_mod_stormit
+| Brand_mod_omax
+| Brand_mod_mison
+| Brand_mod_phoenix
+| Brand_mod_spiders
+| Brand_mod_iberica
+| Brand_mod_mortimer
+| Brand_mod_stonehenge
+| Brand_mod_xlillo
+| Brand_mod_imperator
+| Brand_mod_raziboom
+| Brand_mod_khaos
+| Brand_mod_hardmule
+| Brand_mod_sc
+| Brand_mod_cy4n1d
+| Brand_mod_dmx
+| Brand_mod_ketamine
+| Brand_mod_blackmule
+| Brand_mod_morphxt
+| Brand_mod_ngdonkey
+
+let brand_mod_count = 72
+
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t option;
     mutable server_port : int;
-    mutable server_sock : TcpBufferedSocket.t option;
+    mutable server_sock : tcp_connection;
     mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
@@ -71,6 +274,7 @@ type server = (*[]*){
     mutable server_tags : CommonTypes.tag list;
     mutable server_nusers : int;
     mutable server_nfiles : int;
+    mutable server_max_users : int;
     mutable server_name : string;
     mutable server_description : string;
     mutable server_banner : string;
@@ -84,6 +288,9 @@ type server = (*[]*){
     
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
+    mutable server_has_zlib : bool;
+    
+    mutable server_flags : int;
   } 
 
 
@@ -141,33 +348,31 @@ and server_change_kind =
 | ServerInfoChange
 | ServerBusyChange
 
-and challenge = {
-    mutable challenge_md4 : Md4.t;
-    mutable challenge_solved : Md4.t;
-    mutable challenge_ok : bool;
-  }
-  
+and availability = bool array
+
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : location_kind;
     mutable client_source : source option;
     mutable client_md4 : Md4.t;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_chunks : availability;
+    mutable client_sock : tcp_connection;
     mutable client_ip : Ip.t;
     mutable client_power : int ;
+    mutable client_uploader : Int64Swarmer.uploader option;
     mutable client_block : Int64Swarmer.block option;
-    mutable client_blocks : Int64Swarmer.block list;
-    mutable client_ranges : Int64Swarmer.range list;
+    mutable client_zones : (int64 * int64 * Int64Swarmer.range) list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (
       file * (* has displayed when connected *)
-      string 
+      availability *
+      Int64Swarmer.uploader
       ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
-    mutable client_all_chunks : string;
+(*    mutable client_all_chunks : string; *)
     mutable client_rating : int ;
     mutable client_upload : upload_info option;
     mutable client_checked : bool;
@@ -178,8 +383,8 @@ and client = {
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
+    mutable client_mod_brand : brand_mod;
     mutable client_banned : bool;
-    mutable client_has_a_slot : bool;
     mutable client_overnet : bool;
     mutable client_score : int;
     mutable client_files : file_request list;
@@ -207,7 +412,8 @@ and upload_info = {
     mutable up_waiting : bool;
   }
 
-  (*
+(*
+  
 and chunk = 
   PresentTemp
 | AbsentTemp
@@ -273,28 +479,25 @@ and client_kind =
   
 and file = {
     file_file : file CommonFile.file_impl;
-    mutable file_filenames : string list;
-
-    mutable file_partition : CommonSwarming.Int64Swarmer.partition;
-    mutable file_swarmer : CommonSwarming.Int64Swarmer.t;
-    
     file_md4 : Md4.t;
     file_exists : bool;
-    (*
+    
+    mutable file_swarmer : Int64Swarmer.t option;
+    
     mutable file_nchunks : int;
-    mutable file_chunks : chunk array;
-    mutable file_chunks_order : int array;
+(*    mutable file_chunks : chunk array; *)
+(*    mutable file_chunks_order : int array; *)
+    mutable file_chunks_age : int array;
 (*    mutable file_all_chunks : string; *)
-    mutable file_absent_chunks : (int64 * int64) list;
-    *)
-
+(*    mutable file_absent_chunks : (int64 * int64) list; *)
+    mutable file_filenames : (string * GuiTypes.ips_list) list;
     mutable file_nsources : int;
-    mutable file_md4s : Md4.t list;
+    mutable file_md4s : Md4.t array;
     mutable file_format : format;
-    mutable file_available_chunks : int array;
+(*    mutable file_available_chunks : int array; *)
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_locations : client Intmap.t; 
-    mutable file_mtime : float;
+(*    mutable file_mtime : float; *)
     mutable file_initialized : bool;
 (* Source management number 3 !! *)
     mutable file_clients : (client * int) Fifo.t;
@@ -331,6 +534,13 @@ type old_result = result
     
 exception NoSpecifiedFile
 exception Already_done
+
+type shared_file_info = {
+    sh_name : string;
+    sh_md4s : Md4.t array;
+    sh_mtime : float;
+    sh_size : int64;
+  }
 
   
 open CommonFile
@@ -472,6 +682,14 @@ type brand_stat = {
   mutable brand_upload : Int64.t;
 }
   
+type brand_mod_stat = {
+  mutable brand_mod_seen : int;
+  mutable brand_mod_banned : int;
+  mutable brand_mod_filerequest : int;
+  mutable brand_mod_download : Int64.t;
+  mutable brand_mod_upload : Int64.t;
+}
+
 let dummy_stats =
   {
     brand_seen = 0;
@@ -480,3 +698,71 @@ let dummy_stats =
     brand_download = Int64.zero;
     brand_upload = Int64.zero
   }
+
+let dummy_mod_stats =
+  {
+    brand_mod_seen = 0;
+    brand_mod_banned = 0;
+    brand_mod_filerequest = 0;
+    brand_mod_download = Int64.zero;
+    brand_mod_upload = Int64.zero
+  }
+
+  (*
+let string_of_file_tag_name name = 
+  match name with
+  | FT_FILE_SIZE -> "size"
+  | FT_FILE_FILENAME -> "filename"
+  | FT_FILE_TYPE -> "type"
+  | FT_FILE_FORMAT -> "format"
+  | FT_FILE_AVAILABILITY -> "availability"
+  | FT_FILE_DOWNLOADED -> "downloaded"
+  | FT_FILE_DISKNAME -> "diskname"
+  | FT_FILE_PRIORITY -> "priority"
+  | FT_FILE_STATUS -> "status"
+  | FT_FILE_ARTIST -> "Artist"
+  | FT_FILE_TITLE -> "Title"
+  | FT_FILE_ALBUM -> "Album"
+  | FT_FILE_LOC -> "loc"
+
+let string_of_server_tag_name name =
+  match name with
+  | ST_SERVER_NAME -> "name"
+  | ST_SERVER_DESCRIPTION -> "description"
+  | ST_SERVER_PORT -> "port"
+  | ST_SERVER_IP -> "ip"
+  | ST_SERVER_PING -> "ping"
+  | ST_SERVER_PROF -> "prof"
+  | ST_SERVER_HISTORY -> "history"
+    
+let string_of_client_tag_name name =
+  match name with
+  | CT_CLIENT_NAME -> "name"
+  | CT_CLIENT_PORT -> "port"
+  | CT_CLIENT_VERSION -> "version"
+  | CT_CLIENT_EXTENDED -> "extended"
+  | CT_CLIENT_UDPPORT -> "udpport"
+
+let string_of_emule_tag_name name =
+  match name with
+  | ET_COMPRESSION -> "compression"
+  | ET_UDPPORT -> "udpport"
+  | ET_UDPVER -> "udpver"
+  | ET_SOURCEEXCHANGE -> "sourceexchange"
+  | ET_COMMENTS -> "comments"
+  | ET_EXTENDEDREQUEST -> "extendedrequest"
+  | ET_COMPATABLECLIENT -> "compatableclient"
+  | ET_MOD_FEATURESET -> "mod_featureset"
+  | ET_MOD_PROTOCOL -> "mod_protocol"
+  | ET_MOD_VERSION -> "mod_version"
+  | ET_MOD_TAROD -> "mod_tarod"
+  | ET_TAROD_VERSION -> "tarod_version"
+  | ET_MOD_PLUS -> "mod_plus"
+    
+let string_of_pref_tag_name name =
+  match name with
+  | PT_PREF_NAME -> ""
+  | PT_PREF_PORT -> ""
+  | PT_PREF_VERSION -> ""
+  | PT_PREF_TEMP -> ""
+      *)

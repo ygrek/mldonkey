@@ -80,6 +80,10 @@ let start_interfaces () =
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
+
+  if !!dp500_pclink then 
+    ignore (find_port  "dp500 server" !!telnet_bind_addr
+        dp500_port DriverLink.pclink_handler);  
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr

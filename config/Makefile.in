@@ -61,6 +61,16 @@ CONFIGWIN=src/gtk/configwin
 SRC_GUI2=src/gtk/gui2
 SRC_PROGRESS=src/gtk/progress
 
+ifeq ("$(DEVEL)", "yes")
+
+DONKEY_DIR=donkey_devel
+
+else
+
+DONKEY_DIR=donkey
+
+endif
+
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
 SRC_BITTORRENT=src/networks/bittorrent
@@ -85,6 +95,12 @@ CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
 # use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
+
+ifeq ("$(DEVEL)", "yes")
+
+TARGETS += mldonkey_installer$(EXE)
+
+endif
 
 
 #######################################################################
@@ -113,7 +129,7 @@ endif
 
 CDK_SRCS += $(LIB)/autoconf.ml
 
-CDK_SRCS+= $(LIB)/fifo.ml  $(CDK)/printf2.ml \
+CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
    $(CDK)/heap.ml $(CDK)/dprintf.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
   $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
@@ -142,7 +158,7 @@ LIB_SRCS=   \
   src/config/$(OS_FILES)/mlUnix.ml \
   src/config/$(OS_FILES)/os_stubs_c.c \
   $(LIB)/intmap.ml $(LIB)/stringMap.ml \
-  $(LIB)/int32ops.ml $(LIB)/options.ml4 $(LIB)/numset.ml  \
+  $(LIB)/int64ops.ml $(LIB)/options.ml4 $(LIB)/numset.ml  \
   $(LIB)/fifo2.ml $(LIB)/intset.ml \
   $(LIB)/hole_tab.ml $(LIB)/store.ml \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
@@ -266,6 +282,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyReliability.ml \
   $(SRC_DONKEY)/donkeyThieves.ml \
   $(SRC_DONKEY)/donkeyChunks.ml \
+  $(SRC_DONKEY)/donkeyNeighbours.ml \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   $(SRC_DONKEY)/donkeyStats.ml \
   $(SRC_DONKEY)/donkeyClient.ml \
@@ -279,16 +296,6 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyInteractive.ml \
   $(SRC_DONKEY)/donkeyMain.ml
 
-
-OBSERVER_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
-  tools/observer.ml
-
-ED2K_HASH_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  tools/ed2k_hash.ml
 
 MLPIC_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -337,8 +344,8 @@ SPIDER_SRCS= \
   src/spider/spiderChunks.ml \
   src/spider/spiderOneFile.ml \
   \
-  src/spider/spiderUtils.ml \
   src/spider/spiderDependencies.ml \
+  src/spider/spiderUtils.ml \
   src/spider/spiderFiles.ml \
   src/spider/spiderGenTables.ml \
   src/spider/spiderTables.ml \
@@ -359,9 +366,6 @@ SPIDER_SRCS= \
   \
   src/spider/spiderMain.ml \
   src/daemon/common/commonMain.ml
-
-COPYSOURCES_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -391,34 +395,42 @@ OPENNAP_SRCS= \
  $(SRC_OPENNAP)/opennapMain.ml 
 
 GNUTELLA_SRCS= \
+  $(SRC_GNUTELLA)/gnutellaNetwork.ml \
   $(SRC_GNUTELLA)/gnutellaTypes.ml \
   $(SRC_GNUTELLA)/gnutellaOptions.ml \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutellaProto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
+  $(SRC_GNUTELLA)/gnutellaProto.ml \
   $(SRC_GNUTELLA)/gnutellaHandler.ml \
   $(SRC_GNUTELLA)/gnutellaRedirector.ml \
-  $(SRC_GNUTELLA)/gnutella.ml \
+  $(SRC_GNUTELLA)/gnutellaScheduler.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
 
+# The only files specific to Gnutella2 are:
+#  $(SRC_GNUTELLA2)/g2Network.ml
+#  $(SRC_GNUTELLA2)/g2Proto.ml 
+#  $(SRC_GNUTELLA2)/g2Handler.ml 
+#  $(SRC_GNUTELLA2)/g2Redirector.ml 
+
 GNUTELLA2_SRCS= \
-  $(SRC_GNUTELLA2)/g2Types.ml \
-  $(SRC_GNUTELLA2)/g2Options.ml \
-  $(SRC_GNUTELLA2)/g2Globals.ml \
-  $(SRC_GNUTELLA2)/g2ComplexOptions.ml \
-  $(SRC_GNUTELLA2)/g2Protocol.ml \
+  $(SRC_GNUTELLA2)/g2Network.ml \
+  $(SRC_GNUTELLA2)/g2Types.mlt \
+  $(SRC_GNUTELLA2)/g2Options.mlt \
+  $(SRC_GNUTELLA2)/g2Globals.mlt \
+  $(SRC_GNUTELLA2)/g2ComplexOptions.mlt \
+  $(SRC_GNUTELLA2)/g2Protocol.mlt \
+  $(SRC_GNUTELLA2)/g2Clients.mlt \
   $(SRC_GNUTELLA2)/g2Proto.ml \
-  $(SRC_GNUTELLA2)/g2Clients.ml \
   $(SRC_GNUTELLA2)/g2Handler.ml \
   $(SRC_GNUTELLA2)/g2Redirector.ml \
-  $(SRC_GNUTELLA2)/g2Scheduler.ml \
-  $(SRC_GNUTELLA2)/g2Servers.ml \
-  $(SRC_GNUTELLA2)/g2Interactive.ml \
-  $(SRC_GNUTELLA2)/g2Main.ml
+  $(SRC_GNUTELLA2)/g2Scheduler.mlt \
+  $(SRC_GNUTELLA2)/g2Servers.mlt \
+  $(SRC_GNUTELLA2)/g2Interactive.mlt \
+  $(SRC_GNUTELLA2)/g2Main.mlt
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -516,6 +528,25 @@ AUDIOGALAXY_SRCS= \
   $(SRC_AUDIOGALAXY)/agMain.ml
 
 
+OBSERVER_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
+  tools/observer.ml
+
+ED2K_HASH_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  tools/ed2k_hash.ml
+
+OCAMLPP_SRCS = \
+  tools/ocamlpp.ml4
+
+COPYSOURCES_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
+
+SUBCONV_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) tools/subconv.ml
+
 MAKE_TORRENT_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
@@ -542,6 +573,7 @@ endif
 DRIVER_SRCS= \
   $(DRIVER)/driverInteractive.ml  \
   $(DRIVER)/driverCommands.ml  \
+  $(DRIVER)/driverLink.ml \
   $(DRIVER)/driverControlers.ml  \
   $(DRIVER)/driverInterface.ml \
   $(DRIVER)/driverMain.ml 
@@ -840,7 +872,7 @@ MLDONKEY_IM_SRCS= \
 STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 STARTER_CMXA=cdk.cmxa
 
-INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
+INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 INSTALLER_SRCS= \
   $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
 
@@ -878,12 +910,6 @@ endif
 
 TARGETS +=  mlnet+gui$(EXE)
 
-ifeq ("$(DEVEL)", "yes")
-
-TARGETS += mldonkey_installer$(EXE)
-
-endif
-
 
 #### IM stuff is now automatically included in the GUI
 
@@ -902,11 +928,11 @@ IM_GUI_CORE += $(IM)/gui_im_base.zog   \
 
 TARGETS += mlim
 
-ifeq ("$(DEVEL)", "yes")
-  SUBDIRS += $(IM)/msn
-
-  IM_CORE +=    $(IM)/yahoo/yahoo.ml   $(IM)/msn/msn.ml
-endif
+#ifeq ("$(DEVEL)", "yes")
+#  SUBDIRS += $(IM)/msn
+#
+#  IM_CORE +=    $(IM)/yahoo/yahoo.ml   $(IM)/msn/msn.ml
+#endif
 
 IM_CORE +=   $(IM)/imMain.ml
 
@@ -924,14 +950,18 @@ $1_ZOG := $(filter %.zog, $($1_SRCS))
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
+$1_MLT := $(filter %.mlt, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli)  $($1_ZOG:.zog=.ml) 
  
+ZOGSOURCES +=  $($1_ZOG:.zog=.ml) 
+MLTSOURCES +=  $($1_MLT:.mlt=.ml)
+
 build/$2.cmxa: $($1_OBJS) $($1_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
  
@@ -977,7 +1007,7 @@ EXPAND_DRIVER(mlg2,GNUTELLA2,gnutella2)
 EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlfileTP,FILETP,fileTP)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
-EXPAND_DRIVER(mldonkey,DONKEY,donkey)
+EXPAND_DRIVER(mldonkey,DONKEY,$(DONKEY_DIR))
 EXPAND_DRIVER(mlcymes,CYMES,cymes)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
@@ -1031,7 +1061,8 @@ $1_ZOG := $(filter %.zog, $($1_SRCS))
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
+$1_MLT := $(filter %.mlt, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
@@ -1040,7 +1071,7 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 $1_CMXAS := $(foreach file, $($1_CMXA),   build/$(basename $(file)).cmxa)
 $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
@@ -1074,7 +1105,9 @@ EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
 EXPAND(ED2K_HASH,ed2k_hash)
+EXPAND(OCAMLPP,ocamlpp)
 EXPAND(MAKE_TORRENT,make_torrent)
+EXPAND(SUBCONV,subconv)
 EXPAND(GET_RANGE,get_range)
 EXPAND(COPYSOURCES,copysources)
 EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
@@ -1090,7 +1123,6 @@ EXPAND(SPIDER,mlspider)
 ##                      Other rules
 
 #######################################################################
-
 
 TOP_ZOG := $(filter %.zog, $(TOP_SRCS)) 
 TOP_MLL := $(filter %.mll, $(TOP_SRCS)) 
@@ -1182,11 +1214,13 @@ clean:
 		rm -f  $$i/*.cm? $$i/*.o ; \
 	done)
 
-releaseclean: clean
+moreclean: clean
+	rm -f $(TMPSOURCES)
+
+releaseclean: clean moreclean
 	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?
-	rm -f $(TMPSOURCES)
 	rm -rf patches/build
 	rm -f .depend
 	rm -f config/Makefile.config
@@ -1222,12 +1256,21 @@ PA_ZOG_FILES=tools/zoggy/zog_types.ml tools/zoggy/zog_messages.ml tools/zoggy/zo
 pa_zog.cma: $(PA_ZOG_FILES)
 	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4) pa_o.cmo pr_dump.cmo" -a -o pa_zog.cma  $(PA_ZOG_FILES)
 
-$(TMPSOURCES): pa_zog.cma
+
+OCAMLPP=./ocamlpp.byte
+
+$(ZOGSOURCES): pa_zog.cma
+$(MLTSOURCES): $(OCAMLPP)
+#$(TMPSOURCES): $(OCAMLPP)
+
+#ocamlpp.byte: tools/ocamlpp.ml
+#	$(OCAMLC) str.cma -o ocamlpp.byte tools/ocamlpp.ml
 
 depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
@@ -1240,9 +1283,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: ed2k_hash make_torrent copysources get_range
-utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte
-utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static
+utils: ed2k_hash make_torrent copysources get_range subconv
+utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte
+utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static
 
 #######################################################################
 
@@ -1430,7 +1473,7 @@ rpm: sourcedist
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlii
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii
 
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -1471,7 +1514,11 @@ rpm: sourcedist
 	$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
 
 .ml4.ml:
-	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< > $@
+	echo '# 1 "$<"' > $@
+	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< >> $@
+
+.mlt.ml:
+	$(OCAMLPP) -pp $< > $@
 
 .c.o :
 	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<

@@ -28,6 +28,7 @@ open CommonFile
 open BasicSocket
 open TcpBufferedSocket
 
+open CommonHosts
 open CommonTypes
 open CommonGlobals
 open Options
@@ -47,10 +48,10 @@ let parse_urlfile file =
   clean_file s;
   let lines = String2.split_simplify s '\n' in
   List.iter (fun line ->
-      if not (List.mem line !!gnutella1_hostfiles) then
-        gnutella1_hostfiles =:= line :: !!gnutella1_hostfiles
+      if not (List.mem line !!gnutella_hostfiles) then
+        gnutella_hostfiles =:= line :: !!gnutella_hostfiles
   ) lines;
-  redirectors_hostfiles := !!gnutella1_hostfiles
+  redirectors_hostfiles := !!gnutella_hostfiles
 
 let connect_urlfile () = 
   match !redirectors_urlfiles with
@@ -79,7 +80,7 @@ let parse_hostfile file =
       try
         let ip, port = String2.cut_at line ':' in
         lprintf "gnutella1: adding ultrapeer from hostfile\n";
-        let h = new_host (Ip.of_string ip) (int_of_string port) true 1 in
+        let h = H.new_host (Ip.of_string ip) (int_of_string port) true  in
         ()
       with _ -> ()
   ) lines
@@ -92,7 +93,7 @@ let connect_hostfile _ =
       if !next_redirector_access < last_time () then begin
           next_redirector_access := last_time () + 60;
           connect_urlfile ();
-          redirectors_hostfiles := !!gnutella1_hostfiles
+          redirectors_hostfiles := !!gnutella_hostfiles
         end;
   | url :: tail ->
       redirectors_hostfiles := tail;

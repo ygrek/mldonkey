@@ -24,13 +24,14 @@ type url = {
     server : string;
     port : int;
     full_file : string;
-    file : string;
+    short_file : string;
     user : string;
     passwd : string;
     args : (string*string) list;
     
     string : string;
   }
+  
 (* encode using x-www-form-urlencoded form *)
 let encode s =
   let pos = ref 0 in
@@ -78,16 +79,27 @@ let decode s =
   String.sub res 0 !pos_r
 
 
-let to_string with_args url =
+let to_string url =
   let res = Buffer.create 80 in
   add_string res url.proto;
   add_string res "://";
+  if url.user <> "" || url.passwd <> "" then begin
+      add_string res url.user;
+      add_string res ":";
+      add_string res url.passwd;
+      add_string res "@";
+    end;
   add_string res url.server;
-  if not (url.port == 80 && url.proto = "http"
-        || url.port == 21 && url.proto = "ftp")
-  then
-    (add_char res ':'; add_string res (string_of_int url.port));
-  add_string res (if with_args then url.full_file else url.file);
+    (match url.proto, url.port with
+      "http", 80 
+    | "ftp", 21
+    | "ssh", 22 -> ()
+    | ("http" | "ftp" | "ssh"), _ ->
+        (add_char res ':'; add_string res (string_of_int url.port));
+    | _, port when port <> 0 ->
+        (add_char res ':'; add_string res (string_of_int url.port));
+    | _ -> ());
+  add_string res url.full_file;
   contents res
 
 let cut_args url_end =
@@ -99,13 +111,42 @@ let cut_args url_end =
       decode name, decode value
     ) args 
 
-let create ?(proto="http") ?(server="") ?(port=80) ?(user="") ?(pass="") file =
-  let short_file, args = String2.cut_at file '?' in
+let create proto user passwd server port full_file =
+  let short_file, args = String2.cut_at full_file '?' in
   let args = cut_args args in
+
+  (*
+  let user, passw, server = 
+    let userpass, server = String2.cut_at server '@' in
+    if server = "" then "", "", server
+    else
+    let user, pass = String2.cut_at userpass ':' in
+    user, pass, server
+  in
+*)
+  
+  let url = 
+    {
+      proto = proto;
+      server = server;
+      port = port;
+      full_file = full_file;
+      short_file = short_file;
+      user = user;
+      passwd = passwd;
+      args = args;
+      
+      string = "";
+    }
+  in
+  { url with string = to_string url }
+  
+  (*
   let port = if proto = "ftp" && port = 80 then 21 else port in
   let url = { proto=proto; server=server; port=port; full_file=file;
       user=user; passwd=pass; file = short_file; args = args; string = "" } in
-  { url with string = to_string true url }
+  { url with string = to_string url }
+    *)
 
 let put_args s args =
   if args = [] then s else
@@ -156,31 +197,92 @@ let of_string ?(args=[]) s =
             stra, strb, host, port, end_pos)
         else
           (let port = if strb="" then default_port else int_of_string strb in
-            "anonymous", "cdk@caml.opt", stra, port, new_pos) in
+            "", "", stra, port, new_pos) in
       let len = String.length s in
       let file = String.sub s end_pos (len - end_pos) in
       host, port, file, user, pass in
+    try
+      let colon = String.index s ':' in
+      let len = String.length s  in
+      if len > colon + 2 &&
+        s.[colon+1] = '/' &&
+        s.[colon+2] = '/' then
+        let proto =  String.sub s 0 colon in
+        let port = match proto with
+            "http" -> 80
+          | "ftp" -> 21
+          | "ssh" -> 22
+          | _ -> 0
+        in
+        let host, port, full_file, user, pass = cut (colon+3) port in
+        create proto user pass host port full_file
+        
+      else
+        raise Not_found 
+    with Not_found ->
+        let short_file, args = String2.cut_at s '?' in
+        let args = cut_args args in
+        {
+          proto = "file";
+          server = "";
+          port = 0;
+          full_file = s;
+          short_file = short_file;
+          user = "";
+          passwd = "";
+          args = args;
+          
+          string = s;
+        }
+
+        (*
     if String2.check_prefix s "http://"
     then
       try
-        let host, port, full_file, user, pass = cut 7 80 in
-        create ~server:host ~port ~user ~pass full_file
       with _ -> raise (Invalid_argument "this string is not a valid http url")
     else if String2.check_prefix s "ftp://"
     then
       try
         let host, port, file, user, pass = cut 6 21 in
-        create ~proto:"ftp" ~server:host ~port ~user ~pass file
+        create "ftp" user pass host port full_file
       with _ -> raise (Invalid_argument "this string is not a valid ftp url")
     else if String2.check_prefix s "ssh://"
     then
       try
         let host, port, file, user, pass = cut 6 22 in
-        create ~proto:"ssh" ~server:host ~port ~user ~pass file
+        create "ssh" user pass host port full_file
       with _ -> raise (Invalid_argument "this string is not a valid ssh url")
     else
-(* we accept URL with no protocol for local files *)
+
     let file = s in
-    create ~proto: "file"  file
+    Printf2.lprintf "NEW URL FOR %s\n" file;
+create "file"~proto: "file"  file
+  *)
   in
   url 
+        
+let to_string url = url.string
+  
+  
+let to_string_no_args url =
+  let res = Buffer.create 80 in
+  add_string res url.proto;
+  add_string res "://";
+  add_string res url.server;
+  (match url.proto, url.port with
+      "http", 80 
+    | "ftp", 21
+    | "ssh", 22 -> ()
+    | ("http" | "ftp" | "ssh"), _ ->
+        (add_char res ':'; add_string res (string_of_int url.port));
+    | _, port when port <> 0 ->
+        (add_char res ':'; add_string res (string_of_int url.port));
+    | _ -> ());
+  add_string res url.short_file;
+  contents res
+
+open Options
+let option = 
+  define_option_class "URL"
+    (fun v -> of_string (value_to_string v))
+  (fun url -> string_to_value (to_string url))

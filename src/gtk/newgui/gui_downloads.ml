@@ -946,6 +946,24 @@ class box_downloads wl_status () =
     
     val mutable label_shown = false
       
+    method on_select file =
+    (* same comment than for the friends tab but without
+       consequence here. Just to be coherent ;-) *)
+      if file = List.hd (List.rev self#selection) then
+      if not label_shown then begin
+          label_shown <- true;
+          self#vbox#pack ~expand: false ~fill: true label_file_info#coerce
+          
+        end;
+      label_file_info#set_text 
+        (
+        Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
+          (file.data.gfile_name)
+        (Int64.to_string file.data.gfile_size)
+        (string_of_format file.data.gfile_format)
+        ;
+      )
+
 (** {2 Handling core messages} *)
 
      method update_file f f_new =

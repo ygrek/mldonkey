@@ -143,7 +143,7 @@ let mail_for_completed_file file =
     
     let mail = {
         M.mail_to = !!mail;
-        M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
+        M.mail_from = !!mail;
         M.mail_subject = subject;
         M.mail_body = line1 ^ line2;
       } in

@@ -18,7 +18,7 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Printf2
 open Md4
 open CommonGlobals
@@ -54,6 +54,11 @@ let download r filenames =
 
 let _ =
   network.op_network_search <- (fun q buf ->
+      
+(* Shouldn't we filter searches for other things than mp3s ? *)
+(* Shouldn't we also prevent searches if we don't have a correct IP
+  address, since the replies won't probably get in ? *)
+      
       next_token =:= !!next_token + 1;
       let query = q.search_query in
       let words = ref [] in

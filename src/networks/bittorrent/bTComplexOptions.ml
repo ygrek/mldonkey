@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Printf2
 open Md4
 open Options
@@ -123,12 +123,15 @@ let value_to_file file_size file_state assocs =
           (Printexc2.to_string e); 
   );
   
-  Int64Swarmer.value_to_swarmer file.file_swarmer assocs;
-  lprintf "add_file_downloaded %Ld\n" (Int64Swarmer.downloaded file.file_swarmer);
-  
-  add_file_downloaded file.file_file
-    (Int64Swarmer.downloaded file.file_swarmer);
-  
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        Int64Swarmer.value_to_swarmer swarmer assocs;
+        add_file_downloaded file.file_file
+          (Int64Swarmer.downloaded swarmer);
+        
+  );
+
   (try
       ignore
         (get_value  "file_sources" (
@@ -136,13 +139,13 @@ let value_to_file file_size file_state assocs =
     with e -> 
         lprintf "Exception %s while loading sources\n"
           (Printexc2.to_string e); 
-  );
-  as_file file.file_file
+);
+  as_file file
   
 let file_to_value file =
   let sources = Hashtbl2.to_list file.file_clients in
-  
-  Int64Swarmer.swarmer_to_value file.file_swarmer
+
+  let assocs =
     [
     "file_piece_size", int64_to_value (file.file_piece_size);
     "file_name", string_to_value file.file_name;
@@ -150,10 +153,17 @@ let file_to_value file =
     "file_uploaded", int64_to_value  (file.file_uploaded);
     "file_id", string_to_value (Sha1.to_string file.file_id);
     "file_tracker", string_to_value file.file_tracker;
+(* OK, but I still don't like the idea of forgetting all the clients.
+We should have a better strategy, ie rating the clients and connecting
+to them depending on the results of our last connections. And then,
+if we could not download enough in the last interval, ask the tracker to
+send us more clients.
+  
     "file_sources", 
     list_to_value "BT Sources" (fun c ->
         ClientOption.to_value c) sources
-    ;
+;
+  *)
     "file_hashes", array_to_value 
       (to_value Sha1.option) file.file_chunks;
     "file_files", list_to_value ""
@@ -161,6 +171,11 @@ let file_to_value file =
         SmallList [string_to_value name; int64_to_value p1])
     file.file_files;
   ]
+  in
+  match file.file_swarmer with
+    None -> assocs 
+  | Some swarmer ->
+      Int64Swarmer.swarmer_to_value swarmer assocs
   
 let old_files = 
   define_option bittorrent_section ["old_files"]

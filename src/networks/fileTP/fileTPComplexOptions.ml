@@ -93,7 +93,7 @@ let value_to_file file_size file_state assocs =
 
   lprintf "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
   
-  let file_name = get_value "file_name" value_to_string in
+  let file_name = get_value "file_filename" value_to_string in 
   let file_id = 
     try
       Md4.of_string (get_value "file_id" value_to_string)
@@ -102,43 +102,53 @@ let value_to_file file_size file_state assocs =
   
   let file = new_file file_id file_name file_size in
 
-  Int64Swarmer.value_to_swarmer file.file_swarmer assocs;
-  add_file_downloaded file.file_file
-    (Int64Swarmer.downloaded file.file_swarmer);
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        Int64Swarmer.value_to_swarmer swarmer assocs;
+        add_file_downloaded file.file_file
+          (Int64Swarmer.downloaded swarmer);
+        
+  );
 
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
               | SmallList [c; index] | List [c;index] ->
                   let s = ClientOption.value_to_client c in
-                  add_download file s (value_to_string index)
+                  add_download file s (Url.of_string (value_to_string index))
               | _ -> failwith "Bad source"
           )))
     with e -> 
         lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
   );
-  as_file file.file_file
+  as_file file
   
 let file_to_value file =
-  Int64Swarmer.swarmer_to_value file.file_swarmer
-  [
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Md4.to_string file.file_id);
-    "file_sources", 
-    list_to_value "FileTP Sources" (fun c ->
-        lprintf "SAVING: find_client...\n";
-        let n = (find_download file c.client_downloads).download_url in
-        lprintf "SAVING: find_client...done...saving\n"; 
-        SmallList [ClientOption.client_to_value c; string_to_value n]
-    ) file.file_clients;
-  ]
-  
+  let assocs =
+    [
+(*      "file_name", string_to_value file.file_name; *)
+      "file_downloaded", int64_to_value (file_downloaded file);
+      "file_id", string_to_value (Md4.to_string file.file_id);
+      "file_sources", 
+      list_to_value "FileTP Sources" (fun c ->
+          lprintf "SAVING: find_client...\n";
+          let n = (find_download file c.client_downloads).download_url in
+          lprintf "SAVING: find_client...done...saving\n"; 
+          SmallList [ClientOption.client_to_value c; 
+            string_to_value (Url.to_string n)]
+      ) file.file_clients;
+    ]
+  in
+  match file.file_swarmer with
+    None -> assocs 
+  | Some swarmer ->
+      Int64Swarmer.swarmer_to_value swarmer assocs
+
 let old_files = 
-  define_option fileTP_section ["old_files"]
-    "" (list_option (tuple2_option (string_option, int64_option))) []
-    
+  define_option fileTP_section ["old_urls"]
+    "" (list_option Url.option) []
     
 let save_config () =
   

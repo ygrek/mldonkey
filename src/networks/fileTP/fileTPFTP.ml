@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -54,55 +54,60 @@ open FileTPClients
 
 let range_reader c d counter_pos end_pos sock nread =
   if nread > 0 then
-  let file = d.download_file in
-  lprintf ".";
-  if file_state file <> FileDownloading then begin
-      disconnect_client c Closed_by_user;
-      raise Exit;
-    end;
-  
-  let b = TcpBufferedSocket.buf sock in
-  let to_read = min (end_pos -- !counter_pos) 
-    (Int64.of_int b.len) in
+    let file = d.download_file in
+    lprintf ".";
+    if file_state file <> FileDownloading then begin
+        disconnect_client c Closed_by_user;
+        raise Exit;
+      end;
+    
+    let b = TcpBufferedSocket.buf sock in
+    let to_read = min (end_pos -- !counter_pos) 
+      (Int64.of_int b.len) in
 (*
         lprintf "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld\n"
 end_pos !counter_pos b.len to_read;
    *)
-  let to_read_int = Int64.to_int to_read in
+    let to_read_int = Int64.to_int to_read in
 (*
   lprintf "CHUNK: %s\n" 
-          (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-  let old_downloaded = 
-    Int64Swarmer.downloaded file.file_swarmer in
-  
-  begin
-    try
-      match d.download_uploader with
-        None -> assert false
-      | Some up ->
-          Int64Swarmer.received up
-            !counter_pos b.buf b.pos to_read_int;
-    with e -> 
+(String.escaped (String.sub b.buf b.pos to_read_int)); *)
+    
+    begin
+      try
+        match d.download_uploader with
+          None -> assert false
+        | Some up ->
+            
+            let swarmer = Int64Swarmer.uploader_swarmer up in
+            let old_downloaded = 
+              Int64Swarmer.downloaded swarmer in
+            
+            Int64Swarmer.received up
+              !counter_pos b.buf b.pos to_read_int;
+            let new_downloaded = 
+              Int64Swarmer.downloaded swarmer in
+            
+            
+            if new_downloaded = file_size file then
+              download_finished file;
+            if new_downloaded <> old_downloaded then
+              add_file_downloaded file.file_file
+                (new_downloaded -- old_downloaded);
+            
+      with e -> 
         lprintf "FT: Exception %s in Int64Swarmer.received\n"
           (Printexc2.to_string e)
   end;
   c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
-  let new_downloaded = 
-    Int64Swarmer.downloaded file.file_swarmer in
   
   (match d.download_ranges with
       [] -> lprintf "EMPTY Ranges !!!\n"
     | r :: _ -> 
         ()
   );
-  
-  if new_downloaded = file_size file then
-    download_finished file;
-  if new_downloaded <> old_downloaded then
-    add_file_downloaded file.file_file
-      (new_downloaded -- old_downloaded);
 (*
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
@@ -171,7 +176,7 @@ let ftp_send_range_request c (x,y) sock d =
 
   lprintf "FTP: Asking range %Ld-%Ld\n" x y ;
   
-  let file = d.download_url in
+  let file = d.download_url.Url.full_file in
   let reqs = [ 
       Printf.sprintf "CWD %s" (Filename.dirname file);
 (* 250 *)
@@ -274,7 +279,7 @@ let ftp_set_sock_handler c sock =
 (*                                                                       *)
 (*************************************************************************)
   
-let ftp_check_size u url start_download_file = 
+let ftp_check_size url start_download_file = 
 
   let reqs = [ 
 (* 220 messages... *)
@@ -288,9 +293,9 @@ let ftp_check_size u url start_download_file =
 (* 257 "/" *)
       "TYPE I";
 (* 200 *)
-      Printf.sprintf "CWD %s" (Filename.dirname u.Url.file);
+      Printf.sprintf "CWD %s" (Filename.dirname url.Url.full_file);
 (* 250 *)
-      Printf.sprintf "SIZE %s" (Filename.basename u.Url.file);
+      Printf.sprintf "SIZE %s" (Filename.basename url.Url.full_file);
 (* 213 size *)
     ]
   in
@@ -299,7 +304,7 @@ let ftp_check_size u url start_download_file =
   List.iter (fun s -> Printf.bprintf buf "%s\r\n" s) reqs;
   let request = Buffer.contents buf in
   
-  let server, port = u.Url.server, u.Url.port in
+  let server, port = url.Url.server, url.Url.port in
 (*    lprintf "async_ip ...\n"; *)
   Ip.async_ip server (fun ip ->
 (*        lprintf "IP done %s:%d\n" (Ip.to_string ip) port; *)
@@ -329,7 +334,7 @@ let ftp_check_size u url start_download_file =
                         Int64.of_string (String.sub line 4 (slen - 4))
                       in
                       lprintf "SIZE: [%Ld]\n" result_size;
-                      start_download_file u url result_size;
+                      start_download_file result_size;
                       close sock Closed_by_user
                     end else
                   iter 0

@@ -394,7 +394,7 @@ let can_write_len t len = t.wbuf.max_buf_size > t.wbuf.len + len
 let not_buffer_more t max =  t.wbuf.len < max
 let can_fill t = t.wbuf.len < (t.wbuf.max_buf_size / 2)
 let get_rtimeout t = get_rtimeout t.sock_in
-
+let max_refill t = t.wbuf.max_buf_size - t.wbuf.len 
 
 let close t s =
 (*
@@ -633,8 +633,8 @@ let can_write_handler t sock max_len =
       try
 (*     lprintf "try write %d/%d\n" max_len t.wbuf.len; *)
             let fd = fd sock in
-            lprintf "WRITE [%s]\n" (String.escaped 
-              (String.sub b.buf b.pos max_len));
+(*            lprintf "WRITE [%s]\n" (String.escaped 
+              (String.sub b.buf b.pos max_len)); *)
         let nw = MlUnix.write fd b.buf b.pos max_len in
 
 (*            if t.monitored then
@@ -860,14 +860,16 @@ let set_handler t event handler =
 
 let set_refill t f =
   set_handler t CAN_REFILL f;
-  if t.wbuf.len = 0 then (try f t with _ -> ())
+  (try f t with _ -> ())
 
 let close_after_write t =
   if t.wbuf.len = 0 then begin
+      lprintf "close_after_write: CLOSE\n";
       shutdown t Closed_by_user
     end
   else
     set_handler t WRITE_DONE (fun t ->
+        lprintf "close_after_write: CLOSE\n";
         shutdown t Closed_by_user)
     
 exception Http_proxy_error of string
@@ -1322,10 +1324,12 @@ let set_max_connections_per_second f =
 let set_max_opened_connections f =
   max_opened_connections := f
 
-let set_max_write_buffer t len =
-  t.wbuf.max_buf_size <- len;
+let set_max_input_buffer  t len =
   t.rbuf.max_buf_size <- len
 
+let set_max_output_buffer  t len =
+  t.wbuf.max_buf_size <- len
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         Compression                                   *)
@@ -1486,4 +1490,5 @@ let prevent_close t =
   prevent_close t.sock_out
   
 let must_write t bool = must_write t.sock_out bool
+let output_buffered t = t.wbuf.len
   

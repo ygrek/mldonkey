@@ -108,8 +108,39 @@ struct gnutella_qrp_patch {
         table = String.sub s 4 (String.length s - 4);
       }
     
-    let print t = 
-      lprintf "QRT PATCH"
+    let patches = ref ""
+    
+    let print buf t = 
+      Printf.bprintf buf "QRT PATCH:\n";
+      Printf.bprintf buf "  seq_no: %d/%d\n" t.seq_no t.seq_size;
+      Printf.bprintf buf "  compressor: %d\n" t.compressor;
+      Printf.bprintf buf "  entry bits: %d\n" t.entry_bits;
+      Printf.bprintf buf "  table: ";
+      if t.seq_no = 1 then patches := t.table
+      else patches := !patches ^ t.table;
+      if t.seq_no = t.seq_size then begin
+          if t.compressor < 2 then
+            let table = 
+              if t.compressor = 1 then
+                Autoconf.zlib__uncompress_string2 !patches
+              else
+                !patches
+            in
+            let nbits = ref 0 in
+            for i = 0 to String.length table - 1 do
+              let c = int_of_char table.[i] in
+              for j = 0 to 7 do
+                if (1 lsl j) land c <> 0 then begin
+                    incr nbits;
+                    Printf.bprintf buf "(%d)" (i*8+j);
+                  end
+              done
+            done;
+            Printf.bprintf buf "  = %d bits\n" !nbits               
+          else
+            Printf.bprintf buf " (compressed) \n"
+        end else
+        Printf.bprintf buf " (partial) \n"            
     
     let write buf t = 
       buf_int8 buf t.seq_no;
@@ -208,54 +239,12 @@ let set_gnutella_sock sock info ghandler =
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
 
-
-let parse_range range =
-  try
-    let npos = (String.index range 'b')+6 in
-    let dash_pos = try String.index range '-' with _ -> -10 in
-    let slash_pos = try String.index range '/' with _ -> -20 in
-    let star_pos = try String.index range '*' with _ -> -30 in
-    if star_pos = slash_pos-1 then
-      Int64.zero, None, None (* "bytes */X" *)
-    else
-    let len = String.length range in
-    let x = Int64.of_string (
-        String.sub range npos (dash_pos - npos) )
-    in
-    if len = dash_pos + 1 then
-(* bytes x- *)
-      x, None, None
-    else
-    let y = Int64.of_string (
-        String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
-    in
-    if slash_pos = star_pos - 1 then 
-      x, Some y, None (* "bytes x-y/*" *)
-    else
-(* bytes x-y/len *)
-    
-    let z = Int64.of_string (
-        String.sub range (slash_pos+1) (len - slash_pos -1) )
-    in
-    x, Some y, Some z
-  with 
-  | e ->
-      lprintf "Exception %s for range [%s]\n" 
-        (Printexc2.to_string e) range;
-      raise e
-
-let parse_range range =
-  let x, y, z = parse_range range in
-  lprintf "Range parsed: %Ld-%s/%s" x
-    (match y with None -> "" | Some y -> Int64.to_string y)    
-  (match z with None -> "*" | Some y -> Int64.to_string y);
-  x, y, z
     
 let bloom_hash_magic = Int32.of_string  "0x4F1BBCDC"
-let bloom_hash_magic_int64 =  Int32ops.int64_of_uint32 bloom_hash_magic
+let bloom_hash_magic_int64 =  Int64ops.int64_of_uint32 bloom_hash_magic
 
 let bloom_hash_fast x bits =
-  let xx = Int32ops.int64_of_uint32 x in
+  let xx = Int64ops.int64_of_uint32 x in
   let prod = Int64.mul xx bloom_hash_magic_int64 in
   let ret = Int64.shift_left prod  32 in     (* prod << 32 *)
   Int64.shift_right_logical ret (32 + (32 - bits))   (* ret >>> (32 + (32 - bits))  *)

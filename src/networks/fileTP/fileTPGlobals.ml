@@ -18,7 +18,7 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -67,14 +67,16 @@ let (file_ops : file CommonFile.file_ops) =
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
-    
+let as_client c = as_client c.client_client
+let as_file file = as_file file.file_file    
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
-
+let file_disk_name file = file_disk_name (as_file file)
+let set_file_disk_name file = set_file_disk_name (as_file file)
+let file_best_name file = file_best_name (as_file file)
+  
 let current_files = ref ([] : FileTPTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
@@ -104,55 +106,65 @@ let find_proto (name : string) =
   
   
         
-let min_range_size = kilobytes 50
+let min_range_size = megabyte
 
+let set_file_size file size =  
+  lprintf "set_file_size\n";
+  if file_size file = zero && size <> zero then begin
+      lprintf "Setting SWARMER\n";
+      let file_chunk_size =
+        max megabyte (
+          size // (max (Int64.of_int 5) (size // (megabytes 5)))
+        )
+      in
+      file.file_file.impl_file_size <- size;
+      let swarmer = Int64Swarmer.create (as_file file) 
+          file_chunk_size min_range_size in
+      file.file_swarmer <- Some swarmer;    
+      lprintf "Swarmer set\n";
+      Int64Swarmer.set_verifier swarmer (fun _ _ _ ->
+          file_must_update (as_file file);
+          true  
+      );
+      Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+
+(*
+      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
+      AnyEndian.dump_sub s pos len;
+*)
+          
+          if !!CommonOptions.buffer_writes then 
+            Unix32.buffered_write_copy (file_fd file) offset s pos len
+          else
+            Unix32.write  (file_fd file) offset s pos len
+      )
+    end
+    
 let new_file file_id file_name file_size = 
   let file_temp = Filename.concat !!temp_directory 
       (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
   let t = Unix32.create_rw file_temp in
-  let file_chunk_size =
-    max megabyte (
-      file_size // (max (Int64.of_int 5) (file_size // (megabytes 5)))
-    )
-  in
-  let swarmer = Int64Swarmer.create file_size 
-      file_chunk_size min_range_size in
   let rec file = {
       file_file = file_impl;
       file_id = file_id;
-      file_name = file_name;
+(*      file_name = file_name; *)
       file_clients = [];
-      file_swarmer = swarmer;
+      file_swarmer = None;
       file_filenames = [Filename.basename file_name, GuiTypes.noips()];
       file_clients_queue = Queues.workflow (fun _ -> false);
       file_nconnected_clients = 0;
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
-      impl_file_size = file_size;
-      impl_file_downloaded = Int64.zero;
+      impl_file_size = zero;
+      impl_file_downloaded = zero;
       impl_file_val = file;
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
       impl_file_best_name = Filename.basename file_name;
     }
   in
-  Int64Swarmer.set_verifier swarmer (fun _ _ _ ->
-      file_must_update (as_file file.file_file);
-      true  
-  );
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
-      
-      (*
-      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
-      AnyEndian.dump_sub s pos len;
-*)
-      
-      if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write_copy t offset s pos len
-      else
-        Unix32.write  t offset s pos len
-  );
+  set_file_size file file_size;
   current_files := file :: !current_files;
   file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
@@ -202,24 +214,25 @@ client_error = false;
       Hashtbl.add clients_by_uid key c;
       c
     
-let add_download file c index =
+let add_download file c url =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
+      (*
       let bs = Int64Swarmer.register_uploader file.file_swarmer 
-        (Int64Swarmer.AvailableRanges chunks) in
+        (Int64Swarmer.AvailableRanges chunks) in *)
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
-          download_url = index;
+          download_url = url;
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];
           download_block = None;
         }];
       file.file_clients <- c :: file.file_clients;
-      file_add_source (as_file file.file_file) (as_client c.client_client);
+      file_add_source (as_file file) (as_client c);
       if not (List.memq file c.client_in_queues) then begin
           Queue.put file.file_clients_queue (0,c);
           c.client_in_queues <- file :: c.client_in_queues
@@ -254,22 +267,20 @@ let remove_download file list =
   in
   iter file list []
   
-let file_state file =
-  file_state (as_file file.file_file)
+let file_state file = file_state (as_file file)
   
-let file_num file =
-  file_num (as_file file.file_file)
+let file_num file =  file_num (as_file file)
   
 let file_must_update file =
-  file_must_update (as_file file.file_file)
+  file_must_update (as_file file)
 
-let client_type c = client_type (as_client c.client_client)
+let client_type c = client_type (as_client c)
 
 let set_client_state client state =
-  CommonClient.set_client_state (as_client client.client_client) state
+  CommonClient.set_client_state (as_client client) state
   
 let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client.client_client) 
+  CommonClient.set_client_disconnected (as_client client) 
   
   
 let remove_file file = 

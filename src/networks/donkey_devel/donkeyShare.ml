@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open Printf2
 open Md4
 open CommonFile
@@ -58,45 +59,40 @@ let must_share_file file codedname has_old_impl =
       | Some old_impl -> replace_shared old_impl impl
 
 
-let md4_of_list md4s =
-  let len = List.length md4s in
+let md4_of_array md4s =
+  let len = Array.length md4s in
   let s = String.create (len * 16) in
-  let rec iter list i =
-    match list with
-      [] -> ()
-    | md4 :: tail ->
-        let md4 = Md4.direct_to_string md4 in
-        String.blit md4 0 s i 16;
-        iter tail (i+16)
-  in
-  iter md4s 0;
+  for i = 0 to len-1 do
+    let md4 = Md4.direct_to_string md4s.(i) in
+    String.blit md4 0 s i 16;
+  done;
   Md4.string s
   
 let new_file_to_share sh codedname old_impl =
   try
 (* How do we compute the total MD4 of the file ? *)
     
-    let md4s = List.rev sh.sh_md4s in
-    let md4 = match md4s with
-        [md4] -> md4
-      | [] -> lprintf "No md4 for %s\n" sh.sh_name;
-          raise Not_found
-      | _ -> md4_of_list md4s
+    let md4s = sh.sh_md4s in
+    let md4 = match Array.length md4s with
+        1 -> md4s.(0)
+      | 0 -> assert false
+      | _ -> md4_of_array md4s
     in
+    
+    lprintf "Sharing file with MD4: %s\n" (Md4.to_string md4);
     
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
     must_share_file file codedname old_impl;
     file.file_md4s <- md4s;
     file_md4s_to_register := file :: !file_md4s_to_register;
     let sh_name = Filename.basename sh.sh_name in
-    if not (List.mem sh_name file.file_filenames) then begin
-        file.file_filenames <- file.file_filenames @ [sh_name];
+    if not (List.mem_assoc sh_name file.file_filenames) then begin
+        file.file_filenames <- file.file_filenames @ [sh_name, GuiTypes.noips()];
         update_best_name file;
       end;
-    (*
-    file.file_chunks <- Array.make file.file_nchunks PresentVerified;
-file.file_absent_chunks <- [];
-  *)
+(*  file.file_chunks <- Array.make file.file_nchunks PresentVerified; *)
+(*    file.file_absent_chunks <- []; *)
+(*    file.file_all_chunks <- String.make file.file_nchunks '1'; *)
     (try 
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)
@@ -105,13 +101,14 @@ file.file_absent_chunks <- [];
     (try 
         DonkeyOvernet.publish_file file
       with e -> 
-          lprintf "DonkeyOvernet.publish_file: %s\n" (Printexc2.to_string e);
-);
+          lprintf "DonkeyOvernet.publish_file: %s" (Printexc2.to_string e);
+lprint_newline ());
   *)
-    lprintf "Sharing %s\n" sh.sh_name;
+    lprintf "Sharing %s" sh.sh_name;
+    lprint_newline ();
   with e ->
-      lprintf "Exception %s while sharing %s\n" (Printexc2.to_string e)
-      sh.sh_name
+      lprintf "Exception %s while sharing %s" (Printexc2.to_string e)
+      sh.sh_name; lprint_newline () 
       
   
 let all_shared () =  
@@ -135,10 +132,9 @@ let send_new_shared () =
       let list = all_shared () in
       List.iter (fun s ->
           if s.server_master then
-            match s.server_sock with
-              None -> ()
-            | Some sock ->
-                direct_server_send_share sock list) (connected_servers ());
+            do_if_connected s.server_sock (fun sock ->
+                direct_server_send_share s.server_has_zlib sock list))
+      (connected_servers ());
     end
           
 (*
@@ -146,77 +142,101 @@ The problem: sh.shared_fd might be closed during the execution of the
 thread. Moreover, we don't want to open all the filedescs for all the
 files being shared !
 *)
-          
+
+let computation = ref false
+    
 (*   Compute (at most) one MD4 chunk if needed. *)
 let check_shared_files () =  
   let module M = CommonHasher in
-  match !shared_files with
-    [] -> ()  
-  | sh :: files ->
-      shared_files := files;
+  if not !computation then
+    match !shared_files with
+      [] -> ()  
+    | sh :: files ->
+        shared_files := files;
 
-(*      lprintf "check_shared_files\n";  *)
-      
-      let rec job_creater _ =
-        try
-          if not (Sys.file_exists sh.shared_name) then begin
-              lprintf "Shared file doesn't exist\n"; 
-              raise Not_found;
-            end;
-          if Unix32.getsize64 sh.shared_name <> sh.shared_size then begin
-              lprintf "Bad shared file size\n" ; 
-              raise Not_found;
-            end;
-          let end_pos = Int64.add sh.shared_pos block_size in
-          let end_pos = if end_pos > sh.shared_size then sh.shared_size
-            else end_pos in
-          let len = Int64.sub end_pos sh.shared_pos in
-(*          lprintf "compute next md4\n";  *)
-          
-          M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
-            (fun job ->
-              if job.M.job_error then begin
-                lprintf "Error prevent sharing %s\n" sh.shared_name
-              end else 
-              let _ = () in
-(*              lprintf "md4 computed\n"; *)
-              let new_md4 = Md4.direct_of_string job.M.job_result in
-              
-              sh.shared_list <- new_md4 :: sh.shared_list;
-              sh.shared_pos <- end_pos;
-              if end_pos = sh.shared_size then begin
-                  let mtime = Unix32.mtime64 sh.shared_name  in
-                  let s = CommonUploads.M.new_shared_info sh.shared_name sh.shared_size 
-                      sh.shared_list mtime [] in
-                  new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
-                  shared_remove  sh.shared_shared;
-                end
-              else
-                job_creater ())
-        with e ->
-            lprintf "Exception %s prevents sharing\n"
-              (Printexc2.to_string e);
-      in
-      job_creater ()
-      
+(*      lprintf "check_shared_files"; lprint_newline (); *)
+        
+        let rec job_creater _ =
+          try
+            if not (Sys.file_exists sh.shared_name) then begin
+                lprintf "Shared file doesn't exist\n"; 
+                raise Not_found;
+              end;
+            if Unix32.getsize sh.shared_name <> sh.shared_size then begin
+                lprintf "Bad shared file size\n" ; 
+                raise Not_found;
+              end;
+            computation := true;
+            let end_pos = Int64.add sh.shared_pos block_size in
+            let end_pos = if end_pos > sh.shared_size then sh.shared_size
+              else end_pos in
+            let len = Int64.sub end_pos sh.shared_pos in
+(*          lprintf "compute next md4"; lprint_newline (); *)
+            
+            M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
+              (fun job ->
+                computation := false;
+                if job.M.job_error then begin
+                    lprintf "Error prevent sharing %s\n" sh.shared_name
+                  end else 
+                let _ = () in
+(*              lprintf "md4 computed"; lprint_newline (); *)
+                let new_md4 = job.M.job_result in
+                
+                sh.shared_list <- new_md4 :: sh.shared_list;
+                sh.shared_pos <- end_pos;
+                if end_pos = sh.shared_size then begin
+                    let s = {
+                        sh_name = sh.shared_name;
+                        sh_size = sh.shared_size;
+                        sh_md4s = Array.of_list (List.rev sh.shared_list);
+                        sh_mtime = Unix32.mtime sh.shared_name;
+                      } in
+                    lprintf "NEW SHARED FILE %s\n" sh.shared_name; 
+                    Hashtbl.add shared_files_info sh.shared_name s;
+                    known_shared_files =:= s :: !!known_shared_files;
+                    new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
+                    shared_remove  sh.shared_shared;
+                  end
+                else
+                  job_creater ())
+          with e ->
+              lprintf "Exception %s prevents sharing"
+                (Printexc2.to_string e);
+              lprint_newline ();
+        in
+        job_creater ()
+        
 let local_dirname = Sys.getcwd ()
   
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !verbose_share then begin
-          lprintf "FULLNAME %s\n" fullname; 
+          lprintf "FULLNAME %s" fullname; lprint_newline ();
         end;
 (*      let codedname = Filename.basename codedname in*)
       if !verbose_share then begin
-          lprintf "CODEDNAME %s\n" codedname; 
+          lprintf "CODEDNAME %s" codedname; lprint_newline ();
         end;
       try
 (*
-lprintf "Searching %s\n" fullname; 
+lprintf "Searching %s" fullname; lprint_newline ();
 *)
-        let s = CommonUploads.M.find_shared_info fullname size in
-        new_file_to_share s codedname None
-
+        let s = Hashtbl.find shared_files_info fullname in
+        let mtime = Unix32.mtime fullname in
+        if s.sh_mtime = mtime && s.sh_size = size then begin
+            if !verbose_share then begin
+                lprintf "USING OLD MD4s for %s\n" fullname;
+              end;
+            new_file_to_share s codedname None
+          end else begin
+            if !verbose_share then begin                
+                lprintf "Shared file %s has been modified\n" fullname;
+              end;
+            Hashtbl.remove shared_files_info fullname;
+            known_shared_files =:= List2.removeq s !!known_shared_files;
+            raise Not_found
+          end
       with Not_found ->
           if !verbose_share then begin
               lprintf "No info on %s\n" fullname; 
@@ -249,30 +269,34 @@ lprintf "Searching %s\n" fullname;
               shared_size = size;
               shared_list = [];
               shared_pos = Int64.zero;
-              shared_fd = Unix32.create fullname [Unix.O_RDONLY] 0o444;
+              shared_fd = Unix32.create_ro fullname;
             } in
           update_shared_num impl;  
           shared_files := pre_shared :: !shared_files;
   )
   
 let remember_shared_info file new_name =
-  if file.file_md4s <> [] then
+  if file.file_md4s <> [||] then
     try
       let disk_name = file_disk_name file in
-      let mtime = Unix32.mtime64 disk_name in
+      let mtime = Unix32.mtime disk_name in
       
       if !verbose_share then begin
           lprintf "Remember %s\n" new_name; 
         end;
-      let s =
-        CommonUploads.M.new_shared_info 
-        new_name (file_size file) 
-        file.file_md4s mtime []
-      in
-      ()
+      
+      if not (Hashtbl.mem shared_files_info new_name) then
+        let s = {
+            sh_name = new_name;
+            sh_size = file_size file;
+            sh_mtime = mtime;
+            sh_md4s = file.file_md4s;
+          } in
+        
+        known_shared_files =:= s :: !!known_shared_files;    
+        Hashtbl.add shared_files_info new_name s
     with e ->
         lprintf "Exception %s in remember_shared_info\n"
           (Printexc2.to_string e)
         
 let must_share_file file = must_share_file file (file_best_name file) None
-  

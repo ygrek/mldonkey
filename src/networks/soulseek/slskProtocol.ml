@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+
 open AnyEndian
 
 open Printf2
@@ -84,7 +85,7 @@ let get_user_status s pos = (* 4 * 7 = 28 *)
   }, pos + 28
   
 let unknown opcode s =
-  lprintf "Unknown: opcode %d" opcode; lprint_newline ();
+  lprintf "Unknown: opcode %d\n" opcode; 
   dump s
   
 module C2S = struct
@@ -103,9 +104,9 @@ module C2S = struct
           { login = login; password = password; version = version; }
         
         let print t =
-          lprintf "LOGIN login:%s password:%s version:%d" 
-            t.login t.password t.version;
-          lprint_newline () 
+          lprintf "LOGIN login:%s password:%s version:%d\n" 
+            t.login t.password t.version
+          
         
         let write buf t =
           buf_string buf t.login;
@@ -120,9 +121,8 @@ module C2S = struct
         let parse s =  get_int s 0
         
         let print t =
-          lprintf "SETWAITPORT %d" t;
-          lprint_newline () 
-        
+          lprintf "SETWAITPORT %d\n" t
+          
         let write buf t =
           buf_int buf t
       
@@ -140,9 +140,8 @@ module C2S = struct
           { id = id; words = s }
         
         let print t =
-          lprintf "SEARCH %d FOR %s" t.id t.words;
-          lprint_newline () 
-        
+          lprintf "SEARCH %d FOR %s\n" t.id t.words
+          
         let write buf t =
           buf_int buf t.id;
           buf_string buf t.words
@@ -230,7 +229,7 @@ module C2S = struct
         | _ -> raise Not_found
       with
         e -> 
-          lprintf "From client"; lprint_newline ();
+          lprintf "From client\n"; 
           unknown opcode s;
           UnknownReq (opcode, s)
 
@@ -241,19 +240,19 @@ module C2S = struct
       | SetWaitPortReq t -> SetWaitPort.print t  
       | FileSearchReq t -> FileSearch.print t   
       | GetUserStatsReq t -> 
-          lprintf "GetUserStats %s" t; lprint_newline () 
+          lprintf "GetUserStats %s\n" t
       | JoinRoomReq t -> 
-          lprintf "JoinRoomReq %s" t; lprint_newline () 
+          lprintf "JoinRoomReq %s\n" t
       | LeaveRoomReq t -> 
-          lprintf "LeaveRoomReq %s" t; lprint_newline () 
+          lprintf "LeaveRoomReq %s\n" t
       | AddUserReq t -> 
-          lprintf "AddUserReq %s" t; lprint_newline () 
+          lprintf "AddUserReq %s\n" t;
       | GetPeerAddressReq t -> 
-          lprintf "GetPeerAddressReq %s" t; lprint_newline () 
+          lprintf "GetPeerAddressReq %s\n" t
       | CantConnectToPeerReq t -> 
-          lprintf "CantConnectToPeerReq %s" t; lprint_newline () 
+          lprintf "CantConnectToPeerReq %s\n" t
       | SayChatroomReq (room, msg) -> 
-          lprintf "SayChatroomReq %s: %s" room msg; lprint_newline () 
+          lprintf "SayChatroomReq %s: %s\n" room msg
       | UnknownReq (opcode, s) ->  unknown opcode s
           
     let write buf t =
@@ -295,13 +294,10 @@ module S2C = struct
         let print t =
           match t with
             Success (message, ip) ->
-              lprintf "LOGIN ACK: %s" message;
-              lprint_newline ();
-              lprintf "   IP: %s" (Ip.to_string ip);
-              lprint_newline ()
+              lprintf "LOGIN ACK: %s\n" message;
+              lprintf "   IP: %s\n" (Ip.to_string ip)
           | Failure reason ->
-              lprintf "LOGIN FAILURE %s" reason;
-              lprint_newline () 
+              lprintf "LOGIN FAILURE %s\n" reason
         
         let write buf t =
           match t with
@@ -350,11 +346,9 @@ module S2C = struct
 *)
         
         let print t =
-          lprintf "Room list: %d rooms" (List.length t);
-          lprint_newline ();
+          lprintf "Room list: %d rooms\n" (List.length t);
           List.iter (fun (name, nusers) ->
-              lprintf "    %50s  %-10d" name nusers;
-              lprint_newline () 
+              lprintf "    %50s  %-10d\n" name nusers;
           ) t
         
         let write buf t =
@@ -371,7 +365,7 @@ module S2C = struct
           users
         
         let print t =
-          lprintf "PRIVILEDGED USERS:"; lprint_newline ();
+          lprintf "PRIVILEDGED USERS\n:"; 
           List.iter (fun u -> lprintf "%s\n" u) t;
           lprint_newline ()
         
@@ -404,9 +398,8 @@ module S2C = struct
           }
         
         let print t =
-          lprintf "CONNECT TO PEER %s (%s:%d) token %d"
-            t.name (Ip.to_string t.ip) t.port t.token;
-          lprint_newline ()
+          lprintf "CONNECT TO PEER %s (%s:%d) token %d\n"
+            t.name (Ip.to_string t.ip) t.port t.token
         
         let write buf t =
           buf_string buf t.name;
@@ -444,14 +437,13 @@ module S2C = struct
             users stats; }
         
         let print t =
-          lprintf "JOIN ROOM %s:" t.room; lprint_newline ();
+          lprintf "JOIN ROOM %s\n:" t.room; 
           List.iter (fun u ->
-              lprintf "   %s" u.name; lprint_newline ()) t.users;
+              lprintf "   %s\n" u.name) t.users;
           lprint_newline ()
         
         let write buf t =
-          lprintf  "******* JoinRoomReply not implemented *****"; 
-          lprint_newline ();
+          lprintf  "******* JoinRoomReply not implemented *****\n"; 
           exit 1
       
       end
@@ -469,9 +461,8 @@ module S2C = struct
           { id = id; words = s }
         
         let print t =
-          lprintf "SEARCH %d FOR %s" t.id t.words;
-          lprint_newline () 
-        
+          lprintf "SEARCH %d FOR %s\n" t.id t.words
+          
         let write buf t =
           buf_int buf t.id;
           buf_string buf t.words
@@ -665,8 +656,7 @@ string : room name
         | _ -> raise Not_found
       with
         e -> 
-          lprintf "From server (exception %s):" (Printexc2.to_string e); 
-          lprint_newline ();
+          lprintf "From server (exception %s):\n" (Printexc2.to_string e); 
           unknown opcode s;
           UnknownReq (opcode, s)
     

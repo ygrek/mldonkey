@@ -129,11 +129,20 @@ let value_to_file file_size file_state assocs =
   in
   
   let file = new_file file_id file_name file_size file_hash in
-
+  
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        Int64Swarmer.value_to_swarmer swarmer assocs;
+        add_file_downloaded file.file_file
+          (Int64Swarmer.downloaded swarmer);
+        
+  );
+(*
   Int64Swarmer.value_to_swarmer file.file_swarmer assocs;
   add_file_downloaded file.file_file
     (Int64Swarmer.downloaded file.file_swarmer);
-
+*)
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
@@ -152,27 +161,32 @@ let value_to_file file_size file_state assocs =
         lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
   );
-  as_file file.file_file
+  as_file file
   
 let file_to_value file =
-  Int64Swarmer.swarmer_to_value file.file_swarmer
-  [
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Md4.to_string file.file_id);
-    "file_hash", string_to_value (Md5Ext.to_string_case false file.file_hash);
-    "file_sources", 
-    list_to_value "Fasttrack Sources" (fun c ->
-        match (find_download file c.client_downloads).download_uri with
-          FileByIndex (i,n) -> 
-            SmallList [ClientOption.client_to_value c; int_to_value i; 
-              string_to_value n]
-        | FileByUrl s -> 
-            SmallList [ClientOption.client_to_value c; 
-              string_to_value s]
-    ) file.file_clients;
-  ]
-  
+  let assocs =
+    [
+      "file_name", string_to_value file.file_name;
+      "file_downloaded", int64_to_value (file_downloaded file);
+      "file_id", string_to_value (Md4.to_string file.file_id);
+      "file_hash", string_to_value (Md5Ext.to_string_case false file.file_hash);
+      "file_sources", 
+      list_to_value "Fasttrack Sources" (fun c ->
+          match (find_download file c.client_downloads).download_uri with
+            FileByIndex (i,n) -> 
+              SmallList [ClientOption.client_to_value c; int_to_value i; 
+                string_to_value n]
+          | FileByUrl s -> 
+              SmallList [ClientOption.client_to_value c; 
+                string_to_value s]
+      ) file.file_clients;
+    ]
+  in
+  match file.file_swarmer with
+    None -> assocs 
+  | Some swarmer ->
+      Int64Swarmer.swarmer_to_value swarmer assocs
+      
 let old_files = 
   define_option fasttrack_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []

@@ -32,7 +32,7 @@ type options = {
     host : string;
     no_cache : bool;
   } 
-and full_header = string * (string * string * (string * string) list)
+and full_header = string * string
 and form_arg = {
     arg_name : string;
     arg_value : string;
@@ -48,8 +48,15 @@ and request = {
     options : options;
     headers : full_header list;
     form_args : form_arg list;
-  } 
+    
+    mutable reply_head : string;
+    mutable reply_headers : (string * string) list;
+    mutable reply_content : string;
+    mutable reply_stream : (TcpBufferedSocket.t -> unit) option;
+  }
+
 and handler = TcpBufferedSocket.t -> request -> unit
+
 and config = {
     bind_addr : Unix.inet_addr;
     mutable port : int;
@@ -60,10 +67,15 @@ and config = {
   } 
 
 val create : config -> TcpServerSocket.t
-val need_auth : Buffer.t -> string -> unit
+val need_auth : request -> string -> unit
 val html_escaped : string -> string
+
   
+val add_reply_header : request -> string -> string -> unit
 val handler : config -> 'a -> TcpServerSocket.event -> unit
 val parse_head : TcpBufferedSocket.t -> string -> request
   
 val verbose : bool ref 
+  
+val request_range : request -> int64 * (int64 option)
+val parse_range : string -> int64 * int64 option * int64 option

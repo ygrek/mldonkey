@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open CommonResult
 open CommonInteractive
@@ -463,7 +464,7 @@ let telnet_handler t event =
             conn_height = 0;
           } in
         TcpBufferedSocket.prevent_close sock;
-        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
@@ -594,33 +595,29 @@ let add_simple_commands buf =
     if !!html_mods then !!CommonMessages.web_common_header_mods0
     else !!CommonMessages.web_common_header_old)
   
-let http_add_gen_header buf =
-  Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-  Buffer.add_string  buf "Server: MLdonkey\r\n";
-  Buffer.add_string  buf "Connection: close\r\n"
+let http_add_gen_header r =
+  add_reply_header r "Server" "MLdonkey";
+  add_reply_header r "Connection" "close"
 
-let http_add_html_header buf = 
-  http_add_gen_header buf;
-  Buffer.add_string  buf "Pragma: no-cache\r\n";
-  Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
-  Buffer.add_string  buf "\r\n"
+let http_add_html_header r = 
+  http_add_gen_header r;
+  add_reply_header r "Pragma" "no-cache";
+  add_reply_header r "Content-Type" "text/html; charset=iso-8859-1"
 
-let http_add_css_header buf = 
-  http_add_gen_header buf;
-  Buffer.add_string  buf "Content-Type: text/css; charset=iso-8859-1\r\n";
-  Buffer.add_string  buf "\r\n"
+let http_add_css_header r = 
+  http_add_gen_header r;
+  add_reply_header r "Content-Type" "text/css; charset=iso-8859-1"
 
-let http_add_js_header buf =
-  http_add_gen_header buf;
-  Buffer.add_string  buf "Content-Type: text/javascript; charset=iso-8859-1\r\n";
-  Buffer.add_string  buf "\r\n"
+let http_add_js_header r =
+  http_add_gen_header r;
+  add_reply_header  r "Content-Type" "text/javascript; charset=iso-8859-1"
   
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
 let html_open_page buf t r open_body =
   Buffer.clear buf;
   html_page := true;
-  http_add_html_header buf;
+  http_add_html_header r;
   
   if not !!html_mods then 
     (Buffer.add_string buf
@@ -655,15 +652,19 @@ let html_close_page buf =
   Buffer.add_string buf "</body>\n";  
   Buffer.add_string buf "</html>\n";
   ()
+
+let clear_page buf =
+  Buffer.clear buf;
+  html_page := false
   
 let http_handler o t r =
   CommonInteractive.display_vd := false;
-  
+  clear_page buf;
   
   let user = if r.options.login = "" then "admin" else r.options.login in
   if not (valid_password user r.options.passwd) then begin
-      Buffer.clear buf;  
-      need_auth buf !!http_realm
+      clear_page buf;
+      need_auth r !!http_realm
     end
   else
     begin
@@ -674,14 +675,13 @@ let http_handler o t r =
             user.ui_http_conn <- Some oo; oo
       in
       try
-        match r.get_url.Url.file with
+        match r.get_url.Url.short_file with
         | "/wap.wml" ->
             begin
-              Buffer.clear buf;  
-              Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-              Buffer.add_string  buf "Server: MLdonkey\r\n";
-              Buffer.add_string  buf "Connection: close\r\n";
-              Buffer.add_string  buf "Content-Type: text/vnd.wap.wml\r\n";
+              clear_page buf;
+              add_reply_header r "Server" "MLdonkey";
+              add_reply_header r "Connection" "close";
+              add_reply_header r "Content-Type" "text/vnd.wap.wml";
               let dlkbs = 
                 (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
               let ulkbs =
@@ -914,7 +914,7 @@ let http_handler o t r =
                   ) other_args;
                   let s = 
                     let b = o.conn_buf in
-                    Buffer.clear b;
+                    clear_page b;
                     eval (ref true) cmd o;
                     html_escaped (Buffer.contents b)
                   in
@@ -962,10 +962,73 @@ let http_handler o t r =
                   raise Not_found
             end
         
+        | "/preview_download" ->
+            begin
+              clear_page buf;
+              match r.get_url.Url.args with
+                ["q", file_num] ->
+                  let file_num = int_of_string file_num in
+                  let file = file_find file_num in
+                  let fd = file_fd file in
+                  let size = file_size file in
+                  
+                  let (begin_pos, end_pos) = 
+                    try
+                      let (begin_pos, end_pos) = request_range r in
+                      let end_pos = match end_pos with
+                          None -> size
+                        | Some end_pos -> end_pos in
+                      let range_size = end_pos -- begin_pos in
+                      add_reply_header r "Content-Length"
+                        (Int64.to_string range_size);                      
+                      add_reply_header r "Content-Range" 
+                        (Printf.sprintf "bytes %Ld-%Ld/%Ld"
+                          begin_pos (end_pos -- one)
+                        size);
+                      r.reply_head <- "206 Partial Content";
+                      begin_pos, end_pos
+                    with _ ->
+                        add_reply_header r "Content-Length"
+                          (Int64.to_string size);
+                        zero, size
+                  in
+                  
+                  add_reply_header r "Content-type" "application/binary";
+                  add_reply_header r "Accept-Ranges" "bytes";
+
+                  let s = String.create 200000 in
+                  set_max_output_buffer r.sock (String.length s);
+                  set_rtimeout r.sock 10000.;                  
+                  let rec stream_file file pos sock =
+                    let max = (max_refill sock) - 1 in
+                    if max > 0 && !pos < end_pos then
+                      let max64 = min (end_pos -- !pos) (Int64.of_int max)  in
+                      let max = Int64.to_int max64 in
+                      Unix32.read fd !pos s 0 max;
+                      pos := !pos ++ max64;
+                      set_lifetime sock 60.;
+(*                      lprintf "HTTPSEND: refill %d %Ld\n" max !pos;*)
+(*                    lprintf "HTTPSEND: [%s]\n" (String.escaped 
+                        (String.sub s 0 max)); *)
+                      write sock s 0 max;
+                      if output_buffered sock = 0 then begin
+(*                          lprintf "Recursing STREAM\n"; *)
+                          stream_file file pos sock
+                        end
+                  in
+                  r.reply_stream <- Some (stream_file file (ref begin_pos))
+                  
+              | args -> 
+                  List.iter (fun (s,v) ->
+                      lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
+                      lprint_newline ()) args;
+                  
+                  raise Not_found                  
+            end
+            
         | "/h.css" ->
-            Buffer.clear buf;
-            html_page := false; 
-            http_add_css_header buf;
+            clear_page buf;
+            http_add_css_header r;
             let this_page = "h.css" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -974,9 +1037,8 @@ let http_handler o t r =
               else !!CommonMessages.html_css_old)
         
         | "/dh.css" ->          
-            Buffer.clear buf;
-            html_page := false; 
-            http_add_css_header buf;
+            clear_page buf;
+            http_add_css_header r;
             let this_page = "dh.css" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -985,9 +1047,8 @@ let http_handler o t r =
               else !!CommonMessages.download_html_css_old)
         
         | "/i.js" ->
-            Buffer.clear buf;
-            html_page := false; 
-            http_add_js_header buf;
+            clear_page buf;
+            http_add_js_header r;
             let this_page = "i.js" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -996,9 +1057,8 @@ let http_handler o t r =
               else !!CommonMessages.html_js_old)
         
         | "/di.js" ->          
-            Buffer.clear buf;
-            html_page := false; 
-            http_add_js_header buf;
+            clear_page buf;
+            http_add_js_header r;
             let this_page = "di.js" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1010,17 +1070,13 @@ let http_handler o t r =
             Printf.bprintf buf "No page named %s" (html_escaped cmd)
       with e ->
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
+          r.reply_stream <- None
     end;
   
-  if !html_page then
-  html_close_page buf;
+  if !html_page then  html_close_page buf;
   let s = Buffer.contents buf in
   let s = dollar_escape o !!use_html_frames s in
-  let len = String.length s in
-(*  TcpBufferedSocket.set_monitored t; *)
-  TcpBufferedSocket.set_max_write_buffer t (len + 100);
-  TcpBufferedSocket.write t s 0 len;
-  TcpBufferedSocket.close_after_write t
+  r.reply_content <- s
         
 let http_options = { 
     conn_buf = Buffer.create 10000;

@@ -16,15 +16,10 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-
+open Int32ops
 open Printf2
 open Md4
-open Options
-open BasicSocket
-open TcpBufferedSocket
 
-open GuiTypes  
-  
 open CommonShared
 open CommonServer
 open CommonResult
@@ -32,17 +27,17 @@ open CommonClient
 open CommonUser
 open CommonInteractive
 open CommonNetwork
+open GuiTypes
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
-open CommonSwarming
-open CommonOptions
-open CommonGlobals
-  
 open DonkeySearch
+open Options
 open DonkeyMftp
 open DonkeyProtoCom
 open DonkeyServers
+open BasicSocket
+open TcpBufferedSocket
 open DonkeyOneFile
 open DonkeyFiles
 open DonkeyComplexOptions
@@ -50,6 +45,8 @@ open DonkeyTypes
 open DonkeyOptions
 open DonkeyGlobals
 open DonkeyClient
+open CommonGlobals
+open CommonOptions
 open DonkeyStats
   
 let result_name r =
@@ -65,7 +62,7 @@ let reconnect_all file =
   DonkeySources.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
-      | Some sock, (Connected _ | Connected_downloading) ->
+      | Connection sock, (Connected _ | Connected_downloading _) ->
           s.server_waiting_queries <- file :: s.server_waiting_queries
       | _ -> ()
   ) (connected_servers())
@@ -97,9 +94,8 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
       filename;
-      lprint_newline ();
       0
 
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
@@ -126,20 +122,18 @@ let really_query_download filenames size md4 location old_file absents =
             Unix32.file_exists temp_file) then
           (try 
               if !verbose then begin
-                  lprintf "Renaming from %s to %s" filename
-                    temp_file; lprint_newline ();
+                  lprintf "Renaming from %s to %s\n" filename
+                    temp_file; 
                 end;
               Unix2.rename filename temp_file;
               Unix.chmod temp_file 0o644;
               with e -> 
-                lprintf "Could not rename %s to %s: exception %s"
+                lprintf "Could not rename %s to %s: exception %s\n"
                   filename temp_file (Printexc2.to_string e);
-                lprint_newline () );        
+                 );        
   end;
   
   let file = new_file FileDownloading temp_file md4 size true in
-  
-  (*
   begin
     match absents with
       None -> ()
@@ -147,13 +141,13 @@ let really_query_download filenames size md4 location old_file absents =
         let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
         file.file_absent_chunks <- absents;
   end;
-*)
   
   let other_names = DonkeyIndexer.find_names md4 in
   let filenames = List.fold_left (fun names name ->
-        if List.mem name names then names else name :: names
+        if List.mem name names then names else names @ [name]
     ) filenames other_names in 
-  file.file_filenames <- file.file_filenames @ filenames ;
+  file.file_filenames <- file.file_filenames @ (List.map 
+    (fun name -> name , { ips=[]; nips=0}) filenames);
   update_best_name file;
 
   DonkeyOvernet.recover_file file;
@@ -162,16 +156,14 @@ let really_query_download filenames size md4 location old_file absents =
 (*  !file_change_hook file; *)
   set_file_size file (file_size file);
   List.iter (fun s ->
-      match s.server_sock with
-        None -> () (* assert false !!! *)
-      | Some sock ->
-          query_location file sock
+      do_if_connected s.server_sock (fun sock ->
+          query_location file sock)
   ) (connected_servers());
 
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq file.file_md4)
+          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq [file.file_md4])
       ) servers
     with _ -> ());
   
@@ -208,7 +200,8 @@ let really_query_download filenames size md4 location old_file absents =
           | _ -> ()
 with _ -> ()
 *)
-  )
+  );
+  as_file file.file_file
         
 let query_download filenames size md4 location old_file absents force =
   if not force then
@@ -252,9 +245,8 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
       filename;
-      lprint_newline ();
       [], []
       
 let import_temp temp_dir =  
@@ -273,17 +265,17 @@ let import_temp temp_dir =
             List.iter (fun tag ->
                 match tag with
                   { tag_name = "filename"; tag_value = String s } ->
-                    lprintf "Import Donkey %s" s; 
-                    lprint_newline ();
+                    lprintf "Import Donkey %s\n" s; 
                     
                     filenames := s :: !filenames;
                 | { tag_name = "size"; tag_value = Uint64 v } ->
                     size := v
                 | _ -> ()
             ) f.P.tags;
-            query_download !filenames !size f.P.md4 None 
+            let file = query_download !filenames !size f.P.md4 None 
               (Some filename) (Some (List.rev f.P.absents)) true;
-      
+            in
+            ()
       with _ -> ()
   ) list
   
@@ -296,7 +288,7 @@ let import_config dirname =
   List.iter (fun tag ->
       match tag with
       | { tag_name = "name"; tag_value = String s } ->
-          client_name =:=  s
+          login =:=  s
       | { tag_name = "port"; tag_value = Uint64 v } ->
           port =:=  Int64.to_int v
       | _ -> ()
@@ -307,8 +299,8 @@ let import_config dirname =
       | { tag_name = "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
-          else (lprintf "Bad temp directory, using default";
-              lprint_newline ();)
+          else (lprintf "Bad temp directory, using default\n";
+              )
       | _ -> ()
   ) ot;
 
@@ -363,44 +355,47 @@ let print_file buf file =
           (Ip.to_string ip)
         port
           (match c.client_sock with
-            None -> string_of_date (connection_last_conn
+            NoConnection  -> 
+              string_of_date (connection_last_conn
                   c.client_connection_control)
-          | Some _ -> "Connected")
+          | ConnectionWaiting _ -> "Connecting"
+          | Connection _ -> "Connected")
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
           (client_num c)
           "Indirect"
           (match c.client_sock with
-            None -> string_of_date (connection_last_conn
+            NoConnection -> string_of_date (connection_last_conn
                   c.client_connection_control)
-          | Some _ -> "Connected")
+          | ConnectionWaiting _ -> "Connecting"
+          | Connection _ -> "Connected")
   in
 
   (* Intmap.iter f file.file_sources; *)
   Printf.bprintf buf "\nChunks: \n";
-  String2.iteri (fun i c ->
+  Array.iteri (fun i c ->
       Buffer.add_char buf (
         match c with
-          '3' -> 'V'
-        | '2' -> 'p'
-        | '0' -> '_'
-        | _ -> '?'
+          PresentVerified -> 'V'
+        | PresentTemp -> 'p'
+        | AbsentVerified -> '_'
+        | AbsentTemp -> '.'
+        | PartialTemp _ -> '?'
+        | PartialVerified _ -> '!'
       )
-  ) (Int64Swarmer.verified_bitmap file.file_partition)
+  ) file.file_chunks
 
-  (*
 let recover_md4s md4 =
-  let file = find_file md4 in
-  let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
-  for i = 0 to file_nchunks file - 1 do
-    bitmap.[i] <- (match file.file_
+  let file = find_file md4 in  
+  if file.file_chunks <> [||] then
+    for i = 0 to file.file_nchunks - 1 do
       file.file_chunks.(i) <- (match file.file_chunks.(i) with
           PresentVerified -> PresentTemp
         | AbsentVerified -> AbsentTemp
         | PartialVerified x -> PartialTemp x
         | x -> x)
     done
-*)    
+    
 
     
 let parse_donkey_url url =
@@ -409,8 +404,10 @@ let parse_donkey_url url =
   | "file" :: name :: size :: md4 :: _ ->
       let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
-      query_download [name] (Int64.of_string size)
-      (Md4.of_string md4) None None None false;
+      let file = query_download [name] (Int64.of_string size)
+        (Md4.of_string md4) None None None false;
+      in
+      CommonInteractive.start_download file;
       true
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -427,7 +424,12 @@ let parse_donkey_url url =
       true
   
   | _ ->  false
+
       
+let register_commands list =
+  register_commands
+    (List2.tail_map (fun (n,f,h) -> (n, "Network/Edonkey", f,h)) list)
+
 let commands = [
     "n", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -463,8 +465,9 @@ let commands = [
     
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d
-minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
+        Printf.sprintf 
+		"Upload credits : %d minutes\nUpload disabled for %d minutes" 
+		!CommonUploads.upload_credit !CommonUploads.has_upload;
     
     ), ":\t\t\t\t\tview upload credits";
     
@@ -565,13 +568,27 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
         let counter = ref 0 in
         let tr = ref "dl-1" in
         
-        if use_html_mods o then
+        if use_html_mods o then begin
+
+Printf.bprintf buf 
+"\\<script language=javascript\\>
+\\<!-- 
+function submitRenameForm(i) {
+var formID = document.getElementById(\\\"renameForm\\\" + i)
+var regExp = new RegExp (' ', 'gi') ;
+var renameTextOut = formID.newName.value.replace(regExp, '+'); 
+parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
+}
+//--\\>
+\\</script\\>";
           
           html_mods_table_header buf "scan_tempTable" "scan_temp" [ 
-            ( "0", "srh", "Filename", "Filename" ) ; 
+            ( "0", "srh", "Filename", "Filename (press ENTER to rename)" ) ; 
             ( "0", "srh", "Status", "Status" ) ;
-            ( "0", "srh", "MD4", "MD4" ) ];
+            ( "0", "srh", "MD4 (link=ed2k)", "MD4 (link=ed2k)" ); ];
         
+
+		end;
         
         List.iter (fun filename ->
             incr counter;
@@ -582,11 +599,14 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
               try
                 let file = find_file md4 in
                 if use_html_mods o then
-                  Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
-                class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>
+				  let fnum = (file_num file) in 
+                  Printf.bprintf buf "
+				\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>
+				\\<form name=\\\"renameForm%d\\\" id=\\\"renameForm%d\\\" action=\\\"javascript:submitRenameForm(%d);\\\"\\>
+				\\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
-                \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" 
-                    !tr (file_comment (as_file file.file_file)) (file_best_name file) "Downloading" filename
+                \\<td class=\\\"sr \\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>\\</tr\\>"
+                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file.file_file)) filename  
                 else
                   Printf.bprintf buf "%s is %s %s\n" filename
                     (file_best_name file)
@@ -628,30 +648,6 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
         "done";
     ), ":\t\t\t\tprint temp directory content";
     
-    "recover_temp", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let files = Unix2.list_directory !!temp_directory in
-        List.iter (fun filename ->
-            if String.length filename = 32 then
-              try
-                let md4 = Md4.of_string filename in
-                try
-                  ignore (Hashtbl.find files_by_md4 md4)
-                with Not_found ->
-                    let size = Unix32.getsize64 (Filename.concat 
-                          !!temp_directory filename) in
-                    if size <> zero then
-                      let names = try DonkeyIndexer.find_names md4 
-                        with _ -> [] in
-                      query_download names size md4 None None None true;
-                      (* recover_md4s md4 *)
-              with e ->
-                  lprintf "exception %s in recover_temp"
-                    (Printexc2.to_string e); lprint_newline ();
-        ) files;
-        "done"
-    ), ":\t\t\t\trecover lost files from temp directory";
-    
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeySources.print_sources buf;
@@ -668,7 +664,7 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
         let buf = o.conn_buf in
         if !xs_last_search >= 0 then begin
             try
-              make_xs (CommonSearch.search_find !xs_last_search);
+              DonkeyUdp.make_xs (CommonSearch.search_find !xs_last_search);
               "extended search started"
             with e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
           end else "No previous search to extend"),
@@ -682,17 +678,16 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
     
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
-        query_download [] (Int64.of_string size)
-        (Md4.of_string md4) None None None false;
+        let file = query_download [] (Int64.of_string size)
+          (Md4.of_string md4) None None None false in
+        CommonInteractive.start_download file;
         "download started"
     
     ), "<size> <md4> :\t\t\tdownload from size and md4";
-
-    (*
+    
     "dup", Arg_none (fun _ ->
         DonkeyChunks.duplicate_chunks (); "done"),
     ":\t\t\t\t\tfind duplicate chunks (experimental)";
-*)
     
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -730,9 +725,23 @@ let _ =
       DonkeySources.recompute_ready_sources ()       );
   file_ops.op_file_pause <- (fun file -> ()  );
   file_ops.op_file_commit <- (fun file new_name ->
+      
+(*      DonkeyStats.save_download_history file; *)
+      
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
-      lprintf "REMEMBER SHARE FILE INFO %s" new_name; lprint_newline (); 
+      lprintf "REMEMBER SHARE FILE INFO %s\n" new_name; 
+      
+(**************************************************************
+
+Since the new version of Unix32.rename does not update the
+file name, we need to create a new 'file' and stop using the old
+one. For that, we need first to remove definitively the old one
+from the system, and thus to disconnect all uploaders for this
+file.---------> to be done urgently
+
+***************************************************************)
+      
       DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_connected <- (fun _ ->
@@ -742,10 +751,12 @@ let _ =
       try
         let c = DonkeyGlobals.find_client_by_name iddest in
         match c.client_sock with
-          None -> 
+          NoConnection -> 
             DonkeyClient.reconnect_client c;
             c.client_pending_messages <- c.client_pending_messages @ [s];
-        | Some sock ->
+        | ConnectionWaiting _ ->
+            c.client_pending_messages <- c.client_pending_messages @ [s];
+        | Connection sock ->
             direct_client_send c (DonkeyProtoClient.SayReq s)
       with
         Not_found ->
@@ -762,12 +773,16 @@ let _ =
 
 module P = GuiTypes
 
+(* How often is this function called when the interface is running ?
+is it called when no interface is connected ? it should be as fast
+as possible. *)
+  
 let _ =
   file_ops.op_file_info <- (fun file ->
-      let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
       try
         let v = 
           {
+            P.file_comment = file_comment (as_file file.file_file);
             P.file_name = file_best_name file;
             P.file_num = (file_num file);
             P.file_network = network.network_num;
@@ -780,23 +795,36 @@ let _ =
             P.file_state = file_state file;
             P.file_sources = None;
             P.file_download_rate = file_download_rate file.file_file;
-            P.file_chunks = bitmap;
+            P.file_chunks = (
+              let nchunks = file.file_nchunks in
+              let s = String.make file.file_nchunks '0' in
+              if file.file_chunks <> [||] then begin
+                  for i = 0 to nchunks - 1 do
+                    match file.file_chunks.(i) with
+                      PresentTemp | PresentVerified -> s.[i] <- '2'
+                    | PartialTemp _ | PartialVerified _ -> s.[i] <- '1'
+                    | _ -> ()
+                  done;
+                end;
+              s
+            
+            );          
             P.file_priority = file_priority  file;
-            P.file_availability = String2.init (file_nchunks file) (fun i ->
+            P.file_availability = [network.network_num, String2.init file.file_nchunks (fun i ->
 
 (* Could file.file_available_chunks.(i) be under 0 ? *)
                 let n = maxi 0 (mini file.file_available_chunks.(i) 127) in
                 char_of_int n 
-            );
+            )];
             P.file_format = file.file_format;
-            P.file_chunks_age = Int64Swarmer.blocks_age file.file_partition;
+            P.file_chunks_age = file.file_chunks_age;
             P.file_age = file_age file;
             P.file_last_seen = file.file_file.impl_file_last_seen;
+            P.file_uids = [];
           } in
         v
       with e ->
-          lprintf "Exception %s in op_file_info" (Printexc2.to_string e);
-          lprint_newline ();
+          lprintf "Exception %s in op_file_info\n" (Printexc2.to_string e);
           raise e
           
   )
@@ -810,7 +838,7 @@ let _ =
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_score = s.server_score;
-          P.server_tags = s.server_tags;
+          P.server_tags = []; (* s.server_tags; *)
           P.server_nusers = s.server_nusers;
           P.server_nfiles = s.server_nfiles;
           P.server_state = server_state s;
@@ -830,12 +858,17 @@ let _ =
         P.user_md4 = u.user_md4;
         P.user_ip = u.user_ip;
         P.user_port = u.user_port;
-        P.user_tags = u.user_tags;
+        P.user_tags = []; (* u.user_tags; *)
         P.user_name = u.user_name;
         P.user_server = u.user_server.server_server.impl_server_num;
       }
   )
-
+let string_of_client_addr c =
+  try match c.client_sock with
+      Connection sock -> (Ip.to_string (peer_ip sock)) 
+    | _ -> ""
+  with _ -> ""
+      
 let _ =
   client_ops.op_client_info <- (fun c ->
       {
@@ -843,7 +876,7 @@ let _ =
         P.client_kind = c.client_kind;
         P.client_state = client_state c;
         P.client_type = client_type c;
-        P.client_tags = c.client_tags;
+        P.client_tags = []; (* c.client_tags; *)
         P.client_name = c.client_name;
         P.client_files = None;
         P.client_num = (client_num c);
@@ -851,18 +884,15 @@ let _ =
         P.client_chat_port = c.client_chat_port ;
         P.client_connect_time = c.client_connect_time;
         P.client_software = gbrand_to_string c.client_brand;
+        P.client_emulemod = gbrand_mod_to_string c.client_mod_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
-		P.client_sock_addr = 
-		(try match c.client_sock with
-          Some sock -> (Ip.to_string (peer_ip sock)) 
-        | None -> ""
-		with _ -> "");
+(*        P.client_sock_addr =    (); *)
         P.client_upload = 
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)
           | None -> None);
-                        
+        
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -877,8 +907,11 @@ let _ =
   )
 let disconnect_server s r =
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock ->
       TcpBufferedSocket.shutdown sock r
       
 let _ =
@@ -891,14 +924,14 @@ let _ =
 
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
-        Some sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading _) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
-        Some sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading _) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      
@@ -914,15 +947,13 @@ let _ =
 
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
-      file.file_filenames <- [name];
+      file.file_filenames <- [name, noips()];
       set_file_best_name (as_file file.file_file) name
   );
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
   file_ops.op_file_check <- (fun file ->
-(*      DonkeyChunks.verify_chunks file *)
-      ()
-  );  
+      DonkeyChunks.verify_chunks file);  
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then 
         reconnect_all file);  
@@ -933,15 +964,11 @@ let _ =
       !list
   );
   file_ops.op_file_print_sources_html <- (fun file buf ->
-      if !!source_management = 3 then DonkeySources3.print_sources_html file buf
+      if !!source_management = 3 then DonkeySources.print_sources_html file buf
   );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
-      (try  Unix32.remove (file_fd file)  with e -> 
-            lprintf "Sys.remove %s exception %s" 
-            (file_disk_name file)
-            (Printexc2.to_string e); lprint_newline ());
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
@@ -959,7 +986,7 @@ let _ =
       | ExtendSearchLocally ->
           DonkeyIndexer.find s      
       | ExtendSearchRemotely ->
-          make_xs s
+          DonkeyUdp.make_xs s
   );
   
   network.op_network_clean_servers <- (fun _ ->
@@ -967,6 +994,31 @@ let _ =
   
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true);
+
+  network.op_network_recover_temp <- (fun _ ->
+      let files = Unix2.list_directory !!temp_directory in
+      List.iter (fun filename ->
+	if String.length filename = 32 then
+          try
+            let md4 = Md4.of_string filename in
+            try
+              ignore (Hashtbl.find files_by_md4 md4)
+            with Not_found ->
+              let size = Unix32.getsize (Filename.concat 
+		!!temp_directory filename) in
+              if size <> zero then
+                let names = try DonkeyIndexer.find_names md4 
+                with _ -> [] in
+                let file = 
+                  query_download names size md4 None None None true
+                in
+                        
+                  recover_md4s md4
+          with e ->
+            lprintf "exception %s in recover_temp\n"
+            (Printexc2.to_string e); 
+      ) files
+  );
   
   network.op_network_parse_url <- parse_donkey_url;
   
@@ -977,10 +1029,12 @@ when sending a message? emule or ml problem? *)
 let _ =
   client_ops.op_client_say <- (fun c s ->
       match c.client_sock with
-        None -> 
+      | NoConnection -> 
           DonkeyClient.reconnect_client c;
           c.client_pending_messages <- c.client_pending_messages @ [s];
-      | Some sock ->
+      | ConnectionWaiting _ -> 
+          c.client_pending_messages <- c.client_pending_messages @ [s];
+      | Connection sock ->
           direct_client_send c (DonkeyProtoClient.SayReq s)
   );  
   client_ops.op_client_files <- (fun c ->
@@ -989,9 +1043,9 @@ let _ =
       | Some files -> 
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      lprintf "*************** should browse  ***********"; lprint_newline (); 
+      lprintf "*************** should browse  ***********\n"; 
       match c.client_sock with
-      | Some sock    ->
+      | Connection sock    ->
 (*
       lprintf "****************************************";
       lprint_newline ();
@@ -1002,18 +1056,20 @@ lprint_newline ();
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
-      | _ -> 
-          lprintf "****************************************";
-          lprint_newline ();
-          lprintf "       TRYING TO CONTACT FRIEND         ";
-          lprint_newline ();
+      | NoConnection -> 
+          lprintf "****************************************\n";
+          lprintf "       TRYING TO CONTACT FRIEND         \n";
           
           reconnect_client c
+      | _ -> ()
   );
   client_ops.op_client_connect <- (fun c ->
       match c.client_sock with
-        None ->  reconnect_client c
+        NoConnection ->  reconnect_client c
       | _ -> ()
+  );
+  client_ops.op_client_disconnect <- (fun c ->
+      DonkeyClient.disconnect_client c Closed_by_user
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;
@@ -1040,7 +1096,7 @@ lprint_newline ();
 		onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
             (client_num c) (client_num c);
           
-          html_mods_td buf [
+          html_mods_td buf ([
             ("", "sr", (match c.client_block with 
                   None -> Printf.sprintf "" 
                 | Some b -> Printf.sprintf "%s" ( 
@@ -1050,15 +1106,18 @@ lprint_newline ();
                         "A" else "";)) );
             ((string_of_connection_state (client_state c)), "sr", 
               (short_string_of_connection_state (client_state c)) );
-            ("", "sr", c.client_name);
+            (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+            ] @
+            (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+            @ [
             ("", "sr", (if c.client_overnet then "T" else "F"));
             ("", "sr", (match c.client_kind with 
                   Indirect_location _ -> Printf.sprintf "I"
                 | Known_location (ip,port) -> Printf.sprintf "D"));
             ("", "sr br", match c.client_kind with
                 Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-              | Indirect_location _ -> i.client_sock_addr);
+              | Indirect_location _ -> (string_of_client_addr c));
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
@@ -1077,7 +1136,7 @@ lprint_newline ();
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
             ("", "sr ar br", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
-            ("", "sr br", (Md4.to_string c.client_md4)); ];
+            ("", "sr br", (Md4.to_string c.client_md4)); ]);
           
           Printf.bprintf buf "\\<td class=\\\"sr \\\"\\>";
           
@@ -1088,9 +1147,9 @@ lprint_newline ();
                         qfile = (as_file_impl file).impl_file_val) qfiles in
                   let tc = ref 0 in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
-                    (CommonFile.colored_chunks (Array.init (String.length qchunks) 
-                      (fun i -> (if qchunks.[i] <> '0' then 2 else 0)) )) 
-                  (String.iter (fun b -> if b <> '0' then incr tc) qchunks;!tc);
+                    (CommonFile.colored_chunks (Array.init (Array.length qchunks) 
+                      (fun i -> (if qchunks.(i) then 2 else 0)) )) 
+                  (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
                 with Not_found -> (
                       Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
                     );
@@ -1115,11 +1174,13 @@ lprint_newline ();
                 let (qfile, qchunks) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
                     client_print (as_client c.client_client) o;
-                    Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" 
-                      (brand_to_string c.client_brand) 
+                    Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_downloaded) 
-                    (Int64.to_string c.client_uploaded);
-                    Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+                    (Int64.to_string c.client_uploaded)
+                    (if c.client_downloaded > c.client_uploaded then "-" else "+")
+                    (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+                    (brand_to_string c.client_brand);
+                    (Printf.bprintf buf "%14sFile  : %s\n" "" info.GuiTypes.file_name);
                   end;
               
               )
@@ -1147,11 +1208,14 @@ lprint_newline ();
 			onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
                       str (client_num c) (client_num c);
                     
-                    html_mods_td buf [
+                    html_mods_td buf ([
                       (string_of_connection_state (client_state c), "sr", 
                         short_string_of_connection_state (client_state c));
-                      (Md4.to_string c.client_md4, "sr", c.client_name);
+                      (Md4.to_string c.client_md4, "sr", client_short_name c.client_name);
                       ("", "sr", gbrand_to_string c.client_brand);
+                      ] @
+                      (if !!emule_mods_count then [("", "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+                      @ [
                       ("", "sr", (if c.client_overnet then "T" else "F"));
                       ("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
                       ("", "sr", (match c.client_kind with  
@@ -1159,10 +1223,10 @@ lprint_newline ();
                           | Known_location (ip,port) -> Printf.sprintf "D"));
                       ("", "sr", match c.client_kind with
                           Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                        | Indirect_location _ -> i.client_sock_addr);
+                        | Indirect_location _ -> (string_of_client_addr c));
                       ("", "sr ar", (size_of_int64 c.client_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_downloaded));
-                      ("", "sr", info.GuiTypes.file_name) ];
+                      ("", "sr", info.GuiTypes.file_name) ]);
                     
                     Printf.bprintf buf "\\</tr\\>";
                     true
@@ -1176,7 +1240,7 @@ lprint_newline ();
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in
-      add_user_friend s u
+      DonkeyUdp.add_user_friend s u
   )
 
   
@@ -1210,18 +1274,18 @@ let _ =
 
 let _ =
   add_web_kind "server.met" (fun filename ->
-      lprintf "FILE LOADED"; lprint_newline ();
+      lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
   add_web_kind "servers.met" (fun filename ->
-      lprintf "FILE LOADED"; lprint_newline ();
+      lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
-      lprintf "%d SERVERS ADDED" n; lprint_newline ();    
+      lprintf "%d SERVERS ADDED\n" n; 
   );
   add_web_kind "comments.met" (fun filename ->
       DonkeyIndexer.load_comments filename;
-      lprintf "COMMENTS ADDED"; lprint_newline ();   
+      lprintf "COMMENTS ADDED\n"; 
   );
   
   

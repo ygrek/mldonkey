@@ -282,14 +282,18 @@ let disconnect_server s r =
   | _ -> ()
 
 let recover_file file = 
-  FasttrackClients.check_finished file;
-  if file_state file = FileDownloading then
-    List.iter (fun s ->
-        let ss = file.file_search in
-        if not (Fifo.mem s.server_searches ss) then
-          Fifo.put s.server_searches ss        
-    ) !connected_servers
-    
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        FasttrackClients.check_finished swarmer file;
+        if file_state file = FileDownloading then
+          List.iter (fun s ->
+              let ss = file.file_search in
+              if not (Fifo.mem s.server_searches ss) then
+                Fifo.put s.server_searches ss        
+          ) !connected_servers
+  )
+  
 let download_file (r : result) =
   let file = new_file (Md4.random ()) 
     r.result_name r.result_size r.result_hash in
@@ -303,7 +307,7 @@ let download_file (r : result) =
       get_file_from_source c file;
   ) r.result_sources;
   recover_file file;
-  (as_file file.file_file)
+  (as_file file)
 
 let recover_files () = (* called every 10 minutes *)
   List.iter (fun file ->

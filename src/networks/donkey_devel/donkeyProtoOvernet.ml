@@ -34,8 +34,8 @@ type peer =
   { 
     peer_md4 : Md4.t;
     mutable peer_ip : Ip.t;
-    peer_port : int;
-    peer_kind : int;
+    mutable peer_port : int;
+    mutable peer_kind : int;
     mutable peer_last_msg : int;
   }
   
@@ -49,7 +49,7 @@ let get_peer s pos =
   let md4 = get_md4 s pos in
   let ip = get_ip s (pos+16) in
   let port = get_int16 s (pos+20) in
-  let kind = get_int8 s (pos+22) in
+  let kind = get_uint8 s (pos+22) in
   {
     peer_md4 = md4;
     peer_ip = ip;
@@ -70,7 +70,7 @@ type t =
   peer list
 
 | OvernetSearch of 
-(* ?? 2 is OK for most searches, number of replies ? *) int * 
+(* 2 is OK for most searches, number of replies? *) int * 
 (* searched file or keyword *) Md4.t
 
 | OvernetPublicize of
@@ -87,7 +87,7 @@ type t =
 
 (*
 
-OK: SEARCH REPLY
+RCVD: SEARCH REPLY
 17:54:05.411029 217.231.48.129.5509 > 192.168.0.2.5682:  udp 65
 MESSAGE SIZE: 65
 dec: [
@@ -113,7 +113,7 @@ dec: [
   Md4.t * int * int * int
 
 (*
-OK: SEARCH GET REPLIES
+RCVD: SEARCH GET REPLIES
 17:54:15.309167 192.168.0.2.5682 > 217.231.48.129.5509:  udp 23 (DF)
 MESSAGE SIZE: 23
 dec: [
@@ -130,7 +130,7 @@ dec: [
 (* tags *) tag list
 
 (*
-OK: ONE REPLY
+RCVD: ONE REPLY
 17:54:15.862868 217.231.48.129.5509 > 192.168.0.2.5682:  udp 71
 MESSAGE SIZE: 71
 dec: [
@@ -145,7 +145,7 @@ dec: [
 ]
 *)
 (*
-OK: ONE REPLY
+RCVD: ONE REPLY
 17:54:15.936396 217.231.48.129.5509 > 192.168.0.2.5682:  udp 70
 dec: [
 (227)
@@ -157,7 +157,7 @@ dec: [
 (3)(0) l o c
 (24)(0) b c p : / / 2 4 . 1 7 0 . 8 1 . 2 2 7 : 4 6 6 2]
   
-OK: ONE REPLY
+RCVD: ONE REPLY
 17:54:15.945381 217.231.48.129.5509 > 192.168.0.2.5682:  udp 103
 MESSAGE SIZE: 103
 dec: [
@@ -241,17 +241,22 @@ dec: [
 
 | OvernetFirewallConnectionNACK of Md4.t
 
+| OvernetPeerNotFound of peer
+
 | OvernetUnknown21 of peer
-| OvernetUnknown33 of peer
-  
+
+
+
 let names_of_tag =
   [
-    1, "filename";
-    2, "size";
-    3, "type";
-    4, "format";
+    "\001", "filename";
+    "\002", "size";
+    "\003", "type";
+    "\004", "format";
   ]
   
+
+
 let write buf t =
   match t with
   | OvernetConnect (md4, ip, port, kind) ->
@@ -336,7 +341,7 @@ let write buf t =
       buf_int8 buf 26;
       buf_md4 buf md4
 
-  | OvernetUnknown33 peer ->
+  | OvernetPeerNotFound peer ->
       buf_int8 buf 33;
       buf_peer buf peer
 
@@ -353,145 +358,138 @@ let parse opcode s =
   try
     match opcode with  
     | 10 -> 
-        if !verbose_overnet then begin
-            lprintf "OK: CONNECT MESSAGE"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: CONNECT MESSAGE (10)\n";
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
         let port = get_int16 s 20 in
-        let kind = get_int8 s 22 in
+        let kind = get_uint8 s 22 in
         OvernetConnect (md4, ip, port, kind)
     | 11 -> 
-        if !verbose_overnet then begin
-            lprintf "OK: CONNECT REPLY"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: CONNECT REPLY (11)\n";
         let peers, pos = get_list16 get_peer s 0 in
         OvernetConnectReply peers
     | 12 -> 
-        if !verbose_overnet then begin
-            lprintf "OK: PUBLICIZE"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: PUBLICIZE (12)\n";
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
         let port = get_int16 s 20 in
-        let kind = get_int8 s 22 in
+        let kind = get_uint8 s 22 in
         OvernetPublicize (md4,ip,port,kind)
     | 13 ->
-        if !verbose_overnet then begin
-            lprintf "OK: PUBLICIZED"; lprint_newline ();
-          end; 
+        if !verbose_overnet then
+            lprintf "RCVD: PUBLICIZED (13)\n";
 	OvernetPublicized
     | 14 -> 
-        if !verbose_overnet then begin
-          (*lprintf "OK: SEARCH MESSAGE"; lprint_newline ();*)
-        end;
-        let kind = get_int8 s 0 in
+        if !verbose_overnet then
+          lprintf "RCVD: SEARCH MESSAGE (14)\n";
+        let kind = get_uint8 s 0 in
         let md4 = get_md4 s 1 in
         OvernetSearch (kind, md4)
     
     | 15 -> 
-        if !verbose_overnet then begin
-            lprintf "OK: SEARCH REPLY"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: SEARCH REPLY (15)\n";
         let md4 = get_md4 s 0 in
         let peers, pos = get_list8 get_peer s 16 in
         OvernetSearchReply (md4, peers)
     
     | 16 ->
-        if !verbose_overnet then begin
-            lprintf "OK: SEARCH GET REPLIES"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: SEARCH GET REPLIES (16): ";
         let md4 = get_md4 s 0 in
-        let kind = get_int8 s 16 in
+        let kind = get_uint8 s 16 in
         let min = get_int16 s 17 in
         let max = get_int16 s 19 in
+        if !verbose_overnet then
+            lprintf "MD4[%s] KIND[%d] MIN[%d] MAX[%d]\n" (Md4.to_string md4) kind min max;
         OvernetGetSearchResults (md4, kind, min, max)  
     
     | 17 ->
-        if !verbose_overnet then begin
-            lprintf "OK: ONE REPLY"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: ONE REPLY (17)\n";
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
         let r_tags, pos = get_tags s 32 names_of_tag in
         OvernetSearchResult (md4, r_md4, r_tags)
     
     | 18 ->
-        if !verbose_overnet then begin
-            lprintf "OK: ONE REPLY"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: ONE REPLY (18)\n";
         let md4 = get_md4 s 0 in
         OvernetNoResult md4
         
     | 19 ->
-        if !verbose_overnet then begin
-            lprintf "OK: PUBLISH"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: PUBLISH (19)\n";
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
         let r_tags, pos = get_tags s 32 names_of_tag in
         OvernetPublish (md4, r_md4, r_tags)
         
     | 20 ->
-        if !verbose_overnet then begin
-            lprintf "OK: PUBLISHED"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: PUBLISHED (20)\n";
         let md4 = get_md4 s 0 in
         OvernetPublished md4
 
     | 21 ->
         (* idem as 33, but IP seem to be a low ID *)
+        if !verbose_overnet then begin
+            lprintf "Received code %d message.\nDump: " opcode; dump s; lprint_newline ();
+          end;
+
         let peer, _ = get_peer s 0 in
         OvernetUnknown21 peer
 
     | 24 ->
-        if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: OVERNET FIREWALL CONNECTION (24)\n";
         let md4 = get_md4 s 0 in
         let port = get_int16 s 16 in
         OvernetFirewallConnection(md4,port)
 
     | 25 ->
-        if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION ACK"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: OVERNET FIREWALL CONNECTION ACK (25)\n";
         let md4 = get_md4 s 0 in
         OvernetFirewallConnectionACK(md4)
 
     | 26 ->
-        if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION NACK"; lprint_newline ();
-          end;
+        if !verbose_overnet then
+            lprintf "RCVD: OVERNET FIREWALL CONNECTION NACK (26)\n";
         let md4 = get_md4 s 0 in
         OvernetFirewallConnectionNACK(md4)
 
     | 27 ->
+	if !verbose_overnet then
+            lprintf "RCVD: GETMYIP MESSAGE (27)\n";
         OvernetGetMyIP (get_int16 s 0)
     | 28 -> 
-	if !verbose_overnet then begin
-            lprintf "OK: GETMYIPRESULT MESSAGE"; lprint_newline ();
-          end;
+	if !verbose_overnet then
+            lprintf "RCVD: GETMYIPRESULT MESSAGE (28)\n";
         let ip = get_ip s 0 in
         OvernetGetMyIPResult (ip)
     | 29 -> 
-	if !verbose_overnet then begin
-            lprintf "OK: GETMYIPDONE MESSAGE"; lprint_newline ();
-          end;
+	if !verbose_overnet then
+            lprintf "RCVD: GETMYIPDONE MESSAGE (29)\n";
         OvernetGetMyIPDone
         
     | 33 ->
+      if !verbose_overnet then
+            lprintf "RCVD: PEER NOT FOUND (33)\n";
         let peer, _ = get_peer s 0 in
-        OvernetUnknown33 peer
+        OvernetPeerNotFound peer
         
     | _ ->
-        lprintf "UNKNOWN: opcode %d" opcode; lprint_newline ();
+        lprintf "UNKNOWN: opcode %d\n" opcode;
         dump s;
         lprint_newline ();
         OvernetUnknown (opcode, s)
   with e ->
-      lprintf "Error %s while parsing opcode %d" (Printexc2.to_string e)
-      opcode; lprint_newline ();
+      lprintf "Error %s while parsing opcode %d\n" (Printexc2.to_string e) opcode;
       dump s;
       lprint_newline ();
       OvernetUnknown (opcode, s)
@@ -507,14 +505,13 @@ let udp_handler f sock event =
               int_of_char pbuf.[0] <> 227 then 
               begin
                 if !CommonOptions.verbose_unknown_messages then begin
-                    lprintf "Received unknown UDP packet"; lprint_newline ();
+                    lprintf "Received unknown UDP packet\n";
                     dump pbuf;
                   end
               end 
             else 
               begin
                 let t = parse (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
-(*              M.print t; *)
                 f t p
               end
           with e ->

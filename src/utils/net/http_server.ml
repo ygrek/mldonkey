@@ -95,7 +95,7 @@ type options = {
     no_cache : bool;
   }
 
-type full_header = string * (string * string * (string * string) list)
+type full_header = string * string (* * string * (string * string) list) *)
   
 type form_arg = {
     arg_name : string;
@@ -117,11 +117,11 @@ type request = {
     options : options;
     headers : full_header list;
     form_args : form_arg list;
-(*
-stream_in : Stream_in.t;
-stream_out : Stream_out.t;
-*)
-
+    
+    mutable reply_head : string;
+    mutable reply_headers : (string * string) list;
+    mutable reply_content : string;
+    mutable reply_stream : (TcpBufferedSocket.t -> unit) option;
   }
 
 and handler = TcpBufferedSocket.t -> request -> unit
@@ -180,13 +180,14 @@ let rec parse_headers lines headers =
         else ""
       in
       let value = iter (sep+1) in
+      (*
       let head, args = 
         try 
           Http_lexer.get_value (Lexing.from_string value) 
         with _ -> "", []
       in
-      
-      parse_headers tail ((name, (value, head, args)) :: headers)
+*)      
+      parse_headers tail ((name, (value (* , head, args *) )) :: headers)
 
       (*
       
@@ -226,7 +227,7 @@ let parse_head sock s =
       in
       let headers = parse_headers headers [] in
       let options = List.fold_left (fun options
-              (name, (value, head, args)) ->
+              (name, value (* , head, args *)) ->
             try
               match String.lowercase name with 
                 "authorization" ->
@@ -266,6 +267,11 @@ stream_out = Stream_out.create oc;
         request = meth;
         form_args = [];
         version = version;
+        
+        reply_head = "200 OK";
+        reply_headers = [];
+        reply_stream = None;
+        reply_content = "";
       }
 
       (*
@@ -635,9 +641,13 @@ let give_doc buf request =
       at_write_end buf.fd_task shutdown
 *)      
 
-let need_auth buf name = 
-  Printf.bprintf buf  "HTTP/1.0 401 Unauthorized\r\nConnection: close\r\nWWW-Authenticate: Basic realm=\"%s\"\r\n\r\n" name
-
+let need_auth r name = 
+  r.reply_head <- "401 Unauthorized";
+  r.reply_headers <- [
+    "Connection", "close";
+    "WWW-Authenticate", Printf.sprintf "Basic realm=\"%s\"" name
+  ]
+  
 (*
 let simple_give_auth psread pswrite request  =
   try
@@ -691,27 +701,56 @@ Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
 open TcpBufferedSocket
   
 let manage config sock head = 
+  
   let request = parse_head sock head in
   let rec iter reqs =
     match reqs with
-      (file, handler) :: reqs when file = request.get_url.Url.file ->
+      (file, handler) :: reqs when file = request.get_url.Url.short_file ->
         handler sock request
     | _ :: reqs -> iter reqs
     | [] -> 
         config.default sock request
   in
-  iter config.requests  
+  iter config.requests;
+  let buf = Buffer.create 1000 in
+  Printf.bprintf buf "HTTP/1.1 %s\r\n" request.reply_head;
+  List.iter (fun (header, line) ->
+      Printf.bprintf buf "%s: %s\r\n" header line
+  ) request.reply_headers;
+  let c = request.reply_content in
+  let clen = String.length c in
+  (match request.reply_stream with
+      None ->
+        Printf.bprintf buf "Content-length: %d\r\n" clen
+    | Some _ -> ());
+  Printf.bprintf buf "\r\n";
+
+  let s = Buffer.contents buf in
+  let len = String.length s in
+
+  if len+clen > max_refill sock then
+    TcpBufferedSocket.set_max_output_buffer sock (len + clen);
+  lprintf "HTTPSEND: [%s]\n" (String.escaped s);
+  TcpBufferedSocket.write_string sock s;
+    
+  if request.request <> "HEAD" then begin
+      lprintf "HTTPSEND: [%s]\n" (String.escaped c);
+      TcpBufferedSocket.write_string sock c;
+      match request.reply_stream with
+        None -> ()
+      | Some refill ->
+          set_refill sock refill;
+    end;
+  TcpBufferedSocket.close_after_write sock
+      
   
 let request_handler config sock nread =  
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
-  (*
-  lprintf "received [%s]" (String.escaped 
+  lprintf "received [%s]\n" (String.escaped 
       (String.sub b.buf new_pos nread));
-lprint_newline ();
-  *)
   let rec iter i =
     let end_pos = b.pos + b.len in
     if i < end_pos then
@@ -769,3 +808,76 @@ let create config =
     config.port (handler config) in
   t
   
+let add_reply_header r header value = 
+  let rec iter headers add =
+    match headers with
+      [] -> if add then [header, value] else []
+    | (h, v) :: tail ->
+        if h = header then
+          (h, value) :: (iter tail false)
+        else
+          (h, v) :: (iter tail true)
+  in
+  r.reply_headers <- iter r.reply_headers true
+  
+
+let parse_range range =
+  try
+    let npos = (String.index range 'b')+6 in
+    let dash_pos = try String.index range '-' with _ -> -10 in
+    let slash_pos = try String.index range '/' with _ -> -20 in
+    let star_pos = try String.index range '*' with _ -> -30 in
+    if star_pos = slash_pos-1 then
+      Int64.zero, None, None (* "bytes */X" *)
+    else
+    let len = String.length range in
+    let x = Int64.of_string (
+        String.sub range npos (dash_pos - npos) )
+    in
+    if len = dash_pos + 1 then
+(* bytes x- *)
+      x, None, None
+    else
+    let y = Int64.of_string (
+        String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
+    in
+    if slash_pos = star_pos - 1 then 
+      x, Some y, None (* "bytes x-y/*" *)
+    else
+(* bytes x-y/len *)
+    
+    let z = Int64.of_string (
+        String.sub range (slash_pos+1) (len - slash_pos -1) )
+    in
+    x, Some y, Some z
+  with 
+  | e ->
+      lprintf "Exception %s for range [%s]\n" 
+        (Printexc2.to_string e) range;
+      raise e
+
+let parse_range range =
+  let x, y, z = parse_range range in
+  lprintf "Range parsed: %Ld-%s/%s" x
+    (match y with None -> "" | Some y -> Int64.to_string y)    
+  (match z with None -> "*" | Some y -> Int64.to_string y);
+  x, y, z
+
+open Int64ops
+  
+(*  Range: bytes=31371876- *)
+let request_range r =
+  List.iter (fun (h, v1) ->
+      lprintf "HEADER [%s] = [%s]\n" h v1
+  ) r.headers;
+  let range = List.assoc "Range" r.headers in
+  match parse_range range with
+    x, None, _ -> x, None
+  | x, Some y, Some z ->
+      if y = z then (* some vendor bug *)
+        x -- Int64.one, Some y
+      else
+        x, Some (y ++ Int64.one)
+  | x, Some y, None ->
+      x, Some (y ++ Int64.one)
+      

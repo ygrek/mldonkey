@@ -1,8 +1,8 @@
 class window () =
   let window =
-    GWindow.window ~width:(Options.( !! ) Gui_options.gui_width)
-      ~height:(Options.( !! ) Gui_options.gui_height)
-      ~title:(Gui_messages.software) ~allow_shrink:true ~allow_grow:true
+    GWindow.window ~width:(400)
+      ~height:(300)
+      ~title:(Gui_messages.qT_lb_software) ~allow_shrink:true ~allow_grow:true
       ~auto_shrink:true ~modal:false ()
   in
   let box =
@@ -13,7 +13,7 @@ class window () =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
   in
   let _Menu =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFile)
+    GMenu.menu_item ~label:(Gui_messages.iM_me_file)
       ~packing:(menubar#add) ()
   in
   let accel_menubar = GtkData.AccelGroup.create () in

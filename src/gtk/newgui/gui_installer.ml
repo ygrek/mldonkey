@@ -20,7 +20,7 @@
 open Printf2
 open Options
 open GMain
-
+  
 (* What we want ? 
 
 * In which directory should the .ini files be stored ?
@@ -36,18 +36,20 @@ that should also be loaded at startup by mldonkey.
 
   
   
-let _ = Unix2.safe_mkdir config_dir
-let installer_name = Filename.concat config_dir "installer.ini"
-  
+let _ = Unix2.safe_mkdir CommonOptions.config_dir
+let installer_name = Filename.concat CommonOptions.config_dir "installer.ini"
+
+  (*
 let installer_ini = create_options_file installer_name
   
 let mldonkey_directory = 
-  define_option installer_ini ["mldonkey_directory"] 
+  define_option CommonOptions.installer_section ["mldonkey_directory"] 
     "The directory where mldonkey's option files are" string_option
   config_dir
+    *)
 
 let _ =
-  (try Options.load installer_ini with _ -> ())
+  (try Options.load CommonOptions.installer_ini with _ -> ())
   
 module Config = struct
     open Configwin_types
@@ -147,52 +149,54 @@ end
 
 let create_downloads_ini () =
   
-  let filename = Filename.concat !!mldonkey_directory "downloads.ini" in
+  let filename = Filename.concat !!CommonOptions.mldonkey_directory "downloads.ini" in
   let downloads_ini = create_options_file filename in
   
+  let installed_section = file_section downloads_ini [] "Set by installer" in
+  
   let shared_directories = 
-    define_option downloads_ini ["shared_directories" ] 
+    define_option installed_section ["shared_directories" ] 
       "Directories where files will be shared"
       (list_option string_option) []
   in
         
   let gui_port = 
-    define_option downloads_ini ["gui_port"] "port for user interaction" int_option 4001
+    define_option installed_section ["gui_port"] "port for user interaction" int_option 4001
     in 
   
   let http_port = 
-    define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
+    define_option installed_section ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
     in
   
-  let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
+  let telnet_port = define_option installed_section ["telnet_port"] "port for user interaction" int_option 4000
     in
   
   let http_login = 
-    define_option downloads_ini ["http_login"] "Your login when using a WEB browser" string_option ""
+    define_option installed_section ["http_login"] "Your login when using a WEB browser" string_option ""
     in
   
   let http_password = 
-    define_option downloads_ini ["http_password"] "Your password when using a WEB browser" string_option ""
+    define_option installed_section ["http_password"] "Your password when using a WEB browser" string_option ""
     in
   
-  let max_hard_upload_rate = define_option downloads_ini ["max_hard_upload_rate"] 
+  let max_hard_upload_rate = define_option installed_section ["max_hard_upload_rate"] 
     "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
     The limit will apply on all your connections (clients and servers) and both
     control and data messages." int_option 0
     in
   
-  let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rate"] 
+  let max_hard_download_rate = define_option installed_section ["max_hard_download_rate"] 
     "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
     The limit will apply on all your connections (clients and servers) and both
     control and data messages." int_option 0
     in
   
-  let password = define_option downloads_ini ["password"] 
+  let password = define_option installed_section ["password"] 
     "The password to access your client from the GUI (setting it disables
     the command-line client)" string_option ""
     in
   
-  let allowed_ips = define_option downloads_ini ["allowed_ips"]
+  let allowed_ips = define_option installed_section ["allowed_ips"]
     "list of IP address allowed to control the client via telnet/GUI/WEB"
     (list_option Ip.option) [Ip.of_string "127.0.0.1"]
     in
@@ -209,7 +213,7 @@ let main () =
   let directories_tab = new tab notebook "Directories" in
   
   
-  let param = Configwin_ihm.filename "MLdonkey directory:" !!mldonkey_directory
+  let param = Configwin_ihm.filename "MLdonkey directory:" !!CommonOptions.mldonkey_directory
   in
   let directories_box, directories_apply = Config.box [param] in
   directories_tab#vbox#pack ~expand: true ~fill: true directories_box#coerce;
@@ -232,10 +236,10 @@ let main () =
         directories_apply ();        
 
         
-        Unix2.safe_mkdir !!mldonkey_directory;
+        Unix2.safe_mkdir !!CommonOptions.mldonkey_directory;
         create_downloads_ini ();
-        Options.save_with_help installer_ini;
-        lprintf "%s created successfully" installer_name; lprint_newline ();
+        Options.save_with_help CommonOptions.installer_ini;
+        lprintf "%s created successfully\n" installer_name; 
         
         exit 0));
 

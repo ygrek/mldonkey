@@ -18,7 +18,7 @@
 *)
 
 open CommonSwarming
-open Int32ops
+open Int64ops
 open Xml
 open Printf2
 open Md4
@@ -58,7 +58,7 @@ let _ =
   file_ops.op_file_sources <- (fun file ->
 (*      lprintf "file_sources\n";  *)
       List2.tail_map (fun c ->
-          as_client c.client_client
+          as_client c
       ) file.file_clients
   )
   
@@ -67,12 +67,12 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
-      file_cancel (as_file file.file_file);
+      file_cancel (as_file file);
   );
   file_ops.op_file_info <- (fun file ->
       {
-        P.file_comment = file_comment (as_file file.file_file);
-        P.file_name = file_best_name (as_file file.file_file);
+        P.file_comment = file_comment (as_file file);
+        P.file_name = file_best_name file;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = file.file_filenames;
@@ -84,14 +84,18 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = Int64Swarmer.verified_bitmap file.file_swarmer;
+        P.file_chunks = (match file.file_swarmer with
+          None -> "" | Some swarmer ->
+            Int64Swarmer.verified_bitmap swarmer);
         P.file_availability = 
-        [network.network_num,Int64Swarmer.availability file.file_swarmer];
+        [network.network_num,(match file.file_swarmer with
+          None -> "" | Some swarmer ->
+            Int64Swarmer.availability swarmer)];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
+        P.file_priority = file_priority (as_file file);
         P.file_uids = [];
       }    
   )
@@ -107,13 +111,13 @@ let _ =
         P.client_network = network.network_num;
         P.client_kind = Known_location (Ip.from_name c.client_hostname, 
           c.client_port);
-        P.client_state = client_state (as_client c.client_client);
+        P.client_state = client_state (as_client c);
         P.client_type = client_type c;
         P.client_tags = [];
         P.client_name = (Printf.sprintf "%s:%d" 
           c.client_hostname c.client_port);
         P.client_files = None;
-        P.client_num = (client_num (as_client c.client_client));
+        P.client_num = (client_num (as_client c));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
@@ -126,14 +130,14 @@ let _ =
       }
   );
     client_ops.op_client_bprint <- (fun c buf ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf "%s (%s)\n"
           cinfo.GuiTypes.client_name
           (string_of_client_addr c)
     );
     client_ops.op_client_bprint_html <- (fun c buf file ->
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
 
         html_mods_td buf [
@@ -146,7 +150,7 @@ let _ =
    client_ops.op_client_dprint <- (fun c o file ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in 
+        let cc = as_client c in 
         let cinfo = client_info cc in
         client_print cc o;
         Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
@@ -158,7 +162,7 @@ let _ =
     client_ops.op_client_dprint_html <- (fun c o file str ->
         let info = file_info file in
         let buf = o.conn_buf in
-        let cc = as_client c.client_client in
+        let cc = as_client c in
         let cinfo = client_info cc in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
@@ -184,6 +188,7 @@ let _ =
 (* As in bittorrent: make an initial connection just to know the complete
   size of the file and disconnect immediatly after. *)
 
+  (*
 let rec start_download_file_from_mirror proto file url u result_size =
   (*
   lprintf "RECEIVED HEADERS\n";
@@ -236,7 +241,33 @@ H.whead r (start_download_file_from_mirror file u)
   *)
       with _ -> ()) urls
 
-let find_mirrors file url =
+let  
+let download_file_from_mirror file url =
+  test_mirrors file [url];
+  find_mirrors file url
+    *)
+
+
+
+let rec download_file_from_mirror file u =
+
+  let proto = match u.Url.proto with
+    | "http" -> FileTPHTTP.proto  
+    | "ftp" -> FileTPFTP.proto
+    | "ssh" -> FileTPSSH.proto
+    | s -> failwith 
+        (Printf.sprintf "Unknown URL protocol [%s]" s)
+  in
+  
+  let client_hostname = u.Url.server in
+  let client_port = u.Url.port in
+  let c = new_client proto client_hostname client_port in
+  add_download file c u;
+  FileTPClients.get_file_from_source c file; 
+  ()
+
+and find_mirrors file u =
+  let url = Url.to_string u in
   let urllen = String.length url in
   let rec iter1 list =
     match list with
@@ -253,44 +284,35 @@ let find_mirrors file url =
         if urllen > namelen &&
           String.sub url 0 namelen = name then
           let suffix = String.sub url namelen (urllen - namelen) in
-          test_mirrors file (List.map (fun name ->
-                name ^ suffix) mirrors)
+          List.iter (fun name ->
+              download_file_from_mirror file (Url.of_string
+                (name ^ suffix))) mirrors
         else
           iter2 mirrors tail
   in
   iter1 !!mirrors
+
+let previous_url = ref ""  
   
-let download_file_from_mirror file url =
-  test_mirrors file [url];
-  find_mirrors file url
+let download_file url = 
+  let u = Url.of_string url in
   
-let start_download_file proto u url result_size =
-  lprintf "STARTING DOWNLOAD WITH SIZE %Ld\n" result_size;
-  let file = new_file (Md4.random ()) u.Url.file result_size in
-  lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  if List.mem u !!old_files && !previous_url <> url then begin
+      previous_url := url;
+      failwith "URL already downloaded: repeat command again to force";
+    end;
+  
+  let file = new_file (Md4.random ()) u.Url.full_file zero in
+  
+  lprintf "DOWNLOAD FILE %s\n" (file_best_name  file); 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
   
-  let client_hostname = u.Url.server in
-  let client_port = u.Url.port in
-  let c = new_client proto client_hostname client_port in
-  add_download file c u.Url.full_file;
-  find_mirrors file url;
-  FileTPClients.get_file_from_source c file; 
-  ()
+  download_file_from_mirror file u;
+  find_mirrors file u
   
   
-let download_file url = 
-  let u = Url.of_string url in
-  let proto = match u.Url.proto with
-    | "http" -> FileTPHTTP.proto  
-    | "ftp" -> FileTPFTP.proto
-    | "ssh" -> FileTPSSH.proto
-    | s -> failwith 
-        (Printf.sprintf "Unknown URL protocol [%s]" s)
-  in
-  proto.proto_check_size u url (start_download_file proto)
   
 let _ =
   network.op_network_parse_url <- (fun url ->
@@ -309,12 +331,22 @@ let commands = [
     "mirror", "Network/FileTP", Arg_two (fun num url o ->
         try
           lprintf "MIRROR [%s] [%s]\n" num url;
+          let u = Url.of_string url in
+          
+          if List.mem u !!old_files && !previous_url <> url then begin
+              previous_url := url;
+              failwith "URL already downloaded: repeat command again to force";
+            end;
           let num = int_of_string num in
           Hashtbl.iter (fun _ file ->
               lprintf "COMPARE %d/%d\n" (file_num file) num;
               if file_num file = num then begin
                   lprintf "Try HEAD from mirror\n";
-                  download_file_from_mirror file url;
+                  
+                  
+                  download_file_from_mirror file u;
+                  find_mirrors file u;
+
                   raise Exit
                 end
           ) files_by_uid;

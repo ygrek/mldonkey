@@ -1,6 +1,43 @@
 ChangeLog	
 =========
 
+2004/03/06: Fabrice (version 2.5.14, tag release-2-5-14)
+  - Http_server: replies are filled in the handler and sent by the server
+      (not by the handler anymore). HEAD/GET requests should be treated
+      correctly.
+  - New URL "http://http_ip:http_port/preview_download?q=file_num" where
+     "file_num" is the download number (in telnet for eg). Can be used to
+     preview files with mplayer.
+
+2004/03/05: Fabrice
+  - New tool "ocamlpp" used for preprocessing files with .mlt extensions.
+  - Applied patches: 
+      #2640, #2677 (cosmetic patches),
+      #2686 (remove array bound error in guiDecoding),
+      #2691 (close splash screen), 
+      #2694 (status bar in downloads),
+      #2710 (default sharing strategy),
+      #2720 (mail),
+      #2724 (frame height),
+      #2726 (bind BT),
+      #2727 (options)
+  - GUI Protocol:
+     * New message: NetworkMessage (network, message) for network-specific
+         GUI messages: opcode 63[2 bytes], len[4 bytes], message[len]
+     * get_string and buf_string can store strings greater than 65536 bytes
+         (when len = 0xffff, there is another 4-bytes integer giving the full
+         len)
+  - Fixed bug in commonHasher_c.c for files > 2 GB
+
+2004/02/17: Fabrice (version 2.5.13, tag release-2-5-13)
+  - Applied patches #2638, #2639
+  - New tool "subconv" to easily modify .sub and .srt subtitles files.
+  - FileTP:
+     * Files are immediatly added, without checking first their size nor
+        their existence.
+  - Streaming of files for Kiss DP500 Divx player, including
+      files from temp/ and incoming/. See the dp500_ options.
+
 2004/02/16: Fabrice (version 2.5.12, tag release-2-5-12)
   - Applied patches #2616, #2617, #2618, #2625, #2626, #2627, #2631,
       #2634, #2637

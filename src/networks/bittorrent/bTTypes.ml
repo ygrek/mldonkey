@@ -40,7 +40,7 @@ type client = {
     mutable client_sock : tcp_connection;
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
-    mutable client_uploader : Int64Swarmer.uploader;
+    mutable client_uploader : Int64Swarmer.uploader option;
     mutable client_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable client_block : Int64Swarmer.block option;
     
@@ -49,7 +49,7 @@ type client = {
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
     
-    mutable client_bitmap : string;
+    mutable client_bitmap : string option;
     mutable client_new_chunks : int list;
     
     mutable client_upload_requests : (int * int64 * int64) list;
@@ -77,7 +77,7 @@ and file = {
     file_tracker : string;
     file_id : Sha1.t;
     file_name : string;
-    file_swarmer : Int64Swarmer.t;
+    mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : (Sha1.t, client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array; 

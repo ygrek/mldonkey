@@ -1045,6 +1045,7 @@ other one for unlimited sockets.  *)
           c.client_rating <- c.client_rating + 1;
           
           DonkeySourcesMisc.set_request_result c file File_found;
+          DonkeyNeighbours.new_neighbour c file;
           
           begin
             let ips = 

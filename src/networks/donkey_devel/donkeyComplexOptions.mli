@@ -25,12 +25,10 @@ val check_add_server : Ip.t -> int -> DonkeyTypes.server
 val safe_add_server : Ip.t -> int -> unit
 
 val remove_server : Ip.t -> int -> unit
-
-  (*
+  
 val known_shared_files : DonkeyTypes.shared_file_info 
   list Options.option_record
-*)
-  
+
 val old_files : Md4.t list Options.option_record
 
   
@@ -41,5 +39,6 @@ val file_to_value :  DonkeyTypes.file -> (string * Options.option_value) list
 val load_sources : unit -> unit
   
 val gstats_by_brand : DonkeyTypes.brand_stat array Options.option_record
+val gstats_by_brand_mod : DonkeyTypes.brand_mod_stat array Options.option_record
 val guptime : unit -> int
   

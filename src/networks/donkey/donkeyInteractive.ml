@@ -16,7 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-open Int32ops
+
+open Int64ops
 open Printf2
 open Md4
 
@@ -151,6 +152,7 @@ let really_query_download filenames size md4 location old_file absents =
   update_best_name file;
 
   DonkeyOvernet.recover_file file;
+  DonkeyNeighbours.new_download file;
   
   current_files := file :: !current_files;
 (*  !file_change_hook file; *)

@@ -403,16 +403,16 @@ in the default and in the translation. *)
   begin
     try
       let ic = open_in filename in
+      let s = Stream.of_channel ic in
       try
-        let s = Stream.of_channel ic in
         let stream = lexer s in
 (*        lprintf "x\n"; *)
         current_modname := "general";
         parse_file stream 
       with e -> 
           close_in ic; strings_file_error := true;
-          lprintf "Gettext.set_strings_file: Exception %s\n"
-            (Printexc2.to_string e)
+            lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+               (Printexc2.to_string e) filename (Stream.count s)
     with e -> 
         save_strings_file := true;
         lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
@@ -447,15 +447,15 @@ in
 begin
   try
     let ic = open_in f1 in
+    let s = Stream.of_channel ic in
     try
-      let s = Stream.of_channel ic in
       let stream = lexer s in
 (*        lprintf "x\n"; *)
       parse_file stream 
     with e -> 
         close_in ic; strings_file_error := true;
-        lprintf "Gettext.set_strings_file: Exception %s\n"
-          (Printexc2.to_string e)
+        lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+           (Printexc2.to_string e) f1 (Stream.count s)
   with e -> 
       save_strings_file := true;
       lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
@@ -488,10 +488,10 @@ in
 (*        lprintf "x\n"; *)
           parse_file stream 
         with e -> 
-            close_in ic; strings_file_error := true;
+            close_in ic; strings_file_error := true; 
             lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
                (Printexc2.to_string e) f2 (Stream.count s)
-      with e -> 
+     with e -> 
           save_strings_file := true;
           lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
     end;  

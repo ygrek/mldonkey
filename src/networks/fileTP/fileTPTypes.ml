@@ -42,8 +42,8 @@ type client = {
 and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
-    mutable file_name : string;
-    file_swarmer : Int64Swarmer.t;
+(*    mutable file_name : string;*)
+    mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : client list;
     mutable file_filenames : (string * ips_list) list;
     mutable file_clients_queue : client  Queues.Queue.t;
@@ -52,7 +52,7 @@ and file = {
 
 and download = {
     download_file : file;
-    download_url : string;
+    download_url : Url.url; 
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
@@ -64,9 +64,9 @@ and tp_proto = {
         TcpBufferedSocket.t -> download -> unit);    
     proto_set_sock_handler : (client -> TcpBufferedSocket.t -> unit);
     proto_string : string;
-    proto_check_size : Url.url -> string -> 
-       (Url.url -> string -> int64 -> unit) -> unit;
+    proto_check_size : Url.url -> 
+       (int64 -> unit) -> unit;
     proto_connect : TcpBufferedSocket.token ->
-       client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t
+      client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t;
   }
   

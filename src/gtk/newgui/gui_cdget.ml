@@ -60,7 +60,7 @@ let file_from_url url =
       
 let wget_string r f progress =
   let module H = Http_client in
-  let file = file_from_url (Url.to_string true r.H.req_url) in
+  let file = file_from_url (Url.to_string r.H.req_url) in
   try
     let page = File.to_string file in
     BasicSocket.add_timer 0.1 (fun _ -> f page)

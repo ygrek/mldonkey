@@ -190,7 +190,7 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
     mutable file_name : string;
-    file_swarmer : Int64Swarmer.t;
+    mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : client list;
     mutable file_search : local_search;
     mutable file_hash : Md5Ext.t;
@@ -203,7 +203,7 @@ and download = {
     download_file : file;
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
-    mutable download_uploader : Int64Swarmer.uploader;
+    mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
     mutable download_head : head_request;

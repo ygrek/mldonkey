@@ -18,7 +18,7 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Printf2
 open Md4
 open CommonClient
@@ -38,37 +38,29 @@ open BTProtocol
 open CommonSwarming  
 open CommonNetwork
 
-    
+let as_file file = as_file file.file_file        
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
-    
-let file_state file =
-  file_state (as_file file.file_file)
-  
-let file_num file =
-  file_num (as_file file.file_file)
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
+let file_disk_name file = file_disk_name (as_file file)
+let set_file_disk_name file = set_file_disk_name (as_file file)
+let file_state file = file_state (as_file file)  
+let file_num file = file_num (as_file file)
+let file_must_update file = file_must_update (as_file file)
 
 let set_file_state file state = 
- CommonFile.set_file_state (as_file file.file_file) state
+ CommonFile.set_file_state (as_file file) state
 
-let client_type c = client_type (as_client c.client_client)
+let as_client c = as_client c.client_client
+let client_type c = client_type (as_client c)
 
 let set_client_state client state =
-  CommonClient.set_client_state (as_client client.client_client) state
+  CommonClient.set_client_state (as_client client) state
   
 let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client.client_client) 
-  
-  
-  
-let as_client c = as_client c.client_client
+  CommonClient.set_client_disconnected (as_client client) 
+
 let client_num c = client_num (as_client c)
 
   
@@ -118,9 +110,14 @@ let max_range_len = Int64.of_int (1 lsl 14)
 let check_if_interesting file c =
   
   if not c.client_alrd_sent_notinterested then
+    let up = match c.client_uploader with
+        None -> assert false
+      | Some up -> up 
+    in
+    let swarmer = Int64Swarmer.uploader_swarmer up in
     let must_send = 
 (* The client has nothing to propose to us *)
-      (not (Int64Swarmer.is_interesting c.client_uploader )) &&
+      (not (Int64Swarmer.is_interesting up )) &&
 (* All the requested ranges are useless *)
       (List.filter (fun (_,_,r) ->
             let x,y = Int64Swarmer.range_range r in
@@ -130,7 +127,7 @@ let check_if_interesting file c =
           None -> true
         | Some b -> 
             let (block_num,_,_) = Int64Swarmer.block_block b in
-            let bitmap = Int64Swarmer.verified_bitmap file.file_swarmer in
+            let bitmap = Int64Swarmer.verified_bitmap swarmer in
             bitmap.[block_num] <> '3')
     in
     if must_send then
@@ -142,8 +139,6 @@ let check_if_interesting file c =
       
 let new_file file_id file_name file_size file_tracker piece_size file_u file_state = 
 (*  let t = Unix32.create_rw file_temp in*)
-  let swarmer = Int64Swarmer.create file_size piece_size 
-      (min max_range_len piece_size)  in
   let rec file = {
       file_file = file_impl;
       file_piece_size = piece_size;
@@ -151,7 +146,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
       file_name = file_name;
       file_clients_num = 0;
       file_clients = Hashtbl.create 113;
-      file_swarmer = swarmer;
+      file_swarmer = None;
       file_tracker = file_tracker;
       file_chunks = [||];
       file_tracker_connected = false;
@@ -171,6 +166,9 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
       impl_file_best_name = file_name;
     }
   in
+  let swarmer = Int64Swarmer.create (as_file file) piece_size 
+      (min max_range_len piece_size)  in
+  file.file_swarmer <- Some swarmer;
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
         Unix32.buffered_write_copy file_u offset s pos len
@@ -197,9 +195,12 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
               
               if c.client_registered_bitfield then
                 begin
-                  if (c.client_bitmap.[num] <> '1') then
-                    send_client c (Have (Int64.of_int num));
-                  check_if_interesting file c                          
+                  match c.client_bitmap with
+                    None -> ()
+                  | Some bitmap ->
+                      if (bitmap.[num] <> '1') then
+                        send_client c (Have (Int64.of_int num));
+                      check_if_interesting file c                          
               end				
           ) file.file_clients
         end;
@@ -249,14 +250,12 @@ let new_client file peer_id kind =
           client_choked = true;
           client_sent_choke = false;
           client_interested = false;
-          client_uploader = Int64Swarmer.register_uploader 
-            file.file_swarmer (Int64Swarmer.AvailableRanges []);
+          client_uploader = None;
           client_chunks = [];
           client_ranges = [];
           client_block = None;
           client_uid = peer_id;
-          client_bitmap = 
-          String.make (Int64Swarmer.partition_size file.file_swarmer) '\000';
+          client_bitmap = None;
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
@@ -283,7 +282,7 @@ let new_client file peer_id kind =
       new_client impl;
       Hashtbl.add file.file_clients peer_id c;
       file.file_clients_num <- file.file_clients_num + 1;
-      file_add_source (as_file file.file_file) (as_client c);
+      file_add_source (as_file file) (as_client c);
       c
   
 let remove_file file = 
@@ -293,7 +292,7 @@ let remove_file file =
 let remove_client c = 
     Hashtbl.remove c.client_file.file_clients c.client_uid ;
     c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
-    file_remove_source (as_file c.client_file.file_file) (as_client c)
+    file_remove_source (as_file c.client_file) (as_client c)
 
 let downloads_directory = Filename.concat "torrents" "downloads"
 let tracked_directory = Filename.concat "torrents" "tracked"

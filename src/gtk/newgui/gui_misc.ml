@@ -43,7 +43,7 @@ let (=:=) = Options.(=:=)
 
 let short_name n =
   let n = if n="" then
-     "http://go.to/mldonkey"
+     "http://www.mldonkey.net/"
   else n
   in
   let len = String.length n in

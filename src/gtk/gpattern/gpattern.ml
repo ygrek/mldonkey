@@ -292,7 +292,7 @@ class virtual ['a] filtered_plist
       iter 0 nitems
     
     method get_data n =
-      if (n > nitems) || (n < -1) then
+      if (n > nitems) || (n < 0) then
         raise Not_found
         else items.(n)
 
@@ -426,12 +426,12 @@ class virtual ['a] filtered_plist
           filtered <- Intmap.remove (get_key i) filtered;
           nfiltered <- nfiltered - 1
       end else begin
+          self#wlist#remove pos;
           Array.blit items (pos+1) items pos (nitems - pos - 1);
           Array.blit contents (pos+1) contents pos (nitems - pos - 1);
           nitems <- nitems - 1;
           items  <- Array.sub items 0 nitems;
           contents  <- Array.sub contents 0 nitems;
-          self#wlist#remove pos;
           selection <- List.filter (fun fi -> get_key fi <> get_key i) selection
         end
     
@@ -796,7 +796,7 @@ class virtual ['a] filtered_ptree
       iter 0 nitems
 
     method get_data n =
-      if (n > nitems) || (n < -1) then
+      if (n > nitems) || (n < 0) then
         raise Not_found
         else items.(n)
 
@@ -948,12 +948,12 @@ class virtual ['a] filtered_ptree
                     self#collapse i
                     else false
           in
+          self#wlist#remove pos;
           Array.blit items (pos+1) items pos (nitems - pos - 1);
           Array.blit contents (pos+1) contents pos (nitems - pos - 1);
           nitems <- nitems - 1;
           items  <- Array.sub items 0 nitems;
           contents  <- Array.sub contents 0 nitems;
-          self#wlist#remove pos;
           selection <- List.filter (fun fi -> get_key fi <> get_key i) selection
         end
 

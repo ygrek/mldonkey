@@ -49,7 +49,7 @@ static unsigned char local_hash_buffer[HASH_BUFFER_LEN];
 
 
 #define COMPLETE_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
-static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, long pos, long len, \
+static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, off_t pos, long len, \
   unsigned char *digest) \
 { \
   HASH_CONTEXT context; \
@@ -62,10 +62,6 @@ static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, long pos, long len, \
     int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
  \
     nread = os_read (fd, local_hash_buffer, max_nread); \
- \
-    if(nread < 0) { \
-      unix_error(errno, "hash_safe_fd_direct: Read", Nothing); \
-    } \
  \
     if(nread == 0){ \
       HASH_FINISH (&context, digest); \
@@ -123,7 +119,7 @@ static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *dige
 
 #define MAX_CHUNK_SIZE 1000000
 static OS_FD job_fd;
-static long job_pos;
+static off_t job_pos;
 static long job_len;
 static value job_finished = 1;
 
@@ -271,7 +267,7 @@ static int volatile  job_done = 1;
 /* We use these variables for thread communication */
 static char volatile job_result[64];
 static OS_FD volatile  job_fd = 0;
-static long volatile job_begin_pos = 0;
+static off_t volatile job_begin_pos = 0;
 static long volatile job_len = 0;
 static int volatile job_method = 0;
 

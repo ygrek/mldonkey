@@ -44,6 +44,8 @@ let ndownloaded = ref 0
 (** Number of downloading files *)
 let ndownloads = ref 0
 
+let bittorrent_network = ref 0
+  
 (** Information on locations. *)
 (*
 let (locations : (int, GuiTypes.client_info) Hashtbl.t) = Hashtbl.create 103

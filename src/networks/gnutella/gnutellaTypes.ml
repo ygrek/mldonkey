@@ -29,7 +29,8 @@ type query_key =
 | GuessSupport
 | UdpSupport of Md4.t
 | UdpQueryKey of int64
-  
+
+  (*
 type host = {
     host_num : int;
     mutable host_server : server option;
@@ -45,7 +46,16 @@ type host = {
     
     mutable host_queues : host Queue.t list;
   }
+    *)
 
+type host_kind = bool
+    
+type request = 
+| Tcp_Connect
+| Udp_Connect
+
+type host = (server, host_kind, request, Ip.t) CommonHosts.host
+  
 and server = {
     server_server : server CommonServer.server_impl;
     mutable server_agent : string;
@@ -62,7 +72,7 @@ and server = {
     mutable server_vendor : string;
     mutable server_connected : int64;
     
-    mutable server_gnutella2 : bool;
+(*    mutable server_gnutella2 : bool; *)
     mutable server_host : host;
     mutable server_query_key : query_key;
   }
@@ -129,7 +139,7 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
     mutable file_name : string;
-    file_swarmer : Int64Swarmer.t;
+    mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : client list;
     mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
@@ -139,7 +149,7 @@ and download = {
     download_file : file;
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
-    download_uploader : Int64Swarmer.uploader;
+    mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
   }

@@ -20,7 +20,7 @@
 (***** Network order ******)
 
 open Autoconf
-open Int32ops
+open Int64ops
   
 let const_int32_255 = Int32.of_int 255
 let const_int64_255 = Int64.of_int 255

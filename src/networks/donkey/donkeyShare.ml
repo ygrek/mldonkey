@@ -208,9 +208,8 @@ let check_shared_files () =
                 else
                   job_creater ())
           with e ->
-              lprintf "Exception %s prevents sharing"
+              lprintf "Exception %s prevents sharing\n"
                 (Printexc2.to_string e);
-              lprint_newline ();
         in
         job_creater ()
         

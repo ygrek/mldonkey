@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -74,11 +74,15 @@ let disconnect_client c r =
           if c.client_reconnect then
             List.iter (fun d ->
                 let file = d.download_file in
-              Int64Swarmer.disconnect_uploader d.download_uploader;
                 if not (List.memq file c.client_in_queues) then begin
                     Queue.put file.file_clients_queue (0,c);
                     c.client_in_queues <- file :: c.client_in_queues
                   end;
+                match d.download_uploader with
+                  None -> ()
+                | Some up ->
+                    d.download_uploader <- None;
+                    Int64Swarmer.disconnect_uploader up                    
             ) c.client_downloads;
           c.client_downloads <- [];
           match c.client_connected_for with
@@ -91,26 +95,25 @@ let disconnect_client c r =
 (client_num (as_client c.client_client));
   *)
               c.client_connected_for <- None
-      with e -> 
-          lprintf "Exception %s in disconnect_client\n"
-            (Printexc2.to_string e))
+        with e -> 
+            lprintf "Exception %s in disconnect_client\n"
+              (Printexc2.to_string e))
   | _ -> ()
-
+      
 let download_finished file = 
   if List.memq file !current_files then begin
-      file_completed (as_file file.file_file);
+      file_completed (as_file file);
       FasttrackGlobals.remove_file file;
       old_files =:= (file.file_name, file_size file) :: !!old_files;
       List.iter (fun c ->
           c.client_downloads <- remove_download file c.client_downloads
       ) file.file_clients
     end
-
-let check_finished file =
+    
+let check_finished swarmer file =
   if file_state file <> FileDownloaded &&
-    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then begin
-      download_finished file
-    end
+    (file_size file = Int64Swarmer.downloaded swarmer) then
+    download_finished file
 
 let make_kazaa_request buf c request url =
   Printf.bprintf buf "%s %s HTTP/1.0\r\n" request url;
@@ -145,6 +148,12 @@ let rec client_parse_header c gconn sock header =
           c.client_requests <- tail;
           d
     in
+    
+    let up = match d.download_uploader with
+        None -> assert false
+      | Some up -> up in
+    let swarmer = Int64Swarmer.uploader_swarmer up in
+    
     connection_ok c.client_connection_control;
     set_client_state c Connected_initiating;    
     if !verbose_msg_clients then begin
@@ -206,7 +215,7 @@ let rec client_parse_header c gconn sock header =
     
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
-    
+
 (** Do it only when we are sure that the HEAD request was correct, ie that
 the client made a difference between a GET and a HEAD, which is by
 the way not the case of mldonkey...
@@ -318,23 +327,23 @@ end_pos !counter_pos b.len to_read;
   lprintf "CHUNK: %s\n" 
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
         let old_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+          Int64Swarmer.downloaded swarmer in
 (*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)  
         d.download_ranges; *)
-
+        
         begin
           try
-            Int64Swarmer.received d.download_uploader
+            Int64Swarmer.received up
               !counter_pos b.buf b.pos to_read_int;
           with e -> 
               lprintf "FT: Exception %s in Int64Swarmer.received\n"
                 (Printexc2.to_string e)
         end;
-          c.client_reconnect <- true;
+        c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
         let new_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+          Int64Swarmer.downloaded swarmer in
         
         (match d.download_ranges with
             [] -> lprintf "EMPTY Ranges !!!\n"
@@ -370,7 +379,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 *)
 (*                Int64Swarmer.free_range r; *)
                 d.download_ranges <- tail;
-                (* If we have no more range to receive, disconnect *)
+(* If we have no more range to receive, disconnect *)
                 if d.download_ranges = [] then raise Exit;
                 gconn.gconn_handler <- HttpHeader (client_parse_header c);
           end)
@@ -392,10 +401,29 @@ and get_from_client sock (c: client) =
     | d :: tail ->
         if file_state d.download_file <> FileDownloading then iter tail
         else begin
+            
+            let file = d.download_file in
+            
+            let swarmer = match file.file_swarmer with
+                None -> assert false | Some sw -> sw
+            in
+            
+            let up = match d.download_uploader with
+                None -> 
+                  let chunks = [ Int64.zero, file_size file ] in
+                  let up = Int64Swarmer.register_uploader swarmer 
+                      (as_client c)
+                    (Int64Swarmer.AvailableRanges chunks) in
+                  d.download_uploader <- Some up;
+                  up                
+                  
+              | Some up -> up in 
+
+            
+            
             if !verbose_msg_clients then begin
                 lprintf "FINDING ON CLIENT\n";
               end;
-            let file = d.download_file in
             if !verbose_msg_clients then begin
                 lprintf "FILE FOUND, ASKING\n";
               end;
@@ -417,10 +445,10 @@ and get_from_client sock (c: client) =
                   match d.download_block with
                     None -> 
                       if !verbose_swarming then lprintf "No block\n";
-                      let b = Int64Swarmer.find_block d.download_uploader in
+                      let b = Int64Swarmer.find_block up in
                       
                       lprintf "GOT BLOCK:\n";
-                      Int64Swarmer.print_uploaders file.file_swarmer;
+                      Int64Swarmer.print_uploaders swarmer;
                       
                       if !verbose_swarming then begin
                           lprintf "Block Found: "; Int64Swarmer.print_block b;
@@ -432,10 +460,10 @@ and get_from_client sock (c: client) =
                           lprintf "Current Block: "; Int64Swarmer.print_block b;
                         end;
                       try
-                        let r = Int64Swarmer.find_range d.download_uploader in
+                        let r = Int64Swarmer.find_range up in
                         
                         lprintf "GOT RANGE:\n";
-                        Int64Swarmer.print_uploaders file.file_swarmer;
+                        Int64Swarmer.print_uploaders swarmer;
                         
                         let (x,y) = Int64Swarmer.range_range r in 
                         d.download_ranges <- d.download_ranges @ [x,y,r];
@@ -451,7 +479,7 @@ and get_from_client sock (c: client) =
                 iter ()
               with Not_found -> 
                   lprintf "Unable to get a block !!";
-                  check_finished file;
+                  check_finished swarmer file;
                   raise Not_found
             in
             let buf = Buffer.create 100 in
@@ -561,6 +589,7 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should no
                     TcpBufferedSocket.set_closer sock (fun _ s ->
                         disconnect_client c s
                     );
+                    
                     set_rtimeout sock 30.;
                     if !verbose_msg_clients then begin
                         lprintf "READY TO DOWNLOAD FILE\n";

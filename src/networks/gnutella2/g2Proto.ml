@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open BasicSocket
 open AnyEndian
 open Printf2
@@ -29,12 +29,11 @@ open CommonGlobals
 open CommonTypes
 open CommonOptions
 open CommonHosts
-  
+
 open G2Options
 open G2Types
 open G2Protocol
 open G2Globals
-  
   
   
   
@@ -51,7 +50,7 @@ open G2Globals
   
 let known_download_headers = []
 let known_supernode_headers = []
-  
+let is_same_network gnutella2 = gnutella2  
   
 (*******************************************************************)
   
@@ -1769,4 +1768,18 @@ dump encoded;
       ) connections;
       
   end
+  
+let ask_for_uids sh =
+  CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
+      lprintf "Could share urn\n";
+      ());
+  CommonUploads.ask_for_uid sh TIGER (fun sh uid -> 
+      lprintf "Could share urn:tiger:\n";
+      ());
+  CommonUploads.ask_for_uid sh BITPRINT (fun sh uid -> 
+      lprintf "Could share urn:bitprint:\n";
+      ());
+  CommonUploads.ask_for_uid sh ED2K (fun sh uid -> 
+      lprintf "Could share urn:bitprint:\n";
+      ());
   

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -85,16 +85,29 @@ let segment_received c num s pos =
 (*
   lprintf "CHUNK: %s\n" 
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-    let old_downloaded = 
-      Int64Swarmer.downloaded file.file_swarmer in
     
     begin
       try
         match d.download_uploader with
           None -> assert false
         | Some up ->
+            
+            let swarmer = Int64Swarmer.uploader_swarmer up in
+            let old_downloaded = 
+              Int64Swarmer.downloaded swarmer in
             Int64Swarmer.received up
               pos s 0 (String.length s);
+            
+            let new_downloaded = 
+              Int64Swarmer.downloaded swarmer in
+            
+            if new_downloaded = file_size file then
+              download_finished file;
+            if new_downloaded <> old_downloaded then
+              add_file_downloaded file.file_file
+                (new_downloaded -- old_downloaded);
+            
+            
       with e -> 
           lprintf "FT: Exception %s in Int64Swarmer.received\n"
             (Printexc2.to_string e)
@@ -102,14 +115,6 @@ let segment_received c num s pos =
     c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
-    let new_downloaded = 
-      Int64Swarmer.downloaded file.file_swarmer in
-    
-    if new_downloaded = file_size file then
-      download_finished file;
-    if new_downloaded <> old_downloaded then
-      add_file_downloaded file.file_file
-        (new_downloaded -- old_downloaded);
 (*
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
@@ -148,7 +153,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
 (*************************************************************************)
   
 let ssh_send_range_request c (x,y) sock d =  
-  let file = d.download_url in
+  let file = d.download_url.Url.full_file in
   TcpBufferedSocket.write_string sock 
     (Printf.sprintf "%s %s %Ld %Ld %d '.%s'\n"  !!get_range !!range_arg x y
     (file_num d.download_file) file);
@@ -169,9 +174,13 @@ let ssh_set_sock_handler c sock =
 (*                                                                       *)
 (*************************************************************************)
   
-let ssh_check_size u url start_download_file = 
+let ssh_check_size url start_download_file = 
   let token = create_token unlimited_connection_manager in
-  let shell, args = shell_command u.Url.server in
+  let shell, args = shell_command url.Url.server in
+  lprintf "SHELL: ";
+
+  Array.iter (fun s -> lprintf " %s" s) args;
+  lprintf "\n";
   let sock, pid = exec_command token  shell args (fun _ _ -> ());
   in
   
@@ -184,8 +193,8 @@ let ssh_check_size u url start_download_file =
       (try Unix.kill Sys.sigkill pid with _ -> ());
       close sock s);
   TcpBufferedSocket.set_reader sock (fun sock nread ->
-      lprintf "SSH reader %d\n" nread;
       let b = TcpBufferedSocket.buf sock in
+      lprintf "SSH reader %d [%s]\n" nread (String.escaped (String.sub b.buf b.pos b.len));
       let rec iter i =
         if i < b.len then
           if b.buf.[b.pos + i] = '\n' then begin
@@ -200,7 +209,7 @@ let ssh_check_size u url start_download_file =
                   let size = String.sub line 6 (pos-6) in
                   lprintf "Size [%s]\n" size;
                   let result_size = Int64.of_string size in
-                  start_download_file u url result_size;
+                  start_download_file result_size;
                   (try Unix.kill Sys.sigkill pid with _ ->());
                 end else
                 iter 0
@@ -209,8 +218,10 @@ let ssh_check_size u url start_download_file =
       in
       iter 0
   );  
-  TcpBufferedSocket.write_string sock 
-    (Printf.sprintf "%s size '.%s' ; exit\n" !!get_range u.Url.file);
+  let command =    (Printf.sprintf "%s size '.%s' ; exit\n" !!get_range 
+      url.Url.full_file) in
+  lprintf "SSH send [%s]\n" command;
+  TcpBufferedSocket.write_string sock command;
   set_rtimeout sock 15.
 
 (*************************************************************************)

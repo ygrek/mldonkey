@@ -924,6 +924,10 @@ search.op_search_end_reply_handlers;
                   | RoomPaused -> room_pause room
                 end
   
+          | NetworkMessage (num, s) ->
+              let n = network_find_by_num num in
+              n.op_network_gui_message s
+                
           | AddServer_query (num, ip, port) ->
               let n = network_find_by_num num in
 (* [CONTRIBUTE:] change the GUI protocol to transfer an address (ip/name)
@@ -1018,7 +1022,7 @@ let gui_handler t event =
         let gui = new_gui binary_gui_send 
           false (Some sock) in
         gui.gui_result_handler <- binary_result_handler gui;
-        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
               let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode s in
@@ -1057,7 +1061,7 @@ let gift_handler t event =
         guis := gui :: !guis;
         
         TcpBufferedSocket.prevent_close sock;
-        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GiftDecoding.gui_cut_messages
             (fun s ->
               let m = GiftDecoding.from_gui gui s in

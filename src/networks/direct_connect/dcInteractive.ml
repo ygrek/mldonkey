@@ -18,7 +18,7 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Options
 open Printf2
 open Md4

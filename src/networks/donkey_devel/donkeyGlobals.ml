@@ -17,26 +17,28 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
+open CommonSwarming
+
+open CommonInteractive
+open TcpBufferedSocket
 open Queues
 open Printf2
 open Md4
-open Options
-open BasicSocket
-  
 open CommonResult
 open CommonFile
 open CommonServer
 open CommonComplexOptions
 open CommonClient
+open Options
 open CommonTypes
+open DonkeyTypes
+open BasicSocket
 open CommonOptions
+open DonkeyOptions
 open CommonOptions
 open CommonGlobals
-open CommonSwarming
-  
-open DonkeyTypes
-open DonkeyOptions
-  
+
       
 (*************************************************************
 
@@ -49,9 +51,18 @@ plugin.
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey"
+         [ 
+    NetworkHasServers; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+    NetworkHasChat;
+  ]
+
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
+let connection_manager = network.network_connection_manager
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
@@ -87,15 +98,20 @@ let client_must_update c =
 let server_must_update s =
   server_must_update (as_server s.server_server)
 
-    
+let as_client c = as_client c.client_client
+let as_file file = as_file file.file_file    
 let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let file_best_name file = file_best_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+let file_disk_name file = file_disk_name (as_file file)
+let file_best_name file = file_best_name (as_file file)
+let set_file_disk_name file = set_file_disk_name (as_file file)
+  
+let client_num c = client_num (as_client c)  
+let file_num c = file_num (as_file c)  
+let server_num c = server_num (as_server c.server_server)  
 
         
 (*************************************************************
@@ -116,10 +132,12 @@ let page_size = Int64.of_int 4096
   
 open DonkeyMftp
   
-let client_tags = ref ([] : tag list)
+let client_to_client_tags = ref ([] : tag list)
+let client_to_server_tags = ref ([] : tag list)
+let emule_info_tags = ref ([] : tag list)
 let client_port = ref 0
-let overnet_connectreply_tags = ref ([] : tag list)
-let overnet_connect_tags = ref ([] : tag list)
+let overnet_connectreply_tags = ref ([] :  tag list)
+let overnet_connect_tags = ref ([] :  tag list)
 let overnet_client_port = ref 0
 
 (* overnet_md4 should be different from client_md4 for protocol safety reasons *)
@@ -221,6 +239,7 @@ let find_file md4 = Hashtbl.find files_by_md4 md4
     
 let servers_ini_changed = ref true
 
+let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
 let new_shared = ref ([] : file list)
 let shared_files = ref ([] : file_to_share list)
 
@@ -237,64 +256,69 @@ let update_best_name file =
       let rec good_name file list =
         match list with
           [] -> raise Not_found;
-        | t :: q -> if t <> md4_name then
+        | (t,_) :: q -> if t <> md4_name then
               (String2.replace t '/' "::") else good_name file q in
       
-      set_file_best_name (as_file file.file_file) 
+      set_file_best_name (as_file file) 
       (good_name file file.file_filenames);
      
 (*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
     with Not_found -> ()
-  
+
+let new_shared_files = ref [] 
+        
 let new_file file_state file_name md4 file_size writable =
   try
     find_file md4 
   with _ ->
+      let file_exists = Unix32.file_exists file_name in
       
-      let t = Unix32.create file_name (if writable then
-            [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666
+      let t = 
+        if
+(* Don't use this for shared files ! *)
+          writable && 
+(* Only if the option is set *)
+          !!emulate_sparsefiles &&
+(* Only if the file does not already exists *)
+          not (Sys.file_exists file_name)
+        then
+          Unix32.create_sparsefile file_name
+        else
+          Unix32.create_diskfile file_name Unix32.rw_flag 0o666
       in
       let file_size =
         if file_size = Int64.zero then
           try
-            Unix32.getsize64 file_name
+            Unix32.getsize file_name
           with _ ->
               failwith "Zero length file ?"
         else file_size
       in
       let nchunks = Int64.to_int (Int64.div 
-          (Int64.sub file_size Int64.one) block_size) + 1 in
-      let file_exists = Unix32.file_exists file_name in
+            (Int64.sub file_size Int64.one) block_size) + 1 in
       let md4s = if file_size <= block_size then
-            [md4] 
+          [md4] 
         else [] in
-      
-      let file_swarmer = Int64Swarmer.create () in
-      let file_partition = fixed_partition file_swarmer block_size in
-      
       let rec file = {
           file_file = file_impl;
           file_shared = None;
           file_exists = file_exists;
           file_md4 = md4;
-          
-          file_swarmer = file_swarmer;
-          file_partition = file_partition;
-          
-          (*
+          file_swarmer = None;
           file_nchunks = nchunks;
-          file_chunks = [||];
-          file_chunks_order = [||];
+
+(*          file_chunks = [||]; *)
+(*          file_chunks_order = [||]; *)
+          file_chunks_age = [||];
 (*          file_all_chunks = String.make nchunks '0'; *)
-file_absent_chunks =   [Int64.zero, file_size];
-  *)
-          file_filenames = [Filename.basename file_name];
+(*          file_absent_chunks =   [Int64.zero, file_size]; *)
+          file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
           file_nsources = 0;
-          file_md4s = md4s;
-          file_available_chunks = Array.create nchunks 0;
+          file_md4s = Array.of_list md4s;
+(*          file_available_chunks = Array.create nchunks 0; *)
           file_format = FormatNotComputed 0;
           file_locations = Intmap.empty;
-          file_mtime = 0.0;
+(*          file_mtime = 0.0; *)
           file_initialized = false;
           
           file_clients = Fifo.create ();
@@ -319,24 +343,86 @@ file_absent_chunks =   [Int64.zero, file_size];
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
+      
+      (let swarmer = Int64Swarmer.create (as_file file) block_size zone_size
+        in
+        file.file_swarmer <- Some swarmer;
+        Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+(*
+      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
+      AnyEndian.dump_sub s pos len;
+*)
+            
+            if !!CommonOptions.buffer_writes then 
+              Unix32.buffered_write_copy t offset s pos len
+            else
+              Unix32.write  t offset s pos len
+        );
+        Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
+            if file.file_md4s = [||] then raise VerifierNotReady;
+            lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+            Unix32.flush_fd (file_fd file);
+            let md4 = Md4.digest_subfile (file_fd file) 
+              begin_pos (end_pos -- begin_pos) in
+            let result = md4 = file.file_md4s.(num) in
+            lprintf "Md4 computed: %s against %s = %s\n"
+              (Md4.to_string md4) 
+            (Md4.to_string file.file_md4s.(num))
+            (if result then "VERIFIED" else "CORRUPTED");
+            if result then begin
+                let bitmap = Int64Swarmer.verified_bitmap swarmer in
+                try ignore (String.index bitmap '3')
+                with _ -> 
+                    new_shared_files := file :: !new_shared_files;
+                    file_must_update file;
+              end;
+            result)
+        );
+        
       update_best_name file;
       file_add file_impl file_state;
       Heap.set_tag file tag_file;
       Hashtbl.add files_by_md4 md4 file;
       file
 
+      (*
 let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
   Unix32.rename fd file_name
+    *)
 
-let file_nchunks file =
-  String.length (Int64Swarmer.verified_bitmap file.file_partition)
-  
+(*
+let add_client_chunks file client_chunks =
+  for i = 0 to file.file_nchunks - 1 do
+    if client_chunks.(i) then 
+      let new_n = file.file_available_chunks.(i) + 1 in
+      if new_n  < 11 then  file_must_update file;
+      file.file_available_chunks.(i) <- new_n;
+  done
+      
+let remove_client_chunks file client_chunks = 
+  for i = 0 to file.file_nchunks - 1 do
+    if client_chunks.(i) then
+      let new_n = file.file_available_chunks.(i) - 1 in
+      if new_n < 11 then file_must_update file;
+      file.file_available_chunks.(i) <- new_n;
+      client_chunks.(i) <- false  
+  done
+    *)
+
 let is_black_address ip port =
   !!black_list && (
 (* lprintf "is black ="; *)
-    not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
-    (List.mem port !!port_black_list) )
+    not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
+    (List.mem port !!port_black_list) ||
+    (try
+       Ip_set.match_ip !Ip_set.bl ip;
+       false
+     with Ip_set.MatchedIP s ->
+       if !verbose_connect then begin
+	 lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port s
+       end;
+       true))
       
 let new_server ip port score = 
   let key = (ip, port) in
@@ -344,31 +430,34 @@ let new_server ip port score =
     Hashtbl.find servers_by_key key
   with _ ->
       let rec s = { 
-          server_server = server_impl;
-          server_next_udp = last_time ();
-          server_ip = ip;     
-          server_cid = None (* client_ip None *);
-          server_port = port; 
-          server_sock = None; 
-          server_nqueries = 0;
-          server_search_queries = Fifo.create ();
-          server_users_queries = Fifo.create ();
-          server_connection_control = new_connection_control ();
-          server_score = score;
-          server_tags = [];
-          server_nfiles = 0;
-          server_nusers = 0;
-          server_name = "";
-          server_description = "";
-          server_banner = "";
-          server_users = [];
-          server_master = false;
-          server_mldonkey = false;
-          server_last_message = 0;
-          server_queries_credit = 0;
-          server_waiting_queries = [];
-          server_id_requests = Fifo.create ();
-        }
+        server_server = server_impl;
+        server_next_udp = last_time ();
+        server_ip = ip;     
+        server_cid = None (* client_ip None *);
+        server_port = port; 
+        server_sock = NoConnection; 
+        server_nqueries = 0;
+        server_search_queries = Fifo.create ();
+        server_users_queries = Fifo.create ();
+        server_connection_control = new_connection_control ();
+        server_score = score;
+        server_tags = [];
+        server_nfiles = 0;
+        server_nusers = 0;
+          server_max_users = 0;
+        server_name = "";
+        server_description = "";
+        server_banner = "";
+        server_users = [];
+        server_master = false;
+        server_mldonkey = false;
+        server_last_message = 0;
+        server_queries_credit = 0;
+        server_waiting_queries = [];
+        server_id_requests = Fifo.create ();
+          server_flags = 0;
+          server_has_zlib = false;
+      }
       and server_impl = 
         {
           dummy_server_impl with          
@@ -393,9 +482,10 @@ let remove_server ip port =
     Hashtbl.remove servers_by_key key;
     servers_list := List2.removeq s !servers_list ;
     (match s.server_sock with
-        None -> ()
-      | Some sock -> 
-          shutdown (TcpBufferedSocket.sock sock) Closed_by_user);
+        NoConnection -> ()
+      | ConnectionWaiting token -> cancel_token token
+      | Connection sock -> 
+          TcpBufferedSocket.shutdown sock Closed_by_user);
     server_remove (as_server s.server_server)
   with _ -> ()
 
@@ -405,22 +495,24 @@ let dummy_client =
       client_upload = None;
       client_kind = Indirect_location ("", Md4.null);   
       client_source = None;
-      client_sock = None;
+      client_sock = NoConnection;
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
+      client_chunks = [||];
+      client_uploader = None;
       client_block = None;
-      client_blocks = [];
-      client_ranges = [];
+      client_zones = [];
       client_connection_control =  new_connection_control_recent_ok ( ());
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
       client_next_view_files = last_time () - 1;
-      client_all_chunks = "";
+(*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
+      client_mod_brand = Brand_mod_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
@@ -429,7 +521,6 @@ let dummy_client =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
-      client_has_a_slot = false;
       client_overnet = false;
       client_score = 0;
       client_files = [];
@@ -451,7 +542,8 @@ let dummy_client =
     }
   in
   c  
-
+    
+  
 let create_client key num =  
   let rec c = {
 (*      dummy_client with *)
@@ -464,20 +556,22 @@ let create_client key num =
 
       client_upload = None;
       client_source = None;
-      client_sock = None;
+      client_sock = NoConnection;
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
+      client_chunks = [||];
+      client_uploader = None;
       client_block = None;
-      client_ranges = [];
-      client_blocks = [];
+      client_zones = [];
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_all_chunks = "";
+(*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
+      client_mod_brand = Brand_mod_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
@@ -485,7 +579,6 @@ let create_client key num =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
-      client_has_a_slot = false;
       client_overnet = false;
       client_score = 0;
       client_files = [];
@@ -527,10 +620,13 @@ let find_client_by_key key =
   H.find clients_by_kind { dummy_client with client_kind = key }
   
 let client_type c =
-  client_type (as_client c.client_client)
+  client_type (as_client c)
+
+let set_client_type c t=
+  set_client_type (as_client c) t
 
 let friend_add c =
-  friend_add (as_client c.client_client)
+  friend_add (as_client c)
       
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
@@ -547,7 +643,7 @@ let set_client_name c name md4 =
       try      
         let kind = Indirect_location (name, md4) in
         let cc = H.find clients_by_kind { dummy_client with client_kind = kind } in
-        if cc != c && client_type cc = FriendClient then
+        if cc != c && client_type cc land client_friend_tag <> 0 then
           friend_add c
       with _ -> ()
     end
@@ -602,15 +698,16 @@ let local_mem_stats buf =
           with _ -> incr dead_clients;
 end;
 *)
-      let num = client_num (as_client c.client_client) in
+      let num = client_num c in
       incr client_counter;
       match c.client_sock with
-        None -> begin
+        NoConnection -> begin
             match c.client_kind with
               Indirect_location _ -> incr unconnected_unknown_clients
             | _ -> ()
           end
-      | Some sock ->
+      | ConnectionWaiting _  -> ()
+      | Connection sock ->
           let buf_len, nmsgs = TcpBufferedSocket.buf_size sock in
           (try
               Hashtbl.find connected_clients_by_num num
@@ -622,7 +719,7 @@ end;
                 Printf.bprintf buf "%d: %6d/%6d\n" num
                   buf_len nmsgs *)
           );
-          if BasicSocket.closed (TcpBufferedSocket.sock sock) then
+          if TcpBufferedSocket.closed sock then
             incr closed_connections;
   ) clients_by_kind;
   
@@ -630,12 +727,12 @@ end;
   Hashtbl.iter (fun _ file ->
       Intmap.iter (fun _ c ->
           match c.client_sock with
-            None -> begin
+            NoConnection -> begin
                 match c.client_kind with
                   Indirect_location _ -> incr bad_clients_in_files
                 | _ -> ()
               end
-          | Some sock -> ()              
+          | _ -> ()              
       ) file.file_locations;
   ) files_by_md4;
   
@@ -654,19 +751,15 @@ end;
   Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
   ()
   
-let client_num c = client_num (as_client c.client_client)  
-let file_num c = file_num (as_file c.file_file)  
-let server_num c = server_num (as_server c.server_server)  
-  
 let remove_client c =
-  client_remove (as_client c.client_client);
+  client_remove (as_client c);
 (*  hashtbl_remove clients_by_kind c.client_kind c; *)
 (*  hashtbl_remove clients_by_name c.client_name c *)
   ()
 
 
 let friend_remove c = 
-  friend_remove  (as_client c.client_client)
+  friend_remove  (as_client c)
 
 let last_search = ref (Intmap.empty : int Intmap.t)
   
@@ -727,11 +820,86 @@ let brand_to_string b =
   | Brand_mldonkey3 -> "trusted mldonkey"
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
-  | Brand_lmule -> "lMule"
+  | Brand_lmule -> "xMule"
   | Brand_shareaza -> "shareaza"
   | Brand_server -> "server"
+  | Brand_amule -> "aMule"
+  | Brand_lphant -> "lPhant"
 
-
+let brand_mod_to_string b =
+  match b with
+    Brand_mod_unknown -> "unknown"
+  | Brand_mod_extasy -> "Extasy"
+  | Brand_mod_hunter -> "Hunter"
+  | Brand_mod_sivka -> "Sivka"
+  | Brand_mod_ice -> "IcE"
+  | Brand_mod_plus -> "Plus"
+  | Brand_mod_lsd -> "LSD"
+  | Brand_mod_maella -> "Maella"
+  | Brand_mod_pille -> "Pille"
+  | Brand_mod_morphkad -> "MorphKad"
+  | Brand_mod_efmod -> "eF-MOD"
+  | Brand_mod_xtreme -> "Xtreme"
+  | Brand_mod_bionic -> "Bionic"
+  | Brand_mod_pawcio -> "Pawcio"
+  | Brand_mod_zzul -> "ZZUL"
+  | Brand_mod_blackhand -> "Black Hand"
+  | Brand_mod_lovelace -> "lovelace"
+  | Brand_mod_morphnext -> "MorphNext"
+  | Brand_mod_fincan -> "fincan"
+  | Brand_mod_ewombat -> "eWombat"
+  | Brand_mod_morph -> "Morph"
+  | Brand_mod_mortillo -> "MorTillo"
+  | Brand_mod_lh -> "LionHeart"
+  | Brand_mod_emulespana -> "emulEspa\241a"
+  | Brand_mod_blackrat -> "BlackRat"
+  | Brand_mod_enkeydev -> "enkeyDev"
+  | Brand_mod_gnaddelwarz -> "Gnaddelwarz"
+  | Brand_mod_phoenixkad -> "pHoeniX-KAD"
+  | Brand_mod_koizo -> "koizo"
+  | Brand_mod_ed2kfiles -> "ed2kFiles"
+  | Brand_mod_athlazan -> "Athlazan"
+  | Brand_mod_cryptum -> "Cryptum"
+  | Brand_mod_lamerzchoice -> "LamerzChoice"
+  | Brand_mod_notdead -> "NotDead"
+  | Brand_mod_peace -> "peace"
+  | Brand_mod_goldicryptum -> "GoldiCryptum"
+  | Brand_mod_eastshare -> "EastShare"
+  | Brand_mod_mfck -> "[MFCK]"
+  | Brand_mod_echanblard -> "eChanblard"
+  | Brand_mod_sp4rk -> "Sp4rK"
+  | Brand_mod_powermule -> "PowerMule"
+  | Brand_mod_bloodymad -> "bloodymad"
+  | Brand_mod_roman2k -> "Roman2K"
+  | Brand_mod_gammaoh -> "GaMMaOH"
+  | Brand_mod_elfenwombat -> "ElfenWombat"
+  | Brand_mod_o2 -> "O2"
+  | Brand_mod_dm -> "DM"
+  | Brand_mod_sfiom -> "SF-IOM"
+  | Brand_mod_magic_elseve -> "Magic-Elseve"
+  | Brand_mod_schlumpmule -> "SchlumpMule"
+  | Brand_mod_lc -> "LC"
+  | Brand_mod_noamson -> "NoamSon"
+  | Brand_mod_stormit -> "Stormit"
+  | Brand_mod_omax -> "OMaX"
+  | Brand_mod_mison -> "Mison"
+  | Brand_mod_phoenix -> "Phoenix"
+  | Brand_mod_spiders -> "Spiders"
+  | Brand_mod_iberica -> "Ib\233rica"
+  | Brand_mod_mortimer -> "Mortimer"
+  | Brand_mod_stonehenge -> "Stonehenge"
+  | Brand_mod_xlillo -> "Xlillo"
+  | Brand_mod_imperator -> "ImperatoR"
+  | Brand_mod_raziboom -> "Raziboom"
+  | Brand_mod_khaos -> "Khaos"
+  | Brand_mod_hardmule -> "Hardmule"
+  | Brand_mod_sc -> "SC"
+  | Brand_mod_cy4n1d -> "Cy4n1d"
+  | Brand_mod_dmx -> "DMX"
+  | Brand_mod_ketamine -> "Ketamine"
+  | Brand_mod_blackmule -> "Blackmule"
+  | Brand_mod_morphxt -> "MorphXT"
+  | Brand_mod_ngdonkey -> "ngdonkey"
       
 (*************************************************************
 
@@ -875,8 +1043,8 @@ let client_id c =
           
 let save_join_queue c =
   if c.client_file_queue <> [] then
-    let files = List.map (fun (file, chunks) ->
-          file, String.copy chunks
+    let files = List.map (fun (file, chunks, _) ->
+          file, Array.copy chunks
       ) c.client_file_queue in
     begin
       if c.client_debug then 
@@ -908,3 +1076,8 @@ let clean_join_queue_tables () =
   ) list
   
   
+let server_accept_multiple_getsources s =
+  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_getsources) <> 0
+
+let server_send_multiple_replies s =
+  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0

@@ -18,14 +18,15 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
 open BasicSocket
 open Options
 open TcpBufferedSocket
-  
+
+open CommonHosts
 open CommonOptions
 open CommonClient
 open CommonUser
@@ -106,19 +107,23 @@ let (file_ops : file CommonFile.file_ops) =
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
-    
+let as_client c = as_client c.client_client
+let as_file file = as_file file.file_file        
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+let file_disk_name file = file_disk_name (as_file file)
+let set_file_disk_name file = set_file_disk_name (as_file file)  
+let file_state file =  file_state (as_file file)
+let file_num file =  file_num (as_file file)
+let file_must_update file =  file_must_update (as_file file)
 
 let current_files = ref ([] : GnutellaTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
-let hosts_by_key = Hashtbl.create 103
+(*let hosts_by_key = Hashtbl.create 103 *)
 
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
 
@@ -172,7 +177,28 @@ let nservers = ref 0
 let connected_servers = ref ([] : server list)
   
   
+module H = CommonHosts.Make(struct
+      include GnutellaTypes
+      type ip = Ip.t
 
+      let requests = 
+        [ 
+          Tcp_Connect, 
+          (600, (fun kind ->
+                [ match kind with
+                  | true -> ultrapeers_waiting_queue
+                  | (_) -> peers_waiting_queue
+                ]
+            ));
+          Udp_Connect,
+          (600, (fun kind ->
+                   [waiting_udp_queue]
+            ))]
+
+      let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
+    end)
+  
+(*
 let host_queue_add q h time =
   if not (List.memq q h.host_queues) then begin
       Queue.put q (time, h);
@@ -185,7 +211,7 @@ let host_queue_take q =
       h.host_queues <- List2.removeq q h.host_queues 
     end;
   h
-      
+
 let hosts_counter = ref 0
   
 let new_host ip port ultrapeer kind = 
@@ -214,9 +240,10 @@ let new_host ip port ultrapeer kind =
       Hashtbl.add hosts_by_key key host;
       host_queue_add workflow host 0;
       host
-      
+        *)
+
 let new_server ip port =
-  let h = new_host ip port true 0 in
+  let h = H.new_host ip port true in
   match h.host_server with
     Some s -> s
   | None ->
@@ -235,7 +262,7 @@ let new_server ip port =
           server_vendor = "";
           
           server_connected = zero;
-          server_gnutella2 = false;
+(*          server_gnutella2 = false; *)
           server_query_key = NoUdpSupport;
         } and
         server_impl = {
@@ -331,9 +358,6 @@ let new_file file_id file_name file_size =
   let file_temp = Filename.concat !!temp_directory 
       (Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
   let t = Unix32.create_rw file_temp in
-  let swarmer = Int64Swarmer.create file_size megabyte 
-    (Int64.of_int (256 * 1024)) 
-    in
   let keywords = get_name_keywords file_name in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
@@ -342,7 +366,7 @@ let new_file file_id file_name file_size =
       file_name = file_name;
       file_clients = [];
       file_uids = [];
-      file_swarmer = swarmer;
+      file_swarmer = None;
       file_searches = [search];
     } and file_impl =  {
       dummy_file_impl with
@@ -361,6 +385,10 @@ let new_file file_id file_name file_size =
   in
   Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" file_size;
+  let swarmer = Int64Swarmer.create (as_file file) megabyte 
+    (Int64.of_int (256 * 1024)) 
+  in
+  file.file_swarmer <- Some swarmer;
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
         Unix32.buffered_write_copy t offset s pos len
@@ -463,18 +491,18 @@ let add_download file c index =
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
-      let up = Int64Swarmer.register_uploader file.file_swarmer 
-          (Int64Swarmer.AvailableRanges chunks) in
+(*      let up = Int64Swarmer.register_uploader file.file_swarmer 
+          (Int64Swarmer.AvailableRanges chunks) in *)
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_uri = index;
           download_chunks = chunks;
           download_ranges = [];
           download_block = None;
-          download_uploader = up;
+          download_uploader = None;
         }];
       file.file_clients <- c :: file.file_clients;
-      file_add_source (as_file file.file_file) (as_client c.client_client)
+      file_add_source (as_file file) (as_client c)
     end
     
 let rec find_download file list = 
@@ -501,15 +529,6 @@ let remove_download file list =
           iter file tail (d :: rev)
   in
   iter file list []
-  
-let file_state file =
-  file_state (as_file file.file_file)
-
-let file_num file =
-  file_num (as_file file.file_file)
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
 
 let server_num s =
   server_num (as_server s.server_server)
@@ -527,13 +546,13 @@ let server_remove s =
   ()
   *)
 
-let client_type c = client_type (as_client c.client_client)
+let client_type c = client_type (as_client c)
 
 let set_client_state client state =
-  CommonClient.set_client_state (as_client client.client_client) state
+  CommonClient.set_client_state (as_client client) state
   
 let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client.client_client) 
+  CommonClient.set_client_disconnected (as_client client) 
   
   
 let remove_file file = 
@@ -551,7 +570,7 @@ let client_ip sock =
   CommonOptions.client_ip
   (match sock with Connection sock -> Some sock | _ -> None)
 
-let disconnect_from_server nservers s r =
+let disconnect_from_server s r =
   match s.server_sock with
   | Connection sock ->
       let h = s.server_host in
@@ -560,7 +579,7 @@ let disconnect_from_server nservers s r =
             let connection_time = Int64.to_int (
                 Int64.sub (int64_time ()) s.server_connected) in
             lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
-              (Ip.to_string h.host_ip) h.host_port
+              (Ip.to_string h.host_addr) h.host_port
               connection_time
             ;
         | _ -> ()
@@ -607,5 +626,5 @@ let clean_file s =
 let local_login () =
   let name = !!global_login in
   let len = String.length name in
-  if len > 32 then name else  String.sub name 0 32
+  if len < 32 then name else  String.sub name 0 32
     

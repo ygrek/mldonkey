@@ -26,7 +26,7 @@ Little Endian: weakest byte first
   *)
 open Md4
 open Autoconf
-open Int32ops
+open Int64ops
 open AnyEndian
   
   (*

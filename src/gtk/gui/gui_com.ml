@@ -120,7 +120,8 @@ let reconnect gui value_reader reason =
                 when_disconnected gui
               end
     );
-    TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
+    TcpBufferedSocket.set_max_input_buffer sock !!O.interface_buffer;
+    TcpBufferedSocket.set_max_output_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
     (fun _ -> 
         lprintf "BUFFER OVERFLOW"; lprint_newline ();

@@ -24,11 +24,14 @@ PROBLEMS:
   'find_block' that it has already used.
   *)
 
-open Int32ops
-open CommonOptions
+open Int64ops
 open Options
-open CommonTypes
 open Printf2
+  
+open CommonClient
+open CommonFile
+open CommonTypes
+open CommonOptions
 
   
 let check_swarming = false
@@ -41,6 +44,7 @@ type strategy =
 | AdvancedStrategy  (* first chunks first, rarest chunks second, 
      complete first third, and random final *)
     
+exception VerifierNotReady
 
 (*************************************************************************)
 (*************************************************************************)
@@ -72,9 +76,11 @@ module type Swarmer =
     type chunks =
       AvailableRanges of (int64 * int64) list
 (* A bitmap is encoded with '0' for empty, '1' for present *)
-    | AvailableBitmap of string 
+    | AvailableCharBitmap of string 
+(* A bitmap encoded as an array of boolean *)
+    | AvailableBoolBitmap of bool array
       
-    val create : int64 -> int64 -> int64 -> t
+    val create : file -> int64 -> int64 -> t
     val set_writer : t -> (int64 -> string -> int -> int -> unit) -> unit
     val set_verifier : t -> (int -> int64 -> int64 -> bool) -> unit
       
@@ -84,7 +90,7 @@ module type Swarmer =
     val verified_bitmap : t -> string
     val set_verified_bitmap : t -> string -> unit
       
-    val register_uploader : t -> chunks -> uploader
+    val register_uploader : t -> client -> chunks -> uploader
     val update_uploader : uploader -> chunks -> unit
     val disconnect_uploader : uploader -> unit      
       
@@ -105,7 +111,11 @@ module type Swarmer =
     val is_interesting : uploader -> bool	
     val print_uploader : uploader -> unit
 
+    val last_seen : t -> int array
+      
     val print_uploaders : t -> unit
+
+    val uploader_swarmer : uploader -> t
       
     val swarmer_to_value : t ->
       (string * Options.option_value) list ->
@@ -142,9 +152,15 @@ module Int64Swarmer = (struct
       
       type chunks =
         AvailableRanges of (int64 * int64) list
-      | AvailableBitmap of string
+(* A bitmap is encoded with '0' for empty, '1' for present *)
+      | AvailableCharBitmap of string 
+(* A bitmap encoded as an array of boolean *)
+      | AvailableBoolBitmap of bool array
+        
       
       type t = {
+          t_file : file;
+          
           mutable t_size : int64;
           mutable t_block_size : int64;
           mutable t_range_size : int64;
@@ -192,6 +208,7 @@ module Int64Swarmer = (struct
       
       and uploader = {
           up_t : t;
+          up_client : client;
           
           mutable up_declared : bool;
           
@@ -209,7 +226,6 @@ module Int64Swarmer = (struct
           mutable up_ranges : range list;
         }
       
-      exception VerifierNotImplemented
       
       let basic_write _ _ _ _ = ()
 
@@ -231,17 +247,34 @@ module Int64Swarmer = (struct
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         last_seen                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+      let last_seen t =
+        for i = 0 to String.length t.t_verified_bitmap - 1 do
+          if t.t_verified_bitmap.[i] = '2' then
+            t.t_last_seen.(i) <- BasicSocket.last_time ()
+        done;
+        t.t_last_seen
+        
+(*************************************************************************)
+(*                                                                       *)
 (*                         create                                        *)
 (*                                                                       *)
 (*************************************************************************)
       
-      let create size chunk_size range_size = 
+      let create file chunk_size range_size = 
         
+        let size = file_size file in
         let nchunks = 
           1 + Int64.to_int (
             Int64.div (Int64.sub size Int64.one) chunk_size) in
         
         let rec t = {
+            
+            t_file = file;
+            
             t_size = size;
             t_block_size = chunk_size;
             t_range_size = range_size;
@@ -406,39 +439,40 @@ module Int64Swarmer = (struct
         match t.t_verifier with
           None -> ()
         | Some f ->
-            let block_begin = t.t_block_size ** i in
-            let block_end = block_begin ++  t.t_block_size in
-            let block_end = min block_end t.t_size in
-            if f i block_begin block_end then begin
-                t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-                begin
+            try
+              let block_begin = t.t_block_size ** i in
+              let block_end = block_begin ++  t.t_block_size in
+              let block_end = min block_end t.t_size in
+              if f i block_begin block_end then begin
+                  t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+                  begin
+                    match t.t_blocks.(i) with
+                      PartialBlock b ->
+                        
+                        t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+                        close_ranges t b.block_ranges
+                    | EmptyBlock ->                 
+                        t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+                    | _ -> ()
+                  end;
+                  
+                  t.t_verified_bitmap.[i] <- '3';          
+                  t.t_blocks.(i) <- VerifiedBlock;
+                
+                end else begin
                   match t.t_blocks.(i) with
-                    PartialBlock b ->
+                    EmptyBlock | PartialBlock _ -> ()
+                  | CompleteBlock ->
+                      t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                      t.t_downloaded <- 
+                        t.t_downloaded -- (block_end -- block_begin);
                       
-                      t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-                      close_ranges t b.block_ranges
-                  | EmptyBlock ->                 
-                      t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-                  | _ -> ()
-                end;
-                
-                t.t_verified_bitmap.[i] <- '3';          
-                t.t_blocks.(i) <- VerifiedBlock;
-              
-              end else begin
-                match t.t_blocks.(i) with
-                  EmptyBlock | PartialBlock _ -> ()
-                | CompleteBlock ->
-                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
-                    t.t_downloaded <- 
-                      t.t_downloaded -- (block_end -- block_begin);
-                    
-                    t.t_blocks.(i) <- EmptyBlock;
-                    t.t_verified_bitmap.[i] <- '0'
-                
-                | _ -> assert false
-              end
-
+                      t.t_blocks.(i) <- EmptyBlock;
+                      t.t_verified_bitmap.[i] <- '0'
+                  
+                  | _ -> assert false
+                end
+            with VerifierNotReady -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -716,14 +750,26 @@ module Int64Swarmer = (struct
                           (i, chunk_begin, chunk_end) :: !partial_blocks
                 ) chunks;
             
-            | AvailableBitmap string ->
+            | AvailableCharBitmap string ->
                 for i = 0 to String.length string - 1 do
                   if string.[i] = '1' then begin
                       t.t_availability.(i) <- t.t_availability.(i) + 1;
                       complete_blocks := i :: !complete_blocks
                     end
                 done;
+            | AvailableBoolBitmap bitmap ->
+                for i = 0 to Array.length bitmap - 1 do
+                  if bitmap.(i) then begin
+                      t.t_availability.(i) <- t.t_availability.(i) + 1;
+                      complete_blocks := i :: !complete_blocks
+                    end
+                done;
           end;
+          
+          List.iter (fun i ->
+              t.t_last_seen.(i) <- BasicSocket.last_time ()
+          ) !complete_blocks;
+          
           let complete_blocks = Array.of_list !complete_blocks in
           let partial_blocks = Array.of_list !partial_blocks in
           up.up_chunks <- chunks;
@@ -781,12 +827,13 @@ module Int64Swarmer = (struct
 (*                                                                       *)
 (*************************************************************************) 
       
-      let register_uploader t chunks =
+      let register_uploader t client chunks =
         
         let up =
           {
             up_t = t;
-          
+            up_client = client;
+            
             up_declared = false;
             up_chunks = chunks;
             
@@ -1362,6 +1409,33 @@ we thus might put a lot of clients on the same range !
         
 (*************************************************************************)
 (*                                                                       *)
+(*                         set_downloaded_block                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+      let set_downloaded_block t i =
+        match t.t_blocks.(i) with
+          EmptyBlock ->
+            let block_begin = t.t_block_size ** i in
+            let block_end = min (block_begin ++ t.t_block_size) t.t_size in
+            t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
+        | PartialBlock b ->
+            let rec iter r =
+              t.t_downloaded <- t.t_downloaded ++ 
+                (r.range_end -- r.range_current_begin);
+              r.range_current_begin <- r.range_end;
+              match r.range_next with
+                None -> r.range_prev <- None; r
+              | Some rr -> 
+                  r.range_prev <- None;
+                  r.range_next <- None;
+                  iter rr
+            in
+            b.block_ranges <- iter b.block_ranges
+        | _ -> ()
+            
+(*************************************************************************)
+(*                                                                       *)
 (*                         set_verified_bitmap                           *)
 (*                                                                       *)
 (*************************************************************************)
@@ -1378,9 +1452,11 @@ we thus might put a lot of clients on the same range !
           | EmptyBlock | PartialBlock _ when bitmap.[i] = '3' ->
               t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
               t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+              set_downloaded_block t i;
               t.t_blocks.(i) <- VerifiedBlock
           | EmptyBlock | PartialBlock _ when bitmap.[i] = '2' ->
               t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+              set_downloaded_block t i;
               t.t_blocks.(i) <- CompleteBlock;
               verify_block t i
           | _ -> ()
@@ -1429,6 +1505,8 @@ we thus might put a lot of clients on the same range !
       
       let partition_size t = Array.length t.t_blocks
 
+      let uploader_swarmer up = up.up_t
+        
 (*************************************************************************)
 (*                                                                       *)
 (*                         availability                                  *)
@@ -1486,6 +1564,26 @@ we thus might put a lot of clients on the same range !
       let value_to_swarmer t assocs = 
         let get_value name conv = conv (List.assoc name assocs) in
 
+        lprintf "Setting bitmap\n";
+        (try
+            
+            let set_bitmap =
+              let mtime = Unix32.mtime64 (file_fd t.t_file) in
+              let old_mtime = 
+                try 
+                  value_to_float (List.assoc "file_mtime" assocs) 
+                with Not_found -> mtime
+              in
+              old_mtime = mtime
+            in
+            
+            set_verified_bitmap t
+              (get_value  "file_chunks" value_to_string)
+          with e -> 
+              lprintf "Exception %s while loading bitmap\n"
+                (Printexc2.to_string e); 
+        );
+        
         lprintf "Loading present...\n";
         (try 
             set_present t 
@@ -1497,13 +1595,6 @@ we thus might put a lot of clients on the same range !
         );
         lprintf "Downloaded after present %Ld\n" (downloaded t);
         
-        (try
-            set_verified_bitmap t
-              (get_value  "file_chunks" value_to_string)
-          with e -> 
-              lprintf "Exception %s while loading bitmap\n"
-                (Printexc2.to_string e); 
-        );
         ()      
 
 (*************************************************************************)
@@ -1513,6 +1604,7 @@ we thus might put a lot of clients on the same range !
 (*************************************************************************)
       
       let swarmer_to_value t other_vals = 
+        ("file_mtime", float_to_value (Unix32.mtime64 (file_fd t.t_file))) ::
         ("file_chunks", string_to_value (verified_bitmap t)) ::
         ("file_present_chunks", List
             (List.map (fun (i1,i2) -> 
@@ -1521,7 +1613,8 @@ we thus might put a lot of clients on the same range !
         other_vals
         
   end : Swarmer)
-  
+
+(*
 (*************************************************************************)
 (*************************************************************************)
 (*************************************************************************)
@@ -1749,3 +1842,4 @@ module Check = struct
 
 let _ =
   if check_swarming then Check.check_swarming 20000
+      *)

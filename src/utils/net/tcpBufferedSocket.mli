@@ -74,7 +74,8 @@ val error: t -> BasicSocket.close_reason
 (* val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit *)
 val set_closer : t -> (t -> BasicSocket.close_reason -> unit) -> unit
 val nread : t -> int
-val set_max_write_buffer : t -> int -> unit  
+val set_max_input_buffer : t -> int -> unit  
+val set_max_output_buffer : t -> int -> unit  
 val can_write : t -> bool  
 val can_write_len : t -> int -> bool  
 val set_monitored : t -> unit
@@ -165,3 +166,6 @@ val set_connected : t -> (t -> unit) -> unit
 
 val prevent_close : t -> unit
 val must_write : t -> bool -> unit
+val max_refill : t -> int
+val output_buffered : t -> int
+  

@@ -22,7 +22,8 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
+open CommonHosts
 open CommonSwarming
 open CommonTypes
 open CommonFile
@@ -32,12 +33,12 @@ open GnutellaOptions
 open GnutellaGlobals
 
 let ultrapeers = define_option gnutella_section
-    ["cache"; "gnutella1"; "ultrapeers"]
+    ["cache"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
 let peers = define_option gnutella_section
-    ["cache"; "gnutella1"; "peers"]
+    ["cache"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
@@ -124,6 +125,15 @@ let value_to_file file_size file_state assocs =
   
   let file = new_file file_id file_name file_size !file_uids in
   
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        Int64Swarmer.value_to_swarmer swarmer assocs;
+        add_file_downloaded file.file_file
+          (Int64Swarmer.downloaded swarmer);
+        
+  );
+(*
   (try 
       Int64Swarmer.set_present file.file_swarmer 
         (get_value "file_present_chunks" 
@@ -132,7 +142,7 @@ let value_to_file file_size file_state assocs =
         (Int64Swarmer.downloaded file.file_swarmer)      
     with _ -> ()                
   );
-  
+*)  
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
@@ -151,34 +161,40 @@ let value_to_file file_size file_state assocs =
         lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
   );
-  as_file file.file_file
+  as_file file
   
 let file_to_value file =
-  [
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Md4.to_string file.file_id);
-    "file_sources", 
-    list_to_value "Gnutella Sources" (fun c ->
-        match (find_download file c.client_downloads).download_uri with
-          FileByIndex (i,n) -> 
-            SmallList [ClientOption.client_to_value c; int_to_value i; 
-              string_to_value n]
-        | FileByUrl s -> 
-            SmallList [ClientOption.client_to_value c; 
-              string_to_value s]
-    ) file.file_clients
-    ;
-    "file_uids", list_to_value "toto" (fun uid ->
-        string_to_value  (Uid.to_string uid))
-    file.file_uids;
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    
-  ]
-  
+  let assocs =
+    [
+      "file_name", string_to_value file.file_name;
+      "file_downloaded", int64_to_value (file_downloaded file);
+      "file_id", string_to_value (Md4.to_string file.file_id);
+      "file_sources", 
+      list_to_value "Gnutella Sources" (fun c ->
+          match (find_download file c.client_downloads).download_uri with
+            FileByIndex (i,n) -> 
+              SmallList [ClientOption.client_to_value c; int_to_value i; 
+                string_to_value n]
+          | FileByUrl s -> 
+              SmallList [ClientOption.client_to_value c; 
+                string_to_value s]
+      ) file.file_clients
+      ;
+      "file_uids", list_to_value "toto" (fun uid ->
+          string_to_value  (Uid.to_string uid))
+      file.file_uids;
+(*      "file_present_chunks", List
+        (List.map (fun (i1,i2) -> 
+            SmallList [int64_to_value i1; int64_to_value i2])
+        (Int64Swarmer.present_chunks file.file_swarmer));
+*)  
+    ]
+  in
+  match file.file_swarmer with
+    None -> assocs 
+  | Some swarmer ->
+      Int64Swarmer.swarmer_to_value swarmer assocs
+      
 let old_files = 
   define_option gnutella_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
@@ -189,15 +205,14 @@ let save_config () =
   peers =:= [];
   
   Queue.iter (fun h -> 
-      if h.host_kind <> 0 then
-        let o = match h.host_kind, h.host_ultrapeer with
-          | 1, true -> ultrapeers
-          | _ -> peers
-        in
+      try
+        let o = match h.host_kind with true -> ultrapeers | _ -> peers in
+
 (* Don't save hosts that are older than 1 hour, and not responding *)
         if max h.host_connected h.host_age > last_time () - 3600 then
-          o =:= (h.host_ip, h.host_port) :: !!o) 
-  workflow;
+          o =:= (h.host_addr, h.host_port) :: !!o; 
+      with _ -> ())
+  H.workflow;
   
   ()
   

@@ -23,6 +23,8 @@ open Md4
 open CommonTypes
 open LittleEndian
 open CommonGlobals
+  
+open DonkeyTypes
 open DonkeyMftp
 
 (*
@@ -56,10 +58,16 @@ module Connect  = struct
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
-        31, "server_udp";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
+        "\031", "udpport";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\085", "mod_version";
+        "\249", "emule_udpports";
+        "\250", "emule_miscoptions1";
+        "\251", "emule_version";
       ]
 (*
 e3
@@ -82,7 +90,7 @@ ed 1d             ..<...Ôu çÝí.
 
       
     let parse len s =
-      let version = get_int8 s 1 in
+      let version = get_uint8 s 1 in
       let md4 = get_md4 s 2 in
       let ip = get_ip s 18 in
       let port = get_port s 22 in
@@ -145,16 +153,22 @@ module ConnectReply  = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
         server_info : (Ip.t * int) option;
         left_bytes : string;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\085", "mod_version";
+        "\249", "emule_udpports";
+        "\250", "emule_miscoptions1";
+        "\251", "emule_version";
       ]
     
     let parse len s =
@@ -266,7 +280,7 @@ module QueryChunksReply = struct (* Request 80 *)
         if nchunks = 0 then [||] else
         let chunks = Array.create nchunks false  in
         for i = 0 to (nchunks-1) / 8 do
-          let m = get_int8 s (19+i) in
+          let m = get_uint8 s (19+i) in
           for j = 0 to 7 do
             let n = i * 8 + j in
             if n < nchunks then
@@ -394,8 +408,8 @@ module Bloc  = struct
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos = get_int64_32 s 17;
-        end_pos = get_int64_32 s 21;
+        start_pos = get_uint64_32 s 17;
+        end_pos = get_uint64_32 s 21;
         bloc_str = s;
         bloc_begin = 25;
         bloc_len = len - 25;
@@ -427,12 +441,12 @@ module QueryBloc  = struct
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos1 = get_int64_32 s 17;
-        end_pos1 = get_int64_32 s 29;
-        start_pos2 = get_int64_32 s 21;
-        end_pos2 = get_int64_32 s 33;
-        start_pos3 = get_int64_32 s 25;
-        end_pos3 = get_int64_32 s 37;
+        start_pos1 = get_uint64_32 s 17;
+        end_pos1 = get_uint64_32 s 29;
+        start_pos2 = get_uint64_32 s 21;
+        end_pos2 = get_uint64_32 s 33;
+        start_pos3 = get_uint64_32 s 25;
+        end_pos3 = get_uint64_32 s 37;
       }
       
     let print t = 
@@ -488,17 +502,17 @@ module ViewFilesReply = struct
         md4: Md4.t;
         ip: Ip.t;
         port: int;
-        tags: tag list;
+        tags:  tag list;
       }
     
     type t = tagged_file list
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
       ]
     
     let rec get_files  s pos n =
@@ -649,21 +663,48 @@ module EmuleClientInfo = struct
       
     let names_of_tag =
       [
-        0x20, "compression";      (* ET_COMPRESSION *)
-        0x21, "udp_port";         (* ET_UDPPORT *)
-        0x22, "udp_version";      (* ET_UDPVER *)
-        0x23, "source_exchange";  (* ET_SOURCEEXCHANGE *)
-        0x24, "comments";         (* ET_COMMENTS *)
-        0x25, "extended_request"; (* ET_EXTENDEDREQUEST *)
-        0x26, "compatible";       (* ET_COMPATABLECLIENT *)
-        0x77, "tarod";       	  (* ET_TAROD *)
-        0x78, "tarod_version";    (* ET_TAROD_VERSION *)
-		0x99, "plus";			  (* ET_PLUS *)
+        "\032", "compression";
+        "\033", "udpport";
+        "\034", "udpver";
+        "\035", "sourceexchange";
+        "\036", "comments";
+        "\037", "extendedrequest";
+        "\038", "compatableclient";
+        "\039", "features";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\062", "l2hac";
+        "\065", "mod_unknown41";
+        "\066", "mod_unknown42";
+        "\067", "mod_unknown43";
+        "\084", "mod_featureset";
+        "\086", "mod_protocol";
+        "\085", "mod_version";
+        "\090", "mod_bowlfish";
+        "\092", "mod_secure_community";
+        "\102", "mod_fusion";
+        "\103", "mod_fusion_version";
+        "\119", "mod_tarod";
+        "\120", "mod_tarod_version";
+        "\121", "mod_morph";
+        "\128", "mod_morph_version";
+        "\130", "mod_mortillo";
+        "\131", "mod_mortillo_version";
+        "\132", "chanblard_version";
+        "\133", "signature";
+        "\134", "cache";
+        "\135", "mod_lsd";
+        "\136", "mod_lsd_version";
+        "\144", "mod_lovelace_version";
+        "\148", "mod_oxy";
+        "\153", "mod_plus";
+        "\160", "mod_wombat";
+        "\161", "dev_wombat";
       ]
       
     let parse len s =
-      let version = get_int8 s 1 in
-      let protversion = get_int8 s 2 in
+      let version = get_uint8 s 1 in
+      let protversion = get_uint8 s 2 in
       let tags,_ = get_tags s 3 names_of_tag in
       {
         version = version; 
@@ -805,6 +846,12 @@ module EmuleRequestSourcesReply = struct
     let write buf t = 
       buf_md4 buf t.md4;
       buf_int16 buf (Array.length t.sources);
+      Array.iter (fun s -> 
+		    buf_ip buf s.ip;
+		    buf_port buf s.port; 
+		    buf_ip buf s.server_ip;
+		    buf_port buf s.server_port; 
+		 ) t.sources;
       ()
             
   end

@@ -441,7 +441,7 @@ let html_mods_load_message_file = define_expert_option current_section
     ["html_mods_load_message_file"] "Whether to load the mldonkey_messages.ini file (false=use internal settings)" bool_option false
 
 let html_mods_max_messages = define_expert_option current_section
-    ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10
+    ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 50
 
 let html_mods_bw_refresh_delay = define_option current_section
     ["html_mods_bw_refresh_delay"] "bw_stats refresh delay (seconds)" int_option 11
@@ -491,7 +491,7 @@ let web_infos = define_option current_section
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   [
-    ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");
+    ("server.met", 1, "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
     ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
 
   ]
@@ -640,7 +640,7 @@ a port < 1024 is needed)" int_option 0
 
   
 let ask_for_gui = define_option current_section ["ask_for_gui"]
-    "Ask for GUI start"    bool_option true
+    "Ask for GUI start"    bool_option false
     
 let start_gui = define_option current_section ["start_gui"]
     "Automatically Start the GUI" bool_option false
@@ -665,6 +665,11 @@ let incoming_directory =
   define_option current_section ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
     string_option (Filename.concat file_basedir "incoming")
+
+let default_sharing_strategy =
+  define_option current_section ["default_sharing_strategy" ] 
+    "Sharing strategy the share command will use when none is specified"
+    string_option "all_files"
 
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
@@ -872,6 +877,22 @@ let vd_reload_delay = define_expert_option current_section ["vd_reload_delay"]
 let client_bind_addr = define_option current_section ["client_bind_addr"]
     "The IP address used to bind the p2p clients"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+
+let dp500_pclink = 
+  define_expert_option current_section ["dp500_pclink"]
+    "(experimental)" bool_option false 
+
+let dp500_port = 
+  define_expert_option current_section ["dp500_port"]
+    "(experimental)" int_option 8000
+
+let dp500_buffer = 
+  define_expert_option current_section ["dp500_buffer"]
+    "(experimental)" int_option 2000000
+
+let dp500_directory = 
+  define_expert_option current_section ["dp500_directory"]
+    "(experimental)" string_option "dp500"
 
 let _ =
   option_hook client_bind_addr (fun _ ->

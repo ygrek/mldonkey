@@ -182,6 +182,11 @@ let value_reader gui t =
                       net_enabled = n.network_enabled;
                       net_displayed = true;
                     } in
+                  
+                  (match n.network_netname with
+                      "BitTorrent" -> bittorrent_network := n.network_netnum
+                    | _ -> ());
+                  
                   Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
                   ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
                         Com.send (EnableNetwork (nn.net_num,
@@ -528,7 +533,8 @@ let window_about _ =
         true
       )
   ));
-  window#show ()
+  window#show ();
+  window
 
 
 let main () =
@@ -539,7 +545,7 @@ let main () =
     CommonGlobals.exit_properly 0
   in
   chmod_config (); 
-  window_about ();
+  let splash_window = window_about () in
   Gui_config.update_toolbars_style gui;
   Gui_config.update_list_bg gui;
   Gui_config.update_graphs gui;
@@ -576,7 +582,7 @@ let main () =
       (fun () -> Gui_config.edit_options gui));
 
   ignore (gui#buttonAbout#connect#clicked 
-      (fun () -> window_about ()));
+      (fun () -> ignore (window_about ())));
 
   ignore (gui#buttonIm#connect#clicked 
       (fun () -> Gui_im.main_window#window#show ()));
@@ -586,6 +592,10 @@ let main () =
   option_hook Gui_options.notebook_tab 
       (fun _ -> gui#notebook#set_tab_pos !!Gui_options.notebook_tab);
   
+  (** close the splash window *)
+
+  splash_window#destroy ();
+
   (** connection with core *)
 
   Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user ;

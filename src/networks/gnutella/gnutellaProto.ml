@@ -27,6 +27,7 @@ open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
 
+open CommonHosts
 open CommonTypes
 open CommonOptions
 open CommonGlobals
@@ -521,6 +522,7 @@ let write buf t =
       QrtReset.write buf t
   | UnknownReq (i,s) -> Buffer.add_string buf s
 
+      
 let print p =
   lprintf "Packet (ttl %d, nhops %d, uid %s):\n" p.pkt_ttl p.pkt_hops
     (Md4.to_string p.pkt_uid);
@@ -531,7 +533,10 @@ let print p =
     | PushReq t -> Push.print t
     | ByeReq t -> Bye.print t
     | QrtResetReq t -> QrtReset.print t
-    | QrtPatchReq t -> QrtPatch.print t
+    | QrtPatchReq t -> 
+        let buf = Buffer.create 100 in
+        QrtPatch.print buf t;
+        lprintf "%s" (Buffer.contents buf)
     | QueryReq t -> Query.print t
     | VendorReq t -> Vendor.print t
     | QueryReplyReq t -> QueryReply.print t
@@ -616,17 +621,17 @@ let udp_send ip port msg =
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
 let server_send s t =
-  if s.server_gnutella2 then begin
+(*  if s.server_gnutella2 then begin
       lprintf "server_send: try to send a gnutella1 packet to a gnutella2 server\n";
       raise Exit;
-    end;
+    end; *)
   match s.server_sock with
     NoConnection | ConnectionWaiting _ -> 
       begin
         match s.server_query_key with
           GuessSupport ->
             let h = s.server_host in
-            udp_send h.host_ip h.host_port t
+            udp_send h.host_addr h.host_port t
         | _ -> ()
       end
   | Connection sock ->
@@ -721,7 +726,7 @@ let server_send_qrt_reset s m =
 let server_send_qrt_patch s m = 
   server_send_new s (QrtPatchReq m)
   
-let server_send_query quid words sock s = 
+let server_send_query quid words xml_query sock s = 
   let module Q = Query in
   let t = QueryReq {
       Q.min_speed = 0;
@@ -760,23 +765,26 @@ let server_recover_file file sock s =
         FileUidSearch (file, fuid) ->
           server_ask_uid s ss.search_uid fuid
       | FileWordSearch (file, words) ->
-          server_send_query ss.search_uid words sock s;          
+          server_send_query ss.search_uid words "" sock s;          
       | _ -> ()          
   ) file.file_searches
   
-let server_send_ping s =
-  let pl =
-    let module P = Ping in
-    PingReq P.SimplePing
-  in
-  let p  = { (new_packet pl) with pkt_ttl = 1; } in
-  s.server_nfiles <- s.server_nfiles_last;
-  s.server_nkb <- s.server_nkb_last;
-  s.server_ping_last <- p.pkt_uid;
-  s.server_nfiles_last <- 0;
-  s.server_nkb_last <- 0;
-  server_send s p
-
+let server_send_ping sock s =
+  match sock with
+    Connection sock ->
+      let pl =
+        let module P = Ping in
+        PingReq P.SimplePing
+      in
+      let p  = { (new_packet pl) with pkt_ttl = 1; } in
+      s.server_nfiles <- s.server_nfiles_last;
+      s.server_nkb <- s.server_nkb_last;
+      s.server_ping_last <- p.pkt_uid;
+      s.server_nfiles_last <- 0;
+      s.server_nkb_last <- 0;
+      server_send s p
+  | _ -> ()
+      
 let server_send_push s uid uri =
   let module P = Push in
   let t = PushReq {
@@ -1011,4 +1019,17 @@ module Pandora = struct
   end
   
   
+let resend_udp_packets () = ()
+  
+let ask_for_uids sh =
+  CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
+      lprintf "Could share urn\n";
+      ())
+  
+  
+let known_download_headers = []
+let known_supernode_headers = []
+let is_same_network gnutella2 = not gnutella2
+  
+let host_send_qkr h = ()
   

@@ -81,8 +81,8 @@ let make_full_request r =
   Buffer.add_string res (
     let url = 
       if r.req_proxy <> None
-      then  Url.to_string false url
-      else url.file
+      then  Url.to_string_no_args url
+      else url.short_file
     in
 	(* I get a lot more bittorrent urls with this line: *)
 	let url = (Str.global_replace (Str.regexp " ") "%20" url) in
@@ -99,7 +99,7 @@ let make_full_request r =
   Printf.bprintf res "Connection: close\r\n";
  (match r.req_referer with None -> ()
     | Some url -> 
-        Printf.bprintf res "Referer: %s\r\n"  (Url.to_string false url));
+        Printf.bprintf res "Referer: %s\r\n"  (Url.to_string_no_args url));
   if is_real_post then begin
       let post = Buffer.create 80 in
       let rec make_post = function
@@ -321,7 +321,7 @@ headers;
           end
           
     | 404 ->
-        lprintf "Http_client 404: Not found %s\n" (Url.to_string false r.req_url);
+        lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
           
@@ -359,7 +359,7 @@ let wget r f =
       let s = Buffer.contents file_buf in
       if s = "" then begin  
           lprintf "Empty content for url %s\n" 
-            (Url.to_string false r.req_url);
+            (Url.to_string r.req_url);
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
       let oc = open_out_bin filename in

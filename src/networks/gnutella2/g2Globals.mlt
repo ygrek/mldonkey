@@ -1,0 +1,3 @@
+#include "src/networks/gnutella/gnutellaGlobals.ml" where "Gnutella" = "G2"
+  
+  

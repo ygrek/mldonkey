@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Xml
 open Printf2
 open Md4
@@ -564,7 +564,7 @@ let udp_packet_handler ip port msg =
 *)      
 
 let init s sock gconn = 
-  gconn.gconn_sock <- s.server_sock;
+(*  gconn.gconn_sock <- s.server_sock; *)
   connected_servers := s :: !connected_servers;
   gconn.gconn_handler <- 
     Reader (g2_handler (g2_packet_handler s s.server_sock));
@@ -581,3 +581,13 @@ let init s sock gconn =
 *)
 
 (* A good session: PI, KHL, LNI *)
+  
+    
+let udp_handler ip port buf =
+  if String.length buf > 3 && String.sub buf 0 3 = "GND" then
+    try
+      udp_packet_handler ip port
+        (parse_udp_packet ip port buf)
+    with AckPacket | FragmentedPacket -> ()
+  else
+    lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)

@@ -69,8 +69,15 @@ let buf_array buf f list =
   Array.iter (fun x -> f buf x) list
 
 let buf_string buf s =
-  buf_int16 buf (String.length s);  
-  Buffer.add_string buf s
+  let len = String.length s in
+  if len >= 0xffff then begin
+      buf_int16 buf len;
+      Buffer.add_string buf s
+    end else  begin
+      buf_int16 buf 0xffff;
+      buf_int buf len;
+      Buffer.add_string buf s
+    end 
 
 let buf_float buf f =
   let i = int_of_float f in
@@ -870,7 +877,7 @@ protocol version. Do not send them ? *)
     | GetSearch search_id -> buf_int16 buf 60; buf_int buf search_id
     | ConnectClient c -> buf_int16 buf 61; buf_int buf c
     | DisconnectClient c -> buf_int16 buf 62; buf_int buf c
-    
+    | NetworkMessage (n, s) -> buf_int16 buf 63; buf_int buf n; buf_string buf s
     | GiftAttach _ -> assert false
     | GiftStats -> assert false
   with e ->

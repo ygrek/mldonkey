@@ -31,3 +31,4 @@ val client_connected : DonkeyTypes.client -> unit
 val add_source_request : DonkeyTypes.source ->
   DonkeyTypes.file -> int -> DonkeyTypes.request_result -> unit
 val init : unit -> unit  
+val print_sources_html : DonkeyTypes.file -> Buffer.t -> unit

@@ -517,6 +517,8 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
     | Uploaders l -> ()
     | Pending l -> ()
 
+    | Search s -> ()
+
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 

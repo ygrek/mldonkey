@@ -20,6 +20,7 @@
 open Printf2
 open CommonNetwork
 
+open CommonHosts
 open GnutellaClients
 open CommonOptions
 open CommonFile
@@ -42,7 +43,7 @@ let disable enabler () =
           match h.host_server with
             None -> ()
           | Some s -> GnutellaServers.disconnect_server s Closed_by_user)
-      hosts_by_key;
+      H.hosts_by_key;
       Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) clients_by_uid;
       (match !listen_sock with None -> ()
         | Some sock -> 
@@ -65,21 +66,22 @@ let enable () =
   if not !!enable_gnutella then enable_gnutella =:= true;
 
   List.iter (fun (ip,port) -> 
-      ignore (new_host ip port true 1)) !!ultrapeers;
+      ignore (H.new_host ip port true)) !!ultrapeers;
 
   List.iter (fun (ip,port) -> 
-      ignore (new_host ip port false 1)) !!peers;
+      ignore (H.new_host ip port false)) !!peers;
   
-  add_session_timer enabler 1.0 (fun timer ->
-      GnutellaServers.manage_hosts ();
-        Gnutella.connect_servers GnutellaServers.connect_server;      
+    add_session_timer enabler 1.0 (fun timer ->
+        H.manage_hosts ();
+        GnutellaProto.resend_udp_packets ();
+        GnutellaScheduler.connect_servers GnutellaServers.connect_server;      
       );
 
   GnutellaServers.ask_for_files ();
   
   add_session_timer enabler 60.0 (fun timer ->
       GnutellaServers.ask_for_files ();
-      Gnutella.send_pings ();
+      GnutellaScheduler.send_pings ();
   );
 
   GnutellaServers.recover_files ();

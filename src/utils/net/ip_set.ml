@@ -86,7 +86,7 @@ let load filename =
     bl_empty (* not reached *)
   with End_of_file ->
     close_in cin;
-    lprintf "%d ranges loaded" !nranges;
+    lprintf "IP blacklist: %d ranges loaded" !nranges;
     lprint_newline ();
     !bl
 

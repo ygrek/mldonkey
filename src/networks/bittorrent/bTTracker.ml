@@ -17,9 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Md4
 open Options
+open CommonOptions
 open Printf2
 
 open BasicSocket
@@ -318,8 +319,8 @@ let int_of_string v =
       raise e
   
 let http_handler t r =
-  let code, s = 
-    match r.get_url.Url.file with
+  begin
+    match r.get_url.Url.short_file with
       "/tracker" ->
         begin
           try
@@ -381,7 +382,7 @@ let http_handler t r =
               
               | _ ->
 (* Return the 20 best peers *)
-
+                  
                   let list = ref [] in
                   
                   (try
@@ -417,8 +418,8 @@ let http_handler t r =
               ]
             in
             
-            "200 OK", Bencode.encode message
-            
+            r.reply_content <-  Bencode.encode message
+          
           with e ->
               lprintf "BTTracker: Exception %s\n" (Printexc2.to_string e);
               raise e
@@ -436,35 +437,17 @@ let http_handler t r =
           if filename.[1] = ':' then failwith "Incorrect filename 3";
           
           let filename = Filename.concat tracked_directory filename in
-          "200 OK", File.to_string filename
+          r.reply_content <- File.to_string filename
         with e ->
             lprintf "BTTracker: for request [%s] exception %s\n" 
-              (Url.to_string true r.get_url) (Printexc2.to_string e);
+              (Url.to_string r.get_url) (Printexc2.to_string e);
+            
+            r.reply_head <- "404 Not Found"
+  end;
 
-            "404 Not Found", ""  
-  in
-  let len = String.length s in
-  let buf = Buffer.create (len+1000) in
-
-(* Create the answer *)
-  Printf.bprintf  buf "HTTP/1.0 %s\r\n" code;
-  Printf.bprintf buf "Content-Length: %d\r\n" len;
-  Buffer.add_string  buf "Server: MLdonkey\r\n";
-  Buffer.add_string  buf "Connection: close\r\n";
-  Buffer.add_string  buf "Content-Type: application/x-bittorrent\r\n";
-  Buffer.add_string  buf "\r\n";
-  
-  if r.request = "GET" then Buffer.add_string buf s;
-
-(* Send the answer *)        
-  let s = Buffer.contents buf in
-  let len = String.length s in
-  
-  lprintf "Sending [%s]\n" (String.escaped s);
-  
-  TcpBufferedSocket.set_max_write_buffer t (len + 100);
-  TcpBufferedSocket.write t s 0 len;
-  TcpBufferedSocket.close_after_write t        
+  add_reply_header r "Server" "MLdonkey";
+  add_reply_header r "Connection" "close";
+  add_reply_header r "Content-Type" "application/x-bittorrent"
   
 let tracker_sock = ref None
 
@@ -502,7 +485,7 @@ let start_tracker () =
       default = http_handler;      
     } in
   let sock = TcpServerSocket.create "BT tracker"
-      Unix.inet_addr_any !!tracker_port (Http_server.handler config) in
+      (Ip.to_inet_addr !!client_bind_addr) !!tracker_port (Http_server.handler config) in
   tracker_sock := Some sock;
   scan_tracked_directory ();
   ()

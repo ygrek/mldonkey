@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int32ops
+open Int64ops
 open Queues
 open Printf2
 open Md4
@@ -77,6 +77,7 @@ let disconnect_client c r =
               | Some up ->
                   Int64Swarmer.disconnect_uploader up;
                   d.download_ranges <- [];
+                  d.download_uploader <- None;
             ) c.client_downloads;
           if c.client_reconnect then
             List.iter (fun d ->
@@ -112,17 +113,20 @@ let disconnect_client c r =
       
 let download_finished file = 
   if List.memq file !current_files then begin
-      file_completed (as_file file.file_file);
+      file_completed (as_file file);
       FileTPGlobals.remove_file file;
-      old_files =:= (file.file_name, file_size file) :: !!old_files;
-      List.iter (fun c ->
-          c.client_downloads <- remove_download file c.client_downloads
+      List.iter (fun c ->    
+          List.iter (fun d ->
+              if d.download_file == file then
+                old_files =:= d.download_url :: !!old_files
+          ) c.client_downloads;
+          c.client_downloads <- remove_download file c.client_downloads;
       ) file.file_clients
     end
 
-let check_finished file =
+let check_finished swarmer file =
   if file_state file <> FileDownloaded &&
-    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then begin
+    (file_size file = Int64Swarmer.downloaded swarmer) then begin
       download_finished file
     end
     
@@ -135,7 +139,9 @@ let get_from_client sock (c: client) =
           lprintf "No other download to start\n";
         raise Not_found
     | d :: tail ->
-        if file_state d.download_file <> FileDownloading then iter tail
+        let file = d.download_file in
+        if file_size file = zero || file_state file  <> FileDownloading then
+          iter tail
         else begin
             if !verbose_msg_clients then begin
                 lprintf "FINDING ON CLIENT\n";
@@ -160,6 +166,9 @@ let get_from_client sock (c: client) =
               match d.download_uploader with
                 None -> assert false
               | Some up ->
+                  let swarmer = match file.file_swarmer with
+                      None -> assert false | Some sw -> sw
+                  in
                   try
                     let rec iter () =
                       match d.download_block with
@@ -168,7 +177,7 @@ let get_from_client sock (c: client) =
                           let b = Int64Swarmer.find_block up in
                           
 (*                          lprintf "GOT BLOCK:\n"; *)
-                          Int64Swarmer.print_uploaders file.file_swarmer;
+                          Int64Swarmer.print_uploaders swarmer;
                           
                           if !verbose_swarming then begin
                               lprintf "Block Found: "; Int64Swarmer.print_block b;
@@ -184,7 +193,7 @@ let get_from_client sock (c: client) =
                             let r = Int64Swarmer.find_range up in
                             
 (*                            lprintf "GOT RANGE:\n"; *)
-                            Int64Swarmer.print_uploaders file.file_swarmer;
+                            Int64Swarmer.print_uploaders swarmer;
                             
                             let (x,y) = Int64Swarmer.range_range r in 
                             d.download_ranges <- d.download_ranges @ [x,y,r];
@@ -200,7 +209,7 @@ let get_from_client sock (c: client) =
                     iter ()
                   with Not_found -> 
                       lprintf "Unable to get a block !!";
-                      check_finished file;
+                      check_finished swarmer file;
                       raise Not_found
             in
             c.client_proto.proto_send_range_request c range sock d;
@@ -252,17 +261,22 @@ that the connection will not be aborted (otherwise, disconnect_client
                   end;
                 if !verbose_msg_clients then begin
                     lprintf "connecting %s:%d\n" c.client_hostname
-                    c.client_port; 
+                      c.client_port; 
                   end;
                 c.client_reconnect <- false;
                 let sock = c.client_proto.proto_connect token c (fun sock ->
                       
                       List.iter (fun d ->
                           let file = d.download_file in
-                          let chunks = [ Int64.zero, file_size file ] in
-                          let bs = Int64Swarmer.register_uploader file.file_swarmer 
-                              (Int64Swarmer.AvailableRanges chunks) in
-                          d.download_uploader <- Some bs
+                          if file_size file <> zero then
+                            let swarmer = match file.file_swarmer with
+                                None -> assert false | Some sw -> sw
+                            in
+                            let chunks = [ Int64.zero, file_size file ] in
+                            let up = Int64Swarmer.register_uploader swarmer 
+                              (as_client c)
+                                (Int64Swarmer.AvailableRanges chunks) in
+                            d.download_uploader <- Some up
                       ) c.client_downloads;
                       
                       init_client c sock;                
@@ -338,7 +352,20 @@ let manage_hosts () =
             let (_,c) = Queue.take file.file_clients_queue in
 (*            lprintf "One client\n"; *)
             c.client_in_queues <- List2.removeq file c.client_in_queues;
-            connect_client c
+            
+            
+            if file_size file = zero then
+              let proto = c.client_proto in
+              List.iter (fun d ->
+                  if d.download_file == file then
+                    let url = d.download_url in
+                    proto.proto_check_size url (fun size ->
+                        set_file_size file size;
+                        connect_client c
+                    )
+              ) c.client_downloads
+            else
+              connect_client c
           done
         with _ -> ()
   ) !current_files

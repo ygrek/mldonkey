@@ -449,6 +449,7 @@ type network = {
     mutable op_network_info : (unit -> network_info);
     
     mutable op_network_connected : (unit -> bool);
+    mutable op_network_gui_message : (string -> unit);
   }
 
 and   ui_user = {
