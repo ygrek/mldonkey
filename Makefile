@@ -208,18 +208,18 @@ $(DISDIR):  static distrib/Readme.txt
 	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.`uname -m`-`uname -s`.tar
 	bzip2 mldonkey-`cat VERSION`.static.`uname -m`-`uname -s`.tar
 
-macosx:  static distrib/Readme.txt
+macosx:  opt distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	rm -rf $(DISDIR)/CVS
-	cp mldonkey.static $(DISDIR)/mldonkey
+	cp mldonkey $(DISDIR)/mldonkey
 	strip  $(DISDIR)/mldonkey
-	cp mldonkey_gui.static $(DISDIR)/mldonkey_gui
+	cp mldonkey_gui $(DISDIR)/mldonkey_gui
 	strip $(DISDIR)/mldonkey_gui
 	tar cf $(DISDIR).tar $(DISDIR)
 	grep Release: gui/gui_messages.ml | awk -F : '{ print $$2 }' | awk '{ print $$1 }' > VERSION
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.ppc-MacOS-X.tar
-	gzip mldonkey-`cat VERSION`.static.ppc-MacOS-X.tar
+	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.ppc-MacOS-X.tar
+	gzip mldonkey-`cat VERSION`.shared.ppc-MacOS-X.tar
 
 SHADIR=mldonkey-shared
 
