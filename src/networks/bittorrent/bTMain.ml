@@ -19,6 +19,7 @@
 
 open CommonNetwork
 
+open Printf2
 open BTClients
 open CommonOptions
 open CommonFile
@@ -49,18 +50,28 @@ let disable enabler () =
     end
     
 let enable () =
+  lprintf "enable\n";
   if not !is_enabled then
     let enabler = ref true in
+    lprintf "enabling...\n";
+    Unix2.safe_mkdir "torrents";
+    Unix2.safe_mkdir downloads_directory;
+    Unix2.safe_mkdir tracked_directory;  
+    Unix2.safe_mkdir seeded_directory;
     is_enabled := true;
-    if !!tracker_port > 0 then BTTracker.start_tracker ();
+    if !!tracker_port > 0 then (
+        try BTTracker.start_tracker () 
+        with e ->
+            lprintf "Exception in BTTracker.start_tracker: %s\n"
+              (Printexc2.to_string e));
     add_infinite_timer 1200. (fun _ ->
         BTInteractive.share_files ();
         BTTracker.clean_tracker_timer ());
-    add_timer 60. BTInteractive.share_files;
+    add_timer 10. BTInteractive.share_files;
     network.op_network_disable <- disable enabler;
     
-  if not !!enable_bittorrent then enable_bittorrent =:= true;
-  (*
+    if not !!enable_bittorrent then enable_bittorrent =:= true;
+(*
   List.iter (fun s ->
       try
         let ip = Ip.from_name s in
@@ -69,23 +80,24 @@ let enable () =
   ) !!redirectors;
 *)
 
-  (*
+(*
   Hashtbl.iter (fun _ file ->
       if file_state file <> FileDownloaded then
         current_files := file :: !current_files
   ) files_by_key;
 *)
+    
 
-  
-  BTClients.recover_files ();  
-  add_session_timer enabler 60.0 (fun timer ->
-      BTClients.recover_files ();
-				 );
-  
-  add_session_timer enabler 120.0 (fun timer ->
-	BTClients.send_pings ();
-				  );
-  
+    lprintf "XXXXXXXXXXXXXXX\n";
+    BTClients.recover_files ();  
+    add_session_timer enabler 60.0 (fun timer ->
+        BTClients.recover_files ();
+    );
+    
+    add_session_timer enabler 120.0 (fun timer ->
+        BTClients.send_pings ();
+    );
+    
   
   add_session_timer enabler 10.0 (fun timer ->
       BTClients.recompute_uploaders());

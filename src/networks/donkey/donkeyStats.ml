@@ -50,6 +50,7 @@ let brand_to_int b =
   | Brand_lmule -> 9
   | Brand_shareaza -> 10
   | Brand_amule -> 11
+  | Brand_lphant -> 12
       
 let brand_of_int b =
   match b with
@@ -65,6 +66,7 @@ let brand_of_int b =
   | 9 -> Brand_lmule
   | 10 -> Brand_shareaza
   | 11 -> Brand_amule
+  | 12 -> Brand_lphant
   | _ -> raise Not_found
       
 let gbrand_to_string b =
@@ -81,6 +83,7 @@ let gbrand_to_string b =
   | Brand_shareaza -> "sZA"
   | Brand_server -> "SER"
   | Brand_amule -> "aMU"
+  | Brand_lphant -> "lPH"
 
 let brand_mod_to_int b =
   match b with
@@ -153,6 +156,9 @@ let brand_mod_to_int b =
   | Brand_mod_cy4n1d -> 66
   | Brand_mod_dmx -> 67
   | Brand_mod_ketamine -> 68
+  | Brand_mod_blackmule -> 69
+  | Brand_mod_morphxt -> 70
+  | Brand_mod_ngdonkey -> 71
 
 let brand_mod_of_int b =
   match b with
@@ -225,6 +231,9 @@ let brand_mod_of_int b =
   | 66 -> Brand_mod_cy4n1d
   | 67 -> Brand_mod_dmx
   | 68 -> Brand_mod_ketamine
+  | 69 -> Brand_mod_blackmule
+  | 70 -> Brand_mod_morphxt
+  | 71 -> Brand_mod_ngdonkey
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -298,6 +307,9 @@ let gbrand_mod_to_string b =
   | Brand_mod_cy4n1d -> "Cy4"
   | Brand_mod_dmx -> "DMX"
   | Brand_mod_ketamine -> "Ket"
+  | Brand_mod_blackmule -> "blm"
+  | Brand_mod_morphxt -> "Mxt"
+  | Brand_mod_ngdonkey -> "ngd"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 
@@ -855,7 +867,7 @@ let new_print_mod_stats buf o =
 
       for i=1 to brand_mod_count do
         if i=brand_mod_count then showTotal := true;
-        if !showTotal || stats_by_brand_mod.(i).brand_mod_seen > 0 then begin
+        if !showTotal || ( !!emule_mods_showall || stats_by_brand_mod.(i).brand_mod_seen > 0 ) then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "
@@ -965,7 +977,7 @@ let new_print_mod_stats buf o =
       showTotal := false;
       for i=1 to brand_mod_count do
        if i=brand_mod_count then showTotal := true;
-       if !showTotal || !!gstats_by_brand_mod.(i).brand_mod_seen > 0 then begin
+       if !showTotal || ( !!emule_mods_showall || !!gstats_by_brand_mod.(i).brand_mod_seen > 0 ) then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "

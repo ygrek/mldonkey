@@ -43,7 +43,9 @@ let _ =
 
 let message_file = Options.create_options_file message_file_name
 let message_section = file_section message_file [] ""
-let message name t x = define_option message_section [name] "" t x
+let message name (t :  
+    ('a , unit, string) format Options.option_class) x = (* define_option message_section [name] "" t x *)
+  (_b x : ('a, unit, string) format)
 
 (******************************************************************************************
 
@@ -605,8 +607,7 @@ let qT_wt_download_selected_dir =
   _s 
   "Download selected directory"
 let qT_lb_download_selected_dir = 
-  message "qT_lb_download_selected_dir" 
-  (T.option T.format) "Download"
+  _s "Download"
 let qT_ti_download_selected_dir = 
   _s 
   "Download the selected directory"
@@ -992,7 +993,7 @@ let o_use_availability_height =
   "Use height encoded availability"
 let o_use_relative_availability = 
   _s 
-  "Use relative %% availability"
+  "Use relative % availability"
 let o_toolbars_style = 
   _s 
   "Style of toolbars"
@@ -1068,7 +1069,7 @@ let o_col_grid_upload =
   _s 
   "Uploads grid"
 let o_col_fg_download = 
-  message "o_col_fg_download"(T.option T.format) 
+  _s
   "Download rate"
 let o_col_fg_upload = 
   _s 
@@ -1164,7 +1165,7 @@ let h_use_availability_height =
   "Display the availability of a chunk as height or color coded bar"
 let h_use_relative_availability =
    _s 
-  "Calculate %% availability ignoring already present chunks"
+  "Calculate % availability ignoring already present chunks"
 let h_toolbars_style = 
   _s 
   "What is displayed in toolbar buttons : text, icon or both"
@@ -1185,28 +1186,28 @@ let h_copy_messages =
 
 let h_servers_vpane_up = 
   _s 
-  "Size in %% of upper part of the servers hpane"
+  "Size in % of upper part of the servers hpane"
 let h_friends_hpane_left = 
   _s 
-  "Size in %% of left part of the friends hpane"
+  "Size in % of left part of the friends hpane"
 let h_friends_vpane_up =  
   _s 
-  "Size in %% of up part of the friends vpane"
+  "Size in % of up part of the friends vpane"
 let h_friends_hpane_dirs = 
   _s 
-  "Size in %% of the directories part of the files box"
+  "Size in % of the directories part of the files box"
 let h_rooms_hpane_left = 
   _s 
-  "Size in %% of left part of the rooms hpane"
+  "Size in % of left part of the rooms hpane"
 let h_rooms_hpane2_left = 
   _s 
-  "Size in %% of left part of the second rooms hpane"
+  "Size in % of left part of the second rooms hpane"
 let h_rooms_vpane_up = 
   _s 
-  "Size in %% of upper part of the rooms vpane"
+  "Size in % of upper part of the rooms vpane"
 let h_uploads_vpane_up = 
   _s 
-  "Size in %% of up part of the uploads vpane"
+  "Size in % of up part of the uploads vpane"
 let h_gui_width = 
   _s 
   "Width of GUI window"
@@ -1332,7 +1333,7 @@ let c_downloaded =
   "Downloaded"
 let c_percent = 
   _s 
-  "%%"
+  "%"
 let c_state = 
   _s 
   "State"

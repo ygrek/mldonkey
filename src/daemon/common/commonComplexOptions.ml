@@ -379,7 +379,44 @@ let customized_queries = define_option searches_section
       ]
     ];
   ]
-  
+
+
+let customized_queries =
+  let custom = ref None in
+  fun () ->
+    match !custom with
+      Some cq -> cq
+    | None ->
+        
+        let rec intern q =
+          match q with
+          | Q_AND list -> Q_AND (List.map intern list)
+          | Q_OR list -> Q_OR (List.map intern list)
+          | Q_HIDDEN list -> Q_HIDDEN (List.map intern list)
+          | Q_ANDNOT (q1,q2) -> Q_ANDNOT (intern q1, intern q2)
+          
+          | Q_MP3_BITRATE (s, v) -> Q_MP3_BITRATE (_s s, v)
+          | Q_MP3_ALBUM (s, v) -> Q_MP3_ALBUM (_s s, v)
+          | Q_MP3_TITLE (s, v) -> Q_MP3_TITLE (_s s, v)
+          | Q_MP3_ARTIST (s, v) -> Q_MP3_ARTIST (_s s, v)
+          
+          | Q_COMBO (s, v, l) -> Q_COMBO (_s s, v, l)
+          
+          | Q_MEDIA (s, v) -> Q_MEDIA (_s s, v)
+          | Q_KEYWORDS (s, v) -> Q_KEYWORDS (_s s, v)
+          | Q_MINSIZE (s, v) -> Q_MINSIZE (_s s, v)
+          | Q_MAXSIZE (s, v) -> Q_MAXSIZE (_s s, v)
+          | Q_FORMAT (s, v) -> Q_FORMAT (_s s, v)
+          
+          | Q_MODULE (s,q) -> Q_MODULE (_s s, intern q)
+        in
+        let qs = 
+          (List.map (fun (s,v) ->
+                _s s, intern v) !!customized_queries)
+        in
+        custom := Some qs;
+        qs
+        
 module ClientOption = struct
     
     let value_to_client is_friend v =

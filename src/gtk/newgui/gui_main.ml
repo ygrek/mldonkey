@@ -207,7 +207,7 @@ let value_reader gui t =
     
     | Client_stats s ->
         gui#tab_uploads#wl_status#set_text  
-          (Printf.sprintf !!Gui_messages.mW_sb_files_shared 
+          (Printf.sprintf Gui_messages.mW_sb_files_shared 
              s.nshared_files 
              (Gui_misc.size_of_int64 s.upload_counter)
              (s.tcp_upload_rate + s.udp_upload_rate) 

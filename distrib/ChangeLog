@@ -4,7 +4,19 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
-2003/02/02: Fabrice (version 2.5.4+5)
+2004/02/03: Fabrice (version 2.5.4+6)
+  * Applied patches #2556, #2558, #2559, #2561, #2568, #2569, #2571, 
+       #2572, #2574
+  * TcpBufferedSocket: event CONNECTED is sent the first time a socket
+      is available for writting.
+  * Newgui:
+     * Gui_cdget: Updated some regexps to correctly query IMDB.
+  * Bittorrent:
+     * BTTracker: the tracker should work. 
+     * New internal command "torrents" to list URLs of files in
+        torrents/tracked/
+
+2004/02/02: Fabrice (version 2.5.4+5)
   * New Internationnalisation format: short strings are stored for translation
       in ~/.mldonkey/mlnet_strings.$LANG. The new scheme allows easy 
       translation of options descriptions and all other strings used
@@ -14,11 +26,11 @@ Note: Due to the changes in CommonSwarming, this version is to be considered
       new format (see distrib/i18n/mlnet_strings.*, copy yours in
       ~/.mldonkey/ to check)
 
-2003/02/01/ Fabrice (version 2.5.4+4)
+2004/02/01/ Fabrice (version 2.5.4+4)
   * Applied patches #2532 (new-gui), #2535 (INSTALL.txt), #2549 (vers mesg), 
        #2550 (minsize shared)
 
-2003/01/28: Fabrice (version 2.5.4+3)
+2004/01/28: Fabrice (version 2.5.4+3)
   * CommonShared:
      Strategies of sharing can be defined in "searches.ini" (recursive or not,
       min file size, extensions). 
@@ -35,7 +47,7 @@ Note: Due to the changes in CommonSwarming, this version is to be considered
   * CommonSwarming:
      functions to save and load chunks and present_chunks from options.
 
-2003/01/27: Fabrice
+2004/01/27: Fabrice
   * TcpBufferedSocket: 
     * Weak form of connection_manager, that should progressively be used to
         better distribute connections among networks.
@@ -44,7 +56,7 @@ Note: Due to the changes in CommonSwarming, this version is to be considered
       as possible to avoid limitations at 4GB. Bittorrent protocol does not
       support files > 4 GB (check new version ?)
 
-2003/01/26: Fabrice
+2004/01/26: Fabrice
   * CommonSwarming: completely rewritten. No partition anymore. Better
       block choice strategy. More efficient strutures.
   * BTTracker: 

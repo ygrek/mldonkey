@@ -766,6 +766,7 @@ let brand_to_string b =
   | Brand_shareaza -> "shareaza"
   | Brand_server -> "server"
   | Brand_amule -> "aMule"
+  | Brand_lphant -> "lPhant"
 
 let brand_mod_to_string b =
   match b with
@@ -838,6 +839,9 @@ let brand_mod_to_string b =
   | Brand_mod_cy4n1d -> "Cy4n1d"
   | Brand_mod_dmx -> "DMX"
   | Brand_mod_ketamine -> "Ketamine"
+  | Brand_mod_blackmule -> "Blackmule"
+  | Brand_mod_morphxt -> "MorphXT"
+  | Brand_mod_ngdonkey -> "ngdonkey"
       
 (*************************************************************
 

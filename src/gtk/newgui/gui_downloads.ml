@@ -193,14 +193,14 @@ let string_of_file_state f =
   | FDownloaded -> M.dT_tx_complete
   | FShared  -> M.dT_tx_dl_done
   | FNew -> assert false
-  | FAborted s -> Printf.sprintf !!Gui_messages.dT_tx_dl_aborted s
+  | FAborted s -> Printf.sprintf Gui_messages.dT_tx_dl_aborted s
   | CConnected_downloading -> M.dT_tx_downloading
   | CConnected (-1) -> M.dT_tx_connected
   | CConnecting  -> M.dT_tx_connecting
   | CNewHost -> M.dT_tx_new_host
   | CConnected_initiating -> M.dT_tx_initiating
   | CConnected 0 -> M.dT_tx_queued
-  | CConnected n -> Printf.sprintf !!Gui_messages.dT_tx_ranked n
+  | CConnected n -> Printf.sprintf Gui_messages.dT_tx_ranked n
   | CNotConnected (_,n) ->
       if n = -1 then
         ""
@@ -209,9 +209,9 @@ let string_of_file_state f =
         (M.dT_tx_queued_out)
       else
       if n > 0 then
-         Printf.sprintf !!Gui_messages.dT_tx_ranked_out n
+         Printf.sprintf Gui_messages.dT_tx_ranked_out n
       else
-         Printf.sprintf !!Gui_messages.dT_tx_failed (- n - 1)
+         Printf.sprintf Gui_messages.dT_tx_failed (- n - 1)
        
   | CRemovedHost -> M.dT_tx_removed
   | CBlackListedHost -> M.dT_tx_black_listed
@@ -746,7 +746,7 @@ class box_downloads wl_status () =
 
     method update_wl_status : unit =
       wl_status#set_text 
-        (Printf.sprintf !!Gui_messages.mW_sb_downloaded_files 
+        (Printf.sprintf Gui_messages.mW_sb_downloaded_files 
            !G.ndownloaded !G.ndownloads)
     
     method cancel () =

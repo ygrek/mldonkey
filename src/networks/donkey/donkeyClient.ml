@@ -63,7 +63,7 @@ let is_banned c sock =
 let supports_eep cb = 
   match cb with
     Brand_lmule | Brand_newemule | Brand_cdonkey | 
-    Brand_mldonkey3 | Brand_shareaza | Brand_amule -> true
+    Brand_mldonkey3 | Brand_shareaza | Brand_amule | Brand_lphant -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -444,7 +444,6 @@ let mod_array =
       ("morphnext", Brand_mod_morphnext);
       ("fincan", Brand_mod_fincan);
       ("ewombat", Brand_mod_ewombat);
-      ("morph", Brand_mod_morph);
       ("mortillo", Brand_mod_mortillo);
       ("emulespa\241a", Brand_mod_emulespana);
       ("blackrat", Brand_mod_blackrat);
@@ -487,6 +486,10 @@ let mod_array =
       ("cy4n1d", Brand_mod_cy4n1d);
       ("dmx", Brand_mod_dmx);
       ("ketamine", Brand_mod_ketamine);
+      ("blackmule", Brand_mod_blackmule);
+      ("morphxt", Brand_mod_morphxt);
+      ("ngdonkey", Brand_mod_ngdonkey);
+      ("morph", Brand_mod_morph);
       ("dm", Brand_mod_dm);
       ("lc", Brand_mod_lc);
       ("lh", Brand_mod_lh);
@@ -541,6 +544,7 @@ let identify_emule_compatible c tags =
                   | 3 -> c.client_brand <- Brand_amule
                   | 4 -> c.client_brand <- Brand_shareaza
                   | 10 -> c.client_brand <- Brand_mldonkey3
+                  | 20 -> c.client_brand <- Brand_lphant
                   | _ -> ()
                 end
             | _ -> ())
@@ -1335,11 +1339,11 @@ is checked for the file.
                 with
                 | e ->
 		    let m =
-		      Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e) 
+(*		      Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e)  *)
 			(match e with 
 			   Unix.Unix_error (Unix.ENOSPC, _, _) -> " (Disk full?)"
 			 | _ -> "") in
-                    Printf2.lprint_string m;
+(*                    Printf2.lprint_string m; *)
 		    CommonEvent.add_event (Console_message_event m);
 		    if e <> End_of_file then begin
 		      let m = "File paused.\n" in
@@ -1352,8 +1356,8 @@ is checked for the file.
               (try
                   List.iter (update_zone file begin_pos end_pos) c.client_zones;
                 with e ->
-                    lprintf "Exception %s while updating zones\n"
-                      (Printexc2.to_string e);
+(*                    lprintf "Exception %s while updating zones\n"
+                      (Printexc2.to_string e); *)
                     raise e
               );
               if not (List.mem c.client_ip bb.block_contributors) then

@@ -40,6 +40,18 @@ type file_state =
 | FileNew
 | FileAborted of string
 
+  
+let string_of_state file_state =
+  match file_state with
+  FileDownloading -> "FileDownloading"
+| FileQueued -> "FileQueued"
+| FilePaused -> "FilePaused"
+| FileDownloaded -> "FileDownloaded"
+| FileShared -> "FileShared"
+| FileCancelled -> "FileCancelled"
+| FileNew -> "FileNew"
+| FileAborted _ -> "FileAborted"
+
 let string_of_field field =
   match field with
     Field_Size -> "size"
@@ -441,6 +453,7 @@ let is_connected state =
 let string_of_connection_state s = 
   match s with
   | Connected (-1) -> "Connected"
+  | Connected (-2) -> "Connected"
   | NotConnected (_,n) -> 
       if n = -1 then "" else
       if n = 0 then  "Queued Out" else
@@ -462,6 +475,7 @@ let string_of_connection_state s =
 let short_string_of_connection_state s = 
   match s with
   | Connected (-1) ->    "Cn'd"
+  | Connected (-2) ->    "Cn'd"
   | NotConnected (_,-1) -> ""
   | NotConnected (_,0) ->    "Qout"
   | Connected  0 ->      "Qued"

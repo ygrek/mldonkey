@@ -427,7 +427,7 @@ let create_gui_params () =
   let color_fg_download = color
       ~help: (M.h_col_fg_download)
       ~f: (fun s -> GO.color_fg_download =:= s)
-      (gettext M.o_col_fg_download) !!GO.color_fg_download
+      (M.o_col_fg_download) !!GO.color_fg_download
   in
   let color_fg_upload = color
       ~help: (M.h_col_fg_upload)

@@ -29,6 +29,7 @@ type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
 
+    mutable impl_file_comment : string;
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
@@ -99,6 +100,7 @@ let dummy_file_impl = {
     impl_file_best_name = "<UNKNOWN>";
     impl_file_priority = 0;
     impl_file_last_seen = 0;
+    impl_file_comment = "";
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -202,6 +204,14 @@ let file_resume (file : file) =
 let set_file_state file state = 
   let impl = as_file_impl file in
   update_file_state impl state
+
+let set_file_comment file comment = 
+  let impl = as_file_impl file in
+  impl.impl_file_comment <- comment
+
+let file_comment file = 
+  let impl = as_file_impl file in
+  impl.impl_file_comment
       
 let file_best_name (file : file) =
   let file = as_file_impl file in
@@ -708,3 +718,5 @@ let file_set_priority file p =
       file_must_update file
     end
 *)
+
+

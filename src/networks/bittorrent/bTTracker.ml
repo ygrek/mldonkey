@@ -31,6 +31,11 @@ open BTTypes
 open BTGlobals
 open Bencode
 
+  
+open Gettext  
+let _s x = _s "BTTracker" x
+let _b x = _b "BTTracker" x  
+
 (* 
 
 We could have a a-la-edonkey tracker: it would connect back to incoming
@@ -294,130 +299,199 @@ type tracker = {
   }
   
 let current_tracked_files = ref (Hashtbl.create 13)
+
+  
+  
+let int64_of_string v =
+  try
+    Int64.of_string v
+  with e ->
+      lprintf "Exception %s in int64_of_string [%s]\n" 
+        (Printexc2.to_string e) v;
+      raise e
+  
+let int_of_string v =
+  try
+    int_of_string v
+  with e ->
+      lprintf "Exception %s in int_of_string [%s]\n" 
+        (Printexc2.to_string e) v;
+      raise e
   
 let http_handler t r =
-  match r.get_url.Url.file with
-    "/tracker" ->
-      begin
+  let code, s = 
+    match r.get_url.Url.file with
+      "/tracker" ->
+        begin
+          try
+            
+            let args = r.get_url.Url.args in
+            let info_hash = ref Sha1.null in
+            let peer_id = ref Sha1.null in
+            let port = ref 0 in
+            let uploaded = ref zero in
+            let downloaded = ref zero in
+            let left = ref zero in
+            let event = ref "" in
+            List.iter (fun (name, arg) ->
+                match name with
+                | "info_hash" -> info_hash := Sha1.direct_of_string arg
+                | "peer_id" -> peer_id := Sha1.direct_of_string arg
+                | "port" -> port := int_of_string arg
+                | "uploaded" -> uploaded := int64_of_string arg
+                | "downloaded" -> downloaded := int64_of_string arg
+                | "left" -> left  := int64_of_string arg
+                | "event" -> event := arg
+                | _ -> lprintf "BTTracker: Unexpected [%s=%s]\n" name arg
+            ) args;
+            
+            let tracker = 
+              Hashtbl.find !current_tracked_files !info_hash 
+            in
+            
+            let peer = 
+              try 
+                let peer = 
+                  Hashtbl.find tracker.tracker_table !peer_id
+                in
+                peer.peer_ip <- TcpBufferedSocket.peer_ip r.sock;
+                peer.peer_port <- !port;
+                peer.peer_active <- last_time ();
+                peer
+              with _ -> 
+                  let peer = 
+                    { 
+                      peer_id = !peer_id;
+                      peer_ip = TcpBufferedSocket.peer_ip r.sock;
+                      peer_port = !port;
+                      peer_active = last_time ();
+                    } in
+                  Hashtbl.add tracker.tracker_table !peer_id peer;
+                  tracker.tracker_peers1 <- peer :: tracker.tracker_peers1;
+                  peer
+            in
+            let head =
+              match !event with
+                "completed" ->
+(* Reply with clients that could not connect to this tracker otherwise *)
+                  []
+              
+              | "stopped" -> 
+(* Don't return anything *)
+                  []
+              
+              | _ ->
+(* Return the 20 best peers *)
+                  let head, tail = List2.cut 20 tracker.tracker_peers1 in
+                  tracker.tracker_peers1 <- tail;
+                  let head = 
+                    let n = List.length head in
+                    if n < 20 then begin
+                        tracker.tracker_peers1 <- tracker.tracker_peers2;
+                        tracker.tracker_peers2 <- [];
+                        let head2, tail = List2.cut (20-n) tracker.tracker_peers1
+                        in
+                        tracker.tracker_peers1 <- tail;
+                        head @ head2
+                      end
+                    else 
+                      head 
+                  in
+                  tracker.tracker_peers2 <- head @ tracker.tracker_peers2;
+                  head
+            in
+(* reply by sending [head] *)
+            
+            let message = 
+              Dictionary [
+                String "interval", Int (Int64.of_int 600);
+                String "peers", List 
+                  (List.map (fun p ->
+                      Dictionary [
+                        String "peer id", String 
+                          (Sha1.direct_to_string p.peer_id);
+                        String "ip", String (Ip.to_string p.peer_ip);
+                        String "port", 
+                        Int (Int64.of_int p.peer_port);
+                      ]
+                  ) head)
+              ]
+            in
+            
+            "200 OK", Bencode.encode message
+            
+          with e ->
+              lprintf "BTTracker: Exception %s\n" (Printexc2.to_string e);
+              raise e
+        end
+    
+    | filename ->
         try
           
-          let args = r.get_url.Url.args in
-          let info_hash = ref Sha1.null in
-          let peer_id = ref Sha1.null in
-          let port = ref 0 in
-          let uploaded = ref zero in
-          let downloaded = ref zero in
-          let left = ref zero in
-          let event = ref "" in
-          List.iter (fun (name, arg) ->
-              match name with
-              | "info_hash" -> info_hash := Sha1.direct_of_string arg
-              | "peer_id" -> peer_id := Sha1.direct_of_string arg
-              | "port" -> port := int_of_string arg
-              | "uploaded" -> uploaded := Int64.of_string name
-              | "downloaded" -> downloaded := Int64.of_string name
-              | "left" -> left  := Int64.of_string name
-              | "event" -> event := arg
-              | _ -> lprintf "BTTracker: Unexpected arg %s\n" name
-          ) args;
+          if (Filename2.last_extension filename <> ".torrent") then
+            failwith "Incorrect filename 1";
+          for i = 1 to String.length filename - 1 do
+            let c = filename.[i] in
+            if c = '/' || c = '\\' then failwith "Incorrect filename 2"
+          done;
+          if filename.[1] = ':' then failwith "Incorrect filename 3";
           
-          let tracker = 
-              Hashtbl.find !current_tracked_files !info_hash 
-          in
-          
-          let peer = 
-            try 
-              let peer = 
-                Hashtbl.find tracker.tracker_table !peer_id
-              in
-              peer.peer_ip <- TcpBufferedSocket.peer_ip r.sock;
-              peer.peer_port <- !port;
-              peer.peer_active <- last_time ();
-              peer
-            with _ -> 
-                let peer = 
-                  { 
-                    peer_id = !peer_id;
-                    peer_ip = TcpBufferedSocket.peer_ip r.sock;
-                    peer_port = !port;
-                    peer_active = last_time ();
-                  } in
-                Hashtbl.add tracker.tracker_table !peer_id peer;
-                tracker.tracker_peers1 <- peer :: tracker.tracker_peers1;
-                peer
-          in
-          match !event with
-            "completed" ->
-(* Reply with clients that could not connect to this tracker otherwise *)
-              ()
-              
-          | "stopped" -> 
-(* Don't return anything *)
-              ()
-              
-          | _ ->
-(* Return the 20 best peers *)
-              let head, tail = List2.cut 20 tracker.tracker_peers1 in
-              tracker.tracker_peers1 <- tail;
-              let head = 
-                let n = List.length head in
-                if n < 20 then begin
-                    tracker.tracker_peers1 <- tracker.tracker_peers2;
-                    tracker.tracker_peers2 <- [];
-                    let head2, tail = List2.cut (20-n) tracker.tracker_peers1
-                    in
-                    tracker.tracker_peers1 <- tail;
-                    head @ head2
-                  end
-                else 
-                  head 
-              in
-              tracker.tracker_peers2 <- head @ tracker.tracker_peers2;
-(* reply by sending [head] *)
-        
+          let filename = Filename.concat tracked_directory filename in
+          "200 OK", File.to_string filename
         with e ->
-            lprintf "BTTracker: Exception %s\n" (Printexc2.to_string e)
-      end
-      
-  | filename ->
-      try
-        
-        if (Filename.check_suffix filename ".torrent") then
-          failwith "Incorrect filename";
-        for i = 0 to String.length filename - 1 do
-          let c = filename.[i] in
-          if c = '/' || c = '\\' then failwith "Incorrect filename"
-        done;
-        if filename.[1] = ':' then failwith "Incorrect filename";
-        
-        let filename = Filename.concat tracked_directory filename in
-        
-        let s = File.to_string filename in
-        let len = String.length s in
-        let buf = Buffer.create (len+1000) in
+            lprintf "BTTracker: for request [%s] exception %s\n" 
+              (Url.to_string true r.get_url) (Printexc2.to_string e);
+
+            "404 Not Found", ""  
+  in
+  let len = String.length s in
+  let buf = Buffer.create (len+1000) in
 
 (* Create the answer *)
-        Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-        Printf.bprintf buf "Content-Length: %d\r\n" len;
-        Buffer.add_string  buf "Server: MLdonkey\r\n";
-        Buffer.add_string  buf "Connection: close\r\n";
-        Buffer.add_string  buf "Content-Type: application/x-bittorrent\r\n";
-        Buffer.add_string  buf "\r\n";
-        Buffer.add_string buf s;
-        
-(* Send the answer *)        
-        let s = Buffer.contents buf in
-        let len = String.length s in
-        TcpBufferedSocket.set_max_write_buffer t (len + 100);
-        TcpBufferedSocket.write t s 0 len;
-        TcpBufferedSocket.close_after_write t        
-        
-      with e ->
-          lprintf "BTTracker: Unexpected request [%s]\n" 
-            (Url.to_string true r.get_url);
-          raise e
+  Printf.bprintf  buf "HTTP/1.0 %s\r\n" code;
+  Printf.bprintf buf "Content-Length: %d\r\n" len;
+  Buffer.add_string  buf "Server: MLdonkey\r\n";
+  Buffer.add_string  buf "Connection: close\r\n";
+  Buffer.add_string  buf "Content-Type: application/x-bittorrent\r\n";
+  Buffer.add_string  buf "\r\n";
+  Buffer.add_string buf s;
 
+(* Send the answer *)        
+  let s = Buffer.contents buf in
+  let len = String.length s in
+  
+  lprintf "Sending [%s]\n" (String.escaped s);
+  
+  TcpBufferedSocket.set_max_write_buffer t (len + 100);
+  TcpBufferedSocket.write t s 0 len;
+  TcpBufferedSocket.close_after_write t        
+  
 let tracker_sock = ref None
+
+let scan_tracked_directory _ = 
+  let filenames = Unix2.list_directory tracked_directory in
+  
+  let old_tracked_files = !current_tracked_files in
+  current_tracked_files := Hashtbl.create 13;
+  List.iter (fun filename ->
+      let filename = Filename.concat tracked_directory filename in
+      try
+        let s = File.to_string filename in
+        let (info_hash : Sha1.t), torrent = decode_torrent s in
+        let tracker = 
+          try
+            Hashtbl.find old_tracked_files info_hash
+          with Not_found ->
+              {
+                tracker_table = Hashtbl.create 13;
+                tracker_peers1 = [];
+                tracker_peers2 = [];
+              }
+        in
+        Hashtbl.add !current_tracked_files info_hash tracker
+      with e ->
+          lprintf "Cannot track file %s\n" filename
+  ) filenames
       
 let start_tracker () = 
   let config = {
@@ -431,6 +505,7 @@ let start_tracker () =
   let sock = TcpServerSocket.create "BT tracker"
       Unix.inet_addr_any !!tracker_port (Http_server.handler config) in
   tracker_sock := Some sock;
+  scan_tracked_directory ();
   ()
 
 let stop_tracker () =
@@ -460,31 +535,6 @@ let clean_tracker_timer () =
         List.sort (fun p1 p2 -> - compare p1.peer_active p2.peer_active) !list;
       tracker.tracker_peers2 <- [];
   ) !current_tracked_files
-
-let scan_tracked_directory _ = 
-  let filenames = Unix2.list_directory tracked_directory in
-  
-  let old_tracked_files = !current_tracked_files in
-  current_tracked_files := Hashtbl.create 13;
-  List.iter (fun filename ->
-      let filename = Filename.concat tracked_directory filename in
-      try
-        let s = File.to_string filename in
-        let (info_hash : Sha1.t), torrent = decode_torrent s in
-        let tracker = 
-          try
-            Hashtbl.find old_tracked_files info_hash
-          with Not_found ->
-              {
-                tracker_table = Hashtbl.create 13;
-                tracker_peers1 = [];
-                tracker_peers2 = [];
-              }
-        in
-        Hashtbl.add !current_tracked_files info_hash tracker
-      with e ->
-          lprintf "Cannot track file %s\n" filename
-  ) filenames
   
 let _ =
   add_infinite_timer 120. scan_tracked_directory

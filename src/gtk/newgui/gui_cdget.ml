@@ -525,7 +525,7 @@ end
 module IMDB = struct
 
  let movie_line = Str.regexp_case_fold
-    "<LI><A HREF=\"\\([^\"]*\\)\">\\([^<]*\\)</A>"
+    "<a href=\"\\(/title[^\"]*\\)\">\\([^<]*\\)</a>"
 
  let director_line = 
   Str.regexp_case_fold "Directed by[^\"]*\"[^\"]*\">\\([^<]*\\)<"
@@ -550,7 +550,7 @@ type imdb_record = {
     mutable imdb_result : (string -> string ->unit);
   }
 
-let referer = Some (Url.of_string "http://us.imdb.com/search")
+let referer = Some (Url.of_string "http://us.imdb.com/find")
   
 let imdb_name_url title = 
   make_url referer 
@@ -583,6 +583,7 @@ let imdb_title_url title =
   r
 
 let imdb_parse record page =
+  (try File.from_string "/tmp/imdb.html" page with _ -> ());
   try
     let rec iter start =
       lprintf "search movie_line %d/%d" start (String.length page); 
@@ -616,7 +617,7 @@ let submit_imdb_search qe =
   | _ -> assert false
 
 let imdb_parse_movie (wtree : unit tree) page = 
-  
+  (try File.from_string "/tmp/imdb.html" page with _ -> ());  
   let director = try
       lprintf "Searching director_line"; lprint_newline ();      
       let found = Str.search_forward director_line page 0 in
@@ -936,7 +937,7 @@ lprint_newline (); *)
       
       initializer
         Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.qT_lb_download_selected_dir)
+        ~text: (M.qT_lb_download_selected_dir)
         ~tooltip: (M.qT_ti_download_selected_dir)
         ~icon: (M.o_xpm_download_directory)
         ~callback: self#download
@@ -1133,7 +1134,7 @@ lprint_newline (); *)
       
       initializer
         Gui_misc.insert_buttons wtool1 wtool2
-          ~text: (gettext M.qT_lb_download_selected_dir)
+          ~text: (M.qT_lb_download_selected_dir)
           ~tooltip: (M.qT_ti_download_selected_dir)
           ~icon: (M.o_xpm_download_directory)
           ~callback: self#download

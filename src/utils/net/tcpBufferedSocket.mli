@@ -160,3 +160,4 @@ val set_max_opened_connections : (unit -> int) -> unit
 val set_max_connections_per_second : (unit -> int) -> unit
   
 val deflate_connection : t -> unit
+val set_connected : t -> (t -> unit) -> unit

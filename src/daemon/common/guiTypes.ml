@@ -63,7 +63,8 @@ type 'a search_request = {
 type file_info = {
     file_num : int;    
     file_network : int;
-    
+
+    mutable file_comment : string;
     mutable file_name : string;
     mutable file_names : (string * ips_list) list;
     mutable file_md4 : Md4.t;        
@@ -235,6 +236,7 @@ type option_widget =
 
 let file_info_test = 
   {
+    file_comment = "";
     file_name = "tratra";
     file_num = 356;
     file_network = 873;

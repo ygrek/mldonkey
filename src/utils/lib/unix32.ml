@@ -864,7 +864,7 @@ let table = H.create 100
 let create f creator =
   try
     let fd = H.find table { dummy with filename = f } in
-    lprintf "%s already exists\n" f;
+(*    lprintf "%s already exists\n" f; *)
     fd
   with _ ->
       let t =  {

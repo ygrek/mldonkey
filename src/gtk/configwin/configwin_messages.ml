@@ -22,14 +22,20 @@
 
 (** Module containing the messages of Configwin.*)
 
+open Gettext
+
 let software = "Configwin";;
 let version = "0.94";;
 
-let mAdd = "Add";;
-let mRemove = "Remove";;
-let mUp = "Up";;
-let mEdit = "Edit";;
-let mOk = "Ok";;
-let mCancel = "Cancel";;
-let mApply = "Apply";;
-let mValue = "Value"
+
+let _s x = _s "Configwin" x
+let _b x = _b "Configwin" x  
+
+let mAdd = _s "Add";;
+let mRemove = _s "Remove";;
+let mUp = _s "Up";;
+let mEdit = _s "Edit";;
+let mOk = _s "Ok";;
+let mCancel = _s "Cancel";;
+let mApply = _s "Apply";;
+let mValue = _s "Value"

@@ -45,7 +45,7 @@ let string_color_of_state state =
   | NewHost -> M.fT_tx_new_host, None
   | Connected_initiating -> M.fT_tx_initiating, Some !!O.color_not_connected
   | Connected 0 -> M.fT_tx_queued, Some !!O.color_connected
-  | Connected n -> Printf.sprintf !!Gui_messages.fT_tx_ranked n, Some !!O.color_connected
+  | Connected n -> Printf.sprintf Gui_messages.fT_tx_ranked n, Some !!O.color_connected
   | NotConnected (_,n) -> 
       if n = -1 then
         "", None
@@ -54,9 +54,9 @@ let string_color_of_state state =
         M.fT_tx_queued_out,  Some !!O.color_not_connected 
       else
       if n > 0 then
-        Printf.sprintf !!Gui_messages.fT_tx_ranked_out n,  Some !!O.color_not_connected
+        Printf.sprintf Gui_messages.fT_tx_ranked_out n,  Some !!O.color_not_connected
       else
-        Printf.sprintf !!Gui_messages.fT_tx_failed (- n - 1), Some !!O.color_not_connected
+        Printf.sprintf Gui_messages.fT_tx_failed (- n - 1), Some !!O.color_not_connected
   | RemovedHost -> M.fT_tx_removed, Some !!O.color_not_connected
   | BlackListedHost -> M.fT_tx_black_listed, Some !!O.color_not_connected        
       

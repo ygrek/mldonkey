@@ -115,7 +115,7 @@ let files_by_uid = Hashtbl.create 13
   
 let max_range_len = Int64.of_int (1 lsl 14)
       
-let new_file file_id file_name file_size file_tracker piece_size file_u = 
+let new_file file_id file_name file_size file_tracker piece_size file_u file_state = 
 (*  let t = Unix32.create_rw file_temp in*)
   let swarmer = Int64Swarmer.create file_size piece_size 
       (min max_range_len piece_size)  in
@@ -194,12 +194,13 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
   );
   current_files := file :: !current_files;
   Hashtbl.add files_by_uid file_id file;
-  file_add file_impl FileDownloading;
+  file_add file_impl file_state;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
   
 let new_file file_id 
-    file_name file_size file_tracker piece_size file_files file_temp =
+    file_name file_size file_tracker piece_size file_files file_temp 
+  file_state =
   try
     Hashtbl.find files_by_uid file_id;
   with Not_found -> 
@@ -210,6 +211,7 @@ let new_file file_id
           Unix32.create_rw file_temp 
       in
       new_file file_id file_name file_size file_tracker piece_size file_u
+        file_state
       
 let new_download file_id 
   file_name file_size file_tracker piece_size file_files =
@@ -283,9 +285,3 @@ let remove_client c =
 let downloads_directory = Filename.concat "torrents" "downloads"
 let tracked_directory = Filename.concat "torrents" "tracked"
 let seeded_directory = Filename.concat "torrents" "seeded"
-
-let _ = 
-  Unix2.safe_mkdir "torrents";
-  Unix2.safe_mkdir downloads_directory;
-  Unix2.safe_mkdir tracked_directory;  
-  Unix2.safe_mkdir seeded_directory;

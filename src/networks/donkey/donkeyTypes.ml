@@ -179,8 +179,9 @@ type brand =
 | Brand_shareaza
 | Brand_server
 | Brand_amule
+| Brand_lphant
   
-let brand_count = 12
+let brand_count = 13
   
 type brand_mod =
   Brand_mod_unknown
@@ -252,8 +253,11 @@ type brand_mod =
 | Brand_mod_cy4n1d
 | Brand_mod_dmx
 | Brand_mod_ketamine
+| Brand_mod_blackmule
+| Brand_mod_morphxt
+| Brand_mod_ngdonkey
 
-let brand_mod_count = 69
+let brand_mod_count = 72
 
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;

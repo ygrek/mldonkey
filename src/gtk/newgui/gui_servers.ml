@@ -216,7 +216,7 @@ class box columns users wl_status =
     
     method update_wl_status =
       wl_status#set_text
-        (Printf.sprintf !!Gui_messages.mW_sb_connected_to_servers 
+        (Printf.sprintf Gui_messages.mW_sb_connected_to_servers 
           !G.nconnected_servers !G.nservers)
 
     method content_by_col s col =

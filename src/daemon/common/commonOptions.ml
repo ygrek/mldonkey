@@ -775,6 +775,10 @@ let emule_mods_count = define_option current_section ["emule_mods_count"]
     "build statistics about eMule mods"
     bool_option false
 
+let emule_mods_showall = define_option current_section ["emule_mods_showall"]
+    "show all eMule mods in statistics"
+    bool_option false
+
   (*
 let password = define_option current_section ["password"] 
   "The password to access your client from the GUI (setting it disables

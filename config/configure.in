@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=4+5
+CURRENT_RELEASE=4+6
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -134,7 +134,7 @@ AC_ARG_ENABLE(local-prefix, [--enable-local-prefix=prefix:           allows you 
 LOCAL=$LOCAL_DIR
 LOCAL_OCAML=$LOCAL_DIR/bin
 
-AC_PATH_PROG(OCAMLC,ocamlc.opt,"$LOCAL_DIR/bin/ocamlc.opt",[$LOCAL_DIR/bin:$PATH])
+AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$LOCAL_DIR/bin:$PATH])
 AC_CHECK_PROG(OCAMLC,ocamlc,ocamlrun ocamlc)
 
 
@@ -453,7 +453,7 @@ fi
 
   if test "$GNUTELLA2" = "yes"; then
     if test "$ZLIB" = "yes"; then
-       AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA2=yes, [
+       AC_CHECK_FILE(../src/networks/gnutella2,GNUTELLA2=yes, [
          GNUTELLA2=no
          BAD_TARGETS="$BAD_TARGETS gnutella2"
        ])

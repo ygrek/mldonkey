@@ -514,7 +514,8 @@ that the connection will not be aborted (otherwise, disconnect_client
                               disconnect_client c s
 
 (* You can only use the CONNECTED signal if the socket is not yet controlled
-  by the bandwidth manager... *)
+by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should now work
+  even in this case... *)
                           
                           | CONNECTED ->
 (*           lprintf "CONNECTED !!! Asking for range...\n"; *)

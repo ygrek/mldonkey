@@ -149,7 +149,7 @@ LIB_SRCS=   \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
-  $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
+  $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
   $(LIB)/stubs_c.c  $(LIB)/queues.ml
 

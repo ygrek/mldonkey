@@ -291,6 +291,7 @@ let verify index translated =
       !verified.(index) <- true;
       true
     end else begin
+      lprintf "Bad format for %s\n" translated;
       save_strings_file := true;
       !translation.(index) <- no_translation;
       false

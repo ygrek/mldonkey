@@ -152,7 +152,7 @@ let buf_host_state proto buf t =
       | Connected_initiating -> 2
       | Connected_downloading _ -> 3
       | Connected (-1) -> 4
-      | Connected _ -> 5
+      | Connected i -> if i < 0 then 4 else 5
       | NewHost -> 6
       | RemovedHost -> 7
       | BlackListedHost -> if proto < 10 then 0 else 8)
@@ -166,6 +166,7 @@ let buf_host_state proto buf t =
       then buf_int8 buf 3
       else (buf_int8 buf 3; buf_int buf n)
   | Connected (-1) -> buf_int8 buf 4
+  | Connected (-2) -> buf_int8 buf (if proto >= 22 then 10 else 4)
   | Connected n -> buf_int8 buf 5; buf_int buf n
   | NewHost -> buf_int8 buf 6
   | RemovedHost -> buf_int8 buf 7
@@ -293,17 +294,16 @@ let buf_file proto buf f =
   buf_int_float buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format;
-  if proto >= 8 then begin
+  if proto >= 8 then 
       buf_string buf f.file_name;
-      if proto >= 9 then begin
-          let ls = compute_last_seen f.file_last_seen in
-          buf_int buf ls;
-          if proto >= 12 then begin
-              buf_int buf f.file_priority
-            end
-        end
-    end
-    
+  if proto >= 9 then 
+    let ls = compute_last_seen f.file_last_seen in
+    buf_int buf ls;
+    if proto >= 12 then
+      buf_int buf f.file_priority;
+    if proto > 21 then
+      buf_string buf f.file_comment
+      
 let buf_addr buf addr =
   match addr with
     Ip.AddrIp ip ->
@@ -349,8 +349,12 @@ let buf_client proto buf c =
       (match c.client_upload with
           Some s -> buf_string buf s
         | None -> buf_string buf "");
-      if proto >= 20 then
-        buf_int buf c.client_connect_time;
+      if proto >= 20 then begin
+        if proto >= 22 then
+          buf_int buf (BasicSocket.last_time() - c.client_connect_time)
+        else
+          buf_int buf c.client_connect_time;
+      end;
       if proto >= 21 then
         buf_string buf c.client_emulemod;
     end
@@ -835,7 +839,7 @@ protocol version. Do not send them ? *)
   | GiftAttach _ -> assert false
   | GiftStats -> assert false
       
-let best_gui_version = 21
+let best_gui_version = 22
   
 (********** Some assertions *********)
   

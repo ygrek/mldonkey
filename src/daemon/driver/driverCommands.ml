@@ -281,7 +281,7 @@ let commands =
               !!files;
             ""
         | _ -> ();
-            "done"    
+            _s "done"    
     ), "<num> :\t\t\tverify chunks of file <num>";
     
     
@@ -290,7 +290,7 @@ let commands =
         let num = int_of_string arg in
         let file = file_find num in
         file_preview file;
-        "done"
+        _s "done"
     ), "<file number> :\t\t\tstart previewer for file <file number>";
     
     "vm", Arg_none (fun o ->
@@ -307,15 +307,15 @@ let commands =
     
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets o.conn_buf;
-        "done"), ":\t\t\t\tfor debugging only";
+        _s "done"), ":\t\t\t\tfor debugging only";
     
     "kill", Arg_none (fun o ->
         CommonGlobals.exit_properly 0;
-        "exit"), ":\t\t\t\t\t$bsave and kill the server$n";
+        _s "exit"), ":\t\t\t\t\t$bsave and kill the server$n";
     
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
-        "saved"), ":\t\t\t\t\tsave";
+        _s "saved"), ":\t\t\t\t\tsave";
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -640,6 +640,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option messages_filter; 
                         strings_of_option max_displayed_results; 
                         strings_of_option emule_mods_count; 
+                        strings_of_option emule_mods_showall; 
                         strings_of_option chat_app_port; 
                         strings_of_option chat_app_host; 
                         strings_of_option chat_console_id; 
@@ -870,7 +871,7 @@ the name between []"
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>";
         
         
-        "done"
+        _s "done"
     ), ":\t\t\t\tstatistics on upload";
     
     "links", Arg_none (fun o ->
@@ -1049,7 +1050,7 @@ the name between []"
             s.search_num 
               s.search_string
               (if o.conn_output = HTML then "\\</a\\>" else "")
-            (if s.search_waiting = 0 then "done" else
+            (if s.search_waiting = 0 then _s "done" else
                 string_of_int s.search_waiting)
             s.search_nresults
         ) (Sort.list (fun f1 f2 -> f1.search_num < f2.search_num)
@@ -1060,7 +1061,7 @@ the name between []"
         let buf = o.conn_buf in
         if o.conn_output <> HTML then
           Printf.bprintf buf "%d custom queries defined\n" 
-            (List.length !!customized_queries);
+            (List.length (customized_queries ()));
         List.iter (fun (name, q) ->
             if o.conn_output = HTML then
               begin        
@@ -1078,7 +1079,7 @@ the name between []"
             else
               
               Printf.bprintf buf "[%s]\n" name
-        ) !! customized_queries; 
+        ) (customized_queries ()); 
         
         if use_html_mods o then  
           Printf.bprintf buf "\\<a 
@@ -1217,9 +1218,9 @@ the name between []"
         ) !!shared_directories;
         if !found then begin
             CommonShared.shared_check_files ();
-            "directory removed"
+            _s "directory removed"
           end else
-          "directory already unshared"
+          _s "directory already unshared"
     
     ), "<dir> :\t\t\t\tshare directory <dir>";
     
@@ -1229,7 +1230,7 @@ the name between []"
               CommonNetwork.network_recover_temp r
             with _ -> ()
         );	
-        "done"
+        _s "done"
     ), ":\t\t\t\trecover lost files from temp directory";
     
     "pause", Arg_multiple (fun args o ->
@@ -1266,14 +1267,14 @@ the name between []"
         match args with
           [] ->
             networks_iter network_connect_servers;
-            "connecting more servers"
+            _s "connecting more servers"
         | _ ->
             List.iter (fun num ->
                 let num = int_of_string num in
                 let s = server_find num in
                 server_connect s
             ) args;
-            "connecting server"
+            _s "connecting server"
     ),
     "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
     
@@ -1323,7 +1324,7 @@ the name between []"
         let num = int_of_string num in
         let c = client_find num in
         client_browse c true;        
-        "client browse"
+        _s "client browse"
     ), "<client num> :\t\t\task friend files";
     
     "x", Arg_one (fun num o ->
@@ -1359,13 +1360,13 @@ the name between []"
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         
         
-        Printf.sprintf "Servers: %d known\n" !nb_servers
+        Printf.sprintf (_b "Servers: %d known\n") !nb_servers
     ), ":\t\t\t\t\tlist all known servers";
     
     "reshare", Arg_none (fun o ->
         let buf = o.conn_buf in
         shared_check_files ();
-        "check done"
+        _s "check done"
     ), ":\t\t\t\tcheck shared files for removal";
     
     "priority", Arg_multiple (fun args o ->
@@ -1388,7 +1389,7 @@ the name between []"
                 with _ -> failwith (Printf.sprintf "No file number %s" arg)
             ) files;
             force_download_quotas ();
-            "Done"
+            _s "done"
         | [] -> "Bad number of args"
     
     ), "<priority> <files numbers> :\tchange file priorities";
@@ -1427,7 +1428,7 @@ the name between []"
     
     "close_all_sockets", Arg_none (fun o ->
         BasicSocket.close_all ();
-        "All sockets closed"
+        _s "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
     
     "message_log", Arg_multiple (fun args o ->
@@ -1564,7 +1565,7 @@ formID.msgText.value=\\\"\\\";
                 ""
               end
             else
-              Printf.sprintf "Usage: message <client num> <msg>\n";
+              _s "Usage: message <client num> <msg>\n";
     
     ), ":\t\t\t\tmessage [<client num> <msg>]";
     
@@ -1572,7 +1573,7 @@ formID.msgText.value=\\\"\\\";
         let num = int_of_string num in
         let c = client_find num in
         friend_add c;
-        "Added friend"
+        _s "Added friend"
     ), "<client num> :\t\tadd client <client num> to friends";
     
     "friend_remove", Arg_multiple (fun args o ->
@@ -1580,14 +1581,14 @@ formID.msgText.value=\\\"\\\";
             List.iter (fun c ->
                 friend_remove c
             ) !!friends;
-            "Removed all friends"
+            _s "Removed all friends"
           end else begin
             List.iter (fun num ->
                 let num = int_of_string num in
                 let c = client_find num in
                 friend_remove c;
             ) args;
-            Printf.sprintf "%d friends removed" (List.length args)
+            Printf.sprintf (_b "%d friends removed") (List.length args)
           end
     ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";    
     
@@ -1759,7 +1760,7 @@ formID.msgText.value=\\\"\\\";
                 let s = server_find num in
                 server_remove s
             ) args;
-            Printf.sprintf "%d servers removed" (List.length args)
+            Printf.sprintf (_b"%d servers removed") (List.length args)
           end
     ), "<server numbers> :\t\t\tremove server (use arg 'all' for all servers)";
     
@@ -1776,7 +1777,7 @@ formID.msgText.value=\\\"\\\";
     "log", Arg_none (fun o ->
         let buf = o.conn_buf in
         log_to_buffer buf;
-        "------------- End of log"
+        _s "------------- End of log"
     ), ":\t\t\t\t\tdump current log state to console";
     
     "ansi", Arg_one (fun arg o ->
@@ -1786,7 +1787,7 @@ formID.msgText.value=\\\"\\\";
             o.conn_output <- ANSI;
           end else
           o.conn_output <- TEXT;        
-        "$rdone$n"
+        _s "$rdone$n"
     ), ":\t\t\t\t\ttoggle ansi terminal (devel)";
     
     "term", Arg_two (fun w h o ->
@@ -1801,8 +1802,8 @@ formID.msgText.value=\\\"\\\";
         let buf = o.conn_buf in
         let b = bool_of_string arg in
         set_logging b;
-        Printf.sprintf "log to stdout %s" 
-          (if b then "enabled" else "disabled")
+        Printf.sprintf (_b "log to stdout %s") 
+          (if b then _s "enabled" else _s "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
     
     "debug_client", Arg_multiple (fun args o ->
@@ -1811,7 +1812,7 @@ formID.msgText.value=\\\"\\\";
             debug_clients := Intset.add num !debug_clients;
             (try let c = client_find num in client_debug c true with _ -> ())
         ) args;
-        "done"
+        _s "done"
     ), "<client nums> :\t\tdebug message in communications with these clients";
     
     "debug_file", Arg_multiple (fun args o ->
@@ -1822,7 +1823,7 @@ formID.msgText.value=\\\"\\\";
               "File %d:\n%s" num
               (file_debug file);
         ) args;
-        "done"
+        _s "done"
     ), "<client nums> :\t\tdebug file state";
     
     "clear_debug", Arg_none (fun o ->
@@ -1832,27 +1833,27 @@ formID.msgText.value=\\\"\\\";
               client_debug c false with _ -> ()
         ) !debug_clients;
         debug_clients := Intset.empty;
-        "done"
+        _s "done"
     ), ":\t\t\t\tclear the table of clients being debugged";
     
     "daemon", Arg_none (fun o ->
         if BasicSocket.has_threads () then
-          "Cannot detach process after start, when running with threads"
+          _s "Cannot detach process after start, when running with threads"
         else begin
             MlUnix.detach_daemon ();
-            "done"
+            _s "done"
           end
     ), ":\t\t\t\tdetach process from console and run in background";
     
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in
         log_to_file oc;
-        "log started"
+        _s "log started"
     ), "<file> :\t\t\tstart logging in file <file>";
     
     "close_log", Arg_none (fun o ->
         close_log ();
-        "log stopped"
+        _s "log stopped"
     ), ":\t\t\t\tclose logging to file";
     
     "!", Arg_multiple (fun arg o ->
@@ -1866,8 +1867,8 @@ formID.msgText.value=\\\"\\\";
                     cmd args tmp) in
               let output = File.to_string tmp in
               Sys.remove tmp;
-              Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
-          | _ -> "no command given"
+              Printf.sprintf (_b "%s\n---------------- Exited with code %d") output ret 
+          | _ -> _s "no command given"
         else
         match arg with
           [arg] ->
@@ -1877,9 +1878,9 @@ formID.msgText.value=\\\"\\\";
                   cmd tmp) in
             let output = File.to_string tmp in
             Sys.remove tmp;
-            Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
+            Printf.sprintf (_b "%s\n---------------- Exited with code %d") output ret 
         | [] ->
-            "no command given"
+            _s "no command given"
         | _ -> "For arbitrary commands, you must set 'allowed_any_command'"
     ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option or by 'allow_any_command' if arguments)";
     
@@ -1891,18 +1892,18 @@ formID.msgText.value=\\\"\\\";
 (* In place replacement....heurk *)
             String.blit (Md4.direct_to_string pass) 0 
               (Md4.direct_to_string p) 0 16;
-            "Password changed"
+            _s "Password changed"
           with _ -> 
               users =:= (user, Md4.string pass) :: !!users;
-              "User added"
+              _s "User added"
         else
-          "Only 'admin' is allowed to do that"
+          _s "Only 'admin' is allowed to do that"
     ), "<user> <passwd> :\t\tadd a new mldonkey user";
     
     "calendar_add", Arg_two (fun hour action o ->
         calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
         :: !!calendar;
-        "action added"
+        _s "action added"
     ), "<hour> \"<command>\" :\tadd a command to be executed every day";
     
     "rename", Arg_two (fun arg new_name o ->
@@ -1910,8 +1911,8 @@ formID.msgText.value=\\\"\\\";
         try
           let file = file_find num in
           set_file_best_name file new_name;
-          Printf.sprintf "Download %d renamed to %s" num new_name
-        with _ -> Printf.sprintf "No file number %d" num
+          Printf.sprintf (_b "Download %d renamed to %s") num new_name
+        with _ -> Printf.sprintf (_b "No file number %d") num
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
     
     
@@ -1928,9 +1929,9 @@ formID.msgText.value=\\\"\\\";
                       (Printexc2.to_string e) (n.network_name);
                     false
             )) then
-          "Unable to match URL"
+          _s "Unable to match URL"
         else
-          "Done"
+          _s "done"
     ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
     
     "dllinks", Arg_one (fun arg o ->        
@@ -1942,7 +1943,7 @@ formID.msgText.value=\\\"\\\";
             ignore (networks_iter_until_true (fun n -> 
                   network_parse_url n line))
         ) lines;
-        "done"
+        _s "done"
     ), "<file> :\t\t\tdownload all the links contained in the file";
     
     

@@ -661,6 +661,23 @@ let can_write_handler t sock max_len =
 (*                                                                       *)
 (*************************************************************************)
 
+let tcp_handler_write t sock =
+  begin
+    match t.write_control with
+      None ->
+        can_write_handler t sock t.wbuf.len
+    | Some bc ->
+        if bc.total_bytes = 0 then
+          can_write_handler t sock t.wbuf.len
+        else  begin
+(*                lprintf "DELAYED\n";  *)
+            if bc.remaining_bytes > 0 then begin
+                bc.connections <- t :: bc.connections;
+                bc.nconnections <- t.write_power + bc.nconnections
+              end
+          end
+  end
+  
 let tcp_handler t sock event =
   match event with
   | CAN_READ ->
@@ -683,23 +700,14 @@ let tcp_handler t sock event =
       end
   | CAN_WRITE ->
 (*      lprintf "CAN_WRITE\n";   *)
-      (try if t.nwrite = 0 then
-            t.event_handler t CONNECTED with _ -> ());
-      begin
-        match t.write_control with
-          None ->
-            can_write_handler t sock t.wbuf.len
-        | Some bc ->
-            if bc.total_bytes = 0 then
-              can_write_handler t sock t.wbuf.len
-            else  begin
-(*                lprintf "DELAYED\n";  *)
-            if bc.remaining_bytes > 0 then begin
-                bc.connections <- t :: bc.connections;
-                bc.nconnections <- t.write_power + bc.nconnections
-                  end
-              end
-      end
+      let can_write =
+        if t.nwrite = 0 && t.noproxy && t.connecting then  begin
+            t.connecting <- false;
+            t.event_handler t CONNECTED;
+            t.nwrite = 0 
+          end else true
+      in
+      if can_write then tcp_handler_write t sock
   | _ -> t.event_handler t (BASIC_EVENT event)
 
 
@@ -841,25 +849,25 @@ let set_reader t f =
     if t.noproxy then
       f
     else
-      match !http_proxy with
-        None -> f
-      | Some (h, p) ->
-          fun sock nread ->
-            (* HTTP/1.0 200 OK\n\n *)
-            let b = buf sock in
-            let rcode, rstr, rstr_end =
-              try
-                let rcode_pos = 8 (*String.index_from b.buf b.pos ' '*) in
-                let rcode = String.sub b.buf (rcode_pos+1) 3 in
-                let rstr_pos = 12 (*String.index_from b.buf (rcode_pos+1) ' '*) in
-                let rstr_end = String.index_from b.buf (rstr_pos+1) '\n' in
-                let rstr = String.sub b.buf (rstr_pos+1) (rstr_end-rstr_pos-1) in
-                lprintf "From proxy for %s: %s %s\n" sock.host rcode rstr;
-                rcode, rstr, rstr_end
-              with _ ->
+    match !http_proxy with
+      None -> f
+    | Some (h, p) ->
+        fun sock nread ->
+(* HTTP/1.0 200 OK\n\n *)
+          let b = buf sock in
+          let rcode, rstr, rstr_end =
+            try
+              let rcode_pos = 8 (*String.index_from b.buf b.pos ' '*) in
+              let rcode = String.sub b.buf (rcode_pos+1) 3 in
+              let rstr_pos = 12 (*String.index_from b.buf (rcode_pos+1) ' '*) in
+              let rstr_end = String.index_from b.buf (rstr_pos+1) '\n' in
+              let rstr = String.sub b.buf (rstr_pos+1) (rstr_end-rstr_pos-1) in
+              lprintf "From proxy for %s: %s %s\n" sock.host rcode rstr;
+              rcode, rstr, rstr_end
+            with _ ->
                 "", "", 0
-            in
-            (match rcode with
+          in
+          (match rcode with
               "200" -> (*lprintf "Connect to client via proxy ok\n";*)
                 let pos = String.index_from b.buf (rstr_end+1) '\n' in
                 let used = pos + 1 - b.pos in
@@ -867,17 +875,18 @@ let set_reader t f =
                 if nread != used then
                   f sock (nread - used)
             | _ ->
-                (* fall back to user handler *)
+(* fall back to user handler *)
                 f sock nread);
-            let handler t ev =
-              match ev with
-                READ_DONE nread -> f t nread
-              |_ -> old_handler t ev
-            in
-            t.event_handler <- handler;
-            t.connecting <- false;
-            tcp_handler t t.sock CAN_WRITE;
-            lprintf "old handler set\n"
+          let handler t ev =
+            match ev with
+              READ_DONE nread -> f t nread
+            |_ -> old_handler t ev
+          in
+          t.event_handler <- handler;
+          t.connecting <- false;
+          t.event_handler t CONNECTED;
+          if t.nwrite = 0 then tcp_handler t t.sock CAN_WRITE;
+          lprintf "old handler set\n"
   in
   let handler t ev =
     match ev with
@@ -901,6 +910,9 @@ let set_refill t f =
   set_handler t CAN_REFILL f;
   if t.wbuf.len = 0 then (try f t with _ -> ())
 
+let set_connected t f =
+  set_handler t CONNECTED f
+    
 (*************************************************************************)
 (*                                                                       *)
 (*                         Socket Configuration                          *)
@@ -1077,10 +1089,11 @@ let connect token name host port handler =
     try
       if use_proxy then begin
           t.noproxy <- false;
-          t.connecting <- true;
           t.host <- (Unix.string_of_inet_addr host)
         end else
         Unix.connect s (Unix.ADDR_INET(host,port));
+      
+      t.connecting <- true;
       upload_ip_packets t 1;             (* The TCP SYN packet *)
       forecast_download_ip_packet t;  (* The TCP ACK packet *)
       forecast_upload_ip_packet t;    (* The TCP ACK packet *)
@@ -1089,6 +1102,7 @@ let connect token name host port handler =
       t
     with
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) ->
+        t.connecting <- true;
         upload_ip_packets t 1;             (* The TCP SYN packet *)
         forecast_download_ip_packet t;  (* The TCP ACK packet *)
         forecast_upload_ip_packet t;    (* The TCP ACK packet *)

@@ -40,6 +40,10 @@ open BTOptions
 open BTGlobals
 open BTComplexOptions
 open BTProtocol
+  
+open Gettext  
+let _s x = _s "BTInteractive" x
+let _b x = _b "BTInteractive" x  
 
 let _ =
   network.op_network_connected <- (fun _ -> true)
@@ -90,6 +94,7 @@ let _ =
   );
   file_ops.op_file_info <- (fun file ->
       {
+        P.file_comment = file_comment (as_file file.file_file);
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
@@ -129,7 +134,7 @@ let load_torrent_file filename =
   let file = new_download file_id torrent.torrent_name 
       torrent.torrent_length 
       torrent.torrent_announce torrent.torrent_piece_size 
-      torrent.torrent_files
+      torrent.torrent_files FileDownloading
   in
   file.file_files <- torrent.torrent_files;
   file.file_chunks <- torrent.torrent_pieces;
@@ -138,6 +143,7 @@ let load_torrent_file filename =
 
 
 let try_share_file filename =
+  lprintf "BTInteractive.try_share_file: %s\n" filename;
   let s = File.to_string filename in  
   let file_id, torrent = BTTracker.decode_torrent s in
   
@@ -150,12 +156,20 @@ let try_share_file filename =
       else
         Unix32.create_rw filename
     in
+    lprintf "Sharing file %s\n" filename;
+    
     
     let file = new_file file_id torrent.torrent_name 
         torrent.torrent_length 
         torrent.torrent_announce torrent.torrent_piece_size 
-        torrent.torrent_files filename
+        torrent.torrent_files filename FileShared
     in
+
+    let verified = Int64Swarmer.verified_bitmap file.file_swarmer in
+    let verified = String.make (String.length verified) '3' in
+    Int64Swarmer.set_verified_bitmap file.file_swarmer verified;
+
+    lprintf "......\n";
     file.file_files <- torrent.torrent_files;
     file.file_chunks <- torrent.torrent_pieces;
     BTClients.connect_tracker file torrent.torrent_announce "completed" 
@@ -164,6 +178,7 @@ let try_share_file filename =
 (* Call one minute after start, and then every 20 minutes. Should 
   automatically contact the tracker. *)    
 let share_files _ =
+  lprintf "BTInteractive.share_files\n";
   List.iter (fun dir ->
       let filenames = Unix2.list_directory dir in
       List.iter (fun file ->
@@ -259,13 +274,13 @@ let _ = (
         let cc = as_client c in
         let cinfo = client_info cc in
         client_print cc o;
-        Printf.bprintf buf "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
+        Printf.bprintf buf (_b "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n") ""
         (Int64.to_string c.client_downloaded)
         (Int64.to_string c.client_uploaded)
         (if c.client_downloaded > c.client_uploaded then "-" else "+")
         (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
         ("BT");
-        (Printf.bprintf buf "%18sFile  : %s\n" "" info.GuiTypes.file_name);
+        (Printf.bprintf buf (_b "%18sFile  : %s\n") "" info.GuiTypes.file_name);
     );
     client_ops.op_client_dprint_html <- (fun c o file str ->
         let info = file_info file in
@@ -299,19 +314,47 @@ let _ =
     [
     "compute_torrent", Arg_one (fun filename o ->
         let announce = Printf.sprintf "http://%s:%d/tracker"
-          (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
-
+            (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
+        
         let basename = Filename.basename filename in
         let torrent = Filename.concat tracked_directory 
-            (Printf.sprintf "%s.torrent" filename)
+            (Printf.sprintf "%s.torrent" basename)
         in
+        lprintf "1\n";
         BTTracker.generate_torrent announce torrent filename;
+        lprintf "2\n";
         BTTracker.scan_tracked_directory ();
-        try_share_file filename;
+        lprintf "3\n";
+        try_share_file torrent;
+        lprintf "4\n";
         ".torrent file generated"
-    ), " <filename> : generate the corresponding <filename>.torrent file
+    ), _s " <filename> : generate the corresponding <filename>.torrent file
 in torrents/tracked/. The file is automatically tracked, and seeded if
-in incoming/";
+    in incoming/";
+    
+    "torrents", Arg_none (fun o ->
+        
+        if !!tracker_port <> 0 then
+          begin          
+            Printf.bprintf o.conn_buf (_b ".torrent files available:\n");
+            let files = Unix2.list_directory tracked_directory in
+            List.iter (fun file ->
+                Printf.bprintf o.conn_buf "http://%s:%d/%s\n"
+                  (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port
+                  file
+            ) files;
+            _s "done"
+          end
+        else
+          _s "Tracker not activated (tracker_port = 0)"
+    ), _s " : print all .torrent files on this server";
+    
+    (*
+    "print_torrent", Arg_one (fun filename o ->
+
+        ".torrent file printed"
+    ), " <filename.torrent> : print the content of filename"
+*)    
         
   ]
   

@@ -766,6 +766,7 @@ let _ =
       try
         let v = 
           {
+            P.file_comment = file_comment (as_file file.file_file);
             P.file_name = file_best_name file;
             P.file_num = (file_num file);
             P.file_network = network.network_num;

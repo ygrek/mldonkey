@@ -84,6 +84,7 @@ let current_uploaders = ref ([] : BTTypes.client list)
    get_sources_from_tracker for an example)
 *)
 let connect_tracker file url event f =
+  lprintf "Connect tracker.........\n";
   let args,must_check_delay = 
     match event with
       | "completed" -> [("event", "completed")],true
@@ -131,36 +132,36 @@ let connect_tracker file url event f =
   for clients that are in next list (and not in current) 
 *)
 let recompute_uploaders () =
-
-      next_uploaders := choose_next_uploaders 
-	(List.filter 
-	   (fun f -> file_state f = FileDownloading ) 
-	   !current_files );
-      
-  (*Send choke if a current_uploader is not in next_uploaders*)      
-      List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
-		    begin
-		      set_client_has_a_slot (as_client c) false;
-		      (*we will let him finish is download and 
-			choke him on next_request*)
-		    end
-		) !current_uploaders;
-      
-      (*don't send Choke if new uploader is already an uploaders *)            
-      List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
-		    begin
-		      set_client_has_a_slot (as_client c) true;
-		      Rate.update_no_change c.client_downloaded_rate;
-		      Rate.update_no_change c.client_upload_rate;
-		      c.client_last_optimist<- last_time();
-		      client_enter_upload_queue (as_client c);
-		      send_client c Unchoke;
-		    end
-		) !next_uploaders;
-      current_uploaders := !next_uploaders
-
   
+  next_uploaders := choose_next_uploaders 
+    (List.filter 
+      (fun f -> file_state f = FileDownloading ) 
+    !current_files );
 
+(*Send choke if a current_uploader is not in next_uploaders*)      
+  List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
+        begin
+          set_client_has_a_slot (as_client c) false;
+(*we will let him finish is download and 
+			choke him on next_request*)
+        end
+  ) !current_uploaders;
+
+(*don't send Choke if new uploader is already an uploaders *)            
+  List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
+        begin
+          set_client_has_a_slot (as_client c) true;
+          Rate.update_no_change c.client_downloaded_rate;
+          Rate.update_no_change c.client_upload_rate;
+          c.client_last_optimist<- last_time();
+          client_enter_upload_queue (as_client c);
+          send_client c Unchoke;
+        end
+  ) !next_uploaders;
+  current_uploaders := !next_uploaders
+  
+  
+  
 
 (** This function is called when a client is disconnected 
   (be it by our side or its side).
@@ -262,7 +263,9 @@ let download_finished file =
   @param file The file to check status
 *)
 let check_finished file = 
-  if file_state file <> FileDownloaded then begin
+  match file_state file with
+    FileCancelled | FileShared | FileDownloaded -> ()
+  | _ ->
       let bitmap = Int64Swarmer.verified_bitmap file.file_swarmer in
       for i = 0 to String.length bitmap - 1 do
         if bitmap.[i] <> '3' then raise Not_found;
@@ -271,7 +274,7 @@ let check_finished file =
       then
         lprintf "Downloaded size differs after complete verification\n";
       download_finished file
-    end
+      
     
 
 
@@ -304,23 +307,24 @@ let send_interested c =
 *)    
 let send_bitfield c = 
   let bitmap = Int64Swarmer.verified_bitmap c.client_file.file_swarmer in
-    send_client c (BitField 
-		     (        
-		       let nchunks = String.length bitmap in
-		       let len = (nchunks+7)/8 in
-		       let s = String.make len '\000' in
-			 for i = 0 to nchunks - 1 do
-			   let n = i lsr 3 in
-			   let j = i land 7 in
-			     (* In the future, only accept bitmap.[n] > '2' when verification works *)
-			     if bitmap.[i] >= '2' then begin
-			       s.[n] <- char_of_int (int_of_char s.[n]
-						     lor bits.(j))
-			     end
-			 done;
-			 s
-		     ))
-      
+  lprintf "Verified bitmap: [%s]\n" bitmap;
+  send_client c (BitField 
+      (        
+      let nchunks = String.length bitmap in
+      let len = (nchunks+7)/8 in
+      let s = String.make len '\000' in
+      for i = 0 to nchunks - 1 do
+        let n = i lsr 3 in
+        let j = i land 7 in
+(* In the future, only accept bitmap.[n] > '2' when verification works *)
+        if bitmap.[i] >= '2' then begin
+            s.[n] <- char_of_int (int_of_char s.[n]
+                lor bits.(j))
+          end
+      done;
+      s
+    ))
+  
 
   
 
@@ -981,10 +985,14 @@ let resume_clients file =
   we really ask sources to the tracker
 *)
 let get_sources_from_tracker file url = 
+  lprintf "get_sources_from_tracker\n";
   let f filename = 
-    (*This is the function which will be called by the http client
-    for parsing the response*)
+(*This is the function which will be called by the http client
+for parsing the response*)
+    lprintf "Filename %s\n" filename;
     let v = Bencode.decode (File.to_string filename) in
+    
+    lprintf "Received: %s\n" (Bencode.print v);
     let interval = ref 600 in
     match v with
       Dictionary list ->
@@ -1023,7 +1031,7 @@ let get_sources_from_tracker file url =
                 ) list
             | _ -> ()
         ) list;
-	(*Now, that we have added new clients to a file, it's time
+(*Now, that we have added new clients to a file, it's time
 	to connect to them*)
         resume_clients file
     
@@ -1031,20 +1039,21 @@ let get_sources_from_tracker file url =
   in
   let event = 
     if file.file_tracker_connected then "" else
-            match file_state file with
-              FileShared -> "completed"
-        | _ -> "started" 
+    match file_state file with
+      FileShared -> "completed"
+    | _ -> "started" 
   in
-    if file.file_clients_num < !!ask_tracker_threshold then
-      connect_tracker file url event f
-
-
+  if file.file_clients_num < !!ask_tracker_threshold then
+    connect_tracker file url event f
+    
+    
   
 
 (** Check to see if file is finished, if not 
   try to get sources for it
 *)  
 let recover_files () =
+  lprintf "recover_files\n";
   List.iter (fun file ->
       (try check_finished file with e -> ());
       match file_state file with
@@ -1059,7 +1068,7 @@ let recover_files () =
           (try 
 	     connect_tracker file file.file_tracker "completed" (fun _ -> ())
 	   with _ -> ())
-      | _ -> ()
+      | s -> lprintf "Other state %s!!\n" (string_of_state s)
   ) !current_files
 
 let upload_buffer = String.create 100000

@@ -138,7 +138,7 @@ type englob_op = IN_NOOP | IN_AND | IN_OR
   
 let custom_query buf query =
   try
-    let q = List.assoc query !!CommonComplexOptions.customized_queries in
+    let q = List.assoc query (CommonComplexOptions.customized_queries()) in
     Printf.bprintf buf "
     <center>
     <h2> %s </h2>

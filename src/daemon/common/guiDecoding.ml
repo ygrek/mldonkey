@@ -330,6 +330,9 @@ let get_file proto s pos =
       get_int s pos, pos+4 else BasicSocket.last_time (), pos in
   let priority, pos = if proto >= 12 then
       get_int s pos, pos+4 else 0, pos in
+  let comment, pos = if proto > 21 then
+      get_string s pos
+    else "", pos in
   (*
   assert (num = file_info.file_num);
   assert (net = file_info.file_network);
@@ -352,6 +355,7 @@ assert (priority = file_info.file_priority);
   let names = List.map (fun name -> name, noips()) names in
   
   {
+    file_comment = comment;
     file_num = num;
     file_network = net;
     file_names = names;

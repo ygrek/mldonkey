@@ -100,13 +100,13 @@ let value_to_file file_size file_state assocs =
             ))) in
       let file_t = 
         new_download file_id file_name file_size file_tracker 
-          file_piece_size file_files in
+          file_piece_size file_files file_state in
       file_t.file_files <- file_files;
       file_t
     
     with _ -> 
         new_download file_id file_name file_size file_tracker 
-          file_piece_size []
+          file_piece_size [] file_state
   in
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs) 
@@ -129,14 +129,14 @@ let value_to_file file_size file_state assocs =
   add_file_downloaded file.file_file
     (Int64Swarmer.downloaded file.file_swarmer);
   
-(*  (try
+  (try
       ignore
         (get_value  "file_sources" (
           value_to_list (ClientOption.of_value file)))
     with e -> 
         lprintf "Exception %s while loading sources\n"
           (Printexc2.to_string e); 
-  );*)
+  );
   as_file file.file_file
   
 let file_to_value file =
@@ -150,10 +150,10 @@ let file_to_value file =
     "file_uploaded", int64_to_value  (file.file_uploaded);
     "file_id", string_to_value (Sha1.to_string file.file_id);
     "file_tracker", string_to_value file.file_tracker;
-(*    "file_sources", 
+    "file_sources", 
     list_to_value "BT Sources" (fun c ->
         ClientOption.to_value c) sources
-    ;*)
+    ;
     "file_hashes", array_to_value 
       (to_value Sha1.option) file.file_chunks;
     "file_files", list_to_value ""

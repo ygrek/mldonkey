@@ -69,7 +69,7 @@ let rec safe_mkdir dir =
 (* same as in downloadClient.ml *)
 let rec really_write fd s pos len =
   if len = 0 then begin
-      lprintf "really_write 0 BYTES !!!!!!!!!\n"; 
+(*      lprintf "really_write 0 BYTES !!!!!!!!!\n";  *)
       raise End_of_file
     end else
   let nwrite = Unix.write fd s pos len in

@@ -191,7 +191,7 @@ let get_page r content_handler f =
   let rec get_url level r =
     
     let url = r.req_url in
-    (*
+(*
     let args = ref [] in
     let headers = ref [] in
     let ispost = ref false in
@@ -210,7 +210,7 @@ let get_page r content_handler f =
 *)    
     let request = make_full_request r in
     
-   
+    
     let server, port =
       match r.req_proxy with
       | None -> url.server, url.port
@@ -221,7 +221,7 @@ let get_page r content_handler f =
 (*        lprintf "IP done %s:%d\n" (Ip.to_string ip) port; *)
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "http client connecting"
-          (Ip.to_inet_addr ip)
+            (Ip.to_inet_addr ip)
           port (fun _ e -> 
               ()
 (*              lprintf "Event %s\n"
@@ -245,15 +245,15 @@ let get_page r content_handler f =
         lprintf "Request: %s\n" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
         TcpBufferedSocket.set_reader sock (http_reply_handler nread 
-            (default_headers_handler level));
+            (default_headers_handler url level));
         set_rtimeout sock 5.;
         TcpBufferedSocket.set_closer sock (fun _ _ -> ()
-    (*        lprintf "Connection closed nread:%b\n" !nread; *)
+(*        lprintf "Connection closed nread:%b\n" !nread; *)
         )
     )
-    
-  and default_headers_handler level sock ans_code headers =
-    (*
+  
+  and default_headers_handler old_url level sock ans_code headers =
+(*
     List.iter (fun (name, value) ->
         lprintf "[%s]=[%s]" name value;
     ) headers;
@@ -284,7 +284,7 @@ headers;
         let buf = TcpBufferedSocket.buf sock in
         if buf.len > 0 then
           content_handler sock buf.len 
-          
+    
     | 302 ->
         lprintf "Http_client 302: Redirect\n";
         if level < 10 then
@@ -292,6 +292,17 @@ headers;
             try
               let url = List.assoc "Location" headers in
               lprintf "Redirected to %s\n" url; 
+              List.iter (fun (name, value) ->
+                  lprintf "[%s]=[%s]\n" name value;
+              ) headers;
+              
+              let url = if String.length url > 0 && url.[0] <> '/' then
+                  url
+                else
+                  Printf.sprintf "http://%s:%d%s"
+                    old_url.Url.server old_url.Url.port url 
+              in
+              lprintf "Redirected to %s\n" url;               
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             

@@ -569,10 +569,10 @@ class search_result_box s_num () =
     method add_result (res : CommonTypes.result_info) =
       let r = self#core_to_gui_result res in
       self#add_item r;
-      wl_count#set_text (Printf.sprintf !!Gui_messages.qT_lb_results self#size)
+      wl_count#set_text (Printf.sprintf Gui_messages.qT_lb_results self#size)
     
     method set_waiting n =
-      wl_wait#set_text (Printf.sprintf !!Gui_messages.qT_lb_waiting_for_replies n)
+      wl_wait#set_text (Printf.sprintf Gui_messages.qT_lb_waiting_for_replies n)
     
     method filter_networks = self#refresh_filter
     
@@ -722,7 +722,7 @@ class box_dir_files () =
           match (GToolbox.question_box
               (M.qT_wt_download_selected_dir)
               [ M.pW_lb_ok ; M.pW_lb_cancel]
-              (Printf.sprintf !!Gui_messages.qT_lb_confirm_download_dir 
+              (Printf.sprintf Gui_messages.qT_lb_confirm_download_dir 
                  len ft.GuiTypes.file_tree_name)) 
           with
             1 ->
@@ -742,7 +742,7 @@ class box_dir_files () =
       wpane#add2 results#coerce;
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.qT_lb_download_selected_dir)
+        ~text: (M.qT_lb_download_selected_dir)
         ~tooltip: (M.qT_ti_download_selected_dir)
         ~icon: (M.o_xpm_download_directory)
         ~callback: self#download_selected_dir

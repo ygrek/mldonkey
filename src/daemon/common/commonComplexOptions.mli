@@ -43,8 +43,8 @@ val servers : CommonTypes.server Intmap.t Options.option_record
 val friends : CommonTypes.client list Options.option_record
 val contacts : CommonTypes.client list ref
   
-val customized_queries :     
-  (string * CommonTypes.query_entry) list Options.option_record
+val customized_queries : unit ->
+  (string * CommonTypes.query_entry) list 
 
 val sharing_strategies :
   (string * CommonTypes.sharing_strategy) list Options.option_record

@@ -234,7 +234,13 @@ let client_to_server s t sock =
           | _ -> ()
       ) s.server_tags;
       printf_char 'S';
-      set_server_state s (Connected (-1));
+
+      (* nice and ugly, but it doesn't require any new fields *)
+      set_server_state s (Connected 
+      (match s.server_cid with
+        Some t -> if Ip.valid t then (-2) else (-1)
+        | _ -> (-1)));
+
       (* add_connected_server s; *)
       
 (* Send localisation queries to the server. We are limited by the maximal

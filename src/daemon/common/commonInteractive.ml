@@ -396,7 +396,7 @@ let print_connected_servers o =
   
 let send_custom_query user buf query args = 
   try
-    let q = List.assoc query !!CommonComplexOptions.customized_queries in
+    let q = List.assoc query (CommonComplexOptions.customized_queries()) in
     let args = ref args in
     let get_arg arg_name = 
 (*      lprintf "Getting %s\n" arg_name; *)

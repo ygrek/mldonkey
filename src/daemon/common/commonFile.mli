@@ -19,7 +19,9 @@
 
 type 'a file_impl = {
   mutable impl_file_update : int;
-  mutable impl_file_state : CommonTypes.file_state;
+    mutable impl_file_state : CommonTypes.file_state;
+    
+    mutable impl_file_comment : string;
   mutable impl_file_num : int;
   mutable impl_file_val : 'a;
   mutable impl_file_ops : 'a file_ops;
@@ -105,4 +107,5 @@ val file_network : CommonTypes.file -> CommonTypes.network
 val file_priority : CommonTypes.file -> int
 val file_set_priority : CommonTypes.file -> int -> unit
 val file_debug : CommonTypes.file -> string
-  
+val set_file_comment : CommonTypes.file -> string -> unit
+val file_comment : CommonTypes.file -> string

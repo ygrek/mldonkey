@@ -1292,7 +1292,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=4+5
+CURRENT_RELEASE=4+6
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -3857,7 +3857,7 @@ do
 done
 done
 
-  test -z "$ac_cv_path_OCAMLC" && ac_cv_path_OCAMLC=""$LOCAL_DIR/bin/ocamlc.opt""
+  test -z "$ac_cv_path_OCAMLC" && ac_cv_path_OCAMLC=""""
   ;;
 esac
 fi
@@ -8584,24 +8584,24 @@ fi
 
   if test "$GNUTELLA2" = "yes"; then
     if test "$ZLIB" = "yes"; then
-       echo "$as_me:$LINENO: checking for ../src/networks/gnutella" >&5
-echo $ECHO_N "checking for ../src/networks/gnutella... $ECHO_C" >&6
-if test "${ac_cv_file____src_networks_gnutella+set}" = set; then
+       echo "$as_me:$LINENO: checking for ../src/networks/gnutella2" >&5
+echo $ECHO_N "checking for ../src/networks/gnutella2... $ECHO_C" >&6
+if test "${ac_cv_file____src_networks_gnutella2+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   test "$cross_compiling" = yes &&
   { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
 echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
    { (exit 1); exit 1; }; }
-if test -r "../src/networks/gnutella"; then
-  ac_cv_file____src_networks_gnutella=yes
+if test -r "../src/networks/gnutella2"; then
+  ac_cv_file____src_networks_gnutella2=yes
 else
-  ac_cv_file____src_networks_gnutella=no
+  ac_cv_file____src_networks_gnutella2=no
 fi
 fi
-echo "$as_me:$LINENO: result: $ac_cv_file____src_networks_gnutella" >&5
-echo "${ECHO_T}$ac_cv_file____src_networks_gnutella" >&6
-if test $ac_cv_file____src_networks_gnutella = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_file____src_networks_gnutella2" >&5
+echo "${ECHO_T}$ac_cv_file____src_networks_gnutella2" >&6
+if test $ac_cv_file____src_networks_gnutella2 = yes; then
   GNUTELLA2=yes
 else
 

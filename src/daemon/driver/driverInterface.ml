@@ -478,7 +478,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
           ) r.network_config_file
       );
       
-      gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
+      gui_send gui (P.DefineSearches (CommonComplexOptions.customized_queries()));
       match gui.gui_sock with
         None -> ()
       | Some sock ->
@@ -1181,9 +1181,9 @@ let install_hooks () =
   private_room_ops.op_room_send_message <- (fun s msg ->
       match msg with
         PrivateMessage (c, s) ->
-          with_guis (fun gui -> gui_send gui 
-                (P.MessageFromClient (c, s)))
-      
+            let ci = client_find c in
+            update_client_info ci;  (* send client info before message? *)
+            with_guis (fun gui -> gui_send gui (P.MessageFromClient (c, s)))
       | _ -> assert false
   )
 

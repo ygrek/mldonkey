@@ -1,6 +1,12 @@
 TODO list for client
 ====================
 
+URGENT:
+ * set_present_chunks does not compute the correct "downloaded" value !
+ * Seeding in Bittorrent doesn't work
+
+
+
 Flush buffers after do_at_exit (wait 5 secondes after exit ?).
 Share only on some networks.
 Add information in the GIU protocol on who uploads what.
