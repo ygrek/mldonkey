@@ -4019,10 +4019,12 @@ if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
 
+TMK=no
+
 
 ac_safe=`echo "../src/pic/picMain.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/pic/picMain.ml""... $ac_c" 1>&6
-echo "configure:4026: checking for ../src/pic/picMain.ml" >&5
+echo "configure:4028: checking for ../src/pic/picMain.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4047,7 +4049,7 @@ fi
 
 ac_safe=`echo "../src/spider/ecrawler/spiderMain.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/spider/ecrawler/spiderMain.ml""... $ac_c" 1>&6
-echo "configure:4051: checking for ../src/spider/ecrawler/spiderMain.ml" >&5
+echo "configure:4053: checking for ../src/spider/ecrawler/spiderMain.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4072,7 +4074,7 @@ fi
 
 ac_safe=`echo "../src/spider/disasm/mldisasm.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/spider/disasm/mldisasm.ml""... $ac_c" 1>&6
-echo "configure:4076: checking for ../src/spider/disasm/mldisasm.ml" >&5
+echo "configure:4078: checking for ../src/spider/disasm/mldisasm.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4095,9 +4097,34 @@ else
 fi
 
 
+ac_safe=`echo "../src/spider/tmk/tmkSimple.ml" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../src/spider/tmk/tmkSimple.ml""... $ac_c" 1>&6
+echo "configure:4103: checking for ../src/spider/tmk/tmkSimple.ml" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../src/spider/tmk/tmkSimple.ml; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  TMK=yes
+else
+  echo "$ac_t""no" 1>&6
+
+fi
+
+
 ac_safe=`echo "../src/btview/btviewMain.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/btview/btviewMain.ml""... $ac_c" 1>&6
-echo "configure:4101: checking for ../src/btview/btviewMain.ml" >&5
+echo "configure:4128: checking for ../src/btview/btviewMain.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4122,7 +4149,7 @@ fi
 
 ac_safe=`echo "../src/cluster/clusterMain.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/cluster/clusterMain.ml""... $ac_c" 1>&6
-echo "configure:4126: checking for ../src/cluster/clusterMain.ml" >&5
+echo "configure:4153: checking for ../src/cluster/clusterMain.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4148,7 +4175,7 @@ fi
 
 ac_safe=`echo "../src/networks/fasttrack/fasttrackSupernode.ml" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../src/networks/fasttrack/fasttrackSupernode.ml""... $ac_c" 1>&6
-echo "configure:4152: checking for ../src/networks/fasttrack/fasttrackSupernode.ml" >&5
+echo "configure:4179: checking for ../src/networks/fasttrack/fasttrackSupernode.ml" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -4178,6 +4205,7 @@ if test "$SWARMING1" = "yes"; then
 else
     COMMONSWARMING=CommonSwarming2
 fi
+
 
 
 
@@ -4481,6 +4509,7 @@ s%@OS_FILES2@%$OS_FILES2%g
 s%@MYCONFIG_ARGS@%$MYCONFIG_ARGS%g
 s%@MYCONFIG_ARGS_DEFINED@%$MYCONFIG_ARGS_DEFINED%g
 s%@TARGET_TYPE@%$TARGET_TYPE%g
+s%@TMK@%$TMK%g
 s%@GTK@%$GTK%g
 s%@HAS_ZLIB@%$HAS_ZLIB%g
 s%@ZLIB__UNCOMPRESS_STRING2@%$ZLIB__UNCOMPRESS_STRING2%g
@@ -4728,7 +4757,7 @@ if test "$OS_FILES2" = "cygwin"; then
    windres -o resfile.o config/mldonkey.rc
 fi
 
-echo "Building dependencies"
+echo "Building dependencies (if it blocks, try 'make depend' or 'gmake depend' to see the problem)"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
 
 

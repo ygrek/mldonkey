@@ -623,6 +623,7 @@ MLPIC_SRCS= \
   src/pic/picHttp.ml \
   src/pic/picMain.ml
 
+ifeq ("$(TMK)" , "yes")
 TMK_SRCS= \
   src/spider/tmk/ml_curses.c \
   src/spider/tmk/curses.mlcpp \
@@ -644,7 +645,6 @@ TMK_SRCS= \
   src/spider/tmk/tmkEntry.ml \
   src/spider/tmk/tmkFrame.ml \
 
-
 DISASM_SRCS= \
   $(TMK_SRCS) \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -656,6 +656,9 @@ DISASM_SRCS= \
   src/spider/disasm/mldisasm.ml \
   src/spider/disasm/aSMmain.ml \
   
+
+endif
+
 
 SPIDER_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \

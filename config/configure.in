@@ -823,9 +823,12 @@ if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
 
+TMK=no
+
 AC_CHECK_FILE(../src/pic/picMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/pic", )
 AC_CHECK_FILE(../src/spider/ecrawler/spiderMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/ecrawler src/spider/analyser1", )
 AC_CHECK_FILE(../src/spider/disasm/mldisasm.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/disasm src/spider/tmk", )
+AC_CHECK_FILE(../src/spider/tmk/tmkSimple.ml,TMK=yes, )
 AC_CHECK_FILE(../src/btview/btviewMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/btview", )
 AC_CHECK_FILE(../src/cluster/clusterMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/cluster", )
 
@@ -911,6 +914,7 @@ AC_SUBST(MYCONFIG_ARGS_DEFINED)
 AC_SUBST(TARGET_TYPE)
 AC_SUBST(RPMBUILD)
 
+AC_SUBST(TMK)
 AC_SUBST(GTK)
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
@@ -950,7 +954,7 @@ if test "$OS_FILES2" = "cygwin"; then
    windres -o resfile.o config/mldonkey.rc
 fi
 
-echo "Building dependencies"
+echo "Building dependencies (if it blocks, try 'make depend' or 'gmake depend' to see the problem)"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
 
 
