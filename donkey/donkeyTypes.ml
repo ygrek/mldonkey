@@ -161,7 +161,6 @@ and client = {
     mutable client_connected : bool;
     mutable client_on_list : bool;
 (* statistics *)
-    mutable client_already_counted : bool;
     mutable client_last_filereqs : int;    
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;

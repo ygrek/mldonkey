@@ -68,6 +68,14 @@ module H = Weak2.Make(struct
 let user_counter = ref 1
 let users_by_num = H.create 1027
 
+      
+let _ = 
+  CommonGlobals.add_memstat "CommonUser" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) users_by_num;
+      Printf.bprintf buf "  users: %d\n" !counter;
+  )
+  
     
 let user_must_update user =
   let impl = as_user_impl user in

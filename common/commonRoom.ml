@@ -68,7 +68,14 @@ module H = Weak2.Make(struct
 
 let room_counter = ref (-1)
 let rooms_by_num = H.create 1027
-  
+    
+let _ = 
+  CommonGlobals.add_memstat "CommonRoom" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) rooms_by_num;
+      Printf.bprintf buf "  rooms: %d\n" !counter;
+  )
+
 let ni n m = 
   let s = Printf.sprintf "Room.%s not implemented by %s" 
       m n.network_name in

@@ -113,10 +113,10 @@ CHAT_SRCS = chat/chat_messages.ml\
 COMMON_SRCS=common/commonTypes.ml \
   common/commonMessages.ml \
   common/guiTypes.ml \
+  common/guiProto.ml \
   common/commonEvent.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
-  common/guiProto.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
   common/commonChat.ml 
@@ -168,6 +168,7 @@ Makefile: config/Makefile.in
 
 #######################################################################
 
+MAIN_SRCS=common/commonMain.ml
 
 DONKEY_SRCS= \
   \
@@ -339,35 +340,6 @@ MLCAST_SRCS= \
   tools/mlcast.ml
 
 
-define(EXPAND_DRIVER,[[
-
-ifeq ("$($2)" , "yes")
-SUBDIRS += $3
-
-CORE_PLUGINS += $($2_SRCS)
-
-TARGETS += $1$(EXE)
-endif
-
-$1_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $($2_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-]])
-
-EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
-EXPAND_DRIVER(mlnap,OPENNAP,opennap)
-EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
-EXPAND_DRIVER(mldonkey,DONKEY,donkey)
-EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
-
 
 define(EXPAND_PROGRAM,[[
 
@@ -385,7 +357,7 @@ $1_SRCS= \
   \
   $($3_SRCS) \
   \
-  $(DRIVER_SRCS)
+  $(DRIVER_SRCS) $(MAIN_SRCS)
 
 ]])
 
@@ -399,7 +371,7 @@ MLNET_SRCS= \
   \
   $(CORE_PLUGINS) \
   \
-  $(DRIVER_SRCS)
+  $(DRIVER_SRCS) $(MAIN_SRCS)
 
 
 
@@ -491,7 +463,8 @@ MLDONKEYGUI_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS)
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
 
 MLDONKEY_IM_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -499,7 +472,7 @@ MLDONKEY_IM_SRCS= \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) \
   $(GUI_BASE_SRCS) $(IM_GUI_CORE) \
-  im/gui_im_main.ml
+  im/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
 
@@ -507,7 +480,7 @@ MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS)
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS) $(MAIN_SRCS)
 
 TOP_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
@@ -565,6 +538,60 @@ IM_CORE +=   im/imMain.ml
 endif
 
 
+define(EXPAND_DRIVER,[[
+
+ifeq ("$($2)" , "yes")
+SUBDIRS += $3
+
+CORE_PLUGINS += $($2_SRCS)
+
+TARGETS += $1$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += $1+gui$(EXE)
+
+endif
+endif
+
+
+
+$1_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $($2_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+$1+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $($2_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+]])
+
+EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
+EXPAND_DRIVER(mlnap,OPENNAP,opennap)
+EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
+EXPAND_DRIVER(mldonkey,DONKEY,donkey)
+EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
+
+
+
 #######################################################################
 
 #              Objects files for "use_tags"
@@ -614,13 +641,18 @@ $2.static:  $($1_OBJS) $($1_CMXS)
 ]])
 
 EXPAND(mldonkey,mldonkey)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK)
 EXPAND(MLDONKEYGUI,mldonkey_gui,GTK)
 EXPAND(MLDONKEYGUI2,mldonkey_gui2,GTK)
 EXPAND(mldc,mldc)
+EXPAND(mldc+gui,mldc+gui,GTK)
 EXPAND(mlnap,mlnap)
+EXPAND(mlnap+gui,mlnap+gui,GTK)
 EXPAND(MLNET,mlnet)
 EXPAND(mlgnut,mlgnut)
+EXPAND(mlgnut+gui,mlgnut+gui,GTK)
 EXPAND(mlslsk,mlslsk)
+EXPAND(mlslsk+gui,mlslsk+gui,GTK)
 EXPAND(MLDONKEY_IM,mlim,GTK)
 EXPAND(STARTER,mldonkey_guistarter,GTK)
 EXPAND(TOP,mldonkeytop)
@@ -628,7 +660,6 @@ EXPAND(MLCHAT,mlchat,GTK)
 EXPAND(OBSERVER,observer)
 EXPAND(USE_TAGS,use_tags)
 EXPAND(HASH_FILES,hash_files)
-
 
 #######################################################################
 

@@ -476,12 +476,6 @@ let commands = [
     
     ), ":\t\t\t\t\tview upload credits";
     
-    "mem_stats", Arg_none (fun o -> 
-        let buf = o.conn_buf in
-        DonkeyGlobals.mem_stats buf;
-        ""
-    ), ":\t\t\t\tprint memory stats";
-    
     
     "comments", Arg_one (fun filename o ->
         let buf = o.conn_buf in

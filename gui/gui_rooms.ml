@@ -261,7 +261,6 @@ class pane_rooms () =
                   old_room.room_state <- room.room_state
             end
         with Not_found ->
-            Printf.printf "ADDING ROOM %d" room.room_num; print_newline ();
             match room.room_state with
             | RoomPaused
             | RoomClosed -> paused_rooms#add_room room

@@ -174,7 +174,7 @@ let canon_client gui c =
 
 let verbose_gui_messages = ref false
   
-let value_reader gui t sock =
+let value_reader gui t =
   try
     
     if !verbose_gui_messages then begin
@@ -503,16 +503,14 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
       print_newline ()
 
 let main () =
-  Printf.printf "1"; print_newline ();
   let gui = new Gui_window.window () in
-  Printf.printf "1"; print_newline ();
   let w = gui#window in
   let quit () = 
     (try
         Gui_misc.save_gui_options gui;
         Gui_com.disconnect gui;
       with _ -> ());
-    exit 0
+    CommonGlobals.exit_properly 0
   in
   Gui_config.update_toolbars_style gui;
   List.iter (fun (menu, init) ->
@@ -529,7 +527,7 @@ let main () =
   ignore (gui#itemQuit#connect#activate w#destroy) ;
   ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
   ignore (gui#itemReconnect#connect#activate 
-	    (fun () ->Com.reconnect gui (value_reader gui)));
+      (fun () ->Com.reconnect gui value_reader));
   ignore (gui#itemDisconnect#connect#activate 
 	    (fun () -> Com.disconnect gui));
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
@@ -546,20 +544,17 @@ let main () =
 
 
   (** connection with core *)
-  Com.reconnect gui (value_reader gui) ;
+  Com.reconnect gui value_reader ;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
-      if !never_connected then 
-        match !Com.connection with
-          None ->
-            BasicSocket.reactivate_timer timer;
-            Com.reconnect gui (value_reader gui)
-        | _ -> 
-            never_connected := false
-  );
-
-  BasicSocket.loop ()
-;;
-
-main ()
+      if !never_connected && not (Com.connected ()) then  begin
+          BasicSocket.reactivate_timer timer;
+          Com.reconnect gui value_reader
+        end else
+        never_connected := false
+  )
+  
+let _ = 
+  CommonGlobals.gui_included := true;
+  main ()

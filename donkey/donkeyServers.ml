@@ -185,7 +185,7 @@ let client_to_server s t sock =
       if !last_message_sender <> server_num s then begin
 	let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n"
 	  s.server_name (Ip.to_string s.server_ip) s.server_port in
-	CommonEvent.add_event (Console_message_event server_header);
+          CommonEvent.add_event (Console_message_event server_header);
 	last_message_sender := server_num s
       end;
       let msg = Printf.sprintf "| %s\n" msg in

@@ -93,13 +93,17 @@ module XorSet = Set.Make (
   end
 )
 
+  
+  
 module XorSet2 = Set.Make (
   struct
     type t = Md4.t * (Md4.t * CommonTypes.tag list)
     let compare (m1,p1) (m2,p2) = compare (m1,p1) (m2,p2)
   end
 )
- 
+
+let boot_peers = ref []
+  
 let min_peers_per_block = 2
 let min_peers_before_connect = 5
 let max_searches_for_publish = 5
@@ -1074,20 +1078,20 @@ let check_curent_downloads () =
 
 let enable enabler = 
   let sock = (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
-    (!!overnet_port) (udp_handler udp_client_handler)) in
+      (!!overnet_port) (udp_handler udp_client_handler)) in
   udp_sock := Some sock;
-    
+  
   UdpSocket.set_write_controler sock udp_write_controler;
-
+  
   begin
     try
-  let sock = TcpServerSocket.create 
-    "overnet client server"
-      (Ip.to_inet_addr !!donkey_bind_addr)
-    (!!overnet_port) (DonkeyClient.client_connection_handler true) in
-
+      let sock = TcpServerSocket.create 
+          "overnet client server"
+          (Ip.to_inet_addr !!donkey_bind_addr)
+        (!!overnet_port) (DonkeyClient.client_connection_handler true) in
+      
       tcp_sock := Some sock;
-
+      
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
         Unix.ADDR_INET (ip, port) ->
           overnet_client_port :=  port
@@ -1097,13 +1101,28 @@ let enable enabler =
         print_newline ();
         tcp_sock := None;
   end;
-  
-  (* every 3min try a new publish search, if any *)
-  add_session_timer enabler 180. (fun _ ->
-    find_new_peers ();
-    do_publish_shared_files ();
-  );
 
+(* every 3min try a new publish search, if any *)
+  add_session_timer enabler 180. (fun _ ->
+      find_new_peers ();
+      do_publish_shared_files ();
+  );
+  
+  add_session_timer enabler 1. (fun _ ->
+      match !boot_peers with
+        [] -> ()
+      | _ ->
+          for i = 1 to 5 do
+            match !boot_peers with
+              [] -> ()
+            | (ip, port) :: tail ->
+                boot_peers := tail;
+                udp_send ip port (OvernetConnect(overnet_md4,client_ip None,
+                    !overnet_client_port, 0));
+          done
+          
+  );
+  
   add_session_option_timer enabler 
     overnet_query_peer_period query_next_peers;
 
@@ -1305,7 +1324,7 @@ let _ =
                     Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
                     print_newline ();
                   end;
-	      udp_send ip port (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0));
+                boot_peers := (ip, port) :: !boot_peers
           | _ -> 
               Printf.printf "BAD LINE ocl: %s" s;
               print_newline ();
@@ -1315,7 +1334,7 @@ let _ =
 	  end
       ) lines
   )
-
+  
 let all_overnet_searches = ref ([] : int list)
   
 let overnet_search (ss : search) =

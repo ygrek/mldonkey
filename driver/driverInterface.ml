@@ -40,14 +40,24 @@ open CommonOptions
 open CommonGlobals
   
 module P = GuiProto
-
-let gui_send gui t =
-  try
-    GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_version) gui.gui_sock t
-  with UnsupportedGuiMessage -> 
-(* the message is probably not supported by this GUI *)
-      ()
   
+let gui_send gui t =
+  match gui.gui_sock with
+    None -> 
+      Fifo.put core_gui_fifo t
+  | Some sock ->
+      try
+        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_version) 
+        sock t
+      with UnsupportedGuiMessage -> 
+(* the message is probably not supported by this GUI *)
+          ()
+
+let gui_can_write gui =
+  match gui.gui_sock with
+    None -> not !gui_reconnected
+  | Some sock -> TcpBufferedSocket.can_write sock
+          
 let restart_gui_server = ref (fun _ -> ())
 
 let update_events gui update user_num map =
@@ -261,11 +271,11 @@ let send_update_old gui =
           gui.gui_new_events <- [];
           true
           
-let connecting_writer gui sock =
+let connecting_writer gui _ =
   try
     
     let rec iter list =
-      if TcpBufferedSocket.can_write sock then
+      if gui_can_write gui then
         match list with
           [] -> if send_update_old gui then iter []
         |  (events, f) :: tail ->
@@ -314,11 +324,13 @@ send_update_old
   with _ -> ()
 
 let console_messages = Fifo.create ()
-  
+        
+let gui_closed gui sock  msg =
+(*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
+  guis := List2.removeq gui !guis
 
-      
-let gui_reader (gui: gui_record) t sock =
-  
+let gui_reader (gui: gui_record) t _ =
+    
   let module P = GuiProto in  
   try
     match t with    
@@ -339,9 +351,16 @@ let gui_reader (gui: gui_record) t sock =
         ) list
     
     | P.Password s ->
-        if s = !!password then begin
-            BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
-            let connecting = ref true in
+        begin
+          match gui.gui_sock with
+            Some sock when s <> !!password ->
+              gui_send gui BadPassword;                  
+              set_lifetime sock 5.;
+              Printf.printf "BAD PASSWORD"; print_newline ();
+              TcpBufferedSocket.close sock "bad password"
+          
+          | _ ->
+              let connecting = ref true in
 
 (*
             begin
@@ -350,137 +369,134 @@ let gui_reader (gui: gui_record) t sock =
               | Some gui -> close gui.gui_sock "new gui"
 end;
   *)
-            guis := gui :: !guis;
-            
-            
-            gui.gui_auth <- true;
-            
-            if gui.gui_poll then begin
-                
-                gui.gui_new_events <- [];
-                gui.gui_old_events <- [];
-                
-                gui.gui_files <- create_events ();            
-                gui.gui_clients <- create_events ();
-                gui.gui_servers <- create_events ();
-                gui.gui_rooms <- create_events ();
-                gui.gui_users <- create_events ();
-                gui.gui_results <- create_events ();
-                gui.gui_shared_files <- create_events ();
+              guis := gui :: !guis;
               
               
-              end else begin
+              gui.gui_auth <- true;
+              
+              if gui.gui_poll then begin
+                  
+                  gui.gui_new_events <- [];
+                  gui.gui_old_events <- [];
+                  
+                  gui.gui_files <- create_events ();            
+                  gui.gui_clients <- create_events ();
+                  gui.gui_servers <- create_events ();
+                  gui.gui_rooms <- create_events ();
+                  gui.gui_users <- create_events ();
+                  gui.gui_results <- create_events ();
+                  gui.gui_shared_files <- create_events ();
                 
-                List.iter (fun c ->
-                    addevent gui.gui_clients (client_num c) true
-                ) !!friends;
                 
-                List.iter (fun file ->
-                    addevent gui.gui_files (file_num file) true;
-                    List.iter (fun c ->
-                        addevent gui.gui_clients (client_num c) true;
-                        gui.gui_new_events <-
-                          (File_add_source_event (file,c))
-                        :: gui.gui_new_events
-                    ) (file_sources file)
-                ) !!files;
-                
-                List.iter (fun file ->
-                    addevent gui.gui_files (file_num file) true;
-                ) !!done_files;
-                
-                networks_iter (fun n ->
-                    List.iter (fun s ->
-                        addevent gui.gui_servers (server_num s) true
-                    ) (n.op_network_connected_servers ())
-                );
-                
-                server_iter (fun s ->
-                    addevent gui.gui_servers (server_num s) true
-                );
-                
-                rooms_iter (fun room ->
-                    if room_state room <> RoomClosed then begin
-                        Printf.printf "ROOM ADD USERS"; print_newline ();
-                        addevent gui.gui_rooms (room_num room) true;
-                        List.iter (fun user ->
-                            Printf.printf "room add user"; print_newline ();
-                            addevent gui.gui_users (user_num user) true;
-                            gui.gui_new_events <-
-                              (Room_add_user_event (room,user))
-                            :: gui.gui_new_events
-                        ) (room_users room)
-                      
-                      end
-                );
-                
-                shared_iter (fun s ->
-                    addevent gui.gui_shared_files (shared_num s) true
-                );
-                
-                Fifo.iter (fun ev ->
-                    gui.gui_new_events <- ev :: gui.gui_new_events
-                ) console_messages;                
-                
-		gui_send gui (
-                  P.Options_info (simple_options downloads_ini));
-                networks_iter_all (fun r ->
-                    match r.network_config_file with
-                      None -> ()
-                    | Some opfile ->
+                end else begin
+                  
+                  List.iter (fun c ->
+                      addevent gui.gui_clients (client_num c) true
+                  ) !!friends;
+                  
+                  List.iter (fun file ->
+                      addevent gui.gui_files (file_num file) true;
+                      List.iter (fun c ->
+                          addevent gui.gui_clients (client_num c) true;
+                          gui.gui_new_events <-
+                            (File_add_source_event (file,c))
+                          :: gui.gui_new_events
+                      ) (file_sources file)
+                  ) !!files;
+                  
+                  List.iter (fun file ->
+                      addevent gui.gui_files (file_num file) true;
+                  ) !!done_files;
+                  
+                  networks_iter (fun n ->
+                      List.iter (fun s ->
+                          addevent gui.gui_servers (server_num s) true
+                      ) (n.op_network_connected_servers ())
+                  );
+                  
+                  server_iter (fun s ->
+                      addevent gui.gui_servers (server_num s) true
+                  );
+                  
+                  rooms_iter (fun room ->
+                      if room_state room <> RoomClosed then begin
+                          addevent gui.gui_rooms (room_num room) true;
+                          List.iter (fun user ->
+                              Printf.printf "room add user"; print_newline ();
+                              addevent gui.gui_users (user_num user) true;
+                              gui.gui_new_events <-
+                                (Room_add_user_event (room,user))
+                              :: gui.gui_new_events
+                          ) (room_users room)
+                        
+                        end
+                  );
+                  
+                  shared_iter (fun s ->
+                      addevent gui.gui_shared_files (shared_num s) true
+                  );
+                  
+                  Fifo.iter (fun ev ->
+                      gui.gui_new_events <- ev :: gui.gui_new_events
+                  ) console_messages;                
+                  
+                  gui_send gui (
+                    P.Options_info (simple_options downloads_ini));
+                  networks_iter_all (fun r ->
+                      match r.network_config_file with
+                        None -> ()
+                      | Some opfile ->
 (*
 Printf.printf "options for net %s" r.network_name; print_newline ();
 *)
-                        let args = simple_options opfile in
-                        let prefix = r.network_prefix in
+                          let args = simple_options opfile in
+                          let prefix = r.network_prefix in
 (*
 Printf.printf "Sending for %s" prefix; print_newline ();
  *)
-                        gui_send gui (P.Options_info (
-                            List.map (fun (arg, value) ->
-                                let long_name = Printf.sprintf "%s%s" !!prefix arg in
-                                (long_name, value)
-                            )  args)
-                        );
+                          gui_send gui (P.Options_info (
+                              List.map (fun (arg, value) ->
+                                  let long_name = Printf.sprintf "%s%s" !!prefix arg in
+                                  (long_name, value)
+                              )  args)
+                          );
 (*                            Printf.printf "sent for %s" prefix; print_newline (); *)
-                
-                );
+                  
+                  );
 
 (* Options panels defined in downloads.ini *)
-                List.iter (fun (section, message, option, optype) ->
-                    gui_send gui (
-                      P.Add_section_option (section, message, option,
-                        match optype with
-                        | "B" -> BoolEntry 
-                        | "F" -> FileEntry 
-                        | _ -> StringEntry
-                      )))
-                !! gui_options_panel;
+                  List.iter (fun (section, message, option, optype) ->
+                      gui_send gui (
+                        P.Add_section_option (section, message, option,
+                          match optype with
+                          | "B" -> BoolEntry 
+                          | "F" -> FileEntry 
+                          | _ -> StringEntry
+                        )))
+                  !! gui_options_panel;
 
 (* Options panels defined in each plugin *)
-                List.iter (fun (section, list) ->
-                    
-                    List.iter (fun (message, option, optype) ->
-                        gui_send gui (
-                          P.Add_plugin_option (section, message, option,
-                            match optype with
-                            | "B" -> BoolEntry 
-                            | "F" -> FileEntry 
-                            | _ -> StringEntry
-                          )))
-                    list)
-                ! CommonInteractive.gui_options_panels;
-                
-                gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
-                set_handler sock WRITE_DONE (connecting_writer gui);
-              end
-          end else begin
-            gui_send gui BadPassword;
-            set_lifetime gui.gui_sock 5.;
-            Printf.printf "BAD PASSWORD"; print_newline ();
-            TcpBufferedSocket.close gui.gui_sock "bad password"
-          end
-    
+                  List.iter (fun (section, list) ->
+                      
+                      List.iter (fun (message, option, optype) ->
+                          gui_send gui (
+                            P.Add_plugin_option (section, message, option,
+                              match optype with
+                              | "B" -> BoolEntry 
+                              | "F" -> FileEntry 
+                              | _ -> StringEntry
+                            )))
+                      list)
+                  ! CommonInteractive.gui_options_panels;
+                  
+                  gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
+                  match gui.gui_sock with
+                    None -> ()
+                  | Some sock ->
+                      BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
+                      set_handler sock WRITE_DONE (connecting_writer gui);
+                end
+        end
     | _ ->
         if gui.gui_auth then
           match t with
@@ -536,7 +552,7 @@ Printf.printf "Sending for %s" prefix; print_newline ();
               networks_iter (fun r -> network_extend_search r s e)
           
           | P.KillServer -> 
-              exit_properly ()
+              exit_properly 0
           
           | P.Search_query s ->
               let query = 
@@ -625,7 +641,7 @@ search.op_search_end_reply_handlers;
           
           | P.GetClient_info num ->
               addevent gui.gui_clients num true
-                    
+          
           | P.GetUser_info num ->
               addevent gui.gui_users num true
           
@@ -770,10 +786,34 @@ search.op_search_end_reply_handlers;
       gui_send gui (Console (    
           Printf.sprintf "from_gui: exception %s for message %s\n" (
             Printexc2.to_string e) (GuiProto.from_gui_to_string t)))
+
+let new_gui sock =
+  incr gui_counter;
+  let gui = {
+      gui_searches = [];
+      gui_sock = sock;
+      gui_search_nums = [];
       
-let gui_closed gui sock  msg =
-(*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
-  guis := List2.removeq gui !guis
+      gui_new_events = [];
+      gui_old_events = [];
+      
+      gui_files = create_events ();            
+      gui_clients = create_events ();
+      gui_servers = create_events ();
+      gui_rooms = create_events ();
+      gui_users = create_events ();
+      gui_results = create_events ();
+      gui_shared_files = create_events ();
+      gui_version = 0;
+      gui_num = !gui_counter;
+      gui_auth = false;
+      gui_poll = false;
+    } in
+  gui_send gui (P.CoreProtocol GuiEncoding.best_gui_version);
+  networks_iter_all (fun n ->
+      gui_send gui (Network_info (network_info n)));
+  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
+  gui
   
 let gui_handler t event = 
   match event with
@@ -786,27 +826,8 @@ let gui_handler t event =
         let sock = TcpBufferedSocket.create_simple 
             "gui connection"
             s in
-        incr gui_counter;
-        let gui = {
-            gui_searches = [];
-            gui_sock = sock;
-            gui_search_nums = [];
-            
-            gui_new_events = [];
-            gui_old_events = [];
-            
-            gui_files = create_events ();            
-            gui_clients = create_events ();
-            gui_servers = create_events ();
-            gui_rooms = create_events ();
-            gui_users = create_events ();
-            gui_results = create_events ();
-            gui_shared_files = create_events ();
-            gui_version = 0;
-            gui_num = !gui_counter;
-            gui_auth = false;
-            gui_poll = false;
-          } in
+        
+        let gui = new_gui (Some sock) in
         
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
@@ -819,10 +840,6 @@ let gui_handler t event =
             Printf.printf "BUFFER OVERFLOW"; print_newline ();
             close sock "overflow");
         (* sort GUIs in increasing order of their num *)
-        gui_send gui (P.CoreProtocol GuiEncoding.best_gui_version);
-        networks_iter_all (fun n ->
-            gui_send gui (Network_info (network_info n)));
-        gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
         
       else 
         Unix.close s
@@ -1041,3 +1058,40 @@ let install_hooks () =
       
       | _ -> assert false
   )
+
+let local_gui = ref None
+  
+let _ =
+  add_init_hook (fun _ ->
+      if !gui_included then
+        add_infinite_timer 0.1 (fun _ ->
+            begin
+              match !local_gui with
+                None -> ()
+              | Some gui ->
+                  if !gui_reconnected then begin
+                      Printf.printf "close gui ..."; print_newline ();
+                      local_gui := None;
+                      gui_closed gui () ()
+                    end else
+                    (try
+                        while true do
+                          let m = Fifo.take gui_core_fifo in
+                          gui_reader gui m ()
+                        done
+                      with Fifo.Empty -> ()
+                      | e ->
+                          Printf.printf "Exception %s in handle gui message"
+                            (Printexc2.to_string e); 
+                          print_newline ();)
+            end;
+            if !gui_reconnected then begin
+                Printf.printf "gui_reconnected !"; print_newline ();
+                gui_reconnected := false;
+                let gui = new_gui None in
+                local_gui := Some gui;
+                ()
+              end
+        )
+  )
+  

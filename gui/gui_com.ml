@@ -19,21 +19,32 @@
 
 (** Communicating with the mldonkey client. *)
 
+open Options
+open CommonGlobals
 open Gettext
 open GuiProto
 module M = Gui_messages
 module O = Gui_options
 module G = Gui_global
 
-let gui_protocol_used = ref 0
   
-let (!!) = Options.(!!)
-
-let connection = ref None
+let copy_message t =
+  if !!Gui_options.copy_messages then
+    Marshal.from_string (Marshal.to_string t []) 0
+  else t
 
 let when_disconnected gui =
   gui#clear ;
   G.clear ()
+
+  
+let gui_protocol_used = ref 0
+  
+module UseSocket = struct
+  
+let (!!) = Options.(!!)
+
+let connection = ref None
 
 let disconnect gui = 
   match !connection with
@@ -98,7 +109,7 @@ let reconnect gui value_reader =
         (fun opcode s ->
           try
             let m = GuiDecoding.to_gui opcode s in
-            value_reader m sock
+            value_reader gui m
           with e ->
             Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 
 	    print_newline ();
@@ -112,12 +123,61 @@ let reconnect gui value_reader =
       TcpBufferedSocket.close sock "error";
       connection := None
 
-let receive () =
-  match !connection with
-    None -> 
-      Printf.printf "Nothing read since not connected";
-      print_newline ();
-  | Some sock ->
-      ()
-
+let connected _ = !connection <> None
       
+end
+
+module UseFifo = struct
+    
+    let timer_set = ref false
+    
+    let send m = Fifo.put gui_core_fifo (copy_message m)
+    
+    let disconnect gui = 
+      when_disconnected gui
+    
+    let reconnect gui value_reader =       
+      disconnect gui;      
+      gui_reconnected := true;
+      Fifo.clear core_gui_fifo;
+      Fifo.clear gui_core_fifo;
+      
+      if not !timer_set then begin
+          BasicSocket.add_infinite_timer 0.1 (fun _ -> 
+              try
+                while true do
+                  while true do
+                    let m = copy_message (Fifo.take core_gui_fifo) in
+                    value_reader gui m 
+                  done
+                done
+              with Fifo.Empty -> ()
+              | e ->
+                  Printf.printf "Exception %s in handle core message"
+                    (Printexc2.to_string e); 
+                  print_newline ();
+          );
+        end;      
+      gui#label_connect_status#set_text "Connecting";
+      send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+      
+    let connected _ = true
+      
+  end
+  
+let disconnect = 
+  if !core_included then UseFifo.disconnect
+  else UseSocket.disconnect
+  
+let connected = 
+  if !core_included then UseFifo.connected
+  else UseSocket.connected
+  
+let reconnect = 
+  if !core_included then UseFifo.reconnect
+  else UseSocket.reconnect
+  
+let send = 
+  if !core_included then UseFifo.send
+  else UseSocket.send
+    

@@ -94,9 +94,6 @@ let value_to_client is_friend assocs =
     with _ -> ());
   
   (try
-      l.client_checked <- get_value "client_checked" value_to_bool
-    with _ -> ());
-  (try
       let last_conn =
         (min (get_value "client_age" value_to_int) 
           (BasicSocket.last_time ()))
@@ -136,7 +133,6 @@ let client_to_value c =
         CommonGlobals.connection_last_conn 
         c.client_connection_control);
       "client_last_filereqs", int_to_value c.client_last_filereqs;
-      "client_checked", bool_to_value c.client_checked;
       "client_overnet", bool_to_value c.client_overnet;
     ]
   in

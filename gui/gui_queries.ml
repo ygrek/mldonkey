@@ -392,7 +392,7 @@ class paned () =
       ignore (wb_close#connect#clicked (self#close_query s.GuiTypes.search_num));
       wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
       wnote_results#goto_page 0;
-      wnote_main#goto_page 4;
+      wnote_main#goto_page 3;
 
       (* only the last result box must have an "extended search" button *)
 (*      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results; *)

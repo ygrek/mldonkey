@@ -18,7 +18,6 @@
 *)
 
 open Md4
-open CommonGlobals
 open CommonTypes
 
 (*

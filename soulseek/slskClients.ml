@@ -42,6 +42,9 @@ open SlskTypes
 open SlskOptions
 open SlskGlobals
 open SlskProtocol
+
+let requests = ref 0  
+
   
 let on_close c d =
   Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
@@ -95,6 +98,8 @@ let connect_download c file req =
 
 let client_to_client c t sock =
   Printf.printf "MESSAGE FROM PEER"; print_newline ();
+  C2C.print t;
+  print_newline ();
   match t with
   | C2C.FileSearchResultReq t ->
       begin
@@ -118,6 +123,34 @@ let client_to_client c t sock =
           Printf.printf "******* NO SEARCH ASSOCIATED WITH %d ******"
             t.SR.id; print_newline ();
       end
+
+  | C2C.TransferRequestReq (false, req_id, file_name, size) ->
+(* Someone wants to upload to us !! *)
+      begin
+        try
+          let short_file_name = Filename2.basename file_name in
+          let file = Hashtbl.find files_by_key (String.lowercase file_name) in
+          
+          Printf.printf "File Found"; print_newline ();
+          if size <> file_size file then begin
+              Printf.printf "Bad file size"; print_newline ();
+              raise Exit
+            end;
+          if file_state file = FileDownloading then begin
+              client_send sock (C2C.TransferOKReplyReq (req_id, 
+                  file_size file));
+              connect_download c file req_id
+              
+            end else begin
+              incr requests;
+              client_send sock (C2C.TransferFailedReplyReq (!requests,
+                "Not needed anymore"))
+            end
+          
+        with e ->
+            Printf.printf "Exception %s for TransferRequestReq Upload %s:%Ld"
+              (Printexc2.to_string e) file_name size; print_newline ();
+      end
       
   | C2C.SharedFileListReq files ->
       List.iter (fun (dir, files) ->
@@ -129,7 +162,7 @@ let client_to_client c t sock =
           ) files
       ) files
 
-  | C2C.TransferOKReplyReq (req, reason) ->
+  | C2C.TransferOKReplyReq (req, filesize) ->
       begin
         try
           let file = List.assoc req c.client_requests in

@@ -113,10 +113,10 @@ CHAT_SRCS = chat/chat_messages.ml\
 COMMON_SRCS=common/commonTypes.ml \
   common/commonMessages.ml \
   common/guiTypes.ml \
+  common/guiProto.ml \
   common/commonEvent.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
-  common/guiProto.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
   common/commonChat.ml 
@@ -168,6 +168,7 @@ Makefile: config/Makefile.in
 
 #######################################################################
 
+MAIN_SRCS=common/commonMain.ml
 
 DONKEY_SRCS= \
   \
@@ -343,119 +344,6 @@ MLCAST_SRCS= \
 
 
 
-ifeq ("$(DIRECT_CONNECT)" , "yes")
-SUBDIRS += direct_connect
-
-CORE_PLUGINS += $(DIRECT_CONNECT_SRCS)
-
-TARGETS += mldc$(EXE)
-endif
-
-mldc_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(DIRECT_CONNECT_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(OPENNAP)" , "yes")
-SUBDIRS += opennap
-
-CORE_PLUGINS += $(OPENNAP_SRCS)
-
-TARGETS += mlnap$(EXE)
-endif
-
-mlnap_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(OPENNAP_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(LIMEWIRE)" , "yes")
-SUBDIRS += limewire
-
-CORE_PLUGINS += $(LIMEWIRE_SRCS)
-
-TARGETS += mlgnut$(EXE)
-endif
-
-mlgnut_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(LIMEWIRE_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(DONKEY)" , "yes")
-SUBDIRS += donkey
-
-CORE_PLUGINS += $(DONKEY_SRCS)
-
-TARGETS += mldonkey$(EXE)
-endif
-
-mldonkey_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(DONKEY_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(SOULSEEK)" , "yes")
-SUBDIRS += soulseek
-
-CORE_PLUGINS += $(SOULSEEK_SRCS)
-
-TARGETS += mlslsk$(EXE)
-endif
-
-mlslsk_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(SOULSEEK_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-
-
-
 MLNET_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS) \
@@ -465,7 +353,7 @@ MLNET_SRCS= \
   \
   $(CORE_PLUGINS) \
   \
-  $(DRIVER_SRCS)
+  $(DRIVER_SRCS) $(MAIN_SRCS)
 
 
 
@@ -557,7 +445,8 @@ MLDONKEYGUI_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS)
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
 
 MLDONKEY_IM_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -565,7 +454,7 @@ MLDONKEY_IM_SRCS= \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) \
   $(GUI_BASE_SRCS) $(IM_GUI_CORE) \
-  im/gui_im_main.ml
+  im/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
 
@@ -573,7 +462,7 @@ MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS)
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI2_SRCS) $(MAIN_SRCS)
 
 TOP_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
@@ -631,6 +520,236 @@ IM_CORE +=   im/imMain.ml
 endif
 
 
+
+
+
+
+ifeq ("$(DIRECT_CONNECT)" , "yes")
+SUBDIRS += direct_connect
+
+CORE_PLUGINS += $(DIRECT_CONNECT_SRCS)
+
+TARGETS += mldc$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mldc+gui$(EXE)
+
+endif
+endif
+
+
+
+mldc_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(DIRECT_CONNECT_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+mldc+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(DIRECT_CONNECT_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(OPENNAP)" , "yes")
+SUBDIRS += opennap
+
+CORE_PLUGINS += $(OPENNAP_SRCS)
+
+TARGETS += mlnap$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mlnap+gui$(EXE)
+
+endif
+endif
+
+
+
+mlnap_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(OPENNAP_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+mlnap+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(OPENNAP_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(LIMEWIRE)" , "yes")
+SUBDIRS += limewire
+
+CORE_PLUGINS += $(LIMEWIRE_SRCS)
+
+TARGETS += mlgnut$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mlgnut+gui$(EXE)
+
+endif
+endif
+
+
+
+mlgnut_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(LIMEWIRE_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+mlgnut+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(LIMEWIRE_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(DONKEY)" , "yes")
+SUBDIRS += donkey
+
+CORE_PLUGINS += $(DONKEY_SRCS)
+
+TARGETS += mldonkey$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mldonkey+gui$(EXE)
+
+endif
+endif
+
+
+
+mldonkey_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(DONKEY_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+mldonkey+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(DONKEY_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(SOULSEEK)" , "yes")
+SUBDIRS += soulseek
+
+CORE_PLUGINS += $(SOULSEEK_SRCS)
+
+TARGETS += mlslsk$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mlslsk+gui$(EXE)
+
+endif
+endif
+
+
+
+mlslsk_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(SOULSEEK_SRCS) \
+  \
+  $(DRIVER_SRCS) $(MAIN_SRCS)
+
+mlslsk+gui_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $(SOULSEEK_SRCS) \
+  \
+  $(DRIVER_SRCS) \
+  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS) \
+  $(MAIN_SRCS)
+
+
+
+
+
 #######################################################################
 
 #              Objects files for "use_tags"
@@ -679,6 +798,28 @@ mldonkey.byte: $(mldonkey_OBJS) $(mldonkey_CMOS)
  
 mldonkey.static:  $(mldonkey_OBJS) $(mldonkey_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mldonkey_CMXS) 
+
+
+mldonkey+gui_ZOG := $(filter %.zog, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_MLL := $(filter %.mll, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_MLY := $(filter %.mly, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_ML4 := $(filter %.ml4, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_C := $(filter %.c, $(mldonkey+gui_SRCS)) 
+mldonkey+gui_CMOS=$(foreach file, $(mldonkey+gui_ML),   $(basename $(file)).cmo) 
+mldonkey+gui_CMXS=$(foreach file, $(mldonkey+gui_ML),   $(basename $(file)).cmx) 
+mldonkey+gui_OBJS=$(foreach file, $(mldonkey+gui_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(mldonkey+gui_ML4:.ml4=.ml) $(mldonkey+gui_MLL:.mll=.ml) $(mldonkey+gui_MLY:.mly=.ml) $(mldonkey+gui_MLY:.mly=.mli) $(mldonkey+gui_ZOG:.zog=.ml) 
+ 
+mldonkey+gui: $(mldonkey+gui_OBJS) $(mldonkey+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mldonkey+gui_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(mldonkey+gui_CMXS) 
+ 
+mldonkey+gui.byte: $(mldonkey+gui_OBJS) $(mldonkey+gui_CMOS) 
+	$(OCAMLC) -o $@  $(mldonkey+gui_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(mldonkey+gui_CMOS) 
+ 
+mldonkey+gui.static:  $(mldonkey+gui_OBJS) $(mldonkey+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey+gui_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(mldonkey+gui_CMXS) 
 
 
 MLDONKEYGUI_ZOG := $(filter %.zog, $(MLDONKEYGUI_SRCS)) 
@@ -747,6 +888,28 @@ mldc.static:  $(mldc_OBJS) $(mldc_CMXS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mldc_CMXS) 
 
 
+mldc+gui_ZOG := $(filter %.zog, $(mldc+gui_SRCS)) 
+mldc+gui_MLL := $(filter %.mll, $(mldc+gui_SRCS)) 
+mldc+gui_MLY := $(filter %.mly, $(mldc+gui_SRCS)) 
+mldc+gui_ML4 := $(filter %.ml4, $(mldc+gui_SRCS)) 
+mldc+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mldc+gui_SRCS)) 
+mldc+gui_C := $(filter %.c, $(mldc+gui_SRCS)) 
+mldc+gui_CMOS=$(foreach file, $(mldc+gui_ML),   $(basename $(file)).cmo) 
+mldc+gui_CMXS=$(foreach file, $(mldc+gui_ML),   $(basename $(file)).cmx) 
+mldc+gui_OBJS=$(foreach file, $(mldc+gui_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(mldc+gui_ML4:.ml4=.ml) $(mldc+gui_MLL:.mll=.ml) $(mldc+gui_MLY:.mly=.ml) $(mldc+gui_MLY:.mly=.mli) $(mldc+gui_ZOG:.zog=.ml) 
+ 
+mldc+gui: $(mldc+gui_OBJS) $(mldc+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mldc+gui_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(mldc+gui_CMXS) 
+ 
+mldc+gui.byte: $(mldc+gui_OBJS) $(mldc+gui_CMOS) 
+	$(OCAMLC) -o $@  $(mldc+gui_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(mldc+gui_CMOS) 
+ 
+mldc+gui.static:  $(mldc+gui_OBJS) $(mldc+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc+gui_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(mldc+gui_CMXS) 
+
+
 mlnap_ZOG := $(filter %.zog, $(mlnap_SRCS)) 
 mlnap_MLL := $(filter %.mll, $(mlnap_SRCS)) 
 mlnap_MLY := $(filter %.mly, $(mlnap_SRCS)) 
@@ -767,6 +930,28 @@ mlnap.byte: $(mlnap_OBJS) $(mlnap_CMOS)
  
 mlnap.static:  $(mlnap_OBJS) $(mlnap_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlnap_CMXS) 
+
+
+mlnap+gui_ZOG := $(filter %.zog, $(mlnap+gui_SRCS)) 
+mlnap+gui_MLL := $(filter %.mll, $(mlnap+gui_SRCS)) 
+mlnap+gui_MLY := $(filter %.mly, $(mlnap+gui_SRCS)) 
+mlnap+gui_ML4 := $(filter %.ml4, $(mlnap+gui_SRCS)) 
+mlnap+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlnap+gui_SRCS)) 
+mlnap+gui_C := $(filter %.c, $(mlnap+gui_SRCS)) 
+mlnap+gui_CMOS=$(foreach file, $(mlnap+gui_ML),   $(basename $(file)).cmo) 
+mlnap+gui_CMXS=$(foreach file, $(mlnap+gui_ML),   $(basename $(file)).cmx) 
+mlnap+gui_OBJS=$(foreach file, $(mlnap+gui_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(mlnap+gui_ML4:.ml4=.ml) $(mlnap+gui_MLL:.mll=.ml) $(mlnap+gui_MLY:.mly=.ml) $(mlnap+gui_MLY:.mly=.mli) $(mlnap+gui_ZOG:.zog=.ml) 
+ 
+mlnap+gui: $(mlnap+gui_OBJS) $(mlnap+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlnap+gui_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(mlnap+gui_CMXS) 
+ 
+mlnap+gui.byte: $(mlnap+gui_OBJS) $(mlnap+gui_CMOS) 
+	$(OCAMLC) -o $@  $(mlnap+gui_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(mlnap+gui_CMOS) 
+ 
+mlnap+gui.static:  $(mlnap+gui_OBJS) $(mlnap+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap+gui_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(mlnap+gui_CMXS) 
 
 
 MLNET_ZOG := $(filter %.zog, $(MLNET_SRCS)) 
@@ -813,6 +998,28 @@ mlgnut.static:  $(mlgnut_OBJS) $(mlgnut_CMXS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlgnut_CMXS) 
 
 
+mlgnut+gui_ZOG := $(filter %.zog, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_MLL := $(filter %.mll, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_MLY := $(filter %.mly, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_ML4 := $(filter %.ml4, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_C := $(filter %.c, $(mlgnut+gui_SRCS)) 
+mlgnut+gui_CMOS=$(foreach file, $(mlgnut+gui_ML),   $(basename $(file)).cmo) 
+mlgnut+gui_CMXS=$(foreach file, $(mlgnut+gui_ML),   $(basename $(file)).cmx) 
+mlgnut+gui_OBJS=$(foreach file, $(mlgnut+gui_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(mlgnut+gui_ML4:.ml4=.ml) $(mlgnut+gui_MLL:.mll=.ml) $(mlgnut+gui_MLY:.mly=.ml) $(mlgnut+gui_MLY:.mly=.mli) $(mlgnut+gui_ZOG:.zog=.ml) 
+ 
+mlgnut+gui: $(mlgnut+gui_OBJS) $(mlgnut+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlgnut+gui_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(mlgnut+gui_CMXS) 
+ 
+mlgnut+gui.byte: $(mlgnut+gui_OBJS) $(mlgnut+gui_CMOS) 
+	$(OCAMLC) -o $@  $(mlgnut+gui_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(mlgnut+gui_CMOS) 
+ 
+mlgnut+gui.static:  $(mlgnut+gui_OBJS) $(mlgnut+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut+gui_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(mlgnut+gui_CMXS) 
+
+
 mlslsk_ZOG := $(filter %.zog, $(mlslsk_SRCS)) 
 mlslsk_MLL := $(filter %.mll, $(mlslsk_SRCS)) 
 mlslsk_MLY := $(filter %.mly, $(mlslsk_SRCS)) 
@@ -833,6 +1040,28 @@ mlslsk.byte: $(mlslsk_OBJS) $(mlslsk_CMOS)
  
 mlslsk.static:  $(mlslsk_OBJS) $(mlslsk_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlslsk_CMXS) 
+
+
+mlslsk+gui_ZOG := $(filter %.zog, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_MLL := $(filter %.mll, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_MLY := $(filter %.mly, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_ML4 := $(filter %.ml4, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_C := $(filter %.c, $(mlslsk+gui_SRCS)) 
+mlslsk+gui_CMOS=$(foreach file, $(mlslsk+gui_ML),   $(basename $(file)).cmo) 
+mlslsk+gui_CMXS=$(foreach file, $(mlslsk+gui_ML),   $(basename $(file)).cmx) 
+mlslsk+gui_OBJS=$(foreach file, $(mlslsk+gui_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(mlslsk+gui_ML4:.ml4=.ml) $(mlslsk+gui_MLL:.mll=.ml) $(mlslsk+gui_MLY:.mly=.ml) $(mlslsk+gui_MLY:.mly=.mli) $(mlslsk+gui_ZOG:.zog=.ml) 
+ 
+mlslsk+gui: $(mlslsk+gui_OBJS) $(mlslsk+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlslsk+gui_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(mlslsk+gui_CMXS) 
+ 
+mlslsk+gui.byte: $(mlslsk+gui_OBJS) $(mlslsk+gui_CMOS) 
+	$(OCAMLC) -o $@  $(mlslsk+gui_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(mlslsk+gui_CMOS) 
+ 
+mlslsk+gui.static:  $(mlslsk+gui_OBJS) $(mlslsk+gui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk+gui_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(mlslsk+gui_CMXS) 
 
 
 MLDONKEY_IM_ZOG := $(filter %.zog, $(MLDONKEY_IM_SRCS)) 
@@ -987,7 +1216,6 @@ hash_files.byte: $(HASH_FILES_OBJS) $(HASH_FILES_CMOS)
  
 hash_files.static:  $(HASH_FILES_OBJS) $(HASH_FILES_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(HASH_FILES_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(HASH_FILES_CMXS) 
-
 
 
 #######################################################################

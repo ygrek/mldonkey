@@ -38,7 +38,8 @@ open SlskProtocol
 
 let download r filenames =
   let key = (r.result_name, r.result_size) in
-  if not (Hashtbl.mem files_by_key key) then begin
+  if not (Hashtbl.mem files_by_key 
+        (String.lowercase r.result_name)) then begin
       let file = new_file (Md4.random()) r.result_name r.result_size in
       List.iter (fun (user, filename) ->
           ignore (add_file_client file user filename)
@@ -290,4 +291,15 @@ let _ =
               server_send sock (C2S.LeaveRoomReq r.room_name)
       ) !connected_servers
       
+  );
+    network.op_network_connected <- (fun _ ->
+      !connected_servers <> []
+  );
+  room_ops.op_room_users <- (fun room ->
+      let list = ref [] in
+      List.iter (fun u ->
+          list := (as_user u.user_user) :: !list
+      ) room.room_users;
+      !list
   )
+  

@@ -297,8 +297,13 @@ let wget url f =
               TcpBufferedSocket.close sock "end read"
         end)
   (fun _ ->  
+      let s = Buffer.contents file_buf in
+      if s = "" then begin  
+            Printf.printf "Empty content for url %s" url;
+          print_newline ();
+        end;
       let filename = Filename.temp_file "http_" ".tmp" in
-      File.from_string filename (Buffer.contents file_buf);
+      File.from_string filename s;
       try
         (f filename : unit);
         Sys.remove filename 

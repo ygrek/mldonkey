@@ -99,7 +99,7 @@ let commands = [
         Heap.dump_heap ();
         "heap dumped"
     ), ":\t\t\t\tdump heap for debug";
-
+    
     "dump_usage", Arg_none (fun o ->
         Heap.dump_usage ();
         "usage dumped"
@@ -122,8 +122,8 @@ let commands = [
         match args with
           [arg] ->
             let num = int_of_string arg in
-              if o.conn_output = HTML then
-		Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>\\<br\\>";
+            if o.conn_output = HTML then
+              Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>\\<br\\>";
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
                   CommonFile.file_print file o)
@@ -151,7 +151,7 @@ let commands = [
         "done"), ":\t\t\t\tfor debugging only";
     
     "kill", Arg_none (fun o ->
-        CommonGlobals.exit_properly ();
+        CommonGlobals.exit_properly 0;
         "exit"), ":\t\t\t\t\tsave and kill the server";
     
     "save", Arg_none (fun o ->
@@ -167,7 +167,7 @@ let commands = [
         );        
         "\nUse 'voo' for all options"    
     ), ":\t\t\t\t\tdisplay options";
-
+    
     "voo", Arg_none (fun o ->
         let buf = o.conn_buf in
         list_options o  (CommonInteractive.all_simple_options ());
@@ -186,7 +186,7 @@ let commands = [
         );
         let list = Sort.list (fun f1 f2 ->
               (f1.impl_shared_requests = f2.impl_shared_requests &&
-              f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
+                f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
               (f1.impl_shared_requests > f2.impl_shared_requests )
           ) !list in
         List.iter (fun impl ->
@@ -203,8 +203,8 @@ let commands = [
             let buf = o.conn_buf in
             CommonInteractive.set_fully_qualified_options name value;
             Printf.sprintf "option %s value changed" name
-            
-            (*
+
+(*
             let pos = String.index name '-' in
             let prefix = String.sub name 0 pos in
             let name = String.sub name (pos+1) (String.length name - pos-1) in
@@ -247,7 +247,7 @@ let commands = [
                   ""
             end;
     ), "[<num>] :\t\t\t\tview results of a search";
-
+    
     "vr", Arg_none (fun o ->
         "done"
     ), ":\t\t\t\t\tprint last Common search results";
@@ -309,13 +309,13 @@ let commands = [
 \t-or <word> :
 
 ";
-  
+    
     "d", Arg_multiple (fun args o ->
         List.iter (fun arg ->
             CommonInteractive.download_file o.conn_buf arg) args;
         ""),
     "<num> :\t\t\t\tfile to download";
-
+    
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
         match !CommonGlobals.aborted_download with
@@ -324,7 +324,7 @@ let commands = [
             CommonResult.result_download (CommonResult.result_find r) [] true;
             "download forced"
     ), ":\t\t\tforce download of an already downloaded file";
-
+    
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf  buf "Searching %d queries\n" (
@@ -340,7 +340,7 @@ let commands = [
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
         ) !searches; ""), ":\t\t\t\t\tview all queries";
-
+    
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
         if o.conn_output <> HTML then
@@ -350,7 +350,7 @@ let commands = [
             if o.conn_output = HTML then
               Printf.bprintf buf 
                 "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
-              (Url.encode name) name
+                (Url.encode name) name
             else
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; ""
@@ -394,15 +394,15 @@ let commands = [
               file_resume file
           ) !!files
         else
-        List.iter (fun num ->
-            let num = int_of_string num in
-            List.iter (fun file ->
+          List.iter (fun num ->
+              let num = int_of_string num in
+              List.iter (fun file ->
                   if (as_file_impl file).impl_file_num = num then begin
                       file_resume file
-                  end
-            ) !!files) args; ""
+                    end
+              ) !!files) args; ""
     ), "<num> :\t\t\t\tresume a paused download (use arg 'all' for all files)";
-
+    
     "c", Arg_multiple (fun args o ->
         match args with
           [] ->
@@ -417,7 +417,7 @@ let commands = [
             "connecting server"
     ),
     "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
-
+    
     "vc", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
@@ -432,13 +432,13 @@ let commands = [
           server_disconnect s;
         ""
     ), "<num> :\t\t\t\tdisconnect from server";
-
+    
     "use_poll", Arg_one (fun arg o ->
         let b = bool_of_string arg in
         BasicSocket.use_poll b;
         Printf.sprintf "poll: %b" b
     ), "<bool> :\t\t\tuse poll instead of select";
-        
+    
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
         let nb_servers = ref 0 in
@@ -451,14 +451,14 @@ let commands = [
                   (Printexc2.to_string e); print_newline ();
         ) !!servers;
         Printf.sprintf "Servers: %d known\n" !nb_servers
-        ), ":\t\t\t\t\tlist all known servers";
-        
+    ), ":\t\t\t\t\tlist all known servers";
+    
     "reshare", Arg_none (fun o ->
         let buf = o.conn_buf in
         shared_check_files ();
         "check done"
     ), ":\t\t\t\tcheck shared files for removal";
-
+    
     "priority", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
@@ -475,32 +475,32 @@ let commands = [
             ) files;
             "Done"
         | [] -> "Bad number of args"
-        
+    
     ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
         CommonGlobals.version
     ), ":\t\t\t\tprint mldonkey version";
-
+    
     "forget", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let num = int_of_string num in
         CommonSearch.search_forget (CommonSearch.search_find num);
         ""  
     ), "<num> :\t\t\t\tforget search <num>";
-
+    
     "close_all_sockets", Arg_none (fun o ->
         BasicSocket.close_all ();
         "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
-
+    
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
         List.iter (fun c ->
             let i = client_info c in
             let n = network_find_by_num i.client_network in
             Printf.bprintf buf "[%s %d] %s" n.network_name
-            i.client_num i.client_name
+              i.client_num i.client_name
         ) !!friends;
         ""
     ), ":\t\t\tdisplay all friends";
@@ -523,6 +523,14 @@ let commands = [
               end
         ) !!friends;
         ""), " <friend_num> :\tPrint friend files";
+    
+    
+    "mem_stats", Arg_none (fun o -> 
+        let buf = o.conn_buf in
+        CommonGlobals.print_memstats buf;
+        ""
+    ), ":\t\t\t\tprint memory stats";
+    
     ]
 
 let _ =

@@ -508,3 +508,11 @@ value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 
   return Val_unit;
 }
+
+#include <locale.h>
+
+value ml_setlcnumeric(value no)
+{
+   setlocale(LC_NUMERIC, "C");
+  return Val_unit;
+}

@@ -39,12 +39,13 @@ let load_serverlist = define_option soulseek_ini ["load_serverlist"]
   "Download a list of servers"
     bool_option true
   
+(*
 let main_server_name = define_option soulseek_ini ["main_server_name"]
     "The main server to connect to" string_option "mail.soulseek.org"
 
 let main_server_port = define_option soulseek_ini ["main_server_port"]
   "The main server to connect to" int_option 2242
-
+*)
   
 let slsk_port = define_option soulseek_ini ["client_port"]
   "The port to bind the client to"
@@ -94,8 +95,10 @@ let gui_soulseek_options_panel =
     (list_option (tuple3_option (string_option, string_option, string_option)))
   [
     "Port", shortname slsk_port, "T";
+(*
     "Main Server Name", shortname main_server_name, "T";
     "Main Server Port", shortname main_server_port, "T";
+  *)
     "Login (nothing for global one)", shortname login, "T";
     "Password", shortname password, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";

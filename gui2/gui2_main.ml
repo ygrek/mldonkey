@@ -275,6 +275,4 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
         | _ -> 
             never_connected := false
   );
-
-  loop ()
   

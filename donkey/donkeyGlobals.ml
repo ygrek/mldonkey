@@ -230,14 +230,6 @@ let page_size = Int64.of_int 4096
 (* GLOBAL STATE *)
   
 open DonkeyMftp
-
-let memstat_functions = ref []
-  
-let add_memstat f = memstat_functions := f :: !memstat_functions
-  
-let print_memstats buf =
-  let list = List.rev !memstat_functions in
-  List.iter (fun f -> f buf) list
   
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
@@ -547,7 +539,6 @@ let dummy_client =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_on_list = false;
-      client_already_counted = false;
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
@@ -596,7 +587,6 @@ let create_client key num =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_on_list = false;            
-      client_already_counted = false;
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
@@ -693,7 +683,7 @@ module UdpClientWHashtbl = Weak2.Make(struct
 
 let udp_clients = UdpClientWHashtbl.create 1023
 
-let mem_stats buf = 
+let local_mem_stats buf = 
   Gc.compact ();
   let client_counter = ref 0 in
   let unconnected_unknown_clients = ref 0 in
@@ -734,8 +724,9 @@ end;
                 incr connected_clients;
                 waiting_msgs := !waiting_msgs + nmsgs;
                 buffers := !buffers + buf_len;
+(*
                 Printf.bprintf buf "%d: %6d/%6d\n" num
-                  buf_len nmsgs
+                  buf_len nmsgs *)
           );
           if BasicSocket.closed (TcpBufferedSocket.sock sock) then
             incr closed_connections;
@@ -994,10 +985,7 @@ let result_of_file md4 tags =
   if check_result r tags then Some r else None
     
 let _ =
-  add_memstat (fun buf ->
-      
-      Printf.bprintf buf "DonkeyGlobals:\n"
-  )
+  add_memstat "DonkeyGlobals" local_mem_stats
 
 let string_of_file_state s =
   match  s with

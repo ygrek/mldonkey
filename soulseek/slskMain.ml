@@ -36,22 +36,22 @@ let disable enabler () =
 (*  List.iter (fun file -> ()) !current_files; *)
   if !!enable_soulseek then enable_soulseek =:= false
 
-let slsk_kind =  "slsk_server_list"
     
 let enable () =
 
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
 
-  load_url slsk_kind "http://www.slsk.org/slskinfo2";
-  
+(*  load_url slsk_kind "http://www.slsk.org/slskinfo2"; *)
+
+  (*
   let main_server = new_server (new_addr_name !!main_server_name)
     !!main_server_port in
-  
+*)  
   if not !!enable_soulseek then enable_soulseek =:= true;
   
-  add_session_timer enabler 30.0 (fun timer ->
-      SlskServers.connect_server main_server);
+  add_session_timer enabler 5.0 (fun timer ->
+      SlskServers.connect_servers ());
 
   add_session_timer enabler 300. (fun timer ->
       SlskServers.recover_files ()
@@ -62,12 +62,9 @@ let enable () =
   );
   
   SlskClients.listen ();
-  SlskServers.connect_server main_server;
+(*  SlskServers.connect_server main_server; *)
 (*  network.command_vm <- SlskInteractive.print_connected_servers *)
     ()
-
-let _ =
-  add_web_kind slsk_kind SlskServers.load_server_list
   
   
 let _ =

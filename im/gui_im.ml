@@ -677,12 +677,13 @@ let main_window =
   let window = new main_window () in
   window#window#set_title "IM Window";
   ignore (window#window#connect#destroy (fun _ ->
-        if !quit_on_close then exit 0 else
+        if !quit_on_close then CommonGlobals.exit_properly 0 else
           window#coerce#misc#hide ()
     ));
   ignore (window#itemQuit#connect#activate 
       (fun _ -> 
-        if !quit_on_close then exit 0 else window#coerce#misc#hide ()));
+        if !quit_on_close then CommonGlobals.exit_properly 0 else
+          window#coerce#misc#hide ()));
   let _new_accounts = 
     GMenu.menu_item ~label:"New accounts"  ~packing:(window#menubar#add) ()
   in

@@ -304,18 +304,17 @@ let _ =
         Printf.printf "SIGPIPE"; print_newline ()));
   MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-        if !CommonOptions.verbose then
-          BasicSocket.print_sockets ();
-        DriverInteractive.save_config ();
-        exit 0));
+      if !CommonOptions.verbose then
+        BasicSocket.print_sockets ();
+        CommonGlobals.exit_properly 0));
   MlUnix.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-        if !CommonOptions.verbose then
-          BasicSocket.print_sockets ();
-        DriverInteractive.save_config ();
-        exit 0))
+      if !CommonOptions.verbose then
+        BasicSocket.print_sockets ();
+        CommonGlobals.exit_properly 0))
 
 let _ =
+    
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
@@ -329,7 +328,7 @@ let _ =
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
-
+  
   networks_iter (fun r -> network_load_complex_options r);
   
   networks_iter_all (fun r -> 
@@ -365,18 +364,21 @@ let _ =
   print_newline ();
   
   
-  (try
-      let _ = Sys.getenv("DISPLAY") in
-      if !!start_gui && Sys.file_exists !!mldonkey_gui then
-        ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
-      else
-      let asker = Filename.concat !!mldonkey_bin "mldonkey_guistarter" in
-      if !!ask_for_gui  && Sys.file_exists !!mldonkey_gui &&
-        Sys.file_exists asker then
-        ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
-    with Not_found -> 
-        Printf.printf "Not running under X, not trying to start the GUI";
-        print_newline ());
+  add_init_hook (fun _ ->
+      if not !gui_included then
+      (try
+          let _ = Sys.getenv("DISPLAY") in
+          if !!start_gui && Sys.file_exists !!mldonkey_gui then
+            ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
+          else
+          let asker = Filename.concat !!mldonkey_bin "mldonkey_guistarter" in
+          if !!ask_for_gui  && Sys.file_exists !!mldonkey_gui &&
+            Sys.file_exists asker then
+            ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
+        with Not_found -> 
+            Printf.printf "Not running under X, not trying to start the GUI";
+            print_newline ());
+  );
   
   save_mlsubmit_reg ();
   DriverInteractive.save_config ();
@@ -393,6 +395,8 @@ let _ =
           Printf.printf "Exception %s trying to set user_uid"
           (Printexc2.to_string e);
           print_newline ();
-    end;
+    end
+ 
+let _ =
+  core_included := true
   
-  BasicSocket.loop ()

@@ -107,10 +107,12 @@ let gtk_handler timer =
   while Glib.Main.pending () do
     ignore (Glib.Main.iteration false)
   done
-  
+
+external setncnumeric : unit -> unit = "ml_setlcnumeric" "noalloc"
     
 let _ =
   ignore (GMain.Main.init ~setlocale: true ());
+  setncnumeric ();
   BasicSocket.add_infinite_timer 0.1 gtk_handler
 
 let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)

@@ -66,7 +66,14 @@ module H = Weak2.Make(struct
 
 let shared_counter = ref 0
 let shareds_by_num = H.create 1027
-  
+        
+let _ = 
+  CommonGlobals.add_memstat "CommonShared" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) shareds_by_num;
+      Printf.bprintf buf "  shared: %d\n" !counter;
+  )
+
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
       m n.network_name in

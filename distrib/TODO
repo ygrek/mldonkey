@@ -1,12 +1,19 @@
 TODO list for client
 ====================
 
+* Different login/password for different users.
+* One list of downloading files per user (downloaded common)
+* One list of searches per user
+* Waiting list of files to download: when a file is downloaded, take another
+   one from the fifo...
+
 For Zoggy:
 ----------
 1) Could you move all the licences to GPL instead of QPL ?
 2) In gpattern, could the selection be cleared only when REALLY necessary ?
 3) In gpattern, if an item from the selection is removed, the selection is
      not updated
+4) Some toolbars are not correctly update between text, text+image, image
 
 2003/01/25: For this week-end
  * Check all networks and update the Development Status table
@@ -14,10 +21,15 @@ For Zoggy:
     * Soulseek: 
        + Check the protocol for pyslsk page
        + Directory download in subdir ?
+       + Check that we don't download several times the file list of friends.
+       + Add a button in the tab_result to add to friend a file source (gui
+           protocol -> file sources)
+       + Use (file_name, size) keys for files_by_key, and iter on the table on
+           upload requests to find the correct file.
+       + 
  * GUI: 
     * Add an option tab similar to the one of mldonkeywatch
     * Send all the locations to the GUI with their chunks
-    * set_locale(LC_NUMERIC, "C");
 
  * Core:
     * SIGSEGV in MD4Transform
@@ -62,7 +74,6 @@ gui/:
  * Add preview for downloaded files
 
 soulseek/:
- * Test new rooms
  * Display the number of new message per room
 
 common/:
@@ -80,8 +91,6 @@ opennap/:
  * Register files on server
  * Reply to upload requests
 
-- to be inserted a line of 
-above GMain.Main.init ().
 *********
 
 For 2.1:
@@ -96,20 +105,6 @@ For 2.1:
    - Add a "cp" function to change the temp directory without breaking
        the sparse file format (ie without increasing the size of copied files)
 
-and more:
-
-   - Objects should be stored in Weak hash tables everywhere, except when they
-      are roots (servers, downloaded files, searches).
-   - Event list: the current mechanism for notifications to GUIs is
-      inefficient: a slow GUI prevents other GUIs from receiving fast
-      updates and requires lots of CPU. A better system would be
-      to have an event fifo: Each event is stored and kept in the FIFO.
-      When a GUI connects, it points to the beginning of the fifo.
-      Then, events are sent to it, and he can go ahead in the fifo.
-      When an event is obsolete, it is replaced in place by the new state.
-      The new state indicates its new position in the fifo. When events are
-      sent to the GUI, they must be at the indicated position in the fifo.
-   - Client side verification of query results
 
 *********
 

@@ -111,6 +111,12 @@ let file_counter = ref 0
 let files_by_num = H.create 1027
   
   
+let _ = 
+  CommonGlobals.add_memstat "CommonFile" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) files_by_num;
+      Printf.bprintf buf "  files: %d\n" !counter;
+  )
 
 let ni n m = 
   let s = Printf.sprintf "File.%s not implemented by %s" 

@@ -247,7 +247,14 @@ let set_client_type c t =
       impl.impl_client_type <- t;
       client_must_update c
     end
-    
+
+let _ = 
+  CommonGlobals.add_memstat "CommonClient" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) clients_by_num;
+      Printf.bprintf buf "  clients: %d\n" !counter;
+  )
+  
 let clients_by_num = ()
   
 let client_new_file (client :client) (dirname:string) r =

@@ -168,7 +168,7 @@ let exit_handlers = ref []
 let do_at_exit f =
   exit_handlers := f :: !exit_handlers
       
-let exit_properly _ =
+let exit_properly n =
 (*  Printf.printf "exit_properly handlers"; print_newline (); *)
   List.iter (fun f -> try 
 (*        Printf.printf "exit_properly handler ..."; print_newline (); *)
@@ -179,7 +179,7 @@ let exit_properly _ =
             (Printexc2.to_string e); print_newline ();
   ) !exit_handlers;
 (*  Printf.printf "exit_properly DONE"; print_newline (); *)
-  Pervasives.exit 0
+  Pervasives.exit n
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )
@@ -379,3 +379,27 @@ let aborted_download = ref (None : int option)
     
 let searches = ref ([] : search list)
   
+
+let memstat_functions = ref []
+  
+let add_memstat m f = memstat_functions := (m,f) :: !memstat_functions
+  
+let print_memstats buf =  
+  Printf.bprintf buf "Memory Debug Stats:\n";
+  let list = List.rev !memstat_functions in
+  List.iter (fun (m,f) ->   
+      Printf.bprintf buf "Module %s:\n" m ;      
+      f buf) list
+
+let core_included = ref false
+let gui_included = ref false
+
+let gui_reconnected = ref false
+  
+let core_gui_fifo = (Fifo.create () : GuiProto.to_gui Fifo.t)
+let gui_core_fifo = (Fifo.create () : GuiProto.from_gui Fifo.t)
+  
+let init_hooks = ref ([] : (unit -> unit) list)
+  
+let add_init_hook f =
+  init_hooks := f :: !init_hooks

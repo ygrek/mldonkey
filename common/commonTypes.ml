@@ -267,7 +267,7 @@ type gui_record = {
     mutable gui_num : int;
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * search) list;
-    mutable gui_sock : TcpBufferedSocket.t;
+    mutable gui_sock : TcpBufferedSocket.t option;
     mutable gui_version : int;
     mutable gui_auth : bool;
     mutable gui_poll : bool;

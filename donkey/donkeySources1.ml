@@ -1323,6 +1323,11 @@ source_score = / basic_score when source_client = SourceClient
           let c = DonkeyGlobals.new_client_with_num (Known_location (ip,port))
             client_num in
           c.client_next_queue <- 0;
+          
+          c.client_overnet <- s.source_overnet;
+          if s.source_overnet then begin
+              c.client_brand <- Brand_overnet;
+            end;
           (match c.client_source with
               Some ss when s != ss -> 
                 if !verbose_sources then begin

@@ -49,7 +49,8 @@ let disconnect_server s =
 
 let server_to_client s m sock =
   match m with
-    S2C.LoginAckReq t ->
+  | S2C.LoginAckReq t ->
+      set_rtimeout sock 300.;
       begin
         match t with
           S2C.LoginAck.Success (message, ip) ->
@@ -141,10 +142,12 @@ let connect_server s =
           set_read_controler sock download_control;
           set_write_controler sock upload_control;
           
-          set_rtimeout sock 60.;
+          set_rtimeout sock 20.;
           set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+              Printf.printf "Connection timeout"; print_newline ();
               close s "timeout"  
           );
+          set_closer sock (fun _ _ -> disconnect_server s);
           s.server_nick <- 0;
           s.server_sock <- Some sock;
           server_send sock (
@@ -163,22 +166,17 @@ let connect_server s =
             s.server_sock <- None;
             set_server_state s NotConnected;
             connection_failed s.server_connection_control
-            
-  
-  
-  
+              
 let recover_files () = ()
  
-let requests = ref 0
-  
 let ask_for_file file =
   List.iter (fun c ->
       try
-        incr requests;
-        c.client_requests <- (!requests, file) :: c.client_requests;
+        incr SlskClients.requests;
+        c.client_requests <- (!SlskClients.requests, file) :: c.client_requests;
         SlskClients.connect_peer c 300 [C2C.TransferRequestReq
             (true, (* download *)
-            !requests,
+            !SlskClients.requests,
             List.assq file c.client_files,
             (file_size file))
         ];
@@ -193,8 +191,11 @@ let ask_for_files () =
   ) files_by_key
 
 let servers_line = "--servers"
-  
+let slsk_kind =  "slsk_server_list"
+
+let load_server_list_last = ref 0
 let load_server_list filename = 
+  load_server_list_last := last_time ();
   let s = File.to_string filename in
   try
     let s = String2.replace s '\r' "\n" in
@@ -209,8 +210,10 @@ let load_server_list filename =
           [_;_;server_name; server_port] -> 
             let port = int_of_string server_port in
             Printf.printf "NEW SERVER %s:%d" server_name port; print_newline ();
+            (*
             main_server_name =:= server_name;
-            main_server_port =:= port;
+main_server_port =:= port;
+  *)
             ignore (new_server (new_addr_name server_name) port);
             
         | _ -> ()
@@ -219,3 +222,20 @@ let load_server_list filename =
       Printf.printf "Unable to parse soulseek server file %s" filename;
       print_newline ()
   
+let server_list = ref []
+      
+let rec connect_servers () =
+  if !connected_servers = [] then
+    match !server_list with
+      [] ->
+        if !load_server_list_last + 600 < last_time () then
+          CommonInteractive.load_url slsk_kind "http://www.slsk.org/slskinfo2";
+        Hashtbl.iter (fun _ s ->
+            server_list := s :: !server_list) servers_by_addr
+    | s :: tail ->
+        server_list := tail;
+        connect_server s
+
+        
+let _ =
+  CommonInteractive.add_web_kind slsk_kind load_server_list

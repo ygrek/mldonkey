@@ -1,6 +1,16 @@
 ChangeLog	
 =========
 
+2003/01/26: Simon (tag unstable-2-02-8) 
+  - Added bundle binaries (core + gui with communication via FIFO) to
+      ease use of alternative networks (mldc+gui, mlslsk+gui, etc).
+  - Donkey:
+       * FIX: connections to Overnet
+       * Updated 'cs' command
+       * FIX: seens in stats replaced by successful connections
+  - Console:
+       * 'mem_stats' prints a bit more info (not yet enough)
+
 2003/01/25: Simon
   - Direct-Connect:
        * FIX: Active searches don't work, go back to passive

@@ -515,3 +515,10 @@ let pixmap i =
   GMisc.pixmap (gdk_pix i) ()
 
 
+
+let copy_messages = define_option mldonkey_gui_ini
+    ["copy_messages"]
+  "For bundle binaries, should we directly pass structures between
+    the core and the GUI (faster), or copy them (fewer bugs) " bool_option 
+  true
+  

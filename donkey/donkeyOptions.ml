@@ -144,7 +144,7 @@ let max_clients_per_second = define_option downloads_ini
 let log_clients_on_console = define_option downloads_ini
   ["log_clients_on_console"] 
   ""
-    bool_option true
+    bool_option false
 
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"

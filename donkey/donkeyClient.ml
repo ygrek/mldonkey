@@ -195,6 +195,7 @@ let disconnect_client c =
     None -> ()
   | Some sock ->
       (try
+          if c.client_checked then count_seen c;
           if !!log_clients_on_console && c.client_name <> "" then 
               log_client_info c sock
             ;
@@ -1157,10 +1158,6 @@ is checked for the file.
               M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
         end;
       
-      if not c.client_already_counted then begin
-          count_seen c;
-          c.client_already_counted <- true
-        end;
       begin try 	
           count_filerequest c;
           let file = find_file t in
@@ -1469,6 +1466,7 @@ let read_first_message overnet challenge m sock =
             close sock "already connected"; raise Not_found
       end;
 
+      c.client_checked <- true;
       
       set_write_power sock c.client_power;
       set_read_power sock c.client_power;
@@ -1485,7 +1483,7 @@ let read_first_message overnet challenge m sock =
         | None -> 
             if overnet then begin
                 Printf.printf "incoming Overnet client"; print_newline ();
-                c.client_overnet <- overnet;            
+                c.client_overnet <- overnet;
               end
         | _ -> ()
       end;
@@ -1597,6 +1595,8 @@ let reconnect_client c =
             c.client_connect_time <- last_time ();
             init_connection sock;
             init_client sock c;
+            
+            c.client_checked <- false;
             
             let challenge = {
                 challenge_md4 = Md4.null;

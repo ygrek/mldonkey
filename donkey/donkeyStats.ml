@@ -126,9 +126,9 @@ let print_stats buf =
 
 
   if stats_all.brand_seen = 0 then
-    Printf.bprintf buf "You didn't see any client yet\n"
+    Printf.bprintf buf "You haven't connected to any client yet\n"
   else begin
-    Printf.bprintf buf "                Total seens: %18d\n" stats_all.brand_seen;
+    Printf.bprintf buf "                Successful Connections: %18d\n" stats_all.brand_seen;
     for i=1 to brand_count-1 do
       Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
@@ -196,25 +196,32 @@ let new_print_stats buf =
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
-    Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
-
-  Printf.bprintf buf "      Client| seen     |  Downloads       |  Uploads        |  Banned\n";
-  Printf.bprintf buf "------------+----------+------------------+-----------------+----------\n";
-  Printf.bprintf buf "%-12s|%5d     | %6.1f %5.1f     | %5.1f %5.1f     | %3d %3.0f%%\n"
+  Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+  
+  Printf.bprintf buf "      Client| seen      |  Downloads       |  Uploads         |  Banned\n";
+  Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
+  Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"
     "Total"
     stats_all.brand_seen
     ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
-    ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-    ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
-    ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-    stats_all.brand_banned 
+  ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+  ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
+  ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+  stats_all.brand_banned 
     (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen));
-
-  for i=1 to brand_count-2 do
-    Printf.bprintf buf "%-12s|%5d %3.f%%| %6.1f %5.1f %3.0f%%| %5.1f %5.1f %3.0f%%| %3d %3.0f%%\n"
-      (brand_to_string (brand_of_int i))
+  
+  for i=1 to brand_count-1 do
+    if brand_of_int i != Brand_server then (* dont print server stats *)
+      let brandstr = 
+        if brand_of_int i = Brand_mldonkey3 then 
+          "trusted mld"
+        else
+          brand_to_string (brand_of_int i) in
+      
+      Printf.bprintf buf "%-12s|%6d %3.f%%|%7.1f %5.1f %3.0f%%|%7.1f %5.1f %3.0f%%|%5d %3.0f%%\n"
+        (brandstr)
       stats_by_brand.(i).brand_seen 
-      (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+        (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
       ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
       ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
       (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
@@ -222,7 +229,7 @@ let new_print_stats buf =
       ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
       (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
       stats_by_brand.(i).brand_banned 
-      (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_by_brand.(i).brand_seen))
+        (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
   done
 
 
