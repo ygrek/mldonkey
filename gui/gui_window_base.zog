@@ -57,7 +57,7 @@
           </menu>
         </menu_item>
       </menubar>
-      <notebook name=notebook width="-1" height="-1" border_width="-1" tab_position="`TOP" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
+      <notebook name=notebook width="-1" height="-1" border_width="-1" tab_position="Options.(!!)+Gui_options.notebook_tab" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
         <custom name=tab_servers width="-1" height="-1" border_width="-1" function="new+Gui_servers.pane_servers" tab_label="Gettext.gettext+Gui_messages.mServers" expand="false" fill="true" padding="-1">
         </custom>
         <custom name=tab_downloads width="-1" height="-1" border_width="-1" function="new+Gui_downloads.pane_downloads" tab_label="Gettext.gettext+Gui_messages.mDownloads" expand="false" fill="true" padding="-1">

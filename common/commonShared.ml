@@ -202,10 +202,10 @@ let shared_add_directory dirname local_dir =
       Filename.concat file_basedir dirname
     else dirname 
   in
+  let full_dir = Filename.concat dirname local_dir in
   if can_share dirname then
-    let full_dir = Filename.concat dirname local_dir in
-    lprintf "Sharing sub-directory %s" full_dir; lprint_newline ();
     let files = Unix2.list_directory full_dir in
+    lprintf "Sharing sub-directory %s\n" full_dir; 
     List.iter (fun file ->
         if file <> "" && file.[0] <> '.' then
           let full_name = Filename.concat full_dir file in
@@ -227,6 +227,8 @@ let shared_add_directory dirname local_dir =
                 lprint_newline ();
           with _ -> ()
     ) files
+  else 
+    lprintf "Cannot share %s\n" full_dir
 
 let _ = 
   BasicSocket.add_infinite_timer 0.5 (fun _ ->

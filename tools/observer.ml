@@ -17,12 +17,33 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open LittleEndian
 open Unix
 open DonkeyMftp
 open TcpBufferedSocket
-
+  
 let filename =  "observer.dat"  
+
+let motd_html = ref (try File.to_string "motd.html" with _ -> "")
+let servers_met = ref (try File.to_string "servers.met" with _ -> "")
+let peers_ocl = ref (try File.to_string "peers.ocl" with _ -> "")
+let motd_conf = ref (try File.to_string "motd.conf" with _ -> "")
+
+let redirector_info = ref ""
+  
+let update_redirector_info () =
+  let buf = Buffer.create 1000 in
+  buf_int buf 0;
+  buf_int16 buf 0;
+  buf_string16 buf !motd_html;
+  buf_string16 buf !servers_met;
+  buf_string16 buf !peers_ocl;
+  buf_string16 buf !motd_conf;
+  let s = Buffer.contents buf in
+  let len = String.length s - 4 in
+  LittleEndian.str_int s 0 len;
+  redirector_info:=  s
   
 let bin_oc = open_out_gen [Open_append; Open_creat; Open_binary;
     Open_wronly] 0o644 filename
@@ -75,17 +96,17 @@ let print_record t ip_firewall s =
   let t = Int32.to_float t in
   
   let t = localtime t in
-  lprintf "At %02d:%02d:%02d " 
+  Printf.printf  "At %02d:%02d:%02d " 
     t.tm_hour
     t.tm_min
     t.tm_sec
   ;
-  lprint_newline ();
-  lprintf "MLdonkey on %s (through %s): " 
+  print_newline ();
+  Printf.printf "MLdonkey on %s (through %s): " 
     (Ip.to_string ip)
   (Ip.to_string ip_firewall)
   ;
-  lprint_newline ();
+  print_newline ();
   
   let version, uptime, shared, uploaded, pos =
     try
@@ -103,26 +124,26 @@ let print_record t ip_firewall s =
   in
   
   
-  lprintf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
+  Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
     version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
-  lprint_newline ();
+  print_newline ();
   List.iter (fun (ip, port) ->
       new_servers := (ip, port) :: !new_servers;
-      lprintf "            Connected to %s:%d"
+      Printf.printf "            Connected to %s:%d"
         (Ip.to_string ip) port;
-      lprint_newline ()) ips;
+      print_newline ()) ips;
   
   begin
     try
       let npeers = get_int s pos in
-      lprintf "Overnet peers: %d" npeers; lprint_newline ();
+      Printf.printf "Overnet peers: %d" npeers; print_newline ();
       for i = 0 to npeers - 1 do
         let ip = get_ip s (pos+4+i*6) in
         let port = get_int16 s (pos+6+i*6) in
         new_peers := (ip, port) :: !new_peers;
-        lprintf "         Overnet Peer %s:%d"        
+        Printf.printf "         Overnet Peer %s:%d"        
         (Ip.to_string ip) port;
-        lprint_newline ()
+        print_newline ()
       done;
       
       
@@ -131,7 +152,8 @@ let print_record t ip_firewall s =
   
   
   
-let create_observer port = UdpSocket.create Unix.inet_addr_any port
+let create_observer port = 
+  let sock = UdpSocket.create Unix.inet_addr_any port
     (DonkeyProtoCom.udp_basic_handler (fun s p ->
         if s.[0] <> '\000' then begin
             dump s;
@@ -149,7 +171,27 @@ let create_observer port = UdpSocket.create Unix.inet_addr_any port
         dump_record t s ip_firewall;
         
         print_record t ip_firewall s
-    ))
+    )) in
+  let sock = TcpServerSocket.create 
+      "observer"
+      Unix.inet_addr_any
+      port 
+      (fun t event ->
+        match event with
+          TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
+            let sock = TcpBufferedSocket.create "observer connection" s 
+                (fun sock event ->
+                  match event with
+                    BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> close sock "timeout"
+                  | _ -> ()
+              )
+            in
+            set_lifetime sock 300.; 
+            set_rtimeout sock 30.; 
+            write_string sock !redirector_info;
+        | _ -> ()
+    ) in
+  ()  
 
 let iter_file f g h =
   let ic = open_in filename in
@@ -199,20 +241,20 @@ let count_records () =
             end;          
       ) ips
   ) (fun _ ->
-      lprintf "%d MLdonkey clients" !counter;
+      Printf.printf "%d MLdonkey clients" !counter;
       (match !first_record, !last_record with
           Some t1, Some t2 ->
-            lprintf " in %3.0ld seconds" (Int32.sub t2 t1)
+            Printf.printf " in %3.0ld seconds" (Int32.sub t2 t1)
         | _ -> ());
-      lprintf " on %d servers" !server_counter; 
-      lprint_newline ();
+      Printf.printf " on %d servers" !server_counter; 
+      print_newline ();
   )
   
 
 let servers_age = ref 60
 let peers_age = ref 2
 let _ =
-  lprint_newline ();
+  print_newline ();
   Arg.parse [
     "-ascii", Arg.Unit print_ascii, "";
     "-count", Arg.Unit count_records, "";
@@ -228,7 +270,7 @@ let peers_array = Array.create !peers_age []
 
 let dump_list array new_hosts adder dumper =
   try
-    lprintf "dump server list"; lprint_newline ();
+    Printf.printf "dump server list"; print_newline ();
     incr time;
     let len = Array.length array in
     array.(!time mod Array.length array) <- !new_hosts;
@@ -250,21 +292,26 @@ let dump_list array new_hosts adder dumper =
     let list = Hashtbl2.to_list servers in
     dumper list
   with e ->
-      lprintf "error: %s" (Printexc2.to_string e);
-      lprint_newline ()  
+      Printf.printf "error: %s" (Printexc2.to_string e);
+      print_newline ()  
   
 let dump_servers_list _ = 
   let module S = DonkeyImport.Server in
+  (try motd_html := File.to_string "motd.html" with _ -> ());
+  (try motd_conf := File.to_string "motd.conf" with _ -> ());
+  update_redirector_info ();
   dump_list servers_array new_servers 
     (fun ip port ->
       { S.ip = ip; S.port = port; S.tags = []; };)
   (fun list ->
     let buf = Buffer.create 100 in
-    S.write buf list;
-    File.from_string "servers.met" (Buffer.contents buf);
+      S.write buf list;
+      servers_met := (Buffer.contents buf);
+      update_redirector_info ();
 (* now, what is the command to send the file to the WEB server ??? *)
+(*
       ignore
-      (Sys.command "scp -B -q servers.met simon_mld@subversions.gnu.org:/upload/mldonkey/network/");
+      (Sys.command "scp -B -q servers.met simon_mld@subversions.gnu.org:/upload/mldonkey/network/"); *)
   )
 
 let dump_peers_list _ =
@@ -275,13 +322,16 @@ let dump_peers_list _ =
       List.iter (fun (ip, port) ->
           Printf.bprintf buf "%s,%d,X\n" (Ip.to_string ip) port;
       ) list;
-      File.from_string "peers.ocl" (Buffer.contents buf);
+      peers_ocl := (Buffer.contents buf);
+      update_redirector_info ();
+      (*
       ignore
         (Sys.command "scp -B -q peers.ocl simon_mld@subversions.gnu.org:/upload/mldonkey/network/");
-
+*)
   )
   
 let _ =
+  update_redirector_info ();
   ignore (create_observer 3999);
   ignore (create_observer 4665)
   
@@ -293,13 +343,13 @@ let _ =
       List.iter (fun s ->
         servers_array.(0) <- (s.S.ip , s.S.port) :: servers_array.(0)
         ) (S.read file)
-    with _ -> lprintf "Could not load old server list"; lprint_newline ();
+    with _ -> Printf.printf "Could not load old server list"; print_newline ();
   end;
   BasicSocket.add_timer 30. dump_servers_list;
   BasicSocket.add_timer 30. dump_peers_list;
   BasicSocket.add_infinite_timer 300. dump_servers_list;
   BasicSocket.add_infinite_timer 300. dump_peers_list;
-  lprintf "Observer started";
-  lprint_newline ();
+  Printf.printf "Observer started";
+  print_newline ();
   BasicSocket.loop ()
   

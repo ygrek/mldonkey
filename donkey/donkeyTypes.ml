@@ -205,6 +205,7 @@ and client = {
     mutable client_requests_sent: int;
     mutable client_indirect_address : (Ip.t * Ip.t * int) option;
     mutable client_asked_for_slot : bool;
+    mutable client_debug : bool;
   }
   
 and upload_info = {

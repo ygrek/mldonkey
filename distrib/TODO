@@ -7,14 +7,10 @@ Before 2.03:
 
 * Force connect to friends from time to time to see the shared-file lists.
    [ Bug #2504 ] 
-* When an error occur during GUI encoding/decoding, dump the message and the
-   protocol used.
 * Try to display more information on where the memory is used... in the GUI ?
     with shared files ?
-* Force use of max_sources_per_file
 * Upstats doesn't work very well in GUI, More stats ?
 * nu= (download = 0) mld becomes stalled
-* Check the problem with clients disconnecting with 'n'
 * We should be careful with remove: can a client still be in a queue for
    another file when removed ? Add a counter to the source !
 * Comments propagation
@@ -25,15 +21,12 @@ Before 2.03:
 * try to ensure that clients that have a pending slot are correctly
    added/removed.
 * Replace network column by network icons, file state by icons too
-* Start as a daemon. -no-daemon option. 'log <file>' command for logging 
- in a file. 'console' command for logging in the current telnet socket.
-* Debug per client/server/source
-
-
-Some fields are not necessary anymore:
-  - zone_file
-  - zone_present (zone_begin >= zone_end)
-  - client_on_list
+* Queues of downloads: option 'max_current_downloads', new file state
+   FileQueued, and all files with lower priority are in state FileQueued
+   until files with higher priority are downloaded.
+* tty mode in telnet ?
+* Sort commands for ?? like options
+* Button "New Shared Directory" in upload
 
 Core:
 =====
@@ -43,6 +36,7 @@ Core:
 * Waiting list of files to download: when a file is downloaded, take another
    one from the fifo...
 * SIGSEGV in MD4Transform
+* Common functions for linear uploads and downloads
 
 Edonkey + Overnet:
 ==================
@@ -52,15 +46,20 @@ Edonkey + Overnet:
   OP_QUEUEFULL (0x93)
   OP_REASKACK (0x91) (size=2)
   OP_FILENOTFOUND (0x92)
+* MLdonkey client generates "Exceeding Block Boundaries" errors which loses
+     bandwidth
+* Extended search doesnot work after connect because no ping was sent.
+* Option to clear the server list at restart or when a new list is received
+* Cancel and Redownload doesnot work
+* What happens when a shared file cannot be read ?
 
 GUI:
 ====
 * commonDownloads.ml: functor
 * GUI: strange bug: pausing on one file pause two of them...
-* Give the choice between different source managements
 * In gpattern, if an item from the selection is removed, the selection is
      not updated
-* Some toolbars are not correctly update between text, text+image, image
+* Some toolbars are not correctly updated between text, text+image, image
 * Add an option tab similar to the one of mldonkeywatch
 * Send all the locations to the GUI with their chunks
 * Hide already downloaded files
@@ -81,74 +80,38 @@ Soulseek:
        upload requests to find the correct file.
  + Very long messages (several Megs) for shared file lists...
  + Remove all downloads from a given user
+ + Display the number of new message per room
 
 Direct-Connects:
 ================
 * How do you know your IP in Direct-Connect if you are behind a firewall
 * Send replies to active searches
+* When a download is finished, can the link be reused ?
+* Don't always download from incoming peer the files list
+* Reply to active search requests
+* For some reason, mldc cannot talk on some servers... France AVI for example.
 
-Bugs in unstable-2-02-3:
- * Installer...
- * add an option for overnet access
- * add an option for locale (or verify that LANG is set correctly LANG=C ??)
- * Stop connecting to sources when download bandwidth is fully used.
+GUI:
+====
  * Change the color of tabs when things change
- * Different black lists for clients and servers ?
- * Fix stats with sources, remove servers
- * Send a news update 2.02
- * Remove sources of cancelled files
 
-donkey/:
- * New source management
- * MLdonkey client generate "Exceeding Block Boundaries" errors which lose
-     bandwidth
- * Extended search doesnot work after connect because no ping was sent.
- * Query and parse WEB server pages such as jiggle
- * Option to clear the server list at restart or when a new list is received
- * Cancel and Redownload doesnot work
- * What happens when a shared file cannot be read ?
- * Downloaded files seem not shared
-
-direct_connect/:
- * When a download is finished, can the link be reused ?
- * Don't always download from incoming peer the files list
- * Reply to active search requests
- * For some reason, mldc cannot talk on some servers... France AVI for example.
-
-gui/:
- * Show list of file names for files being downloaded
- * Add preview for downloaded files
-
-soulseek/:
- * Display the number of new message per room
-
-common/:
- * Common functions for linear uploads and downloads
-
-limewire/:
- * Chech the is_http_ok function: too wide ?
+limewire:
+=========
+* Chech the is_http_ok function: too wide ?
 
 net/:
- * Socks 5 support
- * Better bandwidth control: take TCP-IP packet header size into account
-    and UDP too.
+=====
+* Socks 5 support
 
 opennap/:
+=========
  * Register files on server
  * Reply to upload requests
 
-*********
-
 For 2.1:
   - What about having one result per file ?
-  - Allow upload at least in Direct Connect... Maybe in gnutella too, even
-     if it is probably a waste of bandwidth. Upload should probably be
-     concentrated on eDonkey2000, where it is better used. However, if we
-     don't want to be kicked from other network, it is better to allow them
-     to download from us. Maybe we could use priorities, but how ? Each network
-     would have a score, and the better score would be given bandwidth first ?
-   - Incomplete files can be automatically deleted when too old (7 days)
-   - Add a "cp" function to change the temp directory without breaking
+  - Incomplete files can be automatically deleted when too old (7 days)
+  - Add a "cp" function to change the temp directory without breaking
        the sparse file format (ie without increasing the size of copied files)
 
 
@@ -221,148 +184,10 @@ indication of availability.
 
 
 
-Since Pierre asked for discussions on big changes in mldonkey, I think
-it is time to really discuss source management.
-
-We have different constraints:
-1) trying too many sources takes a lot of bandwidth, and a lot of memory
-2) keeping the number of sources low takes a lot of CPU, and can
-  prevent from finding good sources.
-
-Thus, it would be interesting to find a good compromise.
-
-My current ideas: four level of sources for each file
-
-* Normal sources: these sources have been tested recently, and they
-   have chunks interesting for us. They take a big structure in
-   memory, and they are limited by the max_sources_per_file option.
-   We connect to them every 10 minutes to ask for a slot.
-
-* Emerging sources: these sources have just been announced. they could
-   have something interesting for us. We never connected to them.
-   They are stored in a compressed form (only IP + port).
-
-* Concurrent sources: these sources have the file, but not the chunks
-  we want. They can be tested from time to time to see if they have
-  new chunks. One chunk is 9MB, at 5 KB/s, it is half an hour to
-  download.  Depending on the number of chunks they had the last time,
-  we should not try them before at least 1 hour.
-
-* Old sources: these sources have once been indicated as sources for
-   the file. We couldn't connect to them to verify that, or at least,
-   we could'nt connect to them for a long period. We should test them
-   anyway, maybe once every 6 hours ?  They are removed after the
-   max_sources_age delay.
-
-When new slots are available in the normal sources, they are filled
-from the other kind of sources, mainly by taking emerging sources,
-then concurrent sources and finally old sources. After 1 to 5 failed
-attempts to connect, they are moved to the old sources.
-
-The first kind of sources would take a lot of memory (at least 300
-bytes), whereas the other sources only take around 30 bytes. If we
-keep all the sources that way, 10000 sources would take:
-300 normal sources = 90 kB
-10000 other sources = 300 kB
---> 400 kB per very popular file.
-
-MLdonkey would keep asking for sources until at least
-good_sources_threshold of its normal sources slots are used.
-
-What do you think of such a scheme ?
-
-- MLDonkey
-
-PS: some computations.
-
-300 normal sources = 300 connections/10 minutes = 1 connection/2 seconds
-  for 30 files, it is 15 connections/second
-
-1 connection =
-  TCP Connection = 80 bytes upload, 40 bytes download
-  edonkey hand check ~ 200 bytes upload, 200  bytes download
-    ~ 300 B up, 300 B down
-30 files --> 15x300 = 4.5 kB/s up and down
-
-If we move to old sources after 1 failed attempt = 10 minutes,
- we can test 300 sources/10 minutes, so 10000 old sources/5 hours
-2 failed attempts = 10 hours
-3 failed attempts = 15 hours
-4 failed attempts = 20 hours
-5 failed attempts = 25 hours
-
-
-******************************************************************
-
-How it should work:
-
-For each file, we have:    
-
-    ...
-
-    mutable file_sources : client Intmap.t; 
-    
-    mutable file_emerging_sources : source Fifo.t;
-    mutable file_concurrent_sources : source Fifo.t;
-    mutable file_old_sources : source Intmap.t;
-
-}
-
-and source = {
-    source_addr : Ip.t * int;
-    mutable source_client: client_kind; 
-  }
-
-and client_kind = 
-  SourceClient of client
-| SourceRecord of float (* last connection attempt *)
-  
-When we receive a new source from anywhere:
-- Never seen it: add it to 'file_emerging_sources'
-- Already seen:
-     * If in concurrent_sources: do nothing
-     * If in normal_sources: do nothing
-     * If in emerging_sources: do nothing
-     * If in old_sources: move it to emerging_sources
-
-The options:
-*  max_clients_per_second
-
-Constraints:
-* Check all clients every 10 minutes = 600 seconds
-    max_all_sources = 600 * max_clients_per_second
-
-What we have:
-* a set of files with current sources.
-
-How should it work ????
-
-At the beginning, when mldonkey starts, all the sources are emerging.
-
-Every second, we call the function "check_sources".
-
-
-NEW SOURCE MANAGEMENT:
-----------------------
-
-Just a thought, lol. Also, how about making an mldonkey version that can run as a deomon just like giFT? 
-
-A few more ideas:
-
-GUI IDEAS: 
-- Add a columb to the download window that will say YES as soon as 100% of the file is found on the network (for say a period of 2 days?) 
-- Add the option to rename file while it's downloading (allowing to choise from list of common filenames for that file). 
-- Any way to add a way to display the queue position on overnet and emule clients? (yes, they support that feature) 
-- Posibly an improved search.. 
 
 GENERAL: 
-- Posibility to set mldonkey to folow symbolic links to a certain depth. 
-- Prioritizing download/uploads (has been discussed a lot, so I thought I'll mention it here) 
-- Automatic upload regulation to increase upload when download is slow (not sure how that works for that edonkeybot had it and it worked quite nicely) 
 - What ever happened to the 'collection' files from edonkey? I would like mldonkey to have that feature, so people can share collections of entire series. 
 
 WEB INTERFACE: 
-- I would prefer the filesize in webinterface to be displayed in mbytes rather then bytes, same with comulitive upload/download speed at bottom right corner of gui. 
 - Display free disk space in Web Interface so that you can check remotely how much space you still have, (good if you access mldonkey with remote windows). 
 - Any chance of adding a graph to the web interface to show download/upload for a set period of time? that would truley rock. 
-- Please add number of sources and number of connected sources to web interface.[/b]

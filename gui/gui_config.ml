@@ -49,6 +49,11 @@ let create_gui_params () =
       ~f: (fun s -> GO.hostname =:= s) 
       (gettext M.o_hostname) !!GO.hostname 
   in
+  let gui_login = string
+      ~help: "Your login"
+      ~f: (fun s -> GO.login =:= s)
+      "Login:" !!GO.login
+  in
   let gui_password = string
       ~help: (gettext M.h_gui_password)
       ~f: (fun s -> GO.password =:= s)
@@ -137,11 +142,22 @@ let create_gui_params () =
       "Mini icons in toolbars:" !!GO.mini_toolbars
   in
 
+  let tab_pos = combo
+      ~expand:false
+      ~help: "Position of main tab"
+      ~f:(fun s -> GO.notebook_tab =:= GO.TabPosition.string_to_pos s)
+      ~new_allowed:false ~blank_allowed:false
+      "Tab Position:"
+      GO.TabPosition.values
+      (GO.TabPosition.pos_to_string !!GO.notebook_tab)
+  in
+
   let layout_options = Section
       ((gettext M.o_layout),
        [
         tb_style ;
         tb_icons;
+        tab_pos;
        ] 
       )
   in

@@ -732,7 +732,7 @@ let commands = [
                 
                 Printf.bprintf buf "\\<table class=\\\"uploaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CT\\</td\\>
+\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
 \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
 \\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
 \\<td title=\\\"Connected time (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
@@ -748,11 +748,12 @@ let commands = [
                         incr counter;                        
                         
                         Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
-                        title=\\\"Add as Friend\\\"
+                        title=\\\"[%d] Add as friend\\\"
                         onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
                         onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
                         onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
                           ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+                        (client_num c)
                         (client_num c);
                         
                         
@@ -798,7 +799,7 @@ let commands = [
                 class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"
                 cellspacing=0 cellpadding=0\\>\\<tr\\>
  \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
- \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CT\\</td\\>
+ \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
  \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
  \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
  \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
@@ -911,7 +912,7 @@ let commands = [
 
     "dup", Arg_none (fun _ ->
         DonkeyChunks.duplicate_chunks (); "done"),
-    ":\t\t\t\tfind duplicate chunks (experimental)";
+    ":\t\t\t\t\tfind duplicate chunks (experimental)";
     
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1087,10 +1088,10 @@ let _ =
         P.client_rating = c.client_rating;
         P.client_chat_port = c.client_chat_port ;
       }
-  )
+  );
+  client_ops.op_client_debug <- (fun c debug ->
+      c.client_debug <- debug)
 
-  
-  
 let _ =
   result_ops.op_result_download <- result_download
   
@@ -1190,6 +1191,8 @@ let _ =
   
   network.op_network_forget_search <- forget_search
 
+(* emule<->mldonkey disconnects during chat, and this doesn't seem to auto reconnect
+when sending a message? emule or ml problem? *)
 let _ =
   client_ops.op_client_say <- (fun c s ->
       match c.client_sock with
@@ -1219,7 +1222,7 @@ lprint_newline ();
       | _ -> 
           lprintf "****************************************";
           lprint_newline ();
-          lprintf "       TRY TO CONTACT FRIEND         ";
+          lprintf "       TRYING TO CONTACT FRIEND         ";
           lprint_newline ();
           
           reconnect_client c
@@ -1441,7 +1444,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
 \\<tr onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 class=\\\"%s\\\"\\>
-\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
+\\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
 onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>

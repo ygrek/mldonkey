@@ -33,8 +33,8 @@ open CommonGlobals
 open DonkeyGlobals
 
 let shared_files_ini = create_options_file (
-    Filename.concat file_basedir "shares.ini")
-
+    Filename.concat file_basedir "shared_files.ini")
+  
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
   
@@ -211,7 +211,7 @@ let value_to_int32pair v =
 
 let value_to_state v =
   match v with
-    StringValue "Paused" -> FilePaused
+  | StringValue "Paused" -> FilePaused
   | StringValue "Downloading" -> FileDownloading
   | StringValue "Downloaded" -> FileDownloaded
   | _ -> raise Not_found

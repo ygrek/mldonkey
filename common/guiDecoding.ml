@@ -285,6 +285,7 @@ let get_file_state s pos =
   | 4 -> FileCancelled, pos+1
   | 5 -> FileNew, pos+1
   | 6 -> let s, pos = get_string s (pos+1) in FileAborted s, pos
+  | 7 -> FileQueued, pos+1
   | _ -> assert false
 
 let get_float s pos = 
@@ -570,7 +571,7 @@ let get_shared_info_version_10 s pos =
 
 ****************)
 
-let from_gui opcode s =
+let from_gui proto opcode s =
   try
     match opcode with
       0 -> GuiProtocol (get_int s 2)
@@ -579,7 +580,7 @@ let from_gui opcode s =
     | 2 -> CleanOldServers
     | 3 -> KillServer
     | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
-    | 5 -> let pass,_ = get_string s 2 in Password pass
+    | 5 -> let pass,_ = get_string s 2 in Password ("admin", pass)
     | 6 -> 
         let local = get_bool s 2 in
         let search, pos = get_search_version_0 s 3 in
@@ -761,14 +762,18 @@ let from_gui opcode s =
 
     | 51 ->
         SetFilePriority(get_int s 2, get_int s 6)      
-    
+
+    | 52 -> 
+        let pass,pos = get_string s 2 in
+        let login,pos = get_string s pos in
+        Password (login, pass)
     | _ -> 
         lprintf "FROM GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found
   
   
   with e ->
-      lprintf "Exception %s while handling message with opcode %d"
+      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto
         (Printexc2.to_string e) opcode;
       lprint_newline ();
       LittleEndian.dump s;
@@ -1109,14 +1114,23 @@ let to_gui proto opcode s =
         let servers,pos = get_list (fun s pos ->
               get_int s pos, pos+4) s pos in
         CleanTables (clients, servers)
-        
+
+    | 52 -> 
+        let file, pos = get_file proto s 2 in
+        File_info file
+    | 53 -> 
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadFiles list
+    | 54 -> 
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadedFiles list
     | _ -> 
         lprintf "TO GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found
 
 
   with e ->
-      lprintf "Exception %s while handling message with opcode %d"
+      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto
         (Printexc2.to_string e) opcode;
       lprint_newline ();
       dump s;

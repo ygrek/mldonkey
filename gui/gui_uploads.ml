@@ -42,7 +42,7 @@ class box columns () =
     inherit [GuiTypes.shared_info] Gpattern.plist `SINGLE
       (List.map C.Shared_files_up.string_of_column !!columns)
     true  (fun si -> si.shared_num) as pl
-      inherit Gui_uploads_base.box () as box
+      inherit Gui_uploads_base.box () 
     
     val mutable clipboard = ""
     val mutable columns = columns
@@ -51,7 +51,6 @@ class box columns () =
       self#set_titles 
         (List.map C.Shared_files_up.string_of_column !!columns);
       self#update
-    
     
     method column_menu  i = 
       [
@@ -146,7 +145,7 @@ console ???? *)
         !Gui_global.console_message link;
         clipboard <- link;
 
-        (*
+(*
         ignore (self#misc#grab_selection `PRIMARY);
         self#misc#add_selection_target ~target:"string" `PRIMARY;
         ignore (self#misc#connect#selection_get (fun sel ~info ~time ->
@@ -163,7 +162,7 @@ console ???? *)
         [] -> []
       |	list ->
           [ `I (("Copy ed2k link to console/clipboard"), copy_ed2k_links list) 
-            ] 
+          ] 
     
     method find_file num = self#find num
     
@@ -172,60 +171,97 @@ console ???? *)
         let _,s_old = self#find_file si.shared_num in
         s_old.shared_filename <- si.shared_filename
       with Not_found ->
-        self#add_item si
-        
+          self#add_item si
+    
     method h_shared_file_upload num upsize requests =
       try
-	let (row, si) = self#find_file num in
-	si.shared_uploaded <- upsize;
-	si.shared_requests <- requests ;
-	self#update_row si row
+        let (row, si) = self#find_file num in
+        si.shared_uploaded <- upsize;
+        si.shared_requests <- requests ;
+        self#update_row si row
       with
         Not_found ->
-	  lprintf "Shared file %d not found" num; lprint_newline ();
-
+          lprintf "Shared file %d not found" num; lprint_newline ();
+    
     initializer
       wf_upstats#add pl#box;
 
-  end
+end
 
 class upstats_box () =
   let wl_status = GMisc.label ~text: "" ~show: true () in
   let upstats = new box O.shared_files_up_columns () in
   object (self)
     inherit Gui_uploads_base.upstats_box () as upsb
-
+    
     method wl_status = wl_status
     method box = upsb#vbox
     method upstats_box= upstats
-
+    
     method clear = 
       wl_status#set_text "";
       upstats#clear
-
+    
     method refresh () =
       Gui_com.send GuiProto.RefreshUploadStats
-
+    
     method h_shared_file_info =
       upstats#h_shared_file_info 
-
+    
     method h_shared_file_upload =
       upstats#h_shared_file_upload 
-
+    
     method set_tb_style tb = 
-        if Options.(!!) Gui_options.mini_toolbars then
-          (wtool1#misc#hide (); wtool2#misc#show ()) else
-          (wtool2#misc#hide (); wtool1#misc#show ());
+      if Options.(!!) Gui_options.mini_toolbars then
+        (wtool1#misc#hide (); wtool2#misc#show ()) else
+        (wtool2#misc#hide (); wtool1#misc#show ());
       wtool1#set_style tb;
       wtool2#set_style tb
-
+    
     initializer
       vbox#pack ~expand: true ~padding: 2 upstats#box;
-
+      
       Gui_misc.insert_buttons wtool1 wtool2 
         ~text: (gettext M.refresh)
       ~tooltip: (gettext M.refresh)
       ~icon: M.o_xpm_refresh
         ~callback: self#refresh 
+        ();
+
+      (*
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: "Edit Shared Directories"
+        ~tooltip: "Edit Shared Directories"
+        ~icon: M.o_xpm_verify_chunks
+        ~callback: (fun _ -> 
+          let module C = Configwin in
+          let params = [
+              C.filenames ~f: (fun _ -> ()) "Shared Directories:" []] in
+          match C.simple_edit "Add New Directory" params with
+            C.Return_apply -> ()
+          | C.Return_ok -> ()
+          | C.Return_cancel -> ()
+      )
       ()
+*)
+
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: "Add Shared Directory"
+        ~tooltip: "Add Shared Directory"
+        ~icon: M.o_xpm_verify_chunks
+        ~callback: (fun _ -> 
+          let module C = Configwin in
+          let dir = ref "" in
+          let params = [
+              C.filename ~f: (fun d -> dir := d) "Add Shared Directory:" ""] in
+          match C.simple_edit "Add New Directory" ~with_apply: false
+            params with
+            C.Return_apply -> 
+              if !dir <> "" && !dir <> "/" then
+                Gui_com.send (Command (Printf.sprintf "share '%s'" !dir))
+          | C.Return_ok -> ()
+          | C.Return_cancel -> ()
+      )
+      ()
+      
   end

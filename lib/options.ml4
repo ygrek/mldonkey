@@ -675,7 +675,7 @@ let list_to_value name c2v l =
       List.iter (save_delayed_list_value oc indent c2v) l;
       Printf.fprintf oc "]"      
   )
-  
+
 let intmap_to_value name c2v map =
   DelayedValue (fun oc indent ->
       let save = save_delayed_list_value oc indent c2v in
@@ -986,7 +986,7 @@ let simple_options opfile =
         [] | _ :: _ :: _ -> ()
       | [name] ->
           match o.option_class.to_value o.option_value with
-            Module _ | SmallList _ | List _ -> 
+          | Module _ | SmallList _ | List _ | DelayedValue _ -> 
               begin
                 match o.string_wrappers with
                   None -> ()
@@ -1002,20 +1002,22 @@ let simple_options_html opfile =
   let list = ref [] in
   List.iter
     (fun o ->
-       match o.option_name with
-         [] | _ :: _ :: _ -> ()
-       | [name] ->
-           match o.option_class.to_value o.option_value with
-             Module _ | SmallList _ | List _ ->
-               begin match o.string_wrappers with
-                 None -> ()
-               | Some (to_string, from_string) ->
-                   list := (name, to_string o.option_value, value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list
-               end
-           | v -> list := (name, value_to_string v, value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list)
-    opfile.file_options;
+      match o.option_name with
+        [] | _ :: _ :: _ -> ()
+      | [name] ->
+          match o.option_class.to_value o.option_value with
+            Module _ | SmallList _ | List _ | DelayedValue _ ->
+              begin match o.string_wrappers with
+                  None -> ()
+                | Some (to_string, from_string) ->
+                    list := (name, to_string o.option_value, 
+                      value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list
+              end
+          | v -> list := (name, value_to_string v, 
+                value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list)
+  opfile.file_options;
   !list
-
+  
 
 let get_option opfile name =
   let rec iter name list = 

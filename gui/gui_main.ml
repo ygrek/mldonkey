@@ -246,7 +246,7 @@ let value_reader gui t =
         lprintf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
         lprint_newline ();
         gui#label_connect_status#set_text (gettext M.connected);
-        Com.send (Password (!!O.password))
+        Com.send (Password (!!O.login, !!O.password))
     
     | Search_result (num,r) -> 
         begin try
@@ -530,10 +530,6 @@ let main () =
   let gui = new Gui_window.window () in
   let w = gui#window in
   let quit () = 
-    (try
-        Gui_misc.save_gui_options gui;
-        Gui_com.disconnect gui;
-      with _ -> ());
     CommonGlobals.exit_properly 0
   in
   Gui_config.update_toolbars_style gui;
@@ -547,7 +543,7 @@ let main () =
   
   console_message := (fun s -> 
 
-      (*
+(*
       lprintf "to primary"; lprint_newline ();
       let e = gui#tab_console#text in
   
@@ -572,9 +568,13 @@ let main () =
 ));
   *)
       gui#tab_console#insert s);
-  
-  (** menu actions *)
-  ignore (gui#itemQuit#connect#activate w#destroy) ;
+
+  CommonGlobals.do_at_exit (fun _ ->
+      Gui_misc.save_gui_options gui;
+      Gui_com.disconnect gui);  
+(** menu actions *)
+  ignore (gui#itemQuit#connect#activate (fun () ->
+        CommonGlobals.exit_properly 0)) ;
   ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
   ignore (gui#itemReconnect#connect#activate 
       (fun () ->Com.reconnect gui value_reader));
@@ -596,6 +596,11 @@ let main () =
         Com.scan_ports () 
     ));
 
+  (************ Some hooks ***************)
+  option_hook Gui_options.notebook_tab (fun _ ->
+      gui#notebook#set_tab_pos !!Gui_options.notebook_tab
+  );
+  
   (** connection with core *)
   Com.reconnect gui value_reader ;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)

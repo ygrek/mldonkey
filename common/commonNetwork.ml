@@ -80,7 +80,10 @@ let new_network name prefix_option subdir_option =
   networks := r :: !networks;
   Hashtbl.add networks_by_name r.network_name r;
   Hashtbl.add networks_by_num r.network_num r;
-  networks_string := Printf.sprintf "%s %s" !networks_string r.network_name;
+  if !networks_string = "" then
+    networks_string := r.network_name
+  else
+    networks_string := Printf.sprintf "%s %s" !networks_string r.network_name;
   lprintf "Network %s registered" r.network_name;
   lprint_newline ();
   r
@@ -190,6 +193,7 @@ let network_find_by_name name =
 let network_find_by_num num =
   Hashtbl.find networks_by_num num
 
+  (*
 (* we could replace that by a [32..127] array mapping to functions. it would 
 only take 100*4 bytes ... *)
   
@@ -199,6 +203,7 @@ let register_escape_char (c : char) (f : unit -> string) =
   network_escape_chars := (c,f) :: !network_escape_chars
   
 let escape_char c = (List.assq c !network_escape_chars) ()
+*)
   
 let network_commands = ref ([] : (string * GuiTypes.arg_kind * string) list)
   

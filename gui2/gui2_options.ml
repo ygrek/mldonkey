@@ -198,6 +198,9 @@ let gui_height = define_option mldonkey_gui_ini
   
 (** {2 Others} *)
 
+let login = define_option mldonkey_gui_ini ["login"] 
+    "Your login" string_option "admin"
+  
 let password = define_option mldonkey_gui_ini ["password"] 
     M.h_gui_password string_option ""
 let port = define_option mldonkey_gui_ini ["port"] 
@@ -241,6 +244,7 @@ let check_client_connections_delay = ref ""
 let check_connections_delay = ref ""
 let min_retry_delay = ref ""
 let client_name = ref ""
+let client_login = ref ""
 let client_password = ref ""
 let max_connected_servers = ref ""
 let max_upload_rate = ref ""
@@ -266,6 +270,7 @@ let client_options_assocs = [
   "check_connections_delay", check_connections_delay;
   "min_retry_delay", min_retry_delay;
   "client_name",   client_name;
+  "login",  client_login;
   "password",  client_password;
   "max_connected_servers", max_connected_servers;
   "max_hard_upload_rate", max_upload_rate;

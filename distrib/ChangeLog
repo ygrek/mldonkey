@@ -1,6 +1,69 @@
 ChangeLog	
 =========
 
+2002/03/10: Release 2.03, 
+
+  We are forced to release a new stable version a bit earlier than expected,
+due to problems with old clients accessing savannah at startup.
+  Compared to the 2.02 release, this new release provides:
+   * Better Emule compatibility
+   * New improved sources management (fewer sources, but better sources)
+   * Improved interfaces: 
+       * new WEB interface (use html_mods option to use the old one)
+       * some colors in terminal (use term_ansi option to disable)
+       * new external searches in the GUI
+
+2003/03/06: Simon
+  - Debug: new commands 'debug_client <nums>' to see messages exchanged with
+      those clients, and 'clear_debug' to clear the debug table.
+  - New option '-daemon' and new command 'daemon' to run mldonkey in
+      daemon mode.
+  - New commands 'log_file <file>' and 'close_log' to log output to a file.
+  - New command '! <cmd>' to execute a system command from the interface.
+      The <cmd> command must have been defined in the option
+      'allowed_commands' as the symbolic name for another command.
+      You cannot pass arguments, only those associated with the command
+      in 'allowed_commands' are used (default example: df)
+  - New multi-user system:
+     * Options 'password', 'http_login' and 'http_password' have been
+       replaced by one option 'users', that should not be edited manually
+       (to reset, remove it completely), since the passwords are encrypted
+       in config files.
+     * The default user is 'admin'. He should not be removed. He is the
+       only one who has the right to add new users. Default password is
+       "" (empty)
+     * 'auth <user> <password>' is used to change the user in a 
+         console/GUI session
+     * 'add_user <user> <password>' is used to add a user, or change the
+         password associated with it. Only 'admin' is allowed to use this
+         command.
+     * Searches are now displayed per user. All other views are shared 
+         between users.
+  - Bug fixes:
+     * Bug in GUI proto 7..13, where force param of Download_query was
+        sent with bad opcode.
+  - Links to the WEB server of savannah have been banned: in web_infos and
+      network_update_url. The redirector is temporarily used to provide this
+      information.
+  - Telnet interface: 
+     * ANSI escape sequences: option "term_ansi", command "ansi true/false",
+        to activate/disactivate colors on terminal
+     * Command "term <width> <height>" for prompt on last line, until I 
+        remember how to detect terminal size automatically.
+  - New option 'max_concurrent_downloads', and new state Queued for files
+      being downloaded. Only the 'max_concurrent_downloads' files with
+      highest priority are really being downloaded, other files with
+      lower priority are waiting.
+  - Limewire/Gnutella:
+     * Correctly send the QRT table to ultrapeers
+     * Almost able to reply to searches
+  - GUI:
+     * Upload tab: new button "Add Shared Directory"
+  - Applied patches #1247, #1228, #1235, #1242, #1248, #1232
+  - Bug fixes in eDonkey:
+     * 'peer_ip' is only called if reliable_sources is activated
+     * A client cannot appear twice in the pending slots queue 
+
 2003/03/05: Simon (v 2.02-29 next release: monday)
   - IMPORTANT Bug fixes (thx pango):
      * Corrupted blocks are removed

@@ -26,7 +26,7 @@ type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
   establish the connection. *)
 | GuiProtocol of int
-| Password of string
+| Password of string * string
   
 | ConnectMore_query
 | CleanOldServers

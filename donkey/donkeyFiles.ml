@@ -122,15 +122,16 @@ let force_check_locations () =
                 try connect_client !!client_ip [file] c with _ -> ()) 
             file.file_known_locations;
 *)            
-            
-            (*
+
+          (*
             List.iter (fun s ->
                 match s.server_sock with
                   None -> () (* assert false !!! *)
                 | Some sock ->
-                    (try query_location file sock with _ -> ())
+                    (try DonkeyServers.query_location file sock with _ -> ())
             ) (connected_servers());
 *)
+          
             List.iter (fun s  ->
               if 
                 connection_last_conn s.server_connection_control + 3600*8 > last_time () &&

@@ -62,11 +62,13 @@ decide whether to connect immediatly or not. *)
     mutable op_client_bprint_html : ('a -> Buffer.t -> 
     CommonTypes.file -> unit);
 
-    mutable op_client_dprint : ('a -> CommonTypes.connection_options -> 
+    mutable op_client_dprint : ('a -> CommonTypes.ui_conn -> 
 	CommonTypes.file -> unit);
 
-    mutable op_client_dprint_html : ('a -> CommonTypes.connection_options ->
+    mutable op_client_dprint_html : ('a -> CommonTypes.ui_conn ->
     CommonTypes.file -> string -> bool);
+    
+    mutable op_client_debug : ('a -> bool -> unit);
   }
   
 let client_counter = CommonUser.user_counter
@@ -124,6 +126,10 @@ let client_say (client : client) s =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_say client.impl_client_val s
 
+let client_debug (client : client) s =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_debug client.impl_client_val s
+
 let client_files client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_files client.impl_client_val
@@ -173,6 +179,7 @@ let new_client_ops network =
       op_client_to_option = (fun _ -> fni network "client_to_option");
       op_client_info = (fun _ -> fni network "client_info");
       op_client_say = (fun _ _ -> ni_ok network "client_say");
+      op_client_debug = (fun _ _ -> ni_ok network "client_debug");
       op_client_files = (fun _ -> fni network "client_files");
       op_client_connect  = (fun _ -> ni_ok network "client_connect");
       op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");

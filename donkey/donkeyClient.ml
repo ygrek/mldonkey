@@ -59,7 +59,10 @@ let is_banned c sock =
     
 
 (* Supports Emule Extended Protocol *)
-let supports_eep cb = cb = Brand_newemule || cb = Brand_cdonkey
+let supports_eep cb = 
+  match cb with
+    Brand_newemule | Brand_cdonkey | Brand_mldonkey3 -> true
+  | _ -> false
 
 let ban_client c sock msg = 
   let module M = DonkeyProtoClient in
@@ -120,38 +123,40 @@ let clean_requests () = (* to be called every hour *)
 
   
 let add_pending_slot c =
+  if c.client_has_a_slot then begin
+      lprintf "Avoided inserting an uploader in pending slots!";
+      lprint_newline ()
+    end 
+  else 
   if not (Intmap.mem (client_num c) !pending_slots_map) then
-    if c.client_has_a_slot then begin
-	lprintf "Avoided inserting an uploader in pending slots!";
-	lprint_newline ()
-      end 
-    else begin
+    begin
 (* This is useless since it is the goal of the pending_slots_map 
         else if Fifo.mem pending_slots_fifo (client_num c) then begin
 	lprintf "Avoided inserting a client twice in pending slots";
 	lprint_newline ()
       end else *)
-        pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
-        Fifo.put pending_slots_fifo (client_num c)
-      end
-  
+      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
+      Fifo.put pending_slots_fifo (client_num c)
+    end
+    
 let remove_pending_slot c =
   if Intmap.mem (client_num c) !pending_slots_map then
     pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
     
 let rec give_a_slot c = 
   remove_pending_slot c;
+  if not c.client_has_a_slot then find_pending_slot () else
   match c.client_sock with
     None -> find_pending_slot ()
   | Some sock ->
       set_rtimeout sock !!upload_timeout;
+      c.client_has_a_slot <- true;
       
       set_lifetime sock one_day;
       direct_client_send c (
         let module M = DonkeyProtoClient in
         let module Q = M.AvailableSlot in
         M.AvailableSlotReq Q.t);
-      c.client_has_a_slot <- true;
       
       if !verbose then begin
           lprintf "New uploader %s: brand %s" 
@@ -251,12 +256,17 @@ let disconnect_client c =
     None -> ()
   | Some sock ->
       (try
+          if c.client_debug then 
+            lprintf "Client[%d]: disconnected\n" (client_num c);
           if c.client_checked then count_seen c;
           if !!log_clients_on_console && c.client_name <> "" then 
               log_client_info c sock
             ;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
-          remove_pending_slot c;
+(*        There is a bug with this pending slot queue, now, we don't remove
+          clients that disconnect, ok, it looks just like an Emule queue...
+          but it should at least fix the bug for this release.
+          remove_pending_slot c; *)
           connection_failed c.client_connection_control;
           TcpBufferedSocket.close sock "closed";
           printf_string "-c"; 
@@ -619,9 +629,9 @@ let solve_challenge md4 =
 let client_to_client challenge for_files c t sock = 
   let module M = DonkeyProtoClient in
   
-  if !verbose_msg_clients then begin
-      lprintf "Message from client %s(%s)"
-        c.client_name (brand_to_string c.client_brand);
+  if !verbose_msg_clients || c.client_debug then begin
+      lprintf "Message from client[%d] %s(%s)" (client_num c)
+      c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
           Indirect_location _ -> ()
         | Known_location (ip,port) ->
@@ -1047,13 +1057,14 @@ is checked for the file.
   | M.BlocReq t ->
       let module Q = M.Bloc in
       let file = client_file c in
-
-      if !!trusted_sources && socket_trust sock = Trust_suspicious 0 then begin
-	lprintf "Receiving data from banned client, disconnect";
-	lprint_newline ();
-	disconnect_client c;
-	raise Not_found
-      end;
+      
+      if !!reliable_sources && 
+        socket_trust sock = Trust_suspicious 0 then begin
+          lprintf "Receiving data from banned client, disconnect";
+          lprint_newline ();
+          disconnect_client c;
+          raise Not_found
+        end;
       
       DonkeySourcesMisc.set_request_result c file File_upload;
       
@@ -1066,7 +1077,8 @@ is checked for the file.
       
       c.client_rating <- c.client_rating + 10;
       (match file_state file with
-          FilePaused | FileAborted _ -> next_file c; raise Not_found
+          FilePaused | FileAborted _ -> 
+            next_file c; raise Not_found
         | _ -> ());
       
       let begin_pos = t.Q.start_pos in
@@ -1103,49 +1115,49 @@ is checked for the file.
               ) c.client_zones;
 
 (* try to recover the corresponding block ... *)
-
+              
               if bb.block_pos <> chunk_num then begin
                   lprintf "OLD BLOCK %d <> %d" bb.block_pos chunk_num;
                   lprint_newline ();
                 end else
                 (              
-              match file.file_chunks.(chunk_num) with
-                  PresentTemp | PresentVerified -> 
-                    lprintf "ALREADY PRESENT"; lprint_newline ();
+                  match file.file_chunks.(chunk_num) with
+                    PresentTemp | PresentVerified -> 
+                      lprintf "ALREADY PRESENT"; lprint_newline ();
 
 (* Here, we should probably try to find a new block !! *)
-                    DonkeyOneFile.clean_client_zones c;
-                    DonkeyOneFile.find_client_block c                    
-                
-                | AbsentTemp | AbsentVerified ->
-                    lprintf "ABSENT (not implemented)"; 
-                    lprint_newline ();
+                      DonkeyOneFile.clean_client_zones c;
+                      DonkeyOneFile.find_client_block c                    
+                  
+                  | AbsentTemp | AbsentVerified ->
+                      lprintf "ABSENT (not implemented)"; 
+                      lprint_newline ();
 (* We receive information for a block we have not asked !! *)
-                
-                | PartialTemp b | PartialVerified b ->
-                    
+                  
+                  | PartialTemp b | PartialVerified b ->
+                      
                       if b != bb then begin
-                        lprintf "BLOCK DISAGREEMENT"; lprint_newline ();
-                      end else begin
-                        lprintf "PARTIAL"; lprint_newline ();
+                          lprintf "BLOCK DISAGREEMENT"; lprint_newline ();
+                        end else begin
+                          lprintf "PARTIAL"; lprint_newline ();
 
 (* try to find the corresponding zone *)
-                        List.iter (fun z ->
-                            if z.zone_begin >= begin_pos &&
-                              end_pos > z.zone_begin then begin
-                                lprintf "BEGIN ZONE MATCHES"; 
-                                lprint_newline ();
-                              end else
-                            if z.zone_begin < begin_pos &&
-                              begin_pos < z.zone_end &&
-                              z.zone_end < end_pos then begin
-                                lprintf "END ZONE MATCHES";
-                                lprint_newline ();
-                              end 
-                        
-                        ) b.block_zones
-                      end
-              );              
+                          List.iter (fun z ->
+                              if z.zone_begin >= begin_pos &&
+                                end_pos > z.zone_begin then begin
+                                  lprintf "BEGIN ZONE MATCHES"; 
+                                  lprint_newline ();
+                                end else
+                              if z.zone_begin < begin_pos &&
+                                begin_pos < z.zone_end &&
+                                z.zone_end < end_pos then begin
+                                  lprintf "END ZONE MATCHES";
+                                  lprint_newline ();
+                                end 
+                          
+                          ) b.block_zones
+                        end
+                );              
               raise Not_found
             else
             
@@ -1177,7 +1189,8 @@ is checked for the file.
               in
               Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
               List.iter (update_zone file begin_pos end_pos) c.client_zones;
-	      if not (List.mem (peer_ip sock) bb.block_contributors) then
+              if !!reliable_sources &&
+                not (List.mem (peer_ip sock) bb.block_contributors) then
                 bb.block_contributors <- (peer_ip sock) :: 
                 bb.block_contributors;
               find_client_zone c;                    
@@ -1188,10 +1201,8 @@ is checked for the file.
             | e ->
                 lprintf "Error %s while writing block. Pausing download" (Printexc2.to_string e);
                 lprint_newline ();
-                file_pause (as_file file.file_file);
-      
-      end;
-
+                file_pause (as_file file.file_file);      
+      end;      
 
 (* Upload requests *)
   | M.ViewFilesReq t when !has_upload = 0 && !!allow_browse_share -> 
@@ -1325,19 +1336,41 @@ end else *)
   
   | M.SayReq s ->
       
-      let ad_opt = 
+      let ad_opt =
         match c.client_kind with
-          Known_location (ip, port) -> 
+          Known_location (ip, port) ->
             (
               match c.client_chat_port with
                 0 -> None
               | p ->Some (Ip.to_string ip, p)
             )
-        |	Indirect_location _ -> None
+        |   Indirect_location _ -> None
       in
-(* A VOIR : historique à gérer *) 
+(* A VOIR : historique à gérer *)
 (*      !say_hook c s *)
-      private_message_from (as_client c.client_client)  s
+      private_message_from (as_client c.client_client)  s;
+
+      let cip =
+         ( 
+            try
+              
+              match c.client_sock with
+                Some sock -> Ip.to_string (peer_ip sock)
+              | None -> (match c.client_kind with 
+                      Known_location (ip,port) -> Ip.to_string ip
+                    | Indirect_location _ -> "Indirect"
+                  )
+            
+            with _ -> 
+                
+                try 
+                  match c.client_kind with 
+                    Known_location (ip,port) -> Ip.to_string ip
+                  | Indirect_location _ -> "Indirect"
+                with _ -> ""
+          ) 
+      in
+	  log_chat_message cip (client_num c) c.client_name s;
   
   | M.QueryChunkMd4Req t when !has_upload = 0 -> 
       
@@ -1511,26 +1544,17 @@ let init_client sock c =
         
 let read_first_message overnet challenge m sock =
   let module M = DonkeyProtoClient in
-
-  (*
-  if !verbose_msg_clients then begin  
-      lprintf "First Message";
-      lprint_newline ();
-      M.print m;
-      lprint_newline ();
-    end;
-*)
   
   match m with
-
+  
   | M.ConnectReq t ->
       printf_string "******* [PCONN OK] ********";
       
       let module CR = M.Connect in
-
+      
       
       if t.CR.md4 = !!client_md4 ||
-         t.CR.md4 = overnet_md4 then begin
+        t.CR.md4 = overnet_md4 then begin
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
@@ -1547,7 +1571,7 @@ let read_first_message overnet challenge m sock =
             { tag_name = "name"; tag_value = String s } -> name := s
           | _ ->  ()
       ) t.CR.tags;
-
+      
       let kind, indirect = try
           match t.CR.server_info with
             Some (ip, port) -> 
@@ -1562,7 +1586,14 @@ let read_first_message overnet challenge m sock =
           | None ->  raise Not_found
         with _ -> Indirect_location (!name,t.CR.md4), None in
       let c = new_client kind in
-
+      
+      if c.client_debug || !verbose_msg_clients then begin  
+          lprintf "First Message";
+          lprint_newline ();
+          M.print m;
+          lprint_newline ();
+        end;
+      
       Hashtbl.add connected_clients t.CR.md4 c;
       
       begin
@@ -1596,7 +1627,7 @@ let read_first_message overnet challenge m sock =
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       
-      if  !!trusted_sources && 
+      if  !!reliable_sources && 
         ip_trust (peer_ip sock) = Trust_suspicious 0 then begin
 	set_client_state c BlackListedHost;
 	raise End_of_file
@@ -1705,7 +1736,7 @@ let reconnect_client c =
       | Known_location (ip, port) ->
           if client_state c <> BlackListedHost then
             if !!black_list && is_black_address ip port ||
-	       (!!trusted_sources && ip_trust ip = Trust_suspicious 0) then
+	       (!!reliable_sources && ip_trust ip = Trust_suspicious 0) then
               set_client_state c BlackListedHost
             else
             try
@@ -1730,7 +1761,8 @@ let reconnect_client c =
                   challenge_solved = Md4.null;
                   challenge_ok = false;
                 } in
-              set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
+              set_reader sock (
+                DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
                   (client_to_client challenge files c));
               
               c.client_sock <- Some sock;

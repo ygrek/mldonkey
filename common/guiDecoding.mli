@@ -17,15 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val dollar_escape : CommonTypes.ui_conn -> bool -> string -> string
-val eval : bool ref -> string -> CommonTypes.ui_conn -> unit
 
+val to_gui : int -> int -> string -> GuiProto.to_gui
+val from_gui : int -> int -> string -> GuiProto.from_gui
   
-val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
-val chat_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
-val create_http_handler : unit -> unit
-
-val check_calendar : unit -> unit
-
-(* should not be here ... *)
-val text_of_html : string -> string
+val gui_cut_messages : (int -> string -> unit) -> TcpBufferedSocket.t -> 'a -> unit

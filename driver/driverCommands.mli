@@ -22,5 +22,5 @@ open GuiTypes
 (* val commands : (string * arg_kind * string) list *)
 val execute_command :
     (string * arg_kind * string) list ->
-  CommonTypes.connection_options -> string -> 
+  CommonTypes.ui_conn -> string -> 
   string list -> unit

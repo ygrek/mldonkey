@@ -108,7 +108,7 @@ type result_info = {
     mutable result_done : bool;
   }
   
-type output_type = TEXT | HTML
+type output_type = TEXT | HTML | ANSI
   
 type sortvd_type = 
   BySize
@@ -120,13 +120,6 @@ type sortvd_type =
 | ByETA
 | ByLast
 | NotSorted
-  
-type connection_options = {
-    mutable conn_output : output_type; 
-    mutable conn_sortvd : sortvd_type;
-    mutable conn_filter : (result_info -> unit);
-    mutable conn_buf : Buffer.t;
-  }
   
 type room_state = 
 | RoomOpened
@@ -199,7 +192,24 @@ type network = {
     
     mutable op_network_connected : (unit -> bool);
   }
-  
+
+and   ui_user = {
+    ui_user_name : string;
+    mutable ui_user_searches : search list;
+    mutable ui_last_search : search option;
+    mutable ui_last_results : (int * result) list;
+  }
+      
+and ui_conn = {
+    mutable conn_output : output_type; 
+    mutable conn_sortvd : sortvd_type;
+    mutable conn_filter : (result_info -> unit);
+    mutable conn_buf : Buffer.t;
+    mutable conn_user : ui_user;
+    mutable conn_width : int;
+    mutable conn_height : int;
+  }
+
   
 
 and search = {
@@ -221,10 +231,11 @@ exception CommandCloseSocket
   
 type file_state =
   FileDownloading
+| FileQueued
 | FilePaused
 | FileDownloaded
 | FileShared
-  
+
 | FileCancelled
 | FileNew
 
@@ -299,6 +310,8 @@ sending it twice. *)
     mutable gui_rooms : numevents;
     mutable gui_results : numevents;
     mutable gui_shared_files : numevents;
+    
+    gui_conn : ui_conn;
   }
   
 and event = 
@@ -348,10 +361,15 @@ let is_connected state =
 let string_of_connection_state s = 
   match s with
   | Connected (-1) -> "Connected"
-  | NotConnected (-1) -> ""
-  | NotConnected 0 -> "Queued Out"
+  | NotConnected n -> 
+      if n = -1 then "" else
+      if n = 0 then  "Queued Out" else
+      if n > 0 then
+        Printf.sprintf "Ranked %d Out" n
+      else
+        Printf.sprintf "Failed %d" (- n - 1)
+        
   | Connected  0 -> "Queued In"
-  | NotConnected n -> Printf.sprintf "Ranked %d Out" n
   | Connected  n -> Printf.sprintf "Ranked %d" n
   | Connecting -> "Connecting"
   | Connected_initiating -> "Initiating"
@@ -376,4 +394,3 @@ let short_string_of_connection_state s =
   | RemovedHost -> "Rem"
   | BlackListedHost -> "BL"
   | NewHost -> "New"
-      

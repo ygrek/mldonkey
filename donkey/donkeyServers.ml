@@ -392,6 +392,8 @@ let connect_server s =
 *)
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         disconnect_server s
+
+let print_empty_list = ref true
         
 let rec connect_one_server () =
 (*  lprintf "connect_one_server"; lprint_newline (); *)
@@ -404,11 +406,12 @@ let rec connect_one_server () =
             servers_list := s :: !servers_list
         ) servers_by_key;
         if !servers_list = [] then begin
-            lprintf "Looks like you have no servers in your servers.ini";
-            lprint_newline ();
-            lprintf "You should either use the one provided with mldonkey";
-            lprint_newline ();
-            lprintf "or import one from the WEB"; lprint_newline ();
+            if !print_empty_list then begin
+                print_empty_list := false;
+                lprintf "Looks like you have no servers in your servers.ini\n";
+                lprintf "You should either use the one provided with mldonkey\n";
+                lprintf "or import one from the WEB\n";
+              end;
             
             raise Not_found;
           end;

@@ -107,6 +107,45 @@ module KeyOption = struct
       
   end
 
+module TabPosition = struct
+
+    let values = [
+        "left" ; "right"; "top"; "bottom"
+      ]
+    
+    let string_to_pos v =
+      match String.lowercase v with
+      | "left" -> `LEFT
+      | "right" -> `RIGHT
+      | "top" -> `TOP
+      | "bottom" -> `BOTTOM
+      | _ -> `LEFT
+    
+    let pos_to_string pos = 
+      match pos with
+        `LEFT -> "left"
+      | `RIGHT -> "right"
+      | `TOP -> "top"
+      | `BOTTOM -> "bottom"
+
+    let value_to_pos v =
+      match v with
+      | StringValue "left" -> `LEFT
+      | StringValue "right" -> `RIGHT
+      | StringValue "top" -> `TOP
+      | StringValue "bottom" -> `BOTTOM
+      | _ -> `LEFT
+          
+    let pos_to_value pos = 
+      StringValue (match pos with
+          `LEFT -> "left"
+        | `RIGHT -> "right"
+        | `TOP -> "top"
+        | `BOTTOM -> "bottom")
+    
+    let t = define_option_class "TabPosition" value_to_pos pos_to_value
+  end
+  
 (** {2 Key mappings} *)
 
 let keymap_global = define_option mldonkey_gui_ini ["keymaps"; "global"]
@@ -369,6 +408,10 @@ let gui_height = define_option mldonkey_gui_ini
     ["layout"; "height"]
   "Height of GUI window" int_option 400
 
+let notebook_tab = define_option mldonkey_gui_ini
+    ["layout"; "tab_position"]
+    "Position of tab (left, right, top, bottom)" TabPosition.t `TOP
+
 
 
 (** {2 List columns} *)
@@ -446,6 +489,8 @@ let shared_files_up_columns = define_option mldonkey_gui_ini
 
 (** {2 Others} *)
 
+let login = define_option mldonkey_gui_ini ["login"] 
+    "Your login name (default is admin)" string_option "admin"
 let password = define_option mldonkey_gui_ini ["password"] 
     (gettext M.h_gui_password) string_option ""
 let port = define_option mldonkey_gui_ini ["port"] 

@@ -161,7 +161,7 @@ lprintf "UDP sent [%s]" (String.escaped
 (String.sub s pos len)); lprint_newline ();
 *)
             with
-              Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
+              Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
                 t.wlist <- PacketSet.add  (0, {
                     content = s ;
                     addr = addr;
@@ -203,7 +203,7 @@ let rec iter_write_no_bc t sock =
         Unix.sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
       with
-        Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
+        Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
       | e ->
           lprintf "Exception %s in sendto next"
             (Printexc2.to_string e);
@@ -215,7 +215,7 @@ let iter_write_no_bc t sock =
   try
     iter_write_no_bc t sock 
   with
-    Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> 
+    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
       must_write t.sock true
 
 let rec iter_write t sock bc = 
@@ -239,7 +239,7 @@ let rec iter_write t sock bc =
         bc.remaining_bytes <- bc.remaining_bytes - (len + !
           TcpBufferedSocket.ip_packet_size) ;
       with
-        Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
+        Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
       | e ->
           lprintf "Exception %s in sendto next"
             (Printexc2.to_string e);
@@ -253,7 +253,7 @@ let iter_write t sock bc =
   try
     iter_write t sock bc    
   with
-    Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> 
+    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
       must_write sock true
       
 let udp_handler t sock event = 

@@ -19,8 +19,8 @@
 
 open Printf2
 open CommonOptions
+open BasicSocket  
 open TcpBufferedSocket
-open BasicSocket
 open CommonGlobals
 open CommonSearch
 open Options
@@ -59,8 +59,73 @@ let size_of_int64 size =
   
 let days = ref 0      
 let hours = ref 0    
-
+  
+let cut_messages f sock nread =
+  lprintf "cut_messages %d\n" nread;
+  let b = buf sock in
+  try
+    while b.len >= 4 do
+      let msg_len = LittleEndian.get_int b.buf b.pos in
+      lprintf "waiting for %d\n" msg_len;
+      if b.len >= 4 + msg_len then
+        begin
+          let s = String.sub b.buf (b.pos+4) msg_len in
+          buf_used sock (msg_len + 4);
+          lprintf "message received\n";
+          let opcode = LittleEndian.get_int16 s 0 in
+          (f opcode s : unit)
+        end
+      else raise Not_found
+    done
+  with Not_found -> ()
+  
 let load_web_infos () =
+(* Try to connect the redirector to get interesting information, since we
+are not allowed to use savannah anymore. The redirector should be able to
+support the charge, at least, currently. *)
+  let (name, port) = !!mlnet_redirector in
+  Ip.async_ip name (fun ip ->
+      try
+        let sock = TcpBufferedSocket.connect "connect redirector"
+            (Ip.to_inet_addr ip) port            
+            (fun sock event ->
+              match event with
+              | BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
+                  TcpBufferedSocket.close sock "timeout redirector"
+              | _ -> ())
+        in
+        TcpBufferedSocket.set_rtimeout sock 30.;
+        let to_read = ref [] in
+        set_reader sock (cut_messages (fun opcode s ->
+              let module L = LittleEndian in
+              
+              let motd_html_s, pos = L.get_string16 s 2 in
+              let servers_met_s, pos = L.get_string16 s pos in
+              let peers_ocl_s, pos = L.get_string16 s pos in
+              let motd_conf_s, pos = L.get_string16 s pos in
+              
+              motd_html =:= motd_html_s;
+              
+              let servers_met_file = Filename.temp_file "servers" ".met" in
+              File.from_string servers_met_file servers_met_s;
+              load_file "servers.met" servers_met_file;
+
+              let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
+              File.from_string peers_ocl_file peers_ocl_s;
+              load_file "ocl" peers_ocl_file;
+
+              let motd_conf_file = Filename.temp_file "motd" ".conf" in
+              File.from_string motd_conf_file motd_conf_s;
+              load_file "motd.conf" motd_conf_file;              
+              
+              lprintf "Redirector info loaded\n";
+              TcpBufferedSocket.close sock "info received"
+          ))
+      with e -> 
+          lprintf "Exception %s while connecting redirector\n"
+            (Printexc2.to_string e)
+  );
+  
   if !!network_update_url <> "" then begin
     load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
     load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
@@ -71,31 +136,31 @@ let load_web_infos () =
 
 let display_vd = ref false
   
-let last_search = ref None
-let last_results = ref []
-  
 let print_results o =
   let buf = o.conn_buf in
-  match !searches with
+  let user = o.conn_user in
+  match user.ui_user_searches with
     [] -> Printf.bprintf buf "No search to print\n"
   | q :: _ ->
-      last_search := Some q;
-      last_results := [];
+      user.ui_last_search <- Some q;
+      user.ui_last_results <- [];
       let counter = ref 1 in
       Intmap.iter (fun r_num (count,r) ->
           CommonResult.result_print r !counter o;
-          last_results := (!count, r) :: !last_results;
+          user.ui_last_results <- (!count, r) :: user.ui_last_results;
           incr counter;
       ) q.search_results
 
       
-let download_file buf arg =
+let download_file o arg =
+  let user = o.conn_user in
+  let buf = o.conn_buf in
   Printf.bprintf buf "%s\n" (
     try
-      match !last_search with
+      match user.ui_last_search with
         None -> "no last search"
       | Some s ->
-          let result = List.assoc (int_of_string arg) !last_results  in
+          let result = List.assoc (int_of_string arg) user.ui_last_results  in
           CommonResult.result_download result [] false; 
           "download started"
     with
@@ -103,8 +168,8 @@ let download_file buf arg =
     | _ -> "could not start download"
   )
   
-let start_search query buf =
-  let s = CommonSearch.new_search query in
+let start_search user query buf =
+  let s = CommonSearch.new_search user query in
   networks_iter (fun r -> r.op_network_search s buf);
   s
   
@@ -151,7 +216,7 @@ let print_connected_servers o =
 
   )
   
-let send_custom_query buf s args = 
+let send_custom_query user buf s args = 
   let query = s.GuiTypes.search_query in
   try
     let q = List.assoc query !!CommonComplexOptions.customized_queries in
@@ -285,7 +350,7 @@ let send_custom_query buf s args =
     try
       let request = iter q in
       Printf.bprintf buf "Sending query !!!";
-      ignore (start_search {s with GuiTypes.search_query = request } buf)
+      ignore (start_search user {s with GuiTypes.search_query = request } buf)
     with
       Not_found ->
         Printf.bprintf buf "Void query %s" query        
@@ -434,8 +499,10 @@ let _ =
   add_infinite_option_timer filter_search_delay (fun _ ->
       if !!filter_search then begin
 (*          lprintf "Filter search results"; lprint_newline (); *)
-          List.iter  (fun s -> CommonSearch.Filter.find s) 
-          !searches;
+          List.iter (fun user ->
+              List.iter  (fun s -> CommonSearch.Filter.find s) 
+              user.ui_user_searches;
+          ) !ui_users
         end;
       CommonSearch.Filter.clear ()
   )
@@ -452,4 +519,77 @@ let main_options = ref ([] : (string * Arg.spec * string) list)
   
 let add_main_options list =
   main_options := !main_options @ list
+
   
+(*************************************************************
+
+Every minute, sort the files by priority, and test if the
+files with the highest priority are in FileDownloading state,
+and the ones with lowest priority in FileQueued state, if there
+is a max_concurrent_downloads constraint.
+
+In the future, we could try to mix this with the multi-users
+system to give some fairness between downloads of different 
+users.
+  
+**************************************************************)  
+
+open CommonFile
+  
+let force_download_quotas () = 
+  let files = List.sort (fun f1 f2 -> 
+        let v = file_priority f2 - file_priority f1 in
+        if v <> 0 then v else
+        let s1 = file_downloaded f1 in
+        let s2 = file_downloaded f2 in
+        if s1 = s2 then 0 else
+        if s2 > s1 then 1 else -1
+        )
+    !!CommonComplexOptions.files in
+  
+  let rec iter list priority files ndownloads nqueued =
+    match list, files with
+      [], [] -> ()
+    | [], _ -> 
+        iter_line list priority files ndownloads nqueued
+    | f :: tail , _ :: _ when file_priority f < priority ->
+        iter_line list priority files ndownloads nqueued
+    | f :: tail, files ->
+        match file_state f with
+          FileDownloading ->
+            iter tail (file_priority f) (f :: files) (ndownloads+1) nqueued
+        | FileQueued ->
+            iter tail (file_priority f) (f :: files) ndownloads (nqueued+1)
+        | _ ->
+            iter tail (file_priority f) files ndownloads nqueued
+        
+  and iter_line list priority files ndownloads nqueued = 
+    if ndownloads > !!max_concurrent_downloads then
+      match files with
+        [] -> assert false
+      | f :: tail ->
+          match file_state f with
+            FileDownloading ->
+              set_file_state f FileQueued;
+              iter_line list priority tail (ndownloads-1) nqueued
+          | _ -> iter_line list priority tail ndownloads (nqueued-1)
+    else
+    if ndownloads < !!max_concurrent_downloads && nqueued > 0 then
+      match files with
+        [] -> assert false
+      | f :: tail ->
+          match file_state f with
+            FileQueued ->
+              set_file_state f FileDownloading;
+              iter_line list priority tail (ndownloads+1) (nqueued-1)
+          | _ -> iter_line list priority tail ndownloads nqueued      
+    else
+      iter list priority [] ndownloads nqueued
+    
+  in
+  iter files max_int [] 0 0
+  
+let _ =
+  option_hook max_concurrent_downloads (fun _ ->
+      force_download_quotas ()   
+  )

@@ -208,4 +208,3 @@ let insert_buttons (wtool1: GButton.toolbar) (wtool2 : GButton.toolbar)
       ~icon: (Gui_options.pixmap (icon ^ "_mini"))#coerce
       ~callback: callback
       ())
-  

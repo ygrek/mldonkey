@@ -191,7 +191,6 @@ let exit_properly n =
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )
-
   
   
 let want_and_not andnot f value =
@@ -396,8 +395,7 @@ let rec bprint_tags buf tags =
 
 let aborted_download = ref (None : int option)
 
-    
-let searches = ref ([] : search list)
+(* let searches = ref ([] : search list) *)
   
 let core_included = ref false
 let gui_included = ref false
@@ -441,6 +439,14 @@ let load_url kind url =
     mldonkey_wget url f
   with e -> failwith (Printf.sprintf "Exception %s while loading %s"
           (Printexc2.to_string e) url)
+  
+let load_file kind file =
+  try 
+    (List.assoc kind !file_kinds) file
+  with e -> 
+      lprintf "Exception %s while loading kind %s\n" 
+        (Printexc2.to_string e)
+      kind
 
 let history_size = 6
 let upload_history = Array.create history_size 0
@@ -451,5 +457,54 @@ let update_upload_history usage =
   if !history_index = history_size then history_index := 0;
   upload_history.(!history_index) <- usage
   
+let chat_message_fifo = (Fifo.create () : (int * string * int * string * string) Fifo.t) 
+
+let log_chat_message i num n s = 
+  Fifo.put chat_message_fifo (last_time(),i,num,n,s);
+(* rely on GC? no, you cannot rely on GC for this as you cannot have it
+  guess when a message should be removed *)
+  
+  while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
+    let foo = Fifo.take chat_message_fifo in ()
+  done
+  
+
+  
 let upload_usage () = upload_history.(!history_index)
   
+let debug_clients = ref Intset.empty
+
+let default_user = {
+    ui_user_name = "admin";
+    ui_user_searches = []; 
+    ui_last_search = None;
+    ui_last_results = [];
+  }
+  
+let ui_users = ref [default_user]
+  
+      
+let find_ui_user user =
+  let rec iter list =
+    match list with
+      [] ->
+        let u = {
+            ui_user_name = user;
+            ui_user_searches = [];
+            ui_last_search = None;
+            ui_last_results = [];
+          } in
+        ui_users := u :: !ui_users;
+        u
+    | u :: tail -> 
+        if u.ui_user_name = user then u else iter tail
+  in
+  iter !ui_users
+  
+  
+let valid_password user pass =  
+  let pass = Md4.Md4.string pass in
+  try
+    let password = List.assoc user !!users in
+    password = pass 
+  with _ -> false

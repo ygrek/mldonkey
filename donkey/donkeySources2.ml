@@ -125,7 +125,8 @@ let score s =
             s.source_score <- s.source_score + 
               (match file_state r.request_file  with
                 FileDownloading -> useful_source := true; 2
-              | FilePaused | FileAborted _ -> useful_source := true; 1
+              | FilePaused | FileAborted _ | FileQueued -> 
+                  useful_source := true; 1
               | _ -> 0) *
             (maxi 1 (file_priority r.request_file + 10)) *
             (match r.request_result with

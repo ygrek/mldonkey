@@ -556,8 +556,10 @@ let server_msg_to_string pkt =
   let s = Buffer.contents buf in
   let len = String.length s - 23 in
   str_int s 19 len;
-  lprintf "SENDING :"; lprint_newline ();
-  dump s;
+  if !verbose_msg_servers then begin
+      lprintf "SENDING :"; lprint_newline ();
+      dump s;
+    end;
   s 
 
 let new_packet t =
@@ -756,13 +758,13 @@ let vendors = [
 let add_header_fields header sock trailer =
   Printf.sprintf "%sUser-Agent: %s\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\n%s"
     header
-    !!user_agent
+    user_agent
     (Ip.to_string (client_ip (Some sock))) !!client_port
     trailer
   
 let add_simplified_header_fields header trailer =
   Printf.sprintf "%sUser-Agent: %s\r\n%s"
     header
-    !!user_agent
+    user_agent
     trailer
   

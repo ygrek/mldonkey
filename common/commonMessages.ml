@@ -56,7 +56,6 @@ scrollbar-arrow-color: #000000;
 background: #CBE5CB; margin-top: 3px; margin-left: 5px; margin-right: 5px; }
 a:link,a:active,a:visited { text-decoration: none; font-face: verdana; font-size: 10px; color: #000; }
 a:hover { color: #000000; text-decoration: underline;}
-
 .bu { 
 	font-variant: small-caps;
 	vertical-align: middle;
@@ -114,10 +113,13 @@ a:hover { color: #000000; text-decoration: underline;}
 
 .src { border-left: #000 solid 0px; border-top: #000 solid 0px; border-right: #000 solid 1px; border-bottom: #000 solid 1px; }
 .srctd { font-family: Verdana; font-size: 8px; }
+td.fbig { cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: #86BE86; border-top: #000 solid 1px; border-left: #000 solid 1px; }
+td.pr { border-right: #000 solid 1px; }
 
 td {font-size: 12px; font-face: verdana; }
 tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 td.srh { cursor: pointer; vertical-align: top; background: #90C890; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 tr.dl-1 { background: #FFFFFF; }
 tr.dl-2 { background: #EEEEEE; }
@@ -141,6 +143,13 @@ table.servers {
 	border-collapse: collapse;
 }
 table.upstats {
+	margin-right: auto;
+	margin-left: auto;
+	border: 1; 
+	border: #000 solid 1px;
+	border-collapse: collapse;
+}
+table.messages {
 	margin-right: auto;
 	margin-left: auto;
 	border: 1; 
@@ -187,20 +196,28 @@ table.scan_temp {
 	border: #000 solid 1px;
 	border-collapse: collapse;
 }
+div.main {
+text-align: center;
+}
+table.main {
+margin-right: auto;
+margin-left: auto;
+}
 div.bw_stats { text-align: center; }
 div.friends { text-align: center; }
 div.cs { text-align: center; }
 div.uploaders { text-align: center; }
 div.upstats { text-align: center; }
 div.downloaders { text-align: center; }
+div.messages { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px; border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
 td.act { font-size: 10px; font-weight: 700; }
 td.br {border-right: #000 dotted 1px;}
 td.ar {text-align: right;}
 td.al {text-align: left;}
 td.ac {text-align: center;}
-td.chunk0 { background: #F33;}
-td.chunk1 { background: #33F;}
+.chunk0 { background: #F33;}
+.chunk1 { background: #33F;}
 
 -->
 </style>
@@ -342,7 +359,7 @@ let download_html_header_mods2 = define_option message_file
   "The header used in the WEB interface for downloads (modify to add your CSS)"
     string_option  
 "
-<title>MLdonkey: Web Interface</title>
+<title>MLDonkey: Web Interface</title>
 <style type=\"text/css\">
 <!--
 body{background-color:#B2CCB2;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
@@ -386,6 +403,7 @@ td.pr { border-right: #000 solid 1px; }
 	font-size: 10px;
 	background: #CBE5CB; 
 	border: #CBE5CB solid 1px; 
+	cursor: pointer;
 }
 
 .headbutton {
@@ -396,6 +414,7 @@ td.pr { border-right: #000 solid 1px; }
 		background: #90C890; 
 		padding-left: 5px; 
 		padding-right: 5px;
+	cursor: pointer;
 }
 
 tr.dl-1 { background: #FFFFFF; }
@@ -456,7 +475,7 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','help')\">Help!
 </td>
 <td 
-title=\"MLdonkey homepage\"
+title=\"MLDonkey homepage\"
 class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -488,7 +507,7 @@ title=\"Client statistics\"
 class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','client_stats')\">C Stats
+onClick=\"mSub('$O','client_stats')\">Client stats
 </td>
 <td 
 title=\"Load OverNet peers\"
@@ -527,11 +546,11 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','friends')\">Friends
 </td>
 <td 
-title=\"Save options\"
+title=\"Message window (20 second refresh)\"
 class=\"bu bsmall2 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','save')\">Save 
+onClick=\"mSub('$O','message')\">Messages
 </td>
 <td 
 title=\"View sources statistics\"
@@ -555,7 +574,7 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','ovstats')\">Overnet stats
 </td>
 <td 
-title=\"Bandwidth stats (Updates every 10 seconds)\"
+title=\"Bandwidth stats (10 second refresh)\"
 class=\"bu bsmall3 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -632,27 +651,27 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','vs')\">View searches
 </td>
 <td 
-title=\"Recover files from TEMP directory\"
+title=\"Recover files from temp directory\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','recover_temp')\">Recover temp
 </td>
 <td 
-title=\"Commit Downloaded files to incoming directory\"
+title=\"Commit downloaded files to incoming directory\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','commit')\">Commit</td>
 <td 
-title=\"View Current Uploaders\"
+title=\"View current uploaders\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','uploaders')\">Ulers
 </td>
 <td 
-title=\"Upload Statistics\"
+title=\"Upload statistics\"
 class=\"bu bbig bbig3 bb2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -678,28 +697,28 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','remove_old_servers')\">Remove old Servers
 </td>
 <td 
-title=\"Extend Search to more servers\"
+title=\"Extend search to more servers\"
 class=\"bu bbig bbig2 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','xs')\">Extend search
 </td>
 <td 
-title=\"View Search Results\"
+title=\"View search results\"
 class=\"bu bbig bbig2 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','vr')\">Search results
 </td>
 <td 
-title=\"Scan temp Directory for files\"
+title=\"Scan temp directory for files\"
 class=\"bu bbig bbig3 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','scan_temp')\">Scan temp
 </td>
 <td 
-title=\"ReScan for shared files\"
+title=\"Rescan for shared files\"
 class=\"bu bbig bbig3 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -713,7 +732,7 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','downloaders')\">Dlers
 </td>
 <td 
-title=\"View Current Downloads\"
+title=\"View current downloads\"
 class=\"bu bbig bbig3 bb3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -729,7 +748,7 @@ onClick=\"mSub('$O','vd')\">Dls
 let html_header_old = define_option message_file ["html_header_old"]
   "The header used in the WEB interface (modify to add your CSS)"
     string_option  
-  "<title>MLdonkey: Web Interface</title>
+  "<title>MLDonkey: Web Interface</title>
 <style type=\"text/css\">
 <!--
 body,th,td { background-color:#EAE8CF;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 12px; }
@@ -806,7 +825,7 @@ let web_common_header_old = define_option message_file
   "
 <table width=\"100%\" border=\"0\">
 <tr>
-<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.net/\" $O><b>MLdonkey Home</b></a></td>
+<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.net/\" $O><b>MLDonkey Home</b></a></td>
 <form action=\"submit\" $O name=\"cmdFormular\" onSubmit=\"return CheckInput();\">
 <td><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
 <td><input type=\"submit\" value=\"Execute\"></td>
@@ -816,33 +835,33 @@ let web_common_header_old = define_option message_file
 <table width=\"100%\" border=\"0\">
 <tr>
 <td><a href=\"/files\" onMouseOver=\"window.status='View current downloads status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Downloads</a></td>
-<td><a href=\"/submit?q=view_custom_queries\" onMouseOver=\"window.status='Send a customized query';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Custom Search</a></td>
-<td><a href=\"/submit?q=vm\" onMouseOver=\"window.status='View current connection status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Connected Servers</a></td>
+<td><a href=\"/submit?q=view_custom_queries\" onMouseOver=\"window.status='Send a customized query';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Custom search</a></td>
+<td><a href=\"/submit?q=vm\" onMouseOver=\"window.status='View current connection status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Connected servers</a></td>
 <td><a href=\"/submit?q=help\" onMouseOver=\"window.status='View a list of all available commands';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Help</a></td>
 <td><a href=\"/submit?q=vo\" onMouseOver=\"window.status='View and change your preferences';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Preferences</a></td>
 </tr>
 <tr>
 <td><a href=\"/submit?q=upstats\" onMouseOver=\"window.status='View current upload status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Uploads</a></td>
-<td><a href=\"/submit?q=xs\" onMouseOver=\"window.status='Extend your search to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Extend Search</a></td>
-<td><a href=\"/submit?q=c\" onMouseOver=\"window.status='Connect to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Connect more Servers</a></td>
-<td><a href=\"/submit?q=version\" onMouseOver=\"window.status='Check version of mldonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Version</a></td>
-<td><a href=\"/submit?q=remove_old_servers\" onMouseOver=\"window.status='Remove servers that have not been connected for several days';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Clean old Servers</a></td>
+<td><a href=\"/submit?q=xs\" onMouseOver=\"window.status='Extend your search to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Extend search</a></td>
+<td><a href=\"/submit?q=c\" onMouseOver=\"window.status='Connect to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Connect more servers</a></td>
+<td><a href=\"/submit?q=version\" onMouseOver=\"window.status='Check version of MLDonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Version</a></td>
+<td><a href=\"/submit?q=remove_old_servers\" onMouseOver=\"window.status='Remove servers that have not been connected for several days';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Clean old servers</a></td>
 </tr>
 <tr>
-<td><a href=\"/submit?q=uploaders\" onMouseOver=\"window.status='View a list of your upload slots';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Upload Slots</a></td>
-<td><a href=\"/submit?q=vs\" onMouseOver=\"window.status='View a list of your sent queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View Searches</a></td>
-<td><a href=\"/submit?q=vma\" onMouseOver=\"window.status='View a list of all known servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View all Servers</a></td>
-<td><a href=\"/submit?q=client_stats\" onMouseOver=\"window.status='Gives stats about your transfers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Client Stats</a></td>
-<td><a href=\"/submit?q=reshare\" onMouseOver=\"window.status='Check shared files for removal';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Reshare Files</a></td>
+<td><a href=\"/submit?q=uploaders\" onMouseOver=\"window.status='View a list of your upload slots';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Upload slots</a></td>
+<td><a href=\"/submit?q=vs\" onMouseOver=\"window.status='View a list of your sent queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View searches</a></td>
+<td><a href=\"/submit?q=vma\" onMouseOver=\"window.status='View a list of all known servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View all servers</a></td>
+<td><a href=\"/submit?q=client_stats\" onMouseOver=\"window.status='Gives stats about your transfers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Client stats</a></td>
+<td><a href=\"/submit?q=reshare\" onMouseOver=\"window.status='Check shared files for removal';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Reshare files</a></td>
 <td><a href=\"/submit?q=html_mods\" onMouseOver=\"window.status='Toggle html_mods';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Toggle html_mods</a></td>
 </tr>
 <tr>
 <td><a href=\"/submit?q=commit\" onMouseOver=\"window.status='Move finished downloads to incoming directory';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Commit</a></td>
-<td><a href=\"/submit?q=vr\" onMouseOver=\"window.status='View results to your queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Search Results</a></td>
+<td><a href=\"/submit?q=vr\" onMouseOver=\"window.status='View results to your queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Search results</a></td>
 <td><a href=\"/submit?q=ovweb\" onMouseOver=\"window.status='Boot Overnet peers from http list';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Load Overnet peers</a></td>
-<td><a class=\"extern\" href=\"http://www.mldonkeyworld.com/\" onMouseOver=\"window.status='MLdonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>English Forum</a></td>
-<td><a class=\"extern\" href=\"http://www.mldonkey.org/\" onMouseOver=\"window.status='German Forum';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>German Forum</a></td>
-<td><a href=\"/submit?q=kill\" onMouseOver=\"window.status='Save and quit mldonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Kill MLdonkey</a></td>
+<td><a class=\"extern\" href=\"http://www.mldonkeyworld.com/\" onMouseOver=\"window.status='MLDonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>English forum</a></td>
+<td><a class=\"extern\" href=\"http://www.mldonkey.org/\" onMouseOver=\"window.status='German Forum';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>German forum</a></td>
+<td><a href=\"/submit?q=kill\" onMouseOver=\"window.status='Save and quit MLDonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Kill MLDonkey</a></td>
   </tr>
   </table>
 "
@@ -852,7 +871,7 @@ let available_commands_are = string "available_commands_are"
   "Available commands are:\n"
   
 let command_not_authorized = string "command_not_authorized"
-  "Command not authorized\n Use 'auth <password>' before."
+  "Command not authorized\n use 'auth <password>' before."
 
 let bad_login = string "bad_login"
   "Bad login/password"

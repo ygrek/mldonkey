@@ -108,7 +108,6 @@ let _ =
       
       in
       iter query;
-      searches := q :: !searches;
       let words = String2.unsplit !words ' ' in
       List.iter (fun s ->
           match s.server_sock with

@@ -30,7 +30,8 @@ type server = {
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_nfiles : int;
     mutable server_nkb : int;
-    
+
+    mutable server_need_qrt : bool;
     mutable server_ping_last : Md4.t;
     mutable server_nfiles_last : int;
     mutable server_nkb_last : int;

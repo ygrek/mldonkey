@@ -38,13 +38,22 @@ let string_color_of_state state =
   | Connected_downloading -> gettext M.downloading, Some !!O.color_downloading 
   | Connected (-1) -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
-  | NotConnected (-1) -> "", None
   | NewHost -> "NEW HOST", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
   | Connected 0 -> gettext M.queued, Some !!O.color_connected
-  | NotConnected 0 -> "Queued out",  Some !!O.color_not_connected
   | Connected n -> Printf.sprintf "Ranked %d" n, Some !!O.color_connected
-  | NotConnected n -> Printf.sprintf "Ranked %d Out" n,  Some !!O.color_not_connected
+  | NotConnected n -> 
+      if n = -1 then
+        "", None
+      else
+      if n = 0 then
+        "Queued out",  Some !!O.color_not_connected 
+      else
+      if n > 0 then
+        Printf.sprintf "Ranked %d Out" n,  Some !!O.color_not_connected
+      else
+        Printf.sprintf "Failed %d" (- n - 1), Some !!O.color_not_connected
+        
   | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
   | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
       
@@ -457,7 +466,7 @@ class box_list (client_info_box : GPack.box) friend_tab =
             with _ -> [||]
           in
           
-          let table = GPack.table ~rows: (1+ 2* Array.length files)
+          let table = GPack.table ~rows: (2+ 2* Array.length files)
             ~columns:1 ~packing:(
               client_info_box#pack ~expand:false ~fill:true)   () in
           selected <- Some (c, table);
@@ -468,9 +477,9 @@ class box_list (client_info_box : GPack.box) friend_tab =
                     (Gui_misc.short_name file.file_name))
                   ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
                 in
-                table#attach ~left:1 ~top:(2+2 *i) file_name_label#coerce; 
+                table#attach ~left:1 ~top:(3+2 *i) file_name_label#coerce; 
                 let avail_label =  GMisc.drawing_area ~height:20 () in
-                table#attach ~left:1 ~top:(3+2 *i) ~expand:`X avail_label#coerce; 
+                table#attach ~left:1 ~top:(4+2 *i) ~expand:`X avail_label#coerce; 
                 
                 ignore (avail_label#event#connect#expose ~callback:
                   (fun _ -> 
@@ -515,6 +524,12 @@ done;
             ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
           in
           table#attach ~left:1 ~top:1 client_name_label#coerce; 
+
+          let client_info_label = 
+            GMisc.label ~text:(Printf.sprintf "     num: %d" c.client_num)
+            ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
+          in
+          table#attach ~left:1 ~top:2 client_info_label#coerce; 
 
   end
 

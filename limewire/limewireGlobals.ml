@@ -207,6 +207,7 @@ let new_server ip port =
           server_nfiles = 0;
           server_nkb = 0;
           
+          server_need_qrt = true;
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;
           server_nkb_last = 0;

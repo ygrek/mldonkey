@@ -56,6 +56,7 @@ val friends_vpane_up : int Options.option_record
 val gui_width : int Options.option_record
 val gui_height : int Options.option_record
 
+val login : string Options.option_record
 val password : string Options.option_record
 val port : int Options.option_record
 val hostname : string Options.option_record
@@ -74,6 +75,7 @@ val check_client_connections_delay : string ref
 val check_connections_delay : string ref
 val min_retry_delay : string ref
 val client_name : string ref
+val client_login : string ref
 val client_password : string ref
 val max_connected_servers : string ref
 val max_upload_rate : string ref

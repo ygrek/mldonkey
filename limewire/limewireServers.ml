@@ -68,7 +68,7 @@ let create_qrt_table words table_size =
   let array = Array.create table_length infinity in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
-      lprintf "Position %Ld" pos; lprint_newline ();
+      lprintf "Position %Ld\n" pos;
       array.(Int64.to_int pos) <- 1;
   ) words;
   let string_size = table_length/2 in
@@ -88,10 +88,46 @@ let create_qrt_table words table_size =
 
 *)
 
+module WordSet = Set.Make(struct
+      type t = string
+      let compare = compare
+    end)
+  
+let new_shared_words = ref false
 let all_shared_words = ref []
 let cached_qrt_table = ref ""
+
+let update_shared_words () = 
+  let module M = CommonUploads in
+  let words = ref WordSet.empty in
+  let register_words s = 
+    let ws = String2.split_simplify s ' ' in
+    List.iter (fun w ->
+        words := WordSet.add s !words
+    ) ws
+  in
+  let rec iter node =
+    List.iter (fun sh ->
+        register_words sh.M.shared_codedname;
+    ) node.M.shared_files;
+    List.iter (fun (_,node) ->
+        register_words node.M.shared_dirname;
+        iter node
+    ) node.M.shared_dirs;
+  in
+  iter M.shared_tree;
+  WordSet.iter (fun s ->
+      all_shared_words := s :: !all_shared_words
+  ) !words
+  
   
 let send_qrt_sequence s =
+  
+  if !new_shared_words then begin
+      update_shared_words ();
+      new_shared_words := false;
+    end;
+  
   let table_size = 10 in
   let infinity = 7 in
   let table_length = 1 lsl table_size in
@@ -126,7 +162,7 @@ let send_query min_speed keywords xml_query =
       Q.xml_query  = "" } in
   let p = new_packet t in
   if !verbose_msg_servers then begin
-      lprintf "sending query for <%s>" words; lprint_newline ();
+      lprintf "sending query for <%s>\n" words;
     end;
   List.iter (fun s ->
       match s.server_sock with
@@ -165,8 +201,7 @@ let stem s =
 let get_name_keywords file_name =
   match stem file_name with 
     [] | [_] -> 
-      lprintf "Not enough keywords to recover %s" file_name;
-      lprint_newline ();
+      lprintf "Not enough keywords to recover %s\n" file_name;
       [file_name]
   | l -> l
       
@@ -180,16 +215,16 @@ let recover_files () =
   
 let recover_files_from_server sock =
   if !verbose_msg_servers then begin
-      lprintf "trying to recover files from server"; lprint_newline ();
+      lprintf "trying to recover files from server\n";
     end;
   List.iter (fun file ->
       if !verbose_msg_servers then begin
-          lprintf "FOR FILE %s" file.file_name; lprint_newline ();
+          lprintf "FOR FILE %s\n" file.file_name; 
         end;
       let keywords = get_name_keywords file.file_name in
       let words = String2.unsplit keywords ' ' in
       if !verbose_msg_servers then begin
-          lprintf "sending query for <%s>" words; lprint_newline ();
+          lprintf "sending query for <%s>\n" words; 
           end;
       let module Q = Query in
       let t = QueryReq {
@@ -226,7 +261,7 @@ let redirector_parse_header sock header =
         }))
     end else begin
       if !verbose_msg_servers then begin
-          lprintf "BAD HEADER FROM REDIRECTOR: "; lprint_newline (); 
+          lprintf "BAD HEADER FROM REDIRECTOR: \n";
           LittleEndian.dump header;
         end;
       close sock "bad header";
@@ -268,8 +303,8 @@ let connect_to_redirector () =
             set_lifetime sock 120.;
             write_string sock "GNUTELLA CONNECT/0.4\n\n";
           with e ->
-              lprintf "Exception in connect_to_redirector: %s"
-                (Printexc2.to_string e); lprint_newline ();
+              lprintf "Exception in connect_to_redirector: %s\n"
+                (Printexc2.to_string e); 
               redirector_connected := false
       )
       
@@ -286,6 +321,7 @@ lprint_newline ();
       s.server_sock <- None;
       set_server_state s (NotConnected (-1));
       decr nservers;
+      s.server_need_qrt <- true;
       if List.memq s !connected_servers then begin
           connected_servers := List2.removeq s !connected_servers;
         end;
@@ -313,8 +349,8 @@ let add_peers headers =
           with _ -> ()
       ) (String2.split up ',');    
     with e -> 
-        lprintf "add_ulta_peers : %s" (Printexc2.to_string e);
-        lprint_newline () );
+        lprintf "add_ulta_peers : %s\n" (Printexc2.to_string e);
+        );
   (try
       let up = List.assoc "x-try" headers in
       List.iter (fun s ->
@@ -382,7 +418,7 @@ let server_parse_header s sock header =
 (*            lprintf "CUT HEADER"; lprint_newline ();*)
             let headers = Http_client.cut_headers headers in
             let agent =  find_header "user-agent" headers "Unknown" in
-            lprintf "USER AGENT: %s" agent; lprint_newline ();
+            lprintf "USER AGENT: %s\n" agent;
 (*
 if String2.starts_with agent "LimeWire" ||
 String2.starts_with agent "Gnucleus" ||
@@ -420,29 +456,28 @@ begin
               String2.starts_with agent "BearShare"              
             then
               begin
-(*                lprintf "LIMEWIRE Detected"; lprint_newline ();*)
+(*                lprintf "LIMEWIRE Detected\n";*)
                 add_peers headers;                
                 raise Not_found
               end
             else raise Not_found
       end else begin
-(*      lprintf "BAD HEADER FROM SERVER: [%s]" header; lprint_newline (); *)
+(*      lprintf "BAD HEADER FROM SERVER: [%s]\n" header;  *)
         raise Not_found
       end
   with
   | Not_found -> 
-(*      lprintf "DISCONNECTION"; lprint_newline (); *)
+(*      lprintf "DISCONNECTION\n";  *)
       disconnect_from_server s
   | e -> 
 (*
-      lprintf "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e);
-lprint_newline ();
+      lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
   *)
       disconnect_from_server s
       
 let server_to_client s p sock =
   if !verbose_msg_servers then begin
-      lprintf "server_to_client"; lprint_newline ();
+      lprintf "server_to_client\n";
       print p;
     end;
   match p.pkt_payload with
@@ -461,8 +496,12 @@ let server_to_client s p sock =
               P.nkb = 10;
             });
         };
-      send_qrt_sequence sock
-        
+      if s.server_need_qrt then begin
+          s.server_need_qrt <- false;
+          send_qrt_sequence sock
+        end
+  
+  
   | PongReq t ->
       
       let module P = Pong in
@@ -472,12 +511,76 @@ let server_to_client s p sock =
           s.server_nkb_last <- s.server_nkb_last + t.P.nkb
         end
   
-  | QueryReq _ ->
-(*      lprintf "REPLY TO QUERY NOT IMPLEMENTED YET :("; lprint_newline ();*)
-      ()
+  | QueryReq t ->
+(*      lprintf "REPLY TO QUERY NOT IMPLEMENTED YET :(\n";*)
+      lprintf "SEARCH RECEIVED\n";
+      begin
+        try
+          let q = 
+            let q = 
+              match String2.split_simplify t.Query.keywords ' ' with
+                [] -> raise Not_found
+              | s :: tail ->
+                  List.fold_left (fun q s ->
+                      QAnd (q, (QHasWord s))
+                  ) (QHasWord s) tail
+            in
+            (*
+            match t.Search.sizelimit with
+            | NoLimit -> q
+            | AtMost n -> 
+                QAnd (QHasMaxVal (CommonUploads.filesize_field, n),q)
+            | AtLeast n -> 
+QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
+*) 
+            q
+          in
+          try
+            let files = CommonUploads.query q in
+            lprintf "%d replies found\n" (Array.length files); 
+            
+(* How many matches should we return ? Let's say 10. *)
+            if files <> [||] then
+              let module M = QueryReply in
+              let module C = CommonUploads in
+              let replies = ref [] in
+              for i = 0 to mini (Array.length files - 1) 9 do
+                let sh = files.(i) in
+                replies := {
+                  M.index = sh.C.shared_id;
+                  M.size = sh.C.shared_size;
+                  M.name = sh.C.shared_codedname;
+                  M.info = "";
+                } :: !replies
+              done;
+              let module P = QueryReply in
+              let t = QueryReplyReq {
+                  P.guid = !!client_uid;
+                  P.ip = DO.client_ip None;
+                  P.port = !!client_port;
+                  P.speed = 1300; 
+                  P.files = !replies; 
+                  P.vendor = "MLDK"; 
+                  P.speed_measured = None; 
+                  P.busy = None; 
+                  P.stable = None; 
+                  P.xml_reply = ""; 
+                  P.support_chat = false; 
+                  P.dont_connect = None;
+                  } in
+              let pp = { (new_packet t) with
+                  pkt_hops = 0;
+                  pkt_uid = p.pkt_uid;
+                } in
+              server_send sock pp
+
+          with Not_found -> ()
+        with Not_found ->
+            lprintf "Query browse\n"   
+      end
       
   | QueryReplyReq t ->
-(*      lprintf "REPLY TO QUERY"; lprint_newline ();*)
+(*      lprintf "REPLY TO QUERY\n";*)
       let module Q = QueryReply in
       begin
         try
@@ -485,7 +588,7 @@ let server_to_client s p sock =
           
           let user = update_user t in
 
-(*          lprintf "ADDING RESULTS"; lprint_newline ();*)
+(*          lprintf "ADDING RESULTS\n";*)
           List.iter (fun f ->
 (*              lprintf "NEW RESULT %s" f.Q.name; lprint_newline ();*)
               let result = new_result f.Q.name f.Q.size in
@@ -494,7 +597,7 @@ let server_to_client s p sock =
               CommonInteractive.search_add_result s.search_search result.result_result;
           ) t.Q.files
         with Not_found ->            
-            lprintf "NO SUCH SEARCH !!!!"; lprint_newline (); 
+            lprintf "NO SUCH SEARCH !!!!\n"; 
             List.iter (fun ff ->
                 List.iter (fun file ->
                     if file.file_name = ff.Q.name && 
@@ -542,7 +645,7 @@ let connect_server (ip,port) =
             (fun sock event -> 
               match event with
                 BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
-(*                  lprintf "RTIMEOUT"; lprint_newline (); *)
+(*                  lprintf "RTIMEOUT\n"; *)
                   disconnect_from_server s
               | _ -> ()
           ) in
@@ -565,7 +668,7 @@ let connect_server (ip,port) =
               (Ip.to_string s.server_ip))
         in
 (*
-        lprintf "SENDING"; lprint_newline ();
+        lprintf "SENDING\n";
         AP.dump s;
   *)
         write_string sock s;
@@ -574,7 +677,7 @@ let connect_server (ip,port) =
           
   
 let try_connect_ultrapeer () =
-(*  lprintf "try_connect_ultrapeer"; lprint_newline ();*)
+(*  lprintf "try_connect_ultrapeer\n";*)
   let s = try
       Fifo.take ultrapeers_queue
     with _ ->
@@ -604,7 +707,7 @@ let get_file_from_source c file =
       connection_try c.client_connection_control;
       match c.client_user.user_kind with
         Indirect_location ("", uid) ->
-          lprintf "++++++ ASKING FOR PUSH +++++++++"; lprint_newline ();   
+          lprintf "++++++ ASKING FOR PUSH +++++++++\n";   
 
 (* do as if connection failed. If it connects, connection will be set to OK *)
           connection_failed c.client_connection_control;

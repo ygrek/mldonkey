@@ -51,6 +51,10 @@ let _ =
       ());
   network.op_network_connected <- (fun _ ->
       !connected_servers <> []   
+  );
+  network.op_network_share <- (fun fullname codedname size ->
+      LimewireServers.new_shared_words := true;
+      CommonUploads.add_shared fullname codedname size
   )
   
 let _ =

@@ -32,8 +32,9 @@ open BasicSocket
 open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
+
   
-let rec dollar_escape with_frames s =
+let rec dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
       if escaped then
         match c with
@@ -50,20 +51,37 @@ let rec dollar_escape with_frames s =
               else Buffer.add_string b " target=\"_parent\""; 
               false
         | 'G' -> false
+            
+        | 'r' ->
+            if o.conn_output = ANSI then 
+              Buffer.add_string b Terminal.ANSI.ansi_RED;
+            false
+            
+        | 'b' ->
+            if o.conn_output = ANSI then 
+              Buffer.add_string b Terminal.ANSI.ansi_BLUE;
+            false
+            
+        | '>' ->
+            if o.conn_output = ANSI then 
+              Buffer.add_string b Terminal.ANSI.ansi_NORMAL;
+            false
+            
         | _ -> 
+(*
             try
               Buffer.add_string b (dollar_escape with_frames
                   (CommonNetwork.escape_char c));
               false
             
-            with _ ->
+            with _ -> *)
                 Buffer.add_char b '$'; Buffer.add_char b c; false
       else
       if c = '$' then true else
         (Buffer.add_char b c; false)) s
-  
-let eval auth cmd options =
-  let buf = options.conn_buf in
+
+let eval auth cmd o =
+  let buf = o.conn_buf in
   let l = String2.tokens cmd in
   match l with
     [] -> ()
@@ -72,7 +90,7 @@ let eval auth cmd options =
           let module M = CommonMessages in
           Buffer.add_string  buf !!M.available_commands_are;
           List.iter (fun (cmd, _, help) ->
-              Printf.bprintf  buf "%s %s\n" cmd help) 
+              Printf.bprintf  buf "$r%s$> %s\n" cmd help) 
           !CommonNetwork.network_commands
         end else 
       if cmd = "help" || cmd = "?" then begin
@@ -83,29 +101,29 @@ let eval auth cmd options =
             "
 Main commands are:
 
-Servers:
-          vm : list connected servers
-          vma : list all servers
-          c/x <num> : connect/disconnect from a server
+$bServers:$>
+          $rvm$> : list connected servers
+          $rvma$> : list all servers
+          $rc/x <num>$> : connect/disconnect from a server
 
-Downloads:
-          vd : view current downloads
-          cancel/pause/resume <num> : cancel/pause/resume download <num>
+$bDownloads:$>
+          $rvd$> : view current downloads
+          $rcancel/pause/resume <num>$> : cancel/pause/resume download <num>
 
-Searches:
-          s  <keywords> : start a search for keywords <keywords> on the network
-          vr : view results of the last search
-          d <num> : download result number <num>
-          vs : view previous searches
-          vr <num> : view results of search <num>
+$bSearches:$>
+          $rs  <keywords>$> : start a search for keywords <keywords> on the network
+          $rvr$> : view results of the last search
+          $rd <num>$> : download result number <num>
+          $rvs$> : view previous searches
+          $rvr <num>$> : view results of search <num>
 
-General:
-          save: save configuration files
-          kill : kill mldonkey properly
-          q : quit this interface
+$bGeneral:$>
+          $rsave$> : save configuration files
+          $rkill$> : kill mldonkey properly
+          $rq$> : quit this interface
 
-Use 'longhelp' or '??' for all commands.
-Use 'help command' or '? command' for help on a command.
+Use '$rlonghelp$>' or '$r??$>' for all commands.
+Use '$rhelp command$>' or '$r? command$>' for help on a command.
             ";
           List.iter (fun arg ->
               List.iter (fun (cmd, _, help) ->
@@ -119,22 +137,24 @@ Use 'help command' or '? command' for help on a command.
         raise CommonTypes.CommandCloseSocket
       else
       if cmd = "auth" then
-        let arg_password =
+        let user, pass =
           match args with
-            [] -> ""
-          | s1 :: _ -> s1
+            [] -> failwith "Usage: auth <user> <password>"
+          | [s1] -> "admin", s1
+          | user :: pass :: _ -> user, pass
         in
-        if !!password = arg_password then begin
+        if valid_password user pass then begin
             auth := true;
+            o.conn_user <- find_ui_user user;
             let module M = CommonMessages in
             Buffer.add_string buf !!M.full_access
-          end else
+          end else 
         let module M = CommonMessages in
         Buffer.add_string buf !!M.bad_login
       else
       if !auth then
         DriverCommands.execute_command 
-          !CommonNetwork.network_commands options cmd args      
+          !CommonNetwork.network_commands o cmd args      
       else
       let module M = CommonMessages in
       Buffer.add_string buf !!M.command_not_authorized
@@ -148,6 +168,8 @@ let calendar_options = {
     conn_output = TEXT;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());
+    conn_user = default_user;
+    conn_width = 80; conn_height = 0;
   }
       
 let check_calendar () =
@@ -164,10 +186,32 @@ let check_calendar () =
         end
   ) !!calendar
   
-        
-(* The telnet client *)
-        
-let user_reader options auth sock nread  = 
+
+(*************************************************************
+
+                  The Telnet Server
+  
+**************************************************************)  
+
+let before_telnet_output o sock = 
+  if o.conn_output = ANSI && o.conn_height <> 0 then
+    write_string sock (Printf.sprintf 
+        "%s%s\n%s%s" 
+        (Terminal.gotoxy 0 (o.conn_height-3))
+      Terminal.ANSI.ansi_CLREOL
+      Terminal.ANSI.ansi_CLREOL
+      (Terminal.gotoxy 0 (o.conn_height-3)))
+  
+let after_telnet_output o sock = 
+  if o.conn_output = ANSI && o.conn_height <> 0 then
+    write_string sock (Printf.sprintf "\n\n%s"
+        (Terminal.gotoxy 0 (o.conn_height - 2)));
+  if o.conn_output = ANSI then
+    write_string sock (Printf.sprintf "%sMLdonkey command-line:%s\n> "
+      Terminal.ANSI.ansi_REVERSE
+      Terminal.ANSI.ansi_NORMAL)
+  
+let user_reader o auth sock nread  = 
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -179,11 +223,18 @@ let user_reader options auth sock nread  =
         let len = i - b.pos in
         let cmd = String.sub b.buf b.pos len in
         buf_used sock (len+1);
-        let buf = options.conn_buf in
-        Buffer.clear buf;
-        eval auth cmd options;
-        Buffer.add_char buf '\n';
-        TcpBufferedSocket.write_string sock (Buffer.contents buf);
+        if cmd <> "" then begin
+            before_telnet_output o sock;
+            let buf = o.conn_buf in
+            Buffer.clear buf;
+            if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$>\n" cmd;
+            eval auth cmd o;
+            Buffer.add_char buf '\n';
+            if o.conn_output = ANSI then Buffer.add_string buf "$>";
+            TcpBufferedSocket.write_string sock 
+              (dollar_escape o false (Buffer.contents buf));
+            after_telnet_output o sock;
+          end;
         iter b.pos
        else
          iter (i+1)
@@ -195,9 +246,11 @@ let user_reader options auth sock nread  =
     (try
        shutdown sock "user quit";
      with _ -> ());
-  | e ->
-    TcpBufferedSocket.write_string sock
-       (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e))
+  | e -> 
+      before_telnet_output o sock;
+      TcpBufferedSocket.write_string sock
+        (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e));
+      after_telnet_output o sock
 
   
 let user_closed sock  msg =
@@ -225,34 +278,53 @@ let telnet_handler t event =
         let sock = TcpBufferedSocket.create_simple 
           "telnet connection"
           s in
-        let auth = ref (!!password = "") in
-        let options = {
+        let auth = ref (empty_password "admin") in
+        let (w,h) = Terminal.size s in
+        let o = {
             conn_buf = Buffer.create 1000;
-            conn_output = TEXT;
+            conn_output = (if !!term_ansi then ANSI else TEXT);
             conn_sortvd = NotSorted;
             conn_filter = (fun _ -> ());
+            conn_user = default_user;
+            conn_width = w; conn_height = h;
           } in
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
-        TcpBufferedSocket.set_reader sock (user_reader options auth);
+        TcpBufferedSocket.set_reader sock (user_reader o auth);
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
 
-	TcpBufferedSocket.write_string sock (text_of_html !!motd_html);
+        before_telnet_output o sock;
+        TcpBufferedSocket.write_string sock (text_of_html !!motd_html);
 
-        TcpBufferedSocket.write_string sock "\nWelcome on mldonkey command-line\n";
-        TcpBufferedSocket.write_string sock "\nUse ? for help\n\n";
+        TcpBufferedSocket.write_string sock (dollar_escape o false
+            "\n$bWelcome on mldonkey command-line$>\n\nUse $r?$> for help\n\n");
+        
+        after_telnet_output o sock
       else 
         Unix.close s
 
   | _ -> ()
 
-(* The Chat client *)
+(*************************************************************
+
+                  The Chat Server
+  
+**************************************************************)  
 
 let chat_handler t event = 
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       (
-       try
+        try
+          let o = {
+              conn_buf = Buffer.create 1000;
+              conn_output = TEXT;
+              conn_sortvd = NotSorted;
+              conn_filter = (fun _ -> ());
+              conn_user = default_user;
+              conn_width = 80; conn_height = 0;
+            } in
+          
 	 let from_ip = Ip.of_inet_addr from_ip in
 	 if Ip.matches from_ip !!allowed_ips then 
 	   (
@@ -284,17 +356,12 @@ let chat_handler t event =
 		    if iddest = !!CommonOptions.chat_console_id then
 		   (* we must eval the string as a command *)
 		      (
-                       let options = {
-                         conn_buf = Buffer.create 1000;
-                         conn_output = TEXT;
-                         conn_sortvd = NotSorted;
-                         conn_filter = (fun _ -> ());
-                       } in
-                       let buf = options.conn_buf in
+                            let buf = o.conn_buf in
+                            Buffer.clear buf;
 		       let auth = ref true in
-		       eval auth s options;
+		       eval auth s o;
 		       CommonChat.send_text !!CommonOptions.chat_console_id None 
-			 (Buffer.contents buf);
+			 (dollar_escape o false (Buffer.contents buf));
 		       Buffer.reset buf
 		      )
 		    else
@@ -314,7 +381,11 @@ let chat_handler t event =
   | _ ->
       ()
 
-(* The HTTP client *)
+(*************************************************************
+
+                  The HTTP Server
+  
+**************************************************************)  
 
 let buf = Buffer.create 1000
       
@@ -366,17 +437,17 @@ let html_close_page buf =
   Buffer.add_string buf "</BODY>\n";  
   Buffer.add_string buf "</HTML>\n";
   ()
-
-let http_handler options t r =
+  
+let http_handler o t r =
   CommonInteractive.display_vd := false;
-  if (!!http_password <> "" || !!http_login <> "") &&
-    (r.options.passwd <> !!http_password || r.options.login <> !!http_login)
-  then begin
+  
+  let user = if r.options.login = "" then "admin" else r.options.login in
+  if not (valid_password user r.options.passwd) then begin
       Buffer.clear buf;  
       need_auth buf !!http_realm
     end
-  else
-    begin
+  else begin
+      o.conn_user <- find_ui_user user;
       try
         match r.get_url.Url.file with
         | "/commands.html" ->
@@ -396,7 +467,7 @@ let http_handler options t r =
                   <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/noframe.html\">
                <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height
-                
+                  
                 else
                   
                   
@@ -467,9 +538,10 @@ let http_handler options t r =
                   let s = search_find num in
                   
                   DriverInteractive.print_search b s
-                    { options with conn_filter = !filter };
+                    { o with conn_filter = !filter };
                   
-                  Buffer.add_string buf (html_escaped (Buffer.contents b))
+                  Buffer.add_string buf (html_escaped 
+                    (Buffer.contents b))
               
               | _ -> 
                   Buffer.add_string buf "Bad filter"
@@ -519,16 +591,16 @@ let http_handler options t r =
                 | "sortby" -> 
                     begin
                       match value with
-                      | "Percent" -> options.conn_sortvd <- ByPercent
-                      | "%" -> options.conn_sortvd <- ByPercent
-                      | "File" -> options.conn_sortvd <- ByName
-                      | "Downloaded" -> options.conn_sortvd <- ByDone
-                      | "DLed" -> options.conn_sortvd <- ByDone
-                      | "Size" -> options.conn_sortvd <- BySize
-                      | "Rate" -> options.conn_sortvd <- ByRate
-                      | "ETA" -> options.conn_sortvd <- ByETA
-                      | "Age" -> options.conn_sortvd <- ByAge
-                      | "Last" -> options.conn_sortvd <- ByLast
+                      | "Percent" -> o.conn_sortvd <- ByPercent
+                      | "%" -> o.conn_sortvd <- ByPercent
+                      | "File" -> o.conn_sortvd <- ByName
+                      | "Downloaded" -> o.conn_sortvd <- ByDone
+                      | "DLed" -> o.conn_sortvd <- ByDone
+                      | "Size" -> o.conn_sortvd <- BySize
+                      | "Rate" -> o.conn_sortvd <- ByRate
+                      | "ETA" -> o.conn_sortvd <- ByETA
+                      | "Age" -> o.conn_sortvd <- ByAge
+                      | "Last" -> o.conn_sortvd <- ByLast
                       | _ -> ()
                     end
                 | _ -> 
@@ -537,7 +609,7 @@ let http_handler options t r =
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
             
-            DriverInteractive.display_file_list b options;
+            DriverInteractive.display_file_list b o;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 
@@ -547,17 +619,17 @@ let http_handler options t r =
               | ("q", cmd) :: other_args ->
                   List.iter (fun arg ->
                       match arg with
-                      | "sortby", "size" -> options.conn_sortvd <- BySize
-                      | "sortby", "name" -> options.conn_sortvd <- ByName
-                      | "sortby", "rate" -> options.conn_sortvd <- ByRate
-                      | "sortby", "done" -> options.conn_sortvd <- ByDone
-                      | "sortby", "percent" -> options.conn_sortvd <- ByPercent
+                      | "sortby", "size" -> o.conn_sortvd <- BySize
+                      | "sortby", "name" -> o.conn_sortvd <- ByName
+                      | "sortby", "rate" -> o.conn_sortvd <- ByRate
+                      | "sortby", "done" -> o.conn_sortvd <- ByDone
+                      | "sortby", "percent" -> o.conn_sortvd <- ByPercent
                       | _ -> ()
                   ) other_args;
                   let s = 
-                    let b = options.conn_buf in
+                    let b = o.conn_buf in
                     Buffer.clear b;
-                    eval (ref true) cmd options;
+                    eval (ref true) cmd o;
                     html_escaped (Buffer.contents b)
                   in
                   html_open_page buf t r true;
@@ -569,7 +641,7 @@ let http_handler options t r =
                   
               | ("custom", query) :: args ->
                   html_open_page buf t r true;
-                  send_custom_query buf 
+                  send_custom_query o.conn_user buf 
                     (let module G = GuiTypes in
                     { G.search_num = 0;
                       G.search_query = query;
@@ -600,7 +672,7 @@ end
   
   html_close_page buf;
   let s = Buffer.contents buf in
-  let s = dollar_escape !!use_html_frames s in
+  let s = dollar_escape o !!use_html_frames s in
   let len = String.length s in
 (*  TcpBufferedSocket.set_monitored t; *)
   TcpBufferedSocket.set_max_write_buffer t (len + 100);
@@ -613,6 +685,8 @@ let http_options = {
     conn_output = HTML;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());
+    conn_user = default_user;
+    conn_width = 80; conn_height = 0;
   }      
   
 let create_http_handler () = 

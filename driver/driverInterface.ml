@@ -350,10 +350,10 @@ let gui_reader (gui: gui_record) t _ =
               )
         ) list
     
-    | P.Password s ->
+    | P.Password (user, pass) ->
         begin
           match gui.gui_sock with
-            Some sock when s <> !!password ->
+            Some sock when not (valid_password user pass) ->
               gui_send gui BadPassword;                  
               set_lifetime sock 5.;
               lprintf "BAD PASSWORD"; lprint_newline ();
@@ -501,22 +501,23 @@ lprintf "Sending for %s" prefix; lprint_newline ();
         if gui.gui_auth then
           match t with
           | P.Command cmd ->
-              let buf = Buffer.create 1000 in
+              let o = gui.gui_conn in
+              let buf = o.conn_buf in
+              Buffer.clear buf;
               Buffer.add_string buf "\n----------------------------------\n";
               Printf.bprintf buf "Eval command: %s\n\n" cmd;
-              let options = { conn_output = TEXT; conn_sortvd = BySize;
-                  conn_filter = (fun _ -> ()); conn_buf = buf;
-                } in
-              DriverControlers.eval (ref true) cmd options;
+              DriverControlers.eval (ref true) cmd o;
               Buffer.add_string buf "\n\n";
-              gui_send gui (P.Console (Buffer.contents buf))
+              gui_send gui (P.Console (
+                  DriverControlers.dollar_escape o false
+                    (Buffer.contents buf)))
           
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
           
           | P.ForgetSearch num ->
               let s = List.assoc num gui.gui_searches in
-              search_forget s
+              search_forget gui.gui_conn.conn_user s
           
           | P.SendMessage (num, msg) ->
               begin
@@ -542,9 +543,10 @@ lprintf "Sending for %s" prefix; lprint_newline ();
               gui_send gui (P.Network_info (network_info n))
           
           | P.ExtendedSearch (num, e) ->
+              let user = gui.gui_conn.conn_user in
               let s = 
                 if num = -1 then
-                  match !searches with
+                  match user.ui_user_searches with
                     [] -> raise Not_found
                   | s :: _ -> s
                 else
@@ -555,6 +557,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
               exit_properly 0
           
           | P.Search_query s ->
+              let user = gui.gui_conn.conn_user in
               let query = 
                 try CommonGlobals.simplify_query
                     (CommonSearch.mftp_query_of_query_entry 
@@ -565,7 +568,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
               in
               let buf = Buffer.create 100 in
               let num = s.GuiTypes.search_num in
-              let search = CommonSearch.new_search 
+              let search = CommonSearch.new_search user
                   { s with GuiTypes.search_query = query} in
               gui.gui_search_nums <- num ::  gui.gui_search_nums;
               gui.gui_searches <- (num, search) :: gui.gui_searches;
@@ -618,7 +621,8 @@ search.op_search_end_reply_handlers;
           
           | P.SetFilePriority (num, prio) ->
               let file = file_find num in
-              file_set_priority file prio
+              file_set_priority file prio;
+              CommonInteractive.force_download_quotas ()
               
           | P.SaveFile (num, name) ->
               let file = file_find num in
@@ -822,6 +826,14 @@ let new_gui sock =
       gui_num = !gui_counter;
       gui_auth = false;
       gui_poll = false;
+      gui_conn = { 
+        conn_output = TEXT; 
+        conn_sortvd = BySize;
+        conn_filter = (fun _ -> ()); 
+        conn_buf = Buffer.create 100;
+        conn_user = default_user;
+        conn_width = 80; conn_height = 25;
+      };
     } in
   gui_send gui (P.CoreProtocol GuiEncoding.best_gui_version);
   networks_iter_all (fun n ->
@@ -846,7 +858,7 @@ let gui_handler t event =
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
-              let m = GuiDecoding.from_gui opcode s in
+              let m = GuiDecoding.from_gui gui.gui_version opcode s in
               gui_reader gui m sock;
               ));
         TcpBufferedSocket.set_closer sock (gui_closed gui);

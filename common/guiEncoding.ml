@@ -211,11 +211,12 @@ let buf_file_state proto buf s =
   | FileShared ->  buf_int8 buf 3    
   | FileCancelled ->  buf_int8 buf 4
   | FileNew ->  buf_int8 buf 5
-  
+      
   | FileAborted s -> 
       if proto < 12 then buf_int8 buf 1 (* File Paused *)
       else
         (buf_int8 buf 6; buf_string buf s)
+  | FileQueued -> buf_int8 buf (if proto < 14 then 0 else 7)
 
 let buf_room proto buf r =
   buf_int buf r.room_num;
@@ -367,18 +368,20 @@ let buf_shared_info proto buf s =
 
 ****************)
   
-let rec to_gui_version_0 proto buf t =
+let rec to_gui proto buf t =
   match t with
-    
+  
   | CoreProtocol version -> 
       buf_int16 buf 0; 
       buf_int buf version
+  
+  | Options_info list -> 
       
-  | Options_info list -> buf_int16 buf 1; 
+      buf_int16 buf 1; 
       buf_list buf (fun buf (name, value) ->
           buf_string buf name; buf_string buf value
       ) list
-      
+  
   | DefineSearches list -> 
       buf_int16 buf 3;
       buf_list buf (fun buf (s, query) ->
@@ -389,89 +392,133 @@ let rec to_gui_version_0 proto buf t =
   
   | Search_result (n1,n2) -> buf_int16 buf 5;
       buf_int buf n1; buf_int buf n2
-      
+  
   | Search_waiting (n1,n2) -> buf_int16 buf 6;
       buf_int buf n1; buf_int buf n2
   
-  | File_info file_info -> buf_int16 buf 7;
-      buf_file proto buf file_info
+  | File_info file_info -> 
       
-  | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 8;
-      buf_int buf n; buf_int64_32 buf size; buf_float buf rate
-            
+      buf_int16 buf (if proto < 8 then 7 else 
+        if proto < 9 then 40 else 
+        if proto < 14 then 43 else 52);
+      buf_file proto buf file_info
+  
+  | File_downloaded (n, size, rate, last_seen) -> 
+      buf_int16 buf (if proto < 9 then 8 else 46);
+      buf_int buf n; 
+      buf_int64_32 buf size; 
+      buf_float buf rate; 
+      if proto > 8 then
+        buf_int buf (compute_last_seen last_seen)
+  
   | File_add_source (n1,n2) -> buf_int16 buf 10;
       buf_int buf n1; buf_int buf n2
   
   | Server_busy (n1,n2,n3) -> buf_int16 buf 11;
       buf_int buf n1; buf_int buf n2; buf_int buf n3
-      
+  
   | Server_user  (n1,n2) -> buf_int16 buf 12;
       buf_int buf n1; buf_int buf n2
-      
+  
   | Server_state (int,host_state) -> buf_int16 buf 13;
       buf_int buf int; buf_host_state proto buf host_state
+  
+  | Server_info s -> 
       
-  | Server_info server_info -> buf_int16 buf 14;
-      buf_server proto buf server_info
+      buf_int16 buf (if proto < 2 then 14 else 26);
+      buf_server proto buf s
   
   | Client_info client_info -> buf_int16 buf 15;
       buf_client proto buf client_info
-      
+  
   | Client_state (int, host_state) -> buf_int16 buf 16;
       buf_int buf int; buf_host_state proto buf host_state
-      
+  
   | Client_friend (int, client_type) -> buf_int16 buf 17;
       buf_int buf int; buf_client_type buf client_type
-      
+  
   | Client_file (n1, s, n2) -> buf_int16 buf 18;
       buf_int buf n1; buf_string buf s; buf_int buf n2
-      
+  
   | Console string -> buf_int16 buf 19;
       buf_string buf string
   
   | Network_info network_info -> buf_int16 buf 20;
       buf_network buf network_info
-      
+  
   | User_info user_info -> buf_int16 buf 21;
       buf_user buf user_info
   
-  | Room_info room_info -> buf_int16 buf 22;
+  | Room_info room_info -> 
+      buf_int16 buf (if proto < 3 then 22 else 31);
       buf_room proto buf room_info
-      
+  
   | Room_message (int, room_message) -> buf_int16 buf 23;
       buf_int buf int; buf_message buf room_message
-      
+  
   | Room_add_user (n1,n2) -> buf_int16 buf 24;
       buf_int buf n1; buf_int buf n2
-      
+  
   | MessageFromClient (num, msg) ->
+      if proto < 3 then
 (* This message was previously send like that ... *)
-      to_gui_version_0 proto buf (Room_message (0, PrivateMessage(num, msg)))
-
-      
+        
+        to_gui proto buf (Room_message (0, PrivateMessage(num, msg)))
+      else begin
+          buf_int16 buf 27;
+          buf_int buf num;
+          buf_string buf msg
+        end
+  
   | BadPassword -> buf_int16 buf 47
-
+  
+  | DownloadFiles list ->      
+      buf_int16 buf (if proto < 8 then 29 else 
+        if proto < 9 then 41 else
+        if proto < 14 then  44 else 53);
+      buf_list buf (buf_file proto) list
+  
   | DownloadedFiles list ->      
-      buf_int16 buf 30;
+      buf_int16 buf (if proto < 8 then 30 else 
+        if proto < 9 then 42 else 
+        if proto < 14 then  45 else 54);
       buf_list buf (buf_file proto) list
-
-  | DownloadFiles list ->      buf_int16 buf 29;
-      buf_list buf (buf_file proto) list
-
+  
   | ConnectedServers list ->      buf_int16 buf 28;
       buf_list buf (buf_server proto) list
-      
-  | Client_stats s -> buf_int16 buf 25;
+  
+  | Client_stats s -> 
+      buf_int16 buf (if proto < 5 then 25 else
+        if proto < 6 then 37 else
+        if proto < 10 then 39 else 49);          
       buf_int64 buf s.upload_counter;
       buf_int64 buf s.download_counter;      
       buf_int64 buf s.shared_counter;
-      buf_int buf s.nshared_files
-
+      buf_int buf s.nshared_files;
+      
+      if proto > 4 then
+        if proto < 6 then begin
+            buf_int buf (s.tcp_upload_rate + s.udp_upload_rate);
+            buf_int buf (s.tcp_download_rate + s.udp_download_rate);
+          end else begin
+            buf_int buf s.tcp_upload_rate;
+            buf_int buf s.tcp_download_rate;
+            buf_int buf s.udp_upload_rate;
+            buf_int buf s.udp_download_rate;
+            
+            if proto > 9 then begin
+                buf_int buf s.ndownloading_files;
+                buf_int buf s.ndownloaded_files;
+                buf_list buf buf_int s.connected_networks;
+              end
+          end                
+          
   | Room_remove_user (room, user) ->       buf_int16 buf 32;
       buf_int buf room;
       buf_int buf user
 
-  | Shared_file_info  shared_info ->       buf_int16 buf 33;
+  | Shared_file_info  shared_info ->       
+      buf_int16 buf (if proto < 10 then 33 else 48);
       buf_shared_info proto buf shared_info
       
   | Shared_file_upload (num, upload,requests) ->    buf_int16 buf 34;
@@ -502,141 +549,16 @@ let rec to_gui_version_0 proto buf t =
   | File_remove_source (n1,n2) -> buf_int16 buf 50;
       buf_int buf n1; buf_int buf n2
 
-  | File_update_availability _
-  | CleanTables _
-    -> raise UnsupportedGuiMessage
-      
-let to_gui_version_2 proto buf t =
-  match t with
-    Server_info s ->
-      buf_int16 buf 26;
-      buf_server proto buf s
-  | _ -> to_gui_version_0 proto buf t
-      
-let to_gui_version_3 proto buf t =
-  match t with
-          
-  | MessageFromClient (int, s) ->       buf_int16 buf 27;
-      buf_int buf int;
-      buf_string buf s
-            
-  | Room_info info ->
-      buf_int16 buf 31;
-      buf_room proto buf info
-      
-  | _ -> to_gui_version_2 proto buf t
-      
-let to_gui_version_5 proto buf t =
-  match t with
-         
-  | Client_stats s -> buf_int16 buf 37;
-      buf_int64 buf s.upload_counter;
-      buf_int64 buf s.download_counter;      
-      buf_int64 buf s.shared_counter;
-      buf_int buf s.nshared_files;
-      buf_int buf (s.tcp_upload_rate + s.udp_upload_rate);
-      buf_int buf (s.tcp_download_rate + s.udp_download_rate);
-      
-  | _ -> to_gui_version_3 proto buf t
-      
-let to_gui_version_6 proto buf t =
-  match t with
-         
-  | Client_stats s -> buf_int16 buf 39;
-      buf_int64 buf s.upload_counter;
-      buf_int64 buf s.download_counter;      
-      buf_int64 buf s.shared_counter;
-      buf_int buf s.nshared_files;
-      buf_int buf s.tcp_upload_rate;
-      buf_int buf s.tcp_download_rate;
-      buf_int buf s.udp_upload_rate;
-      buf_int buf s.udp_download_rate;
-      
-  | _ -> to_gui_version_5 proto buf t
-
-let to_gui_version_8 proto buf t =
-  match t with
-    File_info file -> buf_int16 buf 40;
-      buf_file proto buf file      
-      
-  | DownloadFiles files -> buf_int16 buf 41;
-      buf_list buf (buf_file proto) files
-      
-  | DownloadedFiles files -> buf_int16 buf 42;
-      buf_list buf (buf_file proto) files
-      
-  | _ -> to_gui_version_6 proto buf t
-
-let to_gui_version_9 proto buf t =
-  match t with
-    File_info file -> buf_int16 buf 43;
-      buf_file proto buf file      
-      
-  | DownloadFiles files -> buf_int16 buf 44;
-      buf_list buf (buf_file proto) files
-      
-  | DownloadedFiles files -> buf_int16 buf 45;
-      buf_list buf (buf_file proto) files
-      
-  | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 46;
-      buf_int buf n; buf_int64_32 buf size; buf_float buf rate; 
-      buf_int buf (compute_last_seen last_seen)
-      
-  | _ -> to_gui_version_8 proto buf t
-
-let to_gui_version_10 proto buf t =
-  match t with
-
-  | Shared_file_info  shared_info ->       buf_int16 buf 48;
-      buf_shared_info proto buf shared_info
-
-  | Client_stats s ->       buf_int16 buf 49;
-      buf_int64 buf s.upload_counter;
-      buf_int64 buf s.download_counter;      
-      buf_int64 buf s.shared_counter;
-      buf_int buf s.nshared_files;
-      buf_int buf s.tcp_upload_rate;
-      buf_int buf s.tcp_download_rate;
-      buf_int buf s.udp_upload_rate;
-      buf_int buf s.udp_download_rate;
-      buf_int buf s.ndownloading_files;
-      buf_int buf s.ndownloaded_files;
-      buf_list buf buf_int s.connected_networks;
-      
-  | _ -> to_gui_version_9 proto buf t
-
-      
-let to_gui_version_11 proto buf t =
-  match t with
-
-  | File_update_availability (file_num, client_num, avail) -> buf_int16 buf 9;
+  | File_update_availability (file_num, client_num, avail) -> 
+      if proto < 11 then raise UnsupportedGuiMessage;
+      buf_int16 buf 9;
       buf_int buf file_num; buf_int buf client_num; buf_string buf avail
 
-  | CleanTables (clients, servers) ->      buf_int16 buf 51;
+  | CleanTables (clients, servers) ->      
+      if proto < 11 then raise UnsupportedGuiMessage;
+      buf_int16 buf 51;
       buf_list buf (fun buf i -> buf_int buf i) clients;
       buf_list buf (fun buf i -> buf_int buf i) servers
-      
-  | _ -> to_gui_version_10 proto buf t
-(* next message must be 49 *) 
-      
-let to_gui_funs = [| 
-    to_gui_version_0; (* 0 *)
-    to_gui_version_0; (* 1 *)
-    to_gui_version_2; (* 2 *)
-    to_gui_version_3; (* 3 *)
-    to_gui_version_3; (* 4 *)
-    to_gui_version_5; (* 5 *)
-    to_gui_version_6; (* 6 *)
-    to_gui_version_6; (* 7 *)
-    to_gui_version_8;  (* 8 *)
-    to_gui_version_9;  (* 9 *)
-    to_gui_version_10; (* 10 *)
-    to_gui_version_11; (* 11 *)
-    to_gui_version_11; (* 12 *)
-    to_gui_version_11; (* 13 *)
-  |]
-
-let to_gui proto = to_gui_funs.(proto) proto
   
 (***************
 
@@ -644,7 +566,7 @@ let to_gui proto = to_gui_funs.(proto) proto
 
 ****************)
 
-let rec from_gui_version_0 proto buf t =
+let rec from_gui proto buf t =
   match t with
   | GuiProtocol int -> buf_int16 buf 0;
       buf_int buf int
@@ -653,13 +575,28 @@ let rec from_gui_version_0 proto buf t =
   | CleanOldServers -> buf_int16 buf 2
   | KillServer -> buf_int16 buf 3
   | ExtendedSearch _ -> buf_int16 buf 4
-  | Password string -> buf_int16 buf 5;
-      buf_string buf string
-  | Search_query search -> buf_int16 buf 6;
-      buf_bool buf (search.search_type = LocalSearch); 
+  | Password (login, pass) -> 
+      buf_int16 buf (if proto < 14 then 5 else 52);
+      buf_string buf pass;
+      if proto > 13 then 
+        buf_string buf login
+        
+  | Search_query search -> 
+      
+      if proto < 2 then begin
+          buf_int16 buf 6;
+          buf_bool buf (search.search_type = LocalSearch); 
+        end else begin
+          buf_int16 buf 42;          
+        end;
       buf_search proto buf search
-  | Download_query (list, int, _) -> buf_int16 buf 7;
-      buf_list buf buf_string list; buf_int buf int
+  | Download_query (list, int, force) -> 
+      buf_int16 buf (if proto < 14 then 7 else 50);
+      buf_list buf buf_string list; 
+      buf_int buf int;
+      if proto > 13 then
+        buf_bool buf force
+        
   | Url string -> buf_int16 buf 8;
       buf_string buf string
   | RemoveServer_query int -> buf_int16 buf 9;
@@ -667,9 +604,11 @@ let rec from_gui_version_0 proto buf t =
   | SaveOptions_query list -> buf_int16 buf 10;
       buf_list buf (fun buf (s1,s2) ->
           buf_string buf s1; buf_string buf s2) list
-      
+  
   | RemoveDownload_query  int -> buf_int16 buf 11;
       buf_int buf int
+
+      
   | ServerUsers_query  int -> buf_int16 buf 12;
       buf_int buf int
   | SaveFile (int, string) -> buf_int16 buf 13;
@@ -728,99 +667,51 @@ let rec from_gui_version_0 proto buf t =
       buf_message buf room_message
   | EnableNetwork (int, bool) -> buf_int16 buf 40;
       buf_int buf int; buf_bool buf bool
-      
+  
   | BrowseUser  user ->       buf_int16 buf 41;
       buf_int buf user
-
+  
   | MessageToClient (c,m) ->
+      if proto < 3 then
 (* On previous GUIs, this was done like that ! *)
-      from_gui_version_0 proto buf (SendMessage (-1, PrivateMessage(c,m)))
-      
+        from_gui proto buf (SendMessage (-1, PrivateMessage(c,m)))
+      else begin
+          buf_int16 buf 43 ;
+          buf_int buf c;
+          buf_string buf m
+        end
+        
 (* These messages are not supported by the core with the provided 
-protocol version. Do not send them! *)
-  | GuiExtensions _
-  | GetDownloadedFiles
-  | GetDownloadFiles
-  | GetConnectedServers
-  | SetRoomState _ 
-  | RefreshUploadStats
-  | SetFilePriority _
-    -> raise UnsupportedGuiMessage
-    
-let from_gui_version_2 proto buf t = 
-  match t with
-    Search_query s ->
-      buf_int16 buf 42;
-      buf_search proto buf s
-  | _ -> from_gui_version_0 proto buf t
-      
-let from_gui_version_3 proto buf t = 
-  match t with
-
-  | MessageToClient (int, message) ->
-      buf_int16 buf 43 ;
-      buf_int buf int;
-      buf_string buf message
+protocol version. Do not send them ? *)
+        
+(* Introduced with proto 3 *)
   | GetConnectedServers -> buf_int16 buf 44
   | GetDownloadFiles -> buf_int16 buf 45
   | GetDownloadedFiles -> buf_int16 buf 46
+      
   | GuiExtensions list -> 
       buf_int16 buf 47;
       buf_list buf (fun buf (ext, bool) ->
           buf_int buf ext;
           buf_int8 buf (if bool then 1 else 0);
       ) list
+      
   | SetRoomState (num, state) ->
       buf_int16 buf 48;
       buf_int buf num;
       buf_room_state buf state
-  | _ -> from_gui_version_2 proto buf t
-
-let from_gui_version_4 proto buf t  = 
-  match t with
+      
+(* Introduced with proto 4 *)
   | RefreshUploadStats ->      buf_int16 buf 49
-  | _ -> from_gui_version_3 proto buf t
 
-
-let from_gui_version_7 proto buf t  = 
-  match t with
-  | Download_query (list, int, force) -> 
-      if proto >= 7 then begin
-          buf_int16 buf 7;
-          buf_list buf buf_string list; buf_int buf int; buf_bool buf force
-        end
+(* Introduced with proto 7 *)
         
   | SetFilePriority (num, prio) ->
       if proto >= 12 then
         buf_int16 buf 51; buf_int buf num; buf_int buf prio
-      
-  | _ -> from_gui_version_4 proto buf t
-        
-let from_gui_funs = [| 
-    from_gui_version_0;   (* 0 *)
-    from_gui_version_0;   (* 1 *)
-    from_gui_version_2;   (* 2 *)
-    from_gui_version_3;   (* 3 *)
-    from_gui_version_4;   (* 4 *)
-    from_gui_version_4;   (* 5 *)
-    from_gui_version_4;   (* 6 *)
-    from_gui_version_7;   (* 7 *)
-    from_gui_version_7;   (* 8 *)
-    from_gui_version_7;   (* 9 *)
-    from_gui_version_7;   (* 10 *)
-    from_gui_version_7;   (* 11 *)
-    from_gui_version_7;   (* 12 *)
-    from_gui_version_7;   (* 13 *)
-    |]
 
-  
 
-let from_gui proto = from_gui_funs.(proto) proto
-  
-let _ =
-  assert (Array.length to_gui_funs = Array.length from_gui_funs)
-
-let best_gui_version = Array.length from_gui_funs - 1
+let best_gui_version = 14
   
   
 (********** Some assertions *********)
@@ -872,9 +763,10 @@ let _ =
 (* and    server_info = {
       server_num = 1;
 } *)
-  let to_gui = to_gui 12 in
+  let proto = best_gui_version in
+  let to_gui = to_gui proto in
   let check_to_gui = 
-    check to_gui (GuiDecoding.to_gui 12) in
+    check to_gui (GuiDecoding.to_gui proto) in
   assert (check_to_gui (MessageFromClient (32, "Hello")));
   assert (check_to_gui (File_info file_info_test)); 
   assert (check_to_gui (DownloadFiles [file_info_test]));
@@ -888,7 +780,7 @@ let _ =
   assert (check_to_gui (Add_plugin_option ("section", "message", "option", StringEntry )));
   
   let check_from_gui = 
-    check (from_gui 12)  GuiDecoding.from_gui in
+    check (from_gui proto)  (GuiDecoding.from_gui proto) in
   assert (check_from_gui (MessageToClient (33, "Bye")));
   assert (check_from_gui (GuiExtensions [1, true; 2, false]));
   assert (check_from_gui GetConnectedServers);
@@ -897,4 +789,4 @@ let _ =
   assert (check_from_gui (SetRoomState (5, RoomPaused)));
   assert (check_from_gui RefreshUploadStats) ; 
   assert (check_from_gui (SetFilePriority (5,6)));
-  
+  assert (check_from_gui (Password ("mldonkey", "toto")));

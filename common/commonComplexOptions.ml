@@ -66,20 +66,21 @@ module FileOption = struct
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
-          let network = try
-              get_value "file_network" value_to_string
-            with _ -> "Donkey"
-          in
+          let network = try get_value "file_network" value_to_string
+            with _ -> "Donkey" in
           let network = network_find_by_name network in
           let file = network_add_file network is_done assocs in
+          let priority = try get_value "file_priority" value_to_int 
+            with _ -> 0 in
+          file_set_priority file priority;
           file
       | _ -> assert false
     
     let file_to_value file =
         let netname = string_to_value (file_network file).network_name in
         Options.Module (
-          ("file_network", netname)
-          ::
+        ("file_network", netname) ::
+        ("file_priority", int_to_value (file_priority file)) ::
           (file_to_option file)
         )
           
@@ -147,7 +148,9 @@ let rec string_of_option v =
       (List.fold_left (fun s v ->
             s ^ (string_of_option v) ^ ";" 
         ) "LIST [" l) ^ "]"
-
+  | DelayedValue _ -> assert false
+      
+      
 module QueryOption = struct
     let rec query_to_value q =
       match q with
@@ -366,7 +369,8 @@ let save () =
   Options.save_with_help files_ini;
   Options.save_with_help searches_ini;
   Options.save_with_help friends_ini;
-  Options.save_with_help servers_ini
+  Options.save_with_help servers_ini;
+  lprintf "Options correctly saved\n"
 
 (*************  ADD/REMOVE FUNCTIONS ************)
 
@@ -520,8 +524,10 @@ let file_add impl state =
           | FileShared
           | FileNew
           | FileCancelled -> ()
+              
           | FileAborted _
           | FileDownloading
+          | FileQueued
           | FilePaused -> 
               files =:= file :: !!files);
         update_file_state impl state

@@ -67,7 +67,16 @@ open GuiTypes
   
 let (networks : (int, net_info) Hashtbl.t) = Hashtbl.create 13
   
-let network_name num = try (Hashtbl.find networks num).net_name
+let network_name num = try
+    match (Hashtbl.find networks num).net_name with
+      "Audio Galaxy" -> "AG"
+    | "Direct Connect" -> "DC"
+    | "Donkey" -> "eDK"
+    | "OpenFT" -> "oFT"
+    | "Open Napster" -> "NAP"
+    | "LimeWire" -> "GTL"
+    | "Soulseek" -> "SLSK"
+    | n -> n
   with _ -> "?"
       
 let (users : (int, GuiTypes.user_info) Hashtbl.t) = Hashtbl.create 1023

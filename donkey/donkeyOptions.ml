@@ -79,7 +79,7 @@ let max_server_age = define_option downloads_ini ["max_server_age"] "max number 
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
 
-let trusted_sources = define_option downloads_ini ["trusted_sources"] 
+let reliable_sources = define_option downloads_ini ["reliable_sources"] 
   "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
   
 let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
@@ -207,10 +207,6 @@ let _ =
 
 let black_list = define_option downloads_ini ["black_list"]
   ""    bool_option true
-  
-let redirector = define_option downloads_ini ["redirector"]
-    "IP:port of the network redirector"
-    addr_option ("128.93.52.5", 4665)
   
 let port_black_list = define_option downloads_ini 
     ["port_black_list"] "A list of ports that specify servers to remove
@@ -350,7 +346,7 @@ let sources_per_chunk =
 
 let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
   "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
-  
+
 let _ = 
 (* Clients should never send more than 5 localisations queries
 per minute. Greater values are bad for server ressources.  *)

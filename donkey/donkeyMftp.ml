@@ -151,10 +151,8 @@ let get_port s pos =
   let port = get_int16 s pos in
   translate_port port
 
-let get_string s pos =
-  let len = get_int16 s pos in
-  String.sub s (pos+2) len, pos+2+len
-
+let get_string = get_string16
+  
 let get_tags s pos names_of_tag =
   let rec iter_tags ntags pos =
     if ntags = 0 then [], pos else

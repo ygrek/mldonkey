@@ -31,8 +31,6 @@ let safe_int_of_string option s =
   try option =:= int_of_string s
   with _ -> ()
 
-
-
 let create_gui_params () =
   (** Server options *)
 
@@ -138,6 +136,7 @@ let create_option ?help label ref = string ?help ~f: (fun s -> ref := s) label !
 let create_client_params () =
   (** Name and authentification *)
   let client_name = create_option M.o_client_name GO.client_name in
+  let client_login = create_option "Login:" GO.client_login in
   let client_password = create_option M.o_password GO.client_password in
 
   (** ports *)

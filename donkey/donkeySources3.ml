@@ -502,12 +502,16 @@ let check_source_from_file reconnect_client file =
         
         begin
           match c.client_source with
-            None -> lprintf "ERROR: Client source can not be NOne"; 
-              lprint_newline ();
+            None -> lprintf "ERROR: Client source can not be NOne\n"
           | Some s ->
               if not (List.memq file s.source_in_queues) then begin
-                  lprintf "ERROR: client should be in file queue (1)";
-                  lprint_newline ();
+                  lprintf "ERROR: client should be in file queue (1)\n";
+                  match s.source_client with
+                    SourceLastConnection _ -> 
+                      lprintf "  ERROR: client source has last conn\n"
+                  | SourceClient cc ->
+                      if c !=cc then
+                        lprintf "  ERROR: client source client is different\n"
                 end;
               
               s.source_in_queues <- List2.removeq file s.source_in_queues
@@ -810,9 +814,9 @@ let print_sources_html file buf =
                       incr counter;
                   Printf.bprintf buf "\\<div style=\\\"float: left;\\\"\\>\\<table width=\\\"130px\\\" class=\\\"src\\\" cellspacing=0 cellpadding=1 border=0\\>\\<tr\\>";
                   Printf.bprintf buf "
-                  \\<td title=\\\"%s\\\" class=\\\"srctd %s al\\\"\\>%s\\</td\\>
+                  \\<td title=\\\"[%d] %s\\\" class=\\\"srctd %s al\\\"\\>%s\\</td\\>
                   \\<td class=\\\"srctd %s ar\\\"\\>%dm/%s/%d\\</td\\>
-                  "
+                  " (client_num c)
                   c.client_name
                   !dlclass 
                      

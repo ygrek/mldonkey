@@ -36,7 +36,8 @@ open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
 open CommonInteractive
-open Md4
+open CommonEvent
+
   
 let execute_command arg_list output cmd args =
   let buf = output.conn_buf in
@@ -158,7 +159,7 @@ let list_options o list =
 \\</form\\>
               " name name value
       else
-        Printf.bprintf buf "%s = %s\n" name value)
+        Printf.bprintf buf "$b%s$> = $r%s$>\n" name value)
   list;
   if o.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
@@ -187,7 +188,7 @@ let commands = [
             file_commit file
         ) !!done_files;
         "Commited"
-    ) , ":\t\t\t\tmove downloaded files to incoming directory";
+    ) , ":\t\t\t\t$bmove downloaded files to incoming directory$>";
     
     "vd", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -197,7 +198,7 @@ let commands = [
             if o.conn_output = HTML then
               begin
                 Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>  ";
-                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks+%d\\>Verify Chunks\\</a\\>  " num;
+                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks+%d\\>Verify chunks\\</a\\>  " num;
                 if !!html_mods then
                   Printf.bprintf  buf "\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\<br\\>\n";
               end;
@@ -213,7 +214,7 @@ let commands = [
         | _ ->
             DriverInteractive.display_file_list buf o;
             ""    
-    ), "<num> :\t\t\t\tview file info";
+    ), "<num> :\t\t\t\t$bview file info$>";
     
     "downloaders", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -221,14 +222,14 @@ let commands = [
         if o.conn_output = HTML && !!html_mods then 
           Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
 							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
+\\<td title=\\\"Client number (click to add as friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CS\\</td\\>
 \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
 \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
 \\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
 \\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
 \\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
 \\<td title=\\\"Total UL Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total DL Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
@@ -268,11 +269,11 @@ let commands = [
     
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
-        ""), ":\t\t\t\t\tlist connected servers";
+        ""), ":\t\t\t\t\t$blist connected servers$>";
     
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
-    ), ":\t\t\t\t\tclose telnet";
+    ), ":\t\t\t\t\t$bclose telnet$>";
     
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets o.conn_buf;
@@ -280,7 +281,7 @@ let commands = [
     
     "kill", Arg_none (fun o ->
         CommonGlobals.exit_properly 0;
-        "exit"), ":\t\t\t\t\tsave and kill the server";
+        "exit"), ":\t\t\t\t\t$bsave and kill the server$>";
     
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
@@ -316,15 +317,16 @@ let commands = [
             ]
           );        
         
-        if o.conn_output = HTML then 
+        if o.conn_output = HTML then begin 
           Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>[ Toggle html_mods ]\\</a\\>\n\n";
-        
+          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:parent.fstatus.window.location.href='/submit?q=save'\\\"\\>[ Save Options ]\\</a\\>\n\n";
+          end;
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>[ Edit Full Options ]\\</a\\>\n\n";
+          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>[ Edit full options ]\\</a\\>\n\n";
         
-        "\nUse 'voo' for all options"    
-    ), ":\t\t\t\t\tdisplay options";
+        "\nUse '$rvoo$>' for all options"    
+    ), ":\t\t\t\t\t$bdisplay options$>";
     
     "html_mods", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -351,7 +353,7 @@ let commands = [
         else list_options o  (CommonInteractive.all_simple_options ());
         
         ""
-    ), ":\t\t\t\t\tprint options";
+    ), ":\t\t\t\t\tprint all options";
     
     "options", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -361,14 +363,14 @@ let commands = [
             Printf.bprintf buf "Available sections for options: \n";
             List.iter (fun  (section, message, option, optype) ->
                 if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  %s\n" section;
+                    Printf.bprintf buf "  $b%s$>\n" section;
                     sections := section :: !sections
                   end
             ) !! gui_options_panel;
             
             List.iter (fun (section, list) ->
                 if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  %s\n" section;
+                    Printf.bprintf buf "  $b%s$>\n" section;
                     sections := section :: !sections
                   end)
             ! CommonInteractive.gui_options_panels;
@@ -376,10 +378,10 @@ let commands = [
         
         | sections -> 
             List.iter (fun s ->
-                Printf.bprintf buf "Options in section %s:\n" s;
+                Printf.bprintf buf "Options in section $b%s$>:\n" s;
                 List.iter (fun (section, message, option, optype) ->
                     if s = section then
-                      Printf.bprintf buf "  %s [%s]= %s\n" 
+                      Printf.bprintf buf "  %s [$r%s$>]= $b%s$>\n" 
                         message option 
                         (get_fully_qualified_options option)
                 ) !! gui_options_panel;
@@ -387,16 +389,15 @@ let commands = [
                 List.iter (fun (section, list) ->
                     if s = section then                    
                       List.iter (fun (message, option, optype) ->
-                          Printf.bprintf buf "  %s [%s]= %s\n" 
+                          Printf.bprintf buf "  %s [$b%s$>]= $b%s$>\n" 
                             message option 
                             (get_fully_qualified_options option)
                       ) !!list)
                 ! CommonInteractive.gui_options_panels;
-            
             ) sections;
-            "\nUse 'set option \"value\"' to change a value where options is
+            "\nUse '$rset option \"value\"$>' to change a value where options is
 the name between []"
-    ), " :\t\t\tprint options values by section";
+    ), " :\t\t\t\t$bprint options values by section$>";
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -515,10 +516,11 @@ the name between []"
               Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
-    ), "<option_name> <option_value> :\tchange option value";
+    ), "<option_name> <option_value> :\t$bchange option value$>";
     
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let user = o.conn_user in
         match args with
           num :: _ -> 
             List.iter (fun num ->
@@ -528,22 +530,19 @@ the name between []"
             ""
         | [] ->   
             begin
-              match !searches with
+              match user.ui_user_searches with
                 [] -> "No search to print"
               | s :: _ ->
                   DriverInteractive.print_search buf s o;
                   ""
             end;
-    ), "[<num>] :\t\t\t\tview results of a search";
-    
-    "vr", Arg_none (fun o ->
-        "done"
-    ), ":\t\t\t\t\tprint last Common search results";
+    ), "[<num>] :\t\t\t\t$bview results of a search$>";
     
     "s", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let user = o.conn_user in
         let query = CommonSearch.search_of_args args in
-        ignore (CommonInteractive.start_search 
+        ignore (CommonInteractive.start_search user
             (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
@@ -571,8 +570,9 @@ the name between []"
     
     "ls", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let user = o.conn_user in
         let query = CommonSearch.search_of_args args in
-        ignore (CommonInteractive.start_search 
+        ignore (CommonInteractive.start_search user
             (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
@@ -580,7 +580,7 @@ the name between []"
               G.search_type = LocalSearch;
             }) buf);
         ""
-    ), "<query> :\t\t\t\tsearch for files on all networks\n
+    ), "<query> :\t\t\t\t$bsearch for files on all networks$>\n
 \tWith special args:
 \t-minsize <size>
 \t-maxsize <size>
@@ -600,9 +600,9 @@ the name between []"
     
     "d", Arg_multiple (fun args o ->
         List.iter (fun arg ->
-            CommonInteractive.download_file o.conn_buf arg) args;
+            CommonInteractive.download_file o arg) args;
         ""),
-    "<num> :\t\t\t\tfile to download";
+    "<num> :\t\t\t\t$bfile to download$>";
     
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -615,8 +615,9 @@ the name between []"
     
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
+        let user = o.conn_user in
         Printf.bprintf  buf "Searching %d queries\n" (
-          List.length !searches);
+          List.length user.ui_user_searches);
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if o.conn_output = HTML then 
@@ -627,7 +628,7 @@ the name between []"
             s.search_string
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
-        ) !searches; ""), ":\t\t\t\t\tview all queries";
+        ) user.ui_user_searches; ""), ":\t\t\t\t\tview all queries";
     
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -656,8 +657,10 @@ the name between []"
         if o.conn_output = HTML && !!html_mods then  
           Printf.bprintf buf 
             "\\<a href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\>  \\<a 
-					href=\\\"http://www.sharereactor.com/search.php\\\" target=\\\"$O\\\"\\>ShareReactor\\</a\\>  \\<a 
-					href=\\\"http://www.filedonkey.com\\\" target=\\\"$O\\\"\\>File Donkey\\</a\\>  ";
+            href=\\\"http://www.sharereactor.com/search.php\\\" name=\\\"ShareReactor\\\" target=\\\"$O\\\"\\>SR\\</a\\> \\<a
+            href=\\\"http://www.filenexus.com/\\\" name=\\\"FileNexus\\\" target=\\\"$O\\\"\\>FN\\</a\\> \\<a
+            href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FH\\</a\\> \\<a
+            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\>  ";
         
         ""
     ), ":\t\t\tview custom queries";
@@ -842,7 +845,8 @@ the name between []"
         match args with
           p :: files ->
             let p = int_of_string p in
-            let p = if p < 0 then 0 else p in
+            let p = if p < -100 then -100 else 
+                if p > 100 then 100 else p in
             List.iter (fun arg ->
                 try
                   let file = file_find (int_of_string arg) in
@@ -851,6 +855,7 @@ the name between []"
                     (file_best_name file) (file_priority file);
                 with _ -> failwith (Printf.sprintf "No file number %s" arg)
             ) files;
+            force_download_quotas ();
             "Done"
         | [] -> "Bad number of args"
     
@@ -863,8 +868,9 @@ the name between []"
     
     "forget", Arg_one (fun num o ->
         let buf = o.conn_buf in
+        let user = o.conn_user in
         let num = int_of_string num in
-        CommonSearch.search_forget (CommonSearch.search_find num);
+        CommonSearch.search_forget user (CommonSearch.search_find num);
         ""  
     ), "<num> :\t\t\t\tforget search <num>";
     
@@ -872,7 +878,146 @@ the name between []"
         BasicSocket.close_all ();
         "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
+
+    "message_log", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        let counter = ref 0 in
+
+        (match args with
+          [arg] ->
+            let refresh_delay = int_of_string arg in
+            if o.conn_output = HTML && !!html_mods && refresh_delay > 1 then
+              Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" 
+					refresh_delay;
+          | _ -> ());
+            
+        (* rely on GC? *)
+              
+        while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
+         let foo = Fifo.take chat_message_fifo in ()
+        done;
+
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
+        
+        Printf.bprintf buf "%d logged messages\n" (Fifo.length chat_message_fifo);
+        
+        if Fifo.length chat_message_fifo > 0 then
+        begin
+
+        if o.conn_output = HTML && !!html_mods then
+                
+            Printf.bprintf buf "\\<table class=\\\"messages\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Timestamp\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Time\\</td\\>
+\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
+\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Num\\</td\\>
+\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
+\\<td title=\\\"Message text\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Message\\</td\\>
+\\</TR\\>
+";
+
+        Fifo.iter (fun (t,i,num,n,s) ->
+        if o.conn_output = HTML && !!html_mods then
+               Printf.bprintf buf "\\<tr class=\\\"%s\\\" \\>
+                      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+                      \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
+                      \\<td class=\\\"sr\\\"\\>%d\\</td\\> 
+                      \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
+                      \\<td class=\\\"srw\\\"\\>%s\\</td\\>
+                      \\</tr\\>" 
+                ( if (!counter mod 2 == 0) then "dl-1" else "dl-2")
+                (Date.simple (BasicSocket.date_of_int t)) i num n (String.escaped s)
+        else
+               Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
+                (Date.simple (BasicSocket.date_of_int t)) num n i s;
+        incr counter;
+        ) chat_message_fifo;
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf
+        "\\</table\\>\\</div\\>";
+        
+        end;
+
+        ""
+    ), ":\t\t\t\tmessage_log [refresh delay in seconds]";
     
+    "message", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+          n :: msglist -> 
+            let msg = List.fold_left (fun a1 a2 ->
+                        a1 ^ a2 ^ " "
+            ) "" msglist in
+            let cnum = int_of_string n in
+            client_say (client_find cnum) msg;
+            Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
+         | _ ->  
+            if o.conn_output = HTML && !!html_mods then begin
+                    
+            Printf.bprintf buf "\\<script language=javascript\\>
+\\<!-- 
+function submitMessageForm() {
+var formID = document.getElementById(\\\"msgForm\\\")
+var regExp = new RegExp (' ', 'gi') ;
+var msgTextOut = formID.msgText.value.replace(regExp, '+');
+parent.fstatus.location.href='/submit?q=message+'+formID.clientNum.value+\\\"+\\\"+msgTextOut;
+formID.msgText.value=\\\"\\\";
+}
+//--\\>
+\\</script\\>";
+
+            Printf.bprintf buf "\\<IFRAME id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
+            width=\\\"100%%\\\" scrolling=yes src=\\\"/submit?q=message_log+20\\\"\\>\\</IFRAME\\>";
+
+            Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" name=\\\"msgForm\\\" id=\\\"msgForm\\\" action=\\\"javascript:submitMessageForm();\\\"\\>";
+            Printf.bprintf buf "\\<table width=100%% cellspacing=0 cellpadding=0 border=0\\>\\<tr\\>\\<td\\>";
+            Printf.bprintf buf "\\<select style=\\\"font-family: verdana;
+            font-size: 12px; width: 150px;\\\" id=\\\"clientNum\\\" name=\\\"clientNum\\\" \\>"; 
+
+            Printf.bprintf buf "\\<option value=\\\"1\\\"\\>Client/Friend list\n";
+            
+            let found_nums = ref [] in
+            let fifo_list = Fifo.to_list chat_message_fifo in
+            let fifo_list = List.rev fifo_list in 
+            let found_select = ref 0 in
+            List.iter (fun (t,i,num,n,s) ->
+                    if not (List.mem num !found_nums) then begin
+                            
+                         found_nums := num :: !found_nums;
+                         Printf.bprintf buf "\\<option value=\\\"%d\\\" %s\\>%d:%s\n"
+                         num 
+                         (if !found_select=0 then "selected" else "";)
+                         num (try
+                              let c = client_find num in
+                              let g = client_info c in 
+                              g.client_name
+                             with _ -> "unknown/expired");
+                         found_select := 1;
+                    end
+            ) fifo_list;
+            List.iter (fun c ->
+                let g = client_info c in 
+                    if not (List.mem g.client_num !found_nums) then begin
+                    found_nums := g.client_num :: !found_nums;
+                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%d:%s\n"
+                g.client_num g.client_num g.client_name;
+				end
+            ) !!friends;
+
+            Printf.bprintf buf "\\</select\\>\\</td\\>";
+            Printf.bprintf buf "\\<td width=100%%\\>\\<input style=\\\"width: 99%%; font-family: verdana; font-size: 12px;\\\" 
+                type=text id=\\\"msgText\\\" name=\\\"msgText\\\" size=50 \\>\\</td\\>";
+            Printf.bprintf buf "\\<td\\>\\<input style=\\\"font-family: verdana;
+            font-size: 12px;\\\" type=submit value=\\\"Send\\\"\\>\\</td\\>\\</form\\>";
+            Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"refresh\\\" name=\\\"refresh\\\"
+            action=\\\"javascript:msgWindow.location.reload();\\\"\\>
+            \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
+            Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
+            ""
+          end
+        else
+            Printf.sprintf "Usage: message <client#> <msg>\n";
+          
+    ), ":\t\t\t\t\tmessage [<client#> <msg>]";
+
     "friend_add", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
@@ -891,7 +1036,8 @@ the name between []"
                 let num = int_of_string num in
                 let c = client_find num in
                 friend_remove c;
-            ) args; "Removed friend"
+            ) args;
+            Printf.sprintf "%d friends removed" (List.length args)
           end
     ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";    
     
@@ -899,9 +1045,29 @@ the name between []"
         let buf = o.conn_buf in
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>
-\\<a href=\\\"javascript:window.location.reload()\\\"\\>Refresh\\</a\\>
+          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Refresh\\</a\\> \\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:
+                  { parent.fstatus.location.href='/submit?q=friend_remove+all';
+                    setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Remove All\\</a\\>
+\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: { 
+                   var getip = prompt('Friend IP [port] ie: 192.168.0.1 4662','192.168.0.1 4662')
+                   var reg = new RegExp (' ', 'gi') ;
+                   var outstr = getip.replace(reg, '+');
+                   parent.fstatus.location.href='/submit?q=afr+' + outstr;
+                    setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add by IP\\</a\\>
+\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>
 \\<table class=\\\"friends\\\" cellspacing=0 cellpadding=0\\>
+\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Num\\</td\\>
 \\<td title=\\\"Remove\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Remove\\</td\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td title=\\\"Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
@@ -914,29 +1080,30 @@ the name between []"
             let n = network_find_by_num i.client_network in
             if o.conn_output = HTML && !!html_mods then 
               begin
-                
-                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+                    
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+                onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+                onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
+                (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
                 
                 incr counter;
                 Printf.bprintf buf "
+			\\<td title=\\\"Client number\\\"
+			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+			class=\\\"srb\\\"\\>%d\\</td\\>            
 			\\<td title=\\\"Remove friend\\\"
-			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
-			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_remove+%d'\\\" 
 			class=\\\"srb\\\"\\>Remove\\</td\\>            
 			\\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>            
 			\\<td title=\\\"Name (click to view files)\\\"
-			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
-			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
 			class=\\\"sr\\\"\\>%s\\</td\\>            
 	 		\\<td title=\\\"Click to view files\\\"
-            onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
-            onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
             onClick=\\\"location.href='/submit?q=files+%d'\\\" 
             class=\\\"sr\\\"\\>%s\\</td\\>
 			\\</tr\\>"
+                  i.client_num
+                  i.client_num
                   i.client_num
                   n.network_name
                   i.client_num
@@ -944,12 +1111,8 @@ the name between []"
                   i.client_num
                   
                   (let rs = client_files c in
-                  
                   if (List.length rs) > 0 then Printf.sprintf "%d Files Listed" (List.length rs)
-                  else 
-                    string_of_connection_state (client_state c) 
-                
-                )
+                  else string_of_connection_state (client_state c) )
               
               end
             
@@ -959,8 +1122,8 @@ the name between []"
         ) !!friends;
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_remove+all';\\\"\\>Remove All Friends\\</a\\>\\</div\\>";
-        
+          Printf.bprintf buf " \\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+          
         ""
     ), ":\t\t\t\tdisplay all friends";
     
@@ -974,7 +1137,7 @@ the name between []"
                 let rs = List2.tail_map (fun (s, r) ->
                       r, CommonResult.result_info r, 1
                   ) rs in
-                CommonInteractive.last_results := [];
+                o.conn_user.ui_last_results <- [];
                 Printf.bprintf buf "Reinitialising download selectors\n";
                 DriverInteractive.print_results buf o rs;
                 
@@ -1014,8 +1177,8 @@ the name between []"
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
-            Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | MLDonkey %s'\\</script\\>"
-              dlkbs ulkbs Autoconf.current_version
+            Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s'\\</script\\>"
+              dlkbs ulkbs (CommonGlobals.version ())
           
           
           end
@@ -1040,12 +1203,18 @@ the name between []"
     ), ":\t\t\t\tprint memory stats";
     
     "rem", Arg_multiple (fun args o ->
-        List.iter (fun servnum ->
-            let num = int_of_string servnum in
-            server_remove (server_find num)
-        ) args;
-        Printf.sprintf "%d servers removed" (List.length args)
-    ), "<serv1> ... <servx> :\t\tremove servers";
+        if args = ["all"] then begin
+            servers =:= Intmap.empty;
+            "Removed all servers"
+          end else begin
+            List.iter (fun num ->
+                let num = int_of_string num in
+                let s = server_find num in
+                server_remove s
+            ) args;
+            Printf.sprintf "%d servers removed" (List.length args)
+          end
+    ), "<server numbers> :\t\t\tremove server (use arg 'all' for all servers)";
     
     "server_banner", Arg_one (fun num o ->
         let buf = o.conn_buf in
@@ -1067,7 +1236,25 @@ the name between []"
             done
           with _ -> ());
         "------------- End of log"
-    ), " :\t\t\tdump current log state to console";
+    ), " :\t\t\t\t\tdump current log state to console";
+    
+    "ansi", Arg_one (fun arg o ->
+        let buf = o.conn_buf in
+        let b = bool_of_string arg in
+        if b then begin
+            o.conn_output <- ANSI;
+          end else
+          o.conn_output <- TEXT;        
+        "$rdone$>"
+    ), " :\t\t\t\t\ttoggle ansi terminal (devel)";
+
+    "term", Arg_two (fun w h o ->
+        let w = int_of_string w in
+        let h = int_of_string h in
+        o.conn_width <- w;
+        o.conn_height <- h;
+        "set"), 
+    " <width> <height> : \t\tset terminal width and height (devel)";
     
     "stdout", Arg_one (fun arg o ->
         let buf = o.conn_buf in
@@ -1075,9 +1262,79 @@ the name between []"
         lprintf_to_stdout := b;
         Printf.sprintf "log to stdout %s" 
           (if b then "enabled" else "disabled")
-    ), " :\t\t\treactivate log to stdout";
+    ), " <true|false> :\t\t\t\treactivate log to stdout";
     
+    "debug_client", Arg_multiple (fun args o ->
+        List.iter (fun arg ->
+            let num = int_of_string arg in
+            debug_clients := Intset.add num !debug_clients;
+            (try let c = client_find num in client_debug c true with _ -> ())
+        ) args;
+        "done"
+    ), "<nums> :\t\tdebug message in communications with these clients";
     
+    "clear_debug", Arg_none (fun o ->
+        
+        Intset.iter (fun num ->
+            try let c = client_find num in client_debug c true with _ -> ()
+        ) !debug_clients;
+        debug_clients := Intset.empty;
+        "done"
+    ), ":\t\t\tclear the table of clients being debugged";
+    
+    "daemon", Arg_none (fun o ->
+        if BasicSocket.has_threads () then
+          "Cannot detach process after start, when running with threads"
+        else begin
+            detach_daemon ();
+            "done"
+          end
+    ), ":\t\t\tdetach process from console and run in background";
+    
+    "log_file", Arg_one (fun arg o ->
+        let oc = open_out arg in
+        (match !lprintf_output with
+            None -> () | Some oc -> close_out oc);
+        lprintf_output := Some oc;
+        lprintf_to_stdout := true;
+        "log started"
+    ), " <file>:\t\tstart logging in file <file>";
+    
+    "close_log", Arg_none (fun o ->
+        (match !lprintf_output with
+            None -> () | Some oc -> close_out oc);
+        lprintf_output := None;
+        lprintf_to_stdout := false;
+        "log stopped"
+    ), ":\t\t\tclose logging to file";
+
+    "!", Arg_one (fun arg o ->
+        let cmd = List.assoc arg !!allowed_commands in
+        let tmp = Filename.temp_file "com" ".out" in
+        let ret = Sys.command (Printf.sprintf "%s >& %s"
+              arg tmp) in
+        let output = File.to_string tmp in
+        Sys.remove tmp;
+        Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
+    ), "<cmd> :\t\t\tstart command <cmd> (must be allowed 
+    in 'allowed_commands' option";
+
+    "add_user", Arg_two (fun user pass o ->
+        if o.conn_user = default_user then
+          try
+            let p = List.assoc user !!users in
+            let pass = Md4.string pass in
+            (* In place replacement....heurk *)
+            String.blit (Md4.direct_to_string pass) 0 
+              (Md4.direct_to_string p) 0 16;
+            "Password changed"
+          with _ -> 
+              users =:= (user, Md4.string pass) :: !!users;
+              "User added"
+        else
+          "Only admin' is allowed to do that"
+    ), "add_user <user> <passwd>: add a new mldonkey user";
+
     ]
 
 let _ =

@@ -35,5 +35,6 @@ val lprintf_to_stdout : bool ref
 val lprintf_fifo : string Fifo.t
 val lprintf_size : int ref
 val lprintf_max_size : int ref
+val lprintf_output : out_channel option ref
 val set_lprintf_handler : (string -> unit) -> unit
   

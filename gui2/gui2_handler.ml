@@ -346,6 +346,7 @@ let string_of_file_state state =
   | FileCancelled -> "Cancelled"
   | FileAborted s -> Printf.sprintf "Aborted %s" s
   | FilePaused -> "Paused"
+  | FileQueued -> "Queued"
   | FileDownloaded -> "Done"
 (*  | FileRemoved -> "Removed"*)
   | FileNew -> assert false
@@ -987,7 +988,7 @@ let value_reader (gui: gui) t sock =
         lprintf "Using protocol %d for communications" !gui_protocol_used;
         lprint_newline ();
         gui#label_connect_status#set_text "Connected";
-        gui_send (Password (!!password))
+        gui_send (Password (!!login, !!password))
     
     | P.Search_result (s_num, r_num) -> 
 (*        lprintf "Search_result"; lprint_newline (); *)

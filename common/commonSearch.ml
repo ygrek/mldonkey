@@ -44,7 +44,7 @@ let search_string q =
 let search_num = ref 0
 let searches_by_num = Hashtbl.create 1027
   
-let new_search s =
+let new_search user s =
   incr search_num;
   let s = {
       search_num = !search_num;
@@ -60,7 +60,7 @@ let new_search s =
       op_search_end_reply_handlers = [];
     } in
   Hashtbl.add searches_by_num !search_num s;
-  searches := s :: !searches;
+  user.ui_user_searches <- s :: user.ui_user_searches ;
   s
 
 let search_find num = Hashtbl.find searches_by_num num
@@ -650,10 +650,10 @@ Min bitrate
 </form>
 "
 
-let search_forget s =
+let search_forget user s =
   networks_iter (fun n -> network_forget_search n s);
   Hashtbl.remove searches_by_num s.search_num;
-  searches := List2.removeq s !searches
+  user.ui_user_searches <- List2.removeq s user.ui_user_searches
   
   
 let search_media_list = 

@@ -63,18 +63,20 @@ let lprintf_max_size = ref 100
 let lprintf_size = ref 0
 let lprintf_fifo = Fifo.create ()
 let lprintf_to_stdout = ref true
+
+let lprintf_output = ref (Some stdout)
   
 let _ =
   set_lprintf_handler (fun s -> 
-      if !lprintf_to_stdout then begin
-          Printf.printf "%s" s; flush stdout;
-        end else begin
+      match !lprintf_output with
+        Some out when !lprintf_to_stdout ->
+          Printf.fprintf out "%s" s; flush out
+      | _ ->
           if !lprintf_size >= !lprintf_max_size then
             ignore (Fifo.take lprintf_fifo)
           else
             incr lprintf_size;
           Fifo.put lprintf_fifo s 
-        end
   )
   
   

@@ -29,11 +29,15 @@ open CommonGlobals
 open CommonNetwork
 
 let keep_console_output = ref false
+let daemon = ref false
   
 let do_daily () =
   incr days;
   load_web_infos ()
-    
+
+let minute_timer () = 
+  CommonInteractive.force_download_quotas ()
+  
 let hourly_timer timer =
   incr hours;
   if !hours mod 24 = 0 then do_daily ();
@@ -75,7 +79,7 @@ let _ =
   add_web_kind "motd.html" (fun filename ->
       lprintf "motd.html changed"; lprint_newline ();
     motd_html =:= File.to_string filename
-			   );
+  );
   add_web_kind "motd.conf" (fun filename ->
     let ic = open_in filename in
     try
@@ -106,7 +110,7 @@ let _ =
 let save_mlsubmit_reg () =
   
 (* Generate the mlsubmit.reg file *)
-  
+
   let file = Printf.sprintf 
     
    "Windows Registry Editor Version 5.00
@@ -114,7 +118,7 @@ let save_mlsubmit_reg () =
 [HKEY_CLASSES_ROOT\\ed2k\\shell\\open\\command]
 @=\"C:\\\\Program Files\\\\Internet Explorer\\\\IEXPLORE.EXE http://%s:%s@%s:%d/submit?q=dllink+%%1\""
 
-    !!http_login !!http_password (Ip.to_string (client_ip None)) !!http_port
+    "admin" "" (Ip.to_string (client_ip None)) !!http_port
   in
   File.from_string (Filename.concat file_basedir "mlsubmit.reg") file;
     
@@ -163,7 +167,7 @@ while (my $uri = shift @ARGV) {
 " 
       Autoconf.perl_path
     (Ip.to_string (client_ip None)) !!http_port
-    !!http_login !!http_password
+    "admin" ""
   in
   File.from_string "mldonkey_submit" file;
   Unix.chmod  "mldonkey_submit" 0o755
@@ -256,6 +260,8 @@ used. For example, we can add new web_infos... *)
       " : display information on the implementations";
       "-stdout", Arg.Set keep_console_output, 
       ": keep output to console after startup";
+      "-daemon", Arg.Set daemon,
+      ": start as a daemon (detach from console and run in background";
       "-find_port", Arg.Set find_other_port, " : find another port when one
       is already used";
     ] @ 
@@ -314,15 +320,17 @@ let _ =
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 
-      lprintf "Network %s %s" r.network_name
+      Printf.printf  "Network %s %s" r.network_name
         (if network_is_enabled r then "enabled" else "disabled");
-      lprint_newline () );
+      print_newline () );  
   networks_iter (fun r -> network_enable r);
+  CommonInteractive.force_download_quotas ();
   
   add_infinite_option_timer save_options_delay (fun timer ->
       DriverInteractive.save_config ());
   start_interfaces ();
   
+  add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;  
@@ -393,7 +401,11 @@ let _ =
   lprintf "Core started\n"; 
   core_included := true;
   if not !keep_console_output then begin
-      lprintf "Disabling output to console\n";
-      lprintf_to_stdout := false
+      lprintf "Disabling output to console, to enable: stdout true\n";
+      lprintf_to_stdout := false;
+      
+(* Question: is-it not to late to go in background ? Is-it possible that
+we have started some threads already ? What happens then ? *)
+      if !daemon then DriverInteractive.detach_daemon ()
     end
-  
+       

@@ -442,6 +442,7 @@ let dummy_client =
       client_requests_received = 0;
       client_indirect_address = None;
       client_asked_for_slot = false;
+      client_debug = false;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -494,6 +495,7 @@ let create_client key num =
       client_requests_sent = 0;
       client_indirect_address = None;      
       client_asked_for_slot = false; 
+      client_debug = Intset.mem num !debug_clients;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -713,7 +715,8 @@ let string_of_file_state s =
   | FileCancelled -> "File Cancelled"
   | FileNew -> "File New"
   | FileAborted s -> Printf.sprintf "Aborted: %s" s
-
+  | FileQueued -> "File Queued"
+      
 let left_bytes = "MLDK"
 
 let overnet_server_ip = ref Ip.null

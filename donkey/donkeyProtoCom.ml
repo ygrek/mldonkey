@@ -74,8 +74,8 @@ let direct_client_sock_send sock m =
   write_string sock (client_msg_to_string 227 m)
   
 let client_send c m =
-  if !verbose_msg_clients then begin
-      lprintf "Sent to client %s(%s)"
+  if !verbose_msg_clients || c.client_debug then begin
+      lprintf "Sent to client[%d] %s(%s)" (client_num c)
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
           Indirect_location _ -> ()
@@ -177,22 +177,6 @@ let udp_send t ip port msg =
       lprintf "Exception %s in udp_send" (Printexc2.to_string e);
       lprint_newline () 
 
-      (*
-let udp_send_if_possible t bc addr msg =
-  try
-    Buffer.clear buf;
-    buf_int8 buf 227;
-    DonkeyProtoServer.udp_write buf msg;
-    let s = Buffer.contents buf in
-    let len = String.length s in
-    (*lprintf "possible ?"; lprint_newline ();*)
-    if if_possible bc len then
-      UdpSocket.write t s 0 (String.length s) addr
-  with e ->
-      lprintf "Exception %s in udp_send" (Printexc2.to_string e);
-      lprint_newline () 
-      *)
-
 let udp_handler f sock event =
   let module M = DonkeyProtoUdp in
   match event with
@@ -273,7 +257,7 @@ let propagate_working_servers servers peers =
 	    buf_int buf (compute_lost_byte download_control);
 
             let s = Buffer.contents buf in    
-            let name, port = !!redirector in
+            let name, port = !!mlnet_redirector in
             UdpSocket.write propagation_socket s (Ip.from_name name) port
           with e ->
               lprintf "Exception %s in udp_sendonly" (Printexc2.to_string e);

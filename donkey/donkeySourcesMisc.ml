@@ -231,6 +231,7 @@ let purge_requests files =
         match file_state r.request_file with
         | FileDownloading -> iter true tail (r :: all_files)
         | FileAborted _
+        | FileQueued
         | FilePaused -> iter downloading tail (r :: all_files)
         | FileNew
         | FileShared

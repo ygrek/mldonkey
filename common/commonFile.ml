@@ -182,7 +182,7 @@ let file_info (file : file) =
 let file_pause (file : file) =
   let file = as_file_impl file in
   match file.impl_file_state with
-    FileDownloading ->
+  | FileDownloading | FileQueued ->
       update_file_state file FilePaused;
       file.impl_file_ops.op_file_pause file.impl_file_val
   | _ -> ()
@@ -190,11 +190,15 @@ let file_pause (file : file) =
 let file_resume (file : file) =
   let file = as_file_impl file in
   match file.impl_file_state with
-    FilePaused | FileAborted _ ->
+  | FilePaused | FileAborted _ ->
       update_file_state file FileDownloading;
       file.impl_file_ops.op_file_resume file.impl_file_val
   | _ -> ()
 
+let set_file_state file state = 
+  let impl = as_file_impl file in
+  update_file_state impl state
+      
 let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_best_name
@@ -374,6 +378,8 @@ let file_downloaders file o cnt =
 
 	if !counter mod 2 = 0 then true else false
   
+(* Use span for Opera DOM compatibility *)
+
 let colored_chunks buf chunks =
   let previous = ref false in
   let runlength = ref 0 in
@@ -383,23 +389,21 @@ let colored_chunks buf chunks =
       incr runlength
     else begin
       if !runlength > 0 then begin
-	Printf.bprintf buf "\\<td class=%s\\>"
+	Printf.bprintf buf "\\<span class=%s\\>"
           (if !previous then "chunk1" else "chunk0");
 	while !runlength > 0 do
           Printf.bprintf buf "\\&nbsp;";
           decr runlength
 	done;
-	Printf.bprintf buf "\\</td\\>"
+	Printf.bprintf buf "\\</span\\>"
       end;
       previous := b;
       runlength := 1
     end in
-  Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
   Array.iter (fun b -> 
           if b then incr tchunks;
           nextbit b) chunks;
   nextbit (not !previous);
-  Printf.bprintf buf "\\</tr\\>\\</table\\>";
   !tchunks
 
 let file_print file o = 
@@ -457,26 +461,26 @@ let file_print file o =
       if o.conn_output = HTML && srcs <> [] && !!html_mods then begin
         Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\"
         name=\\\"sourcesTable\\\" class=\\\"sources\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
-\\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
-\\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
-\\<td title=\\\"Overnet (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
+\\<td title=\\\"Client number (click to add as friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
+\\<td title=\\\"A=Active download from client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
+\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CS\\</td\\>
+\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
+\\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
 \\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
+\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
 \\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>DL\\</td\\>
 \\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rnk\\</td\\>
 \\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Scr\\</td\\>
-\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LO\\</td\\>
-\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LT\\</td\\>
-\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>NT\\</td\\>
-\\<td title=\\\"Has a Slot (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>H\\</td\\>
-\\<td title=\\\"Banned (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>B\\</td\\>
-\\<td title=\\\"Requests Sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RS\\</td\\>
-\\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RR\\</td\\>
-\\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>CT\\</td\\>
+\\<td title=\\\"Last ok (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LO\\</td\\>
+\\<td title=\\\"Last try (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LT\\</td\\>
+\\<td title=\\\"Next try (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>NT\\</td\\>
+\\<td title=\\\"Has a slot [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>H\\</td\\>
+\\<td title=\\\"Banned [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>B\\</td\\>
+\\<td title=\\\"Requests sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RS\\</td\\>
+\\<td title=\\\"Requests received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RR\\</td\\>
+\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
 \\<td title=\\\"Chunks (Blue=Complete, Red=Missing)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
 ";
@@ -485,7 +489,7 @@ let file_print file o =
         (fun i -> info.G.file_chunks.[i] = '1'))) in
 
 Printf.bprintf buf "\\</td\\> 
-\\<td title=\\\"Number of Full Chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%d\\</td\\> 
+\\<td title=\\\"Number of full chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%d\\</td\\> 
 \\</tr\\>" tchunks
 
 		end;

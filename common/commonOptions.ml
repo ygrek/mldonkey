@@ -123,13 +123,14 @@ let http_port =
 
 let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
 
-  
+  (*
 let http_login = 
   define_option downloads_ini ["http_login"] "Your login when using a WEB browser" string_option ""
   
 let http_password = 
   define_option downloads_ini ["http_password"] "Your password when using a WEB browser" string_option ""
-  
+    *)
+
 let max_hard_upload_rate = define_option downloads_ini ["max_hard_upload_rate"] 
   "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
@@ -140,10 +141,11 @@ let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rat
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
   
+  (*
 let password = define_option downloads_ini ["password"] 
   "The password to access your client from the GUI (setting it disables
   the command-line client)" string_option ""
-
+*)
   
 let allowed_ips = define_option downloads_ini ["allowed_ips"]
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
@@ -226,6 +228,12 @@ let mail = define_option downloads_ini ["mail"]
 let add_mail_brackets = define_option downloads_ini ["add_mail_brackets"]
   "Does your mail-server need <...> around addresses"
   bool_option false
+
+  
+let max_concurrent_downloads = define_option downloads_ini 
+    ["max_concurrent_downloads"] 
+  "The maximal number of files in Downloading state (other ones are Queued)"
+    int_option 60
   
 let filename_in_subject = define_option downloads_ini ["filename_in_subject"]
     "Send filename in mail subject" bool_option true
@@ -246,12 +254,22 @@ let web_infos = define_option downloads_ini
       tuple3_option (string_option, int_option, string_option)))
   [
     ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");
-    ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
-    ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
     ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
 
   ]
 
+let _ = 
+  option_hook web_infos (fun _ ->
+      List.iter (fun remove ->
+          if List.mem remove !!web_infos then
+            web_infos =:= List2.remove remove !!web_infos
+      )
+      [
+        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
+        ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
+      ]  
+  )
+  
 (********************
 
     EXPERT OPTIONS
@@ -277,6 +295,10 @@ to increase when the connection between them has a small bandwith" int_option
 let max_name_len = define_option expert_ini ["max_name_len"]
     "The size long names will be shorten to in the interface"
   int_option 50
+
+let term_ansi = define_option expert_ini ["term_ansi"]
+    "Is the default terminal an ANSI terminal (escape sequences can be used)"
+  bool_option true
   
 let previewer = define_option expert_ini ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
@@ -381,7 +403,13 @@ let _ =
 
 let network_update_url = define_option expert_ini ["network_update_url"]
     "URL where mldonkey can download update information on the network"
-    string_option "http://savannah.nongnu.org/download/mldonkey/network/"
+    string_option ""
+  
+let _ =
+  option_hook network_update_url (fun _ ->
+      if !!network_update_url = 
+        "http://savannah.nongnu.org/download/mldonkey/network/" then
+        network_update_url =:= "")
   
 let motd_html = define_option expert_ini ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
@@ -517,7 +545,7 @@ let max_reask_delay = define_option expert_ini ["max_reask_delay"]
   int_option 3600
 
 let html_mods = define_option expert_ini
-    ["html_mods"] "Whether to use the modified WEB interface" bool_option false
+    ["html_mods"] "Whether to use the modified WEB interface" bool_option true
 
   let html_mods_human_readable = define_option expert_ini
     ["html_mods_human_readable"] "Whether to use human readable GMk number format" bool_option true
@@ -533,6 +561,9 @@ let html_mods_vd_last = define_option expert_ini
 
 let html_mods_vd_queues = define_option expert_ini
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
+
+let html_mods_max_messages = define_option expert_ini
+    ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10
   
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
@@ -679,6 +710,15 @@ let _ =
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
   )
+
+let log_size = 
+  define_option downloads_ini ["log_size"]
+    "size of log in number of records" int_option 300
+  
+let _ = 
+  option_hook log_size (fun _ ->
+      lprintf_max_size := !!log_size   
+  )
     
 let max_displayed_results = define_option expert_ini
     ["max_displayed_results"]
@@ -699,9 +739,11 @@ let gui_options_panel = define_option expert_ini ["gui_options_panel"]
     (list_option (tuple4_option (string_option, string_option, string_option, string_option)))
   [
     "Identification", "Your client name", (shortname client_name), "T";
+    (*
     "Identification", "Password", (shortname password), "T";
     "Identification", "HTTP login", (shortname http_login), "T";
-    "Identification", "HTTP password", (shortname http_password), "T";
+"Identification", "HTTP password", (shortname http_password), "T";
+  *)
     "Identification", "Allowed IPs", (shortname allowed_ips), "T";
     
     "Ports", "Client IP", (shortname set_client_ip), "T";
@@ -760,3 +802,29 @@ let client_ip sock =
       ip
 
       
+let allowed_commands = define_option downloads_ini
+    ["allowed_commands"]
+  "Commands that you are allowed to be call from the interface. These
+commands should short, so that the core is not blocked more than necessary."
+    (list_option (tuple2_option (string_option, string_option)))
+  [ "df", "df";
+    "ls", "ls incoming"; 
+  ]
+
+let empty_password = Md4.string ""
+  
+let users = define_option downloads_ini ["users"]
+  "The users that are defined on this core. The default user is
+called 'admin', and uses an empty password. To create new users,
+login as admin in mldonkey, and use the 'add_user' command."
+    (list_option (tuple2_option (string_option, Md4.option)))
+    [ "admin", empty_password ]
+
+let empty_password user =
+  try
+    (List.assoc user !!users) = empty_password
+  with _ -> false
+
+let mlnet_redirector = define_option downloads_ini ["redirector"]
+    "IP:port of the network redirector"
+    addr_option ("128.93.52.5", 3999)

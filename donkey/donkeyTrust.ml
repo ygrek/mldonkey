@@ -30,7 +30,9 @@
 
    Suspicious of level 0 = banned. *)
 
+open Options
 open Printf2
+open DonkeyOptions
 open CommonTypes
 open DonkeyTypes
 open TcpBufferedSocket
@@ -43,7 +45,7 @@ let ip_trust ip =
   with Not_found -> Trust_neutral
 
 let socket_trust sock =
-  ip_trust (peer_ip sock)
+  try ip_trust (peer_ip sock) with _ -> Trust_neutral
 
 let client_trust c =
   match c.client_sock with
@@ -72,28 +74,29 @@ let set_ip_trust ip t =
 
 let valid_block_detected b =
   List.iter (fun ip -> 
-    set_ip_trust ip Trust_trusted;
-    print_trust ip
+      set_ip_trust ip Trust_trusted;
+      print_trust ip
   ) b.block_contributors
-
+  
 let corrupted_block_detected b =
   if not b.block_unknown_origin then
     match b.block_contributors with
-	[] -> () (* uh ? *)
-      | l ->
-	  let max_neighbors = (List.length l) / 2 in
-	  List.iter (fun ip -> 
+      [] -> () (* uh ? *)
+    | l ->
+        let max_neighbors = (List.length l) / 2 in
+        List.iter (fun ip -> 
             set_ip_trust ip (Trust_suspicious max_neighbors);
-	    print_trust ip;
-	    if max_neighbors = 0 then
-	      let message = Printf.sprintf "IP %s BANNED (CORRUPTED DATA)\n" (Ip.to_string ip) in
-	      CommonEvent.add_event (Console_message_event message)
-	  ) l
-
+            print_trust ip;
+            if max_neighbors = 0 then
+              let message = Printf.sprintf "IP %s BANNED (CORRUPTED DATA)\n" (Ip.to_string ip) in
+              CommonEvent.add_event (Console_message_event message)
+        ) l
+        
 (* when forced, allows "less suspicious" contributors to take over a
    stalled chunk completion *)
 
 let allowed_by_trust b c force =
+  not !!reliable_sources ||
   b.block_contributors = [] || 
   if not force then
   (match b.block_trust, client_trust c with

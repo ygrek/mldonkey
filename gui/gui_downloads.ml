@@ -65,8 +65,9 @@ let file_first_name f = f.file_name
 
 let string_of_file_state state =
   match state with
-    FileDownloading -> (gettext M.downloading)
+  | FileDownloading -> (gettext M.downloading)
   | FileCancelled -> (gettext M.cancelled)
+  | FileQueued -> (gettext M.queued)
   | FilePaused -> (gettext M.paused)
   | FileDownloaded
   | FileShared  -> (gettext M.dl_done)
@@ -328,9 +329,9 @@ class box columns sel_mode () =
       selection <- List.filter (fun fi -> fi.file_num <> f.file_num) selection
     
     method set_tb_style tb = 
-        if Options.(!!) Gui_options.mini_toolbars then
-          (wtool1#misc#hide (); wtool2#misc#show ()) else
-          (wtool2#misc#hide (); wtool1#misc#show ());
+      if Options.(!!) Gui_options.mini_toolbars then
+        (wtool1#misc#hide (); wtool2#misc#show ()) else
+        (wtool2#misc#hide (); wtool1#misc#show ());
       wtool2#set_style tb;
       wtool1#set_style tb
     
@@ -414,6 +415,11 @@ class box_downloaded wl_status () =
         Not_found ->
           ()
     
+    method preview () =
+      match self#selection with
+        [] -> ()
+      | file :: _ -> preview file ()
+    
     method save_as () = 
       match self#selection with 
       | [] -> ()
@@ -447,7 +453,17 @@ class box_downloaded wl_status () =
       ~icon: (M.o_xpm_edit_mp3)
       ~callback: self#edit_mp3_tags
         ();
-      end
+      
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.preview)
+      ~tooltip: (gettext M.preview)
+      ~icon: (M.o_xpm_preview)
+      ~callback: self#preview
+        ();
+      
+      
+end
 
 let colorGreen = `NAME "green"
 let colorRed   = `NAME "red"
@@ -606,8 +622,15 @@ class box_downloads box_locs wl_status () =
             else  [])
     
     val mutable last_displayed_file = None
-    
+    val mutable label_shown = false
+      
     method on_select file =
+      if not label_shown then begin
+          label_shown <- true;
+          self#vbox#pack ~expand: false ~fill: true label_file_info#coerce ;
+          self#vbox#pack ~expand: false ~fill: true draw_availability#coerce
+          
+        end;
       label_file_info#set_text 
         (
         Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
@@ -843,8 +866,6 @@ class box_downloads box_locs wl_status () =
             | Some file -> 
                 redraw_chunks draw_availability file; true
         ));
-      self#vbox#pack ~expand: false ~fill: true label_file_info#coerce ;
-      self#vbox#pack ~expand: false ~fill: true draw_availability#coerce
 
 end
 
@@ -895,7 +916,7 @@ class pane_downloads () =
 	  dled#h_downloaded f
       |	FileShared -> 
           dled#h_removed f
-      |	FilePaused | FileAborted _ -> 
+      |	FilePaused | FileQueued | FileAborted _ -> 
 	  dls#h_paused f
       | FileDownloading ->
 	  dls#h_downloading f
