@@ -82,7 +82,7 @@ Unix2.safe_mkdir (Filename.dirname real_name);
   file_commit (as_file file.file_file);
   Unix32.close (file_fd file);
   let old_name = file_disk_name file in
-  Printf.printf "\nMOVING %s TO %s\n" old_name real_name; 
+  Printf.printf "\nMoving %s to %s\n" old_name real_name;
   print_newline ();
   (try 
       let new_name = rename_to_incoming_dir old_name real_name in
@@ -377,7 +377,7 @@ let print_file buf file =
   (file_size file)
   (Md4.to_string file.file_md4)
   (if file_state file = FileDownloaded then
-      "done" else
+      "Done" else
       Int64.to_string (file_downloaded file));
   Buffer.add_char buf '\n';
   Printf.bprintf buf "Connected clients:\n";
@@ -395,7 +395,7 @@ let print_file buf file =
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
           (client_num c)
-          "indirect"
+          "Indirect"
           (match c.client_sock with
             None -> string_of_date (connection_last_conn
                   c.client_connection_control)
@@ -616,11 +616,11 @@ let commands = [
         
         if o.conn_output = HTML && !!html_mods then
                 
-                Printf.bprintf buf "\\<table class=\\\"scan_temp\\\"\\>\\<tr\\>
+                Printf.bprintf buf "\\<table class=\\\"scan_temp\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\<td title=\\\"Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
 \\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
-\\</TR\\>
+\\</tr\\>
 ";
         List.iter (fun filename ->
             incr counter;
@@ -631,10 +631,11 @@ let commands = [
               try
                 let file = find_file md4 in
                 if o.conn_output = HTML && !!html_mods then
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
+                class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" 
-                 !tr (file_best_name file) "Downloading" filename
+                 !tr (file_comment (as_file file.file_file)) (file_best_name file) "Downloading" filename
                 else
                 Printf.bprintf buf "%s is %s %s\n" filename
                   (file_best_name file)
@@ -728,15 +729,15 @@ let commands = [
               
               begin
                 
-                Printf.bprintf buf "\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
+                Printf.bprintf buf "\\<table class=\\\"uploaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
-\\<td title=\\\"Connected Time (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
-\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
-\\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ct\\</td\\>
+\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
+\\<td title=\\\"Ip address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ip address\\</td\\>
+\\<td title=\\\"Connected time (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ct\\</td\\>
+\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
+\\<td title=\\\"Total Dl Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total Ul Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</TR\\>
 ";
@@ -792,14 +793,16 @@ let commands = [
               
               begin
                 
-                Printf.bprintf buf "\\<br\\>\\<br\\>\\<div class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
+                Printf.bprintf buf "\\<br\\>\\<br\\>\\<div
+                class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"
+                cellspacing=0 cellpadding=0\\>\\<tr\\>
  \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
- \\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
- \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
- \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+ \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ct\\</td\\>
+ \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
+ \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
  \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
  \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
- \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
+ \\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
  \\</TR\\>
  ";
                 
@@ -904,6 +907,10 @@ let commands = [
         "download started"
     
     ), "<size> <md4> :\t\t\tdownload from size and md4";
+
+    "dup", Arg_none (fun _ ->
+        DonkeyChunks.duplicate_chunks (); "done"),
+    ":\t\t\t\tfind duplicate chunks (experimental)";
     
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1132,7 +1139,7 @@ let _ =
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
   file_ops.op_file_check <- (fun file ->
-      DonkeyOneFile.verify_chunks file);  
+      DonkeyChunks.verify_chunks file);  
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then 
         reconnect_all file);  
@@ -1141,6 +1148,9 @@ let _ =
       Intmap.iter (fun _ c -> 
           list := (as_client c.client_client) :: !list) file.file_locations;
       !list
+  );
+  file_ops.op_file_print_sources_html <- (fun file buf ->
+      if !!source_management = 3 then DonkeySources3.print_sources_html file buf
   );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
@@ -1237,15 +1247,16 @@ print_newline ();
       
       begin
         
+        let tchunks = ref 0 in      
         try 
           
           Printf.bprintf buf "
-\\<TD title=\\\"Add as Friend\\\" class=\\\"srb ar\\\" 
+\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
 onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>   
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -1278,6 +1289,9 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                     "A" else "";)
           ) 
           
+          (
+            string_of_connection_state (client_state c) )
+
           (
             short_string_of_connection_state (client_state c) )
           
@@ -1343,15 +1357,17 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
             
             if qfiles <> [] then begin
 	      try
-		let _, (qchunks, _) = List.find (fun (qfile, _) ->
+		let _, (qchunks) = List.find (fun (qfile, _) ->
 		  qfile = (as_file_impl file).impl_file_val) qfiles in
-		CommonFile.colored_chunks buf qchunks
-	      with Not_found -> ();
+		        let tchunks = (CommonFile.colored_chunks buf qchunks) in
+                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" tchunks
+	      with Not_found -> (
+                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
+			);
 	    end
-          
+        else
+                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
           );
-          
-          Printf.bprintf buf "\\</td\\>"
         
         with _ -> 
             Printf.bprintf buf "'\\\"\\>\\</td\\>
@@ -1421,14 +1437,14 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                   if (qfile = (as_file_impl file).impl_file_val) then begin
 
           Printf.bprintf buf "
-\\<TR onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+\\<tr onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 class=\\\"%s\\\"\\>
-\\<TD title=\\\"Add as Friend\\\" class=\\\"srb ar\\\" 
+\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
 onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>   
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -1442,6 +1458,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
 			str
             (client_num c)
             (client_num c)
+          ( string_of_connection_state (client_state c) )
           ( short_string_of_connection_state (client_state c) )
           (Md4.to_string c.client_md4)
           c.client_name 

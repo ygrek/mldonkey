@@ -56,6 +56,12 @@ let calc_file_eta f =
   let downloaded = Int64.to_float f.file_downloaded in
   let missing = size -. downloaded in
   let rate = f.file_download_rate in
+  let hundays = 1000.0 *. 60.0 *. 60.0 *. 24.0 in
+  match f.file_state with
+        FilePaused -> int_of_float (hundays +. 2.)
+	   | _ -> (
+	if rate < 12. then int_of_float (hundays +. 1.) else
+  begin
   let rate =
     if rate < 0.0001
     then
@@ -68,10 +74,13 @@ let calc_file_eta f =
   in
   let eta = 
     if rate < 11.
-    then 1000.0 *. 60.0 *. 60.0 *. 24.0
+    then hundays 
     else missing /. rate
   in
   int_of_float eta
+  end
+  )
+
 
 let file_availability f =
   let rec loop i p n =
@@ -335,7 +344,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
             let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
             Printf.sprintf "%s \\<br\\>
-\\<table cellpadding=0 cellspaceing=0 width=100%%\\>\\<tr\\>
+\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
 \\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
 \\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
 \\</tr\\>\\</table\\>"
@@ -759,7 +768,9 @@ let display_file_list buf o =
 
 let old_print_search buf output results = 
   let counter = ref 0 in
-  if output.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<table id=\\\"resultsTable\\\" name=\\\"resultsTable\\\" class=\\\"sources\\\" \\>\\<tr\\>
+  if output.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<table
+  id=\\\"resultsTable\\\" name=\\\"resultsTable\\\" class=\\\"sources\\\"
+  cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\<td title=\\\"Size\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Size\\</td\\>

@@ -529,6 +529,9 @@ let html_mods_vd_age = define_option expert_ini
 
 let html_mods_vd_last = define_option expert_ini
     ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
+
+let html_mods_vd_queues = define_option expert_ini
+    ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
   
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods

@@ -234,9 +234,10 @@ let _ =
       | (dirname, local_dir) :: tail ->
           waiting_directories := tail;
           shared_add_directory dirname local_dir;
+          (*
           Printf.printf "Shared %d files %Ld bytes"
             !files_scanned !files_scanned_size;
-          print_newline ();
+          print_newline (); *)
   )
     
 let shared_add_directory dirname =

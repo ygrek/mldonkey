@@ -24,13 +24,8 @@ type t = {
     mutable filename : string;
   }
 
-external seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
-  "ml_lseek64" 
-external getsize64 : string -> int64 = "ml_getsize64"
-external ftruncate64 : Unix.file_descr -> int64 -> unit = "ml_truncate64"
-external getdtablesize : unit -> int = "ml_getdtablesize"
-
-let fds_size = getdtablesize ()
+let getsize64 = Unix2.c_getsize64
+let fds_size = Unix2.c_getdtablesize ()
   
 let _ =
   Printf.printf "Your system supports %d file descriptors" fds_size;
@@ -72,10 +67,10 @@ let force_fd t =
   | Some fd -> fd
   
 let seek64 t pos com =
-  seek64 (force_fd t) pos com
+  Unix2.c_seek64 (force_fd t) pos com
   
 let ftruncate64 t len =
-  ftruncate64 (force_fd t) len
+  Unix2.c_ftruncate64 (force_fd t) len
   
 let close t =
   match t.fd with

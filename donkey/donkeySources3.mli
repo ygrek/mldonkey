@@ -26,6 +26,7 @@ val new_source : Ip.t * int -> DonkeyTypes.file -> DonkeyTypes.source
 val need_new_sources : DonkeyTypes.file -> bool
 val check_sources :     (DonkeyTypes.client -> unit) -> unit
 val print_sources : Buffer.t -> unit
+val print_sources_html : DonkeyTypes.file -> Buffer.t -> unit
 val recompute_ready_sources : unit -> unit
 val client_connected : DonkeyTypes.client -> unit
 val add_source_request : DonkeyTypes.source ->

@@ -56,7 +56,6 @@ background: #CBE5CB; margin-top: 3px; margin-left: 5px; margin-right: 5px; }
 a:link,a:active,a:visited { text-decoration: none; font-face: verdana; font-size: 10px; color: #000; }
 a:hover { color: #000000; text-decoration: underline;}
 
-
 .bu { 
 	font-variant: small-caps;
 	vertical-align: middle;
@@ -112,12 +111,17 @@ a:hover { color: #000000; text-decoration: underline;}
 .bb3 { border-left: #E5E5E5 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #000 solid 0px; border-bottom: #000 solid 0px; }
 .bb4 { border-left: #E5E5E5 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #000 solid 1px; border-bottom: #000 solid 0px; }
 
+.src { border-left: #000 solid 0px; border-top: #000 solid 0px; border-right: #000 solid 1px; border-bottom: #000 solid 1px; }
+.srctd { font-family: Verdana; font-size: 8px; }
+
 td {font-size: 12px; font-face: verdana; }
 tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
-td.srh { cursor: hand; vertical-align: top; background: #90C890; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.srh { cursor: pointer; vertical-align: top; background: #90C890; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 tr.dl-1 { background: #FFFFFF; }
 tr.dl-2 { background: #EEEEEE; }
+td.dl-1 { background: #FFFFFF; }
+td.dl-2 { background: #EEEEEE; }
 table.sources {
 	border: 1; 
 	border: #000 solid 1px;
@@ -204,7 +208,7 @@ td.chunk1 { background: #33F;}
 <!--
 function mOvr(src,clrOver)
         {
-       src.style.cursor = 'hand';
+       src.style.cursor = 'pointer';
        src.style.backgroundColor = clrOver;
         }
 function mOut(src,clrIn)
@@ -222,16 +226,13 @@ function mStatus(Str)
 function mSub(target,cmd)
 {
     if (target != \"\") {
-
 		if (cmd==\"kill\") {
 			if (confirm(\"Are you sure?\")) {
         		top[target].location.href=\"/submit?q=\" + cmd;
 		    }
 		} else {
         top[target].location.href=\"/submit?q=\" + cmd;
-
 		}
-
     } else {
     location.href=\"/submit?q=\" + cmd;
     }               
@@ -249,8 +250,6 @@ function _tabCreateArray(obj,st){
 	var _nRows=rw.length;
 	var _tabS=new Array(_nRows-1);
 	var _nCells = rw.item(0).cells.length;
-
-	
 	for(var i=1;i<_nRows;i++){
 		var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
 		if ( (st==1) && (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) ) {
@@ -267,12 +266,9 @@ function _tabCreateArray(obj,st){
 		}
 			_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
 	}
-
 	if (st==1) { _tabS.sort(_cmpFloat); }
 	else { _tabS.sort(_cmpTxt); }
-
 	if (!_tabMode) {_tabS.reverse()}			
-
 	for(var i=0;i<_nRows-1;i++){
 			var tr = _tabS[i].ar.cloneNode(true);
 			var oChild=tb.rows.item(i+1);
@@ -283,9 +279,6 @@ function _tabCreateArray(obj,st){
 
 }
 function _cmpTxt(a,b) {
-
-	var bob = b.asdf;
-
 	if (_tabMode) {
 		if (a.s==\"\") { if (b.s !=\"\") { return 1;} }
 		if (b.s==\"\") { if (a.s !=\"\") { return -1;} }
@@ -313,25 +306,19 @@ function _tabSort(obj,st){
 	return _tabMode;
 }
 
-
-
-
 function _cmdLine(){
-
 top.fstatus.document.open();
 top.fstatus.document.clear();
-top.fstatus.document.writeln(\"<HTML><HEAD></HEAD>\");
-top.fstatus.document.writeln(\"<BODY bgColor='#CBE5CB'><center><table width=100% border=0 cellspacing=0 cellpadding=0>\");
+top.fstatus.document.writeln(\"<html><head></head>\");
+top.fstatus.document.writeln(\"<body bgColor='#CBE5CB'><center><table width=100% border=0 cellspacing=0 cellpadding=0>\");
 top.fstatus.document.writeln(\" <form action=submit target=$O name=cmdFormular> \" );
-top.fstatus.document.writeln(\"<TR><TD WIDTH=100% NOWRAP>\");
+top.fstatus.document.writeln(\"<tr><td width=100% nowrap>\");
 top.fstatus.document.writeln(\" <input style='width: 99%; background: #E5FFE5; height: 20px; font-size: 12px;\'\"); 
-top.fstatus.document.writeln(\" type=text name=q value=''> </TD><TD WIDTH=1>\");
+top.fstatus.document.writeln(\" type=text name=q value=''> </td><td width=1>\");
 top.fstatus.document.writeln(\"	<input style='border-bottom: #000 2px solid; border-right: #000 2px solid; border-top: #E5FFE5 2px solid; border-left: #E5FFE5 2px solid; color: #FFF; background: #A3BDA3; font-weight: 600; height: 20px; font-size: 10px;'\");
-top.fstatus.document.writeln(\"type=submit value=Execute></TD></form>\");
-top.fstatus.document.writeln(\"</TR></TABLE></BODY></HTML>\");
+top.fstatus.document.writeln(\"type=submit value=Execute></td></form>\");
+top.fstatus.document.writeln(\"</tr></table></body></html>\");
 top.fstatus.document.close();
-
-
 }
 
 function ed2k(){
@@ -376,7 +363,7 @@ td.loaded{padding-top: 0px; padding-bottom: 0px; background-color:#72AA72; font-
 td.remain{padding-top: 0px; padding-bottom: 0px; background-color:#EEE; font-size:1px; line-height: 2px;}
 td.downloaded{font-family: Verdana; font-weight: 500; font-size: 12px; color: #000;}
 td.dl { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
-td.dlheader {cursor: hand; color: #000000; font-family: Verdana, serif; font-size: 10px; 
+td.dlheader {cursor: pointer; color: #000000; font-family: Verdana, serif; font-size: 10px; 
 border-bottom: solid 1px; background: #90C890; padding-left: 3px;
 padding-right: 3px;}
 
@@ -438,7 +425,7 @@ document.cmdFormular.submit();
 }
 function mOvr(src)
         {
-                        src.style.cursor = 'hand';
+                        src.style.cursor = 'pointer';
                         src.style.backgroundColor = '#B8DCB8';
         }
 function mOut(src,bg)
@@ -468,14 +455,14 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','help')\">Help!
 </td>
 <td 
-title=\"MLdonkey Homepage\"
+title=\"MLdonkey homepage\"
 class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://www.freesoftware.fsf.org/mldonkey/'\">Homepage
+onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage
 </td>
 <td 
-title=\"English/German Support Forums\"
+title=\"English/German support forums\"
 class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -489,43 +476,43 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','vo')\">Options
 </td>
 <td 
-title=\"Memory Statistics\"
+title=\"Memory statistics\"
 class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','mem_stats')\">Mem
 </td>
 <td 
-title=\"Client Statistics\"
+title=\"Client statistics\"
 class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','client_stats')\">C.Stats
+onClick=\"mSub('$O','client_stats')\">C Stats
 </td>
 <td 
-title=\"Load OverNet Peers\"
+title=\"Load OverNet peers\"
 class=\"bu bsmall3 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','ovweb')\">Load ONet Peers
+onClick=\"mSub('$S','ovweb')\">Load ONet peers
 </td>
 <td 
 title=\"Kill/Close the MLdonkey core\"
 class=\"bu bsmall3 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','kill')\">Kill Core
+onClick=\"mSub('$O','kill')\">Kill core
 </td>
 <tr>
 <td 
-title=\"Show Current Version\"
+title=\"Show current version\"
 class=\"bu bsmall b3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','version')\">Version
 </td>
 <td 
-title=\"View the CVS ChangeLog\"
+title=\"View the CVS changeLog\"
 class=\"bu bsmall1 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -539,7 +526,7 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','friends')\">Friends
 </td>
 <td 
-title=\"Save Options\"
+title=\"Save options\"
 class=\"bu bsmall2 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -553,25 +540,25 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','sources')\">Srcs
 </td>
 <td 
-title=\"Client Statistics in a Table\"
+title=\"Client statistics in a table\"
 class=\"bu bsmall2 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','cs')\">Stats Tbl
+onClick=\"mSub('$O','cs')\">Stats tbl
 </td>
 <td 
-title=\"Overnet Statistics\"
+title=\"Overnet statistics\"
 class=\"bu bsmall3 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','ovstats')\">Overnet Stats
+onClick=\"mSub('$O','ovstats')\">Overnet stats
 </td>
 <td 
-title=\"Bandwidth Stats (Updates every 10 seconds)\"
+title=\"Bandwidth stats (Updates every 10 seconds)\"
 class=\"bu bsmall3 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','bw_stats')\">BW Stats
+onClick=\"mSub('$S','bw_stats')\">Bw stats
 </td>
 </tr>
 </table>
@@ -616,42 +603,42 @@ onClick=\"mSub('$S','bw_stats')\">BW Stats
 
 <table style=\"border: #000 solid 1px\" class=\"commands\" width=100% cellspacing=0 cellpadding=0><tr>
 <td 
-title=\"List Connected Servers\"
+title=\"List connected servers\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vm')\">Connected Servers
+onClick=\"mSub('$O','vm')\">Connected servers
 </td>
 <td 
-title=\"Connect to More Servers\"
+title=\"Connect to more servers\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','c')\">Connect more Servers
+onClick=\"mSub('$S','c')\">Connect more servers
 </td>
 <td 
-title=\"Custom Search\"
+title=\"Custom search\"
 class=\"bu bbig bbig2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','view_custom_queries')\">Custom Search
+onClick=\"mSub('$S','view_custom_queries')\">Custom search
 </td>
 <td 
-title=\"View Searches\"
+title=\"View searches\"
 class=\"bu bbig bbig2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vs')\">View Searches
+onClick=\"mSub('$O','vs')\">View searches
 </td>
 <td 
-title=\"Recover Files from TEMP Directory\"
+title=\"Recover files from TEMP directory\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','recover_temp')\">Recover Temp
+onClick=\"mSub('$O','recover_temp')\">Recover temp
 </td>
 <td 
-title=\"Commit Downloaded files to Incoming Directory\"
+title=\"Commit Downloaded files to incoming directory\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -661,14 +648,14 @@ title=\"View Current Uploaders\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','uploaders')\">ULers
+onClick=\"mSub('$O','uploaders')\">Ulers
 </td>
 <td 
 title=\"Upload Statistics\"
 class=\"bu bbig bbig3 bb2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','upstats')\">ULs
+onClick=\"mSub('$O','upstats')\">Uls
 </td>
 </tr>
 
@@ -676,14 +663,14 @@ onClick=\"mSub('$O','upstats')\">ULs
 
 <tr>
 <td 
-title=\"View the list of All Servers\"
+title=\"View the list of all servers\"
 class=\"bu bbig bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vma')\">View All Servers
+onClick=\"mSub('$O','vma')\">View all servers
 </td>
 <td 
-title=\"Remove old Servers\"
+title=\"Remove old servers\"
 class=\"bu bbig bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
@@ -694,42 +681,42 @@ title=\"Extend Search to more servers\"
 class=\"bu bbig bbig2 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','xs')\">Extend Search
+onClick=\"mSub('$S','xs')\">Extend search
 </td>
 <td 
 title=\"View Search Results\"
 class=\"bu bbig bbig2 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vr')\">Search Results
+onClick=\"mSub('$O','vr')\">Search results
 </td>
 <td 
-title=\"Scan TEMP Directory for files\"
+title=\"Scan temp Directory for files\"
 class=\"bu bbig bbig3 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','scan_temp')\">Scan Temp
+onClick=\"mSub('$O','scan_temp')\">Scan temp
 </td>
 <td 
-title=\"ReScan for Shared files\"
+title=\"ReScan for shared files\"
 class=\"bu bbig bbig3 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','reshare')\">ReShare
+onClick=\"mSub('$S','reshare')\">Reshare
 </td>
 <td 
-title=\"View Current Downloaders\"
+title=\"View current downloaders\"
 class=\"bu bbig bbig3 bb4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','downloaders')\">DLers
+onClick=\"mSub('$O','downloaders')\">Dlers
 </td>
 <td 
 title=\"View Current Downloads\"
 class=\"bu bbig bbig3 bb3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vd')\">DLs
+onClick=\"mSub('$O','vd')\">Dls
 </td>
 </tr>
 </table>
@@ -818,7 +805,7 @@ let web_common_header_old = define_option message_file
   "
 <table width=\"100%\" border=\"0\">
 <tr>
-<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.freesoftware.fsf.org/mldonkey/\" $O><b>MLdonkey Home</b></a></td>
+<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.net/\" $O><b>MLdonkey Home</b></a></td>
 <form action=\"submit\" $O name=\"cmdFormular\" onSubmit=\"return CheckInput();\">
 <td><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
 <td><input type=\"submit\" value=\"Execute\"></td>

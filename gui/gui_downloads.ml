@@ -750,7 +750,24 @@ class box_downloads box_locs wl_status () =
 (*          Printf.printf "No such file %d" num; print_newline () *)
           ()
     
-    method h_file_remove_location (num:int) (src:int) = ()
+    method h_file_remove_location (num:int) (src:int) = 
+      try
+(*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
+        let (row, f) = self#find_file num in
+        match f.file_sources with
+          None -> ()
+        | Some list ->
+            if List.memq src list then
+              self#update_file f { f with 
+                file_sources = Some (List.filter 
+                    (fun s -> s<>src)
+                list) 
+        } 
+          row
+      with Not_found -> 
+(* some sources are sent for shared files in eDonkey. have to fix that *)
+(*          Printf.printf "No such file %d" num; print_newline () *)
+          ()
     
     method clean_table list = 
       let set = ref Intset.empty in

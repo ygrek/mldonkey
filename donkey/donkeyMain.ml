@@ -52,10 +52,12 @@ let hourly_timer timer =
   Hashtbl.clear udp_servers_replies
     
 let quarter_timer timer =
-  DonkeyServers.remove_old_servers ()
+  DonkeyServers.remove_old_servers ();
+  clean_join_queue_tables ()
 
 let fivemin_timer timer =
-  DonkeyShare.send_new_shared ()
+  DonkeyShare.send_new_shared ();
+  DonkeyChunks.duplicate_chunks ()
 
 let second_timer timer =
   (try DonkeyClient.refill_upload_slots () with _ -> ());
@@ -165,6 +167,7 @@ let enable () =
             Printf.printf "Exception %s while recovering download %s"
               (Printexc2.to_string e) (file_disk_name file); print_newline ();
     ) files_by_md4;
+
     let list = ref [] in
 (* Normally, we should check that downloaded files are still there.
   

@@ -53,6 +53,11 @@ type client_score =
 | Client_has_upload
 | Client_has_priority_upload
 
+type trust =
+  Trust_neutral
+| Trust_trusted
+| Trust_suspicious of int
+
 type brand = 
   Brand_unknown
 | Brand_edonkey
@@ -170,9 +175,8 @@ and client = {
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (
-      file * 
-      (availability * (* has displayed when connected *)
-      availability)   (* has known when disconnected when Emule comes back *)
+      file * (* has displayed when connected *)
+      availability
       ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
@@ -224,7 +228,10 @@ and block = {
     block_begin : int64;
     block_end : int64;
     mutable block_zones : zone list;
+    mutable block_unknown_origin : bool;
     mutable block_nclients : int;
+    mutable block_trust : trust;
+    mutable block_contributors : Ip.t list;
     mutable block_pos : int;
     block_file : file;
   }
@@ -308,7 +315,6 @@ module UdpClientMap = Map.Make(struct
       type t = location_kind
       let compare = compare
     end)
-
   
 type udp_client = {
     udp_client_ip : Ip.t;

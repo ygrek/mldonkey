@@ -72,16 +72,16 @@ let list_options_html o list =
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Default\\</td\\>
 \\</tr\\>
 ";
-
-    let counter = ref 0 in
-      
+  
+  let counter = ref 0 in
+  
   List.iter (fun (name, value, def, help) ->
       incr counter;
       if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                               else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-
+      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+      
       if String.contains value '\n' then 
-            Printf.bprintf buf "
+        Printf.bprintf buf "
                   \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=/submit target=\\\"$S\\\"\\> 
                   \\<input type=hidden name=setoption value=q\\>
                   \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea 
@@ -91,37 +91,37 @@ let list_options_html o list =
                   \\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>
                   \\</form\\>
                   " help name name value def
-
+      
       else  
-
-	    begin
-
-        	  Printf.bprintf buf "
+        
+        begin
+          
+          Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 		      \\<td class=\\\"sr\\\"\\>\\<form action=/submit target=\\\"$S\\\"\\>\\<input type=hidden 
 				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  help name name;
-	
-			 if value = "true" || value = "false" then 
-	
-				 Printf.bprintf buf "\\<SELECT style=\\\"font-family: verdana; font-size: 10px;\\\" 
+          
+          if value = "true" || value = "false" then 
+            
+            Printf.bprintf buf "\\<select style=\\\"font-family: verdana; font-size: 10px;\\\"
 									name=\\\"value\\\" onchange=\\\"this.form.submit()\\\"\\>
-									\\<OPTION SELECTED\\>%s\\<OPTION\\>%s\\</SELECT\\>" 
-					value 
-					(if value="true" then "false" else "true")
-			 else
-
-        	  Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\" 
+									\\<option selected\\>%s\\<option\\>%s\\</select\\>"
+              value 
+              (if value="true" then "false" else "true")
+          else
+            
+            Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\" 
 				type=text name=value size=20 value=\\\"%s\\\"\\>"
-			  value;
-
-        	  Printf.bprintf buf "
+              value;
+          
+          Printf.bprintf buf "
               \\</td\\>
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 			  \\</tr\\>\\</form\\>
               " def
-       end;
-
-        
+        end;
+      
+      
   )list;
   if o.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>\\</div\\>"
@@ -185,7 +185,7 @@ let commands = [
         List.iter (fun file ->
             file_commit file
         ) !!done_files;
-        "commited"
+        "Commited"
     ) , ":\t\t\t\tmove downloaded files to incoming directory";
     
     "vd", Arg_multiple (fun args o -> 
@@ -221,15 +221,15 @@ let commands = [
           Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
 							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
-\\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
-\\<td title=\\\"Overnet (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
-\\<td title=\\\"Connected Time (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
+\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cs\\</td\\>
+\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
+\\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
+\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ct\\</td\\>
 \\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
-\\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Ip Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ip\\</td\\>
+\\<td title=\\\"Total Ul Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ul\\</td\\>
+\\<td title=\\\"Total Dl Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Dl\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</tr\\>";
         
@@ -288,32 +288,32 @@ let commands = [
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
         if o.conn_output = HTML && !!html_mods then 
-        list_options_html o  (
-          [
-            strings_of_option_html  max_hard_upload_rate; 
-            strings_of_option_html max_hard_download_rate;
-            strings_of_option_html telnet_port; 
-            strings_of_option_html gui_port; 
-            strings_of_option_html http_port;
-            strings_of_option_html client_name;
-            strings_of_option_html allowed_ips;
-            strings_of_option_html set_client_ip; 
-            strings_of_option_html force_client_ip; 
-          ] )
+          list_options_html o  (
+            [
+              strings_of_option_html  max_hard_upload_rate; 
+              strings_of_option_html max_hard_download_rate;
+              strings_of_option_html telnet_port; 
+              strings_of_option_html gui_port; 
+              strings_of_option_html http_port;
+              strings_of_option_html client_name;
+              strings_of_option_html allowed_ips;
+              strings_of_option_html set_client_ip; 
+              strings_of_option_html force_client_ip; 
+            ] )
         else
-        list_options o  (
-          [
-            strings_of_option  max_hard_upload_rate; 
-            strings_of_option max_hard_download_rate;
-            strings_of_option telnet_port; 
-            strings_of_option gui_port; 
-            strings_of_option http_port;
-            strings_of_option client_name;
-            strings_of_option allowed_ips;
-            strings_of_option set_client_ip; 
-            strings_of_option force_client_ip; 
-          ]
-        );        
+          list_options o  (
+            [
+              strings_of_option  max_hard_upload_rate; 
+              strings_of_option max_hard_download_rate;
+              strings_of_option telnet_port; 
+              strings_of_option gui_port; 
+              strings_of_option http_port;
+              strings_of_option client_name;
+              strings_of_option allowed_ips;
+              strings_of_option set_client_ip; 
+              strings_of_option force_client_ip; 
+            ]
+          );        
         
         if o.conn_output = HTML then 
           Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>[ Toggle html_mods ]\\</a\\>\n\n";
@@ -352,6 +352,51 @@ let commands = [
         ""
     ), ":\t\t\t\t\tprint options";
     
+    "options", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+          [] ->
+            let sections = ref [] in
+            Printf.bprintf buf "Available sections for options: \n";
+            List.iter (fun  (section, message, option, optype) ->
+                if not (List.mem section !sections) then begin
+                    Printf.bprintf buf "  %s\n" section;
+                    sections := section :: !sections
+                  end
+            ) !! gui_options_panel;
+            
+            List.iter (fun (section, list) ->
+                if not (List.mem section !sections) then begin
+                    Printf.bprintf buf "  %s\n" section;
+                    sections := section :: !sections
+                  end)
+            ! CommonInteractive.gui_options_panels;
+            "\n\nUse 'options section' to see options in this section"
+            
+        | sections -> 
+            List.iter (fun s ->
+                Printf.bprintf buf "Options in section %s:\n" s;
+                List.iter (fun (section, message, option, optype) ->
+                    if s = section then
+                      Printf.bprintf buf "  %s [%s]= %s\n" 
+                        message option 
+                        (get_fully_qualified_options option)
+                ) !! gui_options_panel;
+                
+                List.iter (fun (section, list) ->
+                    if s = section then                    
+                      List.iter (fun (message, option, optype) ->
+                      Printf.bprintf buf "  %s [%s]= %s\n" 
+                        message option 
+                        (get_fully_qualified_options option)
+                      ) !!list)
+                ! CommonInteractive.gui_options_panels;
+                
+            ) sections;
+            "\nUse 'set option \"value\"' to change a value where options is
+the name between []"
+    ), " :\t\t\tprint options values by section";
+    
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
         
@@ -368,7 +413,7 @@ let commands = [
         
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<table class=\\\"upstats\\\"\\>\\<tr\\>
+          Printf.bprintf buf "\\<table class=\\\"upstats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Reqs\\</td\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Total\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>File\\</td\\>
@@ -751,7 +796,7 @@ let commands = [
         let nb_servers = ref 0 in
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
+          Printf.bprintf buf "\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
@@ -831,21 +876,21 @@ let commands = [
         let num = int_of_string num in
         let c = client_find num in
         friend_add c;
-        "Added Friend"
+        "Added friend"
     ), "<num> :\t\t\tadd friend <client#>";
     
     "friend_remove", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
         friend_remove c;
-        "Removed Friend"
+        "Removed friend"
     ), "<num> :\t\t\tremove friend <client#>";
     
     "friend_removeall", Arg_none (fun o ->
         List.iter (fun c ->
             friend_remove c
         ) !!friends;
-        "Removed All Friends"
+        "Removed all friends"
     ), ":\t\t\tremove all friends";
     
     
@@ -874,18 +919,18 @@ let commands = [
                 
                 incr counter;
                 Printf.bprintf buf "
-			\\<td title=\\\"Remove Friend\\\"  
+			\\<td title=\\\"Remove friend\\\"
 			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
 			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_remove+%d'\\\" 
 			class=\\\"srb\\\"\\>Remove\\</td\\>            
 			\\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>            
-			\\<td title=\\\"Name (Click to View Files)\\\"  
+			\\<td title=\\\"Name (click to view files)\\\"
 			onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
 			onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
 			class=\\\"sr\\\"\\>%s\\</td\\>            
-	 		\\<td title=\\\"Click to view Files\\\"  
+	 		\\<td title=\\\"Click to view files\\\"
             onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
             onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
             onClick=\\\"location.href='/submit?q=files+%d'\\\" 
@@ -952,9 +997,9 @@ let commands = [
             Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
-            Printf.bprintf buf "\\<TD\\>\\<TABLE border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>DL: %.1f kbs (%d|%d)\\</td\\>
-\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>UL: %.1f kbs (%d|%d)\\</td\\>
+            Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>Dl: %.1f kbs (%d|%d)\\</td\\>
+\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>Ul: %.1f kbs (%d|%d)\\</td\\>
 \\<td class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
               
 			dlkbs
@@ -975,7 +1020,7 @@ let commands = [
           end
         
         else 
-          Printf.bprintf buf "DL: %d bps ( %d + %d ) | UL: %d bps ( %d + %d ) [Average bps (UDP+TCP)]"
+          Printf.bprintf buf "Dl: %d bps ( %d + %d ) | Ul: %d bps ( %d + %d ) [Average bps (UDP+TCP)]"
             (!saved_download_udp_rate + !saved_download_tcp_rate)
           !saved_download_udp_rate
             !saved_download_tcp_rate

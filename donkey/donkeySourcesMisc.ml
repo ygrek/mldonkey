@@ -161,7 +161,36 @@ let set_request_result c file rs =
 *)
     
   with Exit -> ()
-  
+
+let really_query_file c file r =
+  if r.request_time + !!min_reask_delay <= last_time () then 
+    match r.request_result with
+      File_not_found when last_time () - r.request_time > 3600 -> ()
+(* one hour ago, it did not have the file.... *)
+    | _ ->
+        c.client_requests_sent <- c.client_requests_sent + 1;
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+          M.QueryFileReq file.file_md4);      
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+          M.QueryChunksReq file.file_md4);      
+        
+        r.request_time <- last_time ();
+        match r.request_result with
+          File_possible -> ()
+        | _ -> r.request_result <- File_expected
+  else begin
+(*
+        Printf.printf "%d: Too Early for this request %s" 
+          (client_num c) 
+        (file_best_name file);
+        print_newline ();
+        Printf.printf "   Previous: %d seconds ago" (last_time () - r.request_time); 
+print_newline ();
+  *) ()
+    end
+    
 let query_file c file =
   if file_state file = FileDownloading then
     let r = 
@@ -176,33 +205,7 @@ let query_file c file =
           c.client_files <- r :: c.client_files;
           r
     in
-    if r.request_time + !!min_reask_delay <= last_time () then 
-      match r.request_result with
-        File_not_found when last_time () - r.request_time > 3600 -> ()
-(* one hour ago, it did not have the file.... *)
-      | _ ->
-          c.client_requests_sent <- c.client_requests_sent + 1;
-          DonkeyProtoCom.direct_client_send c (
-            let module M = DonkeyProtoClient in
-            M.QueryFileReq file.file_md4);      
-          DonkeyProtoCom.direct_client_send c (
-            let module M = DonkeyProtoClient in
-            M.QueryChunksReq file.file_md4);      
-          
-          r.request_time <- last_time ();
-          match r.request_result with
-            File_possible -> ()
-          | _ -> r.request_result <- File_expected
-    else begin
-        (*
-        Printf.printf "%d: Too Early for this request %s" 
-          (client_num c) 
-        (file_best_name file);
-        print_newline ();
-        Printf.printf "   Previous: %d seconds ago" (last_time () - r.request_time); 
-print_newline ();
-  *) ()
-      end
+    really_query_file c file r
       
 let add_file_location file c =
   if not (Intmap.mem (client_num c) file.file_locations) then begin

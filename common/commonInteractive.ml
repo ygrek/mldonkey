@@ -116,7 +116,7 @@ let print_connected_servers o =
          (List.length list) r.network_name;
 
         if o.conn_output = HTML && !!html_mods && List.length list > 0 then 
-		Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
+		Printf.bprintf buf "\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
@@ -365,6 +365,18 @@ let apply_on_fully_qualified_options name f =
 let set_fully_qualified_options name value =
   apply_on_fully_qualified_options name (fun opfile old_name old_value ->
     set_simple_option opfile old_name value)
+
+
+let get_fully_qualified_options name =
+  let value = ref None in
+  (try
+      apply_on_fully_qualified_options name (fun opfile old_name old_value ->
+      value := Some (get_simple_option opfile old_name)
+      );
+    with _ -> ());
+  match !value with
+    None -> "????"
+  | Some s -> s
 
 let add_item_to_fully_qualified_options name value =
   ()

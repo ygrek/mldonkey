@@ -64,12 +64,8 @@ it will happen soon. *)
     mutable op_file_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
+    mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
   }
-
-  
-  
-  
-
   
 let as_file  (file : 'a file_impl) =
   let (file : file) = Obj.magic file in
@@ -225,6 +221,10 @@ let file_sources file =
   let impl = as_file_impl file in
   try impl.impl_file_ops.op_file_sources impl.impl_file_val with _ -> []
 
+let file_print_sources_html (file : file) buf =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf
+  
 let files_ops = ref []
   
 let new_file_ops network = 
@@ -246,6 +246,7 @@ let new_file_ops network =
       op_file_sources = (fun _ -> fni network "file_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
+      op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
     }
   in
   let ff = (Obj.magic f : int file_ops) in
@@ -283,6 +284,8 @@ let check_file_implementations () =
         Printf.printf "op_file_set_format\n";
       if c.op_file_sources == cc.op_file_sources then
         Printf.printf "op_file_sources\n";
+      if c.op_file_print_sources_html == cc.op_file_print_sources_html then
+        Printf.printf "op_file_print_sources_html\n";
   ) !files_ops;
   print_newline () 
 
@@ -373,12 +376,13 @@ let file_downloaders file o cnt =
 let colored_chunks buf chunks =
   let previous = ref false in
   let runlength = ref 0 in
+  let tchunks = ref 0 in
   let nextbit b =
     if b = !previous then
       incr runlength
     else begin
       if !runlength > 0 then begin
-	Printf.bprintf buf "\\<TD class=%s\\>"
+	Printf.bprintf buf "\\<td class=%s\\>"
           (if !previous then "chunk1" else "chunk0");
 	while !runlength > 0 do
           Printf.bprintf buf "\\&nbsp;";
@@ -390,9 +394,12 @@ let colored_chunks buf chunks =
       runlength := 1
     end in
   Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
-  Array.iter (fun b -> nextbit b) chunks;
+  Array.iter (fun b -> 
+          if b then incr tchunks;
+          nextbit b) chunks;
   nextbit (not !previous);
-  Printf.bprintf buf "\\</tr\\>\\</table\\>"
+  Printf.bprintf buf "\\</tr\\>\\</table\\>";
+  !tchunks
 
 let file_print file o = 
   let impl = as_file_impl file in
@@ -412,7 +419,7 @@ let file_print file o =
     
     begin
       
-      Printf.bprintf buf "ed2k: \\<A HREF=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n" 
+      Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
         (info.G.file_name) 
       (Int64.to_string info.G.file_size)
       (Md4.to_string info.G.file_md4)
@@ -420,17 +427,17 @@ let file_print file o =
       (Int64.to_string info.G.file_size)
       (Md4.to_string info.G.file_md4);
       
-      Printf.bprintf buf "\\<FORM\\>\\<SELECT\\>";
+      Printf.bprintf buf "\\<form\\>\\<select\\>";
       let counter = ref 0 in
       List.iter (fun name -> 
           incr counter;
-          Printf.bprintf buf "\\<OPTION";
-          if !counter = 2 then Printf.bprintf buf " SELECTED";
+          Printf.bprintf buf "\\<option";
+          if !counter = 2 then Printf.bprintf buf " selected";
           Printf.bprintf buf "\\>%s\n" name
       
       ) info.G.file_names;
       
-      Printf.bprintf buf "\\</SELECT\\>\\</FORM\\>\n";
+      Printf.bprintf buf "\\</select\\>\\</form\\>\n";
     
     end
   else
@@ -447,7 +454,8 @@ let file_print file o =
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
       if o.conn_output = HTML && srcs <> [] && !!html_mods then begin
-        Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\" name=\\\"sourcesTable\\\" class=\\\"sources\\\"\\>\\<tr\\>
+        Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\"
+        name=\\\"sourcesTable\\\" class=\\\"sources\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
 \\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
@@ -469,12 +477,15 @@ let file_print file o =
 \\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RR\\</td\\>
 \\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
-\\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
+\\<td title=\\\"Chunks (Blue=Complete, Red=Missing)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
 ";
 	
-		colored_chunks buf (Array.init (String.length info.G.file_chunks) (fun i -> info.G.file_chunks.[i] = '1'));
+		let tchunks = (colored_chunks buf (Array.init (String.length info.G.file_chunks)
+        (fun i -> info.G.file_chunks.[i] = '1'))) in
 
-Printf.bprintf buf "\\</td\\> \\</tr\\>";
+Printf.bprintf buf "\\</td\\> 
+\\<td title=\\\"Number of Full Chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%d\\</td\\> 
+\\</tr\\>" tchunks
 
 		end;
 
@@ -501,8 +512,10 @@ class=";
       
       
       ) srcs;
-      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then
-        Printf.bprintf buf "\\</table\\>"
+      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then begin
+        Printf.bprintf buf "\\</table\\>";
+        if !!html_mods_vd_queues then file_print_sources_html file buf;
+      end
         
 
 with _ -> ())

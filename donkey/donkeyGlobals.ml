@@ -32,160 +32,47 @@ open DonkeyOptions
 open CommonOptions
 open CommonGlobals
 
+      
+(*************************************************************
+
+Define the instances of the plugin classes, that we be filled
+later with functions defining the specialized methods for this
+plugin.
+  
+**************************************************************)  
   
 open CommonNetwork
-
-(*
-    mutable op_network_connected_servers : (unit -> server list);
-    mutable op_network_config_file : (unit -> Options.options_file);
-    mutable op_network_is_enabled : (unit -> bool);
-    mutable op_network_save_simple_options : (unit -> unit);
-    mutable op_network_load_simple_options : (unit -> unit);
-    mutable op_network_save_complex_options : (unit -> unit);
-    mutable op_network_load_complex_options : (unit -> unit);
-    mutable op_network_enable : (unit -> unit);
-    mutable op_network_disable : (unit -> unit);    
-    mutable op_network_add_server : 
-      ((string * Options.option_value) list -> server);
-    mutable op_network_add_file : 
-      bool -> ((string * Options.option_value) list -> file);
-    mutable op_network_add_client : 
-      bool -> ((string * Options.option_value) list -> client);
-    mutable op_network_prefixed_args : 
-      (unit -> (string * Arg.spec * string) list);    
-    mutable op_network_search : (search -> Buffer.t -> unit);
-    mutable op_network_share : (shared -> unit);
-    mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_connect_servers : (unit -> unit);
-    mutable op_network_add_server_id : (Ip.t -> int -> unit);
-    mutable op_network_forget_search : (search -> unit);
-    mutable op_network_close_search : (search -> unit);
-    mutable op_network_extend_search : (unit -> unit);
-    mutable op_network_clean_servers : (unit -> unit);
-    mutable op_network_add_friend_id : (Ip.t -> int -> unit);
-
-*)
   
 let network = CommonNetwork.new_network "Donkey"
     network_options_prefix commit_in_subdir
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
-
-  (*
-     op_result_network : network;
-     op_result_download : ('a -> string list -> unit);
-     op_result_info : ('a -> CommonTypes.result_info);
-  *)
       
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
-(*
-     op_server_network : network;
-     op_server_to_option : ('a -> (string * option_value) list);
-     op_server_remove : ('a -> unit);
-     op_server_info : ('a -> GuiProto.server_info);
-     op_server_sort : ('a -> float);
-     op_server_connect : ('a -> unit);
-     op_server_disconnect : ('a -> unit);
-     op_server_users : ('a -> user list);
-     op_server_query_users : ('a -> unit);
-     op_server_find_user : ('a -> string -> unit);
-     op_server_new_messages : (unit -> (int * int * string) list);
-*)
-  
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
-  
-(*
-  
-     op_room_close : ('a -> unit);
-     op_room_pause : ('a -> unit);
-     op_room_resume : ('a -> unit);
-     op_room_messages : ('a -> room_message list);
-     op_room_users : ('a -> user list);
-     op_room_name : ('a -> string);
-     op_room_info : ('a -> GuiProto.room_info);
-     op_room_send_message : ('a -> room_message -> unit);
 
-*)
 let (room_ops : server CommonRoom.room_ops) = 
   CommonRoom.new_room_ops network
-  
-(*
-     op_user_network : network;
-     op_user_commit : ('a -> unit);
-     op_user_save_as : ('a -> string -> unit);
-     op_user_print : ('a -> CommonTypes.connection_options -> unit);
-     op_user_to_option : ('a -> (string * option_value) list);
-     op_user_remove : ('a -> unit);
-     op_user_info : ('a -> GuiProto.user_info);
-     op_user_set_friend : ('a -> unit);
-     op_user_browse_files : ('a -> unit);
-*)
   
 let (user_ops : user CommonUser.user_ops) = 
   CommonUser.new_user_ops network
   
-(*
-     op_file_network : network;
-     op_file_commit : ('a -> unit);
-     op_file_save_as : ('a -> string -> unit);
-     op_file_to_option : ('a -> (string * option_value) list);
-     op_file_cancel : ('a -> unit);
-     op_file_pause : ('a -> unit);
-     op_file_resume : ('a -> unit);
-     op_file_info : ('a -> GuiProto.file_info);
-     op_file_disk_name : ('a -> string);
-     op_file_best_name : ('a -> string);
-     op_file_state : ('a -> CommonTypes.file_state);
-     op_file_set_format : ('a -> CommonTypes.format -> unit);
-     op_file_check : ('a -> unit);
-     op_file_recover : ('a -> unit);
-     op_file_sources : ('a -> client list);
-*)
-  
 let (file_ops : file CommonFile.file_ops) = 
   CommonFile.new_file_ops network
-  
-(*
-     op_client_network : network;
-     op_client_commit : ('a -> unit);
-     op_client_connect : ('a -> unit);
-     op_client_save_as : ('a -> string -> unit);
-     op_client_to_option : ('a -> (string * option_value) list);
-     op_client_cancel : ('a -> unit);
-     op_client_info : ('a -> GuiProto.client_info);
-     op_client_say : ('a -> string -> unit);
-     op_client_files : ('a -> (string * result) list);
-     op_client_set_friend : ('a -> unit);
-     op_client_remove_friend : ('a -> unit);
-*)
-
-  (*
-let client_schedule_size = 60 * 24
-let client_schedule = Array.create client_schedule_size ([] : client list)
-let client_schedule_minute = ref 0
-let client_schedule_remaining_seconds = ref 60
-    *)
 
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
-  
 let (pre_shared_ops : file_to_share CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
     
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
   
-  
-let tag_client = 200
-let tag_server = 201
-let tag_file   = 202
-    
-(* HOOKS *)
 
 let client_must_update c =
   client_must_update (as_client c.client_client)
@@ -203,25 +90,16 @@ let file_disk_name file = file_disk_name (as_file file.file_file)
 let file_best_name file = file_best_name (as_file file.file_file)
 let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
 
-(* let say_hook = ref (fun (c:client) (s:string) -> ())
+        
+(*************************************************************
 
+    General useful structures and functions
   
-(* These 3 hooks are used to handle connections with a server. They are mainly
-  used in DonkeyFiles *)
-let server_is_connected_hook = ref (fun
-      (s: server) 
-      (sock: server_sock) -> ())
-let received_from_server_hook = ref (fun 
-      (s: server) 
-      (sock: server_sock) 
-      (t: DonkeyProtoServer.t) -> ())
-let server_is_disconnected_hook = ref (fun 
-      (s: server) -> ())
+**************************************************************)  
 
-(* hook called when something changed on a file. Currently, it is only called
-  when a file is added or removed. *)
-let file_change_hook = ref (fun (file: file) -> ())
-  *)
+let tag_client = 200
+let tag_server = 201
+let tag_file   = 202
 
   (* CONSTANTS *)
 let page_size = Int64.of_int 4096    
@@ -416,8 +294,6 @@ let new_file file_state file_name md4 file_size writable =
             SourcesQueueCreate.fifo ();
             SourcesQueueCreate.fifo ();
             SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
           |];
         }
       and file_impl = {
@@ -576,9 +452,14 @@ let dummy_client =
 
 let create_client key num =  
   let rec c = {
+(*      dummy_client with *)
       client_client = client_impl;
-      client_upload = None;
+      client_connection_control =  new_connection_control_recent_ok ( ());
+      client_next_view_files = last_time () - 1;
       client_kind = key;   
+      client_power = !!upload_power;
+
+      client_upload = None;
       client_source = None;
       client_sock = None;
       client_md4 = Md4.null;
@@ -586,12 +467,10 @@ let create_client key num =
       client_chunks = [||];
       client_block = None;
       client_zones = [];
-      client_connection_control =  new_connection_control_recent_ok ( ());
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_next_view_files = last_time () - 1;
       client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -599,7 +478,6 @@ let create_client key num =
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
       client_connected = false;
-      client_power = !!upload_power;
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
@@ -614,7 +492,7 @@ let create_client key num =
       client_requests_sent = 0;
       client_indirect_address = None;      
       client_asked_for_slot = false;
-      } and
+    } and
     client_impl = {
       dummy_client_impl with            
       impl_client_val = c;
@@ -688,7 +566,8 @@ let _ =
         (rate * 1024))  
     
 let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
-  
+
+let file_md4s_to_register = ref ([] : file list)
   
 module UdpClientWHashtbl = Weak2.Make(struct
       type t = udp_client
@@ -823,8 +702,42 @@ let all_servers () =
       s :: l
   ) servers_by_key []
 
+let string_of_file_state s =
+  match  s with
+  | FileDownloading -> "File Downloading"
+  | FilePaused -> "File Paused"
+  | FileDownloaded -> "File Downloaded"
+  | FileShared     -> "File Shared"
+  | FileCancelled -> "File Cancelled"
+  | FileNew -> "File New"
+  | FileAborted s -> Printf.sprintf "Aborted: %s" s
+
+let left_bytes = "MLDK"
+
+let overnet_server_ip = ref Ip.null
+let overnet_server_port = ref 0
+
+        
+let brand_to_string b =
+  match b with
+    Brand_unknown -> "unknown"
+  | Brand_edonkey -> "eDonkey"
+  | Brand_cdonkey -> "cDonkey"
+  | Brand_mldonkey1 -> "old mldonkey"
+  | Brand_mldonkey2 -> "new mldonkey"
+  | Brand_mldonkey3 -> "trusted mldonkey"
+  | Brand_overnet -> "Overnet"
+  | Brand_newemule -> "eMule"
+  | Brand_server -> "server"
+
+
+      
+(*************************************************************
+
+The following structures are used to locally index search
+  results, to be able to search in history.
   
-  
+**************************************************************)  
   
 let (store: CommonTypes.result_info Store.t) = 
   Store.create (Filename.concat file_basedir "store")
@@ -895,35 +808,14 @@ let result_of_file md4 tags =
   ) tags;
   if check_result r tags then Some r else None
 
-let string_of_file_state s =
-  match  s with
-  | FileDownloading -> "File Downloading"
-  | FilePaused -> "File Paused"
-  | FileDownloaded -> "File Downloaded"
-  | FileShared     -> "File Shared"
-  | FileCancelled -> "File Cancelled"
-  | FileNew -> "File New"
-  | FileAborted s -> Printf.sprintf "Aborted: %s" s
-
-let left_bytes = "MLDK"
-
-let overnet_server_ip = ref Ip.null
-let overnet_server_port = ref 0
-
-        
-let brand_to_string b =
-  match b with
-    Brand_unknown -> "unknown"
-  | Brand_edonkey -> "eDonkey"
-  | Brand_cdonkey -> "cDonkey"
-  | Brand_mldonkey1 -> "old mldonkey"
-  | Brand_mldonkey2 -> "new mldonkey"
-  | Brand_mldonkey3 -> "trusted mldonkey"
-  | Brand_overnet -> "Overnet"
-  | Brand_newemule -> "eMule"
-  | Brand_server -> "server"
-
       
+(*************************************************************
+
+Define a function to be called when the "mem_stats" command
+  is used to display information on structure footprint.
+  
+**************************************************************)  
+
 let _ =
   Heap.add_memstat "DonkeyGlobals" (fun _ ->
 (* current_files *)
@@ -959,33 +851,56 @@ let _ =
       
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
 
-let md4_table = Hashtbl.create 112
+    
+(*************************************************************
+
+   Save the state of the client positive queries for files
+ if a JoinQueue message was sent. Use this information if
+ an AvailableSlot message is received while not JoinQueue
+ message was sent (client_asked_for_slot false).
   
-let register_md4 i md4 (begin_pos : int64) (len : int64) file = 
-  try
-    let files = Hashtbl.find md4_table (md4, i, begin_pos, len) in
-    if not (List.memq file !files) then begin
-        files := file :: !files;
-        Printf.printf "Files";
-        List.iter (fun file -> Printf.printf " %d" (file_num file)) !files;
-        Printf.printf "share block %s" (Md4.to_string md4);
-        print_newline ();
-      end
-  with _ ->
-      Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])
-      
-let register_md4s md4s file_num file_size = 
+**************************************************************)
   
-  let len = List.length md4s in
-  let rec iter md4s i chunk_pos =
-    match md4s with
-      [] -> ()
-    | md4 :: tail ->
-        let chunk_end = Int64.add chunk_pos block_size in
-        let chunk_size = if chunk_end > file_size then
-            Int64.sub file_size chunk_pos else block_size in
-        register_md4 i md4 chunk_pos chunk_size file_num;
-        iter tail (i+1) chunk_end
-  in
-  iter md4s 0 Int64.zero
+  
+let join_queue_by_md4 = Hashtbl.create 13
+let join_queue_by_id  = Hashtbl.create 13
+
+let client_id c = 
+  match c.client_kind with
+    Known_location (ip, port) -> (ip,ip, port)
+  | _ -> match c.client_indirect_address with
+        None -> raise Not_found
+      | Some addr -> addr
+          
+let save_join_queue c =
+  if c.client_asked_for_slot && c.client_file_queue <> [] then
+    let files = List.map (fun (file, chunks) ->
+          file, Array.copy chunks
+      ) c.client_file_queue in
+    begin
+      Hashtbl.add join_queue_by_md4 c.client_md4 (files, last_time ());
+      try
+        let id = client_id c in
+        Hashtbl.add join_queue_by_id id (files, last_time ());
+      with _ -> ()
+    end
+
+let half_hour = 30 * 60
+let clean_join_queue_tables () =
+  let current_time = last_time () in
+  
+  let list = Hashtbl2.to_list2 join_queue_by_md4 in
+  Hashtbl.clear join_queue_by_md4;
+  List.iter (fun (key, ((v,time) as e)) ->
+      if time + half_hour < current_time then
+        Hashtbl.add join_queue_by_md4 key e
+  ) list;
+    
+  let list = Hashtbl2.to_list2 join_queue_by_id in
+  Hashtbl.clear join_queue_by_id;
+  List.iter (fun (key, ((v,time) as e)) ->
+      if time + half_hour > current_time then
+        Hashtbl.add join_queue_by_id key e
+  ) list
+  
   

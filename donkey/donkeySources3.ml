@@ -72,8 +72,6 @@ let old_saved_sources_queue = 3
 let old_sources1_queue = 4
 let old_sources2_queue = 5
 let old_sources3_queue = 6
-let old_sources4_queue = 7
-let old_sources5_queue = 8
 
 let indirect_fifo = Fifo.create ()
   
@@ -85,8 +83,6 @@ let queue_name = [|
     "old_sources1";
     "old_sources2";
     "old_sources3";
-    "old_sources4";
-    "bad sources";
   |]
   
 let queue_period = [|
@@ -97,8 +93,6 @@ let queue_period = [|
     600;
     600;
     1200;
-    3600;
-    3600 * 6;
   |]
 
 let nqueues = Array.length queue_name
@@ -287,12 +281,7 @@ let source_of_client c =
                     if c.client_score >= -40 then
                       old_sources3_queue                    
                     else 
-                    if c.client_score >= -60 then
-                      old_sources4_queue                    
-                    else 
-                    if c.client_score >= -90 then
-                      old_sources5_queue                    
-                    else begin
+                      begin
 (*                       c.client_files <- List2.removeq r c.client_files; *)
                         remove_file_location file c;
                         raise Exit
@@ -422,7 +411,25 @@ let recompute_ready_sources f =
       if !nsources > !!max_sources_per_file then 
         clean_file_sources file nsources
 
-  ) !current_files
+  ) !current_files;
+  
+(* query all connected clients *)
+  Intmap.iter (fun _ c ->
+      match c.client_sock with
+        None -> ()
+      | Some sock ->  
+          match client_state c with
+            Connected _ | Connected_downloading ->
+              List.iter (fun r ->
+                  let file = r.request_file in
+                  if file_state file = FileDownloading then
+                    match r.request_result with
+                      File_not_found | File_possible -> ()
+                    | _ -> DonkeySourcesMisc.really_query_file c file r
+              ) c.client_files
+          | _ -> ()
+  ) !outside_queue
+  
   
 (* Change a source structure into a client structure before attempting
   a connection. *)
@@ -769,6 +776,126 @@ let print_sources buf =
   Printf.bprintf buf "\nTotal number of sources:%d\n" 
     (noutside_queue + !nsources)
 
+let print_sources_html file buf =
+
+  let nsources = ref 0 in
+  let per_queue = Array.create (nqueues+1) 0 in
+
+      if file_state file = FileDownloading then begin
+
+          let nclients = Fifo.length file.file_clients in
+          nsources := !nsources + nclients;
+          per_queue.(0) <- per_queue.(0) + nclients;
+          
+              if nclients > 0 then begin
+                  Printf.bprintf buf "\\<table width=\\\"100%%\\\" class=\\\"sources\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Queue (IP - Age|Overnet T/F|Score) (Mouseover=Name)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Queue[Clients]: %d clients (next %s)\\</td\\>
+\\<tr class=\\\"dl-2\\\"\\>\\<td class=\\\"dl-2\\\"\\>"
+            nclients
+          (try
+              let (c,time) = Fifo.head file.file_clients in
+              let wait = time + !!min_reask_delay - last_time () in
+              if wait > 0 then Printf.sprintf "%d seconds" wait else
+                "READY"
+            with _ -> "none");
+
+              let lasttime = (last_time()) in
+              let counter = ref 0 in
+              let dlclass = ref "" in
+                Fifo.iter (fun (c,age) ->
+
+                       let last = ((lasttime - age) / 60) in
+                      if !counter mod 2 = 0 then dlclass := "dl-1" else dlclass := "dl-2";
+                      incr counter;
+                  Printf.bprintf buf "\\<div style=\\\"float: left;\\\"\\>\\<table width=\\\"130px\\\" class=\\\"src\\\" cellspacing=0 cellpadding=1 border=0\\>\\<tr\\>";
+                  Printf.bprintf buf "
+                  \\<td title=\\\"%s\\\" class=\\\"srctd %s al\\\"\\>%s\\</td\\>
+                  \\<td class=\\\"srctd %s ar\\\"\\>%dm/%s/%d\\</td\\>
+                  "
+                  c.client_name
+                  !dlclass 
+                     
+           (
+                try 
+                  match c.client_kind with 
+                    Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                  | Indirect_location _ -> Printf.sprintf "Indirect"
+                with _ -> ""
+          ) 
+                  !dlclass last 
+                  (if c.client_overnet then "T" else "F") 
+                  c.client_score;
+
+                  Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>";
+                      
+              ) file.file_clients;
+              
+                  Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>"
+          end;
+
+          
+          Array.iteri (fun i q ->
+              let queue_size = SourcesQueue.length q in
+              per_queue.(i+1) <- per_queue.(i+1) + queue_size;
+              nsources := !nsources + queue_size;
+
+              if queue_size > 0 then begin
+
+                  Printf.bprintf buf "\\<table width=\\\"100%%\\\" class=\\\"sources\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Queue (IP - Age|Overnet T/F|Score)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Queue[%s]: %d sources (next %s)\\</td\\>
+\\<tr class=\\\"dl-2\\\"\\>\\<td class=\\\"dl-2\\\"\\>"
+                queue_name.(i) queue_size
+              (try
+                  let _,s = SourcesQueue.head q in
+                  match s.source_client with
+                    SourceLastConnection (_, last_conn, _) ->
+                      let wait =  (last_conn + queue_period.(i)) - last_time ()
+                      in
+                      if wait > 0 then
+                        Printf.sprintf "%d seconds (last ok %d, last try %d)"
+                          wait (last_time () - s.source_age)
+                        (last_time () - last_conn)
+                      else
+                        Printf.sprintf "READY (last ok %d, last try %d)"
+                          (last_time () - s.source_age)
+                        (last_time () - last_conn)
+                      
+                  | _ -> "connected"
+                with _ -> "none"   
+              );
+
+
+              let lasttime = (last_time()) in
+              let counter = ref 0 in
+              let dlclass = ref "" in
+              SourcesQueue.iter (fun ss ->
+
+                      if !counter mod 2 = 0 then dlclass := "dl-1" else dlclass := "dl-2";
+                      incr counter;
+                 
+                  let ip,port = ss.source_addr in
+                  let last = ((lasttime - ss.source_age) / 60) in
+                  Printf.bprintf buf "\\<div style=\\\"float: left;\\\"\\>\\<table width=\\\"130px\\\" class=\\\"src\\\" cellspacing=0 cellpadding=1 border=0\\>\\<tr\\>";
+                  Printf.bprintf buf "
+                  \\<td class=\\\"srctd %s al\\\"\\>%s\\</td\\>
+                  \\<td class=\\\"srctd %s ar\\\"\\>%dm/%s/%d\\</td\\>
+                  "
+                  !dlclass (Ip.to_string ip) 
+                  !dlclass last 
+                  (if ss.source_overnet then "T" else "F")
+                  ss.source_score;
+                  Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>";
+                     
+              ) q              ;
+                  Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>"
+
+              end
+              
+              ;
+          ) file.file_sources;
+          
+        end
+  
       
 let check_sources reconnect_client = 
 
@@ -878,3 +1005,4 @@ let init () =
   queue_period.(good_saved_sources_queue) <-  !!min_reask_delay;
   queue_period.(old_sources1_queue) <-  !!min_reask_delay;
   queue_period.(old_sources2_queue) <-  !!min_reask_delay;
+

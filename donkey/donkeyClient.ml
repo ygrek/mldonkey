@@ -49,10 +49,12 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 open DonkeyStats
 open DonkeyTypes  
+open DonkeyTrust
 
 module Udp = DonkeyProtoUdp
   
-let is_banned c sock = c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
+let is_banned c sock = 
+  c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
     
 
 (* Supports Emule Extended Protocol *)
@@ -260,10 +262,11 @@ let disconnect_client c =
           c.client_has_a_slot <- false;
           c.client_chunks <- [||];
           c.client_sock <- None;
+          save_join_queue c;
           c.client_asked_for_slot <- false;
           set_client_disconnected c;
           let files = c.client_file_queue in
-          List.iter (fun (file, (chunks, _) ) -> 
+          List.iter (fun (file, chunks) -> 
               remove_client_chunks file chunks)  
           files;    
 
@@ -275,7 +278,7 @@ let disconnect_client c =
               print_newline ();
 end;
   *)
-(*        c.client_file_queue <- [];  *)
+          c.client_file_queue <- [];  
           if c.client_upload != None then refill_upload_slots ();
           DonkeyOneFile.clean_client_zones c;
           
@@ -542,7 +545,10 @@ let client_has_chunks c file chunks =
         CommonEvent.add_event (File_update_availability
             (as_file file.file_file, as_client c.client_client, chunks_string));
         
-        (try
+        (
+(*
+         try
+            
             let (c1, c2) = List.assq file c.client_file_queue in
             remove_client_chunks file c1;
             add_client_chunks file chunks;
@@ -551,13 +557,14 @@ let client_has_chunks c file chunks =
             Array.blit chunks 0 c1 0 len;
             Array.blit chunks 0 c2 0 len;
 
-          with Not_found ->
+with Not_found ->
+  *)
               add_client_chunks file chunks;
               if !verbose_download then begin
                   Printf.printf "client_file_queue: ADDING FILE TO QUEUE"; print_newline ();
                 end;
               c.client_file_queue <- c.client_file_queue @ [
-                file, (chunks, Array.copy chunks) ]
+                file, chunks ]
         );
         start_download c
 
@@ -717,9 +724,9 @@ print_newline ();
   
   | M.EmuleClientInfoReq t ->      
 (*      Printf.printf "Emule Extended Protocol asked"; print_newline (); *)
-	let module CI = M.EmuleClientInfo in
-	identify_cdonkey c t.CI.tags;
-
+      let module CI = M.EmuleClientInfo in
+      identify_cdonkey c t.CI.tags;
+      
       if supports_eep c.client_brand then  begin
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReplyReq {
@@ -774,11 +781,11 @@ print_newline ();
   
   
   | M.EmuleClientInfoReplyReq t -> 
+      
+      let module CI = M.EmuleClientInfo in
+      
+      identify_cdonkey c t.CI.tags
 
-	let module CI = M.EmuleClientInfo in
-
-	identify_cdonkey c t.CI.tags
-	
 
 (*   Printf.printf "Emule Extended Protocol activated"; print_newline (); *)
   
@@ -822,7 +829,25 @@ print_newline ();
             Printf.printf "[QUEUED WITH BLOCK]"; print_newline ();
             DonkeyOneFile.clean_client_zones c;
       end;
+      begin
+        match c.client_files with
+          _ :: _ -> ()
+        | [] ->
+            if not c.client_asked_for_slot then
+              try
+                let files, _ = try
+                    let id = client_id c in
+                    Hashtbl.find join_queue_by_id id
+                  with _ ->
+                      Hashtbl.find join_queue_by_md4 c.client_md4
+                in
+                List.iter (fun (file, chunks) ->
+                    add_client_chunks file chunks) files;
+                c.client_file_queue <- files
+              with _ -> ()
+      end;
       DonkeyOneFile.find_client_block c
+  
   | M.JoinQueueReq _ ->
 (*
       if !!ban_queue_jumpers && c.client_banned then
@@ -853,10 +878,10 @@ print_newline ();
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   raise Exit;
           end;
-          
+
 (*	  set_rtimeout sock !!upload_timeout; *)
-	  set_lifetime sock one_day;
-	  add_pending_slot c
+          set_lifetime sock one_day;
+          add_pending_slot c
         
         with _ ->
             add_pending_slot c;
@@ -1009,7 +1034,7 @@ is checked for the file.
                 Printf.printf "[ERROR]: Bad list of MD4s, discarding"; 
                 print_newline ();
               end else begin
-                register_md4s md4s file (file_size file);
+                file_md4s_to_register := file :: !file_md4s_to_register;
                 file.file_md4s <- md4s
               end
           
@@ -1021,6 +1046,13 @@ is checked for the file.
   | M.BlocReq t ->
       let module Q = M.Bloc in
       let file = client_file c in
+
+      if !!trusted_sources && socket_trust sock = Trust_suspicious 0 then begin
+	Printf.printf "Receiving data from banned client, disconnect";
+	print_newline ();
+	disconnect_client c;
+	raise Not_found
+      end;
       
       DonkeySourcesMisc.set_request_result c file File_upload;
       
@@ -1047,11 +1079,11 @@ is checked for the file.
           None -> 
             printf_string "NO BLOCK EXPECTED FROM CLIENT";
             raise Not_found
-        | Some b ->
+        | Some bb ->
             let str_begin = Int64.of_int t.Q.bloc_begin in
             
-            if begin_pos < b.block_begin
-                || begin_pos >= b.block_end || end_pos > b.block_end
+            if bb.block_present || begin_pos < bb.block_begin
+                || begin_pos >= bb.block_end || end_pos > bb.block_end
             then 
               let chunk_num = Int64.to_int (Int64.div begin_pos block_size) 
               in
@@ -1060,7 +1092,7 @@ is checked for the file.
               
               Printf.printf "%Ld-%Ld (%Ld-%Ld)" 
                 (begin_pos) (end_pos)
-              (b.block_begin) (b.block_end)
+              (bb.block_begin) (bb.block_end)
               ;
               print_newline ();
               
@@ -1070,31 +1102,48 @@ is checked for the file.
               ) c.client_zones;
 
 (* try to recover the corresponding block ... *)
-              
-              (match file.file_chunks.(chunk_num) with
+
+              if bb.block_pos <> chunk_num then begin
+                  Printf.printf "OLD BLOCK %d <> %d" bb.block_pos chunk_num;
+                  print_newline ();
+                end else
+                (              
+              match file.file_chunks.(chunk_num) with
                   PresentTemp | PresentVerified -> 
                     Printf.printf "ALREADY PRESENT"; print_newline ();
+
+(* Here, we should probably try to find a new block !! *)
+                    DonkeyOneFile.clean_client_zones c;
+                    DonkeyOneFile.find_client_block c                    
+                
                 | AbsentTemp | AbsentVerified ->
                     Printf.printf "ABSENT (not implemented)"; 
                     print_newline ();
+(* We receive information for a block we have not asked !! *)
+                
                 | PartialTemp b | PartialVerified b ->
-                    Printf.printf "PARTIAL"; print_newline ();
+                    
+                      if b != bb then begin
+                        Printf.printf "BLOCK DISAGREEMENT"; print_newline ();
+                      end else begin
+                        Printf.printf "PARTIAL"; print_newline ();
 
 (* try to find the corresponding zone *)
-                    List.iter (fun z ->
-                        if z.zone_begin >= begin_pos &&
-                          end_pos > z.zone_begin then begin
-                            Printf.printf "BEGIN ZONE MATCHES"; 
-                            print_newline ();
-                          end else
-                        if z.zone_begin < begin_pos &&
-                          begin_pos < z.zone_end &&
-                          z.zone_end < end_pos then begin
-                            Printf.printf "END ZONE MATCHES";
-                            print_newline ();
-                          end 
-                    
-                    ) b.block_zones
+                        List.iter (fun z ->
+                            if z.zone_begin >= begin_pos &&
+                              end_pos > z.zone_begin then begin
+                                Printf.printf "BEGIN ZONE MATCHES"; 
+                                print_newline ();
+                              end else
+                            if z.zone_begin < begin_pos &&
+                              begin_pos < z.zone_end &&
+                              z.zone_end < end_pos then begin
+                                Printf.printf "END ZONE MATCHES";
+                                print_newline ();
+                              end 
+                        
+                        ) b.block_zones
+                      end
               );              
               raise Not_found
             else
@@ -1127,6 +1176,9 @@ is checked for the file.
               in
               Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
               List.iter (update_zone file begin_pos end_pos) c.client_zones;
+	      if not (List.mem (peer_ip sock) bb.block_contributors) then
+                bb.block_contributors <- (peer_ip sock) :: 
+                bb.block_contributors;
               find_client_zone c;                    
             with
               End_of_file ->
@@ -1448,7 +1500,7 @@ let init_client sock c =
   ); *)
   c.client_block <- None;
   c.client_zones <- [];
-(*  c.client_file_queue <- []; *)
+  c.client_file_queue <- [];
   c.client_has_a_slot <- false;
   c.client_upload <- None;
   c.client_rank <- 0;
@@ -1481,7 +1533,7 @@ let read_first_message overnet challenge m sock =
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
-            
+
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          Printf.printf "Client is already connected"; print_newline (); *)
@@ -1543,6 +1595,12 @@ let read_first_message overnet challenge m sock =
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       
+      if  !!trusted_sources && 
+        ip_trust (peer_ip sock) = Trust_suspicious 0 then begin
+	set_client_state c BlackListedHost;
+	raise End_of_file
+      end;
+            
       begin
         match t.CR.server_info with
           Some (ip, port) when !!update_server_list -> 
@@ -1645,7 +1703,8 @@ let reconnect_client c =
         Indirect_location _ -> ()
       | Known_location (ip, port) ->
           if client_state c <> BlackListedHost then
-            if !!black_list && is_black_address ip port then
+            if !!black_list && is_black_address ip port ||
+	       (!!trusted_sources && ip_trust ip = Trust_suspicious 0) then
               set_client_state c BlackListedHost
             else
             try
@@ -1781,10 +1840,8 @@ let client_connection_handler overnet t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
-(*
-      if can_open_connection () then
-begin
-*)
+      if !DonkeySourcesMisc.indirect_connections < !!max_indirect_connections(* can_open_connection () *) then
+      begin
       accept_connection_bandwidth download_control upload_control;
       (try
           let c = ref None in
@@ -1815,15 +1872,13 @@ begin
               (Printexc2.to_string e);
             print_newline ();
             Unix.close s)
-(*
-end     
+        end     
 
       else begin
           Printf.printf "***** CONNECTION PREVENTED by limitations *****";
           print_newline ();
           Unix.close s
-end;
-  *)
+     end;
   | _ -> 
       ()      
   

@@ -281,7 +281,7 @@ let new_print_stats buf o =
       
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
       
-      Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
+      Printf.bprintf buf "\\<table class=\\\"cs\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
 \\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
 \\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
@@ -417,7 +417,7 @@ let new_print_stats buf o =
       
       Printf.bprintf buf "\\<br\\>\\<br\\>Total Uptime: %d seconds (%d+%02d:%02d)\n" (guptime() + uptime) gdays ghours gmins;
       
-      Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
+      Printf.bprintf buf "\\<table class=\\\"cs\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
 \\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
 \\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>

@@ -1,7 +1,23 @@
 ChangeLog	
 =========
 
-2002/03/02: Simon (v 2.02-24)
+2003/03/03: Simon (v 2.02-25)
+  - Source Management:
+       * Query files every min_reask_delay even when already connected
+       * Removed the 2 queues for really bad files
+  - Emule compatibility: on disconnect, file queries are stored if 
+     a JoinSlot message was sent, and reused if an unrequested AvailableSlot
+     message is received (to be tested).
+  - Duplication of similar chunks between files (the next step should be
+      to only download one of these chunks) tested every 5 minutes
+  - Applied patches #1203, #1204, #1210 and #1215
+  - Applied patch 77_trusted_sources, activated by option 'trusted_sources'
+  - New option 'max_indirect_connections' to limit the number of incoming
+      connections.
+  - New command 'options' to print options by section
+
+
+2003/03/02: Simon (v 2.02-24)
   - New commands 'share <dir>' and 'unshare <dir>' to manipulate
       shared_directories
   - Applied pango's patch 71_upload_slots_dynamic_allocation, controlled
@@ -19,7 +35,7 @@ ChangeLog
        * Two new queues, one for good clients (every 10 minutes), one for
            bad clients (every 6 hours)
 
-2002/03/01: Simon (v 2.02-23)
+2003/03/01: Simon (v 2.02-23)
   - Bug fixes:
     * stats should be correctly saved
     * sources above max_sources_per_file should be correctly removed
@@ -29,12 +45,12 @@ ChangeLog
     can trigger intrusion detection softwares ! It is partially asynchronous,
     so that the replies may appear several seconds after the function returned.
  
-2002/02/28: Simon (v 2.02-22)
+2003/02/28: Simon (v 2.02-22)
   - eDonkey: respect max_sources_per_file
   - Applied patch #1198, stats saved as options in 'stats.ini'
   - Added link to French forum on main WEB page
 
-2002/02/26: Simon (v 2.02-21)
+2003/02/26: Simon (v 2.02-21)
   - eDonkey: 
       * Save hashes of commited files in shared_files.ini to remove
         rehashing commited files on startup
@@ -57,7 +73,7 @@ ChangeLog
          upload/download engine. need more time to check
   - Fix: correctly cache IPs in Ip.async_ip
 
-2002/02/25: Simon (v 2.02-20)
+2003/02/25: Simon (v 2.02-20)
   - Applied patch #1174, #1177, #1178
   - With threads, asynchronous DNS resolution of urls
   - GUI: ed2k links directly saved to selection, but doesnot work yet
@@ -68,10 +84,10 @@ ChangeLog
         prevent rehashing of downloaded files
   - ./configure: Improved pthread support
 
-2002/02/25: Simon (v 2.02-19)
+2003/02/25: Simon (v 2.02-19)
   - Fixed Makefile for pthread library
 
-2002/02/24: Simon (v 2.02-18)
+2003/02/24: Simon (v 2.02-18)
   - eDonkey: 
      * Fixes: good sources dropped
   - Limewire:
@@ -80,12 +96,12 @@ ChangeLog
   - ./configure: use option -enable-pthread-lib=pthread, or whatever, to enable
        use of threads
 
-2002/02/22: Simon (v 2.02-17)
+2003/02/22: Simon (v 2.02-17)
   - GUI: new application mldonkey_installer'. Guess its goal. Need
       -enable-devel in ./configure . Not working yet.
   - Applied patch #1165, #1164, #1161
 
-2002/02/21: Simon
+2003/02/21: Simon
   - eDonkey: 
      * Removed slot reserved for mldonkey2
      * Added some UDP messages for Emule (not yet used)
@@ -101,7 +117,7 @@ ChangeLog
   - ./configure: new option -enable-pthread, if you want to compute some
       md4s in another thread. 
 
-2002/02/20: Simon (v 2.02-16) tag unstable-2-02-16
+2003/02/20: Simon (v 2.02-16) tag unstable-2-02-16
   - Applied patch #1137: new html_mods
   - Added some options in 'vo':
        client_name,allowed_ips,client_ip, force_client_ip
@@ -114,7 +130,7 @@ ChangeLog
        * Try to print the IP:port for unknown packets
   - Net: mtu changed to 1500
 
-2002/02/19: Simon (v 2.02-15)
+2003/02/19: Simon (v 2.02-15)
   - Applied patch #1136: better mail output
   - Applied patch adding "rem" command
   - Applied patch #1128: Adding chunk_width edit option
@@ -123,23 +139,23 @@ ChangeLog
      * Try to recover direct address from connecting client
      * Try to ask good connecting clients to reconnect (either by tcp or udp)
 
-2002/02/19: Simon (v 2.02-14)
+2003/02/19: Simon (v 2.02-14)
   - Bug fix: vd <num> (patch #1135)
 
-2002/02/18: Simon (v 2.02-13)
+2003/02/18: Simon (v 2.02-13)
   - Upgraded to lattest html_mods
   - GUI: 
        * You can now pass the full path to a file filled with urls (ed2k://) in 
          the ed2k:// entry
 
-2002/02/18: Simon (v 2.02-12)
+2003/02/18: Simon (v 2.02-12)
   - fixed bug exiting on set_request_result not found.
 
-2002/02/18: Simon  (release unstable-2-02-11)
+2003/02/18: Simon  (release unstable-2-02-11)
   - DonkeyServers: fixed a bug with socket Lifetimes
   - Fixed bugs in gpattern and vm commands
 
-2002/02/17: Simon (release unstable-2-02-10)
+2003/02/17: Simon (release unstable-2-02-10)
   - DonkeySources3: new source management (use 'sources' command for info)
       * Increased default max_clients_per_second to 30
       * Removed ban on rank > 500
@@ -148,7 +164,7 @@ ChangeLog
      have been changed, so that foreign translations are not ok anymore.
   - DonkeyServers: query more files before deconnection from clients.
 
-2002/02/15: Simon
+2003/02/15: Simon
   - GUI:
       * Added small icons (used by default)
   - Core:
@@ -161,28 +177,28 @@ ChangeLog
             the incoming directory too (recall: options can be set on the
             command line: #root> /usr/local/bin/mldonkey -run_as_useruid 502).
 
-2002/02/09: Simon
+2003/02/09: Simon
   - GUI:
       * New query tabs: "ShareReactor Search" and "Jigle Search"
       * More options in "FreeDB Search" tab
   - Ip: DNS queries are now always cached.
 
-2002/02/07: Simon
+2003/02/07: Simon
   - Applied patch #1079 (fragmentation)
   - DonkeyOvernet:
       * Keyword store completely rewritten
       * Remove keywords older than 1 hour 
 
-2002/02/06: Simon
+2003/02/06: Simon
   - GUI:
       * New query tab "IMDB Search"
 
-2002/02/05: Simon
+2003/02/05: Simon
   - Applied html_mods patch 2 from Mike Jones
   - GUI:
       * New query tab "FreeDB Search"
 
-2002/02/04: Simon
+2003/02/04: Simon
   - Ported to Ocaml CVS version: 3.06+21 is required on Mac OS X. Downloads
       are done from Savannah for 3.06 and 3.06+21
   - GUI: 

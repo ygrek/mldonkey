@@ -87,7 +87,7 @@ let new_file_to_share sh old_impl =
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
     must_share_file file old_impl;
     file.file_md4s <- md4s;
-    register_md4s md4s file (file_size file);
+    file_md4s_to_register := file :: !file_md4s_to_register;
     let sh_name = Filename.basename sh.sh_name in
     if not (List.mem sh_name file.file_filenames) then begin
         file.file_filenames <- file.file_filenames @ [sh_name];

@@ -78,6 +78,9 @@ let retry_delay = define_option downloads_ini ["retry_delay"] "" float_option 36
 let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
+
+let trusted_sources = define_option downloads_ini ["trusted_sources"] 
+  "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
   
 let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
@@ -141,6 +144,11 @@ let max_clients_per_second = define_option downloads_ini
     ["max_clients_per_second"] 
   "Maximal number of connections to sources per second"
   int_option 30
+  
+let max_indirect_connections = define_option downloads_ini
+    ["max_indirect_connections"] 
+  "Maximal number of incoming connections at any moment (default 10000 = unlimited :)"
+  int_option 10000
   
 let log_clients_on_console = define_option downloads_ini
   ["log_clients_on_console"] 

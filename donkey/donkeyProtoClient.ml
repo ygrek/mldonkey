@@ -59,7 +59,26 @@ module Connect  = struct
         15, "port";
         31, "server_udp";
       ]
-    
+(*
+e3
+37 00 00 00
+01  CONNECT
+10  version = 16
+6a 37 34 49 b4 0e 47 33 46 39 4f 13 92 05 6f 20
+d9 53 f8 56  IP
+36 12        port
+
+02 00 00 00  tags
+02
+01 00 01 
+07 00 53  74 72 69 70 65 72 03 "S tripper"
+01
+00 11 3c 00 00 00
+d4 75  e7 dd
+ed 1d             ..<...Ôu çÝí.
+*)
+
+      
     let parse len s =
       let version = get_int8 s 1 in
       let md4 = get_md4 s 2 in

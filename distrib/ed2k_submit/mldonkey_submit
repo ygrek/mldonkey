@@ -22,7 +22,7 @@ use LWP::UserAgent;
 #
 $vars{'HTTPURL'} = "http://localhost:4080";
 
-my $cfg = "/etc/sysconfig/mldonkey";
+my $cfg = "/etc/sysconfig/mldonkey_submit";
 open(I,"<$cfg") || die "Can't read $cfg: $!\n";
 chomp (my @lines = (<I>));
 close I;
@@ -46,7 +46,7 @@ my $ua = LWP::UserAgent->new;
 
 while (my $uri = shift @ARGV) {
 	$_ = URI::Escape::uri_unescape($uri);
-	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdef]+)\|$/) {
+	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdef]+)\|/) {
 		my $size = $1;
 		my $md4 = $2;
 		my $req = HTTP::Request->new(
