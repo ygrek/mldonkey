@@ -1,6 +1,8 @@
 ChangeLog	
 =========
 
+UPDATE (2005/02/20): branch 2-5-28 was updated, to check out use "-r release-2-5-28-1"
+
 A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !
 	(if you do a checkout/update , use tag 'release-2-5.28' instead)
 	
