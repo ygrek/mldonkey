@@ -13,6 +13,9 @@ due to problems with old clients accessing savannah at startup.
        * some colors in terminal (use term_ansi option to disable)
        * new external searches in the GUI
 
+2003/03/11: Simon
+  - Fixed 0 upload bug :)
+
 2003/03/06: Simon
   - Debug: new commands 'debug_client <nums>' to see messages exchanged with
       those clients, and 'clear_debug' to clear the debug table.

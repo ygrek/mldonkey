@@ -145,7 +145,6 @@ let remove_pending_slot c =
     
 let rec give_a_slot c = 
   remove_pending_slot c;
-  if not c.client_has_a_slot then find_pending_slot () else
   match c.client_sock with
     None -> find_pending_slot ()
   | Some sock ->
