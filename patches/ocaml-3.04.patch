@@ -1,5 +1,5 @@
 diff -r -C 2 ocaml-3.04.orig/.depend ocaml-3.04/.depend
-*** ocaml-3.04.orig/.depend	Tue Oct 30 10:33:32 2001
+*** ocaml-3.04.orig/.depend	Tue Feb 19 14:41:24 2002
 --- ocaml-3.04/.depend	Sat Feb 16 17:39:33 2002
 ***************
 *** 77,81 ****
@@ -78,9 +78,43 @@ diff -r -C 2 ocaml-3.04.orig/.depend ocaml-3.04/.depend
 !     bytecomp/lambda.cmx parsing/location.cmx utils/misc.cmx parsing/parse.cmx \
       parsing/printast.cmx bytecomp/printlambda.cmx typing/printtyp.cmx \
       bytecomp/simplif.cmx bytecomp/translmod.cmx typing/typedtree.cmx \
+diff -r -C 2 ocaml-3.04.orig/asmcomp/compilenv.ml ocaml-3.04/asmcomp/compilenv.ml
+*** ocaml-3.04.orig/asmcomp/compilenv.ml	Fri Apr 21 10:10:30 2000
+--- ocaml-3.04/asmcomp/compilenv.ml	Tue Feb 19 14:38:01 2002
+***************
+*** 140,145 ****
+  (* Write the description of the current unit *)
+  
+! let save_unit_info filename =
+!   current_unit.ui_imports_cmi <- Env.imported_units();
+    let oc = open_out_bin filename in
+    output_string oc cmx_magic_number;
+--- 140,145 ----
+  (* Write the description of the current unit *)
+  
+! let save_unit_info filename units =
+!   current_unit.ui_imports_cmi <- units;
+    let oc = open_out_bin filename in
+    output_string oc cmx_magic_number;
+diff -r -C 2 ocaml-3.04.orig/asmcomp/compilenv.mli ocaml-3.04/asmcomp/compilenv.mli
+*** ocaml-3.04.orig/asmcomp/compilenv.mli	Fri Apr 21 10:10:31 2000
+--- ocaml-3.04/asmcomp/compilenv.mli	Tue Feb 19 14:38:36 2002
+***************
+*** 63,67 ****
+  val read_unit_info: string -> unit_infos * Digest.t
+          (* Read infos and CRC from a [.cmx] file. *)
+! val save_unit_info: string -> unit
+          (* Save the infos for the current unit in the given file *)
+  
+--- 63,67 ----
+  val read_unit_info: string -> unit_infos * Digest.t
+          (* Read infos and CRC from a [.cmx] file. *)
+! val save_unit_info: string -> (string * Digest.t) list -> unit
+          (* Save the infos for the current unit in the given file *)
+  
 diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.ml
-*** ocaml-3.04.orig/driver/optcompile.ml	Mon Jul  2 16:25:28 2001
---- ocaml-3.04/driver/optcompile.ml	Sat Feb 16 17:31:03 2002
+*** ocaml-3.04.orig/driver/optcompile.ml	Tue Feb 19 14:41:24 2002
+--- ocaml-3.04/driver/optcompile.ml	Tue Feb 19 14:38:54 2002
 ***************
 *** 102,105 ****
 --- 102,212 ----
@@ -187,7 +221,7 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
 +   if !output_lambda then begin
 +       let oc = open_out (prefixname ^ ".lam") in
 +       let l = ObscurLambda.shorten_lambda [] l in
-+       output_value oc (n,l);
++       output_value oc (n,l, Env.imported_units());
 +       close_out oc
 +     end;
 +   (n,l)
@@ -202,14 +236,14 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
     let modulename = String.capitalize(Filename.basename prefixname) in
 +   if !input_lambda then
 +     let ic = open_in (prefixname ^ ".lam") in
-+     let lam = input_value ic in
++     let (n,lam,units) = input_value ic in
 +     close_in ic;
 +     let env = initial_env() in
 +     Compilenv.reset modulename;
-+     lam 
++     (n,lam) 
 +     +++ print_if ppf Clflags.dump_lambda Printlambda.lambda
 +     ++ Asmgen.compile_implementation prefixname ppf ;
-+     Compilenv.save_unit_info (prefixname ^ ".cmx");
++     Compilenv.save_unit_info (prefixname ^ ".cmx") units;
 +     Warnings.check_fatal ();
 +     
 +   else
@@ -217,15 +251,23 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
     let inputfile = preprocess sourcefile in
     let env = initial_env() in
 ***************
-*** 137,140 ****
---- 258,262 ----
+*** 137,142 ****
+    +++ Simplif.simplify_lambda
+    +++ print_if ppf Clflags.dump_lambda Printlambda.lambda
+    ++ Asmgen.compile_implementation prefixname ppf;
+!   Compilenv.save_unit_info (prefixname ^ ".cmx");
+    Warnings.check_fatal ();
+    remove_preprocessed inputfile
+--- 258,264 ----
     +++ Simplif.simplify_lambda
     +++ print_if ppf Clflags.dump_lambda Printlambda.lambda
 +   ++ save_lambda prefixname
     ++ Asmgen.compile_implementation prefixname ppf;
-    Compilenv.save_unit_info (prefixname ^ ".cmx");
+!   Compilenv.save_unit_info (prefixname ^ ".cmx") (Env.imported_units());
+    Warnings.check_fatal ();
+    remove_preprocessed inputfile
 diff -r -C 2 ocaml-3.04.orig/driver/optcompile.mli ocaml-3.04/driver/optcompile.mli
-*** ocaml-3.04.orig/driver/optcompile.mli	Tue Mar  7 06:02:32 2000
+*** ocaml-3.04.orig/driver/optcompile.mli	Tue Feb 19 14:41:24 2002
 --- ocaml-3.04/driver/optcompile.mli	Fri Feb 15 12:47:09 2002
 ***************
 *** 23,24 ****
@@ -236,7 +278,7 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.mli ocaml-3.04/driver/optcompile.
 + val input_lambda : bool ref
 + 
 diff -r -C 2 ocaml-3.04.orig/driver/optmain.ml ocaml-3.04/driver/optmain.ml
-*** ocaml-3.04.orig/driver/optmain.ml	Thu Sep 27 09:30:15 2001
+*** ocaml-3.04.orig/driver/optmain.ml	Tue Feb 19 14:41:25 2002
 --- ocaml-3.04/driver/optmain.ml	Fri Feb 15 12:53:50 2002
 ***************
 *** 155,158 ****
