@@ -67,6 +67,6 @@ and tp_proto = {
     proto_check_size : Url.url -> string -> 
        (Url.url -> string -> int64 -> unit) -> unit;
     proto_connect : TcpBufferedSocket.token ->
-      client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t;
+       client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t
   }
   

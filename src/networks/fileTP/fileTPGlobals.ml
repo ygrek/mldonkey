@@ -104,7 +104,7 @@ let find_proto (name : string) =
   
   
         
-let min_range_size = megabyte
+let min_range_size = kilobytes 50
 
 let new_file file_id file_name file_size = 
   let file_temp = Filename.concat !!temp_directory 

@@ -633,8 +633,8 @@ let can_write_handler t sock max_len =
       try
 (*     lprintf "try write %d/%d\n" max_len t.wbuf.len; *)
             let fd = fd sock in
-(*            lprintf "WRITE [%s]\n" (String.escaped 
-              (String.sub b.buf b.pos max_len)); *)
+            lprintf "WRITE [%s]\n" (String.escaped 
+              (String.sub b.buf b.pos max_len));
         let nw = MlUnix.write fd b.buf b.pos max_len in
 
 (*            if t.monitored then
