@@ -582,7 +582,6 @@ and find_client_block c =
       let _ = () in
       
       
-      Printf.printf "FIND CLIENT BLOCK"; print_newline ();
       for i = 0 to file.file_nchunks - 1 do
         print_char (match file.file_chunks.(i) with
           | PartialVerified _ -> 'P'
@@ -1055,8 +1054,7 @@ let check_file_downloaded file =
               (file_disk_name file) in
           file.file_format <- format
         with _ -> ());
-      info_change_file file;
-      
+
     with _ -> ()
 
 (* 

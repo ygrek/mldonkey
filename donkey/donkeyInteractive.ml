@@ -451,7 +451,7 @@ let commands = [
         let ip = Ip.of_string ip in
         let port = int_of_string port in
         
-        safe_add_server ip port;
+        let s = add_server ip port in
         Printf.bprintf buf "New server %s:%d\n" 
           (Ip.to_string ip) port;
         ""
@@ -722,12 +722,8 @@ let _ =
   register_commands commands;
   file_ops.op_file_resume <- (fun file ->
       reconnect_all file;
-      file.file_changed <- FileInfoChange;
-(*      !file_change_hook file *)
   );
-  file_ops.op_file_pause <- (fun file ->
-      file.file_changed <- FileInfoChange;
-(*      !file_change_hook file *)
+  file_ops.op_file_pause <- (fun file -> ()
   );
   file_ops.op_file_commit <- (fun file new_name ->
       if not (List.mem file.file_md4 !!old_files) then

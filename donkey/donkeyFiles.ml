@@ -146,6 +146,7 @@ let fill_clients_list _ =
 (* Every second, try to connect to some clients *)          
 let check_clients _ =
   decr remaining_seconds;
+(*  Printf.printf "check_clients %d" !remaining_seconds; print_newline (); *)
   if !remaining_seconds = 0 then begin
       remaining_seconds := 60;
       clients_lists.(0) <- clients_lists.(0) @ clients_lists.(1);
@@ -154,41 +155,53 @@ let check_clients _ =
       clients_lists.(3) <- clients_lists.(4);
       clients_lists.(4) <- []
     end;
+  let nnew_clients = List.length !new_clients_list in
   let nwaiting = List.length clients_lists.(0) +
-		 (List.length !new_clients_list) / 10 in
+    (nnew_clients / 10) +
+    (if nnew_clients>0 then 1 else 0) in
   try
     let nwaiting = ref (min
           (nwaiting / !remaining_seconds + 1)
         !!max_clients_per_second
       ) in
+(*    Printf.printf "nwaiting %d" !nwaiting; print_newline (); *)
     while !nwaiting > 0 do
       if not (can_open_connection ()) then raise Exit;
+(*      Printf.printf "findind client"; print_newline ();*)
       let c =
-	match clients_lists.(0) with
-	    c :: tail -> clients_lists.(0) <- tail;
-	      c
-          | [] -> match !new_clients_list with
-		c :: tail -> new_clients_list := tail;
-		  c
-	      | [] -> raise Exit in
-          c.client_on_list <- false;
-          try
-            if connection_can_try c.client_connection_control then
-              match c.client_sock with
-                None -> 
-                  reconnect_client c;
-                  if c.client_sock <> None then decr nwaiting
-              | Some sock ->
-		  query_files c sock;
-		  connection_try c.client_connection_control;
-		  connection_ok c.client_connection_control;
-                  ()
-          with e ->
-              Printf.printf "Exception %s in check_clients"
-                (Printexc2.to_string e); print_newline ()
+        match clients_lists.(0) with
+          c :: tail -> clients_lists.(0) <- tail;
+(*            Printf.printf "client from list"; print_newline (); *)
+            c
+        | [] -> match !new_clients_list with
+              c :: tail -> 
+(*                Printf.printf "client from new clients"; print_newline (); *)
+                new_clients_list := tail;
+                c
+            | [] -> 
+(*                Printf.printf "no client"; print_newline (); *)
+                raise Exit in
+      c.client_on_list <- false;
+      try
+        if connection_can_try c.client_connection_control then begin
+            match c.client_sock with
+              None -> 
+                reconnect_client c;
+                if c.client_sock <> None then decr nwaiting
+            | Some sock ->
+                query_files c sock;
+                connection_try c.client_connection_control;
+                connection_ok c.client_connection_control;
+                ()
+          end else begin
+            Printf.printf "Client connection too early"; print_newline ();
+          end
+      with e ->
+          Printf.printf "Exception %s in check_clients"
+            (Printexc2.to_string e); print_newline ()
     done
   with Exit -> ()
-    
+      
       (*
 let throttle_searches () =
   List.iter (fun file ->
@@ -472,37 +485,6 @@ let udp_client_handler t p =
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
         search_handler ss [t]
 
-(* Not useful anymore. Use standard server UDP packets.
-
-  
-  | M.FileGroupInfoUdpReq t ->
-(*      Printf.printf "Received location by File Group"; print_newline (); *)
-      let module M = DonkeyProtoServer in
-      let module Q = M.QueryLocationReply in
-      let md4 = t.Q.md4 in
-      begin try
-          let file = find_file md4 in
-          List.iter (fun l ->
-              let ip = l.Q.ip in
-              let port = l.Q.port in
-              
-              let c = new_client (Known_location (ip, port)) in
-              if not (Intmap.mem (client_num c) file.file_sources) then begin
-                  Printf.printf "New location by File Group !!"; print_newline ();
-                  new_source file c;
-                end;
-              connect_client !!client_ip [file] c
-          ) t.Q.locs
-        with _ -> ()
-      end;
-      List.iter (fun l ->
-          let ip = l.Q.ip in
-          let port = l.Q.port in
-          let c = new_client (Known_location (ip, port)) in          
-client_wants_file c md4) t.Q.locs
-
-*)
-
   | M.PingServerReplyUdpReq _ ->
       ignore (udp_from_server p)
         
@@ -522,20 +504,24 @@ module NewUpload = struct
     let complete_bandwidth = ref 0
     let counter = ref 1    
     let sent_bytes = Array.create 10 0
-    
-    let check_end_upload c sock =
+
+      
+    let check_end_upload c sock = ()
+      (*
       if c.client_bucket = 0 then
 	direct_client_send sock (
 	  let module M = DonkeyProtoClient in
 	  let module Q = M.CloseSlot in
 	    M.CloseSlotReq Q.t)
-
+*)
+      
     let rec send_small_block c sock file begin_pos len_int = 
 (*      let len_int = Int32.to_int len in *)
       remaining_bandwidth := !remaining_bandwidth - len_int;
       try
         if !!verbose then begin
-            Printf.printf "send_small_block %ld %d"
+            Printf.printf "send_small_block(%s) %ld %d"
+              (brand_to_string c.client_brand)
               (begin_pos) (len_int);
             print_newline ();
           end;
@@ -624,38 +610,6 @@ module NewUpload = struct
                   send_client_block c sock per_client
               end
         | _ -> ()
-
-(*
-    let rec send_client_block_partial c sock per_client =
-      let msg_block_size = Int32.of_int (per_client * 1000) in
-      match c.client_upload with
-      | Some ({ up_chunks = _ :: chunks } as up)  ->
-          if up.up_file.file_shared = None then begin
-(* Is there a message to warn that a file is not shared anymore ? *)
-              c.client_upload <- None;
-            end else
-          let max_len = Int32.sub up.up_end_chunk up.up_pos in
-          if max_len <= msg_block_size then
-(* last block from chunk *)
-            begin
-              send_small_block c sock up.up_file up.up_pos max_len;
-              up.up_chunks <- chunks;
-              match chunks with
-                [] -> 
-                  c.client_upload <- None
-              | (begin_pos, end_pos) :: _ ->
-                  up.up_pos <- begin_pos;
-                  up.up_end_chunk <- end_pos;
-            end
-          else
-(* small block from chunk *)
-            begin
-              send_small_block c sock up.up_file up.up_pos msg_block_size;
-              up.up_pos <- Int32.add up.up_pos msg_block_size;
-            end
-      | _ -> 
-          ()
-*)
     
     
     and upload_to_one_client () =
@@ -756,22 +710,32 @@ module OldUpload = struct
     
     let remaining_bandwidth = ref 0
     
-    let check_end_upload c sock =
+    let check_end_upload c sock = ()
+      
+      (*
       if c.client_bucket = 0 then
-	direct_client_send sock (
-	  let module M = DonkeyProtoClient in
-	  let module Q = M.CloseSlot in
-	    M.CloseSlotReq Q.t)
-
+        direct_client_send sock (
+          let module M = DonkeyProtoClient in
+          let module Q = M.CloseSlot in
+M.CloseSlotReq Q.t)
+   *)
+(* FUCK THE CLOSE SLOT, MLdonkey clients does nothing with this. Very
+good. Emule clients probably retries to enter the queue, while we are
+blocked. This fucking new mechanism simply prevents mldonkey clients
+from downloading from othe mldonkey clients. Why should something that
+works correctly always be complexified until it doesnot work anymore ??? *)
+        
+        
     let send_small_block c sock file begin_pos len = 
       let len_int = Int32.to_int len in
       remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
       try
-(*
-  Printf.printf "send_small_block %s %s"
-(Int32.to_string begin_pos) (Int32.to_string len);
+
+        Printf.printf "OLD send_small_block(%s) %s %s"
+          (brand_to_string c.client_brand)
+        (Int32.to_string begin_pos) (Int32.to_string len);
 print_newline ();
-*)
+
         
         
         let msg =  

@@ -417,10 +417,10 @@ module NoArg = functor(M: sig val m : string end) -> (struct
           end
       )
     
-module JoinQueue = NoArg(struct let m = "MESSAGE 84" end)
-module AvailableSlot = NoArg(struct let m = "MESSAGE 85" end)
-module ReleaseSlot = NoArg(struct let m = "MESSAGE 86" end)
-module CloseSlot = NoArg(struct let m = "MESSAGE 87" end)
+module JoinQueue = NoArg(struct let m = "JoinQueue" end)
+module AvailableSlot = NoArg(struct let m = "AvailableSlot" end)
+module ReleaseSlot = NoArg(struct let m = "ReleaseSlot" end)
+module CloseSlot = NoArg(struct let m = "CloseSlot" end)
 module ViewFiles = NoArg(struct let m = "VIEW FILES" end)
 
   

@@ -44,6 +44,7 @@ TARGETS= use_tags$(EXE) mldonkey$(EXE)
 #######################################################################
 
 CDK_SRCS=\
+  cdk/dprintf.ml \
   cdk/printexc2.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \

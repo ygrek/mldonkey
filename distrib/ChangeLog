@@ -1,7 +1,10 @@
 ChangeLog	
 =========
 
-2002/12/18: Simon (tag release-2-01-2)
+2002/12/18: Simon (tag release-2-01-3)
+  - Removed the Credit System. The world is already unfair enough, no need
+      to bring a monetary system here. Moreover, it prevents correct downloads
+      from other mldonkey clients !
   - Overnet: Applied Norbert Lataille's patch 3.0
 
 2002/12/18: Simon (tag release-2-01-2)

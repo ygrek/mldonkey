@@ -91,7 +91,6 @@ let count_download c f v =
 let count_upload c f v =
   upload_counter := Int64.add !upload_counter v;
   c.client_uploaded <- Int64.add c.client_uploaded v;
-  c.client_bucket <- c.client_bucket - (Int64.to_int v);
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
   match c.client_brand with
       Brand_unknown -> failwith "unknown client type"

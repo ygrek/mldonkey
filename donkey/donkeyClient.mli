@@ -19,8 +19,6 @@
 
 open Md4
 
-val query_id_reply : Ip.t -> DonkeyProtoServer.QueryIDReply.t -> unit
-  
 val query_id :
   DonkeyTypes.server -> TcpBufferedSocket.t -> Ip.t -> unit
   
@@ -46,5 +44,4 @@ val force_fast_connect_client  : DonkeyTypes.client -> unit
 val connect_as_soon_as_possible :  DonkeyTypes.client -> unit
 val unschedule_client :  DonkeyTypes.client -> unit
 val schedule_new_client : DonkeyTypes.client -> unit
-val schedule_client :  DonkeyTypes.client -> unit
-  
+val schedule_client :  DonkeyTypes.client -> unit  

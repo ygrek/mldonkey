@@ -143,10 +143,12 @@ let server_handler s sock event =
       
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
-(*
+
+  (*
   Printf.printf "Message from server:"; print_newline ();
-  DonkeyProtoServer.print t;
+  DonkeyProtoServer.print t; print_newline ();
 *)
+  
   match t with
     M.SetIDReq t ->
       if not (Ip.valid t) && !!force_high_id then
@@ -225,8 +227,11 @@ queries. *)
       printf_string "[MLDONKEY SERVER]"
         
   | M.QueryIDReplyReq t -> 
-      DonkeyClient.query_id_reply s.server_cid t
-  
+      let module Q = M.QueryIDReply in
+      if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then
+        let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
+        DonkeyClient.connect_as_soon_as_possible c
+   
   | M.QueryReplyReq t ->
       let rec iter () =
         let search = try
@@ -300,7 +305,9 @@ and remove clients whose server is deconnected. *)
       ) t;
       server_must_update s
   
-  | M.QueryLocationReplyReq t -> DonkeyClient.query_locations_reply s t
+  | M.QueryLocationReplyReq t -> 
+      DonkeyClient.query_locations_reply s t
+      
   | M.QueryIDFailedReq t -> ()
       
   | _ -> 
@@ -563,8 +570,22 @@ let walker_timer () =
       walker_list := tail;
       match s.server_sock with
         None -> 
-          if connection_can_try s.server_connection_control then
-            connect_server s
+          if connection_can_try s.server_connection_control then begin
+              
+              if !!verbose then begin
+                  Printf.printf "WALKER: try connect %s" (Ip.to_string s.server_ip);
+                  print_newline ();
+                end;
+              
+              connect_server s
+            end else begin
+
+              if !!verbose then begin
+                  Printf.printf "WALKER: connect %s delayed" (Ip.to_string s.server_ip);
+                  print_newline ();
+                end;
+              
+            end
       | Some _ -> ()
 
 (* one call per second *)
@@ -706,7 +727,7 @@ connections *)
             end;
           
           if connection_last_conn s.server_connection_control 
-              +. 120. < last_time () && not s.server_master then begin
+              +. 10. < last_time () && not s.server_master then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               

@@ -97,14 +97,14 @@ let udp_client_send uc t =
 let schedule_new_client c =
   if not c.client_on_list then
     match c.client_sock with
-	Some _ -> ()
-      | None ->
-	  match c.client_kind with
-	      Known_location _ ->
-		new_clients_list := c :: !new_clients_list;
-		c.client_on_list <- true
-	    | _ -> ()
-
+      Some _ -> ()
+    | None ->
+        match c.client_kind with
+          Known_location _ ->
+            new_clients_list := c :: !new_clients_list;
+            c.client_on_list <- true
+        | _ -> ()
+            
 let client_udp_send ip port t =
   if not ( is_black_address ip (port+4)) then
     begin
@@ -194,58 +194,19 @@ let client_wants_file c md4 =
     end
         
   
-let new_chunk up begin_pos end_pos r =
-  if begin_pos <> end_pos && r > 0 then begin
+let new_chunk up begin_pos end_pos =
+  if begin_pos <> end_pos then
     let len_requested = Int32.to_int (Int32.sub end_pos begin_pos) in
-    let end_pos = if len_requested > r then
-      Int32.add begin_pos (Int32.of_int r) else end_pos in
     let len = Int32.to_int (Int32.sub end_pos begin_pos) in
     let pair = (begin_pos, end_pos) in
     (match up.up_chunks with
-      [] ->
-        up.up_pos <- begin_pos;
-        up.up_end_chunk <- end_pos;
-        up.up_chunks <- [pair];
-    | chunks ->
-        if not (List.mem pair chunks) then
-          up.up_chunks <- chunks @ [pair]);
-      r - len
-  end else r
-  
-    (*
-let rec really_write fd s pos len =
-  if len = 0 then begin
-      Printf.printf "really_write 0 BYTES !!!!!!!!!"; print_newline ();
-      raise End_of_file
-    end else
-  let nwrite = Unix.write fd s pos len in
-  if nwrite = 0 then raise End_of_file else
-  if nwrite < len then 
-    really_write fd s (pos + nwrite) (len - nwrite)
-*)  
-
-(*
-let identify_as_mldonkey c sock =
-  direct_client_send sock (
-    let module M = DonkeyProtoClient in
-    let module C = M.QueryFile in
-    M.QueryFileReq Md4.two);
-  direct_client_send sock (
-    let module M = DonkeyProtoClient in
-    let module C = M.QueryFile in
-    M.QueryFileReq Md4.one)
-  
-  
-let query_files c sock =  
-  List.iter (fun file ->
-      if file_state file = FileDownloading then
-        direct_client_send sock (
-          let module M = DonkeyProtoClient in
-          let module C = M.QueryFile in
-          M.QueryFileReq file.file_md4);          
-  ) !current_files;
-  ()
-  *)
+        [] ->
+          up.up_pos <- begin_pos;
+          up.up_end_chunk <- end_pos;
+          up.up_chunks <- [pair];
+      | chunks ->
+          if not (List.mem pair chunks) then
+            up.up_chunks <- chunks @ [pair])
   
 let identify_client_brand c =
   if c.client_brand = Brand_unknown then
@@ -259,34 +220,35 @@ let identify_client_brand c =
       else
 	c.client_brand <- Brand_edonkey
 
-  let query_files c sock =  
+let query_files c sock =  
   let nall_queries = ref 0 in
   let nqueries = ref 0 in
-    if last_time () -. c.client_last_filereqs > !!min_reask_delay then begin
+  if last_time () -. c.client_last_filereqs > !!min_reask_delay then begin
       List.iter (fun file ->
-        incr nall_queries;
-        if file_state file = FileDownloading then
-          direct_client_send sock (
-            let module M = DonkeyProtoClient in
-            let module C = M.QueryFile in
+          incr nall_queries;
+          if file_state file = FileDownloading then
+            direct_client_send sock (
+              let module M = DonkeyProtoClient in
+              let module C = M.QueryFile in
               M.QueryFileReq file.file_md4);          
-		   incr nqueries
-		) (* !current_files *) c.client_source_for;
+          incr nqueries
+      ) !current_files (*c.client_source_for*);
       if !nqueries > 0 then
-	c.client_last_filereqs <- last_time ();
+        c.client_last_filereqs <- last_time ();
       if !!verbose then begin
-	Printf.printf "sent %d/%d file queries" !nqueries !nall_queries;
-	print_newline ()
-      end
-    end;
-    ()
+          Printf.printf "sent %d/%d file queries" !nqueries !nall_queries;
+          print_newline ()
+        end
+    end (* else begin
+      Printf.printf "MUST WAIT BEFORE NEXT REASK"; print_newline ();
+    end
+*)
 
   
 let client_has_chunks c file chunks =
   
   if not (Intmap.mem (client_num c) file.file_sources) then begin
       new_source file c;
-      file.file_new_locations <- true
     end;
   
   if file.file_chunks_age = [||] then
@@ -326,108 +288,109 @@ let client_has_chunks c file chunks =
 
 let add_new_location sock file c =
   
-  let is_new = ref false in
   let module M = DonkeyProtoClient in
   if not (Intmap.mem (client_num c) file.file_sources) then begin
       new_source file c;
-      is_new := true;
-      file.file_new_locations <- true;
-      query_files c sock
     end;  
   
   if !!propagate_sources &&
     last_time () -. connection_last_conn c.client_connection_control < 300.
   then begin
 (* Send the known sources to the client. *)
-    
-    if client_can_receive c then begin
-      match c.client_kind with 
-	  Indirect_location _ -> ()
-	| Known_location(ip, port) ->
-            
-	    (* send at most 10 sources connected in the last quarter to this new location *)
-            let sources = ref [] in
-	    let send_locations = ref 10 in
-            let time = last_time () -. 900. in
-              try
-		Intmap.iter (fun _ cc ->
-			       if cc.client_checked &&
-				 connection_last_conn cc.client_connection_control > time
-			       then
-				 match cc.client_kind with
-				     Indirect_location _ -> ();
-				   | Known_location (ip, port) -> 
-				       sources := (ip, port, ip) :: !sources;
-				       decr send_locations;
-				       if !send_locations = 0 then
-					 raise Exit;
-			    ) file.file_sources;
-              with _ -> ();
-		
-		if !sources <> [] then
-		  client_send_if_possible sock ( (
-						   let module Q = M.Sources in
-						     M.SourcesReq {
-						       Q.md4 = file.file_md4;
-						       Q.sources = !sources;
-						     }));
-    end;
       
-    if c.client_brand <> Brand_mldonkey1 then begin
-      match c.client_kind with
-	  Indirect_location _ -> ()
-	| Known_location (ip, port) ->
-            try
-	      (* send this location to at most 10 other locations, 
-		 connected in the last quarter *)
-              let counter = ref 10 in
+      if client_can_receive c then begin
+          match c.client_kind with 
+            Indirect_location _ -> ()
+          | Known_location(ip, port) ->
 
-	      (* send this location to  all connected locations *)
-              let msg = 
-                let module Q = M.Sources in
+(* send at most 10 sources connected in the last quarter to this new location *)
+              let sources = ref [] in
+              let send_locations = ref 10 in
+              let time = last_time () -. 900. in
+              try
+                Intmap.iter (fun _ cc ->
+                    if cc.client_checked &&
+                      connection_last_conn cc.client_connection_control > time
+                    then
+                      match cc.client_kind with
+                        Indirect_location _ -> ();
+                      | Known_location (ip, port) -> 
+                          sources := (ip, port, ip) :: !sources;
+                          decr send_locations;
+                          if !send_locations = 0 then
+                            raise Exit;
+                ) file.file_sources;
+              with _ -> ();
+                  
+                  if !sources <> [] then
+                    client_send_if_possible sock ( (
+                        let module Q = M.Sources in
+                        M.SourcesReq {
+                          Q.md4 = file.file_md4;
+                          Q.sources = !sources;
+                        }));
+        end;
+      
+      if c.client_brand <> Brand_mldonkey1 then begin
+          match c.client_kind with
+            Indirect_location _ -> ()
+          | Known_location (ip, port) ->
+              try
+(* send this location to at most 10 other locations, 
+		 connected in the last quarter *)
+                let counter = ref 10 in
+
+(* send this location to  all connected locations *)
+                let msg = 
+                  let module Q = M.Sources in
                   M.SourcesReq {
                     Q.md4 = file.file_md4;
                     Q.sources = [(ip, port, ip)];
                   }
-              in
-              let time = last_time () -. 900. in
-		Intmap.iter (fun _ uc ->
-			       if uc.client_checked &&
-				 (client_can_receive uc) &&
-				 connection_last_conn uc.client_connection_control  
-				 > time then
-				   match uc.client_kind with
-				       Known_location (src_ip, src_port) -> 
-					 
-					 client_udp_send src_ip src_port (
-					   let module Q = DonkeyProtoServer.QueryLocationReply in
-					     DonkeyProtoServer.QueryLocationReplyUdpReq {
-					       Q.md4 = file.file_md4;
-					       Q.locs = [{ 
-							   Q.ip = ip;
-							   Q.port = port;
-							 }];
-					     });
-					 decr counter;
-					 if !counter = 0 then raise Exit;
-
-				     | _ -> 
-					 match uc.client_sock with 
-					     None -> ()
-					   | Some sock -> 
-					       client_send_if_possible sock msg;
-					       decr counter;
-        				       if !counter = 0 then raise Exit;
-					       
-			    ) file.file_sources;
-            with _ -> ();
+                in
+                let time = last_time () -. 900. in
+                Intmap.iter (fun _ uc ->
+                    if uc.client_checked &&
+                      (client_can_receive uc) &&
+                      connection_last_conn uc.client_connection_control  
+                        > time then
+                      match uc.client_kind with
+                        Known_location (src_ip, src_port) -> 
+                          
+                          client_udp_send src_ip src_port (
+                            let module Q = DonkeyProtoServer.QueryLocationReply in
+                            DonkeyProtoServer.QueryLocationReplyUdpReq {
+                              Q.md4 = file.file_md4;
+                              Q.locs = [{ 
+                                  Q.ip = ip;
+                                  Q.port = port;
+                                }];
+                            });
+                          decr counter;
+                          if !counter = 0 then raise Exit;
+                          
+                          | _ -> 
+                          match uc.client_sock with 
+                            None -> ()
+                              | Some sock -> 
+                              client_send_if_possible sock msg;
+                              decr counter;
+                              if !counter = 0 then raise Exit;
+                
+                ) file.file_sources;
+              with _ -> ();
+        end
     end
-  end
-
-let join_throttle_timer = ref 0.
-
+    
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
+  
+  (*
+  Printf.printf "Message from client:"; print_newline ();
+  M.print t;
+  print_newline ();
+*)
+  
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
@@ -438,7 +401,7 @@ let client_to_client for_files c t sock =
       
       if t.CR.md4 = !!client_md4 then
         TcpBufferedSocket.close sock "connected to myself";
-      
+            
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
@@ -447,13 +410,14 @@ let client_to_client for_files c t sock =
           | _ -> ()
       ) c.client_tags;
       
+      
       connection_ok c.client_connection_control;
       
       if !!update_server_list then 
         safe_add_server t.CR.ip_server t.CR.port_server;
       
       identify_client_brand c;
-      set_client_state c Connected_idle;
+      set_client_state c Connected_idle;      
       
       query_files c sock;
       client_must_update c;      
@@ -501,7 +465,6 @@ print_newline ();
       end;
   
   | M.AvailableSlotReq _ ->
-      printf_string "[QUEUED]";
       set_rtimeout sock !!queued_timeout; 
 (* how long should we wait for a block ? *)
       begin
@@ -510,54 +473,37 @@ print_newline ();
         | Some b ->
             printf_string "[QUEUED WITH BLOCK]";      
       end
-(*
-  | M.QueueReq t ->
-      
-      printf_char 'Q';
-      List.iter (fun ip ->
-          let c = new_client (Known_location (ip, 4662)) in
-          if not (List.memq c !interesting_clients) then
-            interesting_clients := c :: !interesting_clients
-      ) t;
-      
-      set_client_state c Connected_queued;
-      client_send sock (
-        let module M = DonkeyProtoClient in
-        M.QueueReq t);              
-*)  
   
   | M.JoinQueueReq _ ->
-      if last_time () -. !join_throttle_timer > 5. then
-        let len = Fifo.length upload_clients in
-        let client_credit = Int64.sub c.client_downloaded c.client_uploaded in
-        let creditor = Int64.compare client_credit Int64.zero > 0 in
-(* ease the entry of creditors in the upload queue *)
-        if (len < !!max_upload_slots && creditor) ||
-          len < !!max_upload_slots-1 then begin
-            set_rtimeout sock !!upload_timeout;
-            
-            direct_client_send sock (
-              let module M = DonkeyProtoClient in
-              let module Q = M.AvailableSlot in
-              M.AvailableSlotReq Q.t);
-            join_throttle_timer := last_time ();
-            c.client_bucket <- !!upload_quantum;
-            
-            let dynamic_power = if Int64.compare client_credit Int64.zero < 0 then 0
-              else if Int64.compare client_credit (Int64.of_int 30000000) > 0 then !!reward_power
-              else Int64.to_int client_credit * !!reward_power / 30000000 in
-            Printf.printf "New uploader %s: credit %s, power %d" c.client_name (Int64.to_string client_credit) dynamic_power;
-            print_newline ();
-            set_write_power sock (c.client_power + dynamic_power);
-            set_read_power sock (c.client_power + dynamic_power);
-          end
-        else if creditor then begin
-            Printf.printf "(uploader %s: credit %s, couldn't get a slot)" c.client_name (Int64.to_string client_credit);
-            print_newline ()
-          end
+
+      let len = Fifo.length upload_clients in
+      if len < !!max_upload_slots then begin
+          set_rtimeout sock !!upload_timeout;
+          
+          direct_client_send sock (
+            let module M = DonkeyProtoClient in
+            let module Q = M.AvailableSlot in
+            M.AvailableSlotReq Q.t);
+          
+          Printf.printf "New uploader %s: brand %s" c.client_name (brand_to_string c.client_brand);
+          print_newline ();
+          set_write_power sock (c.client_power);
+          set_read_power sock (c.client_power);
+        end
+      else begin
+          Printf.printf "(uploader %s: brand %s, couldn't get a slot)" c.client_name (brand_to_string c.client_brand);
+          print_newline ()
+        end
   
   | M.CloseSlotReq _ ->
-      printf_string "[DOWN]"
+      printf_string "[DOWN]";
+(* OK, the slot is closed, but what should we do now ????? *)
+      direct_client_send sock (
+        let module M = DonkeyProtoClient in
+        let module Q = M.JoinQueue in
+        M.JoinQueueReq Q.t);                        
+      set_rtimeout sock !!queued_timeout;
+      set_client_state c Connected_queued
   
   | M.ReleaseSlotReq _ ->
       direct_client_send sock (
@@ -789,7 +735,6 @@ is checked for the file.
                 Printf.printf "Error %s while writing block. Pausing download" (Printexc2.to_string e);
                 print_newline ();
                 file_pause (as_file file.file_file);
-                info_change_file file
       
       end;
 
@@ -850,17 +795,19 @@ is checked for the file.
       begin
         try
           let file = find_file t.Q.md4 in
+(* Always accept sources when already received !
+  
           if file.file_enough_sources then begin
               Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
               print_newline ()
-            end else 
-            List.iter (fun (ip1, port, ip2) ->
-                if Ip.valid ip1 && Ip.reachable ip1 then
-                  let c = new_client (Known_location (ip1, port)) in
-                  if not (Intmap.mem (client_num c) file.file_sources) then
-                    new_source file c;
-                  schedule_new_client c
-            ) t.Q.sources
+            end else *)
+          List.iter (fun (ip1, port, ip2) ->
+              if Ip.valid ip1 && Ip.reachable ip1 then
+                let c = new_client (Known_location (ip1, port)) in
+                if not (Intmap.mem (client_num c) file.file_sources) then
+                  new_source file c;
+                schedule_new_client c
+          ) t.Q.sources
         with _ -> ()
       end
       
@@ -910,7 +857,7 @@ is checked for the file.
           ) file.file_chunks;
         })
   
-  | M.QueryBlocReq t when !has_upload = 0 && c.client_bucket > 0 ->
+  | M.QueryBlocReq t when !has_upload = 0 ->
       set_rtimeout sock !!upload_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
@@ -934,10 +881,9 @@ is checked for the file.
               up_waiting = false;
             }, false
       in
-      let r = c.client_bucket in
-      let r = new_chunk up t.Q.start_pos1 t.Q.end_pos1 r in
-      let r = new_chunk up t.Q.start_pos2 t.Q.end_pos2 r in
-      let r = new_chunk up t.Q.start_pos3 t.Q.end_pos3 r in
+      new_chunk up t.Q.start_pos1 t.Q.end_pos1;
+      new_chunk up t.Q.start_pos2 t.Q.end_pos2;
+      new_chunk up t.Q.start_pos3 t.Q.end_pos3;
       c.client_upload <- Some up;
       if not waiting && !has_upload = 0 then begin
           Fifo.put upload_clients c;
@@ -1002,9 +948,12 @@ let read_first_message t sock =
       let module CR = M.Connect in
       
       if t.CR.md4 = !!client_md4 then begin
+          Printf.printf "CONNECT TO MYSELF"; print_newline ();
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
+      
+      Printf.printf "PCO 0"; print_newline ();
       
       let name = ref "" in
       List.iter (fun tag ->
@@ -1016,6 +965,8 @@ let read_first_message t sock =
       let kind = Indirect_location (!name,t.CR.md4) in
       let c = new_client kind in
       
+      Printf.printf "PCO 1"; print_newline ();
+      
       begin
         match c.client_sock with
           None -> 
@@ -1026,6 +977,8 @@ let read_first_message t sock =
             close sock "already connected"; raise Not_found
       end;
 
+      Printf.printf "PCO 2"; print_newline ();
+      
       set_write_power sock c.client_power;
       set_read_power sock c.client_power;
 
@@ -1042,8 +995,11 @@ let read_first_message t sock =
 		       None -> ()
 		     | Some _ -> if ?? = s.server_ip then
 			 c.client_brand <- Brand_server
-		) (connected_servers ()) *)
+) (connected_servers ()) *)
+      Printf.printf "PCO 3"; print_newline ();
       identify_client_brand c;
+
+      Printf.printf "PCO 4"; print_newline ();
       
       direct_client_send sock (
         let module M = DonkeyProtoClient in
@@ -1217,14 +1173,7 @@ let connect_as_soon_as_possible c =
   control.control_last_try <- control.control_last_ok;
   control.control_state <- 1.;
   schedule_client c
-  
-let query_id_reply s t =
-  let module M = DonkeyProtoServer in
-  let module Q = M.QueryIDReply in
-  if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then
-    let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
-    connect_as_soon_as_possible c
-    
+
 let query_id s sock ip =
   printf_string "[QUERY ID]";
   direct_server_send sock (
@@ -1248,17 +1197,21 @@ let query_locations_reply s t =
     let file = find_file t.Q.md4 in
     let nlocs = List.length t.Q.locs in
     s.server_score <- s.server_score + 3;
+
+(* Is this a joke ? ok, when we have enough sources, don't ask for more.
+But if we receive them, take them !
+  
     if file.file_enough_sources then begin
         Printf.printf "** Dropped %d sources for %s **" nlocs
           (file_best_name file);
         print_newline ()
       end else 
-      
+*)
       List.iter (fun l ->
           let ip = l.Q.ip in
           let port = l.Q.port in
           
-          if Ip.valid ip && Ip.reachable ip then
+          if Ip.valid ip  && Ip.reachable ip  then
             begin
               let c = new_client (Known_location (ip, port)) in
               if not (Intmap.mem (client_num c) file.file_sources) then begin

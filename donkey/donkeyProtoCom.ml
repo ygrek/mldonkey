@@ -41,18 +41,22 @@ let client_msg_to_string msg =
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
-(*      DonkeyProtoClient.print msg.msg;  *)
+(*   Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
+  DonkeyProtoClient.print msg;   *)
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
   s
-  
   
 let server_msg_to_string msg =
   Buffer.clear buf;
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoServer.write buf msg;
+  (*
+  Printf.printf "MESSAGE TO SERVER:";  print_newline ();
+  DonkeyProtoServer.print msg;   
+  print_newline (); *)
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
@@ -353,6 +357,9 @@ let make_tagged sock files =
     ) files)
   
 let direct_server_send_share sock msg =
+  
+(*  Printf.printf "SEND %d FILES TO SHARE" (List.length msg); print_newline ();*)
+  
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in
   if !verbose then begin

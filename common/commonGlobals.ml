@@ -99,12 +99,13 @@ let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
 let can_open_connection () =
   let ns = nb_sockets () in
   let max = mini !!max_opened_connections MlUnix.max_sockets in
+  (*
   if !!debug_net then begin
       Printf.printf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
         (UdpSocket.remaining_bytes udp_write_controler)
         (UdpSocket.remaining_bytes udp_read_controler);
       print_newline ();
-    end;
+    end; *)
   ns < max
   
 (*

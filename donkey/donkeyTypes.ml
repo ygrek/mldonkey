@@ -145,7 +145,6 @@ and client (*[]*) = {
     mutable client_last_filereqs : float;    
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
-    mutable client_bucket : int;
     mutable client_brand : brand;
   }
   
@@ -213,8 +212,6 @@ and file = {
 *)
     
 (* the time the file state was last computed and sent to guis *)
-    mutable file_changed : file_change_kind; 
-    mutable file_new_locations : bool;
     mutable file_shared : file CommonShared.shared_impl option;
   }
 

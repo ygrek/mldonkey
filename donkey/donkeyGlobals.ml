@@ -396,9 +396,7 @@ let new_file file_state file_name md4 file_size writable =
           file_nlocations = 0;
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
-          file_changed = FileInfoChange;
           file_format = Unknown_format;
-          file_new_locations = true;
           file_enough_sources = false;
         }
       and file_impl = {
@@ -422,21 +420,12 @@ let new_file file_state file_name md4 file_size writable =
 let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
   Unix32.set_filename fd file_name
-  
-let info_change_file file =
-  file.file_changed <- FileInfoChange
-          
-let avail_change_file file = 
-  match file.file_changed with
-    FileInfoChange -> ()
-  | _ -> file.file_changed <- FileAvailabilityChange
           
 let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then 
       let new_n = file.file_available_chunks.(i) + 1 in
       file.file_available_chunks.(i) <- new_n;
-      if new_n = 1 then avail_change_file file
   done
       
 let remove_client_chunks file client_chunks = 
@@ -444,7 +433,6 @@ let remove_client_chunks file client_chunks =
     if client_chunks.(i) then
       let new_n = file.file_available_chunks.(i) - 1 in
       file.file_available_chunks.(i) <- new_n;
-      if new_n = 0 then avail_change_file file;
       client_chunks.(i) <- false
   done
   
@@ -543,7 +531,6 @@ let dummy_client =
       client_next_view_files = last_time () -. 1.;
       client_all_chunks = "";
       client_rating = 0;
-      client_bucket = 0;
       client_brand = Brand_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
@@ -587,7 +574,6 @@ let new_client key =
             client_next_view_files = last_time () -. 1.;
             client_all_chunks = "";
             client_rating = 0;
-	    client_bucket = 0;
 	    client_brand = Brand_unknown;
             client_checked = false;
             client_chat_port = 0 ; (** A VOIR : où trouver le 

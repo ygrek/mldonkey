@@ -96,12 +96,16 @@ let value_to_client is_friend assocs =
       CommonGlobals.connection_set_last_conn l.client_connection_control
         last_conn;
     with _ -> ());
+  
+(* Is it really useful ? I don't think so. It is only used when restarting
+the client several times, which is not that current... 
+  
   (try
      let last_filereqs =
        (min (get_value "client_last_filereqs" value_to_float)
 	  (BasicSocket.last_time ())) in
        l.client_last_filereqs <- last_filereqs
-   with _ -> ());
+   with _ -> ()); *)
   if is_friend then friend_add l;
   l
   

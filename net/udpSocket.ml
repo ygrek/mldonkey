@@ -340,9 +340,10 @@ let new_bandwidth_controler tcp_bc =
       base_time = 0;
     } in
   let udp_user total n =
+(*
     if !BasicSocket.debug then  begin
       Printf.printf "udp_user %d/%d" n total; print_newline ();
-      end;
+      end; *)
     let n = if total = 0 then 100000 else n in
     udp_bc.base_time <- udp_bc.base_time + 1;
     if udp_bc.count = 0 then begin
