@@ -1,3 +1,5 @@
+exception Filtered
+
 type 'a tree_rec = {
     mutable tree_expr : 'a tree_expr;
   }
@@ -221,7 +223,7 @@ let rec print_all_docs s =
   | List(s, list) ->
       print_suffix_docs s;
       List.iter (fun (c,t) -> print_all_docs t.tree_expr) list
-          
+      
 let find_docs idx s =
   try
 (*    Printf.printf "********* FIND [%s]  *********" s; print_newline (); *)
@@ -260,7 +262,7 @@ let get_fields tree fields pred =
     | String (_, s) 
     | Suffix s ->
         iter_suffix s
-  
+
   and iter_suffix s =
 (*    Printf.printf "iter suffix"; print_newline (); *)
     List.iter (fun w ->
@@ -293,7 +295,7 @@ let and_get_fields and_map tree fields pred =
     | String (_, s) 
     | Suffix s ->
         iter_suffix s
-        
+          
   and iter_suffix s =
 (*    Printf.printf "ITER AND SUFFIX [%d]" s.suffix_num; print_newline (); *)
     List.iter (fun w ->
@@ -343,29 +345,3 @@ let complex_request idx req pred =
       []
       
 let value doc = doc.doc_value
-      
-(*
-
-let _ =
-  let index = create () in
-  print index;
-  add index "bonjour" (make_doc index 0) 0;
-  print index;
-  add index "bonjour" (make_doc index 1) 0;
-  add index "bonjour1" (make_doc index 2) 0;
-  add index "bonjour2" (make_doc index 3) 0;
-  add index "toto" (make_doc index 4) 0;
-  add index "biture" (make_doc index 5) 0;
-  add index "tata" (make_doc index 6) 0;
-  add index "toujours" (make_doc index 7) 0;
-  print index;
-  find_docs index "bonjour1";
-  find_docs index "bonjour";
-  find_docs index "bonjour2";
-  find_docs index "toto";
-  find_docs index "bonjour3";
-  find_docs index "bonj";
-  find_docs index "o";
-  exit 1
-*)  
-  

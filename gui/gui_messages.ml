@@ -508,11 +508,13 @@ In the console, you have access to the command-line commands.
 
 TODO list
 =========
-  * Chat 
-  * Set 'Connected locations' label
-  * Plugins
-  * Correct display of availability
-  * Filters
+  * Chat.
+  * Set 'Connected locations' label.
+  * Plugins.
+  * Correct display of availability.
+  * Filters.
+  * Remove MD4 computation for shared files.
+  * Add sleep and wakeup commands.
 
 ChangeLog
 =========
@@ -521,9 +523,10 @@ Release 1.08:
   * Remove dependencies to the 'mmap' system call.
   * Better management of delays between connection attempts.
   * Local searches use minsize/maxsize information.
+  * More information on availability on WEB/console interface.
   * Small improvement in MD4 computation.
   * Maximal download rate can be specified in 'max_download_rate' option.
-    (need probably to be rewritten carefully).
+   (need probably to be rewritten carefully).
   * Bug fixes: files greater than 9mb in incoming/ can be shared.
 
 Release 1.07:

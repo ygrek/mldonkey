@@ -131,7 +131,24 @@ let max_server_age = define_option ["max_server_age"] "max number of days after 
 let use_file_history = define_option ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
   
 let save_file_history = define_option ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
-  
+
+  (*
+let soft_filters = define_option ["soft_filters"] 
+  "filters on replies (replies will be kept). Each filter has a name,
+a boolean for applied/not applied, and a list of words
+example: soft_filters = [ (on_movies, true, [xxx; sex])]"
+    (list_option (tuple3_option (
+        string_option, bool_option, list_option string_option)))
+  []
+
+let hard_filters = define_option ["hard_filters"] 
+  "filters on replies (replies will not be saved)
+example: hard_filters = [ (on_movies, [xxx; sex])]"
+    (list_option (tuple2_option (
+        string_option, list_option string_option)))
+  []
+    *)
+
 (************ COMPLEX OPTIONS *****************)
   
 let value_to_addr v =

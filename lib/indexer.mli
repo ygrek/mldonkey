@@ -14,4 +14,3 @@ val add : 'a index -> string -> 'a doc -> int -> unit
 val value : 'a doc -> 'a
 
 val clear : 'a index -> unit
- 

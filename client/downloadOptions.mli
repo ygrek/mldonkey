@@ -35,6 +35,11 @@ val max_udp_sends : int Options.option_record
 val max_xs_packets : int Options.option_record
 val previewer : string Options.option_record
 val max_dialog_history : int Options.option_record
+
+  (*
+val soft_filters : (string * bool * string list) list Options.option_record
+val hard_filters : (string * string list) list Options.option_record
+*)
   
 val client_md4 : Md4.t Options.option_record
 

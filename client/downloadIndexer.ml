@@ -215,8 +215,31 @@ let find s =
       Hashtbl.add s.search_files r.result_md4 (r, ref 0);
       s.search_nresults <- s.search_nresults + 1
   ) docs
+
+let filters = ref []
   
 let init () =
+(* apply filters *)
+  (*
+  List.iter (fun (name, applied, words) ->
+      filters := (name, (
+        Printf.printf "NEW FILTER %s" name; print_newline ();
+        let filter = 
+          Indexer.set_soft_filter index words in
+        if not applied then begin
+            Printf.printf "DISABLE FILTER"; print_newline ();
+            Indexer.disable_filter filter
+          end;
+        filter)) :: !filters;
+  ) !!soft_filters;
+  List.iter (fun (name, words) ->
+      filters := (name, 
+        let filter = 
+          Indexer.set_hard_filter index words in
+        filter) :: !filters;
+) !!hard_filters;
+*)
+(* load history *)
   if !! save_file_history then
     try
       let list = ref [] in
@@ -284,3 +307,4 @@ let _ =
           (try Sys.rename (history_file ^ ".tmp") history_file with _ -> ())
         end
   )
+  
