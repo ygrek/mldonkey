@@ -95,3 +95,9 @@ let filename t = t.filename
 let set_filename t f = 
   t.filename <- f;
   close t
+
+let mtime32 filename =
+  let st = Unix.LargeFile.stat filename in
+  st.Unix.LargeFile.st_mtime
+  
+  

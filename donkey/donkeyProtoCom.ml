@@ -247,6 +247,53 @@ let direct_client_send s msg =
   
 let direct_server_send s msg =
   server_send s msg
+
+let tag_file file =
+  { tag_name = "filename";
+    tag_value = String (
+      
+      let name = file_best_name file in
+      if !verbose then begin
+          Printf.printf "SHARING %s" name; print_newline ();
+        end;
+      name
+    
+    ); } ::
+  { tag_name = "size";
+    tag_value = Uint32 file.file_file.impl_file_size; } ::
+  (
+    (match file.file_format with
+        Unknown_format ->
+          (try
+              Printf.printf "%s: FIND FORMAT %s"
+                (Date.to_string (last_time ()))
+              (file_disk_name file); 
+              print_newline ();
+              file.file_format <- 
+                CommonMultimedia.get_info 
+                (file_disk_name file)
+            with _ -> ())
+      | _ -> ()
+    );
+    
+    match file.file_format with
+      Unknown_format -> []
+    | AVI _ ->
+        [
+          { tag_name = "type"; tag_value = String "Video" };
+          { tag_name = "format"; tag_value = String "avi" };
+        ]
+    | Mp3 _ ->
+        [
+          { tag_name = "type"; tag_value = String "Audio" };
+          { tag_name = "format"; tag_value = String "mp3" };
+        ]
+    | FormatType (format, kind) ->
+        [
+          { tag_name = "type"; tag_value = String kind };
+          { tag_name = "format"; tag_value = String format };
+        ]
+  )        
   
 (* Computes tags for shared files *)
 let make_tagged sock files =
@@ -254,48 +301,7 @@ let make_tagged sock files =
         { f_md4 = file.file_md4;
           f_ip = client_ip sock;
           f_port = !client_port;
-          f_tags = 
-          { tag_name = "filename";
-            tag_value = String (
-              
-              let name = file_best_name file in
-              if !verbose then begin
-                  Printf.printf "SHARING %s" name; print_newline ();
-                end;
-              name
-                  
-              ); } ::
-          { tag_name = "size";
-            tag_value = Uint32 file.file_file.impl_file_size; } ::
-          (
-            (match file.file_format with
-                Unknown_format ->
-                  (try
-                      file.file_format <- 
-                        CommonMultimedia.get_info 
-                        (file_disk_name file)
-                    with _ -> ())
-              | _ -> ()
-            );
-            
-            match file.file_format with
-              Unknown_format -> []
-            | AVI _ ->
-                [
-                  { tag_name = "type"; tag_value = String "Video" };
-                  { tag_name = "format"; tag_value = String "avi" };
-                ]
-            | Mp3 _ ->
-                [
-                  { tag_name = "type"; tag_value = String "Audio" };
-                  { tag_name = "format"; tag_value = String "mp3" };
-                ]
-            | FormatType (format, kind) ->
-                [
-                  { tag_name = "type"; tag_value = String kind };
-                  { tag_name = "format"; tag_value = String format };
-                ]
-          )
+          f_tags = tag_file file;
         }
     ) files)
   

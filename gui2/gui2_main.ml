@@ -59,7 +59,7 @@ let _ =
   ignore (tab_searches#button_local_search#connect#clicked (submit_search gui true));  
   
   ignore (tab_searches#button_extended_search#connect#clicked 
-      (fun _ -> gui_send ExtendedSearch));
+      (fun _ -> gui_send (ExtendedSearch (-1, ExtendSearchRemotely))));
   
   ignore (tab_searches#entry_search_words#connect#activate (submit_search gui false));
 (*

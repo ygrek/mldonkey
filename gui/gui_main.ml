@@ -244,8 +244,9 @@ let value_reader gui t sock =
     | File_source (num, src) -> 
         gui#tab_downloads#h_file_location num src;
     
-    | File_downloaded (num, downloaded, rate) ->
-        gui#tab_downloads#h_file_downloaded num downloaded rate
+    | File_downloaded (num, downloaded, rate, last_seen) ->
+        gui#tab_downloads#h_file_downloaded num downloaded rate;
+        gui#tab_downloads#h_file_last_seen num last_seen
     
     | File_availability (num, chunks, avail) ->
         gui#tab_downloads#h_file_availability num chunks avail;
@@ -464,8 +465,11 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 	gui#tab_uploads#h_shared_file_info si
     | Shared_file_upload (num,size,requests) ->
         gui#tab_uploads#h_shared_file_upload num size requests
-    | Shared_file_unshared _ ->
-        ()
+    | Shared_file_unshared _ ->  ()
+    | BadPassword -> 
+        GToolbox.message_box ~title: "Bad Password" 
+        "Authorization Failed\nPlease, open the File->Settings menu and
+          enter a valid password"
   with e ->
       Printf.printf "Exception %s in reader" (Printexc.to_string e);
       print_newline ()

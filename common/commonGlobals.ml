@@ -25,7 +25,7 @@ open CommonTypes
   
 let version = "
 MLDonkey: Objective-Caml Client/Server for the eDonkey2000 Network
-Release: 1.99
+Release: 1.99b8+6
 "
 
     
@@ -340,4 +340,6 @@ let rec bprint_tags buf tags =
 
 let aborted_download = ref (None : int option)
 
+    
+let searches = ref ([] : search list)
   

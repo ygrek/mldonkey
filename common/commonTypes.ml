@@ -151,7 +151,11 @@ type network_info = {
     mutable network_uploaded : int64;
     mutable network_downloaded : int64;
   }
-    
+
+type extend_search =
+  ExtendSearchLocally
+| ExtendSearchRemotely
+  
 type network = {
     network_name : string;
     network_num : int;
@@ -171,15 +175,17 @@ type network = {
       bool -> ((string * Options.option_value) list -> file);
     mutable op_network_add_client : 
       bool -> ((string * Options.option_value) list -> client);
-    mutable op_network_search : (search -> Buffer.t -> unit);
     mutable op_network_share : (
       string -> string -> int32 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
     mutable op_network_parse_url : (string -> bool);
     mutable op_network_connect_servers : (unit -> unit);
+    
+    mutable op_network_search : (search -> Buffer.t -> unit);
     mutable op_network_forget_search : (search -> unit);
     mutable op_network_close_search : (search -> unit);
-    mutable op_network_extend_search : (unit -> unit);
+    mutable op_network_extend_search : (search -> extend_search -> unit);
+    
     mutable op_network_clean_servers : (unit -> unit);
     mutable op_network_info : (unit -> network_info);
   }

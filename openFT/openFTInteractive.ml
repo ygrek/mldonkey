@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSearch
 open CommonGlobals
 open CommonUser
 open CommonClient
@@ -127,6 +128,7 @@ let _ =
         P.file_format = Unknown_format;
         P.file_chunks_age = [|0.0|];
         P.file_age = file_age file;
+        P.file_last_seen = BasicSocket.last_time ();
       }    
   )
   
@@ -161,8 +163,8 @@ let _ =
         C.result_names = [r.result_name];
         C.result_md4 = Md4.null;
         C.result_size = r.result_size;
-        C.result_format = "";
-        C.result_type = "";
+        C.result_format = result_format_of_name r.result_name;
+        C.result_type = result_media_of_name r.result_name;
         C.result_tags = [];
         C.result_comment = "";
         C.result_done = false;

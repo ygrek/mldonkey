@@ -72,6 +72,7 @@ type file_info = {
     mutable file_format : format;
     mutable file_chunks_age : float array;
     mutable file_age : float;
+    mutable file_last_seen : float;
   }
   
 type user_info = {

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSearch
 open CommonGlobals
 open CommonUser
 open CommonClient
@@ -38,62 +39,61 @@ module OC = OpennapClients
 let  _ =
   network.op_network_search <- (fun q  buf ->
       let query = q.search_query in
-  let module S = OP.Search in
-  let t = S.dummy_search in
-  let rec iter t q =
-    match q with
-    | QOr (q1,q2) 
-    | QAnd (q1, q2) ->
-        iter (iter t q1) q2
-    | QAndNot (q1,q2) -> iter t q1 
-    | QHasWord w ->
-        begin
-          match t.S.artist with
-            None -> { t with S.artist = Some w }
-          | Some s -> { t with S.artist = Some (Printf.sprintf "%s %s" s w)}
-          
-          (*
+      let module S = OP.Search in
+      let t = S.dummy_search in
+      let rec iter t q =
+        match q with
+        | QOr (q1,q2) 
+        | QAnd (q1, q2) ->
+            iter (iter t q1) q2
+        | QAndNot (q1,q2) -> iter t q1 
+        | QHasWord w ->
+            begin
+              match t.S.artist with
+                None -> { t with S.artist = Some w }
+              | Some s -> { t with S.artist = Some (Printf.sprintf "%s %s" s w)}
+
+(*
           match t.S.title, t.S.artist with
             None, _ -> { t with S.title = Some w }
           | Some s, None -> { t with S.artist = Some w }
           | Some s, _ ->
 {t with S.title = Some (Printf.sprintf "%s %s" s w)}
   *)
-        end
-    | QHasField(field, value) ->
-        Printf.printf "******  HAS FIELD  %s %s ********" field value; 
-        print_newline ();
-         begin
-          match field with
-            "Album" | "Title" -> t
-          | "Artist" | _ -> t
-        end
-    | QHasMinVal (field, value) ->
-        begin
-          match field with
-            "bitrate" ->  
-              { t with S.bitrate = Some (Int32.to_int value, OP.AtLeast) };
-          | "size" -> t
-          | _ -> t
-        end
-    | QHasMaxVal (field, value) ->
-        begin
-          match field with
-            "bitrate" -> 
-              { t with S.bitrate = Some (Int32.to_int value, OP.AtBest) };
-          | "size" -> t
-          | _ -> t
-        end
-    | QNone ->
-	prerr_endline "OpennapInteractive.start_search: QNone in query";
-	t
-  in
-  let msg = iter t query in
-  CommonSearch.searches := q :: !CommonSearch.searches;
-  List.iter (fun s ->
-      OpennapServers.send_search true s  (Normal_search q)  msg;
-      Printf.bprintf  buf "Sending search\n")
-  !OG.connected_servers)
+            end
+        | QHasField(field, value) ->
+            Printf.printf "******  HAS FIELD  %s %s ********" field value; 
+            print_newline ();
+            begin
+              match field with
+                "Album" | "Title" -> t
+              | "Artist" | _ -> t
+            end
+        | QHasMinVal (field, value) ->
+            begin
+              match field with
+                "bitrate" ->  
+                  { t with S.bitrate = Some (Int32.to_int value, OP.AtLeast) };
+              | "size" -> t
+              | _ -> t
+            end
+        | QHasMaxVal (field, value) ->
+            begin
+              match field with
+                "bitrate" -> 
+                  { t with S.bitrate = Some (Int32.to_int value, OP.AtBest) };
+              | "size" -> t
+              | _ -> t
+            end
+        | QNone ->
+            prerr_endline "OpennapInteractive.start_search: QNone in query";
+            t
+      in
+      let msg = iter t query in
+      List.iter (fun s ->
+          OpennapServers.send_search true s  (Normal_search q)  msg;
+          Printf.bprintf  buf "Sending search\n")
+      !OG.connected_servers)
   
 let try_send buf num tail =
   let num = int_of_string num in
@@ -145,6 +145,7 @@ let _ =
         P.file_format = Unknown_format;
         P.file_chunks_age = [|0.0|];
         P.file_age = 0.0;
+        P.file_last_seen = BasicSocket.last_time ();
       }    
   )
   
@@ -177,8 +178,8 @@ let _ =
         C.result_names = [r.result_name];
         C.result_md4 = Md4.null;
         C.result_size = r.result_size;
-        C.result_format = "";
-        C.result_type = "";
+        C.result_format = result_format_of_name r.result_name;
+        C.result_type = result_media_of_name r.result_name;
         C.result_tags = [];
         C.result_comment = "";
         C.result_done = false;

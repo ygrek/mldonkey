@@ -128,7 +128,7 @@ value try_poll(value fdlist, value timeout) /* ML */
       /*  fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
         value flags = Val_int(0);
         retcode--;
-        if (ufds[pos].revents & POLLIN)  flags |= 2;
+        if (ufds[pos].revents & (POLLIN|POLLERR|POLLHUP))  flags |= 2;
         if (ufds[pos].revents & POLLOUT) flags |= 4;
         /*        if (ufds[pos].revents & POLLNVAL) */
         /*        Field(v, FD_TASK_CLOSED) = Val_true; */

@@ -32,7 +32,7 @@ type from_gui =
 | ConnectMore_query
 | CleanOldServers
 | KillServer
-| ExtendedSearch
+| ExtendedSearch of int * extend_search
 | Search_query of query_entry search_request
 | Download_query of string list * int * bool (* forced ? *)
 | Url of string
@@ -96,7 +96,7 @@ type to_gui =
 | Search_waiting of int * int
   
 | File_info of file_info
-| File_downloaded of int * int32 * float
+| File_downloaded of int * int32 * float * float
 | File_availability of int * string * string
 | File_source of int * int
   
@@ -146,6 +146,8 @@ type to_gui =
 (* message *) string *
 (* option_name *) string *
 (* option_type *) option_widget
+
+| BadPassword
   
 let from_gui_to_string t = 
   match t with
@@ -153,7 +155,7 @@ let from_gui_to_string t =
   | ConnectMore_query -> "ConnectMore_query"
   | CleanOldServers -> "CleanOldServers"
   | KillServer -> "KillServer"
-  | ExtendedSearch -> "ExtendedSearch"
+  | ExtendedSearch _ -> "ExtendedSearch"
   | Password _ -> "Password"
   | Search_query _ -> "Search_query"
   | Download_query _ -> "Download_query"

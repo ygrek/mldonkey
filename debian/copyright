@@ -1,0 +1,37 @@
+This package was debianized by Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de> on
+Wed, 11 Sep 2002 10:59:39 +0200.
+
+It was downloaded from cvs:
+ :pserver:anoncvs@subversions.gnu.org:/cvsroot/mldonkey
+
+http://savannah.gnu.org/projects/mldonkey/
+
+
+Upstream Author(s):
+ [b8]_bavard		mldonkey@monsieurcinema.com
+ Olivier Vernin		vernin@sor.inria.fr
+ mldonkey admin		mldonkey@lachesis.inria.fr
+ Manuel Giraud		manuel.giraud@inria.fr
+ Dimitri Ara		savannah@mutu.net
+ Stéphane Goulet	sgou@videotron.ca
+ [B8]Zoggy		zoggy@bat8.org
+
+Copyright:
+
+   This package is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 dated June, 1991.
+
+   This package is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this package; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.
+
+On Debian GNU/Linux systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL'.
+

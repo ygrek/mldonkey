@@ -57,7 +57,7 @@ let reconnect_all file =
       connection_must_try c.client_connection_control;
       match c.client_kind with
         Known_location _ ->
-          add_interesting_client c
+          connect_as_soon_as_possible c
       | _ -> ()) file.file_sources;
   List.iter (fun s ->
       match s.server_sock, server_state s with
@@ -66,11 +66,11 @@ let reconnect_all file =
       | _ -> ()
   ) (connected_servers())
     
-let forget_search num =  
-  if !last_xs = num then last_xs := (-1);
-  local_searches := List.rev (List.fold_left (fun list s ->
-        if s.search_search.search_num = num then list else s :: list) 
-    [] !local_searches)
+let forget_search s =  
+  if !xs_last_search = s.search_num then begin
+      xs_last_search := (-1);
+      xs_servers_list := [];
+    end
 
   
 (*  
@@ -485,15 +485,16 @@ let commands = [
     "nu", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let num = int_of_string num in
-        let num = maxi 0 num in
-        if num <= !upload_credit then
-          begin
+        if !upload_credit >= num then begin
             upload_credit := !upload_credit - num;
             has_upload := !has_upload + num;
+            if !has_upload < 0 then begin
+                upload_credit := !upload_credit - !has_upload;
+                has_upload := 0;
+              end;
             Printf.sprintf "upload disabled for %d minutes" num
-          end
-        else 
-          "not enough upload credits"
+        end else
+          Printf.sprintf "Not enough credit (%d)" !upload_credit
     ), " <m> : disable upload during <m> minutes (multiple of 5)";
     
     "import", Arg_one (fun dirname o ->
@@ -633,10 +634,9 @@ let commands = [
     
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in
-        if !last_xs >= 0 then begin
+        if !xs_last_search >= 0 then begin
             try
-              let ss = DonkeyFiles.find_search !last_xs in
-              make_xs ss;
+              make_xs (CommonSearch.search_find !xs_last_search);
               "extended search done"
             with e -> Printf.sprintf "Error %s" (Printexc.to_string e)
           end else "No previous extended search"),
@@ -663,24 +663,6 @@ let commands = [
         "download started"
 
     ), "<size> <md4> : download from size and md4";
-
-        
-    "forget", Arg_one (fun num o ->
-        let buf = o.conn_buf in
-        let num = int_of_string num in
-        forget_search num;
-        ""  
-    ), " <num> : forget search <num>";
-
-    (*
-    "ls", Arg_multiple (fun args o ->
-        let query = CommonSearch.search_of_args args in
-        let search = CommonSearch.new_search query in
-        local_searches := search :: !local_searches;
-        DonkeyIndexer.find search;
-        "local search started"
-    ), " <query> : local search";
-*)
     
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -755,12 +737,11 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = file.file_all_chunks;
         P.file_availability = String2.init file.file_nchunks (fun i ->
-            if file.file_available_chunks.(i) > 1 then '2' else
-            if file.file_available_chunks.(i) > 0 then '1' else
-              '0');
+	    char_of_int (min file.file_available_chunks.(i) 255));
         P.file_format = file.file_format;
         P.file_chunks_age = file.file_chunks_age;
         P.file_age = file_age file;
+        P.file_last_seen = file.file_file.impl_file_last_seen;
       }
   )
 
@@ -889,13 +870,12 @@ let _ =
   )
   
 let _ =
-  network.op_network_extend_search <- (fun _ ->
-      if !last_xs >= 0 then begin
-          try
-            let ss = DonkeyFiles.find_search !last_xs in
-            make_xs ss;
-          with _ -> ()
-        end
+  network.op_network_extend_search <- (fun s e ->
+      match e with
+      | ExtendSearchLocally ->
+          DonkeyIndexer.find s      
+      | ExtendSearchRemotely ->
+          make_xs s
   );
   
   network.op_network_clean_servers <- (fun _ ->
@@ -904,7 +884,9 @@ let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true);
   
-  network.op_network_parse_url <- parse_donkey_url
+  network.op_network_parse_url <- parse_donkey_url;
+  
+  network.op_network_forget_search <- forget_search
 
 let _ =
   client_ops.op_client_say <- (fun c s ->
@@ -922,10 +904,10 @@ let _ =
 (*      Printf.printf "should browse"; print_newline (); *)
       if immediate then browse_client c else begin
 (*          Printf.printf "Adding friend to clients_list"; print_newline (); *)
-          add_interesting_client c
+          connect_as_soon_as_possible c
         end);
   client_ops.op_client_connect <- (fun c ->
-      add_interesting_client c
+      force_fast_connect_client c
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;

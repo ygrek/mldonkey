@@ -24,7 +24,6 @@ open CommonServer
 open CommonOptions
 open CommonTypes
 open Options
-open Unix
 open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
@@ -224,19 +223,17 @@ queries. *)
   
   | M.QueryReplyReq t ->
       let rec iter () =
-        let query = try
+        let search = try
             Fifo.take s.server_search_queries
           with _ -> failwith "No pending query"
         in
-        let search = query.search in
         try
           let nres = List.length t in
-          query.nhits <- query.nhits + nres;
-          if !last_xs = search.search_search.search_num && nres = 201 &&
-            query.nhits < search.search_search.search_max_hits then
+          if !xs_last_search = search.search_num && nres = 201 &&
+            search.search_nresults < search.search_max_hits then
             begin
               direct_server_send sock M.QueryMoreResultsReq;
-              Fifo.put s.server_search_queries query      
+              Fifo.put s.server_search_queries search      
             end;
           DonkeyFiles.search_handler search t
         with Already_done -> iter ()
@@ -406,7 +403,6 @@ let force_check_server_connections user =
     end
     
 let rec check_server_connections () =
-(*  Printf.printf "Check connections"; print_newline (); *)
   force_check_server_connections false
 
 let remove_old_servers () =

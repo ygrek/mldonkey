@@ -1,6 +1,42 @@
 ChangeLog	
 =========
 
+2002/10/09: mldonkey
+  - add: catch SIGTERM and save the config before exiting
+  - add: publication on Overnet has been implemented, but not tested yet.
+  - fix: "ovstats" displays more information on current searches
+
+2002/10/08: mldonkey
+  - fix: bug in indexer2.ml that prevented complex searches in local history
+      and in filters.
+  - patch #556 and debian/ from #553 from Goswin von Brederlow. Some problems
+      with the end of the patch #553.
+      * Availability seen in % of missing chunks, and height in color bar.
+      * New "last-seen" and "Age" columns in GUI
+      * No segfault on division by zero when size=0
+      * No queries for paused files.
+      * New debian/ directory
+  - GUI protocol 9
+  - add: gui open a message box when password is not valid.
+
+2002/10/07: mldonkey
+  - fix: "forget_search" should work correctly now
+  - fix: use Unix.LargeFile.stat instead of Unix.stat to avoid 
+      exception when sharing files greater than 1.7 Go
+  - add: filters. Need to enable 'filter_search' option, and to 
+      change 'filter_search_delay' (results are gathered during this delay,
+      and all filtered together and displayed, so results are displayed
+      with this period, and no results are displayed before the delay).
+
+2002/10/06: mldonkey
+  - fix: split add_interesting_client in two different functions:
+      force_fast_connect_client (connect immediatly, regardless of
+       min_reask_delay) and connect_as_soon_as_possible.
+  - fix bug #1291: vma does now display all servers
+  - add: new command "version"
+  - fix: "nu" can take negative arguments to decrease the no-upload period
+  - fix: stop adding MD4 to proposed names
+
 2002/10/05: mldonkey
   - fix: clients_lists are now stored in a 5 buckets array, one per minute.
       Strange behavior: the list is almost always full, and the number of fds

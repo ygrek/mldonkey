@@ -80,14 +80,21 @@ val resize : string -> int ->  string
 (*d [resize s len] returns a string of length [len] starting with [s]. *)
   
 val init : int -> (int -> char) -> string
-  
+
 val tokens: string -> string list
-  
+
+(* [contains s sub] checks whether [s] contains [sub] *)
 external contains : string -> string -> bool = "ml_strstr"
-  
+
+(* [starts_with s prefix] checks whether [s] starts with [prefix] *)
 val starts_with : (* string *) string -> (* start *) string -> bool
-  
+
+(* [replace_char s c1 c2] replaces char [c1] by char [c2] in [s] *)
 val replace_char : string -> char -> char -> unit
 
+(* [shorten max s] cuts [s] to [max] chars if [s] is longer than [max] *)
 val shorten : int -> string -> string
+  
+(* [stem s] cuts the string [s] in small words, for indexation eg *)
+val stem : string -> string list
   

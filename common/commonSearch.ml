@@ -43,8 +43,6 @@ let search_string q =
 let search_num = ref 0
 let searches_by_num = Hashtbl.create 1027
   
-let searches = ref ([] : search list)
-  
 let new_search s =
   incr search_num;
   let s = {
@@ -66,7 +64,7 @@ let new_search s =
 
 let search_find num = Hashtbl.find searches_by_num num
 
-let search_add_result s r =
+let search_add_result_in s r =
   try
     let (c,_) = Intmap.find r.impl_result_num s.search_results in
     incr c
@@ -764,3 +762,171 @@ let rec mftp_query_of_query_entry qe =
       mftp_query_of_query_entry (Q_AND l)
 
 
+(*********************************************************************
+
+                       SEARCH FILTERING
+
+*********************************************************************)
+      
+module Indexing = struct
+    let name_bit = 1
+(* "size" *)
+(* "bitrate" *)
+    let artist_bit = 2 (* tag "Artiste" *)
+    let title_bit = 4  (* tag "Title" *)
+    let album_bit = 8 (* tag "Album" *)
+    let media_bit = 16 (* "type" *)
+    let format_bit = 32 (* "format" *)
+    
+    let index_result index_string r =
+      
+      List.iter (fun name ->
+          index_string name name_bit
+      ) r.result_names;
+      
+      List.iter (fun tag ->
+          match tag with
+          | { tag_name = "Artist"; tag_value = String s } -> 
+              index_string s artist_bit
+          | { tag_name = "Title"; tag_value = String s } -> 
+              index_string s title_bit
+          | { tag_name = "Album"; tag_value = String s } -> 
+              index_string s album_bit
+(* we could directly use the fields of r *)
+          | { tag_name = "format"; tag_value = String s } -> 
+              index_string s format_bit
+          | { tag_name = "type"; tag_value = String s } -> 
+              index_string  s media_bit
+          | { tag_name = "length" } -> ()
+          | { tag_value = String s } -> 
+              index_string s name_bit
+          | _ -> ()
+      ) r.result_tags;
+      
+      if r.result_format <> "" then
+        index_string r.result_format format_bit;
+      if r.result_type <> "" then
+        index_string r.result_type media_bit
+
+                    
+    let has_word s bit =
+      match String2.stem s with
+        [] -> assert false
+      | s :: tail -> 
+          List.fold_left (fun q s ->
+              Indexer.And (q, (Indexer.HasField (bit, s)))
+          ) (Indexer.HasField (bit, s)) tail
+          
+    let query_to_indexer doc_value q =
+      let rec iter q =
+        match q with
+          QAnd (q1, q2) ->
+            Indexer.And (iter q1, iter q2)  
+        | QOr  (q1, q2) ->
+            Indexer.Or (iter q1, iter q2)  
+        | QAndNot (q1, q2) ->
+            Indexer.AndNot (iter q1, iter q2)  
+        | QHasWord s -> has_word s 0xffffffff
+        | QHasField (f, s) ->
+            has_word s (
+              if f = "type" then   media_bit else
+              if f = "format" then format_bit else
+              if f = "Title" then title_bit else
+              if f = "Artist" then artist_bit else
+              if f = "Album" then album_bit 
+              else 0xffffffff);
+        | QHasMinVal (f,size) ->
+            Indexer.Predicate
+              (if f = "size" then
+                (fun doc -> 
+                    let r = doc_value doc in
+                    r.result_size >= size)
+              else (fun doc -> true))
+        
+        | QHasMaxVal (f,size) ->
+            Indexer.Predicate (
+              if f = "size" then
+                (fun doc -> 
+                    let r = doc_value doc in
+                    r.result_size <= size)
+              else (fun doc -> true))
+        | QNone ->
+            failwith "query_to_indexer: QNone in query"
+      in
+      iter q
+
+  end
+  
+module Filter = struct      
+
+    open Indexing
+      
+    module Document = struct
+        type t = CommonTypes.result_info
+        
+        let num t = t.result_num
+        let filtered t = false
+        let filter t bool = ()
+      end
+    
+    let doc_value doc = doc
+    
+    module DocIndexer = Indexer2.FullMake(Document)
+    
+    open Document
+    
+    let index = DocIndexer.create ()
+    
+    let index_string doc s fields =
+      let words = String2.stem s in
+      List.iter (fun s ->
+(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+          DocIndexer.add  index s doc fields
+      ) words 
+      
+    let add r = 
+      let r = result_info r in
+      index_result (index_string r) r
+      
+    let find s = 
+      
+      let req = ref [] in
+      let pred = ref (fun _ -> true) in
+      
+      let ss = s.search_query in
+      let req = query_to_indexer doc_value ss in  
+      
+      let docs = DocIndexer.query index req in
+(*  Printf.printf "%d results" (List.length docs); print_newline (); *)
+      Array.iter (fun doc ->
+          if DocIndexer.filtered doc then begin
+              Printf.printf "doc filtered"; print_newline ();
+            end else
+          let r = doc_value doc in
+(*    merge_result s doc.num; *)
+(*      Printf.printf "search_add_result"; print_newline ();*)
+          search_add_result_in s (as_result_impl (result_find r.result_num))
+      ) docs
+
+    let clear () =
+      DocIndexer.clear index
+            
+  end  
+
+let result_format_of_name name = 
+  match String.lowercase (Filename2.last_extension name ) with
+    ".mpeg" -> "mpg"
+  | ".jpeg" -> "jpg"
+  | s -> String.sub s 1 (String.length s - 1)
+    
+let result_media_of_name name = 
+  match String.lowercase (Filename2.last_extension name ) with
+    ".mpg" | ".mpeg" | ".avi" | ".mov" -> "Video"
+  | ".mp3" | ".wav" -> "Audio"
+  | ".txt" | ".doc" -> "Doc"
+  | ".exe" -> "Pro"
+  | ".jpg" | ".jpeg" | ".tiff" | ".gif" -> "Image"
+  | _ -> ""
+
+
+  

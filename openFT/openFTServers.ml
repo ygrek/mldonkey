@@ -627,7 +627,7 @@ let server_to_client s t sock =
           print_newline ();
           add_source result user t.Q.filename; 
               
-          search_add_result ss.search_search result.result_result;
+          CommonInteractive.search_add_result ss.search_search result.result_result;
         with Not_found ->            
             Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); 
             

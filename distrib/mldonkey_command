@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# To run this program, you need the nc (netcat) program
+
+MLDONKEY_IP=127.0.0.1
+MLDONKEY_TELNET_PORT=4000
+
+nc $MLDONKEY_IP $MLDONKEY_TELNET_PORT <<EOF
+$*
+q
+EOF

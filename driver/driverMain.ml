@@ -296,6 +296,12 @@ let _ =
           BasicSocket.print_sockets ();
         DriverInteractive.save_config ();
         exit 0));
+  Sys.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
+    (Sys.Signal_handle (fun _ ->
+        if !!CommonOptions.verbose then
+          BasicSocket.print_sockets ();
+        DriverInteractive.save_config ();
+        exit 0));
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  

@@ -8,8 +8,6 @@ For 2.00:
   - Consequently, Get_ messages should receive a reply immediatly if
       gui_poll is true.
 
-- Save the file in incoming/ with a different name if already present
-- Connect SIG HUP to restart all connections (for /etc/sysconfig/ip-up)
 - Add special IP addresses with no upload limit and no upload slots for
     good friends.
 - Better bandwidth control: take TCP-IP packet header size into account
@@ -17,39 +15,20 @@ For 2.00:
 - Server: server: seedIP unused and stats not sent
 - Number of messages in Soulseek per room
 
-- Maybe the multi-server connection could be allowed only in some cases:
-  * at startup to connect fast
-  * if you share a lot of files (more than 50 Go for example)
-  * if you have no recent source for some file, or at least, no mldonkey
-     source.
-  * only for short periods
-- Do not share files starting with a dot.
-- Check that files are immediatly shared after download
-- Build a table of max_hard_up/download_rate in the FAQ, depending
-    on line and usage.
 - Better anticipation of TCP bandwidth
 - Web Server inside each server
 - GUI stub for multiple GUIs
-- Verify that files downloaded but not commited are immediatly shared !
 - Send a message for password retry
 - Different users per mldonkey with their own private searches
 - Add preview for downloaded files
-- Add friend by IP:port (possible with link ?)
-
--Check the upload computation, and the difference of rates between kb/s
-  for files and control.
-- Save the md4 of a downloaded file in the cache of file info between
-   calling new_shared.
 - Option to completely replace the server list
-- SegFault when RetryConnect with more than 1024 sources.
 - Cancel and Redownload doesnot work
 - What happens when a shared file cannot be read ?
-- We should close sockets when CONNECT failed
-- Shared files should signal whether they are partial or not ...
-- Shared file 22 not found in GUI
 
 - Can a file be shared before being enough downloaded.
-
+- Batch file of ed2k:// lines
+- to be inserted a line of GMain.Main.set_locale ()
+above GMain.Main.init ().
 *********
 
 For 2.1:

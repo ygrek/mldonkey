@@ -76,12 +76,15 @@ module Make(Doc : sig
     let exit_exn = Exit
       
     let add_doc node doc fields = 
-(*      Printf.printf "add_doc"; print_newline (); *)
+(*      Printf.printf "add_doc"; print_newline ();  *)
       let len = Array.length node.docs in
       let pos = node.next_doc in
       try
         for i = 0 to node.next_doc - 1 do
-          if node.docs.(i) == doc then raise exit_exn;
+          if node.docs.(i) == doc then begin
+              node.fields.(i) <- node.fields.(i) lor fields;
+              raise exit_exn;
+            end;
         done;
         if pos = len then begin
             let new_docs = Array.create (len + len/2 + 2) doc in
@@ -92,11 +95,13 @@ module Make(Doc : sig
             node.fields <- new_fields
           end;
         node.docs.(pos) <- doc;
+(*        Printf.printf "Adding doc with field %d" fields; print_newline (); *)
         node.fields.(pos) <- fields;
         node.next_doc <- pos +1;
         node.ndocs <- node.ndocs + 1;
         true
-      with _ -> 
+      with e ->
+(*          Printf.printf "exn %s" (Printexc.to_string e); print_newline (); *)
           false
 (* ; Printf.printf "done"; print_newline () *)
     
@@ -115,11 +120,12 @@ module Make(Doc : sig
       n
     
     let add index string doc fields = 
-(*      Printf.printf "add (%s)" string; print_newline (); *)
+(*      Printf.printf "add (%s)" string; print_newline ();  *)
       try
 (*      Printf.printf "add"; print_newline (); *)
         let len = String.length string in
         let rec iter pos node = 
+(*          Printf.printf "pos %d" pos; print_newline (); *)
           if pos = len then
             if add_doc node doc fields then begin
                 node.ndocs <- node.ndocs + 1;
@@ -135,7 +141,7 @@ module Make(Doc : sig
               | Some node -> node
               | Filtered _ -> 
                   Doc.filter doc true;
-(*                  Printf.printf "doc filtered"; print_newline (); *)
+                  Printf.printf "doc filtered"; print_newline (); 
                   raise Not_found
             else
               add_char node c
@@ -143,7 +149,9 @@ module Make(Doc : sig
           iter (pos+1) node
         in
         ignore (iter 0 index.node)
-      with _ -> ()
+      with e -> 
+(*          Printf.printf "Exc %s" (Printexc.to_string e);print_newline (); *)
+          ()
 (* ; Printf.printf "done"; print_newline ()  *)
     
     let clear index = index.node <- new_node () 
@@ -296,3 +304,4 @@ module Make(Doc : sig
   
   
 module FullMake (Doc : Indexer.Doc) = Indexer.FullMake (Doc ) (Make)
+  

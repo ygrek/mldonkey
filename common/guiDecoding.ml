@@ -312,6 +312,7 @@ let get_file_version_0 s pos =
     file_format = format;
     file_sources = None;
     file_name = List.hd names;
+    file_last_seen = BasicSocket.last_time ();
   }, pos
 
 let get_file_version_8 s pos = 
@@ -349,7 +350,48 @@ let get_file_version_8 s pos =
     file_format = format;
     file_sources = None;
     file_name = name;
+    file_last_seen = BasicSocket.last_time ();
   }, pos
+
+let get_file_version_9 s pos = 
+  let num = get_int s pos in
+  let net = get_int s (pos+4) in
+  let names, pos = get_list get_string s (pos+8) in
+  let md4 = get_md4 s pos in
+  let size = get_int32 s (pos+16) in
+  let downloaded = get_int32 s (pos+20) in
+  let nlocations = get_int s (pos+24) in
+  let nclients = get_int s (pos+28) in
+  let state = get_file_state s (pos+32) in
+  let chunks, pos = get_string s (pos+33) in
+  let availability, pos = get_string s pos in
+  let rate, pos = get_float s pos in
+  let chunks_age, pos = get_array get_float s pos in
+  let age, pos = get_float s pos in
+  let format, pos = get_format s pos in
+  let name, pos = get_string s pos in
+  let last_seen = get_int s pos in
+  {
+    file_num = num;
+    file_network = net;
+    file_names = names;
+    file_md4 = md4;
+    file_size = size;
+    file_downloaded = downloaded;
+    file_nlocations = nlocations;
+    file_nclients = nclients;
+    file_state = state;
+    file_chunks = chunks;
+    file_availability = availability;
+    file_download_rate = rate;
+    file_chunks_age = chunks_age;
+    file_age = age;
+    file_format = format;
+    file_sources = None;
+    file_name = name;
+    file_last_seen = BasicSocket.last_time () -. float_of_int last_seen;
+  }, pos
+
 
 let get_host_state s pos = 
   match get_int8 s pos with
@@ -573,7 +615,7 @@ let from_gui_version_0 opcode s =
   | 1 -> ConnectMore_query
   | 2 -> CleanOldServers
   | 3 -> KillServer
-  | 4 -> ExtendedSearch
+  | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
   | 5 -> let pass,_ = get_string s 2 in Password pass
   | 6 -> 
       let local = get_bool s 2 in
@@ -786,6 +828,10 @@ let from_gui_version_8 opcode s =
   match opcode with
   | _ ->  from_gui_version_7 opcode s
 
+let from_gui_version_9 opcode s = 
+  match opcode with
+  | _ ->  from_gui_version_8 opcode s
+
 let from_gui = [| 
     from_gui_version_0; 
     from_gui_version_1; 
@@ -796,6 +842,7 @@ let from_gui = [|
     from_gui_version_6; 
     from_gui_version_7;  
     from_gui_version_8;  
+    from_gui_version_9;  
   |]
       
 (***************
@@ -845,7 +892,7 @@ let to_gui_version_0 opcode s =
       let n = get_int s 2 in
       let size = get_int32 s 6 in
       let rate, pos = get_float s 10 in
-      File_downloaded (n, size, rate)
+      File_downloaded (n, size, rate, BasicSocket.last_time ())
   
   
   | 9 ->
@@ -1091,7 +1138,33 @@ let to_gui_version_8 opcode s =
       let list, pos = get_list get_file_version_8 s 2 in
       DownloadedFiles list
 
-  | _ -> to_gui_version_6 opcode s
+  | _ -> to_gui_version_7 opcode s
+
+let to_gui_version_9 opcode s = 
+  match opcode with
+    43 ->
+      let file, pos = get_file_version_9 s 2 in
+      File_info file
+            
+  | 44 ->
+      let list, pos = get_list get_file_version_9 s 2 in
+      DownloadFiles list
+      
+  | 45 ->
+      let list, pos = get_list get_file_version_9 s 2 in
+      DownloadedFiles list
+  
+  | 46 ->
+      let n = get_int s 2 in
+      let size = get_int32 s 6 in
+      let rate, pos = get_float s 10 in
+      let last_seen = get_int s pos in
+      File_downloaded (n, size, rate, 
+        BasicSocket.last_time () -. float_of_int last_seen)
+
+  | 47 -> BadPassword
+      
+  | _ -> to_gui_version_8 opcode s
         
 
 let to_gui = [| 
@@ -1104,6 +1177,7 @@ let to_gui = [|
     to_gui_version_6;
     to_gui_version_7; 
     to_gui_version_8; 
+    to_gui_version_9; 
   |]
 
 let _ =  assert (Array.length from_gui = Array.length to_gui);

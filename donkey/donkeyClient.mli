@@ -26,7 +26,6 @@ val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
 
 val reconnect_client : DonkeyTypes.client -> unit
-val add_interesting_client  : DonkeyTypes.client -> unit
 val client_connection_handler : 'a -> TcpServerSocket.event -> unit
 
 val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
@@ -43,4 +42,8 @@ val client_send_if_possible : TcpBufferedSocket.t ->
 val schedule_connections: unit -> unit
   
   
+val force_fast_connect_client  : DonkeyTypes.client -> unit
+val connect_as_soon_as_possible :  DonkeyTypes.client -> unit
+val unschedule_client :  DonkeyTypes.client -> unit
+val schedule_client :  DonkeyTypes.client -> unit
   

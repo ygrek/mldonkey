@@ -21,7 +21,6 @@ open CommonFile
 open CommonShared
 open CommonTypes
 open Options
-open Unix
 open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
@@ -80,8 +79,11 @@ let new_file_to_share sh =
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
     must_share_file file;
     file.file_md4s <- md4s;
-    file.file_filenames <- file.file_filenames @ [Filename.basename sh.sh_name]; 
-    update_best_name file;
+    let sh_name = Filename.basename sh.sh_name in
+    if not (List.mem sh_name file.file_filenames) then begin
+        file.file_filenames <- file.file_filenames @ [sh_name];
+        update_best_name file;
+      end;
     file.file_chunks <- Array.make file.file_nchunks PresentVerified;
     file.file_absent_chunks <- [];
     file.file_all_chunks <- String.make file.file_nchunks '1';
@@ -89,6 +91,13 @@ let new_file_to_share sh =
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)
       with _ -> ());
+    (*
+    (try 
+        DonkeyOvernet.publish_file file
+      with e -> 
+          Printf.printf "DonkeyOvernet.publish_file: %s" (Printexc.to_string e);
+print_newline ());
+  *)
     Printf.printf "Sharing %s" sh.sh_name;
     print_newline ();
   with e ->
@@ -142,7 +151,6 @@ let check_shared_files () =
           else end_pos in
         let len = Int32.sub end_pos sh.shared_pos in
         
-        Printf.printf "check_shared_files"; print_newline ();
         let new_md4 = Md4.digest_subfile (sh.shared_fd) sh.shared_pos len in
         
         sh.shared_list <- new_md4 :: sh.shared_list;
@@ -153,8 +161,7 @@ let check_shared_files () =
                 sh_name = sh.shared_name;
                 sh_size = sh.shared_size;
                 sh_md4s = sh.shared_list;
-                sh_mtime = (let st = Unix.stat sh.shared_name in
-                  st.Unix.st_mtime);
+                sh_mtime = Unix32.mtime32 sh.shared_name;
               } in
             Printf.printf "NEW SHARED FILE %s" sh.shared_name; 
             print_newline ();
@@ -194,7 +201,7 @@ let _ =
 Printf.printf "Searching %s" fullname; print_newline ();
 *)
         let s = Hashtbl.find shared_files_info fullname in
-        let mtime = (Unix.stat fullname).Unix.st_mtime in
+        let mtime = Unix32.mtime32 fullname in
         if s.sh_mtime = mtime && s.sh_size = size then begin
             if !!verbose then begin
                 Printf.printf "USING OLD MD4s for %s" fullname;
@@ -230,7 +237,7 @@ Printf.printf "Searching %s" fullname; print_newline ();
               shared_size = size;
               shared_list = [];
               shared_pos = Int32.zero;
-              shared_fd = Unix32.create fullname [O_RDONLY] 0o444;
+              shared_fd = Unix32.create fullname [Unix.O_RDONLY] 0o444;
             } in
           update_shared_num impl;  
           shared_files := pre_shared :: !shared_files;
@@ -241,7 +248,7 @@ let remember_shared_info file new_name =
   if file.file_md4s <> [] then
     try
       let disk_name = file_disk_name file in
-      let mtime = (Unix.stat disk_name).Unix.st_mtime in
+      let mtime = Unix32.mtime32 disk_name in
       
       if !!verbose then begin
           Printf.printf "Remember %s" new_name; print_newline ();

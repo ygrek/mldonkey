@@ -334,7 +334,7 @@ let commands = [
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf  buf "Searching %d queries\n" (
-          List.length !CommonSearch.searches);
+          List.length !searches);
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if o.conn_output = HTML then 
@@ -345,7 +345,7 @@ let commands = [
             s.search_string
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
-        ) !CommonSearch.searches; ""), ": view all queries";
+        ) !searches; ""), ": view all queries";
 
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -449,7 +449,11 @@ let commands = [
         let buf = o.conn_buf in       
         Printf.bprintf  buf "Servers: %d known\n" (List.length !!servers);
         List.iter (fun s ->
-            server_print s o
+            try
+              server_print s o
+            with e ->
+                Printf.printf "Exception %s in server_print"
+                  (Printexc.to_string e); print_newline ();
         ) !!servers; ""), ": list all known servers";
         
     "reshare", Arg_none (fun o ->
@@ -476,6 +480,18 @@ let commands = [
         | [] -> "Bad number of args"
         
     ), " <priority> <files numbers>: change file priorities";
+    
+    "version", Arg_none (fun o ->
+        CommonGlobals.version
+    ), " :  print mldonkey version";
+        
+    "forget", Arg_one (fun num o ->
+        let buf = o.conn_buf in
+        let num = int_of_string num in
+        CommonSearch.search_forget (CommonSearch.search_find num);
+        ""  
+    ), " <num> : forget search <num>";
+    
     ]
 
 let _ =

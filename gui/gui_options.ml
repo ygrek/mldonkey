@@ -393,6 +393,19 @@ let use_size_suffixes = define_option mldonkey_gui_ini
     ["use_size_suffixes"]
     M.h_use_size_suffixes bool_option true
 
+let use_availability_height = define_option mldonkey_gui_ini ["availability_height"]
+  "Display the availability of each chunk as the height of the colored bar"
+    bool_option true
+
+let availability_max = define_option mldonkey_gui_ini ["availability_max"]
+  "If use_availability_height is true, which availability corresponds to
+  a full bar ?"
+    int_option 10
+  
+let use_relative_availability = define_option mldonkey_gui_ini ["relative_availability"]
+  "Calculate the % avilability ignoring already present chunks"
+    bool_option true
+
 let max_client_name_len = define_option mldonkey_gui_ini
     ["max_client_name_len"] "Max length of a source name"
     int_option 18

@@ -131,6 +131,7 @@ module QueryMake(Index: Index) = struct
             let tree = find idx s in
             get_fields tree (-1) 
         | HasField (fields, s) -> 
+(*            Printf.printf "query_map %d %s" fields s; print_newline (); *)
             let tree = find idx s in
             get_fields tree fields
         | And ((Predicate _) as q2, q1) 
@@ -155,6 +156,7 @@ module QueryMake(Index: Index) = struct
             let tree = find idx s in
             and_get_fields tree (-1) map
         | HasField (fields, s) -> 
+(*            Printf.printf "and_query %d %s" fields s; print_newline (); *)
             let tree = find idx s in
             and_get_fields tree fields map
         | And (q1, q2) -> 

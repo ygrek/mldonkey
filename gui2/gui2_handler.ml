@@ -995,6 +995,10 @@ let value_reader (gui: gui) t sock =
     | Console text ->
         
         ignore (gui#tab_console#text#insert_text text 0)
+
+    | BadPassword ->
+        
+        ignore (gui#tab_console#text#insert_text "Bad Passord" 0)
     
     | CoreProtocol v -> 
         gui_protocol_used := min v GuiEncoding.best_gui_version;
@@ -1024,7 +1028,7 @@ let value_reader (gui: gui) t sock =
           with _ ->               ()
         end
     
-    | File_downloaded (num, downloaded, rate) ->
+    | File_downloaded (num, downloaded, rate, last_seen) ->
         begin
           try 
             let f =

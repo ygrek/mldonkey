@@ -172,6 +172,8 @@ dec: [
 ]
 *)
 
+| OvernetNoResult of Md4.t
+  
 (*
 UNKNOWN: opcode 19
 22:40:26.123479 192.168.0.3.8368 > 62.255.150.48.6411:  udp 66 (DF)
@@ -241,7 +243,7 @@ let write buf t =
       buf_int8 buf 14;
       buf_int8 buf kind;
       buf_md4 buf md4
-  
+        
   | OvernetSearchReply (md4, peers) ->
       buf_int8 buf 15;
       buf_list8 buf_peer buf peers
@@ -258,6 +260,10 @@ let write buf t =
       buf_md4 buf md4;
       buf_md4 buf r_md4;
       buf_tags buf r_tags names_of_tag
+
+  | OvernetNoResult md4 ->
+      buf_int8 buf 18;
+      buf_md4 buf md4
 
   | OvernetPublish (md4, r_md4, r_tags) ->
       buf_int8 buf 19;
@@ -328,6 +334,13 @@ let parse opcode s =
         let r_tags, pos = get_tags s 36 ntags names_of_tag in
         OvernetSearchResult (md4, r_md4, r_tags)
     
+    | 18 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: ONE REPLY"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        OvernetNoResult md4
+        
     | 19 ->
         if !!verbose_overnet then begin
             Printf.printf "OK: PUBLISH"; print_newline ();

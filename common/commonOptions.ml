@@ -632,9 +632,22 @@ let mldonkey_bin = define_option downloads_ini ["mldonkey_bin"]
 let mldonkey_gui = define_option downloads_ini ["mldonkey_gui"]
     "Name of GUI to start" string_option 
     (Filename.concat bin_dir "mldonkey_gui")
+
+let filter_search = define_option downloads_ini ["filter_search"]
+  "(not implemented) Should mldonkey filter results of searches
+  (results are displayed only if they exactly match the request,
+    and filtering is done every 'filter_search_delay'." 
+    bool_option false
+
+let filter_search_delay = define_option downloads_ini ["filter_search_delay"]
+  "(not implemented) Delay before two filtering on results (results
+    are not displayed until filtered). Min is 1 second." float_option 20.
+  
   
 let _ =
-  option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net)
+  option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net);
+  option_hook filter_search_delay (fun _ ->
+      if !!filter_search_delay < 1. then filter_search_delay =:= 1.)
 
 
 let gui_options_panel = define_option downloads_ini ["gui_options_panel"]

@@ -78,3 +78,6 @@ val new_string :  DonkeyProtoClient.t -> string -> unit
 val udp_send_if_possible : UdpSocket.t -> 
   TcpBufferedSocket.bandwidth_controler -> 
   Unix.sockaddr -> DonkeyProtoServer.t -> unit
+
+val tag_file : DonkeyTypes.file -> CommonTypes.tag list
+ 

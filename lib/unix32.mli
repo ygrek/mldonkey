@@ -33,4 +33,5 @@ val fds_size : int
 val filename : t -> string
 val set_filename : t -> string -> unit
 val max_cache_size : int ref
+val mtime32 : string -> float
   

@@ -77,6 +77,8 @@ type file_column =
 | Col_file_rate
 | Col_file_format
 | Col_file_network
+| Col_file_age
+| Col_file_last_seen
   
 let file_column_strings = [
     Col_file_name, M.name ;
@@ -89,6 +91,8 @@ let file_column_strings = [
     Col_file_rate, M.rate ;
     Col_file_format, M.format ;
     Col_file_network, M.network;
+    Col_file_age, M.age;
+    Col_file_last_seen, M.last_seen;
 ] 
 
 

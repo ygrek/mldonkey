@@ -96,8 +96,8 @@ let overnet_search_timeout =
       
 let overnet_query_peer_period = 
   define_option downloads_ini ["overnet_query_peer_period"] 
-  "Period between two queries in the overnet tree"
-    float_option 10. 
+  "Period between two queries in the overnet tree (should not be set under 5)"
+    float_option 5. 
 
       
 let overnet_max_search_hits = 
@@ -181,16 +181,27 @@ module XorSet = Set.Make (struct
 
 type search_for =
   FileSearch of file
-| KeywordSearch of local_search
+| KeywordSearch of CommonTypes.search list
   
 type overnet_search = {
     mutable search_last_packet : float;
     search_md4 : Md4.t;
-    search_kind : search_for;
+    mutable search_kind : search_for;
     search_known_peers : (Ip.t * int, peer) Hashtbl.t;
     mutable search_next_peers : XorSet.t;
     mutable search_closed : bool;
     mutable search_waiting_peers : int;
+    mutable search_nresults : int;
+    mutable search_nreplies : int;
+    mutable search_nqueries : int;
+    mutable search_start_time : float;
+    mutable search_results : (Md4.t, tag list) Hashtbl.t;
+
+    mutable search_publish_files : file list;
+(* should be search publish a file ? *)
+    mutable search_publish_file : bool;
+(* should the search query a file ? *)
+(*    mutable search_query_files : bool; *)
   }
     
 let overnet_searches = Hashtbl.create 13
@@ -203,17 +214,18 @@ let add_search_peer s p =
       if s.search_waiting_peers > !!overnet_max_waiting_peers then begin
           let (dd,pp) as e = XorSet.max_elt s.search_next_peers in
           if dd>distance then begin
-              s.search_next_peers <- XorSet.remove (dd, pp) s.search_next_peers;     
-              s.search_next_peers <- XorSet.add (distance, p) s.search_next_peers;   
-            end
-            
+              s.search_next_peers <- 
+                XorSet.remove (dd, pp) s.search_next_peers;     
+              s.search_next_peers <- 
+                XorSet.add (distance, p) s.search_next_peers;   
+            end        
         end
       else begin
           s.search_next_peers <- XorSet.add (distance, p) s.search_next_peers;
           s.search_waiting_peers <- s.search_waiting_peers +1        
-         end
+        end
     end
-
+    
     
 let try_connect () =
   if (!!overnet_search_sources || !!overnet_search_keyword) &&
@@ -233,6 +245,14 @@ let create_simple_search kind md4 =
       search_kind = kind;
       search_closed = false;
       search_waiting_peers = 0;
+      search_start_time = last_time ();
+      search_nresults = 0;
+      search_nreplies = 0;
+      search_nqueries = 0;
+      search_publish_files = [];
+      search_publish_file = false;
+(*      search_query_files = true;  *)
+      search_results = Hashtbl.create 13;
     } in
 (*   Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline (); *)
   Hashtbl.add overnet_searches md4 search;
@@ -242,13 +262,69 @@ let create_search kind md4 =
   let search = create_simple_search kind md4 in
   List.iter (fun (peer, _) ->
       add_search_peer search peer;
-  ) !connected_peers
+  ) !connected_peers;
+  search
+
+let create_keyword_search w =   
+  let md4 = Md4.string w in
+  try
+    Hashtbl.find overnet_searches md4 
+  with _ ->
+      let search = {
+          search_last_packet = last_time ();
+          search_md4 = md4;
+          search_known_peers = Hashtbl.create 13;
+          search_next_peers = XorSet.empty;
+          search_kind = KeywordSearch [];
+          search_closed = false;
+          search_waiting_peers = 0;
+          search_publish_files = [];
+          search_publish_file = false;
+(*          search_query_files = true;  *)
+          search_results = Hashtbl.create 13;
+          search_nreplies = 0;
+          search_nqueries = 0;
+          search_start_time = last_time ();
+          search_nresults = 0;
+        } in
+(*   Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline (); *)
+      Hashtbl.add overnet_searches md4 search;
+      List.iter (fun (peer, _) ->
+          add_search_peer search peer;
+      ) !connected_peers;
+      search
+      
   
 let recover_file (file : DonkeyTypes.file) = 
-  if !!overnet_search_sources &&
-    not (Hashtbl.mem overnet_searches file.file_md4) then
-    create_search (FileSearch file) file.file_md4
-        
+  if !!overnet_search_sources then
+    try
+      let s = Hashtbl.find  overnet_searches file.file_md4 in
+(*       s.search_query_file <- true *)
+      ()
+    with _ ->
+        ignore (create_search (FileSearch file) file.file_md4)
+  
+let publish_file (file : DonkeyTypes.file) = 
+  if !!overnet_search_sources then begin
+    try
+      let s = Hashtbl.find  overnet_searches file.file_md4 in
+      s.search_publish_file <- true
+    with _ ->
+        let s = create_search (FileSearch file) file.file_md4 in
+        s.search_publish_file <- true
+    end;
+  if !!overnet_search_keyword then begin
+      let index_string w =
+        let s = create_keyword_search w in
+        s.search_publish_files <- file :: s.search_publish_files;
+        ()
+      in
+      List.iter (fun name ->
+          List.iter index_string (String2.stem name)
+      ) file.file_filenames;
+(* We should also probably index of tags fields *)
+    end
+    
 let recover_all_files () =
   if !!overnet_search_sources then
     List.iter (fun file ->
@@ -281,8 +357,11 @@ let udp_client_handler t p =
                   not (Hashtbl.mem overnet_searches file.file_md4) then
                   let search = create_simple_search 
                       (FileSearch file) file.file_md4 in
-                  add_search_peer search peer;
-            )  !DonkeyGlobals.current_files
+                  ()
+            ) !DonkeyGlobals.current_files;
+            Hashtbl.iter (fun _ s ->
+                add_search_peer s peer
+            ) overnet_searches;
         | _ -> ()
       end
   
@@ -290,6 +369,7 @@ let udp_client_handler t p =
       begin
         try
           let s = Hashtbl.find overnet_searches md4 in
+          s.search_nreplies <- s.search_nreplies + 1;
           begin
             try
               let (s_ip, s_port) as s_addr =
@@ -301,7 +381,43 @@ let udp_client_handler t p =
               in
               let sender = Hashtbl.find s.search_known_peers s_addr in
               sender.peer_last_msg <- last_time ();
-              udp_send s_ip s_port (OvernetGetSearchResults (md4,0,0,100));
+              begin
+                match s.search_kind with
+                  KeywordSearch sss ->
+(* Here, we could check whether the searches are finished *)
+                    if sss <> [] then
+                      udp_send s_ip s_port 
+                        (OvernetGetSearchResults (md4,0,0,100));
+(* PUBLISH FILE FOR A GIVEN KEYWORD 
+                    if s.search_publish_file then
+udp_send s_ip s_port 
+*)
+                    List.iter (fun file ->
+                        Printf.printf "TRY TO PUBLISH FILE FOR KEYWORD";
+                        print_newline ();
+                        udp_send s_ip s_port 
+                          (OvernetPublish (md4, file.file_md4,
+                            DonkeyProtoCom.tag_file file))
+                    ) s.search_publish_files
+                | FileSearch file ->
+                    if file_state file = FileDownloading then
+                      udp_send s_ip s_port 
+                        (OvernetGetSearchResults (md4,0,0,100));
+                    if s.search_publish_file then
+                      udp_send s_ip s_port 
+                        (OvernetPublish (md4, !!client_md4,
+                          [{
+                              tag_name = "loc";
+                              tag_value = String (
+                                Printf.sprintf "bcp://%s:%s:%d"
+                                  (Md4.to_string !!client_md4)
+                                  (Ip.to_string (client_ip None))
+                                !!port
+                                
+                              )
+                            }]
+                          ))
+              end;
               if !!verbose_overnet then begin
                   Printf.printf "DISTANCES: origin %s from %s" (Md4.to_string
                       (Md4.xor sender.peer_md4 md4))
@@ -329,6 +445,7 @@ let udp_client_handler t p =
       begin
         try
           let s = Hashtbl.find overnet_searches md4 in
+          s.search_nresults <- s.search_nresults + 1;
           begin
             try
               begin
@@ -378,7 +495,7 @@ let udp_client_handler t p =
                                     if not (Intmap.mem (client_num c) file.file_sources) then
                                       new_source file c;
                                     
-                                    DonkeyClient.add_interesting_client c 
+                                    DonkeyClient.connect_as_soon_as_possible c 
                                 | _ ->
                                     Printf.printf "Ill formed bcp: %s" bcp;
                                     print_newline ();
@@ -390,12 +507,20 @@ let udp_client_handler t p =
                               print_newline ();
                         end
                   ) r_tags;
-              | KeywordSearch ss ->
+                  
+              | KeywordSearch sss ->
                   incr search_hits;
-                  DonkeyOneFile.search_found ss.search_search r_md4 r_tags;
-                  if ss.search_search.search_nresults > 
-                    !!overnet_max_search_hits then
-                    s.search_closed <- true
+                  if not (Hashtbl.mem s.search_results r_md4) then begin
+                      Hashtbl.add s.search_results r_md4 r_tags;
+                      List.iter (fun ss ->
+                          DonkeyOneFile.search_found ss r_md4 r_tags
+                      ) sss
+                    end
+
+(*
+if ss.search_nresults > !!overnet_max_search_hits then
+s.search_closed <- true
+*)
             with _ -> 
                 Printf.printf "No info on sender"; print_newline ();
           end;
@@ -416,15 +541,17 @@ let udp_client_handler t p =
     
 let query_min_peer s =
   if not s.search_closed then
-  try
-    let (_,p) as e = XorSet.min_elt s.search_next_peers in
-    if !!verbose_overnet then begin
-        Printf.printf "Query New Peer"; print_newline ();
-      end;
+    try
+      let (_,p) as e = XorSet.min_elt s.search_next_peers in
+      if !!verbose_overnet then begin
+          Printf.printf "Query New Peer"; print_newline ();
+        end;
       s.search_next_peers <- XorSet.remove e s.search_next_peers;
       s.search_waiting_peers <- s.search_waiting_peers - 1;
-    s.search_last_packet <- last_time ();
-    udp_send p.peer_ip p.peer_port  (OvernetSearch (2, s.search_md4))     
+      s.search_last_packet <- last_time ();
+      udp_send p.peer_ip p.peer_port  (OvernetSearch (2, s.search_md4));
+      s.search_nqueries <- s.search_nqueries + 1;
+      
   with _ -> ()
         
 let query_next_peers () =
@@ -434,8 +561,10 @@ let query_next_peers () =
       if s.search_last_packet +. !!overnet_search_timeout < last_time () then
         begin
           if !!verbose_overnet then begin              
-              Printf.printf "Search for %s finished"
-              (Md4.to_string s.search_md4);
+              Printf.printf "Search for %s finished (%d queries, %d replies, %d results)"
+                (Md4.to_string s.search_md4)
+              s.search_nqueries s.search_nreplies s.search_nresults
+              ;
               print_newline ();
             end;
           Hashtbl.remove overnet_searches s.search_md4
@@ -452,7 +581,13 @@ let remove_old_connected_peers () =
           connected_peers := (peer, ctime) :: !connected_peers
         end) !connected_peers
   
-
+let publish_shared_files () = 
+  Printf.printf "****** PUBLISHING ON OVERNET ********"; print_newline ();
+  if !!overnet_search_sources || !!overnet_search_keyword then begin
+      let files = DonkeyShare.all_shared () in
+      List.iter publish_file files
+    end
+  
 let purge_peer_list () =
   let list = Sort.list (fun p1 p2 ->
         p2.peer_last_msg > p1.peer_last_msg
@@ -477,8 +612,10 @@ let enable enabler =
       recover_all_files ();
       remove_old_connected_peers ();
       purge_peer_list ();
-  )
-
+      publish_shared_files ()
+  );
+  add_timer 30. (fun timer -> publish_shared_files ())
+  
 let _ =
   option_hook overnet_query_peer_period (fun _ ->
       if !!overnet_query_peer_period < 5. then
@@ -533,6 +670,26 @@ let _ =
         ) !connected_peers;
         Printf.bprintf buf "  Search hits: %d\n" !search_hits;
         Printf.bprintf buf "  Source hits: %d\n" !source_hits;
+
+        Hashtbl.iter (fun _ s ->
+            Printf.bprintf buf 
+            "Search %s for %s (%d queries, %d replies, %d results, %d remaining) %s%s\n"
+            
+              (match s.search_kind with
+                KeywordSearch _ -> "keyword"
+              | FileSearch _ -> "file")
+            (Md4.to_string s.search_md4)
+            s.search_nqueries s.search_nreplies s.search_nresults
+              (XorSet.cardinal s.search_next_peers)
+            (match s.search_kind, s.search_publish_files with
+              | KeywordSearch [], _ :: _  -> "publish "
+              | KeywordSearch (_ :: _) , []  -> "query "
+              | KeywordSearch (_ :: _), _ :: _  -> "publish+query "
+              | KeywordSearch [], []  -> "??? "
+              | FileSearch _, _ -> "")
+            (if s.search_publish_file then "file_publish " else "")
+            ;
+        ) overnet_searches;
         
         "";
     ), ": Overnet Stats";
@@ -559,17 +716,26 @@ let _ =
       ) lines
   )
 
-
 let search_keyword ss w =
-  let key = Md4.string w in
-  create_search (KeywordSearch ss) key
+  let s = create_keyword_search w in
+  Hashtbl.iter (fun r_md4 r_tags ->
+      DonkeyOneFile.search_found ss r_md4 r_tags
+  ) s.search_results;
+  match s.search_kind with
+    KeywordSearch sss ->
+      s.search_kind <- KeywordSearch (ss :: sss)
+  | _ -> ()
+
+
+let all_overnet_searches = ref ([] : int list)
   
-let overnet_search (s : local_search) =
-  if !!overnet_search_keyword then
-    let ss = s.search_search in
+let overnet_search (ss : search) =
+  if !!overnet_search_keyword && 
+    not (List.mem ss.search_num !all_overnet_searches) then
     let q = ss.search_query in
+    all_overnet_searches := ss.search_num :: !all_overnet_searches;
     let ws = keywords_of_query q in
     List.iter (fun w ->
-        search_keyword s w;
+        search_keyword ss w;
     ) ws
-
+    

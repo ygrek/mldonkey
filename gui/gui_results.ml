@@ -38,7 +38,7 @@ let first_name r =
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
-class box with_extended columns () =
+class box s_num columns () =
   let titles = List.map Gui_columns.Result.string_of_column columns in
   object (self)
     inherit [CommonTypes.result_info] Gpattern.plist `EXTENDED titles true as pl
@@ -114,15 +114,17 @@ class box with_extended columns () =
     method set_tb_style = wtool#set_style
 
     method extend_search () =
-      Gui_com.send GuiProto.ExtendedSearch
+      Gui_com.send (GuiProto.ExtendedSearch (s_num, ExtendSearchRemotely))
 
+      (*
     method remove_extend_search_button =
       match wb_extend_search with
 	None -> ()
       |	Some wb -> 
 	  wtool#remove wb#coerce;
 	  wb_extend_search <- None
-
+*)
+      
     method clear = self#update_data []
 
     initializer
@@ -137,7 +139,7 @@ class box with_extended columns () =
 	   ()
 	);
 
-      if with_extended then
+      if s_num >= 0 then
 	wb_extend_search <- Some
 	    (wtool#insert_button 
 	       ~text: M.extended_search
@@ -152,7 +154,7 @@ class box with_extended columns () =
 let is_filtered r =
   List.memq r.result_network !Gui_global.networks_filtered
 
-class search_result_box () =
+class search_result_box s_num () =
   let hbox_labels = GPack.hbox () in
   let wl_count = GMisc.label ~text: "" 
       ~packing: (hbox_labels#pack ~expand: false ~padding:3) 
@@ -163,7 +165,7 @@ class search_result_box () =
       () 
   in
   object (self)
-    inherit box true !!Gui_options.results_columns () as box
+    inherit box s_num !!Gui_options.results_columns  () as box
 
     val mutable filtered_data = []
     
@@ -202,7 +204,7 @@ class search_result_box () =
 
 
 class box_dir_files () =
-  let results = new box false !!O.results_columns () in
+  let results = new box (-1) !!O.results_columns () in
   object (self)
     inherit Gui_results_base.files ()
 

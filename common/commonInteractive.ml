@@ -90,7 +90,7 @@ let last_results = ref []
   
 let print_results o =
   let buf = o.conn_buf in
-  match !CommonSearch.searches with
+  match !searches with
     [] -> Printf.bprintf buf "No search to print\n"
   | q :: _ ->
       last_search := Some q;
@@ -374,4 +374,20 @@ let register_gui_options_panel name panel =
     gui_options_panels := (name, panel) :: !gui_options_panels
     
     
-    
+let _ =
+  add_infinite_option_timer filter_search_delay (fun _ ->
+      if !!filter_search then begin
+(*          Printf.printf "Filter search results"; print_newline (); *)
+          List.iter  (fun s -> CommonSearch.Filter.find s) 
+          !searches;
+        end;
+      CommonSearch.Filter.clear ()
+  )
+  
+let search_add_result s r =
+  if not !!filter_search then begin
+(*      Printf.printf "Adding result to filter"; print_newline (); *)
+      CommonSearch.search_add_result_in s r
+    end
+  else
+    CommonSearch.Filter.add (as_result r)

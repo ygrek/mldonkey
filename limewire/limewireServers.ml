@@ -409,7 +409,7 @@ print p;
               let result = new_result f.Q.name f.Q.size in
               add_source result user f.Q.index;
               
-              search_add_result s.search_search result.result_result;
+              CommonInteractive.search_add_result s.search_search result.result_result;
           ) t.Q.files
         with Not_found ->            
             Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); 

@@ -25,7 +25,6 @@ open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open Options
-open Unix
 open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
@@ -712,11 +711,11 @@ let set_file_size file sz =
           (Int32.sub sz Int32.one) block_size)+1;
       file.file_chunks <- Array.create file.file_nchunks (
         if not (Sys.file_exists (file_disk_name file)) then begin
-            Printf.printf "Setting Absent Verified chunks"; print_newline ();
+(*            Printf.printf "Setting Absent Verified chunks"; print_newline ();*)
             
             AbsentVerified
           end else begin
-            Printf.printf "Setting Absent Verified chunks"; print_newline ();
+(*            Printf.printf "Setting Absent Verified chunks"; print_newline (); *)
             AbsentTemp
             
           end);
@@ -854,11 +853,12 @@ let download_engine () =
       iter ()
     end
 
-  
+(*  
 let best_name file =
   match file.file_filenames with
     [] -> Md4.to_string file.file_md4
   | name :: _ -> name
+        *)
 
   (*
 let move_file_to_done_files md4 =
@@ -1000,7 +1000,7 @@ let search_found search md4 tags =
   try
     let rs = DonkeyIndexer.find_result md4 in
 (*    Printf.printf "search_add_result"; print_newline (); *)
-    search_add_result search rs.result_result; (* ADD AVAILABILITY *)
+    CommonInteractive.search_add_result search rs.result_result; (* ADD AVAILABILITY *)
 (*    Printf.printf "search_add_result DONE"; print_newline (); *)
     let doc = rs.result_index in
     let result = Store.get store doc in
@@ -1036,7 +1036,7 @@ let search_found search md4 tags =
         let rs = DonkeyIndexer.index_result new_result in      
         let doc = rs.result_index in
 (*        Printf.printf "search_add_result"; print_newline (); *)
-        search_add_result search rs.result_result;
+        CommonInteractive.search_add_result search rs.result_result;
 (*        Printf.printf "search_add_result DONE"; print_newline (); *)
         let result = Store.get store doc in
         ()

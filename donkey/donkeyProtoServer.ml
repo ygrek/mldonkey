@@ -1418,7 +1418,6 @@ let parse magic s =
 (* MLDONKEY *)
     | 250 -> mldonkey_extensions len s
     | _ ->
-	Printf.printf "COOOOOOL\n";
 	raise Not_found
   with
     e -> 

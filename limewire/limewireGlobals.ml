@@ -234,7 +234,7 @@ let new_result file_name file_size =
           impl_result_val = result;
           impl_result_ops = result_ops;
         } in
-      CommonResult.new_result result_impl;
+      new_result result_impl;
       Hashtbl.add results_by_key key result;
       result
       

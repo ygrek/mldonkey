@@ -44,12 +44,25 @@ let string_of_file_state state =
   | FileNew -> assert false
       
 let some_is_available f =
-  let b = ref false in
-  let len = String.length f.file_availability in
-  for i = 0 to len - 1 do
-    b := !b or f.file_availability.[i] <> '0'
-  done;
-  !b
+  if !!Gui_options.use_relative_availability
+  then
+    let rec loop i =
+      if i < 0
+      then false
+      else
+	if f.file_chunks.[i] = '0' &&
+	  f.file_availability.[i] <> (char_of_int 0)
+	then true
+	else loop (i - 1)
+    in
+      loop ((String.length f.file_availability) - 1)
+  else
+    let b = ref false in
+    let len = String.length f.file_availability in
+      for i = 0 to len - 1 do
+	b := !b or int_of_char f.file_availability.[i] <> 0
+      done;
+      !b
 
 let color_opt_of_file f =
   if f.file_download_rate > 0. then
@@ -63,11 +76,28 @@ let float_avail s =
   try float_of_string s
   with _ -> 0.0
 
+let file_availability f =
+  let rec loop i p n =
+    if i < 0
+    then
+      if n = 0.0
+      then "---"
+      else Printf.sprintf "%5.1f" (p /. n *. 100.0)
+    else
+      if f.file_chunks.[i] = '0'
+      then
+	if f.file_availability.[i] <> (char_of_int 0)
+	then loop (i - 1) (p +. 1.0) (n +. 1.0)
+	else loop (i - 1) p (n +. 1.0)
+      else loop (i - 1) p n
+  in
+    loop ((String.length f.file_availability) - 1) 0.0 0.0
+
 let string_availability s =
   let len = String.length s in
   let p = ref 0 in
   for i = 0 to len - 1 do
-    if s.[i] <> '0' then begin
+    if int_of_char s.[i] <> 0 then begin
       incr p
     end
   done;
@@ -85,6 +115,20 @@ let string_of_format format =
 	tag.Mp3tag.artist tag.Mp3tag.album 
 	tag.Mp3tag.tracknum tag.Mp3tag.title
   | _ -> M.unknown
+
+let time_to_string time =
+  let seconds = int_of_float time in
+  let minutes = seconds / 60 in
+  let seconds = seconds - minutes * 60 in
+  let hours = minutes / 60 in
+  let minutes = minutes - hours * 60 in
+  let days = hours / 24 in
+  let hours = hours - days * 24 in
+    if days > 0
+    then Printf.sprintf "%dd %2dh" days hours
+    else if hours > 0
+    then Printf.sprintf "%dh %2dm" hours minutes
+    else Printf.sprintf "%dm" minutes
 
 class box columns sel_mode () =
   let titles = List.map Gui_columns.File.string_of_column columns in
@@ -112,12 +156,18 @@ class box columns sel_mode () =
 	    (Int32.to_float f2.file_downloaded /. Int32.to_float f2.file_size) 
       |	Col_file_rate-> compare f1.file_download_rate f2.file_download_rate
       |	Col_file_state -> compare f1.file_state f2.file_state
-      |	Col_file_availability -> compare 
-	    (float_avail (string_availability f1.file_availability))
-	    (float_avail (string_availability f2.file_availability))
+      |	Col_file_availability ->
+	  let fn =
+	    if !!Gui_options.use_relative_availability
+	    then file_availability
+	    else fun f -> string_availability f.file_availability
+	  in
+	    compare (float_avail (fn f1)) (float_avail (fn f2))
       |	Col_file_md4 -> compare (Md4.to_string f1.file_md4) (Md4.to_string f2.file_md4)
       |	Col_file_format -> compare f1.file_format f2.file_format
       | Col_file_network -> compare f1.file_network f2.file_network
+      |	Col_file_age-> compare f1.file_age f2.file_age
+      |	Col_file_last_seen-> compare f1.file_last_seen f2.file_last_seen
           
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
@@ -147,19 +197,21 @@ class box columns sel_mode () =
       |	Col_file_state ->
 	  string_of_file_state f.file_state 
       |	Col_file_availability ->
-	  let len = String.length f.file_availability in
-          let p = ref 0 in
-          for i = 0 to len - 1 do
-            if f.file_availability.[i] <> '0' then begin
-              incr p
-            end
-          done;
-          if len = 0 then "" else 
-          Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
+	  if !!Gui_options.use_relative_availability
+	  then file_availability f
+	  else string_availability f.file_availability
       | Col_file_md4 -> Md4.to_string f.file_md4
       | Col_file_format -> string_of_format f.file_format
       | Col_file_network -> Gui_global.network_name f.file_network
-
+      |	Col_file_age ->
+	  let age = (BasicSocket.last_time ()) -. f.file_age in
+	    time_to_string age
+      |	Col_file_last_seen ->
+	  if f.file_last_seen > 0.0
+	  then let last = (BasicSocket.last_time ())
+			  -. f.file_last_seen in
+	    time_to_string last
+	  else Printf.sprintf "---"
           
     method content f =
       let strings = List.map 
@@ -343,6 +395,7 @@ class box_downloaded wl_status () =
 let colorGreen = `NAME "green"
 let colorRed   = `NAME "red"
 let colorBlue  = `NAME "blue"
+let colorGray  = `NAME "gray"
 let colorWhite =`WHITE
 let colorBlack = `BLACK
 
@@ -368,19 +421,52 @@ let redraw_chunks draw_avail file =
   let dx = min 3 (wx / nchunks) in
   let offset = (wx - nchunks * dx) / 2 in
   let offset = if offset < 0 then 0 else offset in
-  for i = 0 to nchunks - 1 do
-    drawing#set_foreground (
-    if file.file_chunks.[i] = '1' then
-      colorGreen
-    else
-      match  file.file_availability.[i] with
-        '0' -> colorRed
-      | '1' -> colorBlue
-      | _ -> colorBlack);
-    drawing#rectangle ~filled: true
-      ~x:(offset + i*dx) ~y: 0 
-      ~width: dx ~height:wy ()
-  done
+    for i = 0 to nchunks - 1 do
+      if !!Gui_options.use_availability_height
+      then begin
+	if file.file_chunks.[i] = '1'
+	then begin
+	  drawing#set_foreground colorGreen;
+	  drawing#rectangle ~filled: true
+	    ~x:(offset + i*dx) ~y: 0 
+	    ~width: dx ~height:wy ()
+	end
+	else
+	  let h = int_of_char (file.file_availability.[i])
+	  in
+	    if h = 0
+	    then begin
+	      drawing#set_foreground colorRed;
+	      drawing#rectangle ~filled: true
+		~x:(offset + i*dx) ~y: 0
+		~width: dx ~height:wy ();
+	    end
+        else begin
+            let h = min ((wy * h) / !!Gui_options.availability_max) wy in
+            drawing#set_foreground colorGray;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0
+              ~width: dx ~height: (wy - h) ();
+	      
+            drawing#set_foreground colorBlue;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: (wy - h)
+            ~width: dx ~height:h ();
+          end
+      end else begin
+	drawing#set_foreground (
+	  if file.file_chunks.[i] = '1' then
+	    colorGreen
+	  else
+	    match int_of_char file.file_availability.[i] with
+		0 -> colorRed
+	      | 1 -> colorBlue
+	      | _ -> colorBlack);
+	drawing#rectangle ~filled: true
+	  ~x:(offset + i*dx) ~y: 0 
+	  ~width: dx ~height:wy ()
+      end
+    done
     
 class box_downloads box_locs wl_status () =
   let draw_availability =
@@ -484,6 +570,8 @@ class box_downloads box_locs wl_status () =
         f.file_sources <- f_new.file_sources ;
       f.file_download_rate <- f_new.file_download_rate ;
       f.file_format <- f_new.file_format;
+      f.file_age <- f_new.file_age;
+      f.file_last_seen <- f_new.file_last_seen;
       self#update_row f row;
 
     method h_file_downloaded num dled rate =
@@ -541,7 +629,23 @@ class box_downloads box_locs wl_status () =
                     List.filter (fun cc -> cc != c) sources) } 
                 row
       ) data
-          
+
+    method h_file_age num age =
+      try
+	let (row, f) = self#find_file num in
+	  self#update_file f 
+	    { f with file_age = age } 
+	    row
+      with Not_found -> ()
+	
+    method h_file_last_seen num last =
+      try
+	let (row, f) = self#find_file num in
+	  self#update_file f 
+	    { f with file_last_seen = last } 
+	    row
+      with Not_found -> ()
+        
     method h_file_location num src =
       try
 (*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
@@ -660,6 +764,8 @@ class pane_downloads () =
 	  dls#h_downloading f
 
     method h_file_availability = dls#h_file_availability
+    method h_file_age = dls#h_file_age
+    method h_file_last_seen = dls#h_file_last_seen
     method h_file_downloaded = dls#h_file_downloaded
     method h_file_location = dls#h_file_location
 

@@ -25,6 +25,8 @@ let password = "Password"
 let address = "Address"
 let percent = "%"
 let rate = "Rate"
+let age = "Age"
+let last_seen = "Last seen"
 let state = "State"
 let servers = "Servers"
 let downloads = "Downloads"
@@ -273,6 +275,12 @@ let h_files_auto_expand_depth =
 let o_use_size_suffixes = "Use size suffixes (G, M, k)"
 let h_use_size_suffixes = 
   "Whether sizes are printed using G(iga), M(ega) and k(ilo) suffixes."
+
+let h_use_availability_height = "Display the availability of a chunk as height or color coded bar"
+let o_use_availability_height = "Use height encoded availability"
+
+let h_use_relative_availability = "Calculate % availability ignoring already present chunks"
+let o_use_relative_availability = "Use relative % availability"
 
 let h_toolbars_style = "What is displayed in toolbar buttons : text, icon or both"
 let o_toolbars_style = "Style of toolbars"

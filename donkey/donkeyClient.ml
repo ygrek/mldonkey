@@ -224,13 +224,14 @@ let identify_as_mldonkey c sock =
   
 let query_files c sock =  
   List.iter (fun file ->
-      direct_client_send sock (
-        let module M = DonkeyProtoClient in
-        let module C = M.QueryFile in
-        M.QueryFileReq file.file_md4);          
+      if file_state file = FileDownloading then
+        direct_client_send sock (
+          let module M = DonkeyProtoClient in
+          let module C = M.QueryFile in
+          M.QueryFileReq file.file_md4);          
   ) !current_files;
   ()
-
+  
   
 let client_has_chunks c file chunks =
   
@@ -241,9 +242,28 @@ let client_has_chunks c file chunks =
   
   if file.file_chunks_age = [||] then
     file.file_chunks_age <- Array.create file.file_nchunks 0.0;
+  let change_last_seen = ref false in
   for i = 0 to file.file_nchunks - 1 do
-    if chunks.(i) then file.file_chunks_age.(i) <- last_time ()
+    match file.file_chunks.(i) with
+      PresentVerified | PresentTemp -> 
+        file.file_chunks_age.(i) <- last_time ()
+    | _ -> 
+        if chunks.(i) then begin
+            change_last_seen := true;
+            file.file_chunks_age.(i) <- last_time ()            
+      end;
   done;
+  
+  if !change_last_seen then begin
+      try
+        let last_seen =  Array2.min file.file_chunks_age in
+        if last_seen > file.file_file.impl_file_last_seen then
+          begin
+            file.file_file.impl_file_last_seen <- last_seen;
+            file_must_update_downloaded (as_file file.file_file)
+          end
+      with _ -> ()
+    end;
   
   add_client_chunks file chunks;
   
@@ -1033,17 +1053,54 @@ let reconnect_client c =
             print_newline ();
             connection_failed c.client_connection_control;
             set_client_state c NotConnected
-  
-let add_interesting_client c =
+
+let schedule_client c =
+  if not c.client_on_list then
+    match c.client_sock with
+      Some _ -> ()
+    | None ->
+        match c.client_kind with
+          Known_location _ ->                      
+            let next_try = connection_next_try c.client_connection_control in
+            let delay = next_try -. last_time () in
+            c.client_on_list <- delay < 240.;
+            if delay < 0. then 
+              clients_lists.(0) <- c :: clients_lists.(0)
+            else
+            if delay < 60. then 
+              clients_lists.(1) <- c :: clients_lists.(1)
+            else
+            if delay < 120. then 
+              clients_lists.(2) <- c :: clients_lists.(2)
+            else
+            if delay < 180. then 
+              clients_lists.(3) <- c :: clients_lists.(3)
+            else
+            if delay < 240. then 
+              clients_lists.(4) <- c :: clients_lists.(4)
+            else begin
+                (*
+                Printf.printf "NEXT TRY TOO LONG: %2.2f (%s)"
+                  delay (Date.to_string next_try);
+print_newline ();
+*)
+                ()
+              end
+        | _ -> ()            
+            
+let unschedule_client c =
   if c.client_on_list then begin
       clients_lists.(0) <- List2.removeq c clients_lists.(0);
       clients_lists.(1) <- List2.removeq c clients_lists.(1);
       clients_lists.(2) <- List2.removeq c clients_lists.(2);
       clients_lists.(3) <- List2.removeq c clients_lists.(3);
       clients_lists.(4) <- List2.removeq c clients_lists.(4);
-    end;
-  c.client_on_list <- false;
-
+      c.client_on_list <- false;
+    end
+            
+let force_fast_connect_client c =
+  unschedule_client c;
+  
   connection_must_try c.client_connection_control;
   if can_open_connection () && c.client_sock = None then
     reconnect_client c
@@ -1052,13 +1109,20 @@ let add_interesting_client c =
       clients_lists.(0) <- c :: clients_lists.(0);
       c.client_on_list <- true
     end
-        
+
+let connect_as_soon_as_possible c =
+  unschedule_client c;
+  let control = c.client_connection_control in
+  control.control_last_try <- control.control_last_ok;
+  control.control_state <- 1.;
+  schedule_client c
+  
 let query_id_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryIDReply in
   if Ip.valid t.Q.ip then
     let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
-    add_interesting_client c
+    connect_as_soon_as_possible c
     
 let query_id s sock ip =
   printf_string "[QUERY ID]";
@@ -1086,7 +1150,7 @@ let query_locations_reply s t =
       
       if Ip.valid ip then
         let c = new_client (Known_location (ip, port)) in
-        add_interesting_client c
+        connect_as_soon_as_possible c
       else
       match s.server_sock with
         None ->

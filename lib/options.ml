@@ -590,7 +590,9 @@ let safe_string s =
 ;;
 
 let with_help = ref false;;
-      
+
+let tabulate s = String2.replace s '\n' "\n\t"
+
 let rec save_module indent oc list =
   let subm = ref [] in
   List.iter
@@ -599,7 +601,7 @@ let rec save_module indent oc list =
         [] -> assert false
       | [name] ->
           if !with_help && help <> "" then
-            Printf.fprintf oc "(* %s *)\n" help;
+            Printf.fprintf oc "\n\t(* %s *)\n" (tabulate help);
           Printf.fprintf oc "%s %s = " indent (safe_string name);
           save_value indent oc value;
           Printf.fprintf oc "\n"

@@ -19,6 +19,6 @@
 
   
 
-val new_search : CommonTypes.search -> DonkeyTypes.local_search
+val new_search : CommonTypes.search -> CommonTypes.search
 
-val send_search : DonkeyTypes.local_search -> CommonTypes.query -> unit
+val send_search : CommonTypes.search -> CommonTypes.query -> unit

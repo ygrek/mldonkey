@@ -201,20 +201,6 @@ let enable () =
     end;
     
     let port = !client_port in
-    let sport = (port mod 256) * 256 + (port / 256) in
-    
-    begin
-      try
-        reversed_sock := Some (TcpServerSocket.create "donkey client server"
-            (Ip.to_inet_addr !!donkey_bind_addr)
-          sport client_connection_handler);
-      with _ ->
-          Printf.printf "Unable to open Second listening port\n";
-          Printf.printf "mldonkey will be enable to receive indirect\n";
-          Printf.printf "connections from linux clients due to a bug\n";
-          Printf.printf "in these clients.";
-          print_newline ();
-    end;
 
     let reset_tags () =
       client_tags :=

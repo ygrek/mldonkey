@@ -438,7 +438,7 @@ let new_result filename filesize =
           impl_result_val = result;
           impl_result_ops = result_ops;
         } in
-      CommonResult.new_result result_impl;
+      new_result result_impl;
       Hashtbl.add results_by_file key result;
       result
       

@@ -275,16 +275,17 @@ module G = GuiTypes
 let server_print s o =
   let impl = as_server_impl s in
   let n = impl.impl_server_ops.op_server_network in
-  let info = server_info s in
-  let buf = o.conn_buf in
-  Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
-    n.network_name
-    (server_num s)
-  (string_of_addr info.G.server_addr) info.G.server_port
-    info.G.server_name
-    info.G.server_description
-  ;
-  (*
+  try
+    let info = server_info s in
+    let buf = o.conn_buf in
+    Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
+      n.network_name
+      (server_num s)
+    (string_of_addr info.G.server_addr) info.G.server_port
+      info.G.server_name
+      info.G.server_description
+    ;
+(*
   List.iter (fun t ->
       Printf.bprintf buf "%-3s "
         (match t.tag_value with
@@ -295,6 +296,10 @@ let server_print s o =
       )
 ) info.G.server_tags;
   *)
-  Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
-    (if impl.impl_server_state <> NotConnected then "Connected" else "");
-  Buffer.add_char buf '\n'
+    Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
+      (if impl.impl_server_state <> NotConnected then "Connected" else "");
+    Buffer.add_char buf '\n'
+  with e -> 
+      Printf.printf "Exception %s in CommonServer.server_print"
+        (Printexc.to_string e); print_newline () 
+      

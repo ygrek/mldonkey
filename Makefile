@@ -47,7 +47,7 @@ CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
-  cdk/select_c.c cdk/heap_c.c
+  cdk/select_c.c cdk/heap_c.c cdk/array2.ml
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -821,7 +821,7 @@ debug:
 	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) cdk/heap_c.o
 	$(MAKE)
 
-release: opt VERSION
+release.shared: opt VERSION
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
@@ -832,6 +832,8 @@ release: opt VERSION
 	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
 	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+
+upload.shared: release.shared
 	scp mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 release.static: static opt VERSION
@@ -845,12 +847,17 @@ release.static: static opt VERSION
 	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
 	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+
+upload.static: release.statc
 	scp mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
-release-sources: VERSION
+
+release.sources: VERSION
 	rm -rf **/CVS
 	rm -f config/Makefile.config
 	cd ..; tar zcf mldonkey-`cat mldonkey/VERSION`.sources.tar.gz mldonkey
+
+upload.sources: release.sources
 	scp ../mldonkey-`cat VERSION`.sources.tar.gz lachesis:devel/mldonkey-release/
 
 distrib: $(DISDIR)

@@ -25,7 +25,6 @@ open CommonClient
 open Options
 open CommonTypes
 open DonkeyTypes
-open Unix
 open BasicSocket
 open CommonOptions
 open DonkeyOptions
@@ -244,7 +243,6 @@ module H = Weak2.Make(struct
 let clients_by_kind = H.create 127
 (* let clients_by_name = Hashtbl.create 127 *)
 
-let local_searches = ref ([] : local_search list)
 let nservers = ref 0
 let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
@@ -260,7 +258,8 @@ let current_files = ref ([] : file list)
   
 let sleeping = ref false
   
-let last_xs = ref (-1)
+let xs_last_search = ref (-1)
+let xs_servers_list = ref ([] : server list)
   
 let has_upload = ref 0
 let upload_credit = ref 0
@@ -418,8 +417,9 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_age = last_time ();          
           impl_file_size = file_size;
           impl_file_fd = Unix32.create file_name (if writable then
-              [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
+              [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666;
           impl_file_best_name = Filename.basename file_name;
+          impl_file_last_seen = last_time () -. 100. *. 24. *. 3600.;
         }
       in
       update_best_name file;
@@ -841,7 +841,9 @@ no sources have been connected yet. *)
    
 let file_state file =
   CommonFile.file_state (as_file file.file_file)
-   
+  
+let file_last_seen file = file.file_file.impl_file_last_seen
+  
 let file_must_update file =
   file_must_update (as_file file.file_file)
     
@@ -859,34 +861,6 @@ let server_state server =
 let comments = (Hashtbl.create 127 : (Md4.t,string) Hashtbl.t)
 
 let comment_filename = Filename.concat file_basedir "comments.met"
-
-let name_bit = 1
-(* "size" *)
-(* "bitrate" *)
-let artist_bit = 2 (* tag "Artiste" *)
-let title_bit = 4  (* tag "Title" *)
-let album_bit = 8 (* tag "Album" *)
-let media_bit = 16 (* "type" *)
-let format_bit = 32 (* "format" *)
-  
-let (store: CommonTypes.result_info Store.t) = 
-  Store.create (Filename.concat file_basedir "store")
-  
-module Document = struct
-    type t = Store.index
-      
-    let num t = Store.index t
-    let filtered t = Store.get_attrib store t
-    let filter t bool = Store.set_attrib store t bool
-  end
-
-let doc_value doc = Store.get store doc
-  
-module DocIndexer = Indexer2.FullMake(Document)
-
-open Document
-  
-let index = DocIndexer.create ()
   
 let (results_by_md4 : (Md4.t, result) Hashtbl.t) = Hashtbl.create 1023
   
@@ -958,3 +932,24 @@ let _ =
       ) clients_lists;
           
   )
+  
+  
+  
+let (store: CommonTypes.result_info Store.t) = 
+  Store.create (Filename.concat file_basedir "store")
+  
+module Document = struct
+    type t = Store.index
+      
+    let num t = Store.index t
+    let filtered t = Store.get_attrib store t
+    let filter t bool = Store.set_attrib store t bool
+  end
+
+let doc_value doc = Store.get store doc
+  
+module DocIndexer = Indexer2.FullMake(Document)
+
+open Document
+  
+let index = DocIndexer.create ()

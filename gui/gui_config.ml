@@ -257,11 +257,25 @@ let create_gui_params () =
       M.o_use_size_suffixes
       !!GO.use_size_suffixes
   in
+  let use_availability_height = bool
+      ~f: (fun b -> GO.use_availability_height =:= b)
+      ~help: M.h_use_availability_height
+      M.o_use_availability_height
+      !!GO.use_availability_height
+  in
+  let use_relative_availability = bool
+      ~f: (fun b -> GO.use_relative_availability =:= b)
+      ~help: M.h_use_relative_availability
+      M.o_use_relative_availability
+      !!GO.use_relative_availability
+  in
   let misc_options = Section
       (M.o_misc,
        [
 	 files_auto_expand_depth ;
 	 use_size_suffixes ;
+	 use_availability_height ;
+	 use_relative_availability ;
        ]
       )
   in

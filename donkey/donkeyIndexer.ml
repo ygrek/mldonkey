@@ -252,19 +252,9 @@ let output_result result =
 
   
   
-      
-let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    let c = s.[i] in
-    match c with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' ';
-  done;
-  String2.split_simplify s ' '
-      
+          
 let index_string doc s fields =
-  let words = stem s in
+  let words = String2.stem s in
   List.iter (fun s ->
 (*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
       DocIndexer.add  index s doc fields
@@ -401,6 +391,9 @@ let index_result_no_filter r =
           flush (history_file_oc ());
         end;
 
+      CommonSearch.Indexing.index_result (index_string rs.result_index) r;
+      
+      (*
       List.iter (fun name ->
           index_name rs.result_index name
       ) r.result_names;
@@ -418,8 +411,11 @@ let index_result_no_filter r =
               index_string rs.result_index s format_bit
           | { tag_name = "type"; tag_value = String s } -> 
               index_string rs.result_index s media_bit
+          | { tag_value = String s } -> 
+              index_name rs.result_index s
           | _ -> ()
-      ) r.result_tags;
+) r.result_tags;
+  *)
       rs
 
 let index_result r =
@@ -443,18 +439,19 @@ let add_name r file_name =
         r.result_names <- file_name :: r.result_names;
         ignore (index_result_no_filter r)
   else begin
-      r.result_names <- file_name :: r.result_names;
-      
+      r.result_names <- file_name :: r.result_names;      
     end
 
+          (*
+
 let has_word s bit =
-  match stem s with
+  match String2.stem s with
     [] -> assert false
   | s :: tail -> 
       List.fold_left (fun q s ->
-      Indexer.And (q, (Indexer.HasField (bit, s)))
+          Indexer.And (q, (Indexer.HasField (bit, s)))
       ) (Indexer.HasField (bit, s)) tail
-          
+
 let query_to_indexer q =
   let rec iter q =
     match q with
@@ -467,8 +464,8 @@ let query_to_indexer q =
     | QHasWord s -> has_word s 0xffffffff
     | QHasField (f, s) ->
         has_word s (
-          if f = "media" then media_bit else
-          if f = "format" then format_bit else
+          if f = "type" then media_bit else
+          if f = "format" then  format_bit  else
           if f = "Title" then title_bit else
           if f = "Artist" then artist_bit else
           if f = "Album" then album_bit 
@@ -492,7 +489,8 @@ let query_to_indexer q =
 	failwith "query_to_indexer: QNone in query"
   in
   iter q
-          
+    *)
+
 let find s = 
   if not !!use_file_history then () else
 (*  Indexer.print index; *)
@@ -500,10 +498,10 @@ let find s =
   let pred = ref (fun _ -> true) in
   
   let ss = s.search_query in
-  let req = query_to_indexer ss in  
+  let req = CommonSearch.Indexing.query_to_indexer doc_value ss in  
   
   let docs = DocIndexer.query index req in
-(*  Printf.printf "%d results" (List.length docs); print_newline (); *)
+(*  Printf.printf "%d results" (Array.length docs); print_newline (); *)
   Array.iter (fun doc ->
       if DocIndexer.filtered doc then begin
           Printf.printf "doc filtered"; print_newline ();
@@ -517,8 +515,8 @@ let find s =
       comment_result r doc;
 
 (*    merge_result s doc.num; *)
-(*      Printf.printf "search_add_result"; print_newline ();*)
-      search_add_result s rs.result_result
+      Printf.printf "search_add_result"; print_newline ();
+      search_add_result_in s rs.result_result
   ) docs
   
 
@@ -625,7 +623,7 @@ let install_hooks () =
 (*        Printf.printf "CLEAR OLD FILTERS"; print_newline (); *)
         DocIndexer.clear_filter index;
 (*        Printf.printf "SET NEW FILTERS"; print_newline (); *)
-        DocIndexer.filter_words index (stem !!filters)
+        DocIndexer.filter_words index (String2.stem !!filters)
       with e ->
           Printf.printf "Error %s in set filters" (Printexc.to_string e);
           print_newline ();

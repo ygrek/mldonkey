@@ -126,7 +126,8 @@ let update_file_info file =
       match impl.impl_file_update with
         -1 -> P.File_downloaded (impl.impl_file_num,
             impl.impl_file_downloaded,
-            file_download_rate impl)
+            file_download_rate impl,
+            impl.impl_file_last_seen)
       | _ -> P.File_info (file_info file) in
     with_gui (fun gui -> 
         if impl.impl_file_update < gui.gui_num then
@@ -341,6 +342,8 @@ Printf.printf "Sending for %s" prefix; print_newline ();
                 set_handler sock WRITE_DONE (connecting_writer gui);
               end
           end else begin
+            gui_send gui BadPassword;
+            set_lifetime gui.gui_sock 5.;
             Printf.printf "BAD PASSWORD"; print_newline ();
             TcpBufferedSocket.close gui.gui_sock "bad password"
           end
@@ -370,7 +373,7 @@ Printf.printf "Sending for %s" prefix; print_newline ();
 *)
           
           | P.ForgetSearch num ->
-              let s = search_find num in
+              let s = List.assoc num gui.gui_searches in
               search_forget s
           
           | P.SendMessage (num, msg) ->
@@ -396,8 +399,15 @@ Printf.printf "Sending for %s" prefix; print_newline ();
                       print_newline ());
               gui_send gui (P.Network_info (network_info n))
           
-          | P.ExtendedSearch ->
-              networks_iter network_extend_search
+          | P.ExtendedSearch (num, e) ->
+              let s = 
+                if num = -1 then
+                  match !searches with
+                    [] -> raise Not_found
+                  | s :: _ -> s
+                else
+                  List.assoc num gui.gui_searches in
+              networks_iter (fun r -> network_extend_search r s e)
           
           | P.KillServer -> 
               exit_properly ()

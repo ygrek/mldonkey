@@ -39,19 +39,19 @@ open CommonOptions
 open DonkeyClient  
 open CommonGlobals
           
-let search_handler search t =
-  let s = search.search_search in
+let search_handler s t =
   let waiting = s.search_waiting - 1 in
   s.search_waiting <- waiting;
   List.iter (fun f ->
       search_found s f.f_md4 f.f_tags
-  ) t;
-  search.search_handler (Waiting s.search_waiting)
+  ) t
+(*  search.search_handler (Waiting s.search_waiting) *)
     
 let udp_query_locations file s =
   let module M = DonkeyProtoServer in
   udp_server_send s (M.QueryLocationUdpReq file.file_md4)
 
+  (*
 let rec find_search_rec num list =
   match list with
     [] -> raise Not_found
@@ -60,10 +60,15 @@ let rec find_search_rec num list =
         find_search_rec num tail
         
 let find_search num = find_search_rec num !local_searches
+    *)
 
 let make_xs ss =
-  let servers, left = List2.cut !!max_xs_packets ss.search_xs_servers in
-  ss.search_xs_servers <- left;
+  if ss.search_num <> !xs_last_search then begin
+      xs_last_search := ss.search_num;
+      xs_servers_list := Hashtbl2.to_list servers_by_key;
+    end;
+  let servers, left = List2.cut !!max_xs_packets !xs_servers_list in
+  xs_servers_list := left;
   
   List.iter (fun s ->
       match s.server_sock with
@@ -71,13 +76,10 @@ let make_xs ss =
       | None ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
-          udp_server_send s (M.QueryUdpReq ss.search_search.search_query);
+          udp_server_send s (M.QueryUdpReq ss.search_query);
   ) servers;
   
-  if not ss.search_overnet then begin
-      ss.search_overnet <- true;
-      DonkeyOvernet.overnet_search ss
-    end
+  DonkeyOvernet.overnet_search ss
 
 (* Every five minutes, we fill the clients_lists array with the clients 
 that have to be connected in the next five minutes. *)
@@ -106,37 +108,8 @@ let fill_clients_list _ =
 (* Now, for each file, put the sources in the lists *)
   List.iter (fun file -> 
       if file_state file = FileDownloading then 
-        let files = [file] in
         Intmap.iter (fun _ c ->
-            if not c.client_on_list then
-              match c.client_sock with
-                Some _ -> ()
-              | None ->
-                  match c.client_kind with
-                    Known_location _ ->                      
-                      let next_try = connection_next_try c.client_connection_control in
-                      let delay = next_try -. last_time () in
-                      c.client_on_list <- delay < 240.;
-                      if delay < 0. then 
-                          clients_lists.(0) <- c :: clients_lists.(0)
-                      else
-                      if delay < 60. then 
-                        clients_lists.(1) <- c :: clients_lists.(1)
-                      else
-                      if delay < 120. then 
-                        clients_lists.(2) <- c :: clients_lists.(2)
-                      else
-                      if delay < 180. then 
-                        clients_lists.(3) <- c :: clients_lists.(3)
-                      else
-                      if delay < 240. then 
-                        clients_lists.(4) <- c :: clients_lists.(4)
-                      else begin
-                          Printf.printf "NEXT TRY TOO LONG: %2.2f (%s)"
-                            delay (Date.to_string next_try);
-                          print_newline ();
-                        end
-                  | _ -> ()
+            schedule_client c
         )
         file.file_sources;
   ) !current_files;
@@ -255,10 +228,9 @@ let force_check_locations () =
     done;
 
     
-    if !last_xs >= 0 then begin
+    if !xs_last_search >= 0 then  begin
         try
-          let ss = find_search !last_xs in
-          make_xs ss
+          make_xs (search_find !xs_last_search)
         with _ -> ()
       end;
 
@@ -286,9 +258,9 @@ let new_friend c =
 let browse_client c =
   match c.client_sock, client_state c with
   | None, NotConnected ->
-      add_interesting_client c
+      connect_as_soon_as_possible c
   | None, _ -> 
-      add_interesting_client c 
+      connect_as_soon_as_possible c 
   | Some sock, (
       Connected_initiating 
     | Connected_busy
@@ -350,8 +322,8 @@ let udp_client_handler t p =
       query_locations_reply (udp_from_server p) t
   | M.QueryReplyUdpReq t ->
 (*      Printf.printf "Received file by UDP"; print_newline (); *)
-      if !last_xs >= 0 then
-        let ss = find_search !last_xs in
+      if !xs_last_search >= 0 then
+        let ss = search_find !xs_last_search in
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
         search_handler ss [t]
         
@@ -388,8 +360,7 @@ client_wants_file c md4) t.Q.locs
         
   | _ -> ()
 
-open Unix
-  
+
 let remaining_bandwidth = ref 0
 
 let msg_block_size_int = 10000

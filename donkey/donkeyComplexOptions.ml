@@ -245,6 +245,13 @@ let value_to_file is_done assocs =
           Array.of_list list)
     with _ -> ());
   
+  file.file_file.impl_file_last_seen <- (
+    if file.file_chunks_age = [||]
+    then 0.0
+    else Array2.min file.file_chunks_age);
+ 
+  
+  
   let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
   file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
   as_file file.file_file

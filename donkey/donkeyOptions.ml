@@ -104,5 +104,6 @@ let gui_donkey_options_panel =
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+    "Port", shortname port, "T";
   ]
 

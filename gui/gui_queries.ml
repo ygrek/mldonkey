@@ -351,7 +351,7 @@ class paned () =
       let desc = Gui_misc.description_of_query s.GuiTypes.search_query in
       let wl = GMisc.label ~text: desc () in
       let vbox = GPack.vbox () in
-      let box_res = new Gui_results.search_result_box () in
+      let box_res = new Gui_results.search_result_box s.GuiTypes.search_num () in
       vbox#pack ~expand: true box_res#coerce;
       let wb_close = GButton.button ~label: M.close_search
 	  ~packing: (vbox#pack ~expand: false)
@@ -363,7 +363,7 @@ class paned () =
       wnote_main#goto_page 4;
 
       (* only the last result box must have an "extended search" button *)
-      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results;
+(*      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results; *)
 
       results <- (s.GuiTypes.search_num, (box_res, vbox)) :: results
 

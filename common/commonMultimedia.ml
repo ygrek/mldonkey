@@ -260,20 +260,20 @@ let get_info file =
     | "z"   :: _ -> FormatType ("compress", "Pro")
     | "tar" :: _ -> FormatType ("tar", "Pro")
     | "bz2" :: _ -> FormatType ("bzip2", "Pro")
-    | "jpg" :: _ -> FormatType ("jpg", "Image")
     | "gif" :: _ -> FormatType ("gif", "Image")
-    | "jepg" :: _ -> FormatType ("jpg", "Image")
+    | "jpg" :: _ -> FormatType ("jpeg", "Image")
+    | "jpeg" :: _ -> FormatType ("jpeg", "Image")
     | "txt" :: _ -> FormatType ("txt", "Doc")
     | "doc" :: _ -> FormatType ("doc", "Doc")
     | "wav" :: _ -> FormatType ("wav", "Audio")
-    | "mpg" :: _ -> FormatType ("mpeg", "Video")
-    | "mpeg" :: _ -> FormatType ("mpeg", "Video")
+    | "mpg" :: _ -> FormatType ("mpg", "Video")
+    | "mpeg" :: _ -> FormatType ("mpg", "Video")
     | "mov" :: _ -> FormatType ("mov", "Video")
+    | "asf" :: _ -> FormatType ("asf", "Video")
     | _ -> Unknown_format
   with e -> 
       close_in ic;
       match e with
         Avifile_info i -> AVI i
-      |	Mp3_info tag -> 
-          Mp3 tag
+      |	Mp3_info tag ->  Mp3 tag
       | _ -> raise e

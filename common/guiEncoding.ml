@@ -24,8 +24,15 @@ open GuiProto
 open LittleEndian
 open TcpBufferedSocket
 
+let max_last_seen = 100 * 24 * 3600
+let max_last_seen_float = float_of_int max_last_seen
 
-      
+let compute_last_seen last_seen =
+  let last_seen = BasicSocket.last_time () -. last_seen in
+  if last_seen > max_last_seen_float || last_seen < -1. then
+    max_last_seen
+  else int_of_float last_seen
+  
 let buf = Buffer.create 1000
 
       
@@ -254,6 +261,26 @@ let buf_file_version_0 buf f =
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format 
 
+let buf_file_version_9 buf f =
+  buf_int buf f.file_num;
+  buf_int buf f.file_network;  
+  buf_list buf buf_string f.file_names;  
+  buf_md4 buf f.file_md4;  
+  buf_int32 buf f.file_size;  
+  buf_int32 buf f.file_downloaded;  
+  buf_int buf f.file_nlocations;  
+  buf_int buf f.file_nclients;  
+  buf_file_state buf f.file_state;  
+  buf_string buf f.file_chunks;  
+  buf_string buf f.file_availability;  
+  buf_float buf f.file_download_rate;  
+  buf_array buf buf_float f.file_chunks_age;  
+  buf_float buf f.file_age;
+(* last, so that it can be safely discarded in partial implementations: *)
+  buf_format buf f.file_format ;
+  buf_string buf f.file_name;
+  buf_int buf (compute_last_seen f.file_last_seen)
+
 let buf_file_version_8 buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
@@ -390,7 +417,7 @@ let rec to_gui_version_0 buf t =
   | File_info file_info -> buf_int16 buf 7;
       buf_file_version_0 buf file_info
       
-  | File_downloaded (n, size, rate) -> buf_int16 buf 8;
+  | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 8;
       buf_int buf n; buf_int32 buf size; buf_float buf rate
       
   | File_availability (n, s1, s2) -> buf_int16 buf 9;
@@ -445,6 +472,7 @@ let rec to_gui_version_0 buf t =
 (* This message was previously send like that ... *)
       to_gui_version_0 buf (Room_message (0, PrivateMessage(num, msg)))
 
+  | BadPassword
   | Add_section_option _
   | Add_plugin_option _
   | DownloadedFiles _
@@ -579,6 +607,25 @@ let to_gui_version_8 buf t =
       
   | _ -> to_gui_version_7 buf t
 
+let to_gui_version_9 buf t =
+  match t with
+    File_info file -> buf_int16 buf 43;
+      buf_file_version_9 buf file      
+      
+  | DownloadFiles files -> buf_int16 buf 44;
+      buf_list buf buf_file_version_9 files
+      
+  | DownloadedFiles files -> buf_int16 buf 45;
+      buf_list buf buf_file_version_9 files
+      
+  | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 46;
+      buf_int buf n; buf_int32 buf size; buf_float buf rate; 
+      buf_int buf (compute_last_seen last_seen)
+
+  | BadPassword -> buf_int16 buf 47
+      
+  | _ -> to_gui_version_8 buf t
+
       
 let to_gui = [| 
     to_gui_version_0; 
@@ -590,6 +637,7 @@ let to_gui = [|
     to_gui_version_6;
     to_gui_version_7; 
     to_gui_version_8; 
+    to_gui_version_9; 
   |]
   
 (***************
@@ -606,7 +654,7 @@ let rec from_gui_version_0 buf t =
   | ConnectMore_query -> buf_int16 buf 1
   | CleanOldServers -> buf_int16 buf 2
   | KillServer -> buf_int16 buf 3
-  | ExtendedSearch -> buf_int16 buf 4
+  | ExtendedSearch _ -> buf_int16 buf 4
   | Password string -> buf_int16 buf 5;
       buf_string buf string
   | Search_query search -> buf_int16 buf 6;
@@ -754,6 +802,10 @@ let from_gui_version_7 buf t  =
 let from_gui_version_8 buf t  = 
   match t with
   | _ -> from_gui_version_7 buf t
+
+let from_gui_version_9 buf t  = 
+  match t with
+  | _ -> from_gui_version_8 buf t
         
 
 let from_gui = [| 
@@ -766,6 +818,7 @@ let from_gui = [|
     from_gui_version_6; 
     from_gui_version_7;  
     from_gui_version_8;  
+    from_gui_version_9;  
     |]
   
   
@@ -818,31 +871,32 @@ let _ =
       P.file_format = Unknown_format;
       P.file_chunks_age = [| 2.0 |];
       P.file_age = 3.0;
+      P.file_last_seen = BasicSocket.last_time ();
     } 
 (* and    server_info = {
       server_num = 1;
 } *)
   in
-  let check_to_gui_version_8 = 
-    check to_gui_version_8 GuiDecoding.to_gui_version_8 in
-  assert (check_to_gui_version_8 (MessageFromClient (32, "Hello")));
-  assert (check_to_gui_version_8 (File_info file_info));
-  assert (check_to_gui_version_8 (DownloadFiles [file_info]));
-  assert (check_to_gui_version_8 (DownloadedFiles [file_info]));
-  assert (check_to_gui_version_8 (ConnectedServers []));    
-  assert (check_to_gui_version_8 (Room_remove_user (5,6)));
-  assert (check_to_gui_version_8 (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui_version_8 (Shared_file_unshared 2));
+  let check_to_gui_version_9 = 
+    check to_gui_version_9 GuiDecoding.to_gui_version_9 in
+  assert (check_to_gui_version_9 (MessageFromClient (32, "Hello")));
+  assert (check_to_gui_version_9 (File_info file_info));
+  assert (check_to_gui_version_9 (DownloadFiles [file_info]));
+  assert (check_to_gui_version_9 (DownloadedFiles [file_info]));
+  assert (check_to_gui_version_9 (ConnectedServers []));    
+  assert (check_to_gui_version_9 (Room_remove_user (5,6)));
+  assert (check_to_gui_version_9 (Shared_file_upload (1, Int64.zero, 32)));
+  assert (check_to_gui_version_9 (Shared_file_unshared 2));
   (* Shared_file_info ??? *)
-  assert (check_to_gui_version_8 (Add_section_option ("section", "message", "option", StringEntry )));
-  assert (check_to_gui_version_8 (Add_plugin_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_9 (Add_section_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_9 (Add_plugin_option ("section", "message", "option", StringEntry )));
   
-  let check_from_gui_version_8 = 
-    check from_gui_version_8 GuiDecoding.from_gui_version_8 in
-  assert (check_from_gui_version_8 (MessageToClient (33, "Bye")));
-  assert (check_from_gui_version_8 (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui_version_8 GetConnectedServers);
-  assert (check_from_gui_version_8 GetDownloadFiles);
-  assert (check_from_gui_version_8 GetDownloadedFiles);
-  assert (check_from_gui_version_8 (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui_version_8 RefreshUploadStats) ; 
+  let check_from_gui_version_9 = 
+    check from_gui_version_9 GuiDecoding.from_gui_version_9 in
+  assert (check_from_gui_version_9 (MessageToClient (33, "Bye")));
+  assert (check_from_gui_version_9 (GuiExtensions [1, true; 2, false]));
+  assert (check_from_gui_version_9 GetConnectedServers);
+  assert (check_from_gui_version_9 GetDownloadFiles);
+  assert (check_from_gui_version_9 GetDownloadedFiles);
+  assert (check_from_gui_version_9 (SetRoomState (5, RoomPaused)));
+  assert (check_from_gui_version_9 RefreshUploadStats) ; 

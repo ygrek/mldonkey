@@ -65,7 +65,9 @@ let age_to_day date =
 let percent file = 
   let downloaded = Int32.to_float file.file_downloaded in
   let size = Int32.to_float file.file_size in
-  (downloaded *. 100.) /. size
+  if size < 1.0
+  then 0.0
+  else (downloaded *. 100.) /. size
 
 let short_name file =
   let name = file.file_name in

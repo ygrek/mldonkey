@@ -26,7 +26,7 @@ type server = {
     mutable server_port : int;
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_nqueries : int;
-    mutable server_search_queries : server_search Fifo.t;
+    mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
     mutable server_connection_control : connection_control;
     mutable server_score : int;
@@ -56,18 +56,21 @@ and user = {
     user_server : server;
   }
   
+  (*
 and server_search = {
-    search : local_search;
+    search_search : CommonTypes.search;
     mutable nhits : int;
   }
+*)
   
+  (*
 and local_search = {
     search_search : CommonTypes.search;
     mutable search_handler : (search_event -> unit);
     mutable search_xs_servers : server list;
     mutable search_overnet : bool;
   }
-
+*)
   
 and result = {
     result_result : result CommonResult.result_impl;
@@ -192,7 +195,6 @@ and file = {
     mutable file_changed : file_change_kind; 
     mutable file_new_locations : bool;
     mutable file_shared : file CommonShared.shared_impl option;
-    
   }
 
 and file_to_share = {

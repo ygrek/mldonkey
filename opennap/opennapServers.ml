@@ -303,7 +303,7 @@ print_newline (); *)
             user.user_link <- t.SR.link_type;
             let result = new_result (basename t.SR.filename) t.SR.size in
             add_source result user t.SR.filename;
-            search_add_result q result.result_result;
+            CommonInteractive.search_add_result q result.result_result;
         | Some (Recover_file _) -> 
             begin
               try

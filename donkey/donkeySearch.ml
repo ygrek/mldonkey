@@ -148,7 +148,6 @@ TcpBufferedSocket.write_string t_out (Buffer.contents buf)
 *)
   
 let send_search search query =
-  last_xs := search.search_search.search_num;
   List.iter (fun s ->
       match s.server_sock with
         None -> ()
@@ -156,15 +155,14 @@ let send_search search query =
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
           direct_server_send sock (M.QueryReq query);
-          Fifo.put s.server_search_queries 
-            { nhits = 0; search = search }
+          Fifo.put s.server_search_queries search
   ) (connected_servers());
   make_xs search;
   local_search search        
 
   
 let send_subscribe search query =
-  last_xs := search.search_search.search_num;
+  xs_last_search := search.search_num;
   let module M = DonkeyProtoServer in
   let module Q = M.Query in
   List.iter (fun s ->
@@ -173,11 +171,10 @@ let send_subscribe search query =
       | Some sock ->
           if s.server_mldonkey then
             direct_server_send sock (
-              M.Mldonkey_SubscribeReq (search.search_search.search_num, 3600, query))
+              M.Mldonkey_SubscribeReq (search.search_num, 3600, query))
           else begin
               direct_server_send sock (M.QueryReq query);
-              Fifo.put s.server_search_queries 
-                { nhits = 0; search = search }
+              Fifo.put s.server_search_queries search
             end
   ) (connected_servers());
   make_xs search;
@@ -187,20 +184,12 @@ let send_subscribe search query =
 let new_search search =
   search.search_waiting <- search.search_waiting +
   List.length (connected_servers());
-
-  {
-    search_search = search;
-    search_handler = (fun _ -> ());
-    search_xs_servers = Hashtbl2.to_list servers_by_key;
-    search_overnet = false
-  }
-
+  search
             
 let _ =
   network.op_network_search <- (fun ss buf ->
       let search = new_search ss in
-      let query = search.search_search.search_query in
-      local_searches := search :: !local_searches;
+      let query = search.search_query in
       match ss.search_type with
         RemoteSearch ->
           send_search search query;
@@ -211,5 +200,5 @@ let _ =
       | SubscribeSearch ->
           send_subscribe search query;
           Printf.bprintf buf "Query %d Sent to %d\n"
-            search.search_search.search_num (List.length (connected_servers()))
+            search.search_num (List.length (connected_servers()))
   )

@@ -36,6 +36,7 @@ type 'a file_impl = {
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
     mutable impl_file_priority: int;
+    mutable impl_file_last_seen : float;
   }
   
 and 'a file_ops = {
@@ -92,6 +93,7 @@ let dummy_file_impl = {
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
     impl_file_priority = 0;
+    impl_file_last_seen = 0.0;
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -376,7 +378,9 @@ let file_print file o =
       [] -> Md4.to_string info.G.file_md4
     | name :: _ -> name)
   (Int32.to_string info.G.file_size)
-  (Int32.to_string info.G.file_downloaded)      
+  (Int32.to_string info.G.file_downloaded);
+  List.iter (fun name -> 
+      Printf.bprintf buf "    (%s)\n" name) info.G.file_names
 
 let file_size file = 
   (as_file_impl file).impl_file_size
