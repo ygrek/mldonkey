@@ -87,36 +87,49 @@ let make_query search =
       | [q] -> q
     in
     q)
-  
-let search_found search md4 tags = 
-  let (file_name, file_size, tags) = List.fold_left (
-      fun (file_name, file_size, tags)  tag ->
+
+  (*
+let add_availability r v = 
+  List.iter (fun tag ->
         match tag with
-          { tag_name = "filename"; tag_value = String s } ->
-            (s, file_size, tags)
-        | { tag_name = "size"; tag_value = Uint32 v } ->
-            (file_name, v, tags)
-        | _ -> (file_name, file_size, tag :: tags)
-    ) ("", Int32.zero, [])  tags
-  in
+      | { tag_name = "availability"; tag_value = (Uint32 _ | Fint32 _) } ->
+          tag.tag_value <- Uint32 (Int32.of_int v)
+      | _ ->  ()
+  ) r.result_tags
+    *)
+
+let search_found search md4 tags = 
+  let file_name = ref "" in
+  let file_size = ref Int32.zero in
+  let availability = ref 0 in
+  let new_tags = ref [] in
+  List.iter (fun tag ->
+      match tag with
+        { tag_name = "filename"; tag_value = String s } -> file_name := s
+      | { tag_name = "size"; tag_value = Uint32 v } -> file_size := v
+      | { tag_name = "availability"; tag_value = (Uint32 v| Fint32 v) } ->
+          availability := Int32.to_int v;  new_tags := tag :: !new_tags
+      | _ -> new_tags := tag :: !new_tags
+  ) tags;
   try
-    let result = Hashtbl.find search.search_files md4
+    let result, old_avail = Hashtbl.find search.search_files md4
     in
-    if not (List.mem file_name result.result_names) then begin
-        DownloadIndexer.add_name result file_name;
-        result.result_names <- file_name :: result.result_names
+    old_avail := !old_avail + !availability;
+    if not (List.mem !file_name result.result_names) then begin
+        DownloadIndexer.add_name result !file_name;
+        result.result_names <- !file_name :: result.result_names
       end
   with _ ->
-      let result = { 
+      let new_result = { 
           result_md4 = md4;
-          result_names = [file_name];
-          result_size = file_size;
-          result_tags = List.rev tags;
+          result_names = [!file_name];
+          result_size = !file_size;
+          result_tags = List.rev !new_tags;
         } in
 (*      Printf.printf "new reply"; print_newline ();*)
-      let result =  DownloadIndexer.index_result result in
+      let result =  DownloadIndexer.index_result new_result in      
       search.search_handler (Result result);
-      Hashtbl.add search.search_files md4 result;
+      Hashtbl.add search.search_files md4 (result, availability);
       search.search_nresults <- search.search_nresults + 1
       
 let search_handler search t =

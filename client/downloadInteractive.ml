@@ -14,6 +14,10 @@ open Gui_types
   
 exception CommandCloseSocket
 
+let result_name r =
+  match r.result_names with
+    [] -> None
+  | name :: _ -> Some name
 
 let search_of_args args =
   incr search_counter;
@@ -125,13 +129,15 @@ let print_search buf s output =
   Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
     (if s.search_waiting = 0 then "done" else
       (string_of_int s.search_waiting) ^ " waiting");
-  Hashtbl.iter (fun _ r ->
+  Hashtbl.iter (fun _ (r, avail) ->
       incr counter;
       Printf.bprintf  buf "[%5d]" !counter;
       if output = HTML then 
         Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
           (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-      last_search := (!counter, (r.result_size, r.result_md4)) :: !last_search;
+      last_search := (!counter, 
+        (r.result_size, r.result_md4, result_name r)
+      ) :: !last_search;
       List.iter (fun s -> Printf.bprintf buf "%s\n" s) r.result_names;
       if output = HTML then 
         Printf.bprintf buf "\</A HREF\>";
@@ -140,7 +146,8 @@ let print_search buf s output =
       (Md4.to_string r.result_md4);
       List.iter (fun t ->
           Buffer.add_string buf (Printf.sprintf "%-3s "
-              (match t.tag_value with
+              (if t.tag_name = "availability" then string_of_int !avail else
+              match t.tag_value with
                 String s -> s
               | Uint32 i -> Int32.to_string i
               | Fint32 i -> Int32.to_string i
@@ -149,7 +156,7 @@ let print_search buf s output =
       ) r.result_tags;
       Buffer.add_char buf '\n';
   ) s.search_files
-
+  
 let check_shared_files () = 
   let list = ref [] in
   Hashtbl.iter (fun md4 file -> 
@@ -574,9 +581,11 @@ let commands = [
     
     "d", Arg_multiple (fun args buf _ ->
         try
-          let (size, md4) =
+          let (size, md4, name) =
             match args with
-              [size; md4] -> (Int32.of_string size),(Md4.of_string md4)
+            | [size; md4] -> (Int32.of_string size),(Md4.of_string md4), None
+            | [size; md4; name] -> 
+                (Int32.of_string size),(Md4.of_string md4), Some name
             | [num] -> 
                 List.assoc (int_of_string num) !last_search
             | _ -> failwith "Bad number of arguments"

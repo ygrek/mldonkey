@@ -74,6 +74,9 @@ let _ =
           K.print t;
           print_newline ();
       ), " <filename> : print a server.met file";
+      "-format", Arg.String (fun file ->
+          let format = DownloadMultimedia.get_info file in
+          ()), " <filename> : check file format";
     ] (fun file -> 
         Files.dump_file file; exit 0
     ) "";
@@ -107,13 +110,21 @@ let _ =
     features =:= !!features;  
     List.iter (fun file ->
         set_file_size file file.file_size) !!files;
+    let list = ref [] in
     List.iter (fun file -> 
-        file.file_state <- FileDownloaded;
-        (try
-            let format = DownloadMultimedia.get_info file.file_name in
-            file.file_format <- format
-          with _ -> ());        
+        try
+          if Sys.file_exists file.file_name &&
+            Unix32.getsize32 file.file_name <> Int32.zero then begin
+              file.file_state <- FileDownloaded;
+              (try
+                  let format = DownloadMultimedia.get_info file.file_name in
+                  file.file_format <- format
+                with _ -> ());        
+              list := file :: !list
+            end
+        with _ -> ()
     ) !!done_files;
+    done_files =:= List.rev !list;
     List.iter (fun c ->
         c.client_is_friend <- Friend;
     ) !!known_friends;

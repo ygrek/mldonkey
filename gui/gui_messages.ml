@@ -511,6 +511,9 @@ ToDo list
   * Chat 
   * Set 'Connected locations' label
   * Plugins
+  * Correct display of availability
+  * Filters
+  * Use file_name instead of MD4 in WEB interface.
 
 ChangeLog
 =========
@@ -519,6 +522,7 @@ Release 1.08:
   * Remove dependencies to the 'mmap' system call.
   * Better management of delays between connection attempts.
   * Local searches use minsize/maxsize information.
+  * Small improvement in MD4 computation.
 
 Release 1.07:
   * Exchange of sets of sources between mldonkey clients.

@@ -192,7 +192,7 @@ let find s =
   List.iter (fun doc ->
       let r = Indexer.value doc in
       s.search_handler (Result r);
-      Hashtbl.add s.search_files r.result_md4 r;
+      Hashtbl.add s.search_files r.result_md4 (r, ref 0);
       s.search_nresults <- s.search_nresults + 1
   ) docs
   

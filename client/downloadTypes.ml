@@ -67,7 +67,7 @@ and search = {
     mutable search_album : string option;
     mutable search_artist : string option;
     mutable search_nresults : int;
-    search_files : (Md4.t, result) Hashtbl.t;
+    search_files : (Md4.t, result * (int ref)) Hashtbl.t;
     search_num : int;
     mutable search_waiting : int;
     mutable search_string : string;

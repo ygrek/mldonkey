@@ -78,7 +78,6 @@ let string_list_option = define_option_class "String"
 
   
 let features = define_option ["features"] "" string_list_option ""
-(* put "no-up" in features to remove upload *)
 let set_features () =
   List.iter (Mftp_client.set_features has_upload) (String2.tokens !!features)
 
