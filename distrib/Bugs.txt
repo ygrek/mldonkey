@@ -1,5 +1,12 @@
 Before feeling a bug report form on 
     http://savannah.gnu.org/bugs/?group=mldonkey
-please, check that the bug is not already registered (then, add a comment), and
-not in the following list of known bugs:
+please, check that the bug is not already registered (then, add a comment).
 
+ --------------------------------------------------------------------------
+If you think your bug is a very important one, and nobody has fixed it in a
+long time, it might be that we don't have enough information to reproduce it
+and understand it. So, what you can do to help us is to call the
+"make_buginfo" utility provided with mldonkey, which creates a file
+buginfo.tar.gz . Send this file directly to the developers
+(buginfo@mldonkey.net), as it might contain your IP address and you probably
+don't want to publish this file on the bug tracker web site.

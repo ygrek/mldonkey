@@ -1,0 +1,30 @@
+#!/bin/sh
+
+echo
+echo "This program needs to be started from inside mldonkey directory."
+echo "It won't send any information, it only creates one file that you"
+echo "are free to send or not with your bug report."
+echo
+echo "Informations on your downloads, shared files and IP address will"
+echo "be included in the created file."
+echo
+echo "If you have changed your incoming/, temp/ and torrents/ directories," 
+echo "Create links incoming, temp and torrents to them before starting"
+echo "this program."
+echo
+echo -n "Building file 'buginfo.tar.gz'..."
+
+rm -f buginfo.tar.gz
+mkdir -p buginfo
+cp -f *.ini buginfo/
+(cd incoming; ls -lR; df .) &> buginfo/incoming.directory
+(cd temp; ls -lR; df .) &> buginfo/temp.directory
+(cd torrents; ls -lR; df .) &> buginfo/torrents.directory
+id &> buginfo/computer
+ifconfig &> buginfo/computer
+
+tar cf buginfo.tar buginfo
+rm -rf buginfo
+gzip buginfo.tar
+
+echo "done"
