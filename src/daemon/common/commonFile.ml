@@ -398,7 +398,7 @@ let add_file_downloaded file n =
   if Int64.compare n Int64.zero > 0 then
     impl.impl_file_received <- Int64.add impl.impl_file_received n;
   file_must_update_downloaded (as_file impl)
-    
+  
 let file_size file = 
   (as_file_impl file).impl_file_size
   

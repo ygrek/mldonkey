@@ -236,8 +236,8 @@ let new_server ip port =
           server_sock = NoConnection;
           server_ciphers = None;
           server_agent = "<unknown>";
-          server_nfiles = 0;
-          server_nusers = 0;
+          server_nfiles = Int64.zero;
+          server_nusers = Int64.zero;
           server_nkb = 0;
           
           server_need_qrt = true;

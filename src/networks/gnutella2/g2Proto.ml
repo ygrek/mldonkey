@@ -36,7 +36,7 @@ open G2Types
 open G2Protocol
 open G2Globals
   
-  
+let gnutella2_needed = true  
   
   
   

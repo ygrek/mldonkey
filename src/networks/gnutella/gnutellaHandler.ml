@@ -97,7 +97,7 @@ let server_to_client s p sock =
       let module P = Pong in
 (*      lprintf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
       if p.pkt_uid = s.server_ping_last then begin
-          s.server_nfiles_last <- s.server_nfiles_last + t.P.nfiles;
+          s.server_nfiles_last <- Int64.add s.server_nfiles_last (Int64.of_int t.P.nfiles);
           s.server_nkb_last <- s.server_nkb_last + t.P.nkb;
           server_must_update (as_server s.server_server)
         end

@@ -217,8 +217,8 @@ fst_searchlist_process_reply (FST_PLUGIN->searches, msg_type, msg_data);
   | 0x09 -> (* SessMsgNetworkStats *)
       lprintf "SessMsgNetworkStats\n";
       
-      s.server_nusers <- BigEndian.get_int m 0;
-      s.server_nfiles <- BigEndian.get_int m 4;
+      s.server_nusers <- BigEndian.get_uint64_32 m 0;
+      s.server_nfiles <- BigEndian.get_uint64_32 m 4;
 
       let mantissa = BigEndian.get_int16 m 8 in
       let exponent = BigEndian.get_int16 m 10 in

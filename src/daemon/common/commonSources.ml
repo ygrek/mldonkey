@@ -71,8 +71,8 @@ type request_result =
 | File_not_found  (* we asked, the file is not there *)
 | File_expected   (* we asked, because it was announced *)
 | File_new_source (* we never asked, but we should *)
-| File_found      (* the file was found *)
-| File_chunk      (* the file has chunks we want *)
+| File_found      (* the file was found, and the rank *)
+| File_chunk      (* the file has chunks we want, and the rank *)
 | File_upload     (* we uploaded from this client *)
 | File_unknown    (* We don't know anything *)
 
@@ -310,6 +310,41 @@ module Make(M:
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         request_score                                 *)
+(*                                                                       *)
+(*************************************************************************)
+      
+      let request_score r =
+        r.request_score asr 16
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         request_rank                                  *)
+(*                                                                       *)
+(*************************************************************************)
+      
+      let request_rank r  = r.request_score land 0xffff
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_score_part                                *)
+(*                                                                       *)
+(*************************************************************************)
+      
+      let set_score_part r score =
+        r.request_score <- (score lsl 16) lor (request_rank r)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_rank_part                                *)
+(*                                                                       *)
+(*************************************************************************)
+      
+      let set_rank_part r rank =
+        r.request_score <- rank lor ( (request_score r) lsl 16 )
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         print_source                                  *)
 (*                                                                       *)
 (*************************************************************************)
@@ -412,16 +447,6 @@ module Make(M:
         Printf.bprintf buf "Next Indirect Sources: %d entries\n"
           (List.length !next_indirect_sources)
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         set_score                                     *)
-(*                                                                       *)
-(*************************************************************************)
-      
-      let set_score s r score =
-        let old_score = r.request_score in
-        r.request_score <- score
-
 
 (*************************************************************************)
 (*                                                                       *)
@@ -442,7 +467,10 @@ module Make(M:
 
 (* Two things matter: the global score and the local score *)
                   if s.source_score < 3 then
-                    if r.request_score > expected_score then
+(* 2.5.25, replaced expected_score by found_score, so that sources which only
+have the file are not put in good_sources_queue, unless they have an
+  interesting chunk AND not a bad rank. *)
+                    if r.request_score > found_score then
                       if saved then
                         if 
                           r.request_time + !!min_reask_delay < last_time () 
@@ -631,7 +659,7 @@ module Make(M:
                 if connecting then begin
                     r.request_time <- last_time ();
                     if r.request_score = initial_new_source_score then
-                      set_score s r new_source_score
+                      set_score_part r new_source_score
                   end else begin
                     if r.request_time = 0 then
                       r.request_time <- last_time () - 600;
@@ -793,7 +821,8 @@ module Make(M:
 (*************************************************************************)
       
       let find_request_result s file =
-        let score =  (find_request s file).request_score in
+        let r = find_request s file in
+        let score =  r.request_score in
         if score = initial_new_source_score then File_new_source else
         if score = not_found_score then File_not_found else
         if score < not_found_score then File_possible else
@@ -820,7 +849,7 @@ module Make(M:
           try
             let r = find_request s file in
             remove_from_queue s r;
-            set_score s r (if r.request_score = initial_new_source_score then
+            set_score_part r (if r.request_score = initial_new_source_score then
                 new_source_score
               else
                 r.request_score - 1);
@@ -860,7 +889,7 @@ module Make(M:
             in
             if r.request_queue < connected_sources_queue then
               remove_from_queue s r;
-            set_score s r score;
+            set_score_part r score;
             reschedule_source_for_file false s r;
         with Not_found ->
             let r = {
@@ -869,7 +898,7 @@ module Make(M:
                 request_score = possible_score;
                 request_queue = outside_queue;
               } in
-            set_score s r score;
+            set_score_part r score;
             s.source_files <- r :: s.source_files;
             reschedule_source_for_file false s r
 
@@ -991,7 +1020,7 @@ we will probably query for the other file almost immediatly. *)
               raise e 
         in
         let r = add_request s file time in
-        set_score s r score;
+        set_score_part r score;
         reschedule_source_for_file true s r;
         if !verbose_sources > 1 then
           lprintf "Put saved source %d in queue %s\n" s.source_num
@@ -1213,7 +1242,7 @@ we don't care since we decided to decrease their priority ! *)
                       List.iter (fun r ->
                           if r.request_file == m then begin
                               r.request_queue <- outside_queue;
-                              set_score s r not_found_score
+                              set_score_part r not_found_score
                             end
                       ) s.source_files;
                       iter (nsources-1) q queue

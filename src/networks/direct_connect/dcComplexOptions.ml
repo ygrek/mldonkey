@@ -55,7 +55,7 @@ let value_to_server  assocs =
   let h = new_server server_addr server_port in
   h.server_name <- get_value "server_name" value_to_string;
   h.server_info <- get_value "server_info" value_to_string;
-  h.server_nusers <- get_value "server_nusers" value_to_int;
+  h.server_nusers <- Int64.of_int (get_value "server_nusers" value_to_int);
   as_server h.server_server
 
 
@@ -64,7 +64,7 @@ let server_to_value h =
       "server_name", string_to_value h.server_name;
       "server_addr", Ip.addr_to_value h.server_addr;
       "server_info", string_to_value h.server_info;
-      "server_nusers", int_to_value h.server_nusers;
+      "server_nusers", int_to_value (Int64.to_int h.server_nusers);
       "server_port", int_to_value h.server_port;
     ] in
   list

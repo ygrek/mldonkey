@@ -279,7 +279,6 @@ module P = struct
       
       | 0x08 ->
           let n = get_int16 s 0 in
-          lprintf "npeers: %d\n" n;
           let peers, pos = get_list16 get_peer s 0 in
           OvernetConnectReply peers
       

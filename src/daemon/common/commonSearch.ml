@@ -1040,7 +1040,7 @@ module MakeIndex (FilterResult : sig end) = struct
             end else
           let r = Document.doc_value doc in
 (*    merge_result s doc.num; *)
-          lprintf "search_add_result: %d\n" r.result_num; 
+(*          lprintf "search_add_result: %d\n" r.result_num;  *)
           search_add_result_in s (find_result r.result_num)
       ) docs
 

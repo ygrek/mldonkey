@@ -511,7 +511,7 @@ let parse_servers_list s =
           let s = new_server (Ip.addr_of_string server_addr) 411 in
           s.server_name <- server_name;
           s.server_info <- server_info;
-          (try s.server_nusers <- int_of_string server_nusers with _ -> ());
+          (try s.server_nusers <- Int64.of_string server_nusers with _ -> ());
       | _ -> 
           lprintf "Bad line [%s]" s; lprint_newline ();      
   ) lines;
@@ -536,7 +536,7 @@ let _ =
           P.server_score = 0;
           P.server_tags = [];
           P.server_nusers = s.server_nusers;
-          P.server_nfiles = 0;
+          P.server_nfiles = Int64.zero;
           P.server_state = server_state s;
           P.server_name = s.server_name;
           P.server_description = s.server_info;

@@ -73,13 +73,9 @@ let commit_in_subdir = define_option gnutella_section ["commit_in_subdir"]
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
-let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
+let max_known_hosts = define_option gnutella_section ["max_known_hosts"]
   "Maximal number of ultrapeers remembered"
-    int_option 100
-
-let max_known_peers = define_option gnutella_section ["max_known_peers"]
-  "Maximal number of peers remembered"
-  int_option 20
+    int_option 1000
     
 let server_connection_timeout = 
   define_option gnutella_section ["server_connection_timeout"] 

@@ -108,6 +108,12 @@ let buf_int64_2 proto buf i =
   else
     buf_int64_32 buf i
   
+let buf_int64_28 proto buf i =
+  if proto > 27 then
+    buf_int64 buf i
+  else
+    buf_int64_32 buf i
+  
 let rec buf_query buf q =
   match q with
     Q_AND list ->
@@ -499,8 +505,8 @@ let buf_server proto buf s =
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
   buf_list buf buf_tag s.server_tags;
-  buf_int buf s.server_nusers;
-  buf_int buf s.server_nfiles;
+  buf_int64_28 proto buf s.server_nusers;
+  buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
   buf_string buf s.server_name;
   buf_string buf s.server_description
@@ -643,7 +649,9 @@ let rec to_gui (proto : int array) buf t =
         buf_int buf n1; buf_int buf n2
     
     | Server_busy (n1,n2,n3) -> buf_int16 buf 11;
-        buf_int buf n1; buf_int buf n2; buf_int buf n3
+        buf_int buf n1; 
+        buf_int64_28 proto.(11) buf n2; 
+        buf_int64_28 proto.(11) buf n3
     
     | Server_user  (n1,n2) -> buf_int16 buf 12;
         buf_int buf n1; buf_int buf n2

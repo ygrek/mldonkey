@@ -39,6 +39,7 @@ module Make (M : sig
           val file_best_name : file -> string
           val file_state : file -> file_state
           val file_fd : file -> Unix32.t
+          val file_downloaded : file -> int64
           val add_file_downloaded : file -> int64 -> unit
         end
     

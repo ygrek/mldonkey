@@ -330,8 +330,8 @@ let server_print s o =
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr br\\\"\\>%s:%d\\</td\\>
-    \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
+    \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
 	  (
@@ -397,7 +397,7 @@ let server_print s o =
    else
 	begin
           
-        Printf.bprintf buf "[%-10s%5d] %15s:%-5d %s\n%40sUsers:%-8d Files:%-8d State:%s\n"
+        Printf.bprintf buf "[%-10s%5d] %15s:%-5d %s\n%40sUsers:%-8Ld Files:%-8Ld State:%s\n"
           (n.network_name)
           (server_num s)
           (Ip.string_of_addr info.G.server_addr) 

@@ -29,7 +29,7 @@ let gui_extension_poll = 1
   
 let to_gui_last_opcode = 57
 let from_gui_last_opcode = 64
-let best_gui_version = 27
+let best_gui_version = 28
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -158,7 +158,7 @@ type to_gui =
 | File_update_availability of int * int * string
 | File_remove_source of int * int
   
-| Server_busy of int * int * int
+| Server_busy of int * int64 * int64
 | Server_user of int * int
 | Server_state of int * host_state
 | Server_info of server_info

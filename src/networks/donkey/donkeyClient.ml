@@ -636,11 +636,14 @@ let query_id ip port id =
     let module Q = DonkeyProtoUdp.QueryCallUdp in
 (*    lprintf "Ask connection from indirect client\n"; *)
     
-    let s = new_server ip port 0 in
+    let s = check_add_server ip port in
     match s.server_sock with 
       NoConnection | ConnectionWaiting _ ->
         
-(*    DonkeyProtoCom.udp_send (get_udp_sock ())
+(* OK, this fixes the problem with Lugdunum servers, but there should be 
+another better way, since this functionnality is still useful... 
+  
+  DonkeyProtoCom.udp_send (get_udp_sock ())
         ip (port+4)
         (DonkeyProtoUdp.QueryCallUdpReq {
             Q.ip = client_ip;
@@ -709,11 +712,7 @@ let query_files c sock =
     end
 *)
 
-
-(* Nice to see some emule devels here... It's always possible to 
-crack a protocol, but let's try to make it as boring as possible... *)
-    
-    external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
+external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
 let hash x = hash_param 10 100 x
 
 let shared_of_file file =
@@ -732,7 +731,7 @@ lprintf "       ASK VIEW FILES         \n";
           client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
-            M.ViewFilesReq C.t);          
+            M.ViewFilesReq C.t);
         end
     end
 
@@ -746,6 +745,22 @@ let client_has_file c file =
         let module E = M.EmuleRequestSources in
         client_send c (M.EmuleRequestSourcesReq file.file_md4)
     end
+
+(* added in 2.5.25
+Check if the bitmap returned by a client contains a chunk that has not
+  yet been downloaded.
+  *)
+let useful_client file chunks =
+  match file.file_swarmer with
+    None -> false
+  | Some swarmer ->
+      let bitmap = Int64Swarmer.verified_bitmap swarmer in
+      let rec iter bitmap chunks i len =
+        if i = len then false else
+        if chunks.(i) && bitmap.[i] < '2' then true else
+          iter bitmap chunks (i+1) len
+      in
+      iter bitmap chunks 0 (String.length bitmap)
     
 let received_client_bitmap c md4 chunks =
   
@@ -786,14 +801,17 @@ let received_client_bitmap c md4 chunks =
 ViewFilesReq on all clients having the file to test what is
 the most widely used size for this file. Maybe create 
 different instances of the file for each proposed size ?
-
+  
 *)
       
       end else 
       chunks in
-  DonkeyOneFile.add_client_chunks c file chunks;
-  if file_state file = FileDownloading then begin
-      DonkeyOneFile.request_slot c
+  if useful_client file chunks then begin
+      DonkeySources.set_request_result c.client_source file.file_sources File_chunk;
+      DonkeyOneFile.add_client_chunks c file chunks;
+      if file_state file = FileDownloading then begin
+          DonkeyOneFile.request_slot c
+        end
     end
     
 let init_client_connection c sock =
@@ -894,7 +912,7 @@ let client_to_client for_files c t sock =
       
       begin
         match t.CR.server_info with
-          Some (ip, port) when !!update_server_list -> safe_add_server ip port
+          Some (ip, port) -> safe_add_server ip port
         | _ -> ()
       end;
       
@@ -909,13 +927,15 @@ let client_to_client for_files c t sock =
         
         finish_client_handshake c sock
   
-  | M.EmuleQueueRankingReq t 
-  | M.QueueRankReq t ->
-      c.client_rank <- t;
-      set_client_state c (Connected t);
-(* REMOVE THIS !!!
-      if t > 1000 then 
-        ban_client c sock "has an infinite queue"; *)
+  | M.EmuleQueueRankingReq rank
+  | M.QueueRankReq rank ->
+      c.client_rank <- rank;
+      set_client_state c (Connected rank);
+      if rank > !!good_client_rank then
+        List.iter (fun (file, _, _) ->
+            DonkeySources.set_request_result c.client_source 
+              file.file_sources File_found;  
+        ) c.client_file_queue
   
   | M.EmuleClientInfoReq t ->      
       
@@ -975,6 +995,7 @@ let client_to_client for_files c t sock =
                   E.src_port = port;
                   E.src_server_ip = Ip.null;
                   E.src_server_port = 0;
+(* this is not very good, but what can we do ? we don't keep sources UIDs *)
                   E.src_md4 = Md4.null;
                 } :: !sources
       ) file.file_sources;
@@ -1847,14 +1868,12 @@ let read_first_message overnet m sock =
       
       begin
         match t.CR.server_info with
-          Some (ip, port) when !!update_server_list -> 
-            safe_add_server ip port
+          Some (ip, port) ->  safe_add_server ip port
         | None -> 
             if overnet then begin
                 lprintf "incoming Overnet client\n"; 
                 DonkeySources.set_source_brand c.client_source overnet;
               end
-        | _ -> ()
       end;
 
 (*      List.iter (fun s ->
@@ -2032,8 +2051,6 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
 let query_locations_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryLocationReply in
-  
-  connection_ok s.server_connection_control;
   
   try
     let file = find_file t.Q.md4 in

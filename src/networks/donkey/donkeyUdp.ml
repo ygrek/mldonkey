@@ -269,8 +269,8 @@ let udp_client_handler t p =
       let module M = Udp.PingServerReplyUdp in
       let s = udp_from_server p in
       s.server_last_message <- last_time ();
-      s.server_nfiles <- t.M.files;
-      s.server_nusers <- t.M.users;
+      s.server_nfiles <- Int64.of_int t.M.files;
+      s.server_nusers <- Int64.of_int t.M.users;
       (match t.M.max_users with Some x -> s.server_max_users <- x
       | None -> ());
       (match t.M.flags with Some x -> s.server_flags <- x

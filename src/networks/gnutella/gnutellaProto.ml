@@ -49,6 +49,8 @@ type 'a packet = {
     pkt_payload : 'a;
   }
 
+let gnutella2_needed = false
+  
 let get_string0 s pos =
   let len = String.length s in
   try
@@ -780,7 +782,7 @@ let server_send_ping sock s =
       s.server_nfiles <- s.server_nfiles_last;
       s.server_nkb <- s.server_nkb_last;
       s.server_ping_last <- p.pkt_uid;
-      s.server_nfiles_last <- 0;
+      s.server_nfiles_last <- Int64.zero;
       s.server_nkb_last <- 0;
       server_send s p
   | _ -> ()

@@ -368,8 +368,8 @@ type server = (*[]*){
     mutable server_connection_control : connection_control;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
+    mutable server_nusers : int64;
+    mutable server_nfiles : int64;
     mutable server_max_users : int;
     mutable server_name : string;
     mutable server_description : string;
@@ -377,7 +377,7 @@ type server = (*[]*){
     mutable server_users: user list;
     mutable server_next_udp : int;
     mutable server_master : bool;
-    mutable server_mldonkey : bool;
+    mutable server_preferred : bool;
     mutable server_last_message : int; (* used only by mldonkey server *)
 
     mutable server_id_requests : file option Fifo.t;

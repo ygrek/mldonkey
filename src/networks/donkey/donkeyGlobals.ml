@@ -443,15 +443,15 @@ let new_server ip port score =
         server_connection_control = new_connection_control ();
         server_score = score;
         server_tags = [];
-        server_nfiles = 0;
-        server_nusers = 0;
+        server_nfiles = Int64.zero;
+        server_nusers = Int64.zero;
           server_max_users = 0;
         server_name = "";
         server_description = "";
         server_banner = "";
         server_users = [];
         server_master = false;
-        server_mldonkey = false;
+        server_preferred = false;
         server_last_message = 0;
         server_queries_credit = 0;
         server_waiting_queries = [];
@@ -611,14 +611,6 @@ let new_client key =
       create_client key
 
 let create_client = ()
-      
-      (*
-let new_client_with_num key num =
-  try
-    { dummy_client with client_kind = key }  
-  with _ ->
-      create_client key
-        *)
 
 let find_client_by_key key = 
   H.find clients_by_kind { dummy_client with client_kind = key }
@@ -634,23 +626,8 @@ let friend_add c =
       
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
-(*      hashtbl_remove clients_by_name c.client_name c;   *)
-
       c.client_name <- name;
       c.client_md4 <- md4;
-      
-      (*
-      if not (Hashtbl.mem clients_by_name c.client_name) then
-        Hashtbl.add clients_by_name c.client_name c;
-*)
-
-      (*
-      try      
-        let kind = Indirect_location (name, md4) in
-        let cc = H.find clients_by_kind { dummy_client with client_kind = kind } in
-        if cc != c && client_type cc land client_friend_tag <> 0 then
-          friend_add c
-      with _ -> () *)
     end
     
 exception ClientFound of client

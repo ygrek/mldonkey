@@ -162,8 +162,8 @@ type server_info = {
     mutable server_port : int;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
+    mutable server_nusers : int64;
+    mutable server_nfiles : int64;
     mutable server_state : host_state;
     mutable server_name : string;
     mutable server_description : string;

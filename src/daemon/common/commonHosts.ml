@@ -54,16 +54,19 @@ module Make(M: sig
       type host_kind
       type request
       type ip
-        
+      
       val requests : (request *
           
           (int (* repeat request delay *) * 
-(* returns the queue in which the host should be put *)
+(* returns the queue into which the host should be put *)
             ( host_kind -> (server, host_kind, request,ip) host Queues.Queue.t list)
-            )
+          )
         ) list
-    
+      
       val default_requests : host_kind -> (request * int) list
+        
+      val max_hosts : int Options.option_record
+
     end) = struct
     
     open M
@@ -97,24 +100,26 @@ host object is inspected every two minutes. *)
         h.host_age <- last_time ();
         h
       with _ ->
-          incr hosts_counter;
-          let host = {
-              host_num = !hosts_counter;
-              host_server = None;
-              host_addr = ip;
-              host_port = port;
-              
-              host_age = last_time ();
-              host_requests = default_requests host_kind;
-              host_connected = 0;
-              
-              host_kind = host_kind;
-              host_queues = [];
-            } in
-          Hashtbl.add hosts_by_key key host;
-          host_queue_add workflow host 0;
-          host
-    
+          if !hosts_counter < !!max_hosts then begin
+              incr hosts_counter;
+              let host = {
+                  host_num = !hosts_counter;
+                  host_server = None;
+                  host_addr = ip;
+                  host_port = port;
+                  
+                  host_age = last_time ();
+                  host_requests = default_requests host_kind;
+                  host_connected = 0;
+                  
+                  host_kind = host_kind;
+                  host_queues = [];
+                } in
+              Hashtbl.add hosts_by_key key host;
+              host_queue_add workflow host 0;
+              host
+            end else raise Not_found
+            
     let rec set_request_rec list r tail =
       match list with
         [] -> (r, last_time ()) :: tail
@@ -130,9 +135,6 @@ host object is inspected every two minutes. *)
     let manage_host h =
       try
         let current_time = last_time () in
-(*    lprintf "host queue before %d\n" (List.length h.host_queues);  *)
-
-(*    lprintf "host queue after %d\n" (List.length h.host_queues); *)
 (* Don't do anything with hosts older than one hour and not responding *)
         if max h.host_connected h.host_age > last_time () - 3600 then begin
             host_queue_add workflow h current_time;
@@ -146,33 +148,18 @@ host object is inspected every two minutes. *)
                     (f h.host_kind)
                 with _ -> ()
             ) h.host_requests;
-            
-            (*
-            match h.host_kind with
-            | Ultrapeer | IndexServer ->        
-                if h.host_udp_request + 600 < last_time () then begin
-(*              lprintf "waiting_udp_queue\n"; *)
-                    H.
-                  end;
-                if h.host_tcp_request + 600 < last_time () then begin
-                    H.host_queue_add  ultrapeers_waiting_queue h current_time;
-                  end
-            | Peer ->
-                if h.host_udp_request + 600 < last_time () then begin
-(*              lprintf "g01_waiting_udp_queue\n"; *)
-                    H.host_queue_add waiting_udp_queue h current_time;
-                  end;
-                if h.host_tcp_request + 600 < last_time () then
-H.host_queue_add peers_waiting_queue h current_time;
-  *)
-          end    else 
+    
+          end    
+        else 
         if max h.host_connected h.host_age > last_time () - 3 * 3600
             || h.host_queues <> []
           then begin
             host_queue_add workflow h current_time;      
-          end else
+          end else begin
 (* This host is too old, remove it *)
-          ()
+            decr hosts_counter;
+            Hashtbl.remove hosts_by_key  (h.host_addr, h.host_port)
+          end
       
       with e ->
           lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)

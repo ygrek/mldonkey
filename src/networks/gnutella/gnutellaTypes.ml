@@ -60,14 +60,14 @@ and server = {
     server_server : server CommonServer.server_impl;
     mutable server_agent : string;
     mutable server_sock : tcp_connection;
-    mutable server_nfiles : int;
+    mutable server_nfiles : int64;
     mutable server_nkb : int;
 
-    mutable server_nusers : int;
+    mutable server_nusers : int64;
     
     mutable server_need_qrt : bool;
     mutable server_ping_last : Md4.t;
-    mutable server_nfiles_last : int;
+    mutable server_nfiles_last : int64;
     mutable server_nkb_last : int;
     mutable server_vendor : string;
     mutable server_connected : int64;

@@ -439,7 +439,7 @@ let parse_donkey_url url =
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
-      let s = add_server ip (int_of_string port) in
+      let s = check_add_server ip (int_of_string port) in
       server_connect (as_server s.server_server);
       true 
   | "ed2k://" :: "friend" :: ip :: port :: _
@@ -469,7 +469,7 @@ let commands = [
         let ip = Ip.from_name ip in
         let port = int_of_string port in
         
-        let s = add_server ip port in
+        let s = force_add_server ip port in
         Printf.bprintf buf "New server %s:%d\n" 
           (Ip.to_string ip) port;
         ""
@@ -609,6 +609,16 @@ let commands = [
         ) args;
         ""
     ) , "<f1> < f2> ... :\t\t\ttry to recover these files at byte level";
+
+    "preferred", Arg_two (fun arg1 arg2 o ->
+        let preferred = bool_of_string arg1 in
+        let ip = Ip.of_string arg2 in
+        Hashtbl.iter (fun ip_s s ->
+            if ip_s = ip then 
+              s.server_preferred <- preferred
+        ) servers_by_key;
+        "ok"
+    ), "<true/false> <ip> : set the server with this IP has preferred";
     
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -1217,7 +1227,7 @@ lprint_newline ();
             if qfiles <> [] then begin
                 try
                   let _, qchunks,_ = List.find (fun (qfile, _,_) ->
-                        qfile = (as_file_impl file).impl_file_val) qfiles in
+                        qfile == (as_file_impl file).impl_file_val) qfiles in
                   let tc = ref 0 in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
                     (CommonFile.colored_chunks (Array.init (Array.length qchunks) 
@@ -1245,7 +1255,7 @@ lprint_newline ();
           | Some _ ->  ( 
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks,_) =  List.hd qfiles in
-                if (qfile = (as_file_impl file).impl_file_val) then begin
+                if (qfile == (as_file_impl file).impl_file_val) then begin
 	          Printf.bprintf buf "[Donkey%6d] Name  : %-27s IP   : %-20s"
 	            (client_num c)
 	            (shorten c.client_name 20)
@@ -1278,7 +1288,7 @@ lprint_newline ();
           | Some _ ->  ( 
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks,_) =  List.hd qfiles in
-                if (qfile = (as_file_impl file).impl_file_val) then begin
+                if (qfile == (as_file_impl file).impl_file_val) then begin
                     let i = (client_info (as_client c)) in
                     
                     Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
@@ -1367,5 +1377,6 @@ let _ =
   
   
   network.op_network_add_server <- (fun ip port ->
-      as_server (new_server (Ip.ip_of_addr ip) port 0).server_server
+      let s = DonkeyComplexOptions.force_add_server (Ip.ip_of_addr ip) port in
+      as_server s.server_server
   )

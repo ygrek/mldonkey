@@ -47,7 +47,10 @@ let canonize_basename name =
   for i = 0 to String.length name - 1 do
     match name.[i] with
     | '/' | '\\' -> name.[i] <- '_'
-    | _ -> ()
+    | c -> 
+(* let remove all chars which are not in the basic ASCII set *)
+        let nc = int_of_char c in
+        if nc > 127 || nc < 32 then name.[i] <- '?'
   done;
   name
   
@@ -63,8 +66,7 @@ let file_commited_name file =
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
-    Filename.concat incoming_dir (canonize_basename 
-        (file_best_name file))
+    Filename.concat incoming_dir (canonize_basename  best_name)
   in
   let new_name = 
     if Sys.file_exists new_name then
@@ -375,8 +377,10 @@ let print_connected_servers o =
   let buf = o.conn_buf in
   networks_iter (fun r ->
       try
-       let list = network_connected_servers r in
-		if r.network_name <> "BitTorrent" then begin	
+        let list = network_connected_servers r in
+        if List.mem NetworkHasServers r.network_flags ||
+          List.mem NetworkHasSupernodes r.network_flags 
+           then begin  
        if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
        Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
          (List.length list) r.network_name;

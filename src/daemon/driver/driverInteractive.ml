@@ -702,7 +702,7 @@ let html_mods_done_files buf files =
 
 \\<form name=selectForm2 action=\\\"files\\\"\\>
 \\<table cellspacing=0  cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>Total: %d - Use 'commit' to move these completed files to the incoming directory\\</td\\>
+\\<td class=downloaded width=100%%\\>Total: %d - Use '\\<a target=\\\"fstatus\\\" href=\\\"submit?q=commit\\\"\\>commit\\</a\\>' to move these completed files to the incoming directory\\</td\\>
 \\</tr\\>\\</table\\>
 
 \\</td\\>\\</tr\\>

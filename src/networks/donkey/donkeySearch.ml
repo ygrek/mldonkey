@@ -167,10 +167,10 @@ let send_subscribe search query =
   let module Q = M.Query in
   List.iter (fun s ->
       do_if_connected  s.server_sock (fun sock ->
-          if s.server_mldonkey then
+(*          if s.server_mldonkey then
             server_send sock (
               M.Mldonkey_SubscribeReq (search.search_num, 3600, query))
-          else begin
+          else *) begin
               server_send sock (M.QueryReq query);
               Fifo.put s.server_search_queries search
             end

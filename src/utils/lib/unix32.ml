@@ -108,7 +108,7 @@ module FDCache = struct
             let fd =
               try
                 Unix.openfile t.filename rw_flag rights
-              with Unix.Unix_error(Unix.EACCES,_,_) ->
+              with Unix.Unix_error( (Unix.EACCES | Unix.EROFS) ,_,_) ->
                   Unix.openfile t.filename ro_flag 0o400
             in
             incr cache_size;

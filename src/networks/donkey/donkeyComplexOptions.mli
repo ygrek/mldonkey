@@ -20,7 +20,7 @@
 open Md4
 open Options
 
-val add_server : Ip.t -> int -> DonkeyTypes.server
+val force_add_server : Ip.t -> int -> DonkeyTypes.server
 val check_add_server : Ip.t -> int -> DonkeyTypes.server
 val safe_add_server : Ip.t -> int -> unit
 

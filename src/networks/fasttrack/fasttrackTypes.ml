@@ -83,8 +83,8 @@ and server = {
     mutable server_agent : string;
     mutable server_sock : tcp_connection;
     mutable server_ciphers : ciphers option;
-    mutable server_nfiles : int;
-    mutable server_nusers : int;
+    mutable server_nfiles : int64;
+    mutable server_nusers : int64;
     mutable server_nkb : int;
 
     mutable server_need_qrt : bool;

@@ -109,6 +109,11 @@ let keep_best_server = define_expert_option donkey_section
 let max_walker_servers = define_expert_option donkey_section
     ["max_walker_servers"] "Number of servers that can be used to walk
 between servers" int_option 1
+
+let walker_server_lifetime = define_expert_option donkey_section
+    ["walker_server_lifetime"] 
+  "The maximal delay a connection with a server should last when walking
+through the list (should be greater than become_master_delay)" int_option 1
     
 (* let max_sources_age = define_expert_option donkey_section
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"

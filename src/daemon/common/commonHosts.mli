@@ -30,35 +30,36 @@ type ('a, 'b, 'c, 'd) host = {
 } 
 module Make :
   functor
-    (M : sig
-           type server
-           and host_kind
-           and request
-           and ip
-           val requests :
-             (request *
-              (int *
-               (host_kind ->
-                (server, host_kind, request, ip) host Queues.Queue.t list)))
-             list
-           val default_requests : host_kind -> (request * int) list
-         end) ->
-    sig
-      val workflow :
-        (M.server, M.host_kind, M.request, M.ip) host Queues.Queue.t
-      val host_queue_add :
-        ('a, 'b, 'c, 'd) host Queues.Queue.t ->
-        ('a, 'b, 'c, 'd) host -> int -> unit
-      val host_queue_take :
-        ('a, 'b, 'c, 'd) host Queues.Queue.t -> ('a, 'b, 'c, 'd) host
-      val hosts_by_key :
-        (M.ip * int, (M.server, M.host_kind, M.request, M.ip) host) Hashtbl.t
-      val hosts_counter : int ref
-      val new_host :
-        M.ip ->
-        int -> M.host_kind -> (M.server, M.host_kind, M.request, M.ip) host
-      val set_request : ('a, 'b, 'c, 'd) host -> 'c -> unit
-      val manage_hosts : unit -> unit
-    end
-
+  (M : sig
+      type server
+      and host_kind
+      and request
+      and ip
+      val requests :
+        (request *
+          (int *
+            (host_kind ->
+            (server, host_kind, request, ip) host Queues.Queue.t list)))
+        list
+      val default_requests : host_kind -> (request * int) list
+      val max_hosts : int Options.option_record
+    end) ->
+  sig
+    val workflow :
+      (M.server, M.host_kind, M.request, M.ip) host Queues.Queue.t
+    val host_queue_add :
+      ('a, 'b, 'c, 'd) host Queues.Queue.t ->
+      ('a, 'b, 'c, 'd) host -> int -> unit
+    val host_queue_take :
+      ('a, 'b, 'c, 'd) host Queues.Queue.t -> ('a, 'b, 'c, 'd) host
+    val hosts_by_key :
+      (M.ip * int, (M.server, M.host_kind, M.request, M.ip) host) Hashtbl.t
+    val hosts_counter : int ref
+    val new_host :
+      M.ip ->
+      int -> M.host_kind -> (M.server, M.host_kind, M.request, M.ip) host
+    val set_request : ('a, 'b, 'c, 'd) host -> 'c -> unit
+    val manage_hosts : unit -> unit
+  end
+  
   

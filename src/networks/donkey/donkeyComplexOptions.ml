@@ -65,7 +65,7 @@ I know this is stupid, but "give the people what they want"..
 
 let create_online_sig () =
 
-	let most_users = ref 0 in
+  let most_users = ref Int64.zero in
 	let server_name= ref "" in
 	let server_ip = ref "" in
 	let server_port = ref 0 in
@@ -80,7 +80,7 @@ let create_online_sig () =
 
 	let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
 
-	if !most_users = 0 then
+  if !most_users = Int64.zero then
 		output_string oc ("0\n")
 	else 
 		output_string oc (Printf.sprintf "1|%s|%s|%d\n" !server_name !server_ip !server_port);
@@ -201,33 +201,36 @@ let client_option =
   donkey_client_to_value 
 
 let value_to_server assocs = 
-      let get_value name conv = conv (List.assoc name assocs) in
-      let get_value_nil name conv = 
-        try conv (List.assoc name assocs) with _ -> []
-      in
-      let ip, port = get_value "server_addr" (fun v ->
-            match v with
-              List [ip;port] | SmallList [ip;port] ->
-                let ip = Ip.of_string (value_to_string ip) in
-                let port = value_to_int port in
-                ip, port
-            | _ -> failwith  "Options: Not an server option"
-        ) in
-      let l = DonkeyGlobals.new_server ip port !!initial_score in
-      
-      (try
-          l.server_description <- get_value "server_desc" value_to_string 
-        with _ -> ());
-      (try
-          l.server_name <- get_value "server_name" value_to_string
-        with _ -> ());
-      (try
-          connection_set_last_conn l.server_connection_control
-            (normalize_time (mini (get_value "server_age" value_to_int) 
-            (BasicSocket.last_time ())));
-        with _ -> ());
-      as_server l.server_server
-
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  let ip, port = get_value "server_addr" (fun v ->
+        match v with
+          List [ip;port] | SmallList [ip;port] ->
+            let ip = Ip.of_string (value_to_string ip) in
+            let port = value_to_int port in
+            ip, port
+        | _ -> failwith  "Options: Not an server option"
+    ) in
+  let l = DonkeyGlobals.new_server ip port !!initial_score in
+  
+  (try
+      l.server_description <- get_value "server_desc" value_to_string 
+    with _ -> ());
+  (try
+      l.server_name <- get_value "server_name" value_to_string
+    with _ -> ());
+  (try
+      l.server_preferred <- get_value "server_preferred" value_to_bool
+    with _ -> ());
+  (try
+      connection_set_last_conn l.server_connection_control
+        (normalize_time (mini (get_value "server_age" value_to_int) 
+          (BasicSocket.last_time ())));
+    with _ -> ());
+  as_server l.server_server
+  
 let server_to_value c =
   let fields = 
     [
@@ -247,6 +250,10 @@ let server_to_value c =
       ("server_name", string_to_value c.server_name) :: fields
     else fields in
   
+  let fields = 
+    if c.server_preferred then
+      ("server_preferred", bool_to_value true) :: fields else
+      fields in
   List.rev fields
 
 let value_to_int32pair v =
@@ -549,22 +556,30 @@ let known_shared_files = define_option shared_section
     (list_option SharedFileOption.t) []
   
 (************  UPDATE OPTIONS *************)  
+
+(* This function is used only with the "n" command and the 
+op_network_add_server method, which are the only ways for the user
+to enter servers, bypassing the update_server_list variable. *)
   
-let add_server ip port =
+let force_add_server ip port =
   try
     DonkeyGlobals.find_server ip port
   with _ ->
       let s = DonkeyGlobals.new_server ip port !!initial_score in
       DonkeyGlobals.servers_ini_changed := true;
-      s
-  
+      s        
+      
 let check_add_server ip port =
-  if Ip.valid ip && not (is_black_address ip port) && port <> 4662 then
-    add_server ip port
+  if !!update_server_list &&
+    Ip.valid ip && Ip.reachable ip &&
+    not (is_black_address ip port) && port <> 4662 then
+    force_add_server ip port
   else raise Not_found
 
 let safe_add_server ip port =
-  if Ip.valid ip && not (is_black_address ip port) && port <> 4662 then
+  if !!update_server_list &&
+    Ip.valid ip && Ip.reachable ip &&
+    not (is_black_address ip port) && port <> 4662 then
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->

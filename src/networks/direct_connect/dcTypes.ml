@@ -27,7 +27,7 @@ type server = {
     mutable server_name : string;
     mutable server_addr : Ip.addr;
     mutable server_info : string;
-    mutable server_nusers : int;
+    mutable server_nusers : int64;
     server_connection_control : CommonTypes.connection_control;
     mutable server_sock : tcp_connection;
     mutable server_port : int;

@@ -846,8 +846,6 @@ let http_handler o t r =
                       with  e -> 
                           Printf.bprintf buf "Error %s with %s<br>" 
                             (Printexc2.to_string e) value;
-                          results_iter (fun n  r ->
-                              Printf.bprintf buf "IN TABLE: %d   <br>\n" n)
                     end
                 | _ -> ()
             ) r.get_url.Url.args;

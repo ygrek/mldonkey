@@ -1,6 +1,38 @@
 ChangeLog	
 =========
 
+2004/08/09: Fabrice (version 2.5.25 = 2.6pre7, tag release-2-5-25)
+  - Bug fixes (to be tested):
+      * CommonSwarming: removed downloaded counter, use the file's one.
+          Verified files should now be seen correclty after verify_chunks or
+          recover_temp.
+      * CommonInteractive: modified canonize_basename to replace chars
+          outside 32-127 by ?. Should solve saving of CJK files on disk.
+      * Unix32: open in read-only if EROFS is raised
+      * DonkeyComplexOptions: force use of update_server_list variable, and
+          check IP reachability (bug #7200). Should also fix bug #8971.
+      * DonkeyClient: Don't ask for slot if no interesting chunk. Use
+         good_client_rank option to put clients in "good_sources" queue.
+         (bug #9016).
+      * DonkeyClient: removed "connection_ok" in query_locations to
+         allow servers to become master (bug #7741).
+      * DonkeyServer: new command "preferred" to choose preferred servers,
+         that will become masters immediatly and with priority if connected
+         (which should happen automatically during the walking process).
+         (bugs #9247/#9655)
+      * GnutellaServers: added gnutella2_needed variable to decide when to
+         keep a connection in Gnutella/Gnutella2 (bug #9697).
+      * GnutellaRedirector: set delay between reconnections to redirector
+         to 1 hour. (bug #9686)
+      * CommonHosts: added option to limit the number of known hosts
+          in Gnutella "max_known_hosts" (default 1000) (bug #8416)
+      * configure.in: changed REQUIRED_OCAML to 3.08 (bug #9939)
+      * DonkeyOvernet: searches are removed after 5 minutes.
+  - Applied patch #3274 (ocaml3.08)
+
+2004/08/06: Fabrice
+  - Applied patches: #3269 (int64), #3266 (mc), #3267 (ocaml3.08)
+
 2004/08/05: Fabrice (version 2.5.24 = 2.6pre6, tag release-2-5-24)
   - Bug fixes:
       * CommonSwarming: remove "double the downloaded size" of downloads.

@@ -80,7 +80,11 @@ let resolve_one t =
       end;
       to_fixed_string t
 
-let valid (j,k,l,i) = i > 0 && j > 0 && i < 255 && j < 224 && k >= 0 && l >= 0 && k < 255 && l < 255
+let valid (j,k,l,i) = 
+  j > 0 && j < 224 && 
+  k >= 0 && k < 255 && 
+  l >= 0 && l < 255 &&
+  i > 0 && i < 255
   
 let reachable ip = 
   !allow_local_network ||

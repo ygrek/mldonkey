@@ -1,5 +1,4 @@
 Installation
-
 ==================
 
 -If you want to get up and running quickly and easily-
@@ -48,13 +47,17 @@ Compiling mldonkey with mldonkey_gui support:
 -------------------
 
 You have now two options to compile mldonkey:
-- Individually install Objective-Caml 3.06 and LablGTK 1.2.6. Then, you can
+- Individually install Objective-Caml 3.08.0 and LablGTK 1.2.7. Then, you can
   compile mldonkey. The instructions are given below at '1)'.
 - If you want to install ocaml and lablgtk only to compile mldonkey. You must
   have a good internet access (you want mldonkey after all :). You must have
   "wget" installed. Then, run:
 
-./configure -enable-batch
+./configure --enable-batch
+
+If you want threading support to improve core performance add this switch
+(if your system support pthreads):
+--enable-pthread
 
 The configure script will download ocaml and lablgtk, compile and install them
 locally so that they can be used to compile mldonkey. Steps below can be skipped
@@ -64,29 +67,29 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml and LablGTK 1.2.6
-   Recommended version of Objective-Caml for MinGW is 3.06, on Unix 3.07+2.
-   Example configuration for Ocaml 3.06:
+1) Installing required tools: Objective-Caml 3.08.0 and LablGTK 1.2.7
 
- 1.1) Objective-Caml 3.06 (from   http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.08.0 (from http://pauillac.inria.fr/caml)
 
-    ~/tmp> tar zxf ocaml-3.06.tar.gz
-    ~/tmp> cd ocaml-3.06
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.0.tar.gz
+    ~/tmp> tar zxf ocaml-3.08.0.tar.gz
+    ~/tmp> cd ocaml-3.08.0
 
    If you REALLY want to patch it:
-    ~/tmp/ocaml-3.06> ./configure
-    ~/tmp/ocaml-3.06> make world opt opt.opt
-    ~/tmp/ocaml-3.06> make install
+    ~/tmp/ocaml-3.08.0> ./configure
+    ~/tmp/ocaml-3.08.0> make world opt opt.opt
+    ~/tmp/ocaml-3.08.0> make install
 
- 1.2) LablGTK 1.2.6 (from 
+ 1.2) LablGTK 1.2.7 (from 
             http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
-    ~/tmp> tar zxf lablgtk-1.2.6.tar.gz
-    ~/tmp> cd lablgtk-1.2.6
-    ~/tmp/lablgtk-1.2.6> make configure
-    ~/tmp/lablgtk-1.2.6> make
-    ~/tmp/lablgtk-1.2.6> make opt
-    ~/tmp/lablgtk-1.2.6> make install
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-1.2.7.tar.gz
+    ~/tmp> tar zxf lablgtk-1.2.7.tar.gz
+    ~/tmp> cd lablgtk-1.2.7
+    ~/tmp/lablgtk-1.2.7> make configure
+    ~/tmp/lablgtk-1.2.7> make
+    ~/tmp/lablgtk-1.2.7> make opt
+    ~/tmp/lablgtk-1.2.7> make install
 
 2) Compiling mldonkey:
 
@@ -129,7 +132,7 @@ option to change the user after the port has been bound).
 NOTES:
 ------
 2002/12/18: To compile on MinGW
- * configure: -enable-batch will not work, you must download and install ocaml
+ * configure: --enable-batch will not work, you must download and install ocaml
     yourself
  * if ocamlopt/gcc fails to generate mldonkey.exe, add '-verbose -S'
      to the LIBS_opt in the Makefile. Use 'make &> log' to keep the

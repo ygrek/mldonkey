@@ -1,6 +1,11 @@
 TODO list for client
 ====================
 
+Before 2.6:
+  * Check the correctness of the number of sources.
+  * Check that verify_chunks works correctly.
+  * kad_stats: fill_buckets searches are never removed.
+
 URGENT:
  * Understand why we ask several times for the same chunks
  * Only request slots from interesting clients

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open Md4
 open Options
@@ -255,8 +256,8 @@ queries. *)
 (*      !server_is_connected_hook s sock *)
   
   | M.InfoReq (users, files) ->
-      s.server_nusers <- users;
-      s.server_nfiles <- files;
+      s.server_nusers <- Int64.of_int users;
+      s.server_nfiles <- Int64.of_int files;
       if (users < !!min_users_on_server) then
         begin
           lprintf "%s:%d remove server min_users_on_server limit hit!"
@@ -266,10 +267,6 @@ queries. *)
           server_remove (as_server s.server_server);
         end;
       server_must_update s
-  
-  | M.Mldonkey_MldonkeyUserReplyReq ->
-      s.server_mldonkey <- true;
-      printf_string "[MLDONKEY SERVER]"
   
   | M.QueryIDReplyReq t -> 
 (* This can either be a reply to a QueryID or a indirect request for
@@ -508,7 +505,8 @@ position to the min_left_servers position.
   let to_remove = ref [] in
   let to_keep = ref [] in
   Hashtbl.iter (fun _ s ->
-      if is_black_address s.server_ip s.server_port || s.server_port = 4662 then
+      if not s.server_preferred &&
+        (is_black_address s.server_ip s.server_port || s.server_port = 4662) then
         to_remove := s :: !to_remove
       else
         to_keep := (connection_last_conn s.server_connection_control, s) :: 
@@ -534,7 +532,8 @@ position to the min_left_servers position.
   
   for i = Array.length array - 1 downto !!min_left_servers do
     let ls, s = array.(i) in
-    if ls < min_last_conn && s.server_sock = NoConnection then begin
+        if ls < min_last_conn && s.server_sock = NoConnection 
+          && not s.server_preferred then begin
         if !verbose then begin
             lprintf "Server too old: %s:%d\n" 
               (Ip.to_string s.server_ip) s.server_port;
@@ -574,53 +573,6 @@ position to the min_left_servers position.
   lprintf "REMOVE %d OLD SERVERS DONE\n" (List.length !to_remove)
 
   
-(* Don't let more than max_allowed_connected_servers running for
-more than 5 minutes *)
-  
-  (*
-let update_master_servers _ =
-  lprintf "update_master_servers\n"; 
-  let nmasters = ref 0 in
-  List.iter (fun s ->
-      if s.server_master then
-        match s.server_sock with
-        | Connection _ -> incr nmasters;
-        | _ -> ()
-  ) (connected_servers ());
-  let nconnected_servers = ref 0 in
-  let list = List.sort (fun s2 s1 ->
-        s1.server_nusers - s2.server_nusers
-    ) (connected_servers ()) in
-  List.iter (fun s ->
-      incr nconnected_servers;
-      if not s.server_master && s.server_cid <> None then
-        if !nmasters <  max_allowed_connected_servers () &&
-          s.server_nusers >= !!master_server_min_users
-        then begin
-            do_if_connected  s.server_sock (fun sock ->
-                s.server_master <- true;
-                incr nmasters;
-                server_send_share s.server_has_zlib sock
-                  (DonkeyShare.all_shared ())
-            )
-          end else
-        if connection_last_conn s.server_connection_control 
-            + !!become_master_delay < last_time () &&
-          !nconnected_servers > max_allowed_connected_servers ()  then begin
-(* remove one third of the servers every 5 minutes *)
-            nconnected_servers := !nconnected_servers - 3;
-(*            lprintf "DISCONNECT FROM EXTRA SERVER %s:%d\n "
-(Ip.to_string s.server_ip) s.server_port; 
-*)
-            do_if_connected s.server_sock (fun sock ->
-  (*                lprintf "shutdown\n"; *)
-                  (shutdown sock (Closed_for_error "No more slots")));
-          end
-  ) 
-  (* reverse the list, so that first servers to connect are kept ... *)
-  list
-    *)
-
 (* Keep connecting to servers in the background. Don't stay connected to 
   them , and don't send your shared files list *)
 let walker_list = ref []
@@ -716,14 +668,18 @@ let udp_walker_timer () =
       
       
       
+(* added 2.5.25: to sort the servers with the preferred ones first or
+the more users otherwise *)
       
-      
-      
+let compare_servers s2 s1 =
+  let n = compare s1.server_preferred s2.server_preferred in
+  if n = 0 then
+    Int64.to_int (s1.server_nusers -- s2.server_nusers)
+  else n
+    
 let update_master_servers _ =
 
-  let list = List.sort (fun s2 s1 ->
-        s1.server_nusers - s2.server_nusers
-    ) (connected_servers ()) in
+  let list = List.sort compare_servers (connected_servers ()) in
 
 (* Now, the servers are sorted in 'list' so that the first ones have the more
   users. *)
@@ -754,6 +710,11 @@ the fewer users. *)
           end;
         s.server_master <- true;
         incr nmasters;
+      
+(* Put the server in the list of servers, and update the list *)
+        masters := s :: !masters;
+        masters := List.rev (List.sort compare_servers !masters);
+        
         server_send_share s.server_has_zlib sock
           (DonkeyShare.all_shared ())        
     )
@@ -795,10 +756,12 @@ connections *)
               (last_time () -  connection_last_conn s.server_connection_control)
               ; 
             end;
-          
-          if connection_last_conn s.server_connection_control 
-              + !!become_master_delay < last_time () && not s.server_master
-            then begin
+
+          let connection_time = last_time () - 
+            connection_last_conn s.server_connection_control in
+          if not s.server_master &&
+            (s.server_preferred || connection_time > !!become_master_delay)
+          then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               
@@ -813,13 +776,16 @@ now if needed *)
               match !masters with 
                 [] -> disconnect_old_server s
               | ss :: tail ->
-                  if !!keep_best_server &&
-                    mini (ss.server_nusers + 1000) (ss.server_nusers * 5)
-                    < s.server_nusers then begin
+                  if 
+                    (s.server_preferred && not ss.server_preferred) ||
+                    (!!keep_best_server &&
+                      mini ((Int64.to_int ss.server_nusers) + 1000)
+                      ((Int64.to_int ss.server_nusers) * 5)
+                    < (Int64.to_int s.server_nusers)) then begin
                       
                       if !verbose then begin
                           lprintf
-                            "   MASTER: RAISING %s (%d) instead of %s (%d)\n" 
+                            "   MASTER: RAISING %s (%Ld) instead of %s (%Ld)\n" 
                             (Ip.to_string s.server_ip) s.server_nusers 
                             (Ip.to_string ss.server_ip) ss.server_nusers
                           
@@ -829,6 +795,7 @@ now if needed *)
                       masters := tail;
                       make_master s
                     end else
+                  if connection_time > !!walker_server_lifetime then
                     disconnect_old_server s
             end
       )

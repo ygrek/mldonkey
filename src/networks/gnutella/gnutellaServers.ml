@@ -234,8 +234,8 @@ let rec server_parse_header s gconn sock header
     if proto < "0.6" then
       failwith (Printf.sprintf "Bad protocol [%s]" proto)
     else
-    if not (!gnutella2) then
-      failwith "Protocol Gnutella2 not supported"
+    if !gnutella2 <> GnutellaProto.gnutella2_needed then
+      failwith "Protocol not supported"
     else
     if code <> "200" then begin
         s.server_connected <- int64_time ();
@@ -551,8 +551,8 @@ let udp_handler p =
   GnutellaHandler.udp_handler ip port buf
       
 let _ =
-  server_ops.op_server_disconnect <- (fun s -> disconnect_server s
-Closed_by_user);
+  server_ops.op_server_disconnect <- 
+  (fun s -> disconnect_server s Closed_by_user);
   server_ops.op_server_remove <- (fun s ->
       disconnect_server s Closed_by_user; 
-  )
+  );

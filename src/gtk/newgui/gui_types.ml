@@ -96,8 +96,8 @@ type gui_server_info = {
     mutable gserver_port : int;
     mutable gserver_score : int;
     mutable gserver_tags : CommonTypes.tag list;
-    mutable gserver_nusers : int;
-    mutable gserver_nfiles : int;
+    mutable gserver_nusers : int64;
+    mutable gserver_nfiles : int64;
     mutable gserver_state : host_state;
     mutable gserver_name : string;
     mutable gserver_description : string;

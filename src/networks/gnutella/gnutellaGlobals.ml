@@ -149,13 +149,6 @@ let results_by_uid = Hashtbl.create 127
 
 ****************************************************************)
   
-  
-  
-(* Hosts are first injected in workflow. The workflow ensures that any
-host object is inspected every two minutes. *)
-let (workflow : host Queue.t) = 
-  Queues.workflow (fun time -> time + 120 > last_time ())
-
 let ready _ = false
   
 (* From the main workflow, hosts are moved to these workflows when they
@@ -196,51 +189,9 @@ module H = CommonHosts.Make(struct
             ))]
 
       let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
+        
+      let max_hosts = max_known_hosts
     end)
-  
-(*
-let host_queue_add q h time =
-  if not (List.memq q h.host_queues) then begin
-      Queue.put q (time, h);
-      h.host_queues <- q :: h.host_queues
-    end
-
-let host_queue_take q =
-  let (time,h) = Queue.take q in
-  if List.memq q h.host_queues then begin
-      h.host_queues <- List2.removeq q h.host_queues 
-    end;
-  h
-
-let hosts_counter = ref 0
-  
-let new_host ip port ultrapeer kind = 
-  let key = (ip,port) in
-  try
-    let h = Hashtbl.find hosts_by_key key in
-    h.host_age <- last_time ();
-    h
-  with _ ->
-      incr hosts_counter;
-      let host = {
-          host_num = !hosts_counter;
-          host_server = None;
-          host_ip = ip;
-          host_port = port;
-          
-          host_age = last_time ();
-          host_tcp_request = 0;
-          host_udp_request = 0;
-          host_connected = 0;
-          
-          host_kind = kind;
-          host_ultrapeer = ultrapeer;
-          host_queues = [];
-        } in
-      Hashtbl.add hosts_by_key key host;
-      host_queue_add workflow host 0;
-      host
-        *)
 
 let new_server ip port =
   let h = H.new_host ip port true in
@@ -252,17 +203,16 @@ let new_server ip port =
           server_host = h;
           server_sock = NoConnection;
           server_agent = "<unknown>";
-          server_nfiles = 0;
+          server_nfiles = Int64.zero;
           server_nkb = 0;
-          server_nusers = 0;
+          server_nusers = Int64.zero;
           server_need_qrt = true;
           server_ping_last = Md4.random ();
-          server_nfiles_last = 0;
+          server_nfiles_last = Int64.zero;
           server_nkb_last = 0;
           server_vendor = "";
           
           server_connected = zero;
-(*          server_gnutella2 = false; *)
           server_query_key = NoUdpSupport;
         } and
         server_impl = {
@@ -273,7 +223,7 @@ let new_server ip port =
       server_add server_impl;
       h.host_server <- Some s;
       s
-
+      
 let extract_uids arg = Uid.expand [Uid.of_string arg]
   
 let result_sources = Hashtbl.create 1000

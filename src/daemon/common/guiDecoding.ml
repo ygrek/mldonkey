@@ -64,6 +64,11 @@ let gui_cut_messages f sock nread =
       Decoding of basic data types
 
 ****************)
+let get_int64_28 proto s pos =
+  if proto > 27 then
+    get_int64 s pos, pos+8
+  else
+    Int64.of_int (get_int s pos), pos+4
       
 let get_string s pos = 
   let len = get_int16 s pos in
@@ -495,8 +500,8 @@ let get_server proto s pos =
   let port = get_int16 s pos in
   let score = get_int s (pos+2) in
   let tags, pos = get_list get_tag s (pos+6) in
-  let nusers = get_int s pos in
-  let nfiles = get_int s (pos+4) in
+  let nusers, pos = get_int64_28 proto s pos in
+  let nfiles, pos = get_int64_28 proto s pos in
   let state, pos = get_host_state proto s (pos+8) in
   let name, pos = get_string s pos in
   let description, pos = get_string s pos in
@@ -1106,8 +1111,8 @@ let to_gui (proto : int array) opcode s =
     
     | 11 ->
         let n1 = get_int s 2 in
-        let n2 = get_int s 6 in
-        let n3 = get_int s 10 in
+        let n2, pos = get_int64_28 proto s 6 in
+        let n3, pos = get_int64_28 proto s pos in
         Server_busy (n1,n2,n3)
     
     | 12 -> 

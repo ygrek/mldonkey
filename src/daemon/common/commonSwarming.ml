@@ -68,6 +68,7 @@ module Make(M: sig
           val file_best_name : file -> string
           val file_state : file -> file_state
           val file_fd : file -> Unix32.t
+          val file_downloaded : file -> int64
           val add_file_downloaded : file -> int64 -> unit
         end
     end) = struct
@@ -129,7 +130,7 @@ type t = {
     
     mutable t_ncomplete_blocks : int;
     mutable t_nverified_blocks : int;
-    mutable t_downloaded : int64;
+(*    mutable t_downloaded : int64; *)
   }
 
 and block_v = 
@@ -268,7 +269,7 @@ let create file chunk_size range_size =
       t_range_size = range_size;
       t_strategy = AdvancedStrategy;
       
-      t_downloaded = zero;
+(*      t_downloaded = zero; *)
       t_ncomplete_blocks = 0;
       t_nverified_blocks = 0;
       
@@ -450,7 +451,7 @@ let print_block b =
 let rec close_ranges t r =
   
   let added = r.range_end -- r.range_current_begin in
-  t.t_downloaded <- t.t_downloaded ++ added;
+  add_file_downloaded t.t_file added;
   let b = r.range_block in
   b.block_remaining <- b.block_remaining -- added;
   
@@ -473,11 +474,10 @@ let set_downloaded_block t i =
     EmptyBlock ->
       let block_begin = t.t_block_size ** i in
       let block_end = min (block_begin ++ t.t_block_size) t.t_size in
-      t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
+      add_file_downloaded t.t_file (block_end -- block_begin)
   | PartialBlock b ->
       let rec iter r =
-        t.t_downloaded <- t.t_downloaded ++ 
-          (r.range_end -- r.range_current_begin);
+        add_file_downloaded t.t_file (r.range_end -- r.range_current_begin);
         r.range_current_begin <- r.range_end;
         match r.range_next with
           None -> r.range_prev <- None; r
@@ -566,8 +566,7 @@ let verify_block t i =
               | PartialBlock _ -> 
                   t.t_verified_bitmap.[i] <- '1'
               | CompleteBlock ->
-                  t.t_downloaded <- 
-                    t.t_downloaded -- (block_end -- block_begin);
+                  add_file_downloaded t.t_file (block_begin -- block_end);
                   
                   t.t_blocks.(i) <- EmptyBlock;
                   t.t_verified_bitmap.[i] <- '0'
@@ -721,12 +720,14 @@ let next_range f r =
 (*                         add_all_downloaded                            *)
 (*                                                                       *)
 (*************************************************************************)
-        
+
+(*
 let add_all_downloaded t old_downloaded = 
   let new_downloaded = t.t_downloaded in
   if new_downloaded <> old_downloaded then 
     add_file_downloaded t.t_file (new_downloaded -- old_downloaded)
-  
+    *)
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         range_received (internal)                     *)
@@ -743,7 +744,7 @@ let range_received r chunk_begin chunk_end =
       let downloaded = new_current_begin -- r.range_current_begin in
       let b = r.range_block in
       let t = b.block_t in
-      t.t_downloaded <- t.t_downloaded ++ downloaded;
+      add_file_downloaded t.t_file downloaded;
       b.block_remaining <- b.block_remaining -- downloaded;
       r.range_current_begin <- new_current_begin;
       if r.range_current_begin = r.range_end then begin
@@ -809,7 +810,6 @@ let set_present_block b chunk_begin chunk_end =
 
 let set_present t chunks = 
   
-  let old_downloaded = t.t_downloaded in  
   apply_intervals t (fun i block_begin block_end chunk_begin chunk_end ->
 (*      lprintf "interval: %Ld-%Ld in block %d [%Ld-%Ld]"
         chunk_begin chunk_end i block_begin block_end; *)
@@ -821,8 +821,7 @@ let set_present t chunks =
 (*              lprintf " --> CompleteBlock\n"; *)
               t.t_blocks.(i) <- CompleteBlock;
               must_verify_block t i false;
-              t.t_downloaded <- 
-                t.t_downloaded ++ (block_end -- block_begin)
+              add_file_downloaded t.t_file (block_end -- block_begin)
             end
           else
           let b = new_block t i in
@@ -834,8 +833,7 @@ let set_present t chunks =
       | _ -> 
 (*          lprintf "  Other\n"; *)
           ()
-  ) chunks;
-  add_all_downloaded t old_downloaded
+  ) chunks
   
 (*************************************************************************)
 (*                                                                       *)
@@ -1501,7 +1499,6 @@ let received (up : uploader) (file_begin : Int64.t)
 
 (* TODO: check that everything we received has been required *)
     let t = up.up_t in
-    let old_downloaded = t.t_downloaded in
     try  
       
       List.iter (fun (_,_,r) ->
@@ -1570,10 +1567,8 @@ let received (up : uploader) (file_begin : Int64.t)
             
             end
       ) up.up_ranges;
-      clean_ranges up;
-      add_all_downloaded t old_downloaded
+      clean_ranges up
     with e -> 
-        add_all_downloaded t old_downloaded;
         raise e
   
         
@@ -1700,11 +1695,8 @@ let propagate_chunk t1 ts pos1 size =
       Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
       pos1 pos2 (Int64.to_int size);
 
-      let old_downloaded = t2.t_downloaded in
       set_toverify_block t2 i2;
       set_verified_block t2 i2;
-      add_all_downloaded t2 old_downloaded
-
   ) ts
   
 (*************************************************************************)
@@ -1804,7 +1796,7 @@ let set_verifier t f =
 (*                                                                       *)
 (*************************************************************************)
 
-let downloaded t = t.t_downloaded
+let downloaded t = file_downloaded t.t_file
 
 (*************************************************************************)
 (*                                                                       *)

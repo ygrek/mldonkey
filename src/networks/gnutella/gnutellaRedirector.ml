@@ -91,7 +91,7 @@ let connect_hostfile _ =
   match !redirectors_hostfiles with
     [] ->
       if !next_redirector_access < last_time () then begin
-          next_redirector_access := last_time () + 60;
+          next_redirector_access := last_time () + 3600;
           connect_urlfile ();
           redirectors_hostfiles := !!gnutella_hostfiles
         end;

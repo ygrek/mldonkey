@@ -912,9 +912,11 @@ let find_oldest_peer hashtbl =
   !md4
     *)
 
+(*
 let private_address ip =
   Ip.matches ip [(Ip.of_string "0.0.0.0"); (Ip.of_string "127.0.0.255"); 
 		 (Ip.of_string "10.255.255.255"); (Ip.of_string "192.168.255.255") ] 
+    *)
 
   (*
 (* Replace private IP by public IPs in peer list *)
@@ -1286,7 +1288,7 @@ let udp_client_handler t p =
         | [p] ->
             new_peer_message p;
             if other_port <> p.peer_port || other_ip <> p.peer_ip then
-              lprintf () "Bad IP or port";
+              lprintf () "Bad IP or port\n";
             let p = new_peer p in
             ()
         | p :: tail ->
@@ -2196,7 +2198,7 @@ let enable () =
 
 (* remove searches that are older than 5 minutes *)
           overnet_searches := List.filter (fun s ->
-              s.search_requests < max_search_requests || 
+              s.search_requests < max_search_requests &&
               s.search_start > last_time () - 300
           ) !overnet_searches;
       );
@@ -2504,7 +2506,7 @@ let _ =
   ()
   
 let overnet_search (ss : search) =
-  if !!overnet_search_keyword then
+  if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
     lprintf () "========= overnet_search =========\n";
     let ws = keywords_of_query q in
