@@ -142,7 +142,6 @@ static void * hasher_thread(void * arg)
         
         }    
         job_done = 1;
-      printf("job finished\n");
     }
   }
     

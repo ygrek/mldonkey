@@ -50,6 +50,8 @@ let _ =
           let job = Fifo.take fifo in
           let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
           current_job := Some (job, fd);
+          Printf.printf "Starting job %s %Ld %Ld" job.job_name
+            job.job_begin job.job_len; print_newline ();
           job_start job fd
   )
   

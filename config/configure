@@ -42,7 +42,7 @@ ac_help="$ac_help
 ac_help="$ac_help
 --disable-gui:       allows you to remove the GUI"
 ac_help="$ac_help
---disable-pthread:       allows you to add pthread support in mldonkey"
+--enable-pthread-lib=pthread :       allows you to add pthread support in mldonkey"
 ac_help="$ac_help
 --enable-devel:       (undocumented)"
 ac_help="$ac_help
@@ -564,7 +564,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=17
+CURRENT_RELEASE=18
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -700,11 +700,11 @@ fi
 
 
 
-USE_PTHREAD=no
-# Check whether --enable-pthread or --disable-pthread was given.
-if test "${enable_pthread+set}" = set; then
-  enableval="$enable_pthread"
-  USE_PTHREAD="$enableval"
+PTHREAD_LIB=no
+# Check whether --enable-pthread-lib or --disable-pthread-lib was given.
+if test "${enable_pthread_lib+set}" = set; then
+  enableval="$enable_pthread_lib"
+  PTHREAD_LIB="$enableval"
 fi
 
 
@@ -2663,7 +2663,7 @@ fi
     BAD_TARGETS="$BAD_TARGETS direct_connect"
   fi
 
-  if test "$LIMEWIRE" = "yes" ; then
+  if test "$LIMEWIRE" = "yes"  && test "$ZLIB" = "yes" ; then
     
 ac_safe=`echo "../limewire" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../limewire""... $ac_c" 1>&6
@@ -3029,19 +3029,19 @@ echo "configure:3023: checking Checking for Jabbr" >&5
   fi
 fi
 
-if test "$USE_PTHREAD" = "no"; then
+if test "$PTHREAD_LIB" = "no"; then
   echo "Dont use threads"
 else
   OLD_LIBS="$LIBS"
   LIBS=""
-  echo $ac_n "checking for pthread_create in -lpthread""... $ac_c" 1>&6
-echo "configure:3039: checking for pthread_create in -lpthread" >&5
-ac_lib_var=`echo pthread'_'pthread_create | sed 'y%./+-%__p_%'`
+  echo $ac_n "checking for pthread_create in -l$PTHREAD_LIB""... $ac_c" 1>&6
+echo "configure:3039: checking for pthread_create in -l$PTHREAD_LIB" >&5
+ac_lib_var=`echo $PTHREAD_LIB'_'pthread_create | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lpthread  $LIBS"
+LIBS="-l$PTHREAD_LIB  $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 3047 "configure"
 #include "confdefs.h"
@@ -3069,13 +3069,13 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-    ac_tr_lib=HAVE_LIB`echo pthread | sed -e 's/[^a-zA-Z0-9_]/_/g' \
+    ac_tr_lib=HAVE_LIB`echo $PTHREAD_LIB | sed -e 's/[^a-zA-Z0-9_]/_/g' \
     -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
   cat >> confdefs.h <<EOF
 #define $ac_tr_lib 1
 EOF
 
-  LIBS="-lpthread $LIBS"
+  LIBS="-l$PTHREAD_LIB $LIBS"
 
 else
   echo "$ac_t""no" 1>&6

@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2002/02/24: Simon (v 2.02-18)
+  - eDonkey: 
+     * Fixes: good sources dropped
+  - Limewire:
+     * Implementation of Query Routing 0.1
+  - Applied patches #1169, #1173
+  - ./configure: use option -enable-pthread-lib=pthread, or whatever, to enable
+       use of threads
+
 2002/02/22: Simon (v 2.02-17)
   - GUI: new application mldonkey_installer'. Guess its goal. Need
       -enable-devel in ./configure . Not working yet.
@@ -22,7 +31,7 @@ ChangeLog
   - ./configure: new option -enable-pthread, if you want to compute some
       md4s in another thread. 
 
-2002/02/20: Simon (v 2.02-16)
+2002/02/20: Simon (v 2.02-16) tag unstable-2-02-16
   - Applied patch #1137: new html_mods
   - Added some options in 'vo':
        client_name,allowed_ips,client_ip, force_client_ip

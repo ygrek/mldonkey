@@ -58,7 +58,6 @@ let grow_buffer s =
   String.blit s 0 s' 0 (String.length s);
   s'
 
-(****
 let compress_string ?(level = 6) inbuf =
   let zs = deflate_init level true in
   let rec compr inpos outbuf outpos =
@@ -78,7 +77,6 @@ let compress_string ?(level = 6) inbuf =
   let res = compr 0 (String.create (String.length inbuf)) 0 in
   deflate_end zs;
   res
-****)
 
 let uncompress ?(header = true) refill flush =
   let inbuf = String.create buffer_size
