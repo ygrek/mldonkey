@@ -352,7 +352,9 @@ let verify_chunk file i =
   let t1 = Unix.gettimeofday () in
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   let t2 = Unix.gettimeofday () in
-  Printf.printf "Delay for MD4: %2.2f" (t2 -. t1); print_newline ();
+  if !!verbose then begin
+      Printf.printf "Delay for MD4: %2.2f" (t2 -. t1); print_newline ();
+    end;
   (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in

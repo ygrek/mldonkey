@@ -199,7 +199,7 @@ let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
 let get_md4 s pos =
   try Md4.direct_of_string (String.sub s pos 16)  
   with e ->
-    Printf.printf "exception in get_md4 %d s=%s" pos s; 
+    Printf.printf "exception in get_md4 %d s=%s" pos (String.escaped s); 
     print_newline ();
     raise e
 

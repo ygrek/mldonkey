@@ -75,9 +75,11 @@ let request_for c file sock =
           if record.nwarnings > 3 then raise Exit;
           let module M = DonkeyProtoClient in
           if record.nwarnings =3 then begin
-              Printf.printf "uploader %s(%s) has been banned" 
-                c.client_name (brand_to_string c.client_brand);
-              print_newline ();
+              if !!verbose then begin
+                  Printf.printf "uploader %s(%s) has been banned" 
+                    c.client_name (brand_to_string c.client_brand);
+                  print_newline ();
+                end;
               
               ban_client c sock;
               if !!send_warning_messages then
@@ -85,9 +87,11 @@ let request_for c file sock =
                     "[ERROR] Your client is connecting too fast, it has been banned"));
               raise Exit;
             end;
-          Printf.printf "uploader %s(%s) has been warned" 
-            c.client_name (brand_to_string c.client_brand);
-          print_newline ();
+          if !!verbose then begin
+              Printf.printf "uploader %s(%s) has been warned" 
+                c.client_name (brand_to_string c.client_brand);
+              print_newline ();
+            end;
           if !!send_warning_messages then
             direct_client_send sock ( M.SayReq  (
                 "[WARNING] Your client is connecting too fast, it will get banned"))
@@ -270,14 +274,15 @@ let new_chunk up begin_pos end_pos =
 let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
+    c.client_brand <- (
       if md4.[5] = Char.chr 13 && md4.[14] = Char.chr 110 then
-	c.client_brand <- Brand_oldemule
+        Brand_oldemule
       else if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
-	c.client_brand <- Brand_newemule
+	Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
-	c.client_brand <- Brand_mldonkey2
-      else
-	c.client_brand <- Brand_edonkey
+        Brand_mldonkey2
+    else
+      if c.client_overnet then Brand_overnet else Brand_edonkey)
 
 let query_files c sock =  
   let nall_queries = ref 0 in
@@ -291,7 +296,8 @@ let query_files c sock =
               let module C = M.QueryFile in
               M.QueryFileReq file.file_md4);          
           incr nqueries
-      ) (* !current_files *) c.client_source_for;
+      ) (if c.client_source_for = [] then
+          !current_files else c.client_source_for);
       if !nqueries > 0 then
         c.client_last_filereqs <- last_time ();
       if !!verbose then begin
@@ -372,12 +378,12 @@ let add_new_location sock file c =
                       connection_last_conn cc.client_connection_control > time
                     then
                       match cc.client_kind with
-                        Indirect_location _ -> ();
-                      | Known_location (ip, port) -> 
+                      | Known_location (ip, port) when not cc.client_overnet -> 
                           sources := (ip, port, ip) :: !sources;
                           decr send_locations;
                           if !send_locations = 0 then
                             raise Exit;
+                      | _ -> ()
                 ) file.file_sources;
               with _ -> ();
                   
@@ -443,15 +449,13 @@ let add_new_location sock file c =
     
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
-
-  (*
+(*
   Printf.printf "Message from client %s(%s)"
   c.client_name (brand_to_string c.client_brand);
   print_newline ();
   M.print t;
   print_newline ();
-*)
-  
+*)  
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
@@ -475,8 +479,11 @@ let client_to_client for_files c t sock =
       
       connection_ok c.client_connection_control;
       
-      if !!update_server_list then 
-        safe_add_server t.CR.ip_server t.CR.port_server;
+      begin
+        match t.CR.server_info with
+          Some (ip, port) when !!update_server_list -> safe_add_server ip port
+        | _ -> ()
+      end;
       
       identify_client_brand c;
       set_client_state c Connected_idle;      
@@ -540,7 +547,6 @@ print_newline ();
   | M.JoinQueueReq _ ->
       begin try
           
-          Printf.printf "Upload queue:"; print_newline ();
           begin
             match c.client_brand with
               Brand_mldonkey2 -> 
@@ -573,16 +579,21 @@ print_newline ();
             M.AvailableSlotReq Q.t);
           c.client_has_a_slot <- true;
           
-          Printf.printf "New uploader %s: brand %s" 
-            c.client_name (brand_to_string c.client_brand);
-          print_newline ();
+          if !!verbose then begin
+              Printf.printf "New uploader %s: brand %s" 
+                c.client_name (brand_to_string c.client_brand);
+              print_newline ();
+            end;
+          
           set_write_power sock (c.client_power);
           set_read_power sock (c.client_power);
           
         with _ ->
-            Printf.printf "(uploader %s: brand %s, couldn't get a slot)" 
-              c.client_name (brand_to_string c.client_brand);
-            print_newline ()
+            if !!verbose then begin
+                Printf.printf "(uploader %s: brand %s, couldn't get a slot)" 
+                  c.client_name (brand_to_string c.client_brand);
+                print_newline ()
+              end;
       end
   
   | M.CloseSlotReq _ ->
@@ -960,8 +971,10 @@ is checked for the file.
         })
   
   | M.QueryBlocReq t when !has_upload = 0 && c.client_has_a_slot ->
-  Printf.printf "uploader %s(%s) ask for block" c.client_name
-(brand_to_string c.client_brand); print_newline ();
+      if !!verbose then begin
+          Printf.printf "uploader %s(%s) ask for block" c.client_name
+            (brand_to_string c.client_brand); print_newline ();
+        end;
   
       set_rtimeout sock !!upload_timeout;
       let module Q = M.QueryBloc in
@@ -1054,9 +1067,9 @@ let init_client sock c =
 
   
         
-let read_first_message t sock =
+let read_first_message overnet m sock =
   let module M = DonkeyProtoClient in
-  match t with
+  match m with
 
   | M.ConnectReq t ->
       printf_string "******* [PCONN OK] ********";
@@ -1078,6 +1091,8 @@ let read_first_message t sock =
 
       let kind = Indirect_location (!name,t.CR.md4) in
       let c = new_client kind in
+
+      
       
       begin
         match c.client_sock with
@@ -1097,8 +1112,25 @@ let read_first_message t sock =
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       
-      if !!update_server_list then
-        safe_add_server t.CR.ip_server t.CR.port_server;
+      begin
+        match t.CR.server_info with
+          Some (ip, port) when !!update_server_list -> 
+            safe_add_server ip port
+        | None -> 
+            if overnet then begin
+                Printf.printf "incoming Overnet client"; print_newline ();
+                c.client_overnet <- overnet;            
+              end
+        | _ -> ()
+      end;
+
+      (*      
+      Printf.printf "Message from client %s(%s)"
+      c.client_name (brand_to_string c.client_brand);
+      print_newline ();
+      M.print m;
+      print_newline ();
+*)
       
 (*      List.iter (fun s ->
 		   match s.server_sock with
@@ -1116,8 +1148,7 @@ let read_first_message t sock =
           C.ip = client_ip (Some sock);
           C.port = !client_port;
           C.tags = !client_tags;
-          C.ip_server = t.CR.ip_server;
-          C.port_server = t.CR.port_server;
+          C.server_info = t.CR.server_info;
         }
       );
       
@@ -1143,12 +1174,12 @@ let read_first_message t sock =
       Some c
       
   | M.NewUserIDReq _ ->
-      M.print t; print_newline ();
+      M.print m; print_newline ();
       None
       
   | _ -> 
       Printf.printf "BAD MESSAGE FROM CONNECTING CLIENT"; print_newline ();
-      M.print t; print_newline ();
+      M.print m; print_newline ();
       close sock "bad connecting message";
       raise Not_found
 
@@ -1166,41 +1197,42 @@ let reconnect_client c =
           else
           try
 (*            Printf.printf "CLIENT: connecting"; print_newline (); *)
-          set_client_state c Connecting;
-          connection_try c.client_connection_control;
-          
-          printf_string "?C";
-          let sock = TcpBufferedSocket.connect "donkey to client" (
-              Ip.to_inet_addr ip) 
-            port 
-              (client_handler c) (*client_msg_to_string*) in
-          TcpBufferedSocket.set_write_power sock c.client_power;
-          TcpBufferedSocket.set_read_power sock c.client_power;
-          init_connection sock;
-          init_client sock c;
-          
-          set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
-            (client_to_client files c));
-          
-          c.client_sock <- Some sock;
-          c.client_connected <- true;
-          let server_ip, server_port = 
-            try
-              let s = DonkeyGlobals.last_connected_server () in
-              s.server_ip, s.server_port
-            with _ -> Ip.localhost, 4665
-          in
-          direct_client_send sock (
-            let module M = DonkeyProtoClient in
-            let module C = M.Connect in
-            M.ConnectReq {
-              C.md4 = !!client_md4; (* we want a different id each conn *)
-              C.ip = client_ip None;
-              C.port = !client_port;
-              C.tags = !client_tags;
-              C.version = 16;
-              C.ip_server = server_ip;
-              C.port_server = server_port;
+            set_client_state c Connecting;
+            connection_try c.client_connection_control;
+            
+            printf_string "?C";
+            let sock = TcpBufferedSocket.connect "donkey to client" (
+                Ip.to_inet_addr ip) 
+              port 
+                (client_handler c) (*client_msg_to_string*) in
+            TcpBufferedSocket.set_write_power sock c.client_power;
+            TcpBufferedSocket.set_read_power sock c.client_power;
+            init_connection sock;
+            init_client sock c;
+            
+            set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
+                (client_to_client files c));
+            
+            c.client_sock <- Some sock;
+            c.client_connected <- true;
+            let server_ip, server_port = 
+              try
+                let s = DonkeyGlobals.last_connected_server () in
+                s.server_ip, s.server_port
+              with _ -> Ip.localhost, 4665
+            in
+            
+            direct_client_send sock (
+              let module M = DonkeyProtoClient in
+              let module C = M.Connect in
+              M.ConnectReq {
+                C.md4 = !!client_md4; (* we want a different id each conn *)
+                C.ip = client_ip None;
+                C.port = !client_port;
+                C.tags = !client_tags;
+                C.version = 16;
+                C.server_info = if c.client_overnet then None else 
+                  Some (server_ip, server_port);
             }
           )
 
@@ -1347,7 +1379,7 @@ But if we receive them, take them !
   
   with Not_found -> ()
       
-let client_connection_handler t event =
+let client_connection_handler overnet t event =
   printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
@@ -1367,7 +1399,7 @@ begin
           
           (try
               set_reader sock 
-                (DonkeyProtoCom.client_handler2 c read_first_message
+                (DonkeyProtoCom.client_handler2 c (read_first_message overnet)
                   (client_to_client []));
             
             with e -> Printf.printf "Exception %s in init_connection"

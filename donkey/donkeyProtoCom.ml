@@ -41,13 +41,11 @@ let client_msg_to_string msg =
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
-  
-  (*
+(*  
   Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
   DonkeyProtoClient.print msg; 
-print_newline ();
-*)
-  
+  print_newline ();
+*)  
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;

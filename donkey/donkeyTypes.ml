@@ -149,6 +149,7 @@ and client (*[]*) = {
     mutable client_brand : brand;
     mutable client_banned : bool;
     mutable client_has_a_slot : bool;
+    mutable client_overnet : bool;
   }
   
 and upload_info = {

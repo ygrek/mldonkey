@@ -313,3 +313,7 @@ At the beginning, when mldonkey starts, all the sources are emerging.
 
 Every second, we call the function "check_sources".
 
+
+NEW SOURCE MANAGEMENT:
+----------------------
+

@@ -26,7 +26,7 @@ val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
 
 val reconnect_client : DonkeyTypes.client -> unit
-val client_connection_handler : 'a -> TcpServerSocket.event -> unit
+val client_connection_handler : bool -> 'a -> TcpServerSocket.event -> unit
 
 val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
   

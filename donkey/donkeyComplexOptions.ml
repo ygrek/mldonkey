@@ -84,6 +84,12 @@ let value_to_client is_friend assocs =
   let name = try
       get_value "client_name" value_to_string with _ -> "" in
   set_client_name l name md4;
+
+  
+  
+  (try
+      l.client_overnet <- get_value "client_overnet" value_to_bool
+    with _ -> ());
   
   (try
       l.client_checked <- get_value "client_checked" value_to_bool
@@ -128,6 +134,7 @@ let client_to_value c =
         c.client_connection_control);
       "client_last_filereqs", float_to_value c.client_last_filereqs;
       "client_checked", bool_to_value c.client_checked;
+      "client_overnet", bool_to_value c.client_overnet;
     ]
   in
   

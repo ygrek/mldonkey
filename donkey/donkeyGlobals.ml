@@ -539,6 +539,7 @@ let dummy_client =
       client_already_counted = false;
       client_banned = false;
       client_has_a_slot = false;
+      client_overnet = false;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -598,6 +599,7 @@ let new_client key =
             client_already_counted = false;
             client_banned = false;
             client_has_a_slot = false;
+            client_overnet = false;
             } and
           client_impl = {
             dummy_client_impl with            

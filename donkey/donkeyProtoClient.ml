@@ -30,8 +30,7 @@ module Connect  = struct
         ip: Ip.t;
         port: int;
         tags : tag list;
-        ip_server : Ip.t;
-        port_server : int;
+        server_info : (Ip.t * int) option;
       }
     
     let names_of_tag =
@@ -49,16 +48,24 @@ module Connect  = struct
 (*      Printf.printf "port: %d" port; print_newline (); *)
       let ntags = get_int s 24 in
       let tags, pos = get_tags s 28 ntags names_of_tag in
-      let ip_server = get_ip s pos in
-      let port_server = get_port s (pos+4) in
+      let len = String.length s in
+      let server_info = 
+        let len = String.length s in 
+        if len = pos + 6 then begin
+(*            Printf.printf "Overnet Connect Message"; print_newline (); *)
+            None end else begin
+(*            Printf.printf "Normal Connect Message %d" (len - pos) ; 
+            print_newline (); *)
+            Some (get_ip s pos, get_port s (pos+4)) 
+          end
+      in
       {
         md4 = md4;
         version = version;
         ip = ip;
         port = port;
         tags = tags;
-        ip_server = ip_server;
-        port_server = port_server;
+        server_info = server_info;
       }
     
     let print t = 
@@ -70,8 +77,11 @@ module Connect  = struct
       Printf.printf "tags: ";
       print_tags t.tags;
       print_newline ();
-      Printf.printf "ip_server: %s\n" (Ip.to_string t.ip_server);
-      Printf.printf "port_server: %d\n" t.port_server    
+      match t.server_info with
+        None -> ()
+      | Some (ip, port) ->
+          Printf.printf "ip_server: %s\n" (Ip.to_string ip);
+          Printf.printf "port_server: %d\n" port
     
     let write buf t =
       buf_int8 buf t.version;
@@ -81,8 +91,13 @@ module Connect  = struct
       let ntags = List.length t.tags in
       buf_int buf ntags;
       buf_tags buf t.tags names_of_tag;
-      buf_ip buf t.ip_server;
-      buf_port buf t.port_server;
+      begin
+        match t.server_info with
+          None -> ()
+        | Some (ip, port) ->
+            buf_ip buf ip;
+            buf_port buf port;
+      end;
       buf_int buf 0;
       buf_int16 buf 0
 
@@ -94,8 +109,7 @@ module ConnectReply  = struct
         ip: Ip.t;
         port: int;
         tags : tag list;
-        ip_server : Ip.t;
-        port_server : int;
+        server_info : (Ip.t * int) option;
       }
     
     let names_of_tag =
@@ -112,15 +126,19 @@ module ConnectReply  = struct
 (*      Printf.printf "port: %d" port; print_newline (); *)
       let ntags = get_int s 23 in
       let tags, pos = get_tags s 27 ntags names_of_tag in
-      let ip_server = get_ip s pos in
-      let port_server = get_port s (pos+4) in
+      let server_info = 
+        let len = String.length s in 
+        if len = pos + 6 then begin
+            None end else begin
+            Some (get_ip s pos, get_port s (pos+4)) 
+          end
+      in
       {
         md4 = md4;
         ip = ip;
         port = port;
         tags = tags;
-        ip_server = ip_server;
-        port_server = port_server;
+        server_info = server_info;
       }
     
     let print t = 
@@ -131,8 +149,11 @@ module ConnectReply  = struct
       Printf.printf "tags: ";
       print_tags t.tags;
       print_newline ();
-      Printf.printf "ip_server: %s\n" (Ip.to_string t.ip_server);
-      Printf.printf "port_server: %d\n" t.port_server    
+      match t.server_info with
+        None -> ()
+      | Some (ip, port) ->
+          Printf.printf "ip_server: %s\n" (Ip.to_string ip);
+          Printf.printf "port_server: %d\n" port    
     
     let write buf t =
       buf_md4 buf t.md4;
@@ -141,8 +162,13 @@ module ConnectReply  = struct
       let ntags = List.length t.tags in
       buf_int buf ntags;
       buf_tags buf t.tags names_of_tag;
-      buf_ip buf t.ip_server;
-      buf_port buf t.port_server;
+      begin
+        match t.server_info with
+          None -> ()
+        | Some (ip, port) ->
+            buf_ip buf ip;
+            buf_port buf port;
+      end;
       buf_int buf 0;
       buf_int16 buf 0
 

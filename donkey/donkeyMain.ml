@@ -201,7 +201,7 @@ let enable () =
     let sock = TcpServerSocket.create 
         "donkey client server"
       (Ip.to_inet_addr !!donkey_bind_addr)
-      !!port client_connection_handler in
+      !!port (client_connection_handler false) in
 
     listen_sock := Some sock;
     
@@ -230,8 +230,7 @@ let enable () =
     Options.option_hook DonkeyOptions.protocol_version reset_tags;
     Options.option_hook client_name reset_tags;
     
-    DonkeyFiles.fill_clients_list ();
-    
+    DonkeyFiles.fill_clients_list ();    
 
 (**** START TIMERS ****)
     add_session_option_timer enabler check_client_connections_delay 

@@ -157,8 +157,10 @@ let really_query_download filenames size md4 location old_file absents =
         if Sys.file_exists filename && not (
             Sys.file_exists temp_file) then
           (try 
-              Printf.printf "Renaming from %s to %s" filename
-                temp_file; print_newline ();
+              if !!verbose then begin
+                  Printf.printf "Renaming from %s to %s" filename
+                    temp_file; print_newline ();
+                end;
               Unix2.rename filename temp_file;
               Unix.chmod temp_file 0o644;
               with e -> 

@@ -1,7 +1,12 @@
 ChangeLog	
 =========
 
+2002/12/23: Simon (tag release-2-02)
+  MAJOR BUG FIX:
+  - DonkeyClient: fixed a bug preventing download from indirect clients.
+
 2002/12/21: Simon (tag release-2-01-4) 
+  - DonkeyOvernet: updated TCP protocol to overnet 0.42
   - Bug fixes:
    * DonkeyOneFile: removed a bug disconnecting from time to time an uploader.
    * DonkeyClient: 

@@ -159,8 +159,7 @@ let supernode_browse_client node =
     C.port = !client_port;
     C.tags = !client_tags;
     C.version = 16;
-    C.ip_server = server_ip;
-    C.port_server = server_port;
+    C.server_info = Some (server_ip, server_port);
     });
   direct_client_send sock (
     let module M = DonkeyProtoClient in
