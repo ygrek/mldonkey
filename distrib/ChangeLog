@@ -6,7 +6,8 @@ ChangeLog
      changing the Makefile line : ICONS_CHOICE=big
   - Applied patch #852 (wildcards in black-list)
   - Applied patch #855: correctly sort servers before remove_old_servers
-
+  - Removed some options for Overnet: publish and search for sources
+      is now automatic
   - DonkeyOptions: new options:
      ban_queue_jumper (true): if you want to ban clients reasking files too fast
      ban_period (6): how long are they banned

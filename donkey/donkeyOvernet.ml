@@ -162,10 +162,6 @@ module PeerOption = struct
     let t = define_option_class "Peer" value_to_peer peer_to_value
 end
   
-let overnet_publish_files = 
-  define_option downloads_ini ["overnet_publish_files"] 
-  "should mldonkey try to publish on overnet" bool_option true
-
 let overnet_store_size = 
   define_option downloads_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
     int_option 2000
@@ -181,10 +177,6 @@ let overnet_max_known_peers =
 
 let overnet_search_keyword = 
   define_option downloads_ini ["overnet_search_keyword"] 
-  "allow extended search to search on overnet" bool_option false
-
-let overnet_search_sources = 
-  define_option downloads_ini ["overnet_search_sources"] 
   "allow extended search to search on overnet" bool_option false
 
 let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = define_option servers_ini 
@@ -215,8 +207,6 @@ let gui_overnet_options_panel =
   [
     "Port", shortname overnet_port, "T";
     "Search for keywords", shortname overnet_search_keyword, "B";
-    "Search for sources", shortname overnet_search_sources, "B";
-    "Publish files", shortname overnet_publish_files, "B";
     "Search Timeout", shortname overnet_search_timeout, "T";
     "Search Internal Period", shortname overnet_query_peer_period, "T";
     "Verbose", shortname verbose_overnet, "B";
@@ -380,57 +370,50 @@ let add_global_peer peer =
   
 (*advertize an uniform distribution then a local distribution (around our MD4) that we are UP*)
 let publicize_peers () =
-  if !!overnet_search_sources || !!overnet_search_keyword then
-      begin
-      let global_dist = get_uniform_distribution () in
-      let local_dist = get_local_distribution overnet_md4 search_max_queries in
-      List.iter (fun a -> 
-          udp_send a.peer_ip a.peer_port
-            (OvernetPublicize(overnet_md4,
-              !!donkey_bind_addr,!!overnet_port, 0) ) ) 
-      global_dist;
-      List.iter (fun a -> 
-          udp_send a.peer_ip a.peer_port
-            (OvernetPublicize(overnet_md4,
-              !!donkey_bind_addr,!!overnet_port, 0) ) ) 
-      local_dist
-    end
-	  
+  let global_dist = get_uniform_distribution () in
+  let local_dist = get_local_distribution overnet_md4 search_max_queries in
+  List.iter (fun a -> 
+      udp_send a.peer_ip a.peer_port
+        (OvernetPublicize(overnet_md4,
+          !!donkey_bind_addr,!!overnet_port, 0) ) ) 
+  global_dist;
+  List.iter (fun a -> 
+      udp_send a.peer_ip a.peer_port
+        (OvernetPublicize(overnet_md4,
+          !!donkey_bind_addr,!!overnet_port, 0) ) ) 
+  local_dist
+  
 (* If one peer block is running low, try to get new peers using Connect *)
 let find_new_peers () =
-  if !!overnet_search_sources || !!overnet_search_keyword then
+  try 
+    for i=0 to 255 do 
+      if global_peers_size.(i) < min_peers_before_connect then raise Not_found;
+    done
+  with _ -> 
       begin
-	try 
-	  for i=0 to 255 do 
-	    if global_peers_size.(i) < min_peers_before_connect then raise Not_found;
-	  done
-	with _ -> 
-	  begin
-            if !!verbose_overnet then begin
-	      Printf.printf "FINDING NEW PEERS"; print_newline ();
-            end;
-	    List.iter (fun a -> udp_send a.peer_ip a.peer_port 
-		(OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0) ) )
-	        (get_uniform_distribution () ) ;
-	  end
+        if !!verbose_overnet then begin
+            Printf.printf "FINDING NEW PEERS"; print_newline ();
+          end;
+        List.iter (fun a -> udp_send a.peer_ip a.peer_port 
+              (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0) ) )
+        (get_uniform_distribution () ) ;
       end
-
+      
 (* Used to prevent reloading the pages too often (max is 1/hour) *)
 let next_automatic_ocl_load = ref 0.0
 let automatic_ocl_load force =
-  if !!overnet_search_sources || !!overnet_search_keyword then
-    match get_uniform_distribution () with
-      [] -> 
-        if force || !next_automatic_ocl_load < last_time () then
-          begin
-            next_automatic_ocl_load := last_time () +. 3600.;
-	  Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
-	  List.iter (fun url ->
-	    Printf.printf "Loading %s\n" url;
-	    load_url "ocl" url) !!overnet_default_ocl;
-	end
-    | _ -> ()
-
+  match get_uniform_distribution () with
+    [] -> 
+      if force || !next_automatic_ocl_load < last_time () then
+        begin
+          next_automatic_ocl_load := last_time () +. 3600.;
+          Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
+          List.iter (fun url ->
+              Printf.printf "Loading %s\n" url;
+              load_url "ocl" url) !!overnet_default_ocl;
+        end
+  | _ -> ()
+      
 type search_for =
   FileSearch of file
 | KeywordSearch of CommonTypes.search list
@@ -618,50 +601,43 @@ let get_results_from_query ip port md4 size =
     end
 
 let recover_file (file : DonkeyTypes.file) = 
-  if !!overnet_search_sources then
-    try
-      let s = Hashtbl.find overnet_searches file.file_md4 in ()
-    with _ ->
-      begin
-	let s=create_search (FileSearch file) file.file_md4 in
-	Hashtbl.add overnet_searches s.search_md4 s;
-      end
-  
+  try
+    let s = Hashtbl.find overnet_searches file.file_md4 in ()
+  with _ ->
+      let s=create_search (FileSearch file) file.file_md4 in
+      Hashtbl.add overnet_searches s.search_md4 s
+      
 let publish_file (file : DonkeyTypes.file) = 
-  if !!overnet_publish_files then begin
-    if !!overnet_search_sources then 
+  begin
+    try
       begin
-	try
-	  begin
-	    let s = Hashtbl.find overnet_searches file.file_md4 in
-	    s.search_publish_file <- true;	    
-	  end
-	with _ ->
-	  begin
-	    let s = create_search (FileSearch file) file.file_md4 in
-	    s.search_publish_file <- true;
-	    files_to_be_published := s :: !files_to_be_published;
-	  end
-      end;
-    if !!overnet_search_keyword then 
-      begin
-	let index_string w =
-	  let s = create_keyword_search w in
-	  s.search_publish_files <- file :: s.search_publish_files;
-	  files_to_be_published := s :: !files_to_be_published;	 
-	in
-	List.iter (fun name -> List.iter index_string (String2.stem name) ) 
-	  file.file_filenames;
+        let s = Hashtbl.find overnet_searches file.file_md4 in
+        s.search_publish_file <- true;	    
       end
-  end
+    with _ ->
+        begin
+          let s = create_search (FileSearch file) file.file_md4 in
+          s.search_publish_file <- true;
+          files_to_be_published := s :: !files_to_be_published;
+        end
+  end;
+  if !!overnet_search_keyword then 
+    begin
+      let index_string w =
+        let s = create_keyword_search w in
+        s.search_publish_files <- file :: s.search_publish_files;
+        files_to_be_published := s :: !files_to_be_published;	 
+      in
+      List.iter (fun name -> List.iter index_string (String2.stem name) ) 
+      file.file_filenames;
+    end
     
 let recover_all_files () =
-  if !!overnet_search_sources then
-    List.iter (fun file ->
-        if file_state file = FileDownloading then
-          recover_file file          
-    ) !DonkeyGlobals.current_files
-
+  List.iter (fun file ->
+      if file_state file = FileDownloading then
+        recover_file file          
+  ) !DonkeyGlobals.current_files
+  
 let ip_of_udp_packet p =
   match p.UdpSocket.addr with
     Unix.ADDR_INET (inet, port) ->
@@ -1018,16 +994,15 @@ let query_min_peer s =
   with _ -> ()
         
 let query_next_peers () =
-  if !!overnet_search_sources || !!overnet_search_keyword then
-    Hashtbl2.safe_iter (fun s ->
+  Hashtbl2.safe_iter (fun s ->
       let asked_card = XorSet.cardinal s.search_asked_peers and
-      not_asked_card = XorSet.cardinal s.search_not_asked_peers in
-      
-      (* Cases to stop a search : 
+        not_asked_card = XorSet.cardinal s.search_not_asked_peers in
+
+(* Cases to stop a search : 
 	 1/ enough hits 
 	 2/ size(asked)=0 && size(not_asked)=0 
 	 3/ size(not_asked)=0 && timeout *)
-
+      
       if (s.search_hits > !!overnet_max_search_hits) || 
          ( (s.search_last_insert +. !!overnet_search_timeout < last_time ()) && not_asked_card=0 ) ||
          (  not_asked_card = 0 && asked_card = 0 ) then 
@@ -1048,47 +1023,41 @@ let query_next_peers () =
 
 
 let do_publish_shared_files () =
-  if !!overnet_search_sources || !!overnet_search_keyword then
+  let nb_searches = ref 0 in
+  Hashtbl.iter (fun _ _ -> incr nb_searches) overnet_searches;
+  let launch () = 
+    match !files_to_be_published with 
+      [] -> () 
+    | file::tail -> 
+        begin
+          if !!verbose_overnet then
+            begin
+              Printf.printf "OVERNET: I am publishing a file";
+              print_newline ();
+            end;
+          files_to_be_published := tail;
+          Hashtbl.add overnet_searches file.search_md4 file;
+        end	      
+  in
+  if !nb_searches <= max_searches_for_publish then
     begin
-      let nb_searches = ref 0 in
-      Hashtbl.iter (fun _ _ -> incr nb_searches) overnet_searches;
-      let launch () = 
-	match !files_to_be_published with 
-	  [] -> () 
-	| file::tail -> 
-	    begin
-	      if !!verbose_overnet then
-		begin
-		  Printf.printf "OVERNET: I am publishing a file";
-		  print_newline ();
-		end;
-	      files_to_be_published := tail;
-	      Hashtbl.add overnet_searches file.search_md4 file;
-	    end	      
-      in
-      if !nb_searches <= max_searches_for_publish then
-	begin
-	  (*Printf.printf "OVERNET: currently %d searches" !nb_searches;
+(*Printf.printf "OVERNET: currently %d searches" !nb_searches;
 	  print_newline ();*)
-	  for i=1 to 5 do
-	    launch ();
-	  done;
-	end
+      for i=1 to 5 do
+        launch ();
+      done;
     end
-
+    
 let publish_shared_files () = 
-  if !!overnet_search_sources || !!overnet_search_keyword then 
-    begin
-      match !files_to_be_published with 
-	[] -> List.iter (fun file -> publish_file file) (DonkeyShare.all_shared ())
-      | _ -> ()
-    end
- 
+  match !files_to_be_published with 
+    [] -> List.iter (fun file -> publish_file file) (DonkeyShare.all_shared ())
+  | _ -> ()
+      
 let check_curent_downloads () =
   List.iter (fun file ->
     if file_state file = FileDownloading           
         && not (file_enough_sources file)
-        && !!overnet_search_sources &&
+        &&
       not (Hashtbl.mem overnet_searches file.file_md4) then
       let search = create_search (FileSearch file) file.file_md4 in
       Hashtbl.add overnet_searches file.file_md4 search;
