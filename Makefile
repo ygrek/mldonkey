@@ -118,7 +118,7 @@ all: byte
 .static:
 
 lambda:  $(SECRET_CLIENT:.$(EXT)=.ml)
-	ocaml ./secret/make_client.ml  $(SECRET_CLIENT:.$(EXT)=.ml)
+	ocaml ./secret/make_client  $(SECRET_CLIENT:.$(EXT)=.ml)
 	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dol client.ml	
 
 client.cmo: client.lam
