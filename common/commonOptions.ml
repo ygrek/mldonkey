@@ -72,9 +72,14 @@ let _ =
         client_name =:= new_name ()
   )
   
-let min_retry_delay = define_option downloads_ini ["min_retry_delay"] 
-  "" float_option 150.
-
+let min_reask_delay = define_option downloads_ini ["min_reask_delay"]
+  "The minimal delay between two connections to the same client (in seconds)" 
+  float_option 720.
+  
+let max_reask_delay = define_option downloads_ini ["max_reask_delay"]
+    "The maximal delay between two connections to the same client" 
+  float_option 3600.
+  
 let client_timeout = define_option downloads_ini ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 120.
 
@@ -656,7 +661,9 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Bandwidth", "Maximal Upload Bandwidth in kB/s", shortname max_hard_upload_rate, "T";
     "Bandwidth", "Maximal Number of Sockets Used", shortname max_opened_connections, "T";
     "Bandwidth", "Socket Buffer Size", shortname client_buffer_size, "T";
-    
+
+    "Delays", "Min Reask Delay", shortname min_reask_delay, "T";
+    "Delays", "Max Reask Delay", shortname max_reask_delay, "T";
     "Delays", "Save Options Delay", shortname save_options_delay, "T";
     "Delays", "Server Connection Timeout", shortname server_connection_timeout, "T";
 (*    "Delays", "Client Connection Timeout", shortname  *)

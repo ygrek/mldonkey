@@ -70,13 +70,8 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 static value* pfds = NULL;
 static struct pollfd* ufds = NULL;
 static int ufds_size = 0;
-value ml_getdtablesize(value unit)
-{
-  ufds_size = getdtablesize();
-  return Val_int(ufds_size);
-}
 
-value ml_select(value fdlist, value timeout) /* ML */
+value try_poll(value fdlist, value timeout) /* ML */
 {
   int tm = (int)(1e3 * (double)Double_val(timeout));
   int nfds = 0;
@@ -103,6 +98,7 @@ value ml_select(value fdlist, value timeout) /* ML */
         (Field(Field(v, FD_TASK_READ_ALLOWED),0) == Val_true));
       must_write = ( (Field(v, FD_TASK_WLEN) != Val_int(0)) &&
         (Field(Field(v, FD_TASK_WRITE_ALLOWED),0) == Val_true));
+      Field(v,FD_TASK_FLAGS) = Val_int(0);
       if(must_read || must_write){
         int fd = Int_val(Field(v,FD_TASK_FD));
 /*        fprintf(stderr, "FD in POLL added %d\n", fd);  */
@@ -124,13 +120,14 @@ value ml_select(value fdlist, value timeout) /* ML */
     uerror("poll", Nothing);
   }
   if(retcode > 0){
-    for(pos=0; pos<nfds; pos++){
+    for(pos=0; pos<nfds && retcode > 0; pos++){
       if (ufds[pos].revents){
         value v = pfds[pos];
         int fd = Int_val(Field(v,FD_TASK_FD));
       /*  printf("TESTING %d AT %d\n", fd, pos); */
       /*  fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
         value flags = Val_int(0);
+        retcode--;
         if (ufds[pos].revents & POLLIN)  flags |= 2;
         if (ufds[pos].revents & POLLOUT) flags |= 4;
         /*        if (ufds[pos].revents & POLLNVAL) */
@@ -142,9 +139,9 @@ value ml_select(value fdlist, value timeout) /* ML */
   return Val_unit;
 }
 
-#else
+#endif
 
-value ml_select(value fdlist, value timeout) /* ML */
+value try_select(value fdlist, value timeout) /* ML */
 {
   fd_set read, write, except;
   double tm;
@@ -209,6 +206,9 @@ value ml_select(value fdlist, value timeout) /* ML */
   return Val_unit;
 }
 
+static int use_poll = 1;
+static int must_use_poll = 0;
+
 value ml_getdtablesize(value unit)
 {
   int dtablesize = getdtablesize();
@@ -217,13 +217,41 @@ value ml_getdtablesize(value unit)
   int maxfd = dtablesize;
 
   if (maxselectfds < maxfd) {
-    printf("Your shell allows %d file descriptors, but select only allows %d file descriptors\n", dtablesize, maxselectfds);
-    maxfd = maxselectfds;
-    printf("Limit has been set to %d\n", maxfd);
+
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+
+     must_use_poll = 1;
+     use_poll = 1;
+      
+#else
+
+      printf("Your shell allows %d file descriptors, but select only allows %d file descriptors\n", dtablesize, maxselectfds);
+      maxfd = maxselectfds;
+      printf("Limit has been set to %d\n", maxfd);
+
+#endif
   }
 
   return Val_int(maxfd);
 }
 
+value ml_use_poll(value use)
+{
+  use_poll = (use != Val_int(0)) || must_use_poll;
+  return Val_unit;
+}
+
+
+value ml_select(value fd_list, value timeout)
+{
+
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+    if (use_poll) 
+      return try_poll(fd_list, timeout);
+    else
+      return try_select(fd_list, timeout);
+#else
+    return try_select(fd_list, timeout);
 #endif
 
+}

@@ -32,10 +32,7 @@ module G = Gui_global
 
 let (!!) = Options.(!!)
 
-let file_first_name f =
-  match f.file_names with
-    [] -> Md4.to_string f.file_md4
-  | s :: _ -> s
+let file_first_name f = f.file_name
 
 let string_of_file_state state =
   match state with
@@ -107,7 +104,7 @@ class box columns sel_mode () =
 
     method compare_by_col col f1 f2 =
       match col with
-      | Col_file_name -> compare f1.file_names f2.file_names
+      | Col_file_name -> compare f1.file_name f2.file_name
       |	Col_file_size -> compare f1.file_size f2.file_size
       |	Col_file_downloaded -> compare f1.file_downloaded f2.file_downloaded
       |	Col_file_percent -> compare 
@@ -134,10 +131,7 @@ class box columns sel_mode () =
     method content_by_col f col =
       match col with
 	Col_file_name -> 
-	  let s_file = match f.file_names with
-            [] -> M.unknown
-	  | name :: _ -> Gui_misc.short_name name
-	  in
+	  let s_file = Gui_misc.short_name f.file_name in
 	  s_file
       |	Col_file_size ->
 	  Gui_misc.size_of_int32 f.file_size 
@@ -460,9 +454,7 @@ class box_downloads box_locs wl_status () =
       label_file_info#set_text 
 	(
          Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
-	   (match file.file_names with
-	     [] -> Md4.to_string file.file_md4
-           | name :: _ -> name)
+	   (file.file_name)
            (Int32.to_string file.file_size) 
            (string_of_format file.file_format)
            ;
@@ -479,6 +471,7 @@ class box_downloads box_locs wl_status () =
 
     method update_file f f_new row =
       f.file_md4 <- f_new.file_md4 ;
+      f.file_name <- f_new.file_name ;
       f.file_names <- f_new.file_names ;
       f.file_size <- f_new.file_size ;
       f.file_downloaded <- f_new.file_downloaded ;
@@ -542,8 +535,8 @@ class box_downloads box_locs wl_status () =
           | Some sources ->
               if List.memq c sources then
                 let (row, file) = self#find_file file.file_num in
-                Printf.printf "Removing client from sources";
-                print_newline ();
+(*                Printf.printf "Removing client from sources";
+                print_newline (); *)
                 self#update_file file { file with file_sources = Some (
                     List.filter (fun cc -> cc != c) sources) } 
                 row

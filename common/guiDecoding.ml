@@ -278,7 +278,7 @@ let get_float s pos =
   let s, pos = get_string s pos in
   float_of_string s, pos
 
-let get_file s pos = 
+let get_file_version_0 s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
@@ -311,6 +311,44 @@ let get_file s pos =
     file_age = age;
     file_format = format;
     file_sources = None;
+    file_name = List.hd names;
+  }, pos
+
+let get_file_version_8 s pos = 
+  let num = get_int s pos in
+  let net = get_int s (pos+4) in
+  let names, pos = get_list get_string s (pos+8) in
+  let md4 = get_md4 s pos in
+  let size = get_int32 s (pos+16) in
+  let downloaded = get_int32 s (pos+20) in
+  let nlocations = get_int s (pos+24) in
+  let nclients = get_int s (pos+28) in
+  let state = get_file_state s (pos+32) in
+  let chunks, pos = get_string s (pos+33) in
+  let availability, pos = get_string s pos in
+  let rate, pos = get_float s pos in
+  let chunks_age, pos = get_array get_float s pos in
+  let age, pos = get_float s pos in
+  let format, pos = get_format s pos in
+  let name, pos = get_string s pos in
+  {
+    file_num = num;
+    file_network = net;
+    file_names = names;
+    file_md4 = md4;
+    file_size = size;
+    file_downloaded = downloaded;
+    file_nlocations = nlocations;
+    file_nclients = nclients;
+    file_state = state;
+    file_chunks = chunks;
+    file_availability = availability;
+    file_download_rate = rate;
+    file_chunks_age = chunks_age;
+    file_age = age;
+    file_format = format;
+    file_sources = None;
+    file_name = name;
   }, pos
 
 let get_host_state s pos = 
@@ -418,7 +456,7 @@ let get_client s pos =
   let t = get_client_type s (pos+1) in
   let tags, pos = get_list get_tag s (pos+2) in
   let name, pos = get_string s pos in
-  let rating = get_int32 s pos in
+  let rating = get_int s pos in
   let chat_port = get_int s (pos+4) in
   {
     client_num = num;
@@ -742,7 +780,11 @@ let from_gui_version_7 opcode s =
       let result_num = get_int s pos in
       let force = get_bool s (pos+4) in
       Download_query (list, result_num, false)
-  | _ ->  from_gui_version_5 opcode s
+  | _ ->  from_gui_version_6 opcode s
+
+let from_gui_version_8 opcode s = 
+  match opcode with
+  | _ ->  from_gui_version_7 opcode s
 
 let from_gui = [| 
     from_gui_version_0; 
@@ -753,6 +795,7 @@ let from_gui = [|
     from_gui_version_5; 
     from_gui_version_6; 
     from_gui_version_7;  
+    from_gui_version_8;  
   |]
       
 (***************
@@ -795,7 +838,7 @@ let to_gui_version_0 opcode s =
       Search_waiting (n1,n2)
   
   | 7 -> 
-      let file_info, pos = get_file s 2 in
+      let file_info, pos = get_file_version_0 s 2 in
       File_info file_info
   
   | 8 ->
@@ -922,11 +965,11 @@ let to_gui_version_3 opcode s =
       ConnectedServers list
       
   | 29 ->
-      let list, pos = get_list get_file s 2 in
+      let list, pos = get_list get_file_version_0 s 2 in
       DownloadFiles list
       
   | 30 ->
-      let list, pos = get_list get_file s 2 in
+      let list, pos = get_list get_file_version_0 s 2 in
       DownloadedFiles list
   
   | 31 ->
@@ -1033,6 +1076,22 @@ let to_gui_version_7 opcode s =
   match opcode with
         
   | _ -> to_gui_version_6 opcode s
+      
+let to_gui_version_8 opcode s = 
+  match opcode with
+    40 ->
+      let file, pos = get_file_version_8 s 2 in
+      File_info file
+            
+  | 41 ->
+      let list, pos = get_list get_file_version_8 s 2 in
+      DownloadFiles list
+      
+  | 42 ->
+      let list, pos = get_list get_file_version_8 s 2 in
+      DownloadedFiles list
+
+  | _ -> to_gui_version_6 opcode s
         
 
 let to_gui = [| 
@@ -1044,6 +1103,7 @@ let to_gui = [|
     to_gui_version_5;
     to_gui_version_6;
     to_gui_version_7; 
+    to_gui_version_8; 
   |]
 
 let _ =  assert (Array.length from_gui = Array.length to_gui);

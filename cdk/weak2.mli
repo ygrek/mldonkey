@@ -137,7 +137,9 @@ module type S = sig
   val stats : t -> int * int * int * int * int * int
     (** Return statistics on the table.  The numbers are, in order:
         table length, number of entries, sum of bucket lengths,
-        smallest bucket length, median bucket length, biggest bucket length. *)
+smallest bucket length, median bucket length, biggest bucket length. *)
+      
+    val to_list : t -> data list
 end;;
 (** The output signature of the functor {!Weak.Make}. *)
 

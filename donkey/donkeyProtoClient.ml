@@ -202,7 +202,7 @@ module QueryChunksReply = struct (* Request 80 *)
     let parse len s = 
       let md4 = get_md4 s 1 in
       let nchunks = get_int16 s 17 in
-      Printf.printf "nchunks : %d" nchunks; print_newline ();
+(*      Printf.printf "nchunks : %d" nchunks; print_newline ();*)
       let chunks = 
         if nchunks = 0 then [||] else
         let chunks = Array.create nchunks false  in

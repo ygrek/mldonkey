@@ -43,39 +43,41 @@ let printf_string c =
 
   
 let new_connection_control last_conn = {
-    control_next_try = last_time () -. 1.;
-    control_last_conn = last_conn;
-    control_next_delay = !!min_retry_delay;
+    control_last_ok = last_conn;
+    control_state = 0.0;
+    control_last_try = 0.0;
   }
   
 let connection_ok cc = 
-  cc.control_next_delay <- !!min_retry_delay;
-  cc.control_last_conn <- last_time ();
-  cc.control_next_try <- last_time () +. !!min_retry_delay
+  cc.control_last_ok <- last_time ();
+  cc.control_state <- 0.
   
 let connection_try cc =
-  cc.control_next_try <- last_time () +. cc.control_next_delay
+  cc.control_last_try <- last_time ()
 
 let connection_failed cc =
-  cc.control_next_delay <- minf (cc.control_next_delay *. 2.) half_day
+  cc.control_state <- cc.control_state +. 1.
+
+let connection_next_try cc =
+  cc.control_last_try +. min (!!min_reask_delay *. cc.control_state)
+  !!max_reask_delay
 
 let connection_can_try cc =
-  cc.control_next_try < last_time ()
+  connection_next_try cc < last_time ()
   
 let connection_must_try cc =
-  cc.control_next_try <- last_time () -. 1.
+  cc.control_state <- 0.
 
 let connection_set_last_conn cc lc =
-  cc.control_last_conn <- lc
+  cc.control_last_ok <- lc
 
 let connection_last_conn cc =
-  cc.control_last_conn
+  cc.control_last_ok
 
-let connection_delay cc =
-  cc.control_next_try <- maxf cc.control_next_try
-    (last_time () +. !!min_retry_delay)
-
-    
+let connection_delay cc = 
+  cc.control_last_try <- last_time ();
+  cc.control_state <- 0.
+  
 let can_open_connection () =
   let ns = nb_sockets () in
   let max = mini !!max_opened_connections 

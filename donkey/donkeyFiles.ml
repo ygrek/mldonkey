@@ -79,59 +79,114 @@ let make_xs ss =
       DonkeyOvernet.overnet_search ss
     end
 
-let fill_clients_list _ =
-(* should we refill the queue ? *)
-  if !!max_clients_per_second * 300 > !clients_list_len then begin
-      List.iter (fun file -> 
-          if file_state file = FileDownloading then 
-            let files = [file] in
-            Intmap.iter (fun _ c ->
-                match c.client_kind with
-                  Known_location _ ->
-                    clients_list := (c, files) :: !clients_list
-                | _ -> ()
-            )
-            file.file_sources;
-      ) !current_files;
-      (*
-      List.iter (fun c ->
-          clients_list := (c, []) :: !clients_list
-      ) !!known_friends;
-*)      
-      clients_list_len := List.length !clients_list;
-    end  
-  
-let add_interesting_client c files =
-  clients_list := (c, files) :: !clients_list;
-  incr clients_list_len
+(* Every five minutes, we fill the clients_lists array with the clients 
+that have to be connected in the next five minutes. *)
     
-let rec connect_several_clients n =
-(*  Printf.printf "connect_several_clients %d" n; print_newline (); *)
-  if n > 0 && can_open_connection () then
-    match !clients_list with
-      [] -> ()
-    | (c, files) :: tail ->
-(*        Printf.printf "TRY TO CONNECT"; print_newline (); *)
+let fill_clients_list _ =
 
-        clients_list := tail;
-        decr clients_list_len;
-       
-        match c.client_sock with
-          None -> 
-            if connection_can_try c.client_connection_control then begin
-(*                Printf.printf "CAN CONNECT"; print_newline (); *)
-                (try connect_client (client_ip None) files c with _ -> ());
-                connect_several_clients (n-1)
-              end
-        | Some sock ->
-            match client_state c with
-              Connected_idle -> 
-                (try query_files c sock files with _ -> ());
-                connect_several_clients (n-1)
-            | _ -> 
-                connect_several_clients n
+(* First of all, clients which are still there should be saved *)
 
-                
+  let keep_clients = 
+    clients_lists.(0) @
+    clients_lists.(1) @
+    clients_lists.(2) @
+    clients_lists.(3) @
+    clients_lists.(4) 
+  in
+  clients_lists.(0) <- [];
+  clients_lists.(1) <- [];
+  clients_lists.(2) <- [];
+  clients_lists.(3) <- [];
+  clients_lists.(4) <- [];
+  if !!verbose then begin
+      Printf.printf "Kept clients: %d" (List.length keep_clients); 
+      print_newline ();
+    end;
+
+(* Now, for each file, put the sources in the lists *)
+  List.iter (fun file -> 
+      if file_state file = FileDownloading then 
+        let files = [file] in
+        Intmap.iter (fun _ c ->
+            if not c.client_on_list then
+              match c.client_sock with
+                Some _ -> ()
+              | None ->
+                  match c.client_kind with
+                    Known_location _ ->                      
+                      let next_try = connection_next_try c.client_connection_control in
+                      let delay = next_try -. last_time () in
+                      c.client_on_list <- delay < 240.;
+                      if delay < 0. then 
+                          clients_lists.(0) <- c :: clients_lists.(0)
+                      else
+                      if delay < 60. then 
+                        clients_lists.(1) <- c :: clients_lists.(1)
+                      else
+                      if delay < 120. then 
+                        clients_lists.(2) <- c :: clients_lists.(2)
+                      else
+                      if delay < 180. then 
+                        clients_lists.(3) <- c :: clients_lists.(3)
+                      else
+                      if delay < 240. then 
+                        clients_lists.(4) <- c :: clients_lists.(4)
+                      else begin
+                          Printf.printf "NEXT TRY TOO LONG: %2.2f (%s)"
+                            delay (Date.to_string next_try);
+                          print_newline ();
+                        end
+                  | _ -> ()
+        )
+        file.file_sources;
+  ) !current_files;
+  clients_lists.(0) <- keep_clients @ clients_lists.(0);
+  remaining_seconds := 61;
+  Printf.printf "Next minute: %d" (List.length clients_lists.(0));  print_newline ();
+  Printf.printf "2 minutes: %d" (List.length clients_lists.(1));  print_newline ();
+  Printf.printf "3 minutes: %d" (List.length clients_lists.(2));  print_newline ();
+  Printf.printf "4 minutes: %d" (List.length clients_lists.(3));  print_newline ();
+  Printf.printf "5 minutes: %d" (List.length clients_lists.(4));  print_newline ()
+
+(* Every second, try to connect to some clients *)          
+let check_clients _ =
+  decr remaining_seconds;
+  if !remaining_seconds = 0 then begin
+      remaining_seconds := 60;
+      clients_lists.(0) <- clients_lists.(0) @ clients_lists.(1);
+      clients_lists.(1) <- clients_lists.(2);
+      clients_lists.(2) <- clients_lists.(3);
+      clients_lists.(3) <- clients_lists.(4);
+      clients_lists.(4) <- []
+    end;
+  let nwaiting = List.length clients_lists.(0) in
+  try
+    let nwaiting = ref (min
+          (nwaiting / !remaining_seconds + 1)
+        !!max_clients_per_second
+      ) in
+    while !nwaiting > 0 do
+      if not (can_open_connection ()) then raise Exit;
+      match clients_lists.(0) with
+        [] -> raise Exit
+      | c :: tail ->
+          clients_lists.(0) <- tail;
+          c.client_on_list <- false;
+          try
+            if connection_can_try c.client_connection_control then
+              match c.client_sock with
+                None -> 
+                  reconnect_client c;
+                  if c.client_sock <> None then decr nwaiting
+              | Some sock ->
+(*     (try query_files c sock files with _ -> ()); *)
+                  ()
+          with e ->
+              Printf.printf "Exception %s in check_clients"
+                (Printexc.to_string e); print_newline ()
+    done
+  with Exit -> ()
+      
 let remove_old_clients () =
   let min_last_conn =  last_time () -. 
     float_of_int !!max_sources_age *. one_day in
@@ -141,8 +196,9 @@ let remove_old_clients () =
       file.file_sources <- Intmap.empty;
       file.file_nlocations <- 0;
       Intmap.iter (fun _ c ->
-          if connection_last_conn c.client_connection_control >= min_last_conn 
-            then
+          if c.client_sock <> None ||
+            connection_last_conn c.client_connection_control >= min_last_conn 
+          then
             new_source file c
       ) locs;
       Printf.printf "After clean: sources %d" file.file_nlocations; 
@@ -154,14 +210,7 @@ let remove_old_clients () =
           file.file_nlocations <- nlocs
         end
   ) !current_files
-  
-  
-let check_clients _ =
-(*  Printf.printf "check_clients"; print_newline (); *)
-  (* how many clients we try to connect per second ? *)
-  let n = !!max_clients_per_second in
-  connect_several_clients n
-        
+          
 let force_check_locations () =
   try
     List.iter (fun file -> 
@@ -201,7 +250,7 @@ let force_check_locations () =
         [] -> 
           udp_servers_list := Hashtbl2.to_list servers_by_key
       | s :: tail ->
-          s.server_next_udp <- last_time () +. !!min_retry_delay;
+          s.server_next_udp <- last_time () +. !!min_reask_delay;
           udp_servers_list := tail
     done;
 
@@ -237,10 +286,9 @@ let new_friend c =
 let browse_client c =
   match c.client_sock, client_state c with
   | None, NotConnected ->
-      connection_must_try c.client_connection_control;
-      connect_client (client_ip None) [] c
+      add_interesting_client c
   | None, _ -> 
-      add_interesting_client c []
+      add_interesting_client c 
   | Some sock, (
       Connected_initiating 
     | Connected_busy

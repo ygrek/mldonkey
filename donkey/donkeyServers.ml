@@ -39,12 +39,13 @@ open CommonGlobals
 
 let udp_send_if_possible sock addr msg =
   udp_send_if_possible sock upload_control addr msg
-  
+
+  (*
 let first_name file =
   match file.file_filenames with
     [] -> Filename.basename (file_disk_name file)
   | name :: _ -> name
-    
+*)    
 
 (****************************************************)
 

@@ -393,9 +393,7 @@ let (clist_downloads :
     ~color: color_opt_of_file
     [
 (* FILENAME *)
-    (fun f -> match f.file_names with
-          [] -> "<unknown>"
-        | name :: _ -> short_name name);
+    (fun f -> short_name f.file_name);
 (* SIZE *)    
     (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_size));
 (* DOWNLOADED *)
@@ -457,10 +455,7 @@ let add_friend_location =
   
 let get_file_md4  f = f.file_md4
 
-let get_file_name file =
-  match file.file_names with
-    [] -> "<unknown>"
-  | name :: _ -> short_name name
+let get_file_name file = file.file_name
   
 let menu_save_file t =
   match MyCList.selection t  with
@@ -594,11 +589,7 @@ let update_download_label () =
 
 let save_all_files _ =
   MyCList.iter clist_downloaded (fun _ file ->
-      let name = 
-        match file.file_names with
-          [] -> Md4.to_string file.file_md4
-        | name :: _ ->  name
-      in
+      let name =  file.file_name in
       gui_send (GuiProto.SaveFile (file.file_num, name)))
   
 let current_file = ref None
@@ -654,9 +645,7 @@ let update_current_file () =
     match !current_file with
       None -> ""
     | Some file ->
-        Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" (match file.file_names with
-            [] -> Md4.to_string file.file_md4
-          | name :: _ -> name)
+        Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" file.file_name
         (Int32.to_string file.file_size) 
         (match file.file_format with
           AVI f ->

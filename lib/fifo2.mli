@@ -16,25 +16,13 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-type t
-
-val null : t
-val one : t
-val to_string : t -> string
-val of_string : string -> t
-
-val string : string -> t
-val file : string -> t
-val create : unit -> t
-val direct_of_string : string -> t
-val direct_to_string : t -> string
-val random : unit -> t
-
-val digest_subfile : Unix32.t -> int32 -> int32 -> t
-
-val option : t Options.option_class
-
-val xor : t -> t -> t
-val value_to_md4 : Options.option_value -> t
-val md4_to_value : t -> Options.option_value
-  
+exception Empty
+type 'a t
+val create : unit -> 'a t
+val put : 'a t -> 'a -> unit
+val take : 'a t -> 'a
+val clear : 'a t -> unit
+val read : 'a t -> 'a
+val empty : 'a t -> bool
+val to_list : 'a t -> 'a list
+val length : 'a t -> int

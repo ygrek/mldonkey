@@ -70,7 +70,7 @@ let disable enabler () =
   enabler := false;
   if !!enable_donkey then enable_donkey =:= false;
   Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_key;
-  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_kind;
+  H.iter (fun c -> disconnect_client c) clients_by_kind;
   (match !listen_sock with None -> ()
     | Some sock -> 
         listen_sock := None;
@@ -83,7 +83,14 @@ let disable enabler () =
     | Some sock -> 
         udp_sock := None;
         UdpSocket.close sock "");
-  clients_list := [];
+  Array.iter (fun list -> 
+      List.iter (fun c -> c.client_on_list <- false) list) 
+  clients_lists;
+  clients_lists.(0) <- [];
+  clients_lists.(1) <- [];
+  clients_lists.(2) <- [];
+  clients_lists.(3) <- [];
+  clients_lists.(4) <- [];
   servers_list := [];
   if !!enable_donkey then enable_donkey =:= false;
   DonkeyOvernet.disable ()
@@ -242,7 +249,7 @@ let enable () =
     add_session_timer enabler 1. second_timer;
     add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
     add_session_timer enabler 60. DonkeyServers.query_locations_timer;
-
+    add_session_timer enabler 1. DonkeyClient.schedule_connections;
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
@@ -276,7 +283,4 @@ let _ =
         network_downloaded = Int64.zero;
       });
   CommonInteractive.register_gui_options_panel "eDonkey" !!gui_donkey_options_panel;
-  CommonInteractive.register_gui_options_panel "Overnet" !!DonkeyOvernet.gui_overnet_options_panel
-  
-  
-  
+  CommonInteractive.register_gui_options_panel "Overnet" !!DonkeyOvernet.gui_overnet_options_panel;

@@ -61,7 +61,7 @@ MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
 
 LIB_SRCS= lib/autoconf.ml \
   lib/int32ops.ml lib/options.ml lib/ip.ml  lib/numset.ml  \
-  lib/fifo.ml lib/intmap.ml \
+  lib/fifo.ml lib/fifo2.ml lib/intmap.ml \
   lib/hole_tab.ml lib/store.ml lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
@@ -72,7 +72,8 @@ NET_SRCS = \
   net/bigEndian.ml net/littleEndian.ml \
   net/basicSocket.ml net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
-  net/udpSocket.ml net/http_server.ml net/http_client.ml
+  net/udpSocket.ml net/http_server.ml net/http_client.ml \
+  net/multicast.ml net/multicast_c.c
 
 CHAT_SRCS = chat/chat_messages.ml\
 	chat/chat_misc.ml\
@@ -310,6 +311,9 @@ DRIVER_SRCS= \
   driver/driverInterface.ml \
   driver/driverMain.ml 
 
+MLCAST_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  tools/mlcast.ml
 
 MLDONKEY_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -493,6 +497,25 @@ TMPSOURCES += $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly
 
 
 
+
+MLCAST_ZOG := $(filter %.zog, $(MLCAST_SRCS))
+MLCAST_MLL := $(filter %.mll, $(MLCAST_SRCS))
+MLCAST_MLY := $(filter %.mly, $(MLCAST_SRCS))
+
+MLCAST_ML := $(filter %.ml %.mll %.zog %.mly, $(MLCAST_SRCS))
+MLCAST_C := $(filter %.c, $(MLCAST_SRCS))
+MLCAST_OBJS=$(foreach file, $(MLCAST_C),   $(basename $(file)).o)
+
+MLCAST_CMOS=$(foreach file, $(MLCAST_ML),   $(basename $(file)).cmo)
+MLCAST_CMXS=$(foreach file, $(MLCAST_ML),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(MLCAST_MLL:.mll=.ml) $(MLCAST_MLY:.mly=.ml) $(MLCAST_MLY:.mly=.mli) $(MLCAST_ZOG:.zog=.ml)
+
+
+
+
+
+
 MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS))
 MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS))
 MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS))
@@ -666,11 +689,22 @@ mldonkey_gui.static: $(MLDONKEYGUI_CMXS)
 mldonkey_guistarter: $(STARTER_CMXS)   $(STARTER_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(STARTER_CMXS)
 
-mldonkey_guistarter.byte: $(STARTER_CMOS)  
+mldonkey_guistarter.byte: $(STARTER_CMOS)    $(STARTER_OBJS)
 	$(OCAMLC) -o $@  $(STARTER_OBJS)  $(LIBS_byte) $(GTK_LIBS_byte) $(STARTER_CMOS) 
 
-mldonkey_guistarter.static: $(STARTER_CMXS)  
+mldonkey_guistarter.static: $(STARTER_CMXS)    $(STARTER_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(STARTER_OBJS)  $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(STARTER_CMXS) 
+
+######## MLCAST
+
+mlcast: $(MLCAST_CMXS)   $(MLCAST_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLCAST_OBJS) $(LIBS_opt) $(MLCAST_CMXS)
+
+mlcast.byte: $(MLCAST_CMOS)   $(MLCAST_OBJS)
+	$(OCAMLC) -o $@  $(MLCAST_OBJS)  $(LIBS_byte)  $(MLCAST_CMOS) 
+
+mlcast.static: $(MLCAST_CMXS)   $(MLCAST_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLCAST_OBJS)  $(LIBS_opt) $(MLCAST_CMXS) 
 
 ######## MLDONKEYGUI2
 

@@ -49,3 +49,6 @@ val null : t
   
 val rev:t -> t
 val equal : t -> t -> bool
+val value_to_ip : Options.option_value -> t
+val ip_to_value : t -> Options.option_value
+  

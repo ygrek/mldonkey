@@ -80,3 +80,5 @@ val debug : bool ref
   
 val set_dump_info : t -> (unit -> unit) -> unit
   
+external use_poll : bool -> unit = "ml_use_poll"
+  

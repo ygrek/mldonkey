@@ -73,13 +73,17 @@ let search_add_result s r =
   with _ ->
       s.search_results <- Intmap.add r.impl_result_num (ref 1, as_result r)
       s.search_results;
+      s.search_nresults <- s.search_nresults + 1;
       let r = as_result r in 
       List.iter (fun f -> f r) s.op_search_new_result_handlers
 
 let search_end_reply s = 
   s.search_waiting <- s.search_waiting - 1;
   List.iter (fun f -> f ()) s.op_search_end_reply_handlers  
-      
+
+let search_nresults s = 
+  s.search_nresults
+  
 (* should call a handler to send the result to the GUI ... *)
       
         

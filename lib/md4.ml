@@ -101,10 +101,8 @@ let random () =
   s
   
 open Options
-  
-module Md4Option = struct
-    
-    let value_to_md4 v = (*
+
+let value_to_md4 v = (*
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
@@ -120,12 +118,9 @@ module Md4Option = struct
           Md4.of_string file_md4_name
           
       | _ -> *) of_string (value_to_string v)
-          
-    let md4_to_value v = string_to_value (to_string v)
-    
-    let t =
-      define_option_class "Md4" value_to_md4 md4_to_value
-    ;;
-  end
 
-let option = Md4Option.t
+let md4_to_value v = string_to_value (to_string v)
+  
+let option =
+  define_option_class "Md4" value_to_md4 md4_to_value
+  

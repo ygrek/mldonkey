@@ -48,8 +48,8 @@ type t = {
     mutable read_control : bandwidth_controler option;
     mutable write_control : bandwidth_controler option;
     mutable write_power : int;    
-  }
-  
+    mutable read_power : int;    
+  }  
   
 and handler = t -> event -> unit
 
@@ -441,7 +441,7 @@ let tcp_handler t sock event =
                 if bc.remaining_bytes > 0 then
                   begin
                     bc.connections <- t :: bc.connections;
-                    bc.nconnections <- 1 + bc.nconnections
+                    bc.nconnections <- t.read_power + bc.nconnections
                   end
               end
       end
@@ -544,6 +544,7 @@ let create name fd handler =
       read_control = None;
       write_control = None;
       write_power = 1;
+      read_power = 1;
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
@@ -570,6 +571,7 @@ let create_blocking name fd handler =
       read_control = None;
       write_control = None;
       write_power = 1;
+      read_power = 1;
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
@@ -692,7 +694,9 @@ let _ =
       List.iter (fun bc ->
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_read = maxi 1 (bc.remaining_bytes / bc.nconnections) in
+                let nconnections = maxi bc.nconnections 1 in
+                let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
+                let can_read = can_read * t.read_power in
                 let old_nread = t.nread in
                 (try
                     can_read_handler t t.sock (mini can_read 
@@ -700,7 +704,7 @@ let _ =
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes - 
                 t.nread + old_nread;
-                bc.nconnections <- bc.nconnections - 1;
+                bc.nconnections <- bc.nconnections - t.read_power;
           ) bc.connections;
           if bc.remaining_bytes > 0 then bc.allow_io := false;
           bc.connections <- [];
@@ -709,7 +713,8 @@ let _ =
       List.iter (fun bc ->
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_write = maxi 1 (bc.remaining_bytes / bc.nconnections) in
+                let nconnections = maxi bc.nconnections 1 in
+                let can_write = maxi 1 (bc.remaining_bytes / nconnections) in
                 let can_write = can_write * t.write_power in
                 let old_nwrite = t.nwrite in
                 (try
@@ -793,6 +798,7 @@ let value_handler f sock nread =
   with Not_found -> ()
 
 let set_write_power t p = t.write_power <- p
+let set_read_power t p = t.read_power <- p
   
 let set_lifetime s = set_lifetime (sock s)
   

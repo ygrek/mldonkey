@@ -81,6 +81,7 @@ let new_file_to_share sh =
     must_share_file file;
     file.file_md4s <- md4s;
     file.file_filenames <- file.file_filenames @ [Filename.basename sh.sh_name]; 
+    update_best_name file;
     file.file_chunks <- Array.make file.file_nchunks PresentVerified;
     file.file_absent_chunks <- [];
     file.file_all_chunks <- String.make file.file_nchunks '1';

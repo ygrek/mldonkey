@@ -56,6 +56,7 @@ type file_info = {
     file_num : int;    
     file_network : int;
     
+    mutable file_name : string;
     mutable file_names : string list;
     mutable file_md4 : Md4.t;        
     mutable file_size : int32;
@@ -129,7 +130,7 @@ type client_info = {
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_files:  file_tree option;
-    mutable client_rating : int32;
+    mutable client_rating : int;
     mutable client_chat_port : int;
   }
 

@@ -162,7 +162,14 @@ let (file_ops : file CommonFile.file_ops) =
      op_client_set_friend : ('a -> unit);
      op_client_remove_friend : ('a -> unit);
 *)
-  
+
+  (*
+let client_schedule_size = 60 * 24
+let client_schedule = Array.create client_schedule_size ([] : client list)
+let client_schedule_minute = ref 0
+let client_schedule_remaining_seconds = ref 60
+    *)
+
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
@@ -225,17 +232,27 @@ open DonkeyMftp
   
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
+    
+module H = Weak2.Make(struct
+      type t = client
+      let hash c = Hashtbl.hash c.client_kind
+      
+      let equal x y = x.client_kind = y.client_kind
+    end)
 
-let clients_by_kind = Hashtbl.create 127
-let clients_by_name = Hashtbl.create 127
+  
+let clients_by_kind = H.create 127
+(* let clients_by_name = Hashtbl.create 127 *)
 
 let local_searches = ref ([] : local_search list)
 let nservers = ref 0
 let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
-let clients_list = ref ([] : (client * file list) list)
-let clients_list_len = ref 0
-let remaining_time_for_clients = ref (60 * 15)
+  
+let clients_lists = Array.create 5  ([] : client list)
+let remaining_seconds = ref 60
+  
+(* let remaining_time_for_clients = ref (60 * 15) *)
 let location_counter = ref 0
 let download_credit = ref 0 
 
@@ -322,27 +339,41 @@ let shared_files = ref ([] : file_to_share list)
 (* compute the name used to save the file *)
   
 let longest_name file =
+(*
+  Printf.printf "LONGEST of %d" (List.length file.file_filenames); 
+print_newline ();
+  *)
   let md4_name = Md4.to_string file.file_md4 in
   let max = ref md4_name in (* default is md4 *)
   let maxl = ref 0 in
   List.iter (fun name ->
-      if !!verbose then begin
+(*
+      if !!verbose then  begin
           Printf.printf "TEST %s" name; print_newline ();
-        end;
+        end; *)
       (* prevent it from using the md4 is another name is available *)
       if name <> md4_name && String.length name > !maxl then begin
           maxl := String.length name;
           max := name
         end
   ) file.file_filenames;
-  if !!verbose then begin
+  (*if !!verbose then begin
       Printf.printf "LONGEST %s" !max; print_newline ();
-    end;
+    end; *)
   !max
           
 let update_best_name file =
-  if file_best_name file = Md4.to_string file.file_md4 then
-    set_file_best_name (as_file file.file_file) (longest_name file)
+  if file_best_name file = Md4.to_string file.file_md4 then begin
+(*      Printf.printf "BEST NAME IS MD4 !!!"; print_newline (); *)
+      set_file_best_name (as_file file.file_file) (longest_name file);
+     
+(*      Printf.printf "BEST NAME now IS %s" (file_best_name file);
+      print_newline (); *)
+      end else begin
+(*      Printf.printf "BEST NAME IS %s" (file_best_name file);
+print_newline (); *)
+      ()
+    end
   
 let new_file file_state file_name md4 file_size writable =
   try
@@ -483,12 +514,46 @@ let remove_server ip port =
       | Some sock -> shutdown (TcpBufferedSocket.sock sock) "remove server");
     server_remove (as_server s.server_server)
   with _ -> ()
-  
+
+let dummy_client = 
+  let rec c = {
+      client_client = client_impl;
+      client_upload = None;
+      client_kind = Indirect_location ("", Md4.null);   
+      client_sock = None;
+      client_md4 = Md4.null;
+      client_chunks = [||];
+      client_block = None;
+      client_zones = [];
+      client_connection_control =  new_connection_control (last_time ());
+      client_file_queue = [];
+      client_source_for = [];
+      client_tags = [];
+      client_name = "";
+      client_all_files = None;
+      client_next_view_files = last_time () -. 1.;
+      client_all_chunks = "";
+      client_rating = 0;
+      client_is_mldonkey = 0;
+      client_checked = false;
+      client_chat_port = 0 ; (** A VOIR : où trouver le 
+            port de chat du client ? *)
+      client_connected = false;
+      client_power = 0;
+      client_on_list = false;
+    } and
+    client_impl = {
+      dummy_client_impl with            
+      impl_client_val = c;
+      impl_client_ops = client_ops;
+    }
+  in
+  c  
 
 let new_client key =
   let c = 
     try
-      Hashtbl.find clients_by_kind key
+      H.find clients_by_kind { dummy_client with client_kind = key }
     with _ ->
         let rec c = {
             client_client = client_impl;
@@ -507,23 +572,25 @@ let new_client key =
             client_all_files = None;
             client_next_view_files = last_time () -. 1.;
             client_all_chunks = "";
-            client_rating = Int32.zero;
+            client_rating = 0;
             client_is_mldonkey = 0;
             client_checked = false;
             client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
             client_connected = false;
-        } and
+            client_power = !!upload_power;
+            client_on_list = false;            
+            } and
           client_impl = {
             dummy_client_impl with            
             impl_client_val = c;
             impl_client_ops = client_ops;
-        }
-      in
-      Heap.set_tag c tag_client;
-      CommonClient.new_client client_impl;
-        Hashtbl.add clients_by_kind key c;
-      c
+          }
+        in
+        Heap.set_tag c tag_client;
+        CommonClient.new_client client_impl;
+        H.add clients_by_kind c;
+        c
   in
   c
   
@@ -535,30 +602,32 @@ let friend_add c =
       
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
-      hashtbl_remove clients_by_name c.client_name c;  
+(*      hashtbl_remove clients_by_name c.client_name c;   *)
 
       c.client_name <- name;
       c.client_md4 <- md4;
       
+      (*
       if not (Hashtbl.mem clients_by_name c.client_name) then
         Hashtbl.add clients_by_name c.client_name c;
+*)
       
       try      
         let kind = Indirect_location (name, md4) in
-        let cc = Hashtbl.find clients_by_kind kind in
+        let cc = H.find clients_by_kind { dummy_client with client_kind = kind } in
         if cc != c && client_type cc = FriendClient then
           friend_add c
       with _ -> ()
     end
     
+exception ClientFound of client
 let find_client_by_name name =
-  Hashtbl.find clients_by_name name
-    
-
-let first_name file =
-  match file.file_filenames with
-    [] -> Filename.basename (file_disk_name file)
-  | name :: _ -> name
+  try
+    H.iter (fun c ->
+        if c.client_name = name then raise (ClientFound c)
+    ) clients_by_kind;
+    raise Not_found
+  with ClientFound c -> c
 
 let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
   
@@ -589,7 +658,7 @@ let mem_stats buf =
   let buffers = ref 0 in
   let waiting_msgs = ref 0 in
   let connected_clients_by_num = Hashtbl.create 100 in
-  Hashtbl.iter (fun _ c ->
+  H.iter (fun c ->
       (*
       if c.client_num <> num then begin
           incr bad_numbered_clients;
@@ -687,8 +756,9 @@ let server_num c = server_num (as_server c.server_server)
   
 let remove_client c =
   client_remove (as_client c.client_client);
-  hashtbl_remove clients_by_kind c.client_kind c;
-  hashtbl_remove clients_by_name c.client_name c
+(*  hashtbl_remove clients_by_kind c.client_kind c; *)
+(*  hashtbl_remove clients_by_name c.client_name c *)
+  ()
 
 let check_useful_client c = 
   let useful =
@@ -727,18 +797,18 @@ let remove_source file c =
   if List.memq file c.client_source_for then begin  
       file.file_sources <- Intmap.remove (client_num c) file.file_sources;
       file.file_nlocations <- file.file_nlocations - 1;
-      Printf.printf "removed source %d" file.file_nlocations; print_newline ();
+(*      Printf.printf "removed source %d" file.file_nlocations; print_newline (); *)
       c.client_source_for <- List2.removeq file c.client_source_for;
       check_useful_client c
     end
   
 let new_source file c =
   if not (List.memq file c.client_source_for) then begin
-      Printf.printf "New source (on %d)" file.file_nlocations;
-      print_newline ();
+(*      Printf.printf "New source (on %d)" file.file_nlocations;
+      print_newline (); *)
       if file.file_nlocations >= !!max_sources_per_file then begin
 (* find the oldest location, and remove it *)
-          Printf.printf "Remove old loc"; print_newline ();
+(*          Printf.printf "Remove old loc"; print_newline (); *)
           let oldest_time = ref (last_time ()) in
           let oldest_client = ref None in
           let locs = file.file_sources in
@@ -756,16 +826,17 @@ let new_source file c =
           match !oldest_client with
 (* We couldn't choose which client should be removed since
 no sources have been connected yet. *)
-            None -> Printf.printf "couldnot remove"; print_newline ();
+            None -> 
+              (* Printf.printf "couldnot remove"; print_newline (); *) ()
           | Some c ->
-              Printf.printf "lco removed"; print_newline ();
+(*              Printf.printf "loc removed"; print_newline (); *)
               remove_source file c
         end;
       file.file_nlocations <- file.file_nlocations + 1;
       file.file_sources <- Intmap.add (client_num c) c file.file_sources;
       file_new_source (as_file file.file_file) (as_client c.client_client);
       c.client_source_for <- file :: c.client_source_for;
-      Printf.printf "New source added %d" file.file_nlocations;
+(*      Printf.printf "New source added %d" file.file_nlocations; *)
     end    
    
 let file_state file =
@@ -849,7 +920,7 @@ let _ =
       Printf.printf "Current files: %d" (List.length !current_files);
       print_newline ();
 (* clients_by_name *)
-      let list = Hashtbl2.to_list clients_by_name in
+(*      let list = Hashtbl2.to_list clients_by_name in
       Printf.printf "Clients_by_name: %d" (List.length list);
       print_newline ();
       List.iter (fun c ->
@@ -857,27 +928,33 @@ let _ =
           (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
      ) list;
       print_newline ();
+*)
       
 (* clients_by_kind *)
-      let list = Hashtbl2.to_list clients_by_kind in
+      let list = H.to_list clients_by_kind in
       Printf.printf "Clients_by_kind: %d" (List.length list);
       print_newline ();
       List.iter (fun c ->
-          Printf.printf "[%d %s]" (client_num c)
-          (if Hashtbl.mem clients_by_name c.client_name then "N" else " ") ;
+          Printf.printf "[%d ok: %s tried: %s next: %s state: %f rating: %d]" (client_num c)
+          (Date.to_string (c.client_connection_control.control_last_ok))
+          (Date.to_string (c.client_connection_control.control_last_try))
+          (Date.to_string (connection_next_try c.client_connection_control))
+          c.client_connection_control.control_state
+          c.client_rating
+          ;
+          print_newline ();
      ) list;
       print_newline ();
 
-      (* clients_list *)
-      Printf.printf "Clients list: %d" (List.length !clients_list);
-      print_newline ();
-      List.iter (fun (c,files) ->
-          Printf.printf "[%d %s%s[" (client_num c)
-          (if Hashtbl.mem clients_by_name c.client_name then "N" else " ")
-          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
-          List.iter (fun file -> Printf.printf "%d " (file_num file)) files;
-          Printf.printf "]";
-     ) !clients_list;
-      print_newline ();
-      
+(* clients_list *)
+      Array.iter (fun list ->
+          Printf.printf "Clients list: %d" (List.length list);
+          print_newline ();
+          List.iter (fun (c) ->
+              Printf.printf "[%d %s]" (client_num c)
+              (if H.mem clients_by_kind c then "K" else " ") ;
+          ) list;
+          print_newline ();
+      ) clients_lists;
+          
   )

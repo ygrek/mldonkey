@@ -35,34 +35,40 @@ type buf = {
     mutable max_buf_size:int;
   }
 
-type 'a t = {
+type t = {
     mutable sock : BasicSocket.t;
     mutable rbuf : buf;
-    mutable wbuf : buf;
-    mutable event_handler : 'a handler;
+    mutable wfifo : string Fifo2.t;
+    mutable wlen : int;
+    mutable wfbuf : buf;
+    mutable event_handler : handler;
     mutable error : string;
     mutable nread : int;
     mutable nwrite : int;
     mutable monitored : bool;
-    mutable write_fifo : 'a Fifo.t;
-    mutable to_string : ('a -> string);
     
     mutable read_control : bandwidth_controler option;
     mutable write_control : bandwidth_controler option;
-  }
+    mutable write_power : int;    
+    mutable read_power : int;    
+  }  
   
-  
-and 'a handler = 'a t -> event -> unit
+and handler = t -> event -> unit
 
 and bandwidth_controler = {
     mutable remaining_bytes : int;
     mutable total_bytes : int;
     mutable nconnections : int;
-    mutable connections : unit t list;
+    mutable connections : t list;
     allow_io : bool ref;
+    mutable last_remaining : int;
+    mutable moved_bytes : int64;
   }
 
 
+let tcp_uploaded_bytes = ref Int64.zero
+let tcp_downloaded_bytes = ref Int64.zero
+  
 let nread t = t.nread
 
 let min_buffer_read = 500
@@ -89,17 +95,23 @@ let delete_string s =
     end
 
 let close t s = 
-  (*
+(*
   if t.monitored then begin
       Printf.printf "close with %s %s" t.error s; print_newline ();
 end;
-  *)
-  delete_string t.rbuf.buf;
-(*  delete_string t.wbuf.buf; WBUF *)
-  t.rbuf.buf <- "";
-(*  t.wbuf.buf <- ""; WBUF *)
-  close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
-
+*)
+  begin
+    try
+      delete_string t.rbuf.buf;
+      t.rbuf.buf <- "";
+      t.wfbuf.buf <- "";
+      close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
+    with e ->
+        Printf.printf "Exception %s in TcpBufferedSocket.close" 
+          (Printexc.to_string e); print_newline ();
+        raise e
+  end
+  
 let shutdown t s =
   (*
   if t.monitored then begin
@@ -171,18 +183,10 @@ let set_handler t event handler =
   in
   t.event_handler <- handler
 
-  
-let can_write t =
-  t.wbuf.len = 0  && Fifo.length t.write_fifo = 0
-  
-let can_fill t =
-  Fifo.length t.write_fifo < 20
-  
 let set_refill t f =
   set_handler t CAN_REFILL f;
-  if can_write t then (try f t with _ -> ())
+  if t.wlen = 0 then (try f t with _ -> ())
 
-  
 let buf t = t.rbuf
 let sock t = t.sock
   
@@ -206,8 +210,8 @@ let buf_add t b s pos1 len =
         b.pos <- 0;
       end
     else
-    if curpos + len > b.max_buf_size then begin
-        Printf.printf "BUFFER OVERFLOW %d+%d> %d" curpos len b.max_buf_size ; 
+    if b.len + len > b.max_buf_size then begin
+        Printf.printf "BUFFER OVERFLOW %d+%d> %d" b.len len b.max_buf_size ; 
         print_newline ();
         
         Printf.printf "MESSAGE [";
@@ -237,12 +241,17 @@ let buf_add t b s pos1 len =
       b.len <- b.len + len
     end
 
+let write t s = ()
+let write_uniq t s = ()
     
-    
-let write_string t string =
-  let len = String.length string in
+    (*
+let write t s pos1 len =
+(*  Printf.printf "want_write %d" len; print_newline (); *)
   if len > 0 && not (closed t) then
-    let pos = if (match t.write_control with
+    let pos2 = pos1 + len in
+    let b = t.wbuf in
+    let pos1 =
+      if b.len = 0 && (match t.write_control with
             None -> 
 (*              Printf.printf "NO CONTROL"; print_newline (); *)
               true
@@ -252,55 +261,43 @@ let write_string t string =
       then 
         try
 (*          Printf.printf "try write %d" len; print_newline (); *)
-          let nw = Unix.write (fd t.sock) string 0 len in
+          let fd = fd t.sock in
+          let nw = Unix.write fd s pos1 len in
 (*          if t.monitored then begin
-Printf.printf "write: direct written %d" nw; print_newline (); 
+              Printf.printf "write: direct written %d" nw; print_newline (); 
 end; *)
+          tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+          (match t.write_control with
+              None -> ()
+            | Some bc ->
+                bc.moved_bytes <-
+                Int64.add bc.moved_bytes (Int64.of_int nw));
           t.nwrite <- t.nwrite + nw;
-          if nw = 0 then (close t "closed on write"; len) else
-            nw
+          if nw = 0 then (close t "closed on write"; pos2) else
+            pos1 + nw
         with
-          Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.EAGAIN | Unix.ENOTCONN), _, _) -> 0
+          Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.EAGAIN | Unix.ENOTCONN), _, _) -> pos1
         | e ->
             t.error <- Printf.sprintf "Write Error: %s" (Printexc.to_string e);
             close t t.error;
             
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
             raise e
-            
-      else 0
+
+      else pos1
     in
-    if pos < len then
+    if pos2 > pos1 then
       let sock = t.sock in
       must_write sock true;
-      let b = t.wbuf in
-      b.len <- (len - pos);
-      b.buf <- string;
-      b.pos <- 0;
-    else
-    if Fifo.length t.write_fifo > 0 then
-      let msg = Fifo.take t.write_fifo in
-      let s = t.to_string msg in
-      let sock = t.sock in
-      let b = t.wbuf in
-      b.len <- String.length s;
-      b.buf <- s;
-      b.pos <- 0;
-      must_write sock true
-      
-let write t msg =
-  try
-    if t.wbuf.len = 0 then
-      let s = t.to_string msg in
-      write_string t s
-    else
-      Fifo.put t.write_fifo msg
-  with e ->
-      Printf.printf "Error %s in TcpClientSocket.write" (Printexc.to_string e);
-      print_newline ()
-      
+      buf_add t b s pos1 (pos2 - pos1)
+
+let write_string t s = write t s 0 (String.length s)
+  *)
+
 let dummy_sock = Obj.magic 0
+
 let exn_exit = Exit
+  
 let can_read_handler t sock max_len =
   let b = t.rbuf in
   let curpos = b.pos + b.len in
@@ -308,18 +305,29 @@ let can_read_handler t sock max_len =
     if b.buf = "" then begin
         b.buf <- new_string ();
         min_buffer_read
-      end else
+      end 
+    else
     if max_len - curpos < min_read_size then
       if b.len + min_read_size > b.max_buf_size then
-        (t.event_handler t BUFFER_OVERFLOW; close t "buffer_overflow"; raise exn_exit)
+        (
+          t.event_handler t BUFFER_OVERFLOW; 
+          Printf.printf "[OVERFLOW] in %s" (info sock); 
+          close t "buffer overflow"; 
+          raise exn_exit; 
+          0
+        )
       else
       if b.len + min_read_size < max_len then
-        ( String.blit b.buf b.pos b.buf 0 b.len;
+        ( 
+          String.blit b.buf b.pos b.buf 0 b.len;
           b.pos <- 0;
-          max_len - b.len)
+          max_len - b.len
+        )
       else
-      let new_len = mini (maxi 
-            (2 * max_len) (b.len + min_read_size)) b.max_buf_size  in
+      let new_len = mini 
+          (maxi 
+            (2 * max_len) (b.len + min_read_size)) b.max_buf_size  
+      in
       let new_buf = String.create new_len in
       String.blit b.buf b.pos new_buf 0 b.len;
       b.pos <- 0;
@@ -343,79 +351,86 @@ let can_read_handler t sock max_len =
           raise e
     
     in
+    tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
+    (match t.read_control with
+        None -> () | Some bc ->
+          bc.moved_bytes <-
+          Int64.add bc.moved_bytes (Int64.of_int nread));        
+    
     t.nread <- t.nread + nread;
     if nread = 0 then begin
-        close t "closed on read";
-      end else begin
-        let curpos = b.pos in
-        b.len <- b.len + nread;
-        try
+      close t "closed on read";
+    end else begin
+      let curpos = b.pos in
+      b.len <- b.len + nread;
+      try
 (*              if t.monitored then 
-                (Printf.printf "event handler READ DONE"; print_newline ()); *)
-          t.event_handler t (READ_DONE nread);
-        with
-        | e ->
+   (Printf.printf "event handler READ DONE"; print_newline ()); *)
+        t.event_handler t (READ_DONE nread);
+      with
+      | e ->
 (*                if t.monitored then
-                  (Printf.printf "Exception in READ DONE"; print_newline ()); *)
-            t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
-            close t t.error;
+   (Printf.printf "Exception in READ DONE"; print_newline ()); *)
+          t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
+          close t t.error;
 
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
-            raise e
-      end
+          raise e
+    end
 
-let rec can_write_handler t sock max_len =
+let can_write_handler t sock max_len =
+  (*
 (*      if t.monitored then (
           Printf.printf "CAN_WRITE (%d)" t.wbuf.len; print_newline ();
         ); *)
   let b = t.wbuf in
-  let max_len =
   if b.len > 0 then
+    begin
       try
 (*     Printf.printf "try write %d/%d" max_len t.wbuf.len; print_newline (); *)
-        let nw = Unix.write (fd sock) b.buf b.pos max_len in
+        let fd = fd sock in
+        let nw = Unix.write fd b.buf b.pos max_len in
+
 (*            if t.monitored then
-              (Printf.printf "written %d" nw; print_newline ()); *)
+(Printf.printf "written %d" nw; print_newline ()); *)
+        tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+        (match t.write_control with
+            None -> ()
+          | Some bc ->
+              bc.moved_bytes <-
+              Int64.add bc.moved_bytes (Int64.of_int nw));        
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;
         if nw = 0 then close t "closed on write" else
         if b.len = 0 then begin
             b.pos <- 0;
-(*            delete_string b.buf; WBUF *)
+            delete_string b.buf;
             b.buf <- "";
-          end;
-        max_len - nw
+          end
       with 
-        Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> 0
+        Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
           t.error <- Printf.sprintf "Can Write Error: %s" (Printexc.to_string e);
           close t t.error;
 
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
-            raise e
-    else 0
-  in
-
-  if not (closed t) then 
-    if b.len = 0 && Fifo.length t.write_fifo > 0 then
-      let msg = Fifo.take t.write_fifo in
-      let s = t.to_string msg in
-      b.buf <- s;
-      b.pos <- 0;
-      b.len <- String.length s;
-      if max_len > 0 then
-        can_write_handler t sock max_len
-    else begin
-        t.event_handler t CAN_REFILL;
-        if b.len = 0 then begin
-(*            delete_string b.buf; WBUF *)
-            b.buf <- "";
-            b.pos <- 0;
-            must_write t.sock false;
-            t.event_handler t WRITE_DONE
-          end
-      end      
+          raise e
+    
+    end;
+  if not (closed t) then begin
+      t.event_handler t CAN_REFILL;
+      if b.len = 0 then begin
+          delete_string b.buf;
+          b.pos <- 0;
+          must_write t.sock false;
+          t.event_handler t WRITE_DONE
+        end
+    end      
+*)
+  ()
+  
+let remaining_to_write t = t.wlen
     
 let tcp_handler t sock event = 
   match event with
@@ -432,8 +447,8 @@ let tcp_handler t sock event =
 (*                Printf.printf "DELAYED"; print_newline (); *)
                 if bc.remaining_bytes > 0 then
                   begin
-                    bc.connections <- (Obj.magic t) :: bc.connections;
-                    bc.nconnections <- 1 + bc.nconnections
+                    bc.connections <- t :: bc.connections;
+                    bc.nconnections <- t.read_power + bc.nconnections
                   end
               end
       end
@@ -442,15 +457,15 @@ let tcp_handler t sock event =
       begin
         match t.write_control with
           None ->
-            can_write_handler t sock t.wbuf.len
+            can_write_handler t sock t.wlen
         | Some bc ->
             if bc.total_bytes = 0 then
-              can_write_handler t sock t.wbuf.len
+              can_write_handler t sock t.wlen
             else  begin
 (*                Printf.printf "DELAYED"; print_newline (); *)
             if bc.remaining_bytes > 0 then begin
-                bc.connections <- (Obj.magic t) :: bc.connections;
-                bc.nconnections <- 1 + bc.nconnections
+                bc.connections <- t :: bc.connections;
+                bc.nconnections <- t.write_power + bc.nconnections
                   end
               end
       end
@@ -467,8 +482,10 @@ let create_read_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
+      last_remaining = 0;
+      moved_bytes = Int64.zero;
     } in
-  read_bandwidth_controlers := (Obj.magic bc) :: !read_bandwidth_controlers;
+  read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
   bc
       
 let create_write_bandwidth_controler rate = 
@@ -478,8 +495,10 @@ let create_write_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
+      last_remaining = 0;
+      moved_bytes = Int64.zero;
     } in
-  write_bandwidth_controlers := (Obj.magic bc) :: !write_bandwidth_controlers;
+  write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
   bc
 
 let change_rate bc rate =
@@ -494,7 +513,7 @@ let bandwidth_controler t sock =
       None -> ()
     | Some bc ->
         must_write sock ((bc.total_bytes = 0 || bc.remaining_bytes > 0)
-          && t.wbuf.len > 0))  
+          && t.wlen > 0))  
   
 let set_read_controler t bc =
   t.read_control <- Some bc;
@@ -508,14 +527,22 @@ let set_write_controler t bc =
   set_allow_write t.sock bc.allow_io;
   bandwidth_controler t t.sock
   
-let max_buffer_size = ref 100000
+let max_buffer_size = ref 100000 
+
+let dump_socket t () = 
+  print_socket t.sock;
+  Printf.printf "rbuf: %d/%d wbuf: %d/%d" t.rbuf.len (String.length t.rbuf.buf) t.wlen (String.length t.wfbuf.buf);
+  print_newline ()
   
-let create fd handler to_string =
+let create name fd handler =
+  if !debug then begin
+      Printf.printf "[fd %d %s]" (Obj.magic fd) name; print_newline ();
+    end;
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
-      wbuf = buf_create !max_buffer_size;
+      wfbuf = buf_create !max_buffer_size;
       event_handler = handler;
       error = "";
       nread = 0;
@@ -523,19 +550,28 @@ let create fd handler to_string =
       monitored = false;
       read_control = None;
       write_control = None;
-      write_fifo = Fifo.create ();
-      to_string = to_string;
+      write_power = 1;
+      read_power = 1;
+      wlen = 0;
+      wfifo = Fifo2.create ();
     } in
-  let sock = create "tcpClientSocket" fd (tcp_handler t) in
+  let sock = BasicSocket.create name fd (tcp_handler t) in
+  let name = (fun () ->
+        Printf.sprintf "%s (nread: %d nwritten: %d) [U %b,D %b]" name t.nread t.nwrite
+        (t.read_control <> None) (t.write_control <> None);
+        ;
+    ) in
+  set_printer sock name;
+  set_dump_info sock (dump_socket t);
   t.sock <- sock;
   t
 
-let create_blocking  fd handler to_string =
+let create_blocking name fd handler =
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
-      wbuf = buf_create !max_buffer_size;
+      wfbuf = buf_create !max_buffer_size;
       event_handler = handler;
       error = "";
       nread = 0;
@@ -543,35 +579,91 @@ let create_blocking  fd handler to_string =
       monitored = false;
       read_control = None;
       write_control = None;
-      write_fifo = Fifo.create ();
-      to_string = to_string;
+      write_power = 1;
+      read_power = 1;
+      wlen = 0;
+      wfifo = Fifo2.create ();
     } in
-  let sock = create_blocking "tcpClientSocket" fd (tcp_handler t) in
+  let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
+  set_dump_info sock (dump_socket t);
   t
   
-let create_simple fd =
-  create fd (fun _ _ -> ())
+let create_simple name fd =
+  create name fd (fun _ _ -> ())
   
-let connect host port handler to_string =
-(*   Printf.printf "CONNECT"; print_newline ();*)
-  let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-  let t = create s handler to_string in
-  must_write (sock t) true;
+let connect name host port handler =
   try
-    Unix.connect s (Unix.ADDR_INET(host,port));
-    t
-  with e -> t
-
-
+(*   Printf.printf "CONNECT"; print_newline ();*)
+    let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    let t = create name s handler in
+    must_write (sock t) true;
+    try
+      Unix.connect s (Unix.ADDR_INET(host,port));
+      t
+    with 
+      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
+    | e -> 
+        Printf.printf "For host %s port %d" (Unix.string_of_inet_addr host)
+        port; print_newline ();
+        close t "connect failed";
+        raise e
+  with e -> 
+      Printf.printf "+++ Exception BEFORE CONNECT %s" (Printexc.to_string e);
+      print_newline ();
+      raise e
+      
   
+  
+let exec_command cmd args handler =
+  let (in_read, output) = Unix.pipe() in
+  let (input, out_write) = Unix.pipe() in
+  match Unix.fork() with
+    0 -> begin
+        try
+          match Unix.fork () with
+            0 -> begin
+                try
+                  if input <> Unix.stdin then
+                    begin Unix.dup2 input Unix.stdin; Unix.close input end;
+                  if output <> Unix.stdout then
+                    begin Unix.dup2 output Unix.stdout; Unix.close output end;
+                  Unix.close in_read;
+                  Unix.close out_write;
+                  Unix.execv cmd args;
+                  exit 127
+                with e -> 
+                    Printf.eprintf "Exception %s in exec_command\n"
+                      (Printexc.to_string e) ; 
+                    exit 1
+              end
+          | id -> 
+              exit 2
+        with _ -> 
+            exit 3
+      end
+  | id -> 
+      ignore (snd(Unix.waitpid [] id));
+      Unix.close input;
+      Unix.close output;
+      let t_in = create "pipe_int" in_read handler in
+      let t_out = create "pipe_out" out_write (fun _ _ -> ()) in
+      must_read (sock t_out) false;
+      (t_in, t_out)
   
 let set_max_write_buffer t len =
-  t.wbuf.max_buf_size <- len
+  t.wfbuf.max_buf_size <- len;
+  t.rbuf.max_buf_size <- len
   
+let can_write t =
+  t.wlen = 0
+
+let can_write_len t len =
+(*  Printf.printf "CAN WRITE %d > %d + %d"  t.wbuf.max_buf_size t.wbuf.len len; print_newline (); *)
+  t.wfbuf.max_buf_size > t.wlen + len
   
 let close_after_write t =
-  if can_write t then begin
+  if t.wlen = 0 then begin
       shutdown t "close after write"
     end
   else
@@ -583,14 +675,19 @@ let set_monitored t =
   
   
 let _ =
-  BasicSocket.add_infinite_timer 1.0 (fun _ ->
+  add_infinite_timer 1.0 (fun timer ->
       List.iter (fun bc ->
+          bc.last_remaining <- bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;
+          if bc.remaining_bytes > 0 then bc.allow_io := true
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
-          bc.remaining_bytes <- bc.total_bytes;
-(*          Printf.printf "WRITE remaining_bytes: %d" bc.remaining_bytes;  
+          bc.last_remaining <- bc.remaining_bytes;
+          bc.remaining_bytes <- bc.total_bytes;          
+          if bc.remaining_bytes > 0 then bc.allow_io := true;
+          (*
+          Printf.printf "WRITE remaining_bytes: %d" bc.remaining_bytes; 
           print_newline (); *)
       ) !write_bandwidth_controlers
   );
@@ -608,7 +705,8 @@ let _ =
       List.iter (fun bc ->
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_read = maxi 30 (bc.remaining_bytes / bc.nconnections) in
+                let can_read = maxi 1 (bc.remaining_bytes / bc.nconnections) in
+                let can_read = can_read * t.read_power in
                 let old_nread = t.nread in
                 (try
                     can_read_handler t t.sock (mini can_read 
@@ -616,25 +714,27 @@ let _ =
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes - 
                 t.nread + old_nread;
-                bc.nconnections <- bc.nconnections - 1;
+                bc.nconnections <- bc.nconnections - t.read_power;
           ) bc.connections;
+          if bc.remaining_bytes > 0 then bc.allow_io := false;
           bc.connections <- [];
           bc.nconnections <- 0;
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
-(*          Printf.printf "Nconn: %d" bc.nconnections; print_newline (); *)
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_write = maxi 30 (bc.remaining_bytes / bc.nconnections) in
+                let can_write = maxi 1 (bc.remaining_bytes / bc.nconnections) in
+                let can_write = can_write * t.write_power in
                 let old_nwrite = t.nwrite in
                 (try
 (*                    Printf.printf "WRITE"; print_newline (); *)
-                    can_write_handler t t.sock (mini can_write t.wbuf.len)
+                    can_write_handler t t.sock (mini can_write t.wlen)
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes - 
                 t.nwrite + old_nwrite;
-                bc.nconnections <- bc.nconnections - 1;
+                bc.nconnections <- bc.nconnections - t.write_power;
           ) bc.connections;
+          if bc.remaining_bytes > 0 then bc.allow_io := false;
           bc.connections <- [];
           bc.nconnections <- 0;
       ) !write_bandwidth_controlers
@@ -651,8 +751,73 @@ let stats buf t =
   BasicSocket.stats buf t.sock;
   Printf.bprintf buf "  rbuf size: %d/%d\n" (String.length t.rbuf.buf)
   t.rbuf.max_buf_size;
-  Printf.bprintf buf "  wbuf size: %d/%d\n" (String.length t.wbuf.buf)
-  t.wbuf.max_buf_size
+  Printf.bprintf buf "  wbuf size: %d/%d\n" (t.wlen)
+  t.wfbuf.max_buf_size
 
 let buf_size  t =
-  String.length t.rbuf.buf, Fifo.length t.write_fifo
+  (String.length t.rbuf.buf),
+  (String.length t.wfbuf.buf)
+  
+let can_fill t =
+  t.wlen < (t.wfbuf.max_buf_size / 2)
+  
+let if_possible bc len = 
+  bc.total_bytes = 0 ||
+  if bc.last_remaining >= len then begin
+      bc.last_remaining <- bc.last_remaining - len;
+      true;
+    end else false
+    
+let set_rtimeout s t = set_rtimeout (sock s) t
+let set_wtimeout s t = set_wtimeout (sock s) t
+
+open LittleEndian
+   
+let internal_buf = Buffer.create 17000
+
+let simple_send_buf buf sock = ()
+  (*
+  let s = Buffer.contents buf in
+  Buffer.clear buf;
+  buf_int8 buf 228;
+  let len = String.length s in
+  buf_int buf len;
+  write sock (Buffer.contents buf) 0 5;
+  write sock s 0 len
+*)
+  
+let value_send sock m = ()
+  (*
+  Buffer.clear internal_buf;
+  Buffer.add_string internal_buf (Marshal.to_string m []);
+  simple_send_buf internal_buf sock
+*)
+  
+let value_handler f sock nread = ()
+  (*
+  let b = buf sock in
+  try
+    while b.len >= 5 do
+      let msg_len = get_int b.buf (b.pos+1) in
+      if b.len >= 5 + msg_len then
+        begin
+          let s = String.sub b.buf (b.pos+5) msg_len in
+          let t = Marshal.from_string  s 0 in
+          buf_used sock  (msg_len + 5);
+          f t sock;
+          ()
+        end
+      else raise Not_found
+    done
+  with Not_found -> ()
+      *)
+
+  
+  
+let set_write_power t p = t.write_power <- p
+let set_read_power t p = t.read_power <- p
+  
+let set_lifetime s = set_lifetime (sock s)
+  
+let moved_bytes bc = bc.moved_bytes
+  

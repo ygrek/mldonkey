@@ -68,7 +68,8 @@ module type S = sig
   val iter : (data -> unit) -> t -> unit
   val fold : (data -> 'a -> 'a) -> t -> 'a -> 'a
   val count : t -> int
-  val stats : t -> int * int * int * int * int * int
+    val stats : t -> int * int * int * int * int * int
+    val to_list : t -> data list
 end;;
 
 module Make (H : Hashtbl.HashedType) : (S with type data = H.t) = struct
@@ -232,4 +233,9 @@ module Make (H : Hashtbl.HashedType) : (S with type data = H.t) = struct
     (len, count t, totlen, lens.(0), lens.(len/2), lens.(len-1))
   ;;
 
+  let to_list t =
+    let list = ref [] in
+    iter (fun c -> list := c :: !list) t;
+    !list
+  
 end;;

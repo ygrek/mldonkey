@@ -67,13 +67,8 @@ let percent file =
   let size = Int32.to_float file.file_size in
   (downloaded *. 100.) /. size
 
-let first_name fi =
-  match fi.file_names with
-    n :: tail -> n
-  | _ -> "<unknown>"
-
 let short_name file =
-  let name = first_name file in
+  let name = file.file_name in
   let len = String.length name in
   let max_name_len = maxi !!max_name_len 10 in
   if len > max_name_len then
@@ -379,9 +374,8 @@ let display_file_list buf format =
         | ByRate -> (fun f1 f2 -> 
                 f1.file_download_rate >= f2.file_download_rate)
         | ByName -> (fun f1 f2 -> 
-                match f1.file_names, f2.file_names with
-                  n1 :: _ , n2 :: _ -> n1 <= n2
-                | _ -> true)
+                f1.file_name <= f2.file_name)
+
         | ByDone -> (fun f1 f2 -> 
                 f1.file_downloaded >= f2.file_downloaded)
         | ByPercent -> (fun f1 f2 ->

@@ -1,7 +1,43 @@
 ChangeLog	
 =========
 
-2002/09/30: mldonkey
+2002/10/05: mldonkey
+  - fix: clients_lists are now stored in a 5 buckets array, one per minute.
+      Strange behavior: the list is almost always full, and the number of fds
+      increases dangerously. set client_timeout to 30 or smaller to
+      improve that ? Must check that this timeout is changed when the client
+      becomes interesting (queued for upload or download). Also set
+      max_clients_per_second to more than 5...
+  - fix: prefered files are not queried twice anymore, nor client repeatedly 
+     queried after connection, to avoid Emule Black-list stupid mechanism.
+  - fix: unknown commands should print an error now
+  - add: new command "priority" that can be used to change the priority of
+      a file. Such files will get priority times more bandwidth than
+      normal connections.
+  - fix: 
+     * new command "use_poll" to switch between poll and select.
+     * Fixed bug in poll making huge CPU usage
+  - add: new messages for publishing files on Overnet.
+
+2002/10/04: mldonkey
+  - fix: file_best_name should be used more often
+  - fix: recover_temp should use the best available name
+  - fix: the number of overnet peers saved in servers.ini is now limited
+      by overnet_max_known_peers
+
+2002/10/03: mldonkey
+  - add: new files for IP multicast, not used, probably never
+  - add: overnet URLs in "ovlink", statistics "ovstats"
+  - add: overnet new options to reduce memory usage "overnet_max_search_hits"
+      and "overnet_max_waiting_peers"
+
+2002/10/02: mldonkey
+  - add: priority of files
+     * read power added to TcpBufferedSocket.t for priviledged connections
+     * DonkeyTypes.file_priority for priviledged files
+     * DonkeyTypes.client_power for priviledged clients
+
+2002/10/01: mldonkey
   - add: more debug output for 'dump_heap'
   - donkeyClients.ml: SourceReq clients are not immediatly added to
      clients_list

@@ -129,17 +129,11 @@ let my () =
 
 open Options
         
-module IpOption = struct
-    
     let value_to_ip v = of_string (value_to_string v)
       
     let ip_to_value ip = string_to_value (to_string ip)
       
-    let t = define_option_class "Ip" value_to_ip ip_to_value      
-      
-  end
-  
-let option = IpOption.t
+let option = define_option_class "Ip" value_to_ip ip_to_value      
   
 let any = of_inet_addr Unix.inet_addr_any
   

@@ -57,7 +57,7 @@ let reconnect_all file =
       connection_must_try c.client_connection_control;
       match c.client_kind with
         Known_location _ ->
-          connect_client (client_ip None) [file] c
+          add_interesting_client c
       | _ -> ()) file.file_sources;
   List.iter (fun s ->
       match s.server_sock, server_state s with
@@ -112,6 +112,7 @@ let load_server_met filename =
     let s = File.to_string filename in
     let ss = S.read s in
     List.iter (fun r ->
+        if Ip.valid r.S.ip then
         let server = add_server r.S.ip r.S.port in
         List.iter (fun tag ->
             match tag with
@@ -369,7 +370,7 @@ else *)
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10ld %32s %s" 
     (file_num file)
-    (first_name file)
+    (file_best_name file)
   (file_size file)
   (Md4.to_string file.file_md4)
   (if file_state file = FileDownloaded then
@@ -420,8 +421,10 @@ let parse_donkey_url url =
       true
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
-      let s = add_server (Ip.of_string ip) (int_of_string port) in
-      server_must_update s;
+      let ip = Ip.of_string ip in
+      (if Ip.valid ip then
+          let s = add_server ip (int_of_string port) in
+          server_must_update s);
       true
   | "ed2k://" :: "friend" :: ip :: port :: _
   | "friend" :: ip :: port :: _ ->
@@ -551,7 +554,35 @@ let commands = [
         "url added to web_infos. downloading now"
     ), " <kind> <url> : load this file from the web. 
     kind is either server.met (if the downloaded file is a server.met)";
-    
+       
+    "scan_temp", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        let list = Unix2.list_directory !!temp_directory in
+        List.iter (fun filename ->
+            try
+              let md4 = Md4.of_string filename in
+              try
+                let file = find_file md4 in
+                Printf.bprintf buf "%s is %s %s\n" filename
+                  (file_best_name file)
+                "(downloading)" 
+              with _ ->
+                  Printf.bprintf buf "%s %s %s\n"
+                  filename
+                    (if List.mem md4 !!old_files then
+                      "is an old file" else "is unknown")
+                  (try
+                      let names = DonkeyIndexer.find_names md4 in
+                      List.hd names
+                    with _ -> "and never seen")
+                    
+            with _ -> 
+                Printf.bprintf buf "%s unknown\n" filename
+        
+        ) list;
+        "done";
+    ), " : print temp directory content";
+
     "recover_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
         let files = Unix2.list_directory !!temp_directory in
@@ -564,7 +595,9 @@ let commands = [
                 with Not_found ->
                     let size = Unix32.getsize32 (Filename.concat 
                           !!temp_directory filename) in
-                    query_download [] size md4 None None None true
+                    let names = try DonkeyIndexer.find_names md4 
+                      with _ -> [] in
+                    query_download names size md4 None None None true
               with e ->
                   Printf.printf "exception %s in recover_temp"
                     (Printexc.to_string e); print_newline ();
@@ -614,35 +647,7 @@ let commands = [
         DonkeyIndexer.clear ();
         "local history cleared"
     ), " : clear local history";
-    
-    "scan_temp", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let list = Unix2.list_directory !!temp_directory in
-        List.iter (fun filename ->
-            try
-              let md4 = Md4.of_string filename in
-              try
-                let file = find_file md4 in
-                Printf.bprintf buf "%s is %s %s\n" filename
-                  (first_name file)
-                "(downloading)" 
-              with _ ->
-                  Printf.bprintf buf "%s %s %s\n"
-                  filename
-                    (if List.mem md4 !!old_files then
-                      "is an old file" else "is unknown")
-                  (try
-                      let names = DonkeyIndexer.find_names md4 in
-                      List.hd names
-                    with _ -> "and never seen")
-                    
-            with _ -> 
-                Printf.bprintf buf "%s unknown\n" filename
         
-        ) list;
-        "done";
-    ), " : print temp directory content";
-    
     "dllink", Arg_multiple (fun args o ->        
         let buf = o.conn_buf in
         let url = String2.unsplit args ' ' in
@@ -708,7 +713,7 @@ let _ =
           None -> 
             (
 (* A VOIR  : est-ce que c'est bien de fait comme ça ? *)
-              DonkeyClient.connect_client (client_ip None) [] c;
+              DonkeyClient.reconnect_client c;
               match c.client_sock with
                 None ->
                   CommonChat.send_text !!CommonOptions.chat_console_id None 
@@ -736,6 +741,7 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_info <- (fun file ->
       {
+        P.file_name = file_best_name file;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = file.file_filenames;
@@ -916,12 +922,10 @@ let _ =
 (*      Printf.printf "should browse"; print_newline (); *)
       if immediate then browse_client c else begin
 (*          Printf.printf "Adding friend to clients_list"; print_newline (); *)
-          clients_list := (c, []) :: !clients_list;
-          incr clients_list_len
+          add_interesting_client c
         end);
   client_ops.op_client_connect <- (fun c ->
-      connection_must_try c.client_connection_control;
-      connect_client (client_ip None) [] c
+      add_interesting_client c
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;
@@ -951,7 +955,7 @@ let _ =
       | Some impl ->
           { (impl_shared_info impl) with 
             T.shared_network = network.network_num;
-            T.shared_filename = first_name file;
+            T.shared_filename = file_best_name file;
             }
   );
   pre_shared_ops.op_shared_info <- (fun s ->

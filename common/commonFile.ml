@@ -35,6 +35,7 @@ type 'a file_impl = {
     mutable impl_file_last_downloaded : (int32 * float) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
+    mutable impl_file_priority: int;
   }
   
 and 'a file_ops = {
@@ -89,7 +90,8 @@ let dummy_file_impl = {
     impl_file_downloaded = Int32.zero;
     impl_file_last_downloaded = [];
     impl_file_last_rate = 0.0;
-    impl_file_best_name = "<UNKNOWN>"
+    impl_file_best_name = "<UNKNOWN>";
+    impl_file_priority = 0;
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -171,10 +173,11 @@ let file_info (file : file) =
 
 let file_pause (file : file) =
   let file = as_file_impl file in
-  if file.impl_file_state = FileDownloading then begin
+  match file.impl_file_state with
+    FileDownloading ->
       update_file_state file FilePaused;
       file.impl_file_ops.op_file_pause file.impl_file_val
-    end
+  | _ -> ()
 
 let file_resume (file : file) =
   let file = as_file_impl file in
@@ -392,3 +395,10 @@ let file_downloaded file =
 
 let file_network file =
   (as_file_impl file).impl_file_ops.op_file_network
+
+let file_priority file = 
+  (as_file_impl file).impl_file_priority
+  
+let set_file_priority file p = 
+  (as_file_impl file).impl_file_priority <- p
+  

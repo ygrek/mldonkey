@@ -259,7 +259,7 @@ let write buf t =
       buf_md4 buf r_md4;
       buf_tags buf r_tags names_of_tag
 
-  | OvernetPublish (md4, r_md4, t_tags) ->
+  | OvernetPublish (md4, r_md4, r_tags) ->
       buf_int8 buf 19;
       buf_md4 buf md4;
       buf_md4 buf r_md4;

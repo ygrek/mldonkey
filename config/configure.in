@@ -21,6 +21,14 @@ DONKEY=yes
 MULTINET=yes
 AC_ARG_ENABLE(multinet, [--disable-multinet:       allows you to only compile support for edonkey], [MULTINET="$enableval"])
 
+AC_ARG_ENABLE(checks, [--enable-checks:       force mldonkey to perform bound checks on array/string access], [CHECKBOUNDS="$enableval"])
+
+if test "$CHECKBOUNDS" = "yes"; then
+  CHECKBOUNDS=true
+else
+  CHECKBOUNDS=false
+fi
+
 if test ! "$MULTINET" = "yes"; then
   AUDIO_GALAXY=no
   OPEN_NAPSTER=no
@@ -56,8 +64,6 @@ AC_EXEEXT
 AC_PROG_CPP
 
 AC_PROG_RANLIB
-
-CHECKBOUNDS=false
 
 OCAML_PATH=
 
@@ -485,6 +491,7 @@ fi
 
 MD4ARCH=$arch
 case $host in
+  i386-pc-linux*) MD4COMP=as; MD4ARCH=i386;;
   i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
   i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
   i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;

@@ -88,9 +88,12 @@ let value_to_client is_friend assocs =
       l.client_checked <- get_value "client_checked" value_to_bool
     with _ -> ());
   (try
-      CommonGlobals.connection_set_last_conn l.client_connection_control
+      let last_conn =
         (min (get_value "client_age" value_to_float) 
-        (BasicSocket.last_time ()));
+          (BasicSocket.last_time ()))
+      in
+      CommonGlobals.connection_set_last_conn l.client_connection_control
+        last_conn;
     with _ -> ());
   if is_friend then friend_add l;
   l

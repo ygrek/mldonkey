@@ -19,6 +19,12 @@
 (* The function handling the cooperation between two clients. Most used 
 functions are defined in downloadOneFile.ml *)
 
+(* Some things about Emule:
+- If a client asks for a file more often than 590 seconds, ie 10 minutes,
+  it gets a BAD REQUEST
+- If a client has 2 BAD REQUESTS, it get banned !
+*)
+
 open CommonRoom
 open CommonShared
 open CommonGlobals
@@ -216,15 +222,7 @@ let identify_as_mldonkey c sock =
     M.QueryFileReq Md4.one)
   
   
-let query_files c sock for_files =  
-  List.iter (fun file ->
-      let msg = 
-          let module M = DonkeyProtoClient in
-          let module C = M.QueryFile in
-          M.QueryFileReq file.file_md4
-      in
-      client_send sock msg;
-  ) for_files;
+let query_files c sock =  
   List.iter (fun file ->
       direct_client_send sock (
         let module M = DonkeyProtoClient in
@@ -403,7 +401,7 @@ let client_to_client for_files c t sock =
       set_client_state c Connected_idle;
       
       identify_as_mldonkey c sock;
-      query_files c sock for_files;
+      query_files c sock;
       client_must_update c;      
       if client_type c <> NormalClient then begin
           if last_time () > c.client_next_view_files then begin
@@ -524,6 +522,7 @@ print_newline ();
           let file = find_file t.Q.md4 in
           if file_state file = FileDownloading then begin
               printf_string "[FOUND FILE]";
+              c.client_rating <- c.client_rating + 1;
               if not (List.mem t.Q.name file.file_filenames) then begin
                   file.file_filenames <- file.file_filenames @ [t.Q.name] ;
                   update_best_name file
@@ -576,8 +575,7 @@ different instances of the file for each proposed size ?
             Printf.printf "MD4 FOR CHUNKS RECEIVED"; 
             print_newline ();
           end;
-        
-        
+                
         if t.Q.chunks = [||] then
           file.file_md4s <- [file.file_md4]
         else
@@ -613,7 +611,8 @@ is checked for the file.
           print_newline ();
           raise Not_found
         end;
-      
+
+      c.client_rating <- c.client_rating + 10;
       if file_state file = FilePaused then 
         (next_file c; raise Not_found);
       
@@ -623,7 +622,6 @@ is checked for the file.
       set_client_state c Connected_busy;
       let len = Int32.sub end_pos begin_pos in
       download_counter := Int64.add !download_counter (Int64.of_int32 len);
-      c.client_rating <- Int32.add c.client_rating len;      
       begin
         match c.client_block with
           None -> 
@@ -752,9 +750,7 @@ is checked for the file.
             let module Q = M.QueryFileReply in
             M.QueryFileReplyReq {
               Q.md4 = file.file_md4;
-              Q.name = match file.file_filenames with
-                [] -> file_disk_name file
-              | name :: _ -> name
+              Q.name = file_best_name file
             });
 
           add_new_location sock file c
@@ -878,7 +874,7 @@ let init_connection sock =
       close s "timeout"
   )
 
-let init_client sock c file =
+let init_client sock c =
   set_handler sock WRITE_DONE (fun s ->
       match c.client_upload with
         None -> ()
@@ -928,10 +924,13 @@ let read_first_message t sock =
           None -> 
             c.client_sock <- Some sock;
             c.client_connected <- false;
-            init_client sock c []
+            init_client sock c
         | Some _ -> 
             close sock "already connected"; raise Not_found
       end;
+
+      set_write_power sock c.client_power;
+      set_read_power sock c.client_power;
 
       set_client_name c !name t.CR.md4;
       connection_ok c.client_connection_control;
@@ -955,7 +954,7 @@ let read_first_message t sock =
       
       set_client_state c Connected_idle;      
       identify_as_mldonkey c sock;
-      query_files c sock [];
+      query_files c sock;
       if client_type c <> NormalClient then
         if last_time () > c.client_next_view_files then begin
             (*
@@ -984,7 +983,7 @@ let read_first_message t sock =
       raise Not_found
 
   
-let reconnect_client cid files c =
+let reconnect_client c =
   if can_open_connection () then
     match c.client_kind with
       Indirect_location _ -> ()
@@ -998,9 +997,10 @@ let reconnect_client cid files c =
               Ip.to_inet_addr ip) 
             port 
               (client_handler c) (*client_msg_to_string*) in
-          TcpBufferedSocket.set_write_power sock !!upload_power;
+          TcpBufferedSocket.set_write_power sock c.client_power;
+          TcpBufferedSocket.set_read_power sock c.client_power;
           init_connection sock;
-          init_client sock c files;
+          init_client sock c;
           
           set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
             (client_to_client files c));
@@ -1018,7 +1018,7 @@ let reconnect_client cid files c =
             let module C = M.Connect in
             M.ConnectReq {
               C.md4 = !!client_md4; (* we want a different id each conn *)
-              C.ip = cid;
+              C.ip = client_ip None;
               C.port = !client_port;
               C.tags = !client_tags;
               C.version = 16;
@@ -1033,25 +1033,33 @@ let reconnect_client cid files c =
             print_newline ();
             connection_failed c.client_connection_control;
             set_client_state c NotConnected
-            
-let connect_client cid files c = 
-  match c.client_sock with
-    None -> 
-      if connection_can_try c.client_connection_control then 
-        reconnect_client cid files c
-  | Some sock ->
-      match client_state c with
-        Connected_idle -> 
-          if can_fill sock then
-            query_files c sock files
-      | _ -> ()
+  
+let add_interesting_client c =
+  if c.client_on_list then begin
+      clients_lists.(0) <- List2.removeq c clients_lists.(0);
+      clients_lists.(1) <- List2.removeq c clients_lists.(1);
+      clients_lists.(2) <- List2.removeq c clients_lists.(2);
+      clients_lists.(3) <- List2.removeq c clients_lists.(3);
+      clients_lists.(4) <- List2.removeq c clients_lists.(4);
+    end;
+  c.client_on_list <- false;
+
+  connection_must_try c.client_connection_control;
+  if can_open_connection () && c.client_sock = None then
+    reconnect_client c
+    
+  else begin
+      clients_lists.(0) <- c :: clients_lists.(0);
+      c.client_on_list <- true
+    end
         
 let query_id_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryIDReply in
-  let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
-  connect_client s [] c
-      
+  if Ip.valid t.Q.ip then
+    let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
+    add_interesting_client c
+    
 let query_id s sock ip =
   printf_string "[QUERY ID]";
   direct_server_send sock (
@@ -1078,7 +1086,7 @@ let query_locations_reply s t =
       
       if Ip.valid ip then
         let c = new_client (Known_location (ip, port)) in
-        connect_client s.server_cid [] c
+        add_interesting_client c
       else
       match s.server_sock with
         None ->
@@ -1109,7 +1117,6 @@ let client_connection_handler t event =
 (*client_msg_to_string*)
             in
             init_connection sock;
-            set_write_power sock !!upload_power;
             
             (try
                 set_reader sock 
@@ -1130,4 +1137,41 @@ let client_connection_handler t event =
         end;
   | _ -> 
       ()      
-      
+
+let retry_connect_in c delay = ()
+(*      
+let try_connection () =
+  if CommonGlobals.can_open_connection () then
+    match client_schedule.(0) with
+      [] -> ()
+    | c :: tail -> 
+        client_schedule.(0) <- tail;
+        c.client_next_schedule <- -1;
+        retry_connect_in c 20;
+        match c.client_sock with
+          None -> 
+            Printf.printf "Should try connection"; print_newline ();
+        | Some sock -> ()
+*)                      
+let schedule_connections () =
+  ()
+(*
+  decr client_schedule_remaining_seconds;
+  if !client_schedule_remaining_seconds = 0 then begin
+      client_schedule_remaining_seconds := 60;
+      incr client_schedule_minute;
+      let remaining_connects = client_schedule.(0) in
+      List.iter (fun c -> 
+          c.client_next_schedule <- !client_schedule_minute) 
+      remaining_connects;
+      Array.blit client_schedule 1 client_schedule 0
+        (client_schedule_size - 1);
+      client_schedule.(0) <- remaining_connects @ client_schedule.(0);
+      client_schedule.(client_schedule_size - 1) <- [];
+    end;
+  let nwaiting = List.length client_schedule.(0) in
+  for i = 0 to min (nwaiting / !client_schedule_remaining_seconds + 1) 
+    !!max_clients_per_second do
+    try_connection ()
+  done
+*)  

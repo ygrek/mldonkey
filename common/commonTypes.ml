@@ -83,9 +83,9 @@ type host_state =
 | RemovedHost
   
 type connection_control = {
-    mutable control_next_try : float;
-    mutable control_last_conn : float;
-    mutable control_next_delay : float;
+    mutable control_last_ok : float;
+    mutable control_state : float;
+    mutable control_last_try : float;
   }
 
 

@@ -190,6 +190,7 @@ let query_zones c b =
           | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
+      set_read_power sock (c.client_power + file_priority (as_file file.file_file));
       if !!max_hard_download_rate <> 0 then
         Fifo.put download_fifo (sock, msg, len)
       else
@@ -322,8 +323,7 @@ let compute_size file =
         Printf.printf "******* downloaded %ld > %ld size after compute_size ***** for %s"
           (file_downloaded file)
         (file_size file)
-        (match file.file_filenames with
-            s :: _ -> s| _ -> Md4.to_string file.file_md4);
+        (file_best_name file);
         print_newline () 
       end;
     file_must_update file
@@ -587,6 +587,9 @@ and find_client_block c =
         let last = file.file_nchunks - 1 in
         if c.client_chunks.(last) && file.file_available_chunks.(last) = 1 then
           check_file_block c file last max_int;
+        if last > 0 && c.client_chunks.(last-1) && 
+          file.file_available_chunks.(last-1) = 1 then
+          check_file_block c file (last-1) max_int;
 
 (* chunks with MD4 already computed *)
         for i = 0 to file.file_nchunks - 1 do
@@ -613,6 +616,7 @@ and find_client_block c =
 
 (* chunks with no client *)
         check_file_block c file last max_int;
+        if last > 0 then  check_file_block c file (last-1) max_int;
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i 1
         done;
@@ -682,8 +686,7 @@ let verify_chunks file =
                     Printf.printf "******* downloaded %ld > %ld size after verify_chunks ***** for %s"
                       (file_downloaded file)
                     (file_size file)
-                    (match file.file_filenames with
-                        s :: _ -> s| _ -> Md4.to_string file.file_md4);
+                    (file_best_name file);
                     print_newline () 
                   end;
                 
@@ -703,16 +706,20 @@ let set_file_size file sz =
   if sz <> Int32.zero then begin
       
       if file_size file = Int32.zero then 
-          file.file_absent_chunks <- [Int32.zero, sz];
+        file.file_absent_chunks <- [Int32.zero, sz];
       file.file_file.impl_file_size <- sz;
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
-      Printf.printf "Setting Absent Temp chunks"; print_newline ();
       file.file_chunks <- Array.create file.file_nchunks (
-        if not (Sys.file_exists (file_disk_name file)) then
-          AbsentVerified
-        else
-          AbsentTemp);
+        if not (Sys.file_exists (file_disk_name file)) then begin
+            Printf.printf "Setting Absent Verified chunks"; print_newline ();
+            
+            AbsentVerified
+          end else begin
+            Printf.printf "Setting Absent Verified chunks"; print_newline ();
+            AbsentTemp
+            
+          end);
 
       Unix32.ftruncate32 (file_fd file) sz; (* at this point, file exists *)
       
@@ -766,8 +773,7 @@ let update_zone file begin_pos end_pos z =
           Printf.printf "******* downloaded %ld > %ld size after update_zone ***** for %s"
             (file_downloaded file)
           (file_size file)
-          (match file.file_filenames with
-              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          (file_best_name file);
           print_newline () 
         end;
       
@@ -789,8 +795,7 @@ let update_zone file begin_pos end_pos z =
           Printf.printf "******* downloaded %ld > %ld size after update_zone (2) ***** for %s"
             (file_downloaded file)
           (file_size file)
-          (match file.file_filenames with
-              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          (file_best_name file);
           print_newline () 
         end;
       
@@ -807,8 +812,7 @@ let update_zone file begin_pos end_pos z =
           Printf.printf "******* downloaded %ld > %ld size after update_zone (3) ***** for %s"
             (file_downloaded file)
           (file_size file)
-          (match file.file_filenames with
-              s :: _ -> s| _ -> Md4.to_string file.file_md4);
+          (file_best_name file);
           print_newline () 
         end;
       

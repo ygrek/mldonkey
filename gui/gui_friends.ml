@@ -47,7 +47,11 @@ let string_color_of_client c =
     Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
-
+let shorten maxlen s =
+  let len = String.length s in
+  if len > maxlen then
+    (String.sub s 0 (maxlen-3)) ^ "..."
+  else s
 
 class dialog friend =
   object (self)
@@ -129,7 +133,7 @@ class box columns () =
     
     method content_by_col f col =
       match col with
-        Col_client_name -> f.client_name
+        Col_client_name -> shorten !!O.max_client_name_len f.client_name
       | Col_client_state -> fst (string_color_of_client f)
       | Col_client_type -> (match f.client_type with
               FriendClient -> M.friend
@@ -360,8 +364,8 @@ class box_list () =
         
         if c_new.client_state = RemovedHost then
           begin
-            Printf.printf "Removing client from locations panel"; 
-            print_newline ();
+(*            Printf.printf "Removing client from locations panel"; 
+            print_newline (); *)
             decr G.nlocations;
             self#update_locations_label;
             self#update_data (List.filter (fun c -> c_new.client_num <> c.client_num) data)

@@ -214,8 +214,9 @@ let create name fd handler =
   Unix.set_nonblock fd;
   create_blocking name fd handler
   
-external select: t list -> float -> unit = "ml_select"
-
+external select: t list -> float -> unit = "ml_select" 
+external use_poll : bool -> unit = "ml_use_poll"
+ 
 let timeout = ref infinite_timeout
 let timers = ref []
   

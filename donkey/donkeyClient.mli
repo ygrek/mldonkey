@@ -25,12 +25,11 @@ val query_id :
 val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
 
-val connect_client : 
-  Ip.t -> DonkeyTypes.file list -> DonkeyTypes.client -> unit
+val reconnect_client : DonkeyTypes.client -> unit
+val add_interesting_client  : DonkeyTypes.client -> unit
 val client_connection_handler : 'a -> TcpServerSocket.event -> unit
 
-val query_files : DonkeyTypes.client ->
-  TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
+val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
   
 val udp_server_send : DonkeyTypes.server -> DonkeyProtoServer.t -> unit
   
@@ -40,3 +39,8 @@ val clean_groups : unit -> unit
   
 val client_send_if_possible : TcpBufferedSocket.t -> 
   DonkeyProtoClient.t -> unit
+
+val schedule_connections: unit -> unit
+  
+  
+  

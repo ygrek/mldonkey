@@ -32,30 +32,42 @@ open BasicSocket
 open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
-  
-let execute_command arg_list output cmd args =
-  try
-    let buf = output.conn_buf in
-    List.iter (fun (command, arg_kind, help) ->
-        if command = cmd then
-          Buffer.add_string buf (
-            match arg_kind, args with
-              Arg_none f, [] -> f output
-            | Arg_multiple f, _ -> f args output
-            | Arg_one f, [arg] -> f arg  output
-            | Arg_two f, [a1;a2] -> f a1 a2 output
-            | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
-            | _ -> "Bad number of arguments"
-          )
-    ) arg_list
-  with Not_found -> ()
 
+let execute_command arg_list output cmd args =
+  let buf = output.conn_buf in
+  try
+    let rec iter list =
+      match list with
+        [] -> 
+          Printf.bprintf buf "No such command %s\n" cmd
+      | (command, arg_kind, help) :: tail ->
+          if command = cmd then
+            Buffer.add_string buf (
+              match arg_kind, args with
+                Arg_none f, [] -> f output
+              | Arg_multiple f, _ -> f args output
+              | Arg_one f, [arg] -> f arg  output
+              | Arg_two f, [a1;a2] -> f a1 a2 output
+              | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
+              | _ -> "Bad number of arguments"
+            )
+          else
+            iter tail
+    in
+    iter arg_list
+  with Not_found -> ()
+      
 let commands = [
     
     "dump_heap", Arg_none (fun o ->
         Heap.dump_heap ();
         "heap dumped"
     ), " : dump heap for debug";
+
+    "dump_usage", Arg_none (fun o ->
+        Heap.dump_usage ();
+        "usage dumped"
+    ), " : dump main structures for debug";
     
     "close_fds", Arg_none (fun o ->
         Unix32.close_all ();
@@ -427,6 +439,11 @@ let commands = [
         ""
     ), " <num> : disconnect from server";
 
+    "use_poll", Arg_one (fun arg o ->
+        let b = bool_of_string arg in
+        BasicSocket.use_poll b;
+        Printf.sprintf "poll: %b" b
+    ), " <bool> : use poll instead of select";
         
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
@@ -441,7 +458,25 @@ let commands = [
         "check done"
     ), " : check shared files for removal";
 
-  ]
+    "priority", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+          p :: files ->
+            let p = int_of_string p in
+            let p = if p < 0 then 0 else p in
+            List.iter (fun arg ->
+                try
+                  let file = file_find (int_of_string arg) in
+                  set_file_priority file p;
+                  Printf.bprintf buf "Setting priority of %s to %d\n"
+                    (file_best_name file) (file_priority file);
+                with _ -> failwith (Printf.sprintf "No file number %s" arg)
+            ) files;
+            "Done"
+        | [] -> "Bad number of args"
+        
+    ), " <priority> <files numbers>: change file priorities";
+    ]
 
 let _ =
   CommonNetwork.register_commands commands

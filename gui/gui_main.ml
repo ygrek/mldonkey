@@ -124,7 +124,8 @@ let canon_client gui c =
       cc.client_state <- c.client_state;
 
       if c.client_state = RemovedHost then begin
-          Printf.printf "Removing client %d" c.client_num; print_newline ();
+(*          Printf.printf "Removing client %d" c.client_num; print_newline ();
+*)
           Hashtbl.remove G.locations c.client_num;
           gui#tab_downloads#box_downloads#remove_client cc.client_num
         end;
@@ -153,7 +154,7 @@ let canon_client gui c =
       
       cc
     with _ ->
-        Printf.printf "Adding client %d" c.client_num; print_newline (); 
+(*        Printf.printf "Adding client %d" c.client_num; print_newline ();  *)
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with

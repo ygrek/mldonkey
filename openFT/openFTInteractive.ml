@@ -109,7 +109,8 @@ let _ =
       current_files := List2.removeq file !current_files      
   );
   file_ops.op_file_info <- (fun file ->
-       {
+      {
+        P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = [file.file_name];
@@ -206,7 +207,7 @@ let _ =
         P.client_name = "";
         P.client_files = None;
         P.client_num = (client_num (as_client c.client_client));
-        P.client_rating = Int32.zero;
+        P.client_rating = 0;
         P.client_chat_port = 0 ;
       }
   );

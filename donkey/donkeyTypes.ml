@@ -109,6 +109,7 @@ and client = {
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_power : int;
     mutable client_block : block option;
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
@@ -119,12 +120,13 @@ and client = {
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_all_chunks : string;
-    mutable client_rating : int32;
+    mutable client_rating : int;
     mutable client_upload : upload_info option;
     mutable client_is_mldonkey : int;
     mutable client_checked : bool;
     mutable client_chat_port : int;
     mutable client_connected : bool;
+    mutable client_on_list : bool;
   }
   
 and upload_info = {
@@ -190,7 +192,7 @@ and file = {
     mutable file_changed : file_change_kind; 
     mutable file_new_locations : bool;
     mutable file_shared : file CommonShared.shared_impl option;
-
+    
   }
 
 and file_to_share = {

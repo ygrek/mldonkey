@@ -236,7 +236,7 @@ let buf_kind buf k =
   | Indirect_location (name, md4) ->
       buf_int8 buf 1; buf_string buf name; buf_md4 buf md4
       
-let buf_file buf f =
+let buf_file_version_0 buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
   buf_list buf buf_string f.file_names;  
@@ -253,6 +253,25 @@ let buf_file buf f =
   buf_float buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format 
+
+let buf_file_version_8 buf f =
+  buf_int buf f.file_num;
+  buf_int buf f.file_network;  
+  buf_list buf buf_string f.file_names;  
+  buf_md4 buf f.file_md4;  
+  buf_int32 buf f.file_size;  
+  buf_int32 buf f.file_downloaded;  
+  buf_int buf f.file_nlocations;  
+  buf_int buf f.file_nclients;  
+  buf_file_state buf f.file_state;  
+  buf_string buf f.file_chunks;  
+  buf_string buf f.file_availability;  
+  buf_float buf f.file_download_rate;  
+  buf_array buf buf_float f.file_chunks_age;  
+  buf_float buf f.file_age;
+(* last, so that it can be safely discarded in partial implementations: *)
+  buf_format buf f.file_format ;
+  buf_string buf f.file_name
   
 let buf_server_version_0 buf s =
   buf_int buf s.server_num;
@@ -298,7 +317,7 @@ let buf_client buf c =
   buf_client_type buf c.client_type;
   buf_list buf buf_tag c.client_tags;
   buf_string buf c.client_name;
-  buf_int32 buf c.client_rating;
+  buf_int buf c.client_rating;
   buf_int buf c.client_chat_port
   
 let buf_network buf n =
@@ -369,7 +388,7 @@ let rec to_gui_version_0 buf t =
       buf_int buf n1; buf_int buf n2
   
   | File_info file_info -> buf_int16 buf 7;
-      buf_file buf file_info
+      buf_file_version_0 buf file_info
       
   | File_downloaded (n, size, rate) -> buf_int16 buf 8;
       buf_int buf n; buf_int32 buf size; buf_float buf rate
@@ -465,11 +484,11 @@ let to_gui_version_3 buf t =
       buf_list buf buf_server_version_2 list
       
   | DownloadFiles list ->      buf_int16 buf 29;
-      buf_list buf buf_file list
+      buf_list buf buf_file_version_0 list
       
   | DownloadedFiles list ->      
       buf_int16 buf 30;
-      buf_list buf buf_file list
+      buf_list buf buf_file_version_0 list
 
   | Room_info info ->
       buf_int16 buf 31;
@@ -547,6 +566,19 @@ let to_gui_version_7 buf t =
       
   | _ -> to_gui_version_6 buf t
 
+let to_gui_version_8 buf t =
+  match t with
+    File_info file -> buf_int16 buf 40;
+      buf_file_version_8 buf file      
+      
+  | DownloadFiles files -> buf_int16 buf 41;
+      buf_list buf buf_file_version_8 files
+      
+  | DownloadedFiles files -> buf_int16 buf 42;
+      buf_list buf buf_file_version_8 files
+      
+  | _ -> to_gui_version_7 buf t
+
       
 let to_gui = [| 
     to_gui_version_0; 
@@ -557,6 +589,7 @@ let to_gui = [|
     to_gui_version_5;
     to_gui_version_6;
     to_gui_version_7; 
+    to_gui_version_8; 
   |]
   
 (***************
@@ -716,8 +749,11 @@ let from_gui_version_7 buf t  =
   match t with
   | Download_query (list, int, force) -> buf_int16 buf 7;
       buf_list buf buf_string list; buf_int buf int; buf_bool buf force
-
   | _ -> from_gui_version_6 buf t
+
+let from_gui_version_8 buf t  = 
+  match t with
+  | _ -> from_gui_version_7 buf t
         
 
 let from_gui = [| 
@@ -729,6 +765,7 @@ let from_gui = [|
     from_gui_version_5; 
     from_gui_version_6; 
     from_gui_version_7;  
+    from_gui_version_8;  
     |]
   
   
@@ -764,6 +801,7 @@ let _ =
   in
   let module P = GuiTypes in
   let file_info = {
+      P.file_name = "tratra";
       P.file_num = 356;
       P.file_network = 873;
       P.file_names = ["toto"; "tutu"];
@@ -785,25 +823,26 @@ let _ =
       server_num = 1;
 } *)
   in
-  let check_to_gui_version_7 = 
-    check to_gui_version_7 GuiDecoding.to_gui_version_7 in
-  assert (check_to_gui_version_7 (MessageFromClient (32, "Hello")));
-  assert (check_to_gui_version_7 (DownloadFiles [file_info]));
-  assert (check_to_gui_version_7 (DownloadedFiles [file_info]));
-  assert (check_to_gui_version_7 (ConnectedServers []));    
-  assert (check_to_gui_version_7 (Room_remove_user (5,6)));
-  assert (check_to_gui_version_7 (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui_version_7 (Shared_file_unshared 2));
+  let check_to_gui_version_8 = 
+    check to_gui_version_8 GuiDecoding.to_gui_version_8 in
+  assert (check_to_gui_version_8 (MessageFromClient (32, "Hello")));
+  assert (check_to_gui_version_8 (File_info file_info));
+  assert (check_to_gui_version_8 (DownloadFiles [file_info]));
+  assert (check_to_gui_version_8 (DownloadedFiles [file_info]));
+  assert (check_to_gui_version_8 (ConnectedServers []));    
+  assert (check_to_gui_version_8 (Room_remove_user (5,6)));
+  assert (check_to_gui_version_8 (Shared_file_upload (1, Int64.zero, 32)));
+  assert (check_to_gui_version_8 (Shared_file_unshared 2));
   (* Shared_file_info ??? *)
-  assert (check_to_gui_version_7 (Add_section_option ("section", "message", "option", StringEntry )));
-  assert (check_to_gui_version_7 (Add_plugin_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_8 (Add_section_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_8 (Add_plugin_option ("section", "message", "option", StringEntry )));
   
-  let check_from_gui_version_7 = 
-    check from_gui_version_7 GuiDecoding.from_gui_version_7 in
-  assert (check_from_gui_version_7 (MessageToClient (33, "Bye")));
-  assert (check_from_gui_version_7 (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui_version_7 GetConnectedServers);
-  assert (check_from_gui_version_7 GetDownloadFiles);
-  assert (check_from_gui_version_7 GetDownloadedFiles);
-  assert (check_from_gui_version_7 (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui_version_7 RefreshUploadStats) ; 
+  let check_from_gui_version_8 = 
+    check from_gui_version_8 GuiDecoding.from_gui_version_8 in
+  assert (check_from_gui_version_8 (MessageToClient (33, "Bye")));
+  assert (check_from_gui_version_8 (GuiExtensions [1, true; 2, false]));
+  assert (check_from_gui_version_8 GetConnectedServers);
+  assert (check_from_gui_version_8 GetDownloadFiles);
+  assert (check_from_gui_version_8 GetDownloadedFiles);
+  assert (check_from_gui_version_8 (SetRoomState (5, RoomPaused)));
+  assert (check_from_gui_version_8 RefreshUploadStats) ; 

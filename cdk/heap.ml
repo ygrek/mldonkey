@@ -6,12 +6,15 @@ let dumpers = ref []
 let register_dumper m f = 
   dumpers := (m,f) :: !dumpers
   
-let dump_heap () =
+let dump_usage () =
   Gc.compact ();
   Gc.compact ();
-  dump_heap_c ();
   List.iter (fun (m,f) ->
       Printf.printf "Module %s:" m; print_newline ();
       f ()
   ) !dumpers
+    
+let dump_heap () =
+  dump_usage ();
+  dump_heap_c ()
   
