@@ -318,10 +318,10 @@ let udp_client_handler t p =
   let module M = DonkeyProtoServer in
   match t with
     M.QueryLocationReplyUdpReq t ->
-(*      Printf.printf "Received location by UDP"; print_newline (); *)
+(*      Printf.printf "Received location by UDP"; print_newline ();  *)
       query_locations_reply (udp_from_server p) t
   | M.QueryReplyUdpReq t ->
-(*      Printf.printf "Received file by UDP"; print_newline (); *)
+(*      Printf.printf "Received file by UDP"; print_newline ();  *)
       if !xs_last_search >= 0 then
         let ss = search_find !xs_last_search in
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);

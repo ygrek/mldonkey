@@ -85,4 +85,5 @@ external use_poll : bool -> unit = "ml_use_poll"
 val prevent_close : t -> unit
 val close_all : unit -> unit
   
+val start_time : float
   

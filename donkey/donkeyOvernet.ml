@@ -199,6 +199,7 @@ type overnet_search = {
     mutable search_start_time : float;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
 
+    mutable search_hits : int;
     mutable search_publish_files : file list;
 (* should be search publish a file ? *)
     mutable search_publish_file : bool;
@@ -255,6 +256,7 @@ let create_simple_search kind md4 =
       search_publish_file = false;
 (*      search_query_files = true;  *)
       search_results = Hashtbl.create 13;
+      search_hits = 0;
     } in
 (*   Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline (); *)
   Hashtbl.add overnet_searches md4 search;
@@ -288,6 +290,7 @@ let create_keyword_search w =
           search_nqueries = 0;
           search_start_time = last_time ();
           search_nresults = 0;
+          search_hits = 0;
         } in
 (*   Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline (); *)
       Hashtbl.add overnet_searches md4 search;
@@ -544,11 +547,12 @@ udp_send s_ip s_port
               | KeywordSearch sss ->
                   incr search_hits;
                   if not (Hashtbl.mem s.search_results r_md4) then begin
+                      s.search_hits <- s.search_hits + 1;
                       Hashtbl.add s.search_results r_md4 r_tags;
                       List.iter (fun ss ->
                           DonkeyOneFile.search_found ss r_md4 r_tags
                       ) sss
-                    end
+                    end;
 
 (*
 if ss.search_nresults > !!overnet_max_search_hits then
@@ -589,19 +593,21 @@ let query_min_peer s =
         
 let query_next_peers () =
   Hashtbl2.safe_iter (fun s ->
-      query_min_peer s;
-      query_min_peer s;
-      if s.search_last_packet +. !!overnet_search_timeout < last_time () then
-        begin
-          if !!verbose_overnet then begin              
-              Printf.printf "Search for %s finished (%d queries, %d replies, %d results)"
-                (Md4.to_string s.search_md4)
-              s.search_nqueries s.search_nreplies s.search_nresults
-              ;
-              print_newline ();
-            end;
-          Hashtbl.remove overnet_searches s.search_md4
-        end        
+      if s.search_hits < !!overnet_max_search_hits then begin
+          query_min_peer s;
+          query_min_peer s;
+          if s.search_last_packet +. !!overnet_search_timeout < last_time () then
+            begin
+              if !!verbose_overnet then begin              
+                  Printf.printf "Search for %s finished (%d queries, %d replies, %d results)"
+                    (Md4.to_string s.search_md4)
+                  s.search_nqueries s.search_nreplies s.search_nresults
+                  ;
+                  print_newline ();
+                end;
+              Hashtbl.remove overnet_searches s.search_md4
+            end        
+        end
   ) overnet_searches
 
 let remove_old_connected_peers () =
@@ -615,7 +621,6 @@ let remove_old_connected_peers () =
         end) !connected_peers
   
 let publish_shared_files () = 
-  Printf.printf "****** PUBLISHING ON OVERNET ********"; print_newline ();
   if !!overnet_search_sources || !!overnet_search_keyword then begin
       let files = DonkeyShare.all_shared () in
       List.iter publish_file files
@@ -729,10 +734,18 @@ let _ =
         "";
     ), ": Overnet Stats";
     
-    "ovweb", Arg_none (fun o ->
-        load_url "ocl" "http://www.overnet2000.de/FHA/contact.ocl";
-        "web boot started"
-    ), ": download http://www.overnet2000.de/FHA/contact.ocl";
+    "ovweb", Arg_multiple (fun args o ->
+        begin
+          match args with
+            [] ->
+              load_url "ocl" "http://www.overnet2000.de/FHA/contact.ocl";
+              "web boot started from http://www.overnet2000.de/FHA/contact.ocl"
+              
+          | _ ->
+              List.iter (fun url -> load_url "ocl" url) args;
+              "web boot started"
+        end;
+    ), " <urls>: download .ocl URLS (no arg load default)";
   ];
   add_web_kind "ocl" (fun filename ->
       let s = File.to_string filename in

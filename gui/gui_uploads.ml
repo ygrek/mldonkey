@@ -37,73 +37,77 @@ let (!!) = Options.(!!)
 class box columns () =
   object (self)
     inherit [GuiTypes.shared_info] Gpattern.plist `SINGLE
-	(List.map C.Shared_files_up.string_of_column columns)
-	true as pl
-    inherit Gui_uploads_base.box () as box
-
+      (List.map C.Shared_files_up.string_of_column columns)
+    true as pl
+      inherit Gui_uploads_base.box () as box
+    
     val mutable columns = columns
     method set_columns l =
       columns <- l;
       self#set_titles 
-	(List.map C.Shared_files_up.string_of_column columns);
+        (List.map C.Shared_files_up.string_of_column columns);
       self#update
-
+    
     method box = wf_upstats#coerce
-
+    
     method compare_by_col col si1 si2 = 
       match col with
-	C.Col_shared_file -> 
-	  compare si1.shared_filename si2.shared_filename
+        C.Col_shared_file -> 
+          compare si1.shared_filename si2.shared_filename
       |	C.Col_shared_requests ->
-	  compare si1.shared_requests si2.shared_requests
+          compare si1.shared_requests si2.shared_requests
       |	C.Col_shared_upsize ->
-	  compare si1.shared_uploaded si2.shared_uploaded
+          compare si1.shared_uploaded si2.shared_uploaded
       |	C.Col_shared_size ->
-	  compare si1.shared_size si2.shared_size
-
+          compare si1.shared_size si2.shared_size
+    
     method compare si1 si2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth columns (abs - 1) 
-	with _ -> C.Col_shared_file
+        try List.nth columns (abs - 1) 
+        with _ -> C.Col_shared_file
       in
       let res = self#compare_by_col col si1 si2 in
       current_sort * res
-
+    
     method content_by_col si col =
       match col with
-	C.Col_shared_file -> si.shared_filename
+        C.Col_shared_file -> si.shared_filename
       |	C.Col_shared_requests -> string_of_int si.shared_requests
       |	C.Col_shared_upsize -> 
-	  Gui_misc.size_of_int64 si.shared_uploaded
+          Gui_misc.size_of_int64 si.shared_uploaded
       |	C.Col_shared_size -> 
-	  Gui_misc.size_of_int32 si.shared_size
-
+          Gui_misc.size_of_int32 si.shared_size
+    
     method content si =
       let strings = List.map 
-	  (fun col -> P.String (self#content_by_col si col))
-	  columns 
+          (fun col -> P.String (self#content_by_col si col))
+        columns 
       in
       (strings, None)
-
+    
     method clear = self#update_data []
-
+    
     method find_file num =
       let rec iter n l =
-	match l with
-	  [] -> raise Not_found
-	| si :: q ->
-	    if si.shared_num = num then
-	      (n, si)
-	    else
-	      iter (n+1) q
+        match l with
+          [] -> raise Not_found
+        | si :: q ->
+            if si.shared_num = num then
+              (n, si)
+            else
+              iter (n+1) q
       in
       iter 0 data
-
-   method h_shared_file_info si =
-     data <- data @ [si];
-     self#insert ~row: self#wlist#rows si
-
+    
+    method h_shared_file_info si =
+      try
+        let _,s_old = self#find_file si.shared_num in
+        s_old.shared_filename <- si.shared_filename
+      with Not_found ->
+        data <- data @ [si];
+        self#insert ~row: self#wlist#rows si
+        
     method h_shared_file_upload num upsize requests =
       try
 	let (row, si) = self#find_file num in

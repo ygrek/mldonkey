@@ -448,40 +448,16 @@ print_newline ();
       let module Q = M.ViewFilesReply in
       begin
         try
-          c.client_all_files <- Some (List.map (fun f ->
-                let tags =  f.f_tags in
-                let md4 = f.f_md4 in
-                let rec r = { 
-                    result_num = 0;
-                    result_network = network.network_num;
-                    result_md4 = md4;
-                    result_names = [];
-                    result_size = Int32.zero;
-                    result_tags = [];
-                    result_type = "";
-                    result_format = "";
-                    result_comment = "";
-                    result_done = false;
-                  } in
-                List.iter (fun tag ->
-                    match tag with
-                      { tag_name = "filename"; tag_value = String s } ->
-                        r.result_names <- s :: r.result_names
-                    | { tag_name = "size"; tag_value = Uint32 v } ->
-                        r.result_size <- v;
-                    | { tag_name = "format"; tag_value = String s } ->
-                        r.result_tags <- tag :: r.result_tags;
-                        r.result_format <- s
-                    | { tag_name = "type"; tag_value = String s } ->
-                        r.result_tags <- tag :: r.result_tags;
-                        r.result_type <- s
-                    | _ ->
-                        r.result_tags <- tag :: r.result_tags
-                ) tags;
-                let r = DonkeyIndexer.index_result_no_filter r in
-                client_new_file c r;
-                r
-            ) t);
+          let list = ref [] in
+          List.iter (fun f ->
+              match result_of_file f.f_md4 f.f_tags with
+                None -> ()
+              | Some r ->
+                  let r = DonkeyIndexer.index_result_no_filter r in
+                  client_new_file c r;
+                  list := r :: !list
+          ) t;
+          c.client_all_files <- Some !list;
           client_must_update c
         
         with e ->
@@ -1178,7 +1154,7 @@ let query_locations_reply s t =
             })
 
       | Some sock ->
-          Printf.printf "QUERY ID"; print_newline ();
+          printf_string "QUERY ID";
           query_id s sock ip
   ) t.Q.locs
   

@@ -954,3 +954,54 @@ module DocIndexer = Indexer2.FullMake(Document)
 open Document
   
 let index = DocIndexer.create ()
+
+let check_result r tags =
+  if r.result_names = [] || r.result_size = Int32.zero then begin
+      if !!verbose then begin
+          Printf.printf "BAD RESULT:";
+          print_newline ();
+          List.iter (fun tag ->
+              Printf.printf "[%s] = [%s]" tag.tag_name
+                (match tag.tag_value with
+                  String s -> s
+                | Uint32 i | Fint32 i -> Int32.to_string i
+                | Addr _ -> "addr");
+              print_newline ();
+          ) tags;
+        end;
+      false
+    end
+  else true
+    
+
+let result_of_file md4 tags =
+  
+  let rec r = { 
+      result_num = 0;
+      result_network = network.network_num;
+      result_md4 = md4;
+      result_names = [];
+      result_size = Int32.zero;
+      result_tags = [];
+      result_type = "";
+      result_format = "";
+      result_comment = "";
+      result_done = false;
+    } in
+  List.iter (fun tag ->
+      match tag with
+        { tag_name = "filename"; tag_value = String s } ->
+          r.result_names <- s :: r.result_names
+      | { tag_name = "size"; tag_value = Uint32 v } ->
+          r.result_size <- v;
+      | { tag_name = "format"; tag_value = String s } ->
+          r.result_tags <- tag :: r.result_tags;
+          r.result_format <- s
+      | { tag_name = "type"; tag_value = String s } ->
+          r.result_tags <- tag :: r.result_tags;
+          r.result_type <- s
+      | _ ->
+          r.result_tags <- tag :: r.result_tags
+  ) tags;
+  if check_result r tags then Some r else None
+    

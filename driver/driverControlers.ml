@@ -185,14 +185,12 @@ let chat_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       (
        try
-	 prerr_endline "incoming chat connection";
 	 let from_ip = Ip.of_inet_addr from_ip in
 	 if Ip.matches from_ip !!allowed_ips then 
 	   (
 	    let chanin = Unix.in_channel_of_descr s in
 	    let chanout = Unix.out_channel_of_descr s in
 	    let paq = Chat_proto.read_packet_channel chanin in
-	    prerr_endline "received a message on chat port";
 	    let ret = 
 	      match paq with
 		((v,id,(host,port)),iddest,pro) ->
@@ -205,7 +203,6 @@ let chat_handler t event =
 	    (match ret with
 	      None -> ()
 	    | Some ((v,id,(host,port)),iddest,pro) ->
-		prerr_endline "received a good message on chat port";
 		match pro with
 		  Chat_proto.Hello ->
 		    CommonChat.send_hello_ok ()

@@ -23,10 +23,13 @@ open BasicSocket
 open CommonTypes
 
   
-let version = "
-MLDonkey: Objective-Caml Client/Server for the eDonkey2000 Network
-Release: 1.99b8+7
+let version_number = "
+Release: 2.00
 "
+
+let version = "
+MLDonkey: Objective-Caml Client/Server for the eDonkey2000 Network" ^ 
+  version_number
 
     
 let one_day = 3600. *. 24.

@@ -189,7 +189,17 @@ let propagation_socket = UdpSocket.create_sendonly ()
 let counter = ref 1
   
 (* Learn how many people are using mldonkey at a current time, and which 
-  servers they are connected to --> build a database of servers *)
+servers they are connected to --> build a database of servers
+
+Now, get some more information:
+- Which version do they use ?
+- How much data is shared ?
+
+Note that the exact content/type/name of the files is not sent, nor
+any private information. Just for statistics. Can be disabled in the 
+  downloads.ini config file anyway.
+*)
+  
 let propagate_working_servers servers =
   if !!DonkeyOptions.propagate_servers then begin
       decr counter;
@@ -200,8 +210,25 @@ let propagate_working_servers servers =
             buf_int8 buf DonkeyOpenProtocol.udp_magic; (* open protocol *)
             buf_int8 buf 0;    
             let ip = Ip.my () in
-            buf_ip buf ip;
-            buf_list buf_peer buf servers;
+            buf_ip buf ip; (* The client IP *)
+            buf_list buf_peer buf servers; (* The servers he is connected to *)
+            buf_string buf CommonGlobals.version_number;
+            buf_int buf (int_of_float (last_time () -. start_time)); (* uptime in sec *)
+            let module S = CommonShared in
+            let total_shared = ref Int64.zero in
+            let total_uploaded = ref Int64.zero in
+            
+            S.shared_iter (fun s ->
+                let i = S.as_shared_impl s in
+                total_uploaded := 
+                Int64.add !total_uploaded i.S.impl_shared_uploaded;
+                total_shared := 
+                Int64.add !total_shared (Int64.of_int32 i.S.impl_shared_size)
+            );
+
+            buf_int64 buf !total_shared;
+            buf_int64 buf !total_uploaded;
+            
             let s = Buffer.contents buf in    
             UdpSocket.write propagation_socket s 0 (String.length s) 
             (Ip.to_sockaddr (Ip.of_ints (128,93,52,5)) 4665)
@@ -265,10 +292,12 @@ let tag_file file =
     (match file.file_format with
         Unknown_format ->
           (try
-              Printf.printf "%s: FIND FORMAT %s"
-                (Date.to_string (last_time ()))
-              (file_disk_name file); 
-              print_newline ();
+              if !verbose then begin
+                  Printf.printf "%s: FIND FORMAT %s"
+                    (Date.to_string (last_time ()))
+                  (file_disk_name file); 
+                  print_newline ();
+                end;
               file.file_format <- 
                 CommonMultimedia.get_info 
                 (file_disk_name file)

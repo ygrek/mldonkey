@@ -1,6 +1,12 @@
 ChangeLog	
 =========
 
+2002/10/16: mldonkey
+  - release 2.00
+  - fix: uploaded files do not appear twice in panel
+  - fix: empty results are not accepted anymore (Overnet ?)
+  - fix: "ovweb" accepts URLs since default site is down
+
 2002/10/15: mldonkey
   - fix: files should not appear twice anymore in upload panel (files whose
       md4s have been computed replace [are not added anymore to] their

@@ -1010,7 +1010,11 @@ let search_found search md4 tags =
         result.result_names <- !file_name :: result.result_names
       end
   with _ ->
-      let new_result = { 
+      match result_of_file md4 tags with
+        None -> ()
+      | Some new_result ->
+(*
+          let new_result = { 
           result_num = 0;
           result_network = network.network_num;
           result_md4 = md4;
@@ -1030,7 +1034,8 @@ let search_found search md4 tags =
               new_result.result_type <- s
           | _ -> ()
       ) new_result.result_tags;
-
+*)
+          
 (*      Printf.printf "new reply"; print_newline ();*)
       try
         let rs = DonkeyIndexer.index_result new_result in      

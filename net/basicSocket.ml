@@ -451,3 +451,5 @@ let close_all () =
         close s "close all"
   ) !fd_tasks
   
+let start_time = last_time ()
+  

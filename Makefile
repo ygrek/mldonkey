@@ -849,7 +849,7 @@ release.static: static opt VERSION
 	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
 
-upload.static: release.statc
+upload.static: release.static
 	scp mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 

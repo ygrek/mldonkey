@@ -150,8 +150,8 @@ type client_stats = {
 type shared_info = {
     shared_num : int;
     shared_network : int;
-    shared_filename : string;
-    shared_size : int32;
+    mutable shared_filename : string;
+    mutable shared_size : int32;
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
   }

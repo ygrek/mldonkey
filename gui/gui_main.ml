@@ -467,7 +467,8 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
 
     | Shared_file_info si ->
-	gui#tab_uploads#h_shared_file_info si
+        gui#tab_uploads#h_shared_file_info si
+        
     | Shared_file_upload (num,size,requests) ->
         gui#tab_uploads#h_shared_file_upload num size requests
     | Shared_file_unshared _ ->  ()
