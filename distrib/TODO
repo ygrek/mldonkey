@@ -18,6 +18,7 @@ Edonkey:
     OP_FILENOTFOUND (0x92)
  * Extended search doesnot work after connect because no ping was sent.
  * BUG: Cancel and Redownload doesnot work
+ * BUG: Files randomly pause
 
 BitTorrent:
  * BUG: Why does mldonkey crash when commiting files

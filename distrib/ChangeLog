@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2003/12/03: Fabrice
+  * Updated ed2k_hash to compute Sig2dat and Bitprints. For Mac users, you can
+     check whether bitprints with tiger-trees are correctly computed:
+       ./ed2k_hash.byte -hash bp COPYING 
+     gives:
+      urn:bitprint:QI3PHA4WVH75CAL72NCNTXZE3SNHU6K3.5URJJG7REVGICNBK5UQBPFGIEO234ZJ3MX2T54I
+      Partial   0 : 5URJJG7REVGICNBK5UQBPFGIEO234ZJ3MX2T54I
+
 2003/12/02: Fabrice
   * Applied patch #2399 (anti-thieves v2)
   * Splitted Gnutella and Gnutella2 plugins
