@@ -1,8 +1,8 @@
 ChangeLog	
 =========
 
-2003/05/14: Simon 
-  - FastTrack: first try, far from complete
+2003/05/14: Simon (release-2-4-1)
+  - FastTrack: first try, far from complete, only for x86 !!!
      * Copy of gnutella/ plugin architecture to fasttrack/
      * Cipher C stubs available from Ocaml
      * Connection to main server: OK
