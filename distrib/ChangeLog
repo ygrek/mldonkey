@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/03/13: Simon (v 2.04rc1-3)
+  - Applied patch #1263, #1264
+  - Fixed bug with allowed_commands option
+
 2003/03/12: Simon (v 2.04rc1-2)
   - Applied patch #1259, #1261,
     + pango: 01_more_blocreq_checks, 08_better_default_parameters,

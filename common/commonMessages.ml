@@ -190,6 +190,13 @@ table.downloaders {
 	border: #000 solid 1px;
 	border-collapse: collapse;
 }
+table.shares {
+	margin-right: auto;
+	margin-left: auto;
+	border: 1; 
+	border: #000 solid 1px;
+	border-collapse: collapse;
+}
 table.scan_temp {
 	margin-right: auto;
 	margin-left: auto;
@@ -211,6 +218,7 @@ div.uploaders { text-align: center; }
 div.upstats { text-align: center; }
 div.downloaders { text-align: center; }
 div.messages { text-align: center; }
+div.shares { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px; border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
 td.act { font-size: 10px; font-weight: 700; }
 td.br {border-right: #000 dotted 1px;}

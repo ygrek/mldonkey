@@ -289,7 +289,21 @@ let commands = [
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
-        if o.conn_output = HTML && !!html_mods then 
+        if o.conn_output = HTML && !!html_mods then begin
+
+          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>Full Options\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>";
+
+
           list_options_html o  (
             [
               strings_of_option_html  max_hard_upload_rate; 
@@ -301,7 +315,11 @@ let commands = [
               strings_of_option_html allowed_ips;
               strings_of_option_html set_client_ip; 
               strings_of_option_html force_client_ip; 
-            ] )
+            ] );
+
+          Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+		end
+
         else
           list_options o  (
             [
@@ -316,14 +334,6 @@ let commands = [
               strings_of_option force_client_ip; 
             ]
           );        
-        
-        if o.conn_output = HTML then begin 
-          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>[ Toggle html_mods ]\\</a\\>\n\n";
-          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:parent.fstatus.window.location.href='/submit?q=save'\\\"\\>[ Save Options ]\\</a\\>\n\n";
-          end;
-        
-        if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>[ Edit full options ]\\</a\\>\n\n";
         
         "\nUse '$rvoo$>' for all options"    
     ), ":\t\t\t\t\t$bdisplay options$>";
@@ -397,7 +407,7 @@ let commands = [
             ) sections;
             "\nUse '$rset option \"value\"$>' to change a value where options is
 the name between []"
-    ), " :\t\t\t\t$bprint options values by section$>";
+    ), ":\t\t\t\t$bprint options values by section$>";
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -685,10 +695,62 @@ the name between []"
     "shares", Arg_none (fun o ->
         
         let buf = o.conn_buf in
+
+        if o.conn_output = HTML && !!html_mods then begin
+          Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: { 
+                   var getdir = prompt('Input directory [surround with quotes if necessary (ie:spaces in name)]','/home/mldonkey/share')
+                   var reg = new RegExp (' ', 'gi') ;
+                   var outstr = getdir.replace(reg, '+');
+                   parent.fstatus.location.href='/submit?q=share+' + outstr;
+                   setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add Share\\</a\\>
+\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\> 
+\\<tr\\>\\<td\\> 
+\\<table id=\\\"shares\\\" name=\\\"shares\\\" 
+class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Click to unshare directory)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh ac\\\"\\>Unshare\\</td\\>
+\\<td title=\\\"Directory\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Directory\\</td\\>
+\\</tr\\>";
+        
+        let counter = ref 0 in
+
+        Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
+\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
+
+        List.iter (fun dir -> 
+      	incr counter;
+        Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+		\\<td title=\\\"Click to unshare this directory\\\" 
+        onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+        onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+		onClick=\\\'javascript:{ 
+		parent.fstatus.location.href=\\\"/submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
+        setTimeout(\\\"window.location.reload()\\\",1000);}'
+		class=\\\"srb\\\"\\>Unshare\\</td\\>
+		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
+		(if !counter mod 2 == 0 then "dl-1" else "dl-2") dir dir;
+		)
+        !!shared_directories;
+
+        Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+	
+
+		end
+		else 
+		begin
+
         Printf.bprintf buf "Shared directories:\n";
         Printf.bprintf buf "  %s\n" !!incoming_directory;
         List.iter (fun dir -> Printf.bprintf buf "  %s\n" dir)
         !!shared_directories;
+
+		end;
         ""
     ), ":\t\t\t\tprint shared directories";
     
@@ -778,7 +840,7 @@ the name between []"
         let c = client_find num in
         client_browse c true;        
         "client browse"
-    ), "<num> : \t\t\t\task friend files";
+    ), "<client num> :\t\t\task friend files";
     
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
@@ -964,8 +1026,8 @@ formID.msgText.value=\\\"\\\";
 //--\\>
 \\</script\\>";
 
-            Printf.bprintf buf "\\<IFRAME id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
-            width=\\\"100%%\\\" scrolling=yes src=\\\"/submit?q=message_log+20\\\"\\>\\</IFRAME\\>";
+            Printf.bprintf buf "\\<iframe id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
+            width=\\\"100%%\\\" scrolling=yes src=\\\"/submit?q=message_log+20\\\"\\>\\</iframe\\>";
 
             Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" name=\\\"msgForm\\\" id=\\\"msgForm\\\" action=\\\"javascript:submitMessageForm();\\\"\\>";
             Printf.bprintf buf "\\<table width=100%% cellspacing=0 cellpadding=0 border=0\\>\\<tr\\>\\<td\\>";
@@ -1014,16 +1076,16 @@ formID.msgText.value=\\\"\\\";
             ""
           end
         else
-            Printf.sprintf "Usage: message <client#> <msg>\n";
+            Printf.sprintf "Usage: message <client num> <msg>\n";
           
-    ), ":\t\t\t\t\tmessage [<client#> <msg>]";
+    ), ":\t\t\t\tmessage [<client num> <msg>]";
 
     "friend_add", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
         friend_add c;
         "Added friend"
-    ), "<num> :\t\t\tadd friend <num>";
+    ), "<client num> :\t\tadd client <client num> to friends";
     
     "friend_remove", Arg_multiple (fun args o ->
         if args = ["all"] then begin
@@ -1144,7 +1206,7 @@ formID.msgText.value=\\\"\\\";
                 ()
               end
         ) !!friends;
-        ""), "<friend_num> :\t\t\tprint friend files";
+        ""), "<client num> :\t\t\tprint files from friend <client num>";
     
     
     "bw_stats", Arg_none (fun o -> 
@@ -1224,7 +1286,7 @@ formID.msgText.value=\\\"\\\";
             NotConnected _ -> ()
           | _ ->   server_banner s o);
         ""
-    ), "<num> :\t\t\tprint connected server banner <server num>";
+    ), "<num> :\t\t\tprint banner of connected server <num>";
     
     "log", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1236,7 +1298,7 @@ formID.msgText.value=\\\"\\\";
             done
           with _ -> ());
         "------------- End of log"
-    ), " :\t\t\t\t\tdump current log state to console";
+    ), ":\t\t\t\t\tdump current log state to console";
     
     "ansi", Arg_one (fun arg o ->
         let buf = o.conn_buf in
@@ -1246,7 +1308,7 @@ formID.msgText.value=\\\"\\\";
           end else
           o.conn_output <- TEXT;        
         "$rdone$>"
-    ), " :\t\t\t\t\ttoggle ansi terminal (devel)";
+    ), ":\t\t\t\t\ttoggle ansi terminal (devel)";
 
     "term", Arg_two (fun w h o ->
         let w = int_of_string w in
@@ -1254,7 +1316,7 @@ formID.msgText.value=\\\"\\\";
         o.conn_width <- w;
         o.conn_height <- h;
         "set"), 
-    " <width> <height> : \t\tset terminal width and height (devel)";
+    "<width> <height> :\t\t\tset terminal width and height (devel)";
     
     "stdout", Arg_one (fun arg o ->
         let buf = o.conn_buf in
@@ -1262,7 +1324,7 @@ formID.msgText.value=\\\"\\\";
         lprintf_to_stdout := b;
         Printf.sprintf "log to stdout %s" 
           (if b then "enabled" else "disabled")
-    ), " <true|false> :\t\t\t\treactivate log to stdout";
+    ), "<true|false> :\t\t\treactivate log to stdout";
     
     "debug_client", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -1271,7 +1333,7 @@ formID.msgText.value=\\\"\\\";
             (try let c = client_find num in client_debug c true with _ -> ())
         ) args;
         "done"
-    ), "<nums> :\t\tdebug message in communications with these clients";
+    ), "<client nums> :\t\tdebug message in communications with these clients";
     
     "clear_debug", Arg_none (fun o ->
         
@@ -1280,7 +1342,7 @@ formID.msgText.value=\\\"\\\";
         ) !debug_clients;
         debug_clients := Intset.empty;
         "done"
-    ), ":\t\t\tclear the table of clients being debugged";
+    ), ":\t\t\t\tclear the table of clients being debugged";
     
     "daemon", Arg_none (fun o ->
         if BasicSocket.has_threads () then
@@ -1289,7 +1351,7 @@ formID.msgText.value=\\\"\\\";
             detach_daemon ();
             "done"
           end
-    ), ":\t\t\tdetach process from console and run in background";
+    ), ":\t\t\t\tdetach process from console and run in background";
     
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in
@@ -1298,7 +1360,7 @@ formID.msgText.value=\\\"\\\";
         lprintf_output := Some oc;
         lprintf_to_stdout := true;
         "log started"
-    ), " <file>:\t\tstart logging in file <file>";
+    ), "<file> :\t\t\tstart logging in file <file>";
     
     "close_log", Arg_none (fun o ->
         (match !lprintf_output with
@@ -1306,18 +1368,17 @@ formID.msgText.value=\\\"\\\";
         lprintf_output := None;
         lprintf_to_stdout := false;
         "log stopped"
-    ), ":\t\t\tclose logging to file";
+    ), ":\t\t\t\tclose logging to file";
 
     "!", Arg_one (fun arg o ->
         let cmd = List.assoc arg !!allowed_commands in
         let tmp = Filename.temp_file "com" ".out" in
         let ret = Sys.command (Printf.sprintf "%s >& %s"
-              arg tmp) in
+              cmd tmp) in
         let output = File.to_string tmp in
         Sys.remove tmp;
         Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
-    ), "<cmd> :\t\t\tstart command <cmd> (must be allowed 
-    in 'allowed_commands' option";
+    ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option";
 
     "add_user", Arg_two (fun user pass o ->
         if o.conn_user = default_user then
@@ -1332,8 +1393,8 @@ formID.msgText.value=\\\"\\\";
               users =:= (user, Md4.string pass) :: !!users;
               "User added"
         else
-          "Only admin' is allowed to do that"
-    ), "add_user <user> <passwd>: add a new mldonkey user";
+          "Only 'admin' is allowed to do that"
+    ), "<user> <passwd> :\t\tadd a new mldonkey user";
 
     ]
 

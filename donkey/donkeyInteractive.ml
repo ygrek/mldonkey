@@ -507,7 +507,7 @@ let commands = [
         let md4 = Md4.of_string md4 in
         DonkeyIndexer.add_comment md4 comment;
         "Comment added"
-    ), "<md4> \"<comment>\" :\t\tadd comment on an md4";
+    ), "<md4> \"<comment>\" :\t\tadd comment on a md4";
     
     "nu", Arg_one (fun num o ->
         let buf = o.conn_buf in
