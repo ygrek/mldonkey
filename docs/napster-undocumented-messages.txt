@@ -1,0 +1,21 @@
+0
+
+This server is full (2075 connections)
+Somebody else is logging in as you!
+You were killed by server [hostname].
+Server limit reached : 400 users online
+
+404
+
+User is not currently online.
+User is offline
+Not sharing that file
+search failed: too many pending searches
+Unknown command code 100
+MP3s with bitrate 96 are not allowed to share on this server
+You were killed.
+File "[filename]" not shared: size is too small
+user [nick] is not a known user
+You have been killed by server [hostname]: server full, not sharing enough
+No such user
+[user] is not firewalled

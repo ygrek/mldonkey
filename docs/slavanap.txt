@@ -1,0 +1,2314 @@
+Nap protocol specification
+==========================
+
+By cyberalien@users.sourceforge.net
+14 Dec 2001
+
+Original by drscholl@users.sourceforge.net
+April 7, 2001
+
+0.  Foreward by Dr. Scholl
+
+This is meant to be an open specification.  If you find errors or know of
+additional functionality not described hereafter, please send me email.
+It benefits the entire community to have a complete and accurate protocol
+specification. Not only does it allow for clients to be developed for any
+platform, but also decreases the strain on the server having to parse out
+bad client messages.
+
+0.1  Foreward by CyberAlien
+
+Original document is created by Dr.Scholl. I have fixed some messages,
+added OpenNap and SlavaNap messages and extentions to messages, added
+Napigator protocol specification.
+If you have any comments please mail me at mailto:cyberalien@users.sourceforge.net
+
+1.  Recent Changes
+
+* Fixed napigator protocol (12 October 2001)
+* Fixed commands 100, 110 (12 October 2001)
+* Updated to match opennap 0.44 and slavanap 2.0.0 capabilities (14 Dec 2001)
+
+2.  Client-Server protocol
+
+Nap protocol uses TCP for client to server communication.  Typically the
+servers run on ports 8888 and 7777.  Note that this is different from the
+`metaserver' (or redirector) which runs on port 8875.
+Note: Napster 10.3 and older use port 8876 instead of 8875.
+
+each message to/from the server is in the form of
+	<length><type><data>
+where <length> and <type> are 2 bytes each.  <length> specifies the length in
+bytes of the <data> portion of the message.  Be aware that <length> and <type>
+appear to be in little-endian format (least significant byte goes first).  For
+example, in the C language you would encode the number 1 as
+	const unsigned char num[2] = { 0x01, 0x00 };
+and 256 would be encoded as
+	const unsigned char num[2] = { 0x00, 0x01 };
+[The above is for illustrative purposes only, there are much quicker ways to
+actually encode a number. -ed]
+The <data> portion of the message is a plain ASCII string.
+
+Napster Beta 10.3+ use big-endian format instead of little-endian.
+This means that 256 would be encoded as { 0x01, 0x00 }
+and 1 as { 0x00, 0x01 };
+
+Note that in many cases, strings are passed as double-quoted entries.  For
+example, filenames and client id strings are always sent as
+	"random band - generic cowboy song.mp3"
+or
+	"nap v0.8"
+Where required, double quotes are used in the description of the messages
+below.
+
+Some additional information about use of quotes inside of quotes:
+> The answer is, no, it doesn't do escaping of quotes.  If you try searching
+> for the phrase 'a "quoted" string' on the windows client, you get no songs
+> found, and "invalid search request" printed in yellow in your console
+> window.  (don't know what code that is, sorry.)
+>
+> and no wonder-- a little birdie told me that the client sends this:
+>
+> FILENAME CONTAINS "a "quoted" string" MAX_RESULTS 100
+
+[contributed by Ben Byer <bbyer@rice.edu>.  -ed]
+
+Note that unlike the IRC protocol, each line does NOT end in \r\n.  The
+<length> field specifies exactly how much data you should read.
+
+3.  Message Types
+
+The following section describes the format of the <data> section for each
+specific message type.  Each field is denoted with <>.  The fields in a
+message are separated by a single space character (ASCII 32).  Where
+appropriate, examples of the <data> section for each message are given.
+
+[SERVER] means that message is sent by server
+[CLIENT] means that message is send by client
+[NAPSTER] means that Napster client or server uses this message
+[OPENNAP] means that this message is supported by OpenNap 0.44
+[SLAVANAP] means that this message is supported by SlavaNap 2.0.0
+
+Detecting server type is easy. When user logs in server sends MOTD
+and OpenNap and SlavaNap sends string "VERSION opennap 0.44" or
+"VERSION SlavaNap 2.0.0" among other MOTD strings.
+
+<type> can be one of the following (converted to big-endian):
+
+0	error message [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <message>
+
+2	login [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick> <password> <port> "<client-info>" <link-type> [ <num> ]
+
+	<port> is the port the client is listening on for data transfer.  if
+		this value is 0, it means that the client is behind a firewall
+		and can only push files outward.  it is expected that requests
+		for downloads be made using the 500 message (see below)
+	<client-info> is a string containing the client version info
+	<link-type> is an integer indicating the client's bandwidth
+		0  unknown
+		1  14.4 kbps
+		2  28.8 kpbs
+		3  33.6 kbps
+		4  56.7 kbps
+		5  64K ISDN
+		6  128K ISDN
+		7  Cable
+		8  DSL
+		9  T1
+		10 T3 or greater
+	<num> build number for the windows client [optional]
+		
+	Example:
+
+	foo badpass 6699 "nap v0.8" 3
+
+3	login ack [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <email> [<number>]
+
+	the server sends this message to the client after a succesful
+	login (2).  If the nick is registered, the <email> address given at
+	registration time is returned.  If the nick is not registered, a
+	dummy value is returned.
+
+	<number> is added by Napster server.
+		This is probably user's number.
+
+4	version check [CLIENT] [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+        Format: <version>
+
+	Server sends [5] if an update is needed and [4] if not.
+
+	<version> = string, version 2.0b5a sends "2.0"
+
+5       "auto-upgrade" [SERVER]
+
+	[NAPSTER]
+
+        Format: <version>
+        Beta5 Format: <version> <hostname:filename>
+
+        Napster is out of date, get a new version.
+        Used to be gaping security hole in Beta5.
+
+        <version>  = string, the new version number.
+        <hostname> = string, hostname of upgrade (http) server
+        <filename> = string, filename
+
+	<hostname> and <filename> are used only by Beta5
+	Later versions ignore these values.
+
+6	new user login [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick> <pass> <port> "<client-info>" <speed> <email-address>
+
+	This message is used when logging in for the first time to register
+	a new nickname.  The client normally checks for an unused nick using
+	the "check nickname" (7) message and upon receipt of a "nickname not
+	registered" (8) from the server will proceceed to log in with this
+	command.
+
+	note: this message is similar to the 0x02 message, with the addition	
+	of <email-address> on the end
+
+	Example:
+
+	foo foo 6699 "nap v0.8" 3 email@here.com
+
+7	nick check [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick>
+
+	Queries the server to see if <nick> is already registered.  This
+	message is typically used prior to logging in for the first time to
+	check for a valid nickname.
+
+	Response to this message is one of 8, 9 or 10
+
+8	nickname not registered [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+	The server sends this message in response to the "nick check" (7)
+	message to indicate that the specified nickname is not already
+	registered and is ok to use.
+
+9	nickname already registered [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+	The server sends this message when the nickname the client has
+	requested has already been registered by another user
+
+10 (0x0a)	invalid nickname [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+	This server sends this message in response to the "check nickname"
+	(7) messages when the specified nickname is invalid, usually due to
+	bad characters such as spaces or other non-printable characters.
+
+        The Napster, Inc. servers only accept (upper- and lower-case) nicks
+        comprised of the following:
+               abcdefghijklmnopqrstuvwxyz1234567890_[]{}-@^!$
+
+11	password check [CLIENT]
+
+	[NAPSTER,SLAVANAP]
+
+	Format: <nick> <pass>
+
+	This command is used by Napster only during setup sequence.
+	If password is correct server replies with message 12. If not
+	server sends message 0.
+
+12	password OK [SERVER]
+
+	[NAPSTER,SLAVANAP]
+
+	Format: (empty)
+
+	this message is returned in response to message 11 from the client
+
+13	echo??? [SERVER]
+
+	[NAPSTER]
+
+	Format: <numeric>: [args]
+
+	Prior to issuing a login (2) command, the server will echo back the
+	received numeric and any arguments of any commands it receives.
+
+14	login options [CLIENT]
+
+	[NAPSTER]
+
+	NAME:%s ADDRESS:%s CITY:%s STATE:%s PHONE:%s AGE:%s INCOME:%s EDUCATION:%s
+
+	Example:
+
+	NAME: kev  ADDRESS:  CITY: ephrata  STATE: pa  PHONE:  AGE: 60 or older INCOME: $100,000 or more        EDUCATION: Graduate Degree
+
+	No reply is required.
+
+15	Same as 14. Used by Beta7+ (I don't know if previous versions used command 15 or not)
+
+	[NAPSTER]
+
+100 (0x64)	client notification of shared file [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: "<filename>" <md5> <size> <bitrate> <frequency> <time>
+
+	<md5> see section "MD5"
+	<size> is bytes
+	<bitrate> is kbps
+	<frequency> is hz
+	<time> is seconds
+	
+	Example:
+
+	"generic band - generic song.mp3" b92870e0d41bc8e698cf2f0a1ddfeac7-443008 443332 128 44100 60
+
+	For sharing non-mp3 files there is a command 10300 that is supported
+	by OpenNap and SlavaNap, but most clients use command 100 (or 870)
+	and just set bitrate=24 freq=16000 time=600.
+
+102 (0x66)	remove file [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <filename>
+
+	client requests to remove file from shared library
+
+110		unshare all files [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: (empty)
+	server: <num>
+
+	Notifies the server that the client is no longer sharing any of the
+	files previously shared. Server replies with 110 containing number
+	of files that client shared before.
+
+200 (0xc8)	client search request [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format:
+
+	[FILENAME CONTAINS "artist name"] MAX_RESULTS <max> [FILENAME CONTAINS
+	"song"] [LINESPEED <compare> <link-type>] [BITRATE <compare> "<br>"] [FREQ
+	<compare> "<freq>"] [WMA-FILE] [LOCAL_ONLY]
+
+	For OpenNap and SlavaNap only:
+
+	[TYPE <mime-type>] [FILENAME EXCLUDES "exclude string"] [SIZE <compare>
+	<filesize_in_bytes>] [DURATION <compare> <song_duration_in_seconds>]
+
+	For SlavaNap 2.x only:
+
+	[SHOW_QUEUE] [SHOW_SOFTWARE]	
+
+
+
+        The artist name and the song name are strings filename should include.
+	There is no difference between artist name and song name.
+
+        <max> is a number; if it is greater than 100, Napster server will only return
+	100 results. With OpenNap and SlavaNap <max> can be greater than 100.
+
+        <compare> is one of the following:
+                "AT LEAST" "AT BEST" "EQUAL TO"
+
+        <link-type> integer ranging from 1 to 10. see 0x02 (client login) for a description.
+
+        <br> is a number, in kbps
+
+        <freq> is a sample frequency, in Hz
+
+	<mime-type> OpenNap and SlavaNap support other media types besides mp3.
+		By default, searches will only match mp3 files.  A client can
+		however search for other media types by specifying a partial
+		MIME content-type (audio, video, text, application, image, mp3).
+		(See message 10300 for adding media to the database).
+		The special keyword `any' will match any media type in the
+		database.
+
+		The results of the search are returned as with mp3, except
+		the fields for bitrate, sample frequency and length are
+		meaningless. The client can then download as they would any
+		other mp3 file.
+
+	FILENAME EXCLUDES "..."
+
+		allows filtering search results by excluded all files which
+		match words in an exclude list.  this must be used in
+		conjunction with FILENAME CONTAINS "...".
+		(NOTE: as of Napster 2.0 BETA 8, words in the
+		FILENAME CONTAINS string which are prefixed with a minus
+		sign (-) are considered to be exclusive.)
+		Can be used only with OpenNap and SlavaNap servers.
+
+	SIZE, DURATION
+
+		allows matching on the file size and song length in addition
+		to the other file attributes. Can be used only with OpenNap
+		and SlavaNap servers.
+
+	LOCAL_ONLY causes the server to only search for files from users on
+		the same server rather than all linked servers.
+
+	SHOW_QUEUE this works only with SlavaNap 2.x servers. if causes server
+		to add number of queued items for remote user to each search result.
+		if remote user's software doesn't show queue server will add "n/a"
+		instead of queue. otherwise server will return number counted
+		with the following simple algorythm:
+		 current_uploads + queued_uploads - max_uploads;
+		so, if you can download from remote user without entering queue
+		server will return any negative number, if user has maximum
+		uploads right now server will return number of queued items.
+		To set number of queued items use SlavaNap's command 8112. You
+		can also retreive number of queued items using SlavaNap's command
+		8113 instead of adding "SHOW_QUEUE" to search request.
+		See also "readme.txt" in SlavaNap.
+
+	SHOW_SOFTWARE this works only with SlavaNap 2.x servers. if causes server
+		to add client's software signature to search result. This might
+		be used if your client has its own special protocol and you
+		don't want to disturb other clients with messages that other
+		client wouldn't understand.
+		If you use both "SHOW_QUEUE" and "SHOW_SOFTWARE" in search
+		request, server will add queue first and software second to
+		search result.
+		See also "readme.txt" in SlavaNap.
+		
+
+        The windows client filters by ping time inside the client.
+                It pretty much has to, and it's easy to see the
+                result by setting ping time to at best 100 ms or
+                so, and max search terms to 50.  You'll get back
+                like 3 results, but the client will still tell you
+                that it found "50 results".
+
+        Examples:
+                FILENAME CONTAINS "Sneaker Pimps" MAX_RESULTS 75 FILENAME
+                         CONTAINS "tesko suicide" BITRATE "AT LEAST" "128"
+
+                MAX_RESULTS 100 FILENAME CONTAINS "Ventolin" LINESPEED
+                        "EQUAL TO" 10
+
+	[Thanks to Ben Byer <bbyer@rice.edu> for this contribution.  -ed]
+
+
+	SEE ALSO: 10300 share non-mp3 file.
+
+201 (0xc9)	search response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	"<filename>" <md5> <size> <bitrate> <frequency> <length> <nick> <ip>
+	<link-type> [ [weight] | [queue] "[software]" ]
+
+	<md5> see secton "MD5"
+	<size> is file size in bytes
+	<bitrate> is mp3 bit rate in kbps
+	<frequency> is sample rate in hz
+	<length> is the play length of the mp3 in seconds
+	<nick> the person sharing the file
+	<ip> is an unsigned long integer representing the ip address of the
+		user with this file
+	<link-type> see message client login (2) message for a description
+	[weight]	a weighting factor to allow the client to sort the
+	                list of results.  positive values indicate a "better"
+			match, negative values indicate a "worse" match.
+			If not present, the weight should be considered to be
+			0.
+	[queue]		for SlavaNap 2.x only. queued items number for remote
+			user. server will return it if you have added
+			"SHOW_QUEUE" to search request. parameter [weight]
+			is not returned by slavanap server.
+			
+	[software]	for SlavaNap 2.x only. this parameter shows software
+			that is used by remote client. parameter [weight]
+			is not returned by slavanap server.
+
+	Example:
+
+	"random band - random song.mp3" 7d733c1e7419674744768db71bff8bcd-2557521 2558199 128 44100 159 lefty 3437166285 4
+
+	SlavaNap examples:
+
+	request: FILENAME CONTAINS "sunshine"
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6
+
+	request: FILENAME CONTAINS "sunshine" SHOW_QUEUE
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 n/a
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 2
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 -1
+
+	request: FILENAME CONTAINS "sunshine" SHOW_SOFTWARE
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 "v2.0 BETA 10.4"
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 CQ_EX
+
+	request: FILENAME CONTAINS "sunshine" SHOW_SOFTWARE SHOW_QUEUE
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 n/a "v2.0 BETA 10.4"
+	possible reply: "c:\MP3\Emma Bunton - Sunshine On A Rainy Day.mp3" 00000000000000000000000000000000 4118494 128 44100 257 CyberAlien 3437166285 6 0 CQ_EX
+
+202 (0xca)	end of search response from server [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+203 (0xcb)	download request [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick> "<filename>"
+
+	client requests to download <filename> from <nick>.  client expects
+	to make an outgoing connection to <nick> on their specified data
+	port.
+
+	Example:
+
+	mred "C:\Program Files\Napster\generic cowboy song.mp3"
+
+	SEE ALSO: 500 alternate download request
+
+204 (0xcc)	download ack [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> <ip> <port> "<filename>" <md5> <linespeed>
+
+	server sends this message in response to a 203 request.
+
+	<nick> is the user who has the file
+	<ip> is an unsigned long integer representing the ip address
+	<port> is the port <nick> is listening on
+	<filename> is the file to retrieve
+	<md5> is the md5 sum
+	<linespeed> is the user's connection speed (see login(2))
+
+	Example:
+
+	lefty 4877911892 6699 "generic band - generic song.mp3" 10fe9e623b1962da85eea61df7ac1f69 3
+
+205 (0xcd)	private message to/from another user [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> <message>
+
+	note the same type is used for a client sending a msg or recieving one
+
+206 (0xce)	get error [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>"
+
+	the server sends this message when the file that the user has
+	requested to download is unavailable (such as the user is not logged
+	in).
+
+207 (0xcf)	add hotlist entry [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <user>
+
+	This message is used to add additional entries to the client's
+	hotlist.  The server will send 209 and 210 messages when a user
+	on the hotlist has logged in or out, respectively.
+
+208 (0xd0)	hotlist [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <user>
+
+	This message is used to send the initial list of hotlist entries
+	during the initial login process.  It is normally send prior to
+	to the add file (100) commands.  To add more entries to the hotlist
+	after the initial list is sent, clients should use the 207 message
+	instead.
+
+209 (0xd1)	user signon [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user> <speed>
+
+	server is notifying client that a user in their hotlist, <user>,
+	has signed on the server with link <speed>
+
+210 (0xd2)	user signoff [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server is notifying client that a user on their hotlist, <user>, has
+	signed off the server.
+
+	this message is also sent by the server when the client attempts to
+	browse a nonexistent client.
+
+211 (0xd3)	browse a user's files [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick>
+
+	the client sends this message when it wants to get a list of the files
+	shared by a specific client
+
+212 (0xd4)	browse response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>" <md5> <size> <bitrate> <frequency> <time>
+
+	<nick> is the user contributing the file
+	<filename> is the mp3 file contributed
+	<md5> is the has of the mp3 file
+	<size> is the file size in bytes
+	<bitrate> is the mp3 bitrate in kbps
+	<frequence> is the sampling frequency in Hz
+	<time> is the play time in seconds
+
+	Example:
+
+	foouser "generic band - generic song.mp3" b92870e0d41bc8e698cf2f0a1ddfeac7 443332 128 44100 60
+
+213 (0xd5)	end of browse list [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> [ip]
+
+	indicates no more entries in the browse list for <user>.  <ip> gives
+	the client's IP address.
+
+214 (0xd6)	server stats [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: no data
+	server: <users> <# files> <size> ["GB" <myfiles>]
+
+	<size> is approximate total library size in gigabytes
+	this message is sent by the server occasionaly without request
+	"GB" text is added by Napster server since version 10.3
+	<myfiles> is number of files shared by user.
+
+	Example:
+
+	old:  553 64692 254
+	new:  553 64692 254 GB 102
+
+215 (0xd7)	request resume [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<checksum> <filesize>
+
+	client is requesting a list of all users which have the file with
+	the characteristics.  the server responds with a list of 216 messages
+	for each match, followed by a 217 message to terminate the list
+
+216 (0xd8)	resume search response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user> <ip> <port> <filename> <checksum> <size> <speed>
+
+	this message contains the matches for the resume request (215).  the
+	list is terminated by a 217 message.
+
+217 (0xd9)	end of resume search list [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no data.
+
+	this messag terminates a list of 216 messages initiated by a 215
+	client request
+
+218 (0xda)	downloading file [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no body.
+
+	client sends this message to the server to indicate they are in the
+	process of downloading a file.  this adds 1 to the download count
+	which the server maintains.
+
+219 (0xdb)	download complete [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no body.
+
+	client sends this message to the server to indicate they have
+	completed the file for which a prior 218 message was sent.  this
+	subtracts one from the download count the server maintains
+
+220 (0xdc)	uploading file [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no body.
+
+	client sends this message to indicate they are uploading a file.
+	this adds one to the upload count maintained by the server.
+
+221 (0xdd)	upload complete [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no body.
+
+	client sends this message when they are finished uploading a file.
+	this subtracts one from the upload count maintained by the server.
+
+300 (0x12c)	optional ports [CLIENT]
+
+	[NAPSTER]
+
+	<port>
+
+	This command allows the client to specify optional ports to try for
+	data connections if the one currently in use is unreachable by other
+	parties. Ignored by OpenNap and SlavaNap.
+
+301 (0x12d)	hotlist ack [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <user>
+
+	server is notifying client that <user> has successfully be added to
+	their hotlist
+
+302 (0x12e)	hotlist error [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <user>
+
+	server is notifying client that it was unable to add <user> to their
+	hotlist.  [can you only add registered nicks to your hotlist? -ed]
+
+303 (0x12f)	remove user from hotlist [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <user>
+
+	client is notifying the server that it no longer wishes to request
+	notifications about <user> when they sign on or off the server.  no
+	response is sent in return.
+
+310	??? [CLIENT, SERVER]
+
+	[NAPSTER]
+
+	client: no data
+	server: 0
+
+	unknown command.  server returns 0 regardless of any parameters
+
+316	client disconnect??? [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP]
+
+	client: no data
+	server: 0
+
+	The server sends this message with a value of `0' when the client is
+	about to be disconnected.
+
+	It is unkonwn what this command does when issued by the client.  The
+	server appears to send the 316 message without disconnected the client
+	in this case.
+
+	[the server seems to send this message if you send it a numeric
+	greater than 1000.  the server will also disconnect you after
+	sending this message.  -ed]
+
+320 (0x140)	user ignore list [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: no data
+	server: <count>
+
+	client request to display the list of ignored users.
+	server returns the number of users being ignored
+
+321 (0x141)	user ignore list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server sends each ignored nick in response to a 320 request.  the
+	list is terminated by a 320 message with the number of ignored users.
+
+322 (0x142)	add user to ignore list [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server acks the request by returning the nick
+
+323 (0x143)	remove user from ignore list [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server acks the request by returning the nick to be removed from
+	the ignore list.
+
+324 (0x144)	user is not ignored [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server indicates that <user> is not currently ignored in response to
+	a 323 request.
+
+325 (0x145)	user is already ignored [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	server indicates the specified user is already on the user's ignore
+	list
+
+326 (0x146)	clear ignore list [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: no data.
+	server: <count>
+
+	client requests the server clear its ignore list.  server returns the
+	number of entries removed from the ignore list.
+
+330 (0x14a)	blocked ip list [CLIENT]
+	[NAPSTER]
+
+332 (0x14c)	block ip [CLIENT]
+	[NAPSTER]
+
+333 (0x14d)	unblock ip [CLIENT]
+	[NAPSTER]
+
+400 (0x190)	join channel [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel-name>
+
+	the client sends this command to join a channel
+
+401 (0x191)	part channel [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel-name>
+
+	The client sends this command to part a channel.  Server sends this
+	message to indicate that the client has parted the channel.  Note
+	that this is sometimes sent even when the client has not requested,
+	so a client _must_ be prepared to accept it at any time.
+
+402 (0x192)	send public message [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <message>
+
+403 (0x193)	public message [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <nick> <text>
+
+	this message is sent by the server when a client sends a public message
+	to a channel.
+
+	Example:
+
+	80's espinozaf hello...hola
+
+404 (0x194)	error message [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<text>
+
+	This message is used to send general error messages to a client that
+	is logged in.  Note: Message 0 is only sent during the login process.
+
+	Examples:
+
+	User nosuchuser is not currently online.
+	Channel #nosuchchannel does not exist!
+	permission denied
+	ping failed, blah is not online
+
+405 (0x195)	join acknowledge [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel>
+
+	the server sends this message to the client to acknowlege that it
+	has joined the requested channel (400)
+	Note: <channel> in this message can be different from one sent in 400
+	and client must be ready to join another channel instead of requested.
+	
+406 (0x196)	join message [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user> <sharing> <link-type>
+
+	<user> has joined <channel>
+
+	Example:
+
+	80's WilmaFlinstone 12 2
+
+407 (0x197)	user parted channel [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <nick> <sharing> <linespeed>
+
+	Example:
+
+	80's DLongley 23 7
+
+408 (0x198)	channel user list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user> <sharing> <link-type>
+
+	this message is identical to the join (406) message.  the server will
+	send the list of users in the channel prior to the client join command
+	in this message.  joins that occur after the client has joined will
+	be noted by a 406 message.
+
+409 (0x199)	end of channel user list [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel>
+
+	this message is sent by the server to indicate it has sent all information
+	about the users in a channel
+
+410 (0x19a)	channel topic [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <topic>
+
+	sent when joining a channel or a new topic is set.  a client requesting
+	topic change also uses this message.
+
+	[why didn't they put a field to indicate WHO changed the topic?  as
+	it is now you can only tell that it was changed.  -ed]
+
+420 (0x1a4)	channel ban list [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <channel>
+
+	This command is used by clients to request the list of channel bans,
+	and by the server to indicate the end of the channel ban list for
+	a channel (also see 421).
+
+421 (0x1a5)	channel ban list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+422 (0x1a6)	channel ban [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user|ip> [ "<reason>" ]
+
+423 (0x1a7)	channel unban [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user|ip> [ "<reason>" ]
+
+424 (0x1a8)	channel ban clear [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <channel>
+
+425	channel motd (alternate topic (?)) [SERVER]
+
+	[NAPSTER]
+
+	Format: <message>
+
+	[The server sends this command when a user joins one of the
+	predefined channels.  It seems to send a default message if the
+	topic for the channel is the default, otherwise it sends the current
+	channel topic.  -ed]
+
+430	invite a user [CLIENT, SERVER]                                                 
+
+	[NAPSTER,SLAVANAP]
+
+	Client: <nick> <channel>                                               
+        Server: <nick> <channel> "<topic>" <unknown> <unknown>       
+                                                                                
+        This command is used by Napster 2.0 BETA 9.6+ to invite a user to
+        a channel. The funniest thing about this command is that it is
+	supported by Napster clients but not supported by Napster servers ;)
+	Napster implementation of this command is a little bit buggy.
+
+        client:                                                                 
+                <nick> - nick of invited user                                   
+                <channel> - channel user <nick> was invited to                  
+        server:                                                                 
+                <nick> - nick of user who was inviting                          
+                <channel> - channel                                             
+                <topic> - channel's topic                                       
+                <unknown> - ??? ("0" works fine)                          
+                                                                                
+        When user receives 430 message user should reply with 431 or 432
+	and, if invitation accepted, user should join channel with 400.
+                                                                                
+        Client example:                                                         
+                                                                                
+        CyberAlien2 #test_channel                                               
+                                                                                
+        Server  example:                                                        
+                                                                                
+        CyberAlien3 #test_channel "Welcome to the #test_channel." 0 0      
+                                                                                
+431	invitation accepted [CLIENT]                                                    
+
+	[NAPSTER,SLAVANAP]
+
+	Format: <user> <channel>                                                        
+                                                                                
+        <user> - user who was inviting                                          
+                                                                                
+432	invitation declined [CLIENT]
+
+	[NAPSTER,SLAVANAP]
+
+        Format: copy of command received in 430 message works fine.
+
+500 (0x1f4)	alternate download request [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>"
+
+	requests that <nick> make an outgoing connection to the requesters
+	client and send <filename>.  this message is for use when the
+	person sharing the file can only make an outgoing tcp connection
+	because of firewalls blocking incoming messages.  this message should
+	be used to request files from users who have specified their data
+	port as 0 in their login message
+
+501 (0x1f5)	alternate download ack [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> <ip> <port> "<filename>" <md5> <speed>
+
+	this message is sent to the uploader when their data port is set to
+	0 to indicate they are behind a firewall and need to push all data
+	outware.  the uploader is responsible for connecting to the
+	downloader to transfer the file.
+
+600 (0x258)	request user's link speed [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick>
+
+601 (0x259)	link speed response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> <linespeed>
+
+602 (0x25a)	??? [CLIENT]
+
+	[NAPSTER]
+
+	<?>
+
+	server returns a 404 with "*gulp* Drink milk, it does a body good!"
+
+603 (0x25b)	whois request [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick>
+
+604 (0x25c)	whois response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<user-level>" <time> "<channels>" "<status>" <shared>
+	<downloads> <uploads> <link-type> "<client-info>" [ <total downloads>
+	<total_uploads> <ip> <connecting port> <data port> <email> [<server>]]
+
+	<user-level> is one of "User", "Moderator", "Admin" or "Elite"
+	<time> is seconds this user has been connected
+	<channels> is the list of channels the client is a member of, each
+		separated by a space (ASCII 32)
+	<status> is one of "Active", "Inactive" (offline) or "Remote" (on a
+		different server)
+	<shared> is number of files user has available for download
+	<downloads> is the current number of downloads in progress
+	<uploads> is the current number of uploads in progress
+	<link-type> see 0x02 (client login) above
+	<client-info> see 0x02 (client login) above
+
+	The following fields are displayed for user level moderator and
+	above:
+
+	<total uploads>
+	<total downloads>
+	<ip>			note: can be "unavailable"
+	<connecting port>
+	<data port>
+	<email>			note: can be unavailable
+	<server> used only by SlavaNap and opennap servers. It shows
+		which server client is connected to.
+
+	Example:
+
+	lefty "User" 1203 "80's " "Active" 0 0 0 3 "nap v0.8"
+
+605 (0x25d)	whowas response [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user> <level> <last-seen>
+
+	if the user listed in a 603 request is not currently online, the
+	server sends this message.
+
+	<user> is the user for which information was requested
+	<level> is the user's last known userlevel (user/mod/admin)
+	<last-seen> is the last time at which this user was seen, measured
+		as seconds since 12:00am on January 1, 1970 (UNIX time_t).
+
+606 (0x25e)	change user level [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> <level>
+
+	changes the privileges for <nick> to <level>.  client must be admin
+	level to execute this request
+
+	[I have not verified this message since I don't have admin status
+	on any of Napster servers.  -ed]
+
+607 (0x25f)	upload request [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>" <speed>
+
+	this message is used to notify the client that user <nick> has
+	requested upload of <filename>
+
+	Example:
+
+	lefty "generic band - generic song.mp3" 7
+
+608 (0x260)	accept upload request [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>"
+
+	client is notifying server that upload of <filename> to <nick> is
+	accepted, and that the requesting client may begin download
+
+	Example:
+
+	lefty "generic band - generic song.mp3"
+
+609 (0x261)     accept failed [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+        <nick> "<filename>"
+
+	This message is sent by the server when the client that the file was
+	requested from does not accept the upload request.
+
+	This message also used by AudioGnome to notify other user that upload
+	or download was canceled.
+
+610 (0x262)	kill (disconnect) a user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> [ "<reason>" ]
+
+	client request to disconnect a user.
+
+611 (0x263)	nuke a user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick>
+
+	client request to delete account for <nick>
+
+612 (0x264)	ban user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick | ip> [ "<reason>" ]
+
+	client request to place a ban on either a specific nickname or
+	an ip address
+
+613 (0x265)	set data port for user [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <user> <port>
+	server: <port>
+
+	This command is used by administrators to request that another
+	client set the port used for data transfers to <port>.  The server
+	sends a message with the requested port number to the target
+	client.  NOTE: the target client can change its port number to
+	whatever it wishes using the 703 command.
+
+614 (0x266)	unban user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick | ip> [ "<reason>" ]
+
+615 (0x267)	show bans for server [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+	client requests the list of banned ips for the current server
+
+616 (0x268)	(ip?) ban list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <ip> <nick> "<reason>" <time> <n>
+
+	<ip> is the string version of the ip banned
+	<nick> is the user setting the ban
+	<reason> is the reason given
+	<time> is the time_t when the ban was set
+	<n> is ???.  value is either 0 or 1
+
+	This message is sent in response to the 615 client request, one
+	for each ban.  The list is terminated with a 0 length 615 message
+	from the server.
+
+	Example:
+	
+	207.172.245. valkyrie "DoS exploit" 947304224 0
+
+617 (0x269)	list channels [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: (empty)
+
+	client requests a list of channels on the server.  server responds
+	with 618/617
+
+	server indicates end of channel list using this message.
+
+618 (0x26a)	channel list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <channel-name> <number-of-users> <topic>
+
+	this is the server response to a 617 client request, one for each
+	channel.
+
+	Example:
+
+	Help 50 OpenNap help channel
+
+619 (0x26b)	queue limit [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <nick> "<filename>" <n>
+
+	a client may limit the number of downloads from a particular client.
+	once the limit for a particular user has been reached, the uploading
+	client can send this message to notify the downloader that they
+	have hit the limit and can't have any more simultaneous downloads.
+	<nick> is the user who hit the limit, <filename> is the file they
+	were trying to download when they hit the limit, and <n> is the
+	number of simultaneous downloads allowed.
+
+	Example:
+
+	joebob "C:\MP3\Generic Band - Generic Song.mp3" 3
+
+620 (0x26c)	queue limit [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "<filename>" <filesize> <digit>
+
+	This message is sent by the server in response to the 619 client
+	request, when one user needs to notify another that they have
+	reached the maximum allowed simultaneous downloads.  When the server
+	recieves the 619 request from the uploading client, it sends the 620
+	message to the downloading client.  The only difference in format is
+	the addition of the <nick> field in the 620 message which specifies
+	the username of the uploading agent which is notifying the
+	downloader that the queue is full.
+
+	Example:
+
+	joebob "C:\MP3\Generic Band - Generic Song.mp3" 1234567 3
+
+621 (0x26d)	message of the day [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <text>
+
+	Server: each 621 message contains a single line of text.
+		OpenNap and SlavaNap servers send string
+		"VERSION opennap 0.41" or "VERSION SlavaNap 1.1.3"
+		among other MOTD strings. This might be used to
+		detect server version.
+
+	Client: client sends a 621 command with no data to request the
+		motd be sent.  The server will usually send this
+		automatically after a user logs in, so this command
+		allows a user to reread it upon	request.
+
+622 (0x26e)	muzzle a user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> [ "<reason>" ]
+
+	client requests that <nick> not be allowed to send public messages
+
+623 (0x26f)	unmuzzle a user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> [ "<reason>" ]
+
+	client requests that the enforced silence on <nick> be lifted
+
+624 (0x270)	un-nuke a user [CLIENT]
+
+	[NAPSTER]
+
+	<user>
+
+625 (0x271)	change user's linespeed [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user> <speed>
+
+626 (0x272)	data port error [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	When a downloading client detects that the uploader's data port
+	is unreachable, it should send a 626 message to the server with
+	the nick of the user for which the connection failed.  The server
+	then relays the message to the uploader, substituing the
+	downloader's nickname in the message.
+
+627 (0x273)	operator message [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <text>
+	server: <nick> <text>
+
+	client request to send a message to all admins/moderators
+
+628 (0x274)	global message [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <text>
+	server: <nick> <text>
+
+	client request send a message to all users
+
+629 (0x275)	banned users [SERVER]
+
+	[NAPSTER]
+
+	Format: <nick>
+
+	when displaying the ban list for the server, this message is used
+	to indicate banned nicknames.
+
+630-639 missing
+
+640	direct browse request [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Client: <nick>
+	Server: <nick> [ip port]
+
+	Client: request files for <nick>
+	Server: <nick> is requesting your files.  optionally, <ip> and
+		<port> are given if the client getting browsed is firewalled
+
+	This message is sent to initiate a direct client to client browsing of
+	shared files.
+
+	See section 5.3.
+
+641	direct browse accept [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Client: <nick>
+	Server: <nick> <ip> <port>
+
+	The client to be browsed sends this message back to the server to
+	indicate it is willing to accept a direct browse from <nick>.
+
+	The server sends this message to the requestor of the browse to
+	indicate where it should connect in order to do a direct browse from
+	<nick>.
+
+	See section 5.3
+
+642	direct browse error [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<nick> "message"
+
+	Server sends this messags in response to a 640 request if there is an
+	error (eg. both clients are firewalled, or the browsee is not sharing
+	any files).
+
+	See section 5.3
+
+643-649	missing
+
+650-651	??? [CLIENT]
+	[NAPSTER]
+
+	permission denied.
+
+652 (0x28c)	cloak user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	sets the current user to "invisible"
+
+653-699	missing.
+
+700	change link speed [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<speed>
+
+	client is notifying server that its correct link speed is <speed>,
+	in the range 0-10 (see the login message for details).
+
+701	change user password [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<password>
+
+	client wishes to change their password
+
+702	change email address [CLIENT]
+
+	[NAPSTER,OPENNAP]
+
+	<email address>
+
+	client wishes to change their email address
+
+703	change data port [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<port>
+
+	client is changing the data port being listened on for file
+	transfers
+
+704-747	missing.
+
+748	login attempt [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	the server sends this message to a logged in client when another
+	client attempts to log in with the same nickname.
+
+749	missing.
+
+750 (0x2ee)	server ping [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+        Format: <time>
+
+        Client pings server. Server replies with 750. <time> is in time_t
+	format. Napster console command: "/sping"
+
+	OpenNap uses <server> instead of <time> where <server> is server
+	name to ping.
+
+751 (0x2ef)	ping user [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	client is attempting to determine if <user>'s connection is alive
+
+752 (0x2f0)	pong response [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user>
+
+	this message is sent in response to the the 751 (PING) requeset
+
+753 (0x2f1)	change password for another user [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<user> <password> "<reason>"
+
+	allows an administrator to change the password for another user
+
+754-769	missing.
+
+770	??? [CLIENT]
+	[NAPSTER]
+
+	permission denied.
+
+771	??? [CLIENT]
+	[NAPSTER]
+
+	permission denied.
+
+772-799	missing.
+
+800 (0x320)	reload config [CLIENT]
+
+	[NAPSTER,OPENNAP]
+
+	<config variable>
+
+	resets configuration parameter to its default value
+
+801 (0x321)	server version [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no data.
+
+	client request's a server's version
+
+802-804	missing.
+
+805	???
+	[NAPSTER]
+
+	[returns permission denied. -ed]
+
+810 (0x32a)	set config [CLIENT]
+	[NAPSTER,OPENNAP]
+
+	<config string>
+
+	request a change in server configuration variables
+
+811 (0x32b)	???	[CLIENT]
+	[NAPSTER]
+
+	[returns permission denied. -ed]
+
+820 (0x334)	clear channel [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel>
+
+	remove all users from the specified channel
+
+821 (0x335)	redirect client to another server [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <user> <server> <port>
+	server: <server> <port>
+	
+	This command allows an administrator to redirect clients to another
+	server.
+
+822 (0x336)	cycle client [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <user> <metaserver>
+	server: <metaserver>
+
+	This commands allows an administrator to make a client restart the
+	login process by first connecting to the metaserver (redirector) at
+	<host>.
+
+823 (0x337)	set channel level [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <level>
+
+	Sets <channel> such that users must be at least <level> in order to
+	enter the channel
+
+824 (0x338)	emote [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	client: <channel> "<text>"
+	server: <channel> <user> "<text>"
+
+	A variation of the public message command to indicate an action by
+	the user.  Often implemented as the "/me" command in IRC clients.
+
+825 (0x339)	user list entry [SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user> <files shared> <speed>
+
+	an 825 message is sent for each user in the channel specified by the
+	830 message
+
+	Example:
+
+	Help testor3 0 3
+
+	[This appears to be exactly the same format as the 408 message.  -ed]
+
+826 (0x33a)	channel limit [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <limit>
+
+	sets the maximum number of users that may enter a channel.  <limit>
+	is an integer value between 0 and 999999999.  setting it higher that
+	this results in the limit being set to -1.  by default, created
+	channels have a limit of 200.  there appears to be no restriction on
+	any channel member changing the limit, and no notification is given
+
+827 (0x33b)	show all channels [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	no data.
+
+	client request to show all channels, including "hidden" channels.
+	the server also sends this message to terminate
+
+828 (0x33c)	channel list [SERVER]
+	
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <users> <n1> <level> <limit> "<topic>"
+
+	the server sends a list of 828 commands, one for each channel,
+	including "hidden" channels that don't show up in the normal channel
+	list.
+
+	<level> is the mimimum user level required for entry into a channel
+	<limit> is the max number of users allowed in a channel
+
+	<n1> is either 0 or 1.  seems to be 1 if the channel was user
+	created, or 0 if a predefined channel???
+
+829 (0x33d)	kick user from channel [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel> <user> [ "<reason>" ]
+
+830 (0x33e)	list users in channel [CLIENT, SERVER]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	<channel>
+
+	client requests a list of all users in <channel>.  server responds
+	with a 825 response for each user, followed by an 830 response with
+	no data [why didn't they just use the 409 message? -ed]
+
+831 (0x33f)	global user list [CLIENT, SERVER]
+
+	[NAPSTER?,OPENNAP,SLAVANAP]
+
+	no data.
+
+	Napster returns "premission denied."
+	OpenNap and SlavaNap return sequence of 832 command. List of users
+	is terminated with empty 831 command.
+
+832 (0x340)	global user list entry [SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	<nick> <ip>
+
+	Response to message 831.
+
+833-869	missing.
+
+870	add files by directory [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: "<directory>" "<file>" <md5> <size> <bitrate> <freq> <duration>
+	[ ... ]
+
+	This command allows a client to share multiple files in the same
+	directory as a shortcut to multiple 100 (share file) commands.
+	<directory> is the path which should be prepended to all the given
+	filenames in the rest of the command.  <file> is the name of the file
+	to share *without* its directory component.  When other clients do a
+	browse/share, the real path will be reported as <directory>/<file>.
+
+	The portion of this command after the <directory> may be repeated as
+	many times as necessary for files in the same directory. NOTE: most
+	servers will not accept commands of length longer than 2048 bytes
+	so you still may need to break up the files into multiple commands
+	if there are many files in a single directory.
+
+871-899	missing.
+
+900     connection test [SERVER]
+
+	[NAPSTER]
+
+        <ip> <port> <data>
+
+        <ip>   - string,  ip address to connect to.
+        <port> - integer, port to connect to
+        <data> - string,  data to send to server.
+
+        Try to connect to <ip> on <port> for atmost 1000 seconds.  If the
+        connection succeeds send the <data> to target.
+
+	[reported by Thomas van der Heijden <thom@bart.nl>]
+
+901     listen test [SERVER]
+
+	[NAPSTER]
+
+        <port> <timeout> <data>
+
+        <port>    - integer, port to listen on
+        <timeout> - integer, time to wait for connection in seconds
+        <data>    - string,  data to send after connection has been made.
+
+        Listen on <port> for <timeout> seconds. If a connection arrives,
+        return <data> to sender.
+
+	[reported by Thomas van der Heijden <thom@bart.nl>]
+
+920	socket test [CLIENT]
+
+	[NAPSTER,OPENNAP,SLAVANAP]
+
+	Format: <some_digit>
+
+	This is sent by the Beta8+ client prior to login.
+	
+	SlavaNap server uses this command to detect byte order for big-endian
+	clients (SlavaNap supports clients with big-endian and little-endian).
+
+	OpenNap just ignores this command.
+
+931	blocked file [SERVER]
+
+	[NAPSTER,SLAVANAP]
+
+	Format: <md5>
+
+	This message is used by server to inform client
+	that file is blocked.
+	Used as reply to commands 100, 870, 10300
+
+932	new share [CLIENT]
+
+	[NAPSTER]
+
+	Format: <binary data>
+
+	This message is used by Napster 10.2+ to share
+	files that have ID3v2 tags. Format of binary data:
+	(C language, int = 4 bytes)
+
+	struct{
+		int    real_size; // file size without ID3 tags
+		char   unknown1[4];
+		char   unknown2[4];
+		char   unknown3[4];
+		char   unknown4[4];
+		int    bitrate;
+		int    frequency;
+		char   unknown5[4];
+		char   unknown6[4];
+		char   MD5[32]; // 36-67
+		char   unknown7[4];
+	};
+
+	If you want napster to share files using 720 instead of 932
+	change "1" to "0" at the end of each line in "shared.dat" file.
+
+995	blocked file [SERVER]
+
+	[NAPSTER]
+
+	Format: <binary data>
+
+	This message is used by Napster 10.2+ server to inform
+	client that file is blocked. This message is sent in reply
+	to command 932.
+	Length of data in reply may vary.
+
+3.1  OpenNap and SlavaNap Message Types
+
+The following messages are supported by both OpenNap and SlavaNap servers.
+For complete list of OpenNap and SlavaNap commands see "README" file
+for OpenNap or SlavaNap.
+
+
+10112	show server links [CLIENT, SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	client: no data
+	server: <host> <host> <hops>
+
+	This command is used to show information about the links a
+	server has to other servers.  The list is terminated by a 10112
+	message with no data (0 length).
+
+	Current version of SlavaNap do not support this command completely
+	and replies with empty 10112 message. This command is implemented
+	by SlavaNap only because AudioGnome uses it.
+
+10115	show server stats [CLIENT, SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	client: no data
+	server: <clients> <servers> <files> <gigs> <channels> <time>
+	<uptime> <memory> <numusers>
+
+	This command is used by administrators to get information about the
+	state of the server.
+
+	<clients>	number of locally connected clients
+	<servers>	number of locally connected servers
+	<users>		total number of global users
+	<files>		number of files in the db
+	<gigs>		total size of all files shared
+	<channels>	number of active channels
+	<time>		time at which the server was started
+	<uptime>	number of seconds of uptime
+	<memory>	if debugging is enabled, this will show the memory
+			currently in use, otherwise it will be -1
+	<numusers>	number of registered users		
+
+10118	display client information statistics [CLIENT, SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	Available only if OpenNap was compiled with --enable-version-stats or
+	"Enable version stats" was enabled in SlavaNap settings menu.
+
+	The server will dump its lists of known clients and the number
+	of logins for each.  It does not keep track of unique ips, so this
+	just gives a rough estimate on the popularity of various clients.
+
+	(client): empty
+	(server): "<version>" <count>
+
+	The server's list is terminated by an empty 10118 message.
+
+10121	who was [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <nick>
+
+	Displays info about a user that has recently logged out.
+
+10200 	Register user [CLIENT]
+
+	[OPENNAP, SLAVANAP]
+
+	Format: <user> <pass> <email> [ <level> ]
+
+	admin command to force registration of a nickname.
+	Note: for SlavaNap <level> is required and shouldn't be "user"
+
+10204	set channel op [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> <user> [user ...]
+
+	enable <user> to kick/ban users on <channel>
+
+10205	remove channel op [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> <user> [user ...]
+
+	remove <user> as operator on <channel>
+
+10207	drop channel [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> [ "<reason>" ]
+
+	marks the specified channel as being user created such that its
+	state is not stored in the persistent channels file and will
+	disappear once all users part from it.
+
+10208	send message to channel ops [CLIENT, SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	client: <channel> <message>
+	server: <channel> <code> <text>
+
+	client: sends <message> to all operators and mods+ on <channel>
+	server: sends message with code <code> and <text> to all operators
+		(can be used only by another server) (n/a yet)
+
+10209	change channel mode [CLIENT, SERVER]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> [mode [mode ...]]
+
+	if specified, [mode] is of the form
+
+		(+|-)STRING
+
+	where STRING is one of
+
+		PRIVATE		- makes the channel not show up in the list
+		MODERATED	- only ops and mods+ can speak in public
+		TOPIC		- if set, any user may change the topic
+
+		OpenNap only:
+		INVITE		- channel is invite only
+
+		SlavaNap only:
+		REGISTERED	- if set, channel will not be destroyed after
+				  all users will part from it.
+
+	if [mode] is not specified servers returns current mode.
+
+10210	invite user to a channel [CLIENT] (depreciated. use 430 instead)
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> <user>
+
+	This message is OpenNap version of 430 message.
+
+10211	give voice to speak in moderated channel [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> [user [user ...]]
+
+10212	remove voice to speak in moderated channel [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: <channel> [user [user ...]]
+
+10300	share generic media file [CLIENT]
+
+	[OPENNAP,SLAVANAP]
+
+	Format: "<filename>" <size> <md5> <major-content-type>
+
+	<content-type> is the major MIME type defined for what the data is.
+			should be one of:
+				audio, video, text, image, application, mp3
+			NOTE: mp3 is a separate type here since the original
+			nap protocol was designed for sharing only mp3 files.
+			"audio" refers to other types of audio files
+
+	MD5 is counted the same way as for command 100.
+
+	Examples:
+
+	"C:\IMAGES\Grand Canyon.jpg" 54187 bc938fdc0ef63772bfbdbf57aabb0860-54187 image
+	"\home\drscholl\src\opennap-0.11.tar.gz" 102161 51c07734811a26853b1a2a87b67c68a1-102161 application
+
+
+3.  MD5
+
+All MP3 files are hashed using the first 300,032 bytes of the file.
+WMA files are not hashed and Napster sends "WMA-FILE" instead of MD5 for .wma
+
+The current method seems to be: skip id3v2, seek to frame sync and hash.
+
+Note: the linux nap client (versions 0.7 - 0.9) hash exactly 300,000
+bytes, which is NOT what the official windows client does.
+
+Correct format for MD5 is something like "58dc354f81bf37b050799ead7ca8d3bc-5333975"
+where "58dc354f81bf37b050799ead7ca8d3bc" is MD5 hash and "5333975" is file
+length - length of ID3 tags (v1 and v2).
+
+Some clients ignore MD5 or send incorrect values. For example, WinMX sends MD5
+without file size and FileNavigator sends "AAAAAA" (32 "A" characters) instead
+of MD5. OpenNap and SlavaNap ignore md5 and do not support it by default
+unless recompiled using special options.
+
+
+5.  Client-Client Protocol
+
+File transfer occur directly between clients without passing through the
+server.  There are four transfer modes, upload, download, firewalled upload,
+firewalled download.  The normal method of transfer is that the client
+wishing to download a file makes a TCP connection to the client holding the
+file on their data port.  However, in the case where the client sharing the
+file is behind a firewall, it is necessary for them to "push" the data by
+making a TCP connection to the downloader's data port.
+
+
+5.1  Normal Downloading
+
+Regardless of which mode, the downloading client will first issue either a 
+search(200) or browse(211) command to the server.  This returns a list of
+files and information on the client sharin the file.  To request a download,
+a get(203) request is sent to the server.  The server will respond with
+a get ack(204) containing more detailed information.
+
+This is the point at which the different methods diverge.  If the 204 get
+ack says that the remote clients data port is 0, you must send a 500 request
+to the server requesting that the remote client send the data to you.  In
+this case you wait for the remote client to connect to your own data port.
+
+In the case where the sharing client is not firewalled, you make a TCP
+connection to the data port specified in the 204 message from the server.
+The remote client should accept the connection and immediately send one
+ASCII char, `1' (ASCII 49).  Once you read this char, you send a request
+for the file you wish to download.  First send the string "GET" in a single
+packet, then send
+	<mynick> "<filename>" <offset>
+where <mynick> is your napster user name, <filename> is the file you wish to
+download, and <offset> if the byte offst in the file to begin the transfer
+at (if you are downloading for the first time, and not resuming a prior
+transfer, you should uses 0 to start at the beginning of the file).
+
+The remote client will then return the file size, or an error message such
+as "INVALID REQUEST" or "FILE NOT SHARED".  Note that the file size is not
+terminated in any special way, and the best way to figure out the size is to
+keep reading until you hit a character that is not a digit (it will usually
+be 0xff which is the start of the MP3 frame sync header, but if a ID3v2
+tag is present it might look different).  Immediately following the file
+size is where the data stream for the file begins.
+
+Once the data transfer is initiated, the downloader should notify the server
+that they are downloading a file by sending the 218 message.  Once the
+transfer is complete, you send a 219 message to indicate you have finished
+the download.  Note that this is cummalitive, so that if you are downloading
+multiple files, you send one 218/219 pair for EACH concurrent download--this
+is how the server knows how many transfers you have going on.  Likewise,
+the uploader should send one 220 messge for each upload, and one 221 when
+each upload has finished.
+
+
+5.2  Firwalled Downloading
+
+As described above, when the file needs to be pushed from a client behind a
+firewall, the downloader sends a 500 message to the server.  This causes a
+501 message to be sent to the uploader, which is similar to the 204 message
+for a normal download.
+
+Once the uploader receives the 501 message from the server, they should make
+a TCP connection to the downloader's data port (given in the 501 message).
+Upon connection, the downloader's client will sent one byte, the ASCII
+character `1'.  The uploader should then send the string "SEND" in a single
+packet, and then the information:
+	<mynick> "<filename>" <size>
+where <mynick> is the uploader's napster user name, <filename> is the file
+being sent, and <size> is the size of the file in bytes.
+
+Upon receipt, the downloading client will either send the byte offset at
+whcih the transfer should start, or an error message such as
+"INVALID REQUEST".  The byte offset should be sent as a single packet
+in plain ASCII digits.  Just as with above in section 5.1, a 0 byte offset
+indicates the transfer should begin at the start of the file. If you are
+writing a nap client and have trouble with firewalled downloading first
+check if you are sending offset in ASCII (this is the most common error)
+
+Each client should notify the server that they are uploading or downloading
+with the 218/219 (downloading) or 220/221 (uploading) command pairs (see
+section 5.1 for more detailed information).
+
+
+5.3 Client to Client Browsing
+
+Napster 2.0 Beta 8 adds a feature which allows direct client-to-client
+browsing of file lists. Direct browsing is supported by Napster Beta 8-9.6
+From Napster 2.0 Beta 10 direct browsing is disabled. To request a browse,
+a client uses the
+	640 <nick>
+command.  The server then sends a
+	640 <requester>
+to the client which is getting browsed with the nick of the client that is
+requesting the browse.  If the client accepts the browse request, it sends
+back a
+	641 <requestor>
+to the server with the nick of the client requesting the browse.  The
+server then sends a
+	641 <nick> <ip> <port>
+to the requesting client.  In the case of an error, the server will send a 642
+command in response to the 640 command.
+
+The browsing client then makes a TCP conection to the remote client's data
+port.  After getting the "1" character, the browsing client sends a
+	GETLIST
+At which point the remote client sends its nick followed by a linefeed (\n)
+by itself in a single packet (ie, one write() call)
+	<nick> LF
+followed by the list of files being shared (the format being the same as
+the data of the "share" command).  Each line is terminated by a linefeed char.
+At the end of the list, an additional linefeed char is sent and then the
+client closes the connection.
+
+In the case that the remote client is firewalled, the browse list will have to
+be pushed to the requesting client.  The remote client makes a TCP connection
+to the requesting client, then sends
+	SENDLIST <nick>\n
+followed by the list of files, as with the "GETLIST" command response.
+
+
+6.  Napigator protocol specification
+
+Napigator server runs on "stat.napigator.com" port 8890.
+
+In this section when I use word "client" it means OpenNap or SlavaNap
+server and when I use word "server" it means Napigator server.
+
+Message format for server: 
+
+    <id> [<text>] \r\n
+
+    <id> is message code in ASCII
+    <text> is message text. There is a space (" ") chacter between <id> and <text>.
+    Every line is terminated with \r\n (0x0D,0x0A) sequence. Strings should NOT be
+    quoted.
+
+Message format for client:
+
+   <command> [<text>] \r\n
+
+   <command> is text command (like USER or PASS)
+   Every line is terminated with \r\n (0x0D,0x0A) sequence. String should NOT be
+   quoted.
+
+When client connects to server, server should send command 220. Client replies
+with "USER". Then server sends command 300. Client replies with "PASS". If name
+and password are correct server replies with 201.
+
+Connection should be kept alive. Every 60 seconds (or any other period) client
+sends "STATS" message.
+
+Server messages:
+
+	200	stats updated.
+
+		No reply required.
+
+	201	login ok.
+
+		Format: 201 <message>
+
+		Login sequence is complete.
+		Client should reply with "IPPORT".
+
+	220	request user name.
+		
+		Format: 220 <salt_string>
+
+		Salt string used by client to encode password.
+		Client should reply with "USER" message.
+
+	221	login error.
+
+		Format: 221 <error>
+
+		Client should disconnect after receiving this message.
+
+	300	password request.
+
+		Client should reply with "PASS" command.
+
+	other messages: something is wrong and client should disconnect.
+
+Client messages:
+
+	USER	send user name
+
+		Format: USER <user_name>
+
+	PASS	send user pass
+
+		Format: PASS <encoded_password>
+
+		password is encoded with MD5. Before encoding password you should
+		add salt string (that you have received with 220 message) to password.
+
+		Example:
+
+		If your password is "qwerty" and you have received "1234" as salt string,
+		encoded password will be MD5("qwerty1234");.
+
+		Note: MD5 letters should be in upper case.
+
+	IPPORT	send server address.
+
+		Format: <hostname> <ip> <port>
+
+		Note: this command should be sent only when login sequence is completed.
+		
+	STATS	update server stats.
+
+		Format: <hostname> <users> <files> 0 <size> 0
+
+		<hostname> is name of your server (ex. cyberalien.servemp3.com)
+		<users> is number of connected users (ASCII)
+		<files> is number of shared files (ASCII)
+		<size> is size of files in Gb (ASCII)
+
+		Note: this command cannot be used before login sequence is completed.
+
+If you have created Napigator-compatible server mail me at mailto:cyberalien@users.sourceforge.net
+and I'll add support for your server to SlavaNap.
+To add you server support to OpenNap mail Dr.Scholl at mailto:drscholl@users.sourceforge.net
+
+
+7.  Where to get more help?
+
+Join the napdev mailing list by sending email to mailto:napdev-subscribe@onelist.com
+or by visiting the community page http://www.onelist.com/community/napdev/.
+This list is designed for open source nap developers to share information
+about the specification or applications.
+
+Latest version of this document is available at http://slavanap2.sourceforge.net/nap.txt
+Original document is available at http://opennap.sourceforge.net/napster.txt
+
+Some implementations of this protocol (servers and clients) come with
+source code. Visit http://slavanap2.sourceforge.net or http://opennap.sourceforge.net
+for more information.
+
+
+8.  Servers compatible with this protocol:
+
+	For Linux:  OpenNap      http://opennap.sourceforge.net
+	For Win32:  SlavaNap	 http://slavanap2.sourceforge.net
+	Java:	    JNerve	 http://jnerve.sourceforge.net (outdated)
+
+9.  Acknowledgements
+
+A big THANKS goes to the following people who contributed valuable information
+to this specification:
+
+Ben Byer <bbyer@rice.edu>
+JT <jtraub@dragoncat.net>
+Evan Martin <eeyem@u.washington.edu>
+Colten Edwards (aka panasync@efnet) <edwards@bitchx.dimension6.com>
+Thomas van der Heijden <thom@bart.nl>
