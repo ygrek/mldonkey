@@ -471,3 +471,8 @@ let string_of_uid uid =
 
 exception IgnoreNetwork
   
+let string_of_tag tag =
+  match tag with
+    Uint64 i| Fint64 i -> Int64.to_string i
+  | Addr x -> Ip.to_string x
+  | String s -> s

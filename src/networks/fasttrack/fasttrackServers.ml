@@ -41,7 +41,8 @@ open FasttrackOptions
 open FasttrackProtocol
 open FasttrackComplexOptions
 open FasttrackProto
-  
+
+
 let server_parse_after s gconn sock = 
   try
     let b = buf sock in
@@ -274,32 +275,6 @@ let get_file_from_source c file =
     
 let exit = Exit
   
-let recover_file file = 
-  
-  (*
-  List.iter (fun fuid ->
-      try
-        List.iter (fun s ->
-            match s.search_search with
-              FileUidSearch (ss,uid) when uid = fuid -> raise exit
-            | _ -> ()
-        ) file.file_searches;
-        
-        let s = {
-          search_search = FileUidSearch (file, fuid);
-          search_hosts = Intset.empty;
-          search_uid = Md4.random ();          
-          }  in
-        
-        Hashtbl.add searches_by_uid s.search_uid s;
-        file.file_searches <- s :: file.file_searches
-      with _ -> ()
-  ) file.file_uids;
-*)
-  
-  Fasttrack.recover_file file;
-  ()
-  
 let disconnect_server s =
   match s.server_sock with
   | Connection sock -> close sock "user disconnect"
@@ -321,12 +296,12 @@ let download_file (r : result) =
       add_download file c index;
       get_file_from_source c file;
   ) r.result_sources;
-  recover_file file;
+  Fasttrack.recover_file file;
   ()
 
 let recover_files () =
   List.iter (fun file ->
-      recover_file file 
+      Fasttrack.recover_file file 
   ) !current_files;
   ()
     
@@ -336,6 +311,12 @@ let ask_for_files () =
           get_file_from_source c file
       ) file.file_clients
   ) !current_files;
+  List.iter (fun s ->
+      try
+        let ss = Fifo.take s.server_searches in
+        server_send_query s ss
+      with _ -> ()
+  ) !connected_servers;
   ()
 
   (*
@@ -397,9 +378,10 @@ let manage_hosts () =
     manage_host h;
     iter ()
   in
-  try iter () with _ -> 
-(*      lprintf "done (set %d len)\n" (Queue.length workflow);  *)
-      ()
+  (try iter () with _ -> ());
+  (try while true do FasttrackClients.connect_client
+        (Fifo.take reconnect_clients) done
+      with _ -> ())
 
         
 module Pandora = struct

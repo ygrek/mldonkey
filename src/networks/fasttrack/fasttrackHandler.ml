@@ -61,7 +61,8 @@ let server_msg_handler sock s msg_type m =
       set_rtimeout sock half_day;
       set_server_state s (Connected (-1));
       s.server_connected <- int32_time ();    
-      connected_servers := s :: !connected_servers;
+      if not (List.memq s !connected_servers) then
+        connected_servers := s :: !connected_servers;
       
       let n = String.length m / 8 in
       for i = 0 to n - 1 do
@@ -75,6 +76,11 @@ let server_msg_handler sock s msg_type m =
       done;
       if s.server_host.host_kind = IndexServer then
         close sock "disconnect from IndexServer after SessMsgNodeList"
+      else begin
+          List.iter (fun file ->
+              Fifo.put s.server_searches file.file_search
+          ) !current_files;
+        end
 
   | 0x06 -> (* SessMsgQuery *)
       lprintf "SessMsgQuery\n";
@@ -143,13 +149,14 @@ let server_msg_handler sock s msg_type m =
                     string_of_int tag
               in
               iter_tags name (pos + tag_len) (n-1) 
-              ((tag, tagdata) :: tags)
+              ((string_tag tag tagdata) :: tags)
             else
               name, tags, pos
           in
           let result_name, tags, pos = iter_tags "Unknown" pos ntags [] in
-          List.iter (fun (tag, tagdata) ->
-              lprintf "      Tag: %s --> %s\n" tag (String.escaped tagdata);
+          List.iter (fun tag ->
+              lprintf "      Tag: %s --> %s\n" tag.tag_name (string_of_tag
+                tag.tag_value);
           ) tags;
           let user = new_user (Known_location (user_ip, user_port)) in
           (*
@@ -162,11 +169,13 @@ let server_msg_handler sock s msg_type m =
             match s.search_search with
               UserSearch (sss, _,_,_) ->
                 
-                let r = new_result result_name result_size [] result_hash in
+                let r = new_result result_name result_size tags result_hash in
                 add_source r user (FileByUrl url);
                 CommonInteractive.search_add_result false sss r.result_result
 
-                
+            | FileSearch file ->
+                let c = new_client user.user_kind in
+                add_download file c (FileByUrl url)
             | _ -> ()
           end;
           iter pos (n-1)

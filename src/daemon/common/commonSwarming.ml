@@ -50,7 +50,8 @@ module type Swarmer = sig
     type block
     type range
     type partition
-    
+    type multirange
+      
     val create : unit -> t
     val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
     val set_size : t -> pos -> unit
@@ -72,7 +73,12 @@ module type Swarmer = sig
     val get_block: block list -> block
     val find_range: block -> (pos * pos) list -> range list -> pos -> range
     val find_range_bitmap: block -> range list -> pos -> range
-    
+
+    val find_multirange : block -> (pos * pos) list -> multirange list ->
+      pos -> multirange
+    val alloc_multirange : multirange -> unit
+    val free_multirange : multirange -> unit
+      
     val alloc_range : range -> unit
     val free_range : range -> unit
     val received : t -> pos -> string -> int -> int -> unit
@@ -81,6 +87,7 @@ module type Swarmer = sig
     val print_t : string -> t -> unit
     val print_block : block -> unit
     val range_range: range ->  pos * pos
+    val multirange_range : multirange -> pos * pos
     val block_block: block -> int * pos * pos 
     val availability : partition -> string
      
@@ -148,6 +155,12 @@ module Make(Integer: Integer) = struct
         mutable block_num : int;
         mutable block_nuploaders : int;
       }
+      
+    and multirange = {
+        multirange_begin : range;
+        multirange_end : range;
+      }
+      
     exception VerifierNotImplemented
           
     let basic_write _ _ _ _ = ()
@@ -656,7 +669,8 @@ partitions. *)
                 iter_offset bs 1 (p.part_nblocks/2)
               with Not_found -> 
                   iter_offset bs 100000 (p.part_nblocks/2)
-    
+
+                  
     let find_range b chunks ranges max_range_size =
       
       let rec iter_before chunks r max_downloaders =
@@ -723,7 +737,7 @@ partitions. *)
           with Not_found ->
               compute_bitmap p;
               raise Not_found
-    
+
     let find_range_bitmap b ranges max_range_size =
       
       let rec iter_before r max_downloaders =
@@ -767,7 +781,9 @@ partitions. *)
           with Not_found ->
               compute_bitmap p;
               raise Not_found
-    
+
+    let find_multirange b ranges ms max_range_size = raise Not_found
+
     let alloc_range r =
       r.range_ndownloaders <- r.range_ndownloaders + 1  
     
@@ -776,6 +792,8 @@ partitions. *)
     
     let range_range r = (r.range_current_begin, r.range_end)
 
+    let multirange_range m =
+      (m.multirange_begin.range_current_begin, m.multirange_end.range_end)
 
 (* Before doing a receive, a client should do a free_range on all
 his ranges, so that these ranges can be split if the download didn't 
@@ -921,7 +939,22 @@ start at the beginning of the range. *)
     let downloaded t = t.t_downloaded
     let block_block b = b.block_num, b.block_begin, b.block_end
     let partition_size p = p.part_nblocks
-    
+
+    let rec iter_ranges_to f r r_end =
+      if r == r_end then f r else
+      match r.range_next with
+        None -> f r (* should not append !! *)
+      | Some rr ->
+          f r;
+          iter_ranges_to f rr r_end
+      
+    let free_multirange m = 
+      iter_ranges_to free_range m.multirange_begin m.multirange_end
+      
+    let alloc_multirange m = 
+      iter_ranges_to alloc_range m.multirange_begin m.multirange_end
+
+      
     let availability p =
       let rec iter_blocks b s =
         s.[b.block_num] <- char_of_int (

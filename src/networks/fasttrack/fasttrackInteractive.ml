@@ -197,7 +197,7 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      FasttrackServers.recover_file file;
+      Fasttrack.recover_file file;
       List.iter (fun c ->
           FasttrackServers.get_file_from_source c file
       ) file.file_clients

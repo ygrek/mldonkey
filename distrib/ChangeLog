@@ -1,6 +1,16 @@
 ChangeLog	
 =========
 
+2003/05/19: Simon (release-2-4-3)
+  - Applied patch #1503
+  - Fasttrack: working good now :)
+     * Use HTTP/1.0 (really necessary ? probably not)
+     * Recover sources for files
+     * Reconnect to good sources immediatly
+     * Ask longer ranges
+  - Gnutella2:
+     * Added number of leaves per ultrapeer
+
 2003/05/18: Simon (release-2-4-2)
   - Applied patches #1476, #1477, #1479 and #1481
   - FastTrack:

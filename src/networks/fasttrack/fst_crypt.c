@@ -591,7 +591,7 @@ value ml_cipher_packet_get(value s_v, value pos_v,
   enc_type = htonl (((unsigned int*)(s+pos+4))[0]);
   enc_type = fst_cipher_decode_enc_type (seed, enc_type);
 
-  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type); 
+/*  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type);  */
 
   if(enc_type > 0x29)    failwith ("ERROR: unsupported encryption");
 

@@ -806,8 +806,8 @@ the name between []"
                 Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\"\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num
               else "")
             s.search_num 
-              (if o.conn_output = HTML then "\\</a\\>" else "")
             s.search_string
+              (if o.conn_output = HTML then "\\</a\\>" else "")
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
         ) user.ui_user_searches; ""), ":\t\t\t\t\tview all queries";

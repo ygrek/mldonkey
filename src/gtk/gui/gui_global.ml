@@ -75,6 +75,8 @@ let network_name num = try
     | "OpenFT" -> "oFT"
     | "Open Napster" -> "NAP"
     | "LimeWire" -> "GTL"
+    | "Gnutella" -> "GTL"
+    | "Fasttrack" -> "FT"
     | "Soulseek" -> "SLSK"
     | n -> n
   with _ -> "?"

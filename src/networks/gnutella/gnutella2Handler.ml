@@ -96,6 +96,7 @@ let g2_packet_handler s sock gconn p =
       List.iter (fun p ->
           match p.g2_payload with
             LNI_V v -> s.server_vendor <- v
+          | LNI_HS (leaves,_) -> s.server_nusers <- leaves
           | _ -> ()
       ) p.g2_children;
       server_send sock s 

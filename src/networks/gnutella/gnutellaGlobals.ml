@@ -226,7 +226,7 @@ let new_server ip port =
           server_agent = "<unknown>";
           server_nfiles = 0;
           server_nkb = 0;
-          
+          server_nusers = 0;
           server_need_qrt = true;
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;

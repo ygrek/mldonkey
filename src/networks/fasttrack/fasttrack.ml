@@ -44,31 +44,17 @@ open FasttrackComplexOptions
 
 open FasttrackProto
   
-(* For Guess hosts ... to be done *)      
-let extend_query f = 
-  let send h =
-    try
-      match h.host_server with
-        None -> ()
-      | Some s ->
-          match s.server_query_key with 
-            | UdpQueryKey _ ->
-                f s
-            | _ -> ()
-    with _ -> ()
-  in
-  Queue.iter send active_udp_queue
-  
 let send_query ss =
   let f s =
     server_send_query s ss in
-  List.iter f !connected_servers;
-  extend_query f
+  List.iter f !connected_servers
 
 let recover_file file =
-  let f s = server_send_query s file.file_search in
-  List.iter f !connected_servers;
-  extend_query f
+  List.iter (fun s ->
+      let ss = file.file_search in
+      if not (Fifo.mem s.server_searches ss) then
+        Fifo.put s.server_searches ss        
+  ) !connected_servers
          
 let send_pings () =
   (*

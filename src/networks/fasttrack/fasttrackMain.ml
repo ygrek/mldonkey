@@ -76,7 +76,7 @@ let enable () =
   );
 
   FasttrackServers.recover_files ();
-  add_session_timer enabler 3600.0 (fun timer ->
+  add_session_timer enabler 600.0 (fun timer ->
       FasttrackServers.recover_files ();
   );
 

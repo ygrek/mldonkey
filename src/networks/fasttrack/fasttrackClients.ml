@@ -61,9 +61,6 @@ open FasttrackComplexOptions
 
 open FasttrackProtocol
 
-let http_ok = "HTTP 200 OK"
-let http11_ok = "HTTP/1.1 200 OK"
-
 let download_finished file = 
   file_completed (as_file file.file_file);
   FasttrackGlobals.remove_file file;
@@ -76,29 +73,30 @@ let disconnect_client c =
   match c.client_sock with
   | Connection sock -> 
       (try
-        if !verbose_msg_clients then begin
-            lprintf "Disconnected from source\n"; 
-          end;
-        c.client_requests <- [];
-        connection_failed c.client_connection_control;
-        set_client_disconnected c;
-        close sock "closed";
-        c.client_sock <- NoConnection
+          if !verbose_msg_clients then begin
+              lprintf "Disconnected from source\n"; 
+            end;
+          c.client_requests <- [];
+          connection_failed c.client_connection_control;
+          set_client_disconnected c;
+          close sock "closed";
+          c.client_sock <- NoConnection;
+          if c.client_reconnect then
+            Fifo.put reconnect_clients c
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
             (Printexc2.to_string e))
   | _ -> ()
-      
-let (++) = Int64.add
-let (--) = Int64.sub
-  
-(*
-let client_to_client s p sock =
-  match p.pkt_payload with
-  | _ -> ()
-*)      
 
-                
+let max_range_size = Int64.of_int (1 * 1024 * 1024)
+let min_range_size = Int64.of_int (256 * 1024)
+  
+let range_size file =
+  let range =  file_size file // (Int64.of_int 10) in
+  max (min range max_range_size) min_range_size
+
+let max_queued_ranges = 1
+  
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
@@ -147,70 +145,6 @@ let rec client_parse_header c gconn sock header =
 (*                  lprintf "CUT HEADERS...\n"; *)
     let headers = Http_client.cut_headers headers in
 (*                  lprintf "START POS...\n"; *)
-
-    (*
-    begin
-      try
-        
-        let (locations,_) = 
-          List.assoc "x-gnutella-alternate-location" headers in
-        let locations = String2.split locations ',' in
-        
-        lprintf "Alternate locations\n";
-        let urls = List.map (fun s ->
-              match String2.split_simplify s ' ' with
-                [] -> lprintf "Cannot parse : %s\n" s; ""
-              | url :: _ ->
-                  lprintf "  Location: %s\n" url; url
-          ) locations in
-        lprintf "\n";
-        
-        let files = ref [] in
-        (try
-            let (urn,_) = List.assoc "x-gnutella-content-urn" headers in
-
-(* Contribute: maybe we can find the bitprint associated with a SHA1 here,
-  and use it for corruption detection... *)
-            
-            
-            
-            let uids = extract_uids urn in
-            List.iter (fun uid ->
-                try
-                  files := (Hashtbl.find files_by_uid uid) :: !files
-                
-                with _ -> ()
-            ) uids
-          with Not_found ->
-              match c.client_requests with 
-                d :: _ -> files := d.download_file :: !files
-              | _ -> ()
-        );
-        
-        List.iter (fun file ->
-            List.iter (fun url ->
-                try
-                  let url = Url.of_string url in
-                  let ip = Ip.of_string url.Url.server in
-                  let port = url.Url.port in
-                  let uri = url.Url.full_file in
-                  
-                  let c = new_client (Known_location (ip,port)) in
-                  add_download file c (FileByUrl uri)
-                
-                with _ -> ()
-            ) urls
-        ) !files
-      
-      with _ -> ()
-    
-    end;
-*)
-(*                
-Shareaza adds:
-X-TigerTree-Path: /gnutella/tigertree/v2?urn:tree:tiger/:YRASTJJK6JPRHREV3JGIFLSHSQAYDODVTSJ4A3I
-X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKXJ6VD3ZE633C7AA
-*)
     
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
@@ -295,8 +229,8 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
     set_client_state c (Connected_downloading);
     let counter_pos = ref start_pos in
 (* Send the next request !!! *)
-    for i = 0 to 6 do
-      if List.length d.download_ranges < 6 then
+    for i = 1 to max_queued_ranges do
+      if List.length d.download_ranges <= max_queued_ranges then
         (try get_from_client sock c with _ -> ());
     done;
     gconn.gconn_handler <- Reader (fun gconn sock ->
@@ -318,6 +252,7 @@ end_pos !counter_pos b.len to_read;
         
         Int64Swarmer.received file.file_swarmer
           !counter_pos b.buf b.pos to_read_int;
+        c.client_reconnect <- true;
         List.iter (fun (_,_,r) ->
             Int64Swarmer.alloc_range r) d.download_ranges;
         let new_downloaded = 
@@ -414,7 +349,7 @@ and get_from_client sock (c: client) =
                   let r = Int64Swarmer.find_range b 
                       d.download_chunks (List.map 
                         (fun (_,_,r) -> r)d.download_ranges)
-                    (Int64.of_int (256 * 1024)) in
+                    (range_size file) in
                   let (x,y) = Int64Swarmer.range_range r in 
                   d.download_ranges <- d.download_ranges @ [x,y,r];
                   Int64Swarmer.alloc_range r;
@@ -433,7 +368,7 @@ and get_from_client sock (c: client) =
       in
       let buf = Buffer.create 100 in
       (match d.download_uri with
-          FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.1\r\n" url
+          FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
         | FileByIndex (index, name) -> 
             Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
               name);
@@ -456,7 +391,12 @@ and get_from_client sock (c: client) =
       if !verbose_msg_clients then 
         lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
         range
-      
+
+let init_client sock =
+  TcpBufferedSocket.set_read_controler sock download_control;
+  TcpBufferedSocket.set_write_controler sock upload_control;
+  ()
+  
 let connect_client c =
   match c.client_sock with
   | Connection sock -> ()
@@ -468,47 +408,46 @@ let connect_client c =
             ConnectionAborted -> c.client_sock <- NoConnection
           | Connection _ | NoConnection -> ()
           | _ ->
-          try
-          if !verbose_msg_clients then begin
-              lprintf "connect_client\n";
-            end;
-            match c.client_user.user_kind with
-              Indirect_location _ -> ()
-            | Known_location (ip, port) ->
+              try
                 if !verbose_msg_clients then begin
-                    lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                    lprintf "connect_client\n";
                   end;
-                let sock = connect "gnutella download" 
-                    (Ip.to_inet_addr ip) port
-                    (fun sock event ->
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                          disconnect_client c
-                      | BASIC_EVENT (CLOSED _) ->
-                          disconnect_client c
-                      | _ -> ()
-                  )
-                in
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
-                
-                c.client_host <- Some (ip, port);
-                set_client_state c Connecting;
-                c.client_sock <- Connection sock;
-                TcpBufferedSocket.set_closer sock (fun _ _ ->
-                    disconnect_client c
-                );
-                set_rtimeout sock 30.;
-                match c.client_downloads with
-                  [] -> 
+                match c.client_user.user_kind with
+                  Indirect_location _ -> ()
+                | Known_location (ip, port) ->
+                    if !verbose_msg_clients then begin
+                        lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                      end;
+                    c.client_reconnect <- false;
+                    let sock = connect "gnutella download" 
+                        (Ip.to_inet_addr ip) port
+                        (fun sock event ->
+                          match event with
+                            BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                              disconnect_client c
+                          | BASIC_EVENT (CLOSED _) ->
+                              disconnect_client c
+                          | _ -> ()
+                      )
+                    in
+                    init_client sock;                
+                    c.client_host <- Some (ip, port);
+                    set_client_state c Connecting;
+                    c.client_sock <- Connection sock;
+                    TcpBufferedSocket.set_closer sock (fun _ _ ->
+                        disconnect_client c
+                    );
+                    set_rtimeout sock 30.;
+                    match c.client_downloads with
+                      [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
-                    
-                    if !verbose_msg_clients then begin
-                        lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
-                      end;
-                      disconnect_client c;                
-                
+                        
+                        if !verbose_msg_clients then begin
+                            lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
+                          end;
+                        disconnect_client c;                
+                        
                 | d :: _ ->
                     if !verbose_msg_clients then begin
                         lprintf "READY TO DOWNLOAD FILE\n";
@@ -524,25 +463,6 @@ an upload request *)
               disconnect_client c
       );
       c.client_sock <- ConnectionWaiting
-
-(*
-  
-1022569854.519 24.102.10.39:3600 -> 212.198.235.45:51736 of len 82
-ascii [ 
-G I V   8 1 : 9 7 4 3 2 1 3 F B 4 8 6 2 3 D 0 F F D F A B B 3 8 0 E C 6 C 0 0 / P o l i c e   V i d e o   -   E v e r y   B r e a t h   Y o u   T a k e . m p g(10)(10)]
-
-"GIV %d:%s/%s\n\n" file.file_number client.client_md4 file.file_name
-
-*)
-(*
-let find_file file_name file_size = 
-  let key = (file_name, file_size) in
-  try
-    Hashtbl.find files_by_key key  
-  with e ->
-      lprintf "NO SUCH DOWNLOAD\n";
-      raise e
-        *)
 
 
 let current_downloads = ref []

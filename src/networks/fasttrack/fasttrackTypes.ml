@@ -23,12 +23,30 @@ open Md4
 open CommonTypes
 open CommonSwarming
 
-
-type query_key =
-  NoUdpSupport
-| GuessSupport
-| UdpSupport of Md4.t
-| UdpQueryKey of int32
+(* any = 0 *)
+let name_of_tag = 
+  [
+    "year", 1;
+    "filename", 2;
+    "hash", 3;
+    "title", 4;
+    "time", 5;
+    "artist", 6;
+    "album", 8;
+    "language", 10;
+    "keywords", 12;
+    "resolution", 13;
+    "genre", 14;
+    "OS", 16;
+    "bitdepth", 17;
+    "quality", 21;
+    "version", 24;
+    "comment", 26;
+    "codec", 28; (* "divx" *)
+    "rating", 29;
+    "size", 33;
+    "type", 34; (* "movie", "video clip",... *)
+  ]
 
 type host_kind =
   Ultrapeer
@@ -74,7 +92,8 @@ and server = {
     mutable server_connected : int32;
     
     mutable server_host : host;
-    mutable server_query_key : query_key;
+    
+    mutable server_searches : local_search Fifo.t;
   }
 
 (*
@@ -98,41 +117,16 @@ typedef enum
 
 /*****************************************************************************/
   *)
-
-(* any = 0 *)
-let name_of_tag = 
-  [
-    "year", 1;
-    "filename", 2;
-    "hash", 3;
-    "title", 4;
-    "time", 5;
-    "artist", 6;
-    "album", 8;
-    "language", 10;
-    "keywords", 12;
-    "resolution", 13;
-    "genre", 14;
-    "OS", 16;
-    "bitdepth", 17;
-    "quality", 21;
-    "version", 24;
-    "comment", 26;
-    "codec", 28; (* "divx" *)
-    "rating", 29;
-    "size", 33;
-    "type", 34; (* "movie", "video clip",... *)
-  ]
-  
-type search_type =
-  UserSearch of search * string * string * string
-| FileSearch of file
-| UserBrowse
   
 and local_search = {
     search_search : search_type;
     search_id : int;
   }
+  
+and search_type =
+  UserSearch of search * string * string * string
+| FileSearch of file
+| UserBrowse
 
 and user = {
     user_user : user CommonUser.user_impl;
@@ -158,6 +152,7 @@ and client = {
     mutable client_all_files : file list option;
     mutable client_requests : download list;
     mutable client_host : (Ip.t * int) option;
+    mutable client_reconnect : bool;
   }
 
 and file_uri =

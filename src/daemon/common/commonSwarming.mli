@@ -31,53 +31,49 @@ module type Integer = sig
     val to_string : t -> string
   end
   
-module type Swarmer = sig
-    type pos
-    type t
-    type block
-    type range
-    type partition
-    
-    val create : unit -> t
-    val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
-
-    val set_size : t -> pos -> unit
-    val set_present : t -> (pos * pos) list -> unit
-    val partition : t -> (pos -> pos) -> partition
-      
-    val set_verifier : partition -> (block -> bool) -> unit
-    val verified_bitmap : partition -> string
-    val set_verified_bitmap : partition -> string -> unit
-      
-    val register_uploader :     partition -> (pos * pos) list -> block list
-    val unregister_uploader : t -> (pos * pos) list -> block list -> unit
-    
-    val register_uploader_bitmap : partition -> string -> block list
-    val unregister_uploader_bitmap : partition -> string -> unit
-    
-    val get_block: block list -> block
-    val find_range: block -> (pos * pos) list -> range list -> pos -> range
-    val find_range_bitmap: block -> range list -> pos -> range
-      
-    val alloc_range : range -> unit
-    val free_range : range -> unit
-    val received : t -> pos -> string -> int -> int -> unit
-    val sort_chunks :  (pos * pos) list ->  (pos * pos) list
-
-    val print_t : string -> t -> unit
-    val print_block : block -> unit
-      
-    val range_range: range ->  pos * pos
-    val block_block: block -> int * pos * pos
-    val availability : partition -> string
-      
-    val downloaded : t -> pos
-    val present_chunks : t -> (pos * pos) list
-    val partition_size : partition -> int
-
-    val debug_print : Buffer.t -> t -> unit
-    val compute_bitmap : partition -> unit
-      
+      module type Swarmer =
+    sig
+      type pos
+      and t
+      and block
+      and range
+      and partition
+      and multirange
+      val create : unit -> t
+      val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
+      val set_size : t -> pos -> unit
+      val set_present : t -> (pos * pos) list -> unit
+      val partition : t -> (pos -> pos) -> partition
+      val set_verifier : partition -> (block -> bool) -> unit
+      val verified_bitmap : partition -> string
+      val set_verified_bitmap : partition -> string -> unit
+      val register_uploader : partition -> (pos * pos) list -> block list
+      val unregister_uploader : t -> (pos * pos) list -> block list -> unit
+      val register_uploader_bitmap : partition -> string -> block list
+      val unregister_uploader_bitmap : partition -> string -> unit
+      val get_block : block list -> block
+      val find_range :
+        block -> (pos * pos) list -> range list -> pos -> range
+      val find_range_bitmap : block -> range list -> pos -> range
+      val find_multirange :
+        block -> (pos * pos) list -> multirange list -> pos -> multirange
+      val alloc_multirange : multirange -> unit
+      val free_multirange : multirange -> unit
+      val alloc_range : range -> unit
+      val free_range : range -> unit
+      val received : t -> pos -> string -> int -> int -> unit
+      val sort_chunks : (pos * pos) list -> (pos * pos) list
+      val print_t : string -> t -> unit
+      val print_block : block -> unit
+      val range_range : range -> pos * pos
+      val multirange_range : multirange -> pos * pos
+      val block_block : block -> int * pos * pos
+      val availability : partition -> string
+      val downloaded : t -> pos
+      val present_chunks : t -> (pos * pos) list
+      val partition_size : partition -> int
+      val debug_print : Buffer.t -> t -> unit
+      val compute_bitmap : partition -> unit
   end
   
 module Make(I: Integer) : Swarmer with type pos = I.t

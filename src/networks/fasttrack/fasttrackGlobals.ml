@@ -227,7 +227,7 @@ let new_server ip port =
           server_vendor = "";
           
           server_connected = Int32.zero;
-          server_query_key = NoUdpSupport;
+          server_searches = Fifo.create ();
         } and
         server_impl = {
           dummy_server_impl with
@@ -237,7 +237,9 @@ let new_server ip port =
       server_add server_impl;
       h.host_server <- Some s;
       s
-      
+    
+let (reconnect_clients: client Fifo.t) = Fifo.create ()
+        
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -392,6 +394,7 @@ client_error = false;
           client_connection_control = new_connection_control (());
           client_downloads = [];
           client_host = None;
+          client_reconnect = false;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -418,7 +421,8 @@ let add_download file c index =
           download_block = None;
         }];
       file.file_clients <- c :: file.file_clients;
-      file_add_source (as_file file.file_file) (as_client c.client_client)
+      file_add_source (as_file file.file_file) (as_client c.client_client);
+      Fifo.put reconnect_clients c
     end
     
 let rec find_download file list = 
@@ -545,4 +549,3 @@ let parse_magnet url =
     ) url.Url.args;
     !name, !uids
   else raise Not_found
-    
