@@ -55,6 +55,25 @@ class window () =
       label_servers_status#set_text
 	(Gui_messages.connected_to_servers !G.nconnected_servers !G.nservers)
 
+    method update_downloaded_label =
+      let text = 	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+      in
+      label_downloads_status#set_text text
+
+
+    method clear =
+      tab_servers#clear;
+      tab_downloads#clear;
+      tab_friends#clear;
+      tab_queries#clear;
+      List.iter wnote_results#remove wnote_results#children;
+      List.iter wnote_rooms#remove wnote_rooms#children;
+      label_connect_status#set_text M.not_connected;
+      label_servers_status#set_text "";
+      label_upload_status#set_text "";
+      List.iter menu_display#remove menu_display#children;
+      List.iter menu_networks#remove menu_networks#children;
+
     initializer
       window#show ();
       tab_queries#set_wnote_results self#wnote_results;

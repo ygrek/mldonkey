@@ -20,7 +20,11 @@
 val add : DonkeyMftp.tagged_file -> unit
   
 val find : Store.index Indexer.query -> ServerTypes.replies
+
+val find_map : Store.index Indexer.query -> ServerTypes.Document.t Intmap.t
   
 val get : ServerTypes.replies -> int -> DonkeyMftp.tagged_file list
   
-val query_to_query : CommonTypes.query -> 'a Indexer.query
+val query_to_query : CommonTypes.query -> Store.index Indexer.query
+
+val get_def : Md4.t -> DonkeyMftp.tagged_file

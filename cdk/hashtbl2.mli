@@ -17,6 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+val to_list : ('a, 'b) Hashtbl.t -> 'b list
+  
+(* can be used with a function that can modify the hashtbl *)
+val safe_iter : ('a -> unit) -> ('b, 'a) Hashtbl.t -> unit
+
+(*
+
 (* Module [Hashtbl2]: hash tables and hash functions *)
 
 (* Hash tables are hashed association tables, with in-place modification. *)
@@ -155,3 +162,5 @@ external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
            value, and therefore collisions are less likely to happen.
            However, hashing takes longer. The parameters [m] and [n]
            govern the tradeoff between accuracy and speed. *)
+
+    *)

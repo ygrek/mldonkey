@@ -108,7 +108,7 @@ let _ =
   CommonNetwork.register_escape_char 'G' (fun _ ->
       Printf.sprintf "<td><a href=\"http://%s:%d/\" $O> Audio Gallaxy </a>" 
         (Ip.to_string (if !!CommonOptions.http_bind_addr = Ip.any then
-            !!client_ip 
+            client_ip None
           else
             !!http_bind_addr)) !!AgOptions.http_port)
   

@@ -1,5 +1,25 @@
 TODO list for client
 ====================
+For 2.00: 
+ - Fix removed friends.
+ - Which message is now used when a private message is received from a friend ?
+ - Save the file in incoming/ with a different name if already present
+ - Better re-initialize networks after a disable
+ - Restore downloads in other p2p networks
+ - Files are saved with their MD4 if it is the longest name !!!
+ - Connect SIG HUP to restart all connections (for /etc/sysconfig/ip-up)
+For 2.01:
+  - Allow enable/disable network at runtime
+  - Allow access to each network options in the GUI and telnet
+  - What about having one result per file ?
+  - Allow upload at least in Direct Connect... Maybe in gnutella too, even
+     if it is probably a waste of bandwidth. Upload should probably be
+     concentrated on eDonkey2000, where it is better used. However, if we
+     don't want to be kicked from other network, it is better to allow them
+     to download from us. Maybe we could use priorities, but how ? Each network
+     would have a score, and the better score would be given bandwidth first ?
+   - Incomplete files can be automatically deleted when too old (7 days)
+Later:
   * Plugins.
   * Correct display of availability.
   * Popup
@@ -23,7 +43,6 @@ TODO list for client
   * efficient management of buffers
   * background searches: 
    - search and automatically download files
-Before 1.17:
  + remove unused sources (cleanly remove them at least once per hour)
  + don't compute md4 for files being downloaded if timestamps show they have
     not been modified.
@@ -32,38 +51,7 @@ Before 1.17:
  + Rename with different names when a file already exists in incoming/ 
    directory.
  + Imported files should have permission 644.[ Bug #420 ]
-
  * Change Shared message
-
-For 2.00: for friday !!!
- - Fix download rate
- - Fix cancelled files
- - Fix removed friends
- - Fix multiple times the same file in friends file lists
-
- - Which message is now used when a private message is received from a friend ?
-
-For 2.01:
-  - Allow enable/disable network at runtime
-  - Allow access to each network options in the GUI and telnet
-  - Detect disconnection to client in the GUI (zogzog, do it !!, it was done
-      in 1.16 and before)
-  - What about having one result per file ?
-  - Allow upload at least in Direct Connect... Maybe in gnutella too, even
-     if it is probably a waste of bandwidth. Upload should probably be
-     concentrated on eDonkey2000, where it is better used. However, if we
-     don't want to be kicked from other network, it is better to allow them
-     to download from us. Maybe we could use priorities, but how ? Each network
-     would have a score, and the better score would be given bandwidth first ?
- 
-Server:
- - limit the number of UDP packets replied per second.
-
-
-From other P2P systems:
- 
-  LimeWire: 
-   - Incomplete files can be automatically deleted when too old (7 days)
 
 
 TODO list for server

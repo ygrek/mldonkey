@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gui_global
 open CommonTypes
 open Gui_proto
 open Gui_columns
@@ -195,16 +196,18 @@ class box columns sel_mode () =
 
     method set_tb_style = wtool#set_style
 
+    method clear = self#update_data []
+
     initializer
       box#vbox#pack ~expand: true pl#box;
       
 
   end
-
-
+    
 class box_downloaded () =
   object (self)
     inherit box !!O.downloaded_columns `SINGLE () as super
+
 
     method content f = 
       (fst (super#content f), Some (`NAME !!O.color_downloaded))
@@ -284,14 +287,16 @@ class box_downloaded () =
       try
 	ignore (self#find_file f.file_num)
       with
-	Not_found ->
+        Not_found ->
+          incr ndownloaded;
 	  data <- data @ [f];
 	  self#insert ~row: self#wlist#rows f
 
     method h_removed f =
       try
-	let (row, _) = self#find_file f.file_num in
-	self#remove_file f row
+        let (row, _) = self#find_file f.file_num in
+        decr ndownloaded;
+        self#remove_file f row
       with
 	Not_found ->
 	  ()
@@ -386,9 +391,18 @@ class box_downloads box_locs () =
     inherit box !!O.downloads_columns `EXTENDED ()
 
     method cancel () =
-      List.iter
-	(fun f -> Gui_com.send (RemoveDownload_query f.file_num))
-	self#selection
+      let s = Gui_messages.ask_cancel_download_files
+	  (List.map (fun f -> file_first_name f) self#selection)
+      in
+      match GToolbox.question_box Gui_messages.cancel 
+	  [ Gui_messages.yes ; Gui_messages.no] s 
+      with
+	1 ->
+	  List.iter
+	    (fun f -> Gui_com.send (RemoveDownload_query f.file_num))
+	    self#selection
+      |	_ ->
+	  ()
 
     method retry_connect () =
       List.iter
@@ -464,7 +478,7 @@ class box_downloads box_locs () =
         f.file_sources <- f_new.file_sources ;
       f.file_download_rate <- f_new.file_download_rate ;
       f.file_format <- f_new.file_format;
-      self#update_row f row
+      self#update_row f row;
 
     method h_file_downloaded num dled rate =
       try
@@ -481,14 +495,16 @@ class box_downloads box_locs () =
 	let (row, fi) = self#find_file f.file_num in
 	self#update_file fi f row
       with
-	Not_found ->
-	  data <- data @ [f];
-	  self#insert ~row: self#wlist#rows f;
+        Not_found ->
+          incr ndownloads;
+          data <- data @ [f];
+          self#insert ~row: self#wlist#rows f;
       
     method h_cancelled f = 
       try
-	let (row, fi) = self#find_file f.file_num in
-	self#remove_file fi row
+        let (row, fi) = self#find_file f.file_num in
+        decr ndownloads;
+        self#remove_file fi row
       with
 	Not_found ->
 	  ()
@@ -596,6 +612,11 @@ class pane_downloads () =
       locs#set_tb_style st;
       dled#set_tb_style st;
       dls#set_tb_style st
+
+    method clear =
+      locs#clear;
+      dled#clear;
+      dls#clear
 
     (** {2 Handling core messages} *)
 

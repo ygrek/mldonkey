@@ -43,10 +43,11 @@ type options = {
     mutable max_server_age : int;
     mutable password : string;
   }
-
-type search_request = {
+  
+type 'a search_request = {
     mutable search_num : int;
-    mutable search_query : query_entry;
+    mutable search_type : search_type;
+    mutable search_query : 'a; (* query_entry for the GUI *)
     mutable search_max_hits : int;
   }
 
@@ -122,11 +123,13 @@ type client_info = {
     mutable client_chat_port : int;
   }
 
-type local_info = {
-    mutable upload_counter : int; 
-    mutable shared_files : int;
+type client_stats = {
+    mutable upload_counter : int64;
+    mutable download_counter : int64;
+    mutable nshared_files : int;
+    mutable shared_counter : int64;
   }
-
+  
 exception UnsupportedGuiMessage
   
 type from_gui =
@@ -137,7 +140,7 @@ type from_gui =
 | KillServer
 | ExtendedSearch
 | Password of string
-| Search_query of bool (* local or not *) * search_request
+| Search_query of query_entry search_request
 | Download_query of string list * int 
 | Url of string
 | RemoveServer_query of int
@@ -209,7 +212,7 @@ type to_gui =
 | Room_message of int * room_message
 | Room_user of int * int
 
-| Client_stats of string
+| Client_stats of client_stats
   
 type arg_handler =  connection_options -> string
 type arg_kind = 
@@ -512,6 +515,29 @@ let buf_server_version_0 buf s =
   buf_host_state buf s.server_state;
   buf_string buf s.server_name;
   buf_string buf s.server_description
+
+let buf_addr buf addr =
+  if addr.addr_name = "" then begin
+      buf_int8 buf 0;
+      buf_ip buf addr.addr_ip;
+    end else begin
+      buf_int8 buf 1;
+      buf_string buf addr.addr_name
+    end
+    
+  
+let buf_server_version_2 buf s =
+  buf_int buf s.server_num;
+  buf_int buf s.server_network;
+  buf_addr buf s.server_addr;
+  buf_int16 buf s.server_port;
+  buf_int buf s.server_score;
+  buf_list buf buf_tag s.server_tags;
+  buf_int buf s.server_nusers;
+  buf_int buf s.server_nfiles;
+  buf_host_state buf s.server_state;
+  buf_string buf s.server_name;
+  buf_string buf s.server_description
   
 let buf_client buf c =
   buf_int buf c.client_num;
@@ -532,10 +558,24 @@ let buf_network buf n =
   buf_int64 buf n.network_uploaded;
   buf_int64 buf n.network_downloaded
   
-let buf_search buf s = 
+let buf_search_version_0 buf s = 
   buf_int buf s.search_num;
   buf_query buf s.search_query;
   buf_int buf s.search_max_hits
+
+let buf_search_type buf t =
+  buf_int8 buf (
+    match t with
+      LocalSearch -> 0
+    | RemoteSearch -> 1
+    | SubscribeSearch -> 2)
+  
+  
+let buf_search_version_2 buf s = 
+  buf_int buf s.search_num;
+  buf_query buf s.search_query;
+  buf_int buf s.search_max_hits;
+  buf_search_type buf s.search_type
 
   
 let to_gui_version_0 buf t =
@@ -631,8 +671,9 @@ let from_gui_version_0 buf t =
   | ExtendedSearch -> buf_int16 buf 4
   | Password string -> buf_int16 buf 5;
       buf_string buf string
-  | Search_query (local, search) -> buf_int16 buf 6;
-      buf_bool buf local; buf_search buf search
+  | Search_query search -> buf_int16 buf 6;
+      buf_bool buf (search.search_type = LocalSearch); 
+      buf_search_version_0 buf search
   | Download_query (list, int) -> buf_int16 buf 7;
       buf_list buf buf_string list; buf_int buf int
   | Url string -> buf_int16 buf 8;
@@ -713,13 +754,38 @@ let to_gui_version_1 buf t =
   match t with
     Client_stats s ->
       buf_int16 buf 25;
-      buf_string buf s
+      buf_int64 buf s.upload_counter;
+      buf_int64 buf s.download_counter;      
+      buf_int64 buf s.shared_counter;
+      buf_int buf s.nshared_files
   | _ -> to_gui_version_0 buf t
       
 let from_gui_version_1 = from_gui_version_0
       
-let to_gui = [| to_gui_version_0; to_gui_version_1 |]
-let from_gui = [| from_gui_version_0; from_gui_version_1 |]
+let to_gui_version_2 buf t =
+  match t with
+    Server_info s ->
+      buf_int16 buf 26;
+      buf_server_version_2 buf s
+  | _ -> to_gui_version_1 buf t
+      
+let from_gui_version_2 buf t = 
+  match t with
+    Search_query s ->
+      buf_int16 buf 42;
+      buf_search_version_2 buf s
+  | _ -> from_gui_version_1 buf t
+      
+let to_gui = [| 
+    to_gui_version_0; 
+    to_gui_version_1;
+    to_gui_version_2;
+    |]
+let from_gui = [| 
+    from_gui_version_0; 
+    from_gui_version_1;
+    from_gui_version_2; 
+    |]
   
 end
 
@@ -807,14 +873,34 @@ module Decoding = struct
           Q_HIDDEN list, pos
       | _ -> assert false
     
-    let get_search s pos =
+    let get_search_version_0 s pos =
       let num = get_int s pos in
       let q, pos = get_query s (pos+4) in
       let max = get_int s pos in
       { 
         search_num = num; 
         search_query = q;
-        search_max_hits = max
+        search_max_hits = max;
+        search_type = RemoteSearch;
+      }, (pos+4)
+
+    let get_search_type s pos =
+      match get_int8 s pos with
+        0 -> LocalSearch
+      | 1 -> RemoteSearch
+      | 2 -> SubscribeSearch
+      | _ -> assert false
+      
+    let get_search_version_2 s pos =
+      let num = get_int s pos in
+      let q, pos = get_query s (pos+4) in
+      let max = get_int s pos in
+      let stype = get_search_type s (pos+4) in
+      { 
+        search_num = num; 
+        search_query = q;
+        search_max_hits = max;
+        search_type = stype;
       }, (pos+4)
     
     
@@ -1006,6 +1092,43 @@ module Decoding = struct
         server_description = description;
         server_users = None;
       }, pos
+
+    let get_addr s pos =
+      match get_int8 s pos with
+        0 ->
+          let ip = get_ip s (pos+1) in
+          new_addr_ip ip, pos+5
+      | 1 ->
+          let name,pos = get_string s (pos+1) in
+          new_addr_name name, pos
+      | _ -> assert false
+          
+    let get_server_version_2 s pos =
+      let num = get_int s pos in
+      let net = get_int s (pos+4) in
+      let addr,pos = get_addr s (pos+8) in
+      let port = get_int16 s pos in
+      let score = get_int s (pos+2) in
+      let tags, pos = get_list get_tag s (pos+6) in
+      let nusers = get_int s pos in
+      let nfiles = get_int s (pos+4) in
+      let state = get_host_state s (pos+8) in
+      let name, pos = get_string s (pos+9) in
+      let description, pos = get_string s pos in
+      {
+        server_num = num;
+        server_network = net;
+        server_addr = addr;
+        server_port = port;
+        server_score = score;
+        server_tags = tags;
+        server_nusers = nusers;
+        server_nfiles = nfiles;
+        server_state = state;
+        server_name = name;
+        server_description = description;
+        server_users = None;
+      }, pos
     
     
     let get_client_type s pos = 
@@ -1116,8 +1239,9 @@ module Decoding = struct
       | 5 -> let pass,_ = get_string s 2 in Password pass
       | 6 -> 
           let local = get_bool s 2 in
-          let search, pos = get_search s 3 in
-          Search_query (local, search)
+          let search, pos = get_search_version_0 s 3 in
+          search.search_type <- if local then LocalSearch else RemoteSearch;
+          Search_query search
       | 7 -> 
           let list, pos = get_list get_string s 2 in
           let result_num = get_int s pos in
@@ -1261,7 +1385,9 @@ module Decoding = struct
           let int = get_int s 2 in 
           BrowseUser  int
 
-      | _ -> assert false
+      | _ -> 
+          Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
+          assert false
 
     let to_gui_version_0 opcode s =
       match opcode with
@@ -1384,18 +1510,47 @@ module Decoding = struct
           let n2 = get_int s 6 in          
           Room_user (n1,n2)
 
-      | _ -> assert false
+      | _ -> 
+          Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
+          assert false
 
     let from_gui_version_1 = from_gui_version_0
     let to_gui_version_1 opcode s = 
       match opcode with
         25 ->
-          let s, pos = get_string s 2 in
-          Client_stats s
+          let upload = get_int64 s 2 in
+          let download = get_int64 s 10 in
+          let shared = get_int64 s 18 in
+          let nshared = get_int s 26 in
+          Client_stats {
+            upload_counter = upload;
+            download_counter = download;
+            shared_counter = shared;
+            nshared_files = nshared;
+          }
       | _ -> to_gui_version_0 opcode s
+      
+    let from_gui_version_2 opcode s =
+      match opcode with
+        42 -> let s, pos = get_search_version_2 s 2 in Search_query s
+      | _ -> from_gui_version_1 opcode s
+      
+    let to_gui_version_2 opcode s = 
+      match opcode with
+        26 -> let s, pos = get_server_version_2 s 2 in Server_info s
+      | _ -> to_gui_version_1 opcode s
           
-    let to_gui = [| to_gui_version_0; to_gui_version_1 |]
-    let from_gui = [| from_gui_version_0; from_gui_version_1 |]
+    let to_gui = [| 
+        to_gui_version_0; 
+        to_gui_version_1; 
+        to_gui_version_2; 
+      |]
+      
+    let from_gui = [| 
+        from_gui_version_0; 
+        from_gui_version_1; 
+        from_gui_version_2; 
+        |]
   
   end
 

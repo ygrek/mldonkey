@@ -1,0 +1,315 @@
+Open FT Packet:
+
+{
+int16 len;
+int16 opcode; | FT_PACKET_COMPRESSED : si le paquet est compresse
+char[] data;
+}
+
+*******************************************************
+IP:
+int16 4  /* IPv6 */
+int32 IP
+int32 0
+int32 0
+int32 0
+
+*******************************************************
+opcodes:
+{
+        /* AUTHENTICATION AND HANDSHAKING */
+
+        FT_VERSION_REQUEST = 0,
+{
+}
+        FT_VERSION_RESPONSE,
+{
+int16 OPENFT_MAJOR
+int16 OPENFT_MINOR
+int16 OPENFT_MICRO
+}
+        FT_CLASS_REQUEST,
+{
+}
+        FT_CLASS_RESPONSE,
+{
+int16 node_class; /* NODE_PARENT/NODE_CHILD/NODE_SEARCH */
+}
+        FT_NODEINFO_REQUEST,
+{
+}
+        FT_NODEINFO_RESPONSE,
+{
+IP     0
+int16  port
+int16  http_port
+}
+
+        FT_NODELIST_REQUEST,
+{
+}
+        FT_NODELIST_RESPONSE,
+{
+                                                 NULL
+        ft_packet_send (c, FT_NODELIST_RESPONSE, "+I%hu%hu",
+                        response->ip, response->port, response->class);
+}
+
+        FT_NODECAP_REQUEST,
+{
+}
+        FT_NODECAP_RESPONSE,
+{
+}
+
+        FT_PING_REQUEST,
+{
+}
+        FT_PING_RESPONSE,
+{
+}
+
+        /* SHARE NEGOTIATION AND STATS */
+
+        FT_CHILD_REQUEST   = 100,
+{
+int16   TRUE;
+}
+        FT_CHILD_RESPONSE,
+{
+int16 response (TRUE or FALSE suivant que le noeud est accepte comme fils)
+}
+
+        FT_SHARE_REQUEST,
+{
+        ft_packet_send (c, FT_STATS_REQUEST, "%hu+I%lu%lu",
+                        2 /* submit digest */,
+                        NODE (child)->ip, shares, (unsigned long) size);
+}
+        FT_SHARE_RESPONSE,
+{
+}
+
+        FT_MODSHARE_REQUEST,
+{
+}
+        FT_MODSHARE_RESPONSE,
+{
+}
+
+        FT_STATS_REQUEST,
+{
+}
+        FT_STATS_RESPONSE,
+{
+ ft_packet_send (c, FT_STATS_RESPONSE, "%lu%lu%lu",
+                                                        users, shares, (unsigned
+ long) size);
+}
+
+        /* SEARCHING */
+
+        FT_SEARCH_REQUEST  = 200,
+{
+}
+        FT_SEARCH_RESPONSE,
+{
+                ft_packet_send (c, FT_SEARCH_RESPONSE, "%lu", P_INT (id));
+                ft_packet_send (c, FT_SEARCH_RESPONSE, "%lu+I%hu%hu%lu%lu%s%s",
+                                P_INT (id),
+                                share->host_share->host,
+                                share->host_share->port, share->host_share->http
+_port,
+                                share->host_share->availability,
+                                file->size, file->sdata->md5,
+                                (file->sdata->hpath ? file->sdata->hpath : file-
+>sdata->path));
+        }
+}
+
+        /* DOWNLOADING */
+
+        FT_PUSH_REQUEST    = 300,
+{
+        ft_packet_send_indirect (ip, FT_PUSH_REQUEST, "+I%hu%s%lu%lu",
+                                 NODE (c)->ip, NODE (c)->http_port,
+                                 request, start, stop);
+}
+        FT_PUSH_RESPONSE
+{
+} ft_packet_send_indirect (search_ip, FT_PUSH_RESPONSE, "+
+I%hu%s%lu%lu",
+                                                 ip, port, request, start, stop)
+;
+
+};
+$Id$
+
+NOTE: this file is basically what OpenFT was supposed to be before it
+started...what it is now is probably different :)
+
+                                    OpenFT
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+TECHNOLOGY OVERVIEW
+-------------------
+
+OpenFT is an open source implementation of a distributed peer to peer file
+sharing network.  It is similar in design to gnutella with significantly
+improved scalability based on a concept of hierarchal node classification.
+This node classification is determined by each individual node based on the
+resources that node has to donate to the Free Transport network (FT).  The 
+advantage of OpenFT over other major networks (such as KaZaa) is that we do
+not require authentication on a centralized network.
+
+Another key feature of the OpenFT network is that search results and share
+submission transactions will be compressed with the GZ compression technology.
+This is done to allow speedy search results and submissions into the network.
+
+
+NODE CLASSIFICATION
+-------------------
+
+OpenFT's node classification system is designed in such a way that each higher
+level classification inherits the responsibilities of all lower node
+classifications.  For example, a user node that has connected to the network
+for the first time (explained later) will receive a list of search nodes upon
+request.  At any later time if that node promotes to a search node itself, it
+will still maintain the connections with those search nodes that it once held
+as a user node for two main network goals.  One is that if the person using
+the search node machine wishes to request a search themselves (remember they
+are still maintaining the functionality of a user node), they will use the
+node connections that all user nodes maintain.  The sceond feature this allows
+for is that all connecting user nodes may request a search and have that list
+of supernodes returned to them, thus recursing the system to a user-defined
+depth.
+
+Every node is expected to maintain a list of (and/or connections to)
+supernodes at all times.  The client default will be set at 25.  This
+functionality is not reduced when that node is promoted to a supernode or even
+an index node, responsibilites are only added, not removed.  All nodes must
+also be responsible for maintaining a relatively large index of all user and
+supernodes for reference when they need re-entry back into the network (as to
+avoid using index nodes if at all possible).
+
+
+USER NODE
+---------
+
+User nodes can be considered the "base" node classification for the entire
+network.  User nodes generally only make outgoing connections to search nodes
+and perform searches as well as maintain lists of nodes that have passed
+through them (client default is set to a maximum of 100), however on initial
+connection into the network they have a few more responsibilities.
+
+The first of these is that they must be hardcoded for a list of default search
+and index nodes.  They will immediately spawn connections to each node on the
+static list and attempt to replace them with the node links provided by the
+new connections.  This is a critical first-time operation as relying on
+hardcoded servers forces each client release to be reliant on a static set of
+IPs.  It's important that this dependancy be broken as soon as possible by the
+client and begins maintaining its own references into the network.
+
+Regular user nodes must also submit their list of shares for storage (and
+hashing) to any outgoing search node connections that are established from the
+known network references.
+
+
+SEARCH NODE
+-----------
+
+Search nodes can easily be considered the "backbone" of the entire network.
+They are responsible for handling incoming connections from user nodes (yes,
+this means you MUST be exposed to the Internet directly) that supply a
+compressed list of files.  For scalability purposes, the client default will
+be set to maintain a list of only 300 users per search node.  This allows the
+search node machine to operate on the OpenFT network with as minimal overhead
+as possible.
+
+Any user node across the entire network may at any time spawn a connection to
+a search node and request that it hash it's internal list of files and return
+results accompanied with the ip:port of the user (port being 0 if the user is
+firewalled, see FIREWALLED USERS).  Prior to this operation however, search
+nodes respond with it's list of search nodes (maintained at 25 by default) as
+to instruct the user where it can optionally find more search results if
+required (defaults to attempting up to 100 search node connections).  This
+system allows search nodes to only ever have to handle the traffic generated
+by their shared list and thus does not require any form of tunnelling of
+search results, which would result in wasted network load if the user himself
+can request the same operation from the search node.
+
+Search nodes also have an extra advantage over user nodes in maintaing a
+robust list of search nodes (again, for re-entrance into the network) as they
+will optionally request the search node list from any incoming user node
+connection.  As a result of this advantage, search nodes will maintain lists
+of new search nodes and will flush them every 5 minutes (default) while
+sending them down to all connected user nodes.
+
+
+INDEX NODE
+----------
+
+The final and probably least important node classification is that of the
+semi-static index node.  These nodes are not automatically determined by the
+network or the client but are selected on a reviewed opt-in basis.  These
+nodes will maintain an unlimited list of all seen supernodes and will
+regularly communicate with search nodes when a new promotion has occurred (so
+that it can now list them).  These nodes are also referenced for "lazy" nodes
+who do not have any pre-determined network references left alive.
+
+
+CLASS PROMOTION
+---------------
+
+Promotion is still a very vague subject in the OpenFT implementation.
+Currently our line of thinking is leading us towards a semi-trusted system
+where the client daemon will monitor simple data about the user node.  Mainly,
+the avg, high, and low k/s reported by this user both incoming and outgoing.
+If the usage hits a pre-determined thresh-hold the node will make a request to
+all connected supernodes that it has now received a promotion.  All search
+nodes aware will connect to their respective search and index nodes with a
+simple message indicating a new supernode IP.  The user node undergoing
+promotion will then request that any 5 search nodes connect back to verify
+connection speed and the ability to bind outgoing internet ports (ie not
+firewalled).  It is still undecided but quite likely that the client will be
+trusted to perform an internal list hashing test to insure that it indeed can
+handle the load of the configured user count.
+
+
+FIREWALLED USERS
+----------------
+
+Users that do not have access to a direct internet connection (by way of a NAT
+machine or otherwise) will _NOT_ be allowed to become search nodes but will
+still operate fully on the network.  Their only limitation is that they will
+not be able to download from another firewalled user (the only other way
+around this would be to tunnel data via supernodes which has been determined
+that it stresses the network too much to be practical).
+
+Indirectly connected users may still upload files by a push upload system
+implemented in conjuction with the search node.  Clients are expected to store
+the search node that returned each result so that upon download request that
+node can be contacted and asked to deliver a message to the node required for
+uploading.  That supernode will return an error message back if unable to
+contact the given node, otherwise will return nothing.  If the user node in
+question is behaving properly it will make an outgoing connection to the
+downloading node and will then proceed to push the requested file (after a
+brief header describing the nature of the operation, as is standard for all
+communication delivered to a user node directly).
+
+
+DOWNLOADING
+-----------
+
+Downloads are divided among all hosts that have matched the same md5sum from a
+search result.  In order to prevent poisoned files from corrupted the whole a
+preliminary size and offset is calculated by the downloading agent and
+requests those offsets from each host.  The data segment matches from the
+majority of hosts is accepted to be the true file.
+
+
+CONTACT INFORMATION
+-------------------
+
+OpenProjects IRC Network (irc.openprojects.net) #giFT

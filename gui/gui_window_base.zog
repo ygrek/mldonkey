@@ -70,6 +70,8 @@
         </label>
         <label name=label_servers_status width="-1" height="-1" text="Gui_messages.connected_to_servers+0+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
         </label>
+        <label name=label_downloads_status width="-1" height="-1" text="Gui_messages.downloaded_files+0+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
+        </label>
         <label name=label_upload_status width="-1" height="-1" text="%22%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="true" fill="true" padding="-1">
         </label>
       </hbox>

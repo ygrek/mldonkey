@@ -48,7 +48,7 @@ let last_connected_server () =
   | s :: _ -> s
   | [] -> 
       servers_list := 
-      Hashtbl2.fold (fun key s l ->
+      Hashtbl.fold (fun key s l ->
           s :: l
       ) servers_by_key [];
       match !servers_list with
@@ -56,7 +56,7 @@ let last_connected_server () =
       | s :: _ -> s
 
 let all_servers () =
-  Hashtbl2.fold (fun key s l ->
+  Hashtbl.fold (fun key s l ->
       s :: l
   ) servers_by_key []
 
@@ -79,12 +79,13 @@ let _ =
       (3600. *. (float_of_int s.server_score)) +. 
         connection_last_conn s.server_connection_control
   )
-  
-let server_handler s sock event = 
-  match event with
-    BASIC_EVENT (CLOSED _) ->
-      if s.server_sock <> None then decr nservers;
 
+let disconnect_server s =
+  match s.server_sock with
+    None -> ()
+  | Some sock ->
+      if s.server_sock <> None then decr nservers;
+      TcpBufferedSocket.close sock "closed";
       (*
             Printf.printf "%s:%d CLOSED received by server"
 (Ip.to_string s.server_ip) s.server_port; print_newline ();
@@ -95,16 +96,22 @@ let server_handler s sock event =
       s.server_users <- [];
       set_server_state s NotConnected;
       !server_is_disconnected_hook s
+      
+let server_handler s sock event = 
+  match event with
+    BASIC_EVENT (CLOSED _) ->
+      disconnect_server s
+
   | _ -> ()
       
       
 let client_to_server s t sock =
-  if !ip_verified < 10 then verify_ip sock;
   let module M = Mftp_server in
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;
-      set_rtimeout sock infinite_timeout;
+      set_rtimeout sock 3600.; 
+      (* force deconnection after one hour if nothing  appends *)
       set_server_state s Connected_initiating;
       s.server_score <- s.server_score + 5;
       connection_ok (s.server_connection_control);
@@ -158,9 +165,11 @@ let client_to_server s t sock =
       s.server_nusers <- users;
       s.server_nfiles <- files;
       server_must_update s
-  | M.MldonkeyUserReplyReq ->
+      
+  | M.Mldonkey_MldonkeyUserReplyReq ->
       s.server_mldonkey <- true;
       Printf.printf "I'm connected to a mldonkey server\n"
+      
   | _ -> 
       !received_from_server_hook s sock t
       
@@ -169,7 +178,6 @@ let connect_server s =
     try
 (*                Printf.printf "CONNECTING ONE SERVER"; print_newline (); *)
       connection_try s.server_connection_control;
-      s.server_cid <- !!client_ip;
       incr nservers;
       printf_char 's'; 
       let sock = TcpBufferedSocket.connect 
@@ -177,7 +185,7 @@ let connect_server s =
         (
           Ip.to_inet_addr s.server_ip) s.server_port 
           (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
-      verify_ip sock;
+      s.server_cid <- client_ip (Some sock);
       set_server_state s Connecting;
       set_read_controler sock download_control;
       set_write_controler sock upload_control;
@@ -195,7 +203,7 @@ let connect_server s =
         let module C = M.Connect in
         M.ConnectReq {
           C.md4 = !!client_md4;
-          C.ip = !!client_ip;
+          C.ip = client_ip (Some sock);
           C.port = !client_port;
           C.tags = !client_tags;
         }
@@ -218,7 +226,7 @@ let rec connect_one_server () =
       [] ->
         
         servers_list := [];
-        Hashtbl2.iter (fun _ s ->
+        Hashtbl.iter (fun _ s ->
             servers_list := s :: !servers_list
         ) servers_by_key;
         if !servers_list = [] then begin
@@ -272,7 +280,7 @@ let remove_old_servers () =
   let removed_servers = ref [] in
   let nservers = ref 0 in
   
-  Hashtbl2.iter (fun key s ->
+  Hashtbl.iter (fun key s ->
       if connection_last_conn s.server_connection_control < min_last_conn ||
         List.mem s.server_ip !!server_black_list then 
         removed_servers := (key,s) :: !removed_servers
@@ -281,7 +289,7 @@ let remove_old_servers () =
   if !nservers < 200 then begin
       List.iter (fun (key,s) ->
           server_remove (as_server s.server_server);
-          Hashtbl2.remove servers_by_key key
+          Hashtbl.remove servers_by_key key
       ) !removed_servers
     end
 
@@ -313,7 +321,7 @@ let update_master_servers _ =
                 s.server_master <- true;
                 incr nmasters;
                 direct_server_send sock (Mftp_server.ShareReq
-                  (DonkeyShare.make_tagged (DonkeyShare.all_shared ())));
+                  (DonkeyShare.make_tagged (Some sock) (DonkeyShare.all_shared ())));
           end else
         if connection_last_conn s.server_connection_control 
             +. 120. < last_time () &&
@@ -349,7 +357,7 @@ let walker_timer () =
       if !walker_list <> [] &&
         last_time () > !next_walker_start then begin
           next_walker_start := last_time () +. 4. *. 3600.;
-          Hashtbl2.iter (fun _ s ->
+          Hashtbl.iter (fun _ s ->
               walker_list := s :: !walker_list
           ) servers_by_key;
         end

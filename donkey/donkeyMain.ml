@@ -68,9 +68,22 @@ let halfmin_timer timer =
 let disable enabler () =
   enabler := false;
   if !!enable_donkey then enable_donkey =:= false;
-  List.iter (fun s -> DonkeyInteractive.disconnect_server s) 
-  (connected_servers ());
-  List.iter (fun file -> ()) !current_files
+  Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_key;
+  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_kind;
+  (match !listen_sock with None -> ()
+    | Some sock -> 
+        listen_sock := None;
+        TcpServerSocket.close sock "");
+  (match !reversed_sock with None -> ()
+    | Some sock -> 
+        reversed_sock := None;
+        TcpServerSocket.close sock "");
+  (match !udp_sock with None -> ()
+    | Some sock -> 
+        udp_sock := None;
+        UdpSocket.close sock "");
+  if !!enable_donkey then enable_donkey =:= false
+  
   
 let enable () =
 
@@ -81,10 +94,6 @@ let enable () =
   
   try
 (*  DonkeyClient.verbose := true; *)
-
-(**** INSTALL HOOKS ****)
-    
-    DonkeyFiles.install_hooks ();
 
 (**** LOAD OTHER OPTIONS ****)
     
@@ -142,7 +151,6 @@ let enable () =
     ) !!known_shared_files;
     known_shared_files =:= !list;
     Options.save shared_files_ini;
-    DonkeyIndexer.init ();
 
 (**** CREATE WAITING SOCKETS ****)
     
@@ -161,6 +169,8 @@ let enable () =
       (Ip.to_inet_addr !!donkey_bind_addr)
       !!port client_connection_handler in
     
+    listen_sock := Some sock;
+    
     begin
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
         Unix.ADDR_INET (ip, port) ->
@@ -173,8 +183,8 @@ let enable () =
     
     begin
       try
-        ignore (TcpServerSocket.create "donkey client server"
-          (Ip.to_inet_addr !!donkey_bind_addr)
+        reversed_sock := Some (TcpServerSocket.create "donkey client server"
+            (Ip.to_inet_addr !!donkey_bind_addr)
           sport client_connection_handler);
       with _ ->
           Printf.printf "Unable to open Second listening port\n";
@@ -220,6 +230,10 @@ let enable () =
         (Printexc.to_string e); print_newline ()
 
 let _ =
+  
+  DonkeyFiles.install_hooks ();
+  DonkeyIndexer.init ();
+  
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 
         (DonkeyInteractive.saved_name file);

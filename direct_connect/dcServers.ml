@@ -53,7 +53,7 @@ let try_connect_client c =
                       let module C = ConnectToMe in
                       ConnectToMeReq {
                         C.nick = c.client_name;
-                        C.ip = !!CO.client_ip;
+                        C.ip = CO.client_ip (Some sock);
                         C.port = !!dc_port;
                       }
                     );
@@ -117,7 +117,7 @@ let recover_files_from_server s =
                         let module C = ConnectToMe in
                         ConnectToMeReq {
                           C.nick = c.client_name;
-                          C.ip = !!CO.client_ip;
+                          C.ip = CO.client_ip (Some sock);
                           C.port = !!dc_port;
                         }
                       );
@@ -160,15 +160,18 @@ let recover_files_from_server s =
   
 let server_addr s = string_of_addr s.server_addr
 
-let server_handler s sock event = 
-  match event with
-    BASIC_EVENT (CLOSED _) ->
-      
-      if s.server_sock <> None then decr nservers;
+  
+let disconnect_server s =
+  match s.server_sock with
+    None -> ()
+  | Some sock -> 
+      (try close sock "user disconnect" with _ -> ());      
+      decr nservers;
       Printf.printf "%s:%d CLOSED received by server"
-      (server_addr s) s.server_port; print_newline ();
+        (server_addr s) s.server_port; print_newline ();
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
+      Printf.printf "******** NOT CONNECTED *****"; print_newline ();
       set_server_state s NotConnected;
       set_room_state s RoomClosed;
       connected_servers := List2.removeq s !connected_servers;
@@ -176,6 +179,9 @@ let server_handler s sock event =
       :: s.server_messages;
       room_must_update (as_room s.server_room)
       
+let server_handler s sock event = 
+  match event with
+    BASIC_EVENT (CLOSED _) -> disconnect_server s      
   | _ -> ()
 
       
@@ -242,7 +248,7 @@ print_newline ()
               I.speed = !!client_speed;
               I.kind = 6;
               I.email = "";
-              I.size = !shared_total +. !!shared_offset;
+              I.size = Int64.to_float !shared_counter +. !!shared_offset;
             });
           recover_files_from_server s
         end  else
@@ -330,7 +336,6 @@ and connect_server s =
       let sock = TcpBufferedSocket.connect "directconnect to server" (
           Ip.to_inet_addr ip)
         s.server_port (server_handler s)  in
-      verify_ip sock;
   
       set_server_state s Connecting;
       set_read_controler sock download_control;
@@ -452,11 +457,6 @@ let _ =
         P.server_users = None;
         }
       else raise Not_found)
-
-let disconnect_server s =
-      match s.server_sock with
-        None -> ()
-      | Some sock -> close sock "user disconnect"
      
 let recover_files () = 
   List.iter (fun file ->

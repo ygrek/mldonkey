@@ -45,7 +45,7 @@ module type Make = functor (Doc: Doc) ->
     val or_get_fields : Doc.t Intmap.t ref -> node -> int -> Doc.t Intmap.t
     val find : index -> string -> node
     val and_get_fields : node -> int -> Doc.t Intmap.t -> Doc.t Intmap.t
-
+    val size : node -> int
   end
 
 
@@ -64,11 +64,12 @@ module type Index = sig
     val or_get_fields : doc Intmap.t ref -> node -> int -> doc Intmap.t
     val find : index -> string -> node
     val and_get_fields : node -> int -> doc Intmap.t -> doc Intmap.t
-  
+    val size : node -> int  
   end
   
 module QueryMake ( Index : Index) : sig
     val query : Index.index -> Index.doc query -> Index.doc array      
+    val query_map : Index.index -> Index.doc query -> Index.doc Intmap.t      
   end
   
 module FullMake (Doc : Doc) (Make : Make) : sig
@@ -83,6 +84,8 @@ module FullMake (Doc : Doc) (Make : Make) : sig
     val filter_words :  index -> string list -> unit
     val clear_filter :  index -> unit
     val filtered :  Doc.t -> bool
+      
+    val query_map : index -> Doc.t query -> Doc.t Intmap.t      
     val query : index -> Doc.t query -> Doc.t array          
   end
   

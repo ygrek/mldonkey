@@ -95,11 +95,19 @@ let servers_by_num = H.create 1027
 let servers_update_list = ref []
   
 let server_must_update s =
+(*  Printf.printf "server_must_update ?"; print_newline (); *)
+  let impl = as_server_impl s in
+  if impl.impl_server_update > 0 then
+    servers_update_list := s :: !servers_update_list;
+  impl.impl_server_update <- 0
+  
+let server_must_update_state s =
   let impl = as_server_impl s in
   if impl.impl_server_update > 0 then
     begin
-      impl.impl_server_update <- 0;
-      servers_update_list := s :: !servers_update_list
+      impl.impl_server_update <- -1; (* only the state *)
+      servers_update_list := s :: !servers_update_list;
+(*      Printf.printf "server_must_update YES"; print_newline (); *)
     end
 
 let server_update_num impl =
@@ -212,7 +220,7 @@ let set_server_state c state =
   let impl = as_server_impl c in
   if impl.impl_server_state <> state then begin
       impl.impl_server_state <- state;
-      server_must_update c
+      server_must_update_state c
     end
 
 let server_sort () = 

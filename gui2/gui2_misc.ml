@@ -120,12 +120,13 @@ let submit_search (gui: gui) local ()=
           [] -> q1
         | _ -> Q_AND q
       in
-  gui_send (P.Search_query (local, 
+  gui_send (P.Search_query
       { 
         P.search_max_hits = int_of_string s#combo_max_hits#entry#text;
         P.search_query = q;
-        P.search_num = !search_counter;
-      }));
+            P.search_num = !search_counter;
+            P.search_type = if local then LocalSearch else RemoteSearch;
+      });
   let new_tab = new box_search () in
 
   let clist_search = MyCList.create gui new_tab#clist_search_results       
@@ -238,7 +239,7 @@ let reconnect gui =
       gui_cut_messages
         (fun opcode s ->
           try
-            let m = Decoding.to_gui.(0) opcode s in
+            let m = Decoding.to_gui.(!gui_protocol_used) opcode s in
             value_reader gui m sock
           with e ->
               Printf.printf "Exception %s in decode/exec" 

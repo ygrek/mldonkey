@@ -85,24 +85,6 @@ let upload_control = TcpBufferedSocket.create_write_bandwidth_controler
 let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
     (!!max_hard_download_rate * 1024)
 
-let ip_verified = ref 0
-    
-let verify_ip sock =
-  if !ip_verified < 10 then
-(*  Printf.printf "VERIFY IP";  print_newline (); *)
-  try
-    incr ip_verified;
-    let ip = TcpBufferedSocket.my_ip sock in
-    if ip <> Ip.localhost  then begin
-        Printf.printf "USING %s FOR CLIENT IP" (Ip.to_string ip);
-        print_newline ();
-        client_ip =:= ip;
-        ip_verified := 10;
-      end;
-  with e -> 
-      Printf.printf "Exception %s while verifying IP address"
-        (Printexc.to_string e); print_newline ()
-
 (*
   
     
@@ -295,4 +277,9 @@ let addr_of_string s =
   if ip <> Ip.null then new_addr_ip ip else new_addr_name s
 
 let addr_is_ip addr = addr.addr_name = ""
+
+let  upload_counter = ref Int64.zero
+let  download_counter = ref Int64.zero
+let nshared_files = ref 0
+let shared_counter = ref Int64.zero
   

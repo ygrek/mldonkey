@@ -28,4 +28,5 @@ val update_master_servers : unit-> unit
 val walker_timer : unit -> unit
   
 val udp_send_if_possible : UdpSocket.t -> Unix.sockaddr -> Mftp_server.t -> unit
+val disconnect_server : DonkeyTypes.server -> unit
   

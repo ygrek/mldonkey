@@ -80,20 +80,17 @@ let clients_by_name = Hashtbl.create 127
 
 let local_searches = ref ([] : local_search list)
 let nservers = ref 0
-let servers_by_key = Hashtbl2.create 127
+let servers_by_key = Hashtbl.create 127
 let servers_list = ref []
 let clients_list = ref []
 let clients_list_len = ref 0
 let remaining_time_for_clients = ref (60 * 15)
 let location_counter = ref 0
-let upload_counter = ref 0
 let download_credit = ref 0 
-let nshared_files = ref 0
 
 let current_files = ref []
   
 let sleeping = ref false
-let indirect_clients_by_md4 = Hashtbl.create 127
   
 let last_xs = ref (-1)
   
@@ -130,6 +127,14 @@ let remove_connected_server c =
 let connected_servers () = !connected_server_list
   
 let udp_sock = ref (None: UdpSocket.t option)
+  
+  
+let listen_sock = ref (None : TcpServerSocket.t option)
+  
+let reversed_sock = ref (None : TcpServerSocket.t option)
+
+
+  
 let udp_servers_list = ref []
 let interesting_clients = ref []
   
@@ -161,7 +166,6 @@ let upload_clients = Fifo.create ()
 let shared_files_info = Hashtbl.create 127
 let new_shared = ref []
 let shared_files = ref []
-let download_counter = ref 0
   
 let new_file file_state file_name md4 file_size writable =
   try
@@ -221,7 +225,7 @@ let new_file file_state file_name md4 file_size writable =
 let change_hardname file file_name =
   file.file_hardname <- file_name;
   let fd = file.file_file.impl_file_fd in
-  file.file_file.impl_file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
+  file.file_file.impl_file_fd <- Unix32.create file_name [O_RDWR] 0o666;
   Unix32.close fd
   
 let info_change_file file =
@@ -252,13 +256,13 @@ let remove_client_chunks file client_chunks =
 let new_server ip port score = 
   let key = (ip, port) in
   try
-    Hashtbl2.find servers_by_key key
+    Hashtbl.find servers_by_key key
   with _ ->
       let rec s = { 
           server_server = server_impl;
           server_next_udp = last_time ();
           server_ip = ip;     
-          server_cid = !!client_ip;
+          server_cid = client_ip None;
           server_port = port; 
           server_sock = None; 
           server_nqueries = 0;
@@ -273,7 +277,8 @@ let new_server ip port score =
           server_description = "";
           server_users = [];
           server_master = false;
-	  server_mldonkey = false;
+          server_mldonkey = false;
+          server_last_message = 0.0;
         }
       and server_impl = 
         {
@@ -284,19 +289,19 @@ let new_server ip port score =
       in
       server_add server_impl;
       Heap.set_tag s tag_server;
-      Hashtbl2.add servers_by_key key s;
+      Hashtbl.add servers_by_key key s;
       server_must_update s;
       s      
 
 let find_server ip port =
   let key = (ip, port) in
-  Hashtbl2.find servers_by_key key  
+  Hashtbl.find servers_by_key key  
 
 let remove_server ip port =
   let key = (ip, port) in
-  let s = Hashtbl2.find servers_by_key key in
+  let s = Hashtbl.find servers_by_key key in
   try
-    Hashtbl2.remove servers_by_key key;
+    Hashtbl.remove servers_by_key key;
     servers_list := List2.removeq s !servers_list ;
     (match s.server_sock with
         None -> ()

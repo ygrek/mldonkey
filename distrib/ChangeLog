@@ -1,6 +1,49 @@
 ChangeLog
 =========
 
+2002/08/09: mldonkey
+  - client_ip is now always recomputed to avoid keeping an old IP address after
+   the IP changed (unless force_client_ip is true)
+  - the md4 is only used to save a file if no other name is available
+  - files of new friends are correctly displayed (the client structure in the
+     friend list was not the canonized one).
+
+2002/08/08: mldonkey 
+  - Fixed bug in mldonkey_gui2 preventing removal of downloaded files.
+  - Number of downloaded files is now displayed in mldonkey_gui. I still
+     don't understand why so many features of the first GUI have been
+     removed from the new GUI. Moreover, the object-oriented style makes
+     it hard to understand and uggly to program. PLEASE, never put objects
+     in the core.
+
+2002/08/08: zoggy
+  - fix : extended search button now does not appear any more in the friends tab
+  - add : the user must confirm before cancelling a download
+  - fix : window and global variables cleared when disconnected
+  - fix : Detect disconnection to client in the GUI
+	
+2002/08/07: mldonkey
+  - Upload statistics are correctly displayed by GUIs
+  - Upload is now computed in bytes
+  - Server_state and Client_state messages are used again.
+  - Fixed bug in TcpBufferedSocket preventing UDP packets from being sent when
+       bandwidth control is disabled (prevent Extended Searches).
+  - Fixed bug in Options causing Stack Overflow in convert_list
+  - Implemented simple form of subscription in server
+  - Predicate should now work completely in server
+  - Number of replies to a query limited to 1000
+  - Fixed bug in mldonkey_gui2 forcing GUI protocol 0
+
+2002/08/06: mldonkey
+  - Rewritten server code to recognize mldonkey clients
+  - New GUI protocol 2
+  - Local search works again
+  - New subscribe button
+
+2002/08/05: mldonkey
+  - The eDonkey server now shares the list of servers with the eDonkey client
+  - An error in the ocaml-3.05 patch has been fixed.
+
 2002/08/02: mldonkey
   - Fixed a bug in eDonkey saving sources for files in files.ini
   - Fixed a bug in the parsing of server.met files downloaded from the WEB

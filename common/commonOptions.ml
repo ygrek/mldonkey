@@ -303,13 +303,22 @@ let _ =
 
   
 let client_ip = define_option downloads_ini ["client_ip"] 
-    "The last IP used for this client" Ip.option  
+    "The last IP address used for this client" Ip.option  
     (Ip.my ())
   
 let force_client_ip = define_option downloads_ini ["force_client_ip"] 
   "Use the IP specified by 'client_ip' instead of trying to determine it
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
+
+let client_ip sock =
+  if !!force_client_ip then !!client_ip else
+  match sock with
+    None -> !!client_ip
+  | Some sock ->
+      let ip = TcpBufferedSocket.my_ip sock in
+      if ip <> Ip.localhost then client_ip =:= ip;
+      ip
   
 let use_html_frames = define_option downloads_ini ["use_html_frames"] 
     "This option controls whether the WEB interface should use frames or not" bool_option true

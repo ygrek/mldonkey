@@ -81,6 +81,7 @@ end
 module ACKConnect = struct 
   type t = {
     group_id : Md4.t;
+    server_master_id : int;
     server_id : int;
     tags : tag list;
   }
@@ -93,11 +94,13 @@ module ACKConnect = struct
 
   let parse len s =
     let group_id = get_md4 s 1 in
-    let server_id = get_int s 17 in
-    let ntags = get_int s 21 in 
-    let tags, pos = get_tags s 25 ntags names_of_tag in
+    let server_master_id = get_int s 17 in
+    let server_id = get_int s 21 in
+    let ntags = get_int s 25 in 
+    let tags, pos = get_tags s 29 ntags names_of_tag in
       {
 	group_id = group_id;
+        server_master_id = server_master_id;
 	server_id = server_id;
 	tags = tags;
       }
@@ -105,6 +108,7 @@ module ACKConnect = struct
   let print t =
     Printf.printf "SERVER ACCEPT IN GROUPE:\n";
     Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
+    Printf.printf "master_id: %d \n" t.server_master_id;
     Printf.printf "ip: %d\n" t.server_id;
     Printf.printf "tags: ";
     print_tags t.tags
@@ -112,6 +116,7 @@ module ACKConnect = struct
    
   let write buf t =
       buf_md4 buf t.group_id;
+      buf_int buf t.server_master_id;
       buf_int buf t.server_id;
       buf_int buf (List.length t.tags);
       buf_tags buf t.tags names_of_tag
@@ -169,6 +174,48 @@ module ConnectRocky = struct
    
 end
 
+
+module ConnectByGroup = struct
+  type t = {   
+    group_id : Md4.t;
+    server_id : int;
+    server_ip : Ip.t;
+    server_port : int;
+  }
+
+
+ 
+  let parse len s =
+    let group_id = get_md4 s 1 in
+    let server_id = get_int s 17 in
+    let server_ip = get_ip s 21 in
+    let server_port = get_port s 25 in 
+      {
+	group_id = group_id;
+	server_id = server_id;
+	server_ip = server_ip; 
+	server_port = server_port;
+      }
+     
+  let print t =
+    Printf.printf "ConnectByGroup:\n";
+    Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
+    Printf.printf "id: %d\n" t.server_id;
+    Printf.printf "ip: %s\n" (Ip.to_string t.server_ip);
+    Printf.printf "port: %d\n" t.server_port
+   
+      
+   
+  let write buf t =
+      buf_md4 buf t.group_id;
+      buf_int buf t.server_id;
+      buf_ip buf t.server_ip;
+      buf_port buf t.server_port
+   
+end
+
+
+
 module Recovery = struct
   type t = {   
     group_id : Md4.t;
@@ -192,7 +239,7 @@ module Recovery = struct
       }
      
   let print t =
-    Printf.printf "SERVER ACCEPT IN GROUPE:\n";
+    Printf.printf "RECOVERY PROTOCOL NEED:\n";
     Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
     Printf.printf "id: %d\n" t.server_id;
     Printf.printf "ip: %s\n" (Ip.to_string t.server_ip);
@@ -423,9 +470,10 @@ module LocalisationNotif= struct
 module LocateNotif= struct
   type localisation = {
     add : bool;
-    source_ip : Ip.t;
+    mutable source_ip : Ip.t;
     source_port : int; 
-    }  
+    
+}  
 
   type t =  {
     nb_notifs : int;
@@ -470,7 +518,7 @@ module LocateNotif= struct
 	
   
   let print t =  
-    Printf.printf "Server Shared:%d\n" t.nb_notifs;
+    Printf.printf "SERVER SHARED NOTIFICATION :%d\n" t.nb_notifs;
     Hashtbl.iter ( fun id notifs ->
 		     Printf.printf "File MD4: %s\n" (Md4.to_string id);
 		     List.iter ( fun x ->
@@ -597,7 +645,24 @@ module QueryUserConnect = struct
 
 end 
 
+module Message = struct 
+    type t = string
+    
+    let parse len s = 
+      let v, pos = get_string s 1 in
+      v
+    
+    let print t = 
+      Printf.printf "MESSAGE:\n";
+      Printf.printf "message = \"%s\"" (String.escaped t)
+    
+    let fprint oc t = 
+      Printf.fprintf oc "MESSAGE:\n";
+      Printf.fprintf oc "%s\n" (String.escaped t)
 
+    let write buf t =
+      buf_string buf t
+  end
 
 
 module Req  = struct
@@ -613,6 +678,7 @@ type t =
 | ServerConnectReq of ServerConnect.t
 | ACKConnectReq of ACKConnect.t
 | ConnectRockyReq of ConnectRocky.t 
+| ConnectByGroupReq of ConnectByGroup.t
 | RecoveryReq of Recovery.t
 | ServerNotificationReq of ServerNotification.t
 | ServerSuppReq of ServerSupp.t
@@ -623,6 +689,7 @@ type t =
 | LocateNotifReq of LocateNotif.t
 | QueryUserConnectReq of QueryUserConnect.t
 | UnKnownReq of string
+| MessageReq of Message.t
 | QuitReq
 
 let parse s =
@@ -635,8 +702,10 @@ let parse s =
     | 1 -> ServerConnectReq (ServerConnect.parse len s)
     | 2 -> QuitReq
     | 3 -> ACKConnectReq (ACKConnect.parse len s)
+    | 4 -> ConnectByGroupReq (ConnectByGroup.parse len s)
+    | 5 -> MessageReq (Message.parse len s)
+    | 6 -> ServerSuppReq (ServerSupp.parse len s)
     | 10 -> ServerNotificationReq (ServerNotification.parse len s)
-    | 11 -> ServerSuppReq (ServerSupp.parse len s)
     | 12 -> ConnectRockyReq (ConnectRocky.parse len s)
     | 13 -> RecoveryReq (Recovery.parse len s)
     | 30 -> AddSourceReq (AddSource.parse len s)
@@ -658,8 +727,9 @@ let print t =
     | ServerConnectReq t -> ServerConnect.print t
     | QuitReq -> Printf.printf("Server Quit Relais Group\n");
     | ACKConnectReq t -> ACKConnect.print t
-    | ServerNotificationReq t -> ServerNotification.print t
+    | ConnectByGroupReq t -> ConnectByGroup.print t
     | ServerSuppReq t -> ServerSupp.print t
+    | ServerNotificationReq t -> ServerNotification.print t
     | ConnectRockyReq t -> ConnectRocky.print t
     | RecoveryReq t -> Recovery.print t
     | AddSourceReq t -> AddSource.print t
@@ -669,6 +739,7 @@ let print t =
     | LocateNotifReq t -> LocateNotif.print t
     | QueryUserConnectReq t -> QueryUserConnect.print t
     | UnKnownReq t-> Mftp_server.print (Mftp_server.UnknownReq t)
+    | MessageReq t -> Message.print t
   end;
   print_newline()
 
@@ -685,12 +756,18 @@ let udp_write buf t =
   | ACKConnectReq t -> 
       buf_int8 buf 3;
       ACKConnect.write buf t
+  | ConnectByGroupReq t -> 
+      buf_int8 buf 4;
+      ConnectByGroup.write buf t
+  | MessageReq t -> 
+      buf_int8 buf 5;
+      Message.write buf t
+  | ServerSuppReq t -> 
+      buf_int8 buf 6;
+      ServerSupp.write buf t
   | ServerNotificationReq t ->
       buf_int8 buf 10;
       ServerNotification.write buf t 
-  | ServerSuppReq t ->
-      buf_int8 buf 11;
-      ServerSupp.write buf t
   | ConnectRockyReq t -> 
       buf_int8 buf 12;
       ConnectRocky.write buf t

@@ -420,13 +420,18 @@ let rec convert_list c2v l res =
   match l with
     [] -> List.rev res
   | v :: list -> 
-      try
-        convert_list c2v list ((c2v v) :: res)
-      with e -> 
-          Printf.printf "Exception %s in Options.convert_list" (
-            Printexc.to_string e);
-          print_newline ();
+      match 
+        try
+          Some (c2v v)
+        with e -> 
+            Printf.printf "Exception %s in Options.convert_list" (
+              Printexc.to_string e);
+            print_newline ();
+            None
+      with
+        None ->
           convert_list c2v list res
+      | Some v -> convert_list c2v list (v :: res)
 
 let option_to_value c2v o =
   match o with

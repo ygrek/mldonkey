@@ -168,7 +168,6 @@ let init_file_transfer t =
                 client_close c sock
             | _ -> ())
       in
-      verify_ip sock;      
       c.client_sock <- Some sock;
 (* Now, really connect to the server *)
 

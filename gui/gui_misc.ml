@@ -245,7 +245,8 @@ let is_connected state =
   | Connected_queued -> true
   | NotConnected
   | Connecting
-  | _ -> false
+  | RemovedHost
+  | NewHost -> false
 
 let save_gui_options gui =
   (* Compute layout *)
@@ -304,11 +305,12 @@ let save_options gui =
   with _ ->
     Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
 
-let create_search query_entry max_hits =
+let create_search query_entry max_hits search_type =
   let s = {
     Gui_proto.search_num = !Gui_global.search_counter ;
     Gui_proto.search_query = query_entry ;
-    Gui_proto.search_max_hits = max_hits ;
+      Gui_proto.search_max_hits = max_hits ;
+      Gui_proto.search_type = search_type;
   } 
   in
   incr Gui_global.search_counter;

@@ -34,7 +34,7 @@ module OG = OpennapGlobals
 module DO = CommonOptions  
 module DG = CommonGlobals
 
-let client_disconnected c =
+let disconnect_client c =
   match c.client_sock with
     None -> ()
   | Some sock -> close sock "client disconnected"
@@ -43,7 +43,7 @@ let client_handler c sock event =
   match event with
     BASIC_EVENT (CLOSED s) ->      
 (*      Printf.printf "CONNECTION WITH CLIENT LOST (%s)" s; print_newline (); *)
-      client_disconnected c
+      disconnect_client c
   | _ -> ()
 
 
@@ -171,11 +171,11 @@ let client_reader c =
                   iter sock (nread - 1)
               | _ -> 
                   Printf.printf "No file or source"; print_newline ();
-                  client_disconnected c
+                  disconnect_client c
             end
           else begin
               Printf.printf "bad non 1 reply"; print_newline ();
-              client_disconnected c
+              disconnect_client c
             end
         end
       else
@@ -284,7 +284,7 @@ let connect_client c =
       set_reader sock (client_reader c);
       set_rtimeout sock 30.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          client_disconnected c
+          disconnect_client c
       )
       
       
@@ -298,7 +298,7 @@ let listen () =
           match event with
             TcpServerSocket.CONNECTION (s, 
               Unix.ADDR_INET(from_ip, from_port)) ->
-              (*
+(*
               Printf.printf "CONNECTION RECEIVED FROM %s FOR PUSH"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
@@ -307,27 +307,28 @@ let listen () =
               Printf.printf "INDIRECT CONNECTION !!!!"; print_newline ();
 *)
               let c = ref None in
-              
               let sock = TcpBufferedSocket.create
-                "opennap client connection" s (fun _ _ -> ()) in
+                  "opennap client connection" s (fun _ _ -> ()) in
               TcpBufferedSocket.set_read_controler sock download_control;
               TcpBufferedSocket.set_write_controler sock upload_control;
-
+              
               TcpBufferedSocket.set_closer sock (fun _ s ->
                   match !c with
                     None -> ()
                   | Some c ->
-                      client_disconnected c
+                      disconnect_client c
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
               
               write_string sock "1";
-
+              
               TcpBufferedSocket.set_reader sock (client_reader2 c)
           | _ -> ()
       ) in
+    listen_sock := Some sock;
     ()
   with e ->
       Printf.printf "Exception %s while init limewire server" 
         (Printexc.to_string e);
       print_newline ()
+      

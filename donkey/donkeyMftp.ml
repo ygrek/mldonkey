@@ -61,7 +61,23 @@ let rec fprint_tags oc tags =
         | String s -> Printf.fprintf oc "\"%s\"" 
               (String.escaped s)
       end;
-      print_tags tags
+      fprint_tags oc tags
+
+let rec bprint_tags buf tags =
+  match tags with
+    [] -> Printf.bprintf buf "\n";
+          ()
+  | tag :: tags ->
+      Printf.bprintf buf "%s = " (String.escaped tag.tag_name);
+      begin
+        match tag.tag_value with
+        | Uint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
+        | Fint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
+        | Addr ip -> Printf.bprintf buf "%s" (Ip.to_string ip)
+        | String s -> Printf.bprintf buf "\"%s\"" 
+              (String.escaped s)
+      end;
+      bprint_tags buf tags
       
 let const_int32_255 = Int32.of_int 255
 let output_int32_8 oc i =

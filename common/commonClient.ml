@@ -183,12 +183,18 @@ let client_find num =
       impl_client_num = num })
     
 let clients_update_list = ref []
-  
+
 let client_must_update client =
   let impl = as_client_impl client in
   if impl.impl_client_update > 0 then
+    clients_update_list := client :: !clients_update_list;
+  impl.impl_client_update <- 0
+  
+let client_must_update_state client =
+  let impl = as_client_impl client in
+  if impl.impl_client_update > 0 then
     begin
-      impl.impl_client_update <- 0;
+      impl.impl_client_update <- -1;
       clients_update_list := client :: !clients_update_list
     end
 
@@ -200,7 +206,7 @@ let set_client_state c state =
   let impl = as_client_impl c in
   if impl.impl_client_state <> state then begin
       impl.impl_client_state <- state;
-      client_must_update c
+      client_must_update_state c
     end
   
 let new_client (client : 'a client_impl) =

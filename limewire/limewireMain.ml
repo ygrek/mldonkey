@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open LimewireClients
 open CommonOptions
 open CommonFile
 open CommonComplexOptions
@@ -31,9 +32,14 @@ open LimewireServers
   
 let disable enabler () =
   enabler := false;
-  List.iter (fun s -> disconnect_server s) !connected_servers;
-  List.iter (fun file -> ()) !current_files
-  
+  Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_key;
+  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_uid;
+  (match !listen_sock with None -> ()
+    | Some sock -> 
+        listen_sock := None;
+        TcpServerSocket.close sock "");
+  if !!enable_limewire then enable_limewire =:= false
+    
 let enable () =
 
   let enabler = ref true in

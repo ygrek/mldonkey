@@ -415,7 +415,7 @@ let read_first_message t sock =
         let module C = M.ConnectReply in
         M.ConnectReplyReq {
           C.md4 = !!client_md4;
-          C.ip = !!client_ip;
+          C.ip = client_ip (Some sock);
           C.port = !client_port;
           C.tags = !client_tags;
           C.ip_server = t.CR.ip_server;
@@ -454,7 +454,6 @@ let read_first_message t sock =
       raise Not_found
       
 let client_to_client for_files c t sock = 
-  if !ip_verified < 10 then verify_ip sock;
   let module M = Mftp_client in
   match t with
     M.ConnectReplyReq t ->
@@ -666,7 +665,7 @@ print_newline ();
       
       set_client_state c Connected_busy;
       let len = Int32.sub end_pos begin_pos in
-      download_counter := !download_counter + Int32.to_int len;
+      download_counter := Int64.add !download_counter (Int64.of_int32 len);
       c.client_rating <- Int32.add c.client_rating len;      
       begin
         match c.client_block with
@@ -771,7 +770,7 @@ print_newline ();
       
       direct_client_send sock (
         let module Q = M.ViewFilesReply in
-        M.ViewFilesReplyReq (DonkeyShare.make_tagged files))
+        M.ViewFilesReplyReq (DonkeyShare.make_tagged (Some sock) files))
   
   
   | M.QueryFileReq t when !has_upload = 0 -> 
@@ -890,12 +889,11 @@ print_newline ();
 
   | _ -> ()
 
+      
 let client_handler c sock event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      connection_failed c.client_connection_control;
-      disconnected_from_client c s
-  
+      disconnect_client c
   | _ -> ()
 
 let client_handler2 c sock event = 
@@ -946,7 +944,6 @@ let reconnect_client cid files c =
             port 
               (client_handler c) (*client_msg_to_string*) in
           TcpBufferedSocket.set_write_power sock !!upload_power;
-          verify_ip sock;          
           init_connection sock;
           init_client sock c files;
           
@@ -1032,7 +1029,7 @@ let query_locations_reply s t =
           let module Q = M.QueryCallUdp in
           udp_server_send s 
             (M.QueryCallUdpReq {
-              Q.ip = !!client_ip;
+              Q.ip = client_ip None;
               Q.port = !client_port;
               Q.id = ip;
             })

@@ -37,6 +37,12 @@ let nlocations = ref 0
 (** Number of connected locations for selected downloading file. *)
 let nclocations = ref 0
 
+(** Number of downloaded files *)
+let ndownloaded = ref 0
+  
+(** Number of downloading files *)
+let ndownloads = ref 0
+
 (** Information on locations. *)
 let (locations : (int, Gui_proto.client_info) Hashtbl.t) = Hashtbl.create 103
 
@@ -64,3 +70,16 @@ let network_name num = try (Hashtbl.find networks num).net_name
   with _ -> "?"
       
 let (users : (int, Gui_proto.user_info) Hashtbl.t) = Hashtbl.create 1023
+
+let clear () =
+  nservers := 0;
+  nconnected_servers := 0;
+  nfriends := 0;
+  nresults := 0;
+  nlocations := 0;
+  nclocations := 0;
+  Hashtbl.clear locations;
+  Hashtbl.clear networks;
+  Hashtbl.clear results;
+  Hashtbl.clear users;
+  search_counter := 0;

@@ -37,7 +37,7 @@ let first_name r =
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
-class box columns () =
+class box with_extended columns () =
   let titles = List.map Gui_columns.string_of_result_column columns in
   object (self)
     inherit [CommonTypes.result_info] Gpattern.plist `EXTENDED titles true as pl
@@ -112,6 +112,8 @@ class box columns () =
 	  wtool#remove wb#coerce;
 	  wb_extend_search <- None
 
+    method clear = self#update_data []
+
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
@@ -124,14 +126,16 @@ class box columns () =
 	   ()
 	);
 
-      wb_extend_search <- Some
-	(wtool#insert_button 
-	   ~text: M.extended_search
-	   ~tooltip: M.extended_search
-	   ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
-	   ~callback: self#extend_search
-	   ()
-	);
+      if with_extended then
+	wb_extend_search <- Some
+	    (wtool#insert_button 
+	       ~text: M.extended_search
+	       ~tooltip: M.extended_search
+	       ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
+	       ~callback: self#extend_search
+	       ()
+	    );
+
   end
 
 let is_filtered r =
@@ -148,7 +152,7 @@ class search_result_box () =
       () 
   in
   object (self)
-    inherit box !!Gui_options.results_columns () as box
+    inherit box true !!Gui_options.results_columns () as box
 
     val mutable filtered_data = []
     

@@ -17,8 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 val find_client_zone : DonkeyTypes.client -> unit
-val disconnected_from_client : 
-  DonkeyTypes.client -> string -> unit
 val update_zone : DonkeyTypes.file -> 
   int32 -> int32 -> DonkeyTypes.zone -> unit
 val client_state : CommonTypes.host_state -> string
@@ -34,4 +32,4 @@ val remove_file : Md4.t -> unit
 val update_options : DonkeyTypes.file -> unit
 val download_engine : unit -> unit
 val check_files_md4s : unit -> unit
-  
+val disconnect_client : DonkeyTypes.client -> unit

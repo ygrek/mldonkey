@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open ServerOptions
 open Unix
 open TcpBufferedSocket
 open DonkeyMftp
@@ -26,19 +27,48 @@ open ServerTypes
 
 
 
-(*basic data structures*)  
-let files_by_md4 = Hashtbl.create 1023
-let clients_by_id = Hashtbl.create 101
+(*basic data structures*)
+let files_by_md4 = (if !!relais_cooperation_protocol then
+		     Hashtbl.create 5000
+		     else
+		      Hashtbl.create 1000;)
+
+let clients_by_id = (if !!relais_cooperation_protocol then
+			Hashtbl.create 500
+			else
+			Hashtbl.create 100;)
+
 
 let get_client id = Hashtbl.find clients_by_id id
 
 
 (*strucure for servers addresse*) 
-let other_servers = ref []
-
-let alive_servers = ref []
+(*
+No more other/alive servers: all servers are in DonkeyGlobals.servers_by_key.
+When a message is received from them, the server_last_message is updated
+to the current date. 
   
+let other_servers = ref []
+let alive_servers = ref []
+    *)
 
+(* The list of servers that should be sent in the ServerList message *)
+let serverList = ref []
+(*
+  (*
+(*get a part of the servers liste*)
+let rec get_serverlist nb_servers =
+  match servers with 
+    [] -> []
+    | hd :: tail ->if nb_servers = 0 then []
+      else 
+        { 
+          M.ServerList.ip = hd.DonkeyTypes.server_ip; 
+          M.ServerList.port = hd.DonkeyTypes.server_port
+        } :: get_serverlist tail (nb_servers-1)
+*)
+ (M.ServerListReq (get_serverlist  50)); *)
+  
 (*counter for server stat*)
 let nconnected_clients = ref 0
 
@@ -48,26 +78,31 @@ let client_counter = ref 0
 
 
 (*count messages to the server*)
-let nb_udp_query_sec = ref 0
+let nb_udp_query_sec = ref 0.
 let nb_udp_query_count = ref 0
-let nb_udp_loc_sec = ref 0
+let nb_udp_loc_sec = ref 0.
 let nb_udp_loc_count = ref 0
-let nb_udp_req_sec = ref 0
+let nb_udp_req_sec = ref 0.
 let nb_udp_req_count = ref 0
-let nb_udp_ping_server_sec = ref 0 	 
+let nb_udp_ping_server_sec = ref 0. 	 
 let nb_udp_ping_server_count = ref 0 
 
-let nb_tcp_req_sec = ref 0
+let nb_tcp_req_sec = ref 0.
 let nb_tcp_req_count = ref 0
-let nb_udp_reply_sec = ref 0
+let nb_udp_reply_sec = ref 0.
 let nb_udp_reply_count = ref 0
 
 (*/////////////////////////////////////////*)
 (*Group server variables*)
 
-let servers_by_id = Hashtbl.create 40
+let servers_by_id = (if !!relais_cooperation_protocol then
+		      Hashtbl.create 5 
+		      else
+		      Hashtbl.create 0;)
 
-let local_clients = []
+let to_connect = ref []
+
+let local_clients = ref []
 
 let group_id = ref Md4.null
 
@@ -113,3 +148,8 @@ let remove_client client sock msg =
   ()
 
 *)
+
+let udp_sock = ref (None: UdpSocket.t option)
+
+let notifications = Hashtbl.create 13
+  

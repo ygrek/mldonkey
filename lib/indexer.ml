@@ -17,14 +17,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-  
+(* We need another indexer that would be able to compute lazily
+the results of a search, as in Haskell. We would return the first 200
+hits, then compute the other ones only if the client asks for. *)
+
+let max_search_results = 1000
+
 type 'a query =
   And of 'a query * 'a query
 | Or of 'a query * 'a query
 | AndNot of 'a query * 'a query
 | HasWord of string
 | HasField of int * string
-| Predicate of ('a -> bool)
+(*
+| HasMinField of int * int32
+| HasMaxField of int * int32
+*)
+| Predicate of ('a -> bool) 
 
 
 module type Doc = sig
@@ -43,7 +52,11 @@ module type Index = sig
     val or_get_fields : doc Intmap.t ref -> node -> int -> doc Intmap.t
     val find : index -> string -> node
     val and_get_fields : node -> int -> doc Intmap.t -> doc Intmap.t
-  
+    val size : node -> int
+(* 
+val min_field : int -> int32 -> doc Intmap.t
+val max_field : int -> int32 -> doc Intmap.t
+*)  
   end
 
 
@@ -111,7 +124,7 @@ module QueryMake(Index: Index) = struct
             new_map := Intmap.add num doc !new_map) map;
       !new_map
     
-    let rec query idx q =
+    let rec query_map idx q =
       try
         match q with
         | HasWord s -> 
@@ -122,13 +135,13 @@ module QueryMake(Index: Index) = struct
             get_fields tree fields
         | And ((Predicate _) as q2, q1) 
         | And (q1, q2) ->
-            let map = query idx q1 in
+            let map = query_map idx q1 in
             and_query idx q2 map
         | Or (q1, q2) -> 
-            let map = query idx q1 in
+            let map = query_map idx q1 in
             or_query idx q2 map
         | AndNot (q1, q2) -> 
-            let map = query idx q1 in
+            let map = query_map idx q1 in
             andnot_query idx q2 map
         | Predicate f -> 
             Intmap.empty
@@ -156,35 +169,35 @@ module QueryMake(Index: Index) = struct
             andnot_query idx q2 map
         | Predicate f ->
             purge_map f map
-            
+      
       with _ -> Intmap.empty
-          
+    
     and  or_query idx q map =
       try
-      match q with
-      | HasWord s -> 
-          let tree = find idx s in
-          or_get_fields (ref map) tree (-1)
-      | HasField (fields, s) -> 
-          let tree = find idx s in
-          or_get_fields (ref map) tree fields
-      | And (Predicate _ as q2, q1) 
-      | And (q1, q2) -> 
-          let map_and = query idx q1 in
-          let map_and = and_query idx q2 map_and in
-          merge_maps map map_and
-      | Or (q1, q2) -> 
-          let map = or_query idx q1 map in
-          or_query idx q2 map
-      | AndNot (q1, q2) -> 
-          let map_andnot = query idx q1 in
-          let map_andnot = andnot_query idx q2 map_andnot in
-          merge_maps map map_andnot
-      | Predicate f -> 
+        match q with
+        | HasWord s -> 
+            let tree = find idx s in
+            or_get_fields (ref map) tree (-1)
+        | HasField (fields, s) -> 
+            let tree = find idx s in
+            or_get_fields (ref map) tree fields
+        | And (Predicate _ as q2, q1) 
+        | And (q1, q2) -> 
+            let map_and = query_map idx q1 in
+            let map_and = and_query idx q2 map_and in
+            merge_maps map map_and
+        | Or (q1, q2) -> 
+            let map = or_query idx q1 map in
+            or_query idx q2 map
+        | AndNot (q1, q2) -> 
+            let map_andnot = query_map idx q1 in
+            let map_andnot = andnot_query idx q2 map_andnot in
+            merge_maps map map_andnot
+        | Predicate f -> 
             map
-
+      
       with _ -> Intmap.empty
-          
+    
     and andnot_query idx q map =
       match q with
       | HasWord s -> 
@@ -197,7 +210,7 @@ module QueryMake(Index: Index) = struct
           substract_map map map_not
       | And (Predicate _ as q2, q1)
       | And (q1, q2) -> 
-          let map_not = query idx q1 in
+          let map_not = query_map idx q1 in
           let map_not = and_query idx q2 map_not in
           substract_map map map_not
       | Or(q, Predicate f)
@@ -205,37 +218,42 @@ module QueryMake(Index: Index) = struct
           let map = purge_map f map in
           andnot_query idx q map
       | Or (q1, q2) -> 
-          let map_not = query idx q1 in
+          let map_not = query_map idx q1 in
           let map = substract_map map map_not in
-          let map_not = query idx q2 in
+          let map_not = query_map idx q2 in
           substract_map map map_not
       | AndNot (q1, q2) -> 
-          let map_not = query idx q1 in
+          let map_not = query_map idx q1 in
           let map_not = andnot_query idx q2 map_not in
           substract_map map map_not          
       | Predicate f ->          
           purge_map (fun x -> not (f x)) map
-
-          
+    
+    let exit_exn= Exit
+  
     let query idx q =
-      let map = query idx q in
+      let map = query_map idx q in
       let count = ref 0 in
       let ele = ref None in
       Intmap.iter (fun num doc ->
           incr count;
           if !count = 1 then ele := Some doc
       ) map;
+      
       match !ele with
         None -> [||] 
       | Some doc ->
-      let array = Array.create !count doc in
-      count := 0;
-      Intmap.iter (fun num doc ->
-          array.(!count) <- doc;
-          incr count;
-      ) map;
-      array
-      
+          let max_docs = min !count max_search_results in
+          let array = Array.create max_docs doc in
+          count := 0;
+          (try
+              Intmap.iter (fun num doc ->
+                  if !count = max_docs then raise exit_exn;
+                  array.(!count) <- doc;
+                  incr count;
+              ) map;
+            with _ -> ());
+          array
           
   end
   
@@ -257,6 +275,7 @@ module type Make = functor (Doc: Doc) ->
     val or_get_fields : Doc.t Intmap.t ref -> node -> int -> Doc.t Intmap.t
     val find : index -> string -> node
     val and_get_fields : node -> int -> Doc.t Intmap.t -> Doc.t Intmap.t
+    val size : node -> int  
 
   end
 
@@ -269,6 +288,7 @@ module FullMake (Doc : Doc)(Make:Make) =
       type index = Index.index
       
       let query = Query.query
+      let query_map = Query.query_map
       let filtered = Index.filtered
       let clear_filter = Index.clear_filter
       let filter_words = Index.filter_words

@@ -83,8 +83,10 @@ let write t s pos len addr =
         begin
           let sock = sock t in
           try
-            ignore (
-              Unix.sendto (fd sock) s pos len [] addr);
+          
+
+            let code = Unix.sendto (fd sock) s pos len [] addr in
+	    ()
             (*
             Printf.printf "UDP sent [%s]" (String.escaped
               (String.sub s pos len)); print_newline ();
@@ -94,11 +96,11 @@ let write t s pos len addr =
               t.wlist <- {
                 content = String.sub s  pos len;
                 addr = addr;
-                } :: t.wlist;
-              must_write sock true;              
+              } :: t.wlist;
+              must_write sock true;
           | e ->
               Printf.printf "Exception %s in sendto"
-                (Printexc.to_string e);
+              (Printexc.to_string e);
               print_newline ();
               raise e
         end

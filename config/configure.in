@@ -217,10 +217,20 @@ AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
 if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
+  AC_MSG_CHECKING(Checking for native code lablgtk)
   if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+     AC_MSG_RESULT(yes)
      LABLGTK_CONFIG=yes
   else
+     AC_MSG_RESULT(no)
      LABLGTK_CONFIG=no
+     if test -f `$OCAMLC -where`/lablgtk/lablgtk.cma; then
+       echo "--------------------------------"
+       echo "Lablgtk is not installed properly. See the INSTALL.txt"
+       echo "file of mldonkey to see how to compile lablgtk. You"
+       echo "probably forgot to call 'make opt' before 'make install'."
+       echo "--------------------------------"
+     fi
   fi
 fi
 

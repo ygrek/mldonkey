@@ -17,13 +17,26 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open CommonTypes
 open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
 open Mftp_comm
+
   
+let (store : tagged_file Store.t) = 
+  Store.create (Filename.concat file_basedir "server_store")
+  
+module Document = struct
+    type t = Store.index
+      
+    let num t = Store.index t
+    let filtered t = Store.get_attrib store t
+    let filter t bool = Store.set_attrib store t bool
+  end
+
 type replies =  {
     mutable docs : Store.index array;
     mutable next_doc : int;
@@ -57,17 +70,27 @@ and client = {
     mutable client_tags: CommonTypes.tag list;
     mutable client_location : location;
     mutable client_results : replies;
+    mutable client_subscriptions : subscription list;
   }
 
 and client_kind =
   Firewalled_client
 | KnownLocation of Ip.t * int
-  
-type server = {
-    server_ip : Ip.t;
-    server_port : int;
+
+  (*
+type known_server = {
+    known_server_ip : Ip.t;
+    known_server_port : int;
     last_message : float;
 }
+    *)
+
+and subscription = {
+    notif_client : client;
+    notif_num : int;
+    notif_query : Store.index Indexer.query;
+    mutable notif_docs : Document.t Intmap.t;
+  }
 
 type notification = {
   add : bool;
@@ -76,24 +99,38 @@ type notification = {
   source_port : int;
 }
 
-
-type peer = {
-    mutable group_id : Md4.t;
-    mutable peer_master : bool;
-    mutable peer_id : int;
-    mutable peer_md4 : Md4.t;
-    mutable peer_ip : Ip.t;
-    mutable peer_port : int;
-    mutable peer_need_recovery : bool;
-    mutable peer_sock : TcpBufferedSocket.t option;
-    mutable peer_notifications : notification list;
-    mutable peer_clients : (Ip.t,Ip.t) Hashtbl.t;
-    mutable peer_tags : CommonTypes.tag list;
+type server = { 
+    mutable server_id : int;
+    mutable server_group_id : Md4.t;
+    mutable server_master : bool;
+    mutable server_md4 : Md4.t;
+    mutable server_ip : Ip.t;
+    mutable server_port : int;
+    mutable server_need_recovery : bool;
+    mutable server_sock : TcpBufferedSocket.t option;
+    mutable server_notifications : notification list;
+    mutable server_clients : (Ip.t,Ip.t) Hashtbl.t;
+    mutable server_tags : CommonTypes.tag list;
   }
   
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey:server"
+
+type remote_client = {
+    mutable remote_client_local_id : Ip.t; 
+    mutable remote_client_server: int;
+    mutable remote_client_md4 : Md4.t;
+    mutable remote_client_kind : client_kind;
+    mutable remote_client_files : Md4.t list;
+}
+
+
+
+type global_client = 
+  LocalClient of client
+| RemoteClient of remote_client
+
 
 
 (*

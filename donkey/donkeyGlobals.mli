@@ -47,11 +47,11 @@ val sleeping : bool ref
 val upload_credit : int ref
 val has_upload : int ref
 val remaining_time_for_clients : int ref
-val download_counter : int ref
-val upload_counter : int ref
 val download_credit : int ref
-val nshared_files :  int ref
 val udp_sock : UdpSocket.t option ref
+val listen_sock : TcpServerSocket.t option ref
+val reversed_sock : TcpServerSocket.t option ref
+  
 val last_xs : int ref
 val nservers : int ref
 val queue_timeout : float ref
@@ -69,7 +69,7 @@ val local_searches : DonkeyTypes.local_search list ref
 (* servers *)
 val servers_list : DonkeyTypes.server list ref  
 val udp_servers_list : DonkeyTypes.server list ref
-val servers_by_key : (Ip.t * int, DonkeyTypes.server) Hashtbl2.t
+val servers_by_key : (Ip.t * int, DonkeyTypes.server) Hashtbl.t
 val udp_servers_replies : (Md4.t, DonkeyTypes.server) Hashtbl.t
 
 (* clients *)

@@ -163,24 +163,54 @@ let send_search search query =
   local_search search        
 
   
+let send_subscribe search query =
+  last_xs := search.search_search.search_num;
+  let module M = Mftp_server in
+  let module Q = M.Query in
+  List.iter (fun s ->
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          if s.server_mldonkey then
+            direct_server_send sock (
+              M.Mldonkey_SubscribeReq (search.search_search.search_num, query))
+          else begin
+              direct_server_send sock (M.QueryReq query);
+              Fifo.put s.server_search_queries 
+                { nhits = 0; search = search }
+            end
+  ) (connected_servers());
+  make_xs search;
+  local_search search        
+
+  
 let new_search search =
   search.search_waiting <- search.search_waiting +
   List.length (connected_servers());
 
   {
     search_search = search;
-    search_max_hits = 200;
     search_handler = (fun _ -> ());
     search_xs_servers = Hashtbl2.to_list servers_by_key;
   }
 
             
 let _ =
-  network.op_network_search <- (fun search buf ->
+  network.op_network_search <- (fun ss buf ->
       Printf.printf "SEARCH ON DONKEY"; print_newline ();
-      let search = new_search search in
+      let search = new_search ss in
       let query = search.search_search.search_query in
-      local_searches := search :: !local_searches;  
-      send_search search query;
-      Printf.bprintf buf "Query %d Sent to %d\n"
-        search.search_search.search_num (List.length (connected_servers()))  )
+      local_searches := search :: !local_searches;
+      match ss.search_type with
+        RemoteSearch ->
+          send_search search query;
+          Printf.bprintf buf "Query %d Sent to %d\n"
+            ss.search_num (List.length (connected_servers()))
+      | LocalSearch ->
+          Printf.printf "LOCAL SEARCH"; print_newline ();
+          DonkeyIndexer.find ss;
+      | SubscribeSearch ->
+          send_subscribe search query;
+          Printf.bprintf buf "Query %d Sent to %d\n"
+            search.search_search.search_num (List.length (connected_servers()))
+  )

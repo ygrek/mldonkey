@@ -112,6 +112,8 @@ class box columns () =
 
     method set_tb_style = wtool#set_style
 
+    method clear = self#update_data []
+
     initializer
       box#vbox#pack ~expand: true pl#box ;
       ignore

@@ -28,11 +28,12 @@ open SlskOptions
 
 
 let disable enabler () =
-  enabler := false
+  enabler := false;
   (*
   List.iter (fun s -> disconnect_server s) !connected_servers;
   List.iter (fun file -> ()) !current_files
 *)
+  if !!enable_directconnect then enable_directconnect =:= false
   
 let enable () =
 

@@ -477,6 +477,8 @@ print_newline ();
       in
       iter tree;
       !map
+      
+    let size node = 0
   end
   
   

@@ -36,7 +36,6 @@ open DonkeyGlobals
 let must_share_file file =
   if not file.file_shared then begin
       file.file_shared <- true;
-      incr nshared_files;
       new_shared := file :: !new_shared
     end
 
@@ -81,10 +80,10 @@ let new_file_to_share sh =
       sh.sh_name; print_newline () 
 
 (* Computes tags for shared files *)
-let make_tagged files =
+let make_tagged sock files =
   (List2.tail_map (fun file ->
         { f_md4 = file.file_md4;
-          f_ip = !!client_ip;
+          f_ip = client_ip sock;
           f_port = !client_port;
           f_tags = 
           { tag_name = "filename";
@@ -136,8 +135,6 @@ let all_shared () =
 let check_shared_files () =
   if !new_shared != [] then
     begin
-      let msg = (Mftp_server.ShareReq
-            (make_tagged (all_shared ()))) in
       new_shared := [];
       let socks = ref [] in
       List.iter (fun s ->
@@ -145,6 +142,10 @@ let check_shared_files () =
             None -> ()
           | Some sock ->
               socks := sock :: !socks) (connected_servers ());
+      let msg = (Mftp_server.ShareReq
+            (make_tagged (match !socks with
+                [] -> None
+              | sock :: _ -> Some sock) (all_shared ()))) in
       direct_servers_send !socks msg;
     end;
   

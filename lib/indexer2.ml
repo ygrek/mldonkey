@@ -45,6 +45,7 @@ module Make(Doc : sig
         mutable next_doc : int;
         mutable docs : Doc.t array;
         mutable fields : int array;
+        mutable ndocs : int;
         
         mutable nodes : filtered_node array;
       }
@@ -58,6 +59,7 @@ module Make(Doc : sig
         docs  = [||];
         fields = [||];
         nodes = [||];
+        ndocs = 0;
       }
     
     let empty = new_node ()
@@ -91,8 +93,11 @@ module Make(Doc : sig
           end;
         node.docs.(pos) <- doc;
         node.fields.(pos) <- fields;
-        node.next_doc <- pos +1
-      with _ -> ()
+        node.next_doc <- pos +1;
+        node.ndocs <- node.ndocs + 1;
+        true
+      with _ -> 
+          false
 (* ; Printf.printf "done"; print_newline () *)
     
     let add_char node c = 
@@ -116,7 +121,10 @@ module Make(Doc : sig
         let len = String.length string in
         let rec iter pos node = 
           if pos = len then
-            add_doc node doc fields
+            if add_doc node doc fields then begin
+                node.ndocs <- node.ndocs + 1;
+                true
+              end else false
           else
           let c = string.[pos] in
           let c = convert_char c in
@@ -134,7 +142,7 @@ module Make(Doc : sig
           in
           iter (pos+1) node
         in
-        iter 0 index.node
+        ignore (iter 0 index.node)
       with _ -> ()
 (* ; Printf.printf "done"; print_newline ()  *)
     
@@ -282,6 +290,8 @@ module Make(Doc : sig
         done;
       in iter node;
       !map
+      
+    let size node = node.ndocs
   end
   
   

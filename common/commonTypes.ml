@@ -138,6 +138,11 @@ type room_message =
 | PublicMessage of int * string
 | PrivateMessage of int * string
 
+type search_type = 
+  RemoteSearch
+| LocalSearch
+| SubscribeSearch
+
 type network_info = {
     network_netname : string;
     network_netnum : int;
@@ -182,6 +187,7 @@ type network = {
 and search = {
     search_num : int;
     mutable search_max_hits : int; (* total max allowed hits *)
+    mutable search_type : search_type;
     mutable search_query : query;
     mutable search_nresults : int;
     mutable search_results : (int ref * result) Intmap.t;

@@ -188,6 +188,8 @@ class box columns users =
     
     method set_tb_style = wtool#set_style
 
+    method clear = self#update_data []
+
 (** {2 Handling core messages} *)
     
     method update_server s s_new row =
@@ -305,15 +307,11 @@ class box columns users =
     method h_server_state num state =
       try
         let (row, serv) = self#find_server num in
-        (
-          match Mi.is_connected state, Mi.is_connected serv.server_state with
-            true, false -> incr G.nconnected_servers
-          | false, true -> decr G.nconnected_servers
-          | _ -> ()
-        );
-        self#update_server serv { serv with server_state = state } row;
+        self#h_server_info { serv with server_state = state }
+        
       with
-        Not_found -> ()
+        Not_found -> Gui_com.send (GetServer_info num)
+          
     
     method h_server_busy num nusers nfiles =
       try
@@ -427,6 +425,10 @@ class pane_servers () =
     method set_tb_style st = 
       users#set_tb_style st ;
       servers#set_tb_style st
+
+    method clear =
+      servers#clear ;
+      users#clear ;
 
     (** {2 Handling core messages} *)
 

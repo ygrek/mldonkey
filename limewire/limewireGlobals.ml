@@ -38,6 +38,8 @@ let file_fd file = file.file_file.impl_file_fd
 module DO = CommonOptions
 
 let current_files = ref ([] : LimewireTypes.file list)
+
+let listen_sock = ref (None : TcpServerSocket.t option)
   
 let connected_servers = ref ([] : server list)
 let servers_by_key = Hashtbl.create 103

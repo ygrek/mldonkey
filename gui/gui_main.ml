@@ -114,9 +114,7 @@ let canon_client gui c =
       if is_in_locations then
         gui#tab_downloads#h_update_location c;
       
-      if c.client_files <> None then begin
-          cc.client_files <- c.client_files;
-        end;
+      if c.client_files <> None then  cc.client_files <- c.client_files;
       cc.client_state <- c.client_state;
       begin
         if c.client_type <> cc.client_type then begin
@@ -124,18 +122,25 @@ let canon_client gui c =
             | NormalClient, _ ->
                 box_friends#h_remove_friend c.client_num
             | _  ->
-                box_friends#h_update_friend c
+                box_friends#h_update_friend cc
           end
       end;
+      
       cc.client_type <- c.client_type;
       cc.client_rating <- c.client_rating;
       cc.client_name <- c.client_name;
-
+      
       cc.client_kind <- c.client_kind;
       cc.client_tags <- c.client_tags;
+      begin
+        match c.client_type with
+          NormalClient -> ()
+        | _ -> box_friends#h_update_friend cc;
+      end;
       
       cc
     with _ ->
+(*        Printf.printf "Adding client %d" c.client_num; print_newline (); *)
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with
@@ -150,8 +155,8 @@ let value_reader gui t sock =
   try
     match t with
     | Console text ->
-	gui#tab_console#insert text
-
+        gui#tab_console#insert text
+    
     | Network_info n ->
         begin
           try
@@ -166,7 +171,7 @@ let value_reader gui t sock =
               in
               let network_menu_item =
                 GMenu.check_menu_item ~label: n.network_netname 
-                ~active:n.network_enabled
+                  ~active:n.network_enabled
                   ~packing:gui#menu_networks#add ()
               in
               let nn = {
@@ -188,14 +193,16 @@ let value_reader gui t sock =
                       else nn.net_num :: !networks_filtered);
                     gui#tab_servers#h_server_filter_networks;
                     gui#tab_queries#h_search_filter_networks;
-              ));
+                ));
               Hashtbl.add Gui_global.networks n.network_netnum nn;
               ()
         end
-        
+    
     | Client_stats s ->
-        gui#label_upload_status#set_text s
-        
+        gui#label_upload_status#set_text 
+          (Printf.sprintf "Upload %d/%s" 
+            s.nshared_files (Int64.to_string s.upload_counter))
+    
     | CoreProtocol v -> 
         
         Gui_com.gui_protocol_used := min v best_gui_version;
@@ -203,42 +210,55 @@ let value_reader gui t sock =
         print_newline ();
         gui#label_connect_status#set_text M.connected;
         Com.send (Password (!!O.password))
- 
+    
     | Search_result (num,r) -> 
         begin try
-          let r = Hashtbl.find G.results r in
+            let r = Hashtbl.find G.results r in
             gui#tab_queries#h_search_result num r
           with _ -> 
               Printf.printf "Exception in Search_result %d %d" num r;
               print_newline ();
         end
-
+    
     | Search_waiting (num,waiting) -> 
-	gui#tab_queries#h_search_waiting num waiting
-
+        gui#tab_queries#h_search_waiting num waiting
+    
     | File_source (num, src) -> 
-	gui#tab_downloads#h_file_location num src
-
-     | File_downloaded (num, downloaded, rate) ->
-	gui#tab_downloads#h_file_downloaded num downloaded rate
-      
+        gui#tab_downloads#h_file_location num src
+    
+    | File_downloaded (num, downloaded, rate) ->
+        gui#tab_downloads#h_file_downloaded num downloaded rate
+    
     | File_availability (num, chunks, avail) ->
-	gui#tab_downloads#h_file_availability num chunks avail;
-
+        gui#tab_downloads#h_file_availability num chunks avail;
+    
     | File_info f ->
 (*        Printf.printf "FILE INFO"; print_newline (); *)
-	gui#tab_downloads#h_file_info f;
-            
+        gui#tab_downloads#h_file_info f;
+        gui#update_downloaded_label
+    
+    
     | Server_info s ->
+(*        Printf.printf "server info"; print_newline (); *)
+
+(* From mldonkey: 
+  Why do you call gui#update_server_label after all updates ????? Is this
+really necessary ??? For me, the only reason I see is that the object
+architecture prevents you from accessing gui#update_server_label from
+inside gui#tab_servers. It's uggly. Since there is only one tab_servers, there
+is clearly no need for objects. I continue to think that the objects in
+the GUI make it slower, hard to understand and uggly to program. 
+There is the same problem with the update_downloaded_label ... *)
+        
         gui#tab_servers#h_server_info s;
         gui#update_server_label
     
     | Server_state (key,state) ->
         gui#tab_servers#h_server_state key state ;
         gui#update_server_label 
-   
+    
     | Server_busy (key,nusers, nfiles) ->
-	gui#tab_servers#h_server_busy key nusers nfiles ;
+        gui#tab_servers#h_server_busy key nusers nfiles ;
         gui#update_server_label 
     
     | Server_user (key, user) ->
@@ -250,12 +270,12 @@ let value_reader gui t sock =
             gui#tab_servers#h_server_user key user;
             gui#update_server_label 
           end
-
+    
     | Room_info room ->
 (*        Printf.printf "Room info %d" room.room_num; print_newline (); *)
         let wnote = (gui#wnote_rooms :> GPack.notebook) in
         Gui_rooms.room_info wnote room
-          
+    
     | User_info user ->
         let user = try 
             let u = Hashtbl.find G.users user.user_num  in
@@ -269,7 +289,7 @@ let value_reader gui t sock =
         gui#tab_servers#h_server_user user.user_server user.user_num;
         Gui_rooms.user_info user;
         gui#update_server_label
-
+    
     | Room_user (num, user_num) -> 
         
         begin try
@@ -278,15 +298,15 @@ let value_reader gui t sock =
               Printf.printf "Exception in Room_user %d %d" num user_num;
               print_newline ();
         end
-
+    
     | Room_message (num, msg) ->
         begin try
             Gui_rooms.add_room_message num msg
-                  with e ->
+          with e ->
               Printf.printf "Exception in Room_message %d" num;
               print_newline ();
         end
-        
+    
     | Options_info list ->
 (*        Printf.printf "Options_info"; print_newline ();*)
         let rec iter list =
@@ -294,46 +314,46 @@ let value_reader gui t sock =
             [] -> ()
           | (name, value) :: tail ->
               (
-               try
-                 let reference = 
-		   List.assoc name Gui_options.client_options_assocs 
-		 in
-                 reference := value
-               with _ -> 
-                 ()
-	      );
+                try
+                  let reference = 
+                    List.assoc name Gui_options.client_options_assocs 
+                  in
+                  reference := value
+                with _ -> 
+                    ()
+              );
               iter tail
         in
         iter list
-
+    
     | DefineSearches l ->
-	gui#tab_queries#h_define_searches l
-        
+        gui#tab_queries#h_define_searches l
+    
     | Client_state (num, state) ->
 (*
 	Printf.printf "Client_state" ; print_newline ();
 *)
-	(
-         try
-           let c = Hashtbl.find G.locations num in
-           ignore (canon_client gui { c with client_state = state })
-         with _ -> 
-           Com.send (GetClient_info num)
-	)
-
+        (
+          try
+            let c = Hashtbl.find G.locations num in
+            ignore (canon_client gui { c with client_state = state })
+          with _ -> 
+              Com.send (GetClient_info num)
+        )
+    
     | Client_friend (num, friend_kind) ->
         (
-	 try
-           let c = Hashtbl.find G.locations num in
-           ignore (canon_client gui { c with client_type = friend_kind });
-         with _ -> 
-           Com.send (GetClient_info num)
-	)
-
+          try
+            let c = Hashtbl.find G.locations num in
+            ignore (canon_client gui { c with client_type = friend_kind });
+          with _ -> 
+              Com.send (GetClient_info num)
+        )
+    
     | Result_info r ->
         if not (Hashtbl.mem G.results r.result_num) then
           Hashtbl.add G.results r.result_num r
-        
+    
     | Client_file (num , dirname, file_num) ->
 (* Here, the dirname is forgotten: it should be used to build a tree
   when possible... *)
@@ -343,17 +363,26 @@ let value_reader gui t sock =
             let file = Hashtbl.find G.results file_num in
             try
               let c = Hashtbl.find G.locations num in
-              let files = match c.client_files with
-                  None -> [file]
-                | Some files -> 
-                    if List.memq file files then raise Exit;
-                    file :: files
-              in
-              ignore (canon_client gui
-                  { c with client_files = Some files });
+              try
+                let files = match c.client_files with
+                    None -> [file]
+                  | Some files -> 
+                      if List.memq file files then raise Exit;
+                      file :: files
+                in
+(*                Printf.printf "canon_client %d" num; print_newline (); *)
+                ignore (canon_client gui
+                    { c with client_files = Some files });
+              with _ ->
+(*                  Printf.printf "File already there"; print_newline (); *)
+                  ()
             with _ ->
+(*                Printf.printf "Unknown client %d" num; print_newline (); *)
                 Com.send (GetClient_info num);
-          with _ ->  ()
+          with _ ->  
+(*              Printf.printf "Unknown file %d" file_num;
+              print_newline (); *)
+              ()
 	)
 
     | Client_info c -> 
@@ -388,14 +417,13 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
       Printf.printf "Exception %s in reader" (Printexc.to_string e);
       print_newline ()
 
-
 let main () =
   let gui = new Gui_window.window () in
   let w = gui#window in
   let quit () = 
     (try
         Gui_misc.save_gui_options gui;
-        Gui_com.disconnect ();
+        Gui_com.disconnect gui;
       with _ -> ());
     exit 0
   in
@@ -408,7 +436,7 @@ let main () =
   ignore (gui#itemReconnect#connect#activate 
 	    (fun () ->Com.reconnect gui (value_reader gui)));
   ignore (gui#itemDisconnect#connect#activate 
-	    (fun () -> Com.disconnect ()));
+	    (fun () -> Com.disconnect gui));
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
   ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 1));
   ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));

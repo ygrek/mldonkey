@@ -78,7 +78,8 @@ let adds md4 new_sources =
       Hashtbl.replace files_by_md4 md4 !liste 
   with _ -> 
     let module LI = ServerMessages.LocalisationInit in
-    Hashtbl.add files_by_md4 md4 (List.map (fun x -> 
+      Hashtbl.add files_by_md4 md4 
+      (List2.tail_map (fun x -> 
 					      { 
 						loc_ip = x.LI.source_ip;
 						loc_port = x.LI.source_port;
@@ -90,7 +91,7 @@ let adds md4 new_sources =
   
 
 let notifications md4 sources = 
-  let module LN = ServerMessages.LocalisationNotif in
+  let module LN = ServerMessages.LocateNotif in
     try
       let liste = ref (Hashtbl.find files_by_md4 md4) in
 	List.iter (fun source -> 

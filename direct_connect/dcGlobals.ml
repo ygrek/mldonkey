@@ -37,14 +37,16 @@ open DcOptions
 module DO = CommonOptions
   
 let nservers = ref 0
-        
+
+  
+let listen_sock = ref (None : TcpServerSocket.t option)
+
 let servers_list = ref ([] : server list) 
 let connected_servers = ref ([]: server list)
 let servers_by_addr = Hashtbl.create 100
 let nknown_servers = ref 0  
   
 let shared_files = Hashtbl.create 13
-let shared_total = ref 0.0
 
 let users_by_name = Hashtbl.create 113
     
@@ -101,18 +103,16 @@ let rec add_shared_file node sh dir_list =
 let add_shared s =
   let full_name = shared_fullname s in
   let codedname = shared_codedname s in
-  let size = Unix32.getsize32 full_name in
   let sh = {
       shared_fullname = full_name;
       shared_codedname = codedname;
-      shared_size = size;
+      shared_size = (as_shared_impl s).impl_shared_size;
       shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o666;
     } in
   set_shared_ops s sh shared_ops;
   Hashtbl.add shared_files codedname sh;
   add_shared_file shared_tree sh (String2.split codedname '/');
-  shared_total :=  !shared_total +. (Int32.to_float size);
-  Printf.printf "Total shared : %f" !shared_total;
+  Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
   print_newline () 
   
   

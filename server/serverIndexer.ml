@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open ServerTypes
 open CommonOptions
 open CommonTypes
 open Unix
@@ -35,16 +36,6 @@ type tagged_file =  {
   }
 
     *)
-
-let store = Store.create (Filename.concat file_basedir "server_store")
-  
-module Document = struct
-    type t = Store.index
-      
-    let num t = Store.index t
-    let filtered t = Store.get_attrib store t
-    let filter t bool = Store.set_attrib store t bool
-  end
   
 module DocIndexer = Indexer2.FullMake(Document)
   
@@ -121,6 +112,28 @@ let rec query_to_query t =
   | QAndNot (q1,q2) -> Indexer.AndNot (query_to_query q1, query_to_query q2)
   | QHasWord w -> Indexer.HasWord w
   | QHasField (field, w) -> Indexer.HasField(bit_of_field field, w)
+  | QHasMinVal (field, minval) -> 
+      Indexer.Predicate (fun index -> 
+          let f = Store.get store index in
+          List.exists (fun tag ->
+              tag.tag_name = field &&
+              match tag.tag_value with
+                Uint32 v | Fint32 v -> v > minval
+              | _ -> false
+          ) f.f_tags
+      )      
+  | QHasMaxVal (field, maxval) -> 
+      Indexer.Predicate (fun index -> 
+          let f = Store.get store index in
+          List.exists (fun tag ->
+              tag.tag_name = field &&
+              match tag.tag_value with
+                Uint32 v | Fint32 v -> v < maxval
+              | _ -> false
+          ) f.f_tags
+      )      
+    
+      
   | _ -> failwith "Query not implemented by server"
       
 (*
@@ -158,7 +171,11 @@ let add file =
       let doc = Store.add store file in
       Hashtbl.add table file.f_md4 doc;
       index_file doc file;
-      ()      
+      ()   
+
+let get_def file_md4 =
+  let doc = Hashtbl.find table file_md4 in
+    (Store.get store doc)
         
 let find query = 
   let docs = DocIndexer.query index query in
@@ -166,6 +183,10 @@ let find query =
     docs = docs;
     next_doc = 0;
   }
+        
+let find_map query = 
+  DocIndexer.query_map index query
+
   
 let get docs num = 
   let len = Array.length docs.docs in

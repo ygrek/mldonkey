@@ -39,6 +39,7 @@ type server = {
     mutable server_next_udp : float;
     mutable server_master : bool;
     mutable server_mldonkey : bool;
+    mutable server_last_message : float; (* used only by mldonkey server *)
   } 
 
 
@@ -59,7 +60,6 @@ and server_search = {
   
 and local_search = {
     search_search : CommonTypes.search;
-    mutable search_max_hits : int;
     mutable search_handler : (search_event -> unit);
     mutable search_xs_servers : server list;
   }
@@ -71,7 +71,7 @@ and result = {
   }
   
 and search_event =
-  Result of result
+(*  Result of result *)
 | Waiting of int
   
 and file_change_kind = 

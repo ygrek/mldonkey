@@ -266,16 +266,17 @@ class box submit_search query_entry =
   object(self)
     inherit Gui_queries_base.box () 
 	
-    method submit ?(local=false) () = 
+    method submit ?(local=RemoteSearch) () = 
       let qe = entry_of_form form in
       let max_hits =
 	try int_of_string we_max_hits#text
 	with _ -> 200
       in
-      let search = Gui_misc.create_search qe max_hits in
-      submit_search local search
+      let search = Gui_misc.create_search qe max_hits local in
+      submit_search search
 
-    method local () = self#submit ~local: true ()
+    method local () = self#submit ~local: LocalSearch ()
+    method subscribe () = self#submit ~local: SubscribeSearch ()
 
     method set_tb_style st = 
       wtool#set_style st;
@@ -302,6 +303,16 @@ class box submit_search query_entry =
 	   ()
 	);
       
+      
+      ignore
+	(wtool#insert_button 
+	   ~text: M.subscribe
+	   ~tooltip: M.subscribe
+	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
+	   ~callback: self#subscribe
+	   ()
+	);
+      
   end
 
 
@@ -319,6 +330,12 @@ class paned () =
     method set_wnote_results w = wnote_results <- w
     method set_wnote_main w = wnote_main <- w
 
+    method clear = 
+      List.iter wnote_queries#remove wnote_queries#children;
+      queries_box <- [];
+      results <- [] ;
+
+
     method close_query num () =
       try
 	let (box_res, vb) = List.assoc num results in
@@ -329,8 +346,8 @@ class paned () =
 	Not_found ->
 	  ()
 
-    method submit_search local (s : search_request) =
-      Gui_com.send (Gui_proto.Search_query (local, s));
+    method submit_search s =
+      Gui_com.send (Gui_proto.Search_query (s));
       let desc = Gui_misc.description_of_query s.Gui_proto.search_query in
       let wl = GMisc.label ~text: desc () in
       let vbox = GPack.vbox () in

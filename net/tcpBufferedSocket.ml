@@ -704,6 +704,7 @@ let can_fill t =
   t.wbuf.len < (t.wbuf.max_buf_size / 2)
   
 let if_possible bc len = 
+  bc.total_bytes = 0 ||
   if bc.last_remaining >= len then begin
       bc.last_remaining <- bc.last_remaining - len;
       true;

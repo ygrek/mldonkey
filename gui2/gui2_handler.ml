@@ -971,30 +971,32 @@ let update_file f =
           f.file_sources <- Some (List2.tail_map canon_client sources)
 end;
   *)
-  match f.file_state with
-    FileCancelled | FileShared ->
-      MyCList.remove clist_downloads f.file_num 
-  | FileDownloaded ->
-      begin
-        (try MyCList.remove clist_downloads f.file_num  with _ -> ());
+    match f.file_state with
+      FileCancelled ->
+        MyCList.remove clist_downloads f.file_num 
+    | FileShared ->
+        MyCList.remove clist_downloaded f.file_num 
+    | FileDownloaded ->
+        begin
+          (try MyCList.remove clist_downloads f.file_num  with _ -> ());
+          (try
+              MyCList.set_value clist_downloaded f.file_num f        
+            with _ ->
+                MyCList.add clist_downloaded f.file_num f
+          )
+        end
+    | _ ->
         (try
-            MyCList.set_value clist_downloaded f.file_num f        
+            MyCList.set_value clist_downloads f.file_num f        
           with _ ->
-              MyCList.add clist_downloaded f.file_num f
-        )
-      end
-  | _ ->
-      (try
-          MyCList.set_value clist_downloads f.file_num f        
-        with _ ->
               MyCList.add clist_downloads f.file_num f;
               gui_send (GetFile_locations f.file_num)              
-      )
+        )
   with e ->
       Printf.printf "Exception %s in update file %s"
         (Printexc.to_string e) (Md4.to_string f.file_md4);
       print_newline () 
-
+      
 let value_reader (gui: gui) t sock =
   try
     let module P = Gui_proto in
@@ -1224,7 +1226,9 @@ let value_reader (gui: gui) t sock =
             (Printf.sprintf " <%s>\n" s));
       
     | Client_stats s ->
-        gui#label_upload_status#set_text s
+        gui#label_upload_status#set_text
+          (Printf.sprintf "Upload %d/%s" 
+            s.nshared_files (Int64.to_string s.upload_counter))
 
     | Room_info _
     | Room_user (_, _)

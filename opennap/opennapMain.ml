@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open OpennapClients
 open OpennapServers
 open CommonOptions
 open CommonTypes
@@ -30,8 +31,13 @@ open OpennapOptions
 
 let disable enabler () =
   enabler := false;
-  List.iter (fun s -> disconnect_server s) !connected_servers;
-  List.iter (fun file -> ()) !current_files
+  Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_addr;
+  Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_name;
+  (match !listen_sock with None -> ()
+    | Some sock -> 
+        listen_sock := None;
+        TcpServerSocket.close sock "");
+  if !!enable_opennap then enable_opennap =:= false
   
 let enable () =
 

@@ -17,6 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Hashtbl
+
+(*
 (* Hash tables *)
 
 external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
@@ -266,10 +269,14 @@ module Make(H: HashedType): (S with type key = H.t) =
     let iter = iter
     let fold = fold
   end
+  *)
 
 let to_list h =
   let list = ref [] in
   iter (fun _ s -> list := s :: !list) h;
   !list
+
+let safe_iter f h =
+  List.iter (fun x -> f x) (to_list h)
   
  

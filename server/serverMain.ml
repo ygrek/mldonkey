@@ -39,16 +39,18 @@ let enable () =
   
   if not !!enable_server then enable_server =:= true;
   
-  ignore(TcpServerSocket.create "server server"
+  ignore(TcpServerSocket.create "server client bind socket"
     Unix.inet_addr_any !!server_port ServerClients.handler);
 
-  let udp_sock = UdpSocket.create Unix.inet_addr_any (!!server_port + 4) 
+  let udp_server_sock = 
+    UdpSocket.create Unix.inet_addr_any (!!server_port + 4) 
     ServerUdp.udp_handler in
+  udp_sock := Some udp_server_sock;
   begin
     match !!seed_ip with
       None -> ()
     | Some ip ->
-        udp_send udp_sock (Unix.ADDR_INET (Ip.to_inet_addr ip,
+        udp_send udp_server_sock (Unix.ADDR_INET (Ip.to_inet_addr ip,
           !!seed_port + 4)) (
           let module M = Mftp_server in
           M.QueryServersUdpReq (
@@ -58,95 +60,68 @@ let enable () =
               Q.port = !!server_port;
             }));
     end;
+    
 
     if !!relais_cooperation_protocol then
       begin
+	ignore(TcpServerSocket.create "server group bind socket"
+		 Unix.inet_addr_any ((!!server_port)+5) ServerServer.handler);
 	if !!relais_master then
-	  ignore(TcpServerSocket.create "server group"
-		   Unix.inet_addr_any (!!server_port+2) ServerServer.handler)
+          begin
+            Printf.printf "Your server create a new group bind on %d \n" (!!server_port+5);
+            group_id := !!server_md4;
+            incr server_counter
+          end 
 	else
-	  (*join a group*)
-	  ();
-	add_infinite_option_timer notify_time_out notify_server;
+	  begin
+	    let (ip,port)= List.hd !!known_master in
+	      Printf.printf "I connect to master %s:%d\n" (Ip.to_string ip) port;  
+              ServerServer.connect_a_group();
+          end;
+        Printf.printf "Initialisation du notif time_out\n";
+	add_infinite_option_timer notify_time_out action_notify_servers;
+	add_infinite_option_timer connect_time_out action_connect_servers;
       end;
     
+
+    (*known_master =:= [(Ip.of_string "128.93.52.112",5000)];
+    Options.save_with_help server_ini;*)
+
     if !!save_log then ServerLog.initialized(); 
 
-    (*Printf.printf "COOOOOOOOOL %d\n" (List.length !!known_server); *)  
-
-    (*let t = Unix.time() in*)
-      other_servers := List.map (fun (ip,port) ->
-				   {server_ip = ip; server_port = port; last_message = Unix.time()}) !!known_server;
-   
-	
-
-    
-    (*Printf.printf "BOOOOOOOL %d\n" (List.length !other_servers);  *)
-
-    (*ServerUdp.print !other_servers;*)
-
-    (*List.iter (fun s -> server_print s stdout) !!known_servers;*)
-
-    (*let tmp = List.hd !!known_servers in
-    let (ip,port) = get_address tmp in
-      Printf.printf "yes//////\n";
-      Printf.printf "%s:%d" (Ip.to_string ip) port*)
-
-   
-	
-   
-   (* let serv  = (List.hd !!known_servers) in
-      Printf.printf "%s" serv;*)
-    
-    (*other_servers := List.map (fun serv -> serv.server_addr) !!known_servers;*)
-    
     add_infinite_option_timer send_server_stat_delay ServerClients.send_stat_to_clients;
     
-    add_infinite_option_timer save_option_delay (fun timer -> 
-				     ServerUdp.save_servers_liste();
-				     Options.save_with_help server_ini;
-    );
 
-    add_infinite_option_timer ping_knowed_servers ServerUdp.ping_servers;
+    (*add_infinite_option_timer ping_known_servers ServerUdp.ping_servers;*)
 
-    (*add_infinite_timer 15. (fun timer ->
-		      Printf.printf "SERVER STAT\n";
-		      Printf.printf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_files;
-		      Printf.printf "nb_know_alive_server:%d\n" (List.length !alive_servers);
-		      Printf.printf "nb_know_other_server:%d\n" (List.length !other_servers);
-		       Printf.printf "client_counter:%d\n" !client_counter;
-		      Printf.printf "nb udp requets:%d\n" !nb_udp_req;
-	              Printf.printf "nb udp Location:%d\n nb udp Query:%d\n " !nb_udp_loc !nb_udp_query;
-	              Printf.printf "nb tcp requets:%d\n" !nb_tcp_req;
-		      (*ServerUdp.print !alive_servers;*)
-		      Pervasives.flush Pervasives.stdout
-		
-		   );*)
+   
 
-    add_infinite_timer 5. (fun timer ->
-			     nb_udp_query_sec := !nb_udp_query_count;
+    add_infinite_timer 60. (fun timer ->
+			     nb_udp_query_sec := float !nb_udp_query_count;
 			     nb_udp_query_count := 0;
-			     nb_udp_loc_sec := !nb_udp_loc_count;
+			     nb_udp_loc_sec := float !nb_udp_loc_count;
 			     nb_udp_loc_count := 0;
-			     nb_udp_req_sec := !nb_udp_req_count;
+			     nb_udp_req_sec := float !nb_udp_req_count;
 			     nb_udp_req_count := 0;
-			     nb_tcp_req_sec := !nb_tcp_req_count;
+			     nb_tcp_req_sec := float !nb_tcp_req_count;
 			     nb_tcp_req_count := 0;
 			     
 			     
-			     nb_udp_reply_sec := !nb_udp_reply_count;
+			     nb_udp_reply_sec := float !nb_udp_reply_count;
 			     nb_udp_reply_count := 0;
 			     
 				  );
 
-    add_infinite_option_timer ping_knowed_servers (fun timer -> 
-					      nb_udp_ping_server_sec := !nb_udp_ping_server_count;
-					      nb_udp_ping_server_count := 0 
-					   );
+    add_infinite_option_timer ping_known_servers (fun timer -> 
+						    nb_udp_ping_server_sec := float !nb_udp_ping_server_count;
+						    nb_udp_ping_server_count := 0 
+						 );
 					      
 
 
-    ServerUdp.hello_world();
+  add_infinite_timer 60. ServerClients.check_notifications;
+  
+    (*ServerUdp.hello_world();*)
 
 
     Printf.printf "server started at %d" !!server_port; print_newline ()
@@ -154,25 +129,45 @@ let enable () =
 let _ =
   register_commands [
     "stat", Arg_none(fun o -> 
-			let buf = o.conn_buf in
-			  Printf.printf "SERVER STAT\n";
-			  Printf.bprintf buf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_md4;
-			  Printf.bprintf buf "nb_know_alive_server:%d\n" (List.length !alive_servers);
-			  Printf.bprintf buf "nb_know_other_server:%d\n" (List.length !other_servers);
-			  Printf.bprintf buf "client_counter:%d\n" !client_counter;
-			  ""
-		     ),"Print server's stat";
+        let n_alive = ref 0 in
+        let n_dead = ref 0 in
+        Hashtbl.iter (fun _ s ->
+            if s.DonkeyTypes.server_last_message > last_time () -. 1800. then
+              incr n_alive else incr n_dead
+        ) DonkeyGlobals.servers_by_key;
+        let buf = o.conn_buf in
+        Printf.printf "SERVER STAT\n";
+        Printf.bprintf buf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_md4;
+        Printf.bprintf buf "nb_know_alive_server:%d\n" !n_alive;
+        Printf.bprintf buf "nb_know_other_server:%d\n" !n_dead;
+        Printf.bprintf buf "client_counter:%d\n" !client_counter;
+        ""
+    ),"Print server's stat";
     "packets", Arg_none(fun o -> 
 			  let buf = o.conn_buf in
-			    Printf.bprintf buf "nb tcp requets:%d\n" (!nb_tcp_req_sec /5);
-			    Printf.bprintf buf "nb udp requets/second :%d\n" (!nb_udp_req_sec /5);
-			    Printf.bprintf buf "nb udp Location/second:%d\n nb udp Query/second:%d\n " (!nb_udp_loc_sec/5) (!nb_udp_query_sec/5);
-			    Printf.bprintf buf "nb udp rely send/second : %d\n" (!nb_udp_reply_sec/5);
-			    Printf.bprintf buf "nb udp ping server during %fs : %d\n" !!ping_knowed_servers (!nb_udp_ping_server_count);
+                            Printf.printf "Messages received during the last min\n";
+			    Printf.bprintf buf "nb tcp requets:%f\n" (!nb_tcp_req_sec /. 60.);
+			    Printf.bprintf buf "nb udp requets/second :%f\n" (!nb_udp_req_sec /. 60.);
+			    Printf.bprintf buf "nb udp Location/second:%f\n nb udp Query/second:%f\n " (!nb_udp_loc_sec /. 60.) (!nb_udp_query_sec /. 60.);
+			    Printf.bprintf buf "nb udp rely send/second : %f\n" (!nb_udp_reply_sec /. 60.);
+			    Printf.bprintf buf "nb udp ping server during %f\n :
+                                    %f\n" !!ping_known_servers (!nb_udp_ping_server_sec);
 			    ""
 		       ), "Print number of udp and tcp packet rec";
+    "clients", Arg_one (fun arg o -> 
+			  let buf = o.conn_buf in
+			    ServerClients.bprint buf clients_by_id;
+			    ""
+		       ),"Print clients general info";
+			   
+    "server_group_info", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        bprint_server_info buf "";
+        ""
+    ),"Print info about servers in the group";
+  
   ];
-
+  
   
   network.network_config_file <- Some server_ini;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_server);
@@ -188,3 +183,4 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       })
+  

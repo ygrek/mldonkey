@@ -137,13 +137,10 @@ let redirector_parse_header sock header =
 (*  Printf.printf "redirector_parse_header"; print_newline ();*)
   if String2.starts_with header gnutella_ok then begin
 (*      Printf.printf "GOOD HEADER FROM REDIRECTOR:waiting for pongs";*)
-      let ip = TcpBufferedSocket.my_ip sock in
-      DO.client_ip =:= ip;
-(*      print_newline (); *)
       server_send_new sock (
         let module P = Ping in
         PingReq (P.ComplexPing {
-          P.ip = !!DO.client_ip;
+          P.ip = DO.client_ip (Some sock);
           P.port = !!client_port;
           P.nfiles = Int32.zero;
           P.nkb = Int32.zero;
@@ -177,7 +174,6 @@ let connect_to_redirector () =
 (*                  Printf.printf "TIMEOUT FROM REDIRECTOR"; print_newline ()*)
               | _ -> ()
           ) in
-        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
 
@@ -374,7 +370,7 @@ print p;
           pkt_payload = (
             let module P = Pong in
             PongReq {
-              P.ip = !!DO.client_ip;
+              P.ip = (DO.client_ip (Some sock));
               P.port = !!client_port;
               P.nfiles = 10;
               P.nkb = 10;
@@ -463,7 +459,6 @@ let connect_server (ip,port) =
                   disconnect_from_server s
               | _ -> ()
           ) in
-        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
 
@@ -479,7 +474,7 @@ let connect_server (ip,port) =
         set_rtimeout sock !!server_connection_timeout;
         let s = Printf.sprintf 
           "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
-          (Ip.to_string !!DO.client_ip) !!client_port
+          (Ip.to_string (DO.client_ip (Some sock))) !!client_port
             (Ip.to_string s.server_ip)
         in
 (*
@@ -529,7 +524,7 @@ let get_file_from_source c file =
           let module P = Push in
           let t = PushReq {
               P.guid = uid;
-              P.ip = !!DO.client_ip;
+              P.ip = DO.client_ip None;
               P.port = !!client_port;
               P.index = List.assq file c.client_downloads;
             } in

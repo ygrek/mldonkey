@@ -217,7 +217,7 @@ let gui_reader (gui: gui_record) t sock =
     | P.KillServer -> 
         exit_properly ()
     
-    | P.Search_query (local,s) ->
+    | P.Search_query s ->
         let query = 
           try CommonGlobals.simplify_query
             (CommonSearch.mftp_query_of_query_entry 
@@ -227,13 +227,16 @@ let gui_reader (gui: gui_record) t sock =
               raise Not_found
         in
         let buf = Buffer.create 100 in
-        let search = CommonInteractive.start_search query buf in
         let num = s.P.search_num in
+        let search = CommonSearch.new_search 
+            { s with Gui_proto.search_query = query} in
         gui.gui_search_nums <- num ::  gui.gui_search_nums;
         gui.gui_searches <- (num, search) :: gui.gui_searches;
         search.op_search_new_result_handlers <- (fun r ->
             search_results_list := (gui, num, r) :: !search_results_list;
         ) :: search.op_search_new_result_handlers;
+        networks_iter (fun r -> r.op_network_search search buf);
+
         (*
         search.op_search_end_reply_handlers <- 
           (fun _ -> send_waiting gui num search.search_waiting) ::
@@ -291,6 +294,7 @@ search.op_search_end_reply_handlers;
         
     | P.GetClient_files num ->        
         let c = client_find num in
+(*        Printf.printf "GetClient_files %d" num; print_newline (); *)
         List.iter (fun (dirname, r) ->
 (* delay sending to update *)
             client_new_file c dirname r
@@ -311,9 +315,7 @@ search.op_search_end_reply_handlers;
             ) users
         
     | P.GetServer_info num ->
-        Printf.printf "GetServer_info %d" num; print_newline ();
         server_must_update (server_find num);
-        Printf.printf "ok"; print_newline () 
         
     | P.GetFile_locations num ->
         let file = file_find num in
@@ -403,7 +405,7 @@ search.op_search_end_reply_handlers;
       print_newline ()
   
 let gui_closed gui sock  msg =
-  Printf.printf "DISCONNECTED FROM GUI"; print_newline ();
+(*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
   guis := List2.removeq gui !guis;
   ()
   
@@ -461,7 +463,16 @@ let gui_handler t event =
         Unix.close s
   | _ -> ()
   
+(*******
+These functions are used to send new informations to the GUI:
+- The functions are only applied if there is still some space to write on the 
+    GUI buffer (to avoid buffer overfull)
+- The messages are only sent if the update timestamp of the structure is smaller
+    than the one of the GUI
 
+********)
+      
+      
 let must_wait () =
   List.exists (fun gui -> not (can_fill gui.gui_sock)) !guis
 
@@ -496,7 +507,11 @@ let send_user_info user =
 let send_client_info client =
   let impl = as_client_impl client in
   if impl.impl_client_update < !gui_counter then
-    let client_info = P.Client_info (client_info client) in
+    let client_info = 
+      match impl.impl_client_update with
+      | -1 -> P.Client_state (impl.impl_client_num, impl.impl_client_state) 
+      | _ ->  P.Client_info (client_info client) 
+    in
     List.iter (fun gui -> 
         if impl.impl_client_update < gui.gui_num then
           begin
@@ -508,7 +523,11 @@ let send_client_info client =
 let send_server_info server =
   let impl = as_server_impl server in
   if impl.impl_server_update < !gui_counter then
-    let server_info = P.Server_info (server_info server) in
+    let server_info = 
+      match impl.impl_server_update with
+      | -1 ->  P.Server_state (impl.impl_server_num, impl.impl_server_state)
+      | _ ->  P.Server_info (server_info server) 
+    in
     List.iter (fun gui -> 
         if impl.impl_server_update < gui.gui_num then
           begin
@@ -520,7 +539,12 @@ let send_server_info server =
 let send_file_info file =
   let impl = as_file_impl file in
   if impl.impl_file_update < !gui_counter then
-    let file_info = P.File_info (file_info file) in
+    let file_info = 
+      match impl.impl_file_update with
+        -1 -> P.File_downloaded (impl.impl_file_num,
+            impl.impl_file_downloaded,
+            file_download_rate impl)
+      | _ -> P.File_info (file_info file) in
     List.iter (fun gui -> 
         if impl.impl_file_update < gui.gui_num then
           begin
@@ -577,6 +601,7 @@ let update_users () =
           
 let servers_old_list = ref []
 let update_servers () =
+(*  Printf.printf "update_servers"; print_newline (); *)
   servers_old_list := update !servers_old_list !servers_update_list 
       (fun server ->
       try
@@ -692,6 +717,7 @@ let update_server_users () =
   server_new_users := iter !server_new_users
   
 let update_client_files () =
+(*  Printf.printf "update_client_files"; print_newline (); *)
   let rec iter list =
     match list with
       [] -> []
@@ -699,6 +725,7 @@ let update_client_files () =
         if must_wait () then list else begin
             begin
               try
+(*                Printf.printf "send new client file"; print_newline (); *)
                 send_result_info r;
                 let msg = Client_file (client_num client, dirname, 
                     result_num r) 
@@ -730,12 +757,20 @@ let update_functions = [
 (* We should probably only send "update" to the current state of
 the info already sent to *)
 let update_gui_info () =
+  let msg = (Client_stats {
+      upload_counter = !upload_counter;
+      download_counter = !download_counter;
+      shared_counter = !shared_counter;
+      nshared_files = !nshared_files;
+
+      }) in
+  List.iter (fun gui -> 
+      gui_send gui msg) !guis;       
   let rec iter fs =
     match fs with 
       [] -> ()
     | (name, f) :: fs ->
         if  must_wait () then begin
-            Printf.printf "Wait for some update functions"; print_newline ();
           end else begin
 (*            Printf.printf "APPLY %s" name; print_newline (); *)
             (try f () with _ -> ());
@@ -744,6 +779,7 @@ let update_gui_info () =
           end
   in
   iter update_functions
+  
   
 let install_hooks () = 
   List.iter (fun (name,_) ->
@@ -754,3 +790,5 @@ let install_hooks () =
           ) !guis
       )
   ) (simple_options downloads_ini)
+
+  

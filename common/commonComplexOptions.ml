@@ -350,6 +350,8 @@ let load () =
   Options.load friends_ini
   
 let save () = 
+  networks_iter (fun n -> network_save_complex_options n);
+  
   servers =:= server_sort ();
   
   Options.save_with_help files_ini;

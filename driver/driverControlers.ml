@@ -249,7 +249,7 @@ let html_open_page buf r open_body =
       let url = { r.get_url with
           Url.server = Ip.to_string (
             if !!http_bind_addr = any_ip then
-              !!client_ip
+              client_ip None
             else
               !!http_bind_addr);
           Url.port = !!http_port;
@@ -447,7 +447,14 @@ let http_handler options t r =
                   
               | ("custom", query) :: args ->
                   html_open_page buf r true;
-                  send_custom_query buf query args
+                  send_custom_query buf 
+                    (let module G = Gui_proto in
+                    { G.search_num = 0;
+                      G.search_query = query;
+                      G.search_type = RemoteSearch;
+                      G.search_max_hits = 10000;
+                    })
+                     args
   
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf r true;

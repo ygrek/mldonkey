@@ -556,6 +556,7 @@ open_mldonkey.static: mldonkey.state
 #######################################################################
 
 clean: 
+	rm -rf patches/ocamlopt-$(REQUIRED_OCAML)
 	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core *.static
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
@@ -564,7 +565,6 @@ clean:
 	done)
 
 distclean: clean
-	rm -rf ocamlopt-$(REQUIRED_OCAML)
 	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?

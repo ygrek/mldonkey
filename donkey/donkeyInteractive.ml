@@ -56,7 +56,7 @@ let reconnect_all file =
       connection_must_try c.client_connection_control;
       match c.client_kind with
         Known_location _ ->
-          connect_client !!client_ip [file] c
+          connect_client (client_ip None) [file] c
       | _ -> ()) file.file_sources;
   List.iter (fun s ->
       match s.server_sock, server_state s with
@@ -316,11 +316,15 @@ let broadcast msg =
       TcpBufferedSocket.write sock s 0 len
   ) !user_socks
 
+(* compute the name used to save the file *)
+  
 let longest_name file =
-  let max = ref "" in
+  let md4_name = Md4.to_string file.file_md4 in
+  let max = ref md4_name in (* default is md4 *)
   let maxl = ref 0 in
   List.iter (fun name ->
-      if String.length name > !maxl then begin
+      (* prevent it from using the md4 is another name is available *)
+      if name <> md4_name && String.length name > !maxl then begin
           maxl := String.length name;
           max := name
         end
@@ -549,7 +553,8 @@ let commands = [
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %d blocks uploaded\n" !upload_counter;
+        Printf.bprintf buf "Total: %s bytes uploaded\n" 
+          (Int64.to_string !upload_counter);
         let list = ref [] in
         Hashtbl.iter (fun _ file ->
             if file.file_shared then 
@@ -674,7 +679,7 @@ let _ =
           None -> 
             (
 (* A VOIR  : est-ce que c'est bien de fait comme ça ? *)
-              DonkeyClient.connect_client !!CommonOptions.client_ip [] c;
+              DonkeyClient.connect_client (client_ip None) [] c;
               match c.client_sock with
                 None ->
                   CommonChat.send_text !!CommonOptions.chat_console_id None 
@@ -831,7 +836,18 @@ let _ =
       let list = ref [] in
       Intmap.iter (fun _ c -> 
           list := (as_client c.client_client) :: !list) file.file_sources;
-      !list)
+      !list);
+  file_ops.op_file_cancel <- (fun file ->
+      Hashtbl.remove files_by_md4 file.file_md4;
+      (try  Sys.remove file.file_hardname  with e -> 
+            Printf.printf "Sys.remove %s exception %s" file.file_hardname
+              (Printexc.to_string e); print_newline ());
+      Intmap.iter (fun _ c ->
+          c.client_source_for <- List2.removeq file c.client_source_for;
+          c.client_file_queue <- List.remove_assoc file c.client_file_queue;
+          check_useful_client c
+      ) file.file_sources;
+  )
   
 let _ =
   network.op_network_extend_search <- (fun _ ->
@@ -872,7 +888,7 @@ let _ =
         end);
   client_ops.op_client_connect <- (fun c ->
       connection_must_try c.client_connection_control;
-      connect_client !!client_ip [] c
+      connect_client (client_ip None) [] c
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;

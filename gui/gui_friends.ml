@@ -33,14 +33,19 @@ let (!!) = Options.(!!)
 
 let string_color_of_state state =
   match state with
-  | Connected_busy
+  | Connected_busy -> M.downloading, Some !!O.color_downloading 
   | Connected_idle -> M.connected, Some !!O.color_connected 
-  | Connecting -> M.connecting, Some !!O.color_connecting
+  | Connecting  -> M.connecting, Some !!O.color_connecting
   | NotConnected
   | NewHost -> "", None
   | Connected_initiating -> M.initiating, Some !!O.color_not_connected
   | Connected_queued -> M.queued, Some !!O.color_not_connected
   | RemovedHost -> M.removed, Some !!O.color_not_connected
+  
+let string_color_of_client c =
+  match c.client_files with
+    Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
+  | _ -> string_color_of_state c.client_state
 
 class box columns () =
   let titles = List.map Gui_columns.string_of_client_column columns in
@@ -77,12 +82,12 @@ class box columns () =
     method content_by_col f col =
       match col with
 	Col_client_name -> f.client_name
-      |	Col_client_state -> fst (string_color_of_state f.client_state)
-      | Col_client_type -> (match f.client_type with
+      |	Col_client_state -> fst (string_color_of_client f)
+      |  Col_client_type -> (match f.client_type with
               FriendClient -> M.friend
             | ContactClient -> M.contact
             | NormalClient -> "")
-      | Col_client_network -> Gui_global.network_name f.client_network
+      |  Col_client_network -> Gui_global.network_name f.client_network
       |	Col_client_kind -> 
 	  match f.client_kind with
             Known_location _ -> M.direct
@@ -94,7 +99,7 @@ class box columns () =
 	  columns 
       in
       let col_opt = 
-	match snd (string_color_of_state f.client_state) with
+	match snd (string_color_of_client f) with
 	  None -> Some `BLACK
 	| Some c -> Some (`NAME c)
       in
@@ -113,6 +118,8 @@ class box columns () =
       iter 0 data
 
     method set_tb_style = wtool#set_style
+
+    method clear = self#update_data []
 
     initializer
       box#vbox#pack ~expand: true pl#box
@@ -159,14 +166,14 @@ class box_friends box_results () =
       |	Some s ->
 	  Gui_com.send (Gui_proto.FindFriend s)
 
-    method on_select f =
-      match f.client_files with
+    method on_select c =
+      match c.client_files with
         None -> 
-          Printf.printf "No file for friend %d" f.client_num; print_newline ();
-          Gui_com.send (GetClient_files f.client_num)
+(*          Printf.printf "No file for friend %d" c.client_num; print_newline (); *)
+          Gui_com.send (GetClient_files c.client_num)
       |	Some l -> 
-          Printf.printf "%d files for friend %d" (List.length l) f.client_num;
-          print_newline ();
+(*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
+          print_newline (); *)
           box_results#update_data l
 
     method on_deselect f =
@@ -342,7 +349,7 @@ class box_list () =
 
 
 class pane_friends () =
-  let results = new Gui_results.box !!O.results_columns () in
+  let results = new Gui_results.box false !!O.results_columns () in
   let friends = new box_friends results () in
   object (self)
     inherit Gui_friends_base.paned ()
@@ -354,6 +361,10 @@ class pane_friends () =
     method set_tb_style st =
       results#set_tb_style st ;
       friends#set_tb_style st 
+
+    method clear =
+      results#clear ;
+      friends#clear
 
     initializer
       wpane#add1 friends#coerce;

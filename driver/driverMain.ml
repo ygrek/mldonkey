@@ -144,11 +144,6 @@ let load_config () =
   );
   
   Arg.parse ([
-      "-client_ip", Arg.String (fun s ->
-          client_ip =:= Ip.of_string s;
-          force_client_ip =:= true;
-          ip_verified := 10;
-      ), " <ip> : force client IP address";
       "-v", Arg.Unit (fun _ ->
           Printf.printf "%s" CommonGlobals.version;
           print_newline ();
@@ -244,13 +239,6 @@ let _ =
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
   
-  
-  if not !!force_client_ip then begin
-      ip_verified := 0;
-      (try
-          client_ip =:= Ip.my ();
-        with _ -> ());
-    end;
   
   networks_iter_all (fun r -> 
       Printf.printf "Network %s %s" r.network_name

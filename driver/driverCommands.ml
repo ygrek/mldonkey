@@ -228,7 +228,42 @@ let commands = [
     "s", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let query = CommonSearch.search_of_args args in
-        ignore (CommonInteractive.start_search query buf);
+        ignore (CommonInteractive.start_search 
+            (let module G = Gui_proto in
+            { G.search_num = 0;
+              G.search_query = query;
+              G.search_max_hits = 10000;
+              G.search_type = RemoteSearch;
+            }) buf);
+        ""
+    ), " <query> : search for files on all networks\n
+\tWith special args:
+\t-minsize <size>
+\t-maxsize <size>
+\t-media <Video|Audio|...>
+\t-Video
+\t-Audio
+\t-format <format>
+\t-title <word in title>
+\t-album <word in album>
+\t-artist <word in artist>
+\t-field <field> <fieldvalue>
+\t-not <word>
+\t-and <word> 
+\t-or <word> :
+
+";
+    
+    "ls", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        let query = CommonSearch.search_of_args args in
+        ignore (CommonInteractive.start_search 
+            (let module G = Gui_proto in
+            { G.search_num = 0;
+              G.search_query = query;
+              G.search_max_hits = 10000;
+              G.search_type = LocalSearch;
+            }) buf);
         ""
     ), " <query> : search for files on all networks\n
 \tWith special args:

@@ -43,3 +43,5 @@ Compiling mldonkey:
    with ./configure. Only edonkey support will then be compiled.
 
 See the USAGE.txt file for information on how to use mldonkey.
+Note that you should execute mldonkey in the distrib/ directory, where a list
+of servers is present.

@@ -92,6 +92,7 @@ let properties = "Properties"
 let md4 = "MD4"
 let download_selected_files = "Download selected files"
 let download = "Download"
+let subscribe = "Subscribe"
 let downloaded = "Downloaded"
 let availability = "Availability"
 let cancel = "Cancel"
@@ -133,7 +134,8 @@ let friend_kind = "Kind"
 let friend_status = "Status"
 let friend_name = "Name"
 let dialog = "Chat"
-
+let yes = "Yes"
+let no = "No"
 let connecting = "Connecting"
 let initiating = "Initiating"
 let connected = "Connected"
@@ -209,6 +211,11 @@ let local_search = "Local Search"
 let extended_search = "Extended Search"
 
 let action_unknown s = "Unknown action: "^s
+
+let ask_cancel_download_files files =
+  "Cancel the download of file(s) \n"^
+  (String.concat ",\n" files)^
+  " ?"
 
 (** {2 Config options labels and messages} *)
 

@@ -83,25 +83,30 @@ let sort_zones b =
         z1.zone_begin < z2.zone_begin)
   ) zones
 
-let disconnected_from_client c msg =
-  printf_string "-c"; 
-  c.client_chunks <- [||];
-  c.client_sock <- None;
-  set_client_state c NotConnected;
-  let files = c.client_file_queue in
-  List.iter (fun (file, chunks) -> remove_client_chunks file chunks)  files;    
-  c.client_file_queue <- [];
-  begin
-    match c.client_block with None -> ()
-    | Some b ->
-        c.client_block <- None;
-        b.block_nclients <- b.block_nclients - 1;
-        List.iter (fun z ->
-            z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
-        sort_zones b
-  end;
-  check_useful_client c
-
+let disconnect_client c =
+  match c.client_sock with
+    None -> ()
+  | Some sock ->
+      connection_failed c.client_connection_control;
+      TcpBufferedSocket.close sock "closed";
+      printf_string "-c"; 
+      c.client_chunks <- [||];
+      c.client_sock <- None;
+      set_client_state c NotConnected;
+      let files = c.client_file_queue in
+      List.iter (fun (file, chunks) -> remove_client_chunks file chunks)  files;    
+      c.client_file_queue <- [];
+      begin
+        match c.client_block with None -> ()
+        | Some b ->
+            c.client_block <- None;
+            b.block_nclients <- b.block_nclients - 1;
+            List.iter (fun z ->
+                z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
+            sort_zones b
+      end;
+      check_useful_client c
+      
 let rec create_zones file begin_pos end_pos list =
 (*  Printf.printf "create_zones for %ld-%ld"
     begin_pos end_pos;

@@ -174,7 +174,7 @@ let rec connect_several_clients n =
           None -> 
             if connection_can_try c.client_connection_control then begin
 (*                Printf.printf "CAN CONNECT"; print_newline (); *)
-                (try connect_client !!client_ip files c with _ -> ());
+                (try connect_client (client_ip None) files c with _ -> ());
                 connect_several_clients (n-1)
               end
         | Some sock ->
@@ -285,7 +285,7 @@ let browse_client c =
   match c.client_sock, client_state c with
   | None, NotConnected ->
       connection_must_try c.client_connection_control;
-      connect_client !!client_ip [] c
+      connect_client (client_ip None) [] c
   | None, _ -> 
       add_interesting_client c []
   | Some sock, (
@@ -348,6 +348,7 @@ let install_hooks () =
       let module M = Mftp_server in
       match t with
         M.QueryIDReplyReq t -> query_id_reply s.server_cid t
+          
       | M.QueryReplyReq t ->
           let rec iter () =
             let query = try
@@ -359,7 +360,7 @@ let install_hooks () =
               let nres = List.length t in
               query.nhits <- query.nhits + nres;
               if !last_xs = search.search_search.search_num && nres = 201 &&
-                query.nhits < search.search_max_hits then
+                query.nhits < search.search_search.search_max_hits then
                 begin
                   direct_server_send sock M.QueryMoreResultsReq;
                   Fifo.put s.server_search_queries query      
@@ -368,6 +369,14 @@ let install_hooks () =
             with Already_done -> iter ()
           in
           iter ()          
+          
+          
+      | M.Mldonkey_NotificationReq (num, t) ->
+          let s = search_find num in
+          List.iter (fun f ->
+              search_found s f.f_md4 f.f_tags
+          ) t
+
       | M.QueryUsersReplyReq t ->
           let module M = Mftp_server in
           let module Q = M.QueryUsersReply in
@@ -448,6 +457,10 @@ let udp_client_handler t p =
         let ss = find_search !last_xs in
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
         search_handler ss [t]
+        
+(* Not useful anymore. Use standard server UDP packets.
+
+  
   | M.FileGroupInfoUdpReq t ->
 (*      Printf.printf "Received location by File Group"; print_newline (); *)
       let module M = Mftp_server in
@@ -472,7 +485,10 @@ let udp_client_handler t p =
           let ip = l.Q.ip in
           let port = l.Q.port in
           let c = new_client (Known_location (ip, port)) in          
-          client_wants_file c md4) t.Q.locs
+client_wants_file c md4) t.Q.locs
+
+*)
+        
   | _ -> ()
 
 open Unix
@@ -523,8 +539,8 @@ print_newline ();
     ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
     really_read (Unix32.force_fd fd) upload_buffer slen len_int;
 (*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
-    print_newline (); *)
-    incr upload_counter;
+print_newline (); *)
+    upload_counter := Int64.add !upload_counter (Int64.of_int len_int);
     file.file_upload_kbs <- file.file_upload_kbs + len_int;
     (*  Printf.printf "sending"; print_newline (); *)
     printf_char 'U';
@@ -603,7 +619,6 @@ let rec send_client_block_partial c sock per_client =
   (* timer started every 1/10 seconds *)
   
 let reset_upload_timer _ =
-  download_counter := 0;
   remaining_bandwidth := 
   (if !!max_hard_upload_rate = 0 then 10000
     else !!max_hard_upload_rate)

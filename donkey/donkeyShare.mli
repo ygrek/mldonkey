@@ -19,5 +19,6 @@
 
 val must_share_file : DonkeyTypes.file -> unit
 val check_shared_files : unit -> unit
-val make_tagged : DonkeyTypes.file list -> DonkeyMftp.tagged_file list
+val make_tagged : TcpBufferedSocket.t option -> 
+  DonkeyTypes.file list -> DonkeyMftp.tagged_file list
 val all_shared : unit -> DonkeyTypes.file list

@@ -30,12 +30,17 @@ let (!!) = Options.(!!)
 
 let connection = ref None
 
-let disconnect () = 
+let when_disconnected gui =
+  gui#clear ;
+  G.clear ()
+
+let disconnect gui = 
   match !connection with
     None -> ()
   | Some sock ->
       TcpBufferedSocket.close sock "user close";
-      connection := None
+      connection := None;
+      when_disconnected gui
 
 let send t =
   match !connection with
@@ -46,7 +51,7 @@ let send t =
       gui_send Encoding.from_gui.(!gui_protocol_used) sock t
 
 let reconnect gui value_reader =
-  (try disconnect () with _ -> ());
+  (try disconnect gui with _ -> ());
   let sock = TcpBufferedSocket.connect ""
       (try
         let h = Unix.gethostbyname 
@@ -74,16 +79,17 @@ let reconnect gui value_reader =
           None -> ()
         | Some s -> 
             if s == sock then begin
-                connection := None;
-                gui#label_connect_status#set_text "Disconnected";
-              end
+              connection := None;
+              gui#label_connect_status#set_text "Disconnected";
+	      when_disconnected gui
+            end
     );
     TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_reader sock (
       gui_cut_messages
         (fun opcode s ->
           try
-            let m = Decoding.to_gui.(0) opcode s in
+            let m = Decoding.to_gui.(!gui_protocol_used) opcode s in
             value_reader m sock
           with e ->
               Printf.printf "Exception %s in decode/exec" 
@@ -105,3 +111,5 @@ let receive () =
       print_newline ();
   | Some sock ->
       ()
+
+      

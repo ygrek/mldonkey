@@ -37,17 +37,18 @@ open LimewireProtocol
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
       
-let disconnect_from_client c =
-  try
-    if !!verbose_clients > 0 then begin
-        Printf.printf "Disconnected from source"; print_newline ();    
-      end;
-    connection_failed c.client_connection_control;
-    match c.client_sock with
-      None -> ()
-    | Some sock -> close sock "closed";
-  with _ -> ()
-
+let disconnect_client c =
+  match c.client_sock with
+    None -> ()
+  | Some sock -> 
+      try
+        if !!verbose_clients > 0 then begin
+            Printf.printf "Disconnected from source"; print_newline ();    
+          end;
+        connection_failed c.client_connection_control;
+        close sock "closed";
+      with _ -> ()
+          
 let is_http_ok header = 
   let pos = String.index header '\n' in
   match String2.split (String.sub header 0 pos) ' ' with
@@ -128,13 +129,13 @@ let client_parse_header c sock header =
             Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
 BigEndian.dump header;
           end;        
-        disconnect_from_client c
+        disconnect_client c
       end
   with e ->
       Printf.printf "Exception %s in client_parse_header" (Printexc.to_string e);
       print_newline ();
       BigEndian.dump header;      
-      disconnect_from_client c
+      disconnect_client c
     
 let file_complete file =
 (*
@@ -174,7 +175,7 @@ let client_reader c sock nread =
     let b = TcpBufferedSocket.buf sock in
     if not c.client_error then begin
         match c.client_file with
-          None -> disconnect_from_client c
+          None -> disconnect_client c
         | Some file ->
             set_rtimeout sock half_day;
             begin
@@ -203,7 +204,7 @@ print_newline ();
       end else begin
 (*      Printf.printf "ERROR REPORTED: [%s]" (String.sub b.buf b.pos b.len);
       print_newline (); *)
-        disconnect_from_client c
+        disconnect_client c
       end
       
 let friend_parse_header c sock header =
@@ -232,7 +233,7 @@ let friend_parse_header c sock header =
             else raise Not_found
       end 
     else raise Not_found
-  with _ -> disconnect_from_client c
+  with _ -> disconnect_client c
       
 let get_from_client sock (c: client) (file : file) =
   if !!verbose_clients > 0 then begin
@@ -267,19 +268,18 @@ let connect_client c =
             (fun sock event ->
               match event with
                 BASIC_EVENT RTIMEOUT ->
-                  disconnect_from_client c
+                  disconnect_client c
               | BASIC_EVENT (CLOSED _) ->
-                  disconnect_from_client c
+                  disconnect_client c
               | _ -> ()
           )
         in
-        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
         
         c.client_sock <- Some sock;
         TcpBufferedSocket.set_closer sock (fun _ _ ->
-            disconnect_from_client c
+            disconnect_client c
         );
         set_rtimeout sock 30.;
         match c.client_downloads with
@@ -290,13 +290,13 @@ an upload request *)
                 Printf.printf "NOTHING TO DOWNLOAD FROM CLIENT"; print_newline ();
               end;
             if client_type c = NormalClient then                
-              disconnect_from_client c;
+              disconnect_client c;
             set_reader sock (handler !!verbose_clients (friend_parse_header c)
               (gnutella_handler parse (client_to_client c))
             );
             let s = Printf.sprintf 
                 "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
-                (Ip.to_string !!DO.client_ip) !!client_port
+                (Ip.to_string (DO.client_ip (Some sock))) !!client_port
                 (Ip.to_string ip)
             in
 (*
@@ -321,7 +321,7 @@ an upload request *)
       Printf.printf "Exception %s while connecting to client" 
         (Printexc.to_string e);
       print_newline ();
-      disconnect_from_client c
+      disconnect_client c
 
 
 (*
@@ -386,14 +386,14 @@ let push_handler cc sock header =
                 Printf.printf "Exception %s during client connection"
                   (Printexc.to_string e);
                 print_newline ();
-                disconnect_from_client c
+                disconnect_client c
       end
     else raise Not_found
   with _ ->
       match !cc with 
         None -> raise Not_found
       | Some c ->
-          disconnect_from_client c;
+          disconnect_client c;
           raise Not_found
   
 let client_parse_header2 c sock header = 
@@ -432,7 +432,7 @@ let listen () =
               let c = ref None in
               TcpBufferedSocket.set_closer sock (fun _ s ->
                   match !c with
-                    Some c ->  disconnect_from_client c
+                    Some c ->  disconnect_client c
                   | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
@@ -442,6 +442,7 @@ let listen () =
                   (client_reader2 c));
           | _ -> ()
       ) in
+    listen_sock := Some sock;
     ()
   with e ->
       Printf.printf "Exception %s while init limewire server" 

@@ -35,7 +35,7 @@ open DcOptions
 open DcGlobals
 open DcProtocol
 
-let client_close c = 
+let disconnect_client c = 
   match c.client_sock with
     None -> ()
   | Some sock ->
@@ -136,7 +136,7 @@ let client_reader c t sock =
       if c.client_name != n then begin
           Printf.printf "Bad nickname for client %s/%s" n c.client_name; 
           print_newline ();
-          client_close c;
+          disconnect_client c;
           raise Not_found
         end;
   
@@ -193,7 +193,7 @@ let client_reader c t sock =
                   t
                    (file_size file);
                 print_newline ();
-                client_close c;
+                disconnect_client c;
                 raise Not_found
               end
         
@@ -201,7 +201,7 @@ let client_reader c t sock =
             c.client_receiving <- t;
         | _ ->
             Printf.printf "Not downloading any thing"; print_newline ();
-            client_close c;
+            disconnect_client c;
             raise Not_found
       end;
       debug_server_send sock SendReq
@@ -363,7 +363,7 @@ let init_anon_client init_sent sock =
       Printf.printf "DISCONNECTED FROM CLIENT"; print_newline ();
       match !c with
         None -> ()
-      | Some c ->  client_close c
+      | Some c ->  disconnect_client c
   );
   TcpBufferedSocket.set_reader sock (
     dc_handler3 c (read_first_message init_sent) client_reader
@@ -390,6 +390,7 @@ let listen () =
 
           | _ -> ()
       ) in
+    listen_sock := Some sock;
     ()
   with e ->
       Printf.printf "Exception %s while init DC server" 
@@ -407,13 +408,12 @@ let connect_client c =
             (fun sock event ->
               match event with
                 BASIC_EVENT RTIMEOUT ->
-                  client_close c
+                  disconnect_client c
               | BASIC_EVENT (CLOSED _) ->
-                  client_close c
+                  disconnect_client c
               | _ -> ()
           )
         in
-        verify_ip sock;
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
         set_rtimeout sock 30.;
@@ -427,7 +427,7 @@ let connect_client c =
       Printf.printf "Exception %s while connecting to client" 
         (Printexc.to_string e);
       print_newline ();
-      client_close c
+      disconnect_client c
 
 let connect_anon s ip port =
   Printf.printf "CONNECT ANON"; print_newline ();
@@ -436,7 +436,6 @@ let connect_anon s ip port =
         (Ip.to_inet_addr ip) port
         (fun _ _ -> ())
     in
-    verify_ip sock;
     init_anon_client true sock;
     debug_server_send sock (MyNickReq s.server_last_nick);
     debug_server_send sock (

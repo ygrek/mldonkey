@@ -345,7 +345,6 @@ let old_print_search buf output results =
           incr counter;
           if !counter >= !!max_displayed_results then raise Exit;          
           last_results := (!counter, rs) :: !last_results;
-          Printf.printf "Adding %d to last_results" !counter; print_newline ();
           Printf.bprintf  buf "[%5d] %s" 
             !counter
             (let n = network_find_by_num r.result_network in
@@ -466,7 +465,6 @@ let print_search_html buf results format search_num =
               in
               incr counter;
               if !counter >= !!max_displayed_results then raise Exit;
-              Printf.printf "Adding %d to last_results" !counter; print_newline ();
               last_results := (!counter, rs) :: !last_results;
               files := [|
                 (Printf.sprintf "[%5d]\\<input name=d type=checkbox value=%d\\>" !counter r.result_num);
@@ -556,7 +554,6 @@ let print_search buf s format =
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
                   if !counter >= !!max_displayed_results then raise Exit;
-                  Printf.printf "Adding %d to last_results" !counter; print_newline ();
                   last_results := (!counter, rs) :: !last_results;
               files := [|
                 (Printf.sprintf "[%5d]" !counter);

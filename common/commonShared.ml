@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open Options
 open CommonTypes
 
@@ -28,6 +29,7 @@ type shared_impl = {
     mutable impl_shared_update : int;
     mutable impl_shared_num : int;
     mutable impl_shared_ops : (t * (t shared_ops)) list;
+    mutable impl_shared_size : int32;
   }
   
 and 'a shared_ops = {
@@ -82,13 +84,17 @@ let new_shared dirname filename fullname =
             name in
       let codedname = Filename.concat dirname filename in
       incr shared_num;
+      let size = Unix32.getsize32 fullname in
       let impl = {
           impl_shared_update = 1;
           impl_shared_fullname = fullname;
           impl_shared_codedname = codedname;
+          impl_shared_size = size;
           impl_shared_num = !shared_num;
           impl_shared_ops = [];
         } in
+      incr nshared_files;
+      shared_counter := Int64.add !shared_counter (Int64.of_int32 size);
       let s = as_shared impl in
       shared_must_update (as_shared impl);
       Hashtbl.add shareds_by_num !shared_num s;

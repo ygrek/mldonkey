@@ -57,7 +57,6 @@ let redirect_to sock ip port =
   let sock = connect  "audio_galaxy to server"
       (Ip.to_inet_addr ip) port (fun _ _ -> ())
   in
-  verify_ip sock;
 (* Now, really connect to the server *)
   message_counter := 0;
   checked_file_transfer := false;
@@ -74,10 +73,6 @@ let redirect_to sock ip port =
   );
   BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
 
-  let ip = try TcpBufferedSocket.my_ip sock with
-      e ->
-        Printf.printf "Couldn't get my IP %s"
-          (Printexc.to_string e); print_newline (); !!DO.client_ip in
   AP.server_send sock (
     let module L = AP.Login in
     AP.LoginReq {
@@ -102,7 +97,6 @@ let connect_server () =
                 else !!redirection_server_ip))
             21 (fun _ _ -> ())
           in
-          verify_ip sock;
           server_connection_state := Connecting_to_redirector;
           TcpBufferedSocket.set_reader sock (AgProtocol.redirection_handler
               redirect_to);

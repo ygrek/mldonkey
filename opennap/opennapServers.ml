@@ -227,22 +227,27 @@ let update_source s t =
   c
     *)
 
-let server_handler s sock event = 
-  match event with
-    BASIC_EVENT (CLOSED _) ->
+let disconnect_server s =
+      match s.server_sock with
+        None -> ()
+  | Some sock -> 
       
-      if s.server_sock <> None then decr nservers;
+      (try close sock "user disconnect" with _ -> ());
+      decr nservers;
 (*      Printf.printf "%s:%d CLOSED received by server"
       (Ip.to_string s.server_ip) s.server_port; print_newline ();
 *)
       DG.connection_failed (s.server_connection_control);
       s.server_sock <- None;
       set_server_state s NotConnected;
-      connected_servers := List2.removeq s !connected_servers;
+      connected_servers := List2.removeq s !connected_servers
+
+let server_handler s sock event = 
+  match event with
+    BASIC_EVENT (CLOSED _) -> disconnect_server s      
   | _ -> ()
 
 let client_to_server s t sock =
-  if !DG.ip_verified < 10 then DG.verify_ip sock;
   match t with
     
   | OP.ErrorReq error ->
@@ -473,11 +478,6 @@ let ask_for_files () =
   ) !current_files;
   ()
 
-
-let disconnect_server s =
-      match s.server_sock with
-        None -> ()
-      | Some sock -> close sock "user disconnect"
     
 let _ =
   server_ops.op_server_connect <- connect_server;

@@ -112,8 +112,14 @@ let files_update_list = ref []
 let file_must_update file =
   let impl = as_file_impl file in
   if impl.impl_file_update > 0 then
+      files_update_list := file :: !files_update_list;
+  impl.impl_file_update <- 0
+
+let file_must_update_downloaded file =
+  let impl = as_file_impl file in
+  if impl.impl_file_update > 0 then
     begin
-      impl.impl_file_update <- 0;
+      impl.impl_file_update <- -1;
       files_update_list := file :: !files_update_list
     end
 
@@ -291,7 +297,7 @@ let sample_timer () =
         _ :: (last_downloaded, _) :: _ ->
           if last_downloaded = impl.impl_file_downloaded &&
             impl.impl_file_last_rate > 0. then
-            file_must_update file
+            file_must_update_downloaded file
       | _ -> ()
 
   ) files_by_num
@@ -310,7 +316,7 @@ let file_download_rate impl =
   
 let add_file_downloaded impl n =
   impl.impl_file_downloaded <- Int32.add impl.impl_file_downloaded n;
-  file_must_update (as_file impl)
+  file_must_update_downloaded (as_file impl)
     
 
 let com_files_by_num = files_by_num

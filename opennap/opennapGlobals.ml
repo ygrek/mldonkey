@@ -43,8 +43,9 @@ let clients_by_name = Hashtbl.create 127
 let users_by_name = Hashtbl.create 127
 let results_by_file = Hashtbl.create 127
 
+let listen_sock = ref (None : TcpServerSocket.t option)
+  
 let (current_files : OpennapTypes.file list ref) = ref []
-
   
 let client_type c =
   client_type (as_client c.client_client)

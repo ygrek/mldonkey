@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.20 
+# From configure.in Revision: 1.21 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -2047,15 +2047,26 @@ fi
 if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
+  echo $ac_n "checking Checking for native code lablgtk""... $ac_c" 1>&6
+echo "configure:2052: checking Checking for native code lablgtk" >&5
   if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+     echo "$ac_t""yes" 1>&6
      LABLGTK_CONFIG=yes
   else
+     echo "$ac_t""no" 1>&6
      LABLGTK_CONFIG=no
+     if test -f `$OCAMLC -where`/lablgtk/lablgtk.cma; then
+       echo "--------------------------------"
+       echo "Lablgtk is not installed properly. See the INSTALL.txt"
+       echo "file of mldonkey to see how to compile lablgtk. You"
+       echo "probably forgot to call 'make opt' before 'make install'."
+       echo "--------------------------------"
+     fi
   fi
 fi
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:2059: checking compile GTK GUI" >&5
+echo "configure:2070: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"

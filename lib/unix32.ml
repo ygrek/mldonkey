@@ -89,3 +89,4 @@ let close_all () =
   while not (Fifo.empty cache) do
     close_one ()
   done
+  
