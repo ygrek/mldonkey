@@ -164,26 +164,23 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
 (*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
           Hashtbl.iter (fun _ c ->
-              if c.client_registered_bitfield then
-                begin
-                  let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
-                  if must_send then
-                    c.client_interesting <- false;
-                  begin
-                    match c.client_sock with
-                    | Connection sock -> 
-                        if (c.client_bitmap.[num] <> '1') then
-                          send_client c (Have (Int64.of_int num));
-                        if (must_send && not 
-                              c.client_alrd_sent_notinterested) then
-                          begin
-                            c.client_alrd_sent_notinterested <- true;
-                            send_client c NotInterested
-                          end
-                    
-                    | _ -> ();
-                  end;
-                end				
+              let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
+              if must_send && c.client_bitmap <> ""  then
+                c.client_interesting <- false;
+              begin
+                match c.client_sock with
+                | Connection sock -> 
+                    if (c.client_bitmap.[num] <> '1') then
+                      send_client c (Have (Int64.of_int num));
+                    if (must_send && not 
+                          c.client_alrd_sent_notinterested) then
+                      begin
+                        c.client_alrd_sent_notinterested <- true;
+                        send_client c NotInterested
+                      end
+                
+                | _ -> ();
+              end				
           ) file.file_clients
         end;
       result
@@ -242,7 +239,6 @@ let new_client file peer_id kind =
           client_alrd_sent_interested = false;
           client_alrd_sent_notinterested = false;
           client_interesting = false;
-          client_registered_bitfield = false;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

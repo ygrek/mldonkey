@@ -57,7 +57,8 @@ module QueryReplyUdp  = struct
     let parse len s =
       let rec iter pos list =
 	if pos < len then
-	  let file, pos = get_file s pos in
+          let file, pos = get_file s pos in
+          let pos = pos + 2 in
 	  iter pos (file :: list)
 	else List.rev list
       in

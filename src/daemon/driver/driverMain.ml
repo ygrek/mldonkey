@@ -280,14 +280,14 @@ used. For example, we can add new web_infos... *)
   
   
   more_args := !more_args
-    @ (Options.simple_args downloads_ini);
+    @ (Options.simple_args "" downloads_ini);
   
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
-          let args = simple_args opfile in
           let prefix = r.network_prefix () in
+          let args = simple_args prefix opfile in
           let args = List2.tail_map (fun (arg, spec, help) ->
-                (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
+                (Printf.sprintf "-%s" arg, spec, help)) args
             in
           more_args := !more_args @ args
       ) r.network_config_file 

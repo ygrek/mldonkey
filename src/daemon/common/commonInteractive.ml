@@ -381,36 +381,55 @@ let sort_options l =
   List.sort (fun o1 o2 ->
       String.compare o1.option_name o2.option_name) l
     
+let opfile_args r opfile =
+  let prefix = r.network_prefix () in
+  let args = simple_options prefix opfile in
+  args
+  
 let all_simple_options () =
   let options = ref (sort_options
-      (simple_options downloads_ini) 
+      (simple_options "" downloads_ini) 
     )
   in
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
-          let args = simple_options opfile in
-          let prefix = r.network_prefix () in
-          let args = 
-            if prefix = "" then args else 
-              List2.tail_map (fun o ->
-                  { o with option_name = 
-                    (Printf.sprintf "%s%s" prefix o.option_name) })
-            args
-          in
-          options := !options @ args)
+          options := !options @ (opfile_args r opfile)
+      )
       r.network_config_file 
   );
   !options
+
+let some_simple_options num =
+               let cnt = ref 0 in
+               let options = ref [] in
+               networks_iter_all (fun r ->
+                       List.iter (fun opfile ->
+                               if !cnt = num then begin
+          options := !options @ (opfile_args r opfile)
+
+                       end;
+                       incr cnt
+                       ) r.network_config_file
+               );
+               !options
+
+let all_active_network_opfile_network_names () =
+       let names = ref [] in
+       networks_iter_all (fun r ->
+               List.iter (fun opfile ->
+                       names := !names @ [r.network_name]
+               ) r.network_config_file
+       );
+       !names
 
 let apply_on_fully_qualified_options name f =
   if !verbose then begin
       lprintf "For option %s\n" name; 
     end;
   let rec iter prefix opfile =
-    let args = simple_options opfile in
+    let args = simple_options prefix opfile in
     List.iter (fun o ->
-        let new_name = Printf.sprintf "%s%s" prefix o.option_name in
-        if new_name = name then
+        if o.option_name = name then
           (f opfile o.option_name o.option_value; raise Exit))
     args
   in

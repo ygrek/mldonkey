@@ -441,6 +441,11 @@ let commands = [
             
             Printf.bprintf buf "\\<script language=javascript\\>
 \\<!-- 
+function pluginSubmit() {
+var formID = document.getElementById(\\\"pluginForm\\\");
+var v = formID.plugin.value;
+location.href='submit?q=voo+'+v;
+}
 function submitHtmlModsStyle() {
 var formID = document.getElementById(\\\"htmlModsStyleForm\\\");
 var v = formID.modsStyle.value;
@@ -451,18 +456,52 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
 //--\\>
 \\</script\\>";
             
+
+						let tabnumber = ref 0 in
+						let mtabs = ref 1 in
+
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Client\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+2'\\\"\\>Ports\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+3'\\\"\\>html\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+4'\\\"\\>Delays\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+5'\\\"\\>Files\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+6'\\\"\\>Mail\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+7'\\\"\\>Net\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>";
+
+
+					List.iter (fun s ->
+						incr tabnumber; incr mtabs;
+						Printf.bprintf buf "\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
+						!tabnumber s
+					) [ "Client" ; "Ports" ; "html" ; "Delays" ; "Files" ; "Mail" ; "Net" ];
+
+Printf.bprintf buf "
+\\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbig pr\\\"\\>
+\\<form style=\\\"margin: 0px;\\\" name=\\\"pluginForm\\\" id=\\\"pluginForm\\\" 
+action=\\\"javascript:pluginSubmit();\\\"\\>
+\\<select id=\\\"plugin\\\" name=\\\"plugin\\\"
+style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
+\\<option value=\\\"0\\\"\\>Plugins\n";
+
+					let netlist = ref [] in
+					List.iter (fun s ->
+						incr tabnumber;
+						netlist := !netlist @ [(s,!tabnumber)]
+						
+					) (CommonInteractive.all_active_network_opfile_network_names ());
+
+					let duplist = ref [] in
+					let netname = ref "" in
+					List.iter (fun tup ->
+						let s = (fst tup) in
+						let t = (snd tup) in
+						if List.memq s !duplist then
+								netname := Printf.sprintf "%s+" s
+						else netname := s;
+						duplist := !duplist @ [!netname];
+            Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n"
+						t !netname
+					) (List.sort (fun d1 d2 -> compare (fst d1) (fst d2)) !netlist);
+	
+            Printf.bprintf buf "\\</select\\>\\</td\\>\\</form\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
@@ -576,8 +615,9 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
                       ] 
                   
                   | _ -> 
-                      let v = CommonInteractive.all_simple_options () in
-                      v
+                      let v = CommonInteractive.some_simple_options (tab - !mtabs) in
+													List.sort (fun d1 d2 -> compare d1 d2) v;
+
             );
             Printf.bprintf buf "
 \\</td\\>\\</tr\\>
@@ -609,7 +649,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
               
               Printf.bprintf buf "
 \\</select\\>\\</td\\>
-\\</tr\\>\\</table\\>";
+\\</tr\\>\\</form\\>\\</table\\>";
               Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
         else begin
@@ -663,7 +703,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                     (if o.option_desc = "" then
                       o.option_name else o.option_desc)
                   prefix o.option_name o.option_value
-              ) (strings_of_section_options s)
+              ) (strings_of_section_options "" s)
             in
             List.iter (fun s ->
                 print_section (section_name s) "" s

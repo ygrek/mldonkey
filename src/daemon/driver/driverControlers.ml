@@ -90,11 +90,28 @@ let eval auth cmd o =
   match l with
     [] -> ()
     | ["longhelp"] | ["??"] ->
-          let module M = CommonMessages in
-          Buffer.add_string  buf !!M.available_commands_are;
+           let module M = CommonMessages in
+           Buffer.add_string  buf !!M.available_commands_are;
+          if use_html_mods o then 
+            html_mods_table_header buf "voTable" "vo" [
+             ( "0", "srh", "Command", "Command" ) ;
+             ( "0", "srh", "Help", "Help" ) ] ; 
+          let counter = ref 0 in
           List.iter (fun (cmd, _, help) ->
-              Printf.bprintf  buf "$r%s$n %s\n" cmd help) 
-          !CommonNetwork.network_commands
+            if use_html_mods o then begin
+              incr counter;
+              let ncmd = ref cmd in
+              let nhelp = ref help in
+              Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"(if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+              html_mods_td buf [ ("", "sr", !ncmd); ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp) ];
+              Printf.bprintf buf "\\</tr\\>\n";
+            end
+            else Printf.bprintf buf "$r%s$n %s\n" cmd help;
+		      ) (if use_html_mods o then 
+		        (List.sort (fun (c1,_,_) (c2,_,_) -> compare c1 c2) !CommonNetwork.network_commands)
+            else !CommonNetwork.network_commands);
+            if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>"
+
     | ["help"] | ["?"] ->
           let module M = CommonMessages in
           Buffer.add_string  buf

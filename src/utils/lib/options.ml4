@@ -1098,13 +1098,13 @@ let string_of_option_value o v =
       value_to_string (o.option_class.to_value v)
   | Some (to_string, _) -> to_string v
   
-let strings_of_option o =
+let strings_of_option prefix o =
   match o.option_name with
     [] | _ :: _ :: _ -> failwith "Complex option"
   | [name] ->
       let desc = if o.option_desc = "" then name else o.option_desc in
       {
-        M.option_name = name;
+        M.option_name = Printf.sprintf "%s%s" prefix name;
         M.option_desc = desc;
         M.option_value = string_of_option_value o o.option_value;
         M.option_default = string_of_option_value o o.option_default;
@@ -1113,17 +1113,17 @@ let strings_of_option o =
         M.option_type = o.option_class.class_name;
       }
   
-let simple_options opfile =
+let simple_options prefix opfile =
   let list = ref [] in
   List.iter (fun s ->
       List.iter
         (fun o ->
-          try list := strings_of_option o :: !list  with _ -> ())
+          try list := strings_of_option prefix o :: !list  with _ -> ())
       s.section_options)
   opfile.file_sections;
   List.rev !list
   
-let simple_args opfile =
+let simple_args prefix opfile =
   List2.tail_map
     (fun oi ->
        "-" ^ oi.M.option_name,
@@ -1133,23 +1133,23 @@ let simple_args opfile =
             set_simple_option opfile oi.M.option_name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
          oi.M.option_help oi.M.option_value)
-    (simple_options opfile)
+    (simple_options prefix opfile)
 
 let prefixed_args prefix file =
   List.map
     (fun (s, f, h) ->
        let s = String.sub s 1 (String.length s - 1) in
        Printf.sprintf "-%s:%s" prefix s, f, h)
-    (simple_args file)
+    (simple_args "" file)
   
 let sections file = file.file_sections
 let section_name s = string_of_string_list s.section_name
   
-let strings_of_section_options s =
+let strings_of_section_options prefix s =
   let list = ref [] in
   List.iter
   (fun o ->
-      try list := strings_of_option o :: !list  with _ -> ())
+      try list := strings_of_option prefix o :: !list  with _ -> ())
   s.section_options;
   List.rev !list
 
@@ -1169,3 +1169,4 @@ let iter_section f s =
 let iter_file f file =
   List.iter (iter_section f) file.file_sections
   
+let strings_of_option o = strings_of_option "" o

@@ -435,24 +435,18 @@ let gui_initialize gui =
       ) console_messages;                
       
       gui_send gui (
-        P.Options_info (simple_options downloads_ini));
+        P.Options_info (simple_options "" downloads_ini));
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
 (*
 lprintf "options for net %s" r.network_name; lprint_newline ();
 *)
-              let args = simple_options opfile in
               let prefix = r.network_prefix () in
+              let args = simple_options prefix opfile in
 (*
 lprintf "Sending for %s" prefix; lprint_newline ();
  *)
-              gui_send gui (P.Options_info (
-                  List.map (fun o ->
-                      { o with option_name = 
-                        (Printf.sprintf "%s%s" prefix o.option_name)
-                      }
-                  )  args)
-              );
+              gui_send gui (P.Options_info args)
 (*                            lprintf "sent for %s" prefix; lprint_newline (); *)
           )
           r.network_config_file 
@@ -464,7 +458,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
           List.iter (fun o ->
               gui_send gui (
                 P.Add_section_option (section, o))
-          ) (strings_of_section_options s)
+          ) (strings_of_section_options "" s)
       ) (sections downloads_ini);
 
 (* Options panels defined in each plugin *)
@@ -476,12 +470,9 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                   let section = section_name s in
                   List.iter (fun o ->
                       gui_send gui (
-                        P.Add_plugin_option (r.network_name, 
-                          { o with
-                            option_name = (
-                              Printf.sprintf "%s%s" prefix o.option_name);  
-                          }))
-                  ) (strings_of_section_options s)
+                        P.Add_plugin_option (r.network_name, o)
+                      )
+                  ) (strings_of_section_options prefix s)
               ) (sections file)
           ) r.network_config_file
       );

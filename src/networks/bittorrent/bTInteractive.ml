@@ -131,7 +131,7 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
         P.file_availability = 
-        [network.network_num,Int64Swarmer.availability file.file_partition];
+        [network.network_num,Int64Swarmer.verified_bitmap file.file_partition];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;

@@ -104,9 +104,14 @@ let make_xs ss =
       | None ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
-          udp_server_send s (if server_send_multiple_replies s then
+          udp_server_send s (
+(* By default, send the MultipleUdp !!! we have to set 
+server_send_multiple_replies to true by default, and change it to false
+when receiving an old ping.
+
+  if server_send_multiple_replies s then
               Udp.QueryUdpReq ss.search_query
-	  else Udp.QueryMultipleUdpReq ss.search_query);
+	  else *) Udp.QueryMultipleUdpReq ss.search_query);
   ) before;
   
   DonkeyOvernet.overnet_search ss
@@ -238,6 +243,10 @@ to this server *)
 
 let udp_client_handler t p =
   let module M = DonkeyProtoServer in
+  if !verbose_udp then begin
+      lprintf "Received UDP message:\n";
+      lprintf "%s\n" (Udp.print t);
+    end;
   match t with
     Udp.QueryLocationReplyUdpReq t ->
 (*      lprintf "Received location by UDP"; lprint_newline ();  *)

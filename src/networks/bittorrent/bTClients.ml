@@ -71,15 +71,11 @@ let disconnect_client c reason =
           c.client_new_chunks <- [];
           c.client_interesting <- false;
           c.client_alrd_sent_interested <- false;
-          if (c.client_registered_bitfield) then
-            begin
-              Int64Swarmer.unregister_uploader_bitmap 
-                file.file_partition c.client_bitmap;
-              c.client_registered_bitfield <- false;
-              for i = 0 to String.length c.client_bitmap - 1 do
-                c.client_bitmap.[0] <- '0';
-              done
-            end
+          Int64Swarmer.unregister_uploader_bitmap 
+            file.file_partition c.client_bitmap;
+          for i = 0 to String.length c.client_bitmap - 1 do
+            c.client_bitmap.[0] <- '0';
+          done
         with _ -> ()
   end;
   match reason with 
@@ -167,11 +163,11 @@ let rec client_parse_header counter cc init_sent gconn sock
                   Connection _ -> 
                     lprintf "This client is already connected\n";
                     close sock (Closed_for_error "Already connected"); 
-		    remove_client ccc;
-		    c
+                    remove_client ccc;
+                    c
                 | _ -> 
                     lprintf "CLIENT %d: recovered by UID\n" (client_num ccc);
-		    remove_client c;
+                    remove_client c;
                     cc := Some ccc;
                     ccc)
             end else
@@ -222,9 +218,9 @@ let rec client_parse_header counter cc init_sent gconn sock
           s
         )); 
     c.client_blocks_sent <- file.file_blocks_downloaded;
-    
 
-    (*
+
+(*
       TODO !!! : send interested if and only if we are interested 
       -> we must recieve at least other peer bitfield.
       in common swarmer -> compare : partition -> partition -> bool
@@ -253,7 +249,6 @@ and update_client_bitmap c =
     let bs = 
       Int64Swarmer.register_uploader_bitmap file.file_partition 
         c.client_bitmap in
-    c.client_registered_bitfield <- true;
     c.client_blocks <- bs
 
 and get_from_client sock (c: client) =
@@ -388,7 +383,7 @@ and client_to_client c sock msg =
               Int64Swarmer.downloaded file.file_swarmer in
             
             c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
-	      Rate.update c.client_downloaded_rate  (float_of_int len);
+            Rate.update c.client_downloaded_rate  (float_of_int len);
             
             if !verbose_msg_clients then 
               (match c.client_ranges with
@@ -414,16 +409,16 @@ and client_to_client c sock msg =
               c.client_ranges <- tail;
         end;
         get_from_client sock c;
-	if (List.length !current_uploaders < (max_uploaders-1)) &&
-	  (List.mem c (!current_uploaders)) == false && c.client_interested then
-	    begin
-             (*we are probably an optimistic uploaders for this client
+        if (List.length !current_uploaders < (max_uploaders-1)) &&
+          (List.mem c (!current_uploaders)) == false && c.client_interested then
+          begin
+(*we are probably an optimistic uploaders for this client
              don't miss the oportunity if we can*)
-             current_uploaders := c::(!current_uploaders);
-             send_client c Unchoke;
-             set_client_has_a_slot (as_client c) true;
-             client_enter_upload_queue (as_client c)
-           end;
+            current_uploaders := c::(!current_uploaders);
+            send_client c Unchoke;
+            set_client_has_a_slot (as_client c) true;
+            client_enter_upload_queue (as_client c)
+          end;
     
     | BitField p ->
         c.client_new_chunks <- [];
@@ -431,13 +426,13 @@ and client_to_client c sock msg =
         let npieces = Int64Swarmer.partition_size file.file_partition in
         let len = String.length p in
         let bitmap = String.make (len*8) '0' in
-	let verified = Int64Swarmer.verified_bitmap file.file_partition in
+        let verified = Int64Swarmer.verified_bitmap file.file_partition in
         for i = 0 to len - 1 do
           for j = 0 to 7 do
             if (int_of_char p.[i]) land bits.(j) <> 0 then
-	      begin
-		bitmap.[i*8+j] <- '1';
-		if verified.[i*8+j] <> '3' then
+              begin
+                bitmap.[i*8+j] <- '1';
+                if verified.[i*8+j] <> '3' then
                   c.client_interesting <- true;
               end
             else 
@@ -454,33 +449,33 @@ and client_to_client c sock msg =
           Int64Swarmer.register_uploader_bitmap file.file_partition bitmap in
         c.client_blocks <- bs;
         c.client_bitmap <- bitmap;
-	send_interested c;
+        send_interested c;
         if !verbose_msg_clients then 
           lprintf "New BitField Registered\n";
 (*        for i = 1 to max_range_requests - List.length c.client_ranges do
           (try get_from_client sock c with _ -> ())
         done*)
-
+    
     | Have n ->
         let n = Int64.to_int n in
         if c.client_bitmap.[n] <> '1' then
           let verified = Int64Swarmer.verified_bitmap file.file_partition in
           if verified.[n] <> '3' then begin
-	    c.client_interesting <- true;
-	    send_interested c;  
+              c.client_interesting <- true;
+              send_interested c;  
               c.client_new_chunks <- n :: c.client_new_chunks;
               if c.client_block = None then begin
                   update_client_bitmap c;
-               (*   for i = 1 to max_range_requests - 
+(*   for i = 1 to max_range_requests - 
                     List.length c.client_ranges do
                     (try get_from_client sock c with _ -> ())
                   done*)
                 end
             end
-            
+    
     | Interested ->
         c.client_interested <- true;
-
+        
     
     | Choke ->
         begin

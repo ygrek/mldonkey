@@ -166,14 +166,14 @@ val filename_to_value : string -> option_value
 val value_to_filename : option_value -> string
 
 val set_simple_option : options_file -> string -> string -> unit
-val simple_options : options_file -> option_info list
+val simple_options : string -> options_file -> option_info list
 val get_simple_option : options_file -> string -> string
 val set_option_hook : options_file -> string -> (unit -> unit) -> unit
 
 val set_string_wrappers : 'a option_class -> 
   ('a -> string) -> (string -> 'a) -> unit
 
-val simple_args : options_file -> (string * Arg.spec * string) list
+val simple_args : string -> options_file -> (string * Arg.spec * string) list
 
 val prefixed_args : 
   string -> options_file -> (string * Arg.spec * string) list
@@ -189,7 +189,7 @@ val set_option_desc : 'a option_record -> string -> unit
   
 val sections : options_file -> options_section list
 val strings_of_section_options : 
-  options_section -> option_info list
+  string -> options_section -> option_info list
   
 val section_name : options_section -> string
 val iter_file : (Obj.t option_record -> unit) -> options_file -> unit

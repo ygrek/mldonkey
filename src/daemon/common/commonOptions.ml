@@ -965,6 +965,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   ov : overnet
   share: debug sharing
   md4 : md4 computation
+  udp : udp messages
 "
     string_option ""
   
@@ -1124,6 +1125,7 @@ let verbose_location = ref false
 let verbose_share = ref false
 let verbose_md4 = ref false
 let verbose_connect = ref false
+let verbose_udp = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -1142,6 +1144,7 @@ let _ =
       verbose_location := false;
       verbose_share := false;
       verbose_md4 := false;
+      verbose_udp := false;
       
       List.iter (fun s ->
           match s with
@@ -1159,7 +1162,8 @@ let _ =
           | "share" -> verbose_share := true
           | "md4" -> verbose_md4 := true
           | "connect" -> verbose_connect := true
-          
+          | "udp" -> verbose_udp := true
+              
           | "all" ->
               
               verbose_connect := true;
@@ -1175,7 +1179,8 @@ let _ =
               verbose_overnet := true;
               verbose_share := true;
               verbose_md4 := true;
-          
+              verbose_udp := true;
+              
           | _ -> ()
       
       ) (String2.split_simplify !!verbosity ' ')

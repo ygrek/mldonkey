@@ -739,8 +739,9 @@ let simple_print_file_list finished buf files format =
             "    Left";
             "Old";
             "A";
+            "S";
             "Rate";
-	    "Priority";
+	    "Prio";
           |]     
       )
       (List.map (fun file ->
@@ -757,7 +758,7 @@ let simple_print_file_list finished buf files format =
                       file.file_download_rate /. 1024.), "$b"
             in
             [|
-              (Printf.sprintf "%s[%10s %-5d]%s"
+              (Printf.sprintf "%s[%1s%4d]%s"
                 (if !!term_ansi then (color)
                  else "")
                 (short_net_name file)
@@ -789,8 +790,9 @@ let simple_print_file_list finished buf files format =
                   if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
               (string_of_int (number_of_active_sources file));
+              (string_of_int (number_of_sources file));
               rate ^ "$n";
-	      string_of_int file.file_priority;
+              (Printf.sprintf "%5d" (file.file_priority);)
             |]
         ) files)
   else

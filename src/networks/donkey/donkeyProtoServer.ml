@@ -73,7 +73,7 @@ module Connect = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      lprintf "port: %d" port; lprint_newline ();*)
+(*      lprintf "port: %d\n" port;*)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -133,15 +133,13 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
     let print t =
       lprintf "CHANNELS:\n";
       List.iter (fun c ->
-          lprintf "  %s: %d" c.name c.number;
-          lprint_newline ();
+          lprintf "  %s: %d\n" c.name c.number;
       ) t
 
      let bprint oc t =
       Printf.bprintf oc "CHANNELS:\n";
       List.iter (fun c ->
-          Printf.bprintf oc "  %s: %d" c.name c.number;
-          lprint_newline ();
+          Printf.bprintf oc "  %s: %d\n" c.name c.number;
       ) t
 
     let write buf t =
@@ -298,6 +296,10 @@ module Info = struct
     type t = int * int
     
     let parse len s =
+      
+      if len <> 9 then begin
+          lprintf "SERVER INFO WITH LENGTH %d !!!!!!\n" len;
+        end;
       let users = get_int s 1 in
       let files = get_int s 5 in
       users, files
@@ -334,11 +336,9 @@ module ServerList = struct
       iter 0
           
     let print t = 
-      lprintf "SERVER LIST";
-      lprint_newline ();
+      lprintf "SERVER LIST\n";
       List.iter (fun l -> 
-          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
-          lprint_newline ();
+          lprintf "   %s : %d\n" (Ip.to_string l.ip) l.port;
       ) t
 
     let bprint oc t = 
@@ -375,7 +375,7 @@ module ServerInfo = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      lprintf "port: %d" port; lprint_newline (); *)
+(*      lprintf "port: %d\n" port; *)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -725,13 +725,11 @@ module QueryUsers = struct (* request 26 *)
           let name, pos = get_string s 2 in
           name
       | _ -> 
-          lprintf "QueryUsers: unknown tag %d" targ;
-          lprint_newline ();
+          lprintf "QueryUsers: unknown tag %d\n" targ;
           raise Not_found
           
     let print t =
-      lprintf "QUERY USERS [%s]" t;
-      lprint_newline () 
+      lprintf "QUERY USERS [%s]\n" t
 
      let bprint oc t =
       Printf.bprintf oc "QUERY USERS [%s]\n" t
@@ -849,8 +847,7 @@ module QueryLocationReply  = struct
       { locs =locs; md4 = md4 }
           
     let print t = 
-      lprintf "LOCATION OF %s" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
           lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
           lprint_newline ();
@@ -916,8 +913,7 @@ module QueryIDReply  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      lprintf "IDENTIFICATION %s : %d" (Ip.to_string t.ip) t.port;
-      lprint_newline ()
+      lprintf "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
 
     let bprint oc t = 
       Printf.bprintf oc "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
@@ -941,8 +937,7 @@ module QueryServers  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      lprintf "QUERY SERVERS %s : %d" (Ip.to_string t.ip) t.port;
-      lprint_newline ()
+      lprintf "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
 
     let bprint oc t = 
       Printf.bprintf oc "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
@@ -986,12 +981,10 @@ module QueryServersReply  = struct
 	  { server_ip = Ip.null; server_port = 0; servers = servers }  
       
     let print t = 
-      lprintf "SERVERS QUERY REPLY %s : %d" (
+      lprintf "SERVERS QUERY REPLY %s : %d\n" (
         Ip.to_string t.server_ip) t.server_port;
-      lprint_newline ();
       List.iter (fun s -> 
-          lprintf "   %s:%d" (Ip.to_string s.ip) s.port; 
-          lprint_newline ();
+          lprintf "   %s:%d\n" (Ip.to_string s.ip) s.port; 
       ) t.servers
 
      let bprint oc t = 
@@ -1094,7 +1087,7 @@ let rec parse magic s =
     let opcode = int_of_char (s.[0]) in
       match magic with 
 	  227 -> begin
-(*    lprintf "opcode: %d" opcode; lprint_newline (); *)
+(*    lprintf "opcode: %d\n" opcode; *)
     match opcode with 
     | 1 -> ConnectReq (Connect.parse len s)
     | 5 -> BadProtocolVersionReq 
@@ -1133,24 +1126,24 @@ let rec parse magic s =
 	  end
    | 0xD4 -> (* 212 *)
 
+        lprintf "Compressed Message...\n";
+        
         if Autoconf.has_zlib then
           let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in 
             parse 227 s
         else
           failwith "No Zlib to uncompress packet"
-   | _ ->   
-       lprintf "From server:"; lprint_newline ();
-       dump s;
-       UnknownReq s
+    | _ ->   
+        failwith (Printf.sprintf "Unkown opcode %d from server\n" opcode)
   with
     e -> 
        if !CommonOptions.verbose_unknown_messages then begin
-          lprintf "Unknown message From server: %s (magic %d)"
-              (Printexc2.to_string e) magic; lprint_newline ();
+          lprintf "Unknown message From server: %s (magic %d)\n"
+              (Printexc2.to_string e) magic; 
 	      	     let tmp_file = Filename.temp_file "comp" "pak" in
 	     File.from_string tmp_file s;
-	     lprintf "Saved unknown packet %s" tmp_file; lprint_newline ();
+	     lprintf "Saved unknown packet %s\n" tmp_file; 
 
           dump s;
           lprint_newline ();

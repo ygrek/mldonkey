@@ -55,7 +55,6 @@ type client = {
     mutable client_alrd_sent_interested : bool;
     mutable client_alrd_sent_notinterested : bool;
     mutable client_interesting : bool;
-    mutable client_registered_bitfield : bool;
   }
 
 and file = {

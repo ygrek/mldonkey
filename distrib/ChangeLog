@@ -2,6 +2,12 @@ ChangeLog
 =========
 
 2003/11/27: Fabrice
+  * Removed patch #2341 (for fun :) )
+  * Applied patch #2139 (html mod), #2371 (telnet)
+  * Compressed connections to servers work, multiple replies to a search
+      in one UDP packet works too.
+
+2003/11/27: Fabrice
   * Unix32: and yet another bug fixed in MultiFile: no more 
       Invalid_argument("Unix.write") error
 

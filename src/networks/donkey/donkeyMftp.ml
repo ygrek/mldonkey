@@ -158,7 +158,7 @@ let get_tag s pos names_of_tag =
     tag_name = (try
         List.assoc name names_of_tag
       with Not_found ->
-          lprintf "Unknown tag \"%s\"\n" (String.escaped name);
+(*          lprintf "Unknown tag \"%s\"\n" (String.escaped name); *)
           name);
     tag_value = v
   }, pos
