@@ -169,7 +169,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.server_column_strings)
 	       Gui_columns.Server.string_of_column)
-      (gettext M.o_servers_columns)
+      ""
       (fun c -> [Gui_columns.Server.string_of_column c])
       !!GO.servers_columns
   in
@@ -179,7 +179,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.file_column_strings)
 	       Gui_columns.File.string_of_column)
-      (gettext M.o_downloads_columns)
+      ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloads_columns
   in
@@ -189,7 +189,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.file_column_strings)
 	       Gui_columns.File.string_of_column)
-      (gettext M.o_downloaded_columns)
+      ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloaded_columns
   in
@@ -199,7 +199,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.client_column_strings)
 	       Gui_columns.Client.string_of_column)
-      (gettext M.o_friends_columns)
+      ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.friends_columns
   in
@@ -209,7 +209,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.client_column_strings)
 	       Gui_columns.Client.string_of_column)
-      (gettext M.o_file_locations_columns)
+      ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.file_locations_columns
   in
@@ -219,7 +219,7 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.result_column_strings)
 	       Gui_columns.Result.string_of_column)
-      (gettext M.o_results_columns)
+      ""
       (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
   in
@@ -229,19 +229,20 @@ let create_gui_params () =
       ~add: (sel 
 	       (List.map fst Gui_columns.shared_file_up_column_strings)
 	       Gui_columns.Shared_files_up.string_of_column)
-      (gettext M.o_shared_files_up_colums)
+      ""
       (fun c -> [Gui_columns.Shared_files_up.string_of_column c])
       !!GO.shared_files_up_columns
   in
-  let columns_options = Section
+  let columns_options = Section_list
       ((gettext M.o_columns),
        [
-	 servers_cols ; 
-	 dls_cols ; dled_cols ; 
-	 results_cols ;
-	 friends_cols ; 
-	 file_locs_cols ;
-	 shared_cols ;
+	 Section ((gettext M.o_servers_columns) ,[servers_cols]) ; 
+	 Section ((gettext M.o_downloads_columns) ,[dls_cols]); 
+	 Section ((gettext M.o_downloaded_columns) ,[dled_cols]); 
+	 Section ((gettext M.o_results_columns) ,[results_cols]);
+	 Section ((gettext M.o_friends_columns) ,[friends_cols]) ; 
+	 Section ((gettext M.o_file_locations_columns) ,[file_locs_cols]) ;
+	 Section ((gettext M.o_shared_files_up_colums) ,[shared_cols]) ;
        ] 
       )
   in

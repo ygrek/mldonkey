@@ -3,6 +3,7 @@ ChangeLog
 
 2003/01/30: Zoggy
   - Changed The License of okey, configwin, mp3tag and mlchat to GPL
+  - one tab per list in the column configuration tab (gui/settings)
 
 2003/01/26: Simon (tag unstable-2-02-8) 
   - Added bundle binaries (core + gui with communication via FIFO) to
