@@ -58,6 +58,7 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 #define FD_TASK_WLEN 2
 #define FD_TASK_RLEN 3
 #define FD_TASK_CLOSED 4
+#define FD_TASK_POS 5
 
 typedef fd_set file_descr_set;
 
@@ -69,7 +70,6 @@ value ml_select(value fdlist, value timeout) /* ML */
   struct timeval * tvp;
   int retcode;
   value res;
-  value read_list = Val_unit, write_list = Val_unit, except_list = Val_unit;
   int notimeout;
   value l;  
 
@@ -116,5 +116,59 @@ value ml_select(value fdlist, value timeout) /* ML */
 
 value unix_select(value readfds, value writefds, value exceptfds, value timeout)
 { invalid_argument("select not implemented"); }
+
+#endif
+
+#if 0
+#include <sys/poll.h>
+
+value ml_select(value fdlist, value timeout) /* ML */
+{
+  static struct pollfd ufds[1024];
+  int tm = (int)(1e6 * (double)Double_val(timeout));
+  int nfds = 0;
+  int retcode;
+  value res;
+  int notimeout;
+  value l;  
+
+  for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {
+    value v = Field(l,0);
+    if(Field(v, FD_TASK_CLOSED) == Val_false){
+/*      fprintf(stderr, "FD in SELECT %d\n", fd); */
+      int must_read = (Field(v, FD_TASK_RLEN) != Val_int(0));
+      int must_write = (Field(v, FD_TASK_WLEN) != Val_int(0));
+      if(must_read || must_write){
+        int fd = Int_val(Field(v,FD_TASK_FD));
+        ufds[nfds].fd = fd;
+        ufds[nfds].events = (must_read?POLLIN:0) | (must_write? POLLOUT:0);
+        ufds[nfds].revents = 0;
+        Field(v, FD_TASK_POS) = Val_int(nfds);
+        nfds++;
+      } else
+        Field(v, FD_TASK_POS) = Val_int(-1);
+    }
+  }
+  enter_blocking_section();
+  retcode = poll(ufds, nfds, tm);
+  leave_blocking_section();
+  if (retcode < 0) {
+    uerror("poll", Nothing);
+  }
+  for (l = fdlist; l != Val_int(0) && retcode != 0; l = Field(l, 1)) {
+    value v = Field(l,0);
+    int pos = Field(v, FD_TASK_POS);
+    if(pos == Val_int(-1)){
+      int fd = Int_val(Field(v,FD_TASK_FD));
+      value flags = Val_int(0);
+      if (ufds[pos].revents & POLLIN) flags |= 2;
+      if (ufds[pos].revents & POLLOUT) flags |= 4;
+      if (ufds[pos].revents & POLLNVAL) 
+        Field(v, FD_TASK_CLOSED) = Val_true;
+      Field(v,FD_TASK_FLAGS) = flags;
+    }
+  }
+  return Val_unit;
+}
 
 #endif

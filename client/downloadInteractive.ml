@@ -995,9 +995,10 @@ let commands = [
             simple_print_file_list false buf list format;
             Printf.bprintf  buf "\nDownloaded %d files\n" 
               (List.length !!done_files);
-            simple_print_file_list true buf !!done_files format;
-            if !!done_files = [] then "" else
-              "Use 'commit' to move downloaded files to the incoming directory"
+            if !!done_files = [] then "" else begin
+                simple_print_file_list true buf !!done_files format;
+                "Use 'commit' to move downloaded files to the incoming directory"
+              end
     
     ), "<num>: view file info";
     

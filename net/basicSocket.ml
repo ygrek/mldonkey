@@ -32,6 +32,7 @@ type t = {
     mutable want_to_write : bool;
     mutable want_to_read : bool;
     mutable closed : bool;
+    mutable pollpos : int;
     
 (* YOU CAN MODIFY THESE *)
     mutable rtimeout: float;
@@ -133,7 +134,7 @@ let create_blocking fd handler =
       want_to_write = false;
       want_to_read = true;
       closed = false;
-      
+      pollpos = -1;      
       flags = 0;
       
       rtimeout = infinite_timeout;

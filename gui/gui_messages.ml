@@ -660,6 +660,7 @@ TODO list
   * Use source groups for local downloads.
   * Use a cache of data to help diffusing files.
   * Check that program exists before trying to execute.
+  * Add customizable searches.
 
 Known bugs:
 ===========
@@ -673,8 +674,6 @@ Release 1.15:
   * GUI:
     - Should fit in 640x480 screens.
     - Server can be specified by ip:port in Add Server entry.
-    - New option 'auto_resize' that can be used under Windows to
-       prevent the GUI from taking the focus.
   * Core acts now with all (direct) clients as a server to diffuse sources
      for files. Indirect mldonkey clients can also receive information.
   * WEB interface:
