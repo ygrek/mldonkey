@@ -273,6 +273,8 @@ let index_string doc s fields =
   
 let index_name r name = 
   index_string r name 1 (* general search have field 1 *)
+
+let indexer = ref None
   
 let index_result_no_filter r =
   try
@@ -291,10 +293,66 @@ let index_result_no_filter r =
     _ -> 
       let doc = Indexer.make_doc index r in
       Hashtbl.add results r.result_md4 doc;
-      
+
 (* SAVE HERE THE RESULT TO local_index_add *)
-      output_result (history_file_oc ()) r;
-      flush (history_file_oc ());
+      
+      if !!local_index_add_cmd <> "" then begin
+          try
+            let buf = Buffer.create 100 in
+            
+            List.iter (fun name -> 
+                Printf.bprintf  buf "name:%s\n" name
+            ) r.result_names;
+            Printf.bprintf buf "size:%s\n" (Int32.to_string r.result_size);
+            Printf.bprintf buf "md4:%s\n" (Md4.to_string r.result_md4);
+            if r.result_format <> "" then
+              Printf.bprintf buf "format:%s\n" r.result_format;
+            if r.result_type <> "" then
+              Printf.bprintf buf "type:%s\n" r.result_type;
+            List.iter (fun tag ->
+                match tag.tag_value with
+                  String s ->
+                    Printf.bprintf buf "string_tag:%s:%s\n" tag.tag_name s
+                | Uint32 i | Fint32 i ->
+                    Printf.bprintf buf "int_tag:%s:%s\n" tag.tag_name 
+                      (Int32.to_string i)
+                | _ -> ()
+            ) r.result_tags;
+            Buffer.add_string buf "end result\n";
+            
+            let s = Buffer.contents buf in
+            let t_out =
+              match !indexer with
+                None ->
+                  let (t_in, t_out) = TcpClientSocket.exec_command !!local_index_add_cmd [||] 
+                      (fun sock ev -> ()) in
+                  indexer := Some (t_in, t_out);
+                  TcpClientSocket.set_closer t_out (fun _ _ ->
+                      match !indexer with
+                        None -> ()
+                      | Some (t_in_old, t_out_old) ->
+                          if t_out_old == t_out then
+                            indexer := None);
+                  TcpClientSocket.set_closer t_out (fun _ _ ->
+                      match !indexer with
+                        None -> ()
+                      | Some (t_in_old, t_out_old) ->
+                          if t_out_old == t_out then
+                            indexer := None);
+                  t_out
+              | Some (t_in, t_out) -> t_out
+            in
+            TcpClientSocket.write_string t_out s
+          with e ->
+              Printf.printf "Exception %s while starting local_index_add"
+                (Printexc.to_string e); print_newline ()
+              
+        end;
+      
+      if !!save_file_history then begin
+          output_result (history_file_oc ()) r;
+          flush (history_file_oc ());
+        end;
       List.iter (fun name ->
           index_name doc name
       ) r.result_names;      
@@ -510,3 +568,14 @@ let find_names md4 =
 let add_comment md4 comment =
   add_comment md4 comment;
   save_comments ()
+
+let _ =
+  BasicSocket.add_timer 10. (fun timer ->
+      BasicSocket.reactivate_timer timer;
+      match !indexer with
+        None -> ()
+      | Some (t_in, t_out) ->
+          if TcpClientSocket.can_write t_out then begin
+              TcpClientSocket.close t_out "timed";
+              indexer := None;
+            end)
