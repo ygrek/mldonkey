@@ -1,7 +1,7 @@
 ChangeLog	
 =========
 
-2003/04/08: Simon
+2003/04/08: Simon  (v 2.04rc1-15)
   - Applied patch #1372 (= #1373 I hope)
   - Tiger: try to prevent Bus Error bugs on Solaris by aligning the buffer
   - BitTorrent: 
