@@ -29,7 +29,7 @@ let gui_extension_poll = 1
   
 let to_gui_last_opcode = 57
 let from_gui_last_opcode = 64
-let best_gui_version = 28
+let best_gui_version = 29
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !

@@ -282,7 +282,7 @@ packet QH2_H (
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              let h = H.new_host ip port true in ()
+              let h = H.new_host ip port Ultrapeer in ()
           | _ -> ()
       ) p.g2_children;
       let children = ref [] in
@@ -316,7 +316,7 @@ packet QH2_H (
       List.iter (fun c ->
           match c.g2_payload with
           | QA_D ((ip,port),_) ->
-              let h = H.new_host ip port true in
+              let h = H.new_host ip port Ultrapeer in
               h.host_connected <- last_time ();
               begin
                 match ss with
@@ -326,7 +326,7 @@ packet QH2_H (
               end
 (* These ones have not been searched yet *)
           | QA_S ((ip,port),_) -> 
-              let h = H.new_host ip port true in
+              let h = H.new_host ip port Ultrapeer in
               h.host_connected <- last_time ();
           
           
@@ -545,7 +545,7 @@ file_must_update file;
 
           
 let udp_packet_handler ip port msg = 
-  let h = H.new_host ip port true in
+  let h = H.new_host ip port Ultrapeer in
   h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 

@@ -179,7 +179,7 @@ module H = CommonHosts.Make(struct
           Tcp_Connect, 
           (600, (fun kind ->
                 [ match kind with
-                  | true -> ultrapeers_waiting_queue
+                  | Ultrapeer -> ultrapeers_waiting_queue
                   | (_) -> peers_waiting_queue
                 ]
             ));
@@ -190,11 +190,12 @@ module H = CommonHosts.Make(struct
 
       let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
         
-      let max_hosts = max_known_hosts
+      let max_ultrapeers = max_known_ultrapeers
+      let max_peers = max_known_peers
     end)
 
 let new_server ip port =
-  let h = H.new_host ip port true in
+  let h = H.new_host ip port Ultrapeer in
   match h.host_server with
     Some s -> s
   | None ->

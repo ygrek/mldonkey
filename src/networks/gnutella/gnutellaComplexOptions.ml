@@ -203,7 +203,7 @@ let save_config () =
   
   Queue.iter (fun (_,h) -> 
       try
-        let o = match h.host_kind with true -> ultrapeers | _ -> peers in
+        let o = match h.host_kind with Ultrapeer -> ultrapeers | _ -> peers in
 
 (* Don't save hosts that are older than 1 hour, and not responding *)
         if max h.host_connected h.host_age > last_time () - 3600 then

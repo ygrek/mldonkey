@@ -76,6 +76,9 @@ it will happen soon. *)
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
+    
+(* added in 2.5.27 to remove use of network names in global modules *)
+    mutable op_file_print_sources_html_header : ('a -> Buffer.t -> GuiTypes.file_info -> unit);
     mutable op_file_debug : ('a -> string);
   }
 
@@ -269,74 +272,9 @@ let file_active_sources file =
 let file_print_sources_html (file : file) buf =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf
-  
-let files_ops = ref []
-  
-let new_file_ops network = 
-  let f = 
-    {
-      op_file_network =  network;
-      op_file_commit = (fun _ _ -> ni_ok network "file_commit");
-      op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
-(*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
-      op_file_to_option = (fun _ -> fni network "file_to_option");
-      op_file_cancel = (fun _ -> ni_ok network "file_cancel");
-      op_file_info = (fun _ -> fni network "file_info");
-      op_file_pause = (fun _ -> ni_ok network "file_pause");
-      op_file_resume = (fun _ -> ni_ok network "file_resume");
-(*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
-      op_file_check = (fun _ -> ni_ok network "file_check");
-      op_file_recover = (fun _ -> ni_ok network "file_recover");
-      op_file_set_format = (fun _ -> fni network "file_set_format");
-      op_file_all_sources = (fun _ -> fni network "file_all_sources");
-      op_file_active_sources = (fun _ -> fni network "file_active_sources");
-      op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
-      op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
-      op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
-      op_file_debug = (fun _ -> "");
-    }
-  in
-  let ff = (Obj.magic f : int file_ops) in
-  files_ops := (ff, { ff with op_file_network = ff.op_file_network })
-  :: ! files_ops;
-  f
 
-let check_file_implementations () =
-  lprintf "\n---- Methods not implemented for CommonFile ----\n";
-  List.iter (fun (c, cc) ->
-      let n = c.op_file_network.network_name in
-      lprintf "\n  Network %s\n" n; 
-      if c.op_file_to_option == cc.op_file_to_option then 
-        lprintf "op_file_to_option\n";
-      if c.op_file_info == cc.op_file_info then
-        lprintf "op_file_info\n";
-      if c.op_file_commit == cc.op_file_commit then
-        lprintf "op_file_commit\n";
-      if c.op_file_save_as == cc.op_file_save_as then
-        lprintf "op_file_save_as\n";
-      if c.op_file_cancel == cc.op_file_cancel then
-        lprintf "op_file_cancel\n";
-      if c.op_file_pause == cc.op_file_pause then
-        lprintf "op_file_pause\n";
-      if c.op_file_resume == cc.op_file_resume then
-        lprintf "op_file_resume\n";
-(*      if c.op_file_disk_name == cc.op_file_disk_name then
-        lprintf "op_file_disk_name\n"; *)
-      if c.op_file_check == cc.op_file_check then
-        lprintf "op_file_check\n";
-      if c.op_file_recover == cc.op_file_recover then
-        lprintf "op_file_recover\n";
-      if c.op_file_set_format == cc.op_file_set_format then
-        lprintf "op_file_set_format\n";
-      if c.op_file_all_sources == cc.op_file_all_sources then
-        lprintf "op_file_all_sources\n";
-      if c.op_file_active_sources == cc.op_file_active_sources then
-        lprintf "op_file_active_sources\n";
-      if c.op_file_print_sources_html == cc.op_file_print_sources_html then
-        lprintf "op_file_print_sources_html\n";
-  ) !files_ops;
-  lprint_newline () 
-
+  
+  
   
 let file_find num = 
   H.find files_by_num (as_file {
@@ -504,8 +442,9 @@ let file_print file o =
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
   let srcs = file_all_sources file in
-
-
+  let active_srcs = file_active_sources file in
+  
+  
   if use_html_mods o then begin
       
       html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
@@ -552,7 +491,7 @@ let file_print file o =
                 ("Fake check links", "sr br", "Fakecheck");
                 ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://donkeyfakes.gambri.net/fakecheck.php\\?hash=%s\\\"\\>[Donkey-Fakes]\\</a\\>" 
                     (Md4.to_string info.G.file_md4) 
-                  ) ];
+                ) ];
               
               
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
@@ -560,8 +499,12 @@ let file_print file o =
               html_mods_td buf [
                 ("ed2k link", "sr br", "ed2k link");
                 ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>" 
-                    (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)
-                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
+                    (info.G.file_name)
+                  (Int64.to_string info.G.file_size)
+                  (Md4.to_string info.G.file_md4)
+                  (info.G.file_name)
+                  (Int64.to_string info.G.file_size)
+                  (Md4.to_string info.G.file_md4)) ];
               
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
               let optionlist = ref "" in
@@ -592,8 +535,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                   ^ !optionlist 
                     ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
                     ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>"
-                  
-                  ) ];
+                
+                ) ];
             
             )
       );
@@ -613,124 +556,50 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       (file_priority file);
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
       List.iter (fun (name,_) -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
-	end;
+    end;
   
   (try
+            
       
-      let bitTorrentHeader () = 
-        
-        html_mods_table_header buf "sourcesTable" "sources al" [ 
-          ( "1", "srh br ac", "Client number", "Num" ) ; 
-          ( "0", "srh br", "Client UID", "UID" ) ; 
-          ( "0", "srh", "IP address", "IP address" ) ; 
-          ( "0", "srh br ar", "Port", "Port" ) ; 
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
-          ( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ; 
-          ( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ; 
-          ( "1", "srh br ar", "Allowed to write", "A" ) ; 
-(* 
-		( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks 
-        (Array.init (String.length info.G.file_chunks)
-        (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
-*)
-          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-		(String.length (String2.replace (String2.replace info.G.file_chunks '0' "") '1' "")) )) ]
-      
-      in
-      
-      let fastTrackHeader () = 
-        
-        html_mods_table_header buf "sourcesTable" "sources al" [ 
-          ( "1", "srh br ac", "Client number", "Num" ) ; 
-          ( "0", "srh br", "Client Name", "Name" ) ; 
-          ( "0", "srh", "IP address", "IP address" ) ; 
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]
-      
-      in
-      
-	let gnutellaHeader () = 
-
-		html_mods_table_header buf "sourcesTable" "sources al" [ 
-		( "1", "srh br ac", "Client number", "Num" ) ; 
-		( "0", "srh br", "Client Name", "Name" ) ; 
-		( "0", "srh", "IP address", "IP address" ) ; 
-		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]
-
-	in
-
-      let defaultHeader () = 
-        
-        html_mods_table_header buf "sourcesTable" "sources al" ([ 
-          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
-          ( "0", "srh", "[A] = Active download from client", "A" ) ; 
-          ( "0", "srh", "Client state", "CS" ) ; 
-          ( "0", "srh", "Client name", "Name" ) ; 
-          ( "0", "srh", "Client brand", "CB" ) ; 
-	  ] @
-          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
-	  @ [
-          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
-          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
-          ( "0", "srh br", "IP address", "IP address" ) ; 
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
-          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
-          ( "1", "srh ar br", "Source score", "Scr" ) ; 
-          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
-          ( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
-          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
-          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
-          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
-          ( "1", "srh ar", "Requests sent", "RS" ) ; 
-          ( "1", "srh ar", "Requests received", "RR" ) ; 
-          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
-          ( "0", "srh br", "Client MD4", "MD4" ) ; 
-          ( "0", "srh", "Chunks (absent|partial|present|verified)", (colored_chunks 
-                (Array.init (String.length info.G.file_chunks)
-                (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
-          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ]);
-      
-      in
       if !!print_all_sources then begin
-      
-      if use_html_mods o = false then Printf.bprintf buf "%d sources:\n" (List.length srcs);
-      
-      if use_html_mods o && srcs <> [] then begin
           
-          (match n.network_name with 
-              "BitTorrent" ->  bitTorrentHeader ();
-            | "Fasttrack" ->  fastTrackHeader ();
-	   | "Gnutella" ->  gnutellaHeader ();
-            | _ -> defaultHeader ();)
+          if not (use_html_mods o) then 
+            Printf.bprintf buf "%d sources:\n" (List.length srcs);
+          
+          if use_html_mods o && srcs <> [] then begin
+
+(* [TODO] Hum... we should add a method in network for that, not use the name
+of the network !!! *)
+              impl.impl_file_ops.op_file_print_sources_html_header 
+                file buf info;
+            end;
+          
+          
+          let counter = ref 0 in
+          let print_source c =
+              incr counter;
+              
+              if use_html_mods o then begin
+                  Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" 
+				onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
+                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+                  client_bprint_html c buf file;
+                  Printf.bprintf buf "\\</tr\\>";
+                end
+              else begin
+                  Printf.bprintf buf "  [%4d] " (client_num c);
+                  client_bprint c buf;
+              end
+          in
+          List.iter print_source srcs;
         
         end;
-      
-      let counter = ref 0 in
-      List.iter (fun c ->
-          incr counter;
-          
-          if use_html_mods o then begin
-              Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" 
-				onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
-              (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
-              client_bprint_html c buf file;
-              Printf.bprintf buf "\\</tr\\>";
-            end
-          else
-            client_bprint c buf;
-      ) srcs;
-
-     end;
       if use_html_mods o && srcs <> [] then begin
-        Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
-        if !!html_mods_vd_queues then file_print_sources_html file buf;
-      end
-
-  with _ -> ())
+          Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
+          if !!html_mods_vd_queues then file_print_sources_html file buf;
+        end
+    
+    with _ -> ())
   
 
 (*************************************************************************)
@@ -849,6 +718,80 @@ let recover_bytes file =
   ) segments;
 *)
   segments
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Define file_ops                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let files_ops = ref []
+  
+let new_file_ops network = 
+  let f = 
+    {
+      op_file_network =  network;
+      op_file_commit = (fun _ _ -> ni_ok network "file_commit");
+      op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
+(*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
+      op_file_to_option = (fun _ -> fni network "file_to_option");
+      op_file_cancel = (fun _ -> ni_ok network "file_cancel");
+      op_file_info = (fun _ -> fni network "file_info");
+      op_file_pause = (fun _ -> ni_ok network "file_pause");
+      op_file_resume = (fun _ -> ni_ok network "file_resume");
+(*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
+      op_file_check = (fun _ -> ni_ok network "file_check");
+      op_file_recover = (fun _ -> ni_ok network "file_recover");
+      op_file_set_format = (fun _ -> fni network "file_set_format");
+      op_file_all_sources = (fun _ -> fni network "file_all_sources");
+      op_file_active_sources = (fun _ -> fni network "file_active_sources");
+      op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
+      op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
+      op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
+      op_file_debug = (fun _ -> "");
+      op_file_print_sources_html_header = (fun _ _ _ -> ());
+    }
+  in
+  let ff = (Obj.magic f : int file_ops) in
+  files_ops := (ff, { ff with op_file_network = ff.op_file_network })
+  :: ! files_ops;
+  f
+
+let check_file_implementations () =
+  lprintf "\n---- Methods not implemented for CommonFile ----\n";
+  List.iter (fun (c, cc) ->
+      let n = c.op_file_network.network_name in
+      lprintf "\n  Network %s\n" n; 
+      if c.op_file_to_option == cc.op_file_to_option then 
+        lprintf "op_file_to_option\n";
+      if c.op_file_info == cc.op_file_info then
+        lprintf "op_file_info\n";
+      if c.op_file_commit == cc.op_file_commit then
+        lprintf "op_file_commit\n";
+      if c.op_file_save_as == cc.op_file_save_as then
+        lprintf "op_file_save_as\n";
+      if c.op_file_cancel == cc.op_file_cancel then
+        lprintf "op_file_cancel\n";
+      if c.op_file_pause == cc.op_file_pause then
+        lprintf "op_file_pause\n";
+      if c.op_file_resume == cc.op_file_resume then
+        lprintf "op_file_resume\n";
+(*      if c.op_file_disk_name == cc.op_file_disk_name then
+        lprintf "op_file_disk_name\n"; *)
+      if c.op_file_check == cc.op_file_check then
+        lprintf "op_file_check\n";
+      if c.op_file_recover == cc.op_file_recover then
+        lprintf "op_file_recover\n";
+      if c.op_file_set_format == cc.op_file_set_format then
+        lprintf "op_file_set_format\n";
+      if c.op_file_all_sources == cc.op_file_all_sources then
+        lprintf "op_file_all_sources\n";
+      if c.op_file_active_sources == cc.op_file_active_sources then
+        lprintf "op_file_active_sources\n";
+      if c.op_file_print_sources_html == cc.op_file_print_sources_html then
+        lprintf "op_file_print_sources_html\n";
+  ) !files_ops;
+  lprint_newline () 
 
 (*************************************************************************)
 (*                                                                       *)

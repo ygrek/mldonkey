@@ -432,7 +432,8 @@ timeout := 5.;
       exec_hooks !before_select_hooks;
 (*      lprintf "Tasks %d\n" (List.length !fd_tasks); *)
       select !fd_tasks !timeout; 
-    with e ->
+    with 
+    | e ->
         lprintf "Exception %s in Select.loop\n" (Printexc2.to_string e);
   done
   

@@ -50,11 +50,6 @@ let name_of_tag =
     "type", 34; (* "movie", "video clip",... *)
   ]
 
-type host_kind =
-  Ultrapeer
-| Peer
-| IndexServer
-
 type cipher
 
 type ciphers = {
@@ -63,20 +58,12 @@ type ciphers = {
     mutable in_xinu : int64;
     mutable out_xinu : int64;
   }
-  
-type host = {
-    host_num : int;
-    mutable host_server : server option;
-    host_addr : Ip.addr;
-    host_port : int;
-    mutable host_age : int;
-    mutable host_udp_request : int;
-    mutable host_tcp_request : int;
-    mutable host_connected : int;
-    mutable host_kind : host_kind;
     
-    mutable host_queues : host Queue.t list;
-  }
+type request = 
+| Tcp_Connect
+| Udp_Connect
+
+type host = (server, request, Ip.addr) CommonHosts.host
 
 and server = {
     server_server : server CommonServer.server_impl;

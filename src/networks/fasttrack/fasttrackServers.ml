@@ -25,7 +25,8 @@ open BasicSocket
 open TcpBufferedSocket
 
 open AnyEndian
-  
+
+open CommonHosts
 open CommonOptions
 open CommonSearch
 open CommonServer
@@ -194,8 +195,8 @@ let connect_server h =
                   if !verbose_msg_servers then begin
                       lprintf "CONNECT TO %s:%d\n" 
                         (Ip.string_of_addr h.host_addr) port;
-                    end;  
-                  h.host_tcp_request <- last_time ();
+                end;  
+              H.set_request h Tcp_Connect;
                   let sock = connect token "fasttrack to server"
                       (Ip.to_inet_addr ip) port
                       (fun sock event -> 
@@ -354,7 +355,8 @@ let _ =
   server_ops.op_server_remove <- (fun s ->
       disconnect_server s Closed_by_user
   )
-  
+
+  (*
 let manage_host h =
   try
     let current_time = last_time () in
@@ -390,14 +392,18 @@ let manage_host h =
           
   with e ->
       lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)
-  
+      *)
+
 let manage_hosts () = 
+  H.manage_hosts ();
+(*
   let rec iter () =
     let h = host_queue_take workflow in
     manage_host h;
     iter ()
   in
-  (try iter () with _ -> ());
+(try iter () with _ -> ());
+  *)
   List.iter (fun file ->
       if file_state file = FileDownloading then
         try
@@ -420,7 +426,7 @@ let rec find_ultrapeer queue =
 (*        lprintf "not ready: %d s\n" (next - last_time ());  *)
         raise Not_found;
       end;
-    ignore (host_queue_take queue);
+    ignore (H.host_queue_take queue);
     h
   with _ -> find_ultrapeer queue
       
@@ -431,7 +437,7 @@ let try_connect_ultrapeer connect =
     with _ ->
 (*        lprintf "not in ultrapeers_waiting_queue\n";  *)
             let (h : host) = 
-              new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
+              H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
             find_ultrapeer peers_waiting_queue
   in
 (*  lprintf "contacting..\n";  *)

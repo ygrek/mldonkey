@@ -22,7 +22,8 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
+open CommonHosts
 open CommonDownloads
 open CommonTypes
 open CommonFile
@@ -143,16 +144,9 @@ let value_to_file file_size file_state assocs =
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
-              | SmallList [c; index; name] | List [c;index; name] ->
+              | SmallList (c :: _) | List (c :: _) ->
                   let s = ClientOption.value_to_client c in
                   add_download file s
-                  
-(*  (FileByIndex (value_to_int index, value_to_string name)) *)
-    
-              | SmallList [c; index] | List [c;index] ->
-                  let s = ClientOption.value_to_client c in
-                  add_download file s
-(*                    (FileByUrl (value_to_string index)) *)
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -202,7 +196,7 @@ let save_config () =
       if h.host_kind <> IndexServer &&
           max h.host_connected h.host_age > last_time () - 3600 then
         o =:= (h.host_addr, h.host_port) :: !!o) 
-  workflow;
+  H.workflow;
   
   let files = !!old_files in
   old_files =:= [];

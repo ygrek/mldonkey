@@ -542,6 +542,7 @@ let _ =
           P.server_description = s.server_info;
           P.server_users = None;
           P.server_banner = "";
+          P.server_preferred = false;
         }
 )
 

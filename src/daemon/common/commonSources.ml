@@ -71,8 +71,8 @@ type request_result =
 | File_not_found  (* we asked, the file is not there *)
 | File_expected   (* we asked, because it was announced *)
 | File_new_source (* we never asked, but we should *)
-| File_found      (* the file was found, and the rank *)
-| File_chunk      (* the file has chunks we want, and the rank *)
+| File_found      (* the file was found *)
+| File_chunk      (* the file has chunks we want *)
 | File_upload     (* we uploaded from this client *)
 | File_unknown    (* We don't know anything *)
 
@@ -314,34 +314,10 @@ module Make(M:
 (*                                                                       *)
 (*************************************************************************)
       
-      let request_score r =
-        r.request_score asr 16
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         request_rank                                  *)
-(*                                                                       *)
-(*************************************************************************)
-      
-      let request_rank r  = r.request_score land 0xffff
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         set_score_part                                *)
-(*                                                                       *)
-(*************************************************************************)
+      let request_score r = r.request_score
       
       let set_score_part r score =
-        r.request_score <- (score lsl 16) lor (request_rank r)
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         set_rank_part                                *)
-(*                                                                       *)
-(*************************************************************************)
-      
-      let set_rank_part r rank =
-        r.request_score <- rank lor ( (request_score r) lsl 16 )
+        r.request_score <- score
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1008,7 +984,7 @@ we will probably query for the other file almost immediatly. *)
 (*************************************************************************)
       
       let add_saved_source_request s uid score time =
-        if !verbose_sources > 1 then
+        if !verbose_sources > 1 then 
           lprintf "  Request %s %d %d\n" uid score time;
         let file = 
           try
@@ -1033,7 +1009,7 @@ we will probably query for the other file almost immediatly. *)
 (*************************************************************************)
       
       let value_to_source assocs =
-(*        lprintf "(1) value_to_source\n"; *)
+(*        lprintf "(1) value_to_source\n";  *)
         let get_value name conv = conv (List.assoc name assocs) in    
         
         let addr = get_value "addr" M.value_to_source_uid in
@@ -1065,8 +1041,14 @@ we will probably query for the other file almost immediatly. *)
                   let uid = value_to_string uid in
                   let score = value_to_int score in
                   let time = value_to_int time in
-(*                  lprintf "(3) value_to_source \n"; *)
                   
+(* added in 2.5.27 to fix a bug introduced in 2.5.25 *)
+                  let score =
+                    if score land 0xffff = 0 then score asr 16 else score
+                  in
+                  
+(*                  lprintf "(3) value_to_source \n"; *)
+        
                   add_saved_source_request s uid score time
                 
                 with e -> 

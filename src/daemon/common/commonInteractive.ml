@@ -53,7 +53,12 @@ let canonize_basename name =
         try
           Buffer.add_string buf (List.assoc nc !!filename_conversions)
         with _ ->
-            Buffer.add_char buf (if nc > 127 || nc < 32 then '?' else c)
+            Buffer.add_char buf (
+              match c with
+                (* for Windows *)
+                ':' | '*' | '?' | '"' | '<' | '>' | '|' | '%' -> '_'
+              | _ ->
+                  if nc > 127 || nc < 32 then '-' else c)
   done;
   Buffer.contents buf
   

@@ -94,9 +94,21 @@ let detach_daemon () =
     if pid < 0 then failwith "Error in fork";
     if pid > 0 then exit 0;
     let sid = Unix.setsid () in
-    Unix.close Unix.stdin;
-    Unix.close Unix.stdout;
-    Unix.close Unix.stderr;
+
+(* Changed in 2.5.27 *)
+    begin
+      let stdin_new = Unix.openfile "/dev/null" [O_RDONLY] 0o444 in
+      Unix.dup2 stdin_new Unix.stdin;
+      Unix.close stdin_new;
+    end;
+    
+    begin
+      let stdout_new = Unix.openfile "/dev/null" [O_WRONLY] 0o666 in
+      Unix.dup2 stdout_new Unix.stdout;
+      Unix.dup2 stdout_new Unix.stderr;
+      Unix.close stdout_new;
+    end;
+    
     Printf2.detach ();
         
   with e ->

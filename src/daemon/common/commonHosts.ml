@@ -29,8 +29,10 @@ open Md4
 open BasicSocket
 open Options
 open TcpBufferedSocket
+
+type host_kind = Peer | Ultrapeer | IndexServer
   
-type ('server,'host_kind,'request,'ip) host = {
+type ('server,'request,'ip) host = {
     host_num : int;
     mutable host_server : 'server option;
     host_addr : 'ip;
@@ -43,15 +45,14 @@ type ('server,'host_kind,'request,'ip) host = {
 (* the set of requests to perform on this host, and the last time they have 
   been done *)
     mutable host_requests : ('request * int) list; 
-    mutable host_kind : 'host_kind;
+    mutable host_kind : host_kind;
     
-    mutable host_queues : ('server,'host_kind,'request,'ip) host Queue.t list;
+    mutable host_queues : ('server, 'request, 'ip) host Queue.t list;
   }
 
 module Make(M: sig 
       
       type server
-      type host_kind
       type request
       type ip
       
@@ -59,13 +60,14 @@ module Make(M: sig
           
           (int (* repeat request delay *) * 
 (* returns the queue into which the host should be put *)
-            ( host_kind -> (server, host_kind, request,ip) host Queues.Queue.t list)
+            ( host_kind -> (server, request,ip) host Queues.Queue.t list)
           )
         ) list
       
       val default_requests : host_kind -> (request * int) list
         
-      val max_hosts : int Options.option_record
+      val max_ultrapeers : int Options.option_record
+      val max_peers : int Options.option_record
 
     end) = struct
     
@@ -73,7 +75,7 @@ module Make(M: sig
 
 (* Hosts are first injected in workflow. The workflow ensures that any
 host object is inspected every two minutes. *)
-    let (workflow : (server, host_kind, request,ip) host Queues.Queue.t) = 
+    let (workflow : (server, request,ip) host Queues.Queue.t) = 
       Queues.workflow (fun time -> time + 120 > last_time ())
     
     let host_queue_add q h time =
@@ -90,9 +92,23 @@ host object is inspected every two minutes. *)
       h
     
     let hosts_by_key = Hashtbl.create 103
-    
-    let hosts_counter = ref 0
-    
+
+    let indexservers_counter = ref 0
+    let ultrapeers_counter = ref 0
+    let peers_counter = ref 0
+
+    let counter n =
+      match n with
+      | Ultrapeer -> ultrapeers_counter
+      | IndexServer -> indexservers_counter
+      | _ -> peers_counter
+
+    let max_hosts n =
+      match n with 
+      | Ultrapeer -> !!max_ultrapeers
+      | IndexServer -> max_int
+      | _ -> !!max_peers
+          
     let new_host ip port host_kind = 
       let key = (ip,port) in
       try
@@ -100,10 +116,10 @@ host object is inspected every two minutes. *)
         h.host_age <- last_time ();
         h
       with _ ->
-          if !hosts_counter < !!max_hosts then begin
-              incr hosts_counter;
+          if !(counter host_kind) < max_hosts host_kind then begin
+              incr (counter host_kind);
               let host = {
-                  host_num = !hosts_counter;
+                  host_num = !(counter host_kind);
                   host_server = None;
                   host_addr = ip;
                   host_port = port;
@@ -157,9 +173,9 @@ host object is inspected every two minutes. *)
             host_queue_add workflow h current_time;      
           end else begin
 (* This host is too old, remove it *)
-            decr hosts_counter;
+            decr (counter h.host_kind);
             Hashtbl.remove hosts_by_key  (h.host_addr, h.host_port)
-          end
+          end  
       
       with e ->
           lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)

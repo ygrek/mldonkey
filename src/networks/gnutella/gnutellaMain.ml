@@ -66,10 +66,10 @@ let enable () =
   if not !!enable_gnutella then enable_gnutella =:= true;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port true)) !!ultrapeers;
+      ignore (H.new_host ip port Ultrapeer)) !!ultrapeers;
 
   List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port false)) !!peers;
+      ignore (H.new_host ip port Peer)) !!peers;
   
     add_session_timer enabler 1.0 (fun timer ->
         H.manage_hosts ();

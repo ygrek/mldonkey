@@ -1353,10 +1353,10 @@ let udp_client_handler t p =
                 FileSearch file -> ()
               
               | KeywordSearch sss ->
-                  incr search_hits;
                   List.iter (fun (r_md4, r_tags) ->
                       if not (Hashtbl.mem s.search_results r_md4) then 
                         begin
+                          incr search_hits;
                           s.search_hits <- s.search_hits + 1;
                           Hashtbl.add s.search_results r_md4 r_tags;
                           
@@ -1394,6 +1394,7 @@ let udp_client_handler t p =
                       if Ip.valid ip && ip_reachable ip && port <> 0 then
                         let s = DonkeySources.find_source_by_uid 
                             (Direct_address (ip, port))  in
+                        incr source_hits;
                         DonkeySources.set_request_result s 
                            file.file_sources File_new_source;
                         DonkeySources.set_source_brand s source_brand

@@ -47,14 +47,12 @@ type host = {
     mutable host_queues : host Queue.t list;
   }
     *)
-
-type host_kind = bool
     
 type request = 
 | Tcp_Connect
 | Udp_Connect
 
-type host = (server, host_kind, request, Ip.t) CommonHosts.host
+type host = (server, request, Ip.t) CommonHosts.host
   
 and server = {
     server_server : server CommonServer.server_impl;

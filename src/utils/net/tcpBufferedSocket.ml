@@ -432,7 +432,12 @@ let remaining_to_write t =  t.wbuf.len
 let nread t = t.nread
 let nwritten t = t.nwrite
 let can_write t =  t.wbuf.len = 0
-let can_write_len t len = t.wbuf.max_buf_size > t.wbuf.len + len
+let can_write_len t len = 
+  let b = t.wbuf.max_buf_size > t.wbuf.len + len in
+(*  if not b then
+    lprintf "can_write_len failed: %d < %d + %d\n"
+      t.wbuf.max_buf_size t.wbuf.len len; *)
+  b
 let not_buffer_more t max =  t.wbuf.len < max
 let can_fill t = t.wbuf.len < (t.wbuf.max_buf_size / 2)
 let get_rtimeout t = get_rtimeout t.sock_in

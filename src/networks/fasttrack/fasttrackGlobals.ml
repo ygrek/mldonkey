@@ -25,7 +25,8 @@ open Md4
 open BasicSocket
 open Options
 open TcpBufferedSocket
-  
+
+open CommonHosts
 open CommonOptions
 open CommonClient
 open CommonUser
@@ -154,17 +155,19 @@ let file_chunk_size = 307200
 let current_files = ref ([] : FasttrackTypes.file list)
 let listen_sock = ref (None : TcpServerSocket.t option)
 let result_sources = Hashtbl.create 1011  
-let hosts_by_key = Hashtbl.create 103
+(* let hosts_by_key = Hashtbl.create 103 *)
 let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
 let files_by_uid = Hashtbl.create 13
 let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
 let connected_servers = ref ([] : server list)
-    
+
+  (*
 let (workflow : host Queue.t) = 
   Queues.workflow (fun time -> time + 120 > last_time ())
-  
+  *)
+
 (* From the main workflow, hosts are moved to these workflows when they
 are ready to be connected. *)
 let (ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
@@ -184,49 +187,35 @@ let (active_udp_queue : host Queue.t) = Queues.fifo ()
 (*                         Global functions                              *)
 (*                                                                       *)
 (*************************************************************************)
-  
 
-let host_queue_add q h time =
-  if not (List.memq q h.host_queues) then begin
-      Queue.put q (time, h);
-      h.host_queues <- q :: h.host_queues
-    end
+    
+module H = CommonHosts.Make(struct
+      include FasttrackTypes
+      type ip = Ip.addr
 
-let host_queue_take q =
-  let (time,h) = Queue.take q in
-  if List.memq q h.host_queues then begin
-      h.host_queues <- List2.removeq q h.host_queues 
-    end;
-  h
-  
-let new_host ip port ultrapeer = 
-  let key = (ip,port) in
-  try
-    let h = Hashtbl.find hosts_by_key key in
-    h.host_age <- last_time ();
-    h
-  with _ ->
-      incr hosts_counter;
-      let host = {
-          host_num = !hosts_counter;
-          host_server = None;
-          host_addr = ip;
-          host_port = port;
-          
-          host_age = last_time ();
-          host_tcp_request = 0;
-          host_udp_request = 0;
-          host_connected = 0;
-          
-          host_kind = ultrapeer;
-          host_queues = [];
-        } in
-      Hashtbl.add hosts_by_key key host;
-      host_queue_add workflow host 0;
-      host
-      
+      let requests = 
+        [ 
+          Tcp_Connect, 
+          (600, (fun kind ->
+                [ match kind with
+                  | Ultrapeer -> ultrapeers_waiting_queue
+                  | (_) -> peers_waiting_queue
+                ]
+            ));
+          Udp_Connect,
+          (600, (fun kind ->
+                   [waiting_udp_queue]
+            ))]
+
+      let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
+        
+      let max_ultrapeers = max_known_ultrapeers
+      let max_peers = max_known_peers
+    end)
+
+
 let new_server ip port =
-  let h = new_host ip port Ultrapeer in
+  let h = H.new_host ip port Ultrapeer in
   match h.host_server with
     Some s -> s
   | None ->
@@ -456,16 +445,6 @@ let rec find_download file list =
     [] -> raise Not_found
   | d :: tail ->
       if d.download_file == file then d else find_download file tail
-
-        (*
-let rec find_download_by_index index list = 
-  match list with
-    [] -> raise Not_found
-  | d :: tail ->
-      match d.download_uri with
-        FileByIndex (i,_) when i = index -> d
-      | _ -> find_download_by_index index tail
-            *)
 
 let remove_download file list =
   let rec iter file list rev =

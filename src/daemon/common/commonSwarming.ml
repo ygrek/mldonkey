@@ -1940,13 +1940,22 @@ let value_to_swarmer t assocs =
           List.iter (fun (x,y) ->
               lprintf "     (%Ld,%Ld);\n" x y  
           ) p;
-          
-          
+
+
 (*          exit 2 *)
         end
-          
+    
     with e -> ());
+
   
+  (try
+      let last_seen = get_value "file_chunks_age"
+          (value_to_list value_to_int) in
+      t.t_last_seen <- Array.of_list last_seen
+    with _ -> ());
+  (*, List (Array.to_list 
+        (Array.map int_to_value t.t_last_seen))) :: *)
+
 (*  add_all_downloaded t zero;   (* changed 2.5.24 *) *)
   
   ()      
@@ -1965,27 +1974,27 @@ let swarmer_to_value t other_vals =
           SmallList [int64_to_value i1; int64_to_value i2])
       (present_chunks t))) ::
   ("file_downloaded", int64_to_value (downloaded t)) ::
-
-      ("file_chunks_age", List (Array.to_list 
-            (Array.map int_to_value t.t_last_seen))) ::
-      
-      other_vals
+  
+  ("file_chunks_age", List (Array.to_list 
+        (Array.map int_to_value t.t_last_seen))) ::
+  
+  other_vals
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         verify_one_block                              *)
 (*                                                                       *)
 (*************************************************************************)
-    
-    let verify_one_block t =
-      let bitmap = t.t_verified_bitmap in
-      for i = 0 to String.length bitmap do
-        if bitmap.[i] = '2' then begin
-            verify_block t i;
-            raise Exit
-          end
-      done
 
+let verify_one_block t =
+  let bitmap = t.t_verified_bitmap in
+  for i = 0 to String.length bitmap do
+    if bitmap.[i] = '2' then begin
+        verify_block t i;
+        raise Exit
+      end
+  done
+  
 
 (*************************************************************************)
 (*                                                                       *)

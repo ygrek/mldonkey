@@ -1,6 +1,20 @@
 ChangeLog	
 =========
 
+2004/08/10: Fabrice (version 2.5.27 = 2.6pre9, tag release-2-5-27)
+  - Applied patch #3276 (gui proto 29)
+  - Bug fixes:
+      * CommonInteractive: Filename conversion of forbidden Windows characters
+          before saving files (bug #9213)
+      * MlUnix: stdout and stderr are not closed, just redirected to /dev/null
+          (bug #8580)
+      * DonkeyFiles: limit upload to client to max_msg_size (bug #9818).
+      * CommonSources: fixed bug preventing saved sources from being used
+          (and thus previously known emule clients from being used).
+      * CommonSwarming: save and reload chunks ages
+      * FasttrackComplexOptions: sources are correctly loaded
+  - Fasttack now uses module CommonHosts
+
 2004/08/09: Fabrice (version 2.5.26 = 2.6pre8, tag release-2-5-26)
   - Bug fixes:
       * GuiDecoding: bug causing deconnection for protocol 28

@@ -75,7 +75,7 @@ module NewUpload = struct
 *)
     
     let rec send_small_block c sock file begin_pos len_int = 
-(*      lprintf "send_small_block\n"; *)
+(*      lprintf "send_small_block %d\n" len_int; *)
 (*      let len_int = Int32.to_int len in *)
       CommonUploads.consume_bandwidth len_int;
       try
@@ -170,7 +170,10 @@ module NewUpload = struct
 (*      lprintf "upload_to_client %d\n" size; *)
       do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
 (*    lprintf "upload_to_client %d connected\n"  (maxi max_msg_size size); *)
-          if CommonUploads.can_write_len sock (maxi max_msg_size size) then 
+          
+(* changed in 2.5.27: mini instead of maxi *)
+          let size = mini max_msg_size size in
+          if CommonUploads.can_write_len sock size then 
             begin
 (*              lprintf "can_write_len %d\n"  (maxi max_msg_size size); *)
               send_client_block c sock size;

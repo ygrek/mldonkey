@@ -18,7 +18,7 @@
 *)
 
 type 'a file_impl = {
-  mutable impl_file_update : int;
+    mutable impl_file_update : int;
     mutable impl_file_state : CommonTypes.file_state;
     
     mutable impl_file_comment : string;
@@ -53,6 +53,8 @@ and 'a file_ops = {
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
+    mutable op_file_print_sources_html_header : 
+    'a -> Buffer.t -> GuiTypes.file_info -> unit;
     mutable op_file_debug : 'a -> string;
 } 
 val as_file : 'a file_impl -> CommonTypes.file

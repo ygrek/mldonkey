@@ -134,6 +134,17 @@ let make_kazaa_request buf c request url =
   Printf.bprintf buf "X-Kazaa-Username: %s\r\n" (client_name ());
   Printf.bprintf buf "Connection: Keep-Alive\r\n"
   
+(* This is the typical reply of a busy FT client.
+ascii:[
+HTTP/1.0 503 Service Unavailable(10)
+Retry-After: 300(10)(10)
+X-Kazaa-Username: K++_www.kazaaKPP.com(10)(10)
+X-Kazaa-Network: KaZaA(10)(10)
+X-Kazaa-IP: 80.56.???.???:3223(10)(10)
+X-Kazaa-SupernodeIP: 80.57.???.???:1070(10)(10)]
+*)
+  
+  
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 

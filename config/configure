@@ -580,7 +580,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=26
+CURRENT_RELEASE=27
 
 REQUIRED_OCAML=3.08
 DOWNLOAD_OCAML=3.08.0
@@ -3430,16 +3430,16 @@ fi
 
 if test "$IM" = "yes" ; then
   
-ac_safe=`echo "../src/im" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for ../src/im""... $ac_c" 1>&6
-echo "configure:3436: checking for ../src/im" >&5
+ac_safe=`echo "../src/gtk/im" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../src/gtk/im""... $ac_c" 1>&6
+echo "configure:3436: checking for ../src/gtk/im" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   if test "$cross_compiling" = yes; then
     { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
 else
-  if test -r ../src/im; then
+  if test -r ../src/gtk/im; then
     eval "ac_cv_file_$ac_safe=yes"
   else
     eval "ac_cv_file_$ac_safe=no"

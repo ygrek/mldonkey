@@ -509,7 +509,9 @@ let buf_server proto buf s =
   buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
   buf_string buf s.server_name;
-  buf_string buf s.server_description
+  buf_string buf s.server_description;
+  if proto > 28 then 
+    buf_bool buf s.server_preferred
   
 let buf_client proto buf c =
   buf_int buf c.client_num;

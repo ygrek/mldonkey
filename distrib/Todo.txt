@@ -2,9 +2,7 @@ TODO list for client
 ====================
 
 Before 2.6:
-  * Check the correctness of the number of sources.
-  * Check that verify_chunks works correctly.
-  * kad_stats: fill_buckets searches are never removed.
+  * Fasttrack: present/absent not correctly stored ?
   * Re-implement contributors in CommonSwarming
   * Re-implement already downloaded files.
 

@@ -494,7 +494,7 @@ and client = {
     mutable client_checked : bool;
     mutable client_connected : bool;
 (* statistics *)
-    mutable client_last_filereqs : int;    
+(*    mutable client_last_filereqs : int;     *)
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;

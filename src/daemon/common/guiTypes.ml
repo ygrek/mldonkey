@@ -169,6 +169,7 @@ type server_info = {
     mutable server_description : string;
     mutable server_users : int list option;
     mutable server_banner : string;
+    mutable server_preferred : bool;
   } 
 
 type room_info = {

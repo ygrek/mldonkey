@@ -505,6 +505,7 @@ let get_server proto s pos =
   let state, pos = get_host_state proto s pos in
   let name, pos = get_string s pos in
   let description, pos = get_string s pos in
+  let preferred = if proto > 28 then get_bool s pos else false in
   {
     server_num = num;
     server_network = net;
@@ -519,6 +520,7 @@ let get_server proto s pos =
     server_description = description;
   server_banner = "";
     server_users = None;
+    server_preferred = preferred;
   }, pos
 
 let get_client_type s pos = 

@@ -184,7 +184,7 @@ let client_to_value c =
 (*      "client_age", int_to_value (
         CommonGlobals.connection_last_conn 
         c.client_connection_control); *)
-      "client_last_filereqs", int_to_value c.client_last_filereqs;
+(*      "client_last_filereqs", int_to_value c.client_last_filereqs; *)
     ]
   in
   

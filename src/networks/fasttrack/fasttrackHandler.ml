@@ -24,6 +24,7 @@ open TcpBufferedSocket
 open Options
 open AnyEndian
 
+open CommonHosts
 open CommonResult
 open CommonDownloads  
 open CommonUploads
@@ -45,8 +46,8 @@ open FasttrackComplexOptions
 open FasttrackProto
           
 let udp_packet_handler ip port msg = 
-  let h = new_host ip port Ultrapeer in
-  host_queue_add active_udp_queue h (last_time ());
+  let h = H.new_host ip port Ultrapeer in
+  H.host_queue_add active_udp_queue h (last_time ());
   h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
@@ -73,7 +74,7 @@ let server_msg_handler sock s msg_type m =
         let unknown = BigEndian.get_int16 m (i*8+6) in
         
         lprintf "    LittleEndian Node %s:%d   %d\n" (Ip.to_string l_ip) l_port unknown;
-        let (h : host) = new_host (Ip.addr_of_ip l_ip) l_port Ultrapeer in
+        let (h : host) = H.new_host (Ip.addr_of_ip l_ip) l_port Ultrapeer in
         ();
       done;
       if s.server_host.host_kind = IndexServer then

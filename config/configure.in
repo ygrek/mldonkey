@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=26
+CURRENT_RELEASE=27
 
 REQUIRED_OCAML=3.08
 DOWNLOAD_OCAML=3.08.0
@@ -666,7 +666,7 @@ else
 fi
 
 if test "$IM" = "yes" ; then
-  AC_CHECK_FILE(../src/im,IM=yes, [
+  AC_CHECK_FILE(../src/gtk/im,IM=yes, [
   IM=no
   ])
 else

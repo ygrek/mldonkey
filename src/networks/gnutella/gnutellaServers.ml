@@ -122,7 +122,7 @@ let rec server_parse_header s gconn sock header
                     let ip = Ip.of_string ip in
                     let port = int_of_string port in
 (*                    lprintf "ADDING UP %s:%d\n" (Ip.to_string ip) port;  *)
-                    x_ultrapeers :=  (ip,port, true) :: !x_ultrapeers;
+                    x_ultrapeers :=  (ip,port, Ultrapeer) :: !x_ultrapeers;
                   with e -> 
                       lprintf "Could not parse x-try-ultrapeers (%s):\n"
                         (Printexc2.to_string e);
@@ -144,7 +144,7 @@ let rec server_parse_header s gconn sock header
                     let ip = Ip.of_string ip in
                     let port = int_of_string port in
 (*                    lprintf "ADDING UP %s:%d\n" (Ip.to_string ip) port;  *)
-                    x_ultrapeers :=  (ip,port, false) :: !x_ultrapeers;
+                    x_ultrapeers :=  (ip,port, Peer) :: !x_ultrapeers;
                   
                   with e -> 
                       lprintf "Could not parse x-try (%s):\n"
@@ -220,11 +220,11 @@ let rec server_parse_header s gconn sock header
                 end
         with _ -> ()
     ) headers;
+    if !gnutella2 <> GnutellaProto.gnutella2_needed then
+      failwith "Protocol not supported";
     List.iter (fun (ip,port,ultrapeer) ->
-        if GnutellaProto.is_same_network !gnutella2 then begin
-            lprintf "gnutella: adding ultrapeer from %s\n" s.server_agent;
-            ignore (H.new_host ip port ultrapeer)
-          end
+        lprintf "gnutella: adding ultrapeer from %s\n" s.server_agent;
+        ignore (H.new_host ip port ultrapeer)
     ) !x_ultrapeers;    
     server_must_update (as_server s.server_server);
 (*    s.server_gnutella2 <-  !gnutella2; *)
@@ -232,11 +232,7 @@ let rec server_parse_header s gconn sock header
     if not !ultra_peer then 
       failwith "DISCONNECT: Not an Ultrapeer";
     if proto < "0.6" then
-      failwith (Printf.sprintf "Bad protocol [%s]" proto)
-    else
-    if !gnutella2 <> GnutellaProto.gnutella2_needed then
-      failwith "Protocol not supported"
-    else
+      failwith (Printf.sprintf "Bad protocol [%s]" proto);
     if code <> "200" then begin
         s.server_connected <- int64_time ();
 (*        if retry_fake then begin

@@ -17,7 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type ('a, 'b, 'c, 'd) host = {
+type host_kind = Peer | Ultrapeer | IndexServer
+
+type ('a, 'c, 'd) host = {
   host_num : int;
   mutable host_server : 'a option;
   host_addr : 'd;
@@ -25,40 +27,39 @@ type ('a, 'b, 'c, 'd) host = {
   mutable host_age : int;
   mutable host_connected : int;
   mutable host_requests : ('c * int) list;
-  mutable host_kind : 'b;
-  mutable host_queues : ('a, 'b, 'c, 'd) host Queues.Queue.t list;
+  mutable host_kind : host_kind;
+  mutable host_queues : ('a, 'c, 'd) host Queues.Queue.t list;
 } 
 module Make :
   functor
   (M : sig
       type server
-      and host_kind
       and request
       and ip
       val requests :
         (request *
           (int *
             (host_kind ->
-            (server, host_kind, request, ip) host Queues.Queue.t list)))
+            (server, request, ip) host Queues.Queue.t list)))
         list
       val default_requests : host_kind -> (request * int) list
-      val max_hosts : int Options.option_record
+      val max_peers : int Options.option_record
+      val max_ultrapeers : int Options.option_record
     end) ->
   sig
     val workflow :
-      (M.server, M.host_kind, M.request, M.ip) host Queues.Queue.t
+      (M.server, M.request, M.ip) host Queues.Queue.t
     val host_queue_add :
-      ('a, 'b, 'c, 'd) host Queues.Queue.t ->
-      ('a, 'b, 'c, 'd) host -> int -> unit
+      ('a, 'c, 'd) host Queues.Queue.t ->
+      ('a, 'c, 'd) host -> int -> unit
     val host_queue_take :
-      ('a, 'b, 'c, 'd) host Queues.Queue.t -> ('a, 'b, 'c, 'd) host
+      ('a, 'c, 'd) host Queues.Queue.t -> ('a, 'c, 'd) host
     val hosts_by_key :
-      (M.ip * int, (M.server, M.host_kind, M.request, M.ip) host) Hashtbl.t
-    val hosts_counter : int ref
+      (M.ip * int, (M.server, M.request, M.ip) host) Hashtbl.t
     val new_host :
       M.ip ->
-      int -> M.host_kind -> (M.server, M.host_kind, M.request, M.ip) host
-    val set_request : ('a, 'b, 'c, 'd) host -> 'c -> unit
+      int -> host_kind -> (M.server, M.request, M.ip) host
+    val set_request : ('a, 'c, 'd) host -> 'c -> unit
     val manage_hosts : unit -> unit
   end
   

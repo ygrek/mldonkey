@@ -614,8 +614,10 @@ let commands = [
         let preferred = bool_of_string arg1 in
         let ip = Ip.of_string arg2 in
         Hashtbl.iter (fun ip_s s ->
-            if ip_s = ip then 
-              s.server_preferred <- preferred
+            if ip_s = ip then begin
+              s.server_preferred <- preferred;
+              server_must_update s;
+            end
         ) servers_by_key;
         "ok"
     ), "<true/false> <ip> : set the server with this IP has preferred";
@@ -807,7 +809,41 @@ DonkeySources.recompute_ready_sources ()        *)
       ()
   );
   file_ops.op_file_pause <- (fun file -> ()  );
-  
+  file_ops.op_file_print_sources_html_header <- (fun file buf info ->
+      
+      html_mods_table_header buf "sourcesTable" "sources al" ([ 
+          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+          ( "0", "srh", "[A] = Active download from client", "A" ) ; 
+          ( "0", "srh", "Client state", "CS" ) ; 
+          ( "0", "srh", "Client name", "Name" ) ; 
+          ( "0", "srh", "Client brand", "CB" ) ; 
+        ] @
+          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+        @ [
+          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+          ( "0", "srh br", "IP address", "IP address" ) ; 
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
+          ( "1", "srh ar br", "Source score", "Scr" ) ; 
+          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
+          ( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
+          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
+          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
+          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
+          ( "1", "srh ar", "Requests sent", "RS" ) ; 
+          ( "1", "srh ar", "Requests received", "RR" ) ; 
+          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
+          ( "0", "srh br", "Client MD4", "MD4" ) ; 
+          ( "0", "srh", "Chunks (absent|partial|present|verified)", 
+            (colored_chunks 
+                (Array.init (String.length info.G.file_chunks)
+                (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
+          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) 
+                  info.G.file_chunks );!fc ))) ])
+  );
   
   file_ops.op_file_commit <- (fun file new_name ->
       
@@ -920,6 +956,7 @@ let _ =
           P.server_description = s.server_description;
           P.server_banner = s.server_banner;
           P.server_users = None;
+          P.server_preferred = s.server_preferred;
         }
       else raise Not_found
   )
@@ -937,6 +974,7 @@ let _ =
         P.user_server = u.user_server.server_server.impl_server_num;
       }
   )
+
 let string_of_client_addr c =
   try match c.client_source.DonkeySources.source_sock with
       Connection sock -> (Ip.to_string (peer_ip sock)) 
@@ -967,8 +1005,7 @@ let _ =
         P.client_upload = 
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)
-          | None -> None);
-        
+          | None -> None);        
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -976,8 +1013,8 @@ let _ =
 
 let _ =
   network.op_network_connect_servers <- (fun _ ->
-      force_check_server_connections true
-  )
+      force_check_server_connections true  )
+
 let disconnect_server s r =
   match s.server_sock with
     NoConnection -> ()
@@ -986,7 +1023,7 @@ let disconnect_server s r =
       s.server_sock <- NoConnection
   | Connection sock ->
       TcpBufferedSocket.shutdown sock r
-      
+
 let _ =
   server_ops.op_server_remove <- (fun s ->
       DonkeyComplexOptions.remove_server s.server_ip s.server_port

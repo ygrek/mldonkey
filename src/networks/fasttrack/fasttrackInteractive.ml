@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonHosts
 open CommonDownloads
 open Int64ops
 open Xml
@@ -208,6 +209,15 @@ let _ =
       List.iter (fun c ->
           FasttrackServers.get_file_from_source c file
       ) file.file_clients
+  );
+  file_ops.op_file_print_sources_html_header <- (fun file buf info ->
+      
+      html_mods_table_header buf "sourcesTable" "sources al" [ 
+        ( "1", "srh br ac", "Client number", "Num" ) ; 
+        ( "0", "srh br", "Client Name", "Name" ) ; 
+        ( "0", "srh", "IP address", "IP address" ) ; 
+        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+        ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]      
   )
 
   
@@ -270,6 +280,7 @@ let _ =
           P.server_description = "";
           P.server_users = None;
           P.server_banner = "";
+          P.server_preferred = false;
         } 
         else raise Not_found
   );
