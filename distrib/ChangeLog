@@ -1,9 +1,22 @@
 ChangeLog
 =========
 
+2002/06/29:
+ - Added columns configuration for users in GUI.
+ - Added message BrowseUser from GUI to Core and user_ops.op_user_browse_files.
+ - Communication between clients in Direct Connect started.
+ - User information from Direct Connect displayed in GUI (admin/link/bytes)
+
+2002/06/28:
+ - Fixed several problems in WEB/telnet interface
+ - Added enable(disable) networks menu in GUI (disable not implemented):
+     networks can be started from GUI. New message EnableNetwork from GUI.
+ - Added display networks menu in GUI: servers and results from a network
+     can be hidden.
+
 2002/06/27:
- - Started using Weak Hashtbl in common/ structures to avoid memory leaks
- - The GUI displays correctly eDonkey, Open-Napster, LimeWire and DirectConnect
+ - Started using Weak Hashtbl in common/ structures to avoid memory leaks.
+ - The GUI displays correctly eDonkey, Open-Napster, LimeWire and DirectConnect.
  - Lots of debbugging messages have been removed.
 
 Pre-Release 1.99:

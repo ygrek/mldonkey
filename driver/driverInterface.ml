@@ -43,7 +43,6 @@ let gui_send gui t = value_send gui.gui_sock (t : Gui_proto.to_gui)
 let restart_gui_server = ref (fun _ -> ())
   
 let send_result gui num r =
-  Printf.printf "GUI RESULT FOR SEARCH %d" num; print_newline ();
   if List.mem num gui.gui_search_nums then begin
     let module P = Gui_proto in
       gui_send gui (P.Result_info (result_info r));
@@ -69,10 +68,14 @@ let send_client_info gui c =
   let module P = Gui_proto in  
   gui_send gui (P.Client_info (CommonClient.client_info c))
 
-let gui_reader (gui: gui_record) t sock =
+let catch m f =
+  try f () with e ->
+      Printf.printf "Exception %s for message %s" (Printexc.to_string e) m;
+      print_newline () 
   
+let gui_reader (gui: gui_record) t sock =
+  let module P = Gui_proto in  
   try
-    let module P = Gui_proto in
     match t with
     | P.Command cmd ->
         let buf = Buffer.create 1000 in
@@ -202,7 +205,6 @@ let gui_reader (gui: gui_record) t sock =
         exit_properly ()
     
     | P.Search_query (local,s) ->
-        Printf.printf "GUI SEARCH QUERY %d" s.P.search_num; print_newline ();
         let query = 
           try CommonGlobals.simplify_query
             (CommonSearch.mftp_query_of_query_entry 
@@ -267,9 +269,13 @@ search.op_search_end_reply_handlers;
           ignore (Sys.command cmd)
         end
         
-    | P.AddFriend num ->
+    | P.AddClientFriend num ->
         let c = client_find num in
         friend_add c
+        
+    | P.BrowseUser num ->
+        let user = user_find num in
+        user_browse_files user
         
     | P.GetClient_files num ->        
         let c = client_find num in
@@ -280,16 +286,17 @@ search.op_search_end_reply_handlers;
         
     | P.GetClient_info num ->
         client_must_update (client_find num)
+
         
     | P.GetUser_info num ->
-        user_must_update (user_find num)
+          user_must_update (user_find num)
         
     | P.GetServer_users num ->    
-        let s = server_find num in
-        let users = server_users s in
-        List.iter (fun user ->
-            server_new_user s user
-        ) users
+            let s = server_find num in
+            let users = server_users s in
+            List.iter (fun user ->
+                server_new_user s user
+            ) users
         
     | P.GetServer_info num ->
         server_must_update (server_find num)
@@ -404,7 +411,7 @@ search.op_search_end_reply_handlers;
 *)
         ()
   with e ->
-      Printf.printf "from_gui: exception %s" (Printexc.to_string e);
+      Printf.printf "from_gui: exception %s for message %s" (Printexc.to_string e) (Gui_proto.from_gui_to_string t);
       print_newline ()
   
 let gui_closed gui sock  msg =
@@ -550,6 +557,7 @@ let update_rooms () =
     rooms_old_list := update !rooms_old_list !rooms_update_list 
       (fun room ->
         try
+          (as_room_impl room).impl_room_update <- false;
           match room_state room with
             RoomOpened ->
               let num = room_num room in

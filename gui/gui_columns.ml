@@ -160,3 +160,30 @@ let result_column_of_string s =
       (Printf.sprintf 
 	 "incorrect result column : %s, using Col_result_name instead" s);
     Col_result_name
+
+      
+(** The different columns which can be displayed for a user/location/friend. *)
+type user_column = 
+  Col_user_name
+| Col_user_kind
+| Col_user_tags
+
+let user_column_strings = [
+    Col_user_name, M.name ;
+    Col_user_kind, M.kind ;
+    Col_user_tags, M.comment;
+] 
+
+let strings_user_column = 
+  List.map (fun (c,s) -> (s,c)) user_column_strings
+
+let string_of_user_column c = 
+  List.assoc c user_column_strings
+
+let user_column_of_string s = 
+  try List.assoc s strings_user_column
+  with Not_found ->
+    prerr_endline 
+        (Printf.sprintf 
+          "incorrect user column : %s, using Col_user_name instead" s);
+      Col_user_name

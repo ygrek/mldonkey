@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open CommonOptions
 open TcpBufferedSocket
 open CommonGlobals
@@ -53,16 +54,18 @@ let create_key () =
   done;
   key
         
-let init_connection c sock =
+let init_connection nick_sent c sock =
   c.client_receiving <- Int32.zero;
   c.client_sock <- Some sock;
-  let my_nick = match c.client_server with
-      None -> !!client_name
-    | Some s -> s.server_last_nick 
-  in
-  server_send sock (MyNickReq my_nick);
-  server_send sock (
-    LockReq { Lock.info = ""; Lock.key = create_key ()});
+  if not nick_sent then begin
+      let my_nick = match c.client_server with
+          None -> !!client_name
+        | Some s -> s.server_last_nick 
+      in
+      server_send sock (MyNickReq my_nick);
+      server_send sock (
+        LockReq { Lock.info = ""; Lock.key = create_key ()});
+    end;
   if c.client_files = [] then
     server_send sock (DirectionReq { 
         Direction.download = false;
@@ -73,7 +76,9 @@ let init_connection c sock =
         Direction.level = 666;
       })
     
-let read_first_message t sock =
+let read_first_message nick_sent t sock =
+  Printf.printf "FIRST MESSAGE"; print_newline ();
+  print t;
   match t with 
     MyNickReq n ->
       begin
@@ -84,7 +89,7 @@ let read_first_message t sock =
             raise Not_found
             
         | None ->
-            init_connection c sock;
+            init_connection nick_sent c sock;
             Some c
       end
   | _ ->
@@ -94,6 +99,8 @@ let read_first_message t sock =
       raise Not_found
   
 let client_reader c t sock =
+  Printf.printf "FROM CLIENT %s" c.client_name; print_newline ();
+  print t;
   match t with
     MyNickReq n ->
       if c.client_name != n then begin
@@ -133,13 +140,16 @@ let client_reader c t sock =
       Printf.printf "DISCARD KEY ..."; print_newline ();
   
   | DirectionReq t ->
+      (* HERE, we should check for upload slots ...
       if t.Direction.download then begin
           Printf.printf "UPLOAD NOT IMPLEMENTED"; print_newline ();
           client_close c;
           raise Not_found
         end;
       Printf.printf "GOOD DIRECTION: %d" t.Direction.level; print_newline ();
-  
+*)
+      ()
+      
   | FileLengthReq t ->
       begin
         match c.client_download with
@@ -168,18 +178,17 @@ let client_reader c t sock =
       DcProtocol.print t
 
       
-let file_complete file = ()
-  (*
+let file_complete file = 
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
 print_newline ();
   *)
   CommonComplexOptions.file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
-  old_files =:= (f.file_name, f.file_size) :: !!old_files;
-  List.iter (fun s ->
-      s.source_downloads <- remove_download file s.source_downloads      
-  ) r.result_sources;
+(*  old_files =:= (f.file_name, f.file_size) :: !!old_files; *)
+  List.iter (fun c ->
+      c.client_files <- List.remove_assoc file c.client_files
+  ) file.file_clients;
   
 (* finally move file *)
   let incoming_dir =
@@ -189,11 +198,10 @@ print_newline ();
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
-    Filename.concat incoming_dir f.file_name
+    Filename.concat incoming_dir file.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
   Unix2.rename file.file_temp  new_name
-*)
   
 let client_downloaded c sock nread = 
   Printf.printf "----------------------------------------"; print_newline ();
@@ -228,7 +236,24 @@ print_newline ();
         if file.file_downloaded = file.file_size then
           file_complete file 
     | _ -> assert false
-        
+
+let init_anon_client init_sent sock =
+  
+  TcpBufferedSocket.set_read_controler sock download_control;
+  TcpBufferedSocket.set_write_controler sock upload_control;
+  BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+  
+  let c = ref None in
+  TcpBufferedSocket.set_closer sock (fun _ s ->
+      Printf.printf "DISCONNECTED FROM CLIENT"; print_newline ();
+      match !c with
+        None -> ()
+      | Some c ->  client_close c
+  );
+  TcpBufferedSocket.set_reader sock (
+    dc_handler3 c (read_first_message init_sent) client_reader
+      client_downloaded)  
+  
 let listen () =
   try
     let sock = TcpServerSocket.create "DC client server" 
@@ -246,19 +271,8 @@ let listen () =
               
               let sock = TcpBufferedSocket.create
                   "DC client connection" s (fun _ _ -> ()) in
-              TcpBufferedSocket.set_read_controler sock download_control;
-              TcpBufferedSocket.set_write_controler sock upload_control;
-              BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+              init_anon_client false sock
 
-              let c = ref None in
-              TcpBufferedSocket.set_closer sock (fun _ s ->
-                  match !c with
-                    None -> ()
-                  | Some c ->  client_close c
-              );
-              TcpBufferedSocket.set_reader sock (
-                dc_handler3 c read_first_message client_reader
-                  client_downloaded)
           | _ -> ()
       ) in
     ()
@@ -267,4 +281,52 @@ let listen () =
         (Printexc.to_string e);
       print_newline ()
 
+let connect_client c =
+  try
+    match c.client_addr with
+      None -> ()
+    | Some (ip,port) ->
+        let sock = connect "client download" 
+            (Ip.to_inet_addr ip) port
+            (fun sock event ->
+              match event with
+                BASIC_EVENT RTIMEOUT ->
+                  client_close c
+              | BASIC_EVENT (CLOSED _) ->
+                  client_close c
+              | _ -> ()
+          )
+        in
+        TcpBufferedSocket.set_read_controler sock download_control;
+        TcpBufferedSocket.set_write_controler sock upload_control;
+        set_rtimeout sock 30.;
+        TcpBufferedSocket.set_reader sock (
+          dc_handler3 (ref (Some c)) (read_first_message false) client_reader
+            client_downloaded);
+        
+        init_connection false c sock;
+          
+  with e ->
+      Printf.printf "Exception %s while connecting to client" 
+        (Printexc.to_string e);
+      print_newline ();
+      client_close c
+
+let connect_anon s ip port =
+  Printf.printf "CONNECT ANON"; print_newline ();
+  try
+    let sock = connect "client download" 
+        (Ip.to_inet_addr ip) port
+        (fun _ _ -> ())
+    in
+    init_anon_client true sock;
+    server_send sock (MyNickReq s.server_last_nick);
+    server_send sock (
+      LockReq { Lock.info = ""; Lock.key = create_key ()});
+    
+          
+  with e ->
+      Printf.printf "Exception %s while connecting to  anon client" 
+        (Printexc.to_string e);
+      print_newline ()
       

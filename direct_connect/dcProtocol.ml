@@ -204,31 +204,38 @@ module Search = struct
         filetype : int;
         words : string;
       }
-      
+    
     let parse s = 
 (*      Printf.printf "SEARCH: [%s]" (String.escaped s); print_newline (); *)
-      match String2.split_simplify s ' ' with
-      | [orig; search]
-      | [orig; _; search] ->
-          begin
-            match String2.splitn search '?' 4 with
-              [has_size; size_kind; size; filetype; words] ->
-                String2.replace_char words '$' ' ';
-                let size = 
-                  match has_size, size_kind with
-                     "T", "T" -> AtMost (Int32.of_string size)
-                  |  "T", "F" -> AtLeast (Int32.of_string size)
-                  | _ -> NoLimit
-                in
-                {
-                  orig = orig;
-                  sizelimit = size;
-                  filetype = int_of_string filetype;
-                  words = words;
-                } 
-            | _ -> assert false
-          end
-      | _ -> assert false
+      let list = String2.split_simplify s ' ' in
+      let rec iter before after =
+        match after with
+          [] -> assert false
+        | s :: tail ->
+            if String.length s > 8 && s.[1] = '?' && s.[3] = '?' then
+              before, String2.unsplit after '$'
+            else
+              iter (Printf.sprintf "%s %s" before s) tail
+      in
+      let (orig, search) = iter "" list in
+      begin
+        match String2.splitn search '?' 4 with
+          [has_size; size_kind; size; filetype; words] ->
+            String2.replace_char words '$' ' ';
+            let size = 
+              match has_size, size_kind with
+                "T", "T" -> AtMost (Int32.of_string size)
+              |  "T", "F" -> AtLeast (Int32.of_string size)
+              | _ -> NoLimit
+            in
+            {
+              orig = orig;
+              sizelimit = size;
+              filetype = int_of_string filetype;
+              words = words;
+            } 
+        | _ -> assert false
+      end
       
     let print t = begin
       match t.sizelimit with
@@ -261,56 +268,49 @@ module Search = struct
   end
     
 module HubName = struct
-    type t = {
-        name : string;
-      }
+    type t =  string
       
-    let parse name = { name = name }
+    let parse name = name 
       
     let print t = 
-      Printf.printf "HUB NAME [%s]" (String.escaped t.name) ;
+      Printf.printf "HUB NAME [%s]" (String.escaped t) ;
       print_newline () 
       
     let write buf t = 
-      Printf.bprintf buf " %s" t.name
+      Printf.bprintf buf " %s" t
     
   end
     
 module NickList = struct
-    type t = {
-        users : string list;
-      }
+    type t = string list
       
-    let parse users = 
-      { users = String2.split_simplify users '$'  }
+      let parse users = String2.split_simplify users '$' 
           
     let print t = 
       Printf.printf "NICK LIST "; 
-      List.iter (fun s -> Printf.printf "%s " s) t.users;
+      List.iter (fun s -> Printf.printf "%s " s) t;
       print_newline () 
       
     let write buf t = 
       Buffer.add_char buf ' ';
-      List.iter (fun s -> Printf.bprintf  buf "%s$$" s) t.users
+      List.iter (fun s -> Printf.bprintf  buf "%s$$" s) t
     
   end
     
 module OpList = struct
-    type t = {
-        users : string list;
-      }
+    type t =  string list
+
       
-    let parse users = 
-      { users = String2.split_simplify users '$'  }
+      let parse users = String2.split_simplify users '$' 
           
     let print t = 
       Printf.printf "OP LIST "; 
-      List.iter (fun s -> Printf.printf "%s " s) t.users;
+      List.iter (fun s -> Printf.printf "%s " s) t;
       print_newline () 
       
     let write buf t = 
       Buffer.add_char buf ' ';
-      List.iter (fun s -> Printf.bprintf  buf "%s$$" s) t.users
+      List.iter (fun s -> Printf.bprintf  buf "%s$$" s) t
     
   end
 
@@ -328,10 +328,23 @@ module SR = struct
       }
       
     let parse s = 
-      Printf.printf "!!!!!!!!!!!!!!  REPLY  !!!!!!!!!!!!!!!!!!!!"; print_newline ();
-      match String2.split s char5 with
-        [owner_and_filename; size_and_slots; server_info] -> begin
-            match String2.splitn owner_and_filename ' ' 1 with
+      let owner_and_filename , size_and_slots, server_info =
+        match String2.split s char5 with
+          [owner_and_filename; size_and_slots; server_info] -> 
+            owner_and_filename , size_and_slots, server_info
+        | [ owner_and_filename; server_info] ->
+        
+            let pos = String.rindex owner_and_filename ' ' in
+            let len = String.length owner_and_filename in
+            let size_and_slots = Printf.sprintf "0 %s" 
+                (String.sub owner_and_filename (pos+1) (len - pos - 1))
+            in
+            let owner_and_filename = String.sub owner_and_filename 0 pos in
+            owner_and_filename, size_and_slots, server_info
+        | _ -> assert false
+      in
+      begin
+        match String2.splitn owner_and_filename ' ' 1 with
               [owner; filename] -> begin
                   match String2.splitn size_and_slots ' ' 1 with
                     [size; slots] -> begin
@@ -364,7 +377,6 @@ module SR = struct
                 end
             | _ -> assert false
           end
-      | _ -> assert false
       
     let print t = 
       Printf.printf "SEARCH REPLY On %s (%d/%d): %s %ld" 
@@ -454,7 +466,12 @@ module MyINFO = struct
                 let len2 = String.length part2 in
                 let speed = String.sub part2 0 (len2-1) in
                 let kind = int_of_char part2.[len2-1] in
-                let size = float_of_string part3 in
+                
+                let size = try
+                    let pos = String.index part3 ',' in
+                    part3.[pos] <- '.';
+                    (float_of_string part3) *. 1024. *. 1024. *. 1024.
+                    with _ -> float_of_string part3 in
                 { 
                   dest = dest;
                   nick = nick;

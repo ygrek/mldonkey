@@ -78,7 +78,9 @@ COMMON_SRCS=common/commonTypes.ml \
   common/gui_proto.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
-  common/commonChat.ml \
+  common/commonChat.ml 
+
+COMMON_CLIENT_SRCS= \
   common/commonUser.ml \
   common/commonServer.ml \
   common/commonClient.ml \
@@ -235,6 +237,7 @@ MLDONKEY_SRCS= \
   $(MP3TAG_SRCS) \
   $(CHAT_SRCS) \
   $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
   \
   $(OPENNAP_SRCS) \
   $(AUDIOGALAXY_SRCS) \

@@ -57,6 +57,9 @@ and user = {
     user_user : user CommonUser.user_impl; 
     user_nick : string;
     user_server : server;
+    mutable user_link : string;
+    mutable user_data : float;
+    mutable user_admin : bool;
   }
 
 and file = {
@@ -73,6 +76,7 @@ and file = {
 and client = {
     client_client : client CommonClient.client_impl;
     client_name : string;
+    mutable client_addr : (Ip.t * int) option;
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_server : server option;
     mutable client_files : (file * string) list;

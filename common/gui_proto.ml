@@ -110,7 +110,7 @@ type user_info = {
     user_name : string;
     user_ip : Ip.t;
     user_port : int;
-    user_tags : tag list;
+    mutable user_tags : tag list;
     user_server : int;
     mutable user_state : host_state;
   }
@@ -176,7 +176,7 @@ type from_gui =
 | RemoveDownload_query of int
 | ServerUsers_query of int
 | SaveFile of int * string
-| AddFriend of int
+| AddClientFriend of int
 | AddUserFriend of int
 | RemoveFriend of int
 | RemoveAllFriends
@@ -205,6 +205,7 @@ type from_gui =
 | GetUser_info of int
 | SendMessage of int * room_message
 | EnableNetwork of int * bool
+| BrowseUser of int
   
 type to_gui =
 | Connected of int
@@ -248,3 +249,51 @@ type arg_kind =
 | Arg_multiple of (string list -> arg_handler)
 | Arg_one of (string -> arg_handler)
 | Arg_two of (string -> string -> arg_handler)
+| Arg_three of (string -> string -> string -> arg_handler)
+
+let from_gui_to_string t = 
+  match t with
+  | ConnectMore_query -> "ConnectMore_query"
+  | CleanOldServers -> "CleanOldServers"
+  | KillServer -> "KillServer"
+  | ExtendedSearch -> "ExtendedSearch"
+  | Password _ -> "Password"
+  | Search_query _ -> "Search_query"
+  | Download_query _ -> "Download_query"
+  | AddServer_query _ -> "AddServer_query"
+  | AddNewFriend _ -> "AddNewFriend"
+  | RemoveServer_query _ -> "RemoveServer_query"
+  | SaveOptions_query _ -> "SaveOptions_query"
+  | RemoveDownload_query _ -> "RemoveDownload_query"
+  | ServerUsers_query _ -> "ServerUsers_query"
+  | SaveFile _ -> "SaveFile"
+  | AddClientFriend _ -> "AddClientFriend"
+  | AddUserFriend _ -> "AddUserFriend"
+  | RemoveFriend _ -> "RemoveFriend"
+  | RemoveAllFriends -> "RemoveAllFriends"
+  | FindFriend _ -> "FindFriend"
+  | ViewUsers _ -> "ViewUsers"
+  | ConnectAll _ -> "ConnectAll"
+  | ConnectServer _ -> "ConnectServer"
+  | DisconnectServer _ -> "DisconnectServer"
+  | SwitchDownload _ -> "SwitchDownload"
+  | VerifyAllChunks _ -> "VerifyAllChunks"
+  | QueryFormat _ -> "QueryFormat"
+  | ModifyMp3Tags _ -> "ModifyMp"
+  | ForgetSearch _ -> "ForgetSearch"
+  | SetOption _ -> "SetOption"
+  | Command _ -> "Command"
+  | SayFriends _ -> "SayFriends"
+  | Preview _ -> "Preview"
+  | ConnectFriend _ -> "ConnectFriend"
+  | GetServer_users _ -> "GetServer_users"
+  | GetClient_files _ -> "GetClient_files"
+  | GetFile_locations _ -> "GetFile_locations"
+  | GetServer_info _ -> "GetServer_info"
+  | GetClient_info _ -> "GetClient_info"
+  | GetFile_info _ -> "GetFile_info"
+  | SendMoreInfo _ -> "SendMoreInfo"
+  | GetUser_info n -> Printf.sprintf "GetUser_info %d" n
+  | SendMessage _ -> "SendMessage"
+  | EnableNetwork _ -> "EnableNetwork"
+  | BrowseUser _ -> "BrowseUser"      

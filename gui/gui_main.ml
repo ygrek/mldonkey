@@ -263,6 +263,7 @@ let value_reader gui t sock =
         let user = try 
             let u = Hashtbl.find G.users user.user_num  in
             u.user_state <- user.user_state;
+            u.user_tags <- user.user_tags;
             u
           with Not_found ->
               Hashtbl.add G.users user.user_num user; 

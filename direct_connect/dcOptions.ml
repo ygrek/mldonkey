@@ -63,3 +63,7 @@ let login = define_option directconnect_ini ["login"]
 let max_known_servers = define_option directconnect_ini
     ["query_hublist_limit"] 
     "The limit on the number of servers to avoid asking for a new list" int_option 100
+    
+let commit_in_subdir = define_option directconnect_ini ["commit_in_subdir"]
+  "The subdirectory of temp/ where files should be moved to"
+    string_option "DC"

@@ -39,6 +39,7 @@ and 'a user_ops = {
     mutable op_user_remove : ('a -> unit);
     mutable op_user_info : ('a -> Gui_proto.user_info);
     mutable op_user_set_friend : ('a -> unit);
+    mutable op_user_browse_files : ('a -> unit);
   }
   
 let user_counter = ref 1
@@ -123,6 +124,10 @@ let user_set_friend u =
   let u = as_user_impl u in
   u.impl_user_ops.op_user_set_friend u.impl_user_val
 
+let user_browse_files u =
+  let u = as_user_impl u in
+  u.impl_user_ops.op_user_browse_files u.impl_user_val
+
 let ni n m = 
   let s = Printf.sprintf "User.%s not implemented by %s" 
       m n.network_name in
@@ -141,6 +146,7 @@ let new_user_ops network = {
     op_user_remove = (fun _ -> ni_ok network "user_remove");
     op_user_info = (fun _ -> fni network "user_info");
     op_user_set_friend = (fun _ -> ni_ok network "user_set_friend");
+    op_user_browse_files = (fun _ -> ni_ok network "user_browse_files");
   }
 
 let user_find num = Hashtbl.find users_by_num num

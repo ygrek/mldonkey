@@ -43,6 +43,7 @@ let execute_command arg_list output cmd args =
             | Arg_multiple f, _ -> f args output
             | Arg_one f, [arg] -> f arg  output
             | Arg_two f, [a1;a2] -> f a1 a2 output
+            | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
             | _ -> "Bad number of arguments"
           )
     ) arg_list
@@ -181,6 +182,16 @@ let commands = [
             Printf.sprintf "Error %s" (Printexc.to_string e)
     ), " <option_name> <option_value> : change option value";
 
+    "set_in", Arg_three (fun name network value o ->
+        try
+          let n = network_find_by_name network in
+          let opfile = n.op_network_config_file () in
+          Options.set_simple_option opfile name value;
+          Printf.sprintf "option %s value changed" name
+        with e ->
+            Printf.sprintf "Error %s" (Printexc.to_string e)
+    ), " <network> <option_name> <option_value> : change option value for a given network";
+    
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with

@@ -21,20 +21,59 @@
 
 open CommonTypes
 open Gui_proto
-
+open Gui_columns
+  
 module M = Gui_messages
 module P = Gpattern
 module O = Gui_options
 
 let (!!) = Options.(!!)
-
-class box () =
-  let titles = [ M.kind ; M.name ; ]
-  in
+(* [ M.kind ; M.name ; ] *)
+class box columns () =
+  let titles = List.map Gui_columns.string_of_user_column columns in 
   object (self)
     inherit [Gui_proto.user_info] Gpattern.plist `EXTENDED titles true as pl
-    inherit Gui_users_base.box () as box
+      inherit Gui_users_base.box () as box
+    
+    val mutable columns = columns
+    method set_columns l =
+      columns <- l;
+      self#set_titles (List.map Gui_columns.string_of_user_column columns);
+      self#update
+    
+    
+    method compare_by_col col f1 f2 =
+      match col with
+        Col_user_name -> compare f1.user_name f2.user_name
+      | Col_user_kind -> compare (Ip.valid f1.user_ip) (Ip.valid f2.user_ip)
+      | Col_user_tags -> 0
+          
+          
+    method compare f1 f2 =
+      let abs = if current_sort >= 0 then current_sort else - current_sort in
+      let col = 
+	try List.nth columns (abs - 1) 
+	with _ -> Col_user_name
+      in
+      let res = self#compare_by_col col f1 f2 in
+      res * current_sort
 
+    method content_by_col f col =
+      match col with
+        Col_user_name -> f.user_name
+      | Col_user_kind -> 
+          if Ip.valid f.user_ip then "Direct" else ""
+      | Col_user_tags -> CommonGlobals.string_of_tags f.user_tags
+
+    method content f =
+      let strings = List.map 
+	  (fun col -> P.String (self#content_by_col f col))
+	  columns 
+      in
+      let col_opt = Some `BLACK      in
+      (strings, col_opt)
+
+    (*
     method compare u1 u2 =
       let res = match current_sort with
       |	1 | -1 -> compare (Ip.valid u1.user_ip) (Ip.valid u2.user_ip)
@@ -51,16 +90,25 @@ class box () =
       in
       let s_name = u.user_name in
       [ P.String s_kind ; P.String s_name ; ], None
-
+*)
+    
     method add_to_friends () =
       List.iter 
 	(fun u -> Gui_com.send (Gui_proto.AddUserFriend u.user_num))
 	self#selection
-
+    
+    method browse_files () =
+      List.iter 
+        (fun u -> Gui_com.send (Gui_proto.BrowseUser u.user_num))
+      self#selection
+      
     method menu =
       match self#selection with
 	[] -> []
-      |	_ -> [ `I (M.add_to_friends, self#add_to_friends) ]
+      |	_ -> [ 
+            `I (M.add_to_friends, self#add_to_friends);
+            `I (M.browse_files, self#browse_files)
+          ]
 
     method set_tb_style = wtool#set_style
 
@@ -78,7 +126,7 @@ class box () =
 
 class box_users () =
   object (self)
-    inherit box ()
+    inherit box !!O.users_columns ()
 
     initializer
       ()

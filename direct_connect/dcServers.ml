@@ -133,7 +133,6 @@ let server_handler s sock event =
   | _ -> ()
 
 let rec client_to_server s t sock = 
-
 (*
   Printf.printf "From %s:%d"
     (server_addr s) s.server_port; print_newline ();
@@ -153,9 +152,25 @@ DcProtocol.print t;
       let s = new_server (AddrName t) in
       close sock "force move";
       connect_server s
+
+  | ConnectToMeReq t ->
+(* nick/ip/port *)
+      begin
+        (*
+        let c = new_client t.ConnectToMe.nick in
+        c.client_addr <- Some (t.ConnectToMe.ip, t.ConnectToMe.port);
+        match c.client_sock with 
+          None ->  
+            DcClients.connect_client c
+        | Some sock ->
+            Printf.printf "We are already connected to that client !!";
+print_newline () 
+*)
+        DcClients.connect_anon s t.ConnectToMe.ip t.ConnectToMe.port
+      end
       
   | HubNameReq t ->
-      s.server_name <- t.HubName.name;
+      s.server_name <- t;
       server_must_update s
       
   | HelloReq t ->
@@ -181,6 +196,21 @@ DcProtocol.print t;
         end  else
           ignore (user_add s t)
 
+  | OpListReq list ->
+      List.iter (fun nick ->
+          let u = user_add s nick in
+          u.user_admin <- true;
+          user_must_update (as_user u.user_user)
+      ) list
+        
+  | MyINFOReq t ->
+      if t.MyINFO.nick <> s.server_last_nick then begin
+          let u = user_add s t.MyINFO.nick in
+          u.user_link <- t.MyINFO.speed;
+          u.user_data <- t.MyINFO.size;
+          user_must_update (as_user u.user_user)
+        end
+        
   | ToReq t ->
       let orig = user_add s t.To.orig in
       let message = t.To.message in
@@ -193,7 +223,7 @@ DcProtocol.print t;
       user_remove (user_add s t)
         
   | NickListReq t ->
-      List.iter (fun t  -> ignore (user_add s t)) t.NickList.users
+      List.iter (fun t  -> ignore (user_add s t)) t
         
   | MessageReq t ->
       s.server_messages <- (ServerMessage t) :: s.server_messages;
@@ -214,6 +244,7 @@ DcProtocol.print t;
             search_add_result q result.result_result
       end
       
+  | UnknownReq "" -> ()
       
   | _ -> 
       Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();

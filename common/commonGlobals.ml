@@ -248,3 +248,17 @@ let simplify_query q =
   match rec_simplify_query q with
     QNone -> QHasWord " "
   | q' -> q'
+
+            
+let string_of_tags tags =
+  let buf = Buffer.create 100 in
+      List.iter (fun t ->
+          Buffer.add_string buf (Printf.sprintf "%-3s "
+              (match t.tag_value with
+                String s -> s
+              | Uint32 i -> Int32.to_string i
+              | Fint32 i -> Int32.to_string i
+              | _ -> "???"
+            ))
+  ) tags;
+  Buffer.contents buf

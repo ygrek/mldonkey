@@ -155,6 +155,8 @@ let get_format = "Get format info"
 let find_friend = "Find friend"
 let remove_all_friends = "Remove all friends"
 
+let browse_files = "Browse files"
+  
 let show_hidden_fields = "Show hidden fields"
 
 let waiting_for_replies n = Printf.sprintf "Waiting for %d replies" n

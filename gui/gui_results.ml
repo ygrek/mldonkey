@@ -36,19 +36,6 @@ let first_name r =
   | n :: _ -> n
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
-      
-let string_of_tags tags =
-  let buf = Buffer.create 100 in
-      List.iter (fun t ->
-          Buffer.add_string buf (Printf.sprintf "%-3s "
-              (match t.tag_value with
-                String s -> s
-              | Uint32 i -> Int32.to_string i
-              | Fint32 i -> Int32.to_string i
-              | _ -> "???"
-            ))
-  ) tags;
-  Buffer.contents buf
 
 class box columns () =
   let titles = List.map Gui_columns.string_of_result_column columns in
@@ -79,7 +66,9 @@ class box columns () =
       |	Col_result_md4 -> compare (Md4.to_string r1.result_md4) (Md4.to_string r2.result_md4)
       |	Col_result_size -> compare r1.result_size r2.result_size
       |	Col_result_format -> compare r1.result_format r2.result_format
-      |	Col_result_props -> compare (string_of_tags r1.result_tags) (string_of_tags r2.result_tags)
+      |	Col_result_props -> compare (CommonGlobals.string_of_tags 
+              r1.result_tags) (
+            CommonGlobals.string_of_tags r2.result_tags)
       |	Col_result_comment -> compare r1.result_comment r2.result_comment
       | Col_result_network -> compare r1.result_network r2.result_network
           
@@ -98,7 +87,7 @@ class box columns () =
       |	Col_result_md4 -> Md4.to_string r.result_md4
       |	Col_result_size -> Printf.sprintf "%10s" (Int32.to_string r.result_size)
       |	Col_result_format -> r.result_format
-      |	Col_result_props -> string_of_tags r.result_tags
+      |	Col_result_props -> CommonGlobals.string_of_tags r.result_tags
           | Col_result_network -> network_name r.result_network
       |	Col_result_comment -> match r.result_comment with None -> "" | Some s -> s
               

@@ -260,7 +260,7 @@ class box_list () =
       List.iter
         (fun c -> 
           if c.client_name <> "" then
-            Gui_com.send (AddFriend c.client_num))
+            Gui_com.send (AddClientFriend c.client_num))
 	self#selection
 
     method menu =

@@ -339,6 +339,25 @@ let file_locations_columns = define_option mldonkey_gui_ini
     [ C.Col_client_name ; C.Col_client_kind ; 
       C.Col_client_state; ]
 
+(** {3 Users} *)
+
+let value_to_user_column v =
+  match v with
+    StringValue s -> C.user_column_of_string s
+  | _ -> raise Not_found
+    
+let user_column_to_value k =
+  StringValue (C.string_of_user_column k)
+
+let (class_user_column : C.user_column option_class) = 
+  define_option_class "User_column" 
+    value_to_user_column user_column_to_value
+
+let users_columns = define_option mldonkey_gui_ini
+    ["users_columns"] "Columns of the users lists"
+    (list_option class_user_column)
+  [ C.Col_user_name ; C.Col_user_kind ;     C.Col_user_tags; ]
+
 (** {3 Servers} *)
 
 let value_to_server_column v =

@@ -99,7 +99,7 @@ class pane_room (room : room_info) =
           Gui_com.send (Gui_proto.SendMessage (room.room_num, 
               PublicMessage (0,s)));
           messages#we_11#set_text "";
-          self#insert_text (Printf.sprintf "> %s\n" s)
+          (*self#insert_text (Printf.sprintf "> %s\n" s) *)
           
     initializer
       Okey.add messages#we_11

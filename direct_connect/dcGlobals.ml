@@ -75,6 +75,9 @@ let user_add server name =
         user_nick = name;
         user_server = server;
         user_user = user_impl;
+        user_link = "";
+        user_data = 0.0;
+        user_admin = false;
       } and user_impl = {
         impl_user_update = false;
         impl_user_state = NewHost;
@@ -91,6 +94,8 @@ let user_add server name =
   with Found user -> user
     
 let files_by_key = Hashtbl.create 47
+
+let current_files = ref []
   
 let new_file file_id name size =
   let key = (name, size) in
@@ -123,7 +128,12 @@ let new_file file_id name size =
           impl_file_val = file;
           impl_file_ops = file_ops;
         } in
-      file_add impl FileDownloading;
+      let state = if current_size = size then FileDownloaded else begin
+            current_files := file :: !current_files;
+            FileDownloading
+          end
+      in
+      file_add impl state;
       Hashtbl.add files_by_key key file;
       file
       
@@ -138,6 +148,7 @@ let new_client name =
           client_sock = None;
           client_name = name;
           client_server = None;
+          client_addr = None;
           client_files = [];
           client_download = DcIdle;
           client_pos = Int32.zero;

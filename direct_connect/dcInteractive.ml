@@ -59,10 +59,6 @@ let _ =
 
 let _ =
   network.op_network_search <- (fun q buf ->
-      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
-      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
-      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
-      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
       let query = q.search_query in
       let module S = Search in
       let words = ref [] in
@@ -100,20 +96,15 @@ let _ =
       iter query;
       searches := q :: !searches;
       let words = String2.unsplit !words ' ' in
-      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
-      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
-      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
       List.iter (fun s ->
-          Printf.printf "FOR CONNECTED SERVER"; print_newline ();
           let msg = SearchReq {
               S.orig = Printf.sprintf "Hub:%s" s.server_last_nick;
               S.sizelimit = !sizelimit;
               S.filetype = !filetype;
               S.words = words;
             } in
-          Printf.printf "??????"; print_newline ();
           match s.server_sock with
-            None -> Printf.printf "NOT CONNECTED !!!!!!!!!"; print_newline ();
+            None -> ()
           | Some sock ->
               server_send sock msg; 
               s.server_searches <- q :: s.server_searches; 
@@ -150,6 +141,7 @@ let _ =
   );
   room_ops.op_room_messages <- (fun s ->
       let list = List.rev s.server_messages in
+      Printf.printf " %d" (List.length list); print_newline ();
       s.server_messages <- [];
       list);
   room_ops.op_room_send_message <- (fun s m ->
@@ -171,7 +163,20 @@ let _ =
         P.user_name = user.user_nick;
         P.user_ip = Ip.null;
         P.user_port = 0;
-        P.user_tags = [];
+        P.user_tags = (
+          let list = if user.user_data > 1. then 
+              [ 
+                { tag_name = "link"; tag_value = String user.user_link };
+                { tag_name = "shared"; tag_value = String (
+                    Printf.sprintf "%12.0f" user.user_data) }
+              ]          else []
+          in
+          if user.user_admin then
+            { tag_name = "admin"; tag_value = String "admin" } :: list
+          else list
+        );
+            
+        
         P.user_server = user.user_server.server_server.impl_server_num;
         P.user_state = user.user_user.impl_user_state;
       });
