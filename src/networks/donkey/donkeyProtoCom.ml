@@ -222,7 +222,7 @@ let propagate_working_servers servers peers =
             Buffer.clear buf;
             buf_int8 buf DonkeyOpenProtocol.udp_magic; (* open protocol *)
             buf_int8 buf 0;    
-            let ip = Ip.my () in
+            let ip = client_ip None in
             buf_ip buf ip; (* The client IP *)
 
 (* The server IPs *)

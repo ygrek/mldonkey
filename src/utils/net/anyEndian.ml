@@ -134,8 +134,7 @@ let get_string8 s pos =
   String.sub s (pos+1) len, pos+1+len
 
         
-let sdump s =
-  let buf = Buffer.create 1000 in
+let bdump buf s =
   let len = String.length s in
   Printf.bprintf buf "ascii: [";
   for i = 0 to len - 1 do
@@ -153,5 +152,9 @@ let sdump s =
     let n = int_of_char c in
     Printf.bprintf buf "(%d)" n            
   done;
-  Printf.bprintf buf "]\n";
+  Printf.bprintf buf "]\n"
+        
+let sdump s =
+  let buf = Buffer.create 1000 in
+  bdump buf s;
   Buffer.contents buf

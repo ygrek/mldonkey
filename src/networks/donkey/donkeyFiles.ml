@@ -211,7 +211,10 @@ let udp_client_handler t p =
   | Udp.PingServerReplyUdpReq _ ->
       ignore (udp_from_server p)
         
-  | _ -> ()
+  | _ -> 
+      lprintf "Unexpected UDP message: \n%s\n"
+        (DonkeyProtoUdp.print t)
+      
 
 let verbose_upload = false
       

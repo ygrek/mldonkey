@@ -946,3 +946,10 @@ let _ =
 
 let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
   "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
+
+    
+let max_connections_per_second = define_option downloads_ini
+    ["max_connections_per_second"] 
+  "Maximal number of connections that can be opened per second
+(will supersede max_clients_per_second in the future)"
+  int_option 10

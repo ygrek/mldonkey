@@ -50,8 +50,8 @@ let disconnect_client c =
   if !verbose_msg_clients then
     lprintf "CLIENT %d: disconnected\n" (client_num c);
   match c.client_sock with
-    None -> ()
-  | Some sock -> 
+    NoConnection | ConnectionWaiting | ConnectionAborted -> ()
+  | Connection sock -> 
       close sock "disconnect_client";
       try
         List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
@@ -59,8 +59,8 @@ let disconnect_client c =
         c.client_block <- None;
         connection_failed c.client_connection_control;
         set_client_disconnected c;
-        close sock "closed";
-        c.client_sock <- None;
+        (try close sock "closed" with _ -> ());
+        c.client_sock <- NoConnection;
         let file = c.client_file in
         c.client_chunks <- [];
         c.client_allowed_to_write <- zero;
@@ -110,7 +110,7 @@ let counter = ref 0
 let rec client_parse_header counter cc init_sent gconn sock 
     (proto, file_id, peer_id) = 
   try
-    set_lifetime sock 3600.;
+    set_lifetime sock 600.;
     if !verbose_msg_clients then
       lprintf "client_parse_header %d\n" counter;
     
@@ -130,7 +130,8 @@ let rec client_parse_header counter cc init_sent gconn sock
               let ccc = new_client file peer_id (TcpBufferedSocket.host sock) in
               lprintf "CLIENT %d: testing instead of %d\n"
                 (client_num ccc) (client_num c);
-              (match ccc.client_sock with Some _ -> 
+              (match ccc.client_sock with 
+                  Connection _ -> 
                     lprintf "This client is already connected\n";
                     close sock "already connected"; c
                 | _ -> 
@@ -149,16 +150,16 @@ let rec client_parse_header counter cc init_sent gconn sock
       end;
     
     (match c.client_sock with
-        None ->
+        ConnectionWaiting | NoConnection | ConnectionAborted ->
           if !verbose_msg_clients then
             lprintf "Client was not connected !!!\n";
-          c.client_sock <- Some sock
-      | Some s when s != sock -> 
+          c.client_sock <- Connection sock
+      | Connection s when s != sock -> 
           if !verbose_msg_clients then 
             lprintf "CLIENT %d: IMMEDIATE RECONNECTION\n" (client_num c);
           disconnect_client c;
-          c.client_sock <- Some sock;
-      | Some _ -> ()
+          c.client_sock <- Connection sock;
+      | Connection _ -> ()
     );
     
     set_client_state (c) (Connected (-1));
@@ -304,7 +305,7 @@ and client_to_client c sock msg =
     match msg with
       Piece (num, offset, s, pos, len) ->
         
-        set_lifetime sock 3600.;
+        set_lifetime sock 600.;
         set_client_state c Connected_downloading;
         
         if file_state file = FileDownloading then
@@ -438,71 +439,81 @@ and client_to_client c sock msg =
       lprintf "Error %s while handling MESSAGE\n" (Printexc2.to_string e)
       
 let connect_client c =
-  
   if (match c.client_sock with
-      | Some sock -> 
+      | Connection sock -> 
           if closed sock then
             (
               lprintf "Sock is already closed\n";
               disconnect_client c;          true)
           else false
-      
-      | None -> true
-    
+      | ConnectionWaiting -> false
+      | ConnectionAborted ->
+          c.client_sock <- ConnectionWaiting;
+          false
+      | NoConnection -> true
     ) then begin
-      if !verbose_msg_clients then begin
-          lprintf "CLIENT %d: connect_client\n" (client_num c);
-        end;
-      try
-        let (ip,port) = c.client_host in
-        if !verbose_msg_clients then begin
-            lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
-          end;
-        let sock = connect "bittorrent download" 
-            (Ip.to_inet_addr ip) port
-            (fun sock event ->
-              match event with
-                BASIC_EVENT LTIMEOUT ->
-                  if !verbose_msg_clients then
-                    lprintf "CLIENT %d: LIFETIME\n" (client_num c);
-                  close sock "timeout"
-              | BASIC_EVENT RTIMEOUT ->
-                  if !verbose_msg_clients then
-                    lprintf "CLIENT %d: RTIMEOUT (%d)\n" (client_num c)
-                    (last_time ())
-                    ;
-                  close sock "timeout"
-              | BASIC_EVENT (CLOSED _) ->
-                  begin
-                    match c.client_sock with
-                    | Some s when s == sock -> 
-                        disconnect_client c
-                    | _ -> ()
-                  end;
-              | _ -> ()
-          )
-        in
-        c.client_sock <- Some sock;
-        TcpBufferedSocket.set_read_controler sock download_control;
-        TcpBufferedSocket.set_write_controler sock upload_control;
-        TcpBufferedSocket.set_rtimeout sock 30.;
-        let file = c.client_file in
-        
-        if !verbose_msg_clients then begin
-            lprintf "READY TO DOWNLOAD FILE\n";
-          end;
-        
-        send_init file c sock;
-        (try get_from_client sock c with _ -> ());
-        incr counter;
-        set_bt_sock sock !verbose_msg_clients
-          (BTHeader (client_parse_header !counter (ref (Some c)) true))
       
-      with e ->
-          lprintf "Exception %s while connecting to client\n" 
-            (Printexc2.to_string e);
-          disconnect_client c
-    
+      add_pending_connection (fun _ ->
+          if c.client_sock = ConnectionAborted then
+            c.client_sock <- NoConnection
+          else
+          if c.client_sock = ConnectionWaiting then
+            try
+              if !verbose_msg_clients then begin
+                  lprintf "CLIENT %d: connect_client\n" (client_num c);
+                end;
+              let (ip,port) = c.client_host in
+              if !verbose_msg_clients then begin
+                  lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                end;
+              connection_try c.client_connection_control;
+              let sock = connect "bittorrent download" 
+                  (Ip.to_inet_addr ip) port
+                  (fun sock event ->
+                    match event with
+                      BASIC_EVENT LTIMEOUT ->
+                        if !verbose_msg_clients then
+                          lprintf "CLIENT %d: LIFETIME\n" (client_num c);
+                        close sock "timeout"
+                    | BASIC_EVENT RTIMEOUT ->
+                        if !verbose_msg_clients then
+                          lprintf "CLIENT %d: RTIMEOUT (%d)\n" (client_num c)
+                          (last_time ())
+                          ;
+                        close sock "timeout"
+                    | BASIC_EVENT (CLOSED _) ->
+                        begin
+                          match c.client_sock with
+                          | Connection s when s == sock -> 
+                              disconnect_client c
+                          | _ -> ()
+                        end;
+                    | _ -> ()
+                )
+              in
+              c.client_sock <- Connection sock;
+              set_lifetime sock 600.;
+              TcpBufferedSocket.set_read_controler sock download_control;
+              TcpBufferedSocket.set_write_controler sock upload_control;
+              TcpBufferedSocket.set_rtimeout sock 30.;
+              let file = c.client_file in
+              
+              if !verbose_msg_clients then begin
+                  lprintf "READY TO DOWNLOAD FILE\n";
+                end;
+              
+              send_init file c sock;
+              (try get_from_client sock c with _ -> ());
+              incr counter;
+              set_bt_sock sock !verbose_msg_clients
+                (BTHeader (client_parse_header !counter (ref (Some c)) true))
+            
+            with e ->
+                lprintf "Exception %s while connecting to client\n" 
+                  (Printexc2.to_string e);
+                disconnect_client c
+      );
+      c.client_sock <- ConnectionWaiting;
     end
     
 let listen () =
@@ -536,7 +547,7 @@ let listen () =
                   match !c with
                     Some c ->  begin
                         match c.client_sock with
-                        | Some s when s == sock -> 
+                        | Connection s when s == sock -> 
                             disconnect_client c
                         | _ -> ()
                       end
@@ -556,7 +567,6 @@ let listen () =
 
 let get_file_from_source c file =
   if connection_can_try c.client_connection_control then begin
-      connection_try c.client_connection_control;
       connect_client c
     end
   
@@ -565,9 +575,9 @@ let send_pings () =
   List.iter (fun file ->
       Hashtbl.iter (fun _ c ->
           match c.client_sock with
-            None -> ()
-          | Some sock -> 
+          | Connection sock -> 
               send_client c Ping
+          | _ -> ()
       ) file.file_clients
   ) !current_files
 
@@ -577,9 +587,9 @@ let resume_clients file =
   Hashtbl.iter (fun _ c ->
       try
         match c.client_sock with 
-          None ->
+        | Connection sock -> get_from_client sock c
+        | _ ->
             (try get_file_from_source c file with _ -> ())
-        | Some sock -> get_from_client sock c
       with e -> ()
 (* lprintf "Exception %s in resume_clients\n"   (Printexc2.to_string e) *)
   ) file.file_clients
@@ -701,8 +711,8 @@ let rec iter_upload sock c =
 let client_can_upload c allowed = 
 (*  lprintf "allowed to upload %d\n" allowed; *)
   match c.client_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection | ConnectionWaiting | ConnectionAborted -> ()
+  | Connection sock ->
       match c.client_upload_requests with
         [] -> ()
       | _ :: tail ->

@@ -27,7 +27,7 @@ type client = {
     client_client : client CommonClient.client_impl;
     mutable client_file : file;
     mutable client_connection_control : connection_control;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_sock : tcp_connection;
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
     mutable client_blocks : Int64Swarmer.block list;

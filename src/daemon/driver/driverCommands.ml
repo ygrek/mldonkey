@@ -267,7 +267,7 @@ let commands = [
 	let file = file_find num in
         file_preview file;
         "done"
-    ), "<file number> :\t\t\t\tstart previewer for file <file number>";
+    ), "<file number> :\t\t\tstart previewer for file <file number>";
 
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
@@ -934,7 +934,7 @@ the name between []"
             "directory already shared"
         else
           "no such directory"
-    ), "<prio> <dir> :\t\t\t\tshare directory <dir> with <prio>";
+    ), "<prio> <dir> :\t\t\tshare directory <dir> with <prio>";
     
     "unshare", Arg_one (fun arg o ->
         if List.mem_assoc arg !!shared_directories then begin

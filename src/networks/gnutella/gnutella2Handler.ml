@@ -40,39 +40,95 @@ open Gnutella2
 
 let update_client u =
   new_client u.user_kind
+
+let gnutella_uid md4 =
+  let md4 = Md4.to_string md4 in
+  let s0_8 = String.sub md4 0 8 in
+  let s8_12 = String.sub md4 8 4 in
+  let s12_16 = String.sub md4 12 4 in
+  let s16_20 = String.sub md4 16 4 in
+  let s20_32 = String.sub md4 20 12 in
+  Printf.sprintf "%s-%s-%s-%s-%s" s0_8 s8_12 s12_16 s16_20 s20_32
+  
+let xml_profile () = 
+  Printf.sprintf 
+  "<?xml version=\"1.0\"?><gProfile xmlns=\"http://www.shareaza.com/schemas/GProfile.xsd\"><gnutella guid=\"%s\"/><identity><handle primary=\"%s\"/><name last=\"\" first=\"%s\"/></identity><location><political city=\"\"/></location><avatar path=\"\"/></gProfile>"
+    (gnutella_uid !!client_uid)
+  !!client_name
+  !!client_name
   
 let g2_packet_handler s sock gconn p = 
-  lprintf "Received packet: \n%s\n" (Print.print p);
+  let h = s.server_host in
+  lprintf "Received %s packet from %s:%d: \n%s\n" 
+    (match sock with Connection _ -> "TCP" | _ -> "UDP")
+  (Ip.to_string h.host_ip) h.host_port
+  (Print.print p);
   match p.g2_payload with 
   | PI -> 
-      server_send s (packet PO []);
-      if s.server_need_qrt then begin
+      server_send sock s (packet PO []);
+      if s.server_need_qrt && (match s.server_sock with
+            Connection _ -> true | _ -> false) then begin
           s.server_need_qrt <- false;
           Gnutella.send_qrt_sequence s
         end
 
   | PO -> ()
-  | UPROC -> server_send s (packet UPROD [])
+  | UPROC -> 
+      server_send sock s 
+        (packet UPROD [
+          (packet (UPROD_XML (xml_profile ())) [])
+        ])
+      
+  | UPROD -> ()
+      
   | LNI ->
-      server_send s 
+      List.iter (fun p ->
+          match p.g2_payload with
+            LNI_V v -> s.server_vendor <- v
+          | _ -> ()
+      ) p.g2_children;
+      server_send sock s 
         (packet LNI [
-          packet (LNI_NA (client_ip (Some sock), !!client_port))  [];
+          packet (LNI_NA (client_ip sock, !!client_port))  [];
           packet (LNI_GU !!client_uid) [];
           packet (LNI_V "MLDK") [];
           packet (LNI_LS (Int32.zero,Int32.zero)) [];
         ])          
   
+  | QKA ->
+      List.iter (fun c ->
+          match c.g2_payload with
+            QKA_QK key -> s.server_query_key <- UdpQueryKey key
+          | _ -> ()
+      ) p.g2_children;
+
+      
   | KHL ->
       List.iter (fun c ->
           match c.g2_payload with
-            KHL_NH addr 
-          | KHL_CH (addr,_) ->
-              Fifo.put ultrapeers2_queue addr
+            KHL_NH (ip,port) 
+          | KHL_CH ((ip,port),_) ->
+              let h = new_host ip port true 2 in ()
           | _ -> ()
       ) p.g2_children;
-      server_send s (
+      let children = ref [] in
+      List.iter (fun s ->
+          if s.server_vendor <> "" then
+            let h = s.server_host in
+            match server_state s with
+              Connected _ ->
+                let p = packet 
+                    (KHL_CH 
+                      ((h.host_ip, h.host_port), int32_time ()))
+                  [
+                    (packet (KHL_CH_V s.server_vendor) [])
+                    ] in
+                children := p :: !children
+            | _ -> ()
+      ) !connected_servers;
+      server_send sock s (
         packet KHL [
-          (packet (KHL_TS (int64_time ())) []) 
+          (packet (KHL_TS (int64_time ())) !children) 
         ]
       )
   
@@ -194,14 +250,37 @@ let g2_packet_handler s sock gconn p =
       ) !user_files;
       
   | _ -> 
+      if !verbose_unknown_messages then
       lprintf "g2_packet_handler: unexpected packet %s\n"
         (Print.print p)
 
+          
+let udp_packet_handler ip port msg = 
+  let h = new_host ip port true 2 in
+  host_queue_add ultrapeers_recent_queue h (last_time ());
+(*  if !verbose_udp then
+    lprintf "Received UDP packet from %s:%d: \n%s\n" 
+      (Ip.to_string ip) port (Print.print msg);*)
+  let s = new_server ip port in
+  s.server_connected <- int32_time ();
+  g2_packet_handler s NoConnection () msg
+  (*
+  match msg.g2_payload with
+  | PI -> 
+      udp_send ip port (packet PO [])
+  | _ -> 
+      if !verbose_unknown_messages then
+        lprintf "g2_udp_packet_handler: unexpected packet \n%s\n"
+          (Print.print msg)
+*)      
 
 let init s sock gconn = 
-  gconn.gconn_handler <- Reader (g2_handler (g2_packet_handler s sock));
-  server_send_ping s;
-  server_send s (packet UPROC [])
+  gconn.gconn_handler <- 
+    Reader (g2_handler (g2_packet_handler s (Connection sock)));
+  server_send_ping s.server_sock s;
+  server_send_ping NoConnection s;
+  server_send NoConnection s (packet PI []);
+  server_send (Connection sock) s (packet UPROC [])
 
 
 (* A good session: PI, KHL, LNI *)

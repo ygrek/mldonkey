@@ -56,7 +56,7 @@ SRC_GUI2=src/gtk/gui2
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
 SRC_BITTORRENT=src/networks/bittorrent
-SRC_SERVER=src/networks/server
+SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
 SRC_OPENFT=src/networks/openFT
@@ -267,19 +267,19 @@ OBSERVER_SRCS = \
   tools/observer.ml
 
 
-DONKEY_SERVER_SRCS=\
-  $(SRC_SERVER)/serverTypes.ml \
-  $(SRC_SERVER)/serverOptions.ml \
-  $(SRC_SERVER)/serverGlobals.ml \
-  $(SRC_SERVER)/serverMessages.ml \
-  $(SRC_SERVER)/serverLocate.ml \
-  $(SRC_SERVER)/serverIndexer.ml \
-  $(SRC_SERVER)/serverLog.ml \
-  $(SRC_SERVER)/serverSubscriptions.ml \
-  $(SRC_SERVER)/serverServer.ml \
-  $(SRC_SERVER)/serverClients.ml \
-  $(SRC_SERVER)/serverUdp.ml  \
-  $(SRC_SERVER)/serverMain.ml
+CYMES_SRCS=\
+  $(SRC_CYMES)/serverTypes.ml \
+  $(SRC_CYMES)/serverOptions.ml \
+  $(SRC_CYMES)/serverGlobals.ml \
+  $(SRC_CYMES)/serverMessages.ml \
+  $(SRC_CYMES)/serverLocate.ml \
+  $(SRC_CYMES)/serverIndexer.ml \
+  $(SRC_CYMES)/serverLog.ml \
+  $(SRC_CYMES)/serverSubscriptions.ml \
+  $(SRC_CYMES)/serverServer.ml \
+  $(SRC_CYMES)/serverClients.ml \
+  $(SRC_CYMES)/serverUdp.ml  \
+  $(SRC_CYMES)/serverMain.ml
 
 OPENNAP_SRCS= \
  $(SRC_OPENNAP)/napigator.mll \
@@ -294,6 +294,7 @@ OPENNAP_SRCS= \
  $(SRC_OPENNAP)/opennapMain.ml 
 
 GNUTELLA_SRCS= \
+  $(SRC_GNUTELLA)/cobs.ml \
   $(SRC_GNUTELLA)/gnutellaTypes.ml \
   $(SRC_GNUTELLA)/gnutellaOptions.ml \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
@@ -325,7 +326,7 @@ BITTORRENT_SRCS= \
 OPENFT_SRCS= \
   $(SRC_OPENFT)/openFTTypes.ml \
   $(SRC_OPENFT)/openFTOptions.ml \
-  $(SRC_OPENFT)/$(OPENFT)Globals.ml \
+  $(SRC_OPENFT)/openFTGlobals.ml \
   $(SRC_OPENFT)/openFTComplexOptions.ml \
   $(SRC_OPENFT)/openFTProtocol.ml \
   $(SRC_OPENFT)/openFTClients.ml \
@@ -843,6 +844,53 @@ mldonkey+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
    gmisc.cmxa guibase.cmxa gui.cmxa
 mldonkey+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(CYMES)" , "yes")
+SUBDIRS += src/networks/cymes
+
+CORE_SRCS += $(CYMES_SRCS)
+
+## TARGETS += mlcymes$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mlcymes+gui$(EXE)
+
+endif
+endif
+
+
+mlcymes_CMXA= cdk.cmxa common.cmxa client.cmxa mlcymes.cmxa driver.cmxa
+mlcymes_SRCS= $(MAIN_SRCS)
+
+
+CYMES_ZOG := $(filter %.zog, $(CYMES_SRCS)) 
+CYMES_MLL := $(filter %.mll, $(CYMES_SRCS)) 
+CYMES_MLY := $(filter %.mly, $(CYMES_SRCS)) 
+CYMES_ML4 := $(filter %.ml4, $(CYMES_SRCS)) 
+CYMES_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(CYMES_SRCS)) 
+CYMES_C := $(filter %.c, $(CYMES_SRCS)) 
+CYMES_CMOS=$(foreach file, $(CYMES_ML),   $(basename $(file)).cmo) 
+CYMES_CMXS=$(foreach file, $(CYMES_ML),   $(basename $(file)).cmx) 
+CYMES_OBJS=$(foreach file, $(CYMES_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(CYMES_ML4:.ml4=.ml) $(CYMES_MLL:.mll=.ml) $(CYMES_MLY:.mly=.ml) $(CYMES_MLY:.mly=.mli) $(CYMES_ZOG:.zog=.ml) 
+ 
+build/mlcymes.cmxa: $(CYMES_OBJS) $(CYMES_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(CYMES_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CYMES_CMXS) 
+ 
+build/mlcymes.cma: $(CYMES_OBJS) $(CYMES_CMOS) 
+	$(OCAMLC) -a -o $@  $(CYMES_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CYMES_CMOS) 
+ 
+
+
+mlcymes+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlcymes.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+mlcymes+gui_SRCS= $(MAIN_SRCS)
 
 
 

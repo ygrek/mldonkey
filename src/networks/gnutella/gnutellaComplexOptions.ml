@@ -180,13 +180,12 @@ let old_files =
     
     
 let save_config () =
-  let list2 = Fifo.to_list ultrapeers2_queue in
-  let list = Fifo.to_list ultrapeers_queue in
-  ultrapeers =:= (List.map (fun s ->
-        (s.server_ip, s.server_port)) !connected_servers) @ list2 @ list;
-  lprintf "SAVE OPTIONS\n";
-  Options.save_with_help gnutella_ini
-
+  let list = Hashtbl2.to_list hosts_by_key in
+  ultrapeers =:= 
+    (List.map (fun h -> (h.host_ip, h.host_port)) list);
+  lprintf "SAVE OPTIONS: %d ultrapeers\n" (List.length !!ultrapeers);
+  
+  ()
   
 let _ =
   network.op_network_add_file <- value_to_file;

@@ -46,8 +46,9 @@ let g2_parse_redirector_page f =
           begin
             try
               let ip, port = String2.cut_at ip_port ':' in
-              Fifo.put ultrapeers2_queue
-                (Ip.of_string ip, int_of_string port) 
+              let h = new_host 
+                  (Ip.of_string ip) (int_of_string port) true 2 in
+              ()
             with _ -> ()
           end
       | _ -> ()
@@ -57,7 +58,7 @@ let next_redirector_access = ref 0
   
 let connect () =
   if !!enable_gnutella2 && !next_redirector_access < last_time () then begin
-      next_redirector_access := last_time () + 10;
+      next_redirector_access := last_time () + 60;
       List.iter (fun url ->
           let module H = Http_client in
           let r = {

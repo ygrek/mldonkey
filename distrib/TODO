@@ -1,14 +1,74 @@
 TODO list for client
 ====================
 
+CommonConnections: a module to manage external connections
+  * The number of connections is limited
+  * When a connection is possible, we should try to find the most interesting one
+
+  The objects we store: the object should be triggered when a connection is possible,
+    the object might not use the connection (if one is already available for that object).
+    
+  For each object, we have:
+   * A time before which the object should not be connected
+   * A score computed when the object could be connected
+
+  How it works:
+   1) Put the object in the Fifo with the next time when it should be connected
+   2) Every second, takes objects from the fifo, and put them in the queues
+
 Gnutella:
   * Don't perform more than one search per minute on each ultrapeer
+  * Generic module for server management:
+      - Never seen servers (to try)
+      - Recent servers (servers that have been connected recently)
+      - Bad servers (not to try)
 
 Short schedule:
 ---------------
 * Verify that sha1 hashes are correctly computed for big files
 * Propagate them to Query-Routing
 * Update Query-Routing tables as soon as possible
+* Use NSI installer for Windows
+
+Edonkey: changes with -11 ??
+ ask_for_slot ?
+
+Let's schedule our work:
+------------------------
+
+For 2.4: nothing, feature freeze now
+For 2.5:
+  - Gnutella:
+      * Gnutella2 support
+      * Upload: use CommonUploads queues, and HTTP/1.1
+  - Bittorrent:
+      * Support for directory downloads
+  - Misc:
+      * Interactive downloads (popups for one file with progress bar)
+
+For 2.6:
+  - Gnutella:
+      * THEX corruption detection
+      * deflate-style compression
+  - eDonkey:
+      * Source management should be shared by other plugins
+          DonkeySources3 --> CommonSources
+      * Use CommonSwarming to choose ranges to download
+
+For 2.7:
+  - Download one file on two networks
+
+For 2.8:
+  - Gnutella:
+      * Act as an ultra-peer
+  - eDonkey:
+      * export_temp so that they can be used from emule/edonkey
+      * Share eDonkey partial chunks on Gnutella
+  - Misc:
+      * Implementation of sparse-files
+      * CD get and Collections
+
+
 
 Bittorrent:
 -----------
@@ -22,48 +82,10 @@ Bittorrent:
   * Share downloaded files
   * Commited or not
 
-Edonkey: changes with -11 ??
- ask_for_slot ?
-
-Let's schedule our work:
-------------------------
-
-For 2.04: nothing, feature freeze now
-For 2.05:
-  - Gnutella:
-      * Gnutella2 support
-      * Upload: use CommonUploads queues, and HTTP/1.1
-  - Bittorrent:
-      * Support for directory downloads
-  - Misc:
-      * Interactive downloads (popups for one file with progress bar)
-
-For 2.06:
-  - Gnutella:
-      * THEX corruption detection
-      * deflate-style compression
-  - eDonkey:
-      * Source management should be shared by other plugins
-          DonkeySources3 --> CommonSources
-      * Use CommonSwarming to choose ranges to download
-
-For 2.07:
-  - Download one file on two networks
-
-For 2.08:
-  - Gnutella:
-      * Act as an ultra-peer
-  - eDonkey:
-      * export_temp so that they can be used from emule/edonkey
-      * Share eDonkey partial chunks on Gnutella
-  - Misc:
-      * Implementation of sparse-files
-      * CD get and Collections
-
-
+* Use threads to copy files from temp to incoming
 
 *******************
-Before 2.04 :)
+Before 2.4 :)
 *******************
 
 * Force connect to friends from time to time to see the shared-file lists.

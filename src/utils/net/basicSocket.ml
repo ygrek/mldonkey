@@ -479,4 +479,5 @@ external has_threads : unit -> bool = "ml_has_pthread"
 let get_rtimeout t = t.rtimeout, t.next_rtimeout -. !current_time
 
 let int64_time () = Int64.of_float !current_time
+let int32_time () = Int32.of_float !current_time
   

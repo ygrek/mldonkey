@@ -79,6 +79,7 @@ let server_to_client s p sock =
               P.port = !!client_port;
               P.nfiles = 10;
               P.nkb = 10;
+              P.s = "";
             });
         };
       if s.server_need_qrt then begin
@@ -141,7 +142,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                 replies := {
                   M.index = sh.C.shared_id;
                   M.size = sh.C.shared_size;
-                  M.name = sh.C.shared_codedname;
+                  M.name = Filename.basename sh.C.shared_codedname;
                   M.info = !infos;
                 } :: !replies
               done;
@@ -167,8 +168,8 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
               server_send s pp
           
           with Not_found -> ()
-        with Not_found ->
-            lprintf "Query browse\n"   
+        with Not_found -> ()
+(*            lprintf "Query browse\n"    *)
       end
 
 (* GUID + Index of file to be pushed + ip + port *)
@@ -253,7 +254,15 @@ information. *)
 
 let init s sock gconn =       
   server_send s 
-    { (new_packet (PingReq Ping.SimplePing)) with pkt_ttl = 4; };        
+  (new_packet (PingReq Ping.SimplePing));        
+  server_send s 
+    { (new_packet (VendorReq (Vendor.Supported
+            [
+            "BEAR", 4,1;
+            "BEAR", 7,1;
+            "GTKG", 7,1;
+            ]
+        ))) with pkt_ttl = 1; };
   gconn.gconn_handler <- Reader
     (gnutella_handler parse (server_to_client s))
   

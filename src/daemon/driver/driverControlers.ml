@@ -100,10 +100,8 @@ let eval auth cmd o =
       if cmd = "help" || cmd = "?" then begin
           
           let module M = CommonMessages in
-          Buffer.add_string  buf !!M.available_commands_are;
           Buffer.add_string  buf
-            "
-Main commands are:
+            "Main commands are:
 
 $bServers:$n
           $rvm$n : list connected servers
@@ -126,7 +124,19 @@ $bGeneral:$n
           $rkill$n : kill mldonkey properly
           $rq$n : quit this interface
 
-Use '$rlonghelp$n' or '$r??$n' for all commands.
+Use '$r";
+           if o.conn_output = HTML then
+             Buffer.add_string buf "\\<a href=\\\"/submit?q=longhelp\\\"\\>";
+           Buffer.add_string buf "longhelp";
+           if o.conn_output = HTML then
+             Buffer.add_string buf "\\</a\\>";
+           Buffer.add_string buf "$n' or '$r";
+           if o.conn_output = HTML then
+             Buffer.add_string buf "\\<a href=\\\"/submit?q=longhelp\\\"\\>";
+           Buffer.add_string buf "??";
+           if o.conn_output = HTML then
+             Buffer.add_string buf "\\</a\\>";
+           Buffer.add_string buf "$n' for all commands.
 Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
           List.iter (fun arg ->

@@ -44,21 +44,30 @@ module DO = CommonOptions
 either the corresponding Gnutella1 or Gnutella2 function
 *)
     
+let server_send_qkr s = 
+  match s.server_query_key with
+    NoUdpSupport ->
+      if s.server_gnutella2 then
+        Gnutella2.server_send_qkr s
+      else
+        Gnutella1.server_send_qkr s  
+  | _ -> ()
+      
 let server_ask_query s uid words xml_query = 
   if s.server_gnutella2 then
-    Gnutella2.server_ask_query s uid words xml_query
+    Gnutella2.server_ask_query s.server_sock s uid words xml_query
   else
     Gnutella1.server_ask_query s uid words xml_query  
 
 let server_ask_uid s uid words xml_query = 
   if s.server_gnutella2 then
-    Gnutella2.server_ask_uid s uid words xml_query
+    Gnutella2.server_ask_uid s.server_sock s uid words xml_query
   else
     Gnutella1.server_ask_uid s uid words xml_query  
     
 let server_send_ping s = 
   if s.server_gnutella2 then
-    Gnutella2.server_send_ping s
+    Gnutella2.server_send_ping s.server_sock s
   else
     Gnutella1.server_send_ping s
   
@@ -89,6 +98,7 @@ let ask_query servers words xml_query =
   List.iter (fun s ->
       server_ask_query s uid words xml_query
   ) servers;
+  if !!enable_gnutella2 then Gnutella2.extend_ask_query uid words xml_query;
   uid
 
 let ask_uid servers words fuid =
@@ -99,6 +109,7 @@ let ask_uid servers words fuid =
   List.iter (fun s ->
       server_ask_uid s uid words fuid
   ) servers;
+  if !!enable_gnutella2 then Gnutella2.extend_ask_uid uid words fuid;
   uid
 
   
@@ -139,15 +150,36 @@ let recover_files_from_server s =
       
 let disconnect_from_server s =
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+  | Connection sock ->
+      let h = s.server_host in
       (match server_state s with 
           Connected _ ->
-            lprintf "DISCONNECT FROM SERVER %s:%d\n" 
-              (Ip.to_string s.server_ip) s.server_port;
-        | _ -> ());
-      close sock "timeout";
-      s.server_sock <- None;
+            let connection_time = Int32.to_int (
+                Int32.sub (int32_time ()) s.server_connected) in
+            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
+              (Ip.to_string h.host_ip) h.host_port
+              connection_time
+            ;
+            host_queue_add (if connection_time > 5 then
+                ultrapeers_waiting_queue
+              else begin
+                  server_send_qkr s;
+                  ultrapeers_recent_queue
+                end) h (last_time () + 20)
+        | _ -> 
+            if s.server_connected <> Int32.zero then begin
+                server_send_qkr s;
+                host_queue_add ultrapeers_recent_queue h (last_time () + 20)
+              end else begin (* never connected *)
+                let h = s.server_host in
+                h.host_server <- None;
+                server_remove s;
+                host_queue_add ultrapeers_old_queue h (last_time () + 20)
+              end
+              
+      );
+      (try close sock "" with _ -> ());
+      s.server_sock <- NoConnection;
       set_server_state s (NotConnected (-1));
       decr nservers;
       s.server_need_qrt <- true;
@@ -155,6 +187,7 @@ let disconnect_from_server s =
           connected_servers := List2.removeq s !connected_servers;
         end;
       server_remove s
+  | _ -> ()
       
 let find_header header headers default =
   try
@@ -164,4 +197,4 @@ let find_header header headers default =
 let add_uid r uid =
   if not (List.mem uid r.result_uids) then
     r.result_uids <- uid :: r.result_uids
-  
+

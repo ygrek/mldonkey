@@ -17,22 +17,22 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(* UDP connect back: if we are not guess capable, we can only send packets
+  if we have been allowed to using GTKG/7 *)
+
 open Printf2
-open CommonOptions
-open GnutellaOptions
 open Options
 open Md4
-open CommonGlobals
+open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
-open AnyEndian
+
+open CommonTypes
+open CommonOptions
+open CommonGlobals
 open GnutellaTypes
+open GnutellaOptions
 open GnutellaProtocol
-  (*
-let gnutella_ok = "GNUTELLA OK"     
-let gnutella_200_ok = "GNUTELLA/0.6 200 OK"
-let gnutella_503_shielded = "GNUTELLA/0.6 503 I am a shielded leaf node"
-*)
 
 type packet_type =
   PING | PONG | QRP | VENDOR | STANDARD | 
@@ -59,28 +59,7 @@ let buf_string buf s =
   Buffer.add_string buf s;
   Buffer.add_char buf '\000'
 
-(*
- let get_int16 s pos =
-   let c1 = int_of_char s.[pos+1] in
-   let c2 = int_of_char s.[pos] in
-  c1 + c2 * 256
-
- let buf_int16 buf i =
-   let i = i land 65535 in
-  Buffer.add_char buf (char_of_int (i / 256));
-  Buffer.add_char buf (char_of_int (i mod 256))
-  *)
-
 module Ping = struct
-(*
-(202)(24)               PORT
-(212)(198)(235)(220)    IP
-(0)(0)(0)(0)            NFILES
-(0)(0)(0)(0)            NKB
-n o n e : 5 6 : f a l s e(0)
-
-grouped? (none = true) : connection speed : ultrapeer possible
-*)
     
     type t = 
       SimplePing
@@ -112,7 +91,8 @@ grouped? (none = true) : connection speed : ultrapeer possible
         SimplePing -> 
           lprintf "SIMPLE PING\n";
       | ComplexPing t ->
-          lprintf "PING FROM %s:%d\n" (Ip.to_string t.ip) t.port
+          lprintf "PING FROM %s:%d\n   %Ld %Ld [%s]\n" (Ip.to_string t.ip) t.port
+            t.nfiles t.nkb (String.escaped t.s)
     
     let write buf t =
       match t with
@@ -122,7 +102,7 @@ grouped? (none = true) : connection speed : ultrapeer possible
           buf_ip buf t.ip;
           buf_int64_32 buf t.nfiles;
           buf_int64_32 buf t.nkb;
-          buf_string buf t.s
+          Buffer.add_string buf t.s
   end
 
 module Pong = struct (* PONG *)
@@ -132,6 +112,7 @@ module Pong = struct (* PONG *)
         port : int;
         nfiles : int;
         nkb : int;
+        s: string;
       }
     
     let parse s =
@@ -139,20 +120,24 @@ module Pong = struct (* PONG *)
       let ip = get_ip s 2 in
       let nfiles = get_int s 6 in
       let nkb = get_int s 10 in
+      let s = String.sub s 14 (String.length s - 14) in
       { ip = ip;
         port = port;
         nfiles = nfiles;
         nkb = nkb;
+        s = s;
       }
     
     let print t = 
-      lprintf "PONG FROM %s:%d\n" (Ip.to_string t.ip) t.port
+      lprintf "PONG FROM %s:%d\n   %d %d [%s]\n" (Ip.to_string t.ip) t.port
+            t.nfiles t.nkb (String.escaped t.s)
     
     let write buf t =
       buf_int16 buf t.port;
       buf_ip buf t.ip;
       buf_int buf t.nfiles;
       buf_int buf t.nkb;
+      Buffer.add_string buf t.s
   
   end
 
@@ -187,22 +172,112 @@ module Push = struct (* PUSH *)
       buf_int16 buf t.port    
   end
 
+module Vendor = struct
+    type t = 
+      Supported of (string * int * int) list
+    | Bear4_HopsFlow of int
+    | Bear7_ConnectBack of int
+    | Gtkg7_UdpConnectBack of int * Md4.t
+    | VUnknown of string * int * int * string
+    
+    let parse s =
+      let vendor = String.sub s 0 4 in
+      if vendor = "\000\000\000\000" then
+        let n  = LittleEndian.get_int16 s 8 in
+        let list = ref [] in
+        for i = 1 to n do
+          list := (String.sub s (2+i*8) 4, get_int16 s (6+i*8),
+            get_int16 s (8+i*8)) :: !list
+        done;
+        Supported (List.rev !list)
+      else
+      let num = LittleEndian.get_int16 s 4 in
+      let version = LittleEndian.get_int16 s 6 in
+      match vendor, num, version with
+      | "BEAR", 4, 1 ->
+          Bear4_HopsFlow (get_int8 s 8)
+      | "BEAR", 7, 1 ->
+          Bear7_ConnectBack (get_int16 s 8)
+      | "GTKG", 7, 1 ->
+          Gtkg7_UdpConnectBack (get_int16 s 8, get_md4 s 10)
+      | _ ->
+          let s = String.sub s 8 (String.length s - 8) in          
+          VUnknown (vendor, num, version, s)
+    
+    let print t = 
+      match t with
+        Supported list ->
+          lprintf "Supported VENDOR Specific Messages:\n";
+          List.iter (fun (s,num,version) ->
+              lprintf "   %s/%d version %d\n" s num version
+          ) list
+      | Bear4_HopsFlow nhops ->
+          lprintf "BEAR/4 HopsFlow: nhops %d\n" nhops
+      | Bear7_ConnectBack port ->
+          lprintf "BEAR/7 Connect Back: port %d\n" port
+      | Gtkg7_UdpConnectBack (port, md4) ->
+          lprintf "GTKG/7 UDP Connect Back: port %d uid %s\n"
+            port (Md4.to_string md4)
+      | VUnknown (vendor, num, version, s) ->
+          lprintf "VENDOR MESSAGE %s/%d version %d\n   %s\n"
+            vendor num version (String.escaped s)
+    
+    let write buf t =
+      match t with
+        Supported list ->
+          Buffer.add_string buf "\000\000\000\000\000\000\000\000";
+          buf_int16 buf (List.length list);
+          List.iter (fun (s,num,version) ->
+              Buffer.add_string buf s;
+              buf_int16 buf num;
+              buf_int16 buf version;
+          ) list
+      | Bear4_HopsFlow nhops ->
+          Buffer.add_string buf "BEAR";
+          buf_int16 buf 4;
+          buf_int16 buf 1;
+          buf_int8 buf nhops
+          
+      | Bear7_ConnectBack port ->
+          Buffer.add_string buf "BEAR";
+          buf_int16 buf 7;
+          buf_int16 buf 1;
+          buf_int16 buf port
+          
+      | Gtkg7_UdpConnectBack (port, md4) ->
+          Buffer.add_string buf "GTKG";
+          buf_int16 buf 7;
+          buf_int16 buf 1;
+          buf_int8 buf port;
+          buf_md4 buf md4
+          
+      | VUnknown (vendor, num, version, s) ->
+          Buffer.add_string buf vendor;
+          LittleEndian.buf_int16 buf num;
+          LittleEndian.buf_int16 buf version;
+          Buffer.add_string buf s
+  end
+  
 module Query = struct (* QUERY *)
     
     type t = {
         min_speed : int;  (* kb/s *)
         keywords : string;
         xml_query : string list;
+        s : string;
       }
     
     let parse s =
       let min_speed = get_int16 s 0 in
       let keywords,pos = get_string s 2 in
       let xml_query, pos =  get_string s pos in
+      let len = String.length s in
+      let s = String.sub s pos (len-pos) in
       { 
         min_speed = min_speed;
         keywords = keywords;
         xml_query = String2.split xml_query '\028'; (* 0x1c *)
+        s = s;
       }
     
     let print t = 
@@ -210,14 +285,17 @@ module Query = struct (* QUERY *)
         (List.length t.xml_query);
       List.iter (fun xml ->
           lprintf "          ext: %s\n" (String.escaped xml)
-      ) t.xml_query
+      ) t.xml_query;
+      if t.s <> "" then
+        lprintf "          more: %s\n" (String.escaped t.s)
     
     let write buf t =
       buf_int16 buf t.min_speed;
       Buffer.add_string buf t.keywords;
       Buffer.add_char buf '\000';
       Buffer.add_string buf (String2.unsplit t.xml_query '\028');
-      Buffer.add_char buf '\000'
+      Buffer.add_char buf '\000';
+      Buffer.add_string buf t.s
   end
 
 module QueryReply = struct (* QUERY_REPLY *)
@@ -311,6 +389,9 @@ module QueryReply = struct (* QUERY_REPLY *)
       List.iter (fun f ->
           lprintf "   FILE %s SIZE %s INDEX %d\n" f.name 
             (Int64.to_string f.size) f.index;
+          List.iter (fun more ->
+              lprintf "        info: %s\n" (String.escaped more)
+          ) f.info
       ) t.files
     
     let rec write_files buf files =
@@ -353,74 +434,6 @@ module QueryReply = struct (* QUERY_REPLY *)
   
   end
 
-  (*
-module QrtReset = struct
-(*
-    struct gnutella_qrp_reset {
-        guchar table_length[4]; /* little endian */
-        guchar infinity;
-} __attribute__((__packed__));
-*)
-    
-    type t = {
-        table_length : int;
-        infinity : int;
-      }
-    
-    let parse s = 
-      { table_length = get_int s 0;
-        infinity = get_int8 s 4;
-      }
-    
-    let print t = 
-      lprintf "QRT Reset %d %d" t.table_length t.infinity
-    
-    let write buf t = 
-      buf_int buf t.table_length;
-      buf_int8 buf t.infinity
-  
-  end
-
-module QrtPatch = struct
-(*
-struct gnutella_qrp_patch {
-        guchar seq_no;
-        guchar seq_size;
-        guchar compressor;
-        guchar entry_bits;
-} __attribute__((__packed__));
-*)
-    
-    type t = {
-        seq_no : int; (* char *)
-        seq_size : int; (* char *)
-        compressor : int; (* char *)
-        entry_bits : int; (* char *)
-        table : string;
-      }
-    
-    let parse s = 
-      {
-        seq_no = get_int8 s 0;
-        seq_size = get_int8 s 1;
-        compressor = get_int8 s 2;
-        entry_bits = get_int8 s 3;
-        table = String.sub s 4 (String.length s - 4);
-      }
-    
-    let print t = 
-      lprintf "QRT PATCH"
-    
-    let write buf t = 
-      buf_int8 buf t.seq_no;
-      buf_int8 buf t.seq_size;
-      buf_int8 buf t.compressor;
-      buf_int8 buf t.entry_bits;
-      Buffer.add_string buf t.table
-  
-  end
-    *)
-
 type t = 
 | PingReq of Ping.t
 | PongReq of Pong.t
@@ -429,6 +442,7 @@ type t =
 | QueryReplyReq of QueryReply.t
 | QrtPatchReq of QrtPatch.t
 | QrtResetReq of QrtReset.t
+| VendorReq of Vendor.t
 | UnknownReq of packet_type * string
 
 let parse pkt = 
@@ -452,8 +466,8 @@ let parse pkt =
             else
               QrtPatchReq (QrtPatch.parse pkt.pkt_payload))
         }
-    | VENDOR ->  { pkt with pkt_payload = UnknownReq 
-            (UNKNOWN 49,pkt.pkt_payload) }
+    | VENDOR ->  { pkt with pkt_payload = 
+          VendorReq (Vendor.parse pkt.pkt_payload) }
     | STANDARD ->  { pkt with pkt_payload = UnknownReq 
             (UNKNOWN 50,pkt.pkt_payload) }
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
@@ -469,6 +483,7 @@ let write buf t =
   | PongReq t -> Pong.write buf t
   | PushReq t -> Push.write buf t
   | QueryReq t -> Query.write buf t
+  | VendorReq t -> Vendor.write buf t
   | QueryReplyReq t -> QueryReply.write buf t
   | QrtPatchReq t -> 
       buf_int8 buf 1;
@@ -479,18 +494,27 @@ let write buf t =
   | UnknownReq (i,s) -> Buffer.add_string buf s
 
 let print p =
-  match p.pkt_payload with
-  | PingReq t -> Ping.print t
-  | PongReq t -> Pong.print t
-  | PushReq t -> Push.print t
-  | QrtResetReq t -> QrtReset.print t
-  | QrtPatchReq t -> QrtPatch.print t
-  | QueryReq t -> Query.print t
-  | QueryReplyReq t -> QueryReply.print t
-  | UnknownReq (i,s) -> 
-      lprintf "UNKNOWN message:\n";
-      dump s
-
+  lprintf "Packet (ttl %d, nhops %d, uid %s):\n" p.pkt_ttl p.pkt_hops
+    (Md4.to_string p.pkt_uid);
+  begin
+    match p.pkt_payload with
+    | PingReq t -> Ping.print t
+    | PongReq t -> Pong.print t
+    | PushReq t -> Push.print t
+    | QrtResetReq t -> QrtReset.print t
+    | QrtPatchReq t -> QrtPatch.print t
+    | QueryReq t -> Query.print t
+    | VendorReq t -> Vendor.print t
+    | QueryReplyReq t -> QueryReply.print t
+    | UnknownReq (UNKNOWN i,s) -> 
+        lprintf "UNKNOWN message %d:\n" i;
+        dump s
+    | UnknownReq (_,s) -> 
+        lprintf "Bad parsed UNKNOWN message:\n";
+        dump s
+  end;
+  lprintf "\n"
+  
 let buf = Buffer.create 1000
 
 let server_msg_to_string pkt = 
@@ -528,12 +552,14 @@ let new_packet t =
       | PongReq _ -> PONG
       | PushReq _ -> PUSH
       | QueryReq _ -> QUERY
+      | VendorReq _ -> VENDOR
       | QrtResetReq _ | QrtPatchReq _ -> QRP
       | QueryReplyReq _ -> QUERY_REPLY
       | UnknownReq (i,_) -> i);
     pkt_ttl = (match t with
-      | QrtPatchReq _ | QrtResetReq _ -> 1
-      | _ -> 2);
+        PingReq _ | QueryReq _ -> 4
+      | _ -> 1
+    );
     pkt_hops = 0;
     pkt_payload  =t;
   }
@@ -547,31 +573,64 @@ let server_send s t =
       raise Exit;
     end;
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection | ConnectionWaiting | ConnectionAborted -> ()
+  | Connection sock ->
       let m = server_msg_to_string t in
+      (*
       (match t.pkt_payload with
         | QueryReq s -> 
             lprintf "SENDING QUERY: \n"; print t
         | _ -> ());
-            
+*)      
+      (*
+      begin
+        try
+          let s = m in
+          let pos = 0 in
+          let len = String.length s in
+          if String.length s - pos >= 23 then
+            let msg_len = get_int s (pos+19) in
+            if len >= 23 + msg_len then
+              let pkt_uid = get_md4 s pos in
+              let pkt_type = match get_int8 s (pos+16) with
+                  0 -> PING
+                | 1 -> PONG
+                | 48 -> QRP
+                | 49 -> VENDOR
+                | 64 -> PUSH
+                | 128 -> QUERY
+                | 129 -> QUERY_REPLY
+                | n -> UNKNOWN n
+              in
+              let pkt_ttl = get_int8 s  (pos+17) in
+              let pkt_hops = get_int8 s  (pos+18) in
+              let data = String.sub s (pos+23) msg_len in
+              let pkt = {
+                  pkt_uid = pkt_uid;
+                  pkt_type = pkt_type;
+                  pkt_ttl = pkt_ttl;
+                  pkt_hops = pkt_hops;
+                  pkt_payload = data;
+                } in
+              begin
+                try
+                  let pkt = parse pkt in
+                  lprintf "Packet sent:\n";
+                  print pkt
+                with e ->
+                    lprintf "Exception %s\n" (Printexc2.to_string e)
+              end;
+        with e ->
+            lprintf "Exception %s in reparsing before send\n"
+              (Printexc2.to_string e)
+      end;
+*)
+      
       write_string sock m
 
 let server_send_new s t =
   server_send s (new_packet t)
 
-
-(*
-type ghandler =
-  HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)
-| Reader of (gconn -> TcpBufferedSocket.t -> unit)
-
-and gconn = {
-    mutable gconn_handler : ghandler;
-    mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
-    mutable gconn_close_on_write : bool;
-  }
-    *)
 
 let gnutella_handler parse f handler sock =
   let b = TcpBufferedSocket.buf sock in
@@ -586,6 +645,8 @@ let gnutella_handler parse f handler sock =
           let pkt_type = match get_int8 b.buf (b.pos+16) with
               0 -> PING
             | 1 -> PONG
+            | 48 -> QRP
+            | 49 -> VENDOR
             | 64 -> PUSH
             | 128 -> QUERY
             | 129 -> QUERY_REPLY
@@ -609,73 +670,6 @@ let gnutella_handler parse f handler sock =
     done
   with 
   | Not_found -> ()
-
-      (*
-let handlers info gconn =
-  let rec iter_read sock nread =
-    let b = TcpBufferedSocket.buf sock in
-    if b.len > 0 then
-      match gconn.gconn_handler with
-      | HttpHeader h ->
-          let end_pos = b.pos + b.len in
-          let begin_pos =  b.pos in
-          let rec iter i n_read =
-            if i < end_pos then
-              if b.buf.[i] = '\r' then
-                iter (i+1) n_read
-              else
-              if b.buf.[i] = '\n' then
-                if n_read then begin
-                    let header = String.sub b.buf b.pos (i - b.pos) in
-(*                    if info then begin
-                        lprintf "HEADER : ";
-                        dump header; lprint_newline ();
-                      end; *)
-                    h gconn sock header;
-                    if not (TcpBufferedSocket.closed sock) then begin
-                        let nused = i - b.pos + 1 in
-                        buf_used sock nused;
-                        iter_read sock 0
-                      end
-                  end else
-                  iter (i+1) true
-              else
-                iter (i+1) false
-          in
-          iter begin_pos false
-      | Reader h -> 
-          let len = b.len in
-          h gconn sock;
-          if b.len < len then iter_read sock 0
-  in
-  iter_read
-
-let set_gnutella_sock sock info ghandler = 
-  let gconn = {
-      gconn_handler = ghandler;
-      gconn_refill = [];
-      gconn_close_on_write = false;
-    } in
-  TcpBufferedSocket.set_reader sock (handlers info gconn);
-  TcpBufferedSocket.set_refill sock (fun sock ->
-      match gconn.gconn_refill with
-        [] -> ()
-      | refill :: _ -> refill sock
-  );
-  TcpBufferedSocket.set_handler sock TcpBufferedSocket.WRITE_DONE (
-    fun sock ->
-      match gconn.gconn_refill with
-        [] -> ()
-      | _ :: tail -> 
-          gconn.gconn_refill <- tail;
-          match tail with
-            [] -> 
-              if gconn.gconn_close_on_write then 
-                set_lifetime sock 30.
-(*                TcpBufferedSocket.close sock "write done" *)
-          | refill :: _ -> refill sock)
-
-*)
 
 let vendors = [
     "ACQX", "Acquisition" ;
@@ -715,79 +709,6 @@ let vendors = [
     "ZIGA", "Ziga" 
   ]
 
-  (*
-let add_header_fields header sock trailer =
-  let buf = Buffer.create 100 in
-  Printf.bprintf buf "%s" header;
-  Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
-  Printf.bprintf buf "X-My-Address: %s:%d\r\n"
-    (Ip.to_string (client_ip (Some sock))) !!client_port;
-  Printf.bprintf buf "X-Ultrapeer: False\r\n";
-  Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
-  Printf.bprintf buf "GGEP: 0.5\r\n";
-  Printf.bprintf buf "%s" trailer;
-  Buffer.contents buf
-    *)
-
-(* A standard session with gtk-gnutella as ultrapeer:
-
-HEADER : ascii: [ G N U T E L L A / 0 . 6   2 0 0   O K(13)(10) U s e r - A g e n t :   g t k - g n u t e l l a / 0 . 9 2 u   ( 3 0 / 0 1 / 2 0 0 3 ;   X 1 1 ;   L i n u x   2 . 4 . 1 8 - 1 8 . 8 . 0   i 6 8 6 )(13)(10) P o n g - C a c h i n g :   0 . 1(13)(10) B y e - P a c k e t :   0 . 1(13)(10) G G E P :   0 . 5(13)(10) V e n d o r - M e s s a g e :   0 . 1(13)(10) R e m o t e - I P :   1 2 7 . 0 . 0 . 1(13)(10) A c c e p t - E n c o d i n g :   d e f l a t e(13)(10) X - U l t r a p e e r :   T r u e(13)(10) X - U l t r a p e e r - N e e d e d :   T r u e(13)(10) X - Q u e r y - R o u t i n g :   0 . 1(13)(10) X - L i v e - S i n c e :   S a t ,   2 2   M a r   2 0 0 3   0 8 : 2 1 : 3 5   + 0 0 0 0(13)(10)(13)]
-
-
-dec: [(18)(211)(144)(220)(91)(118)(100)(204)(255)(248)(177)(92)(197)(27)(109)(3)(0)(1)(0)(0)(0)(0)(0)]
-SIMPLE PING  
-
-dec: [(6)(93)(144)(220)(17)(35)(129)(160)(226)(78)(124)(120)(59)(147)(241)(78)(128)(7)(0)(13)(0)(0)(0)(0)(0)(97)(103)(112)(114)(111)(116)(111)(99)(111)(108)(0)]
-QUERY FOR agprotocol ()
-
-  download:
-PUSH HEADER: [GET /get/3/shared1/agProtocol.ml HTTP/1.1\013\nHost: 127.0.0.1:6550\013\nUser-Agent: gtk-gnutella/0.92u (30/01/2003; X11; Linux 2.4.18-18.8.0 i686)\013\n\013]
-*)
-(*
-let parse_range range =
-  try
-    let npos = (String.index range 'b')+6 in
-    let dash_pos = try String.index range '-' with _ -> -10 in
-    let slash_pos = try String.index range '/' with _ -> -20 in
-    let star_pos = try String.index range '*' with _ -> -30 in
-    if star_pos = slash_pos-1 then
-      Int64.zero, None, None (* "bytes */X" *)
-    else
-    let len = String.length range in
-    let x = Int64.of_string (
-        String.sub range npos (dash_pos - npos) )
-    in
-    if len = dash_pos + 1 then
-(* bytes x- *)
-      x, None, None
-    else
-    let y = Int64.of_string (
-        String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
-    in
-    if slash_pos = star_pos - 1 then 
-      x, Some y, None (* "bytes x-y/*" *)
-    else
-(* bytes x-y/len *)
-    
-    let z = Int64.of_string (
-        String.sub range (slash_pos+1) (len - slash_pos -1) )
-    in
-    x, Some y, Some z
-  with 
-  | e ->
-      lprintf "Exception %s for range [%s]\n" 
-        (Printexc2.to_string e) range;
-      raise e
-
-let parse_range range =
-  let x, y, z = parse_range range in
-  lprintf "Range parsed: %Ld-%s/%s" x
-    (match y with None -> "" | Some y -> Int64.to_string y)    
-  (match z with None -> "*" | Some y -> Int64.to_string y);
-  x, y, z
-  
-    *)
-
 let server_send_qrt_reset s m = 
   server_send_new s (QrtResetReq m)
   
@@ -799,17 +720,32 @@ let server_ask_query s puid words xml_query =
   let t = QueryReq {
       Q.min_speed = 0;
       Q.keywords = words;
-      Q.xml_query  = [xml_query] } in
-  let p = { (new_packet t) with pkt_uid = puid } in
+      Q.xml_query  = [xml_query];
+      Q.s = "" ;} in
+  let pp = new_packet t in
+  let p = { pp with 
+      pkt_uid = puid;
+      pkt_ttl = (match s.server_query_key with
+          GuessSupport -> 1
+        | _ -> pp.pkt_ttl);
+    } in
   server_send s p
 
 let server_ask_uid s puid words uid = 
   let module Q = Query in
   let t = QueryReq {
       Q.min_speed = 0;
-      Q.keywords = words;
-      Q.xml_query  = [CommonTypes.string_of_uid uid] } in
-  let p = { (new_packet t) with pkt_uid = puid } in
+      Q.keywords = "\\";
+      Q.xml_query  = [CommonTypes.string_of_uid uid];
+      Q.s = "";
+    } in
+  let pp = new_packet t in
+  let p = { pp with 
+      pkt_uid = puid;
+      pkt_ttl = (match s.server_query_key with
+          GuessSupport -> 1
+        | _ -> pp.pkt_ttl);
+    } in
   server_send s p
 
   
@@ -892,3 +828,171 @@ let send_qrt_sequence s update_table =
       QrtPatch.entry_bits = 4;
       QrtPatch.table = table;
     }
+
+let server_send_qkr _ = ()
+
+  
+  
+module Pandora = struct
+    
+    type t = UDP | TCP
+    
+    type cnx = {
+        ip1 : string;
+        port1 : int;
+        ip2 : string;
+        port2 : int;
+        packets : Buffer.t;
+      }
+    let connections = Hashtbl.create 13
+    
+    let rec piter s pos = 
+      let len = String.length s in
+      if String.length s - pos >= 23 then
+        let msg_len = get_int s (pos+19) in
+        if len >= 23 + msg_len then
+          let pkt_uid = get_md4 s pos in
+          let pkt_type = match get_int8 s (pos+16) with
+              0 -> PING
+            | 1 -> PONG
+            | 48 -> QRP
+            | 49 -> VENDOR
+            | 64 -> PUSH
+            | 128 -> QUERY
+            | 129 -> QUERY_REPLY
+            | n -> UNKNOWN n
+          in
+          let pkt_ttl = get_int8 s  (pos+17) in
+          let pkt_hops = get_int8 s  (pos+18) in
+          let data = String.sub s (pos+23) msg_len in
+          let pkt = {
+              pkt_uid = pkt_uid;
+              pkt_type = pkt_type;
+              pkt_ttl = pkt_ttl;
+              pkt_hops = pkt_hops;
+              pkt_payload = data;
+            } in
+          begin
+            try
+              let pkt = parse pkt in
+              print pkt
+            with e ->
+                lprintf "Exception %s\n" (Printexc2.to_string e)
+          end;
+          piter s (pos + msg_len + 23)
+(*
+        else 
+          lprintf "Remaining %d bytes: %s\n"
+            (len - pos) (String.sub s pos (len-pos))
+      else 
+        lprintf "Remaining %d bytes: %s\n"
+          (len - pos) (String.sub s pos (len-pos))
+*)
+    
+    let rec iter s pos =
+      if s.[pos] = '\n' then
+        if s.[pos+1] = '\n' then pos+2
+        else
+        if s.[pos+1] = '\r' then
+          if s.[pos+2] = '\n' then pos+3
+          else iter s (pos+1)
+        else iter s (pos+1)
+      else 
+      if s.[pos] = '\r' then
+        if s.[pos] = '\n' then
+          if s.[pos+1] = '\n' then pos+2
+          else
+          if s.[pos+1] = '\r' then
+            if s.[pos+2] = '\n' then pos+3
+            else iter s (pos+1)
+          else iter s (pos+1)
+        else
+          iter s (pos+1)
+      else iter s (pos+1)
+    
+    let hescaped s =
+      String2.replace_char s '\r' ' ';s
+    
+    let commit () =  
+      Hashtbl.iter (fun _ cnx ->
+          let s = Buffer.contents cnx.packets in
+          let len = String.length s in
+          try
+            if String2.starts_with s "GNUTELLA CONNECT" then begin
+                let h1 = iter s 0 in
+                let h2 = iter s h1 in
+                lprintf "\n-----------------------------------------------\n";
+                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
+                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
+                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+                lprintf "Header 2: \n%s\n" (hescaped (String.sub s h1 
+                      (h2-h1)));              
+                piter s h2
+              end else 
+            if String2.starts_with s "GNUTELLA" then begin
+                let h1 = iter s 0 in
+                lprintf "\n-----------------------------------------------\n";
+                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
+                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
+                
+                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+                piter s h1
+              end else ()
+(*
+            if String2.starts_with s "GET" then begin
+                lprintf "Http connect to\n";
+                let h1 = iter s 0 in
+                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+              end else 
+            if String2.starts_with s "HTTP" then begin
+                lprintf "Http connected from\n";
+                let h1 = iter s 0 in
+                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+              end else 
+              lprintf "Starting %s\n" (String.escaped
+(String.sub s 0 (min len 20)))
+  *)
+          with 
+          
+          | e ->
+(*
+              lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
+              (String.escaped s)
+*) ()            
+      ) connections;
+      lprintf "\n\n#use \"limewire.ml\";;\n\n"
+    
+    
+    
+    let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data = 
+      match kind with
+        UDP -> 
+          begin
+            try
+(*              lprintf "New packet:\n%s\n" (String.escaped data);          *)
+              piter data 0;
+            with e ->
+(*                lprintf "Could not parse UDP packet:\n"; *)
+                ()
+          end
+      | TCP ->  
+          let cnx = 
+            try
+              Hashtbl.find connections number
+            with _ ->
+                let cnx = {
+                    ip1 = ip1;
+                    port1 = port1;
+                    ip2 = ip2;
+                    port2 = port2;
+                    packets = Buffer.create 100;
+                  } in
+                Hashtbl.add connections number cnx;
+                cnx
+          in
+          Buffer.add_string cnx.packets data
+          
+  end
+  
+  
+  

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+
 open GnutellaClients
 open CommonOptions
 open CommonFile
@@ -32,22 +34,30 @@ open GnutellaServers
   
 let disable enabler () =
   enabler := false;
-  Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_key;
+  Hashtbl2.safe_iter (fun h -> 
+      match h.host_server with
+        None -> ()
+      | Some s -> disconnect_server s) hosts_by_key;
   Hashtbl2.safe_iter (fun c -> disconnect_client c) clients_by_uid;
   (match !listen_sock with None -> ()
     | Some sock -> 
         listen_sock := None;
         TcpServerSocket.close sock "");
   if !!enable_gnutella then enable_gnutella =:= false;
-  if !!enable_gnutella2 then Gnutella2.disable ();
-  ()
-    
+  match !udp_sock with
+    None -> ()
+  | Some sock -> 
+      udp_sock := None;
+      UdpSocket.close sock "disabled"
+      
 let enable () =
 
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
   
   if not !!enable_gnutella then enable_gnutella =:= true;
+
+
   
   (*
   List.iter (fun s ->
@@ -64,7 +74,8 @@ let enable () =
         current_files := file :: !current_files
   ) files_by_key;
 *)
-  List.iter (fun s -> Fifo.put ultrapeers_queue s) !!ultrapeers;
+  List.iter (fun (ip,port) -> 
+      ignore (new_host ip port true 0)) !!ultrapeers;
   
   add_session_timer enabler 1.0 (fun timer ->
       GnutellaServers.connect_servers ());
@@ -79,13 +90,17 @@ let enable () =
       Gnutella.recover_files ());
 
   GnutellaClients.listen ();
-  if !!enable_gnutella2 then Gnutella2.enable ();
+  let sock = (UdpSocket.create Unix.inet_addr_any
+        !!client_port (GnutellaProtocol.udp_handler GnutellaServers.udp_handler)) in
+  udp_sock := Some sock;
+  
+  UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
   ()
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella);
-(*
-  network.op_network_save_simple_options <- GnutellaComplexOptions.save_config;
+  network.op_network_save_complex_options <- GnutellaComplexOptions.save_config;
+  (*
   network.op_network_load_simple_options <- 
     (fun _ -> 
       try

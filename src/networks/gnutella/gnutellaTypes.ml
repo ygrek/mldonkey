@@ -22,13 +22,28 @@ open Md4
 
 open CommonTypes
 open CommonSwarming
+
+
+type query_key =
+  NoUdpSupport
+| GuessSupport
+| UdpSupport of Md4.t
+| UdpQueryKey of int32
   
-type server = {
+type host = {
+    mutable host_server : server option;
+    host_ip : Ip.t;
+    host_port : int;
+    mutable host_age : int;
+(* 0 -> gnutella1 or gnutella2, 1 -> gnutella1, 2 -> gnutella2 *)
+    mutable host_kind : int;
+    mutable host_queues : (host * int) Fifo.t list;
+  }
+  
+and server = {
     server_server : server CommonServer.server_impl;
-    server_ip : Ip.t;
-    server_port : int;
     mutable server_agent : string;
-    mutable server_sock : TcpBufferedSocket.t option;
+    mutable server_sock : tcp_connection;
     mutable server_nfiles : int;
     mutable server_nkb : int;
 
@@ -36,8 +51,12 @@ type server = {
     mutable server_ping_last : Md4.t;
     mutable server_nfiles_last : int;
     mutable server_nkb_last : int;
+    mutable server_vendor : string;
+    mutable server_connected : int32;
     
     mutable server_gnutella2 : bool;
+    mutable server_host : host;
+    mutable server_query_key : query_key;
   }
   
 type local_search = {
@@ -64,7 +83,7 @@ and client = {
     client_client : client CommonClient.client_impl;
     mutable client_downloads : download list;
     mutable client_connection_control : connection_control;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_sock : tcp_connection;
     mutable client_user : user;
     mutable client_all_files : file list option;
     mutable client_requests : download list;
@@ -106,7 +125,7 @@ and download = {
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
     mutable download_blocks : Int64Swarmer.block list;
-    mutable download_ranges : Int64Swarmer.range list;
+    mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
   }
 

@@ -178,12 +178,13 @@ let current_files = ref ([] : GnutellaTypes.file list)
 let listen_sock = ref (None : TcpServerSocket.t option)
   
 let connected_servers = ref ([] : server list)
-let servers_by_key = Hashtbl.create 103
+let hosts_by_key = Hashtbl.create 103
 
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
-let (ultrapeers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
-let (ultrapeers2_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
-let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
+let (peers_waiting_queue : (host * int) Fifo.t) = Fifo.create ()
+let (ultrapeers_waiting_queue : (host * int) Fifo.t) = Fifo.create ()
+let (ultrapeers_old_queue : (host * int) Fifo.t) = Fifo.create ()
+let (ultrapeers_recent_queue : (host * int) Fifo.t) = Fifo.create ()
 let nservers = ref 0
 let redirector_connected = ref false
 
@@ -197,17 +198,60 @@ let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
+
+let host_queue_add q h time =
+  if not (List.memq q h.host_queues) then begin
+      Fifo.put q (h, time);
+      h.host_queues <- q :: h.host_queues
+    end
+
+let queue_take q =
+  let (h,time) = Fifo.take q in
+  if List.memq q h.host_queues then begin
+      h.host_queues <- List2.removeq q h.host_queues 
+    end
+    
   
-let new_server ip port =
+let new_host ip port ultrapeer kind = 
   let key = (ip,port) in
   try
-    Hashtbl.find servers_by_key key
+    let h = Hashtbl.find hosts_by_key key in
+    h.host_age <- last_time ();
+    h
   with _ ->
+      let host = {
+          host_server = None;
+          host_ip = ip;
+          host_port = port;
+          host_age = last_time ();
+          host_kind = kind;
+          host_queues = [];
+        } in
+      Hashtbl.add hosts_by_key key host;
+      if ultrapeer then begin
+          host_queue_add ultrapeers_waiting_queue host 0;
+(*
+      while Fifo.length ultrapeers_waiting_queue > !!max_known_ultrapeers do
+        ignore (queue_take ultrapeers_waiting_queue)
+      done;
+*)
+        end else begin
+          host_queue_add peers_waiting_queue host 0;
+          while Fifo.length peers_waiting_queue > !!max_known_peers do
+            ignore (queue_take peers_waiting_queue)
+          done;        
+        end;
+      host
+      
+let new_server ip port =
+  let h = new_host ip port true 0 in
+  match h.host_server with
+    Some s -> s
+  | None ->
       let rec s = {
           server_server = server_impl;
-          server_ip = ip;
-          server_port = port;
-          server_sock = None;
+          server_host = h;
+          server_sock = NoConnection;
           server_agent = "<unknown>";
           server_nfiles = 0;
           server_nkb = 0;
@@ -216,8 +260,11 @@ let new_server ip port =
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;
           server_nkb_last = 0;
+          server_vendor = "";
           
+          server_connected = Int32.zero;
           server_gnutella2 = false;
+          server_query_key = NoUdpSupport;
         } and
         server_impl = {
           dummy_server_impl with
@@ -225,9 +272,9 @@ let new_server ip port =
           impl_server_ops = server_ops;
         } in
       server_add server_impl;
-      Hashtbl.add servers_by_key key s;
+      h.host_server <- Some s;
       s
-
+      
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -422,7 +469,7 @@ let new_client kind =
       let user = new_user kind in
       let rec c = {
           client_client = impl;
-          client_sock = None;
+          client_sock = NoConnection;
 (*          client_name = name; 
           client_kind = None; *)
           client_requests = [];
@@ -510,7 +557,8 @@ let set_server_state s state =
   
 let server_remove s =
   connected_servers := List2.removeq s !connected_servers;    
-  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
+(*  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)*)
+  ()
 
 let client_type c = client_type (as_client c.client_client)
 
@@ -529,3 +577,13 @@ let remove_file file =
         Hashtbl.remove files_by_uid uid
     ) file.file_uids;
   current_files := List2.removeq file !current_files  
+
+let udp_sock = ref (None : UdpSocket.t option)
+
+let verbose_udp = ref true
+
+let client_ip sock =
+  CommonOptions.client_ip
+  (match sock with Connection sock -> Some sock | _ -> None)
+  
+  

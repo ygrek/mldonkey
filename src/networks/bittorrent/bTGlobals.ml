@@ -176,7 +176,7 @@ let new_client file peer_id kind =
   with _ ->
       let rec c = {
           client_client = impl;
-          client_sock = None;
+          client_sock = NoConnection;
           client_upload_requests = [];
           client_connection_control = new_connection_control (());
           client_file = file;

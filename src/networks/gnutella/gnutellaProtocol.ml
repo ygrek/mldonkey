@@ -335,3 +335,18 @@ let update_shared_words () =
       lprintf "%s " s
   ) !all_shared_words;
   lprint_newline ()
+
+  
+let udp_handler f sock event =
+  match event with
+    UdpSocket.READ_DONE ->
+      UdpSocket.read_packets sock (fun p -> 
+          try
+            let pbuf = p.UdpSocket.content in
+            let len = String.length pbuf in
+            f p
+          with e ->
+              lprintf "Error %s in udp_handler"
+                (Printexc2.to_string e); lprint_newline () 
+      ) ;
+  | _ -> ()

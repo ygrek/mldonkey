@@ -251,14 +251,16 @@ class upstats_box () =
         ~icon: M.o_xpm_verify_chunks
         ~callback: (fun _ -> 
           let module C = Configwin in
+	  let prio = ref 0 in
           let dir = ref "" in
           let params = [
-              C.filename ~f: (fun d -> dir := d) "Add Shared Directory:" ""] in
+	      C.string ~f: (fun p -> prio := int_of_string(p)) "Prio:" "0";
+              C.filename ~f: (fun d -> dir := d) "Directory:" ""] in
           match C.simple_edit "Add New Directory" ~with_apply: false
             params with
             C.Return_apply -> 
               if !dir <> "" && !dir <> "/" then
-                Gui_com.send (Command (Printf.sprintf "share '%s'" !dir))
+                Gui_com.send (Command (Printf.sprintf "share %d '%s'" !prio !dir))
           | C.Return_ok -> ()
           | C.Return_cancel -> ()
       )

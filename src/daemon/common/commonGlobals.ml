@@ -210,7 +210,7 @@ let dialog_history = ref ([] : (int * string * string) list )
   
   
 let want_and_not andnot f none value =
-  lprintf "want_and_not [%s]\n" value;
+(*   lprintf "want_and_not [%s]\n" value; *)
   let ws = String2.split_simplify value ' ' in
   if ws = [] then raise Not_found;
   let wanted = ref "" in
@@ -230,7 +230,7 @@ let want_and_not andnot f none value =
     andnot wanted  (f !not_wanted)
 
 let want_comb_not andnot comb f none value =
-  lprintf "want_comb_not [%s]\n" value;
+(*  lprintf "want_comb_not [%s]\n" value; *)
   let ws = String2.split_simplify value ' ' in
   let wanted = ref [] in
   let not_wanted = ref [] in
@@ -679,3 +679,18 @@ let partial_chunk c =
     '0' | '1' -> true
   | _ -> false
     
+let waiting_connections = Fifo.create ()
+  
+let schedule_connections () =
+  let max_wanted = mini 
+      (!!max_connections_per_second + nb_sockets ()) MlUnix.max_sockets in
+  try
+    while nb_sockets () < max_wanted do
+      let f = Fifo.take waiting_connections in
+      try f () with _ -> ()
+    done
+  with _ -> ()
+      
+let add_pending_connection f =
+  Fifo.put waiting_connections f
+  

@@ -154,16 +154,21 @@ let parse_hostfile file =
   List.iter (fun line ->
       try
         let ip, port = String2.cut_at line ':' in
-        Fifo.put ultrapeers_queue
-          (Ip.of_string ip, int_of_string port) 
+        let h = new_host (Ip.of_string ip) (int_of_string port) true 1 in
+        ()
       with _ -> ()
   ) lines
+
+let next_redirector_access = ref 0
   
 let connect_hostfile _ =
   match !redirectors_hostfiles with
     [] ->
-      connect_urlfile ();
-      redirectors_hostfiles := !!gnutella1_hostfiles
+      if !next_redirector_access < last_time () then begin
+          next_redirector_access := last_time () + 60;
+          connect_urlfile ();
+          redirectors_hostfiles := !!gnutella1_hostfiles
+        end;
   | url :: tail ->
       redirectors_hostfiles := tail;
       let module H = Http_client in

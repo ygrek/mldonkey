@@ -153,12 +153,11 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   Options.save_with_help downloads_ini;
+  CommonComplexOptions.save ();
   networks_iter (fun r -> 
       match r.network_config_file with
         None -> ()
       | Some opfile -> Options.save_with_help opfile);
-  CommonComplexOptions.save ();
-
   ()
     
 let age_to_day date =

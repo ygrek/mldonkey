@@ -62,14 +62,14 @@ module Connect = struct
       lprintf "tags: ";
       print_tags t.tags
     
-    let fprint oc t = 
-      Printf.fprintf oc "CONNECT:\n";
-      Printf.fprintf oc "%s\n" (Md4.to_string t.md4); 
-      Printf.fprintf oc "%s\n" (Ip.to_string t.ip);
-      Printf.fprintf oc "%d\n" t.port;
-      Printf.fprintf oc "TAGS:\n";
-      fprint_tags oc t.tags;
-       Printf.fprintf oc "\n"
+    let bprint oc t = 
+      Printf.bprintf oc "CONNECT:\n";
+      Printf.bprintf oc "%s\n" (Md4.to_string t.md4); 
+      Printf.bprintf oc "%s\n" (Ip.to_string t.ip);
+      Printf.bprintf oc "%d\n" t.port;
+      Printf.bprintf oc "TAGS:\n";
+      bprint_tags oc t.tags;
+       Printf.bprintf oc "\n"
 
     let write buf t =
       buf_md4 buf t.md4;
@@ -109,10 +109,10 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
           lprint_newline ();
       ) t
 
-     let fprint oc t =
-      Printf.fprintf oc "CHANNELS:\n";
+     let bprint oc t =
+      Printf.bprintf oc "CHANNELS:\n";
       List.iter (fun c ->
-          Printf.fprintf oc "  %s: %d" c.name c.number;
+          Printf.bprintf oc "  %s: %d" c.name c.number;
           lprint_newline ();
       ) t
 
@@ -134,9 +134,9 @@ module SetID = struct
       lprintf "SET_ID:\n";
       lprintf "id: %s\n" (Ip.to_string t)
 
-    let fprint oc t = 
-      Printf.fprintf oc "SET_ID:\n";
-      Printf.fprintf oc "id: %s\n" (Ip.to_string t)
+    let bprint oc t = 
+      Printf.bprintf oc "SET_ID:\n";
+      Printf.bprintf oc "id: %s\n" (Ip.to_string t)
     
     let write buf t =
       buf_ip buf t
@@ -153,8 +153,8 @@ module AckID = struct
     let print t = 
       lprintf "ACK_ID:\n"
 
-    let fprint oc t = 
-      Printf.fprintf oc "ACK_ID\n"
+    let bprint oc t = 
+      Printf.bprintf oc "ACK_ID\n"
     
     let write (buf: Buffer.t) (t: t) = unit
 
@@ -172,9 +172,9 @@ module Message = struct
       lprintf "MESSAGE:\n";
       lprintf "message = \"%s\"" (String.escaped t)
     
-    let fprint oc t = 
-      Printf.fprintf oc "MESSAGE:\n";
-      Printf.fprintf oc "%s\n" (String.escaped t)
+    let bprint oc t = 
+      Printf.bprintf oc "MESSAGE:\n";
+      Printf.bprintf oc "%s\n" (String.escaped t)
 
     let write buf t =
       buf_string buf t
@@ -224,16 +224,16 @@ module Share = struct
           print_tags t.f_tags;
           lprint_newline ();) t
     
-    let fprint oc t = 
-      Printf.fprintf oc "SHARED:\n";
+    let bprint oc t = 
+      Printf.bprintf oc "SHARED:\n";
       List.iter (fun t ->
-          Printf.fprintf oc "FILE:\n";
-          Printf.fprintf oc " %s\n" (Md4.to_string t.f_md4);
-          Printf.fprintf oc "%s\n" (Ip.to_string t.f_ip);
-          Printf.fprintf oc "%d\n" t.f_port;
-          Printf.fprintf oc "TAGS:\n";
-          fprint_tags oc t.f_tags;
-          Printf.fprintf oc "\n"
+          Printf.bprintf oc "FILE:\n";
+          Printf.bprintf oc " %s\n" (Md4.to_string t.f_md4);
+          Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
+          Printf.bprintf oc "%d\n" t.f_port;
+          Printf.bprintf oc "TAGS:\n";
+          bprint_tags oc t.f_tags;
+          Printf.bprintf oc "\n"
       ) t
     
     let rec write_files buf files =
@@ -278,9 +278,9 @@ module Info = struct
       lprintf "INFO:\n";
       lprintf "users: %d files: %d\n"  users files
 
-   let fprint oc (users, files) = 
-      Printf.fprintf oc "INFO:\n";
-      Printf.fprintf oc "%d\n %d\n"  users files
+   let bprint oc (users, files) = 
+      Printf.bprintf oc "INFO:\n";
+      Printf.bprintf oc "%d\n %d\n"  users files
     
     let write buf (users, files) =
       buf_int buf users;
@@ -313,10 +313,10 @@ module ServerList = struct
           lprint_newline ();
       ) t
 
-    let fprint oc t = 
-      Printf.fprintf oc "SERVER LIST\n";
+    let bprint oc t = 
+      Printf.bprintf oc "SERVER LIST\n";
       List.iter (fun l -> 
-          Printf.fprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
+          Printf.bprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
       ) t
       
     let write buf t = 
@@ -364,14 +364,14 @@ module ServerInfo = struct
       lprintf "tags: ";
       print_tags t.tags
 
-    let fprint oc t = 
-      Printf.fprintf oc "SERVER INFO:\n";
-      Printf.fprintf oc "%s\n" (Md4.to_string t.md4);
-      Printf.fprintf oc "%s\n" (Ip.to_string t.ip);
-      Printf.fprintf oc "%d\n" t.port;
-      Printf.fprintf oc "TAGS:\n";
-      fprint_tags oc t.tags;
-      Printf.fprintf oc "\n"
+    let bprint oc t = 
+      Printf.bprintf oc "SERVER INFO:\n";
+      Printf.bprintf oc "%s\n" (Md4.to_string t.md4);
+      Printf.bprintf oc "%s\n" (Ip.to_string t.ip);
+      Printf.bprintf oc "%d\n" t.port;
+      Printf.bprintf oc "TAGS:\n";
+      bprint_tags oc t.tags;
+      Printf.bprintf oc "\n"
     
     let write buf t =
       buf_md4 buf t.md4;
@@ -430,16 +430,16 @@ module QueryReply  = struct
           print_tags t.f_tags;
           lprint_newline ();) t
 
-    let fprint oc t = 
-      Printf.fprintf oc "FOUND:\n";
+    let bprint oc t = 
+      Printf.bprintf oc "FOUND:\n";
       List.iter (fun t ->
-          Printf.fprintf oc "FILE:\n";
-          Printf.fprintf oc "%s\n" (Md4.to_string t.f_md4);
-          Printf.fprintf oc "%s\n" (Ip.to_string t.f_ip);
-          Printf.fprintf oc "%d\n" t.f_port;
-          Printf.fprintf oc "TAGS:\n";
-          fprint_tags oc t.f_tags;
-             Printf.fprintf oc "\n"
+          Printf.bprintf oc "FILE:\n";
+          Printf.bprintf oc "%s\n" (Md4.to_string t.f_md4);
+          Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
+          Printf.bprintf oc "%d\n" t.f_port;
+          Printf.bprintf oc "TAGS:\n";
+          bprint_tags oc t.f_tags;
+             Printf.bprintf oc "\n"
           ) t
     
     let rec write_files buf files =
@@ -592,38 +592,38 @@ module Query  = struct (* request 22 *)
       print_query t
     
 
-     let rec fprint_query oc t =
+     let rec bprint_query oc t =
       match t with
         QOr (q1, q2) -> 
           print_query q1; 
-          Printf.fprintf oc " OR ";
+          Printf.bprintf oc " OR ";
           print_query q2
       | QAnd (q1, q2) -> 
           print_query q1; 
-          Printf.fprintf oc " AND ";
+          Printf.bprintf oc " AND ";
           print_query q2
       | QAndNot (q1, q2) -> 
           print_query q1; 
-          Printf.fprintf oc " NOT ";
+          Printf.bprintf oc " NOT ";
           print_query q2
       
       | QHasWord s ->
-          Printf.fprintf oc "Contains[%s]" s
+          Printf.bprintf oc "Contains[%s]" s
       | QHasField (name, field) ->
-          Printf.fprintf oc "Field[%s] = [%s]" name field
+          Printf.bprintf oc "Field[%s] = [%s]" name field
       | QHasMinVal (name, field) ->
-          Printf.fprintf oc "Field[%s] > [%s]" name (Int64.to_string field)
+          Printf.bprintf oc "Field[%s] > [%s]" name (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          Printf.fprintf oc "Field[%s] < [%s]" name (Int64.to_string field)
+          Printf.bprintf oc "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
 	  lprintf "print_query: QNone in query\n";
 	  ()
 
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY:\n";
-      fprint_query oc t;
-      Printf.fprintf oc "\n"
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY:\n";
+      bprint_query oc t;
+      Printf.bprintf oc "\n"
 
     let rec write buf t = 
       match t with
@@ -708,8 +708,8 @@ module QueryUsers = struct (* request 26 *)
       lprintf "QUERY USERS [%s]" t;
       lprint_newline () 
 
-     let fprint oc t =
-      Printf.fprintf oc "QUERY USERS [%s]\n" t
+     let bprint oc t =
+      Printf.bprintf oc "QUERY USERS [%s]\n" t
       
     let write buf t =
       if t = "" then
@@ -764,15 +764,15 @@ module QueryUsersReply = struct (* request 67 *)
           lprintf "tags: ";
           print_tags t.tags; lprint_newline ();) t
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY USERS REPLY:\n";
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY USERS REPLY:\n";
       List.iter (fun t ->
-          Printf.fprintf oc "%s\n" (Md4.to_string t.md4); 
-          Printf.fprintf oc "%s\n" (Ip.to_string t.ip);
-          Printf.fprintf oc "%d\n" t.port;
-          Printf.fprintf oc "TAGS:\n";
-          fprint_tags oc t.tags;
-	  Printf.fprintf oc "\n"
+          Printf.bprintf oc "%s\n" (Md4.to_string t.md4); 
+          Printf.bprintf oc "%s\n" (Ip.to_string t.ip);
+          Printf.bprintf oc "%d\n" t.port;
+          Printf.bprintf oc "TAGS:\n";
+          bprint_tags oc t.tags;
+	  Printf.bprintf oc "\n"
           ) t
     
     let write buf t =
@@ -793,8 +793,8 @@ module QueryLocation  = struct
     let print t = 
       lprintf "QUERY LOCATION OF %s" (Md4.to_string t)
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY LOCATION OF %s\n" (Md4.to_string t)
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY LOCATION OF %s\n" (Md4.to_string t)
       
     let write buf t = 
       buf_md4 buf t
@@ -831,10 +831,10 @@ module QueryLocationReply  = struct
           lprint_newline ();
       ) t.locs
 
-     let fprint oc t = 
-      Printf.fprintf oc "LOCATION OF %s\n" (Md4.to_string t.md4);
+     let bprint oc t = 
+      Printf.bprintf oc "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
-          Printf.fprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
+          Printf.bprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
       ) t.locs
       
     let write buf t = 
@@ -856,8 +856,8 @@ module QueryID  = struct
     let print t = 
       lprintf "QUERY IP OF %s" (Ip.to_string t)
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY IP OF %s\n" (Ip.to_string t)
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY IP OF %s\n" (Ip.to_string t)
       
     let write buf t = 
       buf_ip buf t
@@ -872,8 +872,8 @@ module QueryIDFailed  = struct
     let print t = 
       lprintf "QUERY IP OF %s FAILED" (Ip.to_string t)
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY IP OF %s FAILED\n" (Ip.to_string t)
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY IP OF %s FAILED\n" (Ip.to_string t)
       
     let write buf t = 
       buf_ip buf t
@@ -894,8 +894,8 @@ module QueryIDReply  = struct
       lprintf "IDENTIFICATION %s : %d" (Ip.to_string t.ip) t.port;
       lprint_newline ()
 
-    let fprint oc t = 
-      Printf.fprintf oc "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
+    let bprint oc t = 
+      Printf.bprintf oc "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
     
       
     let write buf t = 
@@ -919,8 +919,8 @@ module QueryServers  = struct
       lprintf "QUERY SERVERS %s : %d" (Ip.to_string t.ip) t.port;
       lprint_newline ()
 
-    let fprint oc t = 
-      Printf.fprintf oc "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
+    let bprint oc t = 
+      Printf.bprintf oc "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
     
       
     let write buf t = 
@@ -969,12 +969,12 @@ module QueryServersReply  = struct
           lprint_newline ();
       ) t.servers
 
-     let fprint oc t = 
-      Printf.fprintf oc "SERVERS QUERY REPLY:\n"; 
-      Printf.fprintf oc  "%s:%d\n" (
+     let bprint oc t = 
+      Printf.bprintf oc "SERVERS QUERY REPLY:\n"; 
+      Printf.bprintf oc  "%s:%d\n" (
         Ip.to_string t.server_ip) t.server_port;
       List.iter (fun s -> 
-          Printf.fprintf oc  "%s:%d\n" (Ip.to_string s.ip) s.port; 
+          Printf.bprintf oc  "%s:%d\n" (Ip.to_string s.ip) s.port; 
       ) t.servers
       
     let write buf t = 
@@ -1170,44 +1170,44 @@ let print t =
   end;
   lprint_newline ()
 
-let fprint oc t =
+let bprint oc t =
   begin
     match t with
-      ConnectReq t -> Connect.fprint oc t
-    | SetIDReq t -> SetID.fprint oc t
-    | AckIDReq t -> AckID.fprint oc t
-    | MessageReq t -> Message.fprint oc t
-    | ShareReq t -> Share.fprint oc t
-    | InfoReq t -> Info.fprint oc t
-    | ServerListReq t -> ServerList.fprint oc t
-    | ServerInfoReq t -> ServerInfo.fprint oc t
-    | QueryReq t -> Query.fprint oc t
-    | QueryReplyReq t -> QueryReply.fprint oc t
-    | QueryLocationReq t -> QueryLocation.fprint oc t
-    | QueryLocationReplyReq t -> QueryLocationReply.fprint oc t
-    | QueryIDReq t -> QueryID.fprint oc t
-    | QueryIDFailedReq t -> QueryIDFailed.fprint oc t
-    | QueryIDReplyReq t -> QueryIDReply.fprint oc t
-    | QueryUsersReq t -> QueryUsers.fprint oc t
-    | QueryUsersReplyReq t -> QueryUsersReply.fprint oc t
-    | ChatRoomsReq t -> ChatRooms.fprint oc t
+      ConnectReq t -> Connect.bprint oc t
+    | SetIDReq t -> SetID.bprint oc t
+    | AckIDReq t -> AckID.bprint oc t
+    | MessageReq t -> Message.bprint oc t
+    | ShareReq t -> Share.bprint oc t
+    | InfoReq t -> Info.bprint oc t
+    | ServerListReq t -> ServerList.bprint oc t
+    | ServerInfoReq t -> ServerInfo.bprint oc t
+    | QueryReq t -> Query.bprint oc t
+    | QueryReplyReq t -> QueryReply.bprint oc t
+    | QueryLocationReq t -> QueryLocation.bprint oc t
+    | QueryLocationReplyReq t -> QueryLocationReply.bprint oc t
+    | QueryIDReq t -> QueryID.bprint oc t
+    | QueryIDFailedReq t -> QueryIDFailed.bprint oc t
+    | QueryIDReplyReq t -> QueryIDReply.bprint oc t
+    | QueryUsersReq t -> QueryUsers.bprint oc t
+    | QueryUsersReplyReq t -> QueryUsersReply.bprint oc t
+    | ChatRoomsReq t -> ChatRooms.bprint oc t
 
     | QueryMoreResultsReq -> 
-        Printf.fprintf oc "QUERY MORE RESULTS\n"
+        Printf.bprintf oc "QUERY MORE RESULTS\n"
     | Mldonkey_MldonkeyUserReplyReq ->
-        Printf.fprintf oc "MLDONKEY USER\n"
+        Printf.bprintf oc "MLDONKEY USER\n"
     | Mldonkey_SubscribeReq (num, lifetime, t) -> 
-        Printf.fprintf oc "MLDONKEY SUBSCRIBE %d FOR %d SECONDS\n" num lifetime;
-        Query.fprint oc t
+        Printf.bprintf oc "MLDONKEY SUBSCRIBE %d FOR %d SECONDS\n" num lifetime;
+        Query.bprint oc t
     | Mldonkey_NotificationReq (num,t) ->
-        Printf.fprintf oc "MLDONKEY NOTIFICATIONS TO %d\n" num; 
-        QueryReply.fprint oc t
+        Printf.bprintf oc "MLDONKEY NOTIFICATIONS TO %d\n" num; 
+        QueryReply.bprint oc t
     | Mldonkey_CloseSubscribeReq num ->
         lprintf "MLDONKEY CLOSE SUBSCRIPTION %d\n" num;
         
     | UnknownReq s -> 
 (* let len = String.length s in*)
-        Printf.fprintf oc "UnknownReq\n"
+        Printf.bprintf oc "UnknownReq\n"
 (* lprintf "ascii: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
@@ -1317,3 +1317,9 @@ mldonkey extensions to the protocol
       buf_int8 buf 3;
       buf_int buf num;
       QueryReply.write_replies buf t
+
+let to_string m =
+  let b = Buffer.create 100 in
+  bprint b m;
+  Buffer.contents b
+  

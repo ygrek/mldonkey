@@ -74,19 +74,28 @@ type query_entry =
   
 | Q_HIDDEN of query_entry list
   
-    
+(*
+We have to add more information on what has happened to the
+connection in the NotConnected state.
+*)
 type host_state =
 | NotConnected of int (* >= 0 Queued *)
 | Connecting
 | Connected_initiating
 | Connected of int    (* >= 0 Queued *)
 | Connected_downloading
+(* | ConnectionWaiting of int  *)
   
 | NewHost
 | RemovedHost
 | BlackListedHost
 
-  
+type tcp_connection =
+| NoConnection        (* No current connection *)
+| ConnectionWaiting   (* Waiting for a connection slot to open locally *)
+| ConnectionAborted   (* Abort any waiting connection slot *)
+| Connection of TcpBufferedSocket.t (* We are connected *)
+
   
 type connection_control = {
     mutable control_last_ok : int;

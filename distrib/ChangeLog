@@ -1,6 +1,19 @@
 ChangeLog	
 =========
 
+2003/04/30: Simon (v release-2-4-rc8)
+  - Applied patch #1432
+  - Gnutella:
+     * COBS implemented and incoming GGEP
+     * Some Vendor-Messages
+     * More headers understood
+  - BitTorrent:
+     * Better control of max_opened_connections
+     * More Aggressive lifetime for connections (10 minutes without downloads)
+ 
+2003/04/26: Simon
+  - Applied patches #1427, #1428
+
 2003/04/24: Simon
   - Applied patch #1424
   - Changes in 64bits system calls
@@ -31,7 +44,7 @@ ChangeLog
   - Gnutella:
      * Don't use 'Accept:' header for gnutella1 hosts, since most of them
          refuse the connection
-
+ 
 2003/04/20: Simon
   - Complete reorganization of source tree
   - GUI: exit uses CTRL-q instead of CTRL-e

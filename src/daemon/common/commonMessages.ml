@@ -705,24 +705,34 @@ function close_page() {
 top.fstatus.document.writeln(\"</tr></table></body></html>\");
 top.fstatus.document.close(); }
 function draw_td (tooltip,link,name,frame_name) {
-if (frame_name==\"\") { frame_name='fstatus'};
-top.fstatus.document.writeln(\"<td width=80 class='bu bbig' title='\" + tooltip + \"' onMouseOver=mOvr(this); onMouseOut=mOut(this); onClick=parent.\" + frame_name + \".location.href='\" + link + \"';>\" + name + \"</a></td>\"); }
+if (frame_name==\"\") { frame_name='fstatus'} else frame_name='output';
+top.fstatus.document.writeln(\"<td width=80 class='bu bbig' title='\" + tooltip + \"' onMouseOver=mOvr(this); onMouseOut=mOut(this); onClick=parent.\" + frame_name + \".location.href='\" + \"/submit?q=\" + link + \"';>\" + name + \"</a></td>\"); }
 function draw_scan_opts() { draw_middle_header();
-draw_td('recover temp','/submit?q=recover_temp','recover temp','');close_page(); }
+draw_td('recover temp','recover_temp','recover temp','');close_page(); }
 function draw_server_opts() {
 draw_middle_header();
-draw_td('view all servers','/submit?q=vma','view all','output');
-draw_td('connect more','/submit?q=c','connect more','');
-draw_td('remove old','/submit?q=remove_old_servers', 'remove old','');
+draw_td('view all servers','vma','view all','o');
+draw_td('connect more','c','connect more','');
+draw_td('remove old','remove_old_servers', 'remove old','');
 close_page(); }
 function draw_xs_search() { draw_middle_header ();
-draw_td('extend search','/submit?q=xs','extend search','');close_page(); }
+draw_td('extend search','xs','extend search','');close_page(); }
 function draw_stats() { draw_middle_header();
-draw_td('overnet statistics','/submit?q=ovstats','overnet','output');
-draw_td('sources statistics','/submit?q=sources','sources','output');
-draw_td('memory statistics','/submit?q=mem_stats','memory','output');
-draw_td('old style statistics','/submit?q=client_stats','old style','output');
+draw_td('overnet statistics','ovstats','overnet','o');
+draw_td('sources statistics','sources','sources','o');
+draw_td('memory statistics','mem_stats','memory','o');
+draw_td('old style statistics','client_stats','old style','o');
 close_page(); }
+function draw_options() {draw_middle_header ();
+draw_td('client','voo+1','client','o');
+draw_td('ports','voo+2','ports','o');
+draw_td('display','voo+3','display','o');
+draw_td('delays','voo+4','delays','o');
+draw_td('files','voo+5','files','o');
+draw_td('mail','voo+6','mail','o');
+draw_td('net','voo+7','net','o');
+draw_td('all','voo','all','o');
+ close_page(); }
 //-->
 "
 
@@ -779,7 +789,7 @@ title=\"Options\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','voo+1')\">Options
+onClick=\"draw_options();mSub('$O','voo+1')\">Options
 </td>
 
 <td 
@@ -818,14 +828,6 @@ onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
 </td>
-
-<!--<td 
-title=\"Load OverNet peers\"
-class=\"bu bsmall bb2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','ovweb')\">ONet boot
-</td>-->
 <td 
 title=\"Kill/Close the MLdonkey core\"
 class=\"bu bbig bbig3 bb2\"
@@ -833,7 +835,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
 onClick=\"mSub('$O','kill')\">Kill core
 </td>
-<tr> <!-- row -->
+<tr>
 <td 
 title=\"View current downloads\"
 class=\"bu bbig bb4\"
@@ -867,7 +869,7 @@ title=\"View searches\"
 class=\"bu bbig bb4\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"draw_xs_search();mSub('$O','vs')\">View searches <!-- added -->
+onClick=\"draw_xs_search();mSub('$O','vs')\">View searches
 </td>
 <td 
 title=\"Rescan for shared files\"
