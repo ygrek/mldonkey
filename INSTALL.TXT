@@ -76,7 +76,23 @@ mldonkey, mldonkey_gui, mldonkey_gui2 and mlchat to distrib/, then move this
 directory where you want to put your downloads, and then remove mldonkey 
 sources.
 
-You must NOT run mldonkey as root.
+You must NOT run mldonkey as root (or you should use the run_as_user
+option to change the user after the port has been bound).
+
+NOTES:
+------
+2002/12/18: To compile on MinGW
+ * configure: -enable-batch will not work, you must download and install ocaml
+    yourself
+ * the generated .depend file is broken: after 'make depend', edit it
+     and replace \ in filenames by /
+ * if ocamlopt/gcc fails to generate mldonkey.exe, add '-verbose -S'
+     to the LIBS_opt in the Makefile. Use 'make &> log' to keep the
+     commands, edit the 'log' file and remove all the commands except
+     the 2 last 'as' and 'gcc' lines. Then use 'sh ./log' to rerun
+     these commands, that should work this way :)
+
+
 
 
 
