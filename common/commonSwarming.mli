@@ -75,6 +75,9 @@ module type Swarmer = sig
     val present_chunks : t -> (pos * pos) list
     val partition_size : partition -> int
 
+    val debug_print : t -> string
+    val compute_bitmap : partition -> unit
+      
   end
   
 module Make(I: Integer) : Swarmer with type pos = I.t

@@ -23,10 +23,10 @@ open Options
 
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
-let limewire_ini = create_options_file (
-    Filename.concat file_basedir "limewire.ini")
+let gnutella_ini = create_options_file (
+    Filename.concat file_basedir "gnutella.ini")
 
-let max_ultrapeers = define_option limewire_ini ["max_ultrapeers"]
+let max_ultrapeers = define_option gnutella_ini ["max_ultrapeers"]
     "Maximal number of ultrapeers connected"
   int_option 5
 
@@ -35,19 +35,19 @@ let _ =
     (fun _ ->
       if !!max_ultrapeers > 30 then max_ultrapeers =:= 30)
   
-let client_port = define_option limewire_ini ["client_port"]
+let client_port = define_option gnutella_ini ["client_port"]
     "The port to bind the client to"
     int_option 6346
   
-let enable_gnutella1 = define_option limewire_ini ["enable_gnutella1"]
+let enable_gnutella1 = define_option gnutella_ini ["enable_gnutella1"]
     "Do you want to support Gnutella1 protocol"
     bool_option true
   
-let enable_gnutella2 = define_option limewire_ini ["enable_gnutella2"]
+let enable_gnutella2 = define_option gnutella_ini ["enable_gnutella2"]
     "Do you want to support Gnutella2 protocol (not yet supported)"
     bool_option false
 
-let redirectors = define_option limewire_ini ["redirectors"]
+let redirectors = define_option gnutella_ini ["redirectors"]
     "The hosts to connect to to get a list of peers"
     (list_option string_option)
   [
@@ -59,49 +59,43 @@ let redirectors = define_option limewire_ini ["redirectors"]
     "gnutella.hostscache.com";
     "connect2.gnutellanet.com";
     "connect3.gnutellanet.com"; 
-    "router4.limewire.com";
+    "router4.gnutella.com";
   ]
 (* (Ip.of_string "64.61.25.171")   *)
 
-let gnutella2_redirectors = define_option limewire_ini ["gnutella2_redirectors"]
+let gnutella2_redirectors = define_option gnutella_ini ["gnutella2_redirectors"]
     "The URLs where hosts on gnutella2 can be downloaded"
     (list_option string_option)
   [
    "http://cache.shareaza.com/cache.aspx?get=1&hostfile=1&net=gnutella2" 
   ]
 
-let gnutella2_cache = define_option limewire_ini ["gnutella2_cache"]
+let gnutella2_cache = define_option gnutella_ini ["gnutella2_cache"]
     "The known gnutella2 hosts"
     (list_option (tuple2_option (Ip.option, int_option)))
   []
   
   
-let commit_in_subdir = define_option limewire_ini ["commit_in_subdir"]
+let commit_in_subdir = define_option gnutella_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
-    string_option "LimeWire"
-  
-  (*
-let user_agent = define_option limewire_ini ["user_agent"]
-  "The User-Agent mldonkey identifies itself as"
-    string_option "MLDonkey 2.02-9"
-    *)
+    string_option "Gnutella"
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
-let max_known_ultrapeers = define_option limewire_ini ["max_known_ultrapeers"]
+let max_known_ultrapeers = define_option gnutella_ini ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 100
 
-let max_known_peers = define_option limewire_ini ["max_known_peers"]
+let max_known_peers = define_option gnutella_ini ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
 
     
 let server_connection_timeout = 
-  define_option limewire_ini ["server_connection_timeout"] 
+  define_option gnutella_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
 
-let client_uid = define_option limewire_ini ["client_uid"]
+let client_uid = define_option gnutella_ini ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
   let _	 =
@@ -113,16 +107,16 @@ let client_uid = define_option limewire_ini ["client_uid"]
   
   (*
 let verbose_clients = 
-  define_option limewire_ini ["verbose_clients"] 
+  define_option gnutella_ini ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
     int_option 0
     
 let verbose_servers = 
-  define_option limewire_ini ["verbose_servers"] 
+  define_option gnutella_ini ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-let network_options_prefix = define_option limewire_ini
+let network_options_prefix = define_option gnutella_ini
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
     string_option "LW-"
@@ -130,10 +124,10 @@ let network_options_prefix = define_option limewire_ini
 let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
   
-let gui_limewire_options_panel = 
-  define_option limewire_ini ["gui_limewire_options_panel"]
+let gui_gnutella_options_panel = 
+  define_option gnutella_ini ["gui_gnutella_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
-  limewire section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+  gnutella section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
     (list_option (tuple3_option (string_option, string_option, string_option)))
   [
     "Port", shortname client_port, "T";

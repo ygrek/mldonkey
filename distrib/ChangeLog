@@ -1,6 +1,35 @@
 ChangeLog	
 =========
 
+2003/04/19: Simon (v release-2-4-rc4)
+  - Applied patch #1393, #1395
+  - Gnutella2 (not yet working):
+     * Encoder/Decoder tested successfully on real shareaza recorded stream
+     * Some handlers
+
+2003/04/18: Simon
+  - Applied patches #1389, #1391
+
+2003/04/17: Simon
+  - Changes in Makefile:
+        * Compile only mlnet and mlnet+gui
+        * mldonkey_gui is renamed in mlgui
+        * mldonkey_gui2 is renamed in mlgui2, and not compiled by default
+        * Added target 'install' (use --prefix configure option). 
+             * Create mldonkey, mlslsk,... as links to mlnet
+             * Create mldonkey_gui as a link to mlgui
+  - Fixed generated mlsubmit.reg
+  - Donkey: 
+     * last_high_id is only changed if option use_server_id is set
+
+2003/04/16: Simon
+  - Changed version number to 2.4-rc4
+  - Bittorrent:
+     * More aggressive reask delay of 2 minutes
+     * Improve detection of end of download
+  - Removed Sha1 and Tiger assertions in md4.ml, but set a flag when
+      computation failed.
+
 2003/04/15: Simon (v 2.04rc3)
   - CommonUploads: changed a bad comparison in download_engine
   - Applied patch #1385, #1387

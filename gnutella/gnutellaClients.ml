@@ -418,7 +418,7 @@ let connect_client c =
             if !verbose_msg_clients then begin
                 lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
               end;
-            let sock = connect "limewire download" 
+            let sock = connect "gnutella download" 
                 (Ip.to_inet_addr ip) port
                 (fun sock event ->
                   match event with
@@ -685,7 +685,7 @@ let client_reader2 c sock nread =
 
 let listen () =
   try
-    let sock = TcpServerSocket.create "limewire client server" 
+    let sock = TcpServerSocket.create "gnutella client server" 
         Unix.inet_addr_any
         !!client_port
         (fun sock event ->
@@ -698,7 +698,7 @@ let listen () =
               
               
               let sock = TcpBufferedSocket.create
-                  "limewire client connection" s 
+                  "gnutella client connection" s 
                   (fun sock event -> 
                     match event with
                       BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock "timeout"
@@ -722,12 +722,12 @@ let listen () =
     listen_sock := Some sock;
     ()
   with e ->
-      lprintf "Exception %s while init limewire server\n" 
+      lprintf "Exception %s while init gnutella server\n" 
         (Printexc2.to_string e)
       
 let push_connection guid index ip port =
   let sh = CommonUploads.find_by_num index in
-  let sock = connect "limewire download" 
+  let sock = connect "gnutella download" 
       (Ip.to_inet_addr ip) port
       (fun sock event -> 
         match event with

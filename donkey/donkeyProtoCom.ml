@@ -320,7 +320,8 @@ let tag_file file =
   (int32_tag "size" file.file_file.impl_file_size) ::
   (
     (match file.file_format with
-        Unknown_format ->
+        FormatNotComputed next_time when
+        next_time < last_time () ->
           (try
               if !verbose then begin
                   lprintf "%s: FIND FORMAT %s"
@@ -328,15 +329,19 @@ let tag_file file =
                   (file_disk_name file); 
                   lprint_newline ();
                 end;
-              file.file_format <- 
+              file.file_format <- (
+                match
                 CommonMultimedia.get_info 
-                (file_disk_name file)
+                    (file_disk_name file)
+                with
+                  FormatUnknown -> FormatNotComputed (last_time () + 300)
+                | x -> x)
             with _ -> ())
       | _ -> ()
     );
     
     match file.file_format with
-      Unknown_format -> []
+      FormatNotComputed _ | FormatUnknown -> []
     | AVI _ ->
         [
           { tag_name = "type"; tag_value = String "Video" };

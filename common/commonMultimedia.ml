@@ -277,7 +277,7 @@ let get_info file =
     | "mpeg" :: _ -> FormatType ("mpg", "Video")
     | "mov" :: _ -> FormatType ("mov", "Video")
     | "asf" :: _ -> FormatType ("asf", "Video")
-    | _ -> Unknown_format
+    | _ -> FormatUnknown
   with e -> 
       close_in ic;
       match e with
@@ -285,7 +285,7 @@ let get_info file =
       | e -> 
           lprintf "get_info: Exception in %s" (Printexc2.to_string e);
           lprint_newline ();
-          Unknown_format
+          FormatUnknown
           
           
 module Bchunk =

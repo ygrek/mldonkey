@@ -65,7 +65,7 @@ open CommonNetwork
 
 *)
   
-let network = new_network "LimeWire"  
+let network = new_network "Gnutella"  
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*  network_options_prefix commit_in_subdir *)
@@ -182,6 +182,7 @@ let servers_by_key = Hashtbl.create 103
 
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
 let (ultrapeers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
+let (ultrapeers2_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
 let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
 let nservers = ref 0
 let redirector_connected = ref false
@@ -227,13 +228,6 @@ let new_server ip port =
       Hashtbl.add servers_by_key key s;
       s
 
-let string_of_uid uid = 
-  match uid with
-    Bitprint (s,_,_) -> s
-  | Sha1 (s,_) -> s
-  | Md4 (s,_) -> s
-  | Md5 (s,_) -> s
-      
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -409,6 +403,9 @@ let new_user kind =
           user_kind = kind;
 (*          user_files = []; *)
           user_speed = 0;
+          user_vendor = "";
+          user_gnutella2 = false;
+          user_nick = "";
         }  and user_impl = {
           dummy_user_impl with
             impl_user_ops = user_ops;

@@ -37,8 +37,6 @@ open GnutellaOptions
 open GnutellaProtocol
 open GnutellaComplexOptions
 
-
-
 let g2_parse_redirector_page f =
   let s = File.to_string f in
   let lines = String2.split_simplify s '\n' in
@@ -48,7 +46,7 @@ let g2_parse_redirector_page f =
           begin
             try
               let ip, port = String2.cut_at ip_port ':' in
-              Fifo.put ultrapeers_queue
+              Fifo.put ultrapeers2_queue
                 (Ip.of_string ip, int_of_string port) 
             with _ -> ()
           end

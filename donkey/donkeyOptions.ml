@@ -295,6 +295,9 @@ let ban_queue_jumpers = define_option donkey_ini
     clients that try queue jumping (3 reconnections faster than 9 minutes)"
     bool_option true
   
+let use_server_id = define_option donkey_ini
+    ["use_server_id"] "true if you want your client IP to be set from servers ID"    bool_option false
+  
 let ban_period = define_option donkey_ini
     ["ban_period"] "Set the number of hours you want client to remain banned"
     int_option 1

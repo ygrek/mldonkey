@@ -82,12 +82,14 @@ let new_connection_control () = {
     control_last_ok = 0;
     control_state = 0;
     control_last_try = 0;
+    control_min_reask = !!min_reask_delay;
   }
 
 let new_connection_control_recent_ok () = {
     control_last_ok = last_time () - minutes25;
     control_state = 0;
     control_last_try = 0;
+    control_min_reask = !!min_reask_delay;
   }
   
 let connection_ok cc = 
@@ -101,8 +103,8 @@ let connection_failed cc =
   cc.control_state <- cc.control_state + 1
 
 let connection_next_try cc =
-  cc.control_last_try + mini (!!min_reask_delay * cc.control_state)
-  !!max_reask_delay
+  cc.control_last_try + mini (cc.control_min_reask * cc.control_state)
+  cc.control_min_reask
 
 let connection_can_try cc =
   connection_next_try cc < last_time ()

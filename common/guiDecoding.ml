@@ -200,7 +200,7 @@ let dummy_info =
   
 let get_format s pos =
   match get_int8 s pos with
-  | 0 -> Unknown_format, pos+1
+  | 0 -> FormatUnknown, pos+1
   | 1 ->
       let s1, pos = get_string s (pos+1) in
       let s2, pos = get_string s pos in

@@ -41,11 +41,11 @@ module DG = CommonGlobals
 module DO = CommonOptions
   
 module GnutellaHandler = struct
-    let init s gconn =
+    let init s sock gconn =
       (if s.server_gnutella2 then
           Gnutella2Handler.init 
         else
-          Gnutella1Handler.init) s gconn
+          Gnutella1Handler.init) s sock gconn
   end
   
 let gnutella_proto = "GNUTELLA/"
@@ -101,10 +101,11 @@ let server_parse_header s gconn sock header =
                     let port = int_of_string port in
 (*            lprintf "ADDING UP %s:%d\n" (Ip.to_string ip) port;
 *)
-                    Fifo.put ultrapeers_queue (ip,port ) ;
-                    while Fifo.length 
-                        ultrapeers_queue > !!max_known_ultrapeers do
-                      ignore (Fifo.take ultrapeers_queue)
+                    let queue = if !gnutella2 then ultrapeers2_queue
+                      else ultrapeers_queue in
+                    Fifo.put queue (ip,port);
+                    while Fifo.length queue > !!max_known_ultrapeers do
+                      ignore (Fifo.take queue)
                     done
                   with _ -> ()
               ) (String2.split_simplify value ',')
@@ -217,7 +218,7 @@ let server_parse_header s gconn sock header =
     write_string sock msg;
     
     s.server_gnutella2 <-  !gnutella2;
-    GnutellaHandler.init s gconn;
+    GnutellaHandler.init s sock gconn;
     Gnutella.recover_files_from_server s;
     
 
@@ -242,7 +243,7 @@ let connect_server s =
       try
         let ip = s.server_ip in
         let port = s.server_port in
-        let sock = connect "limewire to server"
+        let sock = connect "gnutella to server"
             (Ip.to_inet_addr ip) port
             (fun sock event -> 
               match event with
@@ -302,22 +303,26 @@ let connect_server s =
             
 let try_connect_ultrapeer () =
 (*  lprintf "try_connect_ultrapeer\n";*)
-  let (ip,port) = try
-      Fifo.take ultrapeers_queue
+  let (ip,port) = 
+    try
+      Fifo.take ultrapeers2_queue
     with _ ->
-        try 
-          Fifo.take peers_queue 
+        try
+          Fifo.take ultrapeers_queue
         with _ ->
-            if not !redirector_connected then begin
-                if !!enable_gnutella2 then Gnutella2Redirector.connect ();  
-                if !!enable_gnutella1 then Gnutella1Redirector.connect ()
-              end;
-            raise Not_found
+            try 
+              Fifo.take peers_queue 
+            with _ ->
+                if not !redirector_connected then begin
+                    if !!enable_gnutella2 then Gnutella2Redirector.connect ();  
+                    if !!enable_gnutella1 then Gnutella1Redirector.connect ()
+                  end;
+                raise Not_found
   in
   let s = new_server ip port in
   connect_server s;
   ()
-
+  
 let connect_servers () =
   (*
   lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; 

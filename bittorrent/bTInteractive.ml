@@ -59,7 +59,9 @@ let _ =
       Hashtbl.iter (fun _ c ->
           BTClients.get_file_from_source c file
       ) file.file_clients
-  )
+  );
+  file_ops.op_file_debug <- (fun file ->
+      Int64Swarmer.debug_print file.file_swarmer)
 
   
 module P = GuiTypes
@@ -87,7 +89,7 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
         P.file_availability = Int64Swarmer.verified_bitmap file.file_partition;
-        P.file_format = Unknown_format;
+        P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
@@ -332,3 +334,5 @@ let _ = (
       with _ -> false;
   )
 )
+
+  

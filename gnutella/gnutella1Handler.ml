@@ -241,7 +241,7 @@ information. *)
       ) t.Q.files;
   | _ -> ()
 
-let init s gconn =       
+let init s sock gconn =       
   server_send s 
     { (new_packet (PingReq Ping.SimplePing)) with pkt_ttl = 4; };        
   gconn.gconn_handler <- Reader

@@ -132,3 +132,26 @@ let buf_string8 buf s =
 let get_string8 s pos =
   let len = get_int8 s pos in
   String.sub s (pos+1) len, pos+1+len
+
+        
+let sdump s =
+  let buf = Buffer.create 1000 in
+  let len = String.length s in
+  Printf.bprintf buf "ascii: [";
+  for i = 0 to len - 1 do
+    let c = s.[i] in
+    let n = int_of_char c in
+    if n > 31 && n < 127 then
+      Printf.bprintf buf " %c" c
+    else
+      Printf.bprintf buf "(%d)" n
+  done;
+  Printf.bprintf buf "]\n";
+  Printf.bprintf buf "dec: [";
+  for i = 0 to len - 1 do
+    let c = s.[i] in
+    let n = int_of_char c in
+    Printf.bprintf buf "(%d)" n            
+  done;
+  Printf.bprintf buf "]\n";
+  Buffer.contents buf

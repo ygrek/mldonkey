@@ -51,6 +51,7 @@ module type Digest = sig
     val up3 : t -> int
 
     val length : int
+    val enabled : bool
   end
 
 module Md4 : Digest    

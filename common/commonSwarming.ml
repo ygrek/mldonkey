@@ -87,6 +87,8 @@ module type Swarmer = sig
     val downloaded : t -> pos
     val present_chunks : t -> (pos * pos) list
     val partition_size : partition -> int
+    val debug_print : t -> string
+    val compute_bitmap : partition -> unit
   end
   
 module Make(Integer: Integer) = struct
@@ -121,7 +123,7 @@ module Make(Integer: Integer) = struct
         mutable range_prev : range option;
         mutable range_next : range option;
         mutable range_current_begin : Integer.t; (* current begin pos *)
-        mutable range_verified : bool;
+(*        mutable range_verified : bool; *)
         mutable range_nuploaders : int;
         mutable range_ndownloaders : int;
       }
@@ -165,7 +167,7 @@ module Make(Integer: Integer) = struct
           range_t = t;
           range_nuploaders = 0;
           range_ndownloaders = 0;
-          range_verified = false;
+(*          range_verified = false; *)
           range_current_begin = zero;
         }
       in t
@@ -202,7 +204,7 @@ module Make(Integer: Integer) = struct
           range_t = r.range_t;
           range_nuploaders = r.range_nuploaders;
           range_ndownloaders = r.range_ndownloaders;
-          range_verified = false;
+(*          range_verified = false; *)
           range_current_begin = (
             if b_end < r.range_current_begin then
               r.range_current_begin else b_end);
@@ -286,8 +288,10 @@ partitions. *)
             if current = 1 then
               p.part_bitmap.[b.block_num] <- '1'
             else
-            if p.part_bitmap.[b.block_num] <> '3' then
-              p.part_bitmap.[b.block_num] <- '2';
+            if p.part_bitmap.[b.block_num] <> '3' then begin
+                p.part_bitmap.[b.block_num] <- '2';
+                verify_block b
+              end
         | Some rr ->
             iter_ranges b rr current
       
@@ -408,8 +412,8 @@ partitions. *)
                           (Integer.to_string r.range_end)
                         (Integer.to_string chunk_end)
                         (List.length chunks);
-                        
-                        
+                      
+                      
                       end
                 | Some rr ->
                     iter_before chunks rr
@@ -712,7 +716,7 @@ partitions. *)
           with Not_found ->
               compute_bitmap p;
               raise Not_found
-              
+    
     let find_range_bitmap b ranges max_range_size =
       
       let rec iter_before r max_downloaders =
@@ -899,7 +903,8 @@ start at the beginning of the range. *)
         | Some bb -> iter_blocks bb
       in
       p.part_bitmap <- bitmap;
-      iter_blocks p.part_blocks
+      iter_blocks p.part_blocks;
+      compute_bitmap p
     
     let verified_bitmap p = p.part_bitmap
     let set_verifier p f = 
@@ -919,6 +924,73 @@ start at the beginning of the range. *)
         | Some bb -> iter_blocks bb s
       in
       iter_blocks p.part_blocks (String.make p.part_nblocks '\000')
+    
+    let rec debug_block_ranges buf b r =
+      Printf.bprintf buf "(%s-%s%s) "
+        (Integer.to_string r.range_begin)
+      (Integer.to_string r.range_end)
+      (if r.range_current_begin = r.range_end then "[DONE]" else      
+        if r.range_current_begin = r.range_begin then "" else
+          Printf.sprintf "[%s]" (Integer.to_string 
+              (r.range_end -- r.range_current_begin)));
+      match r.range_next with
+        None -> ()
+      | Some rr -> 
+          if rr.range_begin < b.block_end then
+            debug_block_ranges buf b rr
+    
+    let rec debug_blocks buf b = 
+      Printf.bprintf buf "      Block %d: %s-%s %s\n"
+        b.block_num (Integer.to_string b.block_begin)
+      (Integer.to_string b.block_end)
+      (match b.block_partition.part_bitmap.[b.block_num] with
+          '2' -> "[PRESENT]"
+        | '3' -> "[VERIFIED]"
+        | _ -> "");
+      Printf.bprintf buf "      Ranges: ";
+      debug_block_ranges buf b b.block_ranges;
+      match b.block_next with
+        None -> ()
+      | Some b -> debug_blocks buf b
+      
+    let rec debug_partitions buf ps =
+      match ps with
+        [] -> ()
+      | p :: tail -> 
+          Printf.bprintf buf "  Partition\n";
+          Printf.bprintf buf "  BEGIN\n";
+          Printf.bprintf buf "    Blocks: %d\n" p.part_nblocks;
+          Printf.bprintf buf "    Bitmap: %s\n" p.part_bitmap;
+          Printf.bprintf buf "    Blocks:\n";
+          debug_blocks buf p.part_blocks;
+          Printf.bprintf buf "  END\n";
+          debug_partitions buf tail
+
+    let rec debug_ranges buf r =
+      Printf.bprintf buf "(%s-%s%s) "
+        (Integer.to_string r.range_begin)
+      (Integer.to_string r.range_end)
+      (if r.range_current_begin = r.range_end then "[DONE]" else      
+        if r.range_current_begin = r.range_begin then "" else
+          Printf.sprintf "[%s]" (Integer.to_string 
+              (r.range_end -- r.range_current_begin)));
+      match r.range_next with
+        None -> ()
+      | Some rr -> debug_ranges buf rr
+
+    let debug_print t =
+      let buf = Buffer.create 1000 in
+      Printf.bprintf buf "Swarmer:\n";
+      Printf.bprintf buf "BEGIN\n";
+      Printf.bprintf buf "  File downloaded/size: %s/%s\n" 
+        (Integer.to_string t.t_downloaded)
+        (Integer.to_string t.t_size);
+      Printf.bprintf buf "  Ranges: ";     
+      debug_ranges buf t.t_ranges;    
+      Printf.bprintf buf "  \n";
+      debug_partitions buf t.t_partitions;
+      Printf.bprintf buf "END\n";      
+      Buffer.contents buf      
       
   end
   

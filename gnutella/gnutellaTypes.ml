@@ -51,6 +51,9 @@ and user = {
 (*    mutable user_files : (result * int) list; *)
     mutable user_speed : int;
     mutable user_uid : Md4.t;
+    mutable user_vendor : string;
+    mutable user_gnutella2 : bool;
+    mutable user_nick : string;
   }
 
 (* In a client structure, we only have on socket, whereas in gnutella,
@@ -106,3 +109,5 @@ and download = {
     mutable download_ranges : Int64Swarmer.range list;
     mutable download_block : Int64Swarmer.block option;
   }
+
+  

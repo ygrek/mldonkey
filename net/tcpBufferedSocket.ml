@@ -53,6 +53,9 @@ type t = {
     mutable write_control : bandwidth_controler option;
     mutable write_power : int;    
     mutable read_power : int;    
+    
+    mutable peer_ip : Ip.t;
+    mutable my_ip : Ip.t;
   }  
   
 and handler = t -> event -> unit
@@ -621,6 +624,8 @@ let create name fd handler =
       write_control = None;
       write_power = 1;
       read_power = 1;
+      peer_ip = Ip.null;
+      my_ip = Ip.null;
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
@@ -651,6 +656,8 @@ let create_blocking name fd handler =
       write_control = None;
       write_power = 1;
       read_power = 1;
+      peer_ip = Ip.null;
+      my_ip = Ip.null;
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
@@ -788,16 +795,26 @@ let _ =
 
 
 let my_ip t =
-  let fd = fd t.sock in
-  match Unix.getsockname fd with
-    Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
-  | _ -> raise Not_found
+  if t.my_ip = Ip.null then
+    let fd = fd t.sock in
+    match Unix.getsockname fd with
+      Unix.ADDR_INET (ip, port) -> 
+        let ip = Ip.of_inet_addr ip in
+        t.my_ip <- ip;
+        ip
+    | _ -> raise Not_found
+  else t.my_ip
     
 let peer_ip t =
+  if t.peer_ip = Ip.null then
   let fd = fd t.sock in
   match Unix.getpeername fd with
-    Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
+      Unix.ADDR_INET (ip, port) -> 
+        let ip = Ip.of_inet_addr ip in
+        t.peer_ip <- ip; ip
   | _ -> raise Not_found
+  else
+    t.peer_ip
     
 let host t =
   let fd = fd t.sock in

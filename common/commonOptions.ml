@@ -171,7 +171,7 @@ let password = define_option downloads_ini ["password"]
 let allowed_ips = define_option downloads_ini ["allowed_ips"]
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
 list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
-    (list_option Ip.option) [Ip.of_string "127.0.0.1"]
+    (list_option Ip.option) [Ip.of_string "127.0.0.1"]  
   
 let enable_server = define_option downloads_ini
     ["enable_server"]
@@ -181,7 +181,7 @@ let enable_server = define_option downloads_ini
 let enable_overnet = define_option downloads_ini
     ["enable_overnet"]
   "Set to true if you also want mldonkey to run as an overnet client"
-    bool_option true
+    bool_option false
 
 let enable_bittorrent = define_option downloads_ini
     ["enable_bittorrent"]
@@ -191,30 +191,26 @@ let enable_bittorrent = define_option downloads_ini
 let enable_donkey = define_option downloads_ini
     ["enable_donkey"]
   "Set to true if you also want mldonkey to run as a donkey client"
-    bool_option true
-  
-  
+    bool_option false
+    
 let enable_opennap = define_option downloads_ini
     ["enable_opennap"]
   "Set to true if you also want mldonkey to run as a napster client (experimental)"
-    bool_option false
-  
+    bool_option false  
   
 let enable_soulseek = define_option downloads_ini
     ["enable_soulseek"]
   "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
     bool_option false
     
-
-  
 let enable_audiogalaxy = define_option downloads_ini
     ["enable_audiogalaxy"]
   "Set to true if you also want mldonkey to run as an audiogalaxy satellite (experimental)"
     bool_option false
   
-let enable_limewire = define_option downloads_ini
-    ["enable_limewire"]
-  "Set to true if you also want mldonkey to run as a limewire sub node (experimental)"
+let enable_gnutella = define_option downloads_ini
+    ["enable_gnutella"]
+  "Set to true if you also want mldonkey to run as a gnutella sub node (experimental)"
     bool_option false
   
 let enable_directconnect = define_option downloads_ini
@@ -227,17 +223,31 @@ let enable_openft = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
     bool_option false
 
+  
+(* Infer which nets to start depending on the name used *)
 let _ =
-  let bin_name = Filename.basename Sys.argv.(0) in
-  List.iter (fun (prefix, option) ->
-      if String2.starts_with bin_name prefix then
-        option =:= true
-  )
-  [ "mldc", enable_directconnect;
-    "mlnap", enable_opennap; 
-    "mldonkey", enable_donkey;
-    "mlslsk", enable_soulseek;
-    "mlgnut", enable_limewire;]
+  let name = String.lowercase (Filename.basename Sys.argv.(0)) in
+  let name = try
+      let pos = String.index name '+' in
+      String.sub name 0 pos
+    with _ -> name in
+  let name = try
+      let pos = String.index name '.' in
+      String.sub name 0 pos
+    with _ -> name in
+  
+  match name with
+  | "mldc" -> enable_directconnect =:= true
+  | "mlgnut" -> enable_gnutella =:= true
+  | "mldonkey" -> enable_donkey =:= true; enable_overnet =:= true
+  | "mlslsk" -> enable_soulseek =:= true
+  | "mlbt" -> enable_bittorrent =:= true
+  | "mlnap" -> enable_opennap =:= true
+  | _ -> 
+(* default *)
+      enable_donkey =:= true;
+      enable_overnet =:= true;
+      enable_bittorrent =:= true
   
 let auto_commit = define_option downloads_ini
     ["auto_commit"]
@@ -596,6 +606,9 @@ let html_mods_human_readable = define_option expert_ini
 
 let html_mods_use_relative_availability = define_option expert_ini
     ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
+
+let html_mods_vd_active_sources = define_option expert_ini
+    ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option false
 
 let html_mods_vd_age = define_option expert_ini
     ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true

@@ -92,6 +92,7 @@ type connection_control = {
     mutable control_last_ok : int;
     mutable control_state : int;
     mutable control_last_try : int;
+    mutable control_min_reask : int;
   }
 
 
@@ -260,7 +261,8 @@ type format =
   AVI of avi_info
 | MP3 of Mp3tag.Id3v1.tag * Mp3tag.info
 | FormatType of string * string
-| Unknown_format
+| FormatUnknown
+| FormatNotComputed of int
 
 and history_result = {
     mutable hresult_names : string list;
@@ -403,8 +405,19 @@ open Md4
 type file_uid =
 | Bitprint of string * Sha1.t * Tiger.t
 | Sha1 of string * Sha1.t
-| Md4 of string * Md4.t
 | Md5 of string * Md5.t
-    
+| Ed2k of string * Md4.t
+| TigerTree of string * Tiger.t
+  
 and file_uid_id = 
-  BITPRINT | SHA1 | MD4 | MD5
+  BITPRINT | SHA1 | ED2K | MD5
+
+  
+let string_of_uid uid = 
+  match uid with
+    Bitprint (s,_,_) -> s
+  | Sha1 (s,_) -> s
+  | Ed2k (s,_) -> s
+  | Md5 (s,_) -> s
+  | TigerTree (s,_) -> s
+      

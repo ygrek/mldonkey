@@ -82,7 +82,7 @@ let connect () =
 (*      lprintf "connect to redirector\n"; *)
       Ip.async_ip name (fun ip ->
           try
-            let sock = connect  "limewire to redirector"
+            let sock = connect  "gnutella to redirector"
                 (Ip.to_inet_addr ip) 6346
                 (fun sock event -> 
                   match event with

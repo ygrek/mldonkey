@@ -1,0 +1,156 @@
+;NSIS Modern User Interface version 1.63
+;Basic Example Script
+;Written by Joost Verburg
+
+!define MUI_PRODUCT "mlnet" ;Define your own software name here
+!define MUI_VERSION "@CURRENT_VERSION@-@CURRENT_RELEASE@" ;Define your own software version here
+
+!include "MUI.nsh"
+
+;--------------------------------
+;Configuration
+
+  ;General
+  OutFile "mlnet_@CURRENT_VERSION@-@CURRENT_RELEASE@_win32_installer.exe"
+
+  ;Folder selection page
+  InstallDir "$PROGRAMFILES\${MUI_PRODUCT}"
+  
+  ;Remember install folder
+  InstallDirRegKey HKCU "Software\${MUI_PRODUCT}" ""
+
+;--------------------------------
+;Modern UI Configuration
+
+  !define MUI_LICENSEPAGE
+  !define MUI_COMPONENTSPAGE
+  !define MUI_DIRECTORYPAGE
+  
+  !define MUI_ABORTWARNING
+  !define MUI_FINISHPAGE_NOREBOOTSUPPORT
+  !define MUI_FINISHPAGE_NOAUTOCLOSE
+  !define MUI_FINISHPAGE_RUN "$INSTDIR\mlnet.exe"
+  !define MUI_UNINSTALLER
+  !define MUI_UNCONFIRMPAGE
+  
+;--------------------------------
+;Languages
+ 
+  !insertmacro MUI_LANGUAGE "English"
+  
+;--------------------------------
+;Language Strings
+
+  ;Description
+  LangString DESC_1 ${LANG_ENGLISH} "This is the mlDonkey Core compiled for Windows"
+  LangString DESC_2 ${LANG_ENGLISH} "This will copy the mgwz.dll into your Installation Directory (needed in most Cases!!!)"
+  LangString DESC_3 ${LANG_ENGLISH} "This makes mlDonkey the default Programm to open ed2k:// links with your Internet Explorer"
+
+
+;--------------------------------
+;Data
+  
+  LicenseData "${NSISDIR}\gpl.txt"
+
+;--------------------------------
+;Installer Sections
+
+Section "mlnet.exe" Sec1
+
+  ;ADD YOUR OWN STUFF HERE!
+
+  SetOutPath "$INSTDIR"
+  File "${NSISDIR}\mlnet.exe"
+  
+  ;Store install folder
+  WriteRegStr HKCU "Software\${MUI_PRODUCT}" "" $INSTDIR
+  
+  ;Create uninstaller
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+
+SectionEnd
+
+Section  "mgwz.dll" Sec2
+  
+  SetOutPath "$INSTDIR"
+  File "${NSISDIR}\mgwz.dll"
+
+SectionEnd
+
+Section "take ed2k:// links" Sec3
+
+  WriteRegStr HKCR "ed2k" "" "URL: ed2k Protocol"
+  WriteRegStr HKCR "ed2k" "URL Protocol" ""
+  WriteRegStr HKCR "ed2k\shell\open\command" "" "$\"IEXPLORE.EXE$\" $\"http://admin:@127.0.0.1:4080/submit?q=dllink+%1$\""
+
+SectionEnd
+
+
+;Display the Finish header
+;Insert this macro after the sections if you are not using a finish page
+!insertmacro MUI_SECTIONS_FINISHHEADER
+
+;--------------------------------
+;Descriptions
+
+!insertmacro MUI_FUNCTIONS_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec1} $(DESC_1)
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec2} $(DESC_2)
+  !insertmacro MUI_DESCRIPTION_TEXT ${Sec3} $(DESC_3)
+
+
+!insertmacro MUI_FUNCTIONS_DESCRIPTION_END
+ 
+;--------------------------------
+;Uninstaller Section
+
+Section "Uninstall"
+
+  ;ADD YOUR OWN STUFF HERE!
+
+  Delete "$INSTDIR\mlnet.exe"
+  Delete "$INSTDIR\.mldonkey_messages.ini"
+  Delete "$INSTDIR\file_sources.ini"
+  Delete "$INSTDIR\files.ini"  
+  Delete "$INSTDIR\files.ini.old"
+  Delete "$INSTDIR\friends.ini.old"
+  Delete "$INSTDIR\mlsubmit.reg"
+  Delete "$INSTDIR\searches.ini.old"
+  Delete "$INSTDIR\servers.ini.old"
+  Delete "$INSTDIR\shared_files.ini.old"
+  Delete "$INSTDIR\stats.ini.old"
+  Delete "$INSTDIR\store_*"
+  Delete "$INSTDIR\downloads.ini"
+  Delete "$INSTDIR\file_sources.ini.old"
+  Delete "$INSTDIR\downloads.ini.old"
+  Delete "$INSTDIR\friends.ini"
+  Delete "$INSTDIR\history.met"
+  Delete "$INSTDIR\mldonkey_submit"
+  Delete "$INSTDIR\searches.ini"
+  Delete "$INSTDIR\servers.ini"
+  Delete "$INSTDIR\stats.ini"
+  Delete "$INSTDIR\mgwz.dll"
+  Delete "$INSTDIR\bittorrent.ini"
+  Delete "$INSTDIR\limewire.ini"
+  Delete "$INSTDIR\shared_files.ini"
+  Delete "$INSTDIR\directconnect.ini"
+  Delete "$INSTDIR\opennap.ini"
+  Delete "$INSTDIR\soulseek.ini"
+  Delete "$INSTDIR\bittorrent.ini.old"
+  Delete "$INSTDIR\limewire.ini.old"
+  Delete "$INSTDIR\directconnect.ini.old"
+  Delete "$INSTDIR\opennap.ini.old"
+  Delete "$INSTDIR\soulseek.ini.old"
+    
+
+
+  Delete "$INSTDIR\Uninstall.exe"
+
+  
+  DeleteRegKey /ifempty HKCU "Software\${MUI_PRODUCT}"
+  DeleteRegKey HKCR "ed2k"
+  
+  ;Display the Finish header
+  !insertmacro MUI_UNFINISHHEADER
+
+SectionEnd

@@ -17,6 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+module Test  = struct
+  let s1 = "" 
+  let s2 = "\000" 
+  let s3 = String.make 1024 'A' 
+  let s4 = String.make 1025 'A' 
+end
+
+
 let i_a = int_of_char 'a'  
 let i_A = int_of_char 'A'  
 let i_f = int_of_char 'f'  
@@ -149,6 +157,7 @@ module type Digest = sig
     val up3 : t -> int
     
     val length : int
+    val enabled : bool
   end
   
   
@@ -225,7 +234,7 @@ module Make(M: sig
     let up2 s = (int_of_char s.[0])*256+(int_of_char s.[1])
     let up3 s = (int_of_char s.[0])*65536+(int_of_char s.[1])*256+(int_of_char s.[2])
   
-  
+    let enabled = true
   end
   
 module Md4 = Make(struct
@@ -252,7 +261,7 @@ module Md5 = Make(struct
       module Base = Base16
     end)
   
-module Sha1 = Make(struct
+module PreSha1 = Make(struct
       let hash_length = 20
       let hash_name = "Sha1"        
       
@@ -260,13 +269,43 @@ module Sha1 = Make(struct
       external unsafe_file : string -> string -> unit = "sha1_unsafe_file"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
         "sha1_unsafe64_fd"
-    
+      
       module Base = Base32
+                  
     end)
-  
+
+module Sha1 = struct
+    include PreSha1
+    open PreSha1
+    open Test
+    open Printf2
+      
+    let enabled =
+      try
+        let sha1 = "ABCDEFGHGHIJKLMNOPQRSTUVWXYZ2ABC" in
+        assert (to_string (of_string sha1) = sha1);
+        
+        assert (to_string (string s1) =
+          "3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ");
+        assert (to_string (string s2) =
+          "LOUTZHNQZ74T6UVVEHLUEDSD63W2E6CP");
+        assert (to_string (string s3) = 
+          "ORWD6TJINRJR4BS6RL3W4CWAQ2EDDRVU");
+        assert (to_string (string s4) = 
+          "UUHHSQPHQXN5X6EMYK6CD7IJ7BHZTE77");
+        
+        true
+      with e ->
+          lprintf "Unable to compute correct Sha1 hashes.\n";
+          lprintf "Send a bug report with your configuration\n";
+          lprintf "and how you obtained this executable.\n";
+          lprintf "Running with Sha1 tree corruption detection disabled.\n";
+          lprintf "(used only if you run the BitTorrent plugin)\n";
+          false
+  end
   
 (* NOT YET IMPLEMENTED *)
-module Tiger = Make(struct
+module PreTiger = Make(struct
       let hash_length = 24
       let hash_name = "Tiger"        
       
@@ -283,30 +322,34 @@ module Tiger = Make(struct
         "tiger_unsafe64_fd"
     
       module Base = Base32
+        
     end)
-  
-let _ =
-  let sha1 = "ABCDEFGHGHIJKLMNOPQRSTUVWXYZ2ABC" in
-  assert (Sha1.to_string (Sha1.of_string sha1) = sha1)
 
+module Tiger = struct
+    include PreTiger
+    open PreTiger
+    open Printf2
+    open Test
+            
+      let enabled = 
+        try
+          assert (to_string (string s1) =
+            "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ");  
+          assert (to_string (string s2) =
+            "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA");
+          assert (to_string (string s3) =
+            "L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA");
+          assert (to_string (string s4) =
+            "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY");
+          true
+        with e ->
+            lprintf "Unable to compute correct Tiger trees.\n";
+            lprintf "Send a bug report with your configuration\n";
+            lprintf "and how you obtained this executable.\n";
+            lprintf "Running with Tiger tree corruption detection disabled.\n";
+            lprintf "(used only if you run the Gnutella plugin)\n";
+            false
+  end
+  
 (* Use urn:tree:tiger: also ... *)
-let _ =
-  let s1 = "" in
-  let s2 = "\000" in
-  let s3 = String.make 1024 'A' in
-  let s4 = String.make 1025 'A' in
-  
-  assert (Sha1.to_string (Sha1.string s1) = "3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ");
-  assert (Sha1.to_string (Sha1.string s2) = "LOUTZHNQZ74T6UVVEHLUEDSD63W2E6CP");
-  assert (Sha1.to_string (Sha1.string s3) = "ORWD6TJINRJR4BS6RL3W4CWAQ2EDDRVU");
-  assert (Sha1.to_string (Sha1.string s4) = "UUHHSQPHQXN5X6EMYK6CD7IJ7BHZTE77");
- 
-  assert (Tiger.to_string (Tiger.string s1) =
-    "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ");  
-  assert (Tiger.to_string (Tiger.string s2) =
-    "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA");
-  assert (Tiger.to_string (Tiger.string s3) =
-    "L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA");
-  assert (Tiger.to_string (Tiger.string s4) =
-    "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY");
-  
+        

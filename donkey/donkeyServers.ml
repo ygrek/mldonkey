@@ -180,7 +180,7 @@ let client_to_server s t sock =
           M.AckIDReq A.t
 	);
 
-	if Ip.valid t then
+	if Ip.valid t && !!use_server_id then
 	  last_high_id := t;
 
 (*

@@ -245,7 +245,7 @@ let buf_mp3 buf t =
   
 let buf_format buf f =
   match f with
-  | Unknown_format -> buf_int8 buf 0
+  | FormatUnknown | FormatNotComputed _ -> buf_int8 buf 0
   | FormatType (s1, s2) -> buf_int8 buf 1; 
       buf_string buf s1; buf_string buf s2
   | AVI avi -> buf_int8 buf 2;

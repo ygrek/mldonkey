@@ -42,7 +42,7 @@ let _ =
       let query = search.search_query in
       let keywords = CommonInteractive.keywords_of_query query in
       let words = String2.unsplit keywords ' ' in
-      let uid = Gnutella.send_query !connected_servers words "urn:" in
+      let uid = Gnutella.ask_query !connected_servers words "urn:" in
       
       let s = {
           search_search = search;
@@ -54,7 +54,7 @@ let _ =
       !connected_servers <> []   
   );
   network.op_network_share <- (fun fullname codedname size ->
-      Gnutella.new_shared_words := true;
+      GnutellaProtocol.new_shared_words := true;
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
@@ -106,7 +106,7 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = "0";
         P.file_availability = "0";
-        P.file_format = Unknown_format;
+        P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
@@ -116,7 +116,7 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_limewire then
+      if !!enable_gnutella then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;

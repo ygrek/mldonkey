@@ -100,7 +100,7 @@ let rec start_job_for sh (uid, handler) =
         match uid,id with
           BITPRINT, Bitprint _ 
         | SHA1, Sha1 _
-        | MD4, Md4 _
+        | ED2K, Ed2k _
         | MD5, Md5 _ 
           -> (try handler sh id with _ -> ()); raise Exit
         | _ -> ()

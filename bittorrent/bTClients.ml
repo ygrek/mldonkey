@@ -263,6 +263,7 @@ and get_from_client sock (c: client) =
       with Not_found -> 
           if !verbose_swarming then
             lprintf "Unable to get a block !!\n";
+          Int64Swarmer.compute_bitmap file.file_partition;
           check_finished file
           ;
           raise Not_found

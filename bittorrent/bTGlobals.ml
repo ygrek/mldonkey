@@ -198,8 +198,10 @@ let new_client file peer_id kind =
           impl_client_val = c;
           impl_client_ops = client_ops;
         } in
+      c.client_connection_control.control_min_reask <- 120;
       new_client impl;
       Hashtbl.add file.file_clients peer_id c;
+      file_add_source (as_file file.file_file) (as_client c);
       c
   
 let remove_file file = 

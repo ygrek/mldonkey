@@ -27,7 +27,7 @@ open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 
-let ultrapeers = define_option limewire_ini ["ultrapeers"]
+let ultrapeers = define_option gnutella_ini ["ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
@@ -152,7 +152,7 @@ let file_to_value file =
     "file_downloaded", int64_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
-    list_to_value "LimeWire Sources" (fun c ->
+    list_to_value "Gnutella Sources" (fun c ->
         match (find_download file c.client_downloads).download_uri with
           FileByIndex (i,n) -> 
             SmallList [ClientOption.client_to_value c; int_to_value i; 
@@ -173,16 +173,17 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option limewire_ini ["old_files"]
+  define_option gnutella_ini ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     
 let save_config () =
+  let list2 = Fifo.to_list ultrapeers2_queue in
   let list = Fifo.to_list ultrapeers_queue in
   ultrapeers =:= (List.map (fun s ->
-        (s.server_ip, s.server_port)) !connected_servers) @ list;
+        (s.server_ip, s.server_port)) !connected_servers) @ list2 @ list;
   lprintf "SAVE OPTIONS\n";
-  Options.save_with_help limewire_ini
+  Options.save_with_help gnutella_ini
 
   
 let _ =

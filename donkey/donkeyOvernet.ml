@@ -1366,7 +1366,7 @@ let _ =
             Printf.bprintf o.conn_buf "Loading %s\n" url;
             load_url "ocl" url) urls;
         "web boot started"
-    ), " <urls>:\t\t\t\tdownload .ocl URLS (no arg load default)";
+    ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
     
     "ovmd4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string overnet_md4);
     ), ":\t\t\t\t\tget client MD4 address on the overnet network";

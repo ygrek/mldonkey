@@ -785,12 +785,21 @@ let server_send_qrt_reset s m =
 let server_send_qrt_patch s m = 
   server_send_new s (QrtPatchReq m)
   
-let server_send_query s puid words xml_query = 
+let server_ask_query s puid words xml_query = 
   let module Q = Query in
   let t = QueryReq {
       Q.min_speed = 0;
       Q.keywords = words;
       Q.xml_query  = [xml_query] } in
+  let p = { (new_packet t) with pkt_uid = puid } in
+  server_send s p
+
+let server_ask_uid s puid words uid = 
+  let module Q = Query in
+  let t = QueryReq {
+      Q.min_speed = 0;
+      Q.keywords = words;
+      Q.xml_query  = [CommonTypes.string_of_uid uid] } in
   let p = { (new_packet t) with pkt_uid = puid } in
   server_send s p
 
@@ -821,3 +830,56 @@ let server_send_push s uid uri =
   let p = new_packet t in
   server_send s p
     
+
+    
+let create_qrt_table words table_size =
+  let infinity = 7 in
+  let table_length = 1 lsl table_size in
+  let old_array = Array.create table_length infinity in
+  let array = Array.create table_length infinity in
+  List.iter (fun w ->
+      let pos = bloom_hash w table_size in
+      lprintf "Position %Ld\n" pos;
+      array.(Int64.to_int pos) <- 1;
+  ) words;
+  let string_size = table_length/2 in
+  let table = String.create  string_size in
+  for i = 0 to string_size - 1 do
+    table.[i] <- char_of_int (
+      (
+        ((array.(i*2) - old_array.(i*2)) land 15) lsl 4) + 
+      ((array.(i*2+1) - old_array.(i*2+1)) land 15))
+  done;
+  table
+
+let cached_qrt_table = ref ""
+
+let send_qrt_sequence s update_table =
+  
+  if update_table then cached_qrt_table := "";
+  let table_size = 10 in
+  let infinity = 7 in
+  let table_length = 1 lsl table_size in
+  server_send_qrt_reset s {
+      QrtReset.table_length = table_length;
+      QrtReset.infinity = infinity;
+    };
+  
+  if !cached_qrt_table = "" then 
+    cached_qrt_table := create_qrt_table !all_shared_words table_size;
+  let table = !cached_qrt_table in
+  
+  let compressor, table =
+    if Autoconf.has_zlib then
+      1, Autoconf.zlib__compress_string table
+    else
+      0, table 
+  in
+  
+  server_send_qrt_patch s {
+      QrtPatch.seq_no = 1;
+      QrtPatch.seq_size = 1;
+      QrtPatch.compressor = compressor;
+      QrtPatch.entry_bits = 4;
+      QrtPatch.table = table;
+    }

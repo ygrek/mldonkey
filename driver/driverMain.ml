@@ -132,8 +132,17 @@ let save_mlsubmit_reg () =
     
    "Windows Registry Editor Version 5.00
 
+[HKEY_CLASSES_ROOT\\ed2k]
+@=\"URL: ed2k Protocol\"
+\"URL Protocol\"=\"\"
+
+[HKEY_CLASSES_ROOT\\ed2k\\shell]
+
+[HKEY_CLASSES_ROOT\\ed2k\\shell\\open]
+
 [HKEY_CLASSES_ROOT\\ed2k\\shell\\open\\command]
-@=\"C:\\\\Program Files\\\\Internet Explorer\\\\IEXPLORE.EXE http://%s:%s@%s:%d/submit?q=dllink+%%1\""
+@=\"\\\"IEXPLORE.EXE\\\" \\\"http://%s:%s@%s:%d/submit?q=dllink+%%1\\\"\"
+"
 
     "admin" "" (Ip.to_string (client_ip None)) !!http_port
   in

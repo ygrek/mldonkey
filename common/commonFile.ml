@@ -68,6 +68,7 @@ it will happen soon. *)
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
+    mutable op_file_debug : ('a -> string);
   }
   
 let as_file  (file : 'a file_impl) =
@@ -225,6 +226,10 @@ let file_recover (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_recover file.impl_file_val
 
+let file_debug (file : file) =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_debug file.impl_file_val
+
 let file_sources file =
   let impl = as_file_impl file in
   try impl.impl_file_ops.op_file_sources impl.impl_file_val with _ -> []
@@ -255,6 +260,7 @@ let new_file_ops network =
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
       op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
+      op_file_debug = (fun _ -> "");
     }
   in
   let ff = (Obj.magic f : int file_ops) in

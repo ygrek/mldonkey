@@ -38,14 +38,14 @@ let disable enabler () =
     | Some sock -> 
         listen_sock := None;
         TcpServerSocket.close sock "");
-  if !!enable_limewire then enable_limewire =:= false
+  if !!enable_gnutella then enable_gnutella =:= false
     
 let enable () =
 
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
   
-  if not !!enable_limewire then enable_limewire =:= true;
+  if not !!enable_gnutella then enable_gnutella =:= true;
   (*
   List.iter (fun s ->
       try
@@ -77,19 +77,19 @@ let enable () =
   ()
   
 let _ =
-  network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_limewire);
+  network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella);
 (*
   network.op_network_save_simple_options <- GnutellaComplexOptions.save_config;
   network.op_network_load_simple_options <- 
     (fun _ -> 
       try
-        Options.load limewire_ini;
+        Options.load gnutella_ini;
       with Sys_error _ ->
           GnutellaComplexOptions.save_config ()
 );
   *)
   network.op_network_enable <- enable;
-  network.network_config_file <- Some limewire_ini;
+  network.network_config_file <- Some gnutella_ini;
   network.op_network_info <- (fun n ->
       { 
         network_netnum = network.network_num;
@@ -100,7 +100,7 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  CommonInteractive.register_gui_options_panel "LimeWire" gui_limewire_options_panel
+  CommonInteractive.register_gui_options_panel "Gnutella" gui_gnutella_options_panel
   
   
 let main (toto: int) = ()

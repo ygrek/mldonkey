@@ -398,9 +398,35 @@ mlnet+gui_SRCS=$(MAIN_SRCS)
 
 #######################################################################
 
-#              Objects files for "mldonkey_gui"
+#              Objects files for "mlgui"
 
 #######################################################################
+
+uninstall::
+	rm -f $(BINDIR)/mlnet
+	rm -f $(BINDIR)/mlgui
+
+install:: opt 
+	mkdir -p $(prefix)/bin
+	if test -e mlnet; then \
+             rm -f $(prefix)/bin/mlnet; cp -f mlnet $(prefix)/bin/mlnet; \
+             for link in mlslsk mldonkey mlgnut mldc mlbt; do \
+               rm -f $(prefix)/bin/$$link; ln -s mlnet $(prefix)/bin/$$link; \
+             done; \
+         fi
+	if test -e mlgui; then \
+             rm -f $(prefix)/bin/mlgui; cp -f mlnet $(prefix)/bin/mlgui; \
+             rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
+         fi
+	if test -e mlnet+gui; then \
+             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet $(prefix)/bin/mlnet+gui; \
+             for link in mlslsk+gui mldonkey+gui mlgnut+gui mldc+gui mlbt+gui; do \
+               rm -f $(prefix)/bin/$$link; ln -s mlnet+gui $(prefix)/bin/$$link; \
+             done; \
+         fi
+	if test -e mlim; then \
+             rm -f $(prefix)/bin/mlim; cp -f mlnet $(prefix)/bin/mlim; \
+         fi
 
 
 ifeq ("$(COMPILE_GUI)" , "yes")
@@ -524,7 +550,9 @@ MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) mlnet+gui$(EXE)
+TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE)
+
+TARGETS +=  mlnet+gui$(EXE)
 
 ifeq ("$(DEVEL)", "yes")
 
@@ -560,8 +588,8 @@ IM_CORE +=   im/imMain.ml
 
 endif
 
-
-TOP_CMXA=cdk.cmxa common.cmxa client.cmxa
+top: mldonkeytop
+TOP_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
 
@@ -576,11 +604,11 @@ SUBDIRS += direct_connect
 
 CORE_SRCS += $(DIRECT_CONNECT_SRCS)
 
-TARGETS += mldc$(EXE)
+## TARGETS += mldc$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mldc+gui$(EXE)
+## BUNDLE_TARGETS += mldc+gui$(EXE)
 
 endif
 endif
@@ -623,11 +651,11 @@ SUBDIRS += opennap
 
 CORE_SRCS += $(OPENNAP_SRCS)
 
-TARGETS += mlnap$(EXE)
+## TARGETS += mlnap$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mlnap+gui$(EXE)
+## BUNDLE_TARGETS += mlnap+gui$(EXE)
 
 endif
 endif
@@ -670,11 +698,11 @@ SUBDIRS += gnutella
 
 CORE_SRCS += $(GNUTELLA_SRCS)
 
-TARGETS += mlgnut$(EXE)
+## TARGETS += mlgnut$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mlgnut+gui$(EXE)
+## BUNDLE_TARGETS += mlgnut+gui$(EXE)
 
 endif
 endif
@@ -717,11 +745,11 @@ SUBDIRS += bittorrent
 
 CORE_SRCS += $(BITTORRENT_SRCS)
 
-TARGETS += mlbt$(EXE)
+## TARGETS += mlbt$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mlbt+gui$(EXE)
+## BUNDLE_TARGETS += mlbt+gui$(EXE)
 
 endif
 endif
@@ -764,11 +792,11 @@ SUBDIRS += donkey
 
 CORE_SRCS += $(DONKEY_SRCS)
 
-TARGETS += mldonkey$(EXE)
+## TARGETS += mldonkey$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mldonkey+gui$(EXE)
+## BUNDLE_TARGETS += mldonkey+gui$(EXE)
 
 endif
 endif
@@ -811,11 +839,11 @@ SUBDIRS += soulseek
 
 CORE_SRCS += $(SOULSEEK_SRCS)
 
-TARGETS += mlslsk$(EXE)
+## TARGETS += mlslsk$(EXE)
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-TARGETS += mlslsk+gui$(EXE)
+## BUNDLE_TARGETS += mlslsk+gui$(EXE)
 
 endif
 endif
@@ -1114,13 +1142,13 @@ MLDONKEYGUI_CMAS=$(foreach file, $(MLDONKEYGUI_CMXA),   build/$(basename $(file)
 
 TMPSOURCES += $(MLDONKEYGUI_ML4:.ml4=.ml) $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml) 
  
-mldonkey_gui: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS) $(MLDONKEYGUI_CMXAS)
+mlgui: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS) $(MLDONKEYGUI_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS) 
  
-mldonkey_gui.byte: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMOS)  $(MLDONKEYGUI_CMAS)
+mlgui.byte: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMOS)  $(MLDONKEYGUI_CMAS)
 	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI_CMAS) $(MLDONKEYGUI_CMOS) 
  
-mldonkey_gui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS)  $(MLDONKEYGUI_CMXAS)
+mlgui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS)  $(MLDONKEYGUI_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS)
 
 
@@ -1139,13 +1167,13 @@ MLDONKEYGUI2_CMAS=$(foreach file, $(MLDONKEYGUI2_CMXA),   build/$(basename $(fil
 
 TMPSOURCES += $(MLDONKEYGUI2_ML4:.ml4=.ml) $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml) 
  
-mldonkey_gui2: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS) $(MLDONKEYGUI2_CMXAS)
+mlgui2: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS) $(MLDONKEYGUI2_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS) 
  
-mldonkey_gui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS)  $(MLDONKEYGUI2_CMAS)
+mlgui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS)  $(MLDONKEYGUI2_CMAS)
 	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI2_CMAS) $(MLDONKEYGUI2_CMOS) 
  
-mldonkey_gui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS)  $(MLDONKEYGUI2_CMXAS)
+mlgui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS)  $(MLDONKEYGUI2_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS)
 
 
@@ -1489,13 +1517,13 @@ STARTER_CMAS=$(foreach file, $(STARTER_CMXA),   build/$(basename $(file)).cma)
 
 TMPSOURCES += $(STARTER_ML4:.ml4=.ml) $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly=.mli) $(STARTER_ZOG:.zog=.ml) 
  
-mldonkey_guistarter: $(STARTER_OBJS) $(STARTER_CMXS) $(STARTER_CMXAS)
+mlguistarter: $(STARTER_OBJS) $(STARTER_CMXS) $(STARTER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(STARTER_CMXAS) $(STARTER_CMXS) 
  
-mldonkey_guistarter.byte: $(STARTER_OBJS) $(STARTER_CMOS)  $(STARTER_CMAS)
+mlguistarter.byte: $(STARTER_OBJS) $(STARTER_CMOS)  $(STARTER_CMAS)
 	$(OCAMLC) -linkall -o $@  $(STARTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(STARTER_CMAS) $(STARTER_CMOS) 
  
-mldonkey_guistarter.static:  $(STARTER_OBJS) $(STARTER_CMXS)  $(STARTER_CMXAS)
+mlguistarter.static:  $(STARTER_OBJS) $(STARTER_CMXS)  $(STARTER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(STARTER_CMXAS) $(STARTER_CMXS)
 
 
@@ -1643,8 +1671,8 @@ TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo)
 TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx) 
 TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)    
 
-TOP_CMXAS := $(TOP_CMXA)
-TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)    
+TOP_CMXAS :=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cmxa)    
+TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
@@ -1660,9 +1688,10 @@ mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 #######################################################################
 
 
-opt:  $(PATCHED_OCAMLOPT)  $(TMPSOURCES) $(TARGETS)
+opt:  $(TMPSOURCES) $(TARGETS)
 
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
+
 static: $(PATCHED_OCAMLOPT) $(foreach target, $(TARGETS), $(target).static)
 
 kde_applet: $(APPLET_OBJS)
@@ -1717,7 +1746,7 @@ clean:
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
-	rm -f mldonkey mldonkey_gui
+	rm -f mldonkey mlgui
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o ; \
 	done)
@@ -1776,7 +1805,7 @@ debug:
 	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) cdk/heap_c.o
 	$(MAKE)
 
-RELEASE_TARGETS=mldonkey mlnet mldonkey_gui
+RELEASE_TARGETS=mldonkey mlnet mlgui
 
 release.shared: opt
 	rm -rf mldonkey-*

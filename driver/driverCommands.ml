@@ -456,6 +456,7 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                       [
                         strings_of_option_html html_mods_use_relative_availability; 
                         strings_of_option_html html_mods_human_readable; 
+                        strings_of_option_html html_mods_vd_active_sources; 
                         strings_of_option_html html_mods_vd_age; 
                         strings_of_option_html html_mods_vd_last; 
                         strings_of_option_html html_mods_vd_prio; 
@@ -508,7 +509,7 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                         strings_of_option_html enable_opennap; 
                         strings_of_option_html enable_soulseek; 
                         strings_of_option_html enable_audiogalaxy; 
-                        strings_of_option_html enable_limewire; 
+                        strings_of_option_html enable_gnutella; 
                         strings_of_option_html enable_directconnect; 
                         strings_of_option_html enable_openft; 
                         strings_of_option_html tcpip_packet_size; 
@@ -1500,6 +1501,17 @@ formID.msgText.value=\\\"\\\";
         ) args;
         "done"
     ), "<client nums> :\t\tdebug message in communications with these clients";
+
+    "debug_file", Arg_multiple (fun args o ->
+        List.iter (fun arg ->
+            let num = int_of_string arg in
+            let file = file_find num in
+            Printf.bprintf o.conn_buf
+              "File %d:\n%s" num
+              (file_debug file);
+        ) args;
+        "done"
+    ), "<client nums> :\t\tdebug file state";
     
     "clear_debug", Arg_none (fun o ->
         

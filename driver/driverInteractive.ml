@@ -437,12 +437,15 @@ setTimeout('window.location.reload()',500);
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>
-\\<td title=\\\"Number of sources\\\" class=\\\"dlheader ar\\\"\\>Srcs\\</td\\>
-\\<td title=\\\"File availability percentage (using %s availability)\\\" class=\\\"dlheader ac\\\"\\>Avail\\</td\\>
-" (List.length guifiles)
-  (if !!html_mods_use_relative_availability then "Relative"
-                                            else "Total")
-  ;
+\\<td title=\\\"Number of sources\\\" class=\\\"dlheader\\\"\\>Srcs\\</td\\>"
+(List.length guifiles);
+
+if !!html_mods_vd_active_sources then Printf.bprintf buf 
+"\\<td title=\\\"Number of active sources\\\" class=\\\"dlheader\\\"\\>A\\</td\\>";
+
+Printf.bprintf buf 
+"\\<td title=\\\"File availability percentage (using %s availability)\\\" class=\\\"dlheader ac\\\"\\>Avail\\</td\\>"
+(if !!html_mods_use_relative_availability then "Relative" else "Total");
 
 if !!html_mods_vd_age then Printf.bprintf buf "
 \\<td title=\\\"Sort by age of download\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Age name=sortby\\>\\</td\\>
@@ -505,23 +508,20 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" file.file_num (size_of_int64 file.file_downloaded));
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%5.1f\\</td\\>" file.file_num (percent file));
 
-(* craaaazy  
-need CommonTypes.file  file.file_sources is ?  i dunno *)
-
-          ( 
-
-            let nsrcs = ref 0 in      
-            let foo = 
-                List.iter 
-              (fun cfile -> if (as_file_impl cfile).impl_file_num =
-                      file.file_num then 
-                   let srcs = file_sources cfile in
-                        nsrcs := List.length srcs
-                )
-            !!files in
-            Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num !nsrcs
-
+          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
+			(let cfile = file_find file.file_num in List.length (file_sources cfile)) 
           );
+
+          (if !!html_mods_vd_active_sources then 
+            Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
+			(let nasrcs = ref 0 in
+		     let cfile = file_find file.file_num in 
+			 List.iter (fun fsrc ->
+				if client_state fsrc = Connected_downloading then incr nasrcs;
+			 ) (file_sources cfile);
+			 !nasrcs)
+		  else Printf.sprintf ""
+		  );
 
           (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\> %s\\</td\\>"
             file.file_num 
@@ -582,10 +582,10 @@ need CommonTypes.file  file.file_sources is ?  i dunno *)
 			^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
 			^ "\\<option value=\\\"=0\\\""  ^ (if file.file_priority = 0 then " SELECTED" else "") ^ "\\>Normal\n"
 			^ "\\<option value=\\\"=-10\\\""  ^ (if file.file_priority = -10 then " SELECTED" else "") ^ "\\>Low\n"
-			^ "\\<option value=\\\"10\\\"\\>+10\n"
 			^ "\\<option value=\\\"5\\\"\\>+5\n"
+			^ "\\<option value=\\\"1\\\"\\>+1\n"
+			^ "\\<option value=\\\"-1\\\"\\>-1\n"
 			^ "\\<option value=\\\"-5\\\"\\>-5\n"
-			^ "\\<option value=\\\"-10\\\"\\>-10\n"
 			^ "\\</select\\>"
 	       else 
 		 Printf.sprintf "");

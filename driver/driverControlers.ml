@@ -823,9 +823,9 @@ let http_handler o t r =
   
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
-                  Options.set_simple_option downloads_ini name value;
+                  CommonInteractive.set_fully_qualified_options name value;
                   Buffer.add_string buf "Option value changed"
-                  
+
               | args -> 
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
