@@ -215,7 +215,7 @@ let add_user_friend s u =
         begin
           match s.server_sock, server_state s with 
             Connection sock, (Connected _ |Connected_downloading _) ->
-              query_id s sock u.user_ip None;
+              query_id s.server_ip s.server_port (id_of_ip u.user_ip) 
           | _ -> ()
         end;
         Invalid_address (u.user_name, Md4.to_string u.user_md4)

@@ -837,7 +837,7 @@ module QueryLocationReply  = struct
         md4: Md4.t;
         locs :location list; 
       }
-      
+    
     let parse len s = 
       let md4 = get_md4 s 1 in
       let n = get_uint8 s 17 in
@@ -849,18 +849,25 @@ module QueryLocationReply  = struct
       in
       let locs = iter 0 in
       { locs =locs; md4 = md4 }
-          
+    
     let print t = 
       lprintf "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
-          lprintf "   %s : %d\n" (Ip.to_string l.ip) l.port;
-          
+          lprintf "   %s : %d %s\n" (Ip.to_string l.ip) l.port
+            (if not (Ip.valid l.ip) then
+              Printf.sprintf "(Firewalled %Ld)" (id_of_ip l.ip)
+            else "");
+      
       ) t.locs
-
-     let bprint oc t = 
+    
+    let bprint oc t = 
       Printf.bprintf oc "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
-          Printf.bprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
+          Printf.bprintf oc "%s:%d %s\n" (Ip.to_string l.ip) l.port
+            (if not (Ip.valid l.ip) then
+              Printf.sprintf "(Firewalled %Ld)" (id_of_ip l.ip)
+            else "");
+          ;
       ) t.locs
       
     let write buf t = 
@@ -874,35 +881,35 @@ module QueryLocationReply  = struct
   end
   
 module QueryID  = struct 
-    type t = Ip.t
+    type t = int64
       
     let parse len s = 
-      get_ip s 1
+      id_of_ip (get_ip s 1)
       
     let print t = 
-      lprintf "QUERY IP OF %s" (Ip.to_string t)
+      lprintf "QUERY IP OF %Ld" t
 
     let bprint oc t = 
-      Printf.bprintf oc "QUERY IP OF %s\n" (Ip.to_string t)
+      Printf.bprintf oc "QUERY IP OF %Ld\n" t
       
     let write buf t = 
-      buf_ip buf t
+      buf_ip buf (ip_of_id t)
   end
   
 module QueryIDFailed  = struct 
-    type t = Ip.t
+    type t = int64
       
     let parse len s = 
-      get_ip s 1
+      id_of_ip (get_ip s 1)
       
     let print t = 
-      lprintf "QUERY IP OF %s FAILED" (Ip.to_string t)
+      lprintf "QUERY IP OF %Ld FAILED" t
 
     let bprint oc t = 
-      Printf.bprintf oc "QUERY IP OF %s FAILED\n" (Ip.to_string t)
+      Printf.bprintf oc "QUERY IP OF %Ld FAILED\n" t
       
     let write buf t = 
-      buf_ip buf t
+      buf_ip buf (ip_of_id t)
   end
 
 module QueryIDReply  = struct 

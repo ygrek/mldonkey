@@ -138,6 +138,7 @@ let print_addr addr =
 let max_delayed_send = 30
   
 let write t s ip port =
+(*  lprintf "UDP write to %s:%d\n" (Ip.to_string ip) port; *)
   if not (closed t) && t.wlist_size < !max_wlist_size then 
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
@@ -160,7 +161,13 @@ let write t s ip port =
             try
               let len = String.length s in
 
-              let code = local_sendto (fd sock) s 0 len [] addr in
+              let code = 
+                try
+                  local_sendto (fd sock) s 0 len [] addr 
+                with e ->
+                    lprintf "Exception in sendto %s:%d\n" (Ip.to_string ip) port;
+                    raise e
+                    in
               udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
               ()
 (*

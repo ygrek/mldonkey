@@ -446,12 +446,6 @@ let new_file file_state file_name md4 file_size writable =
       Heap.set_tag file tag_file;
       Hashtbl.add files_by_md4 md4 file;
       file
-
-      (*
-let change_hardname file file_name =
-  let fd = file.file_file.impl_file_fd in
-  Unix32.rename fd file_name
-    *)
   
   (*
 
@@ -591,6 +585,7 @@ let dummy_client =
       client_pending_messages = [];
       client_emule_proto = emule_proto ();
       client_comp = None;
+      client_connection_time = 0;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -647,6 +642,7 @@ let create_client key =
       client_pending_messages = [];
       client_emule_proto = emule_proto ();
       client_comp = None;
+      client_connection_time = 0;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -1093,9 +1089,9 @@ let join_queue_by_id  = Hashtbl.create 13
 
 let client_id c = 
   match c.client_kind with
-    Direct_address (ip, port) -> (ip, port, ip)
-  | Indirect_address (ip, port, ip') -> (ip, port, ip')
-  | Invalid_address _ -> (Ip.null, 0, Ip.null)
+    Direct_address (ip, port) -> (ip, port, zero)
+  | Indirect_address (ip, port, id) -> (ip, port, id)
+  | Invalid_address _ -> (Ip.null, 0, zero)
       
 let save_join_queue c =
   if c.client_file_queue <> [] then

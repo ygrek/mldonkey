@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open AnyEndian
 open Printf2
 open Md4
@@ -526,9 +527,10 @@ module Bloc  = struct
       }
       
     let print t = 
-      lprintf "BLOC OF %s [%s - %s]" (Md4.to_string t.md4)
-      (Int64.to_string t.start_pos)
-      (Int64.to_string t.end_pos)
+      lprintf "BLOC OF %s len %Ld [%Ld - %Ld] " (Md4.to_string t.md4)
+      (t.end_pos -- t.start_pos)
+      t.start_pos
+        t.end_pos
       
     let write buf t = 
       buf_md4 buf t.md4;
@@ -911,6 +913,7 @@ module EmuleRequestSourcesReply = struct
       let sources = 
         if ncount = 0 then [||] else
         let slen = (len - 19) / ncount in
+(*        lprintf "PER SOURCES LEN: %d\n" slen; *)
         let sources = Array.create ncount dummy_source in
         let rec iter pos i =
           if i < ncount then 

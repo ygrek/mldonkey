@@ -278,8 +278,11 @@ let brand_mod_count = 73
 
 type source_uid = 
   Direct_address of Ip.t * int
-| Indirect_address of Ip.t * int * Ip.t
+| Indirect_address of Ip.t * int * int64
 | Invalid_address of string * string
+
+let id_of_ip ip = Ip.to_int64 (Ip.rev ip)
+let ip_of_id id = Ip.rev (Ip.of_int64 id)
   
 module DonkeySources = CommonSources.Make(struct
       
@@ -299,19 +302,19 @@ module DonkeySources = CommonSources.Make(struct
         match s with Direct_address _ -> true | _ -> false
       
       let dummy_source_uid = Direct_address (Ip.null, 0)
-      
-      
+            
       let value_to_source_uid v = 
         match v with
           List [ip;port] | SmallList [ip;port] ->
             let ip = Ip.of_string (value_to_string ip) in
             let port = value_to_int port in
             Direct_address (ip, port)
-        | List [ip;port; ip'] | SmallList [ip;port;ip'] ->
+        | List [ip;port; id] | SmallList [ip;port;id] ->
             let ip = Ip.of_string (value_to_string ip) in
             let port = value_to_int port in
-            let ip' = Ip.of_string (value_to_string ip') in
-            Indirect_address (ip, port, ip')
+            let id = try id_of_ip (Ip.of_string (value_to_string id))
+              with _ -> value_to_int64 id in
+            Indirect_address (ip, port, id)
         | _ -> 
             failwith "bad client address"
       
@@ -319,11 +322,11 @@ module DonkeySources = CommonSources.Make(struct
         match s with
           Direct_address (ip, port) -> 
             SmallList [string_to_value (Ip.to_string ip); int_to_value port]
-        | Indirect_address (ip, port, ip') -> 
+        | Indirect_address (ip, port, id) -> 
             SmallList [
               string_to_value (Ip.to_string ip); 
               int_to_value port;
-              string_to_value (Ip.to_string ip'); 
+              int64_to_value id;
             ]
         | Invalid_address _ -> failwith "Invalid address"
     end)
@@ -482,6 +485,7 @@ and client = {
     mutable client_pending_messages: string list;
     client_emule_proto : emule_proto;
     mutable client_comp : compressed_parts option;
+    mutable client_connection_time : int;
   }
   
 and compressed_parts = {

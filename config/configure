@@ -846,6 +846,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --disable-multinet:       allows you to only compile support for edonkey + Overnet
 --disable-newgui:         allows you to compile the old-gui
+--enable-mingw:         forces compilation with MINGW on Cygwin
 --enable-checks:          force mldonkey to perform bound checks on array/string access
 --enable-batch:           reply YES to all queries in this script
 --disable-gui:            allows you to remove the GUI
@@ -1293,7 +1294,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=20
+CURRENT_RELEASE=21
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -1316,6 +1317,8 @@ BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
 
+FORCE_MINGW=no
+
 BUILD_GUI=yes
 BUILD_NEWGUI=yes
 
@@ -1330,6 +1333,12 @@ fi;
 if test "${enable_newgui+set}" = set; then
   enableval="$enable_newgui"
   BUILD_NEWGUI="$enableval"
+fi;
+
+# Check whether --enable-mingw or --disable-mingw was given.
+if test "${enable_mingw+set}" = set; then
+  enableval="$enable_mingw"
+  FORCE_MINGW="$enableval"
 fi;
 
 # Check whether --enable-checks or --disable-checks was given.
@@ -8598,6 +8607,10 @@ done
         *mingw*) OS_FILES=mingw;;
         *)         ;;
 esac
+
+if test "$FORCE_MINGW" = "yes"; then
+    OS_FILES=mingw
+fi
 
 echo "$as_me:$LINENO: checking Additionnal includes" >&5
 echo $ECHO_N "checking Additionnal includes... $ECHO_C" >&6

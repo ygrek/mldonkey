@@ -1,7 +1,13 @@
 ChangeLog	
 =========
 
-2004/05/03: Fabrice (version 2.5.20 = 2.6pre2, tag release-2-5-20)
+2004/05/05: Fabrice (version 2.5.21 = 2.6pre3, tag release-2-5-21)
+  - DonkeyClient: re-implemented indirect connections that were lost since
+      2.5.17
+  - For some reason, download seems to be limited to max_hard_download_rate/2.
+      Try to increase this option until a fix is found. 
+
+2004/05/04:
   - Applied patches: disconnect (Spiralvoice)
   - Applied Savannah patches: #3003, #2988
   - Fixed bug preventing connections with Overnet clients.

@@ -18,7 +18,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64
+
+open Int64ops
 open Printf2
 
 let (++) = Int64.add
@@ -873,15 +874,15 @@ type file_kind =
 | SparseFile of SparseFile.t
 | Destroyed
   
-type t = {
+type file = {
     mutable file_kind : file_kind;
     mutable filename : string;
     mutable error : exn option;
     mutable buffers : (string * int * int * int64 * int64) list;
   }
-
+  
 module H = Weak2.Make(struct
-      type old_t = t
+      type old_t = file
       type t = old_t
       let hash t = Hashtbl.hash t.filename
 
@@ -1181,6 +1182,15 @@ let copy_chunk t1 t2 pos1 pos2 len =
   in
   iter len pos1 pos2
 
+let mega = megabytes 1
+let rec copy t1 t2 pos1 pos2 len64 = 
+  if len64 > mega then begin
+      copy_chunk t1 t2 pos1 pos2 (Int64.to_int mega);
+      copy t1 t2 (pos1 ++ mega) (pos2 ++ mega) (len64 -- mega)
+    end else
+    copy_chunk t1 t2 pos1 pos2 (Int64.to_int len64)
+  
+  
 (*
 (* Close two file descriptors *)
   assert (!max_cache_size > 2);
@@ -1278,3 +1288,135 @@ let rename t f =
 (* module MultiFile_Test = (MultiFile : File) *)
 module DiskFile_Test = (DiskFile : File)
 module SparseFile_Test = (SparseFile : File)
+
+module SharedParts = struct
+(*************************************************************************)
+(*                                                                       *)
+(*                      Files sharing parts                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+(* TODO: share file parts:
+The following functions have to be rewritten:
+* rename, remove: copy the shared parts out before destroying the file.
+* write, buffered_write, buffered_write_copy, read: split
+* allocate_chunk: remove this
+* copy_chunk: remove this
+*)
+
+type t = {
+    file : file;
+    mutable file_parts : part list;
+  }
+  
+and part = {
+    mutable part_file : file;
+    mutable part_begin : int64;
+    mutable part_len : int64;
+    mutable part_end : int64;
+    mutable part_shared : t list;
+  }
+
+let copy_shared_parts_out file parts =
+  List2.tail_map (fun part ->
+      if part.part_file == file then 
+        match part.part_shared with
+          [] -> part
+        | t :: tail ->
+            lprintf "Copy shared part to another file\n";
+            copy part.part_file t.file part.part_begin part.part_begin
+              part.part_len;
+            lprintf "   Copy done.\n";
+            part.part_file <- t.file;
+            part.part_shared <- tail;
+            { part with part_file = file; part_shared = [] }
+      else part
+  ) parts
+
+let copy_shared_parts_in file parts =
+  List2.tail_map (fun part ->
+      if part.part_file != file then begin
+          lprintf "Copy shared part to another file\n";
+          copy part.part_file file part.part_begin part.part_begin
+          part.part_len;
+          lprintf "   Copy done.\n";
+          part.part_shared <- List.filter (fun t -> t.file != file) 
+          part.part_shared;
+          { part with part_file = file; part_shared = [] }
+        end else part
+  ) parts
+  
+let remove t =
+  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+  remove t.file
+
+let destroy t = 
+  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+  destroy t.file
+  
+let close t = close t.file
+let getsize64 t  = getsize64 t.file
+let filename t = filename t.file
+  
+let rename t file_name = 
+  t.file_parts <- copy_shared_parts_in t.file t.file_parts;
+  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+  rename t.file file_name
+  
+let mtime64 t = mtime64 t.file
+let flush_fd t = flush_fd t.file
+
+let apply_on_parts f t file_pos s pos len =
+  List.iter (fun part ->
+      f part.part_file file_pos s pos len) t.file_parts
+  
+let buffered_write t file_pos s pos len =
+  apply_on_parts buffered_write t file_pos s pos len
+    
+let buffered_write_copy t file_pos s pos len =
+  apply_on_parts buffered_write_copy t file_pos s pos len
+      
+let write t file_pos s pos len =
+  apply_on_parts write t file_pos s pos len
+  
+let read t file_pos s pos len =
+  apply_on_parts read t file_pos s pos len
+  
+let allocate_chunk _ _ _ = failwith "Unix32.allocate_chunk not implemented"
+let copy_chunk _ _ _ _ _ = failwith "Unix32.copy_chunk not implemented"
+let fd_of_chunk t file_pos len = failwith "Unix32.fd_of_chunk not implemented"
+
+let ftruncate64 t len = 
+(* We need to set the size of the file at this point *)
+  ftruncate64 t.file len
+
+let maxint64 = megabytes 1000000
+  
+let create file =
+  let part = { 
+      part_file = file;
+      part_begin = zero;
+      part_end = maxint64;
+      part_len = maxint64;
+      part_shared = []
+    } in
+  { file = file; file_parts = [part] }
+  
+let create_diskfile file_name flags rights =
+  create (create_diskfile file_name flags rights)
+  
+let create_multifile file_name flags rights files =
+  create (create_multifile file_name flags rights files)
+  
+let create_sparsefile file_name =
+  create (create_sparsefile file_name)
+  
+let create_ro filename = 
+  create (create_ro filename)
+  
+let create_rw filename = 
+  create (create_rw filename)
+end
+
+type t = file
+  

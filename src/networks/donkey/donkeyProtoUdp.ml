@@ -90,23 +90,23 @@ module QueryCallUdp  = struct
     type t = {
         ip : Ip.t;
         port : int;
-        id : Ip.t;
+        id : int64;
       }
           
     let parse len s = 
       let ip = get_ip s 1 in
       let port = get_port s 5 in
-      let id = get_ip s 7 in
+      let id = id_of_ip (get_ip s 7) in
       { ip = ip; port = port; id = id; }
       
     let bprint oc t = 
-      Printf.bprintf oc "QueryCall %s : %d --> %s\n" (Ip.to_string t.ip) t.port
-        (Ip.to_string t.id)
+      Printf.bprintf oc "QueryCall %s : %d --> %Ld\n" (Ip.to_string t.ip) 
+      t.port  t.id
       
     let write buf t = 
       buf_ip buf t.ip;
       buf_port buf t.port;
-      buf_ip buf t.id
+      buf_ip buf (ip_of_id t.id)
       
   end
 

@@ -19,9 +19,10 @@
 
 open Md4
 
-val query_id :
-  DonkeyTypes.server -> TcpBufferedSocket.t -> Ip.t -> 
-  DonkeyTypes.file option -> unit
+val query_id : Ip.t -> int -> int64 -> unit
+(*val query_id :
+  DonkeyTypes.server -> TcpBufferedSocket.t -> int64 -> 
+  DonkeyTypes.file option -> unit *)
   
 val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
@@ -29,7 +30,7 @@ val query_locations_reply : DonkeyTypes.server ->
 val reconnect_client : DonkeyTypes.client -> unit
 val client_connection_handler : bool -> 'a -> TcpServerSocket.event -> unit
 
-val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
+(* val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit *)
 
 val client_wants_file : DonkeyTypes.client -> Md4.t -> unit
   

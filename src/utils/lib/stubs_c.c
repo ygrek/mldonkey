@@ -81,7 +81,7 @@ value ml_remove_fd_from_event_set(value task_v){
 
 
 
-#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__)
 
 #include <sys/poll.h>
 
@@ -238,7 +238,7 @@ value ml_use_poll(value use)
 value ml_select(value fd_list, value timeout)
 {
 
-#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__)
     if (use_poll) 
       return try_poll(fd_list, timeout);
     else
@@ -266,7 +266,7 @@ value ml_getdtablesize(value unit)
 
   if (maxselectfds < maxfd) {
 
-#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__)
 
      must_use_poll = 1;
      use_poll = 1;
@@ -315,7 +315,7 @@ value ml_set_nonblock(value fd_v)
 
 *******************************************************************/
 
-#if defined(HAVE_NETINET_IP_H)
+#if defined(HAVE_NETINET_IP_H) && !defined(__MINGW32__)
 
 #include <sys/socket.h>
 #include <netinet/in_systm.h>

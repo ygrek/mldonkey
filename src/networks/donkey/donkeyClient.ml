@@ -150,6 +150,15 @@ let _ =
   in
   client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
    
+let string_of_client c =
+  Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
+  c.client_name (brand_to_string c.client_brand)
+  (match c.client_kind with
+      Indirect_address _ | Invalid_address _ -> ""
+    | Direct_address (ip,port) ->
+        Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
+  )
+
 let log_client_info c sock = 
   let buf = Buffer.create 100 in
   let date = BasicSocket.date_of_int (last_time ()) in
@@ -197,8 +206,19 @@ let disconnect_client c reason =
            CommonGlobals.print_localtime ();
           end;
           (try if c.client_checked then count_seen c with _ -> ());
-          if !!log_clients_on_console && c.client_name <> "" then 
-            log_client_info c sock;
+          (try if !!log_clients_on_console && c.client_name <> "" then 
+                log_client_info c sock with _ -> ());
+          
+          (*
+          if c.client_connect_time > 0 then begin
+              lprintf "Disconnected %s\n" (string_of_client c);
+              lprintf "Client connected for %d seconds, %d requests issued\n"
+                (last_time () - c.client_connect_time)
+              c.client_requests_sent
+            end;
+*)
+          
+          c.client_connect_time <- 0;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
           (try CommonUploads.remove_pending_slot (as_client c) with _ -> ());
           set_client_has_a_slot (as_client c) false;
@@ -565,14 +585,58 @@ let update_emule_proto_from_tags c tags =
       | "features" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_secident <- i land 0x3)          
-
+      
       | s -> 
           if !verbose_msg_clients then
             lprintf "Unknown Emule tag: [%s]\n" (String.escaped s)
   ) tags
-  
+
+let query_id ip port id =
+  let client_ip = client_ip None in
+
+(* TODO: check if we are connected to this server. If yes, issue a 
+  query_id instead of a UDP packet *)
+  if ip_reachable client_ip then
+    let module Q = DonkeyProtoUdp.QueryCallUdp in
+(*    lprintf "Ask connection from indirect client\n"; *)
+    
+    let s = new_server ip port 0 in
+    match s.server_sock with 
+      NoConnection | ConnectionWaiting _ ->
+        
+        DonkeyProtoCom.udp_send (get_udp_sock ())
+        ip (port+4)
+        (DonkeyProtoUdp.QueryCallUdpReq {
+            Q.ip = client_ip;
+            Q.port = !client_port;
+            Q.id = id;
+          })
+    | Connection sock ->
+        printf_string "[QUERY ID]";
+        server_send sock (
+          let module M = DonkeyProtoServer in
+          let module C = M.QueryID in
+          M.QueryIDReq id
+        );
+(*                   Fifo.put s.server_id_requests file *)
+        ()
+        
+        
 let query_files c sock =  
   
+  let s = c.client_source in
+  if s.DonkeySources.source_files = [] then begin
+(*      lprintf "Unknown Incoming clients\n"; *)
+      List.iter (fun file ->
+          if file_state file = FileDownloading then begin
+              DonkeySources.set_request_result s file.file_sources
+                File_possible
+            end
+      ) !current_files;
+    end (* else
+    lprintf "Client has %d requests to emit\n" 
+      (List.length s.DonkeySources.source_files); *)
+    
   (*
   let nall_queries = ref 0 in
   let nqueries = ref 0 in
@@ -608,7 +672,7 @@ let query_files c sock =
       lprintf "sent %d/%d file queries\n" !nqueries !nall_queries;
     end
 *)
-  ()
+
 
 (* Nice to see some emule devels here... It's always possible to 
 crack a protocol, but let's try to make it as boring as possible... *)
@@ -724,18 +788,22 @@ let  init_client_after_first_message sock c =
   set_client_type c t;
   ()
   
-      
+
+let finish_client_handshake c sock =  
+  c.client_connect_time <- last_time ();
+  send_pending_messages c sock;
+  set_client_state c (Connected (-1));      
+  query_files c sock;
+  DonkeySources.source_connected c.client_source;  
+  query_view_files c;
+  client_must_update c;
+  is_banned c sock
+  
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf "Message from client[%d] %s(%s) %s\n" (client_num c)
-      c.client_name (brand_to_string c.client_brand)
-      (match c.client_kind with
-          Indirect_address _ | Invalid_address _ -> ""
-        | Direct_address (ip,port) ->
-            Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
-      );
+      lprintf "Message from %s\n" (string_of_client c);
       M.print t;
       lprintf "\n"
     end;
@@ -756,8 +824,6 @@ let client_to_client for_files c t sock =
       
       c.client_checked <- true;
       set_client_has_a_slot (as_client c) false;
-      
-      DonkeySources.source_connected c.client_source;  
       
       let module CR = M.Connect in
       
@@ -798,18 +864,12 @@ let client_to_client for_files c t sock =
       identify_client_brand c;
       
       init_client_connection c sock;
-      send_pending_messages c sock;
-      
-      set_client_state c (Connected (-1));      
-      
+
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
         if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
         
-        query_files c sock;
-      query_view_files c;
-      client_must_update c;      
-      is_banned c sock
+      finish_client_handshake c sock
   
   | M.EmuleQueueRankingReq t 
   | M.QueueRankReq t ->
@@ -953,7 +1013,9 @@ end; *)
                         let chunks = Array.copy chunks in
                         DonkeyOneFile.add_client_chunks c file chunks) files;
 (*                DonkeyOneFile.restart_download c *)
-                  with _ -> ()
+                  with _ -> 
+                      lprintf "AvailableSlot received, but not file to download !!\n";
+(* TODO: ask for the files now *)
       end;
 (* now, we can forget we have asked for a slot *)
       c.client_slot <- SlotReceived;
@@ -1330,19 +1392,22 @@ end else *)
               lprintf "Client: Received %d sources for %s\n" (Array.length t.Q.sources) (file_best_name file);
             end;
           Array.iter (fun s ->
-              if Ip.valid s.Q.src_ip && ip_reachable s.Q.src_ip then
-                let s = DonkeySources.find_source_by_uid 
-                    (Direct_address (s.Q.src_ip, s.Q.src_port)) in
+              try
+              let addr = 
+                  if Ip.valid s.Q.src_ip then
+                    if ip_reachable s.Q.src_ip then
+                      Direct_address (s.Q.src_ip, s.Q.src_port)
+                    else raise Not_found
+                  else begin
+(*                      lprintf "RIA: Received indirect address\n"; *)
+                    Indirect_address (s.Q.src_server_ip, s.Q.src_server_port,
+                        id_of_ip s.Q.src_ip)
+                    end
+                in
+                let s = DonkeySources.find_source_by_uid addr in
                 DonkeySources.set_request_result s file.file_sources
                   File_new_source
-              else
-                begin
-(* TODO: add the source even in this case *)
-                  (*
-                  DonkeySources.ask_indirect_connection_by_udp
-s.Q.server_ip s.Q.server_port s.Q.ip                *)
-                  ()
-                end
+              with Not_found -> ()
           ) t.Q.sources
         with _ -> ()
       end
@@ -1643,9 +1708,10 @@ let read_first_message overnet m sock =
           match t.CR.server_info with
             None ->  Invalid_address  (!name, Md4.to_string t.CR.md4)
           | Some (ip,port) ->
-              if Ip.valid ip && Ip.reachable ip then 
-                Indirect_address (ip, port, t.CR.ip)
-              else Invalid_address  (!name, Md4.to_string t.CR.md4)
+              if Ip.valid ip && Ip.reachable ip then begin
+(*                  lprintf "RIA: Received indirect address\n"; *)
+                  Indirect_address (ip, port, id_of_ip t.CR.ip)
+              end else Invalid_address  (!name, Md4.to_string t.CR.md4)
         else
           Invalid_address  (!name, Md4.to_string t.CR.md4)
       in
@@ -1671,7 +1737,6 @@ let read_first_message overnet m sock =
             c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
-            c.client_connect_time <- last_time ();
             init_client_after_first_message sock c
         
         | ConnectionWaiting token -> 
@@ -1680,7 +1745,6 @@ let read_first_message overnet m sock =
             c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
-            c.client_connect_time <- last_time ();
             init_client_after_first_message sock c
         
         | _ -> 
@@ -1797,20 +1861,13 @@ let read_first_message overnet m sock =
         !activity.activity_client_edonkey_indirect_connections <-
           !activity.activity_client_edonkey_indirect_connections +1 ;
       
-      send_pending_messages c sock;
-            
-      set_client_state c (Connected (-1));      
-      
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
-	if !!ban_identity_thieves then
-          ban_client c sock "is probably using stolen client hashes";
+        (if !!ban_identity_thieves then
+            ban_client c sock "is probably using stolen client hashes");
       
-      query_files c sock;  
-      query_view_files c;
-      client_must_update c;
-      is_banned c sock;
+      finish_client_handshake c sock;
       Some c
-  
+      
   | M.NewUserIDReq _ ->
       M.print m; lprintf "\n";
       None
@@ -1856,9 +1913,7 @@ let reconnect_client c =
                       else
                         !activity.activity_client_edonkey_connections <-
                           !activity.activity_client_edonkey_connections +1 ;
-                      
-                      
-                      c.client_connect_time <- last_time ();
+                                            
                       init_connection sock ip;
                       init_client sock c;
 (* The lifetime of the client socket is now half an hour, and
@@ -1919,14 +1974,6 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
           in
           c.client_source.DonkeySources.source_sock <- ConnectionWaiting token
           
-let query_id s sock ip file =
-  printf_string "[QUERY ID]";
-  server_send sock (
-    let module M = DonkeyProtoServer in
-    let module C = M.QueryID in
-    M.QueryIDReq ip
-  );
-  Fifo.put s.server_id_requests file
   
 let query_locations_reply s t =
   let module M = DonkeyProtoServer in
@@ -1943,29 +1990,34 @@ let query_locations_reply s t =
       end;
     
     s.server_score <- s.server_score + 3;
-
+    
     List.iter (fun l ->
         let ip = l.Q.ip in
         let port = l.Q.port in
-        
-        if Ip.valid ip then
-          (if ip_reachable ip  then 
-              let s = DonkeySources.find_source_by_uid (Direct_address (ip, port)) in
-              DonkeySources.set_request_result s file.file_sources File_new_source)
-        else
-       match s.server_cid with
-           None -> ()
-         | Some cid ->
-             if Ip.valid cid then
-        match s.server_sock with
-        | Connection sock ->
-            printf_string "QUERY ID";
-            query_id s sock ip (Some file)
-        
-              | _ ->
-                  (* TODO
-            DonkeySources.ask_indirect_connection_by_udp s.server_ip s.server_port ip *) ()
-(*
+        try
+          let addr = 
+            if Ip.valid ip then
+              (if ip_reachable ip  then 
+                  Direct_address (ip, port)
+                else raise Not_found)
+            else begin
+(*              lprintf "RIA: Received indirect address\n"; *)
+                Indirect_address (s.server_ip, s.server_port, id_of_ip ip)
+              end
+          in
+          
+(* TODO: verify that new sources are queried as soon as possible. Maybe we
+should check how many new sources this client has, and query a connection
+immediatly if they are too many.
+
+                if Ip.valid cid then
+                  match s.server_sock with
+                  | Connection sock ->
+                      printf_string "QUERY ID";
+                      query_id s sock ip (Some file)
+                      
+                  | _ ->
+            DonkeySources.ask_indirect_connection_by_udp s.server_ip s.server_port ip 
             let module Q = Udp.QueryCallUdp in
             udp_server_send s 
               (Udp.QueryCallUdpReq {
@@ -1974,6 +2026,10 @@ let query_locations_reply s t =
                 Q.id = ip;
               })
         *)
+          
+          let s = DonkeySources.find_source_by_uid addr in
+          DonkeySources.set_request_result s file.file_sources File_new_source
+        with Not_found -> () (* Black listed *)
     ) t.Q.locs
     
   with Not_found -> ()
@@ -1987,12 +2043,13 @@ let client_connection_handler overnet t event =
   printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      
+
       if can_open_indirect_connection () then
         begin
           (try
               let c = ref None in
               incr DonkeySources.indirect_connections;
+(*              lprintf "INDIRECT CONNECTION.........\n"; *)
               let token = create_token connection_manager in
               let sock = 
                 TcpBufferedSocket.create token "donkey client connection" s 
@@ -2047,8 +2104,8 @@ let _ =
         let c = find_client_by_key s_uid in
         let file = find_file (Md4.of_string file_uid) in
         c.client_requests_sent <- c.client_requests_sent + 1;
-          let module M = DonkeyProtoClient in
-
+        let module M = DonkeyProtoClient in
+        
         let emule_extension = 
           let extendedrequest = M.extendedrequest c.client_emule_proto in
           if extendedrequest > 0 then
@@ -2069,7 +2126,7 @@ let _ =
         DonkeyProtoCom.client_send c (
           M.QueryFileReq {
             M.QueryFile.md4 = file.file_md4;
-            
+
 (* TODO build the extension if needed *)
             M.QueryFile.emule_extension = emule_extension;
           });
@@ -2089,20 +2146,10 @@ let _ =
             reconnect_client c
         | Invalid_address _ -> ()
         | Indirect_address (ip, port, id) ->
-            
-            let client_ip = client_ip None in
-            if ip_reachable client_ip then
-              let module Q = DonkeyProtoUdp.QueryCallUdp in
-              
-              DonkeyProtoCom.udp_send (get_udp_sock ())
-              ip (port+4)
-              (DonkeyProtoUdp.QueryCallUdpReq {
-                  Q.ip = client_ip;
-                  Q.port = !client_port;
-                  Q.id = id;
-                })
-      
-      
+
+            query_id ip port id
+
+                  
       with e -> 
           lprintf "DonkeyClient.connect_source: exception %s\n"
             (Printexc2.to_string e)

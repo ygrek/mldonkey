@@ -110,22 +110,16 @@ let queue_name = [|
     "busy_sources";
   |]
 
-let queue_period = [|
-    0;
-    600;
-    600;
-    0;
-    600;
-    600;
-    1200;
-    0;
-    0;
-    0
-  |]
 
-
-let _ = assert (Array.length queue_name = Array.length queue_period)
 let nqueues = Array.length queue_name
+
+let queue_period = Array.create nqueues 600
+  
+let _ =
+  queue_period.(new_sources_queue) <- 0;
+  queue_period.(connected_sources_queue) <- 0;
+  queue_period.(connecting_sources_queue) <- 0;
+  queue_period.(busy_sources_queue) <- 0
   
 module Make(M: 
 
@@ -343,6 +337,7 @@ module Make(M:
         Printf.bprintf buf "File Sources Managers table:\n";
         let nsources_per_queue = Array.create nqueues 0 in
         let nready_per_queue = Array.create nqueues 0 in
+        let nindirect_per_queue = Array.create nqueues 0 in
         List.iter (fun m ->
             Printf.bprintf buf "Manager: %d sources for %s\n" 
               m.manager_nsources
@@ -353,10 +348,12 @@ module Make(M:
               let q = m.manager_sources.(i) in
               Printf.bprintf buf "   Queue[%s]: %d entries" 
                 queue_name.(i) (Queue.length q);
+              let nindirect = ref 0 in
               let nready = ref 0 in
               let nsources = ref 0 in
               Queue.iter (fun (time, s) ->
                   incr nsources;
+                  if not (M.direct_source s.source_uid) then incr nindirect;
                   if time + !!min_reask_delay < last_time () then
                     incr nready
                   else
@@ -365,9 +362,12 @@ module Make(M:
                       print_source buf s
                     end
               ) q;
-              Printf.bprintf buf " (ready: %d/%d)" !nready !nsources;
+              Printf.bprintf buf " (ready: %d/%d)" !nready !nsources ;
+              if !nindirect > 0 then
+                Printf.bprintf buf  " (indirect %d)" !nindirect;
               nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
               nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
+              nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
               Printf.bprintf buf "\n";
             done
         
@@ -375,8 +375,17 @@ module Make(M:
         
         Printf.bprintf buf  "\nFor all managers:\n";
         for i = 0 to nqueues - 1 do
-          Printf.bprintf buf "   Queue[%s]: %d entries (%d ready)\n" 
-            queue_name.(i) nsources_per_queue.(i) nready_per_queue.(i);
+          Printf.bprintf buf "   Queue[%s]: %d entries"
+            queue_name.(i) 
+            nsources_per_queue.(i) ;
+
+          if nsources_per_queue.(i) > 0 then
+            Printf.bprintf buf " (%d ready)" nready_per_queue.(i);
+          
+          if nindirect_per_queue.(i) > 0 then
+            Printf.bprintf buf " (%d indirect)" nindirect_per_queue.(i);
+            
+          Printf.bprintf buf "\n";
         
         done;
         
@@ -570,15 +579,22 @@ module Make(M:
         s.source_age <- last_time ();
         s.source_last_attempt <- 0;
         List.iter (fun r ->
+(*            lprintf "SOURCE> request: "; *)
             if r.request_queue <> outside_queue then begin
+(*                lprintf "score %d/%d last query %s\n"
+                  r.request_score possible_score
+                  (if r.request_time = 0 then "never" else
+                    Printf.sprintf "%d secs"
+                      (last_time () - r.request_time));                *)
                 remove_from_queue s r;
                 if r.request_score > possible_score &&
                   r.request_time + !!min_reask_delay < last_time () then
                   source_query s r;
                 (try functions.function_add_location s.source_uid 
-                      r.request_file.manager_uid with _ -> ());
+                        r.request_file.manager_uid with _ -> ());
                 reschedule_source_for_file false s r
-              end
+              end (* else
+              lprintf "outside queue\n" *)
         ) s.source_files
 
 (*************************************************************************)
@@ -631,7 +647,7 @@ module Make(M:
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         connect_source                                *)
+(*                         create_queues                                 *)
 (*                                                                       *)
 (*************************************************************************)
       
@@ -865,6 +881,7 @@ we will probably query for the other file almost immediatly. *)
           | File_chunk -> chunk_score
           | File_upload -> upload_score
           | File_new_source -> initial_new_source_score
+          | File_possible -> possible_score + 1
           | _ -> assert false)
 
 (*************************************************************************)

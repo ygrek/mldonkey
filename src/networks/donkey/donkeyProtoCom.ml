@@ -181,15 +181,21 @@ let cut_messages parse f sock nread =
   with Not_found -> ()
 
 let udp_send t ip port msg =
+  
+  if !verbose_udp then begin
+      lprintf "Message UDP to %s:%d\n%s\n" (Ip.to_string ip) port
+        (DonkeyProtoUdp.print msg);
+    end;
+  
   try
-  Buffer.clear buf;
-  DonkeyProtoUdp.write buf msg;
-  let s = Buffer.contents buf in
-  UdpSocket.write t s ip port
+    Buffer.clear buf;
+    DonkeyProtoUdp.write buf msg;
+    let s = Buffer.contents buf in
+    UdpSocket.write t s ip port
   with e ->
       lprintf "Exception %s in udp_send" (Printexc2.to_string e);
       lprint_newline () 
-
+      
 let udp_handler f sock event =
   let module M = DonkeyProtoUdp in
   match event with

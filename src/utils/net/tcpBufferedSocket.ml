@@ -629,6 +629,13 @@ let can_read_handler t sock max_len =
           raise e
 
     in
+
+    (*
+    if nread = can_read then begin
+        lprintf "READ LIMITED BY BW CONTROL: %d\n" nread;
+      end;
+*)
+    
     if !verbose_bandwidth > 1 then begin
         lprintf "[BW2 %6d] %sread %d/%d/%d on %s:%d\n" (last_time ()) 
         (if old_len > 0 then "completing " else "") nread can_read max_len 

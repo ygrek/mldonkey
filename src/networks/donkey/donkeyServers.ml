@@ -278,17 +278,19 @@ connection from another client. In this case, we should immediatly connect.
       
       let module Q = M.QueryIDReply in
       if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
-          match Fifo.take s.server_id_requests with
-            None -> 
+          try
+            match Fifo.take s.server_id_requests with
+              None -> raise Not_found
+            | Some file ->
+                let s = DonkeySources.find_source_by_uid 
+                    (Direct_address (t.Q.ip, t.Q.port)) in
+                DonkeySources.set_request_result s file.file_sources 
+                  File_new_source         
+          with _ ->
               let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
               DonkeyClient.reconnect_client c;
               friend_add c
-
-          | Some file ->
-              let s = DonkeySources.find_source_by_uid 
-                  (Direct_address (t.Q.ip, t.Q.port)) in
-              DonkeySources.set_request_result s file.file_sources 
-                File_new_source         
+              
         end
 
   | M.QueryIDFailedReq t ->
