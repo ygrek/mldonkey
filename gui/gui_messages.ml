@@ -515,7 +515,8 @@ TODO list
   * Add sleep and wakeup commands.
   * More options in GUI
   * Ask for passwords if they are not set. Check IP addresses too.
-  * Check that imported files are not completely downloaded.
+  * Check if imported files are not completely downloaded.
+  * When a chunk is corrupted, try to detect bad source.
 
 ChangeLog
 =========

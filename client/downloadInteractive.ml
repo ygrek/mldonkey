@@ -930,7 +930,9 @@ let http_handler t r =
     end;
   
   let s = Buffer.contents buf in
-  TcpClientSocket.write t s 0 (String.length s);
+  let len = String.length s in
+  TcpClientSocket.set_max_write_buffer t (len + 100);
+  TcpClientSocket.write t s 0 len;
   TcpClientSocket.close_after_write t
         
       
