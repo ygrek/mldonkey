@@ -63,7 +63,7 @@ let buf = () (* lots of buf variables here. Be sure not to use a previously
 let buf_list buf f list =
   buf_int16 buf (List.length list);
   List.iter (fun x -> f buf x) list
-
+  
 let buf_array buf f list =
   buf_int16 buf (Array.length list);
   Array.iter (fun x -> f buf x) list
@@ -81,6 +81,9 @@ let buf_string buf s =
       buf_int buf len;
       Buffer.add_string buf s
     end 
+
+let buf_uid buf uid =
+  buf_string buf (Uid.to_string uid)
 
 let buf_float buf f =
   let i = int_of_float f in
@@ -212,15 +215,21 @@ let buf_bool buf b =
       
 let buf_result proto buf r =
   buf_int buf r.result_num;
-  buf_int buf r.result_network;
+  buf_int buf 0;
   buf_list buf buf_string r.result_names;
-  buf_md4 buf r.result_md4;
+  if proto < 27 then
+    buf_md4 buf Md4.null
+  else
+    buf_list buf buf_uid r.result_uids;
   buf_int64_2 proto buf r.result_size;
   buf_string buf r.result_format;
   buf_string buf r.result_type;
   buf_list buf buf_tag r.result_tags;
   buf_string buf r.result_comment;
-  buf_bool buf r.result_done
+  buf_bool buf r.result_done;
+  if proto > 26 then
+    let date = r.result_time in
+    buf_int buf (last_time () - date)
 
 let buf_user buf u =
   buf_int buf u.user_num;
@@ -320,11 +329,11 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_nlocations then begin
       buf_int8 buf 6;
-      buf_int buf f.file_nlocations;  
+      buf_int buf f.file_all_sources;  
     end;
   if f.file_fields.Fields_file_info.file_nclients then begin
       buf_int8 buf 7;
-      buf_int buf f.file_nclients;  
+      buf_int buf f.file_active_sources;  
     end;
   if f.file_fields.Fields_file_info.file_state then begin
       buf_int8 buf 8;
@@ -441,8 +450,8 @@ let buf_file proto buf f =
   buf_md4 buf f.file_md4;  
   buf_int64_2 proto buf f.file_size;  
   buf_int64_2 proto buf f.file_downloaded;  
-  buf_int buf f.file_nlocations;  
-  buf_int buf f.file_nclients;  
+  buf_int buf f.file_all_sources;  
+  buf_int buf f.file_active_sources;  
   buf_file_state proto buf f.file_state;  
   buf_string buf f.file_chunks;  
   if proto > 17 then
@@ -1023,6 +1032,10 @@ protocol version. Do not send them ? *)
     | NetworkMessage (n, s) -> buf_int16 buf 63; buf_int buf n; buf_string buf s
     | GiftAttach _ -> assert false
     | GiftStats -> assert false
+        
+    | InterestedInSources interested ->
+        buf_int16 buf 64; buf_bool buf interested
+        
   with e ->
       lprintf "GuiEncoding.from_gui: Exception %s\n"
         (Printexc2.to_string e)

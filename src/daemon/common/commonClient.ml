@@ -344,7 +344,7 @@ let set_client_type c t =
     end
 
 let _ = 
-  Heap.add_memstat "CommonClient" (fun buf ->
+  Heap.add_memstat "CommonClient" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) clients_by_num;
       Printf.bprintf buf "  clients: %d\n" !counter;
@@ -400,7 +400,7 @@ let client_print c o =
         (shorten info.G.client_name 20)
         i.GuiTypes.client_rating
         (match info.G.client_kind with
-            Indirect_location (name, _) -> name
+            Indirect_location (name, _) -> "firewalled"
             | Known_location (ip, port) ->
             Printf.sprintf "%s:%d" (Ip.to_string ip) port)
     end

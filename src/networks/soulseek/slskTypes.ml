@@ -46,12 +46,14 @@ and room = {
     mutable room_messages : (int * room_message) list;
   }
 
+  (*
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int64;
     mutable result_sources : (user * string) list;
   }
+*)
   
 and user = {
     user_user : user CommonUser.user_impl; 

@@ -129,8 +129,8 @@ type file_info = {
     mutable file_md4 : Md4.t;        
     mutable file_size : int64;
     mutable file_downloaded : int64; (* LOT OF CHANGES *)
-    mutable file_nlocations : int; (* MANY CHANGES *)
-    mutable file_nclients: int;
+    mutable file_active_sources : int; (* MANY CHANGES *)
+    mutable file_all_sources : int;
     mutable file_state : file_state;
     mutable file_chunks : string;
     mutable file_availability : (int * string) list; (* MANY CHANGES *)
@@ -305,8 +305,8 @@ let file_info_test =
     file_names = ["toto", noips(); "tutu", noips()];
     file_md4 = Md4.random ();
     file_size = Int64.of_string "68758765";
-    file_nlocations = 12;
-    file_nclients = 18;
+    file_active_sources = 12;
+    file_all_sources = 18;
     file_state = FileDownloading;
     file_sources = None;
     file_download_rate = 2.2;

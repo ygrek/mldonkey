@@ -505,8 +505,6 @@ let file_print file o =
   let srcs = file_all_sources file in
 
 
-(* TODO: make multinet aware *)
-  
   if use_html_mods o then begin
       
       html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
@@ -551,10 +549,9 @@ let file_print file o =
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
               html_mods_td buf [
                 ("Fake check links", "sr br", "Fakecheck");
-                ("", "sr", Printf.sprintf "\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
-    				\\<a href=\\\"http://www.sharereactor.com/fakesearch.php\\?search=ed2k://|file|%s|%s|%s|/\\\"\\>[ShareReactor Fakecheck]\\</a\\>" 
+                ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://donkeyfakes.gambri.net/fakecheck.php\\?hash=%s\\\"\\>[Donkey-Fakes]\\</a\\>" 
                     (Md4.to_string info.G.file_md4) 
-                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
+                  ) ];
               
               
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
@@ -697,6 +694,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                 (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ]);
       
       in
+      if !!print_all_sources then begin
       
       if use_html_mods o = false then Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
@@ -722,9 +720,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
               Printf.bprintf buf "\\</tr\\>";
             end
           else
-            if !!all_sources_on_telnet then client_bprint c buf;
+            client_bprint c buf;
       ) srcs;
 
+     end;
       if use_html_mods o && srcs <> [] then begin
         Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
         if !!html_mods_vd_queues then file_print_sources_html file buf;
@@ -857,7 +856,7 @@ let recover_bytes file =
 (*************************************************************************)
     
 let _ = 
-  Heap.add_memstat "CommonFile" (fun buf ->
+  Heap.add_memstat "CommonFile" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;

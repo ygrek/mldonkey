@@ -39,6 +39,7 @@ open FileTPOptions
 open FileTPGlobals
 open FileTPComplexOptions
 open BasicSocket
+open Autoconf
 
 open FileTPProtocol
   
@@ -82,8 +83,8 @@ let _ =
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
+        P.file_all_sources = 0;
+        P.file_active_sources = 0;
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
@@ -170,12 +171,21 @@ let _ =
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
         
-        html_mods_td buf [ 
+        let show_emulemods_column = ref false in
+           if Autoconf.donkey = "yes" then begin
+               if !!emule_mods_count then
+                   show_emulemods_column := true
+        end;
+
+        html_mods_td buf ([
           ("", "srb ar", Printf.sprintf "%d" (client_num cc));
           ((string_of_connection_state (client_state cc)), "sr",
             (short_string_of_connection_state (client_state cc)));
           ("", "sr", cinfo.GuiTypes.client_name);
-          ("", "sr", "fT"); (* cinfo.GuiTypes.client_software *)
+          ("", "sr", "TP"); (* cinfo.GuiTypes.client_software *)
+          ] @
+          (if !show_emulemods_column then [("", "sr", "")] else [])
+          @ [
           ("", "sr", "F");
           ("", "sr ar", Printf.sprintf "%d" 
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
@@ -183,7 +193,7 @@ let _ =
           ("", "sr", (string_of_client_addr c));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
-          ("", "sr", info.GuiTypes.file_name); ];
+          ("", "sr", info.GuiTypes.file_name); ]);
         true
     )     
   

@@ -80,10 +80,12 @@ let network = new_network "BitTorrent"
      op_result_info : ('a -> CommonTypes.result_info);
   *)
 let connection_manager = network.network_connection_manager
-    
+  
+  (*
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
-  
+    *)
+
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 

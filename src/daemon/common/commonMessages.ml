@@ -416,9 +416,6 @@ onClick=\"mSub('fstatus','reshare')\">Reshare</TD>
 <TD class=\"bu bbig\" title=\"List contents of the temp directory\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','scan_temp')\">Scan temp</TD>
-<TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\" 
-onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
 <TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','bw_stats')\">Bandwidth stats</TD>
@@ -448,6 +445,9 @@ onClick=\"mSub('output','custom=Movie+Search')\">Movie search</TD>
 <TD class=\"bu bbig\" title=\"Album search\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','custom=Album+Search')\">Album search</TD>
+<TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab3\" style=\"display: none\">

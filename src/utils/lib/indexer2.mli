@@ -34,5 +34,7 @@ module FullMake (Doc : Doc) : sig
     val filtered :  Doc.t -> bool
     val query : index -> Doc.t query -> Doc.t array          
     val query_map : index -> Doc.t query -> Doc.t Intmap.t
+      
+    val stats : index -> int
   end
   

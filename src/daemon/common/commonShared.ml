@@ -318,7 +318,7 @@ let shared_info s =
   impl.impl_shared_ops.op_shared_info impl.impl_shared_val
         
 let _ = 
-  Heap.add_memstat "CommonShared" (fun buf ->
+  Heap.add_memstat "CommonShared" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) shareds_by_num;
       Printf.bprintf buf "  shared: %d\n" !counter;

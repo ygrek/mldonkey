@@ -54,9 +54,11 @@ let network = new_network "Soulseek"
   
 let connection_manager = network.network_connection_manager      
   
+  (*
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
-  
+    *)
+
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 
@@ -187,6 +189,22 @@ let new_client name =
       Hashtbl.add clients_by_name name c;
       c
 
+  
+let result_sources = Hashtbl.create 1000
+  
+let add_result_source r (s : user) (index : string) =
+  let ss = 
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
+  in
+  let key = (s, index) in
+  if not (List.mem key !ss) then begin
+      ss := key :: !ss
+    end
       
 let new_result filename filesize =
   let basename = Filename2.basename filename in
@@ -194,27 +212,15 @@ let new_result filename filesize =
   try
     Hashtbl.find results_by_file key
   with _ ->
-      let rec result = {
-          result_result = result_impl;
-          result_name = basename;
+      let rec r = {
+          dummy_result with
+          result_names = [basename];
           result_size = filesize;
-          result_sources = [];
-        } and
-        result_impl = {
-          dummy_result_impl with
-          impl_result_val = result;
-          impl_result_ops = result_ops;
         } in
-      new_result result_impl;
-      Hashtbl.add results_by_file key result;
-      result
-        
-        
-let add_result_source r u filename =
-  if not (List.mem_assoc u r.result_sources) then begin
-      r.result_sources <- (u, filename) :: r.result_sources
-    end
-      
+      let rs = update_result_num r in
+      Hashtbl.add results_by_file key rs;
+      rs
+            
 let rooms_by_name = Hashtbl.create 13
   
 let new_room name =

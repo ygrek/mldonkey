@@ -34,6 +34,7 @@
 
 open Int64ops
 open AnyEndian
+open BigEndian
 open CommonShared
 open CommonUploads
 open Printf2
@@ -110,6 +111,7 @@ let connect_tracker file event f =
           ("downloaded", Int64.to_string downloaded) ::
           ("left", Int64.to_string ((file_size file) -- 
                 (Int64Swarmer.downloaded swarmer)) ) ::
+	  ("compact","1") ::
           args
         in  
         let module H = Http_client in
@@ -305,10 +307,10 @@ let check_finished swarmer file =
 
     
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
-(*Official client seems to use max_range_request 5 and max_range_len 2^14*)
-(*How much requests in the 'pipeline'*)
+(* Official client seems to use max_range_request 5 and max_range_len 2^14 *)
+(* How much requests in the 'pipeline' *)
 let max_range_requests = 5
-(*How much bytes we can request in one Piece*)
+(* How much bytes we can request in one Piece *)
 
     
 
@@ -393,8 +395,8 @@ let rec client_parse_header counter cc init_sent gconn sock
           lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
           cc := Some c;
           c
-      | Some c ->
-          if c.client_uid <> peer_id then begin
+      | Some c -> c
+(*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
               let ccc = new_client file peer_id (TcpBufferedSocket.host sock) in
               lprintf "CLIENT %d: testing instead of %d\n"
@@ -411,7 +413,7 @@ let rec client_parse_header counter cc init_sent gconn sock
                     cc := Some ccc;
                     ccc)
             end else
-            c          
+            c       *)   
     in
     
     if !verbose_msg_clients then begin
@@ -1154,6 +1156,17 @@ for parsing the response*)
                     | _ -> assert false
                 
                 ) list
+            | String "peers", String p ->
+		let rec iter_comp s pos l =
+		  if pos < l then
+		    let ip = Ip.of_ints (get_uint8 s pos,get_uint8 s (pos+1),
+			      get_uint8 s (pos+2),get_uint8 s (pos+3))
+		    and port = get_int16 s (pos+4) 
+		    in 
+		      ignore( new_client file Sha1.null (ip,port));
+		      iter_comp s (pos+6) l
+		in
+		  iter_comp p 0 (String.length p)
             | _ -> ()
         ) list;
 (*Now, that we have added new clients to a file, it's time

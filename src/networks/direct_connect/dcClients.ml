@@ -396,7 +396,7 @@ lprint_newline ();
               List.iter (fun (dirname,r) ->
                   lprintf "NEW FILE in %s\n" dirname; 
                   client_new_file (as_client c.client_client) dirname
-                    (as_result r.result_result)
+                    r
               ) files;
               ()
             with e ->

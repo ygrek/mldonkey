@@ -84,6 +84,7 @@ and server = {
     mutable server_sock : tcp_connection;
     mutable server_ciphers : ciphers option;
     mutable server_nfiles : int;
+    mutable server_nusers : int;
     mutable server_nkb : int;
 
     mutable server_need_qrt : bool;
@@ -164,10 +165,6 @@ and client = {
     mutable client_connected_for : file option;
     mutable client_support_head_request : bool;
   }
-
-and file_uri =
-  FileByIndex of int * string
-| FileByUrl of string
   
 and upload_client = {
     uc_sock : TcpBufferedSocket.t;
@@ -176,16 +173,14 @@ and upload_client = {
     uc_chunk_len : int64;
     uc_chunk_end : int64;
   }
-  
-and result = {
-    result_result : result CommonResult.result_impl;
-    result_name : string;
-    result_size : int64;
-    mutable result_tags : tag list;
-    mutable result_sources : (user * file_uri) list;
-    mutable result_hash : Md5Ext.t;
-  }
 
+  (*
+and result = {
+    result_result : result_info;
+    mutable result_sources : (user * file_uri) list;
+  }
+*)
+  
 and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
@@ -201,7 +196,6 @@ and file = {
 
 and download = {
     download_file : file;
-    download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
     

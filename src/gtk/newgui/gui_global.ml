@@ -19,6 +19,18 @@
 
 open Printf2
 (** Global variables. *)
+      
+let displayed_page = ref 0
+
+let networks_page = 0
+let servers_page = 1
+let downloads_page = 2
+let friends_page = 3
+let searches_page = 4
+let rooms_page = 5
+let uploads_page = 6
+let console_page = 7
+let graph_page = 8
 
 (** Number of known servers. *)
 let nservers = ref 0

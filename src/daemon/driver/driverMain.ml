@@ -33,6 +33,16 @@ open CommonNetwork
   
 open DriverInterface
 
+module Dp500 = DriverLink.DP500(struct
+      
+      module CommonTypes = CommonTypes
+      module CommonFile = CommonFile
+      module CommonOptions = CommonOptions
+        
+      let files () = !!CommonComplexOptions.files
+      
+    end)
+  
 open Gettext (* open last  as most modules redefine _s and _b *)
   
 let _s x = _s "DriverMain" x
@@ -48,6 +58,7 @@ let do_daily () =
 let minute_timer () =
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
+  CommonResult.dummy_result.result_time <- last_time ();
   if !!auto_commit then
     List.iter (fun file ->
         file_commit file
@@ -87,9 +98,7 @@ let start_interfaces () =
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
 
-  if !!dp500_pclink then 
-    ignore (find_port  "dp500 server" !!telnet_bind_addr
-        dp500_port DriverLink.pclink_handler);  
+  Dp500.start ();
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
@@ -110,11 +119,11 @@ let start_interfaces () =
 
 
 let _ =
-  CommonWeb.add_web_kind "motd.html" (fun filename ->
+  CommonWeb.add_web_kind "motd.html" (fun _ filename ->
       lprintf (_b "motd.html changed\n"); 
     motd_html =:= File.to_string filename
   );
-  CommonWeb.add_web_kind "motd.conf" (fun filename ->
+  CommonWeb.add_web_kind "motd.conf" (fun _ filename ->
     let ic = open_in filename in
     try
       while true do
@@ -139,7 +148,7 @@ let _ =
 	(Printexc2.to_string e); 
 	close_in ic
 			   );
-  CommonWeb.add_web_kind "guarding.p2p" (fun filename ->
+  CommonWeb.add_web_kind "guarding.p2p" (fun _ filename ->
       Ip_set.bl := Ip_set.load filename
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
   )
@@ -218,8 +227,11 @@ while (my $uri = shift @ARGV) {
     "admin" ""
   in
   File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
+  try
   Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
-    
+  with
+  e -> ()
+
 let load_config () =
   
   DriverInterface.install_hooks ();
@@ -259,6 +271,7 @@ let load_config () =
         exit 2;
         ());  
   
+  CommonOptions.update_options ();
   CommonMessages.load_message_file ();
   if !!html_mods then begin
       if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
@@ -326,7 +339,7 @@ used. For example, we can add new we_binfos... *)
           CommonClient.check_client_implementations ();
           CommonServer.check_server_implementations ();
           CommonFile.check_file_implementations ();
-          CommonResult.check_result_implementations ();
+(*          CommonResult.check_result_implementations (); *)
           lprint_newline ();
           exit 0), 
       _s " : display information on the implementations";
@@ -356,6 +369,7 @@ used. For example, we can add new we_binfos... *)
 (**** CREATE DIRS   ****)
   
   Unix2.safe_mkdir !!incoming_directory;
+  Unix2.safe_mkdir "searches";
   Unix2.safe_mkdir !!temp_directory
 
 let _ =  
@@ -386,15 +400,14 @@ let _ =
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
   
-  (try Options.load servers_ini with _ -> ());
-  (try Options.load files_ini with _ -> ());
-  (try Options.load friends_ini with _ -> ());
-  (try Options.load searches_ini with _ -> ());
+  CommonComplexOptions.load ();
   
-  Options.save_with_help servers_ini;
-  Options.save_with_help files_ini;
-  Options.save_with_help friends_ini;
-  Options.save_with_help searches_ini;
+  begin
+    let old_save_results = !!save_results in
+    save_results =:= 0;
+    CommonComplexOptions.save ();
+    save_results =:= old_save_results;
+  end;
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 

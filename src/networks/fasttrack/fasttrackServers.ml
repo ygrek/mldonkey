@@ -294,18 +294,22 @@ let recover_file file =
           ) !connected_servers
   )
   
-let download_file (r : result) =
+let download_file hash (r : CommonTypes.result_info) =
   let file = new_file (Md4.random ()) 
-    r.result_name r.result_size r.result_hash in
+    (List.hd r.result_names) 
+    r.result_size hash in
   lprintf "DOWNLOAD FILE %s\n" file.file_name; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun (user, index) ->
-      let c = new_client user.user_kind in
-      add_download file c index;
-      get_file_from_source c file;
-  ) r.result_sources;
+  begin
+    let sources = Hashtbl.find result_sources r.result_num in
+    List.iter (fun user ->
+        let c = new_client user.user_kind in
+        add_download file c;
+        get_file_from_source c file;                  
+    ) !sources;
+  end;
   recover_file file;
   (as_file file)
 
@@ -426,10 +430,6 @@ let try_connect_ultrapeer connect =
       find_ultrapeer ultrapeers_waiting_queue
     with _ ->
 (*        lprintf "not in ultrapeers_waiting_queue\n";  *)
-        try
-          find_ultrapeer g0_ultrapeers_waiting_queue
-        with _ ->
-(*            lprintf "not in g0_ultrapeers_waiting_queue\n";   *)
             let (h : host) = 
               new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
             find_ultrapeer peers_waiting_queue

@@ -26,9 +26,26 @@ type gift_command =
   GiftCommand of string * string option * gift_command list
   
 let gui_extension_poll = 1
+  
 let to_gui_last_opcode = 57
-let from_gui_last_opcode = 63
-let best_gui_version = 26
+let from_gui_last_opcode = 64
+let best_gui_version = 27
+  
+(* I will try to report all changes to the protocol here: send me patches
+if I don't !
+
+Version 27: 
+  GUI -> Core: message 4 [RESULT_INFO]
+    Field result_md4 (16 bytes) has been replaced by result_uids (string list)
+    A new Field result_time (4 bytes) has been added.
+  Core -> GUI: In message 4 [RESULT_INFO], for protocols < 27, the MD4 sent
+     is now invalid (filled with zeroes). Don't use it !
+  GUI -> Core: new message [INTERESTED_IN_SOURCES]
+    By sending (INTERESTED_IN_SOURCES interestedp), a GUI can declare
+     whether it wants or not to receive information on sources.
+  
+  *)
+  
   
 type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
@@ -119,6 +136,9 @@ the messages (it will use the version specified in CoreProtocol instead
 | GiftStats  
 
 | NetworkMessage of int * string
+
+(* Understood by core protocol 27 *)
+| InterestedInSources of bool 
   
 type to_gui =
 (* This message is the first message sent by the core *)
@@ -257,6 +277,8 @@ let from_gui_to_string t =
       
   | GiftAttach _ -> "GiftAttach"
   | GiftStats -> "GiftStats"
+  
+  | InterestedInSources _ -> "InterestedInSources"
       
 let string_of_to_gui t =
   match t with

@@ -50,9 +50,11 @@ let first_name names =
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
-let is_filtered r =
+let is_filtered r = false 
+(* TODO RESULT
   List.memq r.gresult_network !Gui_global.networks_filtered
-
+*)
+  
 let result_mapping names =
   let ext = String.lowercase (Filename2.last_extension (first_name names)) in
   match ext with
@@ -409,7 +411,7 @@ class box s_num columns () =
     method compare_by_col col r1 r2 =
       match col with
         Col_result_name -> compare (first_name r1.gresult_names) (first_name r2.gresult_names)
-      |	Col_result_md4 -> compare (Md4.to_string r1.gresult_md4) (Md4.to_string r2.gresult_md4)
+      |	Col_result_uids -> compare r1.gresult_uids r2.gresult_uids
       |	Col_result_size -> compare r1.gresult_size r2.gresult_size
       |	Col_result_format -> compare r1.gresult_format r2.gresult_format
       |	Col_result_duration -> compare r1.gresult_duration r2.gresult_duration
@@ -418,7 +420,8 @@ class box s_num columns () =
       |	Col_result_availability -> compare r1.gresult_availability r2.gresult_availability
       |	Col_result_completesources -> compare r1.gresult_completesources r2.gresult_completesources
       |	Col_result_comment -> compare r1.gresult_comment r2.gresult_comment
-      | Col_result_network -> compare r1.gresult_network r2.gresult_network
+      | Col_result_network -> 
+(* TODO RESULT compare r1.gresult_network r2.gresult_network *) 0
           
     method compare r1 r2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
@@ -432,7 +435,8 @@ class box s_num columns () =
     method content_by_col col r =
       match col with
         Col_result_name -> shorten_name (first_name r.gresult_names)
-      |	Col_result_md4 -> Md4.to_string r.gresult_md4
+      |	Col_result_uids -> 
+          (Uid.to_string (List.hd r.gresult_uids))
       |	Col_result_size -> Gui_misc.size_of_int64 r.gresult_size
       |	Col_result_format -> r.gresult_format
       |	Col_result_duration -> r.gresult_duration
@@ -449,7 +453,8 @@ class box s_num columns () =
           if r.gresult_completesources = 0 
             then "" 
             else string_of_int r.gresult_completesources
-      | Col_result_network -> Gui_global.network_name r.gresult_network
+      | Col_result_network -> 
+          (* TODO RESULT Gui_global.network_name r.gresult_network *) "--"
       |	Col_result_comment -> r.gresult_comment
     
     method content r =
@@ -487,9 +492,8 @@ class box s_num columns () =
     method core_to_gui_result r =
       {
        gresult_num = r.result_num;
-       gresult_network = r.result_network;
        gresult_names = r.result_names;
-       gresult_md4 = r.result_md4;
+       gresult_uids = r.result_uids;
        gresult_size = r.result_size;
        gresult_format = r.result_format;
        gresult_type = r.result_type;
@@ -505,9 +509,10 @@ class box s_num columns () =
            Some (result_mapping r.result_names)
            else None;
        gresult_net_pixmap =
-         if icons_are_used then
+(* TODO RESULT: use the uids instead
+        if icons_are_used then
            Some (Gui_options.network_pix (Gui_global.network_name r.result_network))
-           else None;
+           else *)None;
       }
 (*
     method remove_extend_search_button =
@@ -523,9 +528,10 @@ class box s_num columns () =
       let (f, label, step) =
         if b then
           ((fun r ->
-          r.gresult_net_pixmap <-
+                r.gresult_net_pixmap <-
+                (* TODO RESULT 
             Some (Gui_options.network_pix
-                    (Gui_global.network_name r.gresult_network));
+                    (Gui_global.network_name r.gresult_network)) *) None;
           r.gresult_pixmap <-
             Some (result_mapping r.gresult_names)
           ), M.pW_lb_results_add_icons, 1)

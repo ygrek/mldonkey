@@ -40,12 +40,14 @@ type server = {
     mutable server_searches : string Fifo.t;
   }
 
+  (*
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int64;
     mutable result_sources : (user * string) list;
   }
+*)
   
 and user = {
     user_user : user CommonUser.user_impl; 

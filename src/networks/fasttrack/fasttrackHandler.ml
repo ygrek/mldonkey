@@ -23,7 +23,8 @@ open BasicSocket
 open TcpBufferedSocket
 open Options
 open AnyEndian
-  
+
+open CommonResult
 open CommonDownloads  
 open CommonUploads
 open CommonOptions
@@ -180,19 +181,20 @@ let server_msg_handler sock s msg_type m =
           let url = Printf.sprintf 
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
-          let url = Printf.sprintf 
-              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in 
+(*          let url = Printf.sprintf 
+              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in  *)
           begin
             match s.search_search with
               UserSearch (sss, _,_,_) ->
                 
-                let r = new_result result_name result_size tags result_hash in
-                add_source r user (FileByUrl url);
-                CommonInteractive.search_add_result false sss r.result_result
+                let rs = new_result result_name result_size tags result_hash in
+                let r = get_result rs in
+                add_source rs user;
+                CommonInteractive.search_add_result false sss rs
             
             | FileSearch file ->
                 let c = new_client user.user_kind in
-                add_download file c (FileByUrl url);
+                add_download file c (* (FileByUrl url) *);
                 
                 if not (List.mem_assoc result_name file.file_filenames) then 
                   file.file_filenames <- file.file_filenames @ [result_name, GuiTypes.noips()] ;
@@ -214,6 +216,17 @@ fst_searchlist_process_reply (FST_PLUGIN->searches, msg_type, msg_data);
       
   | 0x09 -> (* SessMsgNetworkStats *)
       lprintf "SessMsgNetworkStats\n";
+      
+      s.server_nusers <- BigEndian.get_int m 0;
+      s.server_nfiles <- BigEndian.get_int m 4;
+
+      let mantissa = BigEndian.get_int16 m 8 in
+      let exponent = BigEndian.get_int16 m 10 in
+
+      if exponent >= 30 then 
+        s.server_nkb <- (mantissa lsl (exponent-30))
+      else
+        s.server_nkb <- (mantissa lsl (30-exponent));
       
 (*
 unsigned int mantissa, exponent;
@@ -252,5 +265,5 @@ break;
       server_send s 0x1d network_name
 
   | _ ->
-      lprintf "   ******* Unknown message %d\n" msg_type;
+      lprintf "   ******* FastTrack Unknown message %d\n" msg_type;
       AnyEndian.dump m

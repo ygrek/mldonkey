@@ -209,7 +209,7 @@ let servers_line = "--servers"
 let slsk_kind =  "slsk_server_list"
 
 let load_server_list_last = ref 0
-let load_server_list filename = 
+let load_server_list _ filename  = 
   load_server_list_last := last_time ();
   let s = File.to_string filename in
   try

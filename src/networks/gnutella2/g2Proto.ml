@@ -25,6 +25,7 @@ open Options
 open Md4
 open TcpBufferedSocket
 
+open Xml_types
 open CommonGlobals
 open CommonTypes
 open CommonOptions
@@ -243,12 +244,13 @@ module Print = struct
         let xml = Xml.parse_string s in
         let rec iter indent xml =
           match xml with
-            Xml.XML (name, params, subexprs) ->
+            Element (name, params, subexprs) ->
               Printf.bprintf buf "%s%s:\n" indent name;
               List.iter (fun (name,value) ->
                   Printf.bprintf buf "  %s%s = %s\n" indent name value
               ) params;
               List.iter (iter (indent ^ "    ")) subexprs
+          | _ -> ()
         in
         Printf.bprintf buf "\n";
         iter "" xml

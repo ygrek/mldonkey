@@ -22,17 +22,52 @@ open CommonResult
 open CommonInteractive
 open CommonNetwork
 open CommonSearch
-open CommonTypes
+(* open CommonTypes *)
 open CommonGlobals
 open GuiTypes
-open CommonComplexOptions
-open CommonFile
+(* open CommonComplexOptions *)
+(* open CommonFile *)
 open Options
 open BasicSocket
 open TcpBufferedSocket
-open DriverInteractive
-open CommonOptions
+(* open DriverInteractive *)
 
+module DP500(M: sig
+
+      module CommonTypes : sig
+          type file
+        end
+
+      open CommonTypes
+      module CommonFile : sig
+
+          val file_best_name : file -> string
+          val file_disk_name : file -> string
+          val file_size : file -> int64
+          val file_downloaded : file -> int64
+        end
+
+      module CommonOptions : sig 
+          
+          val incoming_directory : string Options.option_record
+          val temp_directory : string Options.option_record
+          val dp500_directory : string Options.option_record
+          val allowed_ips : Ip.t list Options.option_record
+          val dp500_buffer : int Options.option_record
+          val dp500_pclink : bool Options.option_record
+          val telnet_bind_addr : Ip.t Options.option_record
+          val dp500_port : int Options.option_record
+        end
+        
+      val files : unit -> file list
+        
+    end) =
+  struct
+    
+    open M
+    open CommonFile
+      open CommonOptions 
+  
 (* TODO: add all the functionnalities that the dp500 lacks:
   - shuffled directory (reply with random mp3 from directory)
   - shuffled tree (reply with random mp3 from tree)
@@ -253,44 +288,50 @@ let exec_command telnet line sock =
           
           let base_directory, argument, files = match kind with
             | "VIDEO" -> 
+
                 if argument = "" then begin
-                    write_string sock (Printf.sprintf "%s|%s|1|\r\n"
-                        mlnet_incoming_string mlnet_incoming_string
-                    );
-                    write_string sock (Printf.sprintf "%s|%s|1|\r\n"
-                        mlnet_temp_string mlnet_temp_string 
-                    );
-                  end;
-                if String2.starts_with argument mlnet_incoming_string then
-                  list_directory !!incoming_directory
-                    (String.sub argument mlnet_incoming_string_len
-                      (String.length argument - mlnet_incoming_string_len))
-                
+                    if !!incoming_directory <> "" then
+                      write_string sock (Printf.sprintf "%s|%s|1|\r\n"
+                          mlnet_incoming_string mlnet_incoming_string
+                      );
+                    
+                    if !!temp_directory <> "" then
+                      write_string sock (Printf.sprintf "%s|%s|1|\r\n"
+                          mlnet_temp_string mlnet_temp_string 
+                      );
+                    end;
+                if !!incoming_directory <> "" &&
+                  String2.starts_with argument mlnet_incoming_string then
+                    list_directory !!incoming_directory
+                      (String.sub argument mlnet_incoming_string_len
+                        (String.length argument - mlnet_incoming_string_len))
+                  
                 else
-                if String2.starts_with argument mlnet_temp_string then
-                  !!temp_directory,
-                  (String.sub argument mlnet_temp_string_len
-                      (String.length argument - mlnet_temp_string_len)),
-                  let list = ref [] in
-                  List.iter (fun file ->
-                      let best_name = file_best_name file in
-                      let disk_name = file_disk_name file in
-                      let ext = Filename2.last_extension best_name in
-                      lprintf "Adding %s\n" best_name;
-                      let file_size = Int64.to_float (file_size file) in
-                      let file_downloaded = 
-                        Int64.to_float (file_downloaded file) in
+                if !!temp_directory <> "" &&
+                  String2.starts_with argument mlnet_temp_string then
+                    !!temp_directory,
+                    (String.sub argument mlnet_temp_string_len
+                        (String.length argument - mlnet_temp_string_len)),
+                    let list = ref [] in
+                    List.iter (fun file ->
+                        let best_name = file_best_name file in
+                        let disk_name = file_disk_name file in
+                        let ext = Filename2.last_extension best_name in
+                        lprintf "Adding %s\n" best_name;
+                        let file_size = Int64.to_float (file_size file) in
+                        let file_downloaded = 
+                          Int64.to_float (file_downloaded file) in
                         
-                      list := (
-                        Printf.sprintf "%2.1f%%/%4.1fM %s"
-                        (file_downloaded /. file_size)
-                        (file_size /. 1048576.)
-                        best_name, Filename.basename disk_name, disk_name
+                        list := (
+                          Printf.sprintf "%2.1f%%/%4.1fM %s"
+                            (file_downloaded /. file_size *. 100. )
+                          (file_size /. 1048576.)
+                          best_name, Filename.basename disk_name, disk_name
 (* Printf.sprintf "%d@%s" (file_num file) ext *)) :: 
-                      !list
-                  ) !!files;
-                  !list
-                else
+                        !list
+                    ) (files ());
+                    !list
+                else 
                   list_directory
                     (Filename.concat !!dp500_directory "video") argument
             
@@ -488,7 +529,7 @@ let pclink_handler t event =
         let token = create_token unlimited_connection_manager in
         if !verbose_dp500 then lprintf "dp500 connection allowed\n";
         let sock = TcpBufferedSocket.create_simple token
-          "pclink connection"
+            "pclink connection"
             s in
         let telnet = ref 0 in
         
@@ -498,8 +539,15 @@ let pclink_handler t event =
         TcpBufferedSocket.set_reader sock (pclink_reader telnet);
         TcpBufferedSocket.set_closer sock pclink_closed;
         pclink_socks := sock :: !pclink_socks;
-
+      
       else 
         Unix.close s
-
+  
   | _ -> ()
+      
+let start () =
+  if !!dp500_pclink then 
+    ignore (find_port  "dp500 server" !!telnet_bind_addr
+        dp500_port pclink_handler);  
+  
+end

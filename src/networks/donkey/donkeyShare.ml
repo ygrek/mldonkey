@@ -20,6 +20,7 @@
 open CommonGlobals
 open Printf2
 open Md4
+open CommonDownloads
 open CommonFile
 open CommonShared
 open CommonTypes
@@ -39,7 +40,7 @@ let must_share_file file codedname has_old_impl =
   match file.file_shared with
   | Some _ -> ()
   | None ->
-      new_shared := file :: !new_shared;
+      new_shared := true;
       let impl = {
           impl_shared_update = 1;
           impl_shared_fullname = file_disk_name file;
@@ -95,6 +96,32 @@ let new_file_to_share sh codedname old_impl =
 (*  file.file_chunks <- Array.make file.file_nchunks PresentVerified; *)
 (*    file.file_absent_chunks <- []; *)
 (*    file.file_all_chunks <- String.make file.file_nchunks '1'; *)
+    (* Should we trust mtimes, or reverify each file.  If we trust
+     * mtimes, I guess we have to call
+     * Int64Swarmer.set_verified_bitmap "333..."
+     * this seems unspeakably ugly, but the alternative is to reverify 
+     * every shared file every hour.
+     *
+     * If, however, we could somehow avoid regenerating shared files
+     * when the directory is scanned, verifying everything on startup
+     * might be acceptable.
+     *
+     * Also, timestamps would be more resilient if we took the maximum
+     * of mtime and ctime.  (Touch will set ctime to the current time
+     * regardless of the mtime being set.)
+     *)
+    match file.file_swarmer with
+      Some s -> (let len = Array.length file.file_md4s in
+		 let ver_str = String.make len '3' in
+		     Int64Swarmer.set_verified_bitmap s ver_str;
+		 (*
+		 Int64Swarmer.set_present s [(Int64.zero, file_size file)];
+		 (* If we don't verify now, it will never happen! *)
+		 Int64Swarmer.verify_all_blocks s true;
+		 *)
+                lprintf "verified map of %s = %s\n"
+		         (codedname) (Int64Swarmer.verified_bitmap s))
+      | None -> lprintf "no swarmer for %s\n" codedname;
     (try 
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)
@@ -128,9 +155,9 @@ Do it only once per 5 minutes to prevent sending to many times all files.
   Should I only do it for master servers, no ?
   *)
 let send_new_shared () =
-  if !new_shared != [] then
+  if !new_shared then
     begin
-      new_shared := [];
+      new_shared := false;
       let socks = ref [] in
       let list = all_shared () in
       List.iter (fun s ->

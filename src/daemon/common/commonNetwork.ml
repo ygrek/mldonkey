@@ -234,6 +234,7 @@ let new_network name flags prefix_option subdir_option =
       op_network_connected = (fun _ -> ni_ok name "connected"; false);
       op_network_add_server = (fun _ -> fni name "op_network_add_server");
       op_network_gui_message = (fun _ -> ni_ok name "gui_message");
+      op_network_download = (fun _ -> raise IgnoreNetwork);
     }
   in
   let rr = (Obj.magic r: network) in

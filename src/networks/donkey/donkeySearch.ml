@@ -193,8 +193,7 @@ let _ =
           send_search search query;
           Printf.bprintf buf "Query %d Sent to %d\n"
             ss.search_num (List.length (connected_servers()))
-      | LocalSearch ->
-          DonkeyIndexer.find ss;
+      | LocalSearch -> ()
       | SubscribeSearch ->
           send_subscribe search query;
           Printf.bprintf buf "Query %d Sent to %d\n"

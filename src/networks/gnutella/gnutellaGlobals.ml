@@ -89,9 +89,6 @@ let network = new_network "Gnutella"
 
 let connection_manager = network.network_connection_manager
   
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-  
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 
@@ -139,7 +136,10 @@ let files_by_key = Hashtbl.create 13
 let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
-let results_by_uid = Hashtbl.create 127
+  
+  
+(* TODO RESULT *)
+let results_by_uid = Hashtbl.create 127 
   
 (***************************************************************
 
@@ -276,13 +276,23 @@ let new_server ip port =
 
 let extract_uids arg = Uid.expand [Uid.of_string arg]
   
-let add_source r s index =
+let result_sources = Hashtbl.create 1000
+  
+let add_source r (s : user) (index : file_uri) =
+  let ss = 
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
+  in
   let key = (s, index) in
-  if not (List.mem key r.result_sources) then begin
-      r.result_sources <- key :: r.result_sources
+  if not (List.mem key !ss) then begin
+      ss := key :: !ss
     end
 
-let new_result file_name file_size tags uids =
+let new_result file_name file_size tags (uids : Uid.t list) sources =
   match uids with
     [] -> (
 (*        lprintf "New result by key\n"; *)
@@ -290,67 +300,57 @@ let new_result file_name file_size tags uids =
         try
           Hashtbl.find results_by_key key
         with _ ->
-            let rec result = {
-                result_result = result_impl;
-                result_name = file_name;
+            let r = { dummy_result with
+                result_names = [file_name];
                 result_size = file_size;
-                result_sources = [];
-                result_uids = [];
-                result_tags = tags;
-              } and
-              result_impl = {
-                dummy_result_impl with
-                impl_result_val = result;
-                impl_result_ops = result_ops;
-              } in
-            new_result result_impl;
-            Hashtbl.add results_by_key key result;
-            result)
+                result_tags = tags
+(* TODO: result_netfid, result_network *)
+              }
+            in
+            let r = update_result_num r in
+            Hashtbl.add results_by_key key r;
+            r)
   | uid :: other_uids ->
 (*      lprintf "New result by UID\n"; *)
-      let r = 
+      let rs = 
         try
           Hashtbl.find results_by_uid uid
         with _ -> 
-            let rec result = {
-                result_result = result_impl;
-                result_name = file_name;
+            let r = { dummy_result with
+                result_names = [file_name];
                 result_size = file_size;
-                result_sources = [];
                 result_tags = tags;
-                result_uids = [uid];
-              } and
-              result_impl = {
-                dummy_result_impl with
-                impl_result_val = result;
-                impl_result_ops = result_ops;
-              } in
-            new_result result_impl;
-            Hashtbl.add results_by_uid uid result;
-            result
+                result_uids = uids;
+                }
+            in
+            let rs = update_result_num r in
+            Hashtbl.add results_by_uid uid rs;
+            rs
       in
+      let r = get_result rs in
+(*
       let rec iter_uid uid =
         if not (List.mem uid r.result_uids) then begin
             r.result_uids <- uid :: r.result_uids;
             (try
-                let rr = Hashtbl.find results_by_uid uid in
-                if r != rr then 
+                let rrs = Hashtbl.find results_by_uid uid in
+                if rs != rrs then 
                   let result_uids = rr.result_uids in
                   rr.result_uids <- [];
                   List.iter (fun uid -> 
                       Hashtbl.remove results_by_uid uid) result_uids;
                   List.iter (fun uid -> iter_uid uid) result_uids;
-                  List.iter (fun (s, index) ->
+                  List.iter (fun ( (s: user) , (index: file_uri) ) ->
                       add_source r s index
-                  ) rr.result_sources;
-                  rr.result_sources <- [];
+                  ) sources;
               with _ -> ());
             
             Hashtbl.add results_by_uid uid r;
           end
       in
-      List.iter iter_uid other_uids;
-      r
+List.iter iter_uid other_uids;
+  *)
+      rs
 
 let megabyte = Int64.of_int (1024 * 1024)
       

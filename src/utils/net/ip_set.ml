@@ -28,9 +28,9 @@ and ins bl br =
       BL_Empty -> BL_Range (true, BL_Empty, br, BL_Empty)
     | BL_Range (red, left, br2, right) ->
 	if Ip.compare br.blocking_end br2.blocking_begin < 0 then
-	  fixup (BL_Range (red, (add_range left br), br2, right))
+	  fixup (BL_Range (red, (ins left br), br2, right))
 	else if Ip.compare br.blocking_begin br2.blocking_end > 0 then
-	  fixup (BL_Range (red, left, br2, (add_range right br)))
+	  fixup (BL_Range (red, left, br2, (ins right br)))
 	else (* ok, comments aren't preserved. Beat me. *)
              (* left and right aren't simplified either *)
 	  let newr = {

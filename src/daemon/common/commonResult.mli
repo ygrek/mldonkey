@@ -1,31 +1,20 @@
-val dummy_result : CommonTypes.result
-type 'a result_impl = {
-  mutable impl_result_update : int;
-  mutable impl_result_num : int;
-  mutable impl_result_val : 'a;
-  mutable impl_result_ops : 'a result_ops;
-} 
-and 'a result_ops = {
-  mutable op_result_network : CommonTypes.network;
-  mutable op_result_download : 'a -> string list -> bool -> CommonTypes.file;
-  mutable op_result_info : 'a -> CommonTypes.result_info;
-} 
-val result_counter : int ref
-val as_result : 'a result_impl -> CommonTypes.result
-val as_result_impl : CommonTypes.result -> 'a result_impl
-val result_num : CommonTypes.result -> int
-val dummy_result_impl : int result_impl
-val dummy_result : CommonTypes.result
-val new_result : 'a result_impl -> unit
-val ni : CommonTypes.network -> string -> string
-val fni : CommonTypes.network -> string -> 'a
-val ni_ok : CommonTypes.network -> string -> unit
-val result_info : CommonTypes.result -> CommonTypes.result_info
+val update_result_num : CommonTypes.result_info -> CommonTypes.result
+val update_result : CommonTypes.result_info -> unit
+val find_result : int -> CommonTypes.result
+val get_result : CommonTypes.result -> CommonTypes.result_info
 val result_download : CommonTypes.result -> string list -> bool -> 
-  CommonTypes.file
-val results_ops : (int result_ops * int result_ops) list ref
-val new_result_ops : CommonTypes.network -> 'a result_ops
-val check_result_implementations : unit -> unit
-val result_find : int -> CommonTypes.result
-val result_print : CommonTypes.result -> 'a -> 'b -> unit
+  CommonTypes.file list
+val dummy_result : CommonTypes.result_info
 val results_iter : (int -> CommonTypes.result -> unit) -> unit
+val known_uids : (CommonTypes.uid_type, int) Hashtbl.t
+val set_result_name : CommonTypes.result_info -> string -> unit
+val set_result_tag : CommonTypes.result_info -> CommonTypes.tag -> unit
+  
+module Document : sig 
+    type t = Store.index
+    val num : Store.index -> int
+    val filter : Store.index -> bool -> unit
+    val filtered : Store.index -> bool
+    val doc_value : Store.index -> CommonTypes.result_info
+  end
+  

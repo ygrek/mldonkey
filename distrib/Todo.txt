@@ -9,6 +9,7 @@ URGENT:
  * In 'recover_bytes/set_present', there might be some corruption causing
     the downloaded size to decrease instead of increasing. We should not
     maybe allow verification during this phase to have a correct computation.
+ * When a file is cancelled, remove all the downloaders immediatly.
 
 BUGS:
 

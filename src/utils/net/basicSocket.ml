@@ -495,12 +495,14 @@ let set_dump_info s f =
   s.dump_info <- f
   
 let _ =
-  Heap.add_memstat "BasicSocket" (fun buf ->
+  Heap.add_memstat "BasicSocket" (fun level buf ->
       Printf.bprintf buf "  %d timers\n" (List.length !timers); 
       Printf.bprintf buf "  %d fd_tasks:\n" (List.length !fd_tasks); 
-      List.iter (fun t -> t.dump_info buf) !fd_tasks;
+      if level > 0 then
+        List.iter (fun t -> t.dump_info buf) !fd_tasks;
       Printf.bprintf buf "  %d closed_tasks:\n" (List.length !closed_tasks); 
-      List.iter (fun t -> t.dump_info buf) !closed_tasks;
+      if level > 0 then
+        List.iter (fun t -> t.dump_info buf) !closed_tasks;
   )
 
 let prevent_close s = s.can_close <- false

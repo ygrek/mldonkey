@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(* TODO INTERESTED *)
+
 open BasicSocket
 open Int64ops
 open Printf2
@@ -32,6 +34,8 @@ open LittleEndian
 open TcpBufferedSocket
 
 exception FromGuiMessageNotImplemented
+
+let verbose_gui_decoding = ref false
   
 (*
 gui_cut_messages is a reader for TcpBufferedSocket.t that will cut the stream
@@ -60,7 +64,7 @@ let gui_cut_messages f sock nread =
       Decoding of basic data types
 
 ****************)
-
+      
 let get_string s pos = 
   let len = get_int16 s pos in
   if len land 0xffff = 0xffff then
@@ -84,6 +88,10 @@ let get_array f s pos =
   Array.of_list list, pos
 
 let get_bool s pos = (get_uint8 s pos) = 1
+
+let get_uid s pos =
+  let uid, pos = get_string s pos in
+  Uid.of_string uid, pos
 
 let rec get_query s pos =
   let op = get_uint8 s pos in
@@ -258,24 +266,37 @@ let get_result proto s pos =
   let num  = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
-  let md4 = get_md4 s pos in
-  let size, pos = get_uint64_2 proto s (pos+16) in
+  let uids, pos = 
+    if proto < 27 then
+      [], pos+ 16
+    else
+      get_list get_uid s pos
+  in
+  let size, pos = get_uint64_2 proto s pos in
   let format, pos = get_string s pos in
   let t, pos = get_string s pos in
   let tags, pos = get_list get_tag s pos in
   let comment, pos = get_string s pos in
   let already_done = get_bool  s pos in
+  let time, pos = 
+    if proto < 27 then
+      0, pos+1
+    else
+    let date = get_int s pos in
+    last_time () - date, pos + 4
+  in    
   { 
     result_num = num;
-    result_network = net;
     result_names = names;
-    result_md4 = md4;
+    result_uids = uids;
     result_size = size;
     result_format = format;
     result_type = t;
     result_tags = tags;
     result_comment = comment;
-    result_done = already_done
+    result_done = already_done;
+    result_modified = false;
+    result_time = time;
   }, pos+1
 
 let get_message s pos =
@@ -340,8 +361,8 @@ let get_file proto s pos =
   let md4 = get_md4 s pos in
   let size,pos = get_uint64_2 proto s (pos+16) in
   let downloaded, pos = get_uint64_2 proto s pos in
-  let nlocations = get_int s pos in
-  let nclients = get_int s (pos+4) in
+  let file_all_sources = get_int s pos in
+  let file_active_sources = get_int s (pos+4) in
   let state, pos = get_file_state s (pos+8) in
   let chunks, pos = get_string s pos in
   let availability, pos = 
@@ -400,8 +421,8 @@ let get_file proto s pos =
     file_md4 = md4;
     file_size = size;
     file_downloaded = downloaded;
-    file_nlocations = nlocations;
-    file_nclients = nclients;
+    file_all_sources = file_all_sources;
+    file_active_sources = file_active_sources;
     file_state = state;
     file_chunks = chunks;
     file_availability = availability;
@@ -727,7 +748,8 @@ let from_gui (proto : int array) opcode s =
   try
 
     let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in    
-(*    lprintf "FROM GUI: Opcode %d\n" opcode; *)
+    if !verbose_gui_decoding then
+      lprintf "FROM GUI: Opcode %d\n" opcode; 
     match opcode with
       0 -> GuiProtocol (get_int s 2)
     
@@ -975,6 +997,9 @@ let from_gui (proto : int array) opcode s =
         let s, pos = get_string s 6 in
         NetworkMessage (n, s)
         
+    | 64 ->
+        InterestedInSources (get_bool s 2)
+        
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise FromGuiMessageNotImplemented
@@ -1010,7 +1035,8 @@ let to_gui (proto : int array) opcode s =
   try
     let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
     
-(*    lprintf "TO GUI: Opcode %d\n" opcode;   *)
+    if !verbose_gui_decoding then
+      lprintf "TO GUI: Opcode %d\n" opcode;   
     match opcode with
     | 0 ->
         let version = get_int s 2 in

@@ -416,7 +416,7 @@ lprint_newline ()
             let result = new_result t.SR.filename t.SR.filesize in
             let user = new_user (Some s) t.SR.owner in
             add_result_source result user t.SR.filename;
-            CommonInteractive.search_add_result true q result.result_result
+            CommonInteractive.search_add_result true q result
       end
   
   | UnknownReq "" -> ()

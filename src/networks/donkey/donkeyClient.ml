@@ -337,7 +337,7 @@ let find_sources_in_groups c md4 =
                       | Reliability_suspicious _ -> ()
                   ) group.group;
                   if !list <> [] then begin
-                      if !verbose_sources then begin
+                      if !verbose_sources > 2 then begin
                           lprintf "Send %d sources from file groups to mldonkey peer\n" (List.length !list); 
                         end;
                       let msg = 
@@ -360,7 +360,7 @@ let find_sources_in_groups c md4 =
               
               UdpClientMap.iter (fun _ uc ->
                   if uc.udp_client_can_receive then begin
-                      if !verbose_sources then
+                      if !verbose_sources > 2 then
                         lprintf "Send new source to file groups UDP peers\n"; 
                       udp_client_send uc (
                         Udp.QueryLocationReplyUdpReq (
@@ -803,7 +803,8 @@ let client_to_client for_files c t sock =
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf "Message from %s\n" (string_of_client c);
+      lprintf "Message from %s" (string_of_client c);
+      CommonGlobals.print_localtime ();
       M.print t;
       lprintf "\n"
     end;
@@ -962,7 +963,7 @@ let client_to_client for_files c t sock =
               match result_of_file f.f_md4 f.f_tags with
                 None -> ()
               | Some r ->
-                  let r = DonkeyIndexer.index_result_no_filter r in
+(* TODO                   let r = DonkeyIndexer.index_result_no_filter r in *)
                   client_new_file c r;
                   list := r :: !list
           ) t;
@@ -988,7 +989,9 @@ end; *)
       begin
         match c.client_download with
         | Some (file,up) -> 
-            lprintf "DonkeyClient: Clear download\n";
+            if !verbose_download then begin
+                lprintf "DonkeyClient: Clear download\n";
+	    end;
             Int64Swarmer.clear_uploader_ranges up;
             c.client_download <- None
         | None ->
@@ -1014,6 +1017,7 @@ end; *)
                         DonkeyOneFile.add_client_chunks c file chunks) files;
 (*                DonkeyOneFile.restart_download c *)
                   with _ -> 
+                        if c.client_debug then
                       lprintf "AvailableSlot received, but not file to download !!\n";
 (* TODO: ask for the files now *)
       end;
@@ -1078,7 +1082,9 @@ other one for unlimited sockets.  *)
         match c.client_download with
           None -> ()
         | Some (file,up) ->
-            lprintf "Slot closed during download\n";
+            if !verbose_download then begin
+                lprintf "Slot closed during download\n";
+	    end;
             Int64Swarmer.clear_uploader_ranges up
       end;
 (*      DonkeyOneFile.clean_current_download c; *)
@@ -1250,7 +1256,9 @@ is checked for the file.
 
 (*            lprintf "Comp bloc: %d/%d\n" comp.comp_len comp.comp_total; *)
       if comp.comp_len = comp.comp_total then begin
+	if !verbose_download then begin
           lprintf "Complete Compressed bloc received !!!!!!\n";
+	end;
           
           let s = String.create comp.comp_len in
           let rec iter list =
@@ -1266,7 +1274,9 @@ is checked for the file.
           assert (pos = comp.comp_len);
           if Autoconf.has_zlib then
             let s = Autoconf.zlib__uncompress_string2 s in
+	    if !verbose then begin
             lprintf "Decompressed: %d/%d\n" (String.length s) comp.comp_len;
+	    end;
             
             DonkeyOneFile.block_received c comp.comp_md4
               comp.comp_pos s 0 (String.length s)
@@ -2133,8 +2143,10 @@ let _ =
         ignore (DonkeySources.add_request c.client_source 
             file.file_sources (last_time ()))        
       with e -> 
+	if !verbose then begin
           lprintf "DonkeyClient.query_source: exception %s\n"
-            (Printexc2.to_string e)
+            (Printexc2.to_string e);
+	end
   );
   
   DonkeySources.functions.DonkeySources.function_connect <-
@@ -2151,12 +2163,15 @@ let _ =
 
                   
       with e -> 
+	if !verbose then begin
           lprintf "DonkeyClient.connect_source: exception %s\n"
-            (Printexc2.to_string e)
+            (Printexc2.to_string e);
+	end
   );
   
+  
   DonkeySources.functions.DonkeySources.function_max_connections_per_second <-
-    (fun () -> !!max_clients_per_second);
+    (fun () -> !!max_connections_per_second);
   
   DonkeySources.functions.DonkeySources.function_max_sources_per_file <-
     (fun () -> !!max_sources_per_file);
@@ -2183,8 +2198,10 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
       
       with e -> 
+	if !verbose then begin
           lprintf "DonkeyClient.add_location: exception %s\n"
-            (Printexc2.to_string e)  
+            (Printexc2.to_string e);
+	end
   );
   
   DonkeySources.functions.DonkeySources.function_remove_location <- (fun
@@ -2196,8 +2213,10 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
         
       with e -> 
+	if !verbose then begin
           lprintf "DonkeyClient.remove_location: exception %s\n"
-            (Printexc2.to_string e)
+    	     (Printexc2.to_string e);
+	end
   )
   
   

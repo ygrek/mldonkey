@@ -446,14 +446,85 @@ let rec close_ranges t r =
   r.range_current_begin <- r.range_end;
   match r.range_next with
     None -> ()
-  | Some rr -> close_ranges t rr
+  | Some rr -> 
+      r.range_prev <- None;
+      r.range_next <- None;
+      close_ranges t rr
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_downloaded_block                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_downloaded_block t i =
+  match t.t_blocks.(i) with
+    EmptyBlock ->
+      let block_begin = t.t_block_size ** i in
+      let block_end = min (block_begin ++ t.t_block_size) t.t_size in
+      t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
+  | PartialBlock b ->
+      let rec iter r =
+        t.t_downloaded <- t.t_downloaded ++ 
+          (r.range_end -- r.range_current_begin);
+        r.range_current_begin <- r.range_end;
+        match r.range_next with
+          None -> r.range_prev <- None; r
+        | Some rr -> 
+            r.range_prev <- None;
+            r.range_next <- None;
+            iter rr
+      in
+      b.block_ranges <- iter b.block_ranges
+  | _ -> ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_toverify_block (internal)                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_toverify_block t i =
+  if t.t_verified_bitmap.[i] < '2' then begin
+      t.t_verified_bitmap.[i] <- '2';
+      t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1
+    end
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_completed_block (internal)                *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_completed_block t i =
+  match t.t_blocks.(i) with
+    CompleteBlock | VerifiedBlock -> ()
+  | _ ->
+      set_downloaded_block t i;
+      set_toverify_block t i;
+      t.t_blocks.(i) <- CompleteBlock
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_verified_block (internal)                 *)
+(*                                                                       *)
+(*************************************************************************)
+      
+let set_verified_block t i =
+  match t.t_blocks.(i) with
+    VerifiedBlock -> ()
+  | _ ->
+      set_completed_block t i;
+      t.t_blocks.(i) <- VerifiedBlock;
+      t.t_verified_bitmap.[i] <- '3';
+      t.t_nverified_blocks <- t.t_nverified_blocks + 1
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         verify_block (internal)                       *)
 (*                                                                       *)
 (*************************************************************************)
-
+    
 let verify_block t i = 
   if t.t_verified_bitmap.[i] = '2' then
     match t.t_verifier with
@@ -464,22 +535,19 @@ let verify_block t i =
           let block_end = block_begin ++  t.t_block_size in
           let block_end = min block_end t.t_size in
           if f i block_begin block_end then begin
-              t.t_nverified_blocks <- t.t_nverified_blocks + 1;
               begin
                 match t.t_blocks.(i) with
                   PartialBlock b ->
-                    
                     t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
                     close_ranges t b.block_ranges
                 | EmptyBlock ->                 
                     t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
                 | _ -> ()
               end;
-              
-              t.t_verified_bitmap.[i] <- '3';          
-              t.t_blocks.(i) <- VerifiedBlock;
+              set_verified_block t i
             
             end else begin
+              
               lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
                 i (file_best_name t.t_file);
               t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
@@ -505,16 +573,13 @@ let verify_block t i =
 (*                         must_verify_block                             *)
 (*                                                                       *)
 (*************************************************************************)
-
+    
 let must_verify_block t i immediatly = 
   match t.t_verifier with
     None -> ()
   | Some f ->
-      if t.t_verified_bitmap.[i] < '2' then begin
-          t.t_verified_bitmap.[i] <- '2';
-          t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-          if immediatly then verify_block t i
-        end
+      if t.t_verified_bitmap.[i] < '2' then set_toverify_block t i;
+      if t.t_verified_bitmap.[i] = '2' && immediatly then verify_block t i
 
 (*************************************************************************)
 (*                                                                       *)
@@ -537,10 +602,8 @@ let verify_all_blocks t immediatly =
 let compute_bitmap t =
   if t.t_ncomplete_blocks > t.t_nverified_blocks then begin
       for i = 0 to Array.length t.t_blocks do
-        match t.t_blocks.(i) with
-          CompleteBlock ->
+        if t.t_verified_bitmap.[i] = '2' then
             verify_block t i
-        | _ -> ()
       done
     end
 
@@ -614,16 +677,19 @@ let new_block t i =
 (*  lprintf "New block %Ld-%Ld\n" block_begin block_end; *)
   split_range range t.t_range_size;
   
+(*
   let rec iter r =
-(*    lprintf "  Range %Ld-%Ld\n" r.range_begin r.range_end; *)
+    lprintf "  Range %Ld-%Ld\n" r.range_begin r.range_end; 
     match r.range_next with
       None -> ()
     | Some r -> iter r
   in
   iter b.block_ranges;
+*)
   
   t.t_blocks.(i) <- PartialBlock b;
-  t.t_verified_bitmap.[i] <- '1';
+  if t.t_verified_bitmap.[i] < '1' then
+    t.t_verified_bitmap.[i] <- '1';
   if debug_all then lprintf "NB[%s]" t.t_verified_bitmap;
   b
 
@@ -633,13 +699,15 @@ let new_block t i =
 (*                         next_range (internal)                         *)
 (*                                                                       *)
 (*************************************************************************)
-
+  
+(*
 let next_range f r =
   match r.range_next with
     None -> ()
   | Some rr -> f rr
+        *)
 
-
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         range_received (internal)                     *)
@@ -673,15 +741,10 @@ let range_received r chunk_begin chunk_end =
                           PartialBlock _ | EmptyBlock ->
                             begin match t.t_verifier with
                                 Some _ ->
-                                  t.t_blocks.(b.block_num) <- CompleteBlock;
+                                  set_completed_block t b.block_num;
                                   must_verify_block t b.block_num true
-                              
                               | _ ->
-                                  t.t_ncomplete_blocks <- 
-                                    t.t_ncomplete_blocks + 1;
-                                  t.t_blocks.(b.block_num) <- VerifiedBlock;
-                                  t.t_verified_bitmap.[b.block_num] <- '3';
-                                  t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+                                  set_verified_block t b.block_num
                             end
                         | _ -> ()
                       end
@@ -700,7 +763,7 @@ let range_received r chunk_begin chunk_end =
 (*                                                                       *)
 (*************************************************************************)
 
-let recompute_downloaded t = ()
+let recompute_downloaded t = () 
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1605,55 +1668,23 @@ let present_chunks t =
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         set_downloaded_block                          *)
-(*                                                                       *)
-(*************************************************************************)
-
-let set_downloaded_block t i =
-  match t.t_blocks.(i) with
-    EmptyBlock ->
-      let block_begin = t.t_block_size ** i in
-      let block_end = min (block_begin ++ t.t_block_size) t.t_size in
-      t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
-  | PartialBlock b ->
-      let rec iter r =
-        t.t_downloaded <- t.t_downloaded ++ 
-          (r.range_end -- r.range_current_begin);
-        r.range_current_begin <- r.range_end;
-        match r.range_next with
-          None -> r.range_prev <- None; r
-        | Some rr -> 
-            r.range_prev <- None;
-            r.range_next <- None;
-            iter rr
-      in
-      b.block_ranges <- iter b.block_ranges
-  | _ -> ()
-
-(*************************************************************************)
-(*                                                                       *)
 (*                         set_verified_bitmap                           *)
 (*                                                                       *)
 (*************************************************************************)
 
 let set_verified_bitmap t bitmap =
-  t.t_verified_bitmap <- bitmap;
+(*  t.t_verified_bitmap <- bitmap; *)
   
   for i = 0 to String.length bitmap - 1 do
     match t.t_blocks.(i) with
       VerifiedBlock -> ()
     | CompleteBlock when bitmap.[i] = '3' ->
-        t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-        t.t_blocks.(i) <- VerifiedBlock
+        set_verified_block t i
     | EmptyBlock | PartialBlock _ when bitmap.[i] = '3' ->
-        t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-        t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-        set_downloaded_block t i;
-        t.t_blocks.(i) <- VerifiedBlock
+        set_completed_block t i;
+        set_verified_block t i
     | EmptyBlock | PartialBlock _ when bitmap.[i] = '2' ->
-        t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-        set_downloaded_block t i;
-        t.t_blocks.(i) <- CompleteBlock;
+        set_completed_block t i;
         verify_block t i
     | _ -> ()
   done;
@@ -1881,7 +1912,7 @@ let swarmer_to_value t other_vals =
 (* Compute an approximation of the storage used by this module *)
     
     let _ = 
-      Heap.add_memstat "CommonSources" (fun buf ->
+      Heap.add_memstat "CommonSources" (fun level buf ->
           let counter = ref 0 in
           let nchunks = ref 0 in
           let nblocks = ref 0 in

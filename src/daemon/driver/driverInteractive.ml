@@ -126,16 +126,25 @@ if !!html_mods_use_relative_availability
 (* WARNING: these computations are much more expensive as they seem.
 We use the ShortLazy to avoid recomputing the result too many times,
 in particular when sorting the files depending on their number of sources... 
+
+2004/06/18: file.file_all_sources is used when not zero, and in this case,
+  also file.file_active_sources.
   *)
   
 let number_of_sources gf = 
   List.length (file_all_sources (file_find gf.file_num))
 
 let number_of_sources gf =
+  if gf.file_all_sources > 0 then
+    gf.file_all_sources
+  else
   ShortLazy.compute ("number_of_sources", gf.file_num, 0)
   number_of_sources gf
     
 let number_of_active_sources gf =
+  if gf.file_all_sources > 0 then 
+    gf.file_active_sources
+  else
   let nasrcs = ref 0 in
   List.iter (fun fsrc ->
     match (client_state fsrc) with
@@ -373,7 +382,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a href=http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
+          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a target=_blank href=http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
               file.file_num
               file.file_num
               (Int64.to_string file.file_size)
@@ -400,11 +409,13 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
             let size = if size < 1. then 1. else size in
             Printf.sprintf "%s \\<br\\>
 \\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
-\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
-\\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
+\\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+\\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
 \\</tr\\>\\</table\\>"
             (short_name file)
+	    (!!html_vd_barheight)
             (truncate (downloaded /. size *. 100.))
+	    (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.))
           );              	
           
@@ -595,15 +606,17 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
             Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\" 
 			title=\\\"[File#: %d] [Net: %s]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
 			\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
-			\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
-			\\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
+			\\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+			\\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
 			\\</tr\\>\\</table\\>\\</td\\>"
             file.file_num
             file.file_num
   			(net_name file)
 			(if !!max_name_len < String.length file.file_name then " " ^ file.file_name else "")
             (short_name file)
+	    (!!html_vd_barheight)
             (truncate (downloaded /. size *. 100.))
+	    (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.))
           );           
 
@@ -756,12 +769,12 @@ let simple_print_file_list finished buf files format =
             "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=priority\\\"\\> Priority \\</a\\>"; 
           |] else
           [|
-            "[ Num ]"; 
+            "$nNum"; 
             "File";
             "    %"; 
             "    Done";
             "    Size";
-            "    Left";
+            "Avail";
             "Old";
             " Active";
             "Rate";
@@ -800,8 +813,7 @@ let simple_print_file_list finished buf files format =
                 else (Int64.to_string file.file_downloaded) );
               (if !!improved_telnet then (print_human_readable file file.file_size)
                 else (Int64.to_string file.file_size) );
-              (if !!improved_telnet then (print_human_readable file (Int64.sub file.file_size file.file_downloaded))
-                else (Int64.to_string (Int64.sub file.file_size file.file_downloaded)) );
+		(Printf.sprintf "%.0f%%" (get_file_availability file)); 
               (Printf.sprintf "%d:%s" (age_to_day file.file_age)
                 ( 
                   let len = Array.length file.file_chunks_age in
@@ -854,8 +866,19 @@ let simple_print_file_list finished buf files format =
 let display_file_list buf o =
   display_vd := true;
   if not (use_html_mods o) then
-    Printf.bprintf buf "Downloaded %d/%d files\n" (List.length !!done_files) 
-    (List.length !!files);
+(*    Printf.bprintf buf "Downloaded %d/%d files\n" (List.length !!done_files) 
+    (List.length !!files); *)
+    Printf.bprintf buf "\nDown: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
+       (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
+         !udp_download_rate
+         !control_download_rate
+       (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0)
+         !udp_upload_rate
+         !control_upload_rate
+         !nshared_files
+         (size_of_int64 !upload_counter);
+
+    Printf.bprintf buf "\n";
 
   if o.conn_output <> HTML && !!improved_telnet then
   begin
@@ -897,7 +920,7 @@ let display_file_list buf o =
 let display_file_list buf o =
   display_file_list buf o;
   if not (use_html_mods o) then
-    Printf.bprintf buf "\nDownloaded %d files\n" (List.length !!done_files);
+    Printf.bprintf buf "%0sDownloaded %d files\n" (if !!term_ansi then "$n" else "") (List.length !!done_files);
   if !!done_files <> [] then begin
 (*      List.iter (fun file -> CommonFile.file_print file o)   !!done_files; *)
       simple_print_file_list true buf 
@@ -907,12 +930,12 @@ let display_file_list buf o =
     end
 
 
-let get_tag_value tv =
-	match tv with 
+let get_tag_value tag =
+  match tag.tag_value with 
  | Uint64 i -> String.escaped (Int64.to_string i)
  | Fint64 i -> String.escaped (Int64.to_string i)
  | String s -> String.escaped s
- | _ -> "???"
+ | _ -> ""
 
 let old_print_search buf o results = 
   let user = o.conn_user in
@@ -941,12 +964,18 @@ let old_print_search buf o results =
           
           user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
           if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-              (let n = network_find_by_num r.result_network in
-              n.network_name)
+                  (
+(* TODO RESULT: use the uids to display from which networks it is downloadable
+                  let n = network_find_by_num r.result_network in
+              n.network_name *) "--")
           else Printf.bprintf  buf "[%5d] %s " 
-              !counter
+                  !counter
+                
+(* TODO RESULT:
               (let n = network_find_by_num r.result_network in
-              n.network_name);
+                  n.network_name) *)
+                "--";
+
           if o.conn_output = HTML then begin
             if !!html_mods then begin
 			Printf.bprintf buf "\\<td title=\\\"";
@@ -956,7 +985,7 @@ let old_print_search buf o results =
 					| "FTH" | "urn" -> ()  
 					| _ -> 
 						Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
-						"|| (" ^ t.tag_name ^ "): " ^ get_tag_value t.tag_value);
+            "|| (" ^ t.tag_name ^ "): " ^ get_tag_value t);
           ) r.result_tags;
 
 			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
@@ -991,39 +1020,14 @@ let old_print_search buf o results =
               if !!html_mods then Printf.bprintf buf "\\</a\\>\\</td\\>"
               else Printf.bprintf buf "\\</a href\\>";
             end;
-
-			let hash = ref "" in 
-			List.iter (fun t ->
-			  (match t.tag_name with 
-				| "urn" | "FTH"  -> (
-               		 match t.tag_value with
-          	       	  String s -> hash := s
- 	               	| Uint64 i -> hash := Int64.to_string i
-    	           	| Fint64 i -> hash := Int64.to_string i
-        	       	| _ -> hash := "???")
-				| _ -> ())) r.result_tags;
-			if !hash = "" then hash := Md4.to_string r.result_md4;
-
+              let hash = ref (string_of_uids r.result_uids) in
+			let cavail = ref (string_of_int avail) in
 			let csource = ref "" in
 			List.iter (fun t ->
 			    (match t.tag_name with 
-				"completesources" -> (
-	                   		 match t.tag_value with
-				      String s -> csource := s
-	 	    		    | Uint64 i -> csource := Int64.to_string i
-        	           	    | Fint64 i -> csource := Int64.to_string i
-	        	       	    | _ -> csource := "")
-				| _ -> ())) r.result_tags;
-
-			let cavail = ref "" in
-			List.iter (fun t ->
-			    (match t.tag_name with 
-				"availability" -> (
-	                   		 match t.tag_value with
-				      String s -> cavail := s
-	 	    		    | Uint64 i -> cavail := Int64.to_string i
-        	           	    | Fint64 i -> cavail := Int64.to_string i
-	        	       	    | _ -> cavail := (string_of_int avail))
+        			| "urn" | "FTH"  -> hash := get_tag_value t
+				| "availability" -> cavail := get_tag_value t
+				| "completesources" -> csource := get_tag_value t
 				| _ -> ())) r.result_tags;
 
           if use_html_mods o then 
@@ -1042,7 +1046,7 @@ let old_print_search buf o results =
 			else !hash) !hash
           else	Printf.bprintf  buf "          %10s %10s " 
               (Int64.to_string r.result_size)
-            (Md4.to_string r.result_md4);
+            (string_of_uids r.result_uids);
           
           if use_html_mods o then begin 
 			Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
@@ -1051,7 +1055,7 @@ let old_print_search buf o results =
 					| "completesources" | "availability" | "urn" | "FTH"  -> () 
 					| _ -> 
 					Buffer.add_string buf ("\\<span title=\\\"" ^ 
-					get_tag_value t.tag_value ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
+          get_tag_value t ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
                 )
           ) r.result_tags;
           Printf.bprintf buf "\\</td\\>\\</tr\\>";
@@ -1060,7 +1064,7 @@ let old_print_search buf o results =
       		List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then !cavail else
-					get_tag_value t.tag_value))
+          get_tag_value t))
           ) r.result_tags;
           Buffer.add_char buf '\n';
 	end
@@ -1151,6 +1155,9 @@ let print_search_html buf results o search_num =
               if !counter >= !!max_displayed_results then raise Exit;
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               files := [|
+                
+                (Int64.to_string r.result_size);
+                (string_of_int avail);
                 (Printf.sprintf "[%5d]\\<input name=d type=checkbox value=%d\\>" !counter r.result_num);
                 
                 (
@@ -1177,13 +1184,10 @@ let print_search_html buf results o search_num =
                       Buffer.contents buf
                 );
                 
-                (Int64.to_string r.result_size);
-                
                 tags_string;
                 
-                (string_of_int avail);
                 
-                (Md4.to_string r.result_md4);
+                (string_of_uids r.result_uids);
               |] :: !files
           with _ -> ()
       ) results;
@@ -1197,10 +1201,10 @@ let print_search_html buf results o search_num =
   print_table_html 10 buf [||] 
     [|
     "[ Num ]";
-    "Names";
     "Size";
-    "Tags";
     "Avail";
+    "Names";
+    "Tags";
     "MD4";
   |] 
     (List.rev !files);
@@ -1208,8 +1212,8 @@ let print_search_html buf results o search_num =
 
   
   
-let print_results buf o results =
-
+let print_results stime buf o results =
+  
   let user = o.conn_user in
   let print_table = if o.conn_output = HTML then print_table_html 2
     else print_table_text in
@@ -1222,11 +1226,26 @@ let print_results buf o results =
               incr counter;
               if !counter >= !!max_displayed_results then raise Exit;
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
+              let new_result = !!save_results > 0 && r.result_time >= stime in
               files := [|
                 
                 (if use_html_mods o then
                     Printf.sprintf "\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>\\<td class=\\\"sr\\\"\\>" !counter
-                  else Printf.sprintf "[%5d]" !counter);
+                  else Printf.sprintf "%s[%s%5d]" 
+                      (if new_result && !!term_ansi then "$b" else "$n")
+                      (if new_result then "N" else " ")
+                    !counter);
+                
+                
+                (if use_html_mods o then 
+                    "\\<td class=\\\"sr ar\\\"\\>" ^  size_of_int64 r.result_size ^ "\\</td\\>"
+                  else Int64.to_string r.result_size
+                );
+                
+                (if use_html_mods o then 
+                    "\\<td class=\\\"sr ar\\\"\\>" ^  (string_of_int avail) ^ "\\</td\\>"
+                  else (string_of_int avail)
+                );
                 
                 (Printf.sprintf "%s%s%s"
                     (if o.conn_output = HTML then begin
@@ -1235,29 +1254,29 @@ let print_results buf o results =
                       end
                     else "")
                   
-                  (
-                    let names = r.result_names in
-                    let names = if r.result_done then
-                        ["ALREADY DOWNLOADED "] @ names else names in
-                    let names = match  r.result_comment with
-                        "" -> names
-                      |  comment ->
-                          names @ ["COMMENT: " ^ comment] 
-                    in
-                    match names with
-                      [name] -> name
-                    | _ ->
-                        let buf = Buffer.create 100 in
-                        if o.conn_output = HTML then Buffer.add_string buf "\\<table\\>\n";
-                        List.iter (fun s -> 
-                            if o.conn_output = HTML then Buffer.add_string buf "\\<tr\\>";
-                            Buffer.add_string buf s;
-                            if o.conn_output = HTML then Buffer.add_string buf "\\</tr\\>";
-                        ) names;
-                        if o.conn_output = HTML then Buffer.add_string buf "\\</table\\>\n";
-                        
-                        Buffer.contents buf
-                  )
+                  ( shorten (
+                      let names = r.result_names in
+                      let names = if r.result_done then
+                          ["ALREADY DOWNLOADED "] @ names else names in
+                      let names = match  r.result_comment with
+                          "" -> names
+                        |  comment ->
+                            names @ ["COMMENT: " ^ comment] 
+                      in
+                      match names with
+                        [name] -> name
+                      | _ ->
+                          let buf = Buffer.create 100 in
+                          if o.conn_output = HTML then Buffer.add_string buf "\\<table\\>\n";
+                          List.iter (fun s -> 
+                              if o.conn_output = HTML then Buffer.add_string buf "\\<tr\\>";
+                              Buffer.add_string buf s;
+                              if o.conn_output = HTML then Buffer.add_string buf "\\</tr\\>";
+                          ) names;
+                          if o.conn_output = HTML then Buffer.add_string buf "\\</table\\>\n";
+                          
+                          Buffer.contents buf
+                    ) !!max_name_len)
                   (if o.conn_output = HTML then 
                       begin
                         if !!html_mods then "\\</a\\>\\</td\\>"
@@ -1265,12 +1284,6 @@ let print_results buf o results =
                       end
                     else ""
                   )
-                );
-                
-                
-                (if use_html_mods o then 
-                    "\\<td class=\\\"sr ar\\\"\\>" ^  size_of_int64 r.result_size ^ "\\</td\\>"
-                  else Int64.to_string r.result_size
                 );
                 
                 
@@ -1290,14 +1303,11 @@ let print_results buf o results =
                   ) r.result_tags;
                   Buffer.contents buf);
                 
-                (if use_html_mods o then 
-                    "\\<td class=\\\"sr ar\\\"\\>" ^  (string_of_int avail) ^ "\\</td\\>"
-                  else (string_of_int avail)
-                );
-                
-                (if use_html_mods o then 
-                    "\\<td class=\\\"sr\\\"\\>" ^  (Md4.to_string r.result_md4) ^ "\\</td\\>"
-                  else (Md4.to_string r.result_md4)
+                (
+                  let uid = string_of_uids r.result_uids in
+                  if use_html_mods o then 
+                    Printf.sprintf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" uid
+                  else uid
                 );
               
               |] :: !files;
@@ -1309,10 +1319,10 @@ let print_results buf o results =
 
       html_mods_table_header buf "resultsTable" "results" [ 
 		( "1", "srh", "Number", "#" ) ; 
-		( "0", "srh", "Filename", "Name" ) ; 
 		( "1", "srh ar", "Size", "Size" ) ; 
-		( "0", "srh", "Tag", "Tag" ) ; 
 		( "0", "srh ar", "Availability", "A" )  ; 
+		( "0", "srh", "Filename", "Name" ) ; 
+		( "0", "srh", "Tag", "Tag" ) ; 
 		( "0", "srh", "MD4", "MD4" ) ]; 
       
       print_table_html_mods buf
@@ -1322,13 +1332,13 @@ let print_results buf o results =
   
   else
     
-    print_table buf [||] 
+    print_table buf [| Align_Left; Align_Right; Align_Right; Align_Left; Align_Left; Align_Left|] 
       [|
       "[ Num ]";
-      "Names";
       "Size";
-      "Tags";
       "Avail";
+      "Names";
+      "Tags";
       "MD4";
     |] 
     
@@ -1340,8 +1350,9 @@ let print_search buf s o =
   user.ui_last_search <- Some s;
   user.ui_last_results <- [];
   let results = ref [] in
-  Intmap.iter (fun r_num (avail,r) ->
-      results := (r, result_info r, !avail) :: !results) s.search_results;
+  Intmap.iter (fun r_num (avail,rs) ->
+      let r = get_result rs in
+      results := (rs, r, !avail) :: !results) s.search_results;
   let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
         r1.result_size > r2.result_size
     ) !results in
@@ -1352,7 +1363,7 @@ let print_search buf s o =
     (if s.search_waiting = 0 then "done" else
       (string_of_int s.search_waiting) ^ " waiting");
   
-  if o.conn_output != HTML then print_results buf o results else
+  if o.conn_output != HTML then print_results s.search_time buf o results else
     begin
       if !!html_checkbox_search_file_list then
         print_search_html buf results o s.search_num

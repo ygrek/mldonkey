@@ -75,6 +75,7 @@ module Make (M : sig
     
     val verified_bitmap : t -> string
     val set_verified_bitmap : t -> string -> unit
+    val set_verified_block : t -> int -> unit
     
     val register_uploader : t -> client -> chunks -> uploader
     val update_uploader : uploader -> chunks -> unit

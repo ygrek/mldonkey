@@ -46,7 +46,7 @@ val max_buffered : int64 ref
 val remove : t -> unit
   
 val read : t -> int64 -> string -> int -> int -> unit
-val allocate_chunk :  t -> int64 -> int -> unit
+(*val allocate_chunk :  t -> int64 -> int -> unit*)
   
 val copy_chunk : t -> t -> int64 -> int64 -> int -> unit
     

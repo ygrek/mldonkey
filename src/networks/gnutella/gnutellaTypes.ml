@@ -125,16 +125,15 @@ and upload_client = {
     uc_chunk_len : int64;
     uc_chunk_end : int64;
   }
-  
+
+  (*
 and result = {
-    result_result : result CommonResult.result_impl;
-    result_name : string;
-    result_size : int64;
-    mutable result_tags : tag list;
+    result_result : result_info;
     mutable result_sources : (user * file_uri) list;
     mutable result_uids : Uid.t list;
   }
-
+*)
+  
 and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;

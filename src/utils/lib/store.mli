@@ -33,3 +33,5 @@ val get_attrib : 'a t -> index -> bool
 val index : index -> int
 val dummy_index : index
   
+val stats : 'a t -> int * int
+  

@@ -61,7 +61,7 @@ let load_url kind url =
   lprintf "QUERY URL %s\n" url; 
   let f = 
     try 
-      List.assoc kind !file_kinds 
+      (List.assoc kind !file_kinds) url
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in 
   try
@@ -71,7 +71,7 @@ let load_url kind url =
   
 let load_file kind file =
   try 
-    (List.assoc kind !file_kinds) file
+    (List.assoc kind !file_kinds) file file
   with e -> 
       lprintf "Exception %s while loading kind %s\n" 
         (Printexc2.to_string e)
@@ -280,3 +280,28 @@ support the charge, at least, currently. *)
   List.iter (fun (kind, period, url) ->
       if !days mod period = 0 then load_url kind url
   ) !!CommonOptions.web_infos
+
+type rss_feed = {
+    mutable rss_date : int;
+    mutable rss_value : Rss.channel;
+  }
+    
+let rss_feeds = Hashtbl.create 10
+
+  
+let _ =
+  add_web_kind "rss" (fun url filename ->
+      let c = Rss.channel_of_file filename in
+      let feed = 
+        try Hashtbl.find rss_feeds url with
+          Not_found ->
+            let feed = {
+                rss_date = 0;
+                rss_value = c;
+              } in
+            Hashtbl.add rss_feeds url feed;
+            feed
+      in
+      feed.rss_date <- last_time ();
+      feed.rss_value <- c
+  )

@@ -40,13 +40,18 @@ open SlskProtocol
 
 
 let download r filenames =
-  let key = (r.result_name, r.result_size) in
+  let result_name = List.hd r.result_names in
+  let key = (result_name, r.result_size) in
   if not (Hashtbl.mem files_by_key 
-        (String.lowercase r.result_name)) then begin
-      let file = new_file (Md4.random()) r.result_name r.result_size in
-      List.iter (fun (user, filename) ->
-          ignore (add_file_client file user filename)
-      ) r.result_sources;
+        (String.lowercase result_name)) then begin
+      let file = new_file (Md4.random()) result_name r.result_size in
+      begin
+        try
+          List.iter (fun (user, filename) ->
+              ignore (add_file_client file user filename)
+          ) !(Hashtbl.find result_sources r.result_num);
+        with _ -> ()
+      end;
       SlskServers.ask_for_file file;
       as_file file.file_file
     end else
@@ -153,6 +158,7 @@ let _ =
 
 module C = CommonTypes
   
+  (*
 let _ =
   result_ops.op_result_info <- (fun r ->
       {
@@ -176,7 +182,13 @@ let _ =
   result_ops.op_result_download <- (fun r filenames force ->
       download r filenames   
   )
-  
+  *)
+
+let _ =
+  network.op_network_download <- (fun r ->
+      download r []   
+  )
+
 let _ =
   let module P = GuiTypes in
   file_ops.op_file_info <- (fun file ->
@@ -191,8 +203,8 @@ let _ =
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
+        P.file_all_sources = 0;
+        P.file_active_sources = 0;
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;

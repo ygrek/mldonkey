@@ -837,9 +837,9 @@ let http_handler o t r =
                   "d" -> begin
                       try
                         let num = int_of_string value in 
-                        let r = result_find num in
-                        let file = result_download r [] false in
-                        CommonInteractive.start_download file;
+                        let r = find_result num in
+                        let files = result_download r [] false in
+                        List.iter CommonInteractive.start_download files;
                         
                         let module M = CommonMessages in
                         Gettext.buftext buf M.download_started num

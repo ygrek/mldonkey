@@ -38,6 +38,8 @@ open CommonOptions
 open DonkeyOptions
 open CommonOptions
 open CommonGlobals
+  
+open CommonNetwork
 
       
 (*************************************************************
@@ -47,8 +49,6 @@ later with functions defining the specialized methods for this
 plugin.
   
 **************************************************************)  
-  
-open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey"
          [ 
@@ -68,10 +68,7 @@ let connections_controler = TcpServerSocket.create_connections_contoler
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
-      
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-  
+
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 
@@ -115,25 +112,19 @@ let client_num c = client_num (as_client c)
 let file_num c = file_num (as_file c)  
 let server_num c = server_num (as_server c.server_server)  
 
-        
-(*************************************************************
 
-    General useful structures and functions
-  
-**************************************************************)  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global values                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
 
 let tag_client = 200
 let tag_server = 201
 let tag_file   = 202
 
-  (* CONSTANTS *)
 let page_size = Int64.of_int 4096    
-
-
-(* GLOBAL STATE *)
-  
-open DonkeyMftp
-
   
 let client_to_client_tags = ref ([] : tag list)
 let client_to_server_tags = ref ([] : tag list)
@@ -150,83 +141,11 @@ let overnet_connectreply_tags = ref ([] :  tag list)
 let overnet_connect_tags = ref ([] :  tag list)
 let overnet_client_port = ref 0
 
-(* overnet_md4 should be different from client_md4 for protocol safety reasons *)
 let overnet_md4 = Md4.random()
-(*let overnet_md4 = Md4.of_string "FBB5EA4C0A82FB995911223344556677";*)
-    
-module H = Weak2.Make(struct
-      type t = client
-      let hash c = Hashtbl.hash c.client_kind
-      
-      let equal x y = x.client_kind = y.client_kind
-    end)
-
-  
-let clients_by_kind = H.create 127
-  
-  (*
-module HS = Weak2.Make(struct
-      type t = source
-      let hash s = Hashtbl.hash s.source_addr
-      
-      let equal x y = x.source_addr = y.source_addr
-    end)
-  
-let verbose_sources = verbose_src_manager
-let source_counter = ref 0
-let stats_new_sources = ref 0
-let sources_by_address = HS.create 13557
-let stats_sources = ref 0
-
-  
-let create_source new_score source_age addr = 
-  let ip, port = addr in
-  if !verbose_sources then begin
-      lprintf "queue_new_source %s:%d\n" (Ip.to_string ip) port; 
-    end;
-  try
-    let finder =  { dummy_source with source_addr = addr } in
-    let s = HS.find sources_by_address finder in
-    
-    incr stats_new_sources;
-    s
-  
-  with _ ->
-      let n = CommonClient.book_client_num () in
-      let s = { dummy_source with
-(*          source_num = (incr source_counter;!source_counter); *)
-          source_addr = addr;
-          source_age = source_age;
-          source_last_score = new_score;
-          source_last_age = source_age;
-          source_client_num = n;
-          source_files = [];
-        }  in
-      HS.add sources_by_address s;
-      incr stats_sources;
-      if !verbose_sources then begin
-          lprintf "Source %d added\n" n; 
-        end;
-      s
-        *)
-
-(* let clients_by_name = Hashtbl.create 127 *)
-
-let clients_root = ref []
-
 let nservers = ref 0
-let servers_by_key = Hashtbl.create 127
-let servers_list = ref ([] : server list)
-  
-(* let remaining_time_for_clients = ref (60 * 15) *)
 let location_counter = ref 0
-
-let current_files = ref ([] : file list)
-  
 let sleeping = ref false
-  
 let xs_last_search = ref (-1)
-let xs_servers_list = ref ([] : server list)
   
 let zone_size = Int64.of_int (180 * 1024) 
 let block_size = Int64.of_int 9728000
@@ -236,29 +155,87 @@ let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
 let files_queries_per_minute = 1
     
 let nclients = ref 0
-  
-let connected_server_list = ref ([]  : server list)
 
 let protocol_version = 61
+let max_file_groups = 1000
+  
+let udp_sock = ref (None: UdpSocket.t option)
+let listen_sock = ref (None : TcpServerSocket.t option)  
+let reversed_sock = ref (None : TcpServerSocket.t option)
+let servers_ini_changed = ref true
+let new_shared = ref false
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global tables                                 *)
+(*                                                                       *)
+(*************************************************************************)
+    
+module H = Weak2.Make(struct
+      type t = client
+      let hash c = Hashtbl.hash c.client_kind
+      
+      let equal x y = x.client_kind = y.client_kind
+    end)
+  
+let clients_by_kind = H.create 127
+let clients_root = ref []
+let servers_by_key = Hashtbl.create 127
+let servers_list = ref ([] : server list)
+  
+(* let remaining_time_for_clients = ref (60 * 15) *)
+
+let current_files = ref ([] : file list)
+let xs_servers_list = ref ([] : server list)
+let connected_server_list = ref ([]  : server list)
   
 let (banned_ips : (Ip.t, int) Hashtbl.t) = Hashtbl.create 113
 let (old_requests : (int * int, request_record) Hashtbl.t) = 
   Hashtbl.create 13013
 
-  
-  
-let max_file_groups = 1000
 let (file_groups_fifo : Md4.t Fifo.t) = Fifo.create ()
-
-    
 let (connected_clients : (Md4.t, client) Hashtbl.t) = Hashtbl.create 13
+  
+let udp_servers_list = ref ([] : server list)
+let interesting_clients = ref ([] : client list)
+  
+let files_by_md4 = Hashtbl.create 127
+let find_file md4 = Hashtbl.find files_by_md4 md4
 
+let shared_files_info = (Hashtbl.create 127
+    : (string, shared_file_info) Hashtbl.t)
+let shared_files = ref ([] : file_to_share list)
+let new_shared_files = ref [] 
+  
+let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
+    
+let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
+
+let file_md4s_to_register = ref ([] : file list)
+  
+module UdpClientWHashtbl = Weak2.Make(struct
+      type t = udp_client
+      let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
+      
+      let equal x y = x.udp_client_port = y.udp_client_port
+        && x.udp_client_ip = y.udp_client_ip
+    end)
+
+let udp_clients = UdpClientWHashtbl.create 1023
+  
+let join_queue_by_md4 = Hashtbl.create 13
+let join_queue_by_id  = Hashtbl.create 13
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global functions                              *)
+(*                                                                       *)
+(*************************************************************************)
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_server_list   
   )
-  
   
 let hashtbl_remove table key v = 
   try
@@ -274,36 +251,13 @@ let remove_connected_server c =
   connected_server_list := List2.removeq c !connected_server_list
 
 let connected_servers () = !connected_server_list
-  
-let udp_sock = ref (None: UdpSocket.t option)
         
 let get_udp_sock () =
   match !udp_sock with
     None -> failwith "No UDP socket"
   | Some sock -> sock
 
-  
-let listen_sock = ref (None : TcpServerSocket.t option)
-  
-let reversed_sock = ref (None : TcpServerSocket.t option)
 
-
-  
-let udp_servers_list = ref ([] : server list)
-let interesting_clients = ref ([] : client list)
-  
-  
-(* 'NEW' FUNCTIONS *)  
-let files_by_md4 = Hashtbl.create 127
-
-let find_file md4 = Hashtbl.find files_by_md4 md4
-
-    
-let servers_ini_changed = ref true
-
-let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
-let new_shared = ref ([] : file list)
-let shared_files = ref ([] : file_to_share list)
 
   
 (* compute the name used to save the file *)
@@ -327,7 +281,6 @@ let update_best_name file =
 (*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
     with Not_found -> ()
 
-let new_shared_files = ref [] 
         
 let new_file file_state file_name md4 file_size writable =
   lprintf "NEW FILE TO DOWNLOAD ??????????? %s\n" file_name;
@@ -369,26 +322,12 @@ let new_file file_state file_name md4 file_size writable =
       let rec file = {
           file_file = file_impl;
           file_shared = None;
-(*          file_exists = file_exists; *)
           file_md4 = md4;
           file_swarmer = None;
           file_nchunks = nchunks;
-
-(*          file_chunks = [||]; *)
-(*          file_chunks_order = [||]; *)
-(*          file_chunks_age = [||]; *)
-(*          file_all_chunks = String.make nchunks '0'; *)
-(*          file_absent_chunks =   [Int64.zero, file_size]; *)
           file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
-(*          file_nsources = 0; *)
           file_md4s = Array.of_list md4s;
-(*          file_available_chunks = Array.create nchunks 0; *)
           file_format = FormatNotComputed 0;
-(*          file_locations = Intmap.empty; *)
-(*          file_mtime = 0.0; *)
-(*          file_initialized = false; *)
-          
-(*          file_clients = Fifo.create (); *)
           file_sources = DonkeySources.create_file_sources_manager
             (Md4.to_string md4) 
         }
@@ -422,15 +361,19 @@ let new_file file_state file_name md4 file_size writable =
         );
         Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
             if file.file_md4s = [||] then raise Int64Swarmer.VerifierNotReady;
-            lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+	    if !verbose then begin
+                lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+	    end;
             Unix32.flush_fd (file_fd file);
             let md4 = Md4.digest_subfile (file_fd file) 
               begin_pos (end_pos -- begin_pos) in
             let result = md4 = file.file_md4s.(num) in
-            lprintf "Md4 computed: %s against %s = %s\n"
-              (Md4.to_string md4) 
-            (Md4.to_string file.file_md4s.(num))
-            (if result then "VERIFIED" else "CORRUPTED");
+	    if !verbose then begin
+                lprintf "Md4 computed: %s against %s = %s\n"
+                (Md4.to_string md4) 
+                (Md4.to_string file.file_md4s.(num))
+                (if result then "VERIFIED" else "CORRUPTED");
+	    end;
             if result then begin
                 let bitmap = Int64Swarmer.verified_bitmap swarmer in
                 try ignore (String.index bitmap '3')
@@ -715,23 +658,7 @@ let find_client_by_name name =
     raise Not_found
   with ClientFound c -> c
 
-let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
-    
-let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
-
-let file_md4s_to_register = ref ([] : file list)
-  
-module UdpClientWHashtbl = Weak2.Make(struct
-      type t = udp_client
-      let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
-      
-      let equal x y = x.udp_client_port = y.udp_client_port
-        && x.udp_client_ip = y.udp_client_ip
-    end)
-
-let udp_clients = UdpClientWHashtbl.create 1023
-
-let local_mem_stats buf = 
+let local_mem_stats level buf = 
   Gc.compact ();
   let client_counter = ref 0 in
   let unconnected_unknown_clients = ref 0 in
@@ -818,18 +745,6 @@ let remove_client c =
 
 let friend_remove c = 
   friend_remove  (as_client c)
-
-let last_search = ref (Intmap.empty : int Intmap.t)
-  
-(* indexation *)
-let comments = (Hashtbl.create 127 : (Md4.t,string) Hashtbl.t)
-
-let comment_filename = Filename.concat file_basedir "comments.met"
-  
-let (results_by_md4 : (Md4.t, result) Hashtbl.t) = Hashtbl.create 1023
-  
-let history_file = Filename.concat file_basedir "history.met"
-let history_file_oc = ref (None : out_channel option)
 
   
   
@@ -959,32 +874,7 @@ let brand_mod_to_string b =
   | Brand_mod_morphxt -> "MorphXT"
   | Brand_mod_ngdonkey -> "ngdonkey"
   | Brand_mod_cyrex -> "Cyrex"
-      
-(*************************************************************
-
-The following structures are used to locally index search
-  results, to be able to search in history.
-  
-**************************************************************)  
-  
-let (store: CommonTypes.result_info Store.t) = 
-  Store.create (Filename.concat file_basedir "store")
-  
-module Document = struct
-    type t = Store.index
-      
-    let num t = Store.index t
-    let filtered t = Store.get_attrib store t
-    let filter t bool = Store.set_attrib store t bool
-  end
-
-let doc_value doc = Store.get store doc
-  
-module DocIndexer = Indexer2.FullMake(Document)
-
-open Document
-  
-let index = DocIndexer.create ()
+    
 
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
@@ -1003,21 +893,10 @@ let check_result r tags =
     end
   else true
     
-
 let result_of_file md4 tags =
-  
-  let rec r = { 
-      result_num = 0;
-      result_network = network.network_num;
-      result_md4 = md4;
-      result_names = [];
-      result_size = Int64.zero;
-      result_tags = [];
-      result_type = "";
-      result_format = "";
-      result_comment = "";
-      result_done = false;
-    } in
+  let rec r = {  dummy_result with
+      result_uids = [Uid.create (Ed2k md4)];
+    } in  
   List.iter (fun tag ->
       match tag with
         { tag_name = "filename"; tag_value = String s } ->
@@ -1033,7 +912,10 @@ let result_of_file md4 tags =
       | _ ->
           r.result_tags <- tag :: r.result_tags
   ) tags;
-  if check_result r tags then Some r else None
+  if check_result r tags then
+    let rs = update_result_num r in
+    Some rs
+  else None
 
       
 (*************************************************************
@@ -1044,31 +926,19 @@ Define a function to be called when the "mem_stats" command
 **************************************************************)  
 
 let _ =
-  Heap.add_memstat "DonkeyGlobals" (fun _ ->
-(* current_files *)
-      lprintf "Current files: %d\n" (List.length !current_files);
-(* clients_by_name *)
-(*      let list = Hashtbl2.to_list clients_by_name in
-      lprintf "Clients_by_name: %d\n" (List.length list);
-      List.iter (fun c ->
-          lprintf "[%d %s]" (client_num c)
-          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
-     ) list;
-     lprintf "\n";
-*)
-      
-(* clients_by_kind *)
+  Heap.add_memstat "DonkeyGlobals" (fun level buf ->
+      Printf.bprintf buf "Current files: %d\n" (List.length !current_files);
       let list = H.to_list clients_by_kind in
-      lprintf "Clients_by_kind: %d\n" (List.length list);
-      List.iter (fun c ->
-          lprintf "[%d ok: %s rating: %d]\n" 
-          (client_num c)
-          (string_of_date (c.client_source.DonkeySources.source_age))
+      Printf.bprintf buf  "Clients_by_kind: %d\n" (List.length list);
+      if level > 0 then
+        List.iter (fun c ->
+            Printf.bprintf buf "[%d ok: %s rating: %d]\n" 
+              (client_num c)
+            (string_of_date (c.client_source.DonkeySources.source_age))
 (* TODO: add connection state *)
-          c.client_rating
-          ;
-     ) list;
-      lprintf "\n";
+            c.client_rating
+            ;
+        ) list;
   );
       
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
@@ -1084,9 +954,6 @@ let _ =
 **************************************************************)
   
   
-let join_queue_by_md4 = Hashtbl.create 13
-let join_queue_by_id  = Hashtbl.create 13
-
 let client_id c = 
   match c.client_kind with
     Direct_address (ip, port) -> (ip, port, zero)

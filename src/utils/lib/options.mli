@@ -163,19 +163,12 @@ val smalllist_to_value : string -> ('a -> option_value) -> 'a list -> option_val
 val value_to_path : option_value -> string list
 val path_to_value : string list -> option_value
 
-  (*
-val tuple2_to_value : 
-  'a option_class * 'b option_class -> 'a * 'b -> option_value
 val value_to_tuple2 : 
-  'a option_class * 'b option_class -> option_value -> 'a * 'b
-val tuple3_to_value : 
-  'a option_class * 'b option_class * 'c option_class ->
-  'a * 'b * 'c -> option_value
-val value_to_tuple3 : 
-  'a option_class * 'b option_class * 'c option_class ->
-  option_value -> 'a * 'b * 'c
-*)
-  
+  (option_value * option_value -> 'a) -> option_value -> 'a
+val tuple2_to_value : 
+  ('a -> option_value * option_value) -> 'a -> option_value
+
+
 val filename_to_value : string -> option_value
 val value_to_filename : option_value -> string
 

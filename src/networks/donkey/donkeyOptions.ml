@@ -34,14 +34,6 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
 let max_dialog_history = define_expert_option donkey_section ["max_dialog_history"]
     "Max number of messages of Chat remembered" int_option 30
     
-let string_list_option = define_option_class "String"
-    (fun v ->
-      match v with
-        List _ | SmallList _ -> ""
-      | _ -> value_to_string v
-  )
-  string_to_value
-
 let port = define_option donkey_section ["port"] "The port used for connection by other donkey clients." int_option 4662
 
 let check_client_connections_delay = 
@@ -62,20 +54,14 @@ let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
 
 let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
-let use_file_history = define_expert_option donkey_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option false
-
 let reliable_sources = define_option donkey_section ["reliable_sources"] 
     "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option true
+
+let emule_compression = define_option donkey_section ["emule_compression"] 
+  "Should mldonkey accept compressed packets from emule" bool_option true
   
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"] 
   "Should mldonkey try to detect sources masquerading as others and ban them" bool_option true
-  
-let save_file_history = define_expert_option donkey_section ["save_file_history"] "save the file history in a file and load it at startup" bool_option false
-
-  
-let filters = define_option donkey_section ["filters"] 
-    "filters on replies (replies will be kept)."
-    string_list_option ""
 
 let max_allowed_connected_servers () = 
   BasicSocket.mini 5 !!max_connected_servers
@@ -127,11 +113,6 @@ between servers" int_option 1
 (* let max_sources_age = define_expert_option donkey_section
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
     int_option 3 *)
-  
-let max_clients_per_second = define_expert_option donkey_section
-    ["max_clients_per_second"] 
-  "Maximal number of connections to sources per second"
-  int_option 10
   
 let max_indirect_connections = define_option donkey_section
     ["max_indirect_connections"] 

@@ -946,10 +946,6 @@ let getsize64 t =
   | MultiFile t -> MultiFile.getsize64 t
   | SparseFile t -> SparseFile.getsize64 t
   | Destroyed -> failwith "Unix32.getsize64 on destroyed FD"
-      
-(*
-For chunked files, we should read read the meta-file instead of the file.
-*)
 
 let fds_size = Unix2.c_getdtablesize ()
 
@@ -969,13 +965,6 @@ let _ =
 *)
 
 (* at most 50 files can be opened simultaneously *)
-
-(*
- let seek64 t pos com =
-  Unix2.c_seek64 (force_fd t) pos com
-
-
-*)
 
 
 let filename t = t.filename
@@ -1114,58 +1103,6 @@ let buffered_write t offset s pos_s len_s =
 let buffered_write_copy t offset s pos_s len_s =
   buffered_write t offset (String.sub s pos_s len_s) 0 len_s
 
-(*
-let write t offset s pos_s len_s =
-  let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
-  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
-  if final_pos <> offset then begin
-      lprintf "BAD LSEEK in Unix32.write %Ld/%Ld\n" final_pos offset;
-      raise Not_found
-    end;
-
-(* if !verbose then begin
-      lprintf "{%d-%d = %Ld-%Ld}\n" (t.Q.bloc_begin)
-      (t.Q.bloc_len) (begin_pos)
-      (end_pos);
-    end; *)
-  Unix2.really_write fd s pos_s len_s
-
-let read t offset s pos_s len_s =
-  flush_fd t;
-  let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
-  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
-
-  if final_pos <> offset then begin
-      lprintf "BAD LSEEK in Unix32.read %Ld/%Ld\n" final_pos offset;
-      raise Not_found
-    end;
-  Unix2.really_read fd s pos_s len_s
-*)
-
-(* zero_chunk is only useful on sparse file systems, not on Windows
-  for example *)
-
-let allocate_chunk t offset len64 =
-(*
-  let len = Int64.to_int len64 in
-  let fd, offset = fd_of_chunk t offset len64 in
-  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
-  if final_pos <> offset then begin
-      lprintf "BAD LSEEK in Unix32.zero_chunk %Ld/%Ld\n"
-        final_pos offset;
-      raise Not_found
-    end; *)
-  let buffer_size = 128 * 1024 in
-  let buffer = String.make buffer_size '\001' in
-  let rec iter remaining offset =
-    let len = mini remaining buffer_size in
-    if len > 0 then begin
-      write t offset buffer 0 len;
-      iter (remaining - len) (offset ++ (Int64.of_int len))
-    end
-  in
-  iter len64 offset
-
 let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t1;
   flush_fd t2;
@@ -1189,36 +1126,6 @@ let rec copy t1 t2 pos1 pos2 len64 =
       copy t1 t2 (pos1 ++ mega) (pos2 ++ mega) (len64 -- mega)
     end else
     copy_chunk t1 t2 pos1 pos2 (Int64.to_int len64)
-  
-  
-(*
-(* Close two file descriptors *)
-  assert (!max_cache_size > 2);
-  flush_fd t1;
-  flush_fd t2;
-  FDCache.close_one ();
-  FDCache.close_one ();
-(*  lprintf "Copying chunk\n"; *)
-  let file_in,pos1 = fd_of_chunk t1 pos1 len in
-  let file_out,pos2 = fd_of_chunk t2 pos2 len in
-  let pos1_after = Unix2.c_seek64 file_in pos1 Unix.SEEK_SET in
-  let pos2_after = Unix2.c_seek64 file_out pos2 Unix.SEEK_SET in
-(*  lprintf "Seek %Ld/%Ld %Ld/%Ld\n" pos1_after pos1 pos2_after pos2; *)
-  let buffer_len = 32768 in
-  let len = Int64.to_int len in
-  let buffer = String.create buffer_len in
-  let rec iter file_in file_out len =
-    if len > 0 then
-      let can_read = mini buffer_len len in
-      let nread = Unix.read file_in buffer 0 can_read in
-(*      lprintf "Unix2.really_write %d\n" nread; *)
-      Unix2.really_write file_out buffer 0 nread;
-      iter file_in file_out (len-nread)
-  in
-  iter file_in file_out len;
-(*  lprintf "Chunk copied\n"; *)
-  ()
-*)
 
 
 let close_all = FDCache.close_all
@@ -1289,7 +1196,8 @@ let rename t f =
 module DiskFile_Test = (DiskFile : File)
 module SparseFile_Test = (SparseFile : File)
 
-module SharedParts = struct
+module SharedParts = struct 
+
 (*************************************************************************)
 (*                                                                       *)
 (*                      Files sharing parts                              *)
@@ -1303,120 +1211,169 @@ The following functions have to be rewritten:
 * allocate_chunk: remove this
 * copy_chunk: remove this
 *)
-
-type t = {
-    file : file;
-    mutable file_parts : part list;
-  }
-  
-and part = {
-    mutable part_file : file;
-    mutable part_begin : int64;
-    mutable part_len : int64;
-    mutable part_end : int64;
-    mutable part_shared : t list;
-  }
-
-let copy_shared_parts_out file parts =
-  List2.tail_map (fun part ->
-      if part.part_file == file then 
-        match part.part_shared with
-          [] -> part
-        | t :: tail ->
-            lprintf "Copy shared part to another file\n";
-            copy part.part_file t.file part.part_begin part.part_begin
-              part.part_len;
-            lprintf "   Copy done.\n";
-            part.part_file <- t.file;
-            part.part_shared <- tail;
-            { part with part_file = file; part_shared = [] }
-      else part
-  ) parts
-
-let copy_shared_parts_in file parts =
-  List2.tail_map (fun part ->
-      if part.part_file != file then begin
-          lprintf "Copy shared part to another file\n";
-          copy part.part_file file part.part_begin part.part_begin
-          part.part_len;
-          lprintf "   Copy done.\n";
-          part.part_shared <- List.filter (fun t -> t.file != file) 
-          part.part_shared;
-          { part with part_file = file; part_shared = [] }
-        end else part
-  ) parts
-  
-let remove t =
-  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-  remove t.file
-
-let destroy t = 
-  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-  destroy t.file
-  
-let close t = close t.file
-let getsize64 t  = getsize64 t.file
-let filename t = filename t.file
-  
-let rename t file_name = 
-  t.file_parts <- copy_shared_parts_in t.file t.file_parts;
-  t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-  rename t.file file_name
-  
-let mtime64 t = mtime64 t.file
-let flush_fd t = flush_fd t.file
-
-let apply_on_parts f t file_pos s pos len =
-  List.iter (fun part ->
-      f part.part_file file_pos s pos len) t.file_parts
-  
-let buffered_write t file_pos s pos len =
-  apply_on_parts buffered_write t file_pos s pos len
     
-let buffered_write_copy t file_pos s pos len =
-  apply_on_parts buffered_write_copy t file_pos s pos len
+    type t = {
+        file : file;
+        mutable file_parts : part list;
+      }
+    
+    and part = {
+        mutable part_file : file;
+        mutable part_begin : int64;
+        mutable part_len : int64;
+        mutable part_end : int64;
+        mutable part_shared : t list;
+      }
+    
+    let copy_shared_parts_out file parts =
+      List2.tail_map (fun part ->
+          if part.part_file == file then 
+            match part.part_shared with
+              [] -> part
+            | t :: tail ->
+                lprintf "Copy shared part to another file\n";
+                copy part.part_file t.file part.part_begin part.part_begin
+                  part.part_len;
+                lprintf "   Copy done.\n";
+                part.part_file <- t.file;
+                part.part_shared <- tail;
+                { part with part_file = file; part_shared = [] }
+          else part
+      ) parts
+    
+    let copy_shared_parts_in file parts =
+      List2.tail_map (fun part ->
+          if part.part_file != file then begin
+              lprintf "Copy shared part to another file\n";
+              copy part.part_file file part.part_begin part.part_begin
+                part.part_len;
+              lprintf "   Copy done.\n";
+              part.part_shared <- List.filter (fun t -> t.file != file) 
+              part.part_shared;
+              { part with part_file = file; part_shared = [] }
+            end else part
+      ) parts
+    
+    let remove t =
+      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+      remove t.file
+    
+    let destroy t = 
+      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+      destroy t.file
+    
+    let old_close = close
+    
+    let close t = close t.file
+    let getsize64 t  = getsize64 t.file
+    let filename t = filename t.file
+    
+    let rename t file_name = 
+      t.file_parts <- copy_shared_parts_in t.file t.file_parts;
+      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+      rename t.file file_name
+    
+    let mtime64 t = mtime64 t.file
+    let flush_fd t = flush_fd t.file
+    
+    let apply_on_parts f t file_pos s pos len =
+      List.iter (fun part ->
+          f part.part_file file_pos s pos len) t.file_parts
+    
+    let buffered_write t file_pos s pos len =
+      apply_on_parts buffered_write t file_pos s pos len
+    
+    let buffered_write_copy t file_pos s pos len =
+      apply_on_parts buffered_write_copy t file_pos s pos len
+    
+    let write t file_pos s pos len =
+      apply_on_parts write t file_pos s pos len
+    
+    let read t file_pos s pos len =
+      apply_on_parts read t file_pos s pos len
+
+
+
+(* TODO: there is no need to create a temporary file when the wanted chunk
+overlaps different parts, but these parts are on the same physical file. *)
+    let fd_of_chunk t chunk_begin chunk_len =
+      let chunk_end = chunk_begin ++ chunk_len in
+      let rec iter list =
+        match list with 
+          [] -> assert false
+        | part :: tail ->
+            if part.part_begin <= chunk_begin &&
+              part.part_end >= chunk_end then
+              fd_of_chunk part.part_file chunk_begin chunk_len              
+            else
+            if part.part_end > chunk_begin then
+              make_temp_file list
+            else
+              iter tail
       
-let write t file_pos s pos len =
-  apply_on_parts write t file_pos s pos len
-  
-let read t file_pos s pos len =
-  apply_on_parts read t file_pos s pos len
-  
-let allocate_chunk _ _ _ = failwith "Unix32.allocate_chunk not implemented"
-let copy_chunk _ _ _ _ _ = failwith "Unix32.copy_chunk not implemented"
-let fd_of_chunk t file_pos len = failwith "Unix32.fd_of_chunk not implemented"
+      and make_temp_file list = 
+        let temp_file = Filename.temp_file "chunk" ".tmp" in
+        let file_out = create_rw temp_file in
+        
+        let rec fill pos chunk_begin chunk_len list =
+          if chunk_len > zero then
+            match list with
+              [] -> ()
+            | part :: tail ->
+                
+                let tocopy = min chunk_len (part.part_end -- chunk_begin) in
+                copy_chunk part.part_file file_out chunk_begin pos 
+                  (Int64.to_int tocopy);
+                fill (pos ++ tocopy) (chunk_begin ++ tocopy)
+                (chunk_len -- tocopy) tail
+        in
+        fill zero chunk_begin chunk_len list;
+        old_close file_out;
+        let fd, _, _ = fd_of_chunk file_out zero chunk_len in
+        fd, zero, Some temp_file
+      
+      in
+      
+      iter t.file_parts
+    
+    let ftruncate64 t len = 
+      ftruncate64 t.file len
+    
+    let maxint64 = megabytes 1000000
+    
+    let create file =
+      let part = { 
+          part_file = file;
+          part_begin = zero;
+          part_end = maxint64;
+          part_len = maxint64;
+          part_shared = []
+        } in
+      { file = file; file_parts = [part] }
+    
+    let create_diskfile file_name flags rights =
+      create (create_diskfile file_name flags rights)
+    
+    let create_multifile file_name flags rights files =
+      create (create_multifile file_name flags rights files)
+    
+    let create_sparsefile file_name =
+      create (create_sparsefile file_name)
+    
+    let create_ro filename = 
+      create (create_ro filename)
+    
+    let create_rw filename = 
+      create (create_rw filename)
 
-let ftruncate64 t len = 
-(* We need to set the size of the file at this point *)
-  ftruncate64 t.file len
-
-let maxint64 = megabytes 1000000
+(* the new part (shared_begin, shared_len) is shared between t1 and t2.
+It will be kept inside t1, and used by t2. The problem is what happens
+when these two files have already been partially downloaded ? This 
+  problem has to be solved at a upper level. *)
+    let shared_part t1 t2 shared_begin shared_len = 
+      let shared_end = shared_begin ++ shared_len in
+      ()
+      
+  end
   
-let create file =
-  let part = { 
-      part_file = file;
-      part_begin = zero;
-      part_end = maxint64;
-      part_len = maxint64;
-      part_shared = []
-    } in
-  { file = file; file_parts = [part] }
-  
-let create_diskfile file_name flags rights =
-  create (create_diskfile file_name flags rights)
-  
-let create_multifile file_name flags rights files =
-  create (create_multifile file_name flags rights files)
-  
-let create_sparsefile file_name =
-  create (create_sparsefile file_name)
-  
-let create_ro filename = 
-  create (create_ro filename)
-  
-let create_rw filename = 
-  create (create_rw filename)
-end
-
 type t = file
-  

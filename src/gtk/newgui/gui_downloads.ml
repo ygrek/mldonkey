@@ -25,7 +25,8 @@ open GMain
 open GtkBase
 open Gtk
 open Gpattern
-
+open Printf2
+  
 open Gettext
 open Gui_global
 open CommonTypes
@@ -39,7 +40,10 @@ module P = Gpattern
 module O = Gui_options
 module G = Gui_global
 
-      
+let use_interested_in_sources = ref false
+let interested_in_sources = ref false
+let interested_in_sources_version = 27
+  
 let preview file () = Gui_com.send (Preview (List.hd file.data.gfile_num))
 
 let get_priority_pixmap p =
@@ -731,10 +735,10 @@ let get_avail_pixmap avail chunks is_file =
 
 let refresh_timerID =
   ref (Timeout.add ~ms:2000
-        ~callback:(fun _ -> true))
-     
-class box_downloads wl_status () =
+      ~callback:(fun _ -> true))
 
+class box_downloads wl_status () =
+  
   let label_file_info = GMisc.label () in
   object (self)
     inherit box O.downloads_columns `EXTENDED ()
@@ -742,17 +746,17 @@ class box_downloads wl_status () =
     val mutable use_avail_pixmap  = (!!O.use_graphical_availability : bool)
     val mutable icons_are_used = (!!O.use_icons : bool)
     val mutable is_visible = (false : bool)
-
-
+    
+    
     method update_wl_status : unit =
       wl_status#set_text 
         (Printf.sprintf Gui_messages.mW_sb_downloaded_files 
-           !G.ndownloaded !G.ndownloads)
+          !G.ndownloaded !G.ndownloads)
     
     method cancel () =
       let s = ref (M.dT_lb_ask_cancel_download_files) in
       List.iter (fun f -> 
-        s := !s ^ (file_first_name icons_are_used f) ^ "\n" 
+          s := !s ^ (file_first_name icons_are_used f) ^ "\n" 
       ) self#selection;
       match GToolbox.question_box (M.dT_wt_cancel)
         [ M.pW_lb_ok ; M.pW_lb_cancel] !s 
@@ -760,7 +764,7 @@ class box_downloads wl_status () =
         1 ->
           List.iter
             (fun f ->
-               Gui_com.send (RemoveDownload_query (List.hd f.data.gfile_num)))
+              Gui_com.send (RemoveDownload_query (List.hd f.data.gfile_num)))
           self#selection
       |	_ ->
           ()
@@ -768,13 +772,13 @@ class box_downloads wl_status () =
     method retry_connect () =
       List.iter
         (fun f ->
-           Gui_com.send (ConnectAll (List.hd f.data.gfile_num)))
+          Gui_com.send (ConnectAll (List.hd f.data.gfile_num)))
       self#selection
     
     method pause_resume () =
       List.iter
         (fun f ->
-           Gui_com.send (SwitchDownload (List.hd f.data.gfile_num,
+          Gui_com.send (SwitchDownload (List.hd f.data.gfile_num,
               match f.data.gfile_state with
                 FPaused | FAborted _ -> true
               | _ -> false
@@ -784,30 +788,50 @@ class box_downloads wl_status () =
     method verify_chunks () =
       List.iter
         (fun f ->
-           Gui_com.send (VerifyAllChunks (List.hd f.data.gfile_num)))
+          Gui_com.send (VerifyAllChunks (List.hd f.data.gfile_num)))
       self#selection
     
     method get_format () =
       List.iter
         (fun f ->
-           Gui_com.send (QueryFormat (List.hd f.data.gfile_num)))
+          Gui_com.send (QueryFormat (List.hd f.data.gfile_num)))
       self#selection
     
     method set_priority prio () =
       List.iter
         (fun f ->
-           Gui_com.send (SetFilePriority (List.hd f.data.gfile_num, prio)))
+          Gui_com.send (SetFilePriority (List.hd f.data.gfile_num, prio)))
       self#selection
-
+    
     method show_hide_sources file =
       let check_first =
+(* Wouldn't it be easier to just store a bool in the file entry ? *)
         List.mem_assoc file.data.gfile_num self#is_expanded
       in
-      if check_first then
-        self#collapse_file file
+      try
+        if check_first then
+          self#collapse_file file
         else self#expand_file file
+      with e ->
+          lprintf "show_hide_sources: exception %s\n"
+            (Printexc2.to_string e)
 
+    initializer 
+      BasicSocket.add_infinite_timer 30. (fun _ ->
+
+          if !use_interested_in_sources &&
+            !interested_in_sources && List.length self#is_expanded = 0 then 
+            begin
+(*              lprintf "not interested in sources !!!!\n"; *)
+              interested_in_sources := false;
+              Gui_com.send (InterestedInSources false);
+            end
+            
+      )
+          
     method collapse_file file =
+(*      lprintf "collapse_file\n"; *)
+
       ignore (self#collapse file);
       let (row, fi) = self#find_file file.data.gfile_num in
       if icons_are_used then
@@ -826,7 +850,16 @@ class box_downloads wl_status () =
         child.data.gfile_avail_pixmap <- None
       ) fi.children
 
+      
     method expand_file file =
+(*      lprintf "expand_file\n"; *)
+            
+      if !use_interested_in_sources && not !interested_in_sources then begin
+(*          lprintf "interested in sources !!!!\n"; *)
+          interested_in_sources := true;
+          Gui_com.send (InterestedInSources true);
+        end;
+
       let (row, fi) = self#find_file file.data.gfile_num in
       if icons_are_used then
         begin
@@ -854,6 +887,7 @@ class box_downloads wl_status () =
           end;
       self#update_row file row;
       ignore (self#expand file)
+
 
     method add_to_friends () =
       List.iter
@@ -982,8 +1016,8 @@ class box_downloads wl_status () =
       f.data.gfile_names <- f_new.file_names ;
       f.data.gfile_size <- f_new.file_size ;
       f.data.gfile_downloaded <- f_new.file_downloaded ;
-      f.data.gfile_nlocations <- f_new.file_nlocations ;
-      f.data.gfile_nclients <- f_new.file_nclients ;
+      f.data.gfile_all_sources <- f_new.file_all_sources ;
+      f.data.gfile_active_sources <- f_new.file_active_sources ;
       f.data.gfile_state <- (file_to_general_state f_new.file_state) ;
       f.data.gfile_download_rate <- f_new.file_download_rate ;
       f.data.gfile_format <- f_new.file_format;
@@ -1051,8 +1085,8 @@ class box_downloads wl_status () =
         gfile_md4 = f.file_md4;
         gfile_size = f.file_size;
         gfile_downloaded = f.file_downloaded;
-        gfile_nlocations = f.file_nlocations;
-        gfile_nclients = f.file_nclients;
+        gfile_all_sources = f.file_all_sources;
+        gfile_active_sources = f.file_active_sources;
         gfile_state  = file_to_general_state f.file_state;
         gfile_chunks = f.file_chunks;
         gfile_availability = f.file_availability;
@@ -1162,8 +1196,8 @@ class box_downloads wl_status () =
             gfile_md4 = file.data.gfile_md4;
             gfile_size = Int64.of_string "0";
             gfile_downloaded = Int64.of_string "0";
-            gfile_nlocations = 0;
-            gfile_nclients = 0;
+            gfile_all_sources = 0;
+            gfile_active_sources = 0;
             gfile_state  = CNewHost;
             gfile_chunks = file.data.gfile_chunks;
             gfile_availability = avail;
@@ -1308,6 +1342,7 @@ class box_downloads wl_status () =
               if i = n then begin
                 (* Printf.printf "Gui_downloads update_client_state Failed to find SOURCE\n";
                  flush stdout; *)
+                 ()
                 end else begin
                   let child = List.nth f.children i in
                   let cnum = List.hd (List.rev child.data.gfile_num) in
@@ -1340,6 +1375,7 @@ class box_downloads wl_status () =
               if i = n then begin
                 (* Printf.printf "Gui_downloads update_client_type Failed to find SOURCE\n";
                  flush stdout; *)
+                 ()
                 end else begin
                   let child = List.nth f.children i in
                   let cnum = List.hd (List.rev child.data.gfile_num) in
@@ -1373,6 +1409,7 @@ class box_downloads wl_status () =
               if i = n then begin
                 (* Printf.printf "Gui_downloads update_client Failed to find SOURCE\n";
                  flush stdout; *)
+                 ()
                 end else begin
                   let child = List.nth f.children i in
                   let cnum = List.hd (List.rev child.data.gfile_num) in

@@ -17,124 +17,143 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open Options
 open CommonTypes
 
-let (dummy_result : result) = Obj.magic 0
-
-type 'a result_impl = {
-    mutable impl_result_update : int;
-    mutable impl_result_num : int;
-    mutable impl_result_val : 'a;
-    mutable impl_result_ops : 'a result_ops;
-  }
+let next_result_num = ref 0
+    
+let (store: CommonTypes.result_info Store.t) = 
+  Store.create (Filename.concat CommonOptions.file_basedir "store")
   
-and 'a result_ops = {
-    mutable op_result_network : network;
-    mutable op_result_download : ('a -> string list -> bool -> 
-    file);
-    mutable op_result_info : ('a -> CommonTypes.result_info);
-  }
-  
-let result_counter = ref 0
-
-let as_result  (result : 'a result_impl) =
-  let (result : result) = Obj.magic result in
-  result
-  
-let as_result_impl  (result : result) =
-  let (result : 'a result_impl) = Obj.magic result in
-  result
-
-let result_num r =
-  (as_result_impl r).impl_result_num
-
-let dummy_result_impl = {
-    impl_result_update = 1;
-    impl_result_num = 0;
-    impl_result_val = 0;
-    impl_result_ops = Obj.magic None;
-  }
-  
-let dummy_result = as_result dummy_result_impl
-  
-module H = Weak2.Make(struct
-      type t = result
-      let hash x = Hashtbl.hash (result_num x)
+module Document = struct
+    type t = Store.index
       
-      let equal x y = (result_num x) = (result_num y)
-    end)
-  
-let results_by_num = H.create 1027
-    
-let _ = 
-  Heap.add_memstat "CommonResult" (fun buf ->
-      let counter = ref 0 in
-      H.iter (fun _ -> incr counter) results_by_num;
-      Printf.bprintf buf "  results: %d\n" !counter;
-  )
+    let num t = Store.index t
+    let filtered t = Store.get_attrib store t
+    let filter t bool = Store.set_attrib store t bool
+    let doc_value t = Store.get store t
+  end
 
-let new_result (result : 'a result_impl) =
-  incr result_counter;
-  result.impl_result_num <- !result_counter;
-  let (result : result) = Obj.magic result in
-  H.add results_by_num result
+let (results_by_uid : (uid_type, result) Hashtbl.t) = Hashtbl.create 1027
+let (known_uids : (uid_type, int) Hashtbl.t) = Hashtbl.create 1027
+let results_by_num = Hashtbl.create 1027
 
-  
-let ni n m = 
-  let s = Printf.sprintf "Result.%s not implemented by %s" 
-      m n.network_name in
-  lprint_string s; lprint_newline ();
-  s
-  
-let fni n m =  failwith (ni n m)
-let ni_ok n m = ignore (ni n m)
+let set_result_name r name =
+  if not (List.mem name r.result_names) then begin
+      r.result_modified <- true;
+      r.result_names <- r.result_names @ [name]
+    end
 
-    
-let result_info (result : result) =
-  let result = as_result_impl result in
-  result.impl_result_ops.op_result_info result.impl_result_val
-  
-let result_download (result : result) list force =
-  let result = as_result_impl result in
-  result.impl_result_ops.op_result_download result.impl_result_val list force
+let set_result_tag r tag =
+  try
+    ignore (CommonGlobals.find_tag tag.tag_name r.result_tags)
+  with Not_found ->
+      r.result_modified <- true;
+      r.result_tags <- r.result_tags @ [tag]
 
-let results_ops = ref []
+let declare_result rs r uid =
+  (try
+      let time = Hashtbl.find known_uids uid in
+      if time < r.result_time then begin
+          r.result_time <- time;
+          r.result_modified <- false;
+          Store.update store rs.stored_result_index r;
+        end
+    with _ ->
+        Hashtbl.add known_uids uid r.result_time);
+  Hashtbl.add results_by_uid uid rs
   
-let new_result_ops network = 
-  let r = {
-      op_result_network =  network;
-      op_result_download = (fun _ _ _ -> fni network "result_download");
-      op_result_info = (fun _ -> fni network "result_info");
-    }
+let update_result_num r =
+  let rec iter uids =
+    match uids with
+      [] ->
+        r.result_num <- !next_result_num;
+        r.result_modified <- false;
+        let index = Store.add store r in
+        let rs = { 
+            stored_result_index = index;
+            stored_result_num = !next_result_num;
+          } in
+        List.iter (fun uid -> declare_result rs r (Uid.to_uid uid)) 
+        r.result_uids;
+        Hashtbl.add results_by_num r.result_num rs;
+        incr next_result_num;
+        rs
+    | uid :: tail ->
+        let uid = Uid.to_uid uid in
+        try
+          let rs = Hashtbl.find results_by_uid uid in
+          let rr = Store.get store rs.stored_result_index in
+          List.iter (set_result_name rr) r.result_names;
+          List.iter (set_result_tag rr) r.result_tags;
+          rs
+        with Not_found -> iter tail
   in
-  let rr = (Obj.magic r : int result_ops) in
-  results_ops := (rr, { rr with op_result_network = r.op_result_network })
-  :: ! results_ops;
-  r
-  
-let check_result_implementations () =
-  lprintf "\n---- Methods not implemented for CommonResult ----\n\n";
-  List.iter (fun (c, cc) ->
-      let n = c.op_result_network.network_name in
-      lprintf "\n  Network %s\n\n" n; 
-      if c.op_result_download == cc.op_result_download then 
-        lprintf "op_result_download\n";
-      if c.op_result_info == cc.op_result_info then
-        lprintf "op_result_info\n";
-  ) !results_ops;
-  lprint_newline () 
+  iter r.result_uids
 
+let find_result num =
+  Hashtbl.find results_by_num num
   
-let result_find num = 
-  H.find results_by_num (as_result { dummy_result_impl with
-      impl_result_num = num })
-
+let get_result rs =
+  Store.get store rs.stored_result_index
   
-let result_print (result : result) buf count =
-  ()
+let dummy_result = {
+    result_num = 0;
+    result_uids = [];
+    result_names = [];
+    result_format = "";
+    result_type = "";
+    result_tags = [];
+    result_comment = "";
+    result_done = false;
+    result_size = zero;
+    result_modified = true;
+    result_time = BasicSocket.last_time ();
+  }
   
+let result_download rs names force =
+  let r = Store.get store rs.stored_result_index in
+  let files = ref [] in
+  CommonNetwork.networks_iter (fun n ->
+      files := (n.op_network_download r) :: !files
+  );
+  !files  
+    
 let results_iter f =
-  H.iter (fun r -> f (result_num r) r) results_by_num
+  Hashtbl.iter (fun _ r -> 
+(*      let r = Store.get store rs.stored_result_index in *)
+      f r.stored_result_num r) 
+  results_by_num
+
+let update_result r =
+  let num = r.result_num in
+  let rs = Hashtbl.find results_by_num num in
+  r.result_modified <- false;
+  Store.update store rs.stored_result_index r
+
+let update_result2 rs r =
+  if r.result_modified then begin
+      r.result_modified <- false;
+      Store.update store rs.stored_result_index r
+    end
   
+  
+let _ = 
+  Heap.add_memstat "CommonResult" (fun level buf ->
+      let counter = ref 0 in
+      Hashtbl.iter (fun _ _ -> incr counter) results_by_num;
+      Printf.bprintf buf "  results_by_num: %d\n" !counter;
+
+      let counter = ref 0 in
+      Hashtbl.iter (fun _ _ -> incr counter) results_by_uid;
+      Printf.bprintf buf "  results_by_uid: %d\n" !counter;
+
+      let counter = ref 0 in
+      Hashtbl.iter (fun _ _ -> incr counter) known_uids;
+      Printf.bprintf buf "  known_uids: %d\n" !counter;
+      
+      let in_mem, total = Store.stats store in
+      Printf.bprintf buf "  store: %d loaded/ %d max\n" in_mem total
+  )

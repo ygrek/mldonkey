@@ -19,22 +19,6 @@
 
 val load : unit -> unit
 val save : unit -> unit
-
-  (*
-val file_commit : CommonTypes.file -> unit
-val file_cancel : CommonTypes.file -> unit
-val file_completed : CommonTypes.file -> unit
-val file_add : 'a CommonFile.file_impl -> CommonTypes.file_state -> unit
-  
-val server_add : 'a CommonServer.server_impl -> unit
-val server_remove : CommonTypes.server -> unit
-  
-val friend_add : CommonTypes.client -> unit
-val friend_remove : CommonTypes.client -> unit
-  
-val contact_add : CommonTypes.client -> unit
-val contact_remove : CommonTypes.client -> unit
-*)
   
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
@@ -45,7 +29,8 @@ val contacts : CommonTypes.client list ref
   
 val customized_queries : unit ->
   (string * CommonTypes.query_entry) list 
-
+val special_queries : (string * string) list Options.option_record
+  
 val sharing_strategies :
   (string * CommonTypes.sharing_strategy) list Options.option_record
 
@@ -53,7 +38,3 @@ val shared_directories :
   CommonTypes.shared_directory list Options.option_record
 val sharing_only_directory : CommonTypes.sharing_strategy
 
-  (*
-val addr_to_value : Ip.addr -> Options.option_value
-val value_to_addr : Options.option_value -> Ip.addr
-  *)

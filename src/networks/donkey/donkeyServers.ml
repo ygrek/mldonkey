@@ -289,7 +289,7 @@ connection from another client. In this case, we should immediatly connect.
           with _ ->
               let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
               DonkeyClient.reconnect_client c;
-              friend_add c
+(*              friend_add c *)
               
         end
 

@@ -179,7 +179,9 @@ let create_gui_params () =
   let tab_pos = combo
       ~expand:false
       ~help: (M.h_tab_position)
-      ~f:(fun s -> GO.notebook_tab =:= GO.TabPosition.string_to_pos s)
+    ~f:(fun s -> 
+        GO.notebook_tab =:= GO.TabPosition.string_to_pos s
+        )
       ~new_allowed:false ~blank_allowed:false
       (M.o_tab_position)
       GO.TabPosition.values

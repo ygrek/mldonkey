@@ -455,18 +455,21 @@ let recover_files () =
   ) !current_files;
   ()
     
-let download_file (r : result) =
+let download_file (r : result_info) =
   let file = new_file (Md4.random ()) 
-    r.result_name r.result_size r.result_uids in
+    (List.hd r.result_names) r.result_size r.result_uids in
   lprintf "DOWNLOAD FILE %s\n" file.file_name; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun (user, index) ->
-      let c = new_client user.user_kind in
-      add_download file c index;
-      get_file_from_source c file;
-  ) r.result_sources;
+  (try
+      let sources = Hashtbl.find result_sources r.result_num in
+      List.iter (fun (user, index) ->
+          let c = new_client user.user_kind in
+          add_download file c index;
+          get_file_from_source c file;
+      ) !sources;
+    with _ -> ());
   recover_file file;
   (as_file file)
 

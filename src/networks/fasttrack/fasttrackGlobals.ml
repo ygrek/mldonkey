@@ -46,6 +46,7 @@ let search_num = ref 0
 let extension_list = [
     "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
 ]
+
       
 let rec remove_short list list2 =
   match list with
@@ -89,9 +90,6 @@ let network = new_network "Fasttrack"
   (fun _ -> !!commit_in_subdir)
 let connection_manager = network.network_connection_manager
   
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-  
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 
@@ -115,52 +113,63 @@ let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file)
 let set_file_disk_name file = set_file_disk_name (as_file file)
+let file_state file =
+  file_state (as_file file)
+let file_num file =
+  file_num (as_file file)
+let file_must_update file =
+  file_must_update (as_file file)
+let server_num s =
+  server_num (as_server s.server_server)      
+let server_state s =
+  server_state (as_server s.server_server)
+let set_server_state s state =
+  set_server_state (as_server s.server_server) state
+let client_type c = client_type (as_client c)
+let set_client_state client state =
+  CommonClient.set_client_state (as_client client) state  
+let set_client_disconnected client =
+  CommonClient.set_client_disconnected (as_client client) 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global values                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let nservers = ref 0
+let ready _ = false      
+let hosts_counter = ref 0
+let udp_sock = ref (None : UdpSocket.t option)
+let old_client_name = ref ""
+let ft_client_name = ref ""  
+let file_chunk_size = 307200
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global tables                                 *)
+(*                                                                       *)
+(*************************************************************************)
 
 let current_files = ref ([] : FasttrackTypes.file list)
-
 let listen_sock = ref (None : TcpServerSocket.t option)
-  
+let result_sources = Hashtbl.create 1011  
 let hosts_by_key = Hashtbl.create 103
-
 let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
-
-  (*
-let redirector_connected = ref false
-(* let redirectors_ips = ref ( [] : Ip.t list) *)
-let redirectors_to_try = ref ( [] : string list)
-  *)
-
 let files_by_uid = Hashtbl.create 13
-
 let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
-  
-(***************************************************************
-
-
-             HOST SCHEDULER
-
-
-****************************************************************)
-  
-  
-  
-(* Hosts are first injected in workflow. The workflow ensures that any
-host object is inspected every two minutes. *)
+let connected_servers = ref ([] : server list)
+    
 let (workflow : host Queue.t) = 
   Queues.workflow (fun time -> time + 120 > last_time ())
-
-let ready _ = false
   
 (* From the main workflow, hosts are moved to these workflows when they
-are ready to be connected. They will only be connected when connections
-will be available. We separate g1/g2, and g0 (unknown kind). *)
-let (g0_ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
+are ready to be connected. *)
 let (ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
   
 (* peers are only tested when no ultrapeers are available... *)
-let (g0_peers_waiting_queue : host Queue.t) = Queues.workflow ready
 let (peers_waiting_queue : host Queue.t) = Queues.workflow ready
   
 (* These are the peers that we should try to contact by UDP *)
@@ -168,11 +177,13 @@ let (waiting_udp_queue : host Queue.t) = Queues.workflow ready
   
 (* These are the peers that have replied to our UDP requests *)
 let (active_udp_queue : host Queue.t) = Queues.fifo ()
-
-let nservers = ref 0
-
-let connected_servers = ref ([] : server list)
   
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global functions                              *)
+(*                                                                       *)
+(*************************************************************************)
   
 
 let host_queue_add q h time =
@@ -187,8 +198,6 @@ let host_queue_take q =
       h.host_queues <- List2.removeq q h.host_queues 
     end;
   h
-      
-let hosts_counter = ref 0
   
 let new_host ip port ultrapeer = 
   let key = (ip,port) in
@@ -228,6 +237,7 @@ let new_server ip port =
           server_ciphers = None;
           server_agent = "<unknown>";
           server_nfiles = 0;
+          server_nusers = 0;
           server_nkb = 0;
           
           server_need_qrt = true;
@@ -248,34 +258,35 @@ let new_server ip port =
       h.host_server <- Some s;
       s
 
-let add_source r s index =
-  let key = (s, index) in
-  if not (List.mem key r.result_sources) then begin
-      r.result_sources <- key :: r.result_sources
+let add_source r (user : user) =
+  let ss = 
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
+  in
+  if not (List.memq user !ss) then begin
+      ss := user :: !ss
     end
-
+    
 let new_result file_name file_size tags hash =
   
   let r = 
     try
       Hashtbl.find results_by_uid hash
     with _ -> 
-        let rec result = {
-            result_result = result_impl;
-            result_name = file_name;
+        let r = { dummy_result with
+            result_names = [file_name];
             result_size = file_size;
-            result_sources = [];
             result_tags = tags;
-            result_hash = hash;
-          } and
-          result_impl = {
-            dummy_result_impl with
-            impl_result_val = result;
-            impl_result_ops = result_ops;
-          } in
-        new_result result_impl;
-        Hashtbl.add results_by_uid hash result;
-        result
+            result_uids = [Uid.create (Md5Ext hash)];
+          }
+        in
+        let r = update_result_num r in
+        Hashtbl.add results_by_uid hash r;
+        r
   in
   r
   
@@ -324,7 +335,7 @@ let new_file file_id file_name file_size file_hash =
   Hashtbl.add searches_by_uid search.search_id search;
 (*  lprintf "SET SIZE : %Ld\n" file_size;*)
   Int64Swarmer.set_verifier swarmer (fun _ _ _ ->
-      file_must_update (as_file file);
+      file_must_update file;
       true  
   );
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
@@ -415,7 +426,7 @@ client_error = false;
       Hashtbl.add clients_by_uid kind c;
       c
     
-let add_download file c index =
+let add_download file c =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
@@ -425,7 +436,7 @@ let add_download file c index =
         (Int64Swarmer.AvailableRanges chunks) in *)
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
-          download_uri = index;
+(*          download_uri = index; *)
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];
@@ -445,7 +456,8 @@ let rec find_download file list =
     [] -> raise Not_found
   | d :: tail ->
       if d.download_file == file then d else find_download file tail
-    
+
+        (*
 let rec find_download_by_index index list = 
   match list with
     [] -> raise Not_found
@@ -453,6 +465,7 @@ let rec find_download_by_index index list =
       match d.download_uri with
         FileByIndex (i,_) when i = index -> d
       | _ -> find_download_by_index index tail
+            *)
 
 let remove_download file list =
   let rec iter file list rev =
@@ -465,45 +478,10 @@ let remove_download file list =
   in
   iter file list []
   
-let file_state file =
-  file_state (as_file file)
-  
-let file_num file =
-  file_num (as_file file)
-  
-let file_must_update file =
-  file_must_update (as_file file)
-
-let server_num s =
-  server_num (as_server s.server_server)
-      
-let server_state s =
-  server_state (as_server s.server_server)
-      
-let set_server_state s state =
-  set_server_state (as_server s.server_server) state
-
-  (*
-let server_remove s =
-  connected_servers := List2.removeq s !connected_servers;    
-(*  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)*)
-  ()
-  *)
-
-let client_type c = client_type (as_client c)
-
-let set_client_state client state =
-  CommonClient.set_client_state (as_client client) state
-  
-let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client) 
-  
   
 let remove_file file = 
   Hashtbl.remove files_by_uid file.file_hash;
   current_files := List2.removeq file !current_files  
-
-let udp_sock = ref (None : UdpSocket.t option)
 
 let client_ip sock =
   CommonOptions.client_ip
@@ -540,9 +518,6 @@ let disconnect_from_server nservers s reason =
       if List.memq s !connected_servers then
         connected_servers := List2.removeq s !connected_servers
   | _ -> ()
-
-let old_client_name = ref ""
-let ft_client_name = ref ""
   
   
 let client_name () = 
@@ -555,7 +530,5 @@ let client_name () =
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name
-  
-let file_chunk_size = 307200
   
   

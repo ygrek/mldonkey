@@ -140,12 +140,18 @@ let mail_for_completed_file file =
       else
         Printf.sprintf "mldonkey, file received";        
     in
+
+    let line3 = if !!url_in_mail <> "" then
+	Printf.sprintf "\r\n%s/%s\r\n" !!url_in_mail (file_best_name file)
+      else
+        Printf.sprintf "";
+    in
     
     let mail = {
         M.mail_to = !!mail;
         M.mail_from = !!mail;
         M.mail_subject = subject;
-        M.mail_body = line1 ^ line2;
+        M.mail_body = line1 ^ line2 ^ line3;
       } in
     M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 
@@ -321,22 +327,6 @@ let size_of_int64 size =
 
   
 let display_vd = ref false
-  
-let print_results o =
-  let buf = o.conn_buf in
-  let user = o.conn_user in
-  match user.ui_user_searches with
-    [] -> Printf.bprintf buf "No search to print\n"
-  | q :: _ ->
-      user.ui_last_search <- Some q;
-      user.ui_last_results <- [];
-      let counter = ref 1 in
-      Intmap.iter (fun r_num (count,r) ->
-          CommonResult.result_print r !counter o;
-          user.ui_last_results <- (!count, r) :: user.ui_last_results;
-          incr counter;
-      ) q.search_results
-
 
 let start_download file =
   
@@ -357,8 +347,9 @@ let download_file o arg =
         None -> "no last search"
       | Some s ->
           let result = List.assoc (int_of_string arg) user.ui_last_results  in
-          let file = CommonResult.result_download result [] false in
-          start_download file;
+          let files = CommonResult.result_download 
+            result [] false in
+          List.iter start_download files;
           "download started"
     with
     | Failure s -> s
@@ -367,11 +358,17 @@ let download_file o arg =
   
 let start_search user query buf =
   let s = CommonSearch.new_search user query in
-  networks_iter (fun r -> 
-      if query.GuiTypes.search_network = 0 ||
-        r.network_num = query.GuiTypes.search_network
-        then
-        r.op_network_search s buf);
+  begin
+    match s.search_type with
+    LocalSearch ->
+        CommonSearch.local_search s
+    | _ ->
+        networks_iter (fun r -> 
+            if query.GuiTypes.search_network = 0 ||
+              r.network_num = query.GuiTypes.search_network
+            then
+              r.op_network_search s buf);
+  end;
   s
   
 let print_connected_servers o =
@@ -725,16 +722,18 @@ let _ =
               user.ui_user_searches;
           ) !ui_users
         end;
-      CommonSearch.Filter.clear ()
+      CommonSearch.Filter.clear ();
   )
   
 let search_add_result filter s r =
+  if !CommonSearch.clean_local_search <> 0 then
+    CommonSearch.Local.add r;
   if not filter (*!!filter_search*) then begin
 (*      lprintf "Adding result to filter\n"; *)
       CommonSearch.search_add_result_in s r
     end
   else
-    CommonSearch.Filter.add (as_result r)
+    CommonSearch.Filter.add r
 
 let main_options = ref ([] : (string * Arg.spec * string) list)
   

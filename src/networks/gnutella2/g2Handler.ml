@@ -418,7 +418,7 @@ XML ("audios",
           | QH2_MD xml ->
               begin
                 try
-                  let xml = Xml.parse_string xml in
+                  let xml = Xml.xml_of (Xml.parse_string xml) in
                   xml_info := Some xml
                 with e ->
                     lprintf "Exception %s while parsing: \n%s\n"
@@ -431,11 +431,11 @@ XML ("audios",
       let user_files = List.rev !user_files in
       let user_files = match !xml_info with
           None -> user_files
-        | Some (XML (kind, _, files)) -> 
+        | Some ( (kind, _, files)) -> 
             
             if List.length files = List.length user_files then begin
                 List.map2 (fun (urn, size, name, url, _) file ->
-                    let XML (file_type, tags, _) = file in
+                    let (file_type, tags, _) = Xml.xml_of file in
                     (urn, size, name, url, 
                       List.map (fun (tag, v) ->
                           string_tag tag v) tags)
@@ -525,14 +525,14 @@ file_must_update file;
           | Some s, Some size ->
               let uids = match urn with 
                   None -> [] | Some uid -> [uid] in
-              let r = new_result name size tags uids in
+              let r = new_result name size tags uids [] in
               
               add_source r user (FileByUrl url);
               
               begin
                 match s.search_search with
                   UserSearch (s,_,_) ->
-                    CommonInteractive.search_add_result false s r.result_result
+                    CommonInteractive.search_add_result false s r
                 | _ -> ()
               end
           | _ -> ()

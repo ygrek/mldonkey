@@ -34,6 +34,13 @@ let framerate = ref 24.
 let split_frame = ref None
 let delay_frame = ref 0.
 let concat_frame = ref None
+
+let input_line ic =
+  let s = input_line ic in
+  let len = String.length s in
+  if len > 0 && s.[len-1] = '\r' then
+    String.sub s 0 (len-1)
+  else s
   
 let int_of_string s =
   try
@@ -265,7 +272,7 @@ let _ =
   Arg2.parse [
     
     "-from", Arg2.String (fun file ->
-        argument := read_frames file 0.
+        argument := read_frames file 0.;
     ), " <filename>: read <filename> subtitle file (.sub or .srt file)";
     
     "-framerate", Arg2.Float (fun f -> framerate := f), 
@@ -277,6 +284,15 @@ let _ =
     "-delay_time", Arg2.Float (fun f -> 
         delay_frame :=  (f *. !framerate)), 
     " <time>: introduce this delay in the subtitles";
+    
+    (*
+    "-remove_delay_frame", Arg2.Float (fun i -> delay_frame := -. i), 
+    " <frame>: introduce this delay in the subtitles";
+    
+    "-remove_delay_time", Arg2.Float (fun f -> 
+        delay_frame := -. (f *. !framerate)), 
+    " <time>: introduce this delay in the subtitles";
+*)
     
     "-rescale", Arg2.Float (fun newframerate ->
         

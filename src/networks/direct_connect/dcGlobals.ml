@@ -81,10 +81,12 @@ let connection_manager = network.network_connection_manager
 OK   op_result_download : ('a -> string list -> unit);
 OK   op_result_info : ('a -> CommonTypes.result_info);
   *)
-      
+  
+  (*
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
-  
+    *)
+
 (*
 OK   op_server_to_option : ('a -> (string * option_value) list);
 OK   op_server_remove : ('a -> unit);
@@ -342,12 +344,29 @@ let add_file_client file user filename =
       file_add_source (as_file file.file_file) (as_client c.client_client)
     end;
   c
+  
+let result_sources = Hashtbl.create 1000
+  
+let add_result_source r (s : user) (index : string) =
+  let ss = 
+    try
+      Hashtbl.find result_sources r.stored_result_num
+    with _ ->
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
+  in
+  let key = (s, index) in
+  if not (List.mem key !ss) then begin
+      ss := key :: !ss
+    end
 
+    (*
 let add_result_source r u filename =
   if not (List.mem_assoc u r.result_sources) then begin
       r.result_sources <- (u, filename) :: r.result_sources
     end
-      
+*)      
 let remove_client c =
   Hashtbl.remove clients_by_name c.client_name;
   List.iter (fun (file,_) ->
@@ -419,24 +438,17 @@ let new_server addr port=
 let new_result filename filesize =
   let basename = Filename2.basename filename in
   let key = (basename, filesize) in
-  
   try
     Hashtbl.find results_by_file key
   with _ ->
-      let rec result = {
-          result_result = result_impl;
-          result_name = basename;
+      let rec r = {
+          dummy_result with
+          result_names = [filename];
           result_size = filesize;
-          result_sources = [];
-        } and
-        result_impl = {
-          dummy_result_impl with
-          impl_result_val = result;
-          impl_result_ops = result_ops;
         } in
-      new_result result_impl;
-      Hashtbl.add results_by_file key result;
-      result
+      let r = update_result_num r in
+      Hashtbl.add results_by_file key r;
+      r
       
 let server_remove s =
   server_remove (as_server s.server_server);

@@ -18,7 +18,7 @@
 *)
 
 open Int64ops
-open Xml
+open Xml_types
 open Printf2
 open Md4
 open CommonSearch
@@ -39,6 +39,7 @@ open GnutellaGlobals
 open GnutellaComplexOptions
 open BasicSocket
 open CommonHosts
+open Autoconf
 open GnutellaProtocol
 
 (* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
@@ -77,10 +78,10 @@ let xml_to_string xml =
   "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
       
 let audio_schema tags = 
-  XML ("audios",
+  Element ("audios",
     [("xsi:nonamespaceschemalocation",
         "http://www.limewire.com/schemas/audio.xsd")],
-    [XML ("audio", tags, [])])
+    [Element ("audio", tags, [])])
 
 (*
 [
@@ -184,12 +185,12 @@ that we can reuse queries *)
           let sh = CommonUploads.add_shared fullname codedname size in
           GnutellaProto.ask_for_uids sh
         end
+  );
+(* TODO RESULT *)
+  network.op_network_download <- (fun r ->
+      raise IgnoreNetwork
   )
   
-let _ =
-  result_ops.op_result_download <- (fun result _ force ->
-      GnutellaServers.download_file result)
-
 let file_num file =
   file.file_file.impl_file_num
 
@@ -231,8 +232,8 @@ let _ =
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
+        P.file_all_sources = 0;
+        P.file_active_sources = 0;
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
@@ -274,7 +275,8 @@ let _ =
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes
-  
+
+(* TODO 
 let _ =
   result_ops.op_result_info <- (fun r ->
        {
@@ -293,7 +295,7 @@ let _ =
         C.result_done = false;
       }   
   )
-
+*)
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
@@ -325,7 +327,8 @@ let _ =
           let (name, uids) = parse_magnet url in
           if uids <> [] then begin
 (* Start a download for this file *)
-              let r = new_result name Int64.zero [] uids in
+              let rs = new_result name Int64.zero [] uids [] in
+              let r = get_result rs in
               let file = GnutellaServers.download_file r in
               CommonInteractive.start_download file;
               true
@@ -408,12 +411,21 @@ let _ =
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
         
-        html_mods_td buf [ 
+        let show_emulemods_column = ref false in
+           if Autoconf.donkey = "yes" then begin
+               if !!emule_mods_count then
+                   show_emulemods_column := true
+        end;
+
+        html_mods_td buf ([
           ("", "srb ar", Printf.sprintf "%d" (client_num cc));
           ((string_of_connection_state (client_state cc)), "sr",
             (short_string_of_connection_state (client_state cc)));
           ("", "sr", cinfo.GuiTypes.client_name);
           ("", "sr", "gN"); (* cinfo.GuiTypes.client_software *)
+          ] @
+          (if !show_emulemods_column then [("", "sr", "")] else [])
+          @ [
           ("", "sr", "F");
           ("", "sr ar", Printf.sprintf "%d" 
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
@@ -421,7 +433,7 @@ let _ =
           ("", "sr", (string_of_kind cinfo.GuiTypes.client_kind));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
-          ("", "sr", info.GuiTypes.file_name); ];
+          ("", "sr", info.GuiTypes.file_name); ]);
         true
     )     
   

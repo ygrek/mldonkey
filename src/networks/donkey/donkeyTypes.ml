@@ -391,11 +391,13 @@ and local_search = {
   }
 *)
 
+  (*
 and result = {
     result_result : result CommonResult.result_impl;
     mutable result_index : Store.index;
   }
-
+*)
+  
 and search_event =
 (*  Result of result *)
 | Waiting of int
@@ -662,7 +664,7 @@ let client_state client =
     
 let client_new_file client r =
   client_new_file (as_client client.client_client) ""
-  (as_result r.result_result)
+  r
     
 let server_state server =
   CommonServer.server_state (as_server server.server_server)

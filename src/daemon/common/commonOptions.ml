@@ -25,6 +25,8 @@ open TcpBufferedSocket
 open Options
 open Unix
 
+  
+  
 let bin_dir = Filename.dirname Sys.argv.(0)
   
   
@@ -97,6 +99,14 @@ let define_expert_option a b ?desc c d e =
     None -> define_expert_option a b (_s c) d e
   | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e
 
+let string_list_option = define_option_class "String"
+    (fun v ->
+      match v with
+        List _ | SmallList _ -> ""
+      | _ -> value_to_string v
+  )
+  string_to_value
+
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let html_themes_dir = Filename.concat file_basedir "html_themes"
@@ -108,10 +118,8 @@ let servers_ini = create_options_file (
     Filename.concat file_basedir "servers.ini")
 let searches_ini = create_options_file (
     Filename.concat file_basedir "searches.ini")
-  (*
-let clients_ini = create_options_file (
-    Filename.concat file_basedir "files.ini")
-  *)
+let results_ini = create_options_file (
+    Filename.concat file_basedir "results.ini")
 let files_ini = create_options_file (
     Filename.concat file_basedir "files.ini")
 let friends_ini = create_options_file (
@@ -277,8 +285,8 @@ let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
     "The IP address used to bind the telnet server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
-let all_sources_on_telnet =
-  define_expert_option current_section ["all_sources_on_telnet"] "Should *all* sources be shown on telnet vd <num>" bool_option true
+let print_all_sources =
+  define_expert_option current_section ["print_all_sources"] "Should *all* sources for a file be shown on HTML/telnet vd <num>" bool_option false
     
 let improved_telnet =
   define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
@@ -318,8 +326,7 @@ let dynamic_slots = define_option current_section ["dynamic_slots"]
 
 let max_connections_per_second = define_option current_section
     ["max_connections_per_second"] 
-  "Maximal number of connections that can be opened per second
-(will supersede max_clients_per_second in the future)"
+  "Maximal number of connections that can be opened per second"
   int_option 10
 
 let loop_delay = define_expert_option current_section
@@ -461,6 +468,9 @@ let html_mods_vd_prio = define_expert_option current_section
 let html_mods_vd_queues = define_expert_option current_section
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
 
+let html_vd_barheight = define_expert_option current_section
+    ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
+
 let html_mods_show_pending = define_expert_option current_section
     ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
 
@@ -514,22 +524,39 @@ let web_infos = define_option current_section
     the format: (kind, period, url), where kind is either
     'server.met' (for a server.met file), or 'comments.met' for
     a file of comments, and period is the period between updates 
-    (in days), and url is the url of the file to download.
+    (in hours), and url is the url of the file to download.
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
  web_infos = [
-  ('server.met', 1, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met');
-  ('guarding.p2p', 2, 'http://homepage.ntlworld.com/tim.leonard1/guarding.p2p')
+  ('server.met', 24, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met');
+  ('guarding.p2p', 48, 'http://homepage.ntlworld.com/tim.leonard1/guarding.p2p')
 
  ]
   "
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   [
-    ("server.met", 1, "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
-    ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
-    ("guarding.p2p", 1, "http://www.bluetack.co.uk/config/antip2p.txt");
+    ("server.met", 24, 
+      "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+    ("ocl",24, 
+      "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
+    ("guarding.p2p", 96, 
+      "http://www.bluetack.co.uk/config/antip2p.txt");
+    
+    ("rss", 6,    
+      "http://www.ed2k-it.com/forum/news_rss.php");
+    
+    ("rss", 6,
+      "http://www.torrents.co.uk/backend.php");
+
+    ("rss", 6, 
+      "http://varchars.com/rss/suprnova-movies.rss");
+
   ]
+
+let rss_feeds = define_expert_option current_section ["rss_feeds"]
+    "URLs of RSS feeds"
+    (list_option Url.option) []
   
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
     "IP blocking list filename (peerguardian format)" string_option 
@@ -623,6 +650,9 @@ let add_mail_brackets = define_option current_section ["add_mail_brackets"]
 let filename_in_subject = define_option current_section ["filename_in_subject"]
     "Send filename in mail subject" bool_option true
 
+let url_in_mail = define_option current_section ["url_in_mail"]
+  "Put a prefix for the filename here which shows up in the notification mail"
+  string_option ""
   
   
   
@@ -900,6 +930,15 @@ let chat_warning_for_downloaded = define_expert_option current_section
 (*************************************************************************)
   
 let current_section = other_section
+
+let save_results = define_option current_section ["save_results"]
+    "(experimental)" int_option 0
+
+let use_result_history = define_expert_option current_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option false
+    
+let filters = define_option current_section ["filters"] 
+    "filters on replies (replies will be kept)."
+    string_list_option ""
   
 let buffer_writes = define_option current_section ["buffer_writes"]
     "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
@@ -1104,7 +1143,7 @@ let max_displayed_results = define_expert_option current_section
   
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 0  
+    int_option 1
 
 
   
@@ -1315,7 +1354,7 @@ let _ =
 let verbose_msg_servers = ref false
 let verbose_msg_clients = ref false
 let verbose_msg_clienttags = ref false
-let verbose_sources = ref false
+let verbose_sources = ref 0
 let verbose = ref false
 let verbose_download = ref false
 let verbose_upload = ref false
@@ -1336,7 +1375,6 @@ let set_all v =
   verbose_msg_clienttags := v;
   verbose_msg_servers := v;
   BasicSocket.debug := v;
-  verbose_sources := v;
   verbose := v;
   verbose_download := v;
   verbose_upload := v;
@@ -1354,6 +1392,7 @@ let set_all v =
 let _ = 
   option_hook verbosity (fun _ ->
       BasicSocket.verbose_bandwidth := 0;
+      verbose_sources := 0;
       set_all false;      
       List.iter (fun s ->
           match s with
@@ -1361,7 +1400,7 @@ let _ =
           | "mct" -> verbose_msg_clienttags := true;
           | "ms" -> verbose_msg_servers := true;
           | "verb" -> verbose := true;
-          | "sm" -> verbose_sources := true;
+          | "sm" -> incr verbose_sources;
           | "net" -> BasicSocket.debug := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true
@@ -1380,6 +1419,7 @@ let _ =
               
           | "all" ->
               
+              verbose_sources := 1;
               set_all true;
               
           | _ -> ()
@@ -1425,3 +1465,26 @@ let _ =
 let _ = 
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
+
+let update_options () =
+  match !!options_version with
+    0 ->
+      
+      web_infos =:= List.map (fun (kind, period, url) ->
+          kind, period * 24, url  
+      ) !!web_infos;
+
+      web_infos =:= !!web_infos @ [
+        ("rss", 6,    
+          "http://www.ed2k-it.com/forum/news_rss.php");
+        
+        ("rss", 6,
+          "http://www.torrents.co.uk/backend.php");
+        
+        ("rss", 6, 
+          "http://varchars.com/rss/suprnova-movies.rss");
+      ];
+      
+      options_version =:= 1
+      
+  | _ -> ()

@@ -637,8 +637,7 @@ let _ =
 let diff_time = ref 0
 
 let save _ =
-  lprintf "SAVING SHARED FILES AND SOURCES";
-  CommonGlobals.print_localtime ();
+  lprintf "SAVING SHARED FILES AND SOURCES\n";
   Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);

@@ -151,10 +151,10 @@ let value_to_file file_size file_state assocs =
                   add_download file s (
                     FileByIndex (value_to_int index, value_to_string name))
     
-              | SmallList [c; index] | List [c;index] ->
+(*              | SmallList [c; index] | List [c;index] ->
                   let s = ClientOption.value_to_client c in
                   add_download file s (
-                    FileByUrl (value_to_string index))
+                    FileByUrl (value_to_string index)) *)
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -177,7 +177,7 @@ let file_to_value file =
                 string_to_value n]
           | FileByUrl s -> 
               SmallList [ClientOption.client_to_value c; 
-                string_to_value s]
+                string_to_value s] 
       ) file.file_clients
       ;
       "file_uids", list_to_value "toto" (fun uid ->

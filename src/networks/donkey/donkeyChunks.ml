@@ -252,7 +252,8 @@ duplicate_chunks is called with the 'dup' command, and should
   
 **************************************************************)  
   
-let md4_table = Hashtbl.create 112
+(*
+  let md4_table = Hashtbl.create 112
   
 let register_md4 i md4 (begin_pos : int64) (len : int64) file = 
   try
@@ -319,8 +320,11 @@ We should extend this mechanism between networks:
 * Then, we can copy chunks between two files sharing a given UID, or between
     two files with the same checksum for the same block.
   *)
+*)
 
-let duplicate_chunks () =
+let duplicate_chunks () = ()
+  
+  (*
   List.iter (fun file ->
       register_md4s file.file_md4s file (file_size file))
   !file_md4s_to_register;
@@ -379,4 +383,4 @@ let duplicate_chunks () =
           done;    
   ) !current_files
         
-  
+  *)

@@ -21,6 +21,8 @@ open Int64ops
 open Printf2
 open Md4
 open Options
+  
+open CommonResult
 open CommonMessages
 open CommonGlobals
 open CommonShared
@@ -684,12 +686,13 @@ let _ =
             if client_num c = n then begin
                 let rs = client_files c in
                 
-                let rs = List2.tail_map (fun (s, r) ->
-                      r, CommonResult.result_info r, 1
+                let rs = List2.tail_map (fun (s, rs) ->
+                      let r = get_result rs in
+                      rs, r, 1
                   ) rs in
                 o.conn_user.ui_last_results <- [];
                 Printf.bprintf buf "Reinitialising download selectors\n";
-                DriverInteractive.print_results buf o rs;
+                DriverInteractive.print_results 0 buf o rs;
                 
                 ()
               end
@@ -1016,14 +1019,11 @@ let _ =
         ) (customized_queries ()); 
         
         if use_html_mods o then  
-          Printf.bprintf buf "\\<a 
-            href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\> \\<a 
-            href=\\\"http://www.sharereactor.com/search.php\\\" name=\\\"ShareReactor\\\" target=\\\"$O\\\"\\>SR\\</a\\> \\<a
-            href=\\\"http://www.filenexus.com/\\\" name=\\\"FileNexus\\\" target=\\\"$O\\\"\\>FN\\</a\\> \\<a
-            href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FH\\</a\\> \\<a
-            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\> \\<a
+          Printf.bprintf buf "\\<a
+            href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FileHeaven\\</a\\> \\<a
+            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FileDonkey\\</a\\> \\<a
             href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> \\<a
-            href=\\\"http://filewatcher.org\\\" name=\\\"FileWatcher\\\" target=\\\"$O\\\"\\>FW\\</a\\> ";
+            href=\\\"http://filewatcher.org\\\" name=\\\"FileWatcher\\\" target=\\\"$O\\\"\\>FileWatcher\\</a\\> ";
         
         ""
     ), ":\t\t\tview custom queries";
@@ -1033,16 +1033,17 @@ let _ =
             CommonInteractive.download_file o arg) args;
         ""),
     "<num> :\t\t\t\t$bfile to download$n";
-    
+
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
         match !CommonGlobals.aborted_download with
           None -> "No download to force"
         | Some r ->
-            let file = CommonResult.result_download 
-                (CommonResult.result_find r) [] true
+            let r = CommonResult.find_result r in
+            let files = CommonResult.result_download 
+                r [] true
             in
-            CommonInteractive.start_download file;
+            List.iter CommonInteractive.start_download files;
             "download forced"
     ), ":\t\t\tforce download of an already downloaded file";
     
@@ -1275,10 +1276,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_checkbox_vd_file_list;     
                         strings_of_option html_checkbox_search_file_list;     
                         strings_of_option commands_frame_height; 
+                        strings_of_option html_vd_barheight; 
                         strings_of_option display_downloaded_results; 
                         strings_of_option vd_reload_delay; 
-                        strings_of_option max_name_len; 
-                        strings_of_option max_client_name_len; 
                       ] 
                   | 4 -> 
                       [
@@ -1312,6 +1312,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option smtp_server; 
                         strings_of_option add_mail_brackets; 
                         strings_of_option filename_in_subject; 
+                        strings_of_option url_in_mail; 
                       ] 
                   | 7 -> 
                       ( (if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
@@ -1363,6 +1364,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option term_ansi; 
                         strings_of_option messages_filter; 
                         strings_of_option max_displayed_results; 
+                        strings_of_option max_name_len; 
+                        strings_of_option max_client_name_len; 
                         strings_of_option emule_mods_count; 
                         strings_of_option emule_mods_showall; 
                         strings_of_option chat_app_port; 
@@ -2177,7 +2180,7 @@ let _ =
 let _ =
   register_commands "Driver/Xpert"
     [
-
+    
     "reload_messages", Arg_none (fun o ->
         CommonMessages.load_message_file ();
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -2212,7 +2215,7 @@ let _ =
         let b = bool_of_string arg in
         set_logging b;
         Printf.sprintf (_b "log to stdout %s") 
-          (if b then _s "enabled" else _s "disabled")
+        (if b then _s "enabled" else _s "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
     
     "debug_client", Arg_multiple (fun args o ->
@@ -2264,8 +2267,8 @@ let _ =
         close_log ();
         _s "log stopped"
     ), ":\t\t\t\tclose logging to file";
-   
-        
+    
+    
     "html_mods", Arg_none (fun o ->
         let buf = o.conn_buf in
         
@@ -2316,6 +2319,30 @@ let _ =
     
     ), ":\t\t\tselect html_mods_style <#>";
     
+    "rss", Arg_none (fun o ->
+        
+        let buf = o.conn_buf in
+        let module CW = CommonWeb in
+        Hashtbl.iter (fun url feed ->
+            Printf.bprintf buf "%s:\n" url;
+            Printf.bprintf buf "   loaded %d hours ago\n"
+              (feed.CW.rss_date / 3600);
+            let r = feed.CW.rss_value in
+            Printf.bprintf buf "   title: %s\n" r.Rss.ch_title;
+            List.iter (fun item ->
+                match item.Rss.item_title, item.Rss.item_link with
+                  None, _
+                | _, None -> ()
+                | Some title, Some link ->
+                    Printf.bprintf buf "     %s\n" title;
+                    Printf.bprintf buf "       > %s\n" link
+            ) r.Rss.ch_items
+        ) CW.rss_feeds;
+        ""
+        
+        
+    ), " : print RSS feeds";
+    
     "html_theme", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
@@ -2341,9 +2368,9 @@ let _ =
     
     ), "<theme>:\t\t\tselect html_theme";
     
-    "mem_stats", Arg_none (fun o -> 
+    "mem_stats", Arg_one (fun level o -> 
         let buf = o.conn_buf in
-        Heap.print_memstats buf;
+        Heap.print_memstats (int_of_string level) buf;
         ""
     ), ":\t\t\t\tprint memory stats";
     

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Options
 open Md4 
 
 type activity = {
@@ -61,7 +61,8 @@ module Uid : sig
     val add : t -> t list -> t list
     val derive : t -> t list
     val expand : t list -> t list
-    
+    val option : t option_class
+      
     val compare : t -> t -> int
     val no : t
   end = struct
@@ -180,9 +181,17 @@ module Uid : sig
           expand_rec (list@tail) (add t uids)
     
     let expand uids = expand_rec uids []      
-      
+
+    let option = define_option_class "Uid"
+        (fun v -> of_string (value_to_string v))
+      (fun uid -> string_to_value (to_string uid))
   end
 
+let string_of_uids list =
+  match list with
+    [] -> "<unknown>"
+  | uid :: _ -> Uid.to_string uid
+  
 type field_name =
   Field_Size
 | Field_Filename
@@ -191,6 +200,7 @@ type field_name =
 | Field_Title
 | Field_Format
 | Field_Type
+| Field_Uid  
 | Field_unknown of string
   
 type file_state =
@@ -224,6 +234,7 @@ let string_of_field field =
   | Field_Title -> "title"
   | Field_Format -> "format"
   | Field_Type -> "type"
+  | Field_Uid -> "uid"
   | Field_unknown s -> s
 
 let field_of_string s =
@@ -235,6 +246,7 @@ let field_of_string s =
   | "title" -> Field_Title
   | "format" -> Field_Format
   | "type" -> Field_Type
+  | "uid" -> Field_Uid
   | _ -> Field_unknown s
       
 type query =
@@ -255,7 +267,7 @@ type query =
   
 type tag_value =
 | Uint64 of int64
-| Fint64 of int64
+| Fint64 of int64  (* Why do we keep that one ?? *)
 | String of string
 | Addr of Ip.t
 
@@ -341,21 +353,6 @@ type connection_control = {
     mutable control_min_reask : int;
   }
 
-
-type result_info = {
-    mutable result_num : int;    
-    result_network : int;
-    
-    mutable result_names : string list;
-    mutable result_md4 : Md4.t;
-    mutable result_size : int64;
-    mutable result_format : string;
-    mutable result_type : string;
-    mutable result_tags : tag list;
-    mutable result_comment : string;
-    mutable result_done : bool;
-  }
-  
 type output_type = TEXT | HTML | ANSI
   
 type sortvd_type = 
@@ -382,7 +379,29 @@ type room_state =
 type file
 type server
 type client
-type result
+  
+type result_info = {
+    mutable result_num : int;    
+    
+    mutable result_uids : Uid.t list; (* net file UID *)
+    mutable result_names : string list;
+    mutable result_size : int64;
+    mutable result_format : string;
+    mutable result_type : string;
+    mutable result_tags : tag list;
+    mutable result_comment : string;
+    mutable result_done : bool;
+
+    mutable result_time : int;
+    mutable result_modified : bool;
+  }
+
+type result = {
+    stored_result_num : int;
+    mutable stored_result_index : Store.index;
+  }
+  
+
 type user
 type shared  
 type room
@@ -463,6 +482,8 @@ type network = {
     
     mutable op_network_connected : (unit -> bool);
     mutable op_network_gui_message : (string -> unit);
+    
+    mutable op_network_download : (result_info -> file);
   }
 
 and   ui_user = {
@@ -487,6 +508,7 @@ and ui_conn = {
 
 and search = {
     search_num : int;
+    search_time : int;
     mutable search_max_hits : int; (* total max allowed hits *)
     mutable search_type : search_type;
     mutable search_query : query;
@@ -553,6 +575,7 @@ arguments, the events defining the arguments have already been sent *)
     mutable gui_new_events : event list;
     mutable gui_old_events : event list;
 
+    mutable gui_interested_in_sources : bool;
 
 (* Queues of pending events for particular objects: objects updates
 are kept here before being sent, so that we can easily check if a

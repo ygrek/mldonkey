@@ -152,7 +152,8 @@ let really_query_download filenames size md4 location old_file absents =
             Int64Swarmer.set_absent swarmer absents
   end;
   
-  let other_names = DonkeyIndexer.find_names md4 in
+(* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
+  let other_names = [] in
   let filenames = List.fold_left (fun names name ->
         if List.mem name names then names else names @ [name]
     ) filenames other_names in 
@@ -215,8 +216,10 @@ with _ -> ()
 *)
   );
   as_file file
-        
+
 let query_download filenames size md4 location old_file absents force =
+  
+(* TODO RESULT
   if not force then
     List.iter (fun m -> 
         if m = md4 then begin
@@ -244,12 +247,20 @@ file that should have been download, but has already been downloaded *)
             aborted_download := Some (result_num (as_result r.result_result));
             raise already_done
           end) 
-    !!old_files;
+    !!old_files; *)
   really_query_download filenames size md4 location old_file absents
 
-let result_download rs filenames force =
-  let r = Store.get store rs.result_index in
-  query_download filenames r.result_size r.result_md4 None None None force
+let result_download r filenames force =  
+  let rec iter uids =
+    match uids with
+      [] -> raise IgnoreNetwork
+    | uid :: tail ->
+        match Uid.to_uid uid with
+          Ed2k md4 ->
+            query_download filenames r.result_size md4 None None None force        
+        | _  -> iter tail
+  in
+  iter r.result_uids
   
 let load_prefs filename = 
   try
@@ -287,7 +298,7 @@ let import_temp temp_dir =
             ) f.P.tags;
             let file = query_download !filenames !size f.P.md4 None 
               (Some filename) (Some (List.rev f.P.absents)) true;
-            in
+            in 
             ()
       with _ -> ()
   ) list
@@ -411,6 +422,7 @@ let recover_md4s md4 =
     
 let parse_donkey_url url =
   match String2.split (String.escaped url) '|' with
+(* TODO RESULT *)
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       let md4 = if String.length md4 > 32 then
@@ -485,15 +497,15 @@ let commands = [
     
     "comments", Arg_one (fun filename o ->
         let buf = o.conn_buf in
-        DonkeyIndexer.load_comments filename;
-        DonkeyIndexer.save_comments ();
+(* TODO        DonkeyIndexer.load_comments filename; 
+        DonkeyIndexer.save_comments (); *)
         "comments loaded and saved"
     ), "<filename> :\t\t\tload comments from file";
     
     "comment", Arg_two (fun md4 comment o ->
         let buf = o.conn_buf in
         let md4 = Md4.of_string md4 in
-        DonkeyIndexer.add_comment md4 comment;
+(* TODO        DonkeyIndexer.add_comment md4 comment; *)
         "Comment added"
     ), "<md4> \"<comment>\" :\t\tadd comment on a md4";
     
@@ -519,7 +531,7 @@ let commands = [
     
     "load_old_history", Arg_none (fun o ->
         let buf = o.conn_buf in
-        DonkeyIndexer.load_old_history ();
+(* TODO        DonkeyIndexer.load_old_history (); *)
         "Old history loaded"
     ), ":\t\t\tload history.dat file";
     
@@ -676,10 +688,10 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
                     Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr 
-                      (try
+(* TODO RESULT                      (try
                         let names = DonkeyIndexer.find_names md4 in
                         List.hd names
-                      with _ -> "Never Seen") 
+                      with _ -> "Never Seen") *) "?"
                     (if List.mem md4 !!old_files then
                         "Old file" else "Unknown")
                     filename
@@ -688,10 +700,10 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
                       filename
                       (if List.mem md4 !!old_files then
                         "is an old file" else "is unknown")
-                    (try
+(* TODO RESULT                    (try
                         let names = DonkeyIndexer.find_names md4 in
                         List.hd names
-                      with _ -> "and never seen")
+                      with _ -> "and never seen") *) "?"
             
             with _ -> 
                 if use_html_mods o then
@@ -734,17 +746,17 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     
     "clh", Arg_none (fun o ->
         let buf = o.conn_buf in
-        DonkeyIndexer.clear ();
+(* TODO RESULT        DonkeyIndexer.clear (); *)
         "local history cleared"
     ), ":\t\t\t\t\tclear local history";
-    
+
+(* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
         let file = query_download [] (Int64.of_string size)
           (Md4.of_string md4) None None None false in
         CommonInteractive.start_download file;
-        "download started"
-    
+        "download started"    
     ), "<size> <md4> :\t\t\tdownload from size and md4";
     
     "dup", Arg_none (fun _ ->
@@ -780,7 +792,7 @@ let _ =
       reconnect_all file;
   );
   file_ops.op_file_set_priority <- (fun file _ ->
-(*  TODO: take care priorities in CommonSources
+(*  TODO PRIORITY: take care priorities in CommonSources
 DonkeySources.recompute_ready_sources ()        *)
       ()
   );
@@ -823,13 +835,9 @@ file.---------> to be done urgently
         Not_found ->
           CommonChat.send_text !!CommonOptions.chat_console_id None 
             (Printf.sprintf "client %s unknown" iddest)
-  )
-
-let _ =
-  result_ops.op_result_info <- (fun rs ->
-      let r = Store.get store rs.result_index in
-      r.result_num <- rs.result_result.impl_result_num;
-      r
+  );
+  network.op_network_download <- (fun r ->
+      result_download r r.result_names false
   )
 
 module P = GuiTypes
@@ -857,8 +865,8 @@ let _ =
             P.file_md4 = file.file_md4;
             P.file_size = file_size file;
             P.file_downloaded = file_downloaded file;
-            P.file_nlocations = 0;
-            P.file_nclients = 0;
+            P.file_all_sources = file.file_sources.DonkeySources.manager_all_sources;
+            P.file_active_sources = file.file_sources.DonkeySources.manager_active_sources;
             P.file_state = file_state file;
             P.file_sources = None;
             P.file_download_rate = file_download_rate file.file_file;
@@ -954,9 +962,6 @@ let _ =
   client_ops.op_client_debug <- (fun c debug ->
       c.client_debug <- debug)
 
-let _ =
-  result_ops.op_result_download <- result_download
-  
 let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true
@@ -1054,7 +1059,7 @@ let _ =
   network.op_network_extend_search <- (fun s e ->
       match e with
       | ExtendSearchLocally ->
-          DonkeyIndexer.find s      
+(* TODO RESULT          DonkeyIndexer.find s      *) ()
       | ExtendSearchRemotely ->
           DonkeyUdp.make_xs s
   );
@@ -1065,29 +1070,30 @@ let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true);
 
+(* TODO RESULT *)
   network.op_network_recover_temp <- (fun _ ->
       lprintf "op_network_recover_temp ++++++++++++++++++++++++++\n";
       let files = Unix2.list_directory !!temp_directory in
       List.iter (fun filename ->
-	if String.length filename = 32 then
-          try
-            let md4 = Md4.of_string filename in
+          if String.length filename = 32 then
             try
-              ignore (Hashtbl.find files_by_md4 md4)
-            with Not_found ->
-              let size = Unix32.getsize (Filename.concat 
-		!!temp_directory filename) in
-              if size <> zero then
-                let names = try DonkeyIndexer.find_names md4 
-                with _ -> [] in
-                let file = 
-                  query_download names size md4 None None None true
-                in
-                        
-                  recover_md4s md4
-          with e ->
-            lprintf "exception %s in recover_temp\n"
-            (Printexc2.to_string e); 
+              let md4 = Md4.of_string filename in
+              try
+                ignore (Hashtbl.find files_by_md4 md4)
+              with Not_found ->
+                  let size = Unix32.getsize (Filename.concat 
+                        !!temp_directory filename) in
+                  if size <> zero then
+                    let names = (* TODO RESULT try DonkeyIndexer.find_names md4 
+                with _ -> *) [] in
+                    let file = 
+                      query_download names size md4 None None None true
+                    in
+                    
+                    recover_md4s md4
+            with e ->
+                lprintf "exception %s in recover_temp\n"
+                  (Printexc2.to_string e); 
       ) files
   );
   
@@ -1112,7 +1118,7 @@ let _ =
       match c.client_all_files with
         None ->  []
       | Some files -> 
-          List2.tail_map (fun r -> "", as_result r.result_result) files);
+          List2.tail_map (fun r -> "", r) files);
   client_ops.op_client_browse <- (fun c immediate ->
       lprintf "*************** should browse  ***********\n"; 
       match c.client_source.DonkeySources.source_sock with
@@ -1236,7 +1242,12 @@ lprint_newline ();
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks,_) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
-                    client_print (as_client c) o;
+	          Printf.bprintf buf "[Donkey%6d] Name  : %-27s IP   : %-20s"
+	            (client_num c)
+	            (shorten c.client_name 20)
+	            (match c.client_kind with
+	                Direct_address (ip,port) -> (Ip.to_string ip)
+	                |  _ -> (string_of_client_addr c));
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_downloaded) 
                     (Int64.to_string c.client_uploaded)
@@ -1338,18 +1349,18 @@ let _ =
   )
 
 let _ =
-  CommonWeb.add_web_kind "server.met" (fun filename ->
+  CommonWeb.add_web_kind "server.met" (fun _ filename ->
       lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
-  CommonWeb.add_web_kind "servers.met" (fun filename ->
+  CommonWeb.add_web_kind "servers.met" (fun _ filename ->
       lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED\n" n; 
   );
-  CommonWeb.add_web_kind "comments.met" (fun filename ->
-      DonkeyIndexer.load_comments filename;
+  CommonWeb.add_web_kind "comments.met" (fun _ filename ->
+(* TODO      DonkeyIndexer.load_comments filename; *)
       lprintf "COMMENTS ADDED\n"; 
   );
   

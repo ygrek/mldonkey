@@ -274,7 +274,6 @@ let udp_client_handler t p =
       (match t.M.flags with Some x -> s.server_flags <- x
       | None -> ())
 
-(* TODO: what to do with this ping ? *)
   | Udp.EmuleReaskFilePingUdpReq t -> ()
       
       

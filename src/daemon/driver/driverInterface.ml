@@ -71,11 +71,12 @@ let gui_send gui t =
   gui.gui_send gui t
 
 let binary_result_handler gui num r =
-  gui_send gui (P.Search_result (num, result_num r, None)) 
+  gui_send gui (P.Search_result (num, r.stored_result_num, None)) 
 
 let gift_result_handler gui num r =
   gui.gui_id_counter <- gui.gui_id_counter + 1;
-  gui_send gui (P.Search_result (num, gui.gui_id_counter, Some (result_info r))) 
+  gui_send gui (P.Search_result (num, gui.gui_id_counter, Some 
+      (get_result r))) 
           
 let gui_can_write gui =
   match gui.gui_sock with
@@ -116,7 +117,11 @@ let update_client_info client =
   let client_num = impl.impl_client_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update client_num (gui.gui_events.gui_clients)
+          if gui.gui_events.gui_interested_in_sources ||
+            impl.impl_client_type land client_friend_tag <> 0 then begin
+(*              lprintf "++++ adding client %b\n" gui.gui_events.gui_interested_in_sources; *)
+              update_events gui update client_num (gui.gui_events.gui_clients)
+            end
       );
       impl.impl_client_update <- !gui_counter
     end
@@ -154,16 +159,16 @@ let update_room_info room =
       impl.impl_room_update <- !gui_counter
     end
   
-let update_result_info result =
-  let impl = as_result_impl result in
-  let update = impl.impl_result_update in
-  let result_num = impl.impl_result_num in
-  if update < !gui_counter then begin
+let update_result_info r =
+  let r = get_result r in
+(*  let update = r.result_update in
+  let result_num = r.result_num in
+  if update < !gui_counter then begin *)
       with_guis (fun gui -> 
-          update_events gui update result_num ( gui.gui_events.gui_results)
-      );
-      impl.impl_result_update <- !gui_counter
-    end
+          update_events gui 0 r.result_num ( gui.gui_events.gui_results)
+      ) (* ;
+      r.result_update <- !gui_counter
+    end *)
   
 let update_shared_info shared =
   let impl = as_shared_impl shared in
@@ -194,16 +199,18 @@ let send_event gui ev =
       
   | Client_new_file_event (c, dirname, r) ->
       gui_send gui (P.Client_file (client_num c, dirname, 
-                    result_num r) )
+                    r.stored_result_num) )
 
   | File_add_source_event (f,c) ->
-      gui_send gui (P.File_add_source (file_num f, client_num c));      
+      if gui.gui_events.gui_interested_in_sources then
+        gui_send gui (P.File_add_source (file_num f, client_num c));      
 
   | File_update_availability (f,c,avail) ->
       gui_send gui (P.File_update_availability (file_num f, client_num c,avail));      
       
   | File_remove_source_event (f,c) ->
-      gui_send gui (P.File_remove_source (file_num f, client_num c));      
+      if gui.gui_events.gui_interested_in_sources then
+         gui_send gui (P.File_remove_source (file_num f, client_num c));      
       
   | Server_new_user_event (s,u) ->
       gui_send gui (P.Server_user (server_num s, user_num u))
@@ -263,9 +270,8 @@ let send_update_room gui room_num update =
   gui_send gui room_info
 
 let send_update_result gui result_num update =
-  let result = result_find result_num in
-  let impl = as_result_impl result in
-  let result_info = P.Result_info (result_info result) in
+  let r = find_result result_num in
+  let result_info = P.Result_info (get_result r) in
   gui_send gui result_info  
   
   let send_update_shared gui shfile_num update =
@@ -391,12 +397,13 @@ let gui_initialize gui =
       List.iter (fun file ->
           addevent gui.gui_events.gui_files (file_num file) true;
           let sources = file_active_sources file in
-          List.iter (fun c ->
-              addevent gui.gui_events.gui_clients (client_num c) true;
-              gui.gui_events.gui_new_events <-
-                (File_add_source_event (file,c))
-              :: gui.gui_events.gui_new_events
-          ) (file_active_sources file)
+          if gui.gui_events.gui_interested_in_sources then
+            List.iter (fun c ->
+                addevent gui.gui_events.gui_clients (client_num c) true;
+                gui.gui_events.gui_new_events <-
+                  (File_add_source_event (file,c))
+                :: gui.gui_events.gui_new_events
+            ) (file_active_sources file)
       ) !!files;
       
       List.iter (fun file ->
@@ -507,8 +514,27 @@ let gui_reader (gui: gui_record) t _ =
               (            
                 lprintf "Extension POLL %s\n" (string_of_bool bool); 
                 gui.gui_poll <- bool
-              )
+              ) 
         ) list
+    
+    | P.InterestedInSources interested -> 
+(*        lprintf "InterestedInSources %b\n" interested; *)
+        let ev = gui.gui_events in
+        ev.gui_interested_in_sources <- interested;
+        if interested then begin
+            
+(*            lprintf "--------- send sources to GUI --------\n"; *)
+            List.iter (fun file ->
+                List.iter (fun c ->
+(*                    lprintf "   ++ send source to GUI --------\n"; *)
+                    addevent gui.gui_events.gui_clients (client_num c) true;
+                    gui.gui_events.gui_new_events <-
+                    (File_add_source_event (file,c))
+                    :: gui.gui_events.gui_new_events
+                ) (file_active_sources file)
+            ) !!files;
+            
+          end
     
     | P.Password (user, pass) ->
         begin
@@ -653,9 +679,9 @@ search.op_search_end_reply_handlers;
           
           | P.Download_query (filenames, num, force) ->
               begin
-                let r = result_find num in
-                let file = result_download r filenames force in
-                CommonInteractive.start_download file
+                let r = find_result num in
+                let files = result_download r filenames force in
+                List.iter CommonInteractive.start_download files
               end
           
           | P.ConnectMore_query ->
@@ -841,7 +867,8 @@ search.op_search_end_reply_handlers;
               let file = file_find num in
               file_check file 
           
-          | P.Password _ | P.GuiProtocol _ | P.GuiExtensions _ -> 
+          | P.Password _ | P.GuiProtocol _ | P.GuiExtensions _ 
+          | P.InterestedInSources _ -> 
 (* These messages are handled before, since they can be received without
   authentication *)
               assert false
@@ -957,6 +984,7 @@ search.op_search_end_reply_handlers;
                   ) :: !list
               );
               gui_send gui (P.GiftServerStats !list)
+              
   with 
     Failure s ->
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
@@ -965,9 +993,9 @@ search.op_search_end_reply_handlers;
           Printf.sprintf "from_gui: exception %s for message %s\n" (
             Printexc2.to_string e) (GuiProto.from_gui_to_string t)))
 
-      
 let gui_events () = 
   {
+      gui_interested_in_sources = true;
       
       gui_new_events = [];
       gui_old_events = [];
@@ -1109,7 +1137,7 @@ let rec update_events list =
           match event with
             Room_info_event room -> 
               update_room_info room
-              
+          
           | Room_add_user_event (room, user) ->
               update_room_info room;
               update_user_info user;
@@ -1119,7 +1147,7 @@ let rec update_events list =
               update_room_info room;
               update_user_info user;
               add_gui_event event
-
+          
           | Room_message_event (_, room, msg) ->            
               update_room_info room;
               begin
@@ -1134,30 +1162,30 @@ let rec update_events list =
                         lprintf "USER NOT FOUND FOR MESSAGE\n"
               end;
               add_gui_event event
-              
+          
           | Shared_info_event sh ->
               update_shared_info sh
-              
+          
           | Result_info_event r ->
               update_result_info r
-              
+          
           | Client_info_event c ->
               update_client_info c
-              
+          
           | Server_info_event s ->
               update_server_info s
-              
+          
           | File_info_event f ->
               update_file_info f
-              
+          
           | User_info_event u ->
               update_user_info u
-
+          
           | Client_new_file_event (c,_,r) ->
               update_client_info c;
               update_result_info r;
               add_gui_event event
-              
+          
           | File_add_source_event (f,c)
           | File_update_availability (f,c,_) ->
               update_file_info f;

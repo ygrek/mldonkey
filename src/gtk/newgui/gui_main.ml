@@ -30,6 +30,7 @@ module M = Gui_messages
 module Com = Gui_com
 module G = Gui_global
 module Mi = Gui_misc
+module D = Gui_downloads
   
 (*module Gui_rooms = Gui_rooms2*)
 let chmod_config () =
@@ -140,10 +141,10 @@ let nbr_add_source = ref 0
 let value_reader gui t =
   try
     
-    if !verbose_gui_messages then begin
+    if !verbose_gui_messages then begin  
         lprintf "MESSAGE RECEIVED: %s\n" 
           (string_of_to_gui t);
-      end;
+      end;  
     
     
     match t with
@@ -161,6 +162,12 @@ let value_reader gui t =
         done;
         lprintf "Using protocol %d for communications\n" version;
         gui#label_connect_status#set_text ( M.mW_lb_connected);
+        
+        if version >= D.interested_in_sources_version then begin
+(*            lprintf "-----  not interested in sources -----\n"; *)
+            Gui_downloads.use_interested_in_sources := true;
+            Com.send (InterestedInSources false);
+          end;
         Com.send (Password (!!O.login, !!O.password))
 
     | Console text ->
@@ -190,7 +197,7 @@ let value_reader gui t =
                     | _ -> ());
                   
                   Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
-                  ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
+                   ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
                         Com.send (EnableNetwork (nn.net_num,
                             box#wtog_net#active)
                         )));
@@ -237,12 +244,13 @@ let value_reader gui t =
         gui#tab_queries#h_search_waiting num waiting
     
     | File_add_source (num, src) -> 
+(*        lprintf "File_add_source\n"; *)
 (*        incr nbr_add_source;
         Printf.printf "File_add_source %3d %3d = %d" num src !nbr_add_source; print_newline (); *)
         gui#tab_downloads#h_file_location num src
     
     | File_remove_source (num, src) ->
-       (* Printf.printf "File_remove_source\n"; flush stdout;*) 
+(*        lprintf "File_remove_source\n";  *)
         gui#tab_downloads#h_file_remove_location num src
     
     | File_downloaded (num, downloaded, rate, last_seen) ->
@@ -365,12 +373,13 @@ let value_reader gui t =
         gui#tab_queries#h_define_searches l
     
     | Client_state (num, state) ->
-(* lprintf "Client_state" ; lprint_newline (); *)
+(*        lprintf "Client_state\n" ; *)
         gui#tab_friends#h_update_friend_state (num , state);
         gui#tab_uploads#h_update_client_state (num , state);
         gui#tab_downloads#h_update_client_state (num , state)
         
     | Client_friend (num, friend_kind) ->
+(*        lprintf "Client_friend\n" ; *)
         gui#tab_friends#h_update_friend_type (num , friend_kind);
         gui#tab_uploads#h_update_client_type (num , friend_kind);
         gui#tab_downloads#h_update_client_type (num , friend_kind)
@@ -386,6 +395,7 @@ let value_reader gui t =
         gui#tab_friends#h_add_friend_files (num , dirname, file_num)
     
     | Client_info c -> 
+(*        lprintf "Client_info\n" ; *)
 (*        incr nbr_client_info;
         Printf.printf  "Client_info %d, %d/%d" c.client_num !nbr_client_info !nbr_add_source; print_newline (); *)
         gui#tab_friends#h_update_friend c;
@@ -440,10 +450,12 @@ let value_reader gui t =
           (M.pW_lb_bad_password)
     
     | Uploaders l ->
-        gui#tab_uploads#h_update_uploaders l
+        if !displayed_page = uploads_page then
+          gui#tab_uploads#h_update_uploaders l
 
     | Pending l ->
-        gui#tab_uploads#h_update_pending_slots l
+        if !displayed_page = uploads_page then
+          gui#tab_uploads#h_update_pending_slots l
 
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
@@ -453,7 +465,7 @@ let value_reader gui t =
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 
-
+      
 let generate_connect_menu gui menu =
   let add_item hostname port =
     let menu_item =
@@ -555,6 +567,8 @@ let main () =
   Gui_config.update_graphs gui;
   Gui_config.update_availability_column gui;
   Gui_config.update_icons gui;
+  
+  
   gui#notebook#goto_page !!O.last_tab;
 
   ignore (w#event#connect#delete (fun _ ->
@@ -590,7 +604,7 @@ let main () =
 
   ignore (gui#buttonIm#connect#clicked 
       (fun () -> Gui_im.main_window#window#show ()));
-
+  
   (************ Some hooks ***************)
 
   option_hook Gui_options.notebook_tab 

@@ -41,7 +41,7 @@ open DonkeyMftp
 open DonkeyProtoOvernet
 
 (*
-TODO
+TODO OVERNET
 ----
 Enforce correct search
 Add BCP type2 support again
@@ -991,8 +991,6 @@ PARE DI NO. FARE DELLE PROVE INTERROGANDO L'IP INDICATO RELATIVAMENTE AL MD4 IND
                                     DonkeySources.set_request_result s 
                                       file.file_sources File_new_source;
                                     DonkeySources.set_source_brand s true
-(* TODO:
-                                    c.source_overnet <- true; *)
                               | _ ->
                                   lprintf "Ill formed bcp: %s" bcp;
                                   lprint_newline ();
@@ -1520,7 +1518,7 @@ let _ =
   
   ];
   
-  CommonWeb.add_web_kind "ocl" (fun filename ->
+  CommonWeb.add_web_kind "ocl" (fun _ filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in

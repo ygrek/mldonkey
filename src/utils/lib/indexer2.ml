@@ -18,14 +18,6 @@
 *)
 
 open Printf2
-
-type 'a query =
-  And of 'a query * 'a query
-| Or of 'a query * 'a query
-| AndNot of 'a query * 'a query
-| HasWord of string
-| HasField of int * string
-| Predicate of ('a -> bool)
   
 module Make(Doc : sig
       type t
@@ -56,6 +48,26 @@ module Make(Doc : sig
         mutable node : node; 
       }
     
+    
+    let stats index =
+      let mem = ref 2 in
+      let rec iter node =
+        mem := !mem + 9 + 
+          Array.length node.docs + Array.length node.fields + 
+          Array.length node.nodes;
+        Array.iter (fun n ->
+            match n with None -> ()
+            | Some node -> 
+                mem := !mem + 2;
+                iter node
+            | Filtered node ->
+                mem := !mem + 2;
+                iter node
+        ) node.nodes                
+      in
+      iter index.node;
+      !mem
+      
     let new_node () = {
         next_doc = 0;
         docs  = [||];

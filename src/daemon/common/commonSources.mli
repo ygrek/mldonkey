@@ -112,7 +112,8 @@ module Make(M:
       and file_sources_manager = {
           manager_uid : string;
           mutable manager_sources : source Queues.Queue.t array;
-          mutable manager_nsources : int;
+          mutable manager_active_sources : int;
+          mutable manager_all_sources : int;
           mutable manager_file : (unit -> file);
           mutable manager_brothers : file_sources_manager list;
         }

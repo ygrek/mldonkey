@@ -68,7 +68,9 @@ le mot apparait.
         suffix_word = None;
         suffix_words = [] ;
       }
-    
+
+    let stats _ = 0
+      
     let clear index = 
       index.next_doc <- 0;
       index.next_word <- 0;

@@ -53,6 +53,8 @@ module type Index = sig
     val find : index -> string -> node
     val and_get_fields : node -> int -> doc Intmap.t -> doc Intmap.t
     val size : node -> int
+      
+    val stats : index -> int
 (* 
 val min_field : int -> int32 -> doc Intmap.t
 val max_field : int -> int32 -> doc Intmap.t
@@ -232,9 +234,44 @@ module QueryMake(Index: Index) = struct
           purge_map (fun x -> not (f x)) map
     
     let exit_exn= Exit
-  
+    
+    let rec simplify q =
+      match q with
+        And (q1, q2) -> 
+          let q1 = simplify q1 in
+          let q2 = simplify q2 in
+          simplify1 (And (q1, q2))
+      | Or (q1, q2) ->
+          let q1 = simplify q1 in
+          let q2 = simplify q2 in
+          simplify1 (Or (q1, q2))
+      | AndNot (q1, q2) ->
+          let q1 = simplify q1 in
+          let q2 = simplify q2 in
+          simplify1 (AndNot (q1, q2))          
+      | Predicate _ 
+      | HasField _ 
+      | HasWord _ -> q
+          
+    and simplify1 q =
+      match q with
+        And (Predicate f1, Predicate f2) ->
+          Predicate (fun x -> f1 x && f2 x)
+      | AndNot (Predicate f1, Predicate f2) ->
+          Predicate (fun x -> f1 x && not (f2 x))
+      | And (AndNot (q1, q2), q3) ->
+          simplify1 (AndNot ( simplify1 (And (q1, q3)), q2))
+      | And (Predicate f, q) -> And (q, Predicate f)
+      | Or(q1, Or(q2,q3)) -> 
+          simplify1 (Or (simplify1 (Or(q1,q2)), q3))
+      | And (q1, And(q2, q3)) -> 
+          simplify1 (And (simplify1 (And(q1, q2)), q3))
+      | And (Or(q1,q2), q3) -> 
+          simplify1 (Or(simplify1 (And(q1,q3)), simplify1 (And(q2,q3))))
+      | _ -> q
+    
     let query idx q =
-      let map = query_map idx q in
+      let map = query_map idx (simplify q) in
       let count = ref 0 in
       let ele = ref None in
       Intmap.iter (fun num doc ->
@@ -256,45 +293,46 @@ module QueryMake(Index: Index) = struct
               ) map;
             with _ -> ());
           array
-          
   end
   
 module type Make = functor (Doc: Doc) ->
-  sig    
-    type   index
-    val create : unit ->  index
-    
-    val add :  index -> string ->  Doc.t -> int -> unit
-    
-    val clear :  index -> unit
-    
-    val filter_words :  index -> string list -> unit
-    val clear_filter :  index -> unit
-    val filtered :  Doc.t -> bool
-
-    type doc = Doc.t
-    type node
-    val or_get_fields : Doc.t Intmap.t ref -> node -> int -> Doc.t Intmap.t
-    val find : index -> string -> node
-    val and_get_fields : node -> int -> Doc.t Intmap.t -> Doc.t Intmap.t
-    val size : node -> int  
-
-  end
+sig    
+  type   index
+  val create : unit ->  index
+  
+  val add :  index -> string ->  Doc.t -> int -> unit
+  
+  val clear :  index -> unit
+  
+  val filter_words :  index -> string list -> unit
+  val clear_filter :  index -> unit
+  val filtered :  Doc.t -> bool
+  
+  type doc = Doc.t
+  type node
+  val or_get_fields : Doc.t Intmap.t ref -> node -> int -> Doc.t Intmap.t
+  val find : index -> string -> node
+  val and_get_fields : node -> int -> Doc.t Intmap.t -> Doc.t Intmap.t
+  val size : node -> int  
+  
+  val stats :  index -> int
+end
 
   
 module FullMake (Doc : Doc)(Make:Make) =
-    struct
-      module Index = Make(Doc) 
-      module Query = QueryMake(Index)
-      
-      type index = Index.index
-      
-      let query = Query.query
-      let query_map = Query.query_map
-      let filtered = Index.filtered
-      let clear_filter = Index.clear_filter
-      let filter_words = Index.filter_words
-      let clear = Index.clear
-      let add = Index.add
-      let create = Index.create
-    end
+  struct
+    module Index = Make(Doc) 
+    module Query = QueryMake(Index)
+    
+    type index = Index.index
+    
+    let query = Query.query
+    let query_map = Query.query_map
+    let filtered = Index.filtered
+    let clear_filter = Index.clear_filter
+    let filter_words = Index.filter_words
+    let clear = Index.clear
+    let add = Index.add
+    let create = Index.create
+    let stats = Index.stats
+  end

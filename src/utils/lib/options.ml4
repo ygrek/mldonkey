@@ -448,8 +448,8 @@ let load opfile =
     opfile.file_rc <-
       really_load opfile.file_name opfile.file_sections
   with
-    Not_found -> lprintf "No %s found\n" opfile.file_name
-
+    Not_found | Sys_error _ -> lprintf "No %s found\n" opfile.file_name
+      
 let append opfile filename =
   try
     opfile.file_rc <-
@@ -1098,7 +1098,16 @@ let string_of_option_value o v =
     None ->
       value_to_string (o.option_class.to_value v)
   | Some (to_string, _) -> to_string v
+
+let tuple2_to_value f x =
+  let (v1, v2) = f x in
+  SmallList [v1; v2]
   
+let value_to_tuple2 f x =
+  match value_to_list (fun id -> id) x with
+    [v1;v2] -> f (v1, v2)
+  | _ -> assert false
+      
 let strings_of_option prefix o =
   match o.option_name with
     [] | _ :: _ :: _ -> failwith "Complex option"
@@ -1173,3 +1182,4 @@ let iter_file f file =
   List.iter (iter_section f) file.file_sections
   
 let strings_of_option o = strings_of_option "" o
+  

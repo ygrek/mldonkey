@@ -91,4 +91,3 @@ val set_initialized : CommonTypes.client -> unit
   
 val set_not_friend : CommonTypes.client -> unit
 val set_not_contact : CommonTypes.client -> unit
-  

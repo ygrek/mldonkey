@@ -250,14 +250,13 @@ information. *)
           match s with
             None -> ()
           | Some (s, user) ->
-              let r = new_result f.Q.name f.Q.size [] !uids in
+              let r = new_result f.Q.name f.Q.size [] !uids [] in
               
-              
-              add_source r user (FileByIndex (f.Q.index,f.Q.name));
+              add_source r user (FileByIndex (f.Q.index,f.Q.name)) ;
               
               match s.search_search with
                 UserSearch (s,_, _) ->
-                  CommonInteractive.search_add_result true s r.result_result
+                  CommonInteractive.search_add_result true s r
               | _ -> ()
       ) t.Q.files;
   | _ -> ()

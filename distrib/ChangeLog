@@ -1,6 +1,65 @@
 ChangeLog	
 =========
 
+2004/07/29: Fabrice  (version 2.5.22 = 2.6pre4, tag release-2-5-22)
+  - Fixed a bug in number of sources computation.
+
+2004/07/28: Fabrice
+  - New subtree src/gtk2 to compile the GUI with gtk2. You need lablgtk2
+     installed, and use "./configure --enable-gtk2" to enable. Some things
+     are broken, such as availability display (but when is that pixmap
+     destroyed ???).
+  - New message InterestedInSources in the GUI protocol, to save more
+     bandwidth by sending sources information only when asked.
+
+2004/07/02: Fabrice
+  - Applied Savannah patches: #3165 (ipset), #3166 (mozilla height),
+   #3178 (BT compatct). #3184 (hightime)
+
+
+2004/06/25: Fabrice
+  - Applied Savannah patch: #3162
+	
+2004/06/18: Fabrice
+  - GUI protocol:
+    * New message InterestedInSources
+    * Fields file_all_sources and file_active_sources correct for eDonkey 
+       plugin. Should save some bw, mem and cpu in the GUI, when only this
+       info needs to be displayed.
+
+2004/06/17: Fabrice
+  - Major changes in search results management:
+    * New option 'save_results' (default is 0)
+        0 : results are not saved between sessions
+        1 : results first appearance are saved between sessions
+        2 : full results are saved
+    * Local search is now always available. A structure to search old
+        results (in the same session, and in former sessions if 
+        save_results = 2) is built for 5 minutes, so the memory should
+        be reclaimed 6 minutes after the last local search.
+    * All results for all networks are stored on disk, not in memory.
+    * The 's' command output displays a 'N' for new results, i.e. results
+        that never appeared before that search.
+    * New option 'special_queries' in 'searches.ini' defining 
+        abbreviations for search arguments (eg "-movies" means 
+         "avi -minsize 650000000 -maxsize 735000000") that can be
+        used with 's' and 'ls': "s -movies dvdrip fr"
+  - Command 'mem_stats' now takes an argument (0 for normal, 1 for more
+       details).
+  - Applied patches: #3120 (html), #3124 (ed2khash)
+ 
+2004/06/03: Fabrice
+  - Fixed bug adding unwanted friends
+
+2004/05/30: Fabrice
+  - Added RSS loading via option web_infos, with command "rss" to print them.
+  - Applied patches from Savannah: #3005 (networks), #3007 (printf2),
+     #3008, #3016 (solaris), #3017 (log),#3023 (telnet), #3024 (log), 
+     #3028 (donkey-ip), #3029 (firewalled), #3030 (log), 
+     #3031 (ft users), #3033 (chmod), #3039 (Makefiles), 
+     #3046 (telnet), #3065 (misc), #3067 (bsd), #3096 (wincomp),
+     #3100 (force dl), #3070 (upload)
+
 2004/05/05: Fabrice (version 2.5.21 = 2.6pre3, tag release-2-5-21)
   - DonkeyClient: re-implemented indirect connections that were lost since
       2.5.17

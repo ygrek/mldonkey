@@ -30,40 +30,12 @@ open CommonOptions
 open CommonTypes
 open CommonFile
 
-  
-(*
-  let addr_to_value addr =
-  if addr.addr_name = "" then
-    to_value Ip.option addr.addr_ip
-  else
-  if addr.addr_ip = Ip.null then
-    string_to_value addr.addr_name
-  else
-    SmallList [
-      string_to_value addr.addr_name;
-      to_value Ip.option addr.addr_ip;
-      int_to_value addr.addr_age
-    ]
-    
-let value_to_addr v =
-  match v with
-    StringValue s ->
-      let ip = from_value Ip.option v in
-      if ip = Ip.null then
-        new_addr_name s
-      else
-        new_addr_ip ip
-  | SmallList [StringValue name; ip ; age]
-  | List [StringValue name; ip ; age] ->
-      let addr = new_addr_name name in
-      let age = value_to_int age in
-      if age + !!ip_cache_timeout > last_time () then begin
-          addr.addr_age <- age;
-          addr.addr_ip <- from_value Ip.option ip
-        end;
-      addr
-  | _ -> assert false
-        *)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         FILES                                         *)
+(*                                                                       *)
+(*************************************************************************)
 
 module FileOption = struct
     
@@ -153,7 +125,113 @@ let files =
   define_option files_section ["files"] 
     "The files currently being downloaded" (
     listiter_option (FileOption.t false)) []
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         RESULTS                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let value_to_tag =
+  value_to_tuple2 (fun (v1,v2) ->
+      let name = value_to_string v1 in
+      let value = match v2 with
+          IntValue i -> Uint64 i
+        | _ -> String (value_to_string v2)
+      in
+      { tag_name = name; tag_value = value })
+  
+let tag_to_value = 
+  tuple2_to_value (fun tag ->
+      string_to_value tag.tag_name, 
+      match tag.tag_value with
+        Uint64 i -> int64_to_value i
+      | String s -> string_to_value s
+      | Addr _ -> assert false
+      | Fint64 i -> int64_to_value i
+  )
+  
+module ResultOption = struct 
     
+    let value_to_result v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          
+          let uids = get_value "uids" (fun uids ->
+                let uids = value_to_list value_to_string uids in
+                List.map Uid.of_string uids) in
+          let names = get_value "names" (value_to_list value_to_string) in
+          let size = get_value "size" value_to_int64 in
+          let time = get_value "time" value_to_int in
+          let format = try get_value "format" value_to_string with _ -> "" in
+          let file_type = try get_value "type" value_to_string with _ -> "" in
+          let tags = try get_value "tags" (value_to_list value_to_tag) 
+              with _ -> [] in
+          let r = { 
+              CommonResult.dummy_result with
+              result_uids = uids;
+              result_names = names;
+              result_size = size;
+              result_time = time;
+              result_format = format;
+              result_type = file_type;
+              result_tags = tags;
+            }            
+          in
+          let rs = CommonResult.update_result_num r in
+          rs
+      | _ -> assert false
+    
+    let result_to_value rs =
+      let r = CommonResult.get_result rs in
+      
+      let tags = ref [] in
+      List.iter (fun tag ->
+          match tag.tag_name with
+            "availability" | "completesources" -> ()
+          | _ -> tags := tag :: !tags;
+      ) r.result_tags;
+      
+      let list = [] in
+      let list =  if !tags = [] then list else
+          ("tags", list_to_value "taglist" tag_to_value !tags) :: list
+      in
+      let list = if r.result_format = "" then list else
+          ("format", string_to_value r.result_format) :: list
+      in
+      let list = if r.result_type = "" then list else
+          ("type", string_to_value r.result_type) :: list
+      in          
+      let list = 
+        ("uids", SmallList 
+            (List.map (fun uid ->
+                string_to_value (Uid.to_string uid)) r.result_uids)) ::
+        ("names", SmallList
+            (List.map string_to_value r.result_names)) ::
+        ("size", int64_to_value r.result_size) ::
+        ("time", int_to_value r.result_time) ::
+        list
+      in
+      Options.Module list
+      
+    let t =
+      define_option_class "Result" value_to_result result_to_value   
+    end
+
+let results_section = file_section results_ini [] ""
+let results = define_option results_section ["results"] ""
+    (list_option ResultOption.t) []
+let known_uids = define_option results_section ["known_uids"] ""
+    (list_option (tuple2_option (Uid.option, int_option))) []
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         SERVERS                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+  
 module ServerOption = struct
     
     let value_to_server v =
@@ -190,6 +268,12 @@ let servers = define_option servers_section
     ["known_servers"] "List of known servers"
     (intmap_option (fun s -> server_num s) ServerOption.t) Intmap.empty
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         QUERIES                                       *)
+(*                                                                       *)
+(*************************************************************************)
 
 let rec string_of_option v =
   match v with
@@ -323,6 +407,10 @@ module QueryOption = struct
 
 let searches_section = file_section searches_ini [] ""
   
+let max_saved_searches = define_option searches_section
+    ["max_saved_searches"] "Maximal number of saved searches"
+    int_option 10
+  
 let customized_queries = define_option searches_section
   ["customized_queries"] ""
     (list_option (tuple2_option (string_option, QueryOption.t)))
@@ -380,7 +468,17 @@ let customized_queries = define_option searches_section
     ];
   ]
 
-
+let special_queries = define_option searches_section
+    ["special_queries"] "Shortcuts for special specialized searches"
+    (list_option (tuple2_option (string_option, string_option)))
+  [
+    "-1cd", "-maxsize 735000000";
+    "-movies", "avi -minsize 650000000 -1cd";
+    "-mp3s", "mp3 -minsize 3000000 -maxsize 10000000";
+    "-albums", "album -minsize 30000000 -maxsize 150000000";
+    "-nosex", "-without xxx";
+  ]
+  
 let customized_queries =
   let custom = ref None in
   fun () ->
@@ -416,6 +514,14 @@ let customized_queries =
         in
         custom := Some qs;
         qs
+
+        
+(*************************************************************************)
+(*                                                                       *)
+(*                         CLIENTS                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
         
 module ClientOption = struct
     
@@ -450,26 +556,16 @@ let friends =
   define_option friends_section ["friends"] 
     "The list of known friends" (listiter_option (ClientOption.t true)) []
   
-let load () = 
-  Options.load files_ini;
-  Options.load servers_ini;
-  Options.load searches_ini;
-  Options.load friends_ini
-  
-let save () = 
-  networks_iter (fun n -> network_save_complex_options n);
-  
-(*  servers =:= server_sort (); *)
-  
-  Options.save_with_help files_ini;
-  Options.save_with_help searches_ini;
-  Options.save_with_help friends_ini;
-  Options.save_with_help servers_ini;
-  lprintf "Options correctly saved\n"
-
       
 let contacts = ref []
 
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         SHARING                                       *)
+(*                                                                       *)
+(*************************************************************************)
+  
 module SharingOption = struct
     
     let value_to_sharing v = 
@@ -555,6 +651,12 @@ let sharing_strategies = define_option searches_section
 (* For incoming directory, share all files in the directory (not recursive) *)
     "only_directory", sharing_only_directory;
   ]
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         SHARED                                        *)
+(*                                                                       *)
+(*************************************************************************)
   
 module SharedDirectoryOption = struct
     
@@ -634,3 +736,48 @@ let shared_directories =
       shdir_strategy = "all_files";
     }
   ]
+
+
+    
+(*************************************************************************)
+(*                                                                       *)
+(*                         Functions                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let load () = 
+  Options.load files_ini;
+  Options.load servers_ini;
+  Options.load searches_ini;
+  Options.load results_ini;
+  results =:= [];
+  List.iter (fun (uid, time) ->
+      Hashtbl.add CommonResult.known_uids (Uid.to_uid uid) time;
+  ) !!known_uids;
+  known_uids =:= [];
+  Options.load friends_ini
+  
+let save () = 
+  networks_iter (fun n -> network_save_complex_options n);
+  
+  Options.save_with_help files_ini;
+  Options.save_with_help searches_ini;
+  Options.save_with_help friends_ini;
+  Options.save_with_help servers_ini;
+  begin
+    match !!save_results with
+    | 0 -> ()
+    | 1 ->
+        Hashtbl.iter (fun uid time ->
+            let uid = Uid.create uid in
+            known_uids =:= (uid, time) :: !!known_uids;
+        ) CommonResult.known_uids;
+        Options.save_with_help results_ini;
+        known_uids =:= [];
+    | _ ->
+        CommonResult.results_iter (fun _ rs -> results =:= rs :: !!results);
+        Options.save_with_help results_ini;
+        results =:= [];
+    end;
+  lprintf "Options correctly saved";
+  CommonGlobals.print_localtime ()

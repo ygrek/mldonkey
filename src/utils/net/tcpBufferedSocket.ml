@@ -460,7 +460,7 @@ end;
             forecast_download t 0;
           end;
         close t.sock_in s;
-        if t.sock_in <> t.sock_out then
+        if t.sock_in != t.sock_out then
           close t.sock_out s
         (* (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite) *)
       with e ->
@@ -477,7 +477,7 @@ end;
   *)
   (try 
       BasicSocket.shutdown t.sock_out s;
-      if t.sock_in <> t.sock_out then
+      if t.sock_in != t.sock_out then
         BasicSocket.shutdown t.sock_in s;
       with e ->
        lprintf "exception %s in shutdown\n" (Printexc2.to_string e);
@@ -1307,8 +1307,8 @@ let connect token name host port handler =
       register_upload t 0;    (* The TCP SYN packet *)
       forecast_download t 0;  (* The TCP ACK packet *)
       forecast_upload t 0;    (* The TCP ACK packet *)
-      if use_proxy then begin
-        end;
+(*      if use_proxy then begin
+        end; *)
       t
     with
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) ->

@@ -39,6 +39,7 @@ open FasttrackOptions
 open FasttrackGlobals
 open FasttrackComplexOptions
 open BasicSocket
+open Autoconf
 
 open FasttrackProtocol
 
@@ -92,7 +93,7 @@ let parse_query q =
     | QHasField(field, w) ->
         begin
           match field with
-            Field_Type -> realm := String.lowercase w 
+          | Field_Type -> realm := String.lowercase w 
           | Field_Format ->
               begin
                 match String.lowercase w with
@@ -109,6 +110,7 @@ let parse_query q =
                 tags := (Substring (tag, w)) :: !tags
           | Field_Filename ->
               tags := (Substring ("filename", w)) :: !tags
+          | Field_Uid -> ()
           | Field_Size -> ()
         end
     | QHasMinVal (field, value) -> 
@@ -176,11 +178,19 @@ that we can reuse queries *)
 end
 *)
       ()
+  );
+  network.op_network_download <- (fun r ->
+      let rec iter uids =
+        match uids with
+          [] -> raise IgnoreNetwork
+        | uid :: tail ->
+            match Uid.to_uid uid with
+              Md5Ext hash ->
+                FasttrackServers.download_file hash r
+            | _  -> iter tail
+      in
+      iter r.result_uids
   )
-  
-let _ =
-  result_ops.op_result_download <- (fun result _ force ->
-      FasttrackServers.download_file result)
 
 let file_num file =
   file.file_file.impl_file_num
@@ -221,8 +231,8 @@ let _ =
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
+        P.file_all_sources = 0;
+        P.file_active_sources = 0;
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
@@ -253,7 +263,7 @@ let _ =
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
-          P.server_nusers = 0;
+          P.server_nusers = s.server_nusers;
           P.server_nfiles = s.server_nfiles;
           P.server_state = server_state s;
           P.server_name = s.server_agent;
@@ -269,28 +279,7 @@ let _ =
       FasttrackServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
-module C = CommonTypes
-  
-let _ =
-  result_ops.op_result_info <- (fun r ->
-       {
-        C.result_num = r.result_result.impl_result_num;    
-        C.result_network = network.network_num;
-        
-        C.result_names = [r.result_name];
-        C.result_md4 = Md4.null;
-        C.result_size = r.result_size;
-        C.result_format = result_format_of_name r.result_name;
-        C.result_type = result_media_of_name r.result_name;
-        C.result_tags =  (
-              string_tag "FTH" (Md5Ext.to_string_case false r.result_hash)
-        ) :: r.result_tags;
-        C.result_comment = "";
-        C.result_done = false;
-      }   
-  )
-            
-  
+module C = CommonTypes  
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
@@ -359,8 +348,9 @@ let _ =
           let size = Int64.of_string size in
           let hash = Md5Ext.of_string hash in
           
-          let r = new_result filename size [] hash in
-          let file = FasttrackServers.download_file r in
+          let rs = new_result filename size [] hash in
+          let r = get_result rs in
+          let file = FasttrackServers.download_file hash r in
           CommonInteractive.start_download file;
           true
       | "ft://" :: "server"  :: ip :: port :: _ ->  
@@ -460,13 +450,22 @@ let _ =
         let cinfo = client_info cc in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
-        
-        html_mods_td buf [ 
+
+	let show_emulemods_column = ref false in
+    	    if Autoconf.donkey = "yes" then begin
+		if !!emule_mods_count then
+		    show_emulemods_column := true
+	    end;
+
+        html_mods_td buf ([ 
           ("", "srb ar", Printf.sprintf "%d" (client_num cc));
           ((string_of_connection_state (client_state cc)), "sr",
             (short_string_of_connection_state (client_state cc)));
           ("", "sr", cinfo.GuiTypes.client_name);
           ("", "sr", "fT"); (* cinfo.GuiTypes.client_software *)
+          ] @
+          (if !show_emulemods_column then [("", "sr", "")] else [])
+          @ [
           ("", "sr", "F");
           ("", "sr ar", Printf.sprintf "%d" 
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
@@ -474,7 +473,7 @@ let _ =
           ("", "sr", (string_of_client_addr c));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
-          ("", "sr", info.GuiTypes.file_name); ];
+          ("", "sr", info.GuiTypes.file_name); ]);
         true
     )     
   

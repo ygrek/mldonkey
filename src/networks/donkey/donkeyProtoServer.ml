@@ -50,6 +50,7 @@ let tagname_of_field field =
   | Field_Title -> "Title"
   | Field_Format -> "format"
   | Field_Type -> "type"
+  | Field_Uid -> "uid"
   | Field_unknown s -> s
 
   
@@ -717,7 +718,6 @@ module Query  = struct (* request 22 *)
 
   
 module QueryUsers = struct (* request 26 *)
-    (* TODO: Utilise le meme format que Query *)
     
     type t = string
       

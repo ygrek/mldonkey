@@ -220,7 +220,8 @@ Chock/unchock every 10 seconds
 *)
 
 
-
+open BasicSocket
+open CommonTypes
 open Printf2
 open CommonOptions
 open Options
@@ -282,14 +283,15 @@ let bt_parser opcode m =
   | _ -> raise Not_found
   
 let bt_handler parse_fun handler sock =
-    try
-      let b = TcpBufferedSocket.buf sock in
-      (*
+  try
+    let b = TcpBufferedSocket.buf sock in
+(*
     lprintf "BT HANDLER\n";
 dump (String.sub b.buf b.pos b.len);
   *)
     try
-      while b.len >= 4 do
+      while not (closed sock) && b.len >= 4 do
+(*        lprintf "BT RECEIVED %d %d/%d \n" b.pos b.len (String.length b.buf); *)
         let msg_len = get_int b.buf b.pos in
         if msg_len < 0 then
           begin
@@ -299,25 +301,36 @@ dump (String.sub b.buf b.pos b.len);
           end
         else
           begin
-        if b.len >= 4 + msg_len then
-          begin
-              buf_used b 4;
-(*              lprintf "Message complete\n"; *)
-            if msg_len > 0 then 
-              let opcode = get_int8 b.buf b.pos in
-              let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
-              buf_used b msg_len;
-(*              lprintf "Opcode %d\n" opcode; *)
-                try
-                  let p = parse_fun opcode payload in
-(*              lprintf "Parsed, calling handler\n"; *)
-                  handler sock p
-                with Not_found -> ()
-            else
+            if b.len >= 4 + msg_len then
+              begin
+                buf_used b 4;
+(*                lprintf "Message complete: %d\n" msg_len;  *)
+                if msg_len > 0 then 
+                  let opcode = get_int8 b.buf b.pos in
+                  let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
+                  buf_used b msg_len;
+                  lprintf "Opcode %d\n" opcode; 
+                  try
+                    try
+                      let p = parse_fun opcode payload in
+(*                      lprintf "Parsed, calling handler\n";  *)
+                      handler sock p
+                    with Not_found -> ()
+                  with e ->
+                    lprintf "Exception %s in BTProtocol.parse_fun\n"
+                      (Printexc2.to_string e);
+                    lprintf "      Opcode: %d\n" opcode;
+                    dump payload;
+                else
               (*received a ping*)
-              set_lifetime sock 130.
-          end
-        else raise Not_found;
+                  set_lifetime sock 130.
+              end
+            else 
+(* We NEVER request pieces greater than this size, this client is
+   trying to waste our bandwidth ? *)
+              if b.len > 20000 then close sock Closed_by_user
+              else
+                raise Not_found;
           end
       done
     with 

@@ -236,7 +236,7 @@ let close_log () =
   match !lprintf_output with
     None -> ()
   | Some oc ->
-      if oc != stderr && oc != stderr then
+      if oc != stderr && oc != stdout then
         close_out oc;
       lprintf_output := None
 

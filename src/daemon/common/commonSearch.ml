@@ -17,14 +17,20 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open Printf2
 open CommonGlobals
 open CommonNetwork
 open CommonResult
 open Options
 open CommonTypes
+open CommonComplexOptions
 
     
+let search_num = ref 0
+let searches_by_num = Hashtbl.create 1027
+
+  
 let search_string q =
   let rec iter q =
     match q with
@@ -41,12 +47,12 @@ let search_string q =
   in
   iter q
   
-let search_num = ref 0
-let searches_by_num = Hashtbl.create 1027
-  
 let new_search user s =
   incr search_num;
+  let time = last_time () in
+  CommonResult.dummy_result.result_time <- time;
   let s = {
+      search_time = time;
       search_num = !search_num;
       search_type = s.GuiTypes.search_type;
       search_max_hits = s.GuiTypes.search_max_hits;
@@ -68,13 +74,12 @@ let search_find num = Hashtbl.find searches_by_num num
 
 let search_add_result_in s r =
   try
-    let (c,_) = Intmap.find r.impl_result_num s.search_results in
+    let (c,_) = Intmap.find r.stored_result_num s.search_results in
     incr c
   with _ ->
-      s.search_results <- Intmap.add r.impl_result_num (ref 1, as_result r)
+      s.search_results <- Intmap.add r.stored_result_num (ref 1, r)
       s.search_results;
       s.search_nresults <- s.search_nresults + 1;
-      let r = as_result r in 
       List.iter (fun f -> f r) s.op_search_new_result_handlers
 
 let search_end_reply s = 
@@ -102,6 +107,8 @@ let search_of_args args =
     | "-avail"  :: avail :: args ->
         let avail = Int64.of_string avail in
         iter args ((QHasMinVal(Field_unknown "avail", avail)) :: q)
+    | "-uid"  :: uid :: args ->
+        iter args ((QHasField(Field_Uid, uid)) :: q)
     | "-media"  :: filetype :: args ->
         iter args ((QHasField(Field_Type, filetype)) :: q)
     | "-Video"  :: args ->
@@ -121,17 +128,35 @@ let search_of_args args =
     | "-network" :: name :: args ->
         net := (network_find_by_name name).network_num;
         iter args q
+    | "-without" :: name :: args ->
+        iter args ((QAndNot (QHasWord name, QHasWord name)) :: q)
     | s :: args ->
-        iter args ((QHasWord(s)) :: q)
+        if s.[0] = '-' then
+          let args = 
+            try 
+              (String2.split_simplify (List.assoc s !!special_queries) ' ')@args
+            with Not_found ->
+                failwith (Printf.sprintf "No specialized search '%s'"
+                    s)
+          
+          in
+          iter args q          
+        else
+          iter args ((QHasWord(s)) :: q)
   in
   let q = iter args [] in
   (match q with 
-    [] -> failwith "Void query"
-  | q1 :: tail ->
-      List.fold_left (fun q1 q2 ->
-            QAnd (q1,q2)
+      [] -> failwith "Void query"
+    | [QAndNot _] -> failwith "Bad without query"
+    | q1 :: tail ->
+        List.fold_left (fun q1 q2 ->
+            match q2 with
+              QAndNot (QHasWord x,_) ->
+                QAndNot (q1, QHasWord x)
+            | _ ->
+                QAnd (q1,q2)
         ) q1 tail), !net
-   
+  
 
   
 type englob_op = IN_NOOP | IN_AND | IN_OR
@@ -827,15 +852,16 @@ let rec mftp_query_of_query_entry qe =
 *********************************************************************)
       
 module Indexing = struct
-    let name_bit = 1
+    let name_bit = 1 lsl 0
 (* "size" *)
 (* "bitrate" *)
-    let artist_bit = 2 (* tag "Artiste" *)
-    let title_bit = 4  (* tag "Title" *)
-    let album_bit = 8 (* tag "Album" *)
-    let media_bit = 16 (* "type" *)
-    let format_bit = 32 (* "format" *)
-    
+    let artist_bit = 1 lsl 1 (* tag "Artiste" *)
+    let title_bit = 1 lsl 2  (* tag "Title" *)
+    let album_bit = 1 lsl 3 (* tag "Album" *)
+    let media_bit = 1 lsl 4 (* "type" *)
+    let format_bit = 1 lsl 5 (* "format" *)
+    let uid_bit = 1 lsl 6  (* uid *)
+      
     let index_result index_string r =
       
       List.iter (fun name ->
@@ -860,6 +886,18 @@ module Indexing = struct
               index_string s name_bit
           | _ -> ()
       ) r.result_tags;
+
+      List.iter (fun uid ->
+          index_string (match Uid.to_uid uid with
+              Ed2k _ -> "ed2k"
+            | Md5Ext _ -> "ft"
+            | TigerTree _ -> "ttr"
+            | Md5 _ -> "md5"
+            | Sha1 _ -> "sha1"
+            | Bitprint _ -> "bp"
+            | BTUrl _ -> "bt"
+          ) uid_bit
+      ) r.result_uids;
       
       if r.result_format <> "" then
         index_string r.result_format format_bit;
@@ -913,16 +951,16 @@ module Indexing = struct
                 with _ -> e1
               with _ -> iter q2
             )
-
+        
         | QAndNot (q1, q2) ->
             (
 (*              try *)
-                let e1 = iter q1 in
-                try
-                  let e2 = iter q2 in
-                  Indexer.AndNot (e1,e2)
-                with 
-                  EmptyQuery -> e1
+              let e1 = iter q1 in
+              try
+                let e2 = iter q2 in
+                Indexer.AndNot (e1,e2)
+              with 
+                EmptyQuery -> e1
 (*                | InvertQuery e2 -> Indexer.And (e1,e2) 
               with EmptyQuery -> 
                   try
@@ -931,7 +969,7 @@ module Indexing = struct
                   with InvertQuery e2 -> e2
                   | PassInvertQuery e2 -> raise (InvertQuery e2) *)
             )
-            
+        
         | QHasWord s -> has_word s 0x7fffffff
         | QHasField (f, s) ->
             has_word s (
@@ -941,6 +979,7 @@ module Indexing = struct
               | Field_Title -> title_bit 
               | Field_Artist -> artist_bit 
               | Field_Album -> album_bit 
+              | Field_Uid -> uid_bit
               | _ -> 0x7fffffff);
         | QHasMinVal (f,size) ->
             Indexer.Predicate
@@ -961,25 +1000,17 @@ module Indexing = struct
             failwith "query_to_indexer: QNone in query"
       in
       iter q
-
-  end
   
-module Filter = struct      
+  end
 
+
+module DocIndexer = Indexer2.FullMake(Document)
+  
+  
+module MakeIndex (FilterResult : sig end) = struct      
+    
     open Indexing
-      
-    module Document = struct
-        type t = CommonTypes.result_info
-        
-        let num t = t.result_num
-        let filtered t = false
-        let filter t bool = ()
-      end
-    
-    let doc_value doc = doc
-    
-    module DocIndexer = Indexer2.FullMake(Document)
-    
+    open FilterResult
     open Document
     
     let index = DocIndexer.create ()
@@ -992,17 +1023,14 @@ module Filter = struct
           DocIndexer.add  index s doc fields
       ) words 
       
-    let add r = 
-      let r = result_info r in
-      index_result (index_string r) r
+    let add rs = 
+      let r = get_result rs in
+      index_result (index_string rs.stored_result_index) r
       
     let find s = 
       
-      let req = ref [] in
-      let pred = ref (fun _ -> true) in
-      
       let ss = s.search_query in
-      let req = query_to_indexer doc_value ss in  
+      let req = query_to_indexer Document.doc_value ss in  
       
       let docs = DocIndexer.query index req in
 (*  lprintf "%d results\n" (List.length docs);  *)
@@ -1010,17 +1038,38 @@ module Filter = struct
           if DocIndexer.filtered doc then begin
               lprintf "doc filtered\n"; 
             end else
-          let r = doc_value doc in
+          let r = Document.doc_value doc in
 (*    merge_result s doc.num; *)
-          lprintf "search_add_result: %d\n" doc.result_num; 
-          search_add_result_in s (as_result_impl (result_find r.result_num))
+          lprintf "search_add_result: %d\n" r.result_num; 
+          search_add_result_in s (find_result r.result_num)
       ) docs
 
     let clear () =
       DocIndexer.clear index
-            
+
+    let stats () = DocIndexer.stats index
+      
   end  
 
+module Filter = MakeIndex(struct end)
+module Local = MakeIndex(struct end)
+
+let clean_local_search = ref 0
+  
+let local_search s =
+  add_timer 330. (fun _ ->
+      if !clean_local_search < last_time () then begin
+          Local.clear ();
+          clean_local_search := 0
+        end
+      );
+  if !clean_local_search = 0 then begin
+      Local.clear ();
+      results_iter (fun _ r -> Local.add r)
+    end;
+  clean_local_search := last_time () + 300;
+  Local.find s
+  
 let result_format_of_name name = 
   match String.lowercase (Filename2.last_extension name ) with
     ".mpeg" -> "mpg"
@@ -1041,3 +1090,20 @@ let result_media_of_name name =
 
 
   
+let _ =
+  Heap.add_memstat "CommonSearch" (fun level buf ->
+      let mem = Filter.stats () in
+      Printf.bprintf buf "  Filtering index memory: %d\n" mem;
+      
+      let mem = Local.stats () in
+      Printf.bprintf buf "  Local index memory: %d\n" mem;
+      
+      let counter = ref 0 in
+      let items = ref 0 in
+      Hashtbl.iter (fun _ s -> 
+          incr counter;
+          items := !items + Intmap.length s.search_results
+      ) searches_by_num;
+      Printf.bprintf buf "  Memorized searches: %d\n" !counter;
+      Printf.bprintf buf "  Memorized items: %d\n" !items;
+  )

@@ -27,6 +27,12 @@ NO_STATIC_LIBS_opt=
 LIBS_byte=-custom unix.cma str.cma
 LIBS_opt= unix.cmxa str.cmxa
 
+BIGARRAY_LIBS_opt=bigarray.cmxa
+BIGARRAY_LIBS_byte=bigarray.cma
+
+CRYPT_LIBS_opt=-cclib -lcrypt
+CRYPT_LIBS_byte=-cclib -lcrypt
+
 
 #######################################################################
 
@@ -34,13 +40,13 @@ LIBS_opt= unix.cmxa str.cmxa
 
 #######################################################################
 
-
 ifeq ("$(BUILD_NEWGUI)", "yes")
   ICONS_CHOICE=tux
   GUI=NEWGUI
-  SRC_GUI=src/gtk/newgui
+  SRC_GUI=src/$(GTK)/newgui
 else
-  SRC_GUI=src/gtk/gui
+  SRC_GUI=src/$(GTK)/gui
+  SRC_GUI2=src/$(GTK)/gui2
   ICONS_CHOICE=kde
   GUI=OLDGUI
 endif
@@ -49,17 +55,18 @@ endif
 CDK=src/utils/cdk
 LIB=src/utils/lib
 NET=src/utils/net
+RSS=src/utils/ocamlrss
+XML=src/utils/xml-light
 
 CHAT=src/daemon/chat
 COMMON=src/daemon/common
 DRIVER=src/daemon/driver
 MP3=src/utils/mp3tagui
 
-GPATTERN=src/gtk/gpattern
-OKEY=src/gtk/okey
-CONFIGWIN=src/gtk/configwin
-SRC_GUI2=src/gtk/gui2
-SRC_PROGRESS=src/gtk/progress
+GPATTERN=src/$(GTK)/gpattern
+OKEY=src/$(GTK)/okey
+CONFIGWIN=src/$(GTK)/configwin
+SRC_PROGRESS=src/$(GTK)/progress
 
 ifeq ("$(DEVEL)", "yes")
 
@@ -84,9 +91,10 @@ SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
 
-IM=src/im
+IM=src/$(GTK)/im
+CHAT_GUI=src/$(GTK)/chat
 
-SUBDIRS=$(CDK) $(CHAT) $(LIB) $(NET) tools \
+SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES) $(EXTRA_DIRS)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
@@ -129,6 +137,7 @@ endif
 
 CDK_SRCS += $(LIB)/autoconf.ml
 
+
 CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
    $(CDK)/heap.ml $(CDK)/dprintf.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
@@ -136,8 +145,16 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/file.ml $(CDK)/unix2.ml $(CDK)/weak2.ml \
   $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml \
-  $(CDK)/xmllex.mll $(CDK)/xmlyacc.mly $(CDK)/xml.ml
-
+  $(LIB)/longarray.ml \
+  \
+  $(XML)/xml_types.ml \
+  $(XML)/xml_parser.mly $(XML)/xml_lexer.mll $(XML)/xml_dtd.ml \
+  $(XML)/xmlParser.ml $(XML)/xml.ml \
+  \
+  $(RSS)/rss_messages.ml $(RSS)/rss_date.ml \
+  $(RSS)/rss_types.ml  $(RSS)/rss_io.ml  $(RSS)/rss.ml
+  
+#  $(CDK)/xmllex.mll $(CDK)/xmlyacc.mly $(CDK)/xml.ml \
 #  $(LIB)/htmlgen.ml
 
 ifneq ("$(PTHREAD_CFLAGS)" , "")
@@ -216,8 +233,8 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonServer.ml \
   $(COMMON)/commonClient.ml \
   $(COMMON)/commonFile.ml \
-  $(COMMON)/commonResult.ml \
   $(COMMON)/commonNetwork.ml \
+  $(COMMON)/commonResult.ml \
   $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonShared.ml \
   $(COMMON)/commonRoom.ml \
@@ -225,6 +242,7 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonMultimedia.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonInteractive.ml \
+  $(COMMON)/commonChunks.ml \
   $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
@@ -279,7 +297,6 @@ DONKEY_SRCS= \
  \
   $(SRC_DONKEY)/donkeyComplexOptions.ml \
   $(SRC_DONKEY)/donkeySupernode.ml \
-  $(SRC_DONKEY)/donkeyIndexer.ml \
   $(SRC_DONKEY)/donkeyShare.ml \
   $(SRC_DONKEY)/donkeyReliability.ml \
   $(SRC_DONKEY)/donkeyThieves.ml \
@@ -324,55 +341,108 @@ SPIDER_SRCS= \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \
-  $(COMMON)/commonShared.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHasher_c.c \
   \
-  src/spider/spiderTypes.ml \
-  src/spider/spiderOptions.ml \
-  src/spider/spiderMftp.ml \
-  src/spider/spiderImport.ml \
-  src/spider/spiderOpenProtocol.ml \
-  src/spider/spiderProtoClient.ml \
-  src/spider/spiderProtoServer.ml  \
-  src/spider/spiderProtoUdp.ml  \
+  src/spider/ecrawler/spiderTypes.ml \
+  src/spider/ecrawler/spiderOptions.ml \
+  src/spider/ecrawler/spiderMftp.ml \
+  src/spider/ecrawler/spiderImport.ml \
+  src/spider/ecrawler/spiderOpenProtocol.ml \
+  src/spider/ecrawler/spiderProtoClient.ml \
+  src/spider/ecrawler/spiderProtoServer.ml  \
+  src/spider/ecrawler/spiderProtoUdp.ml  \
   \
-  src/spider/spiderGlobals.ml \
-  src/spider/spiderArgs.ml \
-  src/spider/spiderProtoCom.ml  \
+  src/spider/ecrawler/spiderGlobals.ml \
+  src/spider/ecrawler/spiderArgs.ml \
+  src/spider/ecrawler/spiderProtoCom.ml  \
  \
-  src/spider/spiderComplexOptions.ml \
-  src/spider/spiderSupernode.ml \
-  src/spider/spiderIndexer.ml \
-  src/spider/spiderShare.ml \
-  src/spider/spiderReliability.ml \
-  src/spider/spiderChunks.ml \
-  src/spider/spiderOneFile.ml \
+  src/spider/ecrawler/spiderComplexOptions.ml \
+  src/spider/ecrawler/spiderSupernode.ml \
+  src/spider/ecrawler/spiderIndexer.ml \
+  src/spider/ecrawler/spiderShare.ml \
+  src/spider/ecrawler/spiderReliability.ml \
+  src/spider/ecrawler/spiderOneFile.ml \
+  src/spider/ecrawler/spiderClient.ml \
+  src/spider/ecrawler/spiderProtoOvernet.ml \
   \
-  src/spider/spiderDependencies.ml \
-  src/spider/spiderUtils.ml \
-  src/spider/spiderFiles.ml \
-  src/spider/spiderGenTables.ml \
-  src/spider/spiderTables.ml \
-  src/spider/spiderCommands.ml \
-  src/spider/spiderClustering.ml \
-  src/spider/spiderCorruption.ml \
-  src/spider/spiderRoutes.ml \
-  src/spider/spiderStats.ml \
+  src/spider/ecrawler/spiderTrap.ml \
+  src/spider/ecrawler/spiderOvernet.ml \
+  src/spider/ecrawler/spiderServers.ml \
+  src/spider/ecrawler/spiderSearch.ml \
+  src/spider/ecrawler/spiderInteractive.ml \
   \
-  src/spider/spiderClient.ml \
-  src/spider/spiderProtoOvernet.ml \
-  \
-  src/spider/spiderTrap.ml \
-  src/spider/spiderOvernet.ml \
-  src/spider/spiderServers.ml \
-  src/spider/spiderSearch.ml \
-  src/spider/spiderInteractive.ml \
-  \
-  src/spider/spiderMain.ml \
+  src/spider/ecrawler/spiderMain.ml \
   src/daemon/common/commonMain.ml
 
+TESTRSS_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
+
+CLUSTER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/cluster/clusterMain.ml
+
+ANALYSER1_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonHasher_c.c \
+  \
+  src/spider/ecrawler/spiderTypes.ml \
+  src/spider/ecrawler/spiderOptions.ml \
+  src/spider/ecrawler/spiderMftp.ml \
+  src/spider/ecrawler/spiderImport.ml \
+  src/spider/ecrawler/spiderOpenProtocol.ml \
+  src/spider/ecrawler/spiderProtoClient.ml \
+  src/spider/ecrawler/spiderProtoServer.ml  \
+  src/spider/ecrawler/spiderProtoUdp.ml  \
+  \
+  src/spider/ecrawler/spiderGlobals.ml \
+  src/spider/ecrawler/spiderArgs.ml \
+  src/spider/ecrawler/spiderProtoCom.ml  \
+ \
+  src/spider/ecrawler/spiderComplexOptions.ml \
+  src/spider/ecrawler/spiderSupernode.ml \
+  src/spider/ecrawler/spiderIndexer.ml \
+  src/spider/ecrawler/spiderShare.ml \
+  src/spider/ecrawler/spiderReliability.ml \
+  src/spider/ecrawler/spiderOneFile.ml \
+  \
+  src/spider/analyser1/spiderDependencies.ml \
+  src/spider/analyser1/spiderUtils.ml \
+  src/spider/analyser1/spiderFiles.ml \
+  src/spider/analyser1/spiderGenTables.ml \
+  src/spider/analyser1/spiderTables.ml \
+  src/spider/analyser1/spiderChunks.ml \
+  src/spider/analyser1/spiderCommands.ml \
+  src/spider/analyser1/spiderClustering.ml \
+  src/spider/analyser1/spiderCorruption.ml \
+  src/spider/analyser1/spiderRoutes.ml \
+  src/spider/analyser1/spiderStats.ml \
+  \
+  src/spider/analyser1/analyser1Main.ml \
+  src/daemon/common/commonMain.ml
+
+DP500_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  \
+  src/daemon/driver/driverLink.ml \
+  tools/dp500.ml \
+  \
+  src/daemon/common/commonMain.ml
 
 BTVIEW_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -579,6 +649,9 @@ COPYSOURCES_SRCS = \
 SUBCONV_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) tools/subconv.ml
 
+MLSPLIT_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) tools/mlsplit.ml
+
 MAKE_TORRENT_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
@@ -587,6 +660,14 @@ MAKE_TORRENT_SRCS = \
 GET_RANGE_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS)   tools/get_range.ml
+
+CONTESTER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/contest/pass.c src/contest/contester.ml
+
+SAFEEXEC_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/contest/pass.c src/contest/safeexec.ml
 
 KDE_APPLET=yes
 
@@ -638,34 +719,34 @@ uninstall::
 
 install:: opt 
 	mkdir -p $(prefix)/bin
-	if test -e mlnet; then \
+	if test -f mlnet; then \
              rm -f $(prefix)/bin/mlnet; cp -f mlnet $(prefix)/bin/mlnet; \
              for link in mlslsk mldonkey mlgnut mldc mlbt; do \
                rm -f $(prefix)/bin/$$link; ln -s mlnet $(prefix)/bin/$$link; \
              done; \
          fi
-	if test -e mlgui; then \
+	if test -f mlgui; then \
              rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
              rm -f $(prefix)/bin/mldonkey_gui; ln -s mlgui $(prefix)/bin/mldonkey_gui; \
          fi
-	if test -e mlnet+gui; then \
+	if test -f mlnet+gui; then \
              rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
              for link in mlslsk+gui mldonkey+gui mlgnut+gui mldc+gui mlbt+gui; do \
                rm -f $(prefix)/bin/$$link; ln -s mlnet+gui $(prefix)/bin/$$link; \
              done; \
          fi
-	if test -e mlim; then \
+	if test -f mlim; then \
              rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
          fi
 
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
+SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +labl$(GTK) $(SRC_PROGRESS)
 
-GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
-GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
-GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
+GTK_LIBS_byte=-I +labl$(GTK) $(LABLGL_CMA) lablgtk.cma
+GTK_LIBS_opt=-I +labl$(GTK)  $(LABLGL_CMXA) lablgtk.cmxa
+GTK_STATIC_LIBS_opt=-I +labl$(GTK) lablgtk.cmxa
 
 
 CONFIGWIN_SRCS= \
@@ -924,8 +1005,8 @@ MLPROGRESS_SRCS = \
 CHAT_EXE_SRCS= \
         $(CHAT)/chat_data.ml\
         $(CHAT)/chat_icons.ml\
-        $(CHAT)/chat_gui_base.ml\
-        $(CHAT)/chat_gui.ml\
+        $(CHAT_GUI)/chat_gui_base.ml\
+        $(CHAT_GUI)/chat_gui.ml\
         $(CHAT)/chat_app.ml \
         $(CHAT)/mlchat.ml \
         $(CHAT)/chat_args.ml \
@@ -955,8 +1036,7 @@ IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
 
 IM_CORE +=  $(IM)/irc/irc.ml
 
-IM_GUI_CORE += $(IM)/gui_im_base.zog   \
-    $(IM)/gui_im.ml
+IM_GUI_CORE += $(IM)/gui_im_base.zog $(IM)/gui_im.ml
 
 TARGETS += mlim
 
@@ -1852,6 +1932,9 @@ mlgui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS)  $(MLDONKEYGUI_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS)
 
 
+ifneq ("$(BUILD_NEWGUI)", "yes")
+
+ 
 MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS)) 
 MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS)) 
 MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS)) 
@@ -1876,6 +1959,9 @@ mlgui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS)  $(MLDONKEYGUI2_CMAS)
  
 mlgui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS)  $(MLDONKEYGUI2_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS)
+
+
+endif
 
 
 mldc_ZOG := $(filter %.zog, $(mldc_SRCS)) 
@@ -2398,6 +2484,84 @@ subconv.static:  $(SUBCONV_OBJS) $(SUBCONV_CMXS)  $(SUBCONV_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SUBCONV_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(SUBCONV_CMXAS) $(SUBCONV_CMXS)
 
 
+MLSPLIT_ZOG := $(filter %.zog, $(MLSPLIT_SRCS)) 
+MLSPLIT_MLL := $(filter %.mll, $(MLSPLIT_SRCS)) 
+MLSPLIT_MLY := $(filter %.mly, $(MLSPLIT_SRCS)) 
+MLSPLIT_ML4 := $(filter %.ml4, $(MLSPLIT_SRCS)) 
+MLSPLIT_MLT := $(filter %.mlt, $(MLSPLIT_SRCS)) 
+MLSPLIT_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(MLSPLIT_SRCS)) 
+MLSPLIT_C := $(filter %.c, $(MLSPLIT_SRCS)) 
+MLSPLIT_CMOS=$(foreach file, $(MLSPLIT_ML),   $(basename $(file)).cmo) 
+MLSPLIT_CMXS=$(foreach file, $(MLSPLIT_ML),   $(basename $(file)).cmx) 
+MLSPLIT_OBJS=$(foreach file, $(MLSPLIT_C),   $(basename $(file)).o)    
+
+MLSPLIT_CMXAS := $(foreach file, $(MLSPLIT_CMXA),   build/$(basename $(file)).cmxa)
+MLSPLIT_CMAS=$(foreach file, $(MLSPLIT_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(MLSPLIT_ML4:.ml4=.ml) $(MLSPLIT_MLT:.mlt=.ml) $(MLSPLIT_MLL:.mll=.ml) $(MLSPLIT_MLY:.mly=.ml) $(MLSPLIT_MLY:.mly=.mli) $(MLSPLIT_ZOG:.zog=.ml) 
+ 
+mlsplit: $(MLSPLIT_OBJS) $(MLSPLIT_CMXS) $(MLSPLIT_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLSPLIT_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(MLSPLIT_CMXAS) $(MLSPLIT_CMXS) 
+ 
+mlsplit.byte: $(MLSPLIT_OBJS) $(MLSPLIT_CMOS)  $(MLSPLIT_CMAS)
+	$(OCAMLC) -linkall -o $@  $(MLSPLIT_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(MLSPLIT_CMAS) $(MLSPLIT_CMOS) 
+ 
+mlsplit.static:  $(MLSPLIT_OBJS) $(MLSPLIT_CMXS)  $(MLSPLIT_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLSPLIT_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(MLSPLIT_CMXAS) $(MLSPLIT_CMXS)
+
+
+CONTESTER_ZOG := $(filter %.zog, $(CONTESTER_SRCS)) 
+CONTESTER_MLL := $(filter %.mll, $(CONTESTER_SRCS)) 
+CONTESTER_MLY := $(filter %.mly, $(CONTESTER_SRCS)) 
+CONTESTER_ML4 := $(filter %.ml4, $(CONTESTER_SRCS)) 
+CONTESTER_MLT := $(filter %.mlt, $(CONTESTER_SRCS)) 
+CONTESTER_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(CONTESTER_SRCS)) 
+CONTESTER_C := $(filter %.c, $(CONTESTER_SRCS)) 
+CONTESTER_CMOS=$(foreach file, $(CONTESTER_ML),   $(basename $(file)).cmo) 
+CONTESTER_CMXS=$(foreach file, $(CONTESTER_ML),   $(basename $(file)).cmx) 
+CONTESTER_OBJS=$(foreach file, $(CONTESTER_C),   $(basename $(file)).o)    
+
+CONTESTER_CMXAS := $(foreach file, $(CONTESTER_CMXA),   build/$(basename $(file)).cmxa)
+CONTESTER_CMAS=$(foreach file, $(CONTESTER_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(CONTESTER_ML4:.ml4=.ml) $(CONTESTER_MLT:.mlt=.ml) $(CONTESTER_MLL:.mll=.ml) $(CONTESTER_MLY:.mly=.ml) $(CONTESTER_MLY:.mly=.mli) $(CONTESTER_ZOG:.zog=.ml) 
+ 
+contester: $(CONTESTER_OBJS) $(CONTESTER_CMXS) $(CONTESTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(CONTESTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(CRYPT_LIBS_opt) $(CRYPT_LIBS_flags) -I build $(CONTESTER_CMXAS) $(CONTESTER_CMXS) 
+ 
+contester.byte: $(CONTESTER_OBJS) $(CONTESTER_CMOS)  $(CONTESTER_CMAS)
+	$(OCAMLC) -linkall -o $@  $(CONTESTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(CRYPT_LIBS_byte) $(CRYPT_LIBS_flags) -I build $(CONTESTER_CMAS) $(CONTESTER_CMOS) 
+ 
+contester.static:  $(CONTESTER_OBJS) $(CONTESTER_CMXS)  $(CONTESTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(CONTESTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(CRYPT_LIBS_flags)  $(CRYPT_STATIC_LIBS_opt) -I build $(CONTESTER_CMXAS) $(CONTESTER_CMXS)
+
+
+SAFEEXEC_ZOG := $(filter %.zog, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_MLL := $(filter %.mll, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_MLY := $(filter %.mly, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_ML4 := $(filter %.ml4, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_MLT := $(filter %.mlt, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_C := $(filter %.c, $(SAFEEXEC_SRCS)) 
+SAFEEXEC_CMOS=$(foreach file, $(SAFEEXEC_ML),   $(basename $(file)).cmo) 
+SAFEEXEC_CMXS=$(foreach file, $(SAFEEXEC_ML),   $(basename $(file)).cmx) 
+SAFEEXEC_OBJS=$(foreach file, $(SAFEEXEC_C),   $(basename $(file)).o)    
+
+SAFEEXEC_CMXAS := $(foreach file, $(SAFEEXEC_CMXA),   build/$(basename $(file)).cmxa)
+SAFEEXEC_CMAS=$(foreach file, $(SAFEEXEC_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(SAFEEXEC_ML4:.ml4=.ml) $(SAFEEXEC_MLT:.mlt=.ml) $(SAFEEXEC_MLL:.mll=.ml) $(SAFEEXEC_MLY:.mly=.ml) $(SAFEEXEC_MLY:.mly=.mli) $(SAFEEXEC_ZOG:.zog=.ml) 
+ 
+safeexec: $(SAFEEXEC_OBJS) $(SAFEEXEC_CMXS) $(SAFEEXEC_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(SAFEEXEC_OBJS) $(LIBS_opt) $(LIBS_flags) $(CRYPT_LIBS_opt) $(CRYPT_LIBS_flags) -I build $(SAFEEXEC_CMXAS) $(SAFEEXEC_CMXS) 
+ 
+safeexec.byte: $(SAFEEXEC_OBJS) $(SAFEEXEC_CMOS)  $(SAFEEXEC_CMAS)
+	$(OCAMLC) -linkall -o $@  $(SAFEEXEC_OBJS) $(LIBS_byte) $(LIBS_flags)  $(CRYPT_LIBS_byte) $(CRYPT_LIBS_flags) -I build $(SAFEEXEC_CMAS) $(SAFEEXEC_CMOS) 
+ 
+safeexec.static:  $(SAFEEXEC_OBJS) $(SAFEEXEC_CMXS)  $(SAFEEXEC_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SAFEEXEC_OBJS) $(LIBS_opt) $(LIBS_flags)  $(CRYPT_LIBS_flags)  $(CRYPT_STATIC_LIBS_opt) -I build $(SAFEEXEC_CMXAS) $(SAFEEXEC_CMXS)
+
+
 GET_RANGE_ZOG := $(filter %.zog, $(GET_RANGE_SRCS)) 
 GET_RANGE_MLL := $(filter %.mll, $(GET_RANGE_SRCS)) 
 GET_RANGE_MLY := $(filter %.mly, $(GET_RANGE_SRCS)) 
@@ -2580,6 +2744,32 @@ mlspider.static:  $(SPIDER_OBJS) $(SPIDER_CMXS)  $(SPIDER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(SPIDER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(SPIDER_CMXAS) $(SPIDER_CMXS)
 
 
+ANALYSER1_ZOG := $(filter %.zog, $(ANALYSER1_SRCS)) 
+ANALYSER1_MLL := $(filter %.mll, $(ANALYSER1_SRCS)) 
+ANALYSER1_MLY := $(filter %.mly, $(ANALYSER1_SRCS)) 
+ANALYSER1_ML4 := $(filter %.ml4, $(ANALYSER1_SRCS)) 
+ANALYSER1_MLT := $(filter %.mlt, $(ANALYSER1_SRCS)) 
+ANALYSER1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(ANALYSER1_SRCS)) 
+ANALYSER1_C := $(filter %.c, $(ANALYSER1_SRCS)) 
+ANALYSER1_CMOS=$(foreach file, $(ANALYSER1_ML),   $(basename $(file)).cmo) 
+ANALYSER1_CMXS=$(foreach file, $(ANALYSER1_ML),   $(basename $(file)).cmx) 
+ANALYSER1_OBJS=$(foreach file, $(ANALYSER1_C),   $(basename $(file)).o)    
+
+ANALYSER1_CMXAS := $(foreach file, $(ANALYSER1_CMXA),   build/$(basename $(file)).cmxa)
+ANALYSER1_CMAS=$(foreach file, $(ANALYSER1_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(ANALYSER1_ML4:.ml4=.ml) $(ANALYSER1_MLT:.mlt=.ml) $(ANALYSER1_MLL:.mll=.ml) $(ANALYSER1_MLY:.mly=.ml) $(ANALYSER1_MLY:.mly=.mli) $(ANALYSER1_ZOG:.zog=.ml) 
+ 
+analyser1: $(ANALYSER1_OBJS) $(ANALYSER1_CMXS) $(ANALYSER1_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(ANALYSER1_OBJS) $(LIBS_opt) $(LIBS_flags) $(BIGARRAY_LIBS_opt) $(BIGARRAY_LIBS_flags) -I build $(ANALYSER1_CMXAS) $(ANALYSER1_CMXS) 
+ 
+analyser1.byte: $(ANALYSER1_OBJS) $(ANALYSER1_CMOS)  $(ANALYSER1_CMAS)
+	$(OCAMLC) -linkall -o $@  $(ANALYSER1_OBJS) $(LIBS_byte) $(LIBS_flags)  $(BIGARRAY_LIBS_byte) $(BIGARRAY_LIBS_flags) -I build $(ANALYSER1_CMAS) $(ANALYSER1_CMOS) 
+ 
+analyser1.static:  $(ANALYSER1_OBJS) $(ANALYSER1_CMXS)  $(ANALYSER1_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(ANALYSER1_OBJS) $(LIBS_opt) $(LIBS_flags)  $(BIGARRAY_LIBS_flags)  $(BIGARRAY_STATIC_LIBS_opt) -I build $(ANALYSER1_CMXAS) $(ANALYSER1_CMXS)
+
+
 BTVIEW_ZOG := $(filter %.zog, $(BTVIEW_SRCS)) 
 BTVIEW_MLL := $(filter %.mll, $(BTVIEW_SRCS)) 
 BTVIEW_MLY := $(filter %.mly, $(BTVIEW_SRCS)) 
@@ -2604,6 +2794,84 @@ btview.byte: $(BTVIEW_OBJS) $(BTVIEW_CMOS)  $(BTVIEW_CMAS)
  
 btview.static:  $(BTVIEW_OBJS) $(BTVIEW_CMXS)  $(BTVIEW_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(BTVIEW_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(BTVIEW_CMXAS) $(BTVIEW_CMXS)
+
+
+CLUSTER_ZOG := $(filter %.zog, $(CLUSTER_SRCS)) 
+CLUSTER_MLL := $(filter %.mll, $(CLUSTER_SRCS)) 
+CLUSTER_MLY := $(filter %.mly, $(CLUSTER_SRCS)) 
+CLUSTER_ML4 := $(filter %.ml4, $(CLUSTER_SRCS)) 
+CLUSTER_MLT := $(filter %.mlt, $(CLUSTER_SRCS)) 
+CLUSTER_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(CLUSTER_SRCS)) 
+CLUSTER_C := $(filter %.c, $(CLUSTER_SRCS)) 
+CLUSTER_CMOS=$(foreach file, $(CLUSTER_ML),   $(basename $(file)).cmo) 
+CLUSTER_CMXS=$(foreach file, $(CLUSTER_ML),   $(basename $(file)).cmx) 
+CLUSTER_OBJS=$(foreach file, $(CLUSTER_C),   $(basename $(file)).o)    
+
+CLUSTER_CMXAS := $(foreach file, $(CLUSTER_CMXA),   build/$(basename $(file)).cmxa)
+CLUSTER_CMAS=$(foreach file, $(CLUSTER_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(CLUSTER_ML4:.ml4=.ml) $(CLUSTER_MLT:.mlt=.ml) $(CLUSTER_MLL:.mll=.ml) $(CLUSTER_MLY:.mly=.ml) $(CLUSTER_MLY:.mly=.mli) $(CLUSTER_ZOG:.zog=.ml) 
+ 
+cluster: $(CLUSTER_OBJS) $(CLUSTER_CMXS) $(CLUSTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(CLUSTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(CLUSTER_CMXAS) $(CLUSTER_CMXS) 
+ 
+cluster.byte: $(CLUSTER_OBJS) $(CLUSTER_CMOS)  $(CLUSTER_CMAS)
+	$(OCAMLC) -linkall -o $@  $(CLUSTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(CLUSTER_CMAS) $(CLUSTER_CMOS) 
+ 
+cluster.static:  $(CLUSTER_OBJS) $(CLUSTER_CMXS)  $(CLUSTER_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(CLUSTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(CLUSTER_CMXAS) $(CLUSTER_CMXS)
+
+
+DP500_ZOG := $(filter %.zog, $(DP500_SRCS)) 
+DP500_MLL := $(filter %.mll, $(DP500_SRCS)) 
+DP500_MLY := $(filter %.mly, $(DP500_SRCS)) 
+DP500_ML4 := $(filter %.ml4, $(DP500_SRCS)) 
+DP500_MLT := $(filter %.mlt, $(DP500_SRCS)) 
+DP500_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(DP500_SRCS)) 
+DP500_C := $(filter %.c, $(DP500_SRCS)) 
+DP500_CMOS=$(foreach file, $(DP500_ML),   $(basename $(file)).cmo) 
+DP500_CMXS=$(foreach file, $(DP500_ML),   $(basename $(file)).cmx) 
+DP500_OBJS=$(foreach file, $(DP500_C),   $(basename $(file)).o)    
+
+DP500_CMXAS := $(foreach file, $(DP500_CMXA),   build/$(basename $(file)).cmxa)
+DP500_CMAS=$(foreach file, $(DP500_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(DP500_ML4:.ml4=.ml) $(DP500_MLT:.mlt=.ml) $(DP500_MLL:.mll=.ml) $(DP500_MLY:.mly=.ml) $(DP500_MLY:.mly=.mli) $(DP500_ZOG:.zog=.ml) 
+ 
+dp500: $(DP500_OBJS) $(DP500_CMXS) $(DP500_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(DP500_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(DP500_CMXAS) $(DP500_CMXS) 
+ 
+dp500.byte: $(DP500_OBJS) $(DP500_CMOS)  $(DP500_CMAS)
+	$(OCAMLC) -linkall -o $@  $(DP500_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(DP500_CMAS) $(DP500_CMOS) 
+ 
+dp500.static:  $(DP500_OBJS) $(DP500_CMXS)  $(DP500_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(DP500_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(DP500_CMXAS) $(DP500_CMXS)
+
+
+TESTRSS_ZOG := $(filter %.zog, $(TESTRSS_SRCS)) 
+TESTRSS_MLL := $(filter %.mll, $(TESTRSS_SRCS)) 
+TESTRSS_MLY := $(filter %.mly, $(TESTRSS_SRCS)) 
+TESTRSS_ML4 := $(filter %.ml4, $(TESTRSS_SRCS)) 
+TESTRSS_MLT := $(filter %.mlt, $(TESTRSS_SRCS)) 
+TESTRSS_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $(TESTRSS_SRCS)) 
+TESTRSS_C := $(filter %.c, $(TESTRSS_SRCS)) 
+TESTRSS_CMOS=$(foreach file, $(TESTRSS_ML),   $(basename $(file)).cmo) 
+TESTRSS_CMXS=$(foreach file, $(TESTRSS_ML),   $(basename $(file)).cmx) 
+TESTRSS_OBJS=$(foreach file, $(TESTRSS_C),   $(basename $(file)).o)    
+
+TESTRSS_CMXAS := $(foreach file, $(TESTRSS_CMXA),   build/$(basename $(file)).cmxa)
+TESTRSS_CMAS=$(foreach file, $(TESTRSS_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(TESTRSS_ML4:.ml4=.ml) $(TESTRSS_MLT:.mlt=.ml) $(TESTRSS_MLL:.mll=.ml) $(TESTRSS_MLY:.mly=.ml) $(TESTRSS_MLY:.mly=.mli) $(TESTRSS_ZOG:.zog=.ml) 
+ 
+testrss: $(TESTRSS_OBJS) $(TESTRSS_CMXS) $(TESTRSS_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(TESTRSS_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(TESTRSS_CMXAS) $(TESTRSS_CMXS) 
+ 
+testrss.byte: $(TESTRSS_OBJS) $(TESTRSS_CMOS)  $(TESTRSS_CMAS)
+	$(OCAMLC) -linkall -o $@  $(TESTRSS_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(TESTRSS_CMAS) $(TESTRSS_CMOS) 
+ 
+testrss.static:  $(TESTRSS_OBJS) $(TESTRSS_CMXS)  $(TESTRSS_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(TESTRSS_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(TESTRSS_CMXAS) $(TESTRSS_CMXS)
 
 
 
@@ -2757,9 +3025,9 @@ $(MLTSOURCES): $(OCAMLPP)
 #	$(OCAMLC) str.cma -o ocamlpp.byte tools/ocamlpp.ml
 
 depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
-	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
+	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
-		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
 
@@ -2773,9 +3041,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: ed2k_hash make_torrent copysources get_range subconv
-utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte
-utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static
+utils: ed2k_hash make_torrent copysources get_range subconv dp500
+utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
+utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
 
 #######################################################################
 

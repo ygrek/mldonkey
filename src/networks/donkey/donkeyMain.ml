@@ -75,7 +75,7 @@ let second_timer timer =
   (try
       DonkeySources.connect_sources connection_manager;
     with e ->
-        if !verbose_sources then 
+        if !verbose_sources > 2 then 
           lprintf "Exception %s while checking sources\n" 
             (Printexc2.to_string e)
   )
@@ -138,7 +138,8 @@ let reset_tags () =
   if Autoconf.has_zlib then
     client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
-    int_tag "compression" m.emule_compression;
+    int_tag "compression" 
+      (if !!emule_compression then m.emule_compression else 0);
     int_tag "udpver" m.emule_udpver;
     int_tag "udpport" (!!port+4);
     int_tag "sourceexchange" m.emule_sourceexchange;
@@ -172,9 +173,9 @@ let enable () =
 
 (**** LOAD OTHER OPTIONS ****)
       
-      DonkeyIndexer.load_comments comment_filename;
-      DonkeyIndexer.install_hooks ();
-      CommonGlobals.do_at_exit (fun _ -> DonkeyIndexer.save_history ());
+(* TODO INDEX      DonkeyIndexer.load_comments comment_filename; *)
+(* TODO INDEX      DonkeyIndexer.install_hooks (); *)
+(* TODO INDEX x CommonGlobals.do_at_exit (fun _ -> DonkeyIndexer.save_history ()); *)
 
 (*
     BasicSocket.add_timer 10. (fun timer ->
@@ -338,8 +339,7 @@ let enable () =
 
 let _ =
 
-(*  DonkeyFiles.install_hooks (); *)
-  DonkeyIndexer.init ();
+(* TODO INDEX  DonkeyIndexer.init (); *)
 
 (*
   file_ops.op_file_commit <- (fun file ->

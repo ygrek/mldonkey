@@ -1247,9 +1247,6 @@ let check_files_downloaded () =
               in
               iter 0 (String.length bitmap)
   ) files_by_md4
-          
-(* TODO: we should sort the downloads, probably before asking QueryFiles 
-  messages. *)
 
 let add_client_chunks c file client_chunks =
   match file.file_swarmer with
@@ -1511,8 +1508,10 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
             add_file_downloaded file.file_file 
               (new_downloaded -- old_downloaded);
           if new_downloaded -- old_downloaded < len64 then
-            lprintf "ALREADY RECEIVED: %Ld < %Ld\n"
+              if !verbose_download then begin
+                lprintf "ALREADY RECEIVED: %Ld < %Ld\n"
               (new_downloaded -- old_downloaded) len64;          
+              end;
           get_from_client c
 
 (*
@@ -1666,29 +1665,27 @@ let search_found filter search md4 tags =
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags
   ) tags;
-  try
+(*  TODO INDEX try
     let rs = DonkeyIndexer.find_result md4 in
-(*    lprintf "search_add_result\n";  *)
-    CommonInteractive.search_add_result filter search rs.result_result; (* ADD AVAILABILITY *)
-(*    lprintf "search_add_result DONE\n";  *)
+    CommonInteractive.search_add_result filter search rs.result_result; 
+(* TODO ADD AVAILABILITY *)
     let doc = rs.result_index in
     let result = Store.get store doc in
-(*    old_avail := !old_avail + !availability; *)
     if not (List.mem !file_name result.result_names) then begin
         DonkeyIndexer.add_name result !file_name;
         result.result_names <- !file_name :: result.result_names
       end
-  with _ ->
+  with _ -> *)
       match result_of_file md4 tags with
         None -> ()
-      | Some new_result ->
+      | Some r ->
       try
-        let rs = DonkeyIndexer.index_result new_result in
+(* TODO INDEX       let rs = DonkeyIndexer.index_result new_result in 
         let doc = rs.result_index in
-(*        lprintf "search_add_result\n";  *)
         CommonInteractive.search_add_result filter search rs.result_result;
-(*        lprintf "search_add_result DONE\n";  *)
-        let result = Store.get store doc in
+       let result = Store.get store doc in
+*)
+        CommonInteractive.search_add_result filter search r;
         ()
       with _ ->  (* the file was probably filtered *)
           ()

@@ -264,3 +264,15 @@ let remove t doc =
 let index i = i
   
 let dummy_index = -1
+  
+let stats t =
+  let counter = ref 0 in
+  List.iter (fun (_, file) ->
+      let len = Array.length file.file_all_pos in
+      for i = 0 to len - 1 do
+        match Weak.get file.file_cache i with
+          None -> ()
+        | Some _ -> incr counter;
+      done;
+  ) t.store_files;
+  !counter, Array.length t.store_all_doc
