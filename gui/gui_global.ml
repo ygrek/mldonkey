@@ -44,7 +44,7 @@ let ndownloaded = ref 0
 let ndownloads = ref 0
 
 (** Information on locations. *)
-let (locations : (int, Gui_proto.client_info) Hashtbl.t) = Hashtbl.create 103
+let (locations : (int, GuiTypes.client_info) Hashtbl.t) = Hashtbl.create 103
 
 (** Information on locations. *)
 let (results : (int, CommonTypes.result_info) Hashtbl.t) = Hashtbl.create 103
@@ -62,14 +62,14 @@ type net_info = {
 
 let networks_filtered = ref ([] : int list)
   
-open Gui_proto
+open GuiTypes
   
 let (networks : (int, net_info) Hashtbl.t) = Hashtbl.create 13
   
 let network_name num = try (Hashtbl.find networks num).net_name
   with _ -> "?"
       
-let (users : (int, Gui_proto.user_info) Hashtbl.t) = Hashtbl.create 1023
+let (users : (int, GuiTypes.user_info) Hashtbl.t) = Hashtbl.create 1023
 
 let clear () =
   nservers := 0;

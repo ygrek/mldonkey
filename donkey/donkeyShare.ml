@@ -129,10 +129,11 @@ let all_shared () =
   ) files_by_md4;
   !shared_files
 
-(* Check whether new files are shared, and send them to connected servers. 
-  Compute (at most) one MD4 chunk
-  if needed. *)
-let check_shared_files () =
+(*  Check whether new files are shared, and send them to connected servers.
+Do it only once per 5 minutes to prevent sending to many times all files.
+  *)
+
+let send_new_shared () =
   if !new_shared != [] then
     begin
       new_shared := [];
@@ -149,7 +150,12 @@ let check_shared_files () =
       in
       let msg = (Mftp_server.ShareReq list) in
       direct_servers_send !socks msg;
-    end;
+    end
+
+    
+(*   Compute (at most) one MD4 chunk if needed. *)
+
+let check_shared_files () =
   
     match !shared_files with
       [] -> ()

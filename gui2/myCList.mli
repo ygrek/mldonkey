@@ -1,5 +1,5 @@
 open Gui2_options
-open Gui_proto
+open GuiProto
 open Gui2
   
 type ('a, 'b) t

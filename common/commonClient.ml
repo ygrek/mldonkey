@@ -41,7 +41,7 @@ and 'a client_ops = {
     mutable op_client_to_option : ('a -> (string * option_value) list);
     
 (* convert a client to an info structure used in the interfaces *)
-    mutable op_client_info : ('a -> Gui_proto.client_info);
+    mutable op_client_info : ('a -> GuiTypes.client_info);
     
 (* send a message to a given client *)
     mutable op_client_say : ('a -> string -> unit);
@@ -240,7 +240,7 @@ let client_new_file (client :client) (dirname:string) r =
   if not (List.mem key !client_new_files) then  
     client_new_files := key :: !client_new_files  
 
-module G = Gui_proto
+module G = GuiTypes
   
 let client_print c o =
   let impl = as_client_impl c in

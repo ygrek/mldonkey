@@ -20,7 +20,7 @@
 (** GUI for console. *)
 
 open CommonTypes
-open Gui_proto
+open GuiProto
 
 module M = Gui_messages
 module P = Gpattern
@@ -40,7 +40,7 @@ class box () =
       match we_command#text with
 	"" -> ()
       |	s ->
-	  Gui_com.send (Gui_proto.Command s);
+	  Gui_com.send (GuiProto.Command s);
 	  we_command#set_text ""
 
     initializer

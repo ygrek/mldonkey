@@ -23,11 +23,11 @@ open CommonGlobals
 open CommonTypes
 open CommonClient
 open CommonComplexOptions
-open Gui_proto
+open GuiProto
 open Options
 open CommonFile
 open CommonUser
-open CommonChatRoom
+open CommonRoom
 open CommonTypes
 open CommonShared
 open CommonServer
@@ -309,31 +309,9 @@ let new_server addr port=
       room_add room_impl;
       Hashtbl.add servers_by_addr (addr, port) h;
       h
-
-        
-let exit_exn = Exit
-let basename filename =
-  let s =
-    let len = String.length filename in
-    try
-      let pos = String.rindex_from filename (len-1) '\\' in
-      String.sub filename (pos+1) (len-pos-1)
-    with _ ->      
-        try
-          if len > 2 then
-            let c1 = Char.lowercase filename.[0] in
-            let c2 = filename.[1] in
-            match c1,c2 with
-              'a'..'z', ':' ->
-                String.sub filename 2 (len -2 )
-            | _ -> raise exit_exn
-          else raise exit_exn
-        with _ -> Filename.basename filename
-  in
-  String.lowercase s
   
 let new_result filename filesize =
-  let basename = basename filename in
+  let basename = Filename2.basename filename in
   let key = (basename, filesize) in
   
   try

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Gui_proto
+open GuiTypes
 
 (* val commands : (string * arg_kind * string) list *)
 val execute_command :

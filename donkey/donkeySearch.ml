@@ -34,7 +34,7 @@ open CommonOptions
 open DonkeyGlobals
 open DonkeyClient
 
-module P = Gui_proto
+module P = GuiProto
 
 let local_search search =
   ()

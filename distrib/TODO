@@ -1,32 +1,27 @@
 TODO list for client
 ====================
+
 For 2.00: 
- - Fix removed friends.
- - Which message is now used when a private message is received from a friend ?
- - Save the file in incoming/ with a different name if already present
- - Better re-initialize networks after a disable
- - Restore downloads in other p2p networks
- - Files are saved with their MD4 if it is the longest name !!!
- - Connect SIG HUP to restart all connections (for /etc/sysconfig/ip-up)
+- Fix poll mechanism for GUIs:
+  - Messages in DriverInterface.update_ should only be sent if gui_poll
+      is false
+  - Consequently, Get_ messages should receive a reply immediatly if
+      gui_poll is true.
 
-
- * password for GUI
- * protocol 4 for GUI
- * send ShareReq only after 5 minutes when modified and too big (more than
-    20 files)
- * add special IP addresses with no upload limit and no upload slots for
+- Save the file in incoming/ with a different name if already present
+- Connect SIG HUP to restart all connections (for /etc/sysconfig/ip-up)
+- Add special IP addresses with no upload limit and no upload slots for
     good friends.
- * add a schedule for upload/download throttle during the day:
+- Better bandwidth control: take TCP-IP packet header size into account
+    and UDP too.
+- Server: server: seedIP unused and stats not sent
+- Number of messages in Soulseek per room
 
-    To limit the upload during working hours:
-   set_options
-    [
-      ([0;1;2;3;4], 9, 0, "max_hard_download_rate", 20);
-      ([0;1;2;3;4], 19, 0, "max_hard_download_rate", 100);
-    ]
+The GUI protocol is not done to support removal of users from either
+  rooms or servers. Not also for removal of sources from files.
+  What should be done ?
 
- * better bandwidth control: take packet size into account
- * server: seedIP and stats
+*********
 
 For 2.01:
   - Allow enable/disable network at runtime
@@ -39,6 +34,24 @@ For 2.01:
      to download from us. Maybe we could use priorities, but how ? Each network
      would have a score, and the better score would be given bandwidth first ?
    - Incomplete files can be automatically deleted when too old (7 days)
+
+*********
+
+For 2.02:
+   - Objects should be stored in Weak hash tables everywhere, except when they
+      are roots (servers, downloaded files, searches).
+   - Event list: the current mechanism for notifications to GUIs is
+      inefficient: a slow GUI prevents other GUIs from receiving fast
+      updates and requires lots of CPU. A better system would be
+      to have an event fifo: Each event is stored and kept in the FIFO.
+      When a GUI connects, it points to the beginning of the fifo.
+      Then, events are sent to it, and he can go ahead in the fifo.
+      When an event is obsolete, it is replaced in place by the new state.
+      The new state indicates its new position in the fifo. When events are
+      sent to the GUI, they must be at the indicated position in the fifo.
+
+*********
+
 Later:
   * Plugins.
   * Correct display of availability.
@@ -64,15 +77,8 @@ Later:
   * background searches: 
    - search and automatically download files
  + remove unused sources (cleanly remove them at least once per hour)
- + don't compute md4 for files being downloaded if timestamps show they have
-    not been modified.
  + commit page to select saved name
- + display search results in different pages
- + Rename with different names when a file already exists in incoming/ 
-   directory.
  + Imported files should have permission 644.[ Bug #420 ]
- * Change Shared message
-
  
 TODO list for server
 ====================
@@ -112,13 +118,4 @@ connections panel? On the search results tab, it would be nice to indicate
 number of results per file, to give at least an
 indication of availability.
 
-===========================================
-The only problem is that since I use it (.10) it eats lots of memory and cpu
-resources.. this is the 'top' line, using 90.3% of the cpu and 22.5% RAM 32294 runa      14   0 86612  84M   796 R    90.3 22.5 275:55 mldonkey
-============================================
-
-
-============================================
-
-============================================
 

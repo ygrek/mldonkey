@@ -20,7 +20,7 @@
 (** GUI for the lists of files. *)
 
 open CommonTypes
-open Gui_proto
+open GuiProto
 open Gui_columns
 
 
@@ -341,14 +341,14 @@ class paned () =
 	let (box_res, vb) = List.assoc num results in
 	vb#destroy ();
 	results <- List.filter (fun (n,_) -> n <> num) results;
-	Gui_com.send (Gui_proto.ForgetSearch num)
+	Gui_com.send (GuiProto.ForgetSearch num)
       with
 	Not_found ->
 	  ()
 
     method submit_search s =
-      Gui_com.send (Gui_proto.Search_query (s));
-      let desc = Gui_misc.description_of_query s.Gui_proto.search_query in
+      Gui_com.send (GuiProto.Search_query (s));
+      let desc = Gui_misc.description_of_query s.GuiTypes.search_query in
       let wl = GMisc.label ~text: desc () in
       let vbox = GPack.vbox () in
       let box_res = new Gui_results.search_result_box () in
@@ -357,7 +357,7 @@ class paned () =
 	  ~packing: (vbox#pack ~expand: false)
 	  ()
       in
-      ignore (wb_close#connect#clicked (self#close_query s.Gui_proto.search_num));
+      ignore (wb_close#connect#clicked (self#close_query s.GuiTypes.search_num));
       wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
       wnote_results#goto_page 0;
       wnote_main#goto_page 4;
@@ -365,7 +365,7 @@ class paned () =
       (* only the last result box must have an "extended search" button *)
       List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results;
 
-      results <- (s.Gui_proto.search_num, (box_res, vbox)) :: results
+      results <- (s.GuiTypes.search_num, (box_res, vbox)) :: results
 
     method set_tb_style st = 
       List.iter (fun b -> b#set_tb_style st) queries_box;

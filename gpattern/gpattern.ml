@@ -126,11 +126,13 @@ class virtual ['a] plist
         with Failure _ -> ()
       in
       let f_unselect_table ~row ~column ~event = 
+        try
 	  let d = List.nth data row in
 	  selection <- 
             (List.filter (fun d2 -> d <> d2) selection);
 	  self#on_deselect d;
           check_double_click event d
+        with Failure _ -> ()
       in
       ignore (wlist#connect#select_row f_select_table);
       ignore (wlist#connect#unselect_row f_unselect_table);

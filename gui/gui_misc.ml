@@ -23,7 +23,7 @@ module O = Gui_options
 module G = Gui_global
 
 
-open Gui_proto
+open GuiProto
 
 let ko = Int32.of_int 1024
   
@@ -33,13 +33,17 @@ let unit_of_string s =
   | "ko" -> ko
   | _ -> Int32.one
 
+let ko = 1024.0
+let mo = ko *. ko
+let go = mo *. ko
+
 
 (*
 let option_of_string s =
   if s = "" then None else Some s
   
 let submit_search (gui: gui) local ()=
-  let module P = Gui_proto in
+  let module P = GuiProto in
   incr search_counter;
   let search_num = !search_counter in
   current_search := !search_counter;
@@ -292,7 +296,7 @@ let get_vpaned gui (hpaned: GPack.paned) prop =
     ))
   
 let save_options gui =
-  let module P = Gui_proto in
+  let module P = GuiProto in
 
   try
     Gui_com.send (P.SaveOptions_query
@@ -307,10 +311,10 @@ let save_options gui =
 
 let create_search query_entry max_hits search_type =
   let s = {
-    Gui_proto.search_num = !Gui_global.search_counter ;
-    Gui_proto.search_query = query_entry ;
-      Gui_proto.search_max_hits = max_hits ;
-      Gui_proto.search_type = search_type;
+    GuiTypes.search_num = !Gui_global.search_counter ;
+    GuiTypes.search_query = query_entry ;
+      GuiTypes.search_max_hits = max_hits ;
+      GuiTypes.search_type = search_type;
   } 
   in
   incr Gui_global.search_counter;
@@ -345,4 +349,31 @@ let description_of_query q =
   | [s] -> s
   | [s1 ; s2] -> s1^" "^s2
   | s1 :: s2 :: s3 :: _ -> s1^" "^s2^" "^s3
-  
+ 
+
+(** To pretty-print a file size *)
+let size_of_int32 size =
+  let f = Int32.to_float size in
+  if f > go then
+    Printf.sprintf "%.2fG" (f /. go)
+  else
+    if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
+    else
+      if f > ko then
+	Printf.sprintf "%.1fk" (f /. ko)
+      else
+	Int32.to_string size
+
+(** Return a color for a given name. *)
+let color_of_name name =
+  let accs = [| ref 0 ; ref 0 ; ref 0 |] in
+  for i = 0 to (String.length name) - 1 do
+    let m = i mod 3 in
+    accs.(m) := !(accs.(m)) + Char.code name.[i]
+  done;
+  let r = !(accs.(0)) mod 210 in
+  let g = !(accs.(1)) mod 210 in
+  let b = !(accs.(2)) mod 210 in
+  let s = Printf.sprintf "#%02X%02X%02X" r g b in
+  `NAME s

@@ -1,7 +1,7 @@
 <entity name=window>
   <window name=window width="Options.(!!)+Gui_options.gui_width" height="Options.(!!)+Gui_options.gui_height" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="true" x="" y="">
     <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+      <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1" expanded="false">
         <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
           <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
             <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="Gui_messages.mSettings" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
@@ -20,7 +20,7 @@
             </menu_item>
           </menu>
         </menu_item>
-        <menu_item name=_Menu_notebook width="-1" height="-1" border_width="-1" label="%22Pages%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+        <menu_item name=_Menu_notebook width="-1" height="-1" border_width="-1" label="%22Pages%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
           <menu name=_menu456 width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
             <menu_item name=itemServers width="-1" height="-1" border_width="-1" label="Gui_messages.mServers" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
             </menu_item>
@@ -58,8 +58,10 @@
         </custom>
         <notebook name=wnote_results width="" height="" border_width="" tab_position="`LEFT" tab_border="" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="Gui_messages.mResults" expand="false" fill="true" padding="">
         </notebook>
-        <notebook name=wnote_rooms width="" height="" border_width="" tab_position="`LEFT" tab_border="" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="Gui_messages.mRooms" expand="false" fill="true" padding="">
-        </notebook>
+        <custom name=tab_rooms width="" height="" border_width="" function="new+Gui_rooms.pane_rooms" tab_label="Gui_messages.mRooms" expand="false" fill="true" padding="">
+        </custom>
+        <custom name=tab_uploads width="" height="" border_width="" function="new+Gui_uploads.upstats_box" tab_label="Gui_messages.uploads" expand="false" fill="true" padding="">
+        </custom>
         <custom name=tab_console width="-1" height="-1" border_width="-1" function="new+Gui_console.box" tab_label="Gui_messages.mConsole" expand="false" fill="true" padding="-1">
         </custom>
         <custom name=tab_help width="" height="" border_width="" function="new+Gui_help.box" tab_label="Gui_messages.mHelp" expand="false" fill="true" padding="">

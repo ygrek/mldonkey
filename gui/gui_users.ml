@@ -20,7 +20,7 @@
 (** GUI for the lists of files. *)
 
 open CommonTypes
-open Gui_proto
+open GuiTypes
 open Gui_columns
   
 module M = Gui_messages
@@ -30,15 +30,15 @@ module O = Gui_options
 let (!!) = Options.(!!)
 (* [ M.kind ; M.name ; ] *)
 class box columns () =
-  let titles = List.map Gui_columns.string_of_user_column columns in 
+  let titles = List.map Gui_columns.User.string_of_column columns in 
   object (self)
-    inherit [Gui_proto.user_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [GuiTypes.user_info] Gpattern.plist `EXTENDED titles true as pl
       inherit Gui_users_base.box () as box
     
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.string_of_user_column columns);
+      self#set_titles (List.map Gui_columns.User.string_of_column columns);
       self#update
     
     
@@ -94,12 +94,12 @@ class box columns () =
     
     method add_to_friends () =
       List.iter 
-	(fun u -> Gui_com.send (Gui_proto.AddUserFriend u.user_num))
+	(fun u -> Gui_com.send (GuiProto.AddUserFriend u.user_num))
 	self#selection
     
     method browse_files () =
       List.iter 
-        (fun u -> Gui_com.send (Gui_proto.BrowseUser u.user_num))
+        (fun u -> Gui_com.send (GuiProto.BrowseUser u.user_num))
       self#selection
       
     method menu =
@@ -113,6 +113,16 @@ class box columns () =
     method set_tb_style = wtool#set_style
 
     method clear = self#update_data []
+
+    method find_user num =
+      let rec iter n l =
+        match l with
+          [] -> raise Not_found
+        | s :: q ->
+            if s.user_num = num then (n, s)
+            else iter (n+1) q
+      in
+      iter 0 data
 
     initializer
       box#vbox#pack ~expand: true pl#box ;

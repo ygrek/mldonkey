@@ -258,6 +258,8 @@ type gui_record = {
     mutable gui_sources : (client list * file) option;
     mutable gui_rooms : room list;
     mutable gui_version : int;
+    mutable gui_auth : bool;
+    mutable gui_poll : bool;
   }
   
 exception Avifile_info of avi_info

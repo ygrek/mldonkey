@@ -145,7 +145,7 @@ let (result_ops : result CommonResult.result_ops) =
      op_server_network : network;
 OK   op_server_to_option : ('a -> (string * option_value) list);
 OK   op_server_remove : ('a -> unit);
-OK   op_server_info : ('a -> Gui_proto.server_info);
+OK   op_server_info : ('a -> GuiProto.server_info);
 OK   op_server_sort : ('a -> float);
 OK   op_server_connect : ('a -> unit);
 OK   op_server_disconnect : ('a -> unit);
@@ -166,17 +166,17 @@ let (server_ops : server CommonServer.server_ops) =
      op_room_messages : ('a -> room_message list);
      op_room_users : ('a -> user list);
      op_room_name : ('a -> string);
-     op_room_info : ('a -> Gui_proto.room_info);
+     op_room_info : ('a -> GuiProto.room_info);
      op_room_send_message : ('a -> room_message -> unit);
 
 *)
-let (room_ops : server CommonChatRoom.room_ops) = 
-  CommonChatRoom.new_room_ops network
+let (room_ops : server CommonRoom.room_ops) = 
+  CommonRoom.new_room_ops network
   
 (*
      op_user_network : network;
      op_user_remove : ('a -> unit);
-     op_user_info : ('a -> Gui_proto.user_info);
+     op_user_info : ('a -> GuiProto.user_info);
      op_user_set_friend : ('a -> unit);
      op_user_browse_files : ('a -> unit);
 *)
@@ -192,7 +192,7 @@ OK   op_file_to_option : ('a -> (string * option_value) list);
 OK   op_file_cancel : ('a -> unit);
      op_file_pause : ('a -> unit);
      op_file_resume : ('a -> unit);
-OK   op_file_info : ('a -> Gui_proto.file_info);
+OK   op_file_info : ('a -> GuiProto.file_info);
 OK   op_file_disk_name : ('a -> string);
      op_file_best_name : ('a -> string);
      op_file_state : ('a -> CommonTypes.file_state);
@@ -209,7 +209,7 @@ let (file_ops : file CommonFile.file_ops) =
      op_client_network : network;
      op_client_connect : ('a -> unit);
      op_client_to_option : ('a -> (string * option_value) list);
-     op_client_info : ('a -> Gui_proto.client_info);
+     op_client_info : ('a -> GuiProto.client_info);
      op_client_say : ('a -> string -> unit);
      op_client_files : ('a -> (string * result) list);
      op_client_set_friend : ('a -> unit);

@@ -24,7 +24,7 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonFile
 open CommonUser
-open CommonChatRoom
+open CommonRoom
 open CommonServer
 open CommonResult
 open CommonTypes

@@ -44,7 +44,7 @@ and 'a file_ops = {
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
     mutable op_file_resume : ('a -> unit);
-    mutable op_file_info : ('a -> Gui_proto.file_info);
+    mutable op_file_info : ('a -> GuiTypes.file_info);
     mutable op_file_disk_name : ('a -> string);
     mutable op_file_best_name : ('a -> string);
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
@@ -351,7 +351,7 @@ file_ops.op_file_print <- (fun f o ->
   );
 *)
 
-module G = Gui_proto
+module G = GuiTypes
 let file_print file o = 
   let impl = as_file_impl file in
   let info = file_info file in

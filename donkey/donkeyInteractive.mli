@@ -33,7 +33,7 @@ val reconnect_all : DonkeyTypes.file -> unit
 val import_config : string -> unit
 val print_file : Buffer.t -> DonkeyTypes.file -> unit
 val display_file_list : 
-  Buffer.t -> Gui_proto.connection_options -> unit
+  Buffer.t -> GuiProto.connection_options -> unit
 val aborted_download :
     (string list * int32 * Md4.t * int option * string option *
      (int32 * int32) list option)
@@ -45,7 +45,7 @@ val really_query_download :
     int option -> string option -> (int32 * int32) list option -> unit
 val print_search :
     Buffer.t ->
-    DonkeyTypes.local_search -> Gui_proto.connection_options -> unit
+    DonkeyTypes.local_search -> GuiProto.connection_options -> unit
   
 val print_connected_servers : Buffer.t -> unit
 

@@ -288,22 +288,10 @@ let gui_height = define_option mldonkey_gui_ini
 
 (** {3 Files} *)
 
-let value_to_file_column v =
-  match v with
-    StringValue s -> C.file_column_of_string s
-  | _ -> raise Not_found
-    
-let file_column_to_value k =
-  StringValue (C.string_of_file_column k)
-
-let (class_file_column : C.file_column option_class) = 
-      define_option_class "File_column" 
-    value_to_file_column file_column_to_value
-
 
 let downloads_columns = define_option mldonkey_gui_ini
     ["downloads_columns"] M.h_downloads_columns
-    (list_option class_file_column)
+    (list_option C.File.class_column)
   [ C.Col_file_name ; C.Col_file_size ; C.Col_file_downloaded;
     C.Col_file_percent ;
       C.Col_file_rate ; C.Col_file_state ; 
@@ -311,93 +299,50 @@ let downloads_columns = define_option mldonkey_gui_ini
 
 let downloaded_columns = define_option mldonkey_gui_ini
     ["downloaded_columns"] M.h_downloaded_columns
-    (list_option class_file_column)
+    (list_option C.File.class_column)
     [ C.Col_file_name ; C.Col_file_size ; 
       C.Col_file_format;]
 
 (** {3 Clients} *)
 
-let value_to_client_column v =
-  match v with
-    StringValue s -> C.client_column_of_string s
-  | _ -> raise Not_found
-    
-let client_column_to_value k =
-  StringValue (C.string_of_client_column k)
-
-let (class_client_column : C.client_column option_class) = 
-      define_option_class "Client_column" 
-    value_to_client_column client_column_to_value
-
 let friends_columns = define_option mldonkey_gui_ini
     ["friends_columns"] M.h_friends_columns
-    (list_option class_client_column)
+    (list_option C.Client.class_column)
     [ C.Col_client_name ; C.Col_client_kind ; 
       C.Col_client_state; ]
 
 let file_locations_columns = define_option mldonkey_gui_ini
     ["file_locations_columns"] M.h_file_locations_columns
-    (list_option class_client_column)
+    (list_option C.Client.class_column)
     [ C.Col_client_name ; C.Col_client_kind ; 
       C.Col_client_state; ]
 
 (** {3 Users} *)
 
-let value_to_user_column v =
-  match v with
-    StringValue s -> C.user_column_of_string s
-  | _ -> raise Not_found
-    
-let user_column_to_value k =
-  StringValue (C.string_of_user_column k)
-
-let (class_user_column : C.user_column option_class) = 
-  define_option_class "User_column" 
-    value_to_user_column user_column_to_value
-
 let users_columns = define_option mldonkey_gui_ini
     ["users_columns"] "Columns of the users lists"
-    (list_option class_user_column)
+    (list_option C.User.class_column)
   [ C.Col_user_name ; C.Col_user_kind ;     C.Col_user_tags; ]
+
+let rooms_columns = define_option mldonkey_gui_ini
+    ["rooms_columns"] "Columns of the room lists"
+    (list_option C.Room.class_column)
+  [ C.Col_room_name ; C.Col_room_nusers ]
 
 (** {3 Servers} *)
 
-let value_to_server_column v =
-  match v with
-    StringValue s -> C.server_column_of_string s
-  | _ -> raise Not_found
-    
-let server_column_to_value k =
-  StringValue (C.string_of_server_column k)
-
-let (class_server_column : C.server_column option_class) = 
-      define_option_class "Server_column" 
-    value_to_server_column server_column_to_value
-
 let servers_columns = define_option mldonkey_gui_ini
     ["server_columns"] M.h_servers_columns
-    (list_option class_server_column)
+    (list_option C.Server.class_column)
     [ C.Col_server_address ; C.Col_server_state ; 
       C.Col_server_users ; C.Col_server_files ;
       C.Col_server_desc ]
 
 (** {3 Results} *)
 
-let value_to_result_column v =
-  match v with
-    StringValue s -> C.result_column_of_string s
-  | _ -> raise Not_found
-    
-let result_column_to_value k =
-  StringValue (C.string_of_result_column k)
-
-let (class_result_column : C.result_column option_class) = 
-      define_option_class "Result_column" 
-    value_to_result_column result_column_to_value
-
 let results_columns = define_option mldonkey_gui_ini
     ["results_columns"] M.h_results_columns
-    (list_option class_result_column)
+    (list_option C.Result.class_column)
     [ C.Col_result_name ; 
       C.Col_result_size ; C.Col_result_format ;
       C.Col_result_props ; C.Col_result_comment ; ]

@@ -20,7 +20,7 @@
 (** GUI for the lists of files. *)
 
 open CommonTypes
-open Gui_proto
+open GuiTypes
 open Gui_columns
 
 module M = Gui_messages
@@ -47,16 +47,66 @@ let string_color_of_client c =
     Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
-class box columns () =
-  let titles = List.map Gui_columns.string_of_client_column columns in
+
+
+class dialog friend =
   object (self)
-    inherit [Gui_proto.client_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit Gui_friends_base.dialog ()
+
+    val mutable name = friend.client_name
+    method name =  name
+    method friend = friend
+    method num = friend.client_num
+
+    method send s =
+      Printf.printf "MessageToClient(%d,%s)" friend.client_num s;
+      print_newline ();
+      Gui_com.send (GuiProto.MessageToClient (friend.client_num, s))
+
+    method handle_message mes =
+      wt_dialog#insert ~foreground: (Gui_misc.color_of_name name) name;
+      wt_dialog#insert (" : "^mes^"\n");
+      wt_dialog#set_position (wt_dialog#length - 1)
+
+    initializer
+      let return () = 
+	let s = wt_input#get_chars 0 wt_input#length in
+	let len = String.length s in
+	let s2 = 
+	  if len <= 0 then s
+	  else
+	    match s.[0] with
+	      '\n' -> String.sub s 1 (len - 1)
+	    | _ -> s
+	in
+	self#send s2;
+	wt_dialog#insert 
+	  ~foreground: (Gui_misc.color_of_name !Gui_options.client_name)
+	  !Gui_options.client_name;
+	wt_dialog#insert (" : "^s2^"\n") ;
+	wt_input#delete_text ~start: 0 ~stop: wt_input#length
+	  
+      in
+      Okey.add wt_input ~mods: [] GdkKeysyms._Return return;
+      Okey.add_list wt_input ~mods: [`CONTROL]
+	[GdkKeysyms._c; GdkKeysyms._C]
+	box#destroy;
+      Okey.add_list wt_dialog ~mods: [`CONTROL] 
+	[GdkKeysyms._c; GdkKeysyms._C]
+	box#destroy;
+
+  end
+
+class box columns () =
+  let titles = List.map Gui_columns.Client.string_of_column columns in
+  object (self)
+    inherit [client_info] Gpattern.plist `EXTENDED titles true as pl
     inherit Gui_friends_base.box () as box
 
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.string_of_client_column columns);
+      self#set_titles (List.map Gui_columns.Client.string_of_column columns);
       self#update
 
     method coerce = box#vbox#coerce
@@ -153,24 +203,24 @@ class box_friends box_results () =
 
     method remove () = 
       List.iter
-	(fun c -> Gui_com.send (RemoveFriend c.client_num))
+	(fun c -> Gui_com.send (GuiProto.RemoveFriend c.client_num))
 	self#selection
 
     method remove_all_friends () = 
       self#update_data [];
-      Gui_com.send RemoveAllFriends
+      Gui_com.send GuiProto.RemoveAllFriends
 
     method find_friend () =
       match GToolbox.input_string M.find_friend M.name with
 	None -> ()
       |	Some s ->
-	  Gui_com.send (Gui_proto.FindFriend s)
+	  Gui_com.send (GuiProto.FindFriend s)
 
     method on_select c =
       match c.client_files with
         None -> 
 (*          Printf.printf "No file for friend %d" c.client_num; print_newline (); *)
-          Gui_com.send (GetClient_files c.client_num)
+          Gui_com.send (GuiProto.GetClient_files c.client_num)
       |	Some tree -> 
 (*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
           print_newline (); *)
@@ -179,18 +229,9 @@ class box_friends box_results () =
     method on_deselect f =
       box_results#update_data []
 
-    method on_double_click f =
-      let ad_opt = 
-	match f.client_kind with
-	  Known_location (ip, port) -> 
-	    (
-	     match f.client_chat_port with
-	       0 -> None
-	     | p -> Some (Ip.to_string ip, p)
-	    )
-	| Indirect_location _ -> None
-      in
-      CommonChat.send_add_open f.client_name ad_opt
+    val mutable on_double_click = (fun _ -> ())
+    method set_on_double_click f = on_double_click <- f
+    method on_double_click f = on_double_click f
 
     method menu =
       match self#selection with
@@ -268,7 +309,7 @@ class box_list () =
       List.iter
         (fun c -> 
           if c.client_name <> "" then
-            Gui_com.send (AddClientFriend c.client_num))
+            Gui_com.send (GuiProto.AddClientFriend c.client_num))
 	self#selection
 
     method menu =
@@ -285,7 +326,7 @@ class box_list () =
        | None -> ()
        | Some file ->
             match file.file_sources with
-	     None -> Gui_com.send (GetFile_locations file.file_num)
+	     None -> Gui_com.send (GuiProto.GetFile_locations file.file_num)
 	   | Some list ->
                 List.iter 
 		 (fun num ->
@@ -294,7 +335,7 @@ class box_list () =
 		    if Mi.is_connected c.client_state then incr G.nclocations;
 		    l := c :: !l
 		  with _ -> 
-		    Gui_com.send (GetClient_info num)
+		    Gui_com.send (GuiProto.GetClient_info num)
 		 )  list
 
       );
@@ -351,12 +392,52 @@ class box_list () =
 class pane_friends () =
   let results = new Gui_results.box false !!O.results_columns () in
   let friends = new box_friends results () in
+  let wnote_chat = GPack.notebook () in
+  let wpane2 = GPack.paned `VERTICAL () in
   object (self)
+    (** The list of open chat dialogs *)
+    val mutable dialogs = ([] : dialog list)
+
+    (** Remove the dialog with the given client num from the list of dialogs. *)
+    method remove_dialog c_num =
+      (
+       try
+	 let d = List.find (fun d -> d#num = c_num) dialogs in
+	 dialogs <- List.filter (fun d -> not (d#num = c_num)) dialogs;
+	 let n = wnote_chat#page_num d#coerce in
+	 wnote_chat#remove_page n
+       with
+	 Not_found ->
+	   ()
+      );
+
+    (** Find the window and dialog with the given client. If
+       it was not found, create it and add it to the list of dialogs.*)
+    method get_dialog client =
+      try
+	let d = List.find 
+	    (fun d -> d#num = client.client_num)
+	    dialogs 
+	in
+	d#wt_input#misc#grab_focus ();
+	d
+      with
+	Not_found ->
+	  let dialog = new dialog client in
+	  let wl = GMisc.label ~text: client.client_name () in
+	  wnote_chat#append_page ~tab_label: wl#coerce dialog#coerce;
+	  ignore (dialog#box#connect#destroy
+		    (fun () -> dialogs <- List.filter (fun d -> not (d#num = client.client_num)) dialogs));
+	  dialogs <- dialog :: dialogs;
+	  dialog#wt_input#misc#grab_focus ();
+	  dialog      
+
     inherit Gui_friends_base.paned ()
 
     method box_friends = friends
     method box_results = results
     method hpaned = wpane
+    method vpaned = wpane2
 
     method set_tb_style st =
       results#set_tb_style st ;
@@ -367,6 +448,11 @@ class pane_friends () =
       friends#clear
 
     initializer
+      friends#set_on_double_click (fun f -> ignore (self#get_dialog f));
+
       wpane#add1 friends#coerce;
-      wpane#add2 results#coerce;
+      wpane#add2 wpane2#coerce ;
+
+      wpane2#add2 wnote_chat#coerce;
+      wpane2#add1 results#coerce;
   end

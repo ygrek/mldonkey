@@ -23,7 +23,7 @@ open CommonComplexOptions
 open CommonClient
 open CommonFile
 open CommonUser
-open CommonChatRoom
+open CommonRoom
 open CommonServer
 open CommonResult
 open CommonTypes
@@ -143,7 +143,7 @@ let _ =
       download r filenames   
   )
 
-module P = Gui_proto
+module P = GuiTypes
   
 let _ =
   room_ops.op_room_info <- (fun s ->
@@ -152,16 +152,15 @@ let _ =
         P.room_network = network.network_num;
         P.room_name = s.server_name;
         P.room_state = s.server_room.impl_room_state;
-        P.room_users = List2.tail_map (fun u -> 
+        P.room_users = (* List2.tail_map (fun u -> 
             u.user_user.impl_user_num
-        ) s.server_users;
+        ) s.server_users*) [];
+        P.room_messages = [];
+        P.room_nusers = List.length s.server_users;
       }
   );
-  room_ops.op_room_messages <- (fun s ->
-      let list = List.rev s.server_messages in
-(*      Printf.printf " %d" (List.length list); print_newline ();*)
-      s.server_messages <- [];
-      list);
+  room_ops.op_room_messages <- (fun s age ->
+      extract_messages s.server_messages age);
   room_ops.op_room_send_message <- (fun s m ->
       match s.server_sock with
         None -> ()

@@ -166,9 +166,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.servers_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.server_column_strings)
-	       Gui_columns.string_of_server_column)
+	       Gui_columns.Server.string_of_column)
       M.o_servers_columns
-      (fun c -> [Gui_columns.string_of_server_column c])
+      (fun c -> [Gui_columns.Server.string_of_column c])
       !!GO.servers_columns
   in
   let dls_cols = list
@@ -176,9 +176,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.downloads_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.file_column_strings)
-	       Gui_columns.string_of_file_column)
+	       Gui_columns.File.string_of_column)
       M.o_downloads_columns
-      (fun c -> [Gui_columns.string_of_file_column c])
+      (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloads_columns
   in
   let dled_cols = list
@@ -186,9 +186,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.downloaded_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.file_column_strings)
-	       Gui_columns.string_of_file_column)
+	       Gui_columns.File.string_of_column)
       M.o_downloaded_columns
-      (fun c -> [Gui_columns.string_of_file_column c])
+      (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloaded_columns
   in
   let friends_cols = list
@@ -196,9 +196,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.friends_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.client_column_strings)
-	       Gui_columns.string_of_client_column)
+	       Gui_columns.Client.string_of_column)
       M.o_friends_columns
-      (fun c -> [Gui_columns.string_of_client_column c])
+      (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.friends_columns
   in
   let file_locs_cols = list
@@ -206,9 +206,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.file_locations_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.client_column_strings)
-	       Gui_columns.string_of_client_column)
+	       Gui_columns.Client.string_of_column)
       M.o_file_locations_columns
-      (fun c -> [Gui_columns.string_of_client_column c])
+      (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.file_locations_columns
   in
   let results_cols = list
@@ -216,9 +216,9 @@ let create_gui_params () =
       ~f: (fun l -> GO.results_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.result_column_strings)
-	       Gui_columns.string_of_result_column)
+	       Gui_columns.Result.string_of_column)
       M.o_results_columns
-      (fun c -> [Gui_columns.string_of_result_column c])
+      (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
   in
   let columns_options = Section

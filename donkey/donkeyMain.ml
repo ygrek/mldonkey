@@ -53,7 +53,8 @@ let quarter_timer timer =
   ()
 
 let fivemin_timer timer =
-  DonkeyFiles.fill_clients_list ()
+  DonkeyFiles.fill_clients_list ();
+  DonkeyShare.send_new_shared ()
 
 let second_timer timer =
   DonkeyFiles.check_clients ();

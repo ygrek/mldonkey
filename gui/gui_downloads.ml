@@ -21,7 +21,8 @@
 
 open Gui_global
 open CommonTypes
-open Gui_proto
+open GuiTypes
+open GuiProto
 open Gui_columns
 
 module M = Gui_messages
@@ -88,16 +89,16 @@ let string_of_format format =
   | _ -> M.unknown
 
 class box columns sel_mode () =
-  let titles = List.map Gui_columns.string_of_file_column columns in
+  let titles = List.map Gui_columns.File.string_of_column columns in
   object (self)
-    inherit [Gui_proto.file_info] Gpattern.plist sel_mode titles true as pl
+    inherit [file_info] Gpattern.plist sel_mode titles true as pl
     inherit Gui_downloads_base.box () as box
 
     val mutable columns = columns
 
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.string_of_file_column columns);
+      self#set_titles (List.map Gui_columns.File.string_of_column columns);
       self#update
 
     method box = box#coerce
@@ -138,9 +139,9 @@ class box columns sel_mode () =
 	  in
 	  s_file
       |	Col_file_size ->
-	  Printf.sprintf "%+10s" (Int32.to_string f.file_size)
+	  Gui_misc.size_of_int32 f.file_size 
       |	Col_file_downloaded ->
-	  Printf.sprintf "%+10s" (Int32.to_string f.file_downloaded) 
+	  Gui_misc.size_of_int32 f.file_downloaded
       |	Col_file_percent ->
 	  Printf.sprintf "%5.1f" 
 	    (Int32.to_float f.file_downloaded /. Int32.to_float f.file_size *. 100.)
@@ -218,7 +219,7 @@ class box_downloaded () =
 	  (fun name ->
 	    `I (name, 
 		(fun _ -> 
-                  Gui_com.send (Gui_proto.SaveFile (f.file_num, name))
+                  Gui_com.send (GuiProto.SaveFile (f.file_num, name))
                 )
 	       )
 	  ) 
@@ -236,7 +237,7 @@ class box_downloaded () =
 
     method save_all () = 
       List.iter
-	(fun f -> Gui_com.send (Gui_proto.SaveFile (f.file_num, file_first_name f)))
+	(fun f -> Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
 	data
 
     method save_as () = 
@@ -248,7 +249,7 @@ class box_downloaded () =
            match file_opt with
              None -> ()
            | Some name -> 
-               Gui_com.send (Gui_proto.SaveFile (file.file_num, name))
+               Gui_com.send (GuiProto.SaveFile (file.file_num, name))
 	  )
       |	_ ->
 	  ()
@@ -260,7 +261,7 @@ class box_downloaded () =
 	   match file.file_format with
              Mp3 tag ->
                Mp3_ui.edit_tag_v1 M.edit_mp3 tag ;
-               Gui_com.send (Gui_proto.ModifyMp3Tags (file.file_num, tag))
+               Gui_com.send (GuiProto.ModifyMp3Tags (file.file_num, tag))
 	   | _ ->
 	       ()
 	  )
@@ -646,7 +647,7 @@ class pane_downloads () =
       match entry_ed2k_url#text with
         "" -> ()
       | s ->
-          Gui_com.send (Gui_proto.Url s);
+          Gui_com.send (GuiProto.Url s);
           entry_ed2k_url#set_text ""
 
     initializer

@@ -22,7 +22,8 @@ open Options
 open BasicSocket
 open TcpClientSocket
 open Unix
-open Gui_proto
+open GuiTypes
+open GuiProto
 open Gui2_options
 module O = Gui2_options
 module M = Gui2_messages
@@ -89,7 +90,7 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
   ignore (tab_friends#entry_dialog#connect#activate (fun _ ->
         let s = tab_friends#entry_dialog#text in
         List.iter (fun c ->
-            gui_send (SendMessage (-1, PrivateMessage (c.client_num,s))))
+            gui_send (MessageToClient (c.client_num,s)))
         (MyCList.selection clist_friends);
         tab_friends#entry_dialog#set_text "";
     ));

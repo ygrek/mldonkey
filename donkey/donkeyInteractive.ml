@@ -24,7 +24,7 @@ open CommonClient
 open CommonUser
 open CommonInteractive
 open CommonNetwork
-open Gui_proto
+open GuiTypes
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
@@ -710,7 +710,7 @@ let _ =
       r
   )
 
-module P = Gui_proto
+module P = GuiTypes
 
 let _ =
   file_ops.op_file_info <- (fun file ->

@@ -134,6 +134,20 @@ let buf_ip buf ip =
   buf_int8 buf ip2;
   buf_int8 buf ip3
 
+  
+let rec get_list_rec get_item s pos len left =
+  if len = 0 then List.rev left, pos else
+  let (item,pos) = get_item s pos in
+  get_list_rec get_item s pos (len-1) (item :: left)
+  
+let get_list get_item s pos =
+  let len = get_int s pos in
+  get_list_rec get_item s (pos+4) len []
+
+let buf_list buf_item b list =
+  let len = List.length list in
+  buf_int b len;
+  List.iter (buf_item b) list
 
 (* md4 *)
   

@@ -327,7 +327,6 @@ print_newline (); *)
             end
       end
       
-      
   | OP.BrowseUserReplyReq t ->
       begin
         match s.server_browse_queue with
@@ -346,7 +345,7 @@ print_newline (); *)
               end
         | _ -> ()
       end
-          
+      
   | OP.EndOfSearchReplyReq ->
       Printf.printf "END OF SEARCH ON %s" s.server_desc; print_newline ();
       begin
@@ -386,14 +385,13 @@ print_newline (); *)
           c.client_addr <- Some (ip, port);
           OpennapClients.connect_client c
         );
-      
+    
   | OP.BrowseUserReplyEndReq ->
       begin
         match s.server_browse_queue with
           [] -> ()
         | _ :: tail -> s.server_browse_queue <- tail
       end
-      
       
   | OP.DownloadErrorReq t ->
       begin

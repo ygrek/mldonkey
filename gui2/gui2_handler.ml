@@ -23,7 +23,8 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 open Unix
-open Gui_proto
+open GuiTypes
+open GuiProto
 open Gui2_options
 module O = Gui2_options
 module M = Gui2_messages
@@ -139,7 +140,7 @@ let gui_send t =
       Printf.printf "Message not sent since not connected";
       print_newline ();
   | Some sock ->
-      gui_send Encoding.from_gui.(!gui_protocol_used) sock t
+      GuiEncoding.gui_send GuiEncoding.from_gui.(!gui_protocol_used) sock t
       
 let _ = 
   (try Options.load mldonkey_gui_ini with
@@ -249,7 +250,7 @@ let comment_item t get_name get_md4 =
 
   
 let (clist_servers : 
-    (int, Gui_proto.server_info) MyCList.t) = 
+    (int, server_info) MyCList.t) = 
   MyCList.create gui gui#tab_servers#clist_servers 
     ~color: color_of_server
     [
@@ -386,7 +387,7 @@ let color_opt_of_file f =
     Some !!color_not_available
  
 let (clist_downloads : 
-       (int, Gui_proto.file_info) MyCList.t) = 
+       (int, file_info) MyCList.t) = 
   MyCList.create gui gui#tab_downloads#clist_downloads
     ~color: color_opt_of_file
     [
@@ -471,7 +472,7 @@ let menu_save_file t =
           None -> ()
         | Some name -> 
             prerr_endline ("save as "^name); 
-            gui_send (Gui_proto.SaveFile (file.file_num, name))
+            gui_send (GuiProto.SaveFile (file.file_num, name))
       in
       List.map 
         (fun (s,f) -> `I (s, f))
@@ -484,7 +485,7 @@ let menu_save_file t =
           
           (List.map (fun name ->
                 name, (fun _ -> 
-                    gui_send (Gui_proto.SaveFile (file.file_num, name))
+                    gui_send (GuiProto.SaveFile (file.file_num, name))
                 )) file.file_names
           )
         in
@@ -494,7 +495,7 @@ let menu_save_file t =
 (*              Printf.printf "do it"; print_newline (); *)
               (
                 Mp3_ui.edit_tag_v1 Gui2_messages.mes_edit_mp3 tag ;
-                gui_send (Gui_proto.ModifyMp3Tags (file.file_num, tag))
+                gui_send (GuiProto.ModifyMp3Tags (file.file_num, tag))
               )
             in
             (Gui2_messages.mes_edit_mp3, edit_mp3tag file) :: items
@@ -532,7 +533,7 @@ let menu_downloads_file t =
   ]
       
 let (clist_downloaded : 
-    (int, Gui_proto.file_info) MyCList.t) = 
+    (int, file_info) MyCList.t) = 
   MyCList.create gui gui#tab_downloads#clist_downloaded
     ~color: (fun _ -> Some !!color_downloaded)
     [
@@ -597,7 +598,7 @@ let save_all_files _ =
           [] -> Md4.to_string file.file_md4
         | name :: _ ->  name
       in
-      gui_send (Gui_proto.SaveFile (file.file_num, name)))
+      gui_send (GuiProto.SaveFile (file.file_num, name)))
   
 let current_file = ref None
 
@@ -847,7 +848,7 @@ let remove_search_page v =
   n
       
 let download_cancel (gui:gui) () =
-  let module P = Gui_proto in
+  let module P = GuiProto in
   for_selection clist_downloads (fun file ->
       gui_send (RemoveDownload_query file.file_num)
   ) ()
@@ -863,7 +864,7 @@ let search_close clist_search gui num () =
       
       
 let search_download clist_search gui () =
-  let module P = Gui_proto in
+  let module P = GuiProto in
   for_selection  clist_search (fun r ->
       gui_send (Download_query (r.result_names, r.result_num))
   ) ()
@@ -879,7 +880,7 @@ let download_md4 _ =
   tab_downloads#entry_md4#set_text ""
   
 let download_friend_files =
-  let module P = Gui_proto in
+  let module P = GuiProto in
   for_selection clist_friend_files (fun r ->
       gui_send (Download_query (r.result_names, r.result_num))
   )   
@@ -999,14 +1000,14 @@ end;
       
 let value_reader (gui: gui) t sock =
   try
-    let module P = Gui_proto in
+    let module P = GuiProto in
     match t with
     | Console text ->
         
         ignore (gui#tab_console#text#insert_text text 0)
     
     | CoreProtocol v -> 
-        gui_protocol_used := min v best_gui_version;
+        gui_protocol_used := min v GuiEncoding.best_gui_version;
         Printf.printf "Using protocol %d for communications" !gui_protocol_used;
         print_newline ();
         gui#label_connect_status#set_text "Connected";
@@ -1152,7 +1153,7 @@ let value_reader (gui: gui) t sock =
                 None -> { file_tree_list = []; file_tree_name = "" }
               | Some tree -> { tree with file_tree_list = tree.file_tree_list }
             in
-            Gui_proto.add_file tree dirname r;
+            GuiTypes.add_file tree dirname r;
             ignore (canon_client { c with client_files = Some tree })
           with _ -> ()
         end
@@ -1214,7 +1215,11 @@ let value_reader (gui: gui) t sock =
         in
         iter list
         
-    | Room_message (-1, PrivateMessage (c_num , s)) ->
+    | Room_message (-1, PrivateMessage (c_num , s))
+    | Room_message (_, PrivateMessage (c_num , s))
+    | Room_message (0, PublicMessage (c_num , s))
+    | MessageFromClient (c_num,s)
+      ->
         let c = Hashtbl.find locations c_num in
         let name = c.client_name in
         let len = String.length name + 1 in
@@ -1234,7 +1239,7 @@ let value_reader (gui: gui) t sock =
     | Room_message (_, _)
     | Network_info _
     | DefineSearches _ -> (* not supported *) ()
-        
+    | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
   with e ->
       Printf.printf "EXception %s in reader" (Printexc.to_string e);
       print_newline ()

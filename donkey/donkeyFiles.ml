@@ -19,7 +19,7 @@
 
 open CommonServer
 open CommonComplexOptions
-open Gui_proto
+open GuiProto
 open CommonClient
 open CommonUser
 open CommonSearch

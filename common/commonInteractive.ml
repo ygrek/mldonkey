@@ -137,7 +137,7 @@ let print_connected_servers o =
   )
   
 let send_custom_query buf s args = 
-  let query = s.Gui_proto.search_query in
+  let query = s.GuiTypes.search_query in
   try
     let q = List.assoc query !!CommonComplexOptions.customized_queries in
     let args = ref args in
@@ -269,7 +269,7 @@ let send_custom_query buf s args =
     try
       let request = iter q in
       Printf.bprintf buf "Sending query !!!";
-      ignore (start_search {s with Gui_proto.search_query = request } buf)
+      ignore (start_search {s with GuiTypes.search_query = request } buf)
     with
       Not_found ->
         Printf.bprintf buf "Void query %s" query        

@@ -23,7 +23,7 @@ open CommonGlobals
 open CommonFile
 open CommonClient
 open CommonComplexOptions
-open Gui_proto
+open GuiProto
 open CommonResult
 open CommonTypes
 open Options
@@ -828,8 +828,8 @@ print_newline ();
 	  )
       |	Indirect_location _ -> None
       in
-      CommonChat.send_text c.client_name ad_opt s
-      (* A VOIR : historique à gérer *) (*!say_hook c s*)
+      (* A VOIR : historique à gérer *) 
+      !say_hook c s
       
   | M.QueryChunkMd4Req t when !has_upload = 0 -> 
 

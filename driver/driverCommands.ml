@@ -22,7 +22,7 @@ open CommonSearch
 open CommonClient
 open CommonServer
 open CommonNetwork
-open Gui_proto
+open GuiTypes
 open CommonTypes
 open CommonFile
 open CommonComplexOptions
@@ -222,7 +222,7 @@ let commands = [
         let buf = o.conn_buf in
         let query = CommonSearch.search_of_args args in
         ignore (CommonInteractive.start_search 
-            (let module G = Gui_proto in
+            (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
               G.search_max_hits = 10000;
@@ -251,7 +251,7 @@ let commands = [
         let buf = o.conn_buf in
         let query = CommonSearch.search_of_args args in
         ignore (CommonInteractive.start_search 
-            (let module G = Gui_proto in
+            (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
               G.search_max_hits = 10000;

@@ -23,7 +23,7 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 open Unix
-open Gui_proto
+open GuiProto
 open Gui2_options
 module O = Gui2_options
 module M = Gui2_messages
@@ -55,7 +55,7 @@ let or_comb q1 q2 = Q_OR [q1;q2]
 let and_comb q1 q2 = Q_AND [q1;q2]
     
 let submit_search (gui: gui) local ()=
-  let module P = Gui_proto in
+  let module P = GuiTypes in
   incr search_counter;
   let search_num = !search_counter in
   current_search := !search_counter;
@@ -120,7 +120,7 @@ let submit_search (gui: gui) local ()=
           [] -> q1
         | _ -> Q_AND q
       in
-  gui_send (P.Search_query
+  gui_send (Search_query
       { 
         P.search_max_hits = int_of_string s#combo_max_hits#entry#text;
         P.search_query = q;
@@ -236,10 +236,10 @@ let reconnect gui =
     );
     TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
     TcpBufferedSocket.set_reader sock (
-      gui_cut_messages
+      GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = Decoding.to_gui.(!gui_protocol_used) opcode s in
+            let m = GuiDecoding.to_gui.(!gui_protocol_used) opcode s in
             value_reader gui m sock
           with e ->
               Printf.printf "Exception %s in decode/exec" 
@@ -247,7 +247,7 @@ let reconnect gui =
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
-    gui_send (Gui_proto.GuiProtocol best_gui_version)
+    gui_send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
       Printf.printf "Exception %s in connecting" (Printexc.to_string e);
       print_newline ();
@@ -255,10 +255,10 @@ let reconnect gui =
       connection_sock := None
 
 let servers_connect_more (gui : gui) () =
-  gui_send (Gui_proto.ConnectMore_query)
+  gui_send (GuiProto.ConnectMore_query)
   
 let servers_addserver (gui : gui) () = 
-  let module P = Gui_proto in
+  let module P = GuiProto in
   let (server_ip, server_port) =
     let server = gui#tab_servers#entry_servers_new_ip#text in
     try
@@ -322,7 +322,7 @@ let get_vpaned (hpaned: GPack.paned) prop =
     ))
   
 let save_options () =
-  let module P = Gui_proto in
+  let module P = GuiProto in
 
   try
     gui_send (P.SaveOptions_query
@@ -336,7 +336,7 @@ let save_options () =
     Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
       
 let servers_remove (gui : gui) () = 
-  let module P = Gui_proto in
+  let module P = GuiProto in
   for_selection clist_servers (fun s ->
       gui_send (P.RemoveServer_query (server_key s));
   ) ()

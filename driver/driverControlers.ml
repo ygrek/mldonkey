@@ -23,7 +23,7 @@ open CommonNetwork
 open CommonSearch
 open CommonTypes
 open CommonGlobals
-open Gui_proto
+open GuiTypes
 open CommonComplexOptions
 open CommonFile
 open Options
@@ -474,7 +474,7 @@ let http_handler options t r =
               | ("custom", query) :: args ->
                   html_open_page buf r true;
                   send_custom_query buf 
-                    (let module G = Gui_proto in
+                    (let module G = GuiTypes in
                     { G.search_num = 0;
                       G.search_query = query;
                       G.search_type = RemoteSearch;

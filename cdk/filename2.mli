@@ -59,3 +59,5 @@ val shorten : int -> string -> string
 (* transform a filename in a list of dirname *)
 val path_of_filename : string -> string list
   
+val basename : string -> string
+  

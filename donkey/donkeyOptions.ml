@@ -5,7 +5,7 @@ open CommonOptions
 let protocol_version = 
   define_option downloads_ini ["protocol_version"] 
     "The version of the protocol that should be sent to servers (need restart) "
-    int_option Mftp_server.protocol
+    int_option 59
   
 let queued_timeout = 
   define_option downloads_ini ["queued_timeout"] 

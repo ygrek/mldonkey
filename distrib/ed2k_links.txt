@@ -1,0 +1,22 @@
+You have different ways to enter ed2k:// links inside mldonkey:
+
+1) You can use the "dllink" command in the command line interface.
+
+2) You can use the "ed2k_submit" program distributed here (need perl installed).
+
+3) On Windows, you can install the following register entry (modify it to
+change wwwlogin, wwwpasword, mldonkey_ip and mldonkey_port !) to send 
+download queries to another computer running mldonkey (thx equinox):
+
+mlsubmit.reg:
+-----
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\ed2k\shell\open\command]
+@="\"C:\\Program Files\\Internet Explorer\\IEXPLORE.EXE\"
+\"http://wwwlogin:wwwpasword@mldonkey_ip:mldonkey_port/submit?q=dllink+%1\""
+-----
+
+Note that, at each startup, mldonkey generates new "mlsubmit.reg" and
+"mldonkey_submit" containing the current values of your options.
+

@@ -21,7 +21,7 @@
 
 open CommonGlobals
 open CommonTypes
-open Gui_proto
+open GuiTypes
 open Gui_columns
 
 module M = Gui_messages
@@ -43,9 +43,9 @@ let is_filtered s =
   List.memq s.server_network !G.networks_filtered
 
 class box columns users =
-  let titles = List.map Gui_columns.string_of_server_column columns in 
+  let titles = List.map Gui_columns.Server.string_of_column columns in 
   object (self)
-    inherit [Gui_proto.server_info] Gpattern.plist `EXTENDED titles true as pl
+    inherit [server_info] Gpattern.plist `EXTENDED titles true as pl
       inherit Gui_servers_base.box () as box
     
     val mutable filtered_data = []
@@ -53,7 +53,7 @@ class box columns users =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.string_of_server_column columns);
+      self#set_titles (List.map Gui_columns.Server.string_of_column columns);
       self#update
     
     method box = box#coerce
@@ -110,35 +110,35 @@ class box columns users =
     
     method remove () =
       List.iter
-        (fun s -> Gui_com.send (RemoveServer_query (s.server_num)))
+        (fun s -> Gui_com.send (GuiProto.RemoveServer_query (s.server_num)))
       self#selection
     
     method connect () =
       List.iter
-        (fun s -> Gui_com.send (ConnectServer s.server_num))
+        (fun s -> Gui_com.send (GuiProto.ConnectServer s.server_num))
       self#selection
     
     method disconnect () =
       List.iter
-        (fun s -> Gui_com.send (DisconnectServer s.server_num))
+        (fun s -> Gui_com.send (GuiProto.DisconnectServer s.server_num))
       self#selection
     
     method view_users () =
       List.iter
-        (fun s -> Gui_com.send (ViewUsers s.server_num))
+        (fun s -> Gui_com.send (GuiProto.ViewUsers s.server_num))
       self#selection
     
     method connect_more_servers () =
-      Gui_com.send ConnectMore_query
+      Gui_com.send GuiProto.ConnectMore_query
     
     method remove_old_servers () =
-      Gui_com.send CleanOldServers
+      Gui_com.send GuiProto.CleanOldServers
     
     method on_select s =
       match s.server_users with
         None -> 
           users#update_data [] ;
-          Gui_com.send (GetServer_users s.server_num);
+          Gui_com.send (GuiProto.GetServer_users s.server_num);
       |	Some l -> 
           let list = ref [] in
           List.iter (fun u ->
@@ -146,7 +146,7 @@ class box columns users =
                 let user_info = Hashtbl.find G.users u in
                 list := user_info :: !list
               with _ ->
-                  Gui_com.send (GetUser_info u);
+                  Gui_com.send (GuiProto.GetUser_info u);
           ) l;
           users#update_data !list
     
@@ -161,7 +161,7 @@ class box columns users =
             server, we_port#text
       in
       Gui_com.send 
-        (Url (
+        (GuiProto.Url (
           Printf.sprintf "ed2k://|server|%s|%s||"
             server_ip
             server_port)
@@ -310,7 +310,7 @@ class box columns users =
         self#h_server_info { serv with server_state = state }
         
       with
-        Not_found -> Gui_com.send (GetServer_info num)
+        Not_found -> Gui_com.send (GuiProto.GetServer_info num)
           
     
     method h_server_busy num nusers nfiles =
@@ -339,8 +339,8 @@ class box columns users =
       with
         Not_found ->
           if num <> 0 then begin
-              Gui_com.send (GetServer_info num);
-              Gui_com.send (GetServer_users num)
+              Gui_com.send (GuiProto.GetServer_info num);
+              Gui_com.send (GuiProto.GetServer_users num)
             end
             
     initializer

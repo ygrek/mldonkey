@@ -48,7 +48,13 @@ TARGETS= use_tags$(EXE) mldonkey$(EXE)
 CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
-  cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml
+  cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
+
+ifeq ("$(ZLIB)" , "yes")
+  LIBS_opt += -cclib -lz
+  LIBS_byte += -cclib -lz
+  CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
+endif
 
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\
@@ -78,9 +84,13 @@ CHAT_SRCS = chat/chat_messages.ml\
         chat/chat_config.ml\
 
 COMMON_SRCS=common/commonTypes.ml \
+  common/commonEvent.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
-  common/gui_proto.ml \
+  common/guiTypes.ml \
+  common/guiProto.ml \
+  common/guiDecoding.ml \
+  common/guiEncoding.ml \
   common/commonChat.ml 
 
 COMMON_CLIENT_SRCS= \
@@ -91,7 +101,7 @@ COMMON_CLIENT_SRCS= \
   common/commonResult.ml \
   common/commonNetwork.ml \
   common/commonShared.ml \
-  common/commonChatRoom.ml \
+  common/commonRoom.ml \
   common/commonComplexOptions.ml \
   common/commonSearch.ml \
   common/commonMultimedia.ml \
@@ -318,6 +328,7 @@ GUI_SRCS= gui/gui_messages.ml \
   gui/gui_icons.ml \
   gui/gui_help_base.zog gui/gui_help.ml \
   gui/gui_console_base.zog gui/gui_console.ml \
+  gui/gui_uploads_base.zog gui/gui_uploads.ml \
   gui/gui_users_base.zog gui/gui_users.ml \
   gui/gui_results_base.zog gui/gui_results.ml \
   gui/gui_rooms_base.zog gui/gui_rooms.ml \
@@ -419,14 +430,24 @@ MLDONKEY_OBJS=$(foreach file, $(MLDONKEY_C),   $(basename $(file)).o)
 TMPSOURCES += $(MLDONKEY_MLL:.mll=.ml) $(MLDONKEY_MLY:.mly=.ml) $(MLDONKEY_MLY:.mly=.mli) $(MLDONKEY_ZOG:.zog=.ml)
 
 
+
+
+
 MLDONKEYGUI_ZOG := $(filter %.zog, $(MLDONKEYGUI_SRCS))
 MLDONKEYGUI_MLL := $(filter %.mll, $(MLDONKEYGUI_SRCS))
 MLDONKEYGUI_MLY := $(filter %.mly, $(MLDONKEYGUI_SRCS))
 
-MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_SRCS),   $(basename $(file)).cmo)
-MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_SRCS),   $(basename $(file)).cmx)
+MLDONKEYGUI_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEYGUI_SRCS))
+MLDONKEYGUI_C := $(filter %.c, $(MLDONKEYGUI_SRCS))
+MLDONKEYGUI_OBJS=$(foreach file, $(MLDONKEYGUI_C),   $(basename $(file)).o)
+
+MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmo)
+MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml)
+
+
+
 
 
 
@@ -434,10 +455,19 @@ MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS))
 MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS))
 MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS))
 
-MLDONKEYGUI2_CMOS=$(foreach file, $(MLDONKEYGUI2_SRCS),   $(basename $(file)).cmo)
-MLDONKEYGUI2_CMXS=$(foreach file, $(MLDONKEYGUI2_SRCS),   $(basename $(file)).cmx)
+MLDONKEYGUI2_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEYGUI2_SRCS))
+MLDONKEYGUI2_C := $(filter %.c, $(MLDONKEYGUI2_SRCS))
+MLDONKEYGUI2_OBJS=$(foreach file, $(MLDONKEYGUI2_C),   $(basename $(file)).o)
+
+MLDONKEYGUI2_CMOS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmo)
+MLDONKEYGUI2_CMXS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml)
+
+
+
+
+
 
 
 
@@ -445,19 +475,40 @@ MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS))
 MLCHAT_MLL := $(filter %.mll, $(MLCHAT_SRCS))
 MLCHAT_MLY := $(filter %.mly, $(MLCHAT_SRCS))
 
-MLCHAT_CMOS=$(foreach file, $(MLCHAT_SRCS),   $(basename $(file)).cmo)
-MLCHAT_CMXS=$(foreach file, $(MLCHAT_SRCS),   $(basename $(file)).cmx)
+MLCHAT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLCHAT_SRCS))
+
+MLCHAT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLCHAT_SRCS))
+MLCHAT_C := $(filter %.c, $(MLCHAT_SRCS))
+MLCHAT_OBJS=$(foreach file, $(MLCHAT_C),   $(basename $(file)).o)
+
+MLCHAT_CMOS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmo)
+MLCHAT_CMXS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLCHAT_MLL:.mll=.ml) $(MLCHAT_MLY:.mly=.ml) $(MLCHAT_MLY:.mly=.mli) $(MLCHAT_ZOG:.zog=.ml)
+
+
+
+
+
 
 USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS))
 USE_TAGS_MLL := $(filter %.mll, $(USE_TAGS_SRCS))
 USE_TAGS_MLY := $(filter %.mly, $(USE_TAGS_SRCS))
 
-USE_TAGS_CMOS=$(foreach file, $(USE_TAGS_SRCS),   $(basename $(file)).cmo)
-USE_TAGS_CMXS=$(foreach file, $(USE_TAGS_SRCS),   $(basename $(file)).cmx)
+
+USE_TAGS_ML := $(filter %.ml %.mll %.zog %.mly, $(USE_TAGS_SRCS))
+USE_TAGS_C := $(filter %.c, $(USE_TAGS_SRCS))
+USE_TAGS_OBJS=$(foreach file, $(USE_TAGS_C),   $(basename $(file)).o)
+
+USE_TAGS_CMOS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmo)
+USE_TAGS_CMXS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.mly=.mli) $(USE_TAGS_ZOG:.zog=.ml)
+
+
+
+
+
 
 PLUGIN_ZOG := $(filter %.zog, $($(PLUGIN_SRCS)))
 PLUGIN_MLL := $(filter %.mll, $($(PLUGIN_SRCS)))
@@ -490,7 +541,18 @@ plugin: $(PLUGIN_CMXS)
 lambda: $(MLDONKEY_CMXS) $(SECRET_DONKEY_ML) donkey/donkey.cmi
 	ocaml ./secret/make_client  $(SECRET_DONKEY_ML)
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(INCLUDES) -c -dol donkey/donkey.ml
-	rm -f donkey/donkey.ml	
+	rm -f donkey/donkey.ml
+	md5sum donkey/donkey.lam | gawk '{ print $$1 }' > donkey/donkey.lam.md5
+	scp donkey/donkey.lam ~/hosts/public_html/src/edonkey/donkey.lam.`cat donkey/donkey.lam.md5`
+
+donkey/donkey.lam: donkey/donkey.lam.md5
+	if ! test -f donkey.lam.`cat donkey/donkey.lam.md5`; then \
+		cd donkey; \
+		wget http://pauillac.inria.fr/~lefessan/src/edonkey/donkey.lam.`cat donkey.lam.md5`; \
+	fi
+	rm -f donkey/donkey.lam
+	cp donkey/donkey.lam.`cat donkey/donkey.lam.md5` donkey/donkey.lam
+	touch donkey/donkey.lam
 
 donkey/donkey.cmo: donkey/donkey.lam donkey/donkey.cmi
 	$(OCAMLC)  $(INCLUDES)  -c -dil -impl donkey/donkey.lam
@@ -509,23 +571,23 @@ lib/md4_comp.o: lib/md4_$(MD4COMP).o
 
 ######## TAGS
 
-use_tags: $(USE_TAGS_CMXS) $(OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(OBJS)
+use_tags: $(USE_TAGS_CMXS) $(OBJS) $(USE_TAGS_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(USE_TAGS_OBJS) $(OBJS)
 
 use_tags.byte: $(USE_TAGS_CMOS) $(OBJS)
 	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) $(OBJS)
 
 ######## MLCHAT
-mlchat: $(MLCHAT_CMXS) $(OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) $(OBJS)
+mlchat: $(MLCHAT_CMXS) $(OBJS)  $(MLCHAT_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) $(OBJS)   $(MLCHAT_OBJS)
 
 mlchat.byte: $(MLCHAT_CMOS) $(OBJS)
 	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLCHAT_CMOS) $(OBJS)
 
 ######## MLDONKEYGUI
 
-mldonkey_gui: $(MLDONKEYGUI_CMXS) $(OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
+mldonkey_gui: $(MLDONKEYGUI_CMXS) $(OBJS)  $(MLDONKEYGUI_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) $(MLDONKEYGUI_OBJS) $(OBJS)
 
 mldonkey_gui.byte: $(MLDONKEYGUI_CMOS) $(OBJS) 
 	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) $(OBJS)
@@ -535,8 +597,8 @@ mldonkey_gui.static: $(MLDONKEYGUI_CMXS) $(OBJS)
 
 ######## MLDONKEYGUI2
 
-mldonkey_gui2: $(MLDONKEYGUI2_CMXS) $(OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS)
+mldonkey_gui2: $(MLDONKEYGUI2_CMXS) $(OBJS)  $(MLDONKEYGUI2_OBJS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS) $(MLDONKEYGUI2_OBJS) 
 
 mldonkey_gui2.byte: $(MLDONKEYGUI2_CMOS) $(OBJS) 
 	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI2_CMOS) $(OBJS)
@@ -584,13 +646,13 @@ distclean: clean
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?
 	rm -f $(TMPSOURCES)
-	rm -rf ocamlopt-$(REQUIRED_OCAML)
-	rm -rf patches/ocaml-$(REQUIRED_OCAML)
-	rm -rf patches/lablgtk-$(REQUIRED_LABLGTK)
+	rm -rf patches/build
 	rm -rf patches/local
 
 maintainerclean: distclean
 	rm -f gui/gui.ml gui/gui_zog.ml 
+
+LOCAL=patches/build
 
 PA_ZOG_FILES=tools/zoggy/zog_types.ml tools/zoggy/zog_messages.ml tools/zoggy/zog_misc.ml tools/zoggy/pa_zog.ml
 
@@ -605,14 +667,15 @@ depend:  pa_zog.cma lib/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 		$(OCAMLDEP) $(INCLUDES) $$i/*.ml $$i/*.mli  >> .depend; \
 	done)
 
-ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
-	rm -rf ocamlopt-$(REQUIRED_OCAML)
-	echo ocamlopt-$(REQUIRED_OCAML)/Makefile patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
-	gzip -cd patches/ocamlopt-$(REQUIRED_OCAML).tar.gz | tar xf -
+$(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
+	rm -rf $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)
+	mkdir -p $(LOCAL)
+	cd $(LOCAL); \
+	gzip -cd ../ocamlopt-$(REQUIRED_OCAML).tar.gz | tar xf -; \
 	touch ocamlopt-$(REQUIRED_OCAML)/Makefile
 
-ocamlopt-$(REQUIRED_OCAML)/ocamlopt: ocamlopt-$(REQUIRED_OCAML)/Makefile
-	cd ocamlopt-$(REQUIRED_OCAML); $(MAKE)
+$(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
+	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
 #######################################################################
 

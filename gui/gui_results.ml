@@ -21,7 +21,7 @@
 
 open Gui_global
 open CommonTypes
-open Gui_proto
+open GuiProto
 open Gui_columns
 
 module M = Gui_messages
@@ -38,7 +38,7 @@ let first_name r =
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
 
 class box with_extended columns () =
-  let titles = List.map Gui_columns.string_of_result_column columns in
+  let titles = List.map Gui_columns.Result.string_of_column columns in
   object (self)
     inherit [CommonTypes.result_info] Gpattern.plist `EXTENDED titles true as pl
     inherit Gui_results_base.box !!O.toolbars_style () as box 
@@ -48,7 +48,7 @@ class box with_extended columns () =
     val mutable columns = columns
     method set_columns l =
       columns <- l;
-      self#set_titles (List.map Gui_columns.string_of_result_column columns);
+      self#set_titles (List.map Gui_columns.Result.string_of_column columns);
       self#update
 
     method download () = 
@@ -87,7 +87,7 @@ class box with_extended columns () =
       match col with
 	Col_result_name -> shorten_name (first_name r)
       |	Col_result_md4 -> Md4.to_string r.result_md4
-      |	Col_result_size -> Printf.sprintf "%10s" (Int32.to_string r.result_size)
+      |	Col_result_size -> Gui_misc.size_of_int32 r.result_size
       |	Col_result_format -> r.result_format
       |	Col_result_props -> CommonGlobals.string_of_tags r.result_tags
           | Col_result_network -> network_name r.result_network
@@ -103,7 +103,7 @@ class box with_extended columns () =
     method set_tb_style = wtool#set_style
 
     method extend_search () =
-      Gui_com.send Gui_proto.ExtendedSearch
+      Gui_com.send GuiProto.ExtendedSearch
 
     method remove_extend_search_button =
       match wb_extend_search with

@@ -22,7 +22,6 @@ open CommonTypes
   
 type server = {
     server_server: server CommonServer.server_impl;
-    server_room: server CommonChatRoom.room_impl;
     mutable server_name : string;
     mutable server_addr : addr;
     mutable server_info : string;
@@ -36,6 +35,14 @@ type server = {
     mutable server_search_timeout : float;
     mutable server_users : user list;
   }
+  
+and room = {
+    room_room: room CommonRoom.room_impl;
+    room_name : string;
+    mutable room_users : user list;
+    mutable room_nusers : int;
+    mutable room_messages : (int * room_message) list;
+  }
 
 and result = {
     result_result : result CommonResult.result_impl;
@@ -47,10 +54,7 @@ and result = {
 and user = {
     user_user : user CommonUser.user_impl; 
     user_nick : string;
-    mutable user_servers : server list;
-    mutable user_link : string;
-    mutable user_data : float;
-    mutable user_admin : bool;
+    mutable user_rooms : room list;
   }
 
 and file = {
@@ -65,7 +69,10 @@ and client = {
     client_client : client CommonClient.client_impl;
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_peer_sock : TcpBufferedSocket.t option;
+    mutable client_download_sock : TcpBufferedSocket.t option;
+    mutable client_result_socks : TcpBufferedSocket.t list;
+    client_connection_control : CommonTypes.connection_control;
     mutable client_files : (file * string) list;
     mutable client_download : file option;
     mutable client_pos : int32;
@@ -122,7 +129,7 @@ let (result_ops : result CommonResult.result_ops) =
      op_server_network : network;
      op_server_to_option : ('a -> (string * option_value) list);
      op_server_remove : ('a -> unit);
-     op_server_info : ('a -> Gui_proto.server_info);
+     op_server_info : ('a -> GuiProto.server_info);
      op_server_sort : ('a -> float);
      op_server_connect : ('a -> unit);
      op_server_disconnect : ('a -> unit);
@@ -143,12 +150,12 @@ let (server_ops : server CommonServer.server_ops) =
      op_room_messages : ('a -> room_message list);
      op_room_users : ('a -> user list);
      op_room_name : ('a -> string);
-     op_room_info : ('a -> Gui_proto.room_info);
+     op_room_info : ('a -> GuiProto.room_info);
      op_room_send_message : ('a -> room_message -> unit);
 
 *)
-let (room_ops : server CommonChatRoom.room_ops) = 
-  CommonChatRoom.new_room_ops network
+let (room_ops : room CommonRoom.room_ops) = 
+  CommonRoom.new_room_ops network
   
 (*
      op_user_network : network;
@@ -157,7 +164,7 @@ let (room_ops : server CommonChatRoom.room_ops) =
      op_user_print : ('a -> CommonTypes.connection_options -> unit);
      op_user_to_option : ('a -> (string * option_value) list);
      op_user_remove : ('a -> unit);
-     op_user_info : ('a -> Gui_proto.user_info);
+     op_user_info : ('a -> GuiProto.user_info);
      op_user_set_friend : ('a -> unit);
      op_user_browse_files : ('a -> unit);
 *)
@@ -173,7 +180,7 @@ let (user_ops : user CommonUser.user_ops) =
      op_file_cancel : ('a -> unit);
      op_file_pause : ('a -> unit);
      op_file_resume : ('a -> unit);
-     op_file_info : ('a -> Gui_proto.file_info);
+     op_file_info : ('a -> GuiProto.file_info);
      op_file_disk_name : ('a -> string);
      op_file_best_name : ('a -> string);
      op_file_state : ('a -> CommonTypes.file_state);
@@ -193,7 +200,7 @@ let (file_ops : file CommonFile.file_ops) =
      op_client_save_as : ('a -> string -> unit);
      op_client_to_option : ('a -> (string * option_value) list);
      op_client_cancel : ('a -> unit);
-     op_client_info : ('a -> Gui_proto.client_info);
+     op_client_info : ('a -> GuiProto.client_info);
      op_client_say : ('a -> string -> unit);
      op_client_files : ('a -> (string * result) list);
      op_client_set_friend : ('a -> unit);

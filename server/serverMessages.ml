@@ -3,7 +3,7 @@
 open BasicSocket
 open TcpBufferedSocket
 
-open Gui_proto
+open GuiProto
 open LittleEndian
 open CommonTypes
 open CommonGlobals
@@ -409,7 +409,7 @@ module LocalisationNotif= struct
 
   let rec list_sources s pos nb_sources =
     if nb_sources = 0 then [] else
-      let add = Gui_proto.Decoding.get_bool s pos in
+      let add = GuiDecoding.get_bool s pos in
       let ip = get_ip s (pos+1) in
       let port = get_port s (pos+5) in
       let source = {

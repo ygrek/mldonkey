@@ -3,3 +3,4 @@ http_lexer.ml
 autoconf.ml
 cddb_lexer.ml
 md4sum
+autoconf.ml.new

@@ -19,7 +19,7 @@
 
 open LittleEndian
 open CommonSearch
-open Gui_proto
+open GuiProto
 open CommonTypes
 open CommonResult
 open BasicSocket

@@ -32,7 +32,7 @@ type 'a user_impl = {
 and 'a user_ops = {
     mutable op_user_network : network;
     mutable op_user_remove : ('a -> unit);
-    mutable op_user_info : ('a -> Gui_proto.user_info);
+    mutable op_user_info : ('a -> GuiTypes.user_info);
     mutable op_user_set_friend : ('a -> unit);
     mutable op_user_browse_files : ('a -> unit);
   }

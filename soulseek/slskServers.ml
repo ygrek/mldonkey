@@ -24,11 +24,11 @@ open CommonGlobals
 open CommonTypes
 open CommonClient
 open CommonComplexOptions
-open Gui_proto
+open GuiProto
 open Options
 open CommonFile
 open CommonUser
-open CommonChatRoom
+open CommonRoom
 open CommonTypes
 open CommonShared
 open CommonServer
@@ -44,17 +44,56 @@ let disconnect_server s =
   | Some sock ->
       close sock "";
       s.server_sock <- None;
+      set_server_state s NotConnected;
       connected_servers := List2.removeq s !connected_servers
 
-let server_to_client s t sock =
-  match t with
+let server_to_client s m sock =
+  match m with
+    S2C.LoginAckReq t ->
+      begin
+        match t with
+          S2C.LoginAck.Success (message, ip) ->
+            set_server_state s Connected_initiating;
+            Printf.printf "Message from server: %s" message;
+            print_newline ();
+        | S2C.LoginAck.Failure message ->
+            Printf.printf "Rejected from server: %s" message;
+            print_newline ();
+            disconnect_server s
+        
+      end
+  | S2C.RoomListReq t ->
+      set_server_state s Connected_idle;
+      connected_servers := s :: !connected_servers;
+      List.iter (fun (name, nusers) ->
+          let room = new_room name in
+          room.room_nusers <- nusers) t
+  | S2C.ConnectToPeerReq t ->
+      S2C.print m;
+      let module C = S2C.ConnectToPeer in
+      let c = new_client t.C.name in
+      c.client_addr <- Some (t.C.ip, t.C.port);
+      SlskClients.connect_result c t.C.token
+  | S2C.PriviledgedUsersReq _ -> ()
+  | S2C.SayChatroomReq (room, user, message) ->
+      begin
+        let room = Hashtbl.find rooms_by_name room in
+        let user = new_user user in
+        room.room_messages <- room_new_message 
+          (as_room room.room_room) (PublicMessage (user_num user, message))
+        :: room.room_messages;
+      end
+
+  | S2C.UserJoinedRoomReq (room, user, _) ->
+      let room = Hashtbl.find rooms_by_name room in
+      let user = new_user user in
+      room_new_user (as_room room.room_room) (as_user user.user_user)
+  | S2C.UserLeftRoomReq (room, user) ->
+      ()
   | _ -> 
       Printf.printf "Unused message from server:"; print_newline ();
-      SlskProtocol.S2C.print t;
+      SlskProtocol.S2C.print m;
       print_newline () 
-
-let login () = 
-  if !!login = "" then !!CommonOptions.client_name else !!login
       
 let connect_server s = 
   match s.server_sock with

@@ -2,7 +2,7 @@ open Options
 open BasicSocket
   
 open Gui2_options
-open Gui_proto
+open GuiProto
 open Gui2
 
 

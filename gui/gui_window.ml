@@ -20,7 +20,7 @@
 (** GUI main window. *)
 
 open CommonTypes
-open Gui_proto
+open GuiProto
 
 module M = Gui_messages
 module O = Gui_options
@@ -67,7 +67,7 @@ class window () =
       tab_friends#clear;
       tab_queries#clear;
       List.iter wnote_results#remove wnote_results#children;
-      List.iter wnote_rooms#remove wnote_rooms#children;
+      tab_rooms#clear;
       label_connect_status#set_text M.not_connected;
       label_servers_status#set_text "";
       label_upload_status#set_text "";
@@ -95,10 +95,10 @@ class window () =
       notebook#goto_page 2;
       Mi.set_hpaned tab_friends#hpaned !!O.friends_hpane_left;
       Mi.get_hpaned self tab_friends#hpaned O.friends_hpane_left;
-(*
+
       Mi.set_vpaned tab_friends#vpaned O.friends_vpane_up;
       Mi.get_vpaned self tab_friends#vpaned O.friends_vpane_up;
-*)
+
 (*
       notebook#goto_page 3;
       Mi.set_hpaned tab_searches#hpaned O.searches_hpane_left;  

@@ -1,6 +1,56 @@
-ChangeLog
+ChangeLog	
 =========
 
+2002/08/23: mldonkey
+  - update: ocaml 3.06 should now be used to compile mldonkey without secret/.
+  - add: GUI protocol version 3 should work for poll.
+  - Private messages are now received in a special (hidden) chat room,
+     which is used to send messages to the GUI.
+  - fix: Gui_columns has been rewritten with functors
+  - fix: commonChatRoom.ml renamed in commonRoom.ml
+  - add: room panel now displays both active and inactive rooms.
+  - add: better SoulSeek support:
+     * Searches work (no download yet :(
+     * Join/Leave room works (no dialog yet)
+
+2002/08/23: zoggy
+  - add : an uploads tab (modules Gui_uploads and Gui_uploads_base)
+	  only the tab for this evening, gotta go sleeeeeeep
+	
+2002/08/22: mldonkey
+  - gui_proto.ml has been cut in guiTypes.ml (types), guiProto.ml (protocols)
+     and guiEncoding.ml and guiDecoding.ml.
+  - Better soulseek support
+
+2002/08/21: zoggy
+  - fix : memorize the size of the vpane in the friends tab, 
+	  for the chat notebook.
+	  BTW, mldonkey compiled like a breeze will ocaml 3.06 
+	  without patch :-) I let mldonkey change the configure 
+	  script, don't want to disturb ;-)
+	
+2002/08/19: zoggy
+  - fix : a bug closing two chat boxes instead of one
+  - add : in chat rooms, try to get the user name and give him
+	  its own color to display his name in the messages
+  - add : file sizes in downloads and result boxes now displayed
+	  with G(iga), M(ega) or k(ilo) suffixes
+  - fix : scrollbar added to the chat room boxes, and the text
+	  with the messages is not editable any more. 
+	  Chat rooms on direct connect work, except that kicked
+	  people are not removed from the list.
+	
+2002/08/18: zoggy
+  - add: chat integrated in the gui; pb with the Gtk Main loop:
+	 the chat window receive no event; will investigate,
+	 or add the chat boxes in a notebook of the friends tab ?
+	 Ok, done. I had to find my way through the not really clear
+	 code of the Gui_proto module. And surprise, the code
+	 indent is really, really bad, making it still more difficult 
+	 to understand...
+	 Yet to do : change and memorize the size of the chat notebook,
+	 but now i gotta go while it is not raining.
+	
 2002/08/16: mldonkey
   - add: New command "dd <size> <md4>" originally used by mldonkey_submit.
      mldonkey now generates a mlsubmit.reg file that can be used under Windows

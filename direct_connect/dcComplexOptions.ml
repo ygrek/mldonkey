@@ -18,7 +18,7 @@
 *)
 
 open CommonFile
-open CommonChatRoom
+open CommonRoom
 open CommonComplexOptions
 open CommonServer
 open CommonResult

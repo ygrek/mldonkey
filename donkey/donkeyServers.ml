@@ -107,8 +107,10 @@ let server_handler s sock event =
       
 let client_to_server s t sock =
   let module M = Mftp_server in
+(*
   Printf.printf "Message from server:"; print_newline ();
   Mftp_server.print t;
+*)
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;

@@ -24,6 +24,8 @@ module Com = Gui_com
 module G = Gui_global
 module Mi = Gui_misc
 
+(*module Gui_rooms = Gui_rooms2*)
+  
 let (!!) = Options.(!!)
 
 let _ = GMain.Main.init ()
@@ -96,7 +98,8 @@ let _ =
 (** {2 Handling core messages} *)
 
 open CommonTypes
-open Gui_proto
+open GuiTypes
+open GuiProto
   
 let canon_client gui c =
   let box_file_locs = gui#tab_downloads#box_locations in 
@@ -205,7 +208,7 @@ let value_reader gui t sock =
     
     | CoreProtocol v -> 
         
-        Gui_com.gui_protocol_used := min v best_gui_version;
+        Gui_com.gui_protocol_used := min v GuiEncoding.best_gui_version;
         Printf.printf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
         print_newline ();
         gui#label_connect_status#set_text M.connected;
@@ -248,7 +251,12 @@ architecture prevents you from accessing gui#update_server_label from
 inside gui#tab_servers. It's uggly. Since there is only one tab_servers, there
 is clearly no need for objects. I continue to think that the objects in
 the GUI make it slower, hard to understand and uggly to program. 
-There is the same problem with the update_downloaded_label ... *)
+There is the same problem with the update_downloaded_label ... 
+
+From Zoggy : This way it's clear, and updating the label has a really 
+small cost. If you want, you can add a hook on these labels in the
+sub boxes but THIS would be ugly :-)
+*)
         
         gui#tab_servers#h_server_info s;
         gui#update_server_label
@@ -273,8 +281,7 @@ There is the same problem with the update_downloaded_label ... *)
     
     | Room_info room ->
 (*        Printf.printf "Room info %d" room.room_num; print_newline (); *)
-        let wnote = (gui#wnote_rooms :> GPack.notebook) in
-        Gui_rooms.room_info wnote room
+        gui#tab_rooms#room_info room
     
     | User_info user ->
         let user = try 
@@ -293,17 +300,9 @@ There is the same problem with the update_downloaded_label ... *)
     | Room_user (num, user_num) -> 
         
         begin try
-            Gui_rooms.add_room_user num user_num
+            gui#tab_rooms#add_room_user num user_num
           with e ->
               Printf.printf "Exception in Room_user %d %d" num user_num;
-              print_newline ();
-        end
-    
-    | Room_message (num, msg) ->
-        begin try
-            Gui_rooms.add_room_message num msg
-          with e ->
-              Printf.printf "Exception in Room_message %d" num;
               print_newline ();
         end
     
@@ -411,6 +410,29 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 *)
 
 
+    | Room_message (_, PrivateMessage(num, mes))
+    | Room_message (0, PublicMessage(num, mes))
+    | MessageFromClient (num, mes) ->
+	(
+	 try
+	   let c = Hashtbl.find G.locations num in
+	   let d = gui#tab_friends#get_dialog c in
+	   d#handle_message mes
+	 with
+	   Not_found ->
+	     Printf.printf "Client %d not found in reader.MessageFromClient" num;
+	     print_newline ()
+        )    
+        
+    | Room_message (num, msg) ->
+        begin try
+            gui#tab_rooms#add_room_message num msg
+          with e ->
+              Printf.printf "Exception in Room_message %d" num;
+              print_newline ();
+        end
+
+    | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
   with e ->
       Printf.printf "Exception %s in reader" (Printexc.to_string e);
       print_newline ()

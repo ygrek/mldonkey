@@ -32,10 +32,10 @@ and 'a room_ops = {
     mutable op_room_close : ('a -> unit);
     mutable op_room_pause : ('a -> unit);
     mutable op_room_resume : ('a -> unit);
-    mutable op_room_messages : ('a -> room_message list);
+    mutable op_room_messages : ('a -> int -> room_message list);
     mutable op_room_users : ('a -> user list);
     mutable op_room_name : ('a -> string);
-    mutable op_room_info : ('a -> Gui_proto.room_info);
+    mutable op_room_info : ('a -> GuiTypes.room_info);
     mutable op_room_send_message : ('a -> room_message -> unit);
   }
 
@@ -65,7 +65,7 @@ module H = Weak2.Make(struct
         (as_room_impl x).impl_room_num = (as_room_impl y).impl_room_num
     end)
 
-let room_counter = ref 0
+let room_counter = ref (-1)
 let rooms_by_num = H.create 1027
   
 let ni n m = 
@@ -82,11 +82,10 @@ let ni_ok n m = ignore (ni n m)
   
 let room_must_update room =
   let impl = as_room_impl room in
-  if impl.impl_room_update > 0 then
-    begin
-      impl.impl_room_update <- 0;
+  if impl.impl_room_update > 0 then begin
       rooms_update_list := room :: !rooms_update_list
-    end
+    end;
+  impl.impl_room_update <- 0
 
 let room_add (room : 'a room_impl) =
   incr room_counter;
@@ -137,7 +136,6 @@ let room_resume (room : room) =
   let impl = as_room_impl room in
   if impl.impl_room_state = RoomPaused then begin
       set_room_state room RoomOpened;
-      room_must_update room;
       impl.impl_room_ops.op_room_resume impl.impl_room_val;
     end
   
@@ -181,6 +179,85 @@ let room_new_users = ref []
     
 let room_new_user room c =
   room_new_users := ((room : room), (c : user)) :: !room_new_users  
+
+let message_counter = ref 0
+let room_new_messages = ref []
+let room_new_message room msg =
+  incr message_counter;
+  room_new_messages := (!message_counter, 
+    (room : room), (msg : room_message)) :: !room_new_messages;
+  (!message_counter, msg)
+
+let extract_messages list age =
+  let rec iter list passed =
+    match list with
+      [] -> passed
+    | (old, m) :: tail ->
+        if old >= age then
+          iter tail (m :: passed)
+        else passed
+  in
+  iter list []
   
+module Private = struct  
+
+(* Private messages are implemented with the following trick:
+A special room "Private" is created. This room is always opened in
+the core, but is sent as Closed to the GUI so that it should not display it
+  in the room panel.  It also has number 0.  Sending a message 
+Public/Private Message to this room is transformed into sending a
+receiving a private message from this client in driver/driverInterface.ml. 
+  *)
+    
+    
+    open CommonNetwork  
+    let network = "Private"
+        
+    type private_room = {
+        room_impl : private_room room_impl;
+        mutable messages : (client * string) list; 
+      }    
+    
+    let private_room_ops = 
+      {
+        op_room_pause = (fun _ -> ni_ok network "room_pause");
+        op_room_resume = (fun _ -> ni_ok network "room_resume");
+        op_room_close = (fun room -> 
+            set_room_state (as_room room.room_impl) RoomOpened);  
+        op_room_messages = (fun _ -> fni network "room_messages");
+        op_room_users = (fun _ -> fni network "room_users");
+        op_room_name = (fun _ -> fni network "room_name");
+        op_room_info = (let module P = GuiTypes in
+          fun r -> 
+            { 
+              P.room_name = "Default Room";
+              P.room_num = r.room_impl.impl_room_num;
+              P.room_network = 0;
+              P.room_state = RoomClosed;
+              P.room_users = [];
+              P.room_messages = [];
+              P.room_nusers = 0;
+            }
+        );
+        op_room_send_message = (fun _ _ -> ni_ok network "room_message");
+      }
+      
+ let private_room = 
+  let rec room = {
+          messages = [];
+          room_impl = room_impl;
+    } and
+    room_impl = {
+      dummy_room_impl with
+      impl_room_val = room;
+      impl_room_ops = private_room_ops;
+      impl_room_state = RoomOpened;
+    } in
+      room_add room_impl
+      
+  end
+  
+let private_room_ops = Private.private_room_ops
+let private_room = Private.private_room
   
   

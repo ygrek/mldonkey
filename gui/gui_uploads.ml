@@ -17,10 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(** GUI for help. *)
+(** The box with uploads info *)
 
 open CommonTypes
+open GuiTypes
 open GuiProto
+
 
 module M = Gui_messages
 module P = Gpattern
@@ -28,10 +30,42 @@ module O = Gui_options
 
 let (!!) = Options.(!!)
 
+
+
 class box () =
   object (self)
-    inherit Gui_help_base.box () as box
+    inherit [string] Gpattern.plist `SINGLE
+	[ M.filename ; M.requests ; M.blocks ]
+	true as pl
+    inherit Gui_uploads_base.box () as box
+
+    method box = wf_upstats#coerce
+
+    method compare_by_col col t1 t2 = compare t1 t2
+
+    method compare t1 t2 =
+      let abs = if current_sort >= 0 then current_sort else - current_sort in
+      let res = self#compare_by_col abs t1 t2 in
+      current_sort * res
+
+    method content t = ([P.String t], None)
+      
+    method clear = self#update_data []
 
     initializer
-      wtext#insert Gui_messages.help_text
+      wf_upstats#add pl#box;
+
+  end
+
+class upstats_box () =
+  let upstats = new box () in
+  object (self)
+    inherit Gui_uploads_base.upstats_box () as upsb
+
+    method box = upsb#vbox
+
+    method clear = upstats#clear
+
+    initializer
+      vbox#pack ~expand: true ~padding: 2 upstats#box
   end

@@ -3,7 +3,7 @@ AC_PREREQ(2.0)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
-REQUIRED_OCAML=3.05
+REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
 
 touch install-sh
@@ -54,41 +54,65 @@ cd ..
 SOURCE_DIR=`pwd`
 cd config
 
-LOCAL=$SOURCE_DIR/patches/local/
+CONFIG_DIR=$SOURCE_DIR/config
+PATCH_DIR=$SOURCE_DIR/patches
+LOCAL_DIR=$PATCH_DIR/local
+BUILD_DIR=$PATCH_DIR/build
+LOCAL=$LOCAL_DIR
 
-LOCAL_OCAML=$LOCAL/bin
+LOCAL_OCAML=$LOCAL_DIR/bin
 
-test -z "$ac_cv_prog_OCAMLC" && { 
+BUILD_OCAML=no
+if test -z "$ac_cv_prog_OCAMLC"; then 
+   BUILD_OCAML=yes
+else
+   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+   if ! test "$OCAMLVERSION" = "$REQUIRED_OCAML"; then
+     BUILD_OCAML=yes
+   fi
+fi
+
+if test "$BUILD_OCAML" = "yes"; then
 
   AC_CHECK_FILE("$LOCAL_OCAML"/ocamlc.opt, [
+    OCAMLVERSION=`$LOCAL_OCAML/ocamlc.opt -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+   if test "$OCAMLVERSION" = "$REQUIRED_OCAML"; then
+    BUILD_OCAML=no
     OCAMLC=$LOCAL_OCAML/ocamlc.opt
     ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
-  ],[
+   fi
+  ])
+fi
 
-  echo "********  Objective-Caml is required  *********" 1>&2; 
+if test "$BUILD_OCAML" = "yes"; then
+
+  echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2; 
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
   echo "Do you want this script to try to download and install ocaml"
   echo "LOCALLY in mldonkey directory ?"
   if test "$BATCH" = "no"; then read i; else i=yes; fi
   case "$i" in
    y* | Y*) 
-      cd ../patches
-      rm -rf ocaml-"$REQUIRED_OCAML"
+      cd $PATCH_DIR
       if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then
         echo Downloading ...
 
-        wget http://caml.inria.fr/distrib/ocaml-"$REQUIRED_OCAML".tar.gz
+        wget http://caml.inria.fr/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
+
       echo Uncompressing ...
-      gzip -cd ocaml-"$REQUIRED_OCAML".tar.gz | tar xf -
+      mkdir -p $BUILD_DIR
+      cd $BUILD_DIR
+      rm -rf ocaml-"$REQUIRED_OCAML"
+      gzip -cd $PATCH_DIR/ocaml-"$REQUIRED_OCAML".tar.gz | tar vxf -
       cd ocaml-"$REQUIRED_OCAML"
-      if test -f ../ocaml-"$REQUIRED_OCAML".patch; then
+      if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
         echo Patching ...
-        patch -p1 < ../ocaml-"$REQUIRED_OCAML".patch
+        patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
       fi
       echo Configuring ...
-      ./configure -prefix $LOCAL
+      ./configure -prefix $LOCAL_DIR
       cd config
       cp -f Makefile Makefile.old
       sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
@@ -97,9 +121,9 @@ test -z "$ac_cv_prog_OCAMLC" && {
       $GNU_MAKE world opt opt.opt
       echo Installing ...
       $GNU_MAKE install
-      cd ..
+      cd $BUILD_DIR
       rm -rf ocaml-"$REQUIRED_OCAML"
-      cd ../config
+      cd $CONFIG_DIR
       echo Ocaml locally installed for mldonkey
 
       if test -f "$LOCAL_OCAML"/ocamlc.opt; then
@@ -111,9 +135,7 @@ test -z "$ac_cv_prog_OCAMLC" && {
       ;;
    *)  exit 1;;
   esac
-  ])
-
-}
+fi
 
 if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
   OCAML_PATH="$LOCAL_OCAML"/
@@ -162,6 +184,10 @@ AC_CHECK_SIZEOF(double)
 
 # various header files
 AC_CHECK_HEADERS(arpa/inet.h,,)
+
+ZLIB=no
+AC_CHECK_LIB(z,inflate,[ZLIB=yes])
+AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
@@ -237,7 +263,7 @@ if test "$MULTINET" = "yes" ; then
     BAD_TARGETS="$BAD_TARGETS limewire"
   fi
 
-  if test "$SOULSEEK" = "yes" ; then
+  if test "$SOULSEEK" = "yes" && test "$ZLIB" = "yes"; then
     AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
       SOULSEEK=no
       BAD_TARGETS="$BAD_TARGETS soulseek"
@@ -274,13 +300,16 @@ AC_MSG_CHECKING($OCAMLOPT supports -dil option)
 AC_MSG_RESULT($OCAMLOPT_DIL)
 
 test "$OCAMLOPT_DIL" = "no" && {
-  PATCHED_OCAMLOPT=ocamlopt-$REQUIRED_OCAML/ocamlopt
-  OCAMLOPT=ocamlopt-$REQUIRED_OCAML/ocamlopt
+  PATCHED_OCAMLOPT=patches/build/ocamlopt-$REQUIRED_OCAML/ocamlopt
+  OCAMLOPT=patches/build/ocamlopt-$REQUIRED_OCAML/ocamlopt
   OCAMLOPT_DIL=yes
   echo "Need to build patched ocamlopt for eDonkey support"
 }
 
+DONKEY_LAM_URL="http://pauillac.inria.fr/~lefessan/src/edonkey"
+
 AC_CHECK_FILE(../secret, [
+
   AC_CHECK_FILE(../donkey,[
     DONKEY=yes
     AC_CHECK_FILE(../server,DONKEY_SERVER=yes, [
@@ -294,7 +323,44 @@ AC_CHECK_FILE(../secret, [
  ],[
   DONKEY=no
   if test "$OCAMLOPT_DIL" = "yes"; then
-    AC_CHECK_FILE(../donkey/donkey.lam, OPEN_DONKEY=yes, OPEN_DONKEY=no)
+
+  echo "*********************************************************************"
+  echo "To include eDonkey support in mldonkey, you need to download a file"
+  echo "containing the non-free protocol. You will not be able to modify"
+  echo "this plugin."
+  echo "This Makefile can either download it automatically (you need wget"
+  echo "and an internet connection), or you can download it yourself"
+  echo "(stop this script now and restart it after the download), or
+  echo "you can disable edonkey support."
+  echo
+  echo "The URL is: $DONKEY_LAM_URL/donkey.lam.SOME_MD5"
+  echo
+  echo "where SOME_MD5 is contained in these sources in the file"
+  echo "donkey/donkey.lam.md5:"
+  echo "Currently, it is:"
+  echo
+  echo "$DONKEY_LAM_URL/donkey.lam.`cat ../donkey/donkey.lam.md5`"
+  echo
+  echo "which should be copied into donkey/"
+
+  if test -f ../donkey/donkey.lam.`cat ../donkey/donkey.lam.md5`; then
+    echo "You already have it !!!!!"
+
+    OPEN_DONKEY=yes
+  else
+    echo "Do you want mldonkey to automatically download this file ?"
+
+     if test "$BATCH" = "no"; then read i; else i=yes; fi
+     case "$i" in
+      y* | Y*) 
+         AC_CHECK_PROG(wget, wget, wget)
+         OPEN_DONKEY=yes
+        ;;
+      *) ;;
+     esac
+  fi
+  echo "*********************************************************************"
+
   fi
   if test "$OPEN_DONKEY" = "no"; then
       BAD_TARGETS="$BAD_TARGETS open_donkey"
@@ -328,15 +394,19 @@ else
        if test "$BATCH" = "no"; then read i; else i=yes; fi
        case "$i" in
         y* | Y*) 
-         cd ../patches
+
+         cd $PATCH_DIR
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
          if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
            echo Downloading ...
            wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
          fi
          if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+
+         mkdir -p $BUILD_DIR
+         cd $BUILD_DIR
          echo Uncompressing ...
-         gzip -cd lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
+         gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
          (cd lablgtk-"$REQUIRED_LABLGTK"
           PATH=$OCAML_PATH:$PATH
           export PATH
@@ -348,7 +418,7 @@ else
           cd ..
           rm -rf lablgtk-"$REQUIRED_LABLGTK"
          )
-         cd ../config
+         cd $CONFIG_DIR
          LABLGTK_CONFIG=yes
          ;;
         *);;
@@ -424,6 +494,7 @@ AC_SUBST(CONFIG_INCLUDES)
 AC_SUBST(CURRENT_DIR)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
+AC_SUBST(ZLIB)
 
 AC_SUBST(AUDIO_GALAXY)
 AC_SUBST(OPEN_NAPSTER)
@@ -442,8 +513,9 @@ AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
 AC_SUBST(PATCHED_OCAMLOPT)
 
-AC_OUTPUT(Makefile.config ../lib/autoconf.ml)
+AUTOCONF=../lib/autoconf.ml
+AC_OUTPUT(Makefile.config $AUTOCONF.new)
+diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 
-
-echo "Will not be compiled: {" $BAD_TARGETS "}"
+echo "The following modules will not be compiled: {" $BAD_TARGETS "}"
 

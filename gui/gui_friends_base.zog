@@ -10,3 +10,15 @@
     </hpaned>
   </vbox>
 </entity>
+<entity name=dialog>
+  <vbox name=box width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
+    <scrolled_window name=wscroll width="" height="" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="">
+      <text name=wt_dialog width="" height="" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="false" fill="true" padding="">
+      </text>
+    </scrolled_window>
+    <toolbar name=wtool width="" height="" border_width="" orientation="`HORIZONTAL" style="`ICONS" space_size="" space_style="`EMPTY" tooltips="true" button_relief="`NORMAL" tab_label="" expand="false" fill="true" padding="">
+    </toolbar>
+    <text name=wt_input width="" height="50" editable="true" word_wrap="true" line_wrap="true" tab_label="" expand="false" fill="true" padding="">
+    </text>
+  </vbox>
+</entity>

@@ -18,13 +18,13 @@
 *)
 (*
   val gui_send :
-  DonkeyTypes.gui_record -> DonkeyTypes.Gui_proto.to_gui -> unit
+  DonkeyTypes.gui_record -> DonkeyTypes.GuiProto.to_gui -> unit
 val send_result :
   DonkeyTypes.gui_record -> int -> DonkeyTypes.result -> unit
 val send_download : DonkeyTypes.gui_record -> DonkeyTypes.file -> unit
 val send_server : DonkeyTypes.gui_record -> DonkeyTypes.server -> unit
 val gui_reader :
-  DonkeyTypes.gui_record -> DonkeyTypes.Gui_proto.from_gui -> 'a -> unit
+  DonkeyTypes.gui_record -> DonkeyTypes.GuiProto.from_gui -> 'a -> unit
 val gui_closed : DonkeyTypes.gui_record -> 'a -> 'b -> unit
 val gui_server_change_hook :
   DonkeyTypes.server -> DonkeyTypes.gui_record -> unit

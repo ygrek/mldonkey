@@ -146,7 +146,8 @@ let cancelled = "Cancelled"
 let paused = "Paused"
 let dl_done = "Done"
 let unknown = "Unknown"
-
+let nusers = "Users"
+  
 let save_as = "Save file as" 
 let edit_mp3 = "Edit mp3 tags" 
 let kind = "Kind"
@@ -165,6 +166,11 @@ let browse_files = "Browse files"
 let show_hidden_fields = "Show hidden fields"
 
 let waiting_for_replies n = Printf.sprintf "Waiting for %d replies" n
+
+let uploads = "Uploads"
+let requests = "Requests"
+let blocks = "Blocks"
+let upstats = "Uploads stats"
 
 (** Menus labels. *)
 

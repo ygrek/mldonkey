@@ -18,7 +18,7 @@
 *)
 
 open ServerServer
-open Gui_proto
+open GuiTypes
 open CommonNetwork
 open CommonOptions
 open CommonTypes

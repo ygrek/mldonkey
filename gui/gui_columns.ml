@@ -22,6 +22,49 @@
 module M = Gui_messages
 
 
+module Make(M: sig
+      
+      type column
+
+      val kind : string
+      val column_strings : (column * string) list
+    
+    end) = struct
+    
+    let strings_column = 
+      List.map (fun (c,s) -> (s,c)) M.column_strings
+    
+    let string_of_column c = 
+      List.assoc c M.column_strings
+    
+    let column_of_string s = 
+      try List.assoc s strings_column
+      with Not_found ->
+          match M.column_strings with
+            [] -> assert false
+          | (c,name)  :: _ ->
+              prerr_endline 
+                (Printf.sprintf 
+                  "incorrect column : %s, using %s instead" s name);
+              c
+    
+    open Options
+              
+    let value_to_column v =
+      match v with
+        StringValue s -> column_of_string s
+      | _ -> raise Not_found
+    
+    let column_to_value k =
+      StringValue (string_of_column k)
+    
+    let class_column  = define_option_class 
+        (Printf.sprintf "%s_column" M.kind)
+      value_to_column column_to_value
+      
+  end
+  
+
 (** The different columns which can be displayed for a file. *)
 type file_column = 
   Col_file_name
@@ -48,19 +91,12 @@ let file_column_strings = [
     Col_file_network, M.network;
 ] 
 
-let strings_file_column = 
-  List.map (fun (c,s) -> (s,c)) file_column_strings
 
-let string_of_file_column c = 
-  List.assoc c file_column_strings
-
-let file_column_of_string s = 
-  try List.assoc s strings_file_column
-  with Not_found ->
-    prerr_endline 
-      (Printf.sprintf 
-	 "incorrect file column : %s, using Col_file_name instead" s);
-    Col_file_name
+module File = Make(struct 
+      type column = file_column 
+      let kind = "File"
+      let column_strings = file_column_strings
+    end)
 
 
 (** The different columns which can be displayed for a client/location/friend. *)
@@ -79,19 +115,11 @@ let client_column_strings = [
     Col_client_type, M.client_type;
 ] 
 
-let strings_client_column = 
-  List.map (fun (c,s) -> (s,c)) client_column_strings
-
-let string_of_client_column c = 
-  List.assoc c client_column_strings
-
-let client_column_of_string s = 
-  try List.assoc s strings_client_column
-  with Not_found ->
-    prerr_endline 
-      (Printf.sprintf 
-	 "incorrect client column : %s, using Col_client_name instead" s);
-    Col_client_name
+module Client = Make(struct 
+      type column = client_column 
+      let kind = "Client"
+      let column_strings = client_column_strings
+    end)
 
 (** The different columns which can be displayed for a server. *)
 type server_column = 
@@ -112,21 +140,13 @@ let server_column_strings = [
     Col_server_network, M.network;
     Col_server_name, M.name;
   ] 
+
+module Server = Make(struct 
+      type column = server_column 
+      let kind = "Server"
+      let column_strings = server_column_strings
+    end)
   
-let strings_server_column = 
-  List.map (fun (c,s) -> (s,c)) server_column_strings
-
-let string_of_server_column c = 
-  List.assoc c server_column_strings
-
-let server_column_of_string s = 
-  try List.assoc s strings_server_column
-  with Not_found ->
-    prerr_endline 
-      (Printf.sprintf 
-	 "incorrect server column : %s, using Col_server_address instead" s);
-    Col_server_address
-
 (** The different columns which can be displayed for a search result. *)
 type result_column = 
   Col_result_name
@@ -146,20 +166,12 @@ let result_column_strings = [
     Col_result_comment, M.comment ;
     Col_result_network, M.network;
   ] 
-  
-let strings_result_column = 
-  List.map (fun (c,s) -> (s,c)) result_column_strings
 
-let string_of_result_column c = 
-  List.assoc c result_column_strings
-
-let result_column_of_string s = 
-  try List.assoc s strings_result_column
-  with Not_found ->
-    prerr_endline 
-      (Printf.sprintf 
-	 "incorrect result column : %s, using Col_result_name instead" s);
-    Col_result_name
+module Result = Make(struct 
+      type column = result_column 
+      let kind = "Result"
+      let column_strings = result_column_strings
+    end)
 
       
 (** The different columns which can be displayed for a user/location/friend. *)
@@ -174,18 +186,27 @@ let user_column_strings = [
     Col_user_tags, M.comment;
 ] 
 
-let strings_user_column = 
-  List.map (fun (c,s) -> (s,c)) user_column_strings
-
-let string_of_user_column c = 
-  List.assoc c user_column_strings
-
-let user_column_of_string s = 
-  try List.assoc s strings_user_column
-  with Not_found ->
-    prerr_endline 
-        (Printf.sprintf 
-          "incorrect user column : %s, using Col_user_name instead" s);
-      Col_user_name
+module User = Make(struct 
+      type column = user_column 
+      let kind = "User"
+      let column_strings = user_column_strings
+    end)
 
       
+(** The different columns which can be displayed for a room. *)
+type room_column = 
+  Col_room_name
+| Col_room_network
+| Col_room_nusers
+  
+let room_column_strings = [
+    Col_room_name, M.name ;
+    Col_room_network, M.network ;
+    Col_room_nusers, M.nusers;
+] 
+
+module Room = Make(struct 
+      type column = room_column 
+      let kind = "Room"
+      let column_strings = room_column_strings
+    end)

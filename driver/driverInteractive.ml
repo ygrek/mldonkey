@@ -23,7 +23,7 @@ open CommonResult
 open CommonFile
 open CommonComplexOptions
 open CommonInteractive
-open Gui_proto
+open GuiTypes
 open CommonNetwork
 open Options
 open BasicSocket

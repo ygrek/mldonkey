@@ -40,7 +40,7 @@ let commit_downloads () =
   done_files =:= []
     *)
 
-module P = Gui_proto
+module P = GuiTypes
   
 let _ =
   file_ops.op_file_info <- (fun file ->

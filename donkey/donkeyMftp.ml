@@ -119,12 +119,7 @@ let buf_port buf port =
 let buf_peer buf (ip,port) =
   buf_ip buf ip;
   buf_port buf port
-  
-let buf_list buf_item b list =
-  let len = List.length list in
-  buf_int b len;
-  List.iter (buf_item b) list
-  
+    
 let rec buf_tags buf tags names_of_tag =
   match tags with
     [] -> ()
@@ -240,15 +235,6 @@ let rec get_tags s pos ntags names_of_tag =
   let tags, pos = get_tags s pos (ntags-1) names_of_tag in
   (tag :: tags), pos
 
-
-let rec get_list_rec get_item s pos len left =
-  if len = 0 then List.rev left, pos else
-  let (item,pos) = get_item s pos in
-  get_list_rec get_item s pos (len-1) (item :: left)
-  
-let get_list get_item s pos =
-  let len = get_int s pos in
-  get_list_rec get_item s (pos+4) len []
 
 let get_peer s pos =
   let ip = get_ip s pos in

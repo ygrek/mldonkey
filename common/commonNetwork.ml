@@ -59,7 +59,7 @@ let new_network name =
       op_network_add_client =  (fun _ -> fni name "add_client");
       op_network_search = (fun _ _ -> ni_ok name "search");
       op_network_share = (fun _ -> ni_ok name "share");
-      op_network_private_message = (fun _ _ -> ni_ok name "prvate message");
+      op_network_private_message = (fun _ _ -> ni_ok name "private message");
       op_network_connect_servers = (fun _ -> ni_ok name "connect_servers");
       op_network_forget_search = (fun _ -> ni_ok name "forget_search");
       op_network_close_search = (fun _ -> ni_ok name "close_search");
@@ -187,7 +187,7 @@ let register_escape_char (c : char) (f : unit -> string) =
   
 let escape_char c = (List.assq c !network_escape_chars) ()
   
-let network_commands = ref ([] : (string * Gui_proto.arg_kind * string) list)
+let network_commands = ref ([] : (string * GuiTypes.arg_kind * string) list)
   
 let register_commands list = 
   network_commands := list @ !network_commands

@@ -37,7 +37,7 @@ and 'a server_ops = {
     mutable op_server_network : network;
     mutable op_server_to_option : ('a -> (string * option_value) list);
     mutable op_server_remove : ('a -> unit);
-    mutable op_server_info : ('a -> Gui_proto.server_info);
+    mutable op_server_info : ('a -> GuiTypes.server_info);
     mutable op_server_sort : ('a -> float);
     mutable op_server_connect : ('a -> unit);
     mutable op_server_disconnect : ('a -> unit);
@@ -270,7 +270,7 @@ type server_info = {
   } 
     *)
 
-module G = Gui_proto
+module G = GuiTypes
   
 let server_print s o =
   let impl = as_server_impl s in

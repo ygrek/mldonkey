@@ -49,13 +49,13 @@ let new_search s =
   incr search_num;
   let s = {
       search_num = !search_num;
-      search_type = s.Gui_proto.search_type;
-      search_max_hits = s.Gui_proto.search_max_hits;
-      search_query = s.Gui_proto.search_query;
+      search_type = s.GuiTypes.search_type;
+      search_max_hits = s.GuiTypes.search_max_hits;
+      search_query = s.GuiTypes.search_query;
       search_nresults = 0;
       search_results = Intmap.empty;
       search_waiting = 0;
-      search_string = search_string s.Gui_proto.search_query;
+      search_string = search_string s.GuiTypes.search_query;
       search_closed = false;
       op_search_new_result_handlers = [];
       op_search_end_reply_handlers = [];

@@ -120,9 +120,30 @@ let path_of_filename filename =
     if filename.[i] = '\\' then filename.[i] <- '/';
   done;
   let filename = 
-    if len > 2 && filename.[1] = ':' then
+    if len > 2 && filename.[1]  = ':' &&
+      match filename.[0] with 
+        'a' .. 'z' | 'A' .. 'Z' -> true
+      | _ -> false then
       Printf.sprintf "%s/%s" (String.sub filename 0 2) 
-      (String.sub filename 2 len)
+      (String.sub filename 2 (len-2))
     else filename
   in
   split_simplify filename '/'
+
+let basename filename =
+  let rec iter list name =
+    match list with [] -> name | name :: tail -> iter tail name
+  in
+  iter (path_of_filename filename) filename
+  
+let _ = (* some assertions on these functions *)
+  assert (basename "c:\\Program Files\\Toto history.exe" = "Toto history.exe");
+  assert (path_of_filename 
+      "c:\\Program Files\\Toto history.exe" = 
+    [ "c:"; "Program Files"; "Toto history.exe"] );
+  assert (path_of_filename 
+      "/home/bidule/mldonkey folder/toto" = 
+    [ "home"; "bidule"; "mldonkey folder"; "toto"] );
+  assert (path_of_filename 
+      "/home//bidule" = ["home"; "bidule"])
+  

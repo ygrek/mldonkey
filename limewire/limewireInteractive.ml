@@ -104,7 +104,7 @@ let _ =
   )
 
   
-module P = Gui_proto
+module P = GuiTypes
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->

@@ -223,7 +223,7 @@ class ['a] list_selection_box (listref : 'a list ref)
 	[] -> ()
       |	n :: _ ->
 	  try
-	    let ele = List.nth !listref n in
+            let ele = List.nth !listref n in
 	    let ele2 = f_edit ele in
 	    let rec iter m = function
 		[] -> []

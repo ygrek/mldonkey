@@ -19,7 +19,7 @@
 
 open CommonOptions
 open CommonUser
-open CommonChatRoom
+open CommonRoom
 open CommonServer
 open CommonComplexOptions
 open CommonSearch
@@ -175,8 +175,10 @@ let disconnect_server s =
       set_server_state s NotConnected;
       set_room_state s RoomClosed;
       connected_servers := List2.removeq s !connected_servers;
-      s.server_messages <- (ServerMessage "************* CLOSED ***********\n")
-      :: s.server_messages;
+      s.server_messages <- 
+        (room_new_message (as_room s.server_room) 
+          (ServerMessage "************* CLOSED ***********\n"))
+        :: s.server_messages;
       room_must_update (as_room s.server_room)
       
 let server_handler s sock event = 
@@ -273,8 +275,10 @@ print_newline ()
       let orig = user_add s t.To.orig in
       let message = t.To.message in
       
-      s.server_messages <- (PrivateMessage (orig.user_user.impl_user_num,
-          message)) :: s.server_messages;
+      s.server_messages <- (
+        room_new_message (as_room s.server_room)
+        (PrivateMessage (orig.user_user.impl_user_num,
+          message))) :: s.server_messages;
       room_must_update (as_room s.server_room)
 
   | QuitReq t ->
@@ -284,8 +288,10 @@ print_newline ()
       List.iter (fun t  -> ignore (user_add s t)) t
         
   | MessageReq t ->
-      s.server_messages <- (ServerMessage t) :: s.server_messages;
-      room_must_update (as_room s.server_room)
+      s.server_messages <- (room_new_message
+          (as_room s.server_room) 
+        (ServerMessage t)) :: s.server_messages;
+	 room_must_update (as_room s.server_room)
 
   | SearchReq t ->
       let orig = t.Search.orig in
@@ -299,7 +305,7 @@ print_newline ()
           s.server_search <- None;
         begin
           try
-            let file = find_file (basename t.SR.filename) t.SR.filesize in 
+            let file = find_file (Filename2.basename t.SR.filename) t.SR.filesize in 
             Printf.printf "**** FILE RECOVERED ****"; print_newline ();
             let user = new_user (Some s) t.SR.owner in
             let c = add_file_client file user t.SR.filename in
@@ -437,7 +443,7 @@ let load_servers_list url =
           end
     )
 
-module P = Gui_proto
+module P = GuiTypes
   
 let _ =
   server_ops.op_server_info <- (fun s ->
