@@ -519,7 +519,7 @@ let tcp_handler t sock event =
               end
       end
   | CAN_WRITE ->
-(*      lprintf "CAN_WRITE\n";  *)
+(*      lprintf "CAN_WRITE\n";   *)
       (try if t.nwrite = 0 then
             t.event_handler t CONNECTED with _ -> ());
       begin
@@ -684,10 +684,10 @@ let connect name host port handler =
       t
     with 
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) -> 
-      upload_ip_packets t 1;             (* The TCP SYN packet *)
-      forecast_download_ip_packet t;  (* The TCP ACK packet *)
-      forecast_upload_ip_packet t;    (* The TCP ACK packet *)
-      t
+        upload_ip_packets t 1;             (* The TCP SYN packet *)
+        forecast_download_ip_packet t;  (* The TCP ACK packet *)
+        forecast_upload_ip_packet t;    (* The TCP ACK packet *)
+        t
     | e -> 
         lprintf "For host %s port %d\n" (Unix.string_of_inet_addr host)
         port; 

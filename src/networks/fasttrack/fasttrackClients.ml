@@ -514,13 +514,17 @@ let connect_client c =
                                 disconnect_client c Closed_for_timeout
                             | BASIC_EVENT (CLOSED s) ->
                                 disconnect_client c s
+                                
+(* You can only use the CONNECTED signal if the socket is not yet controlled
+  by the bandwidth manager... *)
+                                
                             | CONNECTED ->
-                                lprintf "CONNECTED !!! Asking for range...\n";
+(*           lprintf "CONNECTED !!! Asking for range...\n"; *)
+                                init_client sock;                
                                 get_from_client sock c
                             | _ -> ()
                         )
                       in
-                      init_client sock;                
                       c.client_host <- Some (ip, port);
                       set_client_state c Connecting;
                       c.client_sock <- Connection sock;
@@ -531,7 +535,6 @@ let connect_client c =
                       if !verbose_msg_clients then begin
                           lprintf "READY TO DOWNLOAD FILE\n";
                         end;
-                      get_from_client sock c;
                       set_fasttrack_sock sock !verbose_msg_clients
                         (HttpHeader (client_parse_header c))
                       
