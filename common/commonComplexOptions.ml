@@ -418,12 +418,6 @@ let file_commit file =
   if impl.impl_file_state = FileDownloaded then
     let new_name = file_commited_name file in
     try
-      lprintf "*******  RENAME %s to %s *******\n"
-        (file_disk_name file) new_name; 
-      Unix2.rename (file_disk_name file) new_name;
-        
-      lprintf "*******  RENAME %s to %s DONE *******\n" 
-        (file_disk_name file) new_name; 
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
       Unix32.close (file_fd file);

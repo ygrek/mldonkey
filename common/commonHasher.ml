@@ -98,3 +98,15 @@ let compute_md4 name begin_pos len f =
     } in
   Fifo.put fifo job
   
+let compute_sha1 name begin_pos len f =
+  let job = {
+      job_name = name;
+      job_begin = begin_pos;
+      job_len = len;
+      job_method = SHA1;
+      job_result = String.create Md4.Sha1.length;
+      job_handler = f;
+      job_error = false;
+    } in
+  Fifo.put fifo job
+  

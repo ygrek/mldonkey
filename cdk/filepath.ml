@@ -33,9 +33,11 @@ let string_to_path sep str =
   let len = String.length str in
   let rec iter start pos =
     if pos >= len then
+       if start >= len then [] else
       [String.sub str start (len - start)]
     else
       if str.[pos] = sep then
+        if pos <= start then iter (pos+1) (pos+1) else
         (String.sub str start (pos - start)) :: (iter (pos+1) (pos+1))
       else
         iter start (pos+1)

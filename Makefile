@@ -110,6 +110,7 @@ LIB_SRCS=   \
   lib/date.ml \
   lib/md4_comp.c lib/md4_c.c \
   lib/gettext.ml lib/md5_c.c lib/sha1_c.c \
+  lib/tiger.c \
   lib/stubs_c.c
 
 NET_SRCS = \
@@ -264,6 +265,7 @@ LIMEWIRE_SRCS= \
   limewire/limewireOptions.ml \
   limewire/limewireGlobals.ml \
   limewire/limewireComplexOptions.ml \
+  limewire/gnutella2.ml \
   limewire/limewireProtocol.ml \
   limewire/limewireClients.ml \
   limewire/limewireServers.ml \
@@ -1382,7 +1384,6 @@ mldonkey_guistarter.byte: $(STARTER_OBJS) $(STARTER_CMOS)  $(STARTER_CMAS)
 mldonkey_guistarter.static:  $(STARTER_OBJS) $(STARTER_CMXS)  $(STARTER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(STARTER_CMXAS) $(STARTER_CMXS)
 
-#EXPAND(TOP,mldonkeytop)
 
 MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS)) 
 MLCHAT_MLL := $(filter %.mll, $(MLCHAT_SRCS)) 
@@ -1507,6 +1508,35 @@ mldonkey_installer.byte: $(INSTALLER_OBJS) $(INSTALLER_CMOS)  $(INSTALLER_CMAS)
  
 mldonkey_installer.static:  $(INSTALLER_OBJS) $(INSTALLER_CMXS)  $(INSTALLER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(INSTALLER_CMXAS) $(INSTALLER_CMXS)
+
+
+
+
+#######################################################################
+
+##                      Other rules
+
+#######################################################################
+
+
+TOP_ZOG := $(filter %.zog, $(TOP_SRCS)) 
+TOP_MLL := $(filter %.mll, $(TOP_SRCS)) 
+TOP_MLY := $(filter %.mly, $(TOP_SRCS)) 
+TOP_ML4 := $(filter %.ml4, $(TOP_SRCS)) 
+TOP_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(TOP_SRCS)) 
+TOP_C := $(filter %.c, $(TOP_SRCS)) 
+TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo) 
+TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx) 
+TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)    
+
+TOP_CMXAS := $(_CMXA)
+TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)    
+
+TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
+ 
+mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
+	ocamlmktop $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
+ 
 
 
 #######################################################################

@@ -139,7 +139,6 @@ static void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len,
 #ifndef HAVE_LIBPTHREAD
 
 #define MAX_CHUNK_SIZE 1000000
-#include "sha1_c.h"
 static  SHA1_CTX sha1_context;
 static OS_FD job_fd;
 static long job_pos;
@@ -203,7 +202,7 @@ value ml_job_done(value job_v)
         return Val_true;
       }
       
-      sha1_append (&context, local_hash_buffer, nread);
+      sha1_append (&sha1_context, local_hash_buffer, nread);
       job_len -= nread;
       ndone += nread;
     }

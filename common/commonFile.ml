@@ -23,6 +23,7 @@ open CommonClient
 open Options
 open CommonTypes
 open CommonOptions
+open CommonGlobals
   
 type 'a file_impl = {
     mutable impl_file_update : int;
@@ -357,6 +358,33 @@ let add_file_downloaded impl n =
     impl.impl_file_received <- Int64.add impl.impl_file_received n;
   file_must_update_downloaded (as_file impl)
     
+let file_size file = 
+  (as_file_impl file).impl_file_size
+  
+let file_disk_name file =
+  Unix32.filename (as_file_impl file).impl_file_fd
+      
+let file_fd file =
+  (as_file_impl file).impl_file_fd
+
+let set_file_disk_name file filename=
+  Unix32.rename (file_fd file) filename
+  
+let file_downloaded file = (as_file_impl file).impl_file_downloaded
+
+let file_network file =
+  (as_file_impl file).impl_file_ops.op_file_network
+
+let file_priority file = 
+  (as_file_impl file).impl_file_priority
+  
+let file_set_priority file p = 
+  let impl = as_file_impl file in
+  if impl.impl_file_priority <> p then begin
+      impl.impl_file_priority <- p;      
+      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;      
+      file_must_update file
+    end
 
 let com_files_by_num = files_by_num
 let files_by_num = ()
@@ -370,7 +398,7 @@ let file_downloaders file o cnt =
 		
       let counter = ref cnt in
       List.iter (fun c ->
-          if o.conn_output = HTML && !!html_mods then begin 
+          if use_html_mods o then begin 
               if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
 					then incr counter;
 		  end
@@ -383,32 +411,29 @@ let file_downloaders file o cnt =
 	if !counter mod 2 = 0 then true else false
   
 (* Use span for Opera DOM compatibility *)
-
-let colored_chunks buf chunks =
+let colored_chunks chunks =
+  let ostr = ref "" in
   let previous = ref false in
   let runlength = ref 0 in
-  let tchunks = ref 0 in
   let nextbit b =
     if b = !previous then
       incr runlength
     else begin
       if !runlength > 0 then begin
-	Printf.bprintf buf "\\<span class=%s\\>"
+	ostr := !ostr ^ Printf.sprintf "\\<span class=%s\\>"
           (if !previous then "chunk1" else "chunk0");
 	while !runlength > 0 do
-          Printf.bprintf buf "\\&nbsp;";
+          ostr := !ostr ^ "\\&nbsp;";
           decr runlength
 	done;
-	Printf.bprintf buf "\\</span\\>"
+    ostr := !ostr ^ "\\</span\\>"
       end;
       previous := b;
       runlength := 1
     end in
-  Array.iter (fun b -> 
-          if b then incr tchunks;
-          nextbit b) chunks;
+  Array.iter (fun b -> nextbit b) chunks;
   nextbit (not !previous);
-  !tchunks
+  !ostr
 
 let file_print file o = 
   let impl = as_file_impl file in
@@ -416,17 +441,16 @@ let file_print file o =
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
   
-  Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\n" 
+  Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
     n.network_name (file_num file) (match info.G.file_names with
       [] -> Md4.to_string info.G.file_md4
     | name :: _ -> name)
   (Int64.to_string info.G.file_size)
-  (Int64.to_string info.G.file_downloaded);
+  (Int64.to_string info.G.file_downloaded)
+  (file_priority file);
   
   
-  if o.conn_output = HTML && !!html_mods then
-    
-    begin
+  if use_html_mods o then begin
       
       Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
         (info.G.file_name) 
@@ -470,53 +494,46 @@ parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
-      if o.conn_output = HTML && srcs <> [] && !!html_mods then begin
-        Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\"
-        name=\\\"sourcesTable\\\" class=\\\"sources\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Client number (click to add as friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"A=Active download from client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
-\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CS\\</td\\>
-\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
-\\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
-\\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
-\\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>DL\\</td\\>
-\\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rnk\\</td\\>
-\\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Scr\\</td\\>
-\\<td title=\\\"Last ok (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LO\\</td\\>
-\\<td title=\\\"Last try (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LT\\</td\\>
-\\<td title=\\\"Next try (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>NT\\</td\\>
-\\<td title=\\\"Has a slot [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>H\\</td\\>
-\\<td title=\\\"Banned [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>B\\</td\\>
-\\<td title=\\\"Requests sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RS\\</td\\>
-\\<td title=\\\"Requests received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RR\\</td\\>
-\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>CT\\</td\\>
-\\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
-\\<td title=\\\"Chunks (Blue=Complete, Red=Missing)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
-";
-	
-		let tchunks = (colored_chunks buf (Array.init (String.length info.G.file_chunks)
-        (fun i -> info.G.file_chunks.[i] = '1'))) in
+      if use_html_mods o && srcs <> [] then 
 
-Printf.bprintf buf "\\</td\\> 
-\\<td title=\\\"Number of full chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%d\\</td\\> 
-\\</tr\\>" tchunks
+		html_mods_table_header buf "sourcesTable" "sources" [ 
+		( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+		( "0", "srh", "[A] = Active downlaod from client", "A" ) ; 
+		( "0", "srh", "Client state", "CS" ) ; 
+		( "0", "srh", "Client name", "Name" ) ; 
+		( "0", "srh", "Client brand", "CB" ) ; 
+		( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+		( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+		( "0", "srh br", "IP address", "IP address" ) ; 
+		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+		( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
+		( "1", "srh ar br", "Source score", "Scr" ) ; 
+		( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
+		( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
+		( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
+		( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
+		( "0", "srh", "Banned [T]rue, [F]alse", "B" ) ; 
+		( "1", "srh ar", "Requests sent", "RS" ) ; 
+		( "1", "srh ar", "Requests received", "RR" ) ; 
+		( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
+		( "0", "srh br", "Client MD4", "MD4" ) ; 
+		( "0", "srh", "Chunks (complete vs missing)", (colored_chunks 
+        (Array.init (String.length info.G.file_chunks)
+        (fun i -> info.G.file_chunks.[i] = '1'))) ) ; 
+		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+        (String.length (String2.replace info.G.file_chunks '0' "")) ) ) ];
 
-		end;
-
-		
       let counter = ref 0 in
       List.iter (fun c ->
           incr counter;
           
-          if o.conn_output = HTML && !!html_mods then begin
+          if use_html_mods o then begin
               
               Printf.bprintf buf "
 \\<tr  
 onMouseOver=\\\"mOvr(this);\\\" 
-onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+onMouseOut=\\\"mOut(this);\\\" 
 class=";
               
               if (!counter mod 2 == 0) then Printf.bprintf buf "\\\"dl-1\\\"\\>"
@@ -529,14 +546,14 @@ class=";
       
       
       ) srcs;
-      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then begin
-        Printf.bprintf buf "\\</table\\>";
+      if use_html_mods o && List.length srcs > 0 then begin
+        Printf.bprintf buf "\\</table\\>\\</div\\>";
         if !!html_mods_vd_queues then file_print_sources_html file buf;
       end
         
 
 with _ -> ())
-
+(*
 let file_size file = 
   (as_file_impl file).impl_file_size
   
@@ -546,8 +563,8 @@ let file_disk_name file =
 let file_fd file =
   (as_file_impl file).impl_file_fd
 
-let set_file_disk_name file filename=
-  Unix32.set_filename (file_fd file) filename
+let set_file_disk_name file filename =
+  Unix32.rename (file_fd file) filename
   
 let file_downloaded file = (as_file_impl file).impl_file_downloaded
 
@@ -564,3 +581,4 @@ let file_set_priority file p =
       impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;      
       file_must_update file
     end
+*)

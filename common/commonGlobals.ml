@@ -474,7 +474,14 @@ let log_chat_message i num n s =
     let foo = Fifo.take chat_message_fifo in ()
   done
   
-
+let html_mods_table_header buf n c l =
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>" 
+    c n n c;
+    List.iter (fun (w,x,y,z)  -> 
+     Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>" 
+     w x y z;
+    ) l;
+    Printf.bprintf buf "\\</tr\\>"
   
 let debug_clients = ref Intset.empty
 
@@ -483,6 +490,7 @@ let default_user = {
     ui_user_searches = []; 
     ui_last_search = None;
     ui_last_results = [];
+    ui_http_conn = None;
   }
   
 let ui_users = ref [default_user]
@@ -497,6 +505,7 @@ let find_ui_user user =
             ui_user_searches = [];
             ui_last_search = None;
             ui_last_results = [];
+            ui_http_conn = None;
           } in
         ui_users := u :: !ui_users;
         u
