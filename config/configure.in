@@ -97,9 +97,14 @@ AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
 ])
 
 OCAMLC_DIL=no 
-OCAMLOPT_DIL=no 
+AC_MSG_CHECKING($OCAMLC supports -dil option)
 ($OCAMLC -help 2>&1 | grep -e -dil > /dev/null) && OCAMLC_DIL=yes
+AC_MSG_RESULT($OCAMLC_DIL)
+
+OCAMLOPT_DIL=no 
+AC_MSG_CHECKING($OCAMLOPT supports -dil option)
 ($OCAMLOPT -help 2>&1 | grep -e -dil > /dev/null) && OCAMLOPT_DIL=yes
+AC_MSG_RESULT($OCAMLOPT_DIL)
 
 AC_CHECK_FILE(../secret, [
   AC_CHECK_FILE(../donkey,[

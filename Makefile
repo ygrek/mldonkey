@@ -342,7 +342,7 @@ ifeq  ("$(OCAMLC_DIL)" , "yes")
   MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
 else
   MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
-fi
+endif
 
 ifeq  ("$(OCAMLOPT_DIL)" , "yes")
   MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
