@@ -192,7 +192,7 @@ let max_server_age = define_option downloads_ini ["max_server_age"] "max number 
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
   
-let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
+let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option false
 
   
 let filters = define_option downloads_ini ["filters"] 
