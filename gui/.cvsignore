@@ -1,3 +1,4 @@
 gui.ml
 *.cm?
 *_base.ml
+gui_all_icons.ml
