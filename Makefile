@@ -150,7 +150,7 @@ else
 endif
 
 ifneq ("$(ICONV_LIB)", "")
-  LIBS_flags += -cclib $(ICONV_LIB)
+  LIBS_flags += -cclib "$(ICONV_LIB)"
 endif
 
 ifeq ("$(BROOSNET)", "yes")
