@@ -149,9 +149,8 @@ else
 
 endif
 
-ifeq ("$(ICONV)" , "yes")
-  LIBS_flags += -cclib -liconv
-#  LIBS_byte += -cclib -liconv
+ifneq ("$(ICONV_LIB)", "")
+  LIBS_flags += -cclib $(ICONV_LIB)
 endif
 
 ifeq ("$(BROOSNET)", "yes")
@@ -213,7 +212,8 @@ LIB_SRCS=   \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/$(SHA1_VERSION)_c.c \
   $(LIB)/tiger.c \
-  $(LIB)/stubs_c.c  $(LIB)/queues.ml
+  $(LIB)/stubs_c.c  $(LIB)/queues.ml \
+  $(LIB)/charsetstubs.c $(LIB)/charset.ml
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
@@ -449,6 +449,7 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
   $(SRC_BITTORRENT)/bTTracker.ml \
   $(SRC_BITTORRENT)/bTChooser.ml \
+  $(SRC_BITTORRENT)/bTShare.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
   $(BROOSNET) \

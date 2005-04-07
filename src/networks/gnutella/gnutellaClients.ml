@@ -1082,8 +1082,9 @@ let listen () =
                   match !c with
                     Some c ->  disconnect_client c s
                   | None -> 
-                      lprintf "DISCONNECTION BEFORE CLIENT %s:%d IS KNOWN\n"
-                        (Ip.to_string (peer_ip sock)) (peer_port sock)
+                      if !verbose then
+                        lprintf "DISCONNECTION BEFORE CLIENT %s:%d IS KNOWN\n"
+                          (Ip.to_string (peer_ip sock)) (peer_port sock)
               );
               TcpBufferedSocket.set_rtimeout sock 30.;
               set_gnutella_sock sock !verbose_msg_clients

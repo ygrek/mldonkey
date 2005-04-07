@@ -65,7 +65,7 @@ let canonize_basename name =
   
 let file_commited_name incoming_dir file =   
   let network = file_network file in
-  let best_name = file_best_name file in
+  let best_name = Charset.to_locale (file_best_name file) in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
     Filename.concat incoming_dir (canonize_basename  best_name)

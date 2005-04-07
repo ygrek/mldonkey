@@ -99,7 +99,7 @@ let _ =
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file);
-        P.file_uids = [Uid.create (Ftp file.file_id)];
+        P.file_uids = [Uid.create (FileTP file.file_id)];
       }    
   )
 

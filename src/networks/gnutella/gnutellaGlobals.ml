@@ -202,6 +202,7 @@ let new_server ip port =
         } in
       server_add server_impl;
       h.host_server <- Some s;
+      h.host_on_remove <- (fun _ -> server_remove (as_server server_impl));
       s
       
 let extract_uids arg = Uid.expand [Uid.of_string arg]

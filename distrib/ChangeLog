@@ -1,13 +1,43 @@
 ChangeLog	
 =========
 
-2005/04/04: spiralvoice (version 2.5.30-3 = 2.6pre15, tag release-2-5-30-3)
+2005/04/04: spiralvoice (version 2.5.30-4 = 2.6pre16, tag release-2-5-30-4)
 
-  This release shares the same code as Amorphous SVN revision 249
+  This release shares the same code as Amorphous SVN revision 253
   plus some additional patches from Savannah.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3889: Clean logfile
+3887: Syncing Savannah CVS with Amorphous SVN
+* Applied savannah patch #3867 with small modifications, so
+it builds on systems that don't have libiconv but have
+iconv() in libc (i hope it still works on systems with
+libiconv :) ) and so that the gui protocol version 30
+behaves as before.
+- new gui protocol version 31 (see guiProto.ml) fixes
+savannah bug #11988 : GUI-Protocol doesn't send hashes
+for files not from the donkey-network
+- fix for savannah bug #12390 : GTK2 GUI configuration
+problem
+- bt shares now show up under shares
+- gtk2-gui: fix some bugs in text display (while using
+Pango markup)
+- gtk2-gui: fix upload/download rate of clients
+- gtk2-gui: md4 is replaced by uids everywhere (downloads,
+uploads, results)
+* Patch from beedauchon on irc fixes that gnutella and
+gnutella2 options had the same prefix.
+* Corrected debug-output in http_client.ml form last commit.
+* Little debug-log cleanup.
+* Fixed savannah bug #12348 gnutella (and related networks)
+accumulated more and more ultrapeers (servers) during
+runtime and did not forget them, so memory usage growed
+over time.
+---------------------------------------------------------------------
+
+2005/04/04: spiralvoice (version 2.5.30-3 = 2.6pre15, tag release-2-5-30-3)
 
 3883: Fix compile errors in GTK1 GUIs due to patch #3867
 ---------------------------------------------------------------------

@@ -68,16 +68,16 @@ let get_int64_28 proto s pos =
   else
     Int64.of_int (get_int s pos), pos+4
       
-let get_string charset s pos = 
+let get_string s pos = 
   let len = get_int16 s pos in
   if len land 0xffff = 0xffff then
     let len = get_int s (pos+2) in
-    charset (String.sub s (pos+6) len), pos+6+len
+    (String.sub s (pos+6) len), pos+6+len
   else
-    charset (String.sub s (pos+2) len), pos+2+len
+    (String.sub s (pos+2) len), pos+2+len
 
 let get_string_bin s pos =
-  get_string ( fun s -> s ) s pos
+  get_string s pos
     
 let get_list f s pos =
   let len = get_int16 s pos in
@@ -95,67 +95,67 @@ let get_array f s pos =
 
 let get_bool s pos = (get_uint8 s pos) = 1
 
-let get_uid charset s pos =
-  let uid, pos = get_string charset s pos in
+let get_uid s pos =
+  let uid, pos = get_string s pos in
   Uid.of_string uid, pos
 
-let rec get_query charset s pos =
+let rec get_query s pos =
   let op = get_uint8 s pos in
   match op with
   | 0 ->
-      let list, pos = get_list (get_query charset) s (pos+1) in
+      let list, pos = get_list get_query s (pos+1) in
       Q_AND list, pos
   | 1 ->
-      let list, pos = get_list (get_query charset) s (pos+1) in
+      let list, pos = get_list get_query s (pos+1) in
       Q_OR list, pos
   | 2 ->
-      let q1, pos = get_query charset s (pos+1) in
-      let q2, pos = get_query charset s pos in
+      let q1, pos = get_query s (pos+1) in
+      let q2, pos = get_query  s pos in
       Q_ANDNOT (q1,q2), pos
   | 3 ->
-      let s1, pos = get_string charset s (pos+1) in
-      let q, pos = get_query charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let q, pos = get_query s pos in
       Q_MODULE (s1, q), pos
   
   | 4 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_KEYWORDS (s1,s2), pos
   
   | 5 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MINSIZE (s1,s2), pos
   | 6 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MAXSIZE (s1,s2), pos
   | 7 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_FORMAT (s1,s2), pos
   | 8 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MEDIA (s1,s2), pos
   | 9 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MP3_ARTIST (s1,s2), pos
   | 10 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MP3_TITLE (s1,s2), pos
   | 11 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MP3_ALBUM (s1,s2), pos
   | 12 -> 
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       Q_MP3_BITRATE (s1,s2), pos
   | 13 -> 
-      let list, pos = get_list (get_query charset) s (pos+1) in
+      let list, pos = get_list get_query s (pos+1) in
       Q_HIDDEN list, pos
   | _ -> assert false
 
@@ -166,9 +166,9 @@ let get_search_type s pos =
   | 2 -> SubscribeSearch
   | _ -> assert false
 
-let get_search get_query charset proto s pos =
+let get_search get_query proto s pos =
   let num = get_int s pos in
-  let q, pos = get_query charset s (pos+4) in
+  let q, pos = get_query s (pos+4) in
   let max = get_int s pos in
   let stype, pos = 
     if proto >= 2 then
@@ -189,13 +189,13 @@ let get_search get_query charset proto s pos =
     search_network = net;
   }, pos
 
-let get_mp3 charset s pos =
+let get_mp3 s pos =
   let module M = Mp3tag.Id3v1 in
-  let title, pos = get_string charset s pos in
-  let artist, pos = get_string charset s pos in
-  let album, pos = get_string charset s pos in
-  let year, pos = get_string charset s pos in
-  let comment, pos = get_string charset s pos in
+  let title, pos = get_string s pos in
+  let artist, pos = get_string s pos in
+  let album, pos = get_string s pos in
+  let year, pos = get_string s pos in
+  let comment, pos = get_string s pos in
   let tracknum = get_int s pos in
   let genre = get_int s (pos+4) in
   {
@@ -219,15 +219,15 @@ let dummy_info =
     M.filesize = 0;
   }
   
-let get_format charset s pos =
+let get_format s pos =
   match get_uint8 s pos with
   | 0 -> FormatUnknown, pos+1
   | 1 ->
-      let s1, pos = get_string charset s (pos+1) in
-      let s2, pos = get_string charset s pos in
+      let s1, pos = get_string s (pos+1) in
+      let s2, pos = get_string s pos in
       FormatType (s1, s2), pos
   | 2 ->
-      let codec, pos = get_string charset s (pos+1) in
+      let codec, pos = get_string s (pos+1) in
       let width = get_int s pos in
       let height = get_int s (pos+4) in
       let fps = get_int s (pos+8) in
@@ -241,7 +241,7 @@ let get_format charset s pos =
       }, pos+16
   
   | 3 ->
-      let t,pos = get_mp3 charset s (pos+1) in 
+      let t,pos = get_mp3 s (pos+1) in 
       MP3 (t, dummy_info), pos
   | _ -> assert false    
 
@@ -253,20 +253,20 @@ let get_uint64_2 proto s pos =
       get_uint64_32 s pos, pos + 4
   in i, pos
 
-let get_tag_name charset s pos =
-  let name, pos = get_string charset s pos in
+let get_tag_name s pos =
+  let name, pos = get_string s pos in
   let tag_name = field_of_string name in
   tag_name, pos
   
-let get_tag charset s pos =
-  let tag_name, pos = get_tag_name charset s pos in
+let get_tag s pos =
+  let tag_name, pos = get_tag_name s pos in
   let value, pos =
     match get_uint8 s pos with
       0 -> 
         Uint64 (get_uint64_32 s (pos+1)), pos+5
     | 1 -> 
         Fint64 (get_uint64_32 s (pos+1)), pos+5
-    | 2 -> let s, pos = get_string charset s (pos+1) in
+    | 2 -> let s, pos = get_string s (pos+1) in
         String s, pos
     | 3 -> Addr (get_ip s (pos+1)), pos+5
     | 4 -> Uint16 (get_int16 s (pos+1)), pos+3
@@ -276,21 +276,21 @@ let get_tag charset s pos =
   in
   { tag_name = tag_name; tag_value = value }, pos
 
-let get_result proto charset s pos =
+let get_result proto s pos =
   let num  = get_int s pos in
   let net = get_int s (pos+4) in
-  let names, pos = get_list (get_string charset) s (pos+8) in
+  let names, pos = get_list get_string s (pos+8) in
   let uids, pos = 
     if proto < 27 then
       [], pos+ 16
     else
-      get_list (get_uid charset) s pos
+      get_list get_uid s pos
   in
   let size, pos = get_uint64_2 proto s pos in
-  let format, pos = get_string charset s pos in
-  let t, pos = get_string charset s pos in
-  let tags, pos = get_list (get_tag charset) s pos in
-  let comment, pos = get_string charset s pos in
+  let format, pos = get_string s pos in
+  let t, pos = get_string s pos in
+  let tags, pos = get_list get_tag s pos in
+  let comment, pos = get_string s pos in
   let already_done = get_bool  s pos in
   let time, pos = 
     if proto < 27 then
@@ -313,22 +313,22 @@ let get_result proto charset s pos =
     result_time = time;
   }, pos+1
 
-let get_message charset s pos =
+let get_message s pos =
   match get_uint8 s pos with
     0 ->
-      let s, pos = get_string charset s (pos+1) in
+      let s, pos = get_string s (pos+1) in
       ServerMessage s, pos
   | 1 ->
       let n = get_int s (pos+1) in
-      let s, pos = get_string charset s (pos+5) in
+      let s, pos = get_string s (pos+5) in
       PublicMessage (n, s), pos
   | 2 ->
       let n = get_int s (pos+1) in
-      let s, pos = get_string charset s (pos+5) in
+      let s, pos = get_string s (pos+5) in
       PrivateMessage (n,s), pos
   | _ -> assert false
 
-let get_file_state charset s pos =
+let get_file_state s pos =
   match get_uint8 s pos with
   | 0 -> FileDownloading, pos+1
   | 1 -> FilePaused, pos+1
@@ -336,21 +336,21 @@ let get_file_state charset s pos =
   | 3 -> FileShared, pos+1
   | 4 -> FileCancelled, pos+1
   | 5 -> FileNew, pos+1
-  | 6 -> let s, pos = get_string charset s (pos+1) in FileAborted s, pos
+  | 6 -> let s, pos = get_string s (pos+1) in FileAborted s, pos
   | 7 -> FileQueued, pos+1
   | _ -> assert false
 
-let get_float charset s pos = 
-  let s, pos = get_string charset s pos in
+let get_float s pos = 
+  let s, pos = get_string s pos in
   float_of_string s, pos
 
-let get_float_date proto charset s pos = 
+let get_float_date proto s pos = 
   let date, pos =
     if proto > 23 then
       let date = get_int s pos in
       last_time () - date, pos + 4
     else
-    let s, pos = get_string charset s pos in
+    let s, pos = get_string s pos in
     BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
   in
 (*  lprintf "get_float_date(%d): %d\n" proto date; *)
@@ -367,18 +367,18 @@ let get_int_date proto s pos =
 let get_int_pos s pos =
   get_int s pos, pos + 4
   
-let get_file proto charset s pos = 
+let get_file proto s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = 
-    get_list (get_string charset) s (pos+8) in
+    get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
   let size,pos = get_uint64_2 proto s (pos+16) in
   let downloaded, pos = get_uint64_2 proto s pos in
   let file_all_sources = get_int s pos in
   let file_active_sources = get_int s (pos+4) in
-  let state, pos = get_file_state charset s (pos+8) in
-  let chunks, pos = get_string charset s pos in
+  let state, pos = get_file_state s (pos+8) in
+  let chunks, pos = get_string s pos in
   let availability, pos = 
     if proto > 17 then
       get_list (fun s pos ->
@@ -389,18 +389,18 @@ let get_file proto charset s pos =
     else
     let avail, pos = get_string_bin s pos in
     [net, avail], pos in
-  let rate, pos = get_float charset s pos in
-  let chunks_age, pos = get_array (get_float_date proto charset) s pos in
-  let age, pos = get_float_date proto charset s pos in
-  let format, pos = get_format charset s pos in
+  let rate, pos = get_float s pos in
+  let chunks_age, pos = get_array (get_float_date proto) s pos in
+  let age, pos = get_float_date proto s pos in
+  let format, pos = get_format s pos in
   let name, pos = if proto >= 8 then
-      get_string charset s pos else List.hd names, pos in
+      get_string s pos else List.hd names, pos in
   let last_seen, pos = if proto >= 9 then 
       get_int s pos, pos+4 else BasicSocket.last_time (), pos in
   let priority, pos = if proto >= 12 then
       get_int s pos, pos+4 else 0, pos in
   let comment, pos = if proto > 21 then
-      get_string charset s pos
+      get_string s pos
     else "", pos in
   let names = List.map (fun name -> name, noips()) names in
   let last_seen = BasicSocket.last_time () - last_seen in
@@ -408,7 +408,7 @@ let get_file proto charset s pos =
     if proto < 31 then
       [], pos
     else
-      get_list (get_uid charset) s pos
+      get_list get_uid s pos
   in
   (*
   assert (num = file_info_test.file_num);
@@ -491,32 +491,32 @@ let get_host_state proto s pos =
   | _ -> assert false
 
 
-let get_addr charset s pos =
+let get_addr s pos =
   match get_uint8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
       Ip.addr_of_ip ip, pos+5
   | 1 ->
-      let name,pos = get_string charset s (pos+1) in
+      let name,pos = get_string s (pos+1) in
       Ip.addr_of_string name, pos
   | _ -> assert false
 
-let get_server proto charset s pos =
+let get_server proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let addr, pos = if proto < 2 then
       Ip.addr_of_ip (get_ip s (pos+8)), pos+12
     else 
-      get_addr charset s (pos+8)      
+      get_addr s (pos+8)      
   in
   let port = get_int16 s pos in
   let score = get_int s (pos+2) in
-  let tags, pos = get_list (get_tag charset) s (pos+6) in
+  let tags, pos = get_list get_tag s (pos+6) in
   let nusers, pos = get_int64_28 proto s pos in
   let nfiles, pos = get_int64_28 proto s pos in
   let state, pos = get_host_state proto s pos in
-  let name, pos = get_string charset s pos in
-  let description, pos = get_string charset s pos in
+  let name, pos = get_string s pos in
+  let description, pos = get_string s pos in
   let preferred = if proto > 28 then get_bool s pos else false in
   {
     server_num = num;
@@ -530,7 +530,7 @@ let get_server proto charset s pos =
     server_state = state;
     server_name = name;
     server_description = description;
-  server_banner = "";
+    server_banner = "";
     server_users = None;
     server_preferred = preferred;
   }, pos
@@ -542,27 +542,27 @@ let get_client_type s pos =
   | 2 -> client_contact_tag
   | _ -> assert false
 
-let get_kind charset s pos =
+let get_kind s pos =
   match get_uint8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
       let port = get_int16 s (pos+5) in
       Known_location (ip, port), pos+7
   | 1 ->
-      let name, pos = get_string charset s (pos+1) in
+      let name, pos = get_string s (pos+1) in
       let md4 = get_md4 s pos in
       Indirect_location (name, md4), pos+16
   | _ -> assert false
 
-let get_client proto charset s pos =
+let get_client proto s pos =
   if proto <= 18 then
     let num = get_int s pos in
     let net = get_int s (pos+4) in
-    let kind, pos = get_kind charset s (pos+8) in
+    let kind, pos = get_kind s (pos+8) in
     let state,pos = get_host_state proto s pos in
     let t = get_client_type s pos in
-    let tags, pos = get_list (get_tag charset) s (pos+1) in
-    let name, pos = get_string charset s pos in
+    let tags, pos = get_list get_tag s (pos+1) in
+    let name, pos = get_string s pos in
     let rating = get_int s pos in
     let chat_port = get_int s (pos+4) in
     {
@@ -587,18 +587,18 @@ let get_client proto charset s pos =
   else
   let num = get_int s pos in
   let net = get_int s (pos+4) in
-  let kind, pos = get_kind charset s (pos+8) in
+  let kind, pos = get_kind s (pos+8) in
   let state,pos = get_host_state proto s pos in
   let t = get_client_type s pos in
-  let tags, pos = get_list (get_tag charset) s (pos+1) in
-  let name, pos = get_string charset s pos in
+  let tags, pos = get_list get_tag s (pos+1) in
+  let name, pos = get_string s pos in
   let rating = get_int s pos in
-  let software, pos = get_string charset s (pos+4) in
+  let software, pos = get_string s (pos+4) in
   let downloaded = get_int64 s pos in
   let uploaded = get_int64 s (pos+8) in
-(*  let sock_addr, pos = get_string charset s (pos+16) in *)
+(*  let sock_addr, pos = get_string s (pos+16) in *)
   let pos = pos + 16 in
-  let upload, pos = match get_string charset s pos with
+  let upload, pos = match get_string s pos with
       "", pos -> None, pos
     | s, pos -> Some s, pos
   in
@@ -609,7 +609,7 @@ let get_client proto charset s pos =
   in
   let emulemod, pos =
     if proto >= 21 then
-      get_string charset s pos
+      get_string s pos
       else "", pos
   in 
   {
@@ -642,11 +642,11 @@ let default_flags = [
     NetworkHasUpload
   ]
   
-let get_network proto charset s pos =
+let get_network proto s pos =
   let num = get_int s pos in
-  let name, pos = get_string charset s (pos+4) in
+  let name, pos = get_string s (pos+4) in
   let enabled = get_bool s pos in
-  let config_file, pos = get_string charset s (pos+1) in
+  let config_file, pos = get_string s (pos+1) in
   let uploaded = get_int64 s pos in
   let downloaded = get_int64 s (pos+8) in
   let connected, flags, pos = 
@@ -680,13 +680,13 @@ let get_network proto charset s pos =
   }, pos
 
 
-let get_user charset s pos = 
+let get_user s pos = 
   let num = get_int s pos in
   let md4 = get_md4 s (pos+4) in
-  let name, pos = get_string charset s (pos+20) in
+  let name, pos = get_string s (pos+20) in
   let ip = get_ip s pos in
   let port = get_int16 s (pos+4) in
-  let tags, pos = get_list (get_tag charset) s (pos+6) in
+  let tags, pos = get_list get_tag s (pos+6) in
   let server = get_int s pos in
   {
     user_num = num;
@@ -706,10 +706,10 @@ let get_room_state s pos =
   | 2 -> RoomPaused
   | _ -> assert false
 
-let get_room proto charset s pos =
+let get_room proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
-  let name, pos = get_string charset s (pos+8) in
+  let name, pos = get_string s (pos+8) in
   let state = get_room_state s pos in
   let nusers,pos = if proto >= 3 then get_int s (pos+1), pos+5 else 0, pos+1 in
   {
@@ -722,10 +722,10 @@ let get_room proto charset s pos =
     room_nusers = nusers;
   }, pos + 1 
 
-let get_shared_info proto charset s pos =
+let get_shared_info proto s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
-  let name, pos = get_string charset s (pos+8) in
+  let name, pos = get_string s (pos+8) in
   let size,pos = get_uint64_2 proto s pos in
   let uploaded = get_int64 s pos in
   let requests = get_int s (pos+8) in
@@ -739,10 +739,10 @@ let get_shared_info proto charset s pos =
     shared_uids = [];
   }
 
-let get_shared_info_version_10 proto charset s pos =
+let get_shared_info_version_10 proto s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
-  let name, pos = get_string charset s (pos+8) in
+  let name, pos = get_string s (pos+8) in
   let size,pos = get_uint64_2 proto s pos in
   let uploaded = get_int64 s pos in
   let requests = get_int s (pos+8) in
@@ -750,7 +750,7 @@ let get_shared_info_version_10 proto charset s pos =
     if proto < 31 then
       [], pos+12
     else
-      get_list (get_uid charset) s (pos+12)
+      get_list get_uid s (pos+12)
   in
   {
     shared_num = num;
@@ -762,15 +762,15 @@ let get_shared_info_version_10 proto charset s pos =
     shared_uids = uids;
   }
 
-  
-  
+
+
 (***************
 
      Decoding of messages from the GUI to the Core 
 
 ****************)
 
-let from_gui (proto : int array) charset opcode s =
+let from_gui (proto : int array) opcode s =
   try
 
     let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in    
@@ -786,29 +786,29 @@ let from_gui (proto : int array) charset opcode s =
     | 5
     | 52 -> 
         if proto < 14 then
-           let pass,_ = get_string charset s 2 in Password ("admin", pass)
+           let pass,_ = get_string s 2 in Password ("admin", pass)
         else
-        let pass,pos = get_string charset s 2 in
-        let login,pos = get_string charset s pos in
+        let pass,pos = get_string s 2 in
+        let login,pos = get_string s pos in
         Password (login, pass)
     | 6 -> 
         let local = get_bool s 2 in
-        let search, pos = get_search get_query charset proto s 3 in
+        let search, pos = get_search get_query  proto s 3 in
         search.search_type <- if local then LocalSearch else RemoteSearch;
         Search_query search
     | 7 -> 
-        let list, pos = get_list (get_string charset) s 2 in
+        let list, pos = get_list get_string s 2 in
         let result_num = get_int s pos in
         Download_query (list, result_num, false)
     
-    | 8 -> let string, pos = get_string charset s 2 in
+    | 8 -> let string, pos = get_string s 2 in
         lprintf "Received string: [%s]\n" (String.escaped string);
         Url string 
     | 9 -> let int = get_int s 2 in RemoveServer_query int
     | 10 ->
         let list, pos = get_list (fun s pos ->
-              let s1, pos = get_string charset s pos in
-              let s2, pos = get_string charset s pos in
+              let s1, pos = get_string s pos in
+              let s2, pos = get_string s pos in
               (s1,s2), pos) s 2 in
         SaveOptions_query list
     
@@ -822,7 +822,7 @@ let from_gui (proto : int array) charset opcode s =
     
     | 13 ->
         let int = get_int s 2 in 
-        let s, pos = get_string charset s 6 in
+        let s, pos = get_string s 6 in
         SaveFile (int, s)
     
     | 14 ->
@@ -840,7 +840,7 @@ let from_gui (proto : int array) charset opcode s =
     | 17 -> RemoveAllFriends
     
     | 18 -> 
-        let string, pos = get_string charset s 2 in
+        let string, pos = get_string s 2 in
         FindFriend string
     
     | 19 -> 
@@ -874,7 +874,7 @@ let from_gui (proto : int array) charset opcode s =
     
     | 26 ->
         let int = get_int s 2 in
-        let tag, pos = get_mp3 charset s 6 in
+        let tag, pos = get_mp3  s 6 in
         ModifyMp3Tags (int, tag)
     
     | 27 ->
@@ -882,12 +882,12 @@ let from_gui (proto : int array) charset opcode s =
         CloseSearch  (int, true)
     
     | 28 ->
-        let s1, pos = get_string charset s 2 in
-        let s2, pos = get_string charset s pos in
+        let s1, pos = get_string s 2 in
+        let s2, pos = get_string s pos in
         SetOption (s1, s2)
     
     | 29 ->
-        let s1, pos = get_string charset s 2 in
+        let s1, pos = get_string s 2 in
         Command s1
     
     | 30 ->
@@ -928,7 +928,7 @@ let from_gui (proto : int array) charset opcode s =
     
     | 39 ->
         let int = get_int s 2 in 
-        let room_message, pos = get_message charset s 6 in
+        let room_message, pos = get_message  s 6 in
         
         let msg = SendMessage (int, room_message) in
         
@@ -948,10 +948,10 @@ let from_gui (proto : int array) charset opcode s =
     | 41 ->
         let int = get_int s 2 in 
         BrowseUser  int
-    | 42 -> let s, pos = get_search get_query charset proto s 2 in Search_query s
+    | 42 -> let s, pos = get_search get_query  proto s 2 in Search_query s
     | 43 -> 
         let int = get_int s 2 in 
-        let message, pos = get_string charset s 6 in
+        let message, pos = get_string s 6 in
         MessageToClient (int, message)
     | 44 -> GetConnectedServers
     | 45 -> GetDownloadFiles
@@ -966,7 +966,7 @@ let from_gui (proto : int array) charset opcode s =
     | 49 -> RefreshUploadStats
     
     | 50 ->
-        let list, pos = get_list (get_string charset) s 2 in
+        let list, pos = get_list get_string s 2 in
         let result_num = get_int s pos in
         let force = get_bool s (pos+4) in
         Download_query (list, result_num, force)
@@ -997,7 +997,7 @@ let from_gui (proto : int array) charset opcode s =
 
     | 56 ->
         let num = get_int s 2 in
-        let new_name, pos = get_string charset s 6 in
+        let new_name, pos = get_string s 6 in
         RenameFile(num, new_name)
 
     | 57 ->
@@ -1020,7 +1020,7 @@ let from_gui (proto : int array) charset opcode s =
         
     | 63 ->
         let n = get_int s 2 in
-        let s, pos = get_string charset s 6 in
+        let s, pos = get_string s 6 in
         NetworkMessage (n, s)
         
     | 64 ->
@@ -1046,7 +1046,7 @@ let from_gui (proto : int array) charset opcode s =
      Decoding of messages from the Core to the GUI 
 
 ****************)
-      
+
 let dummy_option = 
   let module M = Options in
   {
@@ -1060,7 +1060,7 @@ let dummy_option =
     M.option_advanced = false;
   }
       
-let to_gui (proto : int array) charset opcode s =
+let to_gui (proto : int array)  opcode s =
   try
     let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
     
@@ -1080,8 +1080,8 @@ let to_gui (proto : int array) charset opcode s =
     | 1 ->
         let list, pos = get_list (fun s pos ->
               let module M = Options in
-              let name, pos = get_string charset s pos in
-              let value, pos = get_string charset s pos in
+              let name, pos = get_string s pos in
+              let value, pos = get_string s pos in
               { dummy_option with
                 M.option_name = name;
                 M.option_value = value;
@@ -1091,13 +1091,13 @@ let to_gui (proto : int array) charset opcode s =
     
     | 3 ->
         let list, pos = get_list (fun s pos ->
-              let name, pos = get_string charset s pos in
-              let q, pos = get_query charset s pos in
+              let name, pos = get_string s pos in
+              let q, pos = get_query  s pos in
               (name, q), pos) s 2 in
         DefineSearches list
     
     | 4 -> 
-        let r, pos = get_result proto charset s 2 in
+        let r, pos = get_result proto  s 2 in
         Result_info r
     
     | 5 ->
@@ -1111,13 +1111,13 @@ let to_gui (proto : int array) charset opcode s =
         Search_waiting (n1,n2)
     
     | 7 -> 
-        let file_info, pos = get_file proto charset s 2 in
+        let file_info, pos = get_file proto  s 2 in
         File_info file_info
     
     | 8 ->
         let n = get_int s 2 in
         let size,pos = get_uint64_2 proto s 6 in
-        let rate, pos = get_float charset s pos in
+        let rate, pos = get_float  s pos in
         File_downloaded (n, size, rate, BasicSocket.last_time ())
     
     | 9 ->
@@ -1148,11 +1148,11 @@ let to_gui (proto : int array) charset opcode s =
         Server_state (int,host_state)
     
     | 14 ->
-        let server_info, pos = get_server proto charset s 2 in
+        let server_info, pos = get_server proto  s 2 in
         Server_info server_info
     
     | 15 -> 
-        let client_info, pos = get_client proto charset s 2 in
+        let client_info, pos = get_client proto  s 2 in
         Client_info client_info
     
     | 16 -> 
@@ -1167,29 +1167,29 @@ let to_gui (proto : int array) charset opcode s =
     
     | 18 ->
         let n1 = get_int s 2 in
-        let s1, pos = get_string charset s 6 in
+        let s1, pos = get_string s 6 in
         let n2 = get_int s pos in          
         Client_file (n1, s1, n2)
     
     | 19 -> 
-        let string, pos = get_string charset s 2 in
+        let string, pos = get_string s 2 in
         Console string
     
     | 20 -> 
-        let network_info, pos = get_network proto charset s 2 in
+        let network_info, pos = get_network proto  s 2 in
         Network_info network_info
     
     | 21 ->
-        let user_info, pos = get_user charset s 2 in
+        let user_info, pos = get_user  s 2 in
         User_info user_info
     
     | 22 ->
-        let room_info, pos = get_room proto charset s 2 in
+        let room_info, pos = get_room proto  s 2 in
         Room_info room_info
     
     | 23 ->
         let int = get_int s 2 in
-        let room_message, pos = get_message charset s 6 in
+        let room_message, pos = get_message  s 6 in
         Room_message (int, room_message) 
     
     | 24 ->
@@ -1216,26 +1216,26 @@ let to_gui (proto : int array) charset opcode s =
           ndownloaded_files = 0;
         }
     
-    | 26 -> let s, pos = get_server proto charset s 2 in Server_info s
+    | 26 -> let s, pos = get_server proto  s 2 in Server_info s
     | 27 -> 
         let int = get_int s 2 in 
-        let message, pos = get_string charset s 6 in
+        let message, pos = get_string s 6 in
         MessageFromClient (int, message)
     
     | 28 -> 
-        let list, pos = get_list (get_server proto charset) s 2 in
+        let list, pos = get_list (get_server proto ) s 2 in
         ConnectedServers list
     
     | 29 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadFiles list
     
     | 30 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadedFiles list
     
     | 31 ->
-        let room_info, pos = get_room proto charset s 2 in
+        let room_info, pos = get_room proto  s 2 in
         Room_info room_info
     
     | 32 -> 
@@ -1243,7 +1243,7 @@ let to_gui (proto : int array) charset opcode s =
         let user = get_int s 6 in
         Room_remove_user (room, user)
     | 33 ->
-        let s = get_shared_info proto charset s 2 in
+        let s = get_shared_info proto  s 2 in
         Shared_file_info s
     
     | 34 ->
@@ -1257,15 +1257,15 @@ let to_gui (proto : int array) charset opcode s =
         Shared_file_unshared num
     
     | 36 -> 
-        let section, pos = get_string charset s 2 in
-        let message, pos = get_string charset s pos in 
-        let option, pos = get_string charset s pos in
+        let section, pos = get_string s 2 in
+        let message, pos = get_string s pos in 
+        let option, pos = get_string s pos in
         let module M = Options in
         let o = if proto > 16 then 
-            let optype, pos = get_string charset s pos in
-            let help, pos = get_string charset s pos in
-            let value, pos = get_string charset s pos in
-            let default, pos = get_string charset s pos in
+            let optype, pos = get_string s pos in
+            let help, pos = get_string s pos in
+            let value, pos = get_string s pos in
+            let default, pos = get_string s pos in
             let advanced = get_bool s pos in
             {
               M.option_desc = message;
@@ -1318,15 +1318,15 @@ let to_gui (proto : int array) charset opcode s =
         }
     
     | 38 -> 
-        let section, pos = get_string charset s 2 in
-        let message, pos = get_string charset s pos in 
-        let option, pos = get_string charset s pos in
+        let section, pos = get_string s 2 in
+        let message, pos = get_string s pos in 
+        let option, pos = get_string s pos in
         let module M = Options in
         let o = if proto > 16 then 
-            let optype, pos = get_string charset s pos in
-            let help, pos = get_string charset s pos in
-            let value, pos = get_string charset s pos in
-            let default, pos = get_string charset s pos in
+            let optype, pos = get_string s pos in
+            let help, pos = get_string s pos in
+            let value, pos = get_string s pos in
+            let default, pos = get_string s pos in
             let advanced = get_bool s pos in
             {
               M.option_desc = message;
@@ -1378,33 +1378,33 @@ let to_gui (proto : int array) charset opcode s =
         }
     
     |  40 ->
-        let file, pos = get_file proto charset s 2 in
+        let file, pos = get_file proto  s 2 in
         File_info file
     
     | 41 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadFiles list
     
     | 42 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadedFiles list
     
     | 43 ->
-        let file, pos = get_file proto charset s 2 in
+        let file, pos = get_file proto  s 2 in
         File_info file
     
     | 44 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadFiles list
     
     | 45 ->
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadedFiles list
     
     | 46 ->
         let n = get_int s 2 in
         let size,pos = get_uint64_2 proto s 6 in
-        let rate, pos = get_float charset s pos in
+        let rate, pos = get_float  s pos in
         let last_seen = get_int s pos in
         File_downloaded (n, size, rate, 
           BasicSocket.last_time () - last_seen)
@@ -1412,7 +1412,7 @@ let to_gui (proto : int array) charset opcode s =
     | 47 -> BadPassword
     
     | 48 ->
-        let s = get_shared_info_version_10 proto charset s 2 in
+        let s = get_shared_info_version_10 proto  s 2 in
         Shared_file_info s      
     
     | 49 ->
@@ -1461,13 +1461,13 @@ let to_gui (proto : int array) charset opcode s =
         CleanTables (clients, servers)
 
     | 52 -> 
-        let file, pos = get_file proto charset s 2 in
+        let file, pos = get_file proto  s 2 in
         File_info file
     | 53 -> 
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadFiles list
     | 54 -> 
-        let list, pos = get_list (get_file proto charset) s 2 in
+        let list, pos = get_list (get_file proto ) s 2 in
         DownloadedFiles list
 
     | 55 ->
@@ -1478,11 +1478,11 @@ let to_gui (proto : int array) charset opcode s =
         Pending list
         
     | 57 ->
-        let s, pos = get_search get_string charset proto s 2 in
+        let s, pos = get_search get_string proto s 2 in
         Search s
         
     | 58 ->
-        let s, pos = get_string charset s 2 in 
+        let s, pos = get_string s 2 in 
         Version s
         
     | _ -> 

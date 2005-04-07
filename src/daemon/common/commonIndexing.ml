@@ -185,6 +185,7 @@ module Make(Stored : sig
             | Sha1 _ -> "sha1"
             | Bitprint _ -> "bp"
             | BTUrl _ -> "bt"
+            | FileTP _ -> "filetp"
             | NoUid -> ""
           ) uid_bit
       ) (Stored.result_uids r);

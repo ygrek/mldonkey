@@ -42,10 +42,6 @@ open CommonOptions
 open CommonGlobals
   
 module P = GuiProto
-  
-let charset_to_gui s = s
-
-let charset_from_gui s = s
 
 let binary_gui_send gui t =
   match gui.gui_sock with
@@ -53,7 +49,7 @@ let binary_gui_send gui t =
       Fifo.put core_gui_fifo t
   | Some sock ->
       try
-        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_proto_to_gui_version charset_to_gui ) 
+        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_proto_to_gui_version) 
         sock t
       with UnsupportedGuiMessage -> 
 (* the message is probably not supported by this GUI *)
@@ -1116,8 +1112,7 @@ let gui_handler t event =
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
               try
-                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version
-                charset_from_gui opcode s in
+                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode s in
                 gui_reader gui m sock;
               with GuiDecoding.FromGuiMessageNotImplemented -> ()
           ));

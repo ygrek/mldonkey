@@ -29,19 +29,21 @@ open Md4
 open BasicSocket
 open Options
 open TcpBufferedSocket
+open CommonOptions
 
 type host_kind = Peer | Ultrapeer | IndexServer
   
 type ('server,'request,'ip) host = {
     host_num : int;
     mutable host_server : 'server option;
+    mutable host_on_remove : unit -> unit;
     host_addr : 'ip;
     host_port : int;
-(* the last time we have indirectly heard about this host *)
+    (* the last time we have indirectly heard about this host *)
     mutable host_obsolete : int;
     
-(* the set of requests to perform on this host, and the last time they have 
-  been done *)
+    (* the set of requests to perform on this host, and the last time they have 
+       been done *)
     mutable host_requests : ('request * int) list; 
     mutable host_kind : host_kind;
     
@@ -71,8 +73,8 @@ module Make(M: sig
     
     open M
 
-(* Hosts are first injected in workflow. The workflow ensures that any
-host object is inspected every two minutes. *)
+    (* Hosts are first injected in workflow. The workflow ensures that any
+       host object is inspected every two minutes. *)
     let (workflow : (server, request,ip) host Queues.Queue.t) = 
       Queues.workflow (fun time -> time + 120 > last_time ())
 
@@ -96,7 +98,7 @@ host object is inspected every two minutes. *)
     let ultrapeers_counter = ref 0
     let peers_counter = ref 0
       
-(* The number of new hosts that have been rejected *)
+    (* The number of new hosts that have been rejected *)
     let indexservers_pressure = ref 0
     let ultrapeers_pressure = ref 0
     let peers_pressure = ref 0
@@ -132,9 +134,9 @@ host object is inspected every two minutes. *)
           let host = {
               host_num = !(counter host_kind);
               host_server = None;
+              host_on_remove = (fun _ -> ());
               host_addr = ip;
               host_port = port;
-              
               host_obsolete = 0;
               host_requests = default_requests host_kind;
               
@@ -147,12 +149,18 @@ host object is inspected every two minutes. *)
               host_queue_add workflow host 0;
               host
             end else begin
-(* Be careful, we don't remember this host, so don't expect it to appear in the
-workflow... *)
+              (* Be careful, we don't remember this host, so don't expect it to appear in the
+                 workflow...
+                 Why not remember it? Either the system should know that it
+                 should drop the host or we should take care of that later.
+                 We now add it and clean the pressure in manage_hosts. *)
               incr (pressure host_kind);
+              incr (counter host_kind);
+              Hashtbl.add hosts_by_key key host;
+              host_queue_add workflow host 0;
               host
             end
-            
+    
     let rec set_request_rec list r tail =
       match list with
         [] -> (r, last_time ()) :: tail
@@ -167,19 +175,24 @@ workflow... *)
     let under_pressure kind =
       ! (pressure kind) <> 0 || 
       !(counter kind) * 110 / 100 > (max_hosts kind)
+
+    let under_much_pressure kind =
+      !(counter kind) > 2*(max_hosts kind)
       
-(* TODO: we should try to be more clever. We should take care of the 
-"pressure", i.e. the new hosts that we discover. If we don't discover
-new hosts, we should keep the old ones. If we discover new hosts, we should
-remove the old ones. *)
+    (* TODO: we should try to be more clever. We should take care of the 
+       "pressure", i.e. the new hosts that we discover. If we don't discover
+       new hosts, we should keep the old ones. If we discover new hosts, we should
+       remove the old ones. *)
     let manage_host h =
       try
         let current_time = last_time () in
-(* Don't do anything with hosts older than one hour and not responding...
-  but then, why do we keep then if we cannot remove them ? *)
-        if not (under_pressure h.host_kind) || h.host_obsolete = 0 then begin
+        (* Don't do anything with not responding hosts...
+           but then, why do we keep then if we cannot remove them ? *)
+        if ( not (under_pressure h.host_kind) || h.host_obsolete = 0 )
+           && not (under_much_pressure h.host_kind)
+          then begin
             host_queue_add workflow h current_time;
-(* From here, we must dispatch to the different queues *)
+            (* From here, we must dispatch to the different queues *)
             List.iter (fun (request, last) ->
                 try
                   let (delay,f) = List.assoc request requests in
@@ -193,9 +206,20 @@ remove the old ones. *)
           end    
         else 
         if h.host_queues <> [] then begin
-            host_queue_add workflow h current_time;      
+            host_queue_add workflow h current_time;
+            if !verbose then
+              lprintf "not removed host %d  %s server %d\n"
+                (h.host_obsolete - last_time ())
+                (match h.host_server with | None -> "none" | Some _ -> "some" )
+                (Queue.length workflow);
           end else begin
-(* This host is too old, remove it *)
+            (* This host is too old, remove it *)
+            h.host_on_remove ();
+            if !verbose then
+              lprintf "removed host %d  %s server %d\n"
+                (h.host_obsolete - last_time ())
+                (match h.host_server with | None -> "none" | Some _ -> "some" )
+                (Queue.length workflow);
             decr (counter h.host_kind);
             decr (pressure h.host_kind);
             Hashtbl.remove hosts_by_key  (h.host_addr, h.host_port)
@@ -211,12 +235,12 @@ remove the old ones. *)
         iter ()
       in
       (try iter () with _ -> ())
-      
+    
     let try_connect h =
       if h.host_obsolete = 0 then
-(* This host will become obsolete if it doesn't reply to us in the 
-  next 3 hours *)
-        h.host_obsolete <- last_time () + 3600
+        (* This host will become obsolete if it doesn't reply to us in the 
+           next minute *)
+        h.host_obsolete <- last_time () + 60
       
     let connected h =
       h.host_obsolete <- 0

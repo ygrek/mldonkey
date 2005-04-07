@@ -1,6 +1,6 @@
 
 AC_REVISION(norev)
-AC_PREREQ(2.59)
+AC_PREREQ(2.56)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30-3
+CURRENT_RELEASE=30-4
 if test -d .svn; then
   CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
 fi
@@ -462,8 +462,25 @@ else
   echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
 
-ICONV=no
-AC_CHECK_LIB(iconv,iconv_open,[ICONV=yes])
+AM_ICONV
+if test "$am_cv_func_iconv" != "yes"; then
+  echo "iconv() is missing, did you install the libraries and the developer packages for libiconv?"
+  exit 1
+fi
+LOCALECHARSET=no
+if test -n "$LIBICONV"; then
+  AC_CHECK_LIB(charset,locale_charset,[LOCALECHARSET=yes])
+  if test "$LOCALECHARSET" = "no"; then
+    echo "libcharset is missing, it is part of the libiconv library."
+    echo "Did you install the libraries and the developer packages?"
+    echo "Check libiconv is in your path."
+    exit 1
+  else
+    AC_DEFINE(LOCALECHARSET, 1, [Define if you have libcharset with the locale_charset() function.])
+    LIBICONV="$LIBICONV -lcharset"
+  fi
+fi
+
 
 SHA1_VERSION=sha1new
 AC_CHECK_HEADERS(endian.h byteswap.h,,[

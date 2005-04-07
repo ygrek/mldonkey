@@ -262,29 +262,29 @@ let get_page r content_handler f =
     )
   
   and default_headers_handler old_url level sock ans_code headers =
-    let print_headers =
+    let print_headers () =
       List.iter
         (fun (name, value) ->
-        lprintf "[%s]=[%s]" name value;
-    ) headers;
+          lprintf "[%s]=[%s]\n" name value;
+        ) headers;
     in
-    (* print_headers; *)
+    (* print_headers (); *)
     match ans_code with
       200 ->
-(*
-  lprintf "ans_code: %d\n" ans_code;
-        print_headers;
-*)
+        (*
+        lprintf "ans_code: %d\n" ans_code;
+        print_headers ();
+        *)
         TcpBufferedSocket.set_closer sock
             (fun _ _ -> 
-(*            lprintf "default_headers_handler closer\n"; *)
+              (* lprintf "default_headers_handler closer\n"; *)
               f ()
             );
         
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
-              try          
+              try
                 content_length := int_of_string content
               with _ -> 
                   lprintf "bad content length [%s]\n" content;
@@ -308,7 +308,7 @@ let get_page r content_handler f =
                     url := content;
                 ) headers;
               if !verbose then
-                print_headers;
+                print_headers ();
               let url =
                 if String.length !url > 0 && !url.[0] <> '/' then
                   !url
@@ -316,13 +316,13 @@ let get_page r content_handler f =
                   Printf.sprintf "http://%s:%d%s"
                     old_url.Url.server old_url.Url.port !url
               in
-              if !verbose then lprintf "Redirected to %s\n" url;               
+              if !verbose then lprintf "Redirected to %s\n" url;
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
             with e ->
 		lprintf "Http_client: error understanding redirect response %d\n" ans_code;
-                print_headers
+                print_headers ()
                 
           end
         else lprintf "Http_client: more than 10 redirections, aborting."

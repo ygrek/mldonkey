@@ -22,6 +22,7 @@ type host_kind = Peer | Ultrapeer | IndexServer
 type ('a, 'c, 'd) host = {
   host_num : int;
   mutable host_server : 'a option;
+  mutable host_on_remove : unit -> unit;
   host_addr : 'd;
   host_port : int;
   mutable host_obsolete : int;

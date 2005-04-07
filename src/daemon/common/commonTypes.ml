@@ -42,7 +42,7 @@ type uid_type =
 | TigerTree of TigerTree.t
 | Md5Ext of Md5Ext.t     (* for Fasttrack *)
 | BTUrl of Sha1.t
-| Ftp of Md4.t
+| FileTP of Md4.t
 | NoUid
   
 and file_uid_id = 
@@ -52,7 +52,7 @@ and file_uid_id =
 | MD5
 | MD5EXT
 | TIGER
-| FTP
+| FILETP
 
 let string_of_uid_sep uid sep =
   match uid with
@@ -73,8 +73,8 @@ let string_of_uid_sep uid sep =
         (Md5Ext.to_base32 md5)
   | BTUrl url ->
       "urn" ^ sep ^ "bt" ^ sep ^ (Sha1.to_string url)
-  | Ftp ftp ->
-      "urn" ^ sep ^ "ftp" ^ sep ^ (Md4.to_string ftp)
+  | FileTP file ->
+      "urn" ^ sep ^ "filetp" ^ sep ^ (Md4.to_string file)
   | NoUid -> ""
 
 let string_of_uid uid =
@@ -86,7 +86,6 @@ let string_of_uid uid =
 let file_string_of_uid uid =
   string_of_uid_sep uid "_"
 
-(* Maybe it would be better to raise an exception for errors ? *)
 exception Illegal_urn of string
 let uid_of_string s =
   let s = String.lowercase s in
@@ -117,7 +116,7 @@ let uid_of_string s =
   | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
   | "bt" | "bittorrent" -> 
       BTUrl (Sha1.of_string rem)
-  | "ftp" -> Ftp (Md4.of_string rem)
+  | "filetp" -> FileTP (Md4.of_string rem)
   | _ -> raise (Illegal_urn (s ^ " at " ^ sign ^ " is not known"))
 
 module Uid : sig

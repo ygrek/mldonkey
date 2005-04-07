@@ -1,4 +1,4 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(* Copyright 2001, 2002, 2005 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
 

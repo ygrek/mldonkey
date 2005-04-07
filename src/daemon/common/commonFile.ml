@@ -195,7 +195,7 @@ let file_print (file : file) buf =
 
 let file_save_as (file : file) name =
   let file = as_file_impl file in
-  file.impl_file_ops.op_file_save_as file.impl_file_val name
+  file.impl_file_ops.op_file_save_as file.impl_file_val (Charset.to_locale name)
 
 let file_comment (file : file) =
   let file = as_file_impl file in

@@ -412,14 +412,6 @@ let _ =
         P.client_type = client_type c;
         P.client_tags = [];
         P.client_name = c.client_user.user_nick;
-(*
-          (match c.client_user.user_kind with
-          | Known_location (ip, port) ->
-              Printf.sprintf "%s:%d" (Ip.to_string ip) port
-          | Indirect_location (_, id) -> 
-              Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
-        );
-*)
         P.client_files = None;
         P.client_num = (client_num (as_client c));
         P.client_rating = 0;

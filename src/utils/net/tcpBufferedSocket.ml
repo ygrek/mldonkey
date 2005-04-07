@@ -1520,7 +1520,7 @@ let compression_buffer_len = 20000
 let compression_buffer = String.create compression_buffer_len
 
 let deflate_connection sock =
-  lprintf "Creating deflate connection\n";
+  (* lprintf "Creating deflate connection\n"; *)
   let comp = Some (Zlib.inflate_init true, Zlib.deflate_init 6 true,
       buf_create !max_buffer_size, buf_create !max_buffer_size) in
   sock.compression <- comp
