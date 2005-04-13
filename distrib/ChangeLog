@@ -45,6 +45,7 @@ quite a task.
 3905: Prevent crash on start when wrong system date is set
 3906: Fix GTK1 GUI compile (was broken since patch 3867)
 3907: Fix UTF-8 stuff
+3909: Some cosmetical stuff from Amorphous rev 266
 ---------------------------------------------------------------------
 
 2005/04/07: spiralvoice (version 2.5.30-4 = 2.6pre16, tag release-2-5-30-4)
