@@ -15,6 +15,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the <libcharset.h> header file. */
+#undef HAVE_LIBCHARSET_H
+
 /* Define to 1 if you have the <linux/limits.h> header file. */
 #undef HAVE_LINUX_LIMITS_H
 

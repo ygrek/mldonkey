@@ -24,8 +24,9 @@ open LittleEndian
 open Int64ops
 open TcpBufferedSocket
 
-  open CommonTypes
+open CommonTypes
 open CommonGlobals
+open CommonOptions
   
 let const_int32_255 = Int64.of_int 255
 let output_int32_8 oc i =
@@ -163,7 +164,8 @@ let get_tag (names_of_tag : (string * field) list) s pos =
     | 9 -> let v = get_uint8 s pos2 in
         Uint8 v, pos2 + 1
     | _ -> 
-        lprintf "get_tags: unknown tag %d at pos %d\n" t pos;
+        if !verbose_unknown_messages then
+          lprintf "get_tags: unknown tag %d at pos %d\n" t pos;
         raise Not_found
   in
   {

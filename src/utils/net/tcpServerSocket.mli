@@ -26,6 +26,7 @@ type handler = t -> event -> unit
 val sock : t -> BasicSocket.t
 val create : string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
+val debug : bool ref
   
 type connections_controler    
 val set_accept_controler : t -> connections_controler -> unit

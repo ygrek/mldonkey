@@ -3634,6 +3634,26 @@ release.mlnet.static: mlnet.static opt
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
+release.utils.shared: ed2k_hash make_torrent
+	rm -rf mldonkey-*
+	mkdir -p $(DISDIR)
+	cp -f ed2k_hash $(DISDIR)/ed2k_hash && strip  $(DISDIR)/ed2k_hash
+	cp -f make_torrent $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+
+release.utils.static: ed2k_hash.static make_torrent.static
+	rm -rf mldonkey-*
+	mkdir -p $(DISDIR)
+	cp -f ed2k_hash.static $(DISDIR)/ed2k_hash && strip  $(DISDIR)/ed2k_hash
+	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+
 upload.static: release.static
 	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 

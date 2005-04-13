@@ -845,32 +845,32 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---disable-multinet:       allows you to only compile support for edonkey + Overnet
---disable-newgui:         allows you to compile the old-gui
---enable-mingw:         forces compilation with MINGW on Cygwin
---enable-checks:          force mldonkey to perform bound checks on array/string access
---enable-batch:           reply YES to all queries in this script
---disable-gui:            allows you to remove the GUI
---disable-donkey:         allows you to remove support for eDonkey
---disable-bittorrent:     allows you to remove support for Bittorent
---disable-filetp:         allows you to remove support for fileTP
---disable-gnutella:       allows you to remove support for Gnutella
---disable-gnutella2:      allows you to remove support for Gnutella2
---disable-soulseek:       allows you to remove support for SoulSeek
---disable-fasttrack:      allows you to remove support for FastTrack
---disable-opennap:        allows you to remove support for Open Napster
---disable-openft:         allows you to remove support for OpenFT
---disable-ares:      allows you to remove support for Ares
---disable-cymes:          allows you to remove support for Cymes
---enable-ocamlver=3.08.0:   allows you to change the required version of ocaml
---enable-gtk2:   allows you to compile using GTK2
---disable-pthread :        allows you to disable pthread support in mldonkey
---enable-pthread-lib :    legacy option
---enable-profile:   allows you to profile mlnet using gprof
---enable-debug:   allows you to compile mlnet with debug symbols
---enable-devel:           (undocumented)
+  --disable-multinet:       allows you to only compile support for edonkey + Overnet
+  --disable-newgui:         allows you to compile the old-gui
+  --enable-mingw:         forces compilation with MINGW on Cygwin
+  --enable-checks:          force mldonkey to perform bound checks on array/string access
+  --enable-batch:           reply YES to all queries in this script
+  --disable-gui:            allows you to remove the GUI
+  --disable-donkey:         allows you to remove support for eDonkey
+  --disable-bittorrent:     allows you to remove support for Bittorent
+  --disable-filetp:         allows you to remove support for fileTP
+  --disable-gnutella:       allows you to remove support for Gnutella
+  --disable-gnutella2:      allows you to remove support for Gnutella2
+  --disable-soulseek:       allows you to remove support for SoulSeek
+  --disable-fasttrack:      allows you to remove support for FastTrack
+  --disable-opennap:        allows you to remove support for Open Napster
+  --disable-openft:         allows you to remove support for OpenFT
+  --disable-ares:      allows you to remove support for Ares
+  --disable-cymes:          allows you to remove support for Cymes
+  --enable-ocamlver=3.08.0:   allows you to change the required version of ocaml
+  --enable-gtk2:   allows you to compile using GTK2
+  --disable-pthread :        allows you to disable pthread support in mldonkey
+  --enable-pthread-lib :    legacy option
+  --enable-profile:   allows you to profile mlnet using gprof
+  --enable-debug:   allows you to compile mlnet with debug symbols
+  --enable-devel:           (undocumented)
   --disable-largefile     omit support for large files
---enable-swarming1:           very experimental
+  --enable-swarming1:           very experimental
 --enable-local-prefix=prefix:           allows you to specify where you want temporary tools to be installed (prefix must be absolute)
   --disable-rpath         do not hardcode runtime library paths
 
@@ -1338,7 +1338,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30-4
+CURRENT_RELEASE=30-5
 if test -d .svn; then
   CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
 fi
@@ -1489,9 +1489,9 @@ if test "${enable_opennap+set}" = set; then
   OPEN_NAPSTER="$enableval"
 fi;
 
-#AC_ARG_ENABLE(directconnect, [--disable-directconnect:  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
+#AC_ARG_ENABLE(directconnect, [  --disable-directconnect:  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
 
-#AC_ARG_ENABLE(audiogalaxy,   [--disable-audiogalaxy:    allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
+#AC_ARG_ENABLE(audiogalaxy,   [  --disable-audiogalaxy:    allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
 
 # Check whether --enable-openft or --disable-openft was given.
 if test "${enable_openft+set}" = set; then
@@ -3940,7 +3940,9 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-
+if test "$FORCE_MINGW" = "yes"; then
+    CC="$CC -mno-cygwin"
+fi
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2
@@ -4918,6 +4920,11 @@ fi
 
 if test "$PROFILE" = "yes"; then
    OCAMLOPT="$OCAMLOPT -p"
+fi
+if test "$FORCE_MINGW" = "yes"; then
+    OCAMLC="$OCAMLC -ccopt -mno-cygwin"
+    OCAMLOPT="$OCAMLOPT -ccopt -mno-cygwin"
+    OCAMLMKTOP="$OCAMLMKTOP -ccopt -mno-cygwin"
 fi
 if test "$DEBUG" = "yes"; then
     OCAMLC="$OCAMLC -g"
@@ -9733,6 +9740,156 @@ fi
     echo "Check libiconv is in your path."
     exit 1
   else
+
+for ac_header in libcharset.h
+do
+as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
+else
+  # Is the header compilable?
+echo "$as_me:$LINENO: checking $ac_header usability" >&5
+echo $ECHO_N "checking $ac_header usability... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_header_compiler=no
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6
+
+# Is the header present?
+echo "$as_me:$LINENO: checking $ac_header presence" >&5
+echo $ECHO_N "checking $ac_header presence... $ECHO_C" >&6
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <$ac_header>
+_ACEOF
+if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
+  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null; then
+  if test -s conftest.err; then
+    ac_cpp_err=$ac_c_preproc_warn_flag
+    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
+  else
+    ac_cpp_err=
+  fi
+else
+  ac_cpp_err=yes
+fi
+if test -z "$ac_cpp_err"; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.$ac_ext
+echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
+echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
+    (
+      cat <<\_ASBOX
+## ------------------------------------------ ##
+## Report this to the AC_PACKAGE_NAME lists.  ##
+## ------------------------------------------ ##
+_ASBOX
+    ) |
+      sed "s/^/$as_me: WARNING:     /" >&2
+    ;;
+esac
+echo "$as_me:$LINENO: checking for $ac_header" >&5
+echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Header+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  eval "$as_ac_Header=\$ac_header_preproc"
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Header'}'`" >&6
+
+fi
+if test `eval echo '${'$as_ac_Header'}'` = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
 
 cat >>confdefs.h <<\_ACEOF
 #define LOCALECHARSET 1

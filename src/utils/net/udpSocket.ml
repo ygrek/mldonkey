@@ -139,7 +139,7 @@ let udp_uploaded_bytes = ref Int64.zero
 let udp_downloaded_bytes = ref Int64.zero
     
 let buf = Buffer.create 2000
-
+let debug = ref false
 
 let read t = 
   match t.rlist with
@@ -280,11 +280,10 @@ let rec iter_write_no_bc t sock =
       udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
     with
       Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
-    | Unix.Unix_error (Unix.EINVAL, _, _) as e ->
-          ()
     | e ->
-          lprintf "Exception %s in sendto next\n"
-            (Printexc2.to_string e)
+          if !debug then
+	    lprintf "Exception %s in sendto next\n"
+              (Printexc2.to_string e)
   end;
   iter_write_no_bc t sock
   
@@ -317,11 +316,10 @@ let rec iter_write t sock bc =
           TcpBufferedSocket.ip_packet_size) ;
       with
         Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
-      | Unix.Unix_error (Unix.EINVAL, _, _) as e ->
-          ()
       | e ->
-          lprintf "Exception %s in sendto next\n"
-            (Printexc2.to_string e);
+          if !debug then
+	    lprintf "Exception %s in sendto next\n"
+              (Printexc2.to_string e)
     end;
     iter_write t sock bc
   else

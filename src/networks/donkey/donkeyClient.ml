@@ -1429,7 +1429,8 @@ is checked for the file.
           c.client_comp <- None;
         end else
       if comp.comp_len > comp.comp_total then begin
-          lprintf "ERROR: more data than compressed!!!\n";
+          if !verbose_hidden_errors then
+            lprintf "ERROR: more data than compressed!!!\n";
           c.client_comp <- None;
         end
   

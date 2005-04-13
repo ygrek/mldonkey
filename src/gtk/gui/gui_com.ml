@@ -67,7 +67,7 @@ let send t =
       lprintf "Message not sent since not connected";
       lprint_newline ();
   | Some sock ->
-      GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used (fun s -> s) ) sock t
+      GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock t
           
 let reconnect gui value_reader reason =
   (try disconnect gui reason with _ -> ());
@@ -130,7 +130,7 @@ let reconnect gui value_reader reason =
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
-            let m = GuiDecoding.to_gui to_gui_protocol_used (fun s -> s) opcode s in
+            let m = GuiDecoding.to_gui to_gui_protocol_used opcode s in
             value_reader gui m;
           with e ->
               lprintf "Exception %s in decode/exec" (Printexc2.to_string e); 
@@ -221,7 +221,7 @@ let scan_ports () =
                 BASIC_EVENT (RTIMEOUT) -> close sock Closed_for_timeout
               | _ -> ()
           ) in
-        GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used (fun s -> s) ) sock 
+        GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock 
           (GuiProto.GuiProtocol GuiProto.best_gui_version);
         set_closer sock (fun _ _ -> 
             scan_port next (i+1) max);
@@ -232,7 +232,7 @@ let scan_ports () =
             GuiDecoding.gui_cut_messages
               (fun opcode s ->
                 try
-                  let m = GuiDecoding.to_gui to_gui_protocol_used (fun s -> s)
+                  let m = GuiDecoding.to_gui to_gui_protocol_used
                       opcode s in
                   match m with
                     CoreProtocol (n, _, _) ->

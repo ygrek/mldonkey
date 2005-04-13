@@ -159,6 +159,7 @@ exception CharsetError
 let () = Callback.register_exception "charset_error" CharsetError
 
 external get_charset : unit -> string = "ml_locale_charset"
+external get_default_language : unit -> string = "ml_get_default_language"
 external convert_string : string -> string -> string -> string = "ml_convert_string"
 external is_utf8 : string -> bool = "ml_utf8_validate"
 
@@ -1139,6 +1140,20 @@ let charset_from_string s =
 
     | _ -> ASCII
 
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                          normalize_language                                    *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let normalize_language s =
+  if String.length s > 1
+  then begin
+    let s = String.sub s 0 2 in
+    String.uppercase s
+  end else "EN"
+
 (**********************************************************************************)
 (*                                                                                *)
 (*                          variables                                             *)
@@ -1479,13 +1494,22 @@ let locale =
 
 let locstr =
   let s = charset_to_string locale in
-  Printf.printf "locale is %s\n" s;
+  Printf.printf "Current locale of the target machine is %s\n" s;
   flush stdout;
   s
 
 let (enc_list : string list ref) = ref []
 let nenc = ref 0
+let char_const = "_"
 
+let default_language =
+  let s = get_default_language () in
+  let s = normalize_language s in
+  Printf.printf "Current language of the target machine is %s\n" s;
+  flush stdout;
+  s
+
+(*
 let all_regions =
   [
    ascii;
@@ -1511,22 +1535,93 @@ let all_regions =
    vietnamese;
    western_european;
   ]
+*)
 
 (**********************************************************************************)
 (*                                                                                *)
-(*                          charset_list_from_locale                              *)
+(*                          charset_list_from_language                            *)
 (*                                                                                *)
 (**********************************************************************************)
 
-let charset_list_from_locale loc =
+(* See http://www.gnu.org/software/gettext/manual/html_chapter/gettext_15.html#SEC221
+ * The strategy is not perfect. Any comment to improve it, is highly appreciated.
+ * The charset list shall be improved according to the language detected on the
+ * target machine.
+ *)
+
+let charset_list_from_language lang =
   let li = ref [] in
-  li := unicode :: !li;
-  List.iter (fun e_list ->
-    List.iter (fun l_list ->
-      if (List.exists (fun c -> c = loc) l_list)
-        then li := e_list :: !li
-    ) e_list
-  ) all_regions;
+  li := ascii :: unicode :: !li;
+  let _ =
+    match lang with
+        "AR" -> li := arabic :: !li
+      | "HY" -> li := armenian :: !li
+      | "LT"
+      | "LV"
+      | "MI" -> li := baltic :: !li
+      | "CY" -> li := celtic :: western_european :: !li
+      | "BS"
+      | "CS"
+      | "HR"
+      | "HU"
+      | "PL"
+      | "SK"
+      | "SL" -> li := central_european :: !li
+      | "SH"
+      | "SR" -> li := central_european :: cyrillic ::!li
+      | "ZH" -> li := chinese_traditional :: chinese_simplified :: !li
+      | "BE"
+      | "BG"
+      | "MK"
+      | "RU"
+      | "UK" -> li := cyrillic :: !li
+      | "KA" -> li := georgian :: !li
+      | "EL" -> li := greek :: !li
+      | "YI"
+      | "HE"
+      | "IW" -> li := hebrew :: !li
+      | "JA" -> li := japanese :: !li
+      | "KO" -> li := korean :: !li
+      | "RO" -> li := romanian :: central_european :: !li
+      | "MT" -> li := south_european :: !li
+      | "TG" -> li := tajik :: !li
+      | "TH" -> li := thai :: !li
+      | "TR" -> li := turkish :: !li
+      | "VI" -> li := vietnamese :: !li
+      | "AF"
+      | "AN"
+      | "BR"
+      | "CA"
+      | "DA"
+      | "DE"
+      | "EN"
+      | "ES"
+      | "ET"
+      | "EU"
+      | "FI"
+      | "FO"
+      | "FR"
+      | "GA"
+      | "GL"
+      | "GV"
+      | "ID"
+      | "IS"
+      | "IT"
+      | "KL"
+      | "KW"
+      | "MS"
+      | "NL"
+      | "NN"
+      | "NO"
+      | "OC"
+      | "PT"
+      | "SQ"
+      | "SV"
+      | "TL"
+      | "UZ"
+      | "WA" -> li := western_european :: !li
+      | _ -> ()
+  in
   List.flatten !li
 
 (**********************************************************************************)
@@ -1535,14 +1630,15 @@ let charset_list_from_locale loc =
 (*                                                                                *)
 (**********************************************************************************)
 
-let set_default_charset_list (loc : charset) =
+let set_default_charset_list (lang : string) =
   (* Let's get rid of charset aliases *)
-  let l = List.map (fun li -> List.hd li) (charset_list_from_locale loc) in
+  let l = List.map (fun li -> List.hd li) (charset_list_from_language lang) in
   enc_list := List.map (fun c -> charset_to_string c ) l;
+  Printf.printf "List of charmap used to convert the strings:\n";
   List.iter (fun enc ->
-    Printf.printf "Use encoding %s\n" enc; 
-    flush stdout
+    Printf.printf "  Use encoding %s\n" enc; 
   ) !enc_list;
+  flush stdout;
   nenc := List.length !enc_list
 
 (**********************************************************************************)
@@ -1567,7 +1663,6 @@ let convert ~from_charset ~to_charset s =
 let slow_encode s to_codeset =
   let us = ref "" in
   let slen = String.length s in
-  let char_const = convert_string "_" to_codeset "ASCII" in
   for i = 0 to (slen - 1) do
     try
       us := !us ^ (convert_string (String.sub s i 1) to_codeset locstr)
@@ -1600,9 +1695,11 @@ let fast_encode s to_codeset =
 (**********************************************************************************)
 
 let to_utf8 s =
-  if is_utf8 s
-    then s
-    else fast_encode s "UTF-8"
+  if s = ""
+  then s
+  else if is_utf8 s
+  then s
+  else fast_encode s "UTF-8"
 
 (**********************************************************************************)
 (*                                                                                *)
@@ -1611,28 +1708,31 @@ let to_utf8 s =
 (**********************************************************************************)
 
 let to_locale s =
-  let s = to_utf8 s in
-  match locale with
-      UTF_8 -> s
-    | _ ->
-	begin
-          try
-            convert_string s locstr "UTF-8"
-          with _ ->
-            begin
-              let us = ref "" in
-              let slen = String.length s in
-              let char_const = convert_string "_" locstr "ASCII" in
-              for i = 0 to (slen - 1) do
-                try
-                  us := !us ^ (convert_string (String.sub s i 1) locstr "UTF-8")
-                with _ ->
-                  us := !us ^ char_const
-              done;
-              !us
-            end
-        end
+  if s = ""
+  then s
+  else begin
+    let s = to_utf8 s in
+    match locale with
+        UTF_8 -> s
+      | _ ->
+	  begin
+            try
+              convert_string s locstr "UTF-8"
+            with _ ->
+              begin
+                let us = ref "" in
+                let slen = String.length s in
+                for i = 0 to (slen - 1) do
+                  try
+                    us := !us ^ (convert_string (String.sub s i 1) locstr "UTF-8")
+                  with _ ->
+                    us := !us ^ char_const
+                done;
+                !us
+              end
+          end
+  end
 
 
 let _ =
-  set_default_charset_list locale
+  set_default_charset_list default_language

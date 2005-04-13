@@ -383,7 +383,8 @@ XML ("audios",
           let s = Hashtbl.find searches_by_uid suid in
           Some s with
           _ -> 
-            if !verbose then lprintf "***** No Corresponding Search ****\n";
+            if !verbose then
+              lprintf "***** No Corresponding Search ****\n";
             None 
       in
       let user_nick = ref "" in

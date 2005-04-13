@@ -369,6 +369,20 @@ value ml_getsize64(value path)
   return copy_int64(os_getfilesize(String_val(path)));
 }
 
+/*******************************************************************
+
+
+                         ml_getfdsize64
+
+
+*******************************************************************/
+
+value ml_getfdsize64(value fd_v)
+{
+/*  int ret; */
+  OS_FD fd = Fd_val(fd_v);
+  return copy_int64(os_getfdsize(fd));
+}
 
 /*******************************************************************
 

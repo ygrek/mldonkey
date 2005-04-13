@@ -85,7 +85,9 @@ in an option, and then change the option accordingly. ?> *)
 let find_other_port = ref false
 
 let shorten str limit =
-  let name = String.escaped str in
+  (* TODO: we schould change all strings to utf8 when
+     they come into the core instead. *)
+  let name = Charset.to_utf8 (* String.escaped *) str in
   let len = String.length name in
   let max_len = maxi limit 10 in
   if len > max_len then

@@ -1,13 +1,53 @@
 ChangeLog	
 =========
 
-2005/04/07: spiralvoice (version 2.5.30-4 = 2.6pre16, tag release-2-5-30-4)
+2005/04/13: spiralvoice (version 2.5.30-5 = 2.6pre17, tag release-2-5-30-5)
 
-  This release shares the same code as Amorphous SVN revision 256
+  This release shares the same code as Amorphous SVN revision 267
   plus some additional patches from Savannah.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3894: New build targets: release.utils.shared & release.utils.static
+3895: Amorphous patches from SVN revision 259
+* If using iconv in an libiconv, check for libcharset.h and
+use it, if it is not present use localcharset.h . This
+should fix compiling on some systems.
+* Lower AC_PREREQ to 2.53 (debian wood needs that).
+* Some whitespace fixing for configure --help .
+* Use -mno-cygwin for cc when --enable-mingw is used. But it
+seems like it does not prevent the freezing we know from
+cygwin compiled cores.
+* Use the present fd for getsize64 in unix32. This should
+fix multi-files for bt in win32, as win32 only allows one
+fd per file because of the default locking behaviour.
+* Ignore exceptions from utimes, as in win32 the default
+locking behaviour prevents them.
+
+3896: BT support for file_started_cmd
+3901: Change HTML headers from iso-8859-1 to UTF-8
+3902: Amorphous patches from SVN revision 264
+* Add -mno-cygwin to -ccopt for ocaml. Seems not to fix
+--enable-mingw either.
+* Clean up canonize_basename, now that we have charset
+conversion. Now we should be able to have most chars in
+filenames if the locale is set right.
+* When shorten-ing names, just use Charset.to_utf8 instead
+of String.excaped . Now non-ASCII chars should show up
+nicely in web-ui and telnet-ui. The conversion should be
+done when these strings enter the core, but that would be
+quite a task.
+* Remove an Charset.to_locale that shouldn't be there.
+
+3903: Remove some log messages
+3904: Format "vd <num>" output in telnet to have md4 hashes back
+3905: Prevent crash on start when wrong system date is set
+3906: Fix GTK1 GUI compile (was broken since patch 3867)
+3907: Fix UTF-8 stuff
+---------------------------------------------------------------------
+
+2005/04/07: spiralvoice (version 2.5.30-4 = 2.6pre16, tag release-2-5-30-4)
 
 3889: Clean logfile
 3887: Syncing Savannah CVS with Amorphous SVN

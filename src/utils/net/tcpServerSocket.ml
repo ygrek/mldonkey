@@ -44,8 +44,7 @@ and handler = t -> event -> unit
 
 let connections_controlers = ref []
 let nconnections_last_second = ref 0
-
-
+let debug = ref false
 
 let set_handler t event handler =
   let old_handler = t.event_handler in
@@ -81,7 +80,8 @@ let tcp_handler t sock event =
       incr nconnections_last_second;
       t.event_handler t (CONNECTION (s,id))
      with e ->
-      lprintf "Exception tcp_handler: %s\n" (Printexc2.to_string e);
+      if !debug then
+        lprintf "Exception tcp_handler: %s\n" (Printexc2.to_string e);
       raise e
     end
   | _ -> t.event_handler t (BASIC_EVENT event)

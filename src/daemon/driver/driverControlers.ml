@@ -618,17 +618,17 @@ let add_gzip_headers r =
 let http_add_html_header r = 
   http_add_gen_header r;
   add_reply_header r "Pragma" "no-cache";
-  add_reply_header r "Content-Type" "text/html; charset=iso-8859-1";
+  add_reply_header r "Content-Type" "text/html; charset=UTF-8";
   add_gzip_headers r
 
 let http_add_css_header r = 
   http_add_gen_header r;
-  add_reply_header r "Content-Type" "text/css; charset=iso-8859-1";
+  add_reply_header r "Content-Type" "text/css; charset=UTF-8";
   add_gzip_headers r
 
 let http_add_js_header r =
   http_add_gen_header r;
-  add_reply_header  r "Content-Type" "text/javascript; charset=iso-8859-1";
+  add_reply_header  r "Content-Type" "text/javascript; charset=UTF-8";
   add_gzip_headers r
   
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any

@@ -1448,6 +1448,8 @@ let set_all v =
   verbose_msg_servers := v;
   verbose := v;
   BasicSocket.debug := v;
+  TcpServerSocket.debug := v;
+  UdpSocket.debug := v;
   verbose_download := v;
   verbose_upload := v;
   verbose_unknown_messages := v;
@@ -1475,13 +1477,13 @@ let _ =
       set_all false;
       List.iter (fun s ->
           match s with
-          | "mc" -> verbose_msg_clients := true;
-          | "mr" | "raw" -> verbose_msg_raw := true;
-          | "mct" -> verbose_msg_clienttags := true;
-          | "ms" -> verbose_msg_servers := true;
-          | "verb" -> verbose := true;
-          | "sm" -> incr verbose_sources;
-          | "net" -> BasicSocket.debug := true
+          | "mc" -> verbose_msg_clients := true
+          | "mr" | "raw" -> verbose_msg_raw := true
+          | "mct" -> verbose_msg_clienttags := true
+          | "ms" -> verbose_msg_servers := true
+          | "verb" -> verbose := true
+          | "sm" -> incr verbose_sources
+          | "net" -> BasicSocket.debug := true; TcpServerSocket.debug := true; UdpSocket.debug := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true
           | "unk" -> verbose_unknown_messages := true

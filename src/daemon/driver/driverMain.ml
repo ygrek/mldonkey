@@ -432,7 +432,15 @@ let _ =
         CommonGlobals.exit_properly 0))
 
 let _ =
-    
+
+  let t = Unix.localtime (Unix.time ()) in
+  if (t.Unix.tm_year<=104) then
+    begin
+      lprintf "\n\n\nYour system has a system date earlier than 2004, please correct it.\n";
+      lprintf "MLdonkey can not work with such a system date, exiting...\n";
+      CommonGlobals.exit_properly 0
+    end;
+
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  

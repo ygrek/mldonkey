@@ -295,7 +295,8 @@ let really_download_file (r : CommonTypes.result_info) =
   
   let file = new_file file_temp (List.hd r.result_names) 
     r.result_size [Uid.create (Md5Ext hash)] in
-  if !verbose then lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  if !verbose then
+    lprintf "DOWNLOAD FILE %s\n" file.file_name;
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;

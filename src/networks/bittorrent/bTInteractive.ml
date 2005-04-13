@@ -337,6 +337,7 @@ let load_torrent_string s =
   let file = new_download file_id torrent torrent_diskname in
   BTClients.get_sources_from_tracker file;
   BTShare.must_share_file file;
+  CommonInteractive.start_download (file_find (file_num file));
   file
 
 let load_torrent_file filename =

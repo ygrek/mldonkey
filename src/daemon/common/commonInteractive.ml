@@ -46,29 +46,28 @@ open CommonComplexOptions
 let canonize_basename name =
   let buf = Buffer.create 100 in
   for i = 0 to String.length name - 1 do
-    match name.[i] with
-    | '/' | '\\' -> Buffer.add_char buf '_'
-    | c -> 
-(* let remove all chars which are not in the basic ASCII set *)
-        let nc = int_of_char c in
-        try
-          Buffer.add_string buf (List.assoc nc !!filename_conversions)
-        with _ ->
-            Buffer.add_char buf (
-              match c with
-                (* for Windows *)
-                ':' | '*' | '?' | '"' | '<' | '>' | '|' | '%' -> '_'
-              | _ ->
-                  if nc > 127 || nc < 32 then '-' else c)
+    (* replace chars on users request *)
+    let c = name.[i] in
+    let nc = int_of_char c in
+    try
+      Buffer.add_string buf (List.assoc nc !!filename_conversions)
+    with _ ->
+      Buffer.add_char buf
+        (match c with
+         | '/' | '\\' -> '_'
+         (* Windows can't do these *)
+         | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '%' when Autoconf.system = "windows" -> '_'
+         | _ -> c
+        )
   done;
-  Buffer.contents buf
+  Charset.to_locale (Buffer.contents buf)
   
 let file_commited_name incoming_dir file =   
   let network = file_network file in
-  let best_name = Charset.to_locale (file_best_name file) in
+  let best_name = file_best_name file in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
-    Filename.concat incoming_dir (canonize_basename  best_name)
+    Filename.concat incoming_dir (canonize_basename best_name)
   in
   let new_name = 
     if Sys.file_exists new_name then

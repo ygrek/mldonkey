@@ -626,7 +626,7 @@ let commands = [
             end
         ) servers_by_key;
         "ok"
-    ), "<true/false> <ip> :\t\tset the server with this IP has preferred";
+    ), "<true/false> <ip> :\t\tset the server with this IP as preferred";
     
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->

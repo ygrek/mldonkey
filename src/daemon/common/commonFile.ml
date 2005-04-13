@@ -195,7 +195,7 @@ let file_print (file : file) buf =
 
 let file_save_as (file : file) name =
   let file = as_file_impl file in
-  file.impl_file_ops.op_file_save_as file.impl_file_val (Charset.to_locale name)
+  file.impl_file_ops.op_file_save_as file.impl_file_val name
 
 let file_comment (file : file) =
   let file = as_file_impl file in
@@ -543,14 +543,14 @@ let file_print file o =
     
     end else
     begin
-      Printf.bprintf buf "[%-s %5d] %s %10s %10s\npriority %d\n" 
-        n.network_name (file_num file) 
-      (match info.G.file_names with
-          [] -> Md4.to_string info.G.file_md4
-        | (name,_) :: _ -> String2.shorten !!max_name_len name)
-      (Int64.to_string info.G.file_size)
-      (Int64.to_string info.G.file_downloaded)
-      (file_priority file);
+      Printf.bprintf buf "[%-s %5d]\n%s\n%s\nTotal   %10s\nPartial %10s\npriority %d\n" 
+        n.network_name
+	(file_num file)
+        (String2.shorten 80 (file_best_name file))
+        (Md4.to_string info.G.file_md4)
+        (Int64.to_string info.G.file_size)
+        (Int64.to_string info.G.file_downloaded)
+        (file_priority file);
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
       (match impl.impl_file_probable_name with
           None -> ()

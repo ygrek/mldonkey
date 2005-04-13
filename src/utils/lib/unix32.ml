@@ -138,7 +138,7 @@ module FDCache = struct
 
     let getsize64 t = 
       check_destroyed t;
-      Unix2.c_getsize64 t.filename
+      Unix2.c_getfdsize64 (local_force_fd t)
 
     let mtime64 t =
       check_destroyed t;
@@ -497,7 +497,10 @@ module MultiFile = struct
       let len64 = Int64.of_int len in
       t.size <- max t.size (chunk_begin ++ len64);
       let time = Unix.time () in
-      Unix.utimes t.dirname time time;
+      (* this does not work on win32 because of
+         file locking i guess, therefore ignore
+         all exceptions *)
+      (try Unix.utimes t.dirname time time with _ -> ());
       ()
 
   end
@@ -876,7 +879,10 @@ module SparseFile = struct
       t.size <- max t.size (chunk_begin ++ len64);
 
       let time = Unix.time () in
-      Unix.utimes t.dirname time time
+      (* this does not work on win32 because of
+         file locking i guess, therefore ignore
+         all exceptions *)
+      (try Unix.utimes t.dirname time time with _ -> ())
   end
 
 
