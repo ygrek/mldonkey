@@ -34,6 +34,7 @@
 
 #ifdef LOCALECHARSET
   #ifdef HAVE_LIBCHARSET_H
+    #include <locale.h>
     #include <libcharset.h>
   #else
     #include <localcharset.h>

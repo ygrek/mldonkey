@@ -1,13 +1,27 @@
 ChangeLog	
 =========
 
-2005/04/13: spiralvoice (version 2.5.30.5 = 2.6pre17, tag release-2-5-30-5)
+2005/04/13: spiralvoice (version 2.5.30.6 = 2.6pre18, tag release-2-5-30-6)
 
-  This release shares the same code as Amorphous SVN revision 267
+  This release shares the same code as Amorphous SVN revision 269
   plus some additional patches from Savannah.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+* Add an headder-file to charsetstubs.c so it compiles on
+  certain platforms. This fixes savannah bug #12683.
+
+To compile on FreeBSD and OpenBSD link these files:
+
+/usr/local/include/libcharset.h
+/usr/local/include/localcharset.h
+/usr/local/include/iconv.h
+
+to /usr/include and /usr/local/lib/libcharset* to /usr/lib.
+---------------------------------------------------------------------
+
+2005/04/13: spiralvoice (version 2.5.30.5 = 2.6pre17, tag release-2-5-30-5)
 
 3894: New build targets: release.utils.shared & release.utils.static
 3895: Amorphous patches from SVN revision 259
