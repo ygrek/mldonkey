@@ -1,5 +1,5 @@
-Mozilla MLdonkey Protocol Handler 1.4
-Copyright (C) 2003, 2004 Simon Peter <dn.tlp@gmx.net>
+Mozilla MLdonkey Protocol Handler 1.5
+Copyright (C) 2003 - 2005 Simon Peter <dn.tlp@gmx.net>
 
 Description:
 ------------
@@ -52,15 +52,29 @@ The following preference options are available:
 Option:                 Default:        Description:
 -------                 --------        ------------
 network.mldonkey.server localhost       hostname on which MLdonkey is running
-network.mldonkey.user                   login with this username
-network.mldonkey.pass                   login with this password
 network.mldonkey.port   4080            port of the MLdonkey WEB service
 
 All these options are string options. Remember to restart your browser before
 any of them can take effect!
 
+Deinstallation:
+---------------
+Deinstallation of the plugin in Firefox is straight-forward. Just open the
+Extensions dialog by clicking on Extensions in the Tools menu. Select the
+plugin there and click on Uninstall.
+
+On Mozilla, you have to manually deinstall the plugin by removing the file
+'ed2kprotocol.js' from Mozilla's components directory. On a UNIX system, this
+normally is /usr/lib/mozilla/components.
+
 News:
 -----
+Changes for version 1.5:
+- Added workaround for latest security fixes in Firefox 1.0.1 and Mozilla 1.7.5,
+  which blocked my extension otherwise.
+- User authorization is now fully handled by Mozilla/Firefox.
+- Added uninstallation instructions.
+
 Changes for version 1.4:
 - Added compatibility for the new component system of Firefox 0.9
   (thanks to Len Walter <len@unsw.edu.au>).
@@ -100,7 +114,7 @@ The Original Code is the MLdonkey protocol handler.
 
 The Initial Developer of the Original Code is
 Simon Peter <dn.tlp@gmx.net>.
-Portions created by the Initial Developer are Copyright (C) 2003, 2004
+Portions created by the Initial Developer are Copyright (C) 2003 - 2005
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):

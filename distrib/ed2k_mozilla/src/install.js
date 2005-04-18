@@ -16,7 +16,7 @@
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
- * Portions created by the Initial Developer are Copyright (C) 2003, 2004
+ * Portions created by the Initial Developer are Copyright (C) 2003 - 2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -36,9 +36,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.4";
+const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.5";
 const G_NAME       = "ed2k";
-const G_VER        = "1.4";
+const G_VER        = "1.5";
 
 var err = initInstall(G_MSG, G_NAME, G_VER);
 logComment("initInstall: " + err);

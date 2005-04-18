@@ -12,11 +12,11 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the MLdonkey protocol handler 1.4.
+ * The Original Code is the MLdonkey protocol handler 1.5.
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
- * Portions created by the Initial Developer are Copyright (C) 2003, 2004
+ * Portions created by the Initial Developer are Copyright (C) 2003 - 2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -60,7 +60,7 @@ const NS_IOSERVICE_CID = "{9ac9e770-18bc-11d3-9337-00104ba0fd40}";
 const NS_PREFSERVICE_CONTRACTID = "@mozilla.org/preferences-service;1";
 const URI_CONTRACTID = "@mozilla.org/network/simple-uri;1";
 const NS_WINDOWWATCHER_CONTRACTID = "@mozilla.org/embedcomp/window-watcher;1";
-const STREAMIOCHANNEL_CONTRACTID = "@mozilla.org/network/stream-io-channel;1";
+const INPUTSTREAMCHANNEL_CONTRACTID = "@mozilla.org/network/input-stream-channel;1";
 
 // interfaces used in this file
 const nsIProtocolHandler    = Components.interfaces.nsIProtocolHandler;
@@ -77,10 +77,9 @@ const WND_WIDTH = 320;
 const WND_HEIGHT = 200;
 
 // configuration (and defaults)
-cfgUser   = "";
-cfgPass   = "";
-cfgServer = "localhost";
-cfgPort   = "4080";
+cfgServer   = "localhost";
+cfgPort     = "4080";
+myWnd       = null;
 
 /***** MLdonkeyProtocolHandler *****/
 
@@ -110,20 +109,20 @@ MLdonkeyProtocolHandler.prototype.newChannel = function(aURI)
 {
     // rewrite the URI into a http URL to the mldonkey server
     var myURI = "http://";
-    if(cfgUser != "") myURI += cfgUser + ":" + cfgPass + "@";
+    //    if(cfgUser != "") myURI += cfgUser + ":" + cfgPass + "@";
     myURI += cfgServer + ":" + cfgPort + "/submit?q=dllink+" +
     encodeURIComponent(decodeURI(aURI.spec));
 
     // open up a window with our newly generated http URL
     var wwatch = Components.classes[NS_WINDOWWATCHER_CONTRACTID].getService(nsIWindowWatcher);
-    var myWnd = wwatch.openWindow(null, myURI, "MLdonkey", null, null);
-
-    // resize window to a reasonable size
-    myWnd.outerWidth = WND_WIDTH;
-    myWnd.outerHeight = WND_HEIGHT;
+    if(myWnd == null || myWnd.closed == true)
+      myWnd = wwatch.openWindow(wwatch.activeWindow, myURI, "MLDonkey",
+                                "width=" + WND_WIDTH + ", height=" + WND_HEIGHT, null);
+    else
+      myWnd.location.href = myURI;
 
     // return a fake empty channel so current window doesn't change
-    var chan = Components.classes[STREAMIOCHANNEL_CONTRACTID].createInstance(nsIChannel);
+    var chan = Components.classes[INPUTSTREAMCHANNEL_CONTRACTID].createInstance(nsIChannel);
     return chan;
 }
 
@@ -134,10 +133,6 @@ MLdonkeyProtocolHandler.prototype.readPreferences = function(pref_branch)
     var myPrefs = PrefService.getBranch(null);  // Mozilla bug #107617
 
     // read preferences (if available)
-    if(myPrefs.getPrefType(pref_branch + "user") == myPrefs.PREF_STRING)
-      cfgUser = myPrefs.getCharPref(pref_branch + "user");
-    if(myPrefs.getPrefType(pref_branch + "pass") == myPrefs.PREF_STRING)
-      cfgPass = myPrefs.getCharPref(pref_branch + "pass");
     if(myPrefs.getPrefType(pref_branch + "server") == myPrefs.PREF_STRING)
       cfgServer = myPrefs.getCharPref(pref_branch + "server");
     if(myPrefs.getPrefType(pref_branch + "port") == myPrefs.PREF_STRING)
