@@ -161,9 +161,8 @@ let translate s =
             let ip = Ip.of_string server_ip in
             if not (Ip.valid ip) then raise Not_found;
             let port = int_of_string server_port in
-(*            lprintf "SERVER %s %s:%d FROM %s"
+            lprintf "SERVER %s %s:%d FROM %s\n"
               server_name (Ip.to_string ip) port server_net;
-            lprint_newline (); *)
             iter tail ((server_name, ip, port, server_net) :: servers)
           with _ -> iter tail servers
         end
@@ -175,7 +174,7 @@ let translate s =
 open TcpBufferedSocket
   
 let load_servers_list url f =
-(*  lprintf "QUERY URL %s" url; lprint_newline (); *)
+  lprintf "QUERY URL %s\n" url;
   CommonWeb.mldonkey_wget url (fun filename ->
     f (translate (File.to_string filename)))
 

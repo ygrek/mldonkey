@@ -286,7 +286,7 @@ let really_download_file (r : CommonTypes.result_info) =
     match uids with  
       uid :: tail ->
         (match Uid.to_uid uid with
-            Md5Ext hash -> hash,  Uid.to_string uid
+            Md5Ext hash -> hash,  Uid.to_file_string uid
           | _  -> iter tail)
     | [] -> raise IgnoreNetwork
   in

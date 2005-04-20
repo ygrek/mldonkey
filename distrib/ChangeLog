@@ -1,13 +1,21 @@
 ChangeLog	
 =========
 
-2005/04/13: spiralvoice (version 2.5.30.6 = 2.6pre18, tag release-2-5-30-6)
+2005/04/20: spiralvoice (version 2.5.30.7 = 2.6pre19, tag release-2-5-30-7)
 
-  This release shares the same code as Amorphous SVN revision 269
-  plus some additional patches from Savannah.
+  This release shares the same code as Amorphous SVN revision 274
+  plus an updated patch 3915 (3915_2.patch)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3915: Show only searchable networks in HTML, search
+3916: Change Opennap servers_list_url to a working one
+3918: HTML: Print network capabilities table
+3921: Change Fasttrack temp file names 
+3922: Re-enable use of ft:// links to add Fasttrack servers
+---------------------------------------------------------------------
+2005/04/13: spiralvoice (version 2.5.30.6 = 2.6pre18, tag release-2-5-30-6)
 
 * Add an headder-file to charsetstubs.c so it compiles on
   certain platforms. This fixes savannah bug #12683.

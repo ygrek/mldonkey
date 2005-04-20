@@ -130,7 +130,7 @@ tr.dl-2, td.dl-2 { background: @C21@; }
 .mOvr3, tr.mOvr3 {background: @C19@; cursor: pointer; }
 table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
 table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
-table.shares, table.vc, table.results {
+table.shares, table.vc, table.results, table.networkInfo {
  margin-right: auto;
  margin-left: auto;
  border: 1;

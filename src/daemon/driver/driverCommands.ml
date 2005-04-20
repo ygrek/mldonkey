@@ -883,13 +883,7 @@ let _ =
     
     "networks", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.bprintf buf "Networks:\n";
-        Hashtbl.iter (fun name n ->
-            try
-              Printf.bprintf buf "   %2d %-30s %s\n" n.network_num name
-                (if n.op_network_is_enabled () then "Enabled" else "Disabled")
-            with _ -> ()
-        ) networks_by_name;
+        print_network_modules buf o;
         ""
     ) , " :\t\t\t\tprint all networks";
 

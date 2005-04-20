@@ -144,8 +144,17 @@ let search_of_args args =
 
   
 type englob_op = IN_NOOP | IN_AND | IN_OR
+
+let can_search = ref false
   
 let custom_query buf query =
+  can_search := false;
+  Hashtbl.iter (fun name net ->
+      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
+            can_search := true;
+      with _ -> ()
+  ) CommonNetwork.networks_by_name;
+  if !can_search then begin
   try
     let q = List.assoc query (CommonComplexOptions.customized_queries()) in
     Printf.bprintf buf "
@@ -505,7 +514,7 @@ let custom_query buf query =
     <option value=\"\"> --- </option>            
 ";    
     Hashtbl.iter (fun name net ->
-        try if net.op_network_is_enabled () then
+        try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
             Printf.bprintf buf "
             <option value=\"%s\"> %s </option>            
             " name name
@@ -518,14 +527,31 @@ let custom_query buf query =
     
   with Not_found ->
       Printf.bprintf buf "No custom search %s" query
+  end
+  else
+  Printf.bprintf buf "
+<h3> No searchable networks enabled </h3>
+  "
 
 let complex_search buf =
+  can_search := false;
+  Hashtbl.iter (fun name net ->
+      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
+            can_search := true;
+      with _ -> ()
+  ) CommonNetwork.networks_by_name;
+
   Buffer.add_string  buf
     "
 <center>
 <h2> Complex Search </h2>
 </center>
+    ";
 
+  if !can_search then begin
+
+  Buffer.add_string  buf
+    "
 <form action=\"submit\">
 <table border=0>
 <tr>
@@ -692,16 +718,19 @@ Min bitrate
     <option value=\"\"> --- </option>            
 ";    
   Hashtbl.iter (fun name net ->
-      try if net.op_network_is_enabled () then
+      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
           Printf.bprintf buf "
             <option value=\"%s\"> %s </option>            
             " name name
       with _ -> ()
   ) CommonNetwork.networks_by_name;
   Printf.bprintf buf "
-      </select></td></tr>" ;
-  
-  
+      </select></td></tr>";
+  end;
+  if not !can_search then
+  Printf.bprintf buf "
+<h3> No searchable networks enabled </h3>
+  ";
   Buffer.add_string buf
     "
 </table>

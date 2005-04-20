@@ -4,6 +4,7 @@
 #where "gstats" = "ftstats"
 #where "Gnutella" = "Fasttrack"
 #where "gN" = "fT"
+#where "gnut:" = "ft:"
 #include "src/networks/gnutella/gnutellaInteractive.ml" 
   
   
