@@ -21,8 +21,17 @@
 /* Define to 1 if you have the <linux/limits.h> header file. */
 #undef HAVE_LINUX_LIMITS_H
 
+/* Define to 1 if you have the `locale_charset' function. */
+#undef HAVE_LOCALE_CHARSET
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <netinet/in_systm.h> header file. */
+#undef HAVE_NETINET_IN_SYSTM_H
 
 /* Define to 1 if you have the <netinet/ip.h> header file. */
 #undef HAVE_NETINET_IP_H
@@ -62,9 +71,6 @@
 
 /* Define as const if the declaration of iconv() needs const. */
 #undef ICONV_CONST
-
-/* Define if you have libcharset with the locale_charset() function. */
-#undef LOCALECHARSET
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT

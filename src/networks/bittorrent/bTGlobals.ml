@@ -337,6 +337,9 @@ let decode_az_style s =
       | "MT" -> "MoonlightTorrent"
       | "XT" -> "XanTorrent"
       | "bk" -> "BitKitten (libtorrent)"
+      | "ZT" -> "ZipTorrent"
+      | "AR" -> "Arctic"
+      | "SB" -> "Swiftbit"
       | _ -> "")
     in
     if not (!result = "") then 

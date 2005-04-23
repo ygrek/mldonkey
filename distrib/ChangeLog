@@ -1,13 +1,20 @@
 ChangeLog	
 =========
 
-2005/04/20: spiralvoice (version 2.5.30.7 = 2.6pre19, tag release-2-5-30-7)
-
-  This release shares the same code as Amorphous SVN revision 274
-  plus an updated patch 3915 (3915_2.patch)
+2005/04/23: spiralvoice (version 2.5.30.8 = tag release-2-5-30-8)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+Mozilla MLdonkey Protocol Handler updated to version 1.5
+3924: More bt peer ids + clean up networks cmd in html (table sorts properly)
+3926: mac osx gtk2 gui building
+3930: Build fixes for FreeBSD & OpenBSD
+3931: Prevent DDOSing fm2.imesh.com
+3932: Print warning if core cant do DNS lookups
+
+---------------------------------------------------------------------
+2005/04/20: spiralvoice (version 2.5.30.7 = 2.6pre19, tag release-2-5-30-7)
 
 3915: Show only searchable networks in HTML, search
 3916: Change Opennap servers_list_url to a working one

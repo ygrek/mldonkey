@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30.7
+CURRENT_RELEASE=30.8
 if test -d .svn; then
   CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
 fi
@@ -450,7 +450,17 @@ AC_CHECK_SIZEOF(double)
 
 # various header files
 AC_CHECK_HEADERS(arpa/inet.h,,)
-AC_CHECK_HEADERS(netinet/ip.h,,)
+AC_CHECK_HEADERS([sys/types.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
+[#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+])
 
 # poll if possible
 AC_CHECK_HEADERS(sys/poll.h,,)
@@ -469,27 +479,6 @@ else
   echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
 
-AM_ICONV
-if test "$am_cv_func_iconv" != "yes"; then
-  echo "iconv() is missing, did you install the libraries and the developer packages for libiconv?"
-  exit 1
-fi
-LOCALECHARSET=no
-if test -n "$LIBICONV"; then
-  AC_CHECK_LIB(charset,locale_charset,[LOCALECHARSET=yes])
-  if test "$LOCALECHARSET" = "no"; then
-    echo "libcharset is missing, it is part of the libiconv library."
-    echo "Did you install the libraries and the developer packages?"
-    echo "Check libiconv is in your path."
-    exit 1
-  else
-    AC_CHECK_HEADERS(libcharset.h,,)
-    AC_DEFINE(LOCALECHARSET, 1, [Define if you have libcharset with the locale_charset() function.])
-    LIBICONV="$LIBICONV -lcharset"
-  fi
-fi
-
-
 SHA1_VERSION=sha1new
 AC_CHECK_HEADERS(endian.h byteswap.h,,[
     echo "You don't have endian.h and byteswap.h installed."
@@ -497,6 +486,37 @@ AC_CHECK_HEADERS(endian.h byteswap.h,,[
     echo "see 'here' for more informations about this issue"
     SHA1_VERSION=sha1old
     ])
+
+AM_ICONV
+if test "$am_cv_func_iconv" != "yes"; then
+  echo "iconv() is missing, did you install the libraries and the developer packages for libiconv?"
+  exit 1
+fi
+
+case $host in
+        *freebsd*|*openbsd*)
+	   LIBS="$LIBS $LIBICONV"
+	   AC_CHECK_FUNCS([locale_charset],,AC_MSG_ERROR([locale_charset is missing]))
+	   AC_CHECK_HEADERS([libcharset.h])
+           CONFIG_INCLUDES="$CONFIG_INCLUDES -I /usr/local/include"
+        ;; 
+        *)
+	   HAVE_LOCALE_CHARSET=no
+	   if test -n "$LIBICONV"; then
+	     AC_CHECK_LIB(charset,locale_charset,[HAVE_LOCALE_CHARSET=yes])
+	     if test "$HAVE_LOCALE_CHARSET" = "no"; then
+	       echo "libcharset is missing, it is part of the libiconv library."
+	       echo "Did you install the libraries and the developer packages?"
+	       echo "Check libiconv is in your path."
+	       exit 1
+	     else
+	       AC_CHECK_HEADERS(libcharset.h,,)
+	       AC_DEFINE(HAVE_LOCALE_CHARSET, 1, [Define if you have libcharset with the locale_charset() function.])
+	       LIBICONV="$LIBICONV -lcharset"
+	     fi
+	   fi
+        ;;
+esac
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
@@ -1157,8 +1177,8 @@ if test "$OS_FILES2" = "cygwin"; then
    windres -o resfile.o config/mldonkey.rc
 fi
 
-echo "Building dependencies (if it blocks, try 'make depend' or 'gmake depend' to see the problem)"
-$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
+echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
+$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 
 echo "The following modules will not be compiled: {" $BAD_TARGETS "}"

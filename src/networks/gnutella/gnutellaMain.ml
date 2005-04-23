@@ -107,7 +107,6 @@ let enable () =
     add_session_timer enabler 1.0 (fun timer ->
         GnutellaServers.manage_hosts ();
         GnutellaProto.resend_udp_packets ();
-        GnutellaServers.connect_servers GnutellaServers.connect_server;      
     );
     
     GnutellaServers.ask_for_files ();
@@ -115,6 +114,11 @@ let enable () =
     add_session_timer enabler 60.0 (fun timer ->
         GnutellaServers.ask_for_files ();
         GnutellaServers.send_pings ();
+        (* Connect only every 60 seconds to new servers to prevent
+           hammering on them. It would be better to remember the
+           last time of a connection attempt to each and only
+           retry after a certain time. *)
+        GnutellaServers.connect_servers GnutellaServers.connect_server;
         if !should_update_shared_files then begin
             should_update_shared_files := false;
             GnutellaHandler.update_shared_files ()

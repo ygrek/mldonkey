@@ -32,7 +32,7 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef LOCALECHARSET
+#ifdef HAVE_LOCALE_CHARSET
   #ifdef HAVE_LIBCHARSET_H
     #include <locale.h>
     #include <libcharset.h>
@@ -1324,7 +1324,7 @@ ml_locale_charset(void)
 
   const char *str;
 
-  #ifdef LOCALECHARSET
+  #ifdef HAVE_LOCALE_CHARSET
     str = locale_charset ();
   #else
     setlocale(LC_CTYPE, "");

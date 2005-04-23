@@ -1411,65 +1411,41 @@ let browse_friends () =
 
 let networks_header buf =
     html_mods_table_header buf "networkTable" "networkInfo" [
-	( "0", "srh", "Network name", "Network" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Status", "Status" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has upload", "Upload" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has servers", "Servers" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has supernodes", "Supernodes" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has search", "Search" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has chat", "Chat" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has rooms", "Rooms" ) ;
-	( "0", "srh", "Separator", "|" ) ;
-	( "0", "srh ac", "Has multinet", "Multinet" ) ]
+      ( "0", "srh br", "Network name", "Network" ) ;
+      ( "0", "srh br", "Status", "Status" ) ;
+      ( "0", "srh br", "Has upload", "Upload" ) ;
+      ( "0", "srh br", "Has servers", "Servers" ) ;
+      ( "0", "srh br", "Has supernodes", "Supernodes" ) ;
+      ( "0", "srh br", "Has search", "Search" ) ;
+      ( "0", "srh br", "Has chat", "Chat" ) ;
+      ( "0", "srh br", "Has rooms", "Rooms" ) ;
+      ( "0", "srh", "Has multinet", "Multinet" ) ]
 
 let print_network_modules buf o =
   let buf = o.conn_buf in
   if use_html_mods o then
     begin
       networks_header buf;
-      let counter = ref 0 in
+      html_mods_cntr_init ();
 
       networks_iter_all
         (fun n ->
-          try
-            incr counter;
-            Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
-            Printf.bprintf buf "
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>|\\</td\\>
-\\<td class=\\\"sr ac\\\"\\>%s\\</td\\>
-\\</tr\\>\n"
-		n.network_name
-                (if n.op_network_is_enabled () then "Enabled" else "Disabled")
-                (if List.mem NetworkHasUpload n.network_flags then "yes" else "")
-                (if List.mem NetworkHasServers n.network_flags then "yes" else "")
-                (if List.mem NetworkHasSupernodes n.network_flags then "yes" else "")
-                (if List.mem NetworkHasSearch n.network_flags then "yes" else "")
-                (if List.mem NetworkHasChat n.network_flags then "yes" else "")
-                (if List.mem NetworkHasRooms n.network_flags then "yes" else "")
-                (if List.mem NetworkHasMultinet n.network_flags then "yes" else "")
-          with _ -> ()
+          if not (List.mem VirtualNetwork n.network_flags) then 
+            try
+              let net_has e = if List.mem e n.network_flags then "yes" else "" in  
+              Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+                ("", "sr br", n.network_name);
+                ("", "sr br", if n.op_network_is_enabled () then "Enabled" else "Disabled");
+                ("", "sr br", net_has NetworkHasUpload);
+                ("", "sr br", net_has NetworkHasServers);
+                ("", "sr br", net_has NetworkHasSupernodes);
+                ("", "sr br", net_has NetworkHasSearch);
+                ("", "sr br", net_has NetworkHasChat);
+                ("", "sr br", net_has NetworkHasRooms);
+                ("", "sr"   , net_has NetworkHasMultinet); ];
+              Printf.bprintf buf "\\</tr\\>";
+            with _ -> ()
         );
       Printf.bprintf buf "\\</table\\>\\</div\\>\n";
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>This table prints information about the capabilities of\nMLDonkey network modules, not the networks itselves\\</div\\>"

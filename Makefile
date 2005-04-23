@@ -594,8 +594,16 @@ CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
-mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+ifeq ("$(USE_GTK2)", "yes")
+mlnet+gui_CMXA= \
+  cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  icons.cmxa guibase.cmxa gui.cmxa
+else
+mlnet+gui_CMXA= \
+  cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlnet+gui_SRCS=$(MAIN_SRCS)
 
 
@@ -1271,13 +1279,22 @@ GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
   $(SRC_GUI2)/gui2_misc.ml $(SRC_GUI2)/gui2_config.ml \
   $(SRC_GUI2)/gui2_main.ml
 
-MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
+ifeq ("$(USE_GTK2)", "yes")
+  MLDONKEYGUI_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+  MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
 MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
-MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+ifeq ("$(USE_GTK2)", "yes")
+  MLDONKEY_IM_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
+else
+  MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+endif
 
 ifeq ("$(USE_GTK2)", "yes")
   MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/guiImMain.ml  $(MAIN_SRCS)
@@ -1286,14 +1303,18 @@ else
 endif
 
 ifeq ("$(USE_GTK2)", "yes")
-  STARTER_CMXA=cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+  STARTER_CMXA=cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
   STARTER_SRCS= $(SRC_GUI)/guiStarter.ml
 else
   STARTER_CMXA=cdk.cmxa
   STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 endif
 
-INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+ifeq ("$(USE_GTK2)", "yes")
+  INSTALLER_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
+else
+  INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+endif
 
 ifeq ("$(USE_GTK2)", "yes")
   INSTALLER_SRCS= \
@@ -1332,7 +1353,7 @@ CHAT_EXE_SRCS += \
   $(CHAT_GUI)/chat_main.ml
 
 ifeq ("$(USE_GTK2)", "yes")
-  MLCHAT_CMXA= cdk.cmxa gmisc.cmxa icons.cmxa
+  MLCHAT_CMXA= cdk.cmxa icons.cmxa
 else
   MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 endif
@@ -1437,9 +1458,16 @@ build/mldc.cma: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mldc+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mldc.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mldc+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mldc.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mldc+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1490,9 +1518,16 @@ build/mlnap.cma: $(OPENNAP_OBJS) $(OPENNAP_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlnap+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlnap.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlnap+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlnap.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlnap+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1543,9 +1578,16 @@ build/mlgnut.cma: $(GNUTELLA_OBJS) $(GNUTELLA_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlgnut+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlgnut+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlgnut+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1596,9 +1638,16 @@ build/mlg2.cma: $(GNUTELLA2_OBJS) $(GNUTELLA2_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlg2+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlg2.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlg2+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlg2.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlg2+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1649,9 +1698,16 @@ build/mlfasttrack.cma: $(FASTTRACK_OBJS) $(FASTTRACK_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlfasttrack+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlfasttrack+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlfasttrack+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1702,9 +1758,16 @@ build/mlfileTP.cma: $(FILETP_OBJS) $(FILETP_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlfileTP+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlfileTP.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlfileTP+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlfileTP.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlfileTP+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1755,9 +1818,16 @@ build/mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlbt+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlbt.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlbt+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlbt.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlbt+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1808,9 +1878,16 @@ build/mldonkey.cma: $(DONKEY_OBJS) $(DONKEY_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mldonkey+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mldonkey+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mldonkey+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1861,9 +1938,16 @@ build/mlcymes.cma: $(CYMES_OBJS) $(CYMES_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlcymes+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlcymes.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlcymes+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlcymes.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlcymes+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1914,9 +1998,16 @@ build/mlslsk.cma: $(SOULSEEK_OBJS) $(SOULSEEK_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlslsk+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlslsk.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlslsk+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlslsk.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlslsk+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -1967,9 +2058,16 @@ build/mlares.cma: $(ARES_OBJS) $(ARES_CMOS)
  
 
 
+ifeq ("$(USE_GTK2)", "yes")
 mlares+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlares.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+else
+mlares+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlares.cmxa driver.cmxa \
+   icons.cmxa guibase.cmxa gui.cmxa
+endif
+
 mlares+gui_SRCS= $(MAIN_SRCS)
 
 
@@ -2144,6 +2242,8 @@ build/core.cma: $(CORE_OBJS) $(CORE_CMOS)
  
 
 
+ifneq ("$(USE_GTK2)", "yes")
+  
 libgmisc_ZOG := $(filter %.zog, $(libgmisc_SRCS)) 
 libgmisc_MLL := $(filter %.mll, $(libgmisc_SRCS)) 
 libgmisc_MLY := $(filter %.mly, $(libgmisc_SRCS)) 
@@ -2168,6 +2268,8 @@ build/gmisc.cmxa: $(libgmisc_OBJS) $(libgmisc_CMXS)
 build/gmisc.cma: $(libgmisc_OBJS) $(libgmisc_CMOS) 
 	$(OCAMLC) -a -o $@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMOS) 
  
+
+endif
 
 
 libgui_ZOG := $(filter %.zog, $(libgui_SRCS)) 
