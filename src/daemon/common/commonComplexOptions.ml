@@ -819,6 +819,18 @@ let shared_directories =
       shdir_priority = 0;
       shdir_networks = [];
       shdir_strategy = "all_files";
+    };
+    {
+      shdir_dirname = "incoming/files";
+      shdir_priority = 0;
+      shdir_networks = [];
+      shdir_strategy = "incoming_files";
+    };
+    {
+      shdir_dirname = "incoming/directories";
+      shdir_priority = 0;
+      shdir_networks = [];
+      shdir_strategy = "incoming_directories";
     }
   ]
 

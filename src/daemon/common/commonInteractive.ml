@@ -664,6 +664,7 @@ let apply_on_fully_qualified_options name f =
   in
   try
     iter "" downloads_ini;
+    iter "" users_ini;
     if not (networks_iter_all_until_true (fun r ->
             try
               List.iter (fun opfile ->

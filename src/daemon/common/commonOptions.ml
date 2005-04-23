@@ -124,11 +124,28 @@ let files_ini = create_options_file (
     Filename.concat file_basedir "files.ini")
 let friends_ini = create_options_file (
     Filename.concat file_basedir "friends.ini")
+let users_ini = create_options_file (
+    Filename.concat file_basedir "users.ini")
 
 let messages_log = ref (Filename.concat file_basedir "messages.log")
 
 let servers_section = file_section servers_ini [] ""
+
+let users_section = file_section users_ini ["Users"] "User accounts on the core"
+
+let empty_password = Md4.string ""
   
+let users = define_option users_section ["users"]
+  "The users that are defined on this core. The default user is
+called 'admin', and uses an empty password. To create new users,
+login as admin in mldonkey, and use the 'add_user' command."
+    (list_option (tuple2_option (string_option, Md4.option)))
+    [ "admin", empty_password ]
+
+let empty_password user =
+  try
+    (List.assoc user !!users) = empty_password
+  with _ -> false
 
 let ip_list_option = list_option Ip.option
 
@@ -178,13 +195,7 @@ let new_name () =
     (random_letter ()) (random_letter ()) (random_letter ()) 
     (random_letter ()) (random_letter ()) (random_letter ()))
 
-  
-  
-  
-  
-  
-  
-  
+
 let main_section = file_section downloads_ini ["Main"] 
   "Main options"
 let interfaces_section = file_section downloads_ini ["Interfaces" ]
@@ -885,20 +896,6 @@ let allow_any_command = define_option current_section
 ones in allowed_commands"
     bool_option false
   
-let empty_password = Md4.string ""
-  
-let users = define_option current_section ["users"]
-  "The users that are defined on this core. The default user is
-called 'admin', and uses an empty password. To create new users,
-login as admin in mldonkey, and use the 'add_user' command."
-    (list_option (tuple2_option (string_option, Md4.option)))
-    [ "admin", empty_password ]
-
-let empty_password user =
-  try
-    (List.assoc user !!users) = empty_password
-  with _ -> false
-
 let allow_browse_share = define_option current_section ["allow_browse_share"]
   "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 2
 

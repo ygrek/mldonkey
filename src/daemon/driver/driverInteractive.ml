@@ -196,6 +196,7 @@ let save_config () =
   );
   if !initialization_completed then (
       Options.save_with_help downloads_ini;
+      Options.save_with_help_private users_ini;
       CommonComplexOptions.save ();
       CommonUploads.save ();
       networks_iter_all (fun r -> 

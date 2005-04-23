@@ -68,6 +68,7 @@ value is specified in this file are updated. *)
 val save : options_file -> unit
 (*d [save ()] saves all the options values to the option file. *)
 val save_with_help : options_file -> unit
+val save_with_help_private : options_file -> unit
 (*d [save_with_help ()] saves all the options values to the option file,
 with the help provided for each option. *)
 

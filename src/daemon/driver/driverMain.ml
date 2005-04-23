@@ -248,13 +248,29 @@ let load_config () =
 
 (**** LOAD OPTIONS ****)
   
-  let exists_downloads_ini = Sys.file_exists 
-      (options_file_name downloads_ini) in
-  if not exists_downloads_ini then begin
-      lprintf "No config file found. Generating one.\n"; 
+  let exists_downloads_ini =
+    Sys.file_exists (options_file_name downloads_ini) in
+  let exists_users_ini =
+    Sys.file_exists (options_file_name users_ini)
+  in
+  if not exists_downloads_ini then
+    begin
+      lprintf "No config file (downloads.ini) found. Generating one.\n"; 
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
-    end;
+      if not exists_users_ini then
+        begin
+          lprintf "No config file (users.ini) found. Generating one.\n"; 
+          let oc = open_out (options_file_name users_ini) in
+	  close_out oc; 
+        end;
+    end
+  else
+    if not exists_users_ini then
+      begin
+        lprintf "No config file (users.ini) found. Importing users from downloads.ini.\n"; 
+        ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
+      end;
 
 (*
   let exists_expert_ini = Sys.file_exists 
@@ -275,6 +291,7 @@ let load_config () =
     end; *)
   (try 
       Options.load downloads_ini;
+      Options.load users_ini;
 (*      Options.load downloads_expert_ini;       *)
     with e -> 
         lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
@@ -322,6 +339,8 @@ used. For example, we can add new we_binfos... *)
   
   more_args := !more_args
     @ (Options.simple_args "" downloads_ini);
+  more_args := !more_args
+    @ (Options.simple_args "" users_ini);
   
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
@@ -511,6 +530,7 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
+  Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
   lprintf (_b "\nWelcome to MLdonkey client\n"); 

@@ -377,6 +377,7 @@ let safe_string s =
       _ -> Printf.sprintf "\"%s\"" (escaped s)
 
 let with_help = ref false
+let save_private = ref false
 
 let tabulate s = String2.replace s '\n' "\n\t"
 
@@ -826,6 +827,8 @@ let save opfile =
       Sys.rename old_old_file old_file;
     old_file in
   let oc = open_out temp_file in
+  if !save_private then
+    ( try Unix.chmod temp_file 0o600 with _ -> () );
   try
     once_values_counter := 0;
     title_opfile := true;
@@ -921,10 +924,17 @@ let save opfile =
       
 let save_with_help opfile =
   with_help := true;
+  ( try save opfile with _ -> () );
+  with_help := false
+
+let save_with_help_private opfile =
+  with_help := true;
+  save_private := true;
   begin try save opfile with
     _ -> ()
   end;
-  with_help := false
+  with_help := false;
+  save_private := false
   
 let option_hook option f = option.option_hooks <- f :: option.option_hooks
   

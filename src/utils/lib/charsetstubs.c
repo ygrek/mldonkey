@@ -32,18 +32,56 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef HAVE_LOCALE_CHARSET
-  #ifdef HAVE_LIBCHARSET_H
+#ifndef DISABLE_ICONV
+  #ifdef HAVE_LOCALE_H
     #include <locale.h>
+  #endif
+  #ifdef HAVE_LIBCHARSET_H
     #include <libcharset.h>
   #else
-    #include <localcharset.h>
+    #include <langinfo.h>
   #endif
+  #include <iconv.h>
 #else
-  #include <locale.h>
-  #include <langinfo.h>
+  /* This is made up from the headers above. */
+
+  #define LC_CTYPE 0
+  char *setlocale (int __category, __const char *__locale)
+  {
+    return "EN";
+  }
+
+  #define CODESET 0
+  typedef int nl_item;
+  char *nl_langinfo (nl_item __item)
+  {
+    return "UTF-8";
+  }
+
+  typedef void *iconv_t;
+  iconv_t iconv_open (__const char *__tocode, __const char *__fromcode)
+  {
+      /* I guess this is not the right thing to do, but it seems to work partly and does not crash *g*. */
+      return (iconv_t) -1;
+  }
+  size_t iconv (iconv_t __cd, char **__restrict __inbuf,
+                     size_t *__restrict __inbytesleft,
+                     char **__restrict __outbuf,
+                     size_t *__restrict __outbytesleft)
+  {
+    size_t count;
+    if(*__inbytesleft > *__outbytesleft)
+      count = *__outbytesleft;
+    else
+      count = *__inbytesleft;
+    memcpy(*__outbuf,*__inbuf,count);
+    return count;
+  }
+  int iconv_close (iconv_t __cd)
+  {
+      return 0;
+  }
 #endif
-#include <iconv.h>
 
 #ifdef WIN32
 #define STRICT			/* Strict typing, please */
@@ -1165,7 +1203,7 @@ ml_iconv (iconv_t cd,
           char    **outbuf,
           size_t  *outbytes_left)
 {
-  return iconv (cd, inbuf, inbytes_left, outbuf, outbytes_left);
+    return iconv (cd, inbuf, inbytes_left, outbuf, outbytes_left);
 }
 
 char*

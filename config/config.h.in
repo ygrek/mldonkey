@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define to 1 if you want to replace iconv and related with stubs. */
+#undef DISABLE_ICONV
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -15,6 +18,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `charset' library (-lcharset). */
+#undef HAVE_LIBCHARSET
+
 /* Define to 1 if you have the <libcharset.h> header file. */
 #undef HAVE_LIBCHARSET_H
 
@@ -23,6 +29,9 @@
 
 /* Define to 1 if you have the `locale_charset' function. */
 #undef HAVE_LOCALE_CHARSET
+
+/* Define to 1 if you have the <locale.h> header file. */
+#undef HAVE_LOCALE_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

@@ -128,6 +128,8 @@ endif
 
 #######################################################################
 
+LIBS_flags += -ccopt "$(LDFLAGS) $(CPPFLAGS)" -cclib "$(LIBS)"
+
 ifeq ("$(OS_FILES2)", "mingw")
   LIBS_flags += -ccopt "$(GTKCFLAGS) $(GTKLLIBS)" -cclib "$(GTKLFLAGS) -lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o"
 endif
@@ -147,10 +149,6 @@ ifeq ("$(SUPERNODES)", "yes")
   FASTTRACK_SUPERNODE=$(SRC_FASTTRACK)/fasttrackSupernode.ml
 else
 
-endif
-
-ifneq ("$(ICONV_LIB)", "")
-  LIBS_flags += -cclib "$(ICONV_LIB)"
 endif
 
 ifeq ("$(BROOSNET)", "yes")

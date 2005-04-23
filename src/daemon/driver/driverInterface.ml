@@ -469,6 +469,15 @@ lprintf "Sending for %s\n" prefix;
           ) (strings_of_section_options "" s)
       ) (sections downloads_ini);
 
+(* Options panels defined in users.ini *)
+      List.iter (fun s ->
+          let section = section_name s in
+          List.iter (fun o ->
+              gui_send gui (
+                P.Add_section_option (section, o))
+          ) (strings_of_section_options "" s)
+      ) (sections users_ini);
+
 (* Options panels defined in each plugin *)
       networks_iter_all (fun r ->
           let prefix = r.network_shortname ^ "-" in
@@ -1316,6 +1325,15 @@ let install_hooks () =
               with _ -> ())
       ) 
   ) downloads_ini;
+  iter_file (fun o ->
+      option_hook o (fun _ ->
+          with_guis (fun gui ->
+              try
+                let oo = strings_of_option o in
+                gui_send gui (P.Options_info [oo])
+              with _ -> ())
+      ) 
+  ) users_ini;
   networks_iter_all (fun r ->
       let prefix = r.network_shortname ^ "-"  in
       List.iter (fun opfile ->
