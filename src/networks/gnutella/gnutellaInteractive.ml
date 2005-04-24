@@ -387,9 +387,14 @@ let _ =
           true
       
       | _ -> 
-          let (name, size, uids) = GnutellaProto.parse_url url in
+          let (name, size, uids) =
+            try
+              GnutellaProto.parse_url url
+            with
+              Not_found -> "",zero,[]
+          in
           if uids <> [] then begin
-(* Start a download for this file *)
+              (* Start a download for this file *)
               let rs = new_result name size [] uids [] in
               let r = IndexedResults.get_result rs in
               let file = download_file r in

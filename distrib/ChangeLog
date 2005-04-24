@@ -1,12 +1,17 @@
 ChangeLog	
 =========
 
-2005/04/24: spiralvoice (version 2.5.30.10 = tag release-2-5-30-10)
+2005/04/24: spiralvoice (version 2.5.30.11 = tag release-2-5-30-11)
 
-This version shares the same code as Amorphous revision 281.
+This version shares the same code as Amorphous revision 282.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3942: Fix for Gnutella/G2/Fasttrack dllink handling
+
+---------------------------------------------------------------------
+2005/04/24: spiralvoice (version 2.5.30.10 = tag release-2-5-30-10)
 
 3938: Print cwd on core start to help users finding their ini files
 3939: gd generated bandwith-usage graphic in the web-ui
