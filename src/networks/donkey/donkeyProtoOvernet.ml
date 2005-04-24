@@ -409,7 +409,7 @@ module Proto = struct
                     f t p
                   end
               with e ->
-	        if !verbose_hidden_errors then begin
+                if !verbose_hidden_errors then begin
                   lprintf "Error %s in udp_handler, dump of packet:\n"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;

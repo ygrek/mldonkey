@@ -839,6 +839,79 @@ let _ =
             (size_of_int64 !upload_counter);
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
+
+    "stats", Arg_none (fun o ->
+        let buf = o.conn_buf in
+	  if Autoconf.has_gd then
+	    (
+	      (if !!html_mods_vd_gfx then 
+	        (
+	        Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
+	        (if !!html_mods_vd_gfx_split then begin
+	          Printf.bprintf buf "\\<img src=\\\"bw_download.";
+	          (if !!html_mods_vd_gfx_png then 
+	              Printf.bprintf buf "png\\\"\\>"
+	          else 
+	              Printf.bprintf buf "jpg\\\"\\>"
+	          );  
+	          (if !!html_mods_vd_gfx_flip then
+	              Printf.bprintf buf "\\<br\\>"
+	          );
+	          Printf.bprintf buf "\\<img src=\\\"bw_upload.";
+	          (if !!html_mods_vd_gfx_png then
+	            Printf.bprintf buf "png\\\"\\>"
+	          else
+	            Printf.bprintf buf "jpg\\\"\\>"
+	          );
+	        end
+	      else
+	        Printf.bprintf buf "\\<img src=\\\"bw_updown.png\\\"\\>"
+	        );
+	        Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
+	        (if !!html_mods_vd_gfx_h then 
+	          (
+	          Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
+	          (if !!html_mods_vd_gfx_split then begin
+	            Printf.bprintf buf "\\<img src=\\\"bw_h_download.";
+	            (if !!html_mods_vd_gfx_png then 
+	                Printf.bprintf buf "png\\\"\\>"
+	            else 
+	                Printf.bprintf buf "jpg\\\"\\>"
+	            );  
+	            (if !!html_mods_vd_gfx_flip then
+	                Printf.bprintf buf "\\<br\\>"
+	            );
+	            Printf.bprintf buf "\\<img src=\\\"bw_h_upload.";
+	            (if !!html_mods_vd_gfx_png then
+	              Printf.bprintf buf "png\\\"\\>"
+	            else
+	              Printf.bprintf buf "jpg\\\"\\>"
+	            );
+	          end
+	          else
+	            Printf.bprintf buf "\\<img src=\\\"bw_h_updown.png\\\"\\>"
+	          );
+	          Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
+	          ); 
+	        );  
+	        (if !!html_mods_vd_gfx_tag then begin
+	          Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
+	          (if !!html_mods_vd_gfx_tag_png then
+	            Printf.bprintf buf ".png\\\"\\>"
+	          else 
+	            Printf.bprintf buf ".jpg\\\"\\>"
+	            );
+	          Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
+	        end
+	        );
+	        Printf.bprintf buf "";
+	        )
+	      )
+	    )
+	else
+	    (* fake call if no gd *)
+	    CommonGraphics.do_draw_pic "" "" "" download_history download_history;
+        _s ""), ":\t\t\t\t\tdisplay graphical transfer statistics";
     
     "!", Arg_multiple (fun arg o ->
         if !!allow_any_command then
@@ -1616,16 +1689,16 @@ let _ =
             List.iter (fun shared_dir -> 
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-	\\<td title=\\\"Click to unshare this directory\\\" 
+        \\<td title=\\\"Click to unshare this directory\\\" 
         onMouseOver=\\\"mOvr(this);\\\" 
         onMouseOut=\\\"mOut(this);\\\"
-	onClick=\\\'javascript:{ 
-	parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
+        onClick=\\\'javascript:{ 
+        parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
         setTimeout(\\\"window.location.reload()\\\",1000);}'
-	class=\\\"srb\\\"\\>Unshare\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+        class=\\\"srb\\\"\\>Unshare\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+        \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+        \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
                 (if !counter mod 2 == 0 then "dl-1" else "dl-2")
                 shared_dir.shdir_dirname
                 shared_dir.shdir_priority
@@ -2134,25 +2207,25 @@ let _ =
         match args with
           | ["queued"] ->
               let list = List2.tail_map file_info !!files in
-	      let list = List.filter ( fun f -> f.file_state = FileQueued ) list in
-	      let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
+              let list = List.filter ( fun f -> f.file_state = FileQueued ) list in
+              let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
               simple_print_file_list false buf list o;
               ""
-	  | ["paused"] ->
+          | ["paused"] ->
               let list = List2.tail_map file_info !!files in
-	      let list = List.filter ( fun f -> f.file_state = FilePaused ) list in
-	      let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
+              let list = List.filter ( fun f -> f.file_state = FilePaused ) list in
+              let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
               simple_print_file_list false buf list o;
               ""
-	  | ["downloading"] ->
+          | ["downloading"] ->
               let list = List2.tail_map file_info !!files in
-	      let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
+              let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
               let list = Sort.list
                 ( fun f1 f2 -> 
-		  Int64.sub f2.file_size f2.file_downloaded <= 
+                  Int64.sub f2.file_size f2.file_downloaded <= 
                   Int64.sub f1.file_size f1.file_downloaded
                 ) list in
-	      simple_print_file_list false buf list o;
+              simple_print_file_list false buf list o;
               if !!done_files <> [] then
                 begin
                   simple_print_file_list true buf 
@@ -2160,7 +2233,7 @@ let _ =
                   Printf.bprintf buf "Use 'commit' to move downloaded files to the incoming directory"
                 end;
               ""
-	  | [arg] ->
+          | [arg] ->
             let num = int_of_string arg in
             if o.conn_output = HTML then
               begin
@@ -2215,48 +2288,48 @@ let _ =
     
     
     "dllink", Arg_multiple (fun args o ->        
-	if !verbose then lprintf "dllink\n";
+        if !verbose then lprintf "dllink\n";
         let buf = o.conn_buf in
-	let query_networks url = 
-	  if not (networks_iter_until_true
-		    (fun n -> 
+        let query_networks url = 
+          if not (networks_iter_until_true
+                    (fun n -> 
                        try 
-			 network_parse_url n url
+                         network_parse_url n url
                        with e ->
-			 Printf.bprintf buf "Exception %s for network %s\n"
-			   (Printexc2.to_string e) (n.network_name);
-			 false
-		    )) then
+                         Printf.bprintf buf "Exception %s for network %s\n"
+                           (Printexc2.to_string e) (n.network_name);
+                         false
+                    )) then
             _s "Unable to match URL"
           else
             _s "done"
-	in
+        in
         
         let url = String2.unsplit args ' ' in
-	if (String2.starts_with url "http") then (
-	    let u = Url.of_string url in
-	    let module H = Http_client in
-	    let r = {
-	      H.basic_request with
-		H.req_url =  u;
-		H.req_proxy = !CommonOptions.http_proxy;
-		H.req_request = H.HEAD;
-		H.req_user_agent = 
-		       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
-	    } in
-	    H.whead r 
-		(fun headers ->
-		   (* Combine the list of header fields into one string *)
-		   let concat_headers = 
-		     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
-		   in
-		   ignore (query_networks concat_headers)
-		);
-	    _s "Parsing HTTP url..."
-	    )
-	else
-	    query_networks url
-	), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
+        if (String2.starts_with url "http") then (
+            let u = Url.of_string url in
+            let module H = Http_client in
+            let r = {
+              H.basic_request with
+                H.req_url =  u;
+                H.req_proxy = !CommonOptions.http_proxy;
+                H.req_request = H.HEAD;
+                H.req_user_agent = 
+                       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+            } in
+            H.whead r 
+                (fun headers ->
+                   (* Combine the list of header fields into one string *)
+                   let concat_headers = 
+                     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
+                   in
+                   ignore (query_networks concat_headers)
+                );
+            _s "Parsing HTTP url..."
+            )
+        else
+            query_networks url
+        ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
     
     "dllinks", Arg_one (fun arg o ->        
         let buf = o.conn_buf in

@@ -482,7 +482,7 @@ let new_server ip port score =
         server_last_message = 0;
         server_queries_credit = 0;
         server_waiting_queries = [];
-	server_sent_all_queries = false;
+        server_sent_all_queries = false;
         server_id_requests = Fifo.create ();
         server_flags = 0;
         server_has_zlib = false;
@@ -754,6 +754,7 @@ let remove_client c =
 
 let friend_remove c = 
   friend_remove  (as_client c)
+
 
 (* Parts stolen from update_master_servers. Maybe someone competent
    enough reduces the redundant code produced here. *)

@@ -1022,12 +1022,12 @@ for flag in $acx_pthread_flags; do
                 PTHREAD_CFLAGS="$flag"
                 ;;
 
-                pthread-config)
-                AC_CHECK_PROG(acx_pthread_config, pthread-config, yes, no)
-                if test x"$acx_pthread_config" = xno; then continue; fi
-                PTHREAD_CFLAGS="`pthread-config --cflags`"
-                PTHREAD_LIBS="`pthread-config --ldflags` `pthread-config --libs`"
-                ;;
+		pthread-config)
+		AC_CHECK_PROG(acx_pthread_config, pthread-config, yes, no)
+		if test x"$acx_pthread_config" = xno; then continue; fi
+		PTHREAD_CFLAGS="`pthread-config --cflags`"
+		PTHREAD_LIBS="`pthread-config --ldflags` `pthread-config --libs`"
+		;;
 
                 *)
                 AC_MSG_CHECKING([for the pthreads library -l$flag])
@@ -1130,3 +1130,4 @@ else
 fi
 AC_LANG_RESTORE
 ])dnl ACX_PTHREAD
+

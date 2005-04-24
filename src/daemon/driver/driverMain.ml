@@ -262,7 +262,7 @@ let load_config () =
         begin
           lprintf "No config file (users.ini) found. Generating one.\n"; 
           let oc = open_out (options_file_name users_ini) in
-	  close_out oc; 
+          close_out oc; 
         end;
     end
   else

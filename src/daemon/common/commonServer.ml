@@ -392,19 +392,19 @@ let server_print s o =
              | _, _, _, 0 -> true
              | _ -> false
            in
-	   match impl.impl_server_state with
-	   | Connected _ ->
-	       begin
-        	 let cid = (server_cid s) in
+           match impl.impl_server_state with
+           | Connected _ ->
+               begin
+                 let cid = (server_cid s) in
                  let (label,shortlabel,our_ip) =
                    if not (donkey_low_id cid) then
                      ("HighID","Hi",
-		      (if !!set_client_ip <> cid then
-			 Printf.sprintf "(clientIP: %s)"
+                      (if !!set_client_ip <> cid then
+                         Printf.sprintf "(clientIP: %s)"
                            (Ip.to_string !!set_client_ip)
-		       else ""
-		      )
-		     )
+                       else ""
+                      )
+                     )
                    else
                      ("LowID","Lo","")
                  in
@@ -416,8 +416,8 @@ let server_print s o =
                       our_ip
                       shortlabel
                end
-	   | _ -> "\\>"
-	 end
+           | _ -> "\\>"
+         end
        else "\\>"
       )
       

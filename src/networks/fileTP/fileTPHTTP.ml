@@ -235,7 +235,7 @@ let rec client_parse_header c gconn sock header =
           with _ -> 
 (* A bit dangerous, no ??? *)
               if !verbose_hidden_errors then
-	        lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
+                lprintf "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s\n" 
                     (Printexc2.to_string e)
                     (String.escaped header);
               disconnect_client c (Closed_for_error "Bad HTTP Range");
@@ -430,3 +430,4 @@ let proto =
     proto_string = "http";
     proto_connect = http_connect;
   }
+

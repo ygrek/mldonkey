@@ -466,13 +466,13 @@ module P = struct
                 let t = parse_message ip port pbuf in
                 f t p
               with e ->
-	        if !verbose_hidden_errors then
-		begin
+                if !verbose_hidden_errors then
+                begin
                   lprintf "Error %s in udp_handler, dump of packet:\n"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
                   lprint_newline ()
-		end
+                end
           );
       | _ -> ()
     
@@ -498,3 +498,4 @@ module P = struct
   end
   
 module Kademlia = Make(P)
+

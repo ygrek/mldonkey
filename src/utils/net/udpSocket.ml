@@ -282,7 +282,7 @@ let rec iter_write_no_bc t sock =
       Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
     | e ->
           if !debug then
-	    lprintf "Exception %s in sendto next\n"
+            lprintf "Exception %s in sendto next\n"
               (Printexc2.to_string e)
   end;
   iter_write_no_bc t sock
@@ -318,7 +318,7 @@ let rec iter_write t sock bc =
         Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
       | e ->
           if !debug then
-	    lprintf "Exception %s in sendto next\n"
+            lprintf "Exception %s in sendto next\n"
               (Printexc2.to_string e)
     end;
     iter_write t sock bc

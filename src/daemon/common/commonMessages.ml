@@ -372,7 +372,7 @@ onclick=\"showTab(3);mSub('output','vm');\">Servers</TD></TR></TBODY></TABLE></T
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Statistics Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onclick=\"showTab(4);mSub('output','cs');\">Statistics</TD></TR></TBODY></TABLE></TD>
+onclick=\"showTab(4);mSub('output','stats');\">Statistics</TD></TR></TBODY></TABLE></TD>
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Options Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"

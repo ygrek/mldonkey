@@ -420,7 +420,7 @@ let handlers info gconn =
     if b.len > 0 then
       match gconn.gconn_handler with
       | BTHeader h ->
-	  (* dump (String.sub b.buf b.pos (min b.len 100)); *)
+          (* dump (String.sub b.buf b.pos (min b.len 100)); *)
           let slen = get_int8 b.buf b.pos in
           if slen + 29 <= b.len then
             begin
@@ -434,7 +434,7 @@ let handlers info gconn =
               let proto,pos = get_string8 b.buf b.pos in
               buf_used b (slen+29);
               h gconn sock (proto, file_id);
-	    end
+            end
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
               lprintf "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i\n"

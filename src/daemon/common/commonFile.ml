@@ -545,7 +545,7 @@ let file_print file o =
     begin
       Printf.bprintf buf "[%-s %5d]\n%s\n%s\nTotal   %10s\nPartial %10s\npriority %d\n" 
         n.network_name
-	(file_num file)
+        (file_num file)
         (String2.shorten 80 (file_best_name file))
         (Md4.to_string info.G.file_md4)
         (Int64.to_string info.G.file_size)

@@ -136,7 +136,7 @@ let new_shared dirname prio filename fullname =
         incr dirname_counter;
         let name = Printf.sprintf "shared%d" !dirname_counter in
         Hashtbl.add dirnames dirname name;
-	dirnames_prio := (name, prio) :: !dirnames_prio;
+        dirnames_prio := (name, prio) :: !dirnames_prio;
         name in
   let codedname = Filename.concat dirname filename in
   if !verbose_share then

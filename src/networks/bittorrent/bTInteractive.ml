@@ -476,7 +476,7 @@ let op_network_parse_url url =
     if (valid_torrent_extension real_url)
        || (String2.contains url "Content-Type: application/x-bittorrent")
       then (
-      	let u = Url.of_string real_url in
+        let u = Url.of_string real_url in
         let module H = Http_client in
         let r = {
             H.basic_request with
@@ -516,13 +516,13 @@ let op_network_parse_url url =
   with
     | Not_found ->
       if (valid_torrent_extension url) then
-	try
-	  if !verbose_torrent then lprintf "Not_found and trying to load %s\n" url;
+        try
+          if !verbose_torrent then lprintf "Not_found and trying to load %s\n" url;
           load_torrent_file url;
-	  true
-	with e ->
+          true
+        with e ->
           lprintf "Exception %s while 2nd loading\n" (Printexc2.to_string e);
-	  false
+          false
       else
         begin
           if !verbose_torrent then lprintf "Not_found and url has non valid torrent extension: %s\n" url;

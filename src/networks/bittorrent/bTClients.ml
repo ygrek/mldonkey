@@ -428,7 +428,7 @@ let rec client_parse_header counter cc init_sent gconn sock
          if c.client_uid <> peer_id then 
           c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
           c
-	 *)
+         *)
 
 (*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
@@ -906,12 +906,12 @@ and client_to_client c sock msg =
            match c.client_uploader with
               None ->
                 (* Afaik this is no protocolviolation and happens if the client
-		   didn't send a client bitmap after the handshake. *)
-		let (ip,port) = c.client_host in
-		  if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
-		    (Ip.to_string ip) port (c.client_software)
+                   didn't send a client bitmap after the handshake. *)
+                let (ip,port) = c.client_host in
+                  if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
+                    (Ip.to_string ip) port (c.client_software)
             | Some up -> 
-	        Int64Swarmer.clear_uploader_ranges up
+                Int64Swarmer.clear_uploader_ranges up
           end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;
@@ -1219,9 +1219,9 @@ for parsing the response*)
               String "interval", Int n -> 
                 t.tracker_interval <- Int64.to_int n
             | String "failure reason", String failure ->
-	        lprintf "Failure from BT-Tracker %s in file: %s Reason: %s\n" t.tracker_url file.file_name failure
-	    | String "complete", Int n -> () (*TODO we should put these two in some var. and perhaps display them in the gui*)
-	    | String "incomplete", Int n -> ()
+                lprintf "Failure from BT-Tracker %s in file: %s Reason: %s\n" t.tracker_url file.file_name failure
+            | String "complete", Int n -> () (*TODO we should put these two in some var. and perhaps display them in the gui*)
+            | String "incomplete", Int n -> ()
             | String "peers", List list ->
                 List.iter (fun v ->
                     match v with

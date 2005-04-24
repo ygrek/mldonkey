@@ -804,6 +804,7 @@ let rec to_gui (proto : int array) buf t =
         buf_int buf num;
         buf_int64 buf upload;
         buf_int buf requests
+
     | Shared_file_unshared num -> buf_opcode buf 35;
         buf_int buf num
     

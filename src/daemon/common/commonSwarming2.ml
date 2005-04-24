@@ -1090,9 +1090,9 @@ let verify_chunk t i =
               
               end else begin
                 
-	        if !verbose_swarming then
-		    lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
-			i (file_best_name t.t_file);
+                if !verbose_swarming then
+                    lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
+                        i (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
                 
                 if List.for_all (fun i ->
@@ -2335,7 +2335,7 @@ let received (up : uploader) (file_begin : Int64.t)
                               (br.range_end -- br.range_current_begin);
                             lprintf "\n";
                         ) up.up_ranges;
-			end;
+                        end;
                         if !exit_on_error then exit 2
                       end else
                     if string_length > 0 then

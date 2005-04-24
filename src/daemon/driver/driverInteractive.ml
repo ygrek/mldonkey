@@ -692,77 +692,8 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
   Printf.bprintf buf "\\</form\\>"
 
 end
-else Printf.bprintf buf "No files";
+else Printf.bprintf buf "No files"
 
-if Autoconf.has_gd then
-(
-  (if !!html_mods_vd_gfx then 
-    (
-    Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
-    (if !!html_mods_vd_gfx_split then begin
-      Printf.bprintf buf "\\<img src=\\\"bw_download.";
-      (if !!html_mods_vd_gfx_png then 
-          Printf.bprintf buf "png\\\"\\>"
-      else 
-          Printf.bprintf buf "jpg\\\"\\>"
-      );  
-      (if !!html_mods_vd_gfx_flip then
-          Printf.bprintf buf "\\<br\\>"
-      );
-      Printf.bprintf buf "\\<img src=\\\"bw_upload.";
-      (if !!html_mods_vd_gfx_png then
-        Printf.bprintf buf "png\\\"\\>"
-      else
-        Printf.bprintf buf "jpg\\\"\\>"
-      );
-    end
-    else
-      Printf.bprintf buf "\\<img src=\\\"bw_updown.png\\\"\\>"
-    );
-    Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
-    (if !!html_mods_vd_gfx_h then 
-      (
-      Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
-      (if !!html_mods_vd_gfx_split then begin
-        Printf.bprintf buf "\\<img src=\\\"bw_h_download.";
-        (if !!html_mods_vd_gfx_png then 
-            Printf.bprintf buf "png\\\"\\>"
-        else 
-            Printf.bprintf buf "jpg\\\"\\>"
-        );  
-        (if !!html_mods_vd_gfx_flip then
-            Printf.bprintf buf "\\<br\\>"
-        );
-        Printf.bprintf buf "\\<img src=\\\"bw_h_upload.";
-        (if !!html_mods_vd_gfx_png then
-          Printf.bprintf buf "png\\\"\\>"
-        else
-          Printf.bprintf buf "jpg\\\"\\>"
-        );
-      end
-      else
-        Printf.bprintf buf "\\<img src=\\\"bw_h_updown.png\\\"\\>"
-      );
-      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
-      ); 
-    );  
-    (if !!html_mods_vd_gfx_tag then begin
-      Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
-      (if !!html_mods_vd_gfx_tag_png then
-        Printf.bprintf buf ".png\\\"\\>"
-      else 
-        Printf.bprintf buf ".jpg\\\"\\>"
-        );
-      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
-    end
-    );
-    Printf.bprintf buf "";
-    )
-  )
-)
-else
-(* fake call if no gd *)
-CommonGraphics.do_draw_pic "" "" "" download_history download_history
 
 let html_mods_done_files buf files = 
 
@@ -882,7 +813,7 @@ let simple_print_file_list finished buf files format =
                     (short_net_name file)
                     file.file_num)
                    else
-        	    (Printf.sprintf "%0s%4d"
+                    (Printf.sprintf "%0s%4d"
                 (short_net_name file)
                 file.file_num))
                   (if format.conn_output = HTML then  
@@ -1324,8 +1255,8 @@ let print_results stime buf o results =
       List.iter (fun (rs, r,avail) ->
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
-	      nsources := !nsources + avail;
-	      totalsize := !totalsize ++ r.result_size ** (Int64.of_int avail);
+              nsources := !nsources + avail;
+              totalsize := !totalsize ++ r.result_size ** (Int64.of_int avail);
               if !counter >= !!max_displayed_results then raise Exit;
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               let new_result = !!save_results > 0 && r.result_time >= stime in

@@ -109,7 +109,7 @@ let rec compute_stats () =
       match r with
       | File_new_source ->
           if time + 1800 < last_time () then begin
-	      if !verbose_hidden_errors then
+              if !verbose_hidden_errors then
                 lprintf "DonkeyNeighbours: WARNING, source was not tested\n";
               raise Continue
             end
@@ -119,7 +119,7 @@ let rec compute_stats () =
               raise Continue
             end
       | File_possible ->
-	  if !verbose_hidden_errors then
+          if !verbose_hidden_errors then
             lprintf "DonkeyNeighbours: WARNING, source was unknown\n";
           if time + 1800 < last_time () then raise Continue
       | File_not_found ->
@@ -134,7 +134,7 @@ let rec compute_stats () =
     with
     | Not_found -> 
 (* For some reason, the request was forgotten. Forget it... *)
-	if !verbose_hidden_errors then
+        if !verbose_hidden_errors then
           lprintf "DonkeyNeighbours: ERROR, request was forgotten\n";
         let _ = Fifo.take propositions in
         compute_stats ()

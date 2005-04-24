@@ -340,3 +340,4 @@ let _ =
       tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
       udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
   )
+

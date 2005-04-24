@@ -124,7 +124,7 @@ class box s_num columns () =
     method compare_by_col col r1 r2 =
       match col with
         Col_result_name -> compare (first_name r1) (first_name r2)
-      | Col_result_uids -> compare r1.result_uids r2.result_uids
+      |	Col_result_uids -> compare r1.result_uids r2.result_uids
       |	Col_result_size -> compare r1.result_size r2.result_size
       |	Col_result_format -> compare r1.result_format r2.result_format
       |	Col_result_props -> compare (CommonGlobals.string_of_tags 

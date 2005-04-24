@@ -43,6 +43,7 @@ open DonkeyOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
 
+
 module Udp = DonkeyProtoUdp
 
 (* Constants *)
@@ -88,21 +89,21 @@ let get_query_files server number =
   let rec iter n =
     if n>0 then
       begin
-	match server.server_waiting_queries with
+        match server.server_waiting_queries with
             [] -> 
-	      fill_query_queue server;
-	      []
-	      (* iter (mini n (List.length server.server_waiting_queries) ) *)
+              fill_query_queue server;
+              []
+              (* iter (mini n (List.length server.server_waiting_queries) ) *)
           | file :: files ->
-	      server.server_waiting_queries <- files;
-	      if files = [] then
-		server.server_sent_all_queries <- true;
-	      
-	      if file_state file = FileDownloading
-		&& DonkeySources.need_new_sources file.file_sources
-		then
+              server.server_waiting_queries <- files;
+              if files = [] then
+                server.server_sent_all_queries <- true;
+              
+              if file_state file = FileDownloading
+                && DonkeySources.need_new_sources file.file_sources
+                then
                   file :: iter (n-1)
-	      else
+              else
                 iter n
       end
     else []
@@ -115,21 +116,21 @@ let query_locations_timer () =
   List.iter (
     fun server ->
       if server.server_queries_credit <= 0 then
-	begin
-	  do_if_connected server.server_sock (
-	    fun sock ->
-	      List.iter (
-		fun file -> 
-		  if !verbose_location then
-		    lprintf "donkeyServers: TCP: Query Location of %s\n" 
-		      (file_best_name file);
-		  let module M = DonkeyProtoServer in
-		  server_send sock ( M.QueryLocationReq file.file_md4  ) 
-	      ) (get_query_files server files_queries_per_minute);
-	  )
-	end
+        begin
+          do_if_connected server.server_sock (
+            fun sock ->
+              List.iter (
+                fun file -> 
+                  if !verbose_location then
+                    lprintf "donkeyServers: TCP: Query Location of %s\n" 
+                      (file_best_name file);
+                  let module M = DonkeyProtoServer in
+                  server_send sock ( M.QueryLocationReq file.file_md4  ) 
+              ) (get_query_files server files_queries_per_minute);
+          )
+        end
       else 
-	server.server_queries_credit <- server.server_queries_credit - 1 
+        server.server_queries_credit <- server.server_queries_credit - 1 
 
   )(connected_servers());;
 
@@ -146,27 +147,27 @@ let udp_query_sources () =
   let nservers = ref 0 in
   while !nservers < udp_max_ask (* ask only (udp_max_ask) servers *)
     && (match !udp_servers_list with
-	    [] -> 
-	      udp_servers_list := Hashtbl2.to_list servers_by_key;
-	      false
-	  | s :: tail -> 
-	      udp_servers_list := tail;
-	      (match s.server_sock with
+            [] -> 
+              udp_servers_list := Hashtbl2.to_list servers_by_key;
+              false
+          | s :: tail -> 
+              udp_servers_list := tail;
+              (match s.server_sock with
                    Connection _ -> ()
-		 | _ -> 
-		     if connection_last_conn s.server_connection_control + 3600*1 
-		       > last_time () &&
-		       s.server_next_udp <= last_time () then 
-			 begin
-			   if server_accept_multiple_getsources s then
-			     new_servers := s :: !new_servers
-			   else
-			     old_servers := s :: !old_servers;
-			   
-			   incr nservers;
-			 end
-	      );
-	      true 
+                 | _ -> 
+                     if connection_last_conn s.server_connection_control + 3600*1 
+                       > last_time () &&
+                       s.server_next_udp <= last_time () then 
+                         begin
+                           if server_accept_multiple_getsources s then
+                             new_servers := s :: !new_servers
+                           else
+                             old_servers := s :: !old_servers;
+                           
+                           incr nservers;
+                         end
+              );
+              true 
        )
   do
     ()
@@ -179,24 +180,24 @@ let udp_query_sources () =
     (* query "new servers" ie servers which understand multiple filerequests *)
     List.iter (
       fun s ->
-	let md4s = List.map (
-	  fun file -> 
-	    file.file_md4; 
-	) (get_query_files s udp_requests_new)
-	in 
-	udp_server_send s (Udp.QueryLocationUdpReq md4s);
-	s.server_next_udp <- last_time () + udp_requests_wait;
+        let md4s = List.map (
+          fun file -> 
+            file.file_md4; 
+        ) (get_query_files s udp_requests_new)
+        in 
+        udp_server_send s (Udp.QueryLocationUdpReq md4s);
+        s.server_next_udp <- last_time () + udp_requests_wait;
     ) !new_servers;
     
     (* query "old servers", they need one packet per request *)
     List.iter (
       fun s -> 
-	let list = get_query_files s udp_requests_old in
-	List.iter ( 
-	  fun file -> 
-	    udp_server_send s (Udp.QueryLocationUdpReq [file.file_md4]);
-	    s.server_next_udp <- last_time () + udp_requests_wait
-	) list;
+        let list = get_query_files s udp_requests_old in
+        List.iter ( 
+          fun file -> 
+            udp_server_send s (Udp.QueryLocationUdpReq [file.file_md4]);
+            s.server_next_udp <- last_time () + udp_requests_wait
+        ) list;
     ) !old_servers;
 
   with e ->
@@ -209,34 +210,38 @@ let disconnect_server s reason =
   match s.server_sock with
       NoConnection -> ()
     | ConnectionWaiting token ->
-	decr nservers;
-	cancel_token token;
-	s.server_sock <- NoConnection
+        decr nservers;
+        cancel_token token;
+        s.server_sock <- NoConnection
     | Connection sock ->
-	decr nservers;
-	TcpBufferedSocket.close sock reason;
-	(*
+        decr nservers;
+        TcpBufferedSocket.close sock reason;
+        (*
           lprintf "%s:%d CLOSED received by server\n"
-	  (Ip.to_string s.server_ip) s.server_port; 
-	*)
-	connection_failed (s.server_connection_control);
-	s.server_sock <- NoConnection;
-	s.server_score <- s.server_score - 1;
-	s.server_users <- [];
-	set_server_state s (NotConnected (reason, -1));
-	s.server_master <- false;
-	s.server_banner <- "";
-	s.server_sent_all_queries <- false;
-	remove_connected_server s
+          (Ip.to_string s.server_ip) s.server_port; 
+        *)
+        connection_failed (s.server_connection_control);
+        s.server_sock <- NoConnection;
+        s.server_score <- s.server_score - 1;
+        s.server_users <- [];
+        set_server_state s (NotConnected (reason, -1));
+        s.server_master <- false;
+        s.server_banner <- "";
+        s.server_sent_all_queries <- false;
+        remove_connected_server s
 
 
 let server_handler s sock event = 
   match event with
       BASIC_EVENT (CLOSED r) ->
-	disconnect_server s r
+        disconnect_server s r
     | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
         close sock Closed_for_timeout
     | _ -> ()
+
+
+
+
       
 let last_message_sender = ref (-1)
       
@@ -252,12 +257,12 @@ let client_to_server s t sock =
   
   match t with
       M.SetIDReq (zlib, t) ->
-	s.server_has_zlib <- zlib;
-	if low_id t && !!force_high_id then
+        s.server_has_zlib <- zlib;
+        if low_id t && !!force_high_id then
           disconnect_server s (Closed_for_error "Low ID")
-	else begin
+        else begin
           s.server_cid <- Some t;
-	  (* disconnect after (connected_server_timeout) seconds of silence *)
+          (* disconnect after (connected_server_timeout) seconds of silence *)
           set_rtimeout sock !!connected_server_timeout; 
           set_server_state s Connected_initiating;
           s.server_score <- s.server_score + 5;
@@ -310,7 +315,7 @@ let client_to_server s t sock =
           ( match s.server_cid with
               Some t -> if Ip.valid t then (-2) else (-1)
               | _ -> (-1)
-    	  )
+          )
         );
 
       (* fill list with queries for the server *)
@@ -333,8 +338,8 @@ let client_to_server s t sock =
   
   | M.QueryIDReplyReq t -> 
       (* This can either be a reply to a QueryID or a indirect request for
-	 connection from another client. In this case, we should immediatly 
-	 connect. *)
+         connection from another client. In this case, we should immediatly 
+         connect. *)
       if !verbose then lprintf "donkeyServers: QueryIDReplyReq: received\n";
       let module Q = M.QueryIDReply in
       if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
@@ -342,16 +347,16 @@ let client_to_server s t sock =
           match Fifo.take s.server_id_requests with
               None -> raise Not_found
             | Some file ->
-		if !verbose then
-		  lprintf "donkeyServers: QueryIDReplyReq: This was a QueryID reply !?\n";
+                if !verbose then
+                  lprintf "donkeyServers: QueryIDReplyReq: This was a QueryID reply !?\n";
                 let s = DonkeySources.find_source_by_uid 
                   (Direct_address (t.Q.ip, t.Q.port)) in
                 DonkeySources.set_request_result s file.file_sources 
                   File_new_source
         with _ ->
-	  if !verbose then
-	    lprintf "donkeyServers: QueryIDReplyReq: Calling back to %s:%d\n"
-	      (Ip.to_string t.Q.ip) t.Q.port;
+          if !verbose then
+            lprintf "donkeyServers: QueryIDReplyReq: Calling back to %s:%d\n"
+              (Ip.to_string t.Q.ip) t.Q.port;
           let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
           DonkeyClient.reconnect_client c;
       end
@@ -372,8 +377,8 @@ let client_to_server s t sock =
           if !xs_last_search = search.search_num && nres = 201 &&
             search.search_nresults < search.search_max_hits then
               begin
-		server_send sock M.QueryMoreResultsReq;
-		Fifo.put s.server_search_queries search      
+                server_send sock M.QueryMoreResultsReq;
+                Fifo.put s.server_search_queries search      
               end;
           DonkeyUdp.search_handler search t
         with Already_done -> iter ()
@@ -383,7 +388,7 @@ let client_to_server s t sock =
   | M.Mldonkey_NotificationReq (num, t) ->
       let s = search_find num in
       List.iter (
-	fun f ->
+        fun f ->
           DonkeyOneFile.search_found false s f.f_md4 f.f_tags
       ) t
   
@@ -401,12 +406,12 @@ and remove clients whose server is deconnected. *)
 (*          lprintf "QueryUsersReply\n";  *)
       List.iter (fun cl ->
           let rec user = {
-	      user_user = user_impl;
+              user_user = user_impl;
               user_md4 = cl.Q.md4;
               user_name = "";
               user_ip = cl.Q.ip;
               user_port = cl.Q.port;
-	      user_tags = cl.Q.tags;
+              user_tags = cl.Q.tags;
               user_server = s;                  
             } 
           and  user_impl = {
@@ -417,7 +422,7 @@ and remove clients whose server is deconnected. *)
           in
           user_add user_impl;
           List.iter (fun tag ->
-	      match tag with
+              match tag with
                 { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
                   user.user_name <- s
               | _ -> ()
@@ -478,11 +483,11 @@ let connect_server s =
                 );
                 add_connected_server s;
               with e -> 
-		(*
-		  lprintf "%s:%d IMMEDIAT DISCONNECT \n"
-		  (Ip.to_string s.server_ip) s.server_port; 
-		  lprintf "DISCONNECTED IMMEDIATLY\n";
-		 *)
+                (*
+                  lprintf "%s:%d IMMEDIAT DISCONNECT \n"
+                  (Ip.to_string s.server_ip) s.server_port; 
+                  lprintf "DISCONNECTED IMMEDIATLY\n";
+                 *)
                 disconnect_server s (Closed_for_exception e)
           )
           in 
@@ -515,8 +520,8 @@ let rec connect_one_server restart =
               raise Not_found;
             end;
 
-	    (* sort the servers list so that last connected servers are 
-	       connected first (ie decreasing order of last connections)  *)
+            (* sort the servers list so that last connected servers are 
+               connected first (ie decreasing order of last connections)  *)
             servers_list := List.sort (fun s1 s2 ->
                 compare 
                   (connection_last_conn s2.server_connection_control) 
@@ -529,11 +534,11 @@ let rec connect_one_server restart =
           servers_list := list;
           if connection_can_try s.server_connection_control then
             begin
-	      (* connect to server *)
+              (* connect to server *)
               match s.server_sock with
-		| NoConnection when s.server_score >= 0 -> 
+                | NoConnection when s.server_score >= 0 -> 
                     connect_server s
-		| _ -> 
+                | _ -> 
                     connect_one_server restart
             end
           
@@ -548,7 +553,7 @@ let force_check_server_connections user =
       end in
     let num = ( if user
                   then !!max_connected_servers 
-		else max_allowed_connected_servers () )  - !nservers 
+                else max_allowed_connected_servers () )  - !nservers 
     in
     iter num
       
@@ -573,14 +578,13 @@ position to the min_left_servers position.
   let to_keep = ref [] in
   Hashtbl.iter (fun _ s ->
       if not s.server_preferred &&
-	(is_black_address s.server_ip s.server_port || s.server_port = 4662)
-	then
+        (is_black_address s.server_ip s.server_port || s.server_port = 4662)
+        then
           to_remove := s :: !to_remove
       else
         to_keep :=
-	  (connection_last_conn s.server_connection_control, s) :: !to_keep
+          (connection_last_conn s.server_connection_control, s) :: !to_keep
   ) servers_by_key;
-
   let t2 = Unix.gettimeofday () in
   if !verbose then lprintf "Delay to detect black-listed servers: %2.2f\n" (t2 -. t1); 
   
@@ -638,42 +642,42 @@ let walker_timer () =
     !nservers < max_allowed_connected_servers () + !!max_walker_servers then
       
       match !walker_list with
-	  [] ->
+          [] ->
             if !delayed_list <> [] then 
-	      begin
-		walker_list := !delayed_list;
-		delayed_list := []
-	      end 
-	    else
-	      if last_time () > !next_walker_start then 
-		begin
-		  next_walker_start := 
-		    last_time () + !!servers_walking_period * 3600;
+              begin
+                walker_list := !delayed_list;
+                delayed_list := []
+              end 
+            else
+              if last_time () > !next_walker_start then 
+                begin
+                  next_walker_start := 
+                    last_time () + !!servers_walking_period * 3600;
 
-		  Hashtbl.iter (
-		    fun _ s ->
-		      walker_list := s :: !walker_list
-		  ) servers_by_key;
+                  Hashtbl.iter (
+                    fun _ s ->
+                      walker_list := s :: !walker_list
+                  ) servers_by_key;
 
-		end
-	| s :: tail ->
+                end
+        | s :: tail ->
             walker_list := tail;
             match s.server_sock with
-		NoConnection -> 
+                NoConnection -> 
                   if connection_can_try s.server_connection_control then
-		    begin
+                    begin
                       if !verbose then
                         lprintf "WALKER: try connect %s\n"
-			  (Ip.to_string s.server_ip);
+                          (Ip.to_string s.server_ip);
                       connect_server s
                     end
                   else
-		    begin
+                    begin
                       delayed_list := s :: !delayed_list;
                       if !verbose then
-			lprintf "WALKER: connect %s delayed\n"
-			  (Ip.to_string s.server_ip);
-		    end
+                        lprintf "WALKER: connect %s delayed\n"
+                          (Ip.to_string s.server_ip);
+                    end
               | _ -> ()
             
 (* Keep connecting to servers in the background. Don't stay connected to 
@@ -706,7 +710,6 @@ let udp_walker_timer () =
 (* sort the servers by preferred first
    then users count with decreasing order
  *)
-
 let compare_servers s2 s1 =
   let n = compare s1.server_preferred s2.server_preferred in
   if n = 0 then
@@ -766,7 +769,7 @@ let update_master_servers _ =
         do_if_connected  s.server_sock (fun sock ->
             (* We will disconnect from this server.
                Wait for 5 seconds to disconnect. *)
-	    set_lifetime sock 5.);
+            set_lifetime sock 5.);
       end
   in
   

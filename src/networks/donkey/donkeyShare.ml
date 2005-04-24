@@ -171,16 +171,16 @@ let send_new_shared () =
       let socks = ref [] in
       if !new_shared_files <> [] then
         begin
-	  List.iter (fun s ->
-	    if s.server_master then
-	      do_if_connected s.server_sock (fun sock ->
-		server_send_share s.server_has_zlib sock !new_shared_files))
-	  (connected_servers ());
-	  if !verbose_share then
+          List.iter (fun s ->
+            if s.server_master then
+              do_if_connected s.server_sock (fun sock ->
+                server_send_share s.server_has_zlib sock !new_shared_files))
+          (connected_servers ());
+          if !verbose_share then
               lprintf "donkey send_new_share: Sent %d new shared files to servers\n"
-		    (List.length !new_shared_files);
-	  new_shared_files := []
-	end
+                    (List.length !new_shared_files);
+          new_shared_files := []
+        end
       else
           lprintf "donkey send_new_share: No new shared files to send to servers\n"
     end
@@ -260,7 +260,7 @@ let local_dirname = Sys.getcwd ()
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !verbose_share then begin
-	  lprintf "********** NETWORK SHARE ************\n";
+          lprintf "********** NETWORK SHARE ************\n";
           lprintf "FULLNAME %s\n" fullname; 
         end;
 (*      let codedname = Filename.basename codedname in*)
@@ -337,8 +337,8 @@ let remember_shared_info file new_name =
           let disk_name = file_disk_name file in
           Unix32.mtime disk_name 
         with _ ->          
-	    if !verbose_hidden_errors then
-	      lprintf "Trying mtime on new name\n";
+            if !verbose_hidden_errors then
+              lprintf "Trying mtime on new name\n";
             Unix32.mtime new_name
       in
       

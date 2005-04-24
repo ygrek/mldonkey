@@ -68,6 +68,7 @@ else
   endif
 endif
 
+
 CDK=src/utils/cdk
 LIB=src/utils/lib
 NET=src/utils/net
@@ -845,6 +846,7 @@ install:: opt
              rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
          fi
 
+
 ifeq ("$(COMPILE_GUI)" , "yes")
   ifeq ("$(USE_GTK2)", "yes")
     SUBDIRS += $(SRC_GUI) $(SRC_GUI)/win32 $(ICONS_CHOICE) +lablgtk2
@@ -1615,7 +1617,6 @@ EXPAND(DP500,dp500)
 EXPAND(TESTRSS,testrss)
 EXPAND(SVG_CONVERTER,svg_converter)
 
-
 #######################################################################
 
 ##                      Other rules
@@ -1712,8 +1713,6 @@ clean:
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
-
-
 
 tmpclean: 
 	rm -f $(TMPSOURCES)

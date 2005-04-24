@@ -133,11 +133,11 @@ let really_query_download filenames size md4 location old_file absents =
     match old_file with
     | Some filename when file_diskname <> filename ->
         if Sys.file_exists filename
-	   && not (Sys.file_exists file_diskname)
-	  then
+           && not (Sys.file_exists file_diskname)
+          then
             (try
-	      lprintf "Renaming edonkey temp-file from %s to %s\n"
-		  filename file_diskname;
+              lprintf "Renaming edonkey temp-file from %s to %s\n"
+                  filename file_diskname;
               Unix2.rename filename file_diskname;
               Unix.chmod file_diskname 0o644;
               with e ->
@@ -146,7 +146,7 @@ let really_query_download filenames size md4 location old_file absents =
             )
         else lprintf "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b\n"
                filename (Sys.file_exists filename)
-	       file_diskname (Sys.file_exists file_diskname);
+               file_diskname (Sys.file_exists file_diskname);
     | _ -> ()
   end;
 
@@ -1091,9 +1091,9 @@ let _ =
       tr ();
       html_mods_td buf [
         ("File History Links", "sr br", "File History");
-	("","sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://stats.razorback2.com/ed2khistory\\?ed2k=%s\\\"\\>RazorBack File History\\</a\\>"
-	    (Md4.to_string file.file_md4)
-	  )
+        ("","sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://stats.razorback2.com/ed2khistory\\?ed2k=%s\\\"\\>RazorBack File History\\</a\\>"
+            (Md4.to_string file.file_md4)
+          )
        ];
       tr ();
       html_mods_td buf [
@@ -1302,11 +1302,11 @@ let try_recover_temp_file filename md4 =
       let size = Unix32.getsize file_diskname in
       if size <> zero then
         let names =
-	    (* TODO RESULT
-	    try DonkeyIndexer.find_names md4
-    	    with _ -> *)
-	    []
-	in
+            (* TODO RESULT
+            try DonkeyIndexer.find_names md4
+            with _ -> *)
+            []
+        in
         let file =
           query_download names size md4 None (Some file_diskname) None true
         in
@@ -1340,14 +1340,14 @@ let _ =
           | Ed2k md4 ->
               (try
                  try_recover_temp_file filename md4
-	       with e ->
+               with e ->
                  lprintf "exception %s in recover_temp\n"
                  (Printexc2.to_string e);
               )
           | NoUid ->
               (if String.length filename = 32 then
                  try
-            	   let md4 = Md4.of_string filename in
+                   let md4 = Md4.of_string filename in
                    try_recover_temp_file filename md4
                  with e ->
                    lprintf "exception %s in recover_temp\n"

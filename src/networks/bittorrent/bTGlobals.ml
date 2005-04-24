@@ -581,8 +581,8 @@ let new_client file peer_id kind =
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
-	  client_upload_rate = Rate.new_rate ();
-	  client_downloaded_rate = Rate.new_rate ();
+          client_upload_rate = Rate.new_rate ();
+          client_downloaded_rate = Rate.new_rate ();
           client_optimist_time=0;
           client_blocks_sent = [];
           client_new_chunks = [];
@@ -592,8 +592,8 @@ let new_client file peer_id kind =
           client_alrd_sent_notinterested = false;
           client_interesting = false;
           client_incoming = false;
-	  client_registered_bitfield = false;
-	  client_last_optimist = 0;
+          client_registered_bitfield = false;
+          client_last_optimist = 0;
           client_software = if peer_id != Sha1.null then 
               (parse_software (Sha1.direct_to_string peer_id))
             else "NOT_RECEIVED";
@@ -601,7 +601,7 @@ let new_client file peer_id kind =
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+          impl_client_upload = None;
         } in
       c.client_connection_control.control_min_reask <- 120;
       new_client impl;

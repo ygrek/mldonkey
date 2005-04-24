@@ -282,9 +282,9 @@ be useful when users want to share files that they had already previously
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 
         (fun _ ->
-	  DonkeyUdp.extent_search ();
-	  DonkeyServers.udp_query_sources ()
-	 );
+          DonkeyUdp.extent_search ();
+          DonkeyServers.udp_query_sources ()
+         );
       
       add_session_option_timer enabler buffer_writes_delay 
         (fun _ -> Unix32.flush ());
@@ -323,6 +323,7 @@ be useful when users want to share files that they had already previously
     (try DonkeyUdp.force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
 *)
+
   with e ->
       lprintf "Error: Exception %s during startup\n"
         (Printexc2.to_string e)

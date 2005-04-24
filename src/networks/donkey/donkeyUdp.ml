@@ -102,6 +102,7 @@ when receiving an old ping.
   DonkeyProtoOvernet.Overnet.overnet_search ss;
   DonkeyProtoKademlia.Kademlia.overnet_search ss
           
+
 let extent_search () =
   try
     if !xs_last_search >= 0 then  begin
@@ -224,31 +225,31 @@ let udp_client_handler t p =
   let udp_from_server p =
     match p.UdpSocket.udp_addr with
       | Unix.ADDR_INET(ip, port) ->
-	  let ip = Ip.of_inet_addr ip in
-	  if !!update_server_list then
+          let ip = Ip.of_inet_addr ip in
+          if !!update_server_list then
             let s = check_add_server ip (port-4) in
-	    (* set last_conn, but add a 2 minutes offset to prevent 
-	       staying connected to this server *)
+            (* set last_conn, but add a 2 minutes offset to prevent 
+               staying connected to this server *)
             connection_set_last_conn s.server_connection_control (
               last_time () - 121);
             s.server_score <- s.server_score + 3;
             s
-	  else 
-	    find_server ip (port-4)
+          else 
+            find_server ip (port-4)
       | _ -> raise Not_found
   in
   match t with
       Udp.QueryLocationReplyUdpReq t ->
         (* lprintf "Received location by UDP\n"; *)
-	let  s = udp_from_server p in
-	List.iter (query_locations_reply s) t
+        let  s = udp_from_server p in
+        List.iter (query_locations_reply s) t
       
   | Udp.QueryReplyUdpReq t ->
       (* lprintf "Received file by UDP\n"; *)
       if !xs_last_search >= 0 then
         let ss = search_find !xs_last_search in
-	let s = udp_from_server p in
-	List.iter (fun t ->
+        let s = udp_from_server p in
+        List.iter (fun t ->
           Hashtbl.add udp_servers_replies t.f_md4 s;
           search_handler ss [t]
         ) t
@@ -261,11 +262,11 @@ let udp_client_handler t p =
       s.server_nfiles <- Int64.of_int t.M.files;
       s.server_nusers <- Int64.of_int t.M.users;
       (match t.M.max_users with 
-	   Some x -> s.server_max_users <- x
-	 | None -> ());
+           Some x -> s.server_max_users <- x
+         | None -> ());
       (match t.M.flags with 
-	   Some x -> s.server_flags <- x
-	 | None -> ())
+           Some x -> s.server_flags <- x
+         | None -> ())
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()
       
