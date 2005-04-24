@@ -1,12 +1,26 @@
 ChangeLog	
 =========
 
-2005/04/23: spiralvoice (version 2.5.30.9 = tag release-2-5-30-9)
+2005/04/23: spiralvoice (version 2.5.30.10 = tag release-2-5-30-10)
 
-This version shares the same code than Amorphous revision 278.
+This version shares the same code than Amorphous revision 281.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3938: Print cwd on core start to help users finding their ini files
+3939: gd generated bandwith-usage graphic in the web-ui
+3941: Sync with Amorphous rev280/281
+* Little fix for the buildsystem for commonGraphics.
+* Fix the sha1new configure-test for FreeBSD.
+* I hope, that i fixed problems with linking libiconv for FreeBSD.
+* Change the iconv check a bit. Users with unusual locations
+should use --with-libiconv-prefix with configure. Still
+seems not to work right on FreeBSD.
+* Fix sha1new for FreeBSD for sure now.
+
+---------------------------------------------------------------------
+2005/04/23: spiralvoice (version 2.5.30.9 = tag release-2-5-30-9)
 
 3919: Move users/passwords from downloads.ini to users.ini which has rights 600
 3930: Build fixes for FreeBSD & OpenBSD (some more patches)
