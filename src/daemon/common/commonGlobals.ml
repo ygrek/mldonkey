@@ -78,7 +78,17 @@ let version () =
     Autoconf.current_version !networks_string
   
 let buildinfo () =
-  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)\nwas built with %s\n%s" Autoconf.current_version !networks_string Autoconf.build_system !patches_string
+  (
+    "MLNet Multi-Network p2p client version " ^ Autoconf.current_version ^ "\n"
+      ^ "Networks: " ^ !networks_string ^ "\n"
+      ^ "Libraries:"
+          ^ (if Autoconf.has_gd then " gd" else " no-gd")
+          ^ (if Autoconf.has_zlib then " zlib" else " no-zlib")
+          ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
+          ^ "\n"
+      ^ "This core was built with: " ^ Autoconf.build_system ^ "\n"
+      ^ !patches_string
+  )
   
 (* Should we try to find another port when we cannot bind to the one set
 in an option, and then change the option accordingly. ?> *)
@@ -621,14 +631,30 @@ let update_link_stats () =
   put time sample short_delay_bandwidth_samples;
   trimto 5 short_delay_bandwidth_samples
   
-let history_size = 6
+let history_size = 720
+let history_h_size = 24
+
 let upload_history = Fifo2.create ()
-  
+let download_history = Fifo2.create ()
+let upload_h_history = Fifo2.create ()
+let download_h_history = Fifo2.create ()
+
 let upload_usage () = 
   !udp_upload_rate + !control_upload_rate
 
 let short_delay_upload_usage () = 
   !sd_udp_upload_rate + !sd_control_upload_rate
+
+let download_usage () = 
+  !udp_download_rate + !control_download_rate
+
+let update_download_history () =
+  Fifo2.put download_history (download_usage ());
+  let len = ref (Fifo2.length download_history) in
+  while !len > history_size do
+    ignore (Fifo2.take download_history);
+    decr len
+  done
 
 let update_upload_history () =
   Fifo2.put upload_history (upload_usage ());
@@ -638,8 +664,31 @@ let update_upload_history () =
     decr len
   done
 
+let update_h_download_history () =
+  Fifo2.put download_h_history ((List.fold_left (+) 0 (Fifo2.to_list download_history)) / ((Fifo2.length download_history)));
+  let len = ref (Fifo2.length download_h_history) in
+  while !len > history_h_size do
+    ignore (Fifo2.take download_h_history);
+    decr len
+  done
+
+let update_h_upload_history () =
+  Fifo2.put upload_h_history ((List.fold_left (+) 0 (Fifo2.to_list upload_history)) / ((Fifo2.length upload_history)));
+  let len = ref (Fifo2.length upload_h_history) in
+  while !len > history_h_size do
+    ignore (Fifo2.take upload_h_history);
+    decr len
+  done
+
+let detected_link_capacity link =
+  List.fold_left maxi 0 (Fifo2.to_list link)
+
 let detected_uplink_capacity () =
   List.fold_left maxi 0 (Fifo2.to_list upload_history)
+
+let detected_downlink_capacity () =
+  List.fold_left maxi 0 (Fifo2.to_list download_history)
+
 
 let new_tag name v =
   { tag_name = name; tag_value = v }

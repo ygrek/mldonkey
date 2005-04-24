@@ -1294,7 +1294,31 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option html_vd_barheight; 
                         strings_of_option display_downloaded_results; 
                         strings_of_option vd_reload_delay; 
-                        strings_of_option html_use_gzip;
+                        strings_of_option html_use_gzip; 
+                        strings_of_option html_mods_vd_gfx;
+                        strings_of_option html_mods_vd_gfx_split;
+                        strings_of_option html_mods_vd_gfx_fill;
+                        strings_of_option html_mods_vd_gfx_flip;
+                        strings_of_option html_mods_vd_gfx_mean;
+                        strings_of_option html_mods_vd_gfx_transparent;
+                        strings_of_option html_mods_vd_gfx_png;
+                        strings_of_option html_mods_vd_gfx_h;
+                        strings_of_option html_mods_vd_gfx_x_size;
+                        strings_of_option html_mods_vd_gfx_y_size;
+                        strings_of_option html_mods_vd_gfx_tag;
+                        strings_of_option html_mods_vd_gfx_tag_use_source;
+                        strings_of_option html_mods_vd_gfx_tag_source;
+                        strings_of_option html_mods_vd_gfx_tag_png;
+                        strings_of_option html_mods_vd_gfx_tag_enable_title;
+                        strings_of_option html_mods_vd_gfx_tag_title;
+                        strings_of_option html_mods_vd_gfx_tag_title_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_title_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_x_size;
+                        strings_of_option html_mods_vd_gfx_tag_y_size;
                       ] 
                   | 4 -> 
                       [

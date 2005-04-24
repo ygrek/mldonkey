@@ -466,13 +466,13 @@ let _ =
       ignore(Ip.from_name hostname)
     with
      e ->
-        lprintf "DNS resolution does not work! Looking up %s failed with %s.\n"
+        lprintf "\nDNS resolution does not work! Looking up %s failed with %s.\n"
            hostname (Printexc2.to_string e);
 	lprintf "The core therefore is unable to get eDonkey serverlists and loading\n";
 	lprintf ".torrent files via dllink from websites is also impossible.\n\n";
 	lprintf "If you are using MLDonkey in a chroot environment you should\n";
 	lprintf "consider reading this article to get DNS support back:\n";
-	lprintf "http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n\n"
+	lprintf "http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n"
   );
 
   load_config ();

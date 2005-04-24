@@ -28,8 +28,9 @@ open Unix
   
   
 let bin_dir = Filename.dirname Sys.argv.(0)
-  
-  
+
+let local_dirname = Sys.getcwd ()
+
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
 let hidden_dir_prefix =
@@ -76,7 +77,8 @@ let (file_basedir, home_basedir) =
             !!mldonkey_directory),
       home_dir
 
-let _ = 
+let _ =
+  lprintf "The .ini-files are saved in %s\n" local_dirname;
   let filename = 
         try
       Sys.getenv "MLDONKEY_STRINGS"
@@ -500,6 +502,94 @@ let html_mods_vd_active_sources = define_expert_option current_section
 
 let html_mods_vd_age = define_expert_option current_section
     ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true
+
+let html_mods_vd_gfx = define_expert_option current_section
+    ["html_mods_vd_gfx"] "Show graph in vd output" bool_option true
+
+let html_mods_vd_gfx_fill = define_expert_option current_section
+    ["html_mods_vd_gfx_fill"] "Fill graph in vd output" bool_option true
+
+let html_mods_vd_gfx_split = define_expert_option current_section
+    ["html_mods_vd_gfx_split"] "Split download and upload graph in vd output"
+    bool_option false
+
+let html_mods_vd_gfx_flip = define_expert_option current_section
+    ["html_mods_vd_gfx_flip"] "Flip up/side graph position in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_mean = define_expert_option current_section
+    ["html_mods_vd_gfx_mean"] "Show mean line on graph in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_transparent = define_expert_option current_section
+    ["html_mods_vd_gfx_transparent"] "Show transparent graph in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_png = define_expert_option current_section
+    ["html_mods_vd_gfx_png"] "Draw graph as png if true, else draw as jpg in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_h = define_expert_option current_section
+    ["html_mods_vd_gfx_h"] "Show hourly graph in vd output" bool_option true
+
+let html_mods_vd_gfx_x_size = define_expert_option current_section
+    ["html_mods_vd_gfx_x_size"] "Graph x size in vd output ( 320 < x < 3600 )"
+    int_option 630
+ 
+let html_mods_vd_gfx_y_size = define_expert_option current_section
+    ["html_mods_vd_gfx_y_size"] "Graph y size in vd output ( 200 < y < 1200 )"
+    int_option 200
+
+let html_mods_vd_gfx_tag = define_expert_option current_section
+    ["html_mods_vd_gfx_tag"] "Draw tag graph" bool_option false
+
+let html_mods_vd_gfx_tag_use_source = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_use_source"] "Use tag source image " bool_option false
+
+let html_mods_vd_gfx_tag_source = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_source"] "Tag source image name" string_option "image"
+
+let html_mods_vd_gfx_tag_png = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_png"] "Draw tag as png if true, else draw as jpg in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_tag_enable_title = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_enable_title"] "Enable tag graph title" bool_option true
+
+let html_mods_vd_gfx_tag_title = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_title"] "Tag graph title" string_option "MLNet traffic"
+
+let html_mods_vd_gfx_tag_title_x_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_title_x_pos"] "Tag graph title x pos in vd output 
+    " int_option 4
+
+let html_mods_vd_gfx_tag_title_y_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_title_y_pos"] "Tag graph title y pos in vd output "
+    int_option 1
+
+let html_mods_vd_gfx_tag_dl_x_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_dl_x_pos"] "Tag graph download x pos in vd output "
+    int_option 4
+
+let html_mods_vd_gfx_tag_dl_y_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_dl_y_pos"] "Tag graph download y pos in vd output "
+    int_option 17
+
+let html_mods_vd_gfx_tag_ul_x_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_ul_x_pos"] "Tag graph upload x pos in vd output "
+    int_option 4
+
+let html_mods_vd_gfx_tag_ul_y_pos = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_ul_y_pos"] "Tag graph upload y pos in vd output "
+    int_option 33
+
+let html_mods_vd_gfx_tag_x_size = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_x_size"] "Tag graph x size in vd output ( 130 < x < 3600 )"
+    int_option 80
+
+let html_mods_vd_gfx_tag_y_size = define_expert_option current_section
+    ["html_mods_vd_gfx_tag_y_size"] "Tag graph y size in vd output ( 50 < x < 1200 )"
+    int_option 50
 
 let html_mods_vd_last = define_expert_option current_section
     ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true

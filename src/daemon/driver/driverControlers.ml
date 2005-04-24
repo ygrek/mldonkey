@@ -25,6 +25,7 @@ open CommonNetwork
 open CommonSearch
 open CommonTypes
 open CommonGlobals
+open CommonGraphics
 open GuiTypes
 open CommonComplexOptions
 open CommonFile
@@ -630,6 +631,16 @@ let http_add_js_header r =
   http_add_gen_header r;
   add_reply_header  r "Content-Type" "text/javascript; charset=UTF-8";
   add_gzip_headers r
+
+let http_add_png_header r =
+  http_add_gen_header r;
+  add_reply_header r "Content-Type" "image/png;";
+  add_gzip_headers r
+
+let http_add_jpg_header r =
+  http_add_gen_header r;
+  add_reply_header r "Content-Type" "image/jpg;";
+  add_gzip_headers r
   
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
@@ -791,7 +802,115 @@ let http_handler o t r =
         | "/oneframe.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!motd_html
+
+        | "/bw_updown.png" ->
+            do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+            (* Buffer.clear buf; *)
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_updown.png" in
+            Buffer.add_string buf showgraph
         
+        | "/bw_updown.jpg" ->
+            do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+            (* Buffer.clear buf;*)
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_updown.jpg" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_download.png" ->
+            do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_download.png" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_download.jpg" ->
+            do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_download.jpg" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_upload.png" ->
+            do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_upload.png" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_upload.jpg" ->
+            do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_upload.jpg" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_h_updown.png" ->
+            do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+            (* Buffer.clear buf; *)
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_h_updown.png" in
+            Buffer.add_string buf showgraph
+        
+        | "/bw_h_updown.jpg" ->
+            do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+            (* Buffer.clear buf;*)
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_h_updown.jpg" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_h_download.png" ->
+            do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_h_download.png" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_h_download.jpg" ->
+            do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_h_download.jpg" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_h_upload.png" ->
+            do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "bw_h_upload.png" in
+            Buffer.add_string buf showgraph
+
+        | "/bw_h_upload.jpg" ->
+            do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "bw_h_upload.jpg" in
+            Buffer.add_string buf showgraph
+
+
+        | "/tag.png" ->
+            do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+            html_page := false; 
+            http_add_png_header r;
+            let showgraph = File.to_string "tag.png" in
+            Buffer.add_string buf showgraph
+        
+        | "/tag.jpg" ->
+            do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+            (* Buffer.clear buf;*)
+            html_page := false; 
+            http_add_jpg_header r;
+            let showgraph = File.to_string "tag.jpg" in
+            Buffer.add_string buf showgraph
+
         | "/filter" ->
             html_open_page buf t r true;
             let b = Buffer.create 10000 in 

@@ -144,6 +144,11 @@ ifeq ("$(ZLIB)" , "yes")
   CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zlibstubs.c
 endif
 
+ifeq ("$(GD)", "yes")
+  LIBS_flags += -cclib -lgd -cclib -lpng -cclib -ljpeg -cclib -lfreetype -cclib -lm
+  LIBS_flags += -ccopt -DHAVE_JPEG -ccopt -W -ccopt -Wall -ccopt -Wno-unused
+  CDK_SRCS +=  $(CDK)/gd.ml $(CDK)/gdstubs.c
+endif
 
 ifeq ("$(SUPERNODES)", "yes")
   FASTTRACK_SUPERNODE=$(SRC_FASTTRACK)/fasttrackSupernode.ml
@@ -233,7 +238,7 @@ CHAT_SRCS = $(CHAT)/chat_messages.ml\
         $(CHAT)/chat_options.ml\
         $(CHAT)/chat_config.ml
 
-COMMON_SRCS=$(COMMON)/commonTypes.ml \
+COMMON_SRCS+=$(COMMON)/commonTypes.ml \
   $(COMMON)/guiTypes.ml \
   $(COMMON)/guiProto.ml \
   $(COMMON)/commonEvent.ml \
@@ -251,7 +256,8 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHosts.ml \
   $(COMMON)/commonIndexing.ml \
-  $(COMMON)/commonHasher_c.c
+  $(COMMON)/commonHasher_c.c \
+  $(COMMON)/commonGraphics.ml
 
 COMMON_CLIENT_SRCS= \
   $(COMMON)/commonUser.ml \
@@ -1726,6 +1732,7 @@ releaseclean: clean moreclean
 	rm -f packages/rpm/*.spec
 	rm -f packages/windows/mlnet.nsi
 	rm -f src/daemon/common/commonDownloads.ml
+	rm -f src/daemon/common/commonGraphics.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml

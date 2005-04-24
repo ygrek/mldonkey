@@ -5,10 +5,9 @@ Installation
 
 Compile mldonkey without GUI support
 You have to have zlib, zlib-dev and m4 packages installed.
+For gd-made statistics libgd2-dev should be installed.
 
-Mldonkey/> ./configure
-Type in 'n' <enter> when it asks if you want to get lablgtk.
-Mldonkey/> make depend
+Mldonkey/> ./configure --disable-gui
 Mldonkey/> make
 
 There is no additional 'make install' command. Copy the file 'mlnet'
@@ -42,22 +41,19 @@ There are additional ways besides the web interface to control Mlnet(MLdonkey).
   fine without the GUI.
 - Other applications are written by third-parties and available for specific
   platforms. These vary in stability and functionality.
+  One example is Sancho: http://sancho-gui.sourceforge.net/
 
 Compiling mldonkey with mldonkey_gui support:
 -------------------
 
 You have now two options to compile mldonkey:
-- Individually install Objective-Caml 3.08.0 and LablGTK 1.2.7. Then, you can
-  compile mldonkey. The instructions are given below at '1)'.
+- Individually install Objective-Caml 3.08.3 and LablGTK 1.2.7 or LablGTK-2.4.0.
+  Then, you can compile mldonkey. The instructions are given below at '1)'.
 - If you want to install ocaml and lablgtk only to compile mldonkey. You must
   have a good internet access (you want mldonkey after all :). You must have
   "wget" installed. Then, run:
 
 ./configure --enable-batch
-
-If you want threading support to improve core performance add this switch
-(if your system support pthreads):
---enable-pthread
 
 The configure script will download ocaml and lablgtk, compile and install them
 locally so that they can be used to compile mldonkey. Steps below can be skipped
@@ -67,21 +63,20 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml 3.08.0 and LablGTK 1.2.7
+1) Installing required tools: Objective-Caml 3.08.3 and LablGTK
 
- 1.1) Objective-Caml 3.08.0 (from http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.08.3 (from http://pauillac.inria.fr/caml)
 
-    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.0.tar.gz
-    ~/tmp> tar zxf ocaml-3.08.0.tar.gz
-    ~/tmp> cd ocaml-3.08.0
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.3.tar.gz
+    ~/tmp> tar zxf ocaml-3.08.3.tar.gz
+    ~/tmp> cd ocaml-3.08.3
 
-   If you REALLY want to patch it:
     ~/tmp/ocaml-3.08.0> ./configure
-    ~/tmp/ocaml-3.08.0> make world opt opt.opt
+    ~/tmp/ocaml-3.08.0> make world.opt
     ~/tmp/ocaml-3.08.0> make install
 
- 1.2) LablGTK 1.2.7 (from 
-            http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
+ 1.2.1) LablGTK 1.2.7 for GTK1
+      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
     ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-1.2.7.tar.gz
     ~/tmp> tar zxf lablgtk-1.2.7.tar.gz
@@ -91,15 +86,27 @@ is compiled.
     ~/tmp/lablgtk-1.2.7> make opt
     ~/tmp/lablgtk-1.2.7> make install
 
-2) Compiling mldonkey:
+ 1.2.2) LablGTK-2.4.0 for GTK2
+      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
-    ~/tmp/mldonkey> ./configure
-    ~/tmp/mldonkey> make depend
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.4.0.tar.gz
+    ~/tmp> tar zxf lablgtk-2.4.0.tar.gz
+    ~/tmp> cd lablgtk-2.4.0
+    ~/tmp/lablgtk-2.4.0> make configure
+    ~/tmp/lablgtk-2.4.0> make world
+    ~/tmp/lablgtk-2.4.0> make install
+
+2) Compiling mldonkey with GUI:
+
+    To build GTK1 newgui: ./configure
+    To build GTK1 oldgui: ./configure --disable-newgui
+    To build GTK2 GUI:    ./configure --enable-gtk2
+    lablgtk-1.2.7 and lablgtk-2.4.0 can both be installed at the same time.
+
     ~/tmp/mldonkey> make
 
-  You should now have 'mldonkey' (the daemon with edonkey/overnet support), 
-'mlnet' (the daemon with all network support) and 'mldonkey_gui' (the
-interface) No 'make install' is provided. 
+  You should now have 'mlnet' (the daemon with all network support)
+  and 'mlgui' (the interface) No 'make install' is provided. 
 
   You can disable all other p2p networks using the --disable-multinet option
    with ./configure. Only edonkey support will then be compiled.

@@ -248,7 +248,7 @@ let new_network shortname name flags =
   if !networks_string = "" then
     networks_string := r.network_name
   else
-    networks_string := Printf.sprintf "%s %s" !networks_string r.network_name;
+    networks_string := Printf.sprintf "%s  %s" !networks_string r.network_name;
   lprintf "Network %s registered\n" r.network_name;
   r
   

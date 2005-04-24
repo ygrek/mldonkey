@@ -692,9 +692,78 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
   Printf.bprintf buf "\\</form\\>"
 
 end
-else Printf.bprintf buf "No files"
+else Printf.bprintf buf "No files";
 
-  
+if Autoconf.has_gd then
+(
+  (if !!html_mods_vd_gfx then 
+    (
+    Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
+    (if !!html_mods_vd_gfx_split then begin
+      Printf.bprintf buf "\\<img src=\\\"bw_download.";
+      (if !!html_mods_vd_gfx_png then 
+          Printf.bprintf buf "png\\\"\\>"
+      else 
+          Printf.bprintf buf "jpg\\\"\\>"
+      );  
+      (if !!html_mods_vd_gfx_flip then
+          Printf.bprintf buf "\\<br\\>"
+      );
+      Printf.bprintf buf "\\<img src=\\\"bw_upload.";
+      (if !!html_mods_vd_gfx_png then
+        Printf.bprintf buf "png\\\"\\>"
+      else
+        Printf.bprintf buf "jpg\\\"\\>"
+      );
+    end
+    else
+      Printf.bprintf buf "\\<img src=\\\"bw_updown.png\\\"\\>"
+    );
+    Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
+    (if !!html_mods_vd_gfx_h then 
+      (
+      Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
+      (if !!html_mods_vd_gfx_split then begin
+        Printf.bprintf buf "\\<img src=\\\"bw_h_download.";
+        (if !!html_mods_vd_gfx_png then 
+            Printf.bprintf buf "png\\\"\\>"
+        else 
+            Printf.bprintf buf "jpg\\\"\\>"
+        );  
+        (if !!html_mods_vd_gfx_flip then
+            Printf.bprintf buf "\\<br\\>"
+        );
+        Printf.bprintf buf "\\<img src=\\\"bw_h_upload.";
+        (if !!html_mods_vd_gfx_png then
+          Printf.bprintf buf "png\\\"\\>"
+        else
+          Printf.bprintf buf "jpg\\\"\\>"
+        );
+      end
+      else
+        Printf.bprintf buf "\\<img src=\\\"bw_h_updown.png\\\"\\>"
+      );
+      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
+      ); 
+    );  
+    (if !!html_mods_vd_gfx_tag then begin
+      Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
+      (if !!html_mods_vd_gfx_tag_png then
+        Printf.bprintf buf ".png\\\"\\>"
+      else 
+        Printf.bprintf buf ".jpg\\\"\\>"
+        );
+      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
+    end
+    );
+    Printf.bprintf buf "";
+    )
+  )
+)
+else
+(* fake call if no gd *)
+CommonGraphics.do_draw_pic "" "" "" download_history download_history
+
 let html_mods_done_files buf files = 
 
   Printf.bprintf buf "\\</pre\\>

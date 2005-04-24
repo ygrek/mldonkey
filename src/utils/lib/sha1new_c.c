@@ -78,10 +78,21 @@ extern "C"
 #define BRG_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
 
 #if defined(__GNUC__) || defined(__GNU_LIBRARY__)
-#  if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-#    include <sys/endian.h>
+#  if defined(HAVE_SYS_ENDIAN_H)
+#    if (defined(__FreeBSD__) && __FreeBSD_version >= 470000) || defined(__OpenBSD__) || defined(__NetBSD__)
+#      include <sys/endian.h>
+#    endif
 #  elif defined( BSD ) && ( BSD >= 199103 )
+#      if defined(__FreeBSD__)
+#        define _KERNEL
+#        define I486_CPU /* Will crash unless 486+ */
+#      endif
 #      include <machine/endian.h>
+#      if defined(__FreeBSD__)
+#        undef _KERNEL
+#        undef I486_CPU
+#        define bswap_32(x) (ntohl(x))
+#      endif
 #  elif defined(__APPLE__)
 #    if defined(__BIG_ENDIAN__) && !defined( BIG_ENDIAN )
 #      define BIG_ENDIAN

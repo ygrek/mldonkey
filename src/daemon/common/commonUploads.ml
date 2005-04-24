@@ -1000,11 +1000,14 @@ let dynamic_refill_upload_slots () =
   end
 
 let turn = ref (-1)
+let turn_h = ref (-1)
 
 let refill_upload_slots () =
   incr turn;
   if !turn = 5 then
     turn := 0;
+  if !turn_h = 360 then
+    turn_h := 0;
   if !!dynamic_slots then begin
     if !turn = 0 then
       (* call every 5s *)
@@ -1013,10 +1016,18 @@ let refill_upload_slots () =
     (* call every 1s *)
     static_refill_upload_slots ();
 
-  if !turn = 0 then
+  if !turn = 0 then begin
     (* call every 5s *)
+    incr turn_h;
+    update_download_history ();
     update_upload_history ()
+    end;
 
+  if !turn_h = 0 then begin
+    (* call every 720 * 5s *)
+    update_h_download_history ();
+    update_h_upload_history ()
+    end
 
 let consume_bandwidth len =
   remaining_bandwidth := !remaining_bandwidth - len
