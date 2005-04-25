@@ -4,7 +4,7 @@
 
 #include "../../../config/config.h"
 
-#if defined(HAVE_ENDIAN_H) && defined(HAVE_BYTESWAP_H)
+#if defined(ENABLE_SHA1NEW)
 #include "sha1new_c.h"
 #else
 #include "os_stubs.h"

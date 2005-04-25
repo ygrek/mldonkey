@@ -3,11 +3,11 @@
 /* Define to 1 if you want to replace iconv and related with stubs. */
 #undef DISABLE_ICONV
 
+/* Define to 1 if you want to use the faster sha implementation. */
+#undef ENABLE_SHA1NEW
+
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
-
-/* Define to 1 if you have the <byteswap.h> header file. */
-#undef HAVE_BYTESWAP_H
 
 /* Define to 1 if you have the <endian.h> header file. */
 #undef HAVE_ENDIAN_H

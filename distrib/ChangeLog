@@ -1,24 +1,26 @@
 ChangeLog	
 =========
 
-2005/04/24: spiralvoice (version 2.5.30.12 = tag release-2-5-30-12)
+2005/04/25: spiralvoice (version 2.5.30.13 = tag release-2-5-30-13)
 
-This version shares the same code as Amorphous revision 282.
+This version shares the same code as Amorphous revision 286.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3947: More build fixes for sha1new on FreeBSD 
+---------------------------------------------------------------------
+2005/04/24: spiralvoice (version 2.5.30.12 = tag release-2-5-30-12)
 
 3943: Fix building without gd
 3944: Sync with Amorphous 284
 * lots of whitespace cleanups
 * Some cleanups in configure.in .
 * Corrected that --enable-gd is the default
-
 ---------------------------------------------------------------------
 2005/04/24: spiralvoice (version 2.5.30.11 = tag release-2-5-30-11)
 
 3942: Fix for Gnutella/G2/Fasttrack dllink handling
-
 ---------------------------------------------------------------------
 2005/04/24: spiralvoice (version 2.5.30.10 = tag release-2-5-30-10)
 
