@@ -1040,6 +1040,12 @@ let _ =
       match s.server_cid with
         None -> Ip.null
       | Some ip -> ip);
+  server_ops.op_server_set_preferred <- (fun s b ->
+    s.server_preferred <- b;
+    server_must_update s);
+  server_ops.op_server_rename <- (fun s name ->
+    s.server_name <- name;
+    server_must_update s);
 
   ()
 

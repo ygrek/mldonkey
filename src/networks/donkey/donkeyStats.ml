@@ -1290,6 +1290,8 @@ let save_download_history file =
 *)  
     
 let _ =
+  network.op_network_display_stats <- (fun buf o -> new_print_stats buf o);
+
   register_commands 
     [
     "client_stats", "Network/Donkey",Arg_none (fun o ->
@@ -1302,7 +1304,7 @@ let _ =
         let buf = o.conn_buf in
         new_print_stats buf o;
         ""
-    ), ":\t\t\t\t\tshow table of download/upload by clients brand";
+    ), ":\t\t\t\t\tshow table of download/upload by ED2K clients brand";
   
     "csm", "Network/Donkey",Arg_none (fun o ->
         let buf = o.conn_buf in

@@ -502,13 +502,14 @@ let servers_columns = define_option current_section
     "Columns for the servers"
     (list_option (tuple2_option (C.Server.column_option, float_option)))
   [
-   (C.Col_server_network , 0.1);
-   (C.Col_server_name    , 0.1);
-   (C.Col_server_address , 0.1);
-   (C.Col_server_state   , 0.1);
-   (C.Col_server_users   , 0.1);
-   (C.Col_server_files   , 0.1);
-   (C.Col_server_desc    , 0.1);
+   (C.Col_server_network  , 0.1);
+   (C.Col_server_preferred, 0.1);
+   (C.Col_server_name     , 0.1);
+   (C.Col_server_address  , 0.1);
+   (C.Col_server_state    , 0.1);
+   (C.Col_server_users    , 0.1);
+   (C.Col_server_files    , 0.1);
+   (C.Col_server_desc     , 0.1);
   ]
 
 let servers_users_columns = define_option current_section

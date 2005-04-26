@@ -92,6 +92,8 @@ let check_network_implementations () =
         lprintf "op_network_extend_search\n";
       if c.op_network_clean_servers == cc.op_network_clean_servers then 
         lprintf "op_network_clean_servers\n";
+      if c.op_network_display_stats == cc.op_network_display_stats then 
+        lprintf "op_network_display_stats\n";
       if c.op_network_info == cc.op_network_info then 
         lprintf "op_network_info\n";
   ) !networks_ops;
@@ -237,6 +239,7 @@ let new_network shortname name flags =
       op_network_add_server = (fun _ -> fni name "op_network_add_server");
       op_network_gui_message = (fun _ -> ni_ok name "gui_message");
       op_network_download = (fun _ -> raise IgnoreNetwork);
+      op_network_display_stats = (fun _ _ -> ni_ok name "display_stats");
     }
   in
   let rr = (Obj.magic r: network) in

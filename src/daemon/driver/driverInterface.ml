@@ -1039,7 +1039,15 @@ search.op_search_end_reply_handlers;
                   ) :: !list
               );
               gui_send gui (P.GiftServerStats !list)
-              
+
+          (* introduced with protocol 32 *)
+          | P.ServerRename (num, name) ->
+              let s = server_find num in
+              server_rename s name
+          | P.ServerSetPreferred (num, preferred) ->
+              let s = server_find num in
+              server_set_preferred s preferred
+
   with 
     Failure s ->
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))

@@ -205,11 +205,14 @@ let path_from_indices indices =
   GTree.Path.from_string !p
 
 let rec partition list res =
-  let it_p = List.hd list in
-  let (l', l'') = List.partition (fun it -> it.parent = it_p.parent) list in
-  match l'' with
-      [] -> l' :: res
-    | _ -> partition l'' (l' :: res)
+  match list with
+      [] -> res
+    | _ ->
+        begin
+          let it_p = List.hd list in
+          let (l', l'') = List.partition (fun it -> it.parent = it_p.parent) list in
+          partition l'' (l' :: res)
+        end
 
 let compare_array a1 a2 =
   let len1 = Array.length a1 in
@@ -718,7 +721,7 @@ class virtual g_tree (cols : GTree.column_list) =
                 let path_str = GTree.Path.to_string (store#get_path it.iter) in
                 lprintf_g_tree "in flush_stamp g_view disconnected remove path %s\n" path_str
               end;
-            ignore (store#remove it.iter);
+            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
             Hashtbl.remove table (get_key it.tree_item)
           ) sl;
           (* reconnect to all the #g_view *)
@@ -733,7 +736,7 @@ class virtual g_tree (cols : GTree.column_list) =
                 let path_str = GTree.Path.to_string (store#get_path it.iter) in
                 lprintf_g_tree "in flush_stamp g_view connected remove path %s\n" path_str;
               end;
-            ignore (store#remove it.iter);
+            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
             Hashtbl.remove table (get_key it.tree_item)
           ) sl
 	end
@@ -784,19 +787,19 @@ class virtual g_tree (cols : GTree.column_list) =
                     let len = store#iter_n_children (Some it.iter) in
                     (if !!verbose_view then lprintf_g_tree "start iter %d children\n" len);
                     for i = 0 to (len - 1) do
-                      let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
-                      let child_row = store#get_iter child_path in
-                      (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
+                      try
+                        let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
+                        let child_row = store#get_iter child_path in
+                        (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
                            (GTree.Path.to_string child_path)
                            (store#iter_is_valid child_row));
-                      try
                         let key = store#get ~row:child_row ~column:key_col in
                         let it_child = Hashtbl.find table key in
                         self#remove_item it_child.tree_item;
                       with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
                     done
                   end;
-                ignore (store#remove it.iter);
+                if store#iter_is_valid it.iter then ignore (store#remove it.iter);
                 Hashtbl.remove table key;
                 nitems <- nitems - 1;
                 (if !!verbose_view then lprintf_g_tree "remove path %s\n" path_str)
@@ -815,12 +818,12 @@ class virtual g_tree (cols : GTree.column_list) =
                         let len = store#iter_n_children (Some it.iter) in
                         (if !!verbose_view then lprintf_g_tree "start iter %d children\n" len);
                         for i = 0 to (len - 1) do
-                          let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
-                          let child_row = store#get_iter child_path in
-                          (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
+                          try
+                            let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
+                            let child_row = store#get_iter child_path in
+                            (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
                                (GTree.Path.to_string child_path)
                                (store#iter_is_valid child_row));
-                           try
                              let key = store#get ~row:child_row ~column:key_col in
                              let it_child = Hashtbl.find table key in
                              self#remove_item it_child.tree_item;
@@ -881,6 +884,9 @@ class virtual g_tree (cols : GTree.column_list) =
 
 (* the public method to sort the g_tree. *)
     method sort c order_opt =
+      let gl = gviews in
+      (* disconnect all the #g_view *)
+      List.iter (fun v -> v#unset_model ()) gl;
       let store_paths =
         List.map (fun iter ->
           let path = store#get_path iter in
@@ -898,9 +904,6 @@ class virtual g_tree (cols : GTree.column_list) =
             items := it :: !items;
           end
       ) table;
-      let gl = gviews in
-      (* disconnect all the #g_view *)
-      List.iter (fun v -> v#unset_model ()) gl;
       (* proceed ... *)
       let _ =
         match order_opt with
@@ -1073,7 +1076,10 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                   let name = Gobject.Type.name (Gobject.get_type p#as_widget) in
                   if name = "GtkButton"
                     (* try to cast our GObj.widget to a GButton.button *)
-                    then Some (new GButton.button (Gobject.try_cast p#as_widget name))
+                    then
+                      try
+                        Some (new GButton.button (Gobject.try_cast p#as_widget name))
+                      with _ -> get_button p#misc#parent
                     (* check the parent of our GObj.widget *)
                     else get_button p#misc#parent
                end
@@ -1522,7 +1528,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
       gmodel <- (match gmodel with None -> None | Some m -> m#unset_view self#gview; None);
       expanded_paths <- [];
       (* fall back to our dummy GTree.model *)
-      view#set_model (Some dummy_model);
+      view#set_model None;
       (* blank everything *)
       self#refresh_content ()
 

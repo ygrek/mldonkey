@@ -95,6 +95,10 @@ let get_array f s pos =
 
 let get_bool s pos = (get_uint8 s pos) = 1
 
+let get_float s pos = 
+  let s, pos = get_string s pos in
+  float_of_string s, pos
+
 let get_uid s pos =
   let uid, pos = get_string s pos in
   Uid.of_string uid, pos
@@ -208,6 +212,110 @@ let get_mp3 s pos =
     M.genre = genre;
   }, pos + 8
 
+let get_ogx_stream_type s pos =
+  match get_uint8 s pos with
+      0 -> OGX_VIDEO_STREAM, pos+1
+    | 1 -> OGX_AUDIO_STREAM, pos+1
+    | 2 -> OGX_TEXT_STREAM, pos+1
+    | 3 -> OGX_INDEX_STREAM, pos+1
+    | 4 -> OGX_VORBIS_STREAM, pos+1
+    | 5 -> OGX_THEORA_STREAM, pos+1
+    | _ -> assert false
+
+let get_vorbis_bitrate s pos =
+  match get_uint8 s pos with
+      0 ->
+        let r, pos = get_float s (pos+1) in
+        Maximum_br r, pos
+    | 1 ->
+        let r, pos = get_float s (pos+1) in
+        Nominal_br r, pos
+    | 2 ->
+        let r, pos = get_float s (pos+1) in
+        Minimum_br r, pos
+    | _ -> assert false
+
+let get_theora_cs s pos =
+  match get_uint8 s pos with
+      0 -> CSUndefined
+    | 1 -> CSRec470M
+    | 2 -> CSRec470BG
+    | _ -> assert false
+
+let get_ogx_stream_tag s pos =
+  match get_uint8 s pos with
+      0 ->
+        let codec, pos = get_string s (pos+1) in
+        Ogg_codec codec, pos
+    | 1 ->
+        let n = get_int s (pos+1) in
+        Ogg_bits_per_samples n, (pos+5)
+    | 2 ->
+        let n = get_int s (pos+1) in
+        Ogg_duration n, (pos+5)
+    | 3 ->
+        Ogg_has_subtitle, (pos+1)
+    | 4 ->
+        Ogg_has_index, (pos+1)
+    | 5 ->
+        let n = get_int s (pos+1) in
+        Ogg_audio_channels n, (pos+5)
+    | 6 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_audio_sample_rate r, pos
+    | 7 ->
+        let n = get_int s (pos+1) in
+        Ogg_audio_blockalign n, (pos+5)
+    | 8 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_audio_avgbytespersec r, pos
+    | 9 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_vorbis_version r, pos
+    | 10 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_vorbis_sample_rate r, pos
+    | 11 ->
+        let l, pos = get_list get_vorbis_bitrate s (pos+1) in
+        Ogg_vorbis_bitrates l, pos
+    | 12 ->
+        let n = get_int s (pos+1) in
+        Ogg_vorbis_blocksize_0 n, (pos+5)
+    | 13 ->
+        let n = get_int s (pos+1) in
+        Ogg_vorbis_blocksize_1 n, (pos+5)
+    | 14 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_video_width r, pos
+    | 15 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_video_height r, pos
+    | 16 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_video_sample_rate r, pos
+    | 17 ->
+        let r, pos = get_float s (pos+1) in
+        Ogg_aspect_ratio r, pos
+    | 18 ->
+        let cs = get_theora_cs s (pos+1) in
+        Ogg_theora_cs cs, (pos+2)
+    | 19 ->
+        let n = get_int s (pos+1) in
+        Ogg_theora_quality n, (pos+5)
+    | 20 ->
+        let n = get_int s (pos+1) in
+        Ogg_theora_avgbytespersec n, (pos+5)
+    | _ -> assert false
+
+let get_ogx_info s pos =
+  let sno = get_int s pos in
+  let stype, pos = get_ogx_stream_type s (pos+4) in
+  let stags, pos = get_list get_ogx_stream_tag s pos in
+  {
+   stream_no   = sno;
+   stream_type = stype;
+   stream_tags = stags;
+  }, pos
 
 let dummy_info =
   let module M = Mp3tag in {
@@ -218,7 +326,7 @@ let dummy_info =
     M.encoding = M.CBR;
     M.filesize = 0;
   }
-  
+
 let get_format s pos =
   match get_uint8 s pos with
   | 0 -> FormatUnknown, pos+1
@@ -243,6 +351,9 @@ let get_format s pos =
   | 3 ->
       let t,pos = get_mp3 s (pos+1) in 
       MP3 (t, dummy_info), pos
+  | 4 ->
+      let ogx_infos, pos = get_list get_ogx_info s (pos+1) in
+      (OGx ogx_infos), pos
   | _ -> assert false    
 
 let get_uint64_2 proto s pos = 
@@ -339,10 +450,6 @@ let get_file_state s pos =
   | 6 -> let s, pos = get_string s (pos+1) in FileAborted s, pos
   | 7 -> FileQueued, pos+1
   | _ -> assert false
-
-let get_float s pos = 
-  let s, pos = get_string s pos in
-  float_of_string s, pos
 
 let get_float_date proto s pos = 
   let date, pos =
@@ -1028,7 +1135,18 @@ let from_gui (proto : int array) opcode s =
         
     | 65 -> 
         GetVersion
-        
+
+    (* introduced with protocol 32 *)
+    | 66 ->
+         let num = get_int s 2 in
+         let name, pos = get_string s 6 in
+         ServerRename (num, name)
+
+    | 67 ->
+         let num = get_int s 2 in
+         let b = get_bool s 6 in
+         ServerSetPreferred (num, b)
+
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise FromGuiMessageNotImplemented

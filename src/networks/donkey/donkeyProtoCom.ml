@@ -290,6 +290,28 @@ let tag_file file =
           { tag_name = Field_Type; tag_value = String "Audio" };
           { tag_name = Field_Format; tag_value = String "mp3" };
         ]
+    | OGx l ->
+        begin
+          let max_st = ref OGX_INDEX_STREAM in
+          List.iter (fun st ->
+            if st.stream_type > !max_st
+            then max_st := st.stream_type;
+          ) l;
+          match !max_st with
+              OGX_AUDIO_STREAM
+            | OGX_VORBIS_STREAM ->
+                [
+                 { tag_name = Field_Type; tag_value = String "Audio" };
+                 { tag_name = Field_Format; tag_value = String "ogg" };
+                ]
+            | OGX_VIDEO_STREAM
+            | OGX_THEORA_STREAM ->
+                [
+                 { tag_name = Field_Type; tag_value = String "Video" };
+                 { tag_name = Field_Format; tag_value = String "ogg" };
+                ]
+            | _ -> []
+        end
     | FormatType (format, kind) ->
         [
           { tag_name = Field_Type; tag_value = String kind };

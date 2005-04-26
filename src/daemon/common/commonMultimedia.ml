@@ -64,6 +64,430 @@ let print_int32 s i=
 let print_int16 s i=
   lprintf "%s: %d\n" s i
 
+(**********************************************************************************)
+(*                                                                                *)
+(*                  Variables                                                     *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let sizeof_old_ogm_packet = 48
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read16                                                        *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read16 s =
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let s' = Printf.sprintf "0x%02X%02X" b a in
+  int_of_string s'
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read24                                                        *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read24 s = 
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let s' = Printf.sprintf "0x%02X%02X%02X" c b a in
+  int_of_string s'
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read32                                                        *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read32 s = 
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let d = int_of_char s.[3] in
+  let s' = Printf.sprintf "0x%02X%02X%02X%02X" d c b a in
+  Int64.to_float (Int64.of_string s')
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read64                                                        *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read64 s =
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let d = int_of_char s.[3] in
+  let e = int_of_char s.[4] in
+  let f = int_of_char s.[5] in
+  let g = int_of_char s.[6] in
+  let h = int_of_char s.[7] in
+  let s' = Printf.sprintf "0x%02X%02X%02X%02X%02X%02X%02X%02X" h g f e d c b a in
+  Int64.to_float (Int64.of_string s')
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read16B                                                       *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read16B s =
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let s' = Printf.sprintf "0x%02X%02X" a b in
+  int_of_string s'
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read24B                                                       *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read24B s = 
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let s' = Printf.sprintf "0x%02X%02X%02X" a b c in
+  int_of_string s'
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read32B                                                       *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read32B s = 
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let d = int_of_char s.[3] in
+  let s' = Printf.sprintf "0x%02X%02X%02X%02X" a b c d in
+  Int64.to_float (Int64.of_string s')
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  read64B                                                       *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let read64B s =
+  let a = int_of_char s.[0] in
+  let b = int_of_char s.[1] in
+  let c = int_of_char s.[2] in
+  let d = int_of_char s.[3] in
+  let e = int_of_char s.[4] in
+  let f = int_of_char s.[5] in
+  let g = int_of_char s.[6] in
+  let h = int_of_char s.[7] in
+  let s' = Printf.sprintf "0x%02X%02X%02X%02X%02X%02X%02X%02X" a b c d e f g h in
+  Int64.to_float (Int64.of_string s')
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  get_audio_codec                                               *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let get_audio_codec s =
+  let str = ref "" in
+  String.iter (fun c ->
+    if c <> '\000'
+      then str := Printf.sprintf "%s%c" !str c
+  ) s;
+  try
+    let n = int_of_string !str in
+    Printf.printf "get_audio_codec: %d [%s]\n" n !str;
+    flush stdout;
+    match n with
+      1 -> "pcm"
+    | 55 -> "mp3"
+    | 2000 -> "ac3"
+    | _ -> Printf.sprintf "[%s]" s
+  with _ -> Printf.sprintf "[%s]" s
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  get_theora_cs                                                 *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let get_theora_cs n =
+  match n with
+      1 -> CSRec470M
+    | 2 -> CSRec470BG
+    | _ -> CSUndefined
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  page_seek                                                     *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let rec page_seek ic s pos =
+  if (pos_in ic - pos) > 255
+    then failwith "No more OGx Stream Header"
+    else begin
+      really_input ic s 0 4;
+      seek_in ic (pos_in ic - 3);
+      if s = "OggS"
+        then seek_in ic (pos_in ic + 3)
+        else page_seek ic s pos
+  end
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  normalize_stream_type                                         *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let normalize_stream_type s ct =
+  let s = String.sub s 0 6 in
+  if s = "vorbis" && ct = 0x1
+    then OGX_VORBIS_STREAM
+    else if s = "theora" && ct = 0x80
+      then OGX_THEORA_STREAM
+      else begin
+        let s = (String.sub s 0 5) in
+        if s = "video" && ct = 0x1
+          then OGX_VIDEO_STREAM
+          else if s = "audio" && ct = 0x1
+            then OGX_AUDIO_STREAM
+            else if s = "index" && ct = 0x1
+              then OGX_INDEX_STREAM
+              else if (String.sub s 0 4) = "text" && ct = 0x1
+                then OGX_TEXT_STREAM
+                else failwith "No more OGx Stream Header"
+      end
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  next_ogx_stream                                               *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let rec next_ogx_stream ic ogx_infos str stream_number =
+  let pos = pos_in ic in
+  page_seek ic str pos;
+  let header_start_pos = (pos_in ic - 4) in
+  let pos = pos_in ic in
+(*
+  let serial_number = String.create 4 in
+  seek_in ic (pos+10);
+  really_input ic serial_number 0 4;
+  let stream_number = read32 serial_number in
+  Printf.printf "Stream Serial Number: %0.f\n" stream_number;
+*)
+  seek_in ic (pos+24);
+  let content_type = String.create 1 in
+  really_input ic content_type 0 1;
+  let content_type = int_of_char content_type.[0] in
+  seek_in ic (pos+25);
+  let stream_type = String.create 8 in
+  really_input ic stream_type 0 8;
+  let stream_type = normalize_stream_type stream_type content_type in
+  incr stream_number;
+  let pos = pos_in ic in
+  page_seek ic str pos;
+  let sizeof_packet = pos_in ic - pos - 4 in (* remove 4 bytes for 'OggS' *)
+  seek_in ic pos;
+  match stream_type with
+      OGX_VIDEO_STREAM -> get_ogx_video_info ic ogx_infos str sizeof_packet stream_number
+    | OGX_AUDIO_STREAM -> get_ogx_audio_info ic ogx_infos str sizeof_packet stream_number
+    | OGX_INDEX_STREAM -> get_ogx_text_info ic ogx_infos str stream_number
+    | OGX_TEXT_STREAM -> get_ogx_index_info ic ogx_infos str stream_number
+    | OGX_VORBIS_STREAM -> get_ogx_vorbis_info ic ogx_infos str stream_number
+    | OGX_THEORA_STREAM -> get_ogx_theora_info ic ogx_infos str stream_number
+
+and get_ogx_video_info  ic ogx_infos str sizeof_packet stream_number =
+  let s = String.create sizeof_packet in
+  really_input ic s 0 sizeof_packet;
+  let codec = String.lowercase (String.sub s 0 4) in
+  let size = read32 (String.sub s 4 4) in
+  let time_unit = read64 (String.sub s 8 8) in
+  let sample_per_unit = read64 (String.sub s 16 8) in
+  let default_len = read32 (String.sub s 24 4) in
+  let buffer_size = read32 (String.sub s 28 4) in
+  let bits_per_sample = read16 (String.sub s 32 2) in
+  let video_width =
+    if sizeof_packet >= sizeof_old_ogm_packet
+      then read32 (String.sub s 36 4)
+      else read32 (String.sub s 34 4)
+  in
+  let video_height =
+    if sizeof_packet >= sizeof_old_ogm_packet
+      then read32 (String.sub s 40 4)
+      else read32 (String.sub s 38 4)
+  in
+  let sample_rate = 10000000. /. time_unit in
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_VIDEO_STREAM;
+    stream_tags = [
+      Ogg_codec codec;
+      Ogg_video_sample_rate sample_rate;
+      Ogg_video_width video_width;
+      Ogg_video_height video_height;];
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+and get_ogx_audio_info  ic ogx_infos str sizeof_packet stream_number =
+  let s = String.create sizeof_packet in
+  really_input ic s 0 sizeof_packet;
+  let codec = get_audio_codec (String.sub s 0 4) in
+  let size = read32 (String.sub s 4 4) in
+  let time_unit = read64 (String.sub s 8 8) in
+  let sample_per_unit = read64 (String.sub s 16 8) in
+  let default_len = read32 (String.sub s 24 4) in
+  let buffer_size = read32 (String.sub s 28 4) in
+  let bits_per_sample = read16 (String.sub s 32 2) in
+  let channels =
+    if sizeof_packet >= sizeof_old_ogm_packet
+      then read16 (String.sub s 36 2)
+      else read16 (String.sub s 34 2)
+  in
+  let blockalign =
+    if sizeof_packet >= sizeof_old_ogm_packet
+      then read16 (String.sub s 38 2)
+      else read16 (String.sub s 36 2)
+  in
+  let avgbytespersec =
+    if sizeof_packet >= sizeof_old_ogm_packet
+      then read32 (String.sub s 40 4)
+      else read32 (String.sub s 38 4)
+  in
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_AUDIO_STREAM;
+    stream_tags = [
+      Ogg_codec codec;
+      Ogg_audio_channels channels;
+      Ogg_audio_sample_rate sample_per_unit;
+      Ogg_audio_blockalign blockalign;
+      Ogg_audio_avgbytespersec avgbytespersec;];
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+and get_ogx_vorbis_info  ic ogx_infos str stream_number =
+  seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as vorbis uses 6 octects for 'vorbis' *)
+  let s = String.create 22 in
+  really_input ic s 0 22;
+  let version = read32 (String.sub s 0 4) in
+  let audio_channels = int_of_char s.[4] in
+  let sample_rate = read32 (String.sub s 5 4) in
+  let br_max = read32 (String.sub s 9 4) in
+  let br_nom = read32 (String.sub s 13 4) in
+  let br_min = read32 (String.sub s 17 4) in
+  let blocksize_1 = ((int_of_char s.[21]) asr 4) land 15 in
+  let blocksize_0 = (int_of_char s.[21]) land 15 in
+  let l = ref [] in
+  (if br_max > 0. then l := (Maximum_br br_max) :: !l);
+  (if br_nom > 0. then l := (Nominal_br br_nom) :: !l);
+  (if br_min > 0. then l := (Minimum_br br_min) :: !l);
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_VORBIS_STREAM;
+    stream_tags = [
+      Ogg_codec "vorbis";
+      Ogg_vorbis_version version;
+      Ogg_audio_channels audio_channels;
+      Ogg_vorbis_sample_rate sample_rate;
+      Ogg_vorbis_bitrates !l;
+      Ogg_vorbis_blocksize_0 blocksize_0;
+      Ogg_vorbis_blocksize_1 blocksize_1;];
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+and get_ogx_theora_info  ic ogx_infos str stream_number =
+  seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as theora uses 6 octects for 'theora' *)
+  let s = String.create 34 in
+  really_input ic s 0 34;
+  let vmaj = int_of_char s.[0] in
+  let vmin = int_of_char s.[1] in
+  let vrev = int_of_char s.[2] in
+  let codec = Printf.sprintf "theora-%d.%d.%d" vmaj vmin vrev in
+  (* multiply by 16 to get the actual frame width in pixels *)
+  let fmbw = read16B (String.sub s 3 2) lsl 4 in
+  (* multiply by 16 to get the actual frame height in pixels *)
+  let fmbh = read16B (String.sub s 5 2) lsl 4 in
+  let picw = read24B (String.sub s 7 3)  in
+  let pich = read24B (String.sub s 10 3) in
+  let picx = int_of_char s.[13] in
+  let picy = int_of_char s.[14] in
+  let frn = read32B (String.sub s 15 4) in
+  let frd = read32B (String.sub s 19 4) in
+  let sample_rate = frn /. frd in
+  let parn = read24B (String.sub s 23 3) in
+  let pard = read24B (String.sub s 26 3) in
+  let parn, pard =
+    if parn = 0
+      then (1, 1)
+      else (parn, pard)
+  in
+  let cs = int_of_char s.[29] in
+  let nombr = read24B (String.sub s 30 3) in
+  let qual = (int_of_char s.[33] asr 2) land 63 in
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_THEORA_STREAM;
+    stream_tags = [
+      Ogg_codec codec;
+      Ogg_video_sample_rate sample_rate;
+      Ogg_video_width (float_of_int picw);
+      Ogg_video_height (float_of_int pich);
+      Ogg_aspect_ratio (float_of_int pard /. float_of_int parn);
+      Ogg_theora_cs (get_theora_cs cs);
+      Ogg_theora_quality qual] @
+      (if nombr > 0 then [Ogg_theora_avgbytespersec nombr] else []);
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+and get_ogx_text_info ic ogx_infos str stream_number =
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_TEXT_STREAM;
+    stream_tags = [Ogg_has_subtitle];
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+and get_ogx_index_info ic ogx_infos str stream_number =
+  ogx_infos := {
+    stream_no   = !stream_number;
+    stream_type = OGX_INDEX_STREAM;
+    stream_tags = [Ogg_has_index];
+  } :: !ogx_infos;
+  next_ogx_stream ic ogx_infos str stream_number
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  search_info_ogx                                               *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let search_info_ogx ic =
+    let stream_number = ref 0 in
+    let str = String.create 4 in
+    let ogx_infos = ref [] in
+    (* make sure the current reading position is at the file beginning *)
+    seek_in ic 0;
+    try
+       next_ogx_stream ic ogx_infos str stream_number;
+    with _ ->
+      begin
+        match !ogx_infos with
+            [] -> ()
+          | _ -> raise (FormatFound (OGx (List.rev !ogx_infos)))
+      end
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  search_info_avi                                               *)
+(*                                                                                *)
+(**********************************************************************************)
+
 let search_info_avi ic =
   try
 (* pos: 0 *)
@@ -243,10 +667,11 @@ let search_info_mp3 filename =
       *)
 
 let get_info file =
-  let ic = open_in file in
+  let ic = open_in_bin file in
   try
     search_info_mp3 file;
     search_info_avi ic ;
+    search_info_ogx ic;
     close_in ic;
     let es = 
       try 

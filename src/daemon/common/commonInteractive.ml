@@ -402,6 +402,13 @@ let start_search user query buf =
               r.op_network_search s buf);
   end;
   s
+
+let network_display_stats buf o =
+  networks_iter_all (fun r ->
+    try
+      if List.mem NetworkHasStats r.network_flags then
+        r.op_network_display_stats buf o
+    with _ -> ())
   
 let print_connected_servers o =
   let buf = o.conn_buf in

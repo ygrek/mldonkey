@@ -122,6 +122,7 @@ class g_server () =
   let server_score        = server_cols#add Gobject.Data.int in
   let server_network_pixb = server_cols#add Gobject.Data.gobject_option in
   let server_state_pixb   = server_cols#add Gobject.Data.gobject_option in
+  let server_preferred    = server_cols#add Gobject.Data.boolean in
   object (self)
 (* from this point you cannot change server_cols ! *)
   inherit Servers.g_list server_cols
@@ -148,7 +149,8 @@ class g_server () =
     store#set ~row ~column:server_tags_str     (Mi.tags_to_string s.server_tags);
     store#set ~row ~column:server_desc         (U.utf8_of s.server_description);
     store#set ~row ~column:server_network_pixb (Mi.network_pixb s.server_network ~size:A.SMALL ());
-    store#set ~row ~column:server_state_pixb   (Mi.server_state_of_server s.server_network s.server_state ~size:A.SMALL)
+    store#set ~row ~column:server_state_pixb   (Mi.server_state_of_server s.server_network s.server_state ~size:A.SMALL);
+    store#set ~row ~column:server_preferred     s.server_preferred
 
 (*************************************************************************)
 (*                                                                       *)
@@ -189,6 +191,10 @@ class g_server () =
     if s.server_score <> s_new.server_score
       then begin
         store#set ~row ~column:server_score s_new.server_score
+      end;
+    if s.server_preferred <> s_new.server_preferred
+      then begin
+        store#set ~row ~column:server_preferred s_new.server_preferred
       end
 
 (*************************************************************************)
@@ -221,7 +227,17 @@ class g_server () =
                         in
                         let name = model#get ~row ~column:server_name in
                         let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
-                        renderer#set_properties [ `TEXT s ]
+                        renderer#set_properties [ `TEXT s ; `EDITABLE true ];
+                        ignore (renderer#connect#edited ~callback:
+                          (fun path name ->
+                             try
+                               let iter = self#get_iter path in
+                               let s = self#get_item iter in
+                               GuiCom.send (ServerRename (s.server_num, name));
+                               let row = self#convert_iter_to_child_iter iter in
+                               store#set ~row ~column:server_name s.server_name
+                             with _ -> ()
+                        ));
                       end
                   | _ -> renderer#set_properties [ `TEXT "" ]
            )
@@ -283,6 +299,23 @@ class g_server () =
              end
          end
 
+    | Col_server_preferred ->
+         begin
+           let renderer = GTree.cell_renderer_toggle [`XALIGN 0.5] in
+           col#pack renderer;
+           col#add_attribute renderer "active" server_preferred;
+           ignore (renderer#connect#toggled ~callback:
+             (fun path ->
+                try
+                  let iter = self#get_iter path in
+                  let s = self#get_item iter in
+                  GuiCom.send (ServerSetPreferred (s.server_num, not s.server_preferred));
+                  let row = self#convert_iter_to_child_iter iter in
+                  store#set ~row ~column:server_preferred s.server_preferred
+                with _ -> ()
+           ));
+         end
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         sort_items                                    *)
@@ -309,6 +342,7 @@ class g_server () =
       | Col_server_name -> compare (String.lowercase s1.server_name)
                                    (String.lowercase s2.server_name)
       | Col_server_tags -> compare s1.server_tags s2.server_tags
+      | Col_server_preferred -> compare s1.server_preferred s2.server_preferred
 
 (*************************************************************************)
 (*                                                                       *)
@@ -426,6 +460,14 @@ let clear_users sel () =
 
 let get_user_info user_num =
   GuiCom.send (GetUser_info user_num)
+
+let server_set_preferred sel b () =
+  List.iter (fun s ->
+    GuiCom.send (ServerSetPreferred (s.server_num, b))
+  ) sel
+
+let server_rename s name () =
+  GuiCom.send (ServerRename (s.server_num, name))
 
 (*************************************************************************)
 (*                                                                       *)

@@ -58,6 +58,7 @@ let network = CommonNetwork.new_network "ED2K" "Donkey"
     NetworkHasUpload;
     NetworkHasMultinet;
     NetworkHasChat;
+    NetworkHasStats;
   ]
 
 let connection_manager = network.network_connection_manager

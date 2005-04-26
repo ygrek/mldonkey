@@ -1,12 +1,17 @@
 ChangeLog	
 =========
 
-2005/04/25: spiralvoice (version 2.5.30.13 = tag release-2-5-30-13)
-
-This version shares the same code as Amorphous revision 286.
+2005/04/25: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
+
+3908: Split patch 3900: Vorbis file support
+3949: Some improvements for graphical stats
+3950: bug fixes for the gtk2 GUI
+3951: servers enhancement
+---------------------------------------------------------------------
+2005/04/25: spiralvoice (version 2.5.30.13 = tag release-2-5-30-13)
 
 3947: More build fixes for sha1new on FreeBSD 
 ---------------------------------------------------------------------

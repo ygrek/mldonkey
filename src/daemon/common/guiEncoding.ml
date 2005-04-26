@@ -296,8 +296,58 @@ let buf_mp3 buf t =
   buf_string buf t.M.comment;
   buf_int buf t.M.tracknum;
   buf_int buf t.M.genre
-  
-let buf_format buf f =
+
+let buf_ogx_stream_type buf st =
+  match st with
+  OGX_VIDEO_STREAM  -> buf_int8 buf 0
+| OGX_AUDIO_STREAM  -> buf_int8 buf 1
+| OGX_INDEX_STREAM  -> buf_int8 buf 2
+| OGX_TEXT_STREAM   -> buf_int8 buf 3
+| OGX_VORBIS_STREAM -> buf_int8 buf 4
+| OGX_THEORA_STREAM -> buf_int8 buf 5
+
+let buf_vorbis_bitrate buf br =
+  match br with
+  Maximum_br r -> buf_int8 buf 0; buf_float buf r
+| Nominal_br r -> buf_int8 buf 1; buf_float buf r
+| Minimum_br r -> buf_int8 buf 2; buf_float buf r
+
+let buf_theora_cs buf cs =
+  match cs with
+  CSUndefined -> buf_int8 buf 0
+| CSRec470M   -> buf_int8 buf 1
+| CSRec470BG  -> buf_int8 buf 2
+
+let buf_ogx_stream_tag buf tag =
+  match tag with
+  Ogg_codec s                 -> buf_int8 buf 0; buf_string buf s
+| Ogg_bits_per_samples n      -> buf_int8 buf 1; buf_int buf n
+| Ogg_duration n              -> buf_int8 buf 2; buf_int buf n
+| Ogg_has_subtitle            -> buf_int8 buf 3
+| Ogg_has_index               -> buf_int8 buf 4
+| Ogg_audio_channels n        -> buf_int8 buf 5; buf_int buf n
+| Ogg_audio_sample_rate r     -> buf_int8 buf 6; buf_float buf r
+| Ogg_audio_blockalign n      -> buf_int8 buf 7; buf_int buf n
+| Ogg_audio_avgbytespersec r  -> buf_int8 buf 8; buf_float buf r
+| Ogg_vorbis_version r        -> buf_int8 buf 9; buf_float buf r
+| Ogg_vorbis_sample_rate r    -> buf_int8 buf 10; buf_float buf r
+| Ogg_vorbis_bitrates l       -> buf_int8 buf 11; buf_list buf buf_vorbis_bitrate l
+| Ogg_vorbis_blocksize_0 n    -> buf_int8 buf 12; buf_int buf n
+| Ogg_vorbis_blocksize_1 n    -> buf_int8 buf 13; buf_int buf n
+| Ogg_video_width r           -> buf_int8 buf 14; buf_float buf r
+| Ogg_video_height r          -> buf_int8 buf 15; buf_float buf r
+| Ogg_video_sample_rate r     -> buf_int8 buf 16; buf_float buf r
+| Ogg_aspect_ratio r          -> buf_int8 buf 17; buf_float buf r
+| Ogg_theora_cs cs            -> buf_int8 buf 18; buf_theora_cs buf cs
+| Ogg_theora_quality n        -> buf_int8 buf 19; buf_int buf n
+| Ogg_theora_avgbytespersec n -> buf_int8 buf 20; buf_int buf n
+
+let buf_ogx buf stream =
+  buf_int buf stream.stream_no;
+  buf_ogx_stream_type buf stream.stream_type;
+  buf_list buf buf_ogx_stream_tag stream.stream_tags
+
+let buf_format proto buf f =
   match f with
   | FormatUnknown | FormatNotComputed _ -> buf_int8 buf 0
   | FormatType (s1, s2) -> buf_int8 buf 1; 
@@ -311,7 +361,13 @@ let buf_format buf f =
   | MP3 (t, _) -> 
       buf_int8 buf 3;
       buf_mp3 buf t
-      
+  | OGx ogx_infos ->
+      if proto > 31
+        then begin
+          buf_int8 buf 4;
+          buf_list buf buf_ogx ogx_infos;
+        end else buf_int8 buf 0
+
 let buf_kind buf k =
   match k with
     Known_location (ip, port) -> 
@@ -378,7 +434,7 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_format then begin
       buf_int8 buf 14;
-      buf_format buf f.file_format;
+      buf_format proto buf f.file_format;
     end;
   if f.file_fields.Fields_file_info.file_name then begin
       buf_int8 buf 15;
@@ -443,7 +499,7 @@ let buf_file_field proto buf field =
       buf_float_date proto buf x
   | Fields_file_info.File_format x ->
       buf_int8 buf 14;
-      buf_format buf x
+      buf_format proto buf x
   | Fields_file_info.File_name x ->
       buf_int8 buf 15;
       buf_string buf x
@@ -481,7 +537,7 @@ let buf_file proto buf f =
   buf_array buf (buf_float_date proto) f.file_chunks_age;  
   buf_float_date proto buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
-  buf_format buf f.file_format;
+  buf_format proto buf f.file_format;
   if proto >= 8 then 
     buf_string buf f.file_name;
   if proto >= 9 then 
@@ -567,7 +623,7 @@ let buf_network proto buf n =
             | NetworkHasSupernodes -> 6
             | NetworkHasUpload -> 7
             | UnknownNetworkFlag -> -1
-
+	    | NetworkHasStats -> -1
           )
       ) n.network_netflags;
     end
@@ -804,7 +860,6 @@ let rec to_gui (proto : int array) buf t =
         buf_int buf num;
         buf_int64 buf upload;
         buf_int buf requests
-
     | Shared_file_unshared num -> buf_opcode buf 35;
         buf_int buf num
     
@@ -1086,7 +1141,17 @@ protocol version. Do not send them ? *)
     | InterestedInSources interested ->
         buf_int16 buf 64; buf_bool buf interested
     | GetVersion -> buf_opcode buf 65; 
-        
+
+    (* introduced with protocol 32 *)
+    | ServerRename (num, s) ->
+        buf_opcode buf 66;
+        buf_int buf num;
+        buf_string buf s
+    | ServerSetPreferred (num, preferred) ->
+        buf_opcode buf 67;
+        buf_int buf num;
+        buf_bool buf preferred
+
   with e ->
       lprintf "GuiEncoding.from_gui: Exception %s\n"
         (Printexc2.to_string e)

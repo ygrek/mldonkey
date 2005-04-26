@@ -427,6 +427,7 @@ type network_flag =
 | NetworkHasChat
 | NetworkHasSupernodes
 | NetworkHasUpload
+| NetworkHasStats
   
 type network_info = {
     network_netname : string;
@@ -484,6 +485,7 @@ type network = {
     mutable op_network_gui_message : (string -> unit);
     
     mutable op_network_download : (result_info -> file);
+    mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
   }
 
 and   ui_user = {
@@ -536,10 +538,147 @@ type avi_info = {
     mutable avi_rate : int;
   }
 
-  
+type ogx_stream_type =
+  OGX_INDEX_STREAM                             (* as per OggDS new Header Format      *)
+| OGX_TEXT_STREAM                              (* as per OggDS new Header Format      *)
+| OGX_AUDIO_STREAM                             (* as per OggDS new Header Format      *)
+| OGX_VORBIS_STREAM                            (* as per Ogg Vorbis I specification   *)
+| OGX_THEORA_STREAM                            (* as per Theora I specification       *)
+| OGX_VIDEO_STREAM                             (* as per OggDS new Header Format      *)
+
+type vorbis_bitrates =
+  Maximum_br of float                          (* maximum bitrate in kbit/s           *)
+| Nominal_br of float                          (* nominal bitrate in kbit/s           *)
+| Minimum_br of float                          (* minimum bitrate in kbit/s           *)
+
+type theora_color_space =
+  CSUndefined
+| CSRec470M
+| CSRec470BG
+
+type ogx_tag =
+  Ogg_codec of string
+| Ogg_bits_per_samples of int                 (* in bits                             *)
+| Ogg_duration of int                         (* duration in seconds                 *)
+| Ogg_has_subtitle
+| Ogg_has_index
+| Ogg_audio_channels of int                   (* number of audio channels            *)
+| Ogg_audio_sample_rate of float              (* in sample/s                         *)
+| Ogg_audio_blockalign of int
+| Ogg_audio_avgbytespersec of float           (* in bytes/s                          *)
+| Ogg_vorbis_version of float                 (* version of vorbis codec. shall be 0 *)
+| Ogg_vorbis_sample_rate of float             (* samplerate in Hertz                 *)
+| Ogg_vorbis_bitrates of vorbis_bitrates list
+| Ogg_vorbis_blocksize_0 of int
+| Ogg_vorbis_blocksize_1 of int
+| Ogg_video_width of float                    (* in pixel                            *)
+| Ogg_video_height of float                   (* in pixel                            *)
+| Ogg_video_sample_rate of float              (* in frames/s                         *)
+| Ogg_aspect_ratio of float
+| Ogg_theora_cs of theora_color_space
+| Ogg_theora_quality of int
+| Ogg_theora_avgbytespersec of int            (* in bytes/s for VBR streams          *)
+
+type ogx_stream_info = {
+  stream_no   : int;
+  stream_type : ogx_stream_type;
+  stream_tags : ogx_tag list;
+}
+
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  stream_type_to_string                                         *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let stream_type_to_string st =
+  match st with
+    OGX_VIDEO_STREAM -> "video"
+  | OGX_AUDIO_STREAM -> "audio"
+  | OGX_INDEX_STREAM -> "index"
+  | OGX_TEXT_STREAM -> "text"
+  | OGX_VORBIS_STREAM -> "audio"
+  | OGX_THEORA_STREAM -> "video"
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  vorbis_bitrates_to_string                                     *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let vorbis_bitrates_to_string vb =
+  let s = ref "" in
+  List.iter (fun b ->
+    match b with
+        Maximum_br r -> s := !s ^ (Printf.sprintf "%.0f kbit/s [max]" (r /. 1000.))
+      | Nominal_br r -> s := !s ^ (Printf.sprintf "%.0f kbit/s [nom]" (r /. 1000.))
+      | Minimum_br r -> s := !s ^ (Printf.sprintf "%.0f kbit/s [min]" (r /. 1000.))
+  ) vb;
+  !s
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  theora_cs_to_string                                           *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let theora_cs_to_string cs =
+  match cs with
+      CSUndefined -> "Undefined"
+    | CSRec470M -> "470M"
+    | CSRec470BG -> "470BG"
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  ogx_tag_to_string                                             *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let ogx_tag_to_string ogx_tag =
+  match ogx_tag with
+  Ogg_codec s  -> Printf.sprintf "%s [codec]" s
+| Ogg_bits_per_samples n -> Printf.sprintf "%d bits/sample" n
+| Ogg_duration n -> Printf.sprintf "%d s" n
+| Ogg_has_subtitle -> Printf.sprintf "Stream has subtitles"
+| Ogg_has_index -> Printf.sprintf "Stream has chapters"
+| Ogg_audio_channels n -> Printf.sprintf "%d [channels]" n
+| Ogg_audio_sample_rate r -> Printf.sprintf "%.3f samples/s" r
+| Ogg_audio_blockalign n -> Printf.sprintf "block align: %d" n
+| Ogg_audio_avgbytespersec r -> Printf.sprintf "%.0f kbps" (r *. 8. /. 1000.)
+| Ogg_vorbis_version r -> Printf.sprintf "vorbis version: %.0f" r
+| Ogg_vorbis_sample_rate r -> Printf.sprintf "%.0f Hz" r
+| Ogg_vorbis_bitrates l -> Printf.sprintf "%s" (vorbis_bitrates_to_string l)
+| Ogg_vorbis_blocksize_0 n -> Printf.sprintf "blocksize_0: %d" (int_of_float (2. ** float_of_int n))
+| Ogg_vorbis_blocksize_1 n -> Printf.sprintf "blocksize_1: %d" (int_of_float (2. ** float_of_int n))
+| Ogg_video_width r -> Printf.sprintf "width: %.0f pixels" r
+| Ogg_video_height r -> Printf.sprintf "height: %.0f pixels" r
+| Ogg_video_sample_rate r -> Printf.sprintf "%.3f fps" r
+| Ogg_aspect_ratio r -> Printf.sprintf "1:%0.5f" r
+| Ogg_theora_cs cs -> Printf.sprintf "%s" (theora_cs_to_string cs)
+| Ogg_theora_quality n -> Printf.sprintf "%d [quality]" n
+| Ogg_theora_avgbytespersec n -> Printf.sprintf "%d kbps" (n / 1000)
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                  print_ogx_info                                                *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let print_ogx_infos ogx_infos =
+  List.iter (fun stream ->
+    Printf.printf "-== %s info - stream number: %d ==-\n"
+      (stream_type_to_string stream.stream_type) stream.stream_no;
+    List.iter (fun tag ->
+      Printf.printf "  %s\n" (ogx_tag_to_string tag)
+    ) stream.stream_tags
+  ) !ogx_infos;
+  flush stdout
+
 type format =
   AVI of avi_info
 | MP3 of Mp3tag.Id3v1.tag * Mp3tag.info
+| OGx of ogx_stream_info list
 | FormatType of string * string
 | FormatUnknown
 | FormatNotComputed of int

@@ -49,7 +49,6 @@ let (win : GWindow.window option ref) = ref None
 let wwidth = ref ((Gdk.Screen.width ()) * 1 / 2)
 let wheight = ref ((Gdk.Screen.height ()) * 3 / 4)
 
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         attach                                        *)
@@ -84,7 +83,7 @@ let insert_data (table : GPack.table) data top =
             | s :: tail ->
                 begin
                   let markup = GuiTools.create_markup s in
-                  let label = GMisc.label ~xalign:0. ~markup () in
+                  let label = GMisc.label ~xalign:0. ~yalign:0. ~markup () in
                   attach table !left !right !top !xpadding label;
                   left := !right;
                   right := 5 - List.length tail; (* Because table has 4 columns *)
@@ -122,16 +121,28 @@ let pixbuf_of_item item =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         format_to_string                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let format_to_string (table : GPack.table) format =
+  let m = Mi.format_to_string format in
+  let context = table#misc#pango_context#as_context in
+  let pixels = !wwidth * 3 / 4 in
+  ConfigWindow.message_to_stem m context pixels
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         item_info_of_item                             *)
 (*                                                                       *)
 (*************************************************************************)
 
-let item_info_of_item item =
+let item_info_of_item (table : GPack.table) item =
   match item with
       File f ->
         let avail = Mi.main_availability_of f.file_network f.file_availability in
         [
-         [!M.fW_lb_file_format; Mi.format_to_string f.file_format];
+         [!M.fW_lb_file_format; format_to_string table f.file_format];
          [!M.fW_lb_file_hash;   Mi.uid_list_to_string f.file_uids];
          [!M.fW_lb_file_size;   Mi.size_of_int64 f.file_size;
           !M.fW_lb_file_state;  Mi.string_of_file_state f.file_state f.file_download_rate];
@@ -242,7 +253,7 @@ let add_group (table : GPack.table) s top =
 (*************************************************************************)
 
 let add_item_info (table : GPack.table) item top =
-  let list = item_info_of_item item in
+  let list = item_info_of_item table item in
   insert_data table list top
 
 (*************************************************************************)

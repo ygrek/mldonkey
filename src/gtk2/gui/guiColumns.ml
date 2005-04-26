@@ -195,16 +195,18 @@ type server_column =
 | Col_server_network
 | Col_server_name
 | Col_server_tags
+| Col_server_preferred
   
 let server_column_strings = [
-    Col_server_address , M.c_address       , 0 ;
-    Col_server_state   , M.c_state         , 1 ;
-    Col_server_users   , M.c_server_nusers , 2 ;
-    Col_server_files   , M.c_server_nfiles , 3 ;
-    Col_server_desc    , M.c_server_desc   , 4 ;
-    Col_server_network , M.c_network       , 5 ;
-    Col_server_name    , M.c_name          , 6 ;
-    Col_server_tags    , M.c_tags          , 7 ;
+    Col_server_address  , M.c_address       , 0 ;
+    Col_server_state    , M.c_state         , 1 ;
+    Col_server_users    , M.c_server_nusers , 2 ;
+    Col_server_files    , M.c_server_nfiles , 3 ;
+    Col_server_desc     , M.c_server_desc   , 4 ;
+    Col_server_network  , M.c_network       , 5 ;
+    Col_server_name     , M.c_name          , 6 ;
+    Col_server_tags     , M.c_tags          , 7 ;
+    Col_server_preferred, M.c_preferred     , 8 ;
   ] 
 
 module Server = Column(struct 

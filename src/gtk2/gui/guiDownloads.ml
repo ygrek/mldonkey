@@ -52,7 +52,6 @@ let lprintf' fmt =
 (*************************************************************************)
 
 let (downloaders : int list ref) = ref []
-let (to_expand : (int * (unit -> unit)) list ref) = ref []
 
 (*************************************************************************)
 (*                                                                       *)
@@ -65,21 +64,21 @@ let (view_context : GPango.context option ref) = ref None
 let interested_in_sources = ref false
 let expanded_rows = ref 0
 
-let dummy_source =
+let dummy_source () =
   {
      source_num = -1;
      source_network = 0;
-     source_kind = Known_location (Ip.localhost, 4001);
+     source_kind = Indirect_location ("", Md4.null);
      source_state = RemovedHost;
      source_type = client_initialized_tag;
      source_tags = [];
-     source_name = "mldonkey user";
+     source_name = " ";
      source_files = None;
      source_rating = 0;
      source_chat_port = 0;
      source_connect_time = 0;
-     source_last_seen = BasicSocket.current_time ();
-     source_software = "tML";
+     source_last_seen = 0.;
+     source_software = "";
      source_downloaded = Int64.zero;
      source_uploaded = Int64.zero;
      source_upload_rate = 0.;
@@ -178,21 +177,27 @@ class g_download () =
             try
               let (_, i) = self#find_item (File_num file_num) in
               let f = match i with File f -> f | _ -> raise Exit in
-              let availability =
-                try
-                  List.assoc file_num s.source_availability
-                with _ -> ""
-              in
-              store#set ~row ~column:download_network (Mi.network_name s.source_network);
-              store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
-              store#set ~row ~column:download_name s.source_name;
-              store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
-              store#set ~row ~column:download_downloaded (Mi.size_of_int64 s.source_downloaded);
-              store#set ~row ~column:download_percent s.source_software;
-              store#set ~row ~column:download_state (Mi.string_of_state s.source_state file_num);
-              store#set ~row ~column:download_availability (Mi.string_of_availability availability f.file_chunks);
-              store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks false);
-              store#set ~row ~column:download_download_rate (Mi.rate_to_string s.source_download_rate);
+              if s.source_num = (-1)
+                then begin
+                  store#set ~row ~column:download_name s.source_name;
+                  store#set ~row ~column:download_availability_pixb None;
+                end else begin
+                  let availability =
+                    try
+                      List.assoc file_num s.source_availability
+                    with _ -> ""
+                  in
+                  store#set ~row ~column:download_network (Mi.network_name s.source_network);
+                  store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
+                  store#set ~row ~column:download_name s.source_name;
+                  store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+                  store#set ~row ~column:download_downloaded (Mi.size_of_int64 s.source_downloaded);
+                  store#set ~row ~column:download_percent s.source_software;
+                  store#set ~row ~column:download_state (Mi.string_of_state s.source_state file_num);
+                  store#set ~row ~column:download_availability (Mi.string_of_availability availability f.file_chunks);
+                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks false);
+                  store#set ~row ~column:download_download_rate (Mi.rate_to_string s.source_download_rate);
+                end
             with _ -> ()
 
 (*************************************************************************)
@@ -267,44 +272,47 @@ class g_download () =
            (try
               let (_, i) = self#find_item (File_num file_num) in
               let f = match i with File f -> f | _ -> raise Exit in
-              if s.source_name <> s_new.source_name
+              if s.source_num <> (-1)
                 then begin
-                  store#set ~row ~column:download_name s_new.source_name;
-                end;
-              if s.source_type <> s_new.source_type
-                then begin
-                  store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s_new.source_type ~size:A.SMALL);
-                end;
-              if s.source_downloaded <> s_new.source_downloaded
-                then begin
-                  store#set ~row ~column:download_downloaded (Mi.size_of_int64 s_new.source_downloaded);
-                end;
-              if s.source_state <> s_new.source_state
-                then begin
-                  store#set ~row ~column:download_state (Mi.string_of_state s_new.source_state file_num);
-                end;
-              if s.source_software <> s_new.source_software
-                then begin
-                  store#set ~row ~column:download_percent s_new.source_software;
-                end;
-              let availability =
-                try
-                  List.assoc file_num s.source_availability
-                with _ -> ""
-              in
-              let new_availability =
-                try
-                  List.assoc file_num s_new.source_availability
-                with _ -> ""
-              in
-              if availability <> new_availability
-                then begin
-                  store#set ~row ~column:download_availability (Mi.string_of_availability new_availability f.file_chunks);
-                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar new_availability f.file_chunks false)
-                end;
-              if s_new.source_download_rate <> s.source_download_rate
-                then begin
-                  store#set ~row ~column:download_download_rate (Mi.rate_to_string s_new.source_download_rate);
+                  if s.source_name <> s_new.source_name
+                    then begin
+                      store#set ~row ~column:download_name s_new.source_name;
+                    end;
+                  if s.source_type <> s_new.source_type
+                    then begin
+                      store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s_new.source_type ~size:A.SMALL);
+                    end;
+                  if s.source_downloaded <> s_new.source_downloaded
+                    then begin
+                      store#set ~row ~column:download_downloaded (Mi.size_of_int64 s_new.source_downloaded);
+                    end;
+                  if s.source_state <> s_new.source_state
+                    then begin
+                      store#set ~row ~column:download_state (Mi.string_of_state s_new.source_state file_num);
+                    end;
+                  if s.source_software <> s_new.source_software
+                    then begin
+                      store#set ~row ~column:download_percent s_new.source_software;
+                    end;
+                  let availability =
+                    try
+                      List.assoc file_num s.source_availability
+                    with _ -> ""
+                  in
+                  let new_availability =
+                    try
+                      List.assoc file_num s_new.source_availability
+                    with _ -> ""
+                  in
+                  if availability <> new_availability
+                    then begin
+                      store#set ~row ~column:download_availability (Mi.string_of_availability new_availability f.file_chunks);
+                      store#set ~row ~column:download_availability_pixb (Mi.availability_bar new_availability f.file_chunks false)
+                    end;
+                  if s_new.source_download_rate <> s.source_download_rate
+                    then begin
+                      store#set ~row ~column:download_download_rate (Mi.rate_to_string s_new.source_download_rate);
+                    end
                 end
             with _ -> ())
 
@@ -340,8 +348,34 @@ class g_download () =
                           in
                           let name = model#get ~row ~column:download_name in
                           let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
-                          renderer#set_properties [ `TEXT s ]
+                          renderer#set_properties [ `TEXT s ];
+                          let item = self#get_item row in
+                          begin
+                            match item with
+                                File f ->
+                                  renderer#set_properties [ `EDITABLE true ];
+                                  ignore (renderer#connect#edited ~callback:
+                                    (fun path name ->
+                                       try
+                                         let iter = self#get_iter path in
+                                         let item = self#get_item iter in
+                                         match item with
+                                             File ff ->
+                                               let child_row = self#convert_iter_to_child_iter iter in
+                                               store#set ~row:child_row ~column:download_name ff.file_name;
+                                               (match ff.file_state with
+                                                   FileDownloaded  -> GuiCom.send (SaveFile (ff.file_num, name))
+                                                 | _  ->  GuiCom.send (RenameFile (ff.file_num, name)))
+                                           | _ -> ()
+
+                                       with _ -> ()
+                                  ))
+
+                              | _ -> renderer#set_properties [ `EDITABLE false ]
+
+                          end
                         end
+
                       | _ -> renderer#set_properties [ `TEXT "" ]
               )
            end
@@ -405,9 +439,9 @@ class g_download () =
                                  ~dest:pixb ~dest_x:0 ~dest_y:0
                                  ~width ~height ~scale_x ~interp:`TILES
                                  pb;
-                               renderer#set_properties [ `PIXBUF pixb ]
+                               renderer#set_properties [ `PIXBUF pixb; `VISIBLE true ]
                              end
-                         | _ -> ()
+                         | _ -> renderer#set_properties [ `VISIBLE false ]
                     )
                 end else begin
                   let renderer = GTree.cell_renderer_text [`XALIGN 1.] in
@@ -797,6 +831,14 @@ let ask_for_sources () =
       GuiCom.send (InterestedInSources true)
     end
 
+let get_format sel () =
+  List.iter (fun item ->
+    match item with
+        File f ->
+           GuiCom.send (QueryFormat f.file_num)
+      | _ -> ()
+  ) sel
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Download Menu                                 *)
@@ -829,6 +871,7 @@ let download_menu sel =
                       `I ((!M.dT_me_set_priority_verylow), set_priority sel (-20));
                      ]) ::
                 `S ::
+                `I ((!M.dT_me_get_format), get_format sel) ::
              (match (f.file_state, f.file_format) with
                   (FileDownloaded, MP3 _) ->
                [
@@ -845,17 +888,20 @@ let download_menu sel =
             else  []) *)
 
       | (Source (s, file_num)) :: tail ->
-          (if tail = []
-             then
-               [
-                `I ((!M.dT_me_show_source_details), show_details (Source (s, file_num))) ;
-               ]
-             else  [])
-             @
-               [
-                `I (!M.dT_me_browse_files, browse_files sel);
-                `I (!M.dT_me_add_to_friends, add_to_friends sel)
-               ]
+          if s.source_num = (-1)
+            then []
+            else
+              (if tail = []
+                 then
+                   [
+                    `I ((!M.dT_me_show_source_details), show_details (Source (s, file_num))) ;
+                   ]
+                 else  [])
+              @
+                   [
+                    `I (!M.dT_me_browse_files, browse_files sel);
+                    `I (!M.dT_me_add_to_friends, add_to_friends sel)
+                   ]
 
 (*************************************************************************)
 (*                                                                       *)
@@ -977,7 +1023,7 @@ let h_paused f =
       (if f.file_state = FileDownloaded
          then incr G.ndownloaded);
       GuiStatusBar.update_downloadedfiles ();
-      ignore (downloadstore#add_item (Source (dummy_source, f.file_num)) ~parent ())
+      ignore (downloadstore#add_item (Source (dummy_source (), f.file_num)) ~parent ())
     end
 
 let h_downloading = h_paused
@@ -1023,24 +1069,29 @@ let h_add_source s file_num =
     match i with
         File f ->
           begin
-            let _ =
-              match f.file_sources with
-                  None -> f.file_sources <- Some [s.source_num]
-                | Some sources ->
-                  ( if !!verbose then lprintf' "add_source file_sources %d for file %d\n"
-                     (List.length sources) f.file_num);
-                  if List.mem s.source_num sources
-                    then raise Exit
-                    else f.file_sources <- Some ( s.source_num :: sources)
-            in
-            ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
-            if List.mem_assoc f.file_num !to_expand &&
-               (downloadstore#iter_n_children (Some (downloadstore#convert_child_iter_to_iter row))) >= 1
-              then begin
-                let func = List.assoc f.file_num !to_expand in
-                func ();
-                to_expand := List.remove_assoc f.file_num !to_expand
-              end
+            match f.file_sources with
+                None ->
+                  begin
+                    f.file_sources <- Some [s.source_num];
+                    ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
+                    try
+                      let (_, i) = downloadstore#find_item (Source_num ((-1), file_num)) in
+                      match i with
+                          Source (s, n) -> downloadstore#remove_item (Source (s, n))
+                        | _ -> ()
+                    with _ -> ()
+                  end
+              | Some sources ->
+                  begin
+                    (if !!verbose then lprintf' "add_source file_sources %d for file %d\n"
+                       (List.length sources) f.file_num);
+                    if List.mem s.source_num sources
+                      then raise Exit
+                      else begin
+                        f.file_sources <- Some (s.source_num :: sources);
+                        ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
+                      end
+                  end
           end
       | _ -> ()
   with _ -> ()
@@ -1060,8 +1111,13 @@ let h_remove_source s file_num =
                   f.file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
             in
             downloadstore#remove_item (Source (s, file_num));
-            if not (downloadstore#iter_has_child (downloadstore#convert_child_iter_to_iter row))
-              then ignore (downloadstore#add_item (Source (dummy_source, f.file_num)) ~parent:row ())
+            match f.file_sources with
+                Some [] ->
+                  begin
+                    f.file_sources <- None;
+                    ignore (downloadstore#add_item (Source (dummy_source (), f.file_num)) ~parent:row ())
+                  end
+              | _ -> ()
           end
       | _ -> ()
   with _ -> ()
@@ -1139,15 +1195,7 @@ let downloads_box gui =
   in
   let on_expand_item path (i : GuiTypes2.item_info) =
     ask_for_sources ();
-    match i with
-        Source _ -> true
-      | File f ->
-          try
-            let (_, dummy) = downloadstore#find_item (Source_num (dummy_source.source_num, f.file_num)) in
-            downloadstore#remove_item dummy;
-            to_expand := (f.file_num, (fun _ -> downloadview#view#expand_row path)) :: !to_expand;
-            true                                (* if dummy item is present, don't expand *)
-          with _ -> false                       (* if dummy item is not present, expand   *)
+    false
   in
   let on_expanded_item path (i : GuiTypes2.item_info) =
     expanded_rows := List.length downloadview#expanded_paths;

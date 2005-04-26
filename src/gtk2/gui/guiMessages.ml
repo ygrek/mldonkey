@@ -156,6 +156,7 @@ let dT_me_set_priority_high  = ref ""
 let dT_me_set_priority_normal  = ref ""
 let dT_me_set_priority_low  = ref ""
 let dT_me_set_priority_verylow  = ref ""
+let dT_me_get_format = ref ""
 let dT_me_edit_mp3  = ref ""
 let dT_me_save_all  = ref ""
 let dT_me_save_as  = ref ""
@@ -517,7 +518,7 @@ let c_sources  = ref ""
 let c_complete  = ref ""
 let c_status = ref ""
 let c_protocol = ref ""
-
+let c_preferred = ref ""
 
 let load_messages () =
 (* Networks Tab *)
@@ -599,6 +600,7 @@ let load_messages () =
   dT_me_set_priority_normal  :=  _s "Normal";
   dT_me_set_priority_low  :=  _s "Low";
   dT_me_set_priority_verylow  :=  _s "Very low";
+  dT_me_get_format := _s "Get file format";
   dT_me_edit_mp3  :=  _s "Edit mp3 tags";
   dT_me_save_all  :=  _s "Save all";
   dT_me_save_as  :=  _s "Save file as";
@@ -958,7 +960,8 @@ let load_messages () =
   c_sources  :=  _s "Sources";
   c_complete  :=  _s "Complete";
   c_status := _s "Status";
-  c_protocol := _s "Protocol"
+  c_protocol := _s "Protocol";
+  c_preferred := _s "Pref."
 
 (* Messages and string constants. *)
 

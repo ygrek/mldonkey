@@ -30,8 +30,8 @@ type gift_command =
 let gui_extension_poll = 1
   
 let to_gui_last_opcode = 58
-let from_gui_last_opcode = 65
-let best_gui_version = 31
+let from_gui_last_opcode = 67
+let best_gui_version = 32
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -52,6 +52,15 @@ Version 31:
   Core -> GUI: message 48 [SHARED_FILE_INFO]
     Field shared_id (md4 - 16 bytes) has been replaced by shared_uids (string list)
     For protocols < 31, the MD4 sent is now invalid (filled with zeroes). Don't use it !
+
+Version 32:
+  Core -> GUI: message 52 [FILE_INFO]
+    Field file_format now includes OGx files (.ogm files as per OggDS, .ogg files
+    with theora video and vorbis audio).
+    'OGx' is used for files using the Ogg bitstream specification.
+    See commonTypes.ml 'ogx_stream_info' for further details as well as guiEncoding.ml
+  GUI -> Core: message 66 [SERVER_RENAME]
+  GUI -> Core: message 67 [SERVER_SET_PREFERRED]
 
   *)
   
@@ -149,7 +158,11 @@ the messages (it will use the version specified in CoreProtocol instead
 (* Understood by core protocol 27 *)
 | InterestedInSources of bool 
 | GetVersion
-  
+
+(* Understood by core protocol 32 *)
+| ServerRename of (int * string)
+| ServerSetPreferred of (int * bool)
+
 type to_gui =
 (* This message is the first message sent by the core *)
 | CoreProtocol of int * int * int
@@ -291,7 +304,10 @@ let string_of_from_gui t =
   
   | InterestedInSources _ -> "InterestedInSources"
   | GetVersion -> "GetVersion"
-      
+
+  | ServerRename _ -> "ServerRename"
+  | ServerSetPreferred _ -> "ServerSetPreferred"
+
 let string_of_to_gui t =
   match t with
   

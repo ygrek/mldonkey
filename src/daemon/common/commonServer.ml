@@ -46,6 +46,8 @@ and 'a server_ops = {
     mutable op_server_query_users : ('a -> unit);
     mutable op_server_find_user : ('a -> string -> unit);
     mutable op_server_cid : ('a -> Ip.t);
+    mutable op_server_set_preferred : ('a -> bool -> unit);
+    mutable op_server_rename : ('a -> string -> unit);
   }
 
 let ni n m = 
@@ -134,11 +136,6 @@ let server_network (server : server) =
   let server = as_server_impl server in
   server.impl_server_ops.op_server_network
 
-let server_to_option server =
-  let server = as_server_impl server in
-  server.impl_server_ops.op_server_to_option server.impl_server_val
-
-
 let server_info (server : server) =
   let server = as_server_impl server in
   server.impl_server_ops.op_server_info server.impl_server_val
@@ -158,7 +155,15 @@ let server_users s =
 let server_cid s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_cid s.impl_server_val
-  
+
+let server_set_preferred s b =
+  let s = as_server_impl s in
+  s.impl_server_ops.op_server_set_preferred s.impl_server_val b
+
+let server_rename s name =
+  let s = as_server_impl s in
+  s.impl_server_ops.op_server_rename s.impl_server_val name
+
 let servers_ops = ref []
 let new_server_ops network =
   let s = {
@@ -174,6 +179,8 @@ let new_server_ops network =
       op_server_query_users = (fun _ -> ni_ok network "query_users");
       op_server_users = (fun _ -> fni network "users");
       op_server_cid = (fun _ -> fni network "cid");
+      op_server_set_preferred = (fun _ _ -> fni network "server_set_preferred");
+      op_server_rename = (fun _ _ -> fni network "server_rename");
     } in
   let ss = (Obj.magic s : int server_ops) in
   servers_ops := (ss, { ss with op_server_network = s.op_server_network })
@@ -206,6 +213,10 @@ let check_server_implementations () =
         lprintf "op_server_users\n";
       if c.op_server_cid == cc.op_server_cid then
         lprintf "op_server_cid\n";
+      if c.op_server_rename == cc.op_server_rename then
+        lprintf "op_server_rename\n";
+      if c.op_server_set_preferred == cc.op_server_set_preferred then
+        lprintf "op_server_set_preferred\n";
   ) !servers_ops;
   lprint_newline () 
 
