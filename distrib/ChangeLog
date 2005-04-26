@@ -1,7 +1,7 @@
 ChangeLog	
 =========
 
-2005/04/25: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
+2005/04/26: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
@@ -12,6 +12,7 @@ ChangeLog
 3951: servers enhancement
 ---------------------------------------------------------------------
 2005/04/25: spiralvoice (version 2.5.30.13 = tag release-2-5-30-13)
+This version shares the same code as Amorphous revision 286.
 
 3947: More build fixes for sha1new on FreeBSD 
 ---------------------------------------------------------------------
