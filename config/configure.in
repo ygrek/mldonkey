@@ -492,9 +492,11 @@ fi
 
 
 # On linux plaforms, we will have to check that includes from kernel are
-# available.
+# available. glibc version test was shamelessly taken from
+# http://public.activestate.com/gsar/APC/perl-5.8.x/Configure
 OS_FILES=unix
 OS_FILES2=unix
+BUILD_SYSTEM3=""
 case $host in
         *linux*)   
            AC_CHECK_HEADERS(linux/limits.h,, [
@@ -503,6 +505,39 @@ case $host in
              AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
              CPPFLAGS=$OLD_CPPFLAGS]
            )
+           AC_MSG_CHECKING(Checking for GNU C Library version...) 
+
+cat >try.c <<'EOCP'
+/* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
+   alone are insufficient to distinguish different versions, such as
+   2.0.6 and 2.0.7.  The function gnu_get_libc_version() appeared in
+   libc version 2.1.0.      A. Dougherty,  June 3, 2002.
+*/
+#include <stdio.h>
+int main(void)
+{
+#ifdef __GLIBC__
+#   ifdef __GLIBC_MINOR__
+#       if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1
+#           include <gnu/libc-version.h>
+    printf("%s\n",  gnu_get_libc_version());
+#       else
+    printf("%d.%d\n",  __GLIBC__, __GLIBC_MINOR__);
+#       endif
+#   else
+printf("%d\n",  __GLIBC__);
+#   endif
+    return 0;
+#else
+    return 1;
+#endif
+}
+EOCP
+
+           $CC -o try ./try.c
+           BUILD_SYSTEM3="`./try`"
+           echo $BUILD_SYSTEM3
+           rm -f try try.*
         ;;
         *mingw*)
            OS_FILES=mingw
@@ -1176,7 +1211,9 @@ AC_SUBST(COMMONSWARMING)
 
 BUILD_SYSTEM1="`uname -s` `uname -m` `uname -r`"
 BUILD_SYSTEM2="`$OCAMLC -version`"
-BUILD_SYSTEM="Ocaml $BUILD_SYSTEM2 on $BUILD_SYSTEM1"
+BUILD_SYSTEM4=""
+if test "$BUILD_SYSTEM3" != ""; then BUILD_SYSTEM4="using glibc $BUILD_SYSTEM3"; fi
+BUILD_SYSTEM="Ocaml $BUILD_SYSTEM2 on $BUILD_SYSTEM1 $BUILD_SYSTEM4"
 AC_SUBST(BUILD_SYSTEM)
 
 AUTOCONF=../src/utils/lib/autoconf.ml

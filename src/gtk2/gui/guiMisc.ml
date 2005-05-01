@@ -862,7 +862,7 @@ let format_to_string format =
       U.simple_utf8_of (Printf.sprintf "MP3: %s - %s (%d): %s"
 	tag.MP.artist tag.MP.album 
 	tag.MP.tracknum tag.MP.title)
-  | OGx l ->
+  | OGG l ->
       let s = ref "" in
       List.iter (fun st ->
         if !s = ""
@@ -871,7 +871,7 @@ let format_to_string format =
           else s := Printf.sprintf "%s :: [%d] %s"
                       !s st.stream_no (stream_type_to_string st.stream_type);
         List.iter (fun tag ->
-          s := Printf.sprintf "%s %s" !s (ogx_tag_to_string tag)
+          s := Printf.sprintf "%s %s" !s (ogg_tag_to_string tag)
         ) st.stream_tags
       ) l;
       U.simple_utf8_of !s

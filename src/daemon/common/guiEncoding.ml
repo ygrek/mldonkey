@@ -297,14 +297,14 @@ let buf_mp3 buf t =
   buf_int buf t.M.tracknum;
   buf_int buf t.M.genre
 
-let buf_ogx_stream_type buf st =
+let buf_ogg_stream_type buf st =
   match st with
-  OGX_VIDEO_STREAM  -> buf_int8 buf 0
-| OGX_AUDIO_STREAM  -> buf_int8 buf 1
-| OGX_INDEX_STREAM  -> buf_int8 buf 2
-| OGX_TEXT_STREAM   -> buf_int8 buf 3
-| OGX_VORBIS_STREAM -> buf_int8 buf 4
-| OGX_THEORA_STREAM -> buf_int8 buf 5
+  OGG_VIDEO_STREAM  -> buf_int8 buf 0
+| OGG_AUDIO_STREAM  -> buf_int8 buf 1
+| OGG_INDEX_STREAM  -> buf_int8 buf 2
+| OGG_TEXT_STREAM   -> buf_int8 buf 3
+| OGG_VORBIS_STREAM -> buf_int8 buf 4
+| OGG_THEORA_STREAM -> buf_int8 buf 5
 
 let buf_vorbis_bitrate buf br =
   match br with
@@ -318,7 +318,7 @@ let buf_theora_cs buf cs =
 | CSRec470M   -> buf_int8 buf 1
 | CSRec470BG  -> buf_int8 buf 2
 
-let buf_ogx_stream_tag buf tag =
+let buf_ogg_stream_tag buf tag =
   match tag with
   Ogg_codec s                 -> buf_int8 buf 0; buf_string buf s
 | Ogg_bits_per_samples n      -> buf_int8 buf 1; buf_int buf n
@@ -342,10 +342,10 @@ let buf_ogx_stream_tag buf tag =
 | Ogg_theora_quality n        -> buf_int8 buf 19; buf_int buf n
 | Ogg_theora_avgbytespersec n -> buf_int8 buf 20; buf_int buf n
 
-let buf_ogx buf stream =
+let buf_ogg buf stream =
   buf_int buf stream.stream_no;
-  buf_ogx_stream_type buf stream.stream_type;
-  buf_list buf buf_ogx_stream_tag stream.stream_tags
+  buf_ogg_stream_type buf stream.stream_type;
+  buf_list buf buf_ogg_stream_tag stream.stream_tags
 
 let buf_format proto buf f =
   match f with
@@ -361,11 +361,11 @@ let buf_format proto buf f =
   | MP3 (t, _) -> 
       buf_int8 buf 3;
       buf_mp3 buf t
-  | OGx ogx_infos ->
+  | OGG ogg_infos ->
       if proto > 31
         then begin
           buf_int8 buf 4;
-          buf_list buf buf_ogx ogx_infos;
+          buf_list buf buf_ogg ogg_infos;
         end else buf_int8 buf 0
 
 let buf_kind buf k =
@@ -622,8 +622,8 @@ let buf_network proto buf n =
             | NetworkHasChat -> 5
             | NetworkHasSupernodes -> 6
             | NetworkHasUpload -> 7
+            | NetworkHasStats -> -1
             | UnknownNetworkFlag -> -1
-	    | NetworkHasStats -> -1
           )
       ) n.network_netflags;
     end

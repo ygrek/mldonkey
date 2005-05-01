@@ -353,6 +353,8 @@ let do_draw_pic ttl vl hl gdown gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -392,6 +394,9 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
+  
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -402,9 +407,9 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   draw_x_grid mypic black;
   draw_y_grid mypic black;
   draw_arrow mypic darkred;
-  (if !!html_mods_vd_gfx_mean then
-    draw_mean_line mypic gdown green black
-  );
+  if !!html_mods_vd_gfx_mean then
+    draw_mean_line mypic gdown green black;
+  
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_download.png"
   else
@@ -428,6 +433,9 @@ let do_draw_up_pic ttl top_title vl hl gup =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
+
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -438,9 +446,9 @@ let do_draw_up_pic ttl top_title vl hl gup =
   draw_x_grid mypic black;
   draw_y_grid mypic black;
   draw_arrow mypic darkred;
-  (if !!html_mods_vd_gfx_mean then
-    draw_mean_line mypic gup red black
-  );
+  if !!html_mods_vd_gfx_mean then
+    draw_mean_line mypic gup red black;
+
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_upload.png"
   else
@@ -464,6 +472,8 @@ let do_draw_h_pic ttl vl hl gdown gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -503,6 +513,9 @@ let do_draw_down_h_pic ttl top_title vl hl gdown =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
+
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -513,9 +526,9 @@ let do_draw_down_h_pic ttl top_title vl hl gdown =
   draw_x_grid mypic black;
   draw_y_grid mypic black;
   draw_arrow mypic darkred;
-  (if !!html_mods_vd_gfx_mean then
-    draw_mean_line mypic gdown green black
-  );
+  if !!html_mods_vd_gfx_mean then
+    draw_mean_line mypic gdown green black;
+
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_h_download.png"
   else
@@ -539,6 +552,9 @@ let do_draw_up_h_pic ttl top_title vl hl gup =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
+
+  if !!html_mods_vd_gfx_transparent then 
+    mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -549,9 +565,9 @@ let do_draw_up_h_pic ttl top_title vl hl gup =
   draw_x_grid mypic black;
   draw_y_grid mypic black;
   draw_arrow mypic darkred;
-  (if !!html_mods_vd_gfx_mean then
-    draw_mean_line mypic gup red black
-  );
+  if !!html_mods_vd_gfx_mean then
+    draw_mean_line mypic gup red black;
+
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_h_upload.png"
   else

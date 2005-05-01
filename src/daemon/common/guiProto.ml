@@ -55,10 +55,11 @@ Version 31:
 
 Version 32:
   Core -> GUI: message 52 [FILE_INFO]
-    Field file_format now includes OGx files (.ogm files as per OggDS, .ogg files
-    with theora video and vorbis audio).
-    'OGx' is used for files using the Ogg bitstream specification.
-    See commonTypes.ml 'ogx_stream_info' for further details as well as guiEncoding.ml
+    Field file_format now includes OGG files (as per OggDS, theora
+    video and vorbis audio).
+    'OGG' is used for files using the Ogg bitstream specification.
+    See commonTypes.ml 'ogg_stream_info' for further details as well as
+    guiEncoding.ml .
   GUI -> Core: message 66 [SERVER_RENAME]
   GUI -> Core: message 67 [SERVER_SET_PREFERRED]
 

@@ -212,14 +212,14 @@ let get_mp3 s pos =
     M.genre = genre;
   }, pos + 8
 
-let get_ogx_stream_type s pos =
+let get_ogg_stream_type s pos =
   match get_uint8 s pos with
-      0 -> OGX_VIDEO_STREAM, pos+1
-    | 1 -> OGX_AUDIO_STREAM, pos+1
-    | 2 -> OGX_TEXT_STREAM, pos+1
-    | 3 -> OGX_INDEX_STREAM, pos+1
-    | 4 -> OGX_VORBIS_STREAM, pos+1
-    | 5 -> OGX_THEORA_STREAM, pos+1
+      0 -> OGG_VIDEO_STREAM, pos+1
+    | 1 -> OGG_AUDIO_STREAM, pos+1
+    | 2 -> OGG_TEXT_STREAM, pos+1
+    | 3 -> OGG_INDEX_STREAM, pos+1
+    | 4 -> OGG_VORBIS_STREAM, pos+1
+    | 5 -> OGG_THEORA_STREAM, pos+1
     | _ -> assert false
 
 let get_vorbis_bitrate s pos =
@@ -242,7 +242,7 @@ let get_theora_cs s pos =
     | 2 -> CSRec470BG
     | _ -> assert false
 
-let get_ogx_stream_tag s pos =
+let get_ogg_stream_tag s pos =
   match get_uint8 s pos with
       0 ->
         let codec, pos = get_string s (pos+1) in
@@ -307,10 +307,10 @@ let get_ogx_stream_tag s pos =
         Ogg_theora_avgbytespersec n, (pos+5)
     | _ -> assert false
 
-let get_ogx_info s pos =
+let get_ogg_info s pos =
   let sno = get_int s pos in
-  let stype, pos = get_ogx_stream_type s (pos+4) in
-  let stags, pos = get_list get_ogx_stream_tag s pos in
+  let stype, pos = get_ogg_stream_type s (pos+4) in
+  let stags, pos = get_list get_ogg_stream_tag s pos in
   {
    stream_no   = sno;
    stream_type = stype;
@@ -352,8 +352,8 @@ let get_format s pos =
       let t,pos = get_mp3 s (pos+1) in 
       MP3 (t, dummy_info), pos
   | 4 ->
-      let ogx_infos, pos = get_list get_ogx_info s (pos+1) in
-      (OGx ogx_infos), pos
+      let ogg_infos, pos = get_list get_ogg_info s (pos+1) in
+      (OGG ogg_infos), pos
   | _ -> assert false    
 
 let get_uint64_2 proto s pos = 

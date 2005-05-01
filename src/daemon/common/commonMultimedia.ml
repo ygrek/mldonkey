@@ -229,7 +229,7 @@ let get_theora_cs n =
 
 let rec page_seek ic s pos =
   if (pos_in ic - pos) > 255
-    then failwith "No more OGx Stream Header"
+    then failwith "No more OGG Stream Header"
     else begin
       really_input ic s 0 4;
       seek_in ic (pos_in ic - 3);
@@ -247,29 +247,29 @@ let rec page_seek ic s pos =
 let normalize_stream_type s ct =
   let s = String.sub s 0 6 in
   if s = "vorbis" && ct = 0x1
-    then OGX_VORBIS_STREAM
+    then OGG_VORBIS_STREAM
     else if s = "theora" && ct = 0x80
-      then OGX_THEORA_STREAM
+      then OGG_THEORA_STREAM
       else begin
         let s = (String.sub s 0 5) in
         if s = "video" && ct = 0x1
-          then OGX_VIDEO_STREAM
+          then OGG_VIDEO_STREAM
           else if s = "audio" && ct = 0x1
-            then OGX_AUDIO_STREAM
+            then OGG_AUDIO_STREAM
             else if s = "index" && ct = 0x1
-              then OGX_INDEX_STREAM
+              then OGG_INDEX_STREAM
               else if (String.sub s 0 4) = "text" && ct = 0x1
-                then OGX_TEXT_STREAM
-                else failwith "No more OGx Stream Header"
+                then OGG_TEXT_STREAM
+                else failwith "No more OGG Stream Header"
       end
 
 (**********************************************************************************)
 (*                                                                                *)
-(*                  next_ogx_stream                                               *)
+(*                  next_ogg_stream                                               *)
 (*                                                                                *)
 (**********************************************************************************)
 
-let rec next_ogx_stream ic ogx_infos str stream_number =
+let rec next_ogg_stream ic ogg_infos str stream_number =
   let pos = pos_in ic in
   page_seek ic str pos;
   let header_start_pos = (pos_in ic - 4) in
@@ -295,14 +295,14 @@ let rec next_ogx_stream ic ogx_infos str stream_number =
   let sizeof_packet = pos_in ic - pos - 4 in (* remove 4 bytes for 'OggS' *)
   seek_in ic pos;
   match stream_type with
-      OGX_VIDEO_STREAM -> get_ogx_video_info ic ogx_infos str sizeof_packet stream_number
-    | OGX_AUDIO_STREAM -> get_ogx_audio_info ic ogx_infos str sizeof_packet stream_number
-    | OGX_INDEX_STREAM -> get_ogx_text_info ic ogx_infos str stream_number
-    | OGX_TEXT_STREAM -> get_ogx_index_info ic ogx_infos str stream_number
-    | OGX_VORBIS_STREAM -> get_ogx_vorbis_info ic ogx_infos str stream_number
-    | OGX_THEORA_STREAM -> get_ogx_theora_info ic ogx_infos str stream_number
+      OGG_VIDEO_STREAM -> get_ogg_video_info ic ogg_infos str sizeof_packet stream_number
+    | OGG_AUDIO_STREAM -> get_ogg_audio_info ic ogg_infos str sizeof_packet stream_number
+    | OGG_INDEX_STREAM -> get_ogg_index_info ic ogg_infos str stream_number
+    | OGG_TEXT_STREAM -> get_ogg_text_info ic ogg_infos str stream_number
+    | OGG_VORBIS_STREAM -> get_ogg_vorbis_info ic ogg_infos str stream_number
+    | OGG_THEORA_STREAM -> get_ogg_theora_info ic ogg_infos str stream_number
 
-and get_ogx_video_info  ic ogx_infos str sizeof_packet stream_number =
+and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
   let s = String.create sizeof_packet in
   really_input ic s 0 sizeof_packet;
   let codec = String.lowercase (String.sub s 0 4) in
@@ -323,18 +323,18 @@ and get_ogx_video_info  ic ogx_infos str sizeof_packet stream_number =
       else read32 (String.sub s 38 4)
   in
   let sample_rate = 10000000. /. time_unit in
-  ogx_infos := {
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_VIDEO_STREAM;
+    stream_type = OGG_VIDEO_STREAM;
     stream_tags = [
       Ogg_codec codec;
       Ogg_video_sample_rate sample_rate;
       Ogg_video_width video_width;
       Ogg_video_height video_height;];
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
-and get_ogx_audio_info  ic ogx_infos str sizeof_packet stream_number =
+and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
   let s = String.create sizeof_packet in
   really_input ic s 0 sizeof_packet;
   let codec = get_audio_codec (String.sub s 0 4) in
@@ -359,19 +359,19 @@ and get_ogx_audio_info  ic ogx_infos str sizeof_packet stream_number =
       then read32 (String.sub s 40 4)
       else read32 (String.sub s 38 4)
   in
-  ogx_infos := {
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_AUDIO_STREAM;
+    stream_type = OGG_AUDIO_STREAM;
     stream_tags = [
       Ogg_codec codec;
       Ogg_audio_channels channels;
       Ogg_audio_sample_rate sample_per_unit;
       Ogg_audio_blockalign blockalign;
       Ogg_audio_avgbytespersec avgbytespersec;];
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
-and get_ogx_vorbis_info  ic ogx_infos str stream_number =
+and get_ogg_vorbis_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as vorbis uses 6 octects for 'vorbis' *)
   let s = String.create 22 in
   really_input ic s 0 22;
@@ -387,9 +387,9 @@ and get_ogx_vorbis_info  ic ogx_infos str stream_number =
   (if br_max > 0. then l := (Maximum_br br_max) :: !l);
   (if br_nom > 0. then l := (Nominal_br br_nom) :: !l);
   (if br_min > 0. then l := (Minimum_br br_min) :: !l);
-  ogx_infos := {
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_VORBIS_STREAM;
+    stream_type = OGG_VORBIS_STREAM;
     stream_tags = [
       Ogg_codec "vorbis";
       Ogg_vorbis_version version;
@@ -398,10 +398,10 @@ and get_ogx_vorbis_info  ic ogx_infos str stream_number =
       Ogg_vorbis_bitrates !l;
       Ogg_vorbis_blocksize_0 blocksize_0;
       Ogg_vorbis_blocksize_1 blocksize_1;];
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
-and get_ogx_theora_info  ic ogx_infos str stream_number =
+and get_ogg_theora_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as theora uses 6 octects for 'theora' *)
   let s = String.create 34 in
   really_input ic s 0 34;
@@ -430,9 +430,9 @@ and get_ogx_theora_info  ic ogx_infos str stream_number =
   let cs = int_of_char s.[29] in
   let nombr = read24B (String.sub s 30 3) in
   let qual = (int_of_char s.[33] asr 2) land 63 in
-  ogx_infos := {
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_THEORA_STREAM;
+    stream_type = OGG_THEORA_STREAM;
     stream_tags = [
       Ogg_codec codec;
       Ogg_video_sample_rate sample_rate;
@@ -442,44 +442,44 @@ and get_ogx_theora_info  ic ogx_infos str stream_number =
       Ogg_theora_cs (get_theora_cs cs);
       Ogg_theora_quality qual] @
       (if nombr > 0 then [Ogg_theora_avgbytespersec nombr] else []);
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
-and get_ogx_text_info ic ogx_infos str stream_number =
-  ogx_infos := {
+and get_ogg_text_info ic ogg_infos str stream_number =
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_TEXT_STREAM;
+    stream_type = OGG_TEXT_STREAM;
     stream_tags = [Ogg_has_subtitle];
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
-and get_ogx_index_info ic ogx_infos str stream_number =
-  ogx_infos := {
+and get_ogg_index_info ic ogg_infos str stream_number =
+  ogg_infos := {
     stream_no   = !stream_number;
-    stream_type = OGX_INDEX_STREAM;
+    stream_type = OGG_INDEX_STREAM;
     stream_tags = [Ogg_has_index];
-  } :: !ogx_infos;
-  next_ogx_stream ic ogx_infos str stream_number
+  } :: !ogg_infos;
+  next_ogg_stream ic ogg_infos str stream_number
 
 (**********************************************************************************)
 (*                                                                                *)
-(*                  search_info_ogx                                               *)
+(*                  search_info_ogg                                               *)
 (*                                                                                *)
 (**********************************************************************************)
 
-let search_info_ogx ic =
+let search_info_ogg ic =
     let stream_number = ref 0 in
     let str = String.create 4 in
-    let ogx_infos = ref [] in
+    let ogg_infos = ref [] in
     (* make sure the current reading position is at the file beginning *)
     seek_in ic 0;
     try
-       next_ogx_stream ic ogx_infos str stream_number;
+       next_ogg_stream ic ogg_infos str stream_number;
     with _ ->
       begin
-        match !ogx_infos with
+        match !ogg_infos with
             [] -> ()
-          | _ -> raise (FormatFound (OGx (List.rev !ogx_infos)))
+          | _ -> raise (FormatFound (OGG (List.rev !ogg_infos)))
       end
 
 (**********************************************************************************)
@@ -671,7 +671,7 @@ let get_info file =
   try
     search_info_mp3 file;
     search_info_avi ic ;
-    search_info_ogx ic;
+    search_info_ogg ic;
     close_in ic;
     let es = 
       try 

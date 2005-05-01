@@ -1,3 +1,6 @@
+        *** THIS FILE IS OUTDATED.  PLEASE HAVE A LOOK AT THE ***
+        *** WIKI PAGE FOR BASIC  INFORMATION ABOUT INSTALLING ***
+
 
                       MLDonkey
                       ========

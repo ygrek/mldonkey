@@ -842,18 +842,18 @@ let _ =
 
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf in
-          ignore(CommonInteractive.network_display_stats buf o);
-	  if use_html_mods o then
-	    print_gdstats buf o;
-        _s ""), ":\t\t\t\t\tdisplay transfer statistics";
+        CommonInteractive.network_display_stats buf o;
+        if use_html_mods o then
+          print_gdstats buf o;
+      _s ""), ":\t\t\t\t\tdisplay transfer statistics";
 
     "gdstats", Arg_none (fun o ->
         let buf = o.conn_buf in
-	  if use_html_mods o then
-	    print_gdstats buf o
-	  else
-	    Printf.bprintf buf "Only available on HTML interface";
-        _s ""), ":\t\t\t\t\tdisplay graphical transfer statistics";
+        if use_html_mods o then
+          print_gdstats buf o
+        else
+          Printf.bprintf buf "Only available on HTML interface";
+      _s ""), ":\t\t\t\t\tdisplay graphical transfer statistics";
     
     "!", Arg_multiple (fun arg o ->
         if !!allow_any_command then

@@ -57,7 +57,7 @@ let make_mail mail new_style =
   
   if new_style then
 	Printf.sprintf 
-	"From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\nDate: %s\r\n\r\n%s"
+	"From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
 	mail.mail_from
 	mail.mail_to
 	mail.mail_subject
@@ -65,7 +65,7 @@ let make_mail mail new_style =
 	mail.mail_body
     else
 	Printf.sprintf 
-	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\nDate: %s\r\n\r\n%s"
+	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
 	mail.mail_from
 	mail.mail_to
 	mail.mail_subject

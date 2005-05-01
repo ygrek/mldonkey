@@ -430,8 +430,9 @@ XML ("audios",
                   let xml = Xml.xml_of (Xml.parse_string xml) in
                   xml_info := Some xml
                 with e ->
-                    lprintf "Exception %s while parsing: \n%s\n"
-                      (Printexc2.to_string e) xml
+                    if !verbose_hidden_errors then
+                      lprintf "Exception %s while parsing: \n%s\n"
+                        (Printexc2.to_string e) xml
               
               end
           | _ -> ()              

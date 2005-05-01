@@ -538,13 +538,13 @@ type avi_info = {
     mutable avi_rate : int;
   }
 
-type ogx_stream_type =
-  OGX_INDEX_STREAM                             (* as per OggDS new Header Format      *)
-| OGX_TEXT_STREAM                              (* as per OggDS new Header Format      *)
-| OGX_AUDIO_STREAM                             (* as per OggDS new Header Format      *)
-| OGX_VORBIS_STREAM                            (* as per Ogg Vorbis I specification   *)
-| OGX_THEORA_STREAM                            (* as per Theora I specification       *)
-| OGX_VIDEO_STREAM                             (* as per OggDS new Header Format      *)
+type ogg_stream_type =
+  OGG_INDEX_STREAM                             (* as per OggDS new Header Format      *)
+| OGG_TEXT_STREAM                              (* as per OggDS new Header Format      *)
+| OGG_AUDIO_STREAM                             (* as per OggDS new Header Format      *)
+| OGG_VORBIS_STREAM                            (* as per Ogg Vorbis I specification   *)
+| OGG_THEORA_STREAM                            (* as per Theora I specification       *)
+| OGG_VIDEO_STREAM                             (* as per OggDS new Header Format      *)
 
 type vorbis_bitrates =
   Maximum_br of float                          (* maximum bitrate in kbit/s           *)
@@ -556,7 +556,7 @@ type theora_color_space =
 | CSRec470M
 | CSRec470BG
 
-type ogx_tag =
+type ogg_tag =
   Ogg_codec of string
 | Ogg_bits_per_samples of int                 (* in bits                             *)
 | Ogg_duration of int                         (* duration in seconds                 *)
@@ -579,10 +579,10 @@ type ogx_tag =
 | Ogg_theora_quality of int
 | Ogg_theora_avgbytespersec of int            (* in bytes/s for VBR streams          *)
 
-type ogx_stream_info = {
+type ogg_stream_info = {
   stream_no   : int;
-  stream_type : ogx_stream_type;
-  stream_tags : ogx_tag list;
+  stream_type : ogg_stream_type;
+  stream_tags : ogg_tag list;
 }
 
 
@@ -594,12 +594,12 @@ type ogx_stream_info = {
 
 let stream_type_to_string st =
   match st with
-    OGX_VIDEO_STREAM -> "video"
-  | OGX_AUDIO_STREAM -> "audio"
-  | OGX_INDEX_STREAM -> "index"
-  | OGX_TEXT_STREAM -> "text"
-  | OGX_VORBIS_STREAM -> "audio"
-  | OGX_THEORA_STREAM -> "video"
+    OGG_VIDEO_STREAM -> "video"
+  | OGG_AUDIO_STREAM -> "audio"
+  | OGG_INDEX_STREAM -> "index"
+  | OGG_TEXT_STREAM -> "text"
+  | OGG_VORBIS_STREAM -> "audio"
+  | OGG_THEORA_STREAM -> "video"
 
 (**********************************************************************************)
 (*                                                                                *)
@@ -631,12 +631,12 @@ let theora_cs_to_string cs =
 
 (**********************************************************************************)
 (*                                                                                *)
-(*                  ogx_tag_to_string                                             *)
+(*                  ogg_tag_to_string                                             *)
 (*                                                                                *)
 (**********************************************************************************)
 
-let ogx_tag_to_string ogx_tag =
-  match ogx_tag with
+let ogg_tag_to_string ogg_tag =
+  match ogg_tag with
   Ogg_codec s  -> Printf.sprintf "%s [codec]" s
 | Ogg_bits_per_samples n -> Printf.sprintf "%d bits/sample" n
 | Ogg_duration n -> Printf.sprintf "%d s" n
@@ -661,24 +661,24 @@ let ogx_tag_to_string ogx_tag =
 
 (**********************************************************************************)
 (*                                                                                *)
-(*                  print_ogx_info                                                *)
+(*                  print_ogg_info                                                *)
 (*                                                                                *)
 (**********************************************************************************)
 
-let print_ogx_infos ogx_infos =
+let print_ogg_infos ogg_infos =
   List.iter (fun stream ->
     Printf.printf "-== %s info - stream number: %d ==-\n"
       (stream_type_to_string stream.stream_type) stream.stream_no;
     List.iter (fun tag ->
-      Printf.printf "  %s\n" (ogx_tag_to_string tag)
+      Printf.printf "  %s\n" (ogg_tag_to_string tag)
     ) stream.stream_tags
-  ) !ogx_infos;
+  ) !ogg_infos;
   flush stdout
 
 type format =
   AVI of avi_info
 | MP3 of Mp3tag.Id3v1.tag * Mp3tag.info
-| OGx of ogx_stream_info list
+| OGG of ogg_stream_info list
 | FormatType of string * string
 | FormatUnknown
 | FormatNotComputed of int
