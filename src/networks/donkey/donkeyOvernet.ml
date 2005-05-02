@@ -2328,6 +2328,23 @@ let connected_peers () =
   List.map (fun p -> p.peer_ip, p.peer_port)  (get_uniform_distribution ())
 
   *)
+let load_contact_dat filename =
+  try
+    let module S = DonkeyOvernetImport.Peer in
+    let s = File.to_string filename in
+    let ss = S.read s in
+    List.iter (fun r ->
+        try
+          let ip = r.S.ip in
+          let port = r.S.port in
+          bootstrap ip port
+        with _ -> ()
+    ) ss;
+    List.length ss
+  with e ->
+      lprintf () "Exception %s while loading %s\n" (Printexc2.to_string e)
+      filename;
+      0
 
 let parse_overnet_url url =
   match String2.split (String.escaped url) '|' with
@@ -2423,6 +2440,15 @@ let _ =
             CommonWeb.load_url web_info url) urls;
         "web boot started"
     ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
+
+    "load", Arg_one (fun filename o ->
+        let buf = o.conn_buf in
+        try
+          let n = load_contact_dat filename in
+          Printf.sprintf "%d overnet peers loaded" n;
+        with e -> 
+            Printf.sprintf "error %s while loading file" (Printexc2.to_string e)
+    ), "<filename> :\t\t\tload the peers from a contact.dat file";
     
     "md4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string !!overnet_md4);
     ), ":\t\t\t\t\tget client MD4 address on the Overnet/Kademlia network";
@@ -2579,6 +2605,18 @@ let _ =
                 lprintf () "DNS failed\n"; 
               end
       ) lines
-  )
-  
+  );
+
+  (* Add this kind of web_info only for overnet (Edonkey
+     Kademlia has web_info = "kad"). *)
+  if web_info = "ocl" then
+    begin
+      CommonWeb.add_web_kind "contact.dat" (fun _ filename ->
+          if !verbose_overnet then
+            lprintf () "LOADED contact.dat\n";
+          let n = load_contact_dat filename in
+          if !verbose_overnet then
+            lprintf () "%d PEERS ADDED\n" n;
+        );
+    end;
 end

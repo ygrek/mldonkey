@@ -396,4 +396,12 @@ let _ =
         K.print t;
         lprint_newline ();
     ), " <filename> : print a server.met file";
+    "-peers", Arg.String (fun file ->
+        let module K = DonkeyOvernetImport.Peer in
+        let s = File.to_string file in
+        let t = K.read s in
+        K.print t;
+        lprint_newline ();
+        exit 0
+    ), " <filename> : print a contact.dat file";
   ]

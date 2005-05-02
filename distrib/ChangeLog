@@ -1,16 +1,22 @@
 ChangeLog	
 =========
 
-2005/05/01: spiralvoice
+2005/05/02: spiralvoice
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
 
-This version shares the same code as Amorphous revision 293.
+This version shares the same code as Amorphous revision 296.
 
 I changed the release mechanism in a way that minor updates like
 this one will not get a release tag in CVS, also version number
 reported by MLDonkey will stay the same.
+
+3970: Print web_infos (from beedauchon)
+3973: Support for Overnet contact.dat (from beedauchon)
+3974: HTML: RSS support (from beedauchon)
+---------------------------------------------------------------------
+2005/05/01: spiralvoice
 
 3956: Set utf-8 character encoding in notification mails
 3952: Print glibc version in buildinfo
@@ -20,7 +26,6 @@ from rev290:
 from rev293:
 * Patch from beedauchon fixes transparency issues with
 graphical stats.
-
 ---------------------------------------------------------------------
 2005/04/26: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
 

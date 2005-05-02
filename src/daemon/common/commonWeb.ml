@@ -224,6 +224,7 @@ support the charge, at least, currently. *)
               let pos = if motd_html_s <> "XX" then 
                   let servers_met_s, pos = L.get_string16 s pos in
                   let peers_ocl_s, pos = L.get_string16 s pos in
+                  let peers_dat_s, pos = L.get_string16 s pos in
                   let motd_conf_s, pos = L.get_string16 s pos in
                   let peers_kad_s, pos = L.get_string16 s pos in
                   
@@ -236,6 +237,10 @@ support the charge, at least, currently. *)
                   let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
                   File.from_string peers_ocl_file peers_ocl_s;
                   load_file "ocl" peers_ocl_file;
+
+                  let peers_dat_file = Filename.temp_file "contacts" ".dat" in
+                  File.from_string peers_dat_file peers_dat_s;
+                  load_file "contact.dat" peers_dat_file;
                   
                   let motd_conf_file = Filename.temp_file "motd" ".conf" in
                   File.from_string motd_conf_file motd_conf_s;

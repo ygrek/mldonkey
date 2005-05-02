@@ -448,6 +448,9 @@ onClick=\"mSub('output','custom=Album+Search')\">Album search</TD>
 <TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
+<TD class=\"bu bbig\" title=\"View RSS feeds\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','rss')\">RSS</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab3\" style=\"display: none\">
@@ -525,6 +528,9 @@ onClick=\"mSub('fstatus','close_fds')\">Close files</TD>
 <TD class=\"bu bbig\" title=\"View all clients\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vc+all')\">View clients</TD>
+<TD class=\"bu bbig\" title=\"View web infos\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vwi')\">View web infos</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab6\" style=\"display: none\">

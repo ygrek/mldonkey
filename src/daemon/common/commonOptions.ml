@@ -655,15 +655,20 @@ let force_client_ip = define_option current_section ["force_client_ip"]
 let web_infos = define_option current_section
     ["web_infos"] "A list of lines to download on the WEB: each line has 
     the format: (kind, period, url), where kind is either
-    'server.met' (for a server.met file), or 'comments.met' for
-    a file of comments, and period is the period between updates 
-    (in hours), and url is the url of the file to download.
+    'server.met' for a server.met file containing ed2k server, or
+    'comments.met' for a file of comments, or
+    'guarding.p2p' for a blocklist file, or
+    'ocl' for file in the ocl format containing overnet peers, or
+    'contact.dat' for an contact.dat file containing overnet peers, 
+    and period is the period between updates (in hours),
+    and url is the url of the file to download.
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
  web_infos = [
-  ('server.met', 24, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met');
-  ('guarding.p2p', 48, 'http://homepage.ntlworld.com/tim.leonard1/guarding.p2p')
-
+  (\"server.met\", 96, \"http://www.primusnet.ch/users/komintern/ed2k/min/server.met\");
+  (\"guarding.p2p\", 96, \"http://homepage.ntlworld.com/tim.leonard1/guarding.p2p\");
+  (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
+  (\"contact.dat\", 672, \"http://download.overnet.org/contact.dat\");
  ]
   "
     (list_option (
@@ -671,20 +676,10 @@ let web_infos = define_option current_section
   [
     ("server.met", 24, 
       "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
-    ("ocl",24, 
-      "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
+    ("contact.dat", 672,
+      "http://download.overnet.org/contact.dat");
     ("guarding.p2p", 96, 
       "http://www.bluetack.co.uk/config/antip2p.txt");
-    
-    ("rss", 6,    
-      "http://www.ed2k-it.com/forum/news_rss.php");
-    
-    ("rss", 6,
-      "http://www.torrents.co.uk/backend.php");
-
-    ("rss", 6, 
-      "http://varchars.com/rss/suprnova-movies.rss");
-
   ]
 
 let rss_feeds = define_expert_option current_section ["rss_feeds"]
@@ -1281,7 +1276,7 @@ let max_displayed_results = define_expert_option current_section
   
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 2
+    int_option 4
 
 
   
@@ -1645,33 +1640,69 @@ let _ =
       Ip.allow_local_network := !!allow_local_network)
 
 let rec update_options () =
+  let web_infos_remove outdated_web_infos =
+    let web_infos_filter n =
+      List.filter
+        (fun (kind, _, url) ->
+          let (kind2, _, url2) = (List.nth outdated_web_infos n) in
+          kind <> kind2 && url <> url2
+        ) !!web_infos
+    in
+    for n = 0 to (List.length outdated_web_infos) - 1 do
+      web_infos =:= web_infos_filter n;
+    done;
+  in
+  let update v =
+      lprintf "Updating options to version %i\n" v;
+      options_version =:= v;
+      update_options ()
+  in
+
   match !!options_version with
     0 ->
-      
       web_infos =:= List.map (fun (kind, period, url) ->
           kind, period * 24, url  
       ) !!web_infos;
-      
       web_infos =:= !!web_infos @ [
-        ("rss", 6,    
+        ("rss", 6,
           "http://www.ed2k-it.com/forum/news_rss.php");
-        
         ("rss", 6,
           "http://www.torrents.co.uk/backend.php");
-        
-        ("rss", 6, 
+        ("rss", 6,
           "http://varchars.com/rss/suprnova-movies.rss");
       ];
+      update 1
       
-      options_version =:= 1;
-      update_options ()
-  
-  | 1 -> 
-
-(* 5 ms is a good unit, for measuring latency between clients. *)
+  | 1 ->
+      (* 5 ms is a good unit, for measuring latency between clients. *)
       loop_delay =:= 5;
-      
-      options_version =:= 2;
-      update_options ()
-      
+      update 2
+
+  | 2 ->
+      web_infos_remove
+        [
+          ("rss", 6,
+            "http://www.ed2k-it.com/forum/news_rss.php");
+          ("rss", 6,
+            "http://www.torrents.co.uk/backend.php");
+          ("rss", 6,
+            "http://varchars.com/rss/suprnova-movies.rss");
+        ];
+      if !!min_reask_delay = 720 then
+          min_reask_delay =:= 600;
+      update 3
+
+  | 3 ->
+      web_infos_remove
+        [
+          ("ocl", 24,
+            "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl");
+        ];
+      web_infos =:= !!web_infos @ [
+          ("contact.dat", 672,
+            "http://www.overnet.org/download/contact.dat");
+        ];
+      update 4
+
   | _ -> ()
+

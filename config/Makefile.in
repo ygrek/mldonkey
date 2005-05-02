@@ -339,6 +339,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyStats.ml \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   \
+  $(SRC_DONKEY)/donkeyOvernetImport.ml \
   $(SRC_DONKEY)/donkeyOvernet.ml \
   $(SRC_DONKEY)/donkeyProtoKademlia.ml \
   $(SRC_DONKEY)/donkeyClient.ml \

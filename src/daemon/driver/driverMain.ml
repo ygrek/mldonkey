@@ -298,7 +298,10 @@ let load_config () =
         exit 2;
         ());  
   
+  (* Here, we try to update options when a new version of mldonkey is
+     used. For example, we can add new web_infos... *)
   CommonOptions.update_options ();
+
   CommonMessages.load_message_file ();
   if !!html_mods then begin
       if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
@@ -316,21 +319,6 @@ let load_config () =
       r.network_config_file 
   );
 
-(* Here, we try to update options when a new version of mldonkey is
-used. For example, we can add new we_binfos... *)
-  if !!options_version < 1 then begin
-      lprintf (_b "Updating options to level 1\n"); 
-(*  we_binfos =:= 
-        (
-        ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
-        ):: 
-      !!we_binfos;*)
-    end;
-  if !!options_version < 2 then begin
-      lprintf (_b "Updating options to level 2\n"); 
-      if !!min_reask_delay = 720 then min_reask_delay =:= 600
-    end;
-  options_version =:= 2;
 
 (**** PARSE ARGUMENTS ***)    
   

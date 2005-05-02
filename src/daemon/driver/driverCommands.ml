@@ -181,6 +181,34 @@ let list_options oo list =
   list;
   if oo.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
+ 
+let list_web_infos o list = 
+  let buf = o.conn_buf in
+  if o.conn_output = HTML then begin
+      html_mods_table_header buf "web_infoTable" "vo" [ 
+        ( "0", "srh", "Option type", "Type" ) ; 
+        ( "0", "srh", "Option delay", "Delay" ) ; 
+        ( "0", "srh", "Option value", "Value" ) ] ; 
+      let counter = ref 0 in
+      List.iter (fun (kind, period, url) ->
+          incr counter;
+          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+          Printf.bprintf buf "
+              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  url kind period;
+          Printf.bprintf buf "
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+              \\</tr\\>" url
+      )list;
+      Printf.bprintf  buf "\\</table\\>\\</div\\>"
+    end
+  else begin
+      Printf.bprintf buf "kind / period / url :\n";
+      List.iter (fun (kind, period, url) ->
+          Printf.bprintf buf "%s ; %d ; %s\n"  kind period url
+      )list
+    end
     
 (*** Note: don't add _s to all command description as it is already done here *)
 
@@ -1478,6 +1506,20 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
           end;
         ""
     ), ":\t\t\t\t\tprint all options";
+ 
+    "vwi", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>
+                \\<table class=main cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
+            list_web_infos o !!web_infos;
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+          end
+        else begin
+            list_web_infos o !!web_infos
+          end;
+        ""
+    ), ":\t\t\t\t\tprint web_infos options";
     
     "options", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -2449,19 +2491,40 @@ let _ =
         let buf = o.conn_buf in
         let module CW = CommonWeb in
         Hashtbl.iter (fun url feed ->
-            Printf.bprintf buf "%s:\n" url;
-            Printf.bprintf buf "   loaded %d hours ago\n"
+            (if o.conn_output = HTML then begin
+                Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=\\\"results\\\"\\>\\<tr\\>\n";
+                Printf.bprintf buf "\\<td class=\\\"bu bbig\\\" title=\\\"%s: " url;
+                Printf.bprintf buf "loaded %d hours ago\\\"\\>\n"
+              end 
+            else begin
+                Printf.bprintf buf "%s:\n" url;
+                Printf.bprintf buf "   loaded %d hours ago\n"
+            end)
               (feed.CW.rss_date / 3600);
             let r = feed.CW.rss_value in
+            if o.conn_output = HTML then begin
+                Printf.bprintf buf "\\<b\\>%s\\</b\\>\n" r.Rss.ch_title;
+                Printf.bprintf buf "\\</td\\>\\</tr\\>"
+              end 
+            else
             Printf.bprintf buf "   title: %s\n" r.Rss.ch_title;
             List.iter (fun item ->
                 match item.Rss.item_title, item.Rss.item_link with
                   None, _
                 | _, None -> ()
                 | Some title, Some link ->
-                    Printf.bprintf buf "     %s\n" title;
-                    Printf.bprintf buf "       > %s\n" link
-            ) r.Rss.ch_items
+                  if o.conn_output = HTML then begin
+                      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td class=\\\"sr\\\"\\>";
+                      Printf.bprintf buf "\\<a href=\\\"submit?q=dllink+%s\\\"\\ title=\\\"%s\\\"\\>%s\\</a\\>\n" (Url.encode link) link title;
+                      Printf.bprintf buf "\\</td\\>\\</tr\\>"
+                    end 
+                  else begin
+                      Printf.bprintf buf "     %s\n" title;
+                      Printf.bprintf buf "       > %s\n" link
+                    end
+            ) r.Rss.ch_items;
+            if o.conn_output = HTML then
+                Printf.bprintf buf "\\</table\\>";
         ) CW.rss_feeds;
         ""
         
