@@ -38,12 +38,10 @@ GNUTELLA2=yes
 DIRECT_CONNECT=no
 SOULSEEK=no
 OPENFT=no
-CYMES=no
 DONKEY=yes
 BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
-ARES=yes
 BROOSNET=yes
 MULTINET=yes
 AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
@@ -55,12 +53,10 @@ if test ! "$MULTINET" = "yes"; then
   DIRECT_CONNECT=no
   SOULSEEK=no
   OPENFT=no
-  CYMES=no
   FASTTRACK=no
   FILETP=no
   BITTORRENT=no
   RELEASENAME="$RELEASENAME-nomultinet"
-  ARES=no
   BROOSNET=no
 fi
 AC_ARG_ENABLE(donkey,        [  --disable-donkey        allows you to remove support for eDonkey], [DONKEY="$enableval"])
@@ -74,8 +70,6 @@ AC_ARG_ENABLE(opennap,       [  --disable-opennap       allows you to remove sup
 #AC_ARG_ENABLE(directconnect, [  --disable-directconnect  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
 #AC_ARG_ENABLE(audiogalaxy,   [  --disable-audiogalaxy   allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
 AC_ARG_ENABLE(openft,        [  --disable-openft        allows you to remove support for OpenFT], [OPENFT="$enableval"])
-AC_ARG_ENABLE(ares,     [  --disable-ares          allows you to remove support for Ares], [ARES="$enableval"])
-AC_ARG_ENABLE(cymes,         [  --disable-cymes         allows you to remove support for Cymes], [CYMES="$enableval"])
 
 BATCH=no
 AC_ARG_ENABLE(batch, [  --enable-batch          reply YES to all queries in this script], [BATCH="$enableval"])
@@ -687,28 +681,10 @@ fi
     BAD_TARGETS="$BAD_TARGETS FastTrack(devel)"
   fi
 
-  if test "$ARES" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/ares,ARES=yes, [
-      ARES=no
-      BAD_TARGETS="$BAD_TARGETS Ares(devel)"
-    ])
-  else
-    BAD_TARGETS="$BAD_TARGETS Ares(devel)"
-  fi
-
   if test "$BROOSNET" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/bittorrent/bTBroosnet.ml,ARES=yes, [
+    AC_CHECK_FILE(../src/networks/bittorrent/bTBroosnet.ml,BROOSNET=yes, [
       BROOSNET=no
     ])
-  fi
-
-  if test "$CYMES" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/cymes,CYMES=yes, [
-      CYMES=no
-      BAD_TARGETS="$BAD_TARGETS"
-    ])
-  else
-    BAD_TARGETS="$BAD_TARGETS"
   fi
 
 if test "$DONKEY" = "yes" ; then
@@ -1164,8 +1140,6 @@ AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
-AC_SUBST(CYMES)
-AC_SUBST(ARES)
 AC_SUBST(BROOSNET)
 
 AC_SUBST(DEVEL)

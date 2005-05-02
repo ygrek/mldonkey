@@ -785,10 +785,13 @@ let update_master_servers _ =
           if !verbose then
               lprintf "MASTER: Checking ip:%s ct:%d\n" (Ip.to_string s.server_ip) connection_time;
           if not s.server_master 
-            && (s.server_preferred || connection_time > !!become_master_delay)
+            && (s.server_preferred
+                 || connection_time > !!become_master_delay
+                 || !!immediate_master
+               )
             then
               begin
-                if (!nmasters < max_allowed_connected_servers || !!immediate_master) then
+                if (!nmasters < max_allowed_connected_servers) then
                   begin
                     if !verbose then
                         lprintf "   MASTER: RAISING %s (%Ld)\n" 
@@ -796,16 +799,17 @@ let update_master_servers _ =
                     make_master s
                   end
                 else
-                  match !masters with 
+                  match !masters with
                       [] -> disconnect_old_server s
                     | ss :: tail ->
                         (* check if the non-master has more users
                            or is a preferred one *)
                         if (s.server_preferred && not ss.server_preferred)
                           || (!!keep_best_server
-                              && mini ((Int64.to_int ss.server_nusers) + 1000)
-                                   ((Int64.to_int ss.server_nusers) * 5)
-                                 < (Int64.to_int s.server_nusers))
+                               && mini ((Int64.to_int ss.server_nusers) + 1000)
+                                       ((Int64.to_int ss.server_nusers) * 5)
+                                  < (Int64.to_int s.server_nusers)
+                             )
                           then
                             begin
                               if !verbose then

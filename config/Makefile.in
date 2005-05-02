@@ -93,7 +93,6 @@ endif
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/$(DONKEY_DIR)
 SRC_BITTORRENT=src/networks/bittorrent
-SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
 SRC_GNUTELLA2=src/networks/gnutella2
@@ -102,7 +101,6 @@ SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
-SRC_ARES=src/networks/ares
 
 IM=src/im
 
@@ -472,20 +470,6 @@ OPENFT_SRCS= \
   $(SRC_OPENFT)/openFTInteractive.ml \
   $(SRC_OPENFT)/openFTMain.ml
 
-ARES_SRCS= \
-  $(SRC_ARES)/aresTypes.ml \
-  $(SRC_ARES)/aresOptions.ml \
-  $(SRC_ARES)/aresGlobals.ml \
-  $(SRC_ARES)/aresComplexOptions.ml \
-  $(SRC_ARES)/aresProtocol.ml \
-  $(SRC_ARES)/aresProto.ml \
-  $(SRC_ARES)/aresClients.ml \
-  $(SRC_ARES)/aresHandler.ml \
-  $(SRC_ARES)/aresServers.ml \
-  $(SRC_ARES)/aresPandora.ml \
-  $(SRC_ARES)/aresInteractive.ml \
-  $(SRC_ARES)/aresMain.ml
-
 FILETP_SRCS= \
   $(SRC_FILETP)/fileTPTypes.ml \
   $(SRC_FILETP)/fileTPOptions.ml \
@@ -798,21 +782,6 @@ BTVIEW_SRCS= \
   \
   src/btview/btviewMain.ml \
   src/daemon/common/commonMain.ml
-
-
-CYMES_SRCS=\
-  $(SRC_CYMES)/serverTypes.ml \
-  $(SRC_CYMES)/serverOptions.ml \
-  $(SRC_CYMES)/serverGlobals.ml \
-  $(SRC_CYMES)/serverMessages.ml \
-  $(SRC_CYMES)/serverLocate.ml \
-  $(SRC_CYMES)/serverIndexer.ml \
-  $(SRC_CYMES)/serverLog.ml \
-  $(SRC_CYMES)/serverSubscriptions.ml \
-  $(SRC_CYMES)/serverServer.ml \
-  $(SRC_CYMES)/serverClients.ml \
-  $(SRC_CYMES)/serverUdp.ml  \
-  $(SRC_CYMES)/serverMain.ml
 
 
 #######################################################################
@@ -1485,9 +1454,7 @@ EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlfileTP,FILETP,fileTP)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,$(DONKEY_DIR))
-EXPAND_DRIVER(mlcymes,CYMES,cymes)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
-EXPAND_DRIVER(mlares,ARES,ares)
 
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)

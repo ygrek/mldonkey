@@ -448,11 +448,6 @@ let enable_fasttrack = define_option current_section
   "Set to true if you also want mldonkey to run as a Fasttrack sub node (experimental)"
     bool_option false
 
-let enable_ares = define_option current_section
-    ["enable_ares"]
-  "Set to true if you also want mldonkey to run as a Ares sub node (experimental)"
-    bool_option false
-  
 let enable_directconnect = define_option current_section
     ["enable_directconnect"]
   "Set to true if you also want mldonkey to run as a direct-connect node (experimental)"
