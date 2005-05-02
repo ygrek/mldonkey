@@ -428,11 +428,6 @@ let enable_soulseek = define_option current_section
   "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
     bool_option false
     
-let enable_audiogalaxy = define_expert_option current_section
-    ["enable_audiogalaxy"]
-  "Set to true if you also want mldonkey to run as an audiogalaxy satellite (experimental)"
-    bool_option false
-  
 let enable_gnutella = define_option current_section
     ["enable_gnutella"]
   "Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)"

@@ -4,7 +4,6 @@ let check_bounds = @CHECKBOUNDS@
 let current_version = "@CURRENT_VERSION@-@CURRENT_RELEASE@"
 let build_system = "@BUILD_SYSTEM@"
 let system = "@SYSTEM@"
-let audio_galaxy = "@AUDIO_GALAXY@"
 let opennapster = "@OPEN_NAPSTER@"
 let gnutella = "@GNUTELLA@"
 let gnutella2 = "@GNUTELLA2@"

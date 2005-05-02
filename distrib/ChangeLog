@@ -6,7 +6,7 @@ ChangeLog
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
 
-This version shares the same code as Amorphous revision 302.
+This version shares the same code as Amorphous revision 303.
 
 I changed the release mechanism in a way that minor updates like
 this one will not get a release tag in CVS, also the version
@@ -15,6 +15,7 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+3963: Remove Audiogalaxy code
 3964: Remove obsolete Cymes entries
 3970: Print web_infos (from beedauchon)
 3972: bug fixes for the GTK2 GUI

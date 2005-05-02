@@ -31,7 +31,6 @@ LABLGTK_NAME=lablgtk
 
 
 
-AUDIO_GALAXY=no
 OPEN_NAPSTER=no
 GNUTELLA=yes
 GNUTELLA2=yes
@@ -46,7 +45,6 @@ BROOSNET=yes
 MULTINET=yes
 AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
 if test ! "$MULTINET" = "yes"; then
-  AUDIO_GALAXY=no
   OPEN_NAPSTER=no
   GNUTELLA=no
   GNUTELLA2=no
@@ -68,7 +66,6 @@ AC_ARG_ENABLE(soulseek, [  --disable-soulseek      allows you to remove support 
 AC_ARG_ENABLE(fasttrack,     [  --disable-fasttrack     allows you to remove support for FastTrack], [FASTTRACK="$enableval"])
 AC_ARG_ENABLE(opennap,       [  --disable-opennap       allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
 #AC_ARG_ENABLE(directconnect, [  --disable-directconnect  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
-#AC_ARG_ENABLE(audiogalaxy,   [  --disable-audiogalaxy   allows you to remove support for Audio Galaxy], [AUDIO_GALAXY="$enableval"])
 AC_ARG_ENABLE(openft,        [  --disable-openft        allows you to remove support for OpenFT], [OPENFT="$enableval"])
 
 BATCH=no
@@ -572,15 +569,6 @@ fi
     DONKEY=no
     BAD_TARGETS="$BAD_TARGETS donkey"
   fi
-
-#  if test "$AUDIO_GALAXY" = "yes" ; then
-#    AC_CHECK_FILE(../src/networks/audio_galaxy,AUDIO_GALAXY=yes, [
-      AUDIO_GALAXY=no
-      BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
-#    ])
-#  else
-#    BAD_TARGETS="$BAD_TARGETS audio_galaxy(obsolete)"
-#  fi
 
   if test "$OPEN_NAPSTER" = "yes" ; then
     AC_CHECK_FILE(../src/networks/opennap,OPEN_NAPSTER=yes, [
@@ -1127,7 +1115,6 @@ AC_SUBST(ZLIB)
 AC_SUBST(GD)
 AC_SUBST(ICONV)
 
-AC_SUBST(AUDIO_GALAXY)
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
 AC_SUBST(GNUTELLA)

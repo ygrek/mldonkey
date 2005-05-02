@@ -90,7 +90,6 @@ DONKEY_DIR=donkey
 
 endif
 
-SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/$(DONKEY_DIR)
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_OPENNAP=src/networks/opennap
@@ -508,18 +507,6 @@ DIRECT_CONNECT_SRCS= \
   $(SRC_DIRECTCONNECT)/dcInteractive.ml \
   $(SRC_DIRECTCONNECT)/dcMain.ml
 
-AUDIOGALAXY_SRCS= \
-  $(SRC_AUDIOGALAXY)/agTypes.ml \
-  $(SRC_AUDIOGALAXY)/agOptions.ml \
-  $(SRC_AUDIOGALAXY)/agGlobals.ml \
-  $(SRC_AUDIOGALAXY)/agComplexOptions.ml \
-  $(SRC_AUDIOGALAXY)/agProtocol.ml \
-  $(SRC_AUDIOGALAXY)/agClients.ml \
-  $(SRC_AUDIOGALAXY)/agServers.ml \
-  $(SRC_AUDIOGALAXY)/agInteractive.ml \
-  $(SRC_AUDIOGALAXY)/agHttpForward.ml \
-  $(SRC_AUDIOGALAXY)/agMain.ml
-
 
 OBSERVER_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
@@ -558,12 +545,6 @@ ifeq ("$(OPENFT)" , "yes")
 SUBDIRS += $(SRC_OPENFT)
 
 CORE_SRCS += $(OPENFT_SRCS)
-endif
-
-ifeq ("$(AUDIO_GALAXY)" , "yes")
-SUBDIRS += $(SRC_AUDIOGALAXY)
-
-CORE_SRCS += $(AUDIOGALAXY_SRCS)
 endif
 
 DRIVER_SRCS= \

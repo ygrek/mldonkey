@@ -538,8 +538,6 @@
 
 "Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)" = "Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)"
 
-"Set to true if you also want mldonkey to run as an audiogalaxy satellite (experimental)" = "Set to true if you also want mldonkey to run as an audiogalaxy satellite (experimental)"
-
 "Set to true if you also want mldonkey to run as a soulseek client (experimental)" = "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
 
 "Set to true if you also want mldonkey to run as a napster client (experimental)" = "Set to true if you also want mldonkey to run as a napster client (experimental)"

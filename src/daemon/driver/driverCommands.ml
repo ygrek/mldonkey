@@ -1418,9 +1418,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			(if Autoconf.soulseek = "yes" then [(strings_of_option enable_soulseek)] else [])
 			@ [
 			] @
-			(if Autoconf.audio_galaxy = "yes" then [(strings_of_option enable_audiogalaxy)] else [])
-			@ [
-			] @
 			(if Autoconf.gnutella = "yes" then [(strings_of_option enable_gnutella)] else [])
 			@ [
 			] @

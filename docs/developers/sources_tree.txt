@@ -140,16 +140,6 @@ Full Tree:
 ./gtk/configwin/configwin_ihm.ml
 ./gtk/configwin/configwin_messages.ml
 ./gtk/configwin/configwin_types.ml
-./networks/audio_galaxy/agClients.ml
-./networks/audio_galaxy/agComplexOptions.ml
-./networks/audio_galaxy/agGlobals.ml
-./networks/audio_galaxy/agHttpForward.ml
-./networks/audio_galaxy/agInteractive.ml
-./networks/audio_galaxy/agMain.ml
-./networks/audio_galaxy/agOptions.ml
-./networks/audio_galaxy/agProtocol.ml
-./networks/audio_galaxy/agServers.ml
-./networks/audio_galaxy/agTypes.ml
 ./networks/bittorrent/bencode.ml
 ./networks/bittorrent/bTComplexOptions.ml
 ./networks/bittorrent/bTMain.ml

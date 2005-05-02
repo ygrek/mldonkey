@@ -62,7 +62,6 @@ common/		basic types and data structures common to all
 
 Peer-to-peer modules (not necessary):
 
-audio_galaxy/	Audio-Galaxy (not useful anymore)
 direct_connect/	Direct-Connect (must work on that)
 limewire/	LimeWire (Gnutella client)
 opennap/		Open-Napster
