@@ -318,67 +318,84 @@ let tag_file file =
           { tag_name = Field_Format; tag_value = String format };
         ]
   )        
-  
-(* Computes tags for shared files *)
+
+(* Computes tags for shared files (for clients) *)
 let make_tagged sock files =
   (List2.tail_map (fun file ->
-        { f_md4 = file.file_md4;
-          f_ip = client_ip sock;
-          f_port = !!donkey_port;
-          f_tags = tag_file file;
-        }
+      { 
+        f_md4 = file.file_md4;
+        f_ip = client_ip sock;
+        f_port = !!donkey_port;
+        f_tags = tag_file file;
+      }
     ) files)
 
-(* Computes tags for shared files with the special ip and port values for newer servers*)
-let make_tagged_server sock files =
-  (List2.tail_map (fun file ->
-        {
-          f_md4 = file.file_md4;
-          f_ip = (if (file_state file = FileShared) then Ip.of_string "251.251.251.251" else Ip.of_string "252.252.252.252");
-          f_port = (if (file_state file = FileShared) then 0xFBFB else 0xFCFC);
-          f_tags = tag_file file;
-        }
-    ) files)
-  
+(* Computes tags for shared files with the special ip and
+   port values for newer servers. We should assume that the
+   server is newer if it supports compression, like emule
+   does it. *)
+let make_tagged_server newer_server sock files =
+  if newer_server then
+      (List2.tail_map (fun file ->
+          {
+            f_md4 = file.file_md4;
+            f_ip = (if (file_state file = FileShared) then Ip.of_string "251.251.251.251" else Ip.of_string "252.252.252.252");
+            f_port = (if (file_state file = FileShared) then 0xFBFB else 0xFCFC);
+            f_tags = tag_file file;
+          }
+      ) files)
+  else
+    make_tagged sock files
   
 let server_send_share compressed sock msg =
-
-(*  lprintf "SEND %d FILES TO SHARE" (List.length msg); lprint_newline ();*)
-  
-  let max_len = !!client_buffer_size - 100 - 
-    TcpBufferedSocket.remaining_to_write sock in
-  if !verbose then begin
-      lprintf "SENDING SHARES"; lprint_newline ();
-    end;
-  
+  if !verbose then
+      lprintf "Sending %d file(s) to server\n" (List.length msg);
+  let max_len =
+    !!client_buffer_size - 100
+      - TcpBufferedSocket.remaining_to_write sock
+  in
   Buffer.clear buf;
-  let s = 
-    if compressed && Autoconf.has_zlib then begin
-        buf_int buf 0;
-        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
-            make_tagged_server (Some sock) msg) 0 max_len in
-        let s = Buffer.contents buf in
-        str_int s 0 nfiles;
-        let s = String.sub s 0 prev_len in        
-        let s = Autoconf.zlib__compress_string s in
-        
-        Buffer.clear buf;        
-        buf_int8 buf 0xD4;
-        buf_int buf 0;
-        buf_int8 buf 21; (* ShareReq *)
-        Buffer.add_string buf s;
-        Buffer.contents buf
-      end else begin
-        buf_int8 buf 227;
-        buf_int buf 0;
-        buf_int8 buf 21; (* ShareReq *)
-        buf_int buf 0;
-        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
-            make_tagged (Some sock) msg) 0 max_len in
-        let s = Buffer.contents buf in
-        str_int s 6 nfiles;
-        String.sub s 0 prev_len 
-      end
+  let s =
+      buf_int buf 0;
+      let nfiles, prev_len =
+        DonkeyProtoServer.Share.write_files_max buf
+          ( make_tagged_server compressed (Some sock) msg )
+          0 max_len
+      in
+      let s = Buffer.contents buf in
+      str_int s 0 nfiles;
+      let s = String.sub s 0 prev_len in
+      if !verbose_share then
+         lprintf "Sending %d share(s) to server : " nfiles;
+      Buffer.clear buf;
+      let s_c =
+        if compressed && Autoconf.has_zlib then
+          Autoconf.zlib__compress_string s
+        else
+          s
+      in
+      (* Emule only sends the string compressed when it
+         is smaller in that state. *)
+      if compressed && ((String.length s_c) < (String.length s))  then
+        begin
+          if !verbose_share then
+            lprintf "Using zlib\n";
+          buf_int8 buf 0xD4;
+          buf_int buf 0;
+          buf_int8 buf 21; (* ShareReq *)
+          Buffer.add_string buf s_c;
+          Buffer.contents buf
+        end
+      else 
+        begin
+          if !verbose_share then
+            lprintf "No compression\n";
+          buf_int8 buf 227;
+          buf_int buf 0;
+          buf_int8 buf 21; (* ShareReq *)
+          Buffer.add_string buf s;
+          Buffer.contents buf
+        end
   in
   let len = String.length s - 5 in
   str_int s 1 len;

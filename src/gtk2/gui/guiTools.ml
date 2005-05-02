@@ -402,7 +402,7 @@ let create_default_bold_markup s =
 *)
 
 let create_markup s =
-  let str = U.utf8_of s in
+  let str = Glib.Markup.escape_text (U.utf8_of s) in
   Printf.sprintf "<span foreground=\"%s\">%s</span>" 
     !!O.gtk_color_default str
 
@@ -462,14 +462,19 @@ let fit_string_to_pixels s ~context ~pixels =
 
 
 let warning_box
+  ~warning_message
   ~text
   ?(title = !M.mW_lb_warning)
   ?(icon = (A.get_icon ~icon:M.icon_stock_warning ~size:A.SMALL ()))
   ?(on_ok = fun () -> ()) () =
+  let width = ((Gdk.Screen.width ()) * 1 / 3) in
+  let height = ((Gdk.Screen.height ()) * 1 / 3) in
   let window =
     GWindow.window
       ~title
       ~icon
+      ~width
+      ~height
       ~position:`CENTER_ALWAYS
       ~kind:`TOPLEVEL
       ~resizable:true ~modal:false ()
@@ -481,22 +486,48 @@ let warning_box
       ~packing:window#add ()
   in
   let hbox =
-    GPack.hbox ~homogeneous:false ~border_width:6
+    GPack.hbox ~homogeneous:false ~border_width:6 ~spacing:12
       ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in
   let pixbuf = A.get_icon ~icon:M.icon_stock_warning ~size:A.LARGE () in
   let image =
-    GMisc.image ~pixbuf 
+    GMisc.image ~pixbuf ~xalign:0. ~yalign:0.
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let w_vbox =
-    GPack.hbox ~homogeneous:false ~border_width:3
-       ~packing:(hbox#pack ~expand:true ~fill:true) ()
-  in
+  let markup = create_default_bold_markup warning_message in
   let w_label =
-    GMisc.label ~xalign:0.5 ~yalign:0.5 ~text
-      ~packing:(w_vbox#pack ~expand:true ~fill:true) ()
+    GMisc.label ~xalign:0.5 ~yalign:0.5 ~markup
+      ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
+  if List.length text > 0
+    then begin
+      let separator =
+        GMisc.separator `HORIZONTAL
+        ~packing:(vbox#pack ~expand:false ~fill:true) ()
+      in
+      let scroll_table_box =
+        GBin.scrolled_window ~hpolicy:`NEVER ~vpolicy:`AUTOMATIC
+          ~placement:`TOP_LEFT ~shadow_type:`NONE
+          ~packing:(vbox#pack ~expand:true ~fill:true) ()
+      in
+      let table =
+        GPack.table ~columns:1 ~homogeneous:false
+           ~row_spacings:6 ~border_width:6
+           ~packing:scroll_table_box#add_with_viewport ()
+      in
+      let pos = ref 0 in
+      let context = table#misc#pango_context in
+      let pixels = 5 * width / 6 in
+      List.iter (fun s ->
+        let markup = fit_string_to_pixels s ~context ~pixels in
+        let label = GMisc.label ~xalign:0. ~yalign:0. ~markup () in
+        table#attach ~left:0 ~top:!pos ~right:1 ~bottom:(!pos+1)
+          ~xpadding:0 ~ypadding:0 
+          ~expand:`X ~fill:`X
+          label#coerce;
+        incr pos
+      ) text
+    end;
   let separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()

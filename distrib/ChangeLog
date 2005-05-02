@@ -6,15 +6,17 @@ ChangeLog
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
 
-This version shares the same code as Amorphous revision 296.
+This version shares the same code as Amorphous revision 297.
 
 I changed the release mechanism in a way that minor updates like
-this one will not get a release tag in CVS, also version number
-reported by MLDonkey will stay the same.
+this one will not get a release tag in CVS, also the version
+number reported by MLDonkey will stay the same.
 
 3970: Print web_infos (from beedauchon)
+3972: bug fixes for the GTK2 GUI
 3973: Support for Overnet contact.dat (from beedauchon)
 3974: HTML: RSS support (from beedauchon)
+3975: EDK: Fix for sending shares to server
 ---------------------------------------------------------------------
 2005/05/01: spiralvoice
 

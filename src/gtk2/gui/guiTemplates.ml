@@ -97,7 +97,7 @@ let verbose_chat = O.gtk_verbose_chat
 
 
  * to build an object from the virtual classes g_list or g_tree,
- * 1 GTree.column_list and 4 methods shal be provided :
+ * 1 GTree.column_list and 4 methods shall be provided :
 
      + GTree.column_list : How the data are organized in the g_list/g_tree.
                            Consider a "column" as a simple record field.
@@ -400,31 +400,21 @@ class virtual g_list (cols : GTree.column_list) =
 
 (* the connection/disconnection scheme between the #g_list and a #g_view *)
     method private flush_stamp () =
+      stamp <- List.rev stamp;
       if stamp <> []
-        then if (List.length stamp) > 70
         then begin
-          (if !!verbose_view then
-             lprintf_g_list "in flush_stamp using stamp to remove %d items\n" (List.length stamp));
           let gl = gviews in
-          let sl = stamp in
-          stamp <- [];
           (* disconnect from all the #g_view *)
           List.iter (fun v -> v#unset_model ()) gl;
           (* proceed ... *)
           List.iter (fun it ->
             Hashtbl.remove table (get_key it.tree_item);
             if store#iter_is_valid it.iter then ignore (store#remove it.iter);
-          ) sl;
+          ) stamp;
+          stamp <- [];
           (* reconnect to all the #g_view *)
           List.iter (fun v -> v#set_model self#gmodel) gl
-        end else begin
-          let sl = stamp in
-          stamp <- [];
-          List.iter (fun it ->
-            Hashtbl.remove table (get_key it.tree_item);
-            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
-          ) sl
-	end
+        end
 
     method get_item row =
       try
@@ -455,22 +445,22 @@ class virtual g_list (cols : GTree.column_list) =
       try
         let key = get_key i in
         let it = Hashtbl.find table key in
-        match gviews with
-            [] ->     (* no #g_view connected, nothing to be disconnected from *)
-              begin
-                Hashtbl.remove table key;
-                ignore (store#remove it.iter);
-                nitems <- nitems - 1
-              end
-          | _ ->
-              begin
-                if not it.removed
-                  then begin
+        if not it.removed
+          then begin
+            match gviews with
+                [] ->     (* no #g_view connected, nothing to be disconnected from *)
+                  begin
+                    Hashtbl.remove table key;
+                    ignore (store#remove it.iter);
+                    nitems <- nitems - 1
+                  end
+              | _ ->
+                  begin
                     it.removed <- true;
                     stamp <- it :: stamp;
                     nitems <- nitems - 1
                   end
-              end
+          end
       with _ -> ()
 
 (* the public method to set the filter function *)
@@ -480,7 +470,6 @@ class virtual g_list (cols : GTree.column_list) =
 
 (* the public method to connect a #g_view. *)
     method set_view view =
-      (if !!verbose_view then lprintf_g_list "in set_view view id %d\n" view#id);
       if not (List.memq view gviews)
         then begin
           (if gviews = []
@@ -511,11 +500,7 @@ class virtual g_list (cols : GTree.column_list) =
       let len = max 0 (List.length !items - 1) in
       List.iter (fun it ->
         let pos = store#get_iter (path_from_indices [|len|]) in
-        (if !!verbose_view then lprintf_g_list "in sort move from %s to %s !!\n"
-             (GTree.Path.to_string (store#get_path it.iter))
-             (GTree.Path.to_string (store#get_path pos)));
-        let test = store#move_after ~iter:it.iter ~pos in
-        (if !!verbose_view then lprintf_g_list "move_after %b\n" test)
+        ignore (store#move_after ~iter:it.iter ~pos)
       ) (if n < 0 then l' else List.rev l')
 
 (* the public method to sort the g_list. *)
@@ -536,11 +521,7 @@ class virtual g_list (cols : GTree.column_list) =
               let len = max 0 (List.length !items - 1) in
               List.iter (fun it ->
                 let pos = store#get_iter (path_from_indices [|len|]) in
-                (if !!verbose_view then lprintf_g_list "move from iter %s to pos %s !!\n"
-                     (GTree.Path.to_string (store#get_path it.iter))
-                     (GTree.Path.to_string (store#get_path pos)));
-                let test = store#move_after ~iter:it.iter ~pos in
-                if !!verbose_view then lprintf_g_list "move_after %b\n" test
+                ignore (store#move_after ~iter:it.iter ~pos)
               ) l
             end
         | Some `ASCENDING -> self#sort' c (-1)
@@ -562,7 +543,6 @@ class virtual g_list (cols : GTree.column_list) =
 
 (* the public method to disconnect a #g_view. *)
     method unset_view view =
-      (if !!verbose_view then lprintf_g_list "in unset_view view id %d\n" view#id);
       gviews <- List.filter (fun v -> v#id <> view#id) gviews;
       if gviews = [] then GMain.Timeout.remove timerID
 
@@ -660,8 +640,6 @@ class virtual g_tree (cols : GTree.column_list) =
       let indices = GTree.Path.get_indices (store#get_path row) in
       let level = level_from_indices indices in
       let parent = parent_from_indices indices in
-(*      (if !!verbose then
-         lprintf_g_tree "in add_item new path %s\n" (GTree.Path.to_string (store#get_path row)));*)
       Hashtbl.add table key {tree_item = i; parent = parent; level = level.(0); iter = row; removed = false};
       nitems <- nitems + 1;
       row
@@ -688,8 +666,8 @@ class virtual g_tree (cols : GTree.column_list) =
           then begin
             l' := iter :: !l';
             (* convert the iter as seen by the store in a GTree.view iter *)
-            let self_iter = self#convert_child_iter_to_iter iter in
-            let self_path = self#get_path self_iter in
+            let path = store#get_path iter in
+            let self_path = self#convert_child_path_to_path path in
             l := (GTree.Path.get_indices self_path) :: !l
           end
       ) expanded_rows;
@@ -705,41 +683,22 @@ class virtual g_tree (cols : GTree.column_list) =
 
 (* the connection/disconnection scheme between the g_tree and a #g_view *)
     method private flush_stamp () =
+     (* order is children->parent *)
+      stamp <- List.rev stamp;
       if stamp <> []
-        then if (List.length stamp) > 70 (* that looks like the good figure *)
         then begin
           let gl = gviews in
-          (* order is children->parent *)
-          let sl = List.rev stamp in
-          stamp <- [];
           (* disconnect from all the #g_view *)
           List.iter (fun v -> v#unset_model ()) gl;
           (* proceed ... *)
           List.iter (fun it ->
-            if !!verbose_view then
-              begin
-                let path_str = GTree.Path.to_string (store#get_path it.iter) in
-                lprintf_g_tree "in flush_stamp g_view disconnected remove path %s\n" path_str
-              end;
-            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
+            (if store#iter_is_valid it.iter then ignore (store#remove it.iter));
             Hashtbl.remove table (get_key it.tree_item)
-          ) sl;
+          ) stamp;
+          stamp <- [];
           (* reconnect to all the #g_view *)
           List.iter (fun v -> v#set_model self#gmodel) gl
-        end else begin
-          (* order is children->parent *)
-          let sl = List.rev stamp in
-          stamp <- [];
-          List.iter (fun it ->
-            if !!verbose_view then
-              begin
-                let path_str = GTree.Path.to_string (store#get_path it.iter) in
-                lprintf_g_tree "in flush_stamp g_view connected remove path %s\n" path_str;
-              end;
-            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
-            Hashtbl.remove table (get_key it.tree_item)
-          ) sl
-	end
+        end
 
 (* Becarefull !!! get_item uses Gtk.tree_iter related to the model_filter.
  * They are quite different from the store Gtk.tree_iter. Don't forget to convert them before...
@@ -775,67 +734,53 @@ class virtual g_tree (cols : GTree.column_list) =
       try
         let key = get_key i in
         let it = Hashtbl.find table key in
-        match gviews with
-            [] ->
-              begin
-                (if !!verbose_view then lprintf_g_tree "in remove_item normal scheme\n");
-                let path_str = GTree.Path.to_string (store#get_path it.iter) in
-                (if !!verbose_view then lprintf_g_tree "tree_iter converted in tree_path %s\nstore has child ? : %b\n"
-                     path_str (store#iter_has_child it.iter));
-                if store#iter_has_child it.iter
-                  then begin
-                    let len = store#iter_n_children (Some it.iter) in
-                    (if !!verbose_view then lprintf_g_tree "start iter %d children\n" len);
-                    for i = 0 to (len - 1) do
-                      try
-                        let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
-                        let child_row = store#get_iter child_path in
-                        (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
-                           (GTree.Path.to_string child_path)
-                           (store#iter_is_valid child_row));
-                        let key = store#get ~row:child_row ~column:key_col in
-                        let it_child = Hashtbl.find table key in
-                        self#remove_item it_child.tree_item;
-                      with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
-                    done
-                  end;
-                if store#iter_is_valid it.iter then ignore (store#remove it.iter);
-                Hashtbl.remove table key;
-                nitems <- nitems - 1;
-                (if !!verbose_view then lprintf_g_tree "remove path %s\n" path_str)
-              end
-          | _ -> 
-              begin
-                if not it.removed
-                  then begin
+        if not it.removed
+          then begin
+            match gviews with
+                [] ->
+                  begin
                     it.removed <- true;
-                    (if !!verbose_view then lprintf_g_tree "in remove_item stamp scheme\n");
                     let path_str = GTree.Path.to_string (store#get_path it.iter) in
-                    (if !!verbose_view then lprintf_g_tree "tree_iter converted in tree_path %s\nstore has child ? : %b\n"
-                         path_str (store#iter_has_child it.iter));
                     if store#iter_has_child it.iter
                       then begin
                         let len = store#iter_n_children (Some it.iter) in
-                        (if !!verbose_view then lprintf_g_tree "start iter %d children\n" len);
                         for i = 0 to (len - 1) do
                           try
                             let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
                             let child_row = store#get_iter child_path in
-                            (if !!verbose_view then lprintf_g_tree "child_path %s\nchild_row is valid ? : %b\n"
-                               (GTree.Path.to_string child_path)
-                               (store#iter_is_valid child_row));
-                             let key = store#get ~row:child_row ~column:key_col in
-                             let it_child = Hashtbl.find table key in
-                             self#remove_item it_child.tree_item;
-                           with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
+                            let key = store#get ~row:child_row ~column:key_col in
+                            let it_child = Hashtbl.find table key in
+                            self#remove_item it_child.tree_item;
+                          with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
+                        done
+                      end;
+                    if store#iter_is_valid it.iter then ignore (store#remove it.iter);
+                    Hashtbl.remove table key;
+                    nitems <- nitems - 1;
+                  end
+              | _ -> 
+                  begin
+                    it.removed <- true;
+                    let path_str = GTree.Path.to_string (store#get_path it.iter) in
+                    if store#iter_has_child it.iter
+                      then begin
+                        let len = store#iter_n_children (Some it.iter) in
+                        for i = 0 to (len - 1) do
+                          try
+                            let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
+                            let child_row = store#get_iter child_path in
+                            let key = store#get ~row:child_row ~column:key_col in
+                            let it_child = Hashtbl.find table key in
+                            self#remove_item it_child.tree_item;
+                          with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
                         done
                       end;
                     (* order is parent->children *)
-                    (if !!verbose_view then lprintf_g_tree "fill stamp with item in path %s\n" path_str);
                     stamp <- it :: stamp;
                     nitems <- nitems - 1
                   end
-              end
+          end
+
       with _ -> (if !!verbose_view then lprintf_g_tree "in remove_item failed to find item\n")
 
 (* the public method to set the filter function *)
@@ -845,7 +790,6 @@ class virtual g_tree (cols : GTree.column_list) =
 
 (* the public method to connect a #g_view. *)
     method set_view view =
-      (if !!verbose_view then lprintf_g_tree "in set_view view id %d\n" view#id);
       if not (List.memq view gviews)
         then begin
           (if gviews = []
@@ -873,12 +817,8 @@ class virtual g_tree (cols : GTree.column_list) =
           let new_indices = GTree.Path.get_indices current_path in
           let index = Array.length new_indices - 1 in
           new_indices.(index) <- 0;
-          (if !!verbose_view then lprintf_g_tree "in sort move from %s to %s !!\n"
-               (GTree.Path.to_string (store#get_path it.iter))
-               (GTree.Path.to_string (path_from_indices new_indices)));
           let pos = store#get_iter (path_from_indices new_indices) in
-          let test = store#move_before ~iter:it.iter ~pos in
-          (if !!verbose_view then lprintf_g_tree "move_before %b\n" test)
+          ignore (store#move_before ~iter:it.iter ~pos)
         ) (if n > 0 then l' else List.rev l')
       ) pl
 
@@ -921,12 +861,8 @@ class virtual g_tree (cols : GTree.column_list) =
                 let new_indices = GTree.Path.get_indices current_path in
                 let index = Array.length new_indices - 1 in
                 new_indices.(index) <- 0;
-                (if !!verbose_view then lprintf_g_tree "move from iter %s to pos %s !!\n"
-                     (GTree.Path.to_string (store#get_path it.iter))
-                     (GTree.Path.to_string (path_from_indices new_indices)));
                 let pos = store#get_iter (path_from_indices new_indices) in
-                let test = store#move_before ~iter:it.iter ~pos in
-                if !!verbose_view then lprintf_g_tree "move_before %b\n" test
+                ignore (store#move_before ~iter:it.iter ~pos)
               ) l
             end
         | Some `ASCENDING -> self#sort' c (-1) !items
@@ -938,14 +874,8 @@ class virtual g_tree (cols : GTree.column_list) =
 
 (* the public method to disconnect a #g_view. *)
     method unset_view view =
-      (if !!verbose_view then lprintf_g_tree "in unset_view view id %d\n" view#id);
       gviews <- List.filter (fun v -> v#id <> view#id) gviews;
       let paths_without_root = List.filter (fun ind -> ind <> [||]) view#expanded_paths in
-      if !!verbose_view then begin
-         lprintf_g_tree "   -> path ROOT\n";
-         List.iter (fun ind -> 
-           lprintf_g_tree "   -> path %s\n" (GTree.Path.to_string (path_from_indices ind));
-         ) paths_without_root end;
       (* iters from store are persistant ! *)
       expanded_rows <-
         List.map (fun ind ->
@@ -1466,16 +1396,14 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
       view#set_model (Some (model :> GTree.model));
       (* redefined how the data of the #g_model currently connected shall be displayed/rendered *)
       self#refresh_content ();
+      view#selection#unselect_all ();
       List.iter (fun ind ->
-        match ind with
-            [||] -> () (* how knows ? *)
-          | _ ->
-              begin
-                try
-                  let path = path_from_indices ind in
-                  view#expand_row path
-                with _ -> (if !!verbose_view then lprintf_g_view "failed in set_model expand row\n")
-              end
+        try
+          let path = path_from_indices ind in
+          view#selection#select_path path;
+          List.iter (fun p -> view#expand_row p) (view#selection#get_selected_rows);
+          view#selection#unselect_path path;
+        with _ -> (if !!verbose_view then lprintf_g_view "failed in set_model expand row\n")
       ) model#expanded_paths
 
 (*

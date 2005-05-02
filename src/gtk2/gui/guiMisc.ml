@@ -831,7 +831,6 @@ let main_availability_of net availabilities  =
              begin
                let len = String.length availability in
                String.make len (char_of_int 0)
-
              end
 
         | _ -> ""

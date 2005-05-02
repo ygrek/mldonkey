@@ -241,4 +241,4 @@ val color_of_name : string -> string
 
 val fit_string_to_pixels : string -> context:GPango.context -> pixels:int -> string
 
-val warning_box : text:string -> ?title:string -> ?icon:GdkPixbuf.pixbuf -> ?on_ok:(unit -> unit) -> unit -> unit
+val warning_box : warning_message:string -> text: string list -> ?title:string -> ?icon:GdkPixbuf.pixbuf -> ?on_ok:(unit -> unit) -> unit -> unit

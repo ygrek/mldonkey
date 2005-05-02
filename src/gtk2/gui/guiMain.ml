@@ -191,7 +191,7 @@ let value_reader gui t =
     | File_update_availability (file_num, source_num, avail) ->
         begin
           (* no more availability sent by Bittorrent, Fasttrack & eDonkey ? *)
-          ( if !!verbose then lprintf' "update_availability  %d/%d %s" file_num source_num avail);
+          (if !!verbose then lprintf' "update_availability  %d/%d %s\n" file_num source_num avail);
           try
             let s = Hashtbl.find G.sources source_num in
             let s_new =

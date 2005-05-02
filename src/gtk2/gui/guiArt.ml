@@ -431,7 +431,7 @@ let normalize_availability avail =
 
 let get_availability_of availability chunks is_file =
   let height = 16 in
-  let nchunks = String.length chunks in
+  let nchunks = max 1 (String.length chunks) in
   let avail =
     if is_file
       then begin

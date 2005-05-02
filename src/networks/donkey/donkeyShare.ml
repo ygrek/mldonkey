@@ -173,11 +173,16 @@ let send_new_shared () =
         begin
           List.iter (fun s ->
             if s.server_master then
-              do_if_connected s.server_sock (fun sock ->
-                server_send_share s.server_has_zlib sock !new_shared_files))
+              begin
+                if !verbose_share then
+                  lprintf "donkey send_new_shared: found master server\n";
+                do_if_connected s.server_sock (fun sock ->
+                  server_send_share s.server_has_zlib sock !new_shared_files)
+              end  
+                )
           (connected_servers ());
           if !verbose_share then
-              lprintf "donkey send_new_share: Sent %d new shared files to servers\n"
+              lprintf "donkey send_new_shared: Sent %d new shared files to servers\n"
                     (List.length !new_shared_files);
           new_shared_files := []
         end

@@ -64,9 +64,9 @@ let (view_context : GPango.context option ref) = ref None
 let interested_in_sources = ref false
 let expanded_rows = ref 0
 
-let dummy_source () =
+let dummy_source =
   {
-     source_num = -1;
+     source_num = (-1);
      source_network = 0;
      source_kind = Indirect_location ("", Md4.null);
      source_state = RemovedHost;
@@ -692,11 +692,12 @@ let retry_connect sel () =
   ) sel
 
 let cancel sel () =
-  let s = ref (!M.dT_lb_ask_cancel_download_files) in
+  let warning_message = !M.dT_lb_ask_cancel_download_files in
+  let l = ref [] in
   List.iter (fun item ->
     match item with
         File f ->
-          s := !s ^ (U.utf8_of f.file_name) ^ "\n"
+          l := f.file_name :: !l
       | _ -> ()
   ) sel;
   let on_ok () =
@@ -709,7 +710,7 @@ let cancel sel () =
         | _ -> ()
     ) sel
   in
-  GuiTools.warning_box ~text:!s ~on_ok ()
+  GuiTools.warning_box ~warning_message ~text:!l ~on_ok ()
 
 let verify_chunks sel () =
   List.iter (fun item ->
@@ -912,9 +913,9 @@ let download_menu sel =
 let filter_download i = 
   match i with
       File f -> not (List.memq f.file_network !G.networks_filtered)
-    | Source (s, _) -> not (List.memq s.source_network !G.networks_filtered) &&
+    | Source (s, _) -> not (List.memq s.source_network !G.networks_filtered)(*  &&
                        s.source_state <> NewHost &&
-                       (s.source_name <> "" && s.source_software <> "unk")
+                       (s.source_name <> "" && s.source_software <> "unk") *)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -989,6 +990,16 @@ let reset_downloads_filter () =
 (*                                                                       *)
 (*************************************************************************)
 
+let remove_dummy_source file_num =
+  downloadstore#remove_item (Source (dummy_source, file_num))
+
+let add_dummy_source parent file_num =
+  try
+    let _ = downloadstore#find_item (Source_num ((-1), file_num)) in
+    ()
+  with _ ->
+    ignore (downloadstore#add_item (Source (dummy_source, file_num)) ~parent ())
+
 let h_cancelled file_num =
   try
     let (_, i) = downloadstore#find_item (File_num file_num) in
@@ -1023,7 +1034,7 @@ let h_paused f =
       (if f.file_state = FileDownloaded
          then incr G.ndownloaded);
       GuiStatusBar.update_downloadedfiles ();
-      ignore (downloadstore#add_item (Source (dummy_source (), f.file_num)) ~parent ())
+      add_dummy_source parent f.file_num
     end
 
 let h_downloading = h_paused
@@ -1048,17 +1059,19 @@ let file_info f =
         h_downloading f
 
 let file_downloaded (num, downloaded, rate, last_seen) =
-  let (row, i) = downloadstore#find_item (File_num num) in
-  match i with
-      File f ->
-        begin
-          let f_new = {f with file_downloaded = downloaded;
-                              file_download_rate = rate;
-                              file_last_seen = last_seen}
-          in
-          downloadstore#update_item row (File f) (File f_new)
-        end
-    | _ -> ()
+  try
+    let (row, i) = downloadstore#find_item (File_num num) in
+    match i with
+        File f ->
+          begin
+            let f_new = {f with file_downloaded = downloaded;
+                                file_download_rate = rate;
+                                file_last_seen = last_seen}
+            in
+            downloadstore#update_item row (File f) (File f_new)
+          end
+      | _ -> ()
+  with _ -> ()
 
 (* File_add_source and File_update_availability could be merged now that we use
  * InterestedInSources. Pb how to retrieve the chunks of a source ?
@@ -1074,17 +1087,10 @@ let h_add_source s file_num =
                   begin
                     f.file_sources <- Some [s.source_num];
                     ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
-                    try
-                      let (_, i) = downloadstore#find_item (Source_num ((-1), file_num)) in
-                      match i with
-                          Source (s, n) -> downloadstore#remove_item (Source (s, n))
-                        | _ -> ()
-                    with _ -> ()
+                    remove_dummy_source file_num
                   end
               | Some sources ->
                   begin
-                    (if !!verbose then lprintf' "add_source file_sources %d for file %d\n"
-                       (List.length sources) f.file_num);
                     if List.mem s.source_num sources
                       then raise Exit
                       else begin
@@ -1104,20 +1110,20 @@ let h_remove_source s file_num =
           begin
             let _ =
               match f.file_sources with
-                  None -> raise Exit
+                  None -> add_dummy_source row file_num
                 | Some sources ->
-                  ( if !!verbose then lprintf' "remove_source file_sources %d for file %d\n"
-                     (List.length sources) f.file_num);
-                  f.file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
+                    begin
+                      f.file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
+                    end
             in
-            downloadstore#remove_item (Source (s, file_num));
-            match f.file_sources with
+            (match f.file_sources with
                 Some [] ->
                   begin
                     f.file_sources <- None;
-                    ignore (downloadstore#add_item (Source (dummy_source (), f.file_num)) ~parent:row ())
+                    add_dummy_source row file_num;
                   end
-              | _ -> ()
+              | _ -> ());
+            downloadstore#remove_item (Source (s, file_num));
           end
       | _ -> ()
   with _ -> ()
@@ -1149,13 +1155,7 @@ let h_update_source_availability s_new file_num =
 
 let clean_sources_table s_old =
   List.iter (fun file_num ->
-    try
-      let (row, i) = downloadstore#find_item (Source_num (s_old.source_num, file_num)) in
-      match i with
-          Source (s, num) ->
-            downloadstore#remove_item (Source (s, num))
-        | _ -> ()
-    with _ -> ()
+    h_remove_source s_old file_num
   ) s_old.source_files_requested
 
 (*************************************************************************)

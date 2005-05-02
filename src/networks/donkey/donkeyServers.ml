@@ -773,48 +773,56 @@ let update_master_servers _ =
       end
   in
   
-  List.iter (fun s ->
-      do_if_connected  s.server_sock (fun _ ->
+  List.iter
+    (fun s ->
+      do_if_connected  s.server_sock 
+        (fun _ ->
           incr nconnected_servers;
+          let connection_time =
+            last_time ()
+            - connection_last_conn s.server_connection_control
+          in
           if !verbose then
-              lprintf "MASTER: EXAM %s %d\n" (Ip.to_string s.server_ip)
-                  (last_time () -  connection_last_conn s.server_connection_control);
-          let connection_time = last_time () - 
-            connection_last_conn s.server_connection_control in
-          if s.server_sent_all_queries 
-            && not s.server_master 
-            && (s.server_preferred || connection_time > !!become_master_delay) then
+              lprintf "MASTER: Checking ip:%s ct:%d\n" (Ip.to_string s.server_ip) connection_time;
+          if not s.server_master 
+            && (s.server_preferred || connection_time > !!become_master_delay)
+            then
               begin
-                if !nmasters < max_allowed_connected_servers then
-                  make_master s
+                if (!nmasters < max_allowed_connected_servers || !!immediate_master) then
+                  begin
+                    if !verbose then
+                        lprintf "   MASTER: RAISING %s (%Ld)\n" 
+                                  (Ip.to_string s.server_ip) s.server_nusers;
+                    make_master s
+                  end
                 else
                   match !masters with 
                       [] -> disconnect_old_server s
                     | ss :: tail ->
                         (* check if the non-master has more users
                            or is a preferred one *)
-                        if (s.server_preferred && not ss.server_preferred) ||
-                          (!!keep_best_server &&
-                             mini ((Int64.to_int ss.server_nusers) + 1000)
-                             ((Int64.to_int ss.server_nusers) * 5)
-                           < (Int64.to_int s.server_nusers)) then 
+                        if (s.server_preferred && not ss.server_preferred)
+                          || (!!keep_best_server
+                              && mini ((Int64.to_int ss.server_nusers) + 1000)
+                                   ((Int64.to_int ss.server_nusers) * 5)
+                                 < (Int64.to_int s.server_nusers))
+                          then
                             begin
                               if !verbose then
                                 lprintf
-                                  "   MASTER: RAISING %s (%Ld) instead of %s (%Ld)\n" 
-                                  (Ip.to_string s.server_ip) s.server_nusers 
+                                  "   MASTER: RAISING %s (%Ld) instead of %s (%Ld)\n"
+                                  (Ip.to_string s.server_ip) s.server_nusers
                                   (Ip.to_string ss.server_ip) ss.server_nusers;
-                              
                               ss.server_master <- false;
                               masters := tail;
                               make_master s
-                            end 
+                            end
                         else
                           if connection_time > !!walker_server_lifetime then
                             disconnect_old_server s
               end
-      )
-  ) server_list;
+        )
+    ) server_list;
   if !verbose then
       lprintf "MASTER: clean %d connected %d masters\n" 
         !nconnected_servers !nmasters
