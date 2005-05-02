@@ -1,12 +1,12 @@
 ChangeLog
 =========
 
-2005/05/02: spiralvoice
+2005/05/02: spiralvoice (version 2.5.30.15 = tag release-2-5-30-15)
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
 
-This version shares the same code as Amorphous revision 303.
+This version shares the same code as Amorphous revision 304.
 
 I changed the release mechanism in a way that minor updates like
 this one will not get a release tag in CVS, also the version
