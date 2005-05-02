@@ -798,7 +798,7 @@ let update_master_servers _ =
                                   (Ip.to_string s.server_ip) s.server_nusers;
                     make_master s
                   end
-                else
+                else if s.server_sent_all_queries then
                   match !masters with
                       [] -> disconnect_old_server s
                     | ss :: tail ->
