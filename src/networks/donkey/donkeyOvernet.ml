@@ -2382,11 +2382,39 @@ let _ =
     
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf and sum = ref 0 in
-        Printf.bprintf buf "Overnet statistics:\n"; 
-        Printf.bprintf buf "  Search hits: %d\n" !search_hits;
-        Printf.bprintf buf "  Source hits: %d\n" !source_hits;
-        
+        if o.conn_output = HTML then
+          begin
+            Printf.bprintf buf "\\<div class=results\\>";
+            html_mods_table_header buf "ovstatsTable" "sources" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [
+              ("", "srh", "Overnet / Kademlia statistics");
+              ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
+              ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
+          end
+        else
+          begin
+            Printf.bprintf buf "Overnet / Kademlia statistics:\n"; 
+            Printf.bprintf buf "  Search hits: %d\n" !search_hits;
+            Printf.bprintf buf "  Source hits: %d\n" !source_hits;
+          end;
         List.iter (fun s ->
+            if o.conn_output = HTML then
+              begin
+                html_mods_table_header buf "ovstatsTable" "sources" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [
+                  ("", "srh", Printf.sprintf "Search %s for %s\n"
+                    (match s.search_kind with
+                      KeywordSearch _ -> "keyword"
+                      | FileSearch _ -> "file"
+                      | FillBuckets -> "fillbuckets" )
+                    (Md4.to_string s.search_md4)
+                  ); ];
+                Printf.bprintf buf "\\</tr\\>";
+              end
+            else
             Printf.bprintf buf 
               "Search %s for %s\n"
               
@@ -2400,10 +2428,23 @@ let _ =
                 let npeers = Fifo.length s.search_waiting_peers.(i) in
                 let nasked = Fifo.length s.search_asked_peers.(i) in
                 if npeers > 0 || nasked > 0 then
+                  if o.conn_output = HTML then
+                    begin
+                      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+                      html_mods_td buf [
+                        ("", "sr", 
+                          Printf.sprintf "nbits[%d] = %d peer(s) not asked, %d peer(s) asked"
+                          i npeers nasked); ];
+                      Printf.bprintf buf "\\</tr\\>";
+
+              end
+            else
                   Printf.bprintf buf
                   "   nbits[%d] = %d peers not asked, %d peers asked\n"
                     i npeers nasked
               done;
+              if o.conn_output = HTML then
+                Printf.bprintf buf "\\</table\\>\\</div\\>\n";
               
               (*
             (XorSet.cardinal s.search_not_asked_peers)
@@ -2421,6 +2462,8 @@ let _ =
 ;
   *)
         ) !overnet_searches;
+        if o.conn_output = HTML then
+          Printf.bprintf buf "\\</div\\>\n";
         
         "";
     ), ":\t\t\t\tOvernet/Kademlia Stats";

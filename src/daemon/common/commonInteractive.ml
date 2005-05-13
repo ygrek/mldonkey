@@ -425,12 +425,8 @@ let print_connected_servers o =
 		end;
        if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
 
-      let counter = ref 0 in  
+      html_mods_cntr_init ();
        List.iter (fun s ->
-        incr counter;
-		if use_html_mods o then 
-         Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"     
-          (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
         server_print s o;
        ) (List.sort (fun s1 s2 -> compare (server_num s1) (server_num s2)) list);
 

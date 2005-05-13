@@ -339,6 +339,7 @@ let server_print s o =
 	let snum = (server_num s) in
 
     Printf.bprintf buf "
+    \\<tr class=\\\"dl-%d\\\"\\>
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
     %s
     %s
@@ -351,6 +352,7 @@ let server_print s o =
     \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+    (html_mods_cntr ())
 	  (
         Printf.sprintf "%s"
         (match impl.impl_server_state with

@@ -542,7 +542,19 @@ class g_download () =
                  | Col_file_rate -> compare f1.file_download_rate f2.file_download_rate
                  | Col_file_state -> compare (Mi.string_of_file_state f1.file_state f1.file_download_rate)
                                              (Mi.string_of_file_state f2.file_state f2.file_download_rate)
-                 | Col_file_availability -> compare f1.file_availability f2.file_availability
+                 | Col_file_availability ->
+                     begin
+                       let av1 = Mi.main_availability_of f1.file_network f1.file_availability in
+                       let av2 = Mi.main_availability_of f2.file_network f2.file_availability in
+                       if !!O.gtk_look_graphical_availability
+                         then begin
+                           Mi.sort_availability_bar (av1, f1.file_chunks) (av2, f2.file_chunks) true
+                         end else begin
+                           let s1 = Mi.string_of_availability av1 f1.file_chunks in
+                           let s2 = Mi.string_of_availability av2 f2.file_chunks in
+                           compare (float_of_string s1) (float_of_string s2)
+                         end
+                     end
                  | Col_file_uid -> compare (Mi.uid_list_to_string f1.file_uids) (Mi.uid_list_to_string f2.file_uids)
                  | Col_file_format -> compare f1.file_format f2.file_format
                  | Col_file_network -> compare f1.file_network f2.file_network
@@ -571,19 +583,24 @@ class g_download () =
                  | Col_file_state -> compare (Mi.string_of_state s1.source_state file_num_a)
                                              (Mi.string_of_state s2.source_state file_num_a)
                  | Col_file_availability ->
-                    (try
-                       let (_, i1) = self#find_item (File_num file_num_a) in
-                       let (_ ,i2) = self#find_item (File_num file_num_b) in
-                       let f1 = match i1 with File f -> f | _ -> raise Exit in
-                       let f2 = match i2 with File f -> f | _ -> raise Exit in
-                       let availability s =
-                         try
-                           List.assoc file_num_a s.source_availability
-                         with _ -> ""
-                       in
-                       compare (Mi.string_of_availability (availability s1) f1.file_chunks)
-                               (Mi.string_of_availability (availability s2) f2.file_chunks)
-                     with _ -> 0)
+                     begin
+                       try
+                         let (_, i1) = self#find_item (File_num file_num_a) in
+                         let (_ ,i2) = self#find_item (File_num file_num_b) in
+                         let f1 = match i1 with File f -> f | _ -> raise Exit in
+                         let f2 = match i2 with File f -> f | _ -> raise Exit in
+                         let av_s1 = try List.assoc file_num_a s1.source_availability with _ -> "" in
+                         let av_s2 = try List.assoc file_num_a s2.source_availability with _ -> "" in
+                         if !!O.gtk_look_graphical_availability
+                           then begin
+                             Mi.sort_availability_bar (av_s1, f1.file_chunks) (av_s2, f2.file_chunks) false
+                           end else begin
+                             let av1 = Mi.string_of_availability av_s1 f1.file_chunks in
+                             let av2 = Mi.string_of_availability av_s2 f2.file_chunks in
+                             compare (float_of_string av1) (float_of_string av2)
+                           end
+                       with _ -> 0
+                     end
                  | Col_file_network -> compare s1.source_network s2.source_network
                  | Col_file_rate -> compare s1.source_download_rate s2.source_download_rate
                  | _ -> 0

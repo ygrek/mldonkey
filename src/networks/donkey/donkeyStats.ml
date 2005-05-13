@@ -1218,7 +1218,18 @@ let new_print_mod_stats buf o =
       done
     end
   else
-      Printf.bprintf buf "eMule mods statistics are disabled, to activate set emule_mods_count true \n"
+      if o.conn_output = HTML then
+        begin
+          Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "emodsTable" "cs" [];
+            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [
+              ("", "sr", 
+                "eMule mods statistics are disabled, to activate set emule_mods_count true in the \\<a href=\\\"/submit?q=voo+8\\\"\\>misc options\\</a\\> tab." ); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>\n"
+        end
+      else
+        Printf.bprintf buf "eMule mods statistics are disabled, to activate set emule_mods_count true \n"
 
 let append_out name =
   open_out_gen [Open_wronly; Open_creat; Open_append; Open_text] 0o666 name

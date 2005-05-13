@@ -653,6 +653,8 @@ let config_window gui value_reader f =
   let medium_icon = !!O.gtk_look_toolbars_icon_size in
   let large_icon = !!O.gtk_look_main_toolbar_icon_size in
   let (hostname, port) = (!!O.gtk_client_hostname, !!O.gtk_client_port) in
+  let avail_max = !!O.gtk_misc_availability_max in
+  let use_avail_height = !!O.gtk_misc_use_availability_height in
   let on_ok () =
     G.get_metrics_from_gtk_font_list ();
     (if (hostname, port) <> (!!O.gtk_client_hostname, !!O.gtk_client_port)
@@ -663,9 +665,16 @@ let config_window gui value_reader f =
         medium_icon <> !!O.gtk_look_toolbars_icon_size ||
         large_icon <> !!O.gtk_look_main_toolbar_icon_size
       then A.clean_icons ());
-    (if use_avail_bars <> !!O.gtk_look_graphical_availability
+    (if use_avail_bars <> !!O.gtk_look_graphical_availability ||
+        use_avail_height <> !!O.gtk_misc_use_availability_height
       then begin
         A.clean_avail_bars [];
+        GuiDownloads.downloadstore#force_update_avail_bars ()
+      end);
+    (if avail_max <> !!O.gtk_misc_availability_max
+      then begin
+        A.clean_avail_bars [];
+        A.create_color_blue_relative ();
         GuiDownloads.downloadstore#force_update_avail_bars ()
       end);
     (if use_icons <> !!O.gtk_look_use_icons ||

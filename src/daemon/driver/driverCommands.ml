@@ -557,15 +557,13 @@ let _ =
     
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
+        html_mods_cntr_init ();
         let nb_servers = ref 0 in
-        
         if use_html_mods o then server_print_html_header buf ""; 
         Intmap.iter (fun _ s ->
             try
+              server_print s o;
               incr nb_servers;
-              if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                  (if (!nb_servers mod 2 == 0) then "dl-1" else "dl-2");
-              server_print s o
             with e ->
                 lprintf "Exception %s in server_print"
                   (Printexc2.to_string e); lprint_newline ();

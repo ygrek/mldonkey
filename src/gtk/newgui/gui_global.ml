@@ -92,7 +92,7 @@ let (networks : (int, net_info) Hashtbl.t) = Hashtbl.create 13
   
 let network_name num = try
     match (Hashtbl.find networks num).net_name with
-      "Direct Connect" -> "DC"
+    | "Direct Connect" -> "DC"
     | "Donkey" -> "eDK"
     | "OpenFT" -> "oFT"
     | "Open Napster" -> "NAP"

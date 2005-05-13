@@ -793,7 +793,7 @@ let relative_availability_of avail chunks =
   let rec loop i p n =
     if i < 0
       then if n = 0.
-        then "0." (* Watch out !! Don't modify *)
+        then "0." (* Watch out !! Don't modify, we have to keep a float format *)
         else Printf.sprintf "%5.1f" (p /. n *. 100.)
       else if CommonGlobals.partial_chunk chunks.[i]
         then if avail.[i] <> (char_of_int 0)
@@ -812,7 +812,7 @@ let absolute_availability_of s =
       then (incr p)
   done;
   if len = 0
-    then "0." (* Watch out !! Don't modify *)
+    then "0." (* Watch out !! Don't modify, we have to keep a float format *)
     else Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
 
 
@@ -843,6 +843,38 @@ let availability_bar availability chunks b =
       let pixb = A.get_availability_of availability chunks b in
       Some pixb
     end else None
+
+let get_availability_bar_image avail chunks av_max is_file =
+  for i = 0 to String.length avail - 1 do
+    if chunks.[i] >= '2'
+      then avail.[i] <- char_of_int av_max
+      else if chunks.[i] = '0'
+        then begin
+          let avail_int =
+            if is_file
+              then int_of_char avail.[i]
+              else if int_of_char avail.[i] > 48 then 1 else 0
+          in
+          avail.[i] <- char_of_int (min (av_max - 2) avail_int)
+        end else avail.[i] <- char_of_int (av_max - 1)
+  done;
+  avail
+
+let sort_availability_bar (av1, chunks1) (av2, chunks2) is_file =
+  let s1 = String.copy av1 in
+  let s2 = String.copy av2 in
+  if !!O.gtk_misc_use_availability_height && is_file
+    then begin
+      let av_max = !!O.gtk_misc_availability_max + 2 in
+      let avail1 = get_availability_bar_image s1 chunks1 av_max is_file in
+      let avail2 = get_availability_bar_image s2 chunks2 av_max is_file in
+      compare avail1 avail2
+    end else begin
+      let av_max = 3 in
+      let avail1 = get_availability_bar_image s1 chunks1 av_max is_file in
+      let avail2 = get_availability_bar_image s2 chunks2 av_max is_file in
+      compare avail1 avail2
+    end
 
 (*************************************************************************)
 (*                                                                       *)

@@ -551,13 +551,6 @@ and update_client_bitmap c =
     c.client_new_chunks <- [];
     let file = c.client_file in
     List.iter (fun n -> bitmap.[n] <- '1') chunks;
-
-(* As we are lazy, we don't send this event...
-        CommonEvent.add_event (File_update_availability
-            (as_file file.file_file, as_client c, 
-            String.copy bitmap));
-*)
-    
     Int64Swarmer.update_uploader up (AvailableCharBitmap bitmap)
 
 (** In this function we decide which piece we must request from client.
@@ -819,9 +812,6 @@ and client_to_client c sock msg =
                 done;
               done;
 
-(*Update availability for GUI*)
-              CommonEvent.add_event (File_update_availability
-                  (as_file file, as_client c,  String.copy bitmap));
               update_client_bitmap c;
               
               let verified = Int64Swarmer.verified_bitmap swarmer in        

@@ -1426,6 +1426,7 @@ let print_network_modules buf o =
   let buf = o.conn_buf in
   if use_html_mods o then
     begin
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
       networks_header buf;
       html_mods_cntr_init ();
 
@@ -1449,7 +1450,12 @@ let print_network_modules buf o =
             with _ -> ()
         );
       Printf.bprintf buf "\\</table\\>\\</div\\>\n";
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>This table prints information about the capabilities of\nMLDonkey network modules, not the networks itselves\\</div\\>"
+      html_mods_table_header buf "networkTable" "networkInfo" [];
+      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("", "sr br", 
+          "This table prints information about the capabilities of\nMLDonkey network modules, not the networks themselves"); ];
+      Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>\n"
     end
   else
     begin

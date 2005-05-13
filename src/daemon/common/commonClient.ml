@@ -430,3 +430,6 @@ let is_initialized c =
     
 let set_initialized c =
   set_client_type c (client_type c lor client_initialized_tag)
+
+let client_has_bitmap (client : client) (file : file) bitmap =
+  CommonEvent.add_event (File_update_availability (file, client, bitmap))

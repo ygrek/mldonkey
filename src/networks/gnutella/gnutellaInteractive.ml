@@ -514,14 +514,39 @@ open GuiTypes
 let commands = [
     "gstats", "Network/Gnutella", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.bprintf buf "ultrapeers_waiting_queue: %d\n" 
-          (Queue.length ultrapeers_waiting_queue);
-        Printf.bprintf buf "peers_waiting_queue: %d\n" 
-          (Queue.length peers_waiting_queue);
-        Printf.bprintf buf "active_udp_queue: %d\n" 
-          (Queue.length active_udp_queue);
-        Printf.bprintf buf "waiting_udp_queue: %d\n" 
-          (Queue.length waiting_udp_queue);
+        if o.conn_output = HTML then
+          begin
+            Printf.bprintf buf "\\<div class=results\\>";
+            html_mods_table_header buf "gstatsTable" "sources" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [
+              ("", "srh", "gstats statistics");
+              ("", "srh", ""); ];
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [
+              ("", "sr", Printf.sprintf "ultrapeers_waiting_queue: %d\n"
+                (Queue.length ultrapeers_waiting_queue));
+              ("", "sr", Printf.sprintf "peers_waiting_queue: %d\n"
+                (Queue.length peers_waiting_queue)); ];
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [
+              ("", "sr", Printf.sprintf "active_udp_queue: %d\n"
+                (Queue.length active_udp_queue));
+              ("", "sr", Printf.sprintf "waiting_udp_queue: %d\n"
+                (Queue.length waiting_udp_queue)); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>\n"
+          end
+        else
+          begin
+            Printf.bprintf buf "ultrapeers_waiting_queue: %d\n"
+              (Queue.length ultrapeers_waiting_queue);
+            Printf.bprintf buf "peers_waiting_queue: %d\n"
+              (Queue.length peers_waiting_queue);
+            Printf.bprintf buf "active_udp_queue: %d\n"
+              (Queue.length active_udp_queue);
+            Printf.bprintf buf "waiting_udp_queue: %d\n"
+              (Queue.length waiting_udp_queue);
+          end;
         ""
     ), " :\t\t\t\tprint stats on Gnutella network";
 

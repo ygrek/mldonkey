@@ -394,9 +394,21 @@ let _ =
     color_orange#set_foreground (`RGB (r, g, 0));
     color_orange#point ~x:0 ~y:i
   done
-      
-let color_blue_relative = ref [||]
+
+let color_yellow = GDraw.pixmap ~width:1 ~height:16
+                     ~colormap:(Gdk.Color.get_system_colormap ()) ()
 let _ =
+  for i = 0 to 15 do
+    let r = highlight 255 i in
+    let g = 255 * r / 255 in
+    color_yellow#set_foreground (`RGB (r, g, 0));
+    color_yellow#point ~x:0 ~y:i
+  done
+
+let color_blue_relative = ref [||]
+
+let create_color_blue_relative () =
+  color_blue_relative := [||];
   for i = 0 to (!!O.gtk_misc_availability_max - 1) do
     let pixmap = GDraw.pixmap ~width:1 ~height:16
                    ~colormap:(Gdk.Color.get_system_colormap ()) () in
@@ -409,7 +421,9 @@ let _ =
     done;
     color_blue_relative := Array.append !color_blue_relative [|pixmap|]
   done
-      
+
+let _ = create_color_blue_relative ()
+
 let color_grey = GDraw.pixmap ~width:1 ~height:16
                    ~colormap:(Gdk.Color.get_system_colormap ()) ()
 let _ =
@@ -466,28 +480,32 @@ let get_availability_of availability chunks is_file =
                     else pixmap#put_pixmap
                            ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
                            color_orange#pixmap
-                  else begin
-                    let color_blue = !color_blue_relative.(!!O.gtk_misc_availability_max - h) in
-                    pixmap#put_pixmap
-                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                      color_blue#pixmap
-                  end
+                  else if chunks.[i] = '0'
+                    then begin
+                      let color_blue = !color_blue_relative.(!!O.gtk_misc_availability_max - h) in
+                      pixmap#put_pixmap
+                        ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                        color_blue#pixmap
+                    end else pixmap#put_pixmap
+                               ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                               color_yellow#pixmap
               end
             else if int_of_char avail.[i] >= 49
               then if chunks.[i] >= '2'
                 then pixmap#put_pixmap
-                       ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                       color_black#pixmap
-                else pixmap#put_pixmap
-                       ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                       color_green#pixmap
-              else if chunks.[i] > '2'
-                then pixmap#put_pixmap
-                       ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                       color_orange#pixmap
-                else pixmap#put_pixmap
+                         ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                         color_black#pixmap
+                else if chunks.[i] = '0'
+                  then pixmap#put_pixmap
+                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                           color_green#pixmap
+                  else pixmap#put_pixmap
+                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                           color_yellow#pixmap
+              else pixmap#put_pixmap
                        ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
                        color_red#pixmap
+
           done;
 
       with _ ->

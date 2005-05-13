@@ -1548,6 +1548,32 @@ let set_absent s list =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         chunks_to_string (internal)                   *)
+(*                                                                       *)
+(*************************************************************************) 
+
+let chunks_to_string s chunks =
+  match chunks with
+      AvailableRanges chunks ->
+        begin
+          let st = String.make (Array.length s.s_blocks) '0' in
+          apply_intervals s (fun i block_begin block_end chunk_begin chunk_end -> st.[i] <- '1') chunks;
+          st
+        end
+
+    | AvailableCharBitmap st -> st
+
+    | AvailableBoolBitmap bitmap ->
+        begin
+          let st = String.create (Array.length bitmap) in
+          for i = 0 to Array.length bitmap - 1 do
+            st.[i] <- (if bitmap.(i) then '1' else '0')
+          done;
+          st
+        end
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         update_uploader_chunks (internal)             *)
 (*                                                                       *)
 (*************************************************************************) 
@@ -1624,7 +1650,10 @@ let update_uploader_chunks up chunks =
     up.up_block_end <- zero;
     
     up.up_declared <- true;
-    
+
+    let bm = chunks_to_string s chunks in
+    client_has_bitmap up.up_client up.up_t.t_file bm;
+
     if debug_all then print_uploader up
 
 (*************************************************************************)

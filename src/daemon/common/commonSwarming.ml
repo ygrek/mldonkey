@@ -49,7 +49,8 @@ module type CommonEnv = sig
     
     open CommonTypes
     module CommonClient : sig
-        val client_num : client -> int          
+        val client_num : client -> int
+        val client_has_bitmap : client -> file -> string -> unit
       end
     
     module CommonFile : sig

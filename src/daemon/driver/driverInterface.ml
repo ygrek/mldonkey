@@ -403,7 +403,7 @@ let gui_initialize gui =
                 gui.gui_events.gui_new_events <-
                   (File_add_source_event (file,c))
                 :: gui.gui_events.gui_new_events
-            ) (file_active_sources file)
+            ) sources
       ) !!files;
       
       List.iter (fun file ->

@@ -658,7 +658,7 @@ let web_infos = define_option current_section
   (\"server.met\", 96, \"http://www.primusnet.ch/users/komintern/ed2k/min/server.met\");
   (\"guarding.p2p\", 96, \"http://homepage.ntlworld.com/tim.leonard1/guarding.p2p\");
   (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
-  (\"contact.dat\", 672, \"http://download.overnet.org/contact.dat\");
+  (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
  ]
   "
     (list_option (
@@ -666,7 +666,7 @@ let web_infos = define_option current_section
   [
     ("server.met", 24, 
       "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
-    ("contact.dat", 672,
+    ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
     ("guarding.p2p", 96, 
       "http://www.bluetack.co.uk/config/antip2p.txt");
@@ -1689,7 +1689,7 @@ let rec update_options () =
             "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl");
         ];
       web_infos =:= !!web_infos @ [
-          ("contact.dat", 672,
+          ("contact.dat", 168,
             "http://www.overnet.org/download/contact.dat");
         ];
       update 4

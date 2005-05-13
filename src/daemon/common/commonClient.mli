@@ -88,3 +88,5 @@ val set_initialized : CommonTypes.client -> unit
   
 val set_not_friend : CommonTypes.client -> unit
 val set_not_contact : CommonTypes.client -> unit
+
+val client_has_bitmap : CommonTypes.client -> CommonTypes.file -> string -> unit
