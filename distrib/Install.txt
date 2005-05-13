@@ -92,7 +92,7 @@ is compiled.
     ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.4.0.tar.gz
     ~/tmp> tar zxf lablgtk-2.4.0.tar.gz
     ~/tmp> cd lablgtk-2.4.0
-    ~/tmp/lablgtk-2.4.0> make configure
+    ~/tmp/lablgtk-2.4.0> ./configure
     ~/tmp/lablgtk-2.4.0> make world
     ~/tmp/lablgtk-2.4.0> make install
 

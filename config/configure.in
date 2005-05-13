@@ -14,11 +14,25 @@ CURRENT_VERSION=2.5
 CURRENT_RELEASE=30.15
 if test -d .svn; then
   CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
+else
+  if test -f ./subrelease; then
+    CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
+  else
+    if test -f ./CVS/Entries ; then
+      AC_CHECK_PROG(STAT, stat, stat)
+      if test "$ac_cv_prog_STAT" = "stat"; then
+	  AC_CHECK_PROG(SED, sed, sed)
+          if test "$ac_cv_prog_SED" = "sed"; then
+    	    AC_CHECK_PROG(CUT, cut, cut)
+	    if test "$ac_cv_prog_CUT" = "cut"; then
+              CURRENT_RELEASE=${CURRENT_RELEASE}"_CVS_"`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19 | $SED -e 's/ /_/g'`
+	    fi
+	 fi
+      fi
+    fi
+  fi
 fi
-if test -f ./subrelease; then
-  CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
-fi
-
+echo "compiling MLDonkey $CURRENT_VERSION.$CURRENT_RELEASE..."
 REQUIRED_OCAML=3.08.3
 DOWNLOAD_OCAML_MAJOR=3.08
 DOWNLOAD_OCAML=3.08.3
