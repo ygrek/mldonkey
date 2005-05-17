@@ -22,10 +22,7 @@ open CommonOptions
 open Options
 open GnutellaNetwork
   
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let gnutella_ini = create_options_file (
-    Filename.concat file_basedir GnutellaNetwork.config_file)
+let gnutella_ini = create_options_file GnutellaNetwork.config_file
 
 let gnutella_section = file_section gnutella_ini ["Gnutella"] "Gnutella options"  
 

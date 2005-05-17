@@ -29,8 +29,7 @@ open CommonComplexOptions
 open CommonNetwork
 open CommonServer
   
-let server_ini = create_options_file (
-    Filename.concat file_basedir "server.ini")
+let server_ini = create_options_file "server.ini"
   
 let server_port = define_option server_ini ["port"] "port to bind on"
   int_option 4661

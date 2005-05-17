@@ -106,8 +106,9 @@ let is_banned c sock =
 (* Supports Emule Extended Protocol *)
 let supports_eep cb = 
   match cb with
-    Brand_lmule | Brand_newemule | Brand_cdonkey | 
-    Brand_mldonkey3 | Brand_shareaza | Brand_amule | Brand_lphant -> true
+    Brand_lmule | Brand_newemule | Brand_cdonkey |
+    Brand_emuleplus | Brand_hydranode | Brand_mldonkey3 |
+    Brand_shareaza | Brand_amule | Brand_lphant -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -449,14 +450,14 @@ let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
     c.client_brand <- (
-     (* if List.exists (fun s -> Ip.equal c.client_ip s.server_ip) (connected_servers ()) then
-       Brand_server
-      else *)
-      if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
-        if String2.subcontains c.client_name "shareaza.com" then
-          Brand_shareaza
-        else
-          Brand_newemule
+      if String2.subcontains c.client_name "[ePlus]" then
+	Brand_emuleplus
+      else
+	if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+          if String2.subcontains c.client_name "shareaza.com" then
+            Brand_shareaza
+          else
+            Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
     else
@@ -652,6 +653,8 @@ let update_emule_proto_from_tags c tags =
               | 2 -> c.client_brand <- Brand_lmule
               | 3 -> c.client_brand <- Brand_amule
               | 4 -> c.client_brand <- Brand_shareaza
+              | 5 -> c.client_brand <- Brand_emuleplus
+              | 6 -> c.client_brand <- Brand_hydranode
               | 10 -> c.client_brand <- Brand_mldonkey3
               | 20 -> c.client_brand <- Brand_lphant
               | _ -> ()
@@ -933,8 +936,19 @@ let finish_client_handshake c sock =
   client_must_update c;
   c.client_checked <- true;
   is_banned c sock
-  
-  
+
+let get_server_ip_port () =
+  match !DonkeyGlobals.master_server with
+    | None ->
+       Ip.null, 0
+    | Some s ->
+       let port =
+         match s.server_realport with
+           None -> (*lprintf "%d\n" s.server_port;*) s.server_port
+           | Some p -> (*lprintf "%d\n" p;*) p
+       in
+         s.server_ip, port
+
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
@@ -2026,7 +2040,7 @@ let read_first_message overnet m sock =
               C.ip = client_ip (Some sock);
               C.port = !!donkey_port;
               C.tags = !client_to_client_tags;
-              C.server_info = t.CR.server_info;
+              C.server_info = Some (get_server_ip_port ());
               C.left_bytes = left_bytes; 
               C.version = -1;
             }
@@ -2155,7 +2169,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                             C.port = !!donkey_port;
                             C.tags = !client_to_client_tags;
                             C.version = 16;
-                            C.server_info = Some (server_ip, server_port);
+                            C.server_info = Some (get_server_ip_port ());
                             C.left_bytes = left_bytes;
                           }
                       )

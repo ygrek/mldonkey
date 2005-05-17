@@ -22,10 +22,7 @@ open OpennapTypes
 open CommonTypes
 open Options
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let opennap_ini = create_options_file (
-    Filename.concat file_basedir "opennap.ini")
+let opennap_ini = create_options_file "opennap.ini"
 
 let opennap_section = file_section opennap_ini ["Opennap"] "Opennap options"
   

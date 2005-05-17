@@ -22,7 +22,7 @@ open Int64ops
 open Printf2
 
 open BasicSocket
-  
+open Autoconf  
 open CommonInteractive
 open CommonInteractive
 
@@ -187,7 +187,7 @@ let save_mlsubmit_reg () =
 
     "admin" "" (Ip.to_string (client_ip None)) !!http_port
   in
-  File.from_string (Filename.concat file_basedir "mlsubmit.reg") file;
+  File.from_string "mlsubmit.reg" file;
     
 (* Generate the mldonkey_submit file *)
   
@@ -236,9 +236,9 @@ while (my $uri = shift @ARGV) {
     (Ip.to_string (client_ip None)) !!http_port
     "admin" ""
   in
-  File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
+  File.from_string "mldonkey_submit" file;
   try
-  Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
+  Unix.chmod "mldonkey_submit" 0o755
   with
   e -> ()
 
@@ -416,26 +416,27 @@ If you want to share files, you should:
   Unix2.safe_mkdir "searches";
   Unix2.safe_mkdir !!temp_directory
 
-let _ =  
-  MlUnix.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
-    (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
-  MlUnix.set_signal  Sys.sighup
-    (Sys.Signal_handle (fun _ ->
-        lprintf "SIGHUP"; BasicSocket.close_all ();
-        CommonGlobals.print_localtime ();
-(*        BasicSocket.print_sockets (); *)
-    ));
-  MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
-    (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
-  MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
-    (Sys.Signal_handle (fun _ ->
-(*      if !CommonOptions.verbose then
-           BasicSocket.print_sockets (); *)
+let _ =
+  if Autoconf.system <> "windows" then 
+    MlUnix.set_signal  Sys.sigchld
+      (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
+
+  if Autoconf.system <> "windows" then 
+    MlUnix.set_signal  Sys.sighup
+      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP\n";
+         BasicSocket.close_all ();
+         CommonGlobals.print_localtime ();));
+
+  if Autoconf.system <> "windows" then
+    MlUnix.set_signal  Sys.sigpipe
+      (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
+
+  MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> lprintf "SIGINT\n";
         CommonGlobals.exit_properly 0));
-  MlUnix.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
-    (Sys.Signal_handle (fun _ ->
-(*      if !CommonOptions.verbose then
-           BasicSocket.print_sockets (); *)
+
+  MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> lprintf "SIGTERM\n";
         CommonGlobals.exit_properly 0))
 
 let _ =
@@ -533,6 +534,12 @@ let _ =
   lprint_string (DriverControlers.text_of_html !!motd_html);
   lprint_newline ();
   
+  if Autoconf.system <> "windows" then
+    (let oc = open_out "mlnet.pid" in
+         output_string oc (Printf.sprintf "%s\n" (string_of_int (Unix.getpid ())));
+         close_out oc;
+         CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid");
+       lprintf "Starting with pid %s\n" (string_of_int (Unix.getpid ())));
 
   add_init_hook (fun _ ->
       if not !gui_included && ( !!start_gui || !!ask_for_gui ) then

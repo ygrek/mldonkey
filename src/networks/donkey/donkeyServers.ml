@@ -226,6 +226,10 @@ let disconnect_server s reason =
         s.server_users <- [];
         set_server_state s (NotConnected (reason, -1));
         s.server_master <- false;
+        (match !DonkeyGlobals.master_server with
+          | Some ss when s == ss ->
+              DonkeyGlobals.master_server := None;
+          | _ -> ());
         s.server_banner <- "";
         s.server_sent_all_queries <- false;
         remove_connected_server s
@@ -256,12 +260,13 @@ let client_to_server s t sock =
   end;
   
   match t with
-      M.SetIDReq (zlib, t) ->
-        s.server_has_zlib <- zlib;
-        if low_id t && !!force_high_id then
+      M.SetIDReq t ->
+        s.server_has_zlib <- t.M.SetID.zlib;
+        if low_id t.M.SetID.ip && !!force_high_id then
           disconnect_server s (Closed_for_error "Low ID")
         else begin
-          s.server_cid <- Some t;
+          s.server_cid <- Some t.M.SetID.ip;
+	  s.server_realport <- t.M.SetID.port;
           (* disconnect after (connected_server_timeout) seconds of silence *)
           set_rtimeout sock !!connected_server_timeout; 
           set_server_state s Connected_initiating;
@@ -273,8 +278,8 @@ let client_to_server s t sock =
             M.AckIDReq A.t
           );
           
-          if not (low_id t) && !!use_server_ip then
-            last_high_id := t;
+          if not (low_id t.M.SetID.ip) && !!use_server_ip then
+            last_high_id := t.M.SetID.ip;
         end
   
   | M.MessageReq msg ->
@@ -547,10 +552,13 @@ let force_check_server_connections user =
   (*  lprintf "force_check_server_connections\n";  *)
   if user || !nservers < max_allowed_connected_servers ()  then 
     let rec iter n =
+      try
       if n > 0 && can_open_connection connection_manager then begin
-        connect_one_server true;
+        connect_one_server true; (* raises Not_found if server_list is empty *)
         iter (n-1)
-      end in
+      end
+      with Not_found -> ()
+    in
     let num = ( if user
                   then !!max_connected_servers 
                 else max_allowed_connected_servers () )  - !nservers 

@@ -66,7 +66,7 @@ let fork_and_exec cmd args =
 
 let setuid uid = ()
 let set_close_on_exec fd = ()
-let set_signal signal f = ()
+let set_signal signal f = Sys.set_signal signal f
   
 external getdtablesize : unit -> int = "ml_getdtablesize"
   

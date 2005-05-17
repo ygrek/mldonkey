@@ -935,6 +935,7 @@ let _ =
           P.server_network = network.network_num;
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
+          P.server_realport = (match s.server_realport with Some x -> x | None -> 0);
           P.server_score = s.server_score;
           P.server_tags = []; (* s.server_tags; *)
           P.server_nusers = s.server_nusers;

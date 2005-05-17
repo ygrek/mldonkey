@@ -20,10 +20,7 @@
 open CommonOptions
 open Options
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let soulseek_ini = create_options_file (
-    Filename.concat file_basedir "soulseek.ini")
+let soulseek_ini = create_options_file "soulseek.ini"
 let soulseek_section = file_section soulseek_ini ["Soulseek"] "Soulseek options"
   
   

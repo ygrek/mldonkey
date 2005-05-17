@@ -1493,7 +1493,11 @@ let print_gdstats buf o =
           );
         end
       else
-        Printf.bprintf buf "\\<img src=\\\"bw_updown.png\\\"\\>"
+        Printf.bprintf buf "\\<img src=\\\"bw_updown.";
+        (if !!html_mods_vd_gfx_png then
+          Printf.bprintf buf "png\\\"\\>"
+        else
+          Printf.bprintf buf "jpg\\\"\\>")
         );
         Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
         (if !!html_mods_vd_gfx_h then 
@@ -1517,7 +1521,11 @@ let print_gdstats buf o =
             );
           end
           else
-            Printf.bprintf buf "\\<img src=\\\"bw_h_updown.png\\\"\\>"
+            Printf.bprintf buf "\\<img src=\\\"bw_h_updown.";
+            (if !!html_mods_vd_gfx_png then
+                Printf.bprintf buf "png\\\"\\>"
+             else
+                Printf.bprintf buf "jpg\\\"\\>")
           );
           Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
           ); 

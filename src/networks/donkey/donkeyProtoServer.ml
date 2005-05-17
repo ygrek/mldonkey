@@ -152,24 +152,42 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
   end
 
 module SetID = struct 
-    type t = bool * Ip.t
-      
+    type t = {
+      ip : Ip.t;
+      zlib : bool;
+      port : int option
+    }
     
     let parse len s = 
-      len = 9, get_ip s 1
-    
-    let print (zlib, t) = 
-      lprintf "SET_ID: %s\n" (if zlib then "Zlib" else "");
-      lprintf "id: %s\n" (Ip.to_string t)
+      let ip = get_ip s 1 in
+       let zlib = (0x01 land get_int s 5) = 0x01 in
+       let port =
+         if len <= 9 then
+           None
+         else
+           Some (get_int s 9) in
+       {
+         ip = ip;
+         zlib = zlib;
+         port = port;
+       }
 
-    let bprint oc (zlib, t) = 
-      Printf.bprintf oc "SET_ID: %s\n"  (if zlib then "Zlib" else "");
-      Printf.bprintf oc "id: %s\n" (Ip.to_string t)
+    let print t =
+      lprintf "SET_ID:\n%s\n" (if t.zlib then "Zlib" else "");
+      lprintf "id: %s\n" (Ip.to_string t.ip);
+      match t.port with
+        None -> ()
+        | Some port ->
+           lprintf "Real Port: %d\n" port
+
+    let bprint oc t =
+      Printf.bprintf oc "SET_ID: %s\n"  (if t.zlib then "Zlib" else "");
+      Printf.bprintf oc "id: %s\n" (Ip.to_string t.ip)
     
-    let write buf (zlib, t) =
-      if zlib then buf_int buf 1;
-      buf_ip buf t
-  
+    let write buf t =
+      if t.zlib then buf_int buf 1;
+      buf_ip buf t.ip
+
   end
 
 let unit = ()
@@ -294,9 +312,6 @@ module Info = struct
     
     let parse len s =
       
-      if len <> 9 then begin
-          lprintf "SERVER INFO WITH LENGTH %d !!!!!!\n" len;
-        end;
       let users = get_int s 1 in
       let files = get_int s 5 in
       users, files

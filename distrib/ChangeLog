@@ -11,6 +11,19 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/05/17: spiralvoice
+
+3985: Create pid file
+3991: Respect $MLDONKEY_DIR
+3993: Enable signal handling on MinGW
+3996: EDK: Support auxports
+4017: Fix use_tags compile
+4018: New EDK clients: Emule Plus + Hydranode
+4023: Enhance buildinfo
+4025: Enable sha1new on Solaris and Windows
+4026: Remove all servers with "rem all" works now
+4027: Fix jpg viewing with gdstats
+
 2005/05/13: spiralvoice
 
 3979: Show CVS date in CURRENT_RELEASE

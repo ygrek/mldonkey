@@ -181,8 +181,7 @@ module SharedFileOption = struct
   end
 
     
-let shared_ini = create_options_file (
-    Filename.concat file_basedir "shared_files.ini")
+let shared_ini = create_options_file "shared_files.ini"
 
 let shared_section = file_section shared_ini [] ""
 

@@ -1,5 +1,9 @@
 #include "../../utils/lib/os_stubs.h"
 
+#ifdef HAS_SIGNALS_H
+#include <signals.h>
+#endif
+
 #ifndef INVALID_SET_FILE_POINTER
 #define INVALID_SET_FILE_POINTER (-1)
 #endif

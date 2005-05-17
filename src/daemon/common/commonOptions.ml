@@ -29,8 +29,6 @@ open Unix
   
 let bin_dir = Filename.dirname Sys.argv.(0)
 
-let local_dirname = Sys.getcwd ()
-
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
 let hidden_dir_prefix =
@@ -73,13 +71,36 @@ let (file_basedir, home_basedir) =
           (Printexc2.to_string e) chroot_dir;
         exit 2
   with _ ->  
-      (try Sys.getenv "MLDONKEY_DIR" with _ -> 
+      (try
+        let s = Sys.getenv "MLDONKEY_DIR" in
+	  if s = "" then "." else s
+       with _ -> 
             !!mldonkey_directory),
       home_dir
 
 let _ =
-  lprintf "The .ini-files are saved in %s\n" local_dirname;
-  let filename = 
+  (try
+     Unix2.safe_mkdir file_basedir
+   with e ->
+     lprintf "Exception %s to create dir %s\n"
+       (Printexc2.to_string e) file_basedir;
+     exit 2);
+  Unix.chdir file_basedir;
+
+  if Sys.file_exists "mlnet.pid" then
+    begin
+      lprintf "\n\n\nPID file mlnet.pid exists in %s\n"
+      file_basedir;
+      lprintf "This means another MLDonkey process could still be working\n";
+      lprintf "with this directory. Please shut it down before starting\n";
+      lprintf "a new instance here. If you are sure no other process uses\n";
+      lprintf "this directory delete mlnet.pid and restart the core.\n";
+      exit 2
+    end;
+
+  lprintf "The .ini-files are saved in %s\n" file_basedir;
+
+  let filename =
         try
       Sys.getenv "MLDONKEY_STRINGS"
     with _ ->
@@ -109,27 +130,16 @@ let string_list_option = define_option_class "String"
   )
   string_to_value
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
+let html_themes_dir = "html_themes"
+let downloads_ini = create_options_file "downloads.ini"
+let servers_ini = create_options_file "servers.ini"
+let searches_ini = create_options_file "searches.ini"
+let results_ini = create_options_file "results.ini"
+let files_ini = create_options_file "files.ini"
+let friends_ini = create_options_file "friends.ini"
+let users_ini = create_options_file "users.ini"
 
-let html_themes_dir = Filename.concat file_basedir "html_themes"
-  
-let downloads_ini = create_options_file (
-    Filename.concat file_basedir "downloads.ini")
-  
-let servers_ini = create_options_file (
-    Filename.concat file_basedir "servers.ini")
-let searches_ini = create_options_file (
-    Filename.concat file_basedir "searches.ini")
-let results_ini = create_options_file (
-    Filename.concat file_basedir "results.ini")
-let files_ini = create_options_file (
-    Filename.concat file_basedir "files.ini")
-let friends_ini = create_options_file (
-    Filename.concat file_basedir "friends.ini")
-let users_ini = create_options_file (
-    Filename.concat file_basedir "users.ini")
-
-let messages_log = ref (Filename.concat file_basedir "messages.log")
+let messages_log = ref "messages.log"
 
 let servers_section = file_section servers_ini [] ""
 
@@ -677,8 +687,8 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
     (list_option Url.option) []
   
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
-    "IP blocking list filename (peerguardian format)" string_option 
-    (Filename.concat file_basedir "guarding.p2p")
+    "IP blocking list filename (peerguardian format)"
+    string_option "guarding.p2p"
 
 let _ =
   option_hook ip_blocking (fun _ ->
@@ -907,7 +917,7 @@ let current_section = path_section
 
 let temp_directory = define_option current_section ["temp_directory" ] 
     "The directory where temporary files should be put" 
-    string_option (Filename.concat file_basedir "temp")
+    string_option "temp"
 
 (*
 let incoming_directory_prio =
@@ -918,7 +928,7 @@ let incoming_directory_prio =
 let incoming_directory = 
   define_option current_section ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
-    string_option (Filename.concat file_basedir "incoming")
+    string_option "incoming"
 
 let default_sharing_strategy =
   define_option current_section ["default_sharing_strategy" ] 

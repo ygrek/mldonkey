@@ -20,10 +20,7 @@
 open CommonOptions
 open Options
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let openft_ini = create_options_file (
-    Filename.concat file_basedir "openft.ini")
+let openft_ini = create_options_file "openft.ini"
 
 let max_ultrapeers = define_option openft_ini ["max_ultrapeers"]
     "Maximal number of ultrapeers connected"

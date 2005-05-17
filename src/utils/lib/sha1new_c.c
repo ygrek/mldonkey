@@ -100,9 +100,13 @@ extern "C"
 #      define LITTLE_ENDIAN
 #    endif
 #  else
-#    include <endian.h>
-#    if !defined(__BEOS__)
-#      include <byteswap.h>
+#    if defined(HAVE_LOCAL_ENDIAN_H)
+#      include "endian.h"
+#    else
+#      include <endian.h>
+#      if !defined(__BEOS__)
+#        include <byteswap.h>
+#      endif
 #    endif
 #  endif
 #endif

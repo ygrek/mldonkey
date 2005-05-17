@@ -21,10 +21,7 @@ open Md4
 open CommonOptions
 open Options
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let fileTP_ini = create_options_file (
-    Filename.concat file_basedir "fileTP.ini")
+let fileTP_ini = create_options_file "fileTP.ini"
 
 let fileTP_section = file_section fileTP_ini ["FileTP"] "FileTP options"  
   

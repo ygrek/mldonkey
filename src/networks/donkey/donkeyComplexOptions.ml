@@ -36,17 +36,13 @@ open DonkeyTypes
 open DonkeyOptions
 open DonkeyGlobals
 
-let shared_files_ini = create_options_file (
-    Filename.concat file_basedir "shared_files_new.ini")
+let shared_files_ini = create_options_file "shared_files_new.ini"
 
-let file_sources_ini = create_options_file (
-    Filename.concat file_basedir "file_sources.ini")
+let file_sources_ini = create_options_file "file_sources.ini"
   
-let stats_ini = create_options_file (
-    Filename.concat file_basedir "stats.ini")
+let stats_ini = create_options_file "stats.ini"
 
-let mod_stats_ini = create_options_file (
-    Filename.concat file_basedir "stats_mod.ini")
+let mod_stats_ini = create_options_file "stats_mod.ini"
 
 let shared_section = file_section shared_files_ini [] ""
 let stats_section = file_section stats_ini [] ""
@@ -79,7 +75,7 @@ let create_online_sig () =
         end
   ) (connected_servers());
   
-  let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
+  let oc = open_out "onlinesig.dat" in
   
   if !most_users = Int64.zero then
     output_string oc ("0\n")

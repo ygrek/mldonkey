@@ -536,6 +536,7 @@ let _ =
           P.server_network = network.network_num;
           P.server_addr = s.server_addr;
           P.server_port = s.server_port;
+	  P.server_realport = 0;
           P.server_score = 0;
           P.server_tags = [];
           P.server_nusers = s.server_nusers;

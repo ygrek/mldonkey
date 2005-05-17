@@ -347,7 +347,7 @@ let server_print s o =
     \\<td class=\\\"sr\\\" %s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr br\\\"\\>%s:%d\\</td\\>
+    \\<td class=\\\"sr br\\\"\\>%s:%s\\</td\\>
     \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -437,9 +437,12 @@ let server_print s o =
       n.network_name
    (string_of_connection_state impl.impl_server_state)
       (Ip.string_of_addr info.G.server_addr) 
-	  info.G.server_port
-	  info.G.server_nusers
-	  info.G.server_nfiles
+      (Printf.sprintf "%s%s"
+       (string_of_int info.G.server_port)
+       (if info.G.server_realport <> 0 then
+          "(" ^ (string_of_int info.G.server_realport) ^ ")" else ""))
+      info.G.server_nusers
+      info.G.server_nfiles
       info.G.server_name
       info.G.server_description
 
@@ -447,11 +450,14 @@ let server_print s o =
    else
 	begin
           
-        Printf.bprintf buf "[%-10s%5d] %15s:%-5d %s\n%40sUsers:%-8Ld Files:%-8Ld State:%s\n"
+        Printf.bprintf buf "[%-10s%5d] %15s:%-10s %s\n%45sUsers:%-8Ld Files:%-8Ld State:%s\n"
           (n.network_name)
           (server_num s)
           (Ip.string_of_addr info.G.server_addr) 
-          (info.G.server_port)
+          (Printf.sprintf "%s%s"
+	   (string_of_int info.G.server_port)
+           (if info.G.server_realport <> 0 then
+	      "(" ^ (string_of_int info.G.server_realport) ^ ")" else ""))
           (info.G.server_name) ("")
           (info.G.server_nusers)
           (info.G.server_nfiles)

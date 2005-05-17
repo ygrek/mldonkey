@@ -8,31 +8,31 @@ MYCONFIG_ARGS=$*
 echo Arguments: $MYCONFIG_ARGS
 
 MYCONFIG_ARGS_DEFINED=yes
+CONFIG_OPTIONS=$MYCONFIG_ARGS
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
 CURRENT_RELEASE=30.15
+SVN_VERSION=""
+CVS_VERSION=""
 if test -d .svn; then
-  CURRENT_RELEASE=${CURRENT_RELEASE}_r`svnversion -n .`
-else
-  if test -f ./subrelease; then
-    CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
-  else
-    if test -f ./CVS/Entries ; then
-      AC_CHECK_PROG(STAT, stat, stat)
-      if test "$ac_cv_prog_STAT" = "stat"; then
-	  AC_CHECK_PROG(SED, sed, sed)
-          if test "$ac_cv_prog_SED" = "sed"; then
-    	    AC_CHECK_PROG(CUT, cut, cut)
-	    if test "$ac_cv_prog_CUT" = "cut"; then
-              CURRENT_RELEASE=${CURRENT_RELEASE}"_CVS_"`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19 | $SED -e 's/ /_/g'`
-	    fi
-	 fi
+  SVN_VERSION=`svnversion -n .`
+fi
+if test -f ./subrelease; then
+  CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
+fi
+if test -f ./CVS/Entries ; then
+  AC_CHECK_PROG(STAT, stat, stat)
+  if test "$ac_cv_prog_STAT" = "stat"; then
+    AC_CHECK_PROG(SED, sed, sed)
+    if test "$ac_cv_prog_SED" = "sed"; then
+      AC_CHECK_PROG(CUT, cut, cut)
+      if test "$ac_cv_prog_CUT" = "cut"; then
+        CVS_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
       fi
     fi
   fi
 fi
-echo "compiling MLDonkey $CURRENT_VERSION.$CURRENT_RELEASE..."
 REQUIRED_OCAML=3.08.3
 DOWNLOAD_OCAML_MAJOR=3.08
 DOWNLOAD_OCAML=3.08.3
@@ -471,11 +471,22 @@ else
   echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
 
-SHA1_VERSION=sha1new
 AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h,[SHA1_VERSION=sha1new; break],[SHA1_VERSION=sha1old])
 if test "$SHA1_VERSION" = "sha1old"; then
-    echo "You don't have endian.h or sys/endian.h or machine/endian.h installed."
-    echo "This script will fallback on the old slower sha1 implementation."
+    AC_MSG_CHECKING(trying to guess endianess) 
+    $CC -o endian endian.c
+    BYTE_ORDER="`./endian | grep BYTE_ORDER | cut -c24-40`"
+    if test "$BYTE_ORDER" = "" ; then
+        echo "You don't have endian.h or sys/endian.h or machine/endian.h installed."
+        echo "This script will fallback on the old slower sha1 implementation."
+    else
+	AC_MSG_RESULT($BYTE_ORDER)
+	./endian > ../src/utils/lib/endian.h
+	SHA1_VERSION=sha1new
+	AC_DEFINE(HAVE_LOCAL_ENDIAN_H, 1, [Define to 1 if you have a locally generated endian.h header file.])
+	AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
+    fi
+    rm -f ./endian ./endian.exe
 else
     AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
 fi
@@ -501,7 +512,7 @@ fi
 # http://public.activestate.com/gsar/APC/perl-5.8.x/Configure
 OS_FILES=unix
 OS_FILES2=unix
-BUILD_SYSTEM3=""
+GLIBC_VERSION=""
 case $host in
         *linux*)   
            AC_CHECK_HEADERS(linux/limits.h,, [
@@ -540,8 +551,8 @@ printf("%d\n",  __GLIBC__);
 EOCP
 
            $CC -o try ./try.c
-           BUILD_SYSTEM3="`./try`"
-           echo $BUILD_SYSTEM3
+           GLIBC_VERSION="`./try`"
+           echo $GLIBC_VERSION
            rm -f try try.*
         ;;
         *mingw*)
@@ -963,10 +974,8 @@ AC_MSG_CHECKING(compile GTK GUI)
 	echo "---------------------------------------------------------"
   fi
 
-CURRENT_DIR="./"
 case "`uname -s`" in
   *win32* | *WIN32* | MINGW* | CYGWIN* ) 
-     CURRENT_DIR=""
      SYSTEM="windows"
      ;;
   *Linux*)
@@ -1122,7 +1131,6 @@ AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
-AC_SUBST(CURRENT_DIR)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
 AC_SUBST(ZLIB)
@@ -1162,6 +1170,8 @@ AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
 AC_SUBST(CURRENT_VERSION)
 AC_SUBST(CURRENT_RELEASE)
+AC_SUBST(SVN_VERSION)
+AC_SUBST(CVS_VERSION)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(OS_FILES2)
@@ -1184,12 +1194,12 @@ AC_SUBST(ZLIB__GZIP_STRING)
 
 AC_SUBST(COMMONSWARMING)
 
-BUILD_SYSTEM1="`uname -s` `uname -m` `uname -r`"
-BUILD_SYSTEM2="`$OCAMLC -version`"
-BUILD_SYSTEM4=""
-if test "$BUILD_SYSTEM3" != ""; then BUILD_SYSTEM4="using glibc $BUILD_SYSTEM3"; fi
-BUILD_SYSTEM="Ocaml $BUILD_SYSTEM2 on $BUILD_SYSTEM1 $BUILD_SYSTEM4"
+BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
+OCAML_VERSION="`$OCAMLC -version`"
 AC_SUBST(BUILD_SYSTEM)
+AC_SUBST(GLIBC_VERSION)
+AC_SUBST(OCAML_VERSION)
+AC_SUBST(CONFIG_OPTIONS)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml

@@ -129,8 +129,7 @@ module Make(Stored : sig
     end) = struct
     
     let (store: Stored.result Store.t) = 
-      Store.create (Filename.concat CommonOptions.file_basedir 
-          Stored.store_name)
+      Store.create Stored.store_name
     
     module Document = struct
         type t = Store.index

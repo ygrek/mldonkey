@@ -51,6 +51,8 @@ let brand_to_int b =
   | Brand_shareaza -> 10
   | Brand_amule -> 11
   | Brand_lphant -> 12
+  | Brand_emuleplus -> 13
+  | Brand_hydranode -> 14
       
 let brand_of_int b =
   match b with
@@ -67,6 +69,8 @@ let brand_of_int b =
   | 10 -> Brand_shareaza
   | 11 -> Brand_amule
   | 12 -> Brand_lphant
+  | 13 -> Brand_emuleplus
+  | 14 -> Brand_hydranode
   | _ -> raise Not_found
       
 let gbrand_to_string b =
@@ -84,6 +88,8 @@ let gbrand_to_string b =
   | Brand_server -> "SER"
   | Brand_amule -> "aMU"
   | Brand_lphant -> "lPH"
+  | Brand_emuleplus -> "eM+"
+  | Brand_hydranode -> "Hyd"
 
 let brand_mod_to_int b =
   match b with
@@ -1294,7 +1300,7 @@ let save_download_history file =
   ) buf !current;
 
     
-  let file_history = Filename.concat file_basedir "downloads.stats" in
+  let file_history = "downloads.stats" in
   let oc = append_out file_history in
   output_string oc (Buffer.contents buf);
   close_out oc

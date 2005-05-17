@@ -576,8 +576,11 @@ let _ =
 
     
     "rem", Arg_multiple (fun args o ->
-        if args = ["all"] then begin
-            servers =:= Intmap.empty;
+        if args = ["all"] then
+	  begin
+            Intmap.iter ( fun _ s ->
+              server_remove s
+            ) !!servers;
             "Removed all servers"
           end else begin
             List.iter (fun num ->

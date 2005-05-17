@@ -71,7 +71,7 @@ module ShortLazy : sig
 
 let networks_string = ref ""
   
-let patches_string = ref "No patches were used."
+let patches_string = ref ""
 
 let version () = 
   Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"  
@@ -80,14 +80,22 @@ let version () =
 let buildinfo () =
   (
     "MLNet Multi-Network p2p client version " ^ Autoconf.current_version ^ "\n"
-      ^ "Networks: " ^ !networks_string ^ "\n"
-      ^ "Libraries:"
-          ^ (if Autoconf.has_gd then " gd" else " no-gd")
-          ^ (if Autoconf.has_zlib then " zlib" else " no-zlib")
-          ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
-          ^ "\n"
-      ^ "This core was built with: " ^ Autoconf.build_system ^ "\n"
-      ^ !patches_string
+      ^ (if Autoconf.cvs_version <> "" then ("CVS checkout from " ^ Autoconf.cvs_version ^ "\n") else "")
+      ^ (if Autoconf.svn_version <> "" then ("SVN release " ^ Autoconf.svn_version ^ "\n") else "")
+      ^ "\nNetworks: " ^ !networks_string ^ "\n"
+      ^ "Features:"
+          ^ (if BasicSocket.has_threads () then " threads " else " no-threads ")
+          ^ (if Autoconf.has_zlib then " zlib " else " no-zlib ")
+          ^ (if Autoconf.has_gd then " gd " else " no-gd ")
+          ^ (if Autoconf.has_iconv then " iconv " else " no-iconv ")
+          ^ (if Autoconf.check_bounds then " check-bounds " else " no-check-bounds ")
+	  ^ " " ^ Autoconf.sha1_version
+      ^ "\n\nOcaml version " ^ Autoconf.ocaml_version ^ "\n"
+      ^ "Build on " ^ Autoconf.build_system
+      ^ (if Autoconf.glibc_version <> "" then (" with glibc " ^ Autoconf.glibc_version) else "")
+      ^ "\n"
+      ^ (if Autoconf.config_options <> "" then "\nConfigure options: " ^ Autoconf.config_options else "")
+      ^ (if !patches_string <> "" then "\n " ^ !patches_string else "")
   )
   
 (* Should we try to find another port when we cannot bind to the one set

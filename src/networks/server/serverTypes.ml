@@ -29,7 +29,7 @@ open DonkeyProtoCom
 
   
 let (store : tagged_file Store.t) = 
-  Store.create (Filename.concat file_basedir "server_store")
+  Store.create "server_store"
   
 module Document = struct
     type t = Store.index

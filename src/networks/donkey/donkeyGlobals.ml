@@ -140,8 +140,6 @@ let overnet_connect_tags = ref ([] :  tag list)
 
 let overnet_md4 = Md4.random()
 let nservers = ref 0
-let location_counter = ref 0
-let sleeping = ref false
 let xs_last_search = ref (-1)
   
 let zone_size = Int64.of_int (180 * 1024) 
@@ -155,7 +153,7 @@ let nclients = ref 0
 
 let protocol_version = 62
 let max_file_groups = 1000
-  
+let master_server = ref (None: DonkeyTypes.server option)  
 let udp_sock = ref (None: UdpSocket.t option)
 let listen_sock = ref (None : TcpServerSocket.t option)  
 let reversed_sock = ref (None : TcpServerSocket.t option)
@@ -191,7 +189,7 @@ let (old_requests : (int * int, request_record) Hashtbl.t) =
   Hashtbl.create 13013
 
 let (file_groups_fifo : Md4.t Fifo.t) = Fifo.create ()
-let (connected_clients : (Md4.t, client) Hashtbl.t) = Hashtbl.create 13
+let (connected_clients : (Md4.t, client) Hashtbl.t) = Hashtbl.create 130
   
 let udp_servers_list = ref ([] : server list)
 let interesting_clients = ref ([] : client list)
@@ -458,13 +456,14 @@ let new_server ip port score =
     found.server_port <- port;
     found
   with Not_found ->
-      let rec s = { 
+      let rec s = {
         server_server = server_impl;
         server_next_udp = last_time ();
-        server_ip = ip;     
+        server_ip = ip;
         server_cid = None (* client_ip None *);
-        server_port = port; 
-        server_sock = NoConnection; 
+        server_port = port;
+	server_realport = None;
+        server_sock = NoConnection;
         server_nqueries = 0;
         server_search_queries = Fifo.create ();
         server_users_queries = Fifo.create ();
@@ -815,7 +814,7 @@ let brand_to_string b =
   | Brand_cdonkey -> "cDonkey"
   | Brand_mldonkey1 -> "old mldonkey"
   | Brand_mldonkey2 -> "new mldonkey"
-  | Brand_mldonkey3 -> "trusted mldonkey"
+  | Brand_mldonkey3 -> "trusted mld"
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
   | Brand_lmule -> "xMule"
@@ -823,6 +822,8 @@ let brand_to_string b =
   | Brand_server -> "server"
   | Brand_amule -> "aMule"
   | Brand_lphant -> "lPhant"
+  | Brand_emuleplus -> "ePlus"
+  | Brand_hydranode -> "Hydra"
 
 let brand_mod_to_string b =
   match b with

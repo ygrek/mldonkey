@@ -160,6 +160,7 @@ type server_info = {
     
     mutable server_addr : Ip.addr;
     mutable server_port : int;
+    mutable server_realport : int;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
     mutable server_nusers : int64;

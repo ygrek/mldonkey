@@ -22,10 +22,7 @@ open CommonTypes
 open DcTypes
 open Options
 
-let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
-
-let directconnect_ini = create_options_file (
-    Filename.concat file_basedir "directconnect.ini")
+let directconnect_ini = create_options_file "directconnect.ini"
   
 let directconnect_section = file_section directconnect_ini ["DirectConnect"] "DirectConnect options"
   

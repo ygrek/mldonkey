@@ -129,16 +129,18 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "emule_version") m.emule_version;
     int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
     int_tag (Field_UNKNOWN "port") !!donkey_port;
-  ];      
+  ];
   client_to_server_tags :=
   [
     string_tag (Field_UNKNOWN "name") (local_login ());
     int_tag (Field_UNKNOWN "version") protocol_version;
     int_tag (Field_UNKNOWN "port") !!donkey_port;
-  ];      
+  ];
+  let extended = ref 0x04 in (* support of auxport *)
   if Autoconf.has_zlib then
-    client_to_server_tags := (int_tag 
-      (Field_UNKNOWN "extended") 1)::!client_to_server_tags;
+    extended := !extended lor 0x01; (* support of compression *)
+    client_to_server_tags := (int_tag
+      (Field_UNKNOWN "extended") !extended)::!client_to_server_tags;
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
     int_tag (Field_UNKNOWN "compression") 
       (if !!emule_compression then m.emule_compression else 0);

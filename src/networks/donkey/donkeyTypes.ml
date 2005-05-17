@@ -196,8 +196,10 @@ type brand =
 | Brand_server
 | Brand_amule
 | Brand_lphant
+| Brand_emuleplus
+| Brand_hydranode
   
-let brand_count = 13
+let brand_count = 15
   
 type brand_mod =
   Brand_mod_unknown
@@ -379,6 +381,7 @@ type server = (*[]*){
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t option;
     mutable server_port : int;
+    mutable server_realport : int option; (* in case we connect through auxport; this is the true one *)
     mutable server_sock : tcp_connection;
     mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;

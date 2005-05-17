@@ -1123,7 +1123,7 @@ let _ =
         let sock = UdpSocket.create_sendonly () in
         for i = 0 to 100000 do
           let s = Printf.sprintf "Packet %d" i in
-          UdpSocket.write sock s (Ip.of_string "128.93.52.5") 1999
+          UdpSocket.write sock false s (Ip.of_string "128.93.52.5") 1999
         done;
         BasicSocket.loop ()
     ), " : test UDP send";

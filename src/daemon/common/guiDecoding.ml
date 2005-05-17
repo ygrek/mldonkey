@@ -630,6 +630,7 @@ let get_server proto s pos =
     server_network = net;
     server_addr = addr;
     server_port = port;
+    server_realport = 0;
     server_score = score;
     server_tags = tags;
     server_nusers = nusers;
