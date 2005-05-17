@@ -429,13 +429,18 @@ let print_connected_servers o =
        List.iter (fun s ->
         server_print s o;
        ) (List.sort (fun s1 s2 -> compare (server_num s1) (server_num s2)) list);
-
         if use_html_mods o && List.length list > 0 then 
            Printf.bprintf buf "\\</table\\>\\</div\\>";
+  	if Autoconf.donkey = "yes" && r.network_name = "Donkey" && not !!enable_servers then
+          begin
+	    if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
+            Printf.bprintf buf "You disabled server usage, therefore you are not able to connect ED2K servers.\n";
+            Printf.bprintf buf "To use servers again 'set enable_servers true'\n";
+	    if use_html_mods o then Printf.bprintf buf "\\</div\\>"
+	  end;
        with e ->
            Printf.bprintf  buf "Exception %s in print_connected_servers"
              (Printexc2.to_string e);
-
   )
   
 let send_custom_query user buf query args = 

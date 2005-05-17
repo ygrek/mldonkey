@@ -506,6 +506,9 @@ let html_mods_vd_age = define_expert_option current_section
 let html_mods_vd_gfx = define_expert_option current_section
     ["html_mods_vd_gfx"] "Show graph in vd output" bool_option true
 
+let html_mods_vd_gfx_remove = define_expert_option current_section
+    ["html_mods_vd_gfx_remove"] "Remove graph files on core shutdown" bool_option false
+
 let html_mods_vd_gfx_fill = define_expert_option current_section
     ["html_mods_vd_gfx_fill"] "Fill graph in vd output" bool_option true
 

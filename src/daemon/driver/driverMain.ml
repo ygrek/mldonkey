@@ -30,7 +30,8 @@ open CommonDownloads
 open CommonTypes
 open CommonOptions
 open CommonGlobals
-open CommonNetwork  
+open CommonNetwork
+open CommonGraphics
   
 open DriverInterface
 
@@ -626,6 +627,7 @@ for config files at the end. *)
            lprintf "Exception %s in do_at_exit while closing sockets.\n"
              (Printexc2.to_string e);
       );
+      CommonGraphics.remove_files ();
       (* In case we have no more space on filesystem for
          config files, remove the security space file *)
       Sys.remove security_space_filename;

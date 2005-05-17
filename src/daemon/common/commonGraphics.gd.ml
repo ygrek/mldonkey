@@ -605,3 +605,16 @@ let do_draw_tag title gdown gup =
     mypic#save_as_jpeg "tag.jpg" ~quality:90
   );
 )
+
+let really_remove_files () =
+  let files = 
+    ["bw_updown"; "bw_download"; "bw_upload"; "bw_h_updown"; "bw_h_download"; "bw_h_upload"; "tag"]
+  in
+  let f file =
+    (try Sys.remove (file ^ ".png") with _ -> ());
+    (try Sys.remove (file ^ ".jpg") with _ -> ());
+  in
+  List.iter f files
+
+let remove_files () =
+  if !!html_mods_vd_gfx_remove then really_remove_files ()

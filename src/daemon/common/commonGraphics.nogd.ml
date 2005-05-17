@@ -31,6 +31,14 @@ let disable_gfx_support () =
 let show_nogd_debug_msg () =
   lprintf "Warning: Gd support was not compiled (install libgd-dev to enable it)"; lprint_newline ()
 
+let remove_files () =
+(  
+  disable_gfx_support ();
+  show_nogd_debug_msg ()
+)
+
+let really_remove_files () = ()
+
 (* main *)
 
 let do_draw_pic ttl vl hl gdown gup =
@@ -74,5 +82,3 @@ let do_draw_tag title gdown gup =
   disable_gfx_support ();
   show_nogd_debug_msg ()
 )
-
-

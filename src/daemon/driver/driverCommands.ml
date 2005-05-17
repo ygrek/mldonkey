@@ -569,10 +569,15 @@ let _ =
                   (Printexc2.to_string e); lprint_newline ();
         ) !!servers;
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-        
-        
-        Printf.sprintf (_b "Servers: %d known\n") !nb_servers
-    ), ":\t\t\t\t\tlist all known servers";
+        Printf.bprintf buf "Servers: %d known\n" !nb_servers;
+        if Autoconf.donkey = "yes" && not !!enable_servers then
+          begin
+            if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
+            Printf.bprintf buf "You disabled server usage, therefore you are not able to connect ED2K servers.\n";
+            Printf.bprintf buf "To use servers again 'set enable_servers true'\n";
+            if use_html_mods o then Printf.bprintf buf "\\</div\\>"
+          end;
+    ""), ":\t\t\t\t\tlist all known servers";
 
     
     "rem", Arg_multiple (fun args o ->
@@ -878,12 +883,26 @@ let _ =
 
     "gdstats", Arg_none (fun o ->
         let buf = o.conn_buf in
-        if use_html_mods o then
-          print_gdstats buf o
-        else
-          Printf.bprintf buf "Only available on HTML interface";
+	if Autoconf.has_gd then
+          if use_html_mods o then
+            print_gdstats buf o
+          else
+            Printf.bprintf buf "Only available on HTML interface"
+	else
+	  Printf.bprintf buf "Gd support was not compiled";
       _s ""), ":\t\t\t\t\tdisplay graphical transfer statistics";
-    
+
+    "gdremove", Arg_none (fun o ->
+        let buf = o.conn_buf in
+	if Autoconf.has_gd then
+	  begin
+	    CommonGraphics.really_remove_files ();
+	    Printf.bprintf buf "Gd files were removed"
+	  end
+	else
+	  Printf.bprintf buf "Gd support was not compiled";
+      _s ""), ":\t\t\t\tremove graphical transfer statistics files";
+
     "!", Arg_multiple (fun arg o ->
         if !!allow_any_command then
           match arg with
@@ -1291,79 +1310,79 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   match tab with
                     1 -> 
                       [
-                        strings_of_option global_login; 
-                        strings_of_option set_client_ip; 
-                        strings_of_option force_client_ip; 
-                        strings_of_option run_as_user; 
-                        strings_of_option run_as_useruid; 
-                        strings_of_option max_upload_slots; 
-                        strings_of_option dynamic_slots; 
-                        strings_of_option max_hard_upload_rate; 
-                        strings_of_option max_hard_download_rate; 
-                        strings_of_option max_opened_connections; 
-                        strings_of_option max_concurrent_downloads; 
+                        strings_of_option global_login;
+                        strings_of_option set_client_ip;
+                        strings_of_option force_client_ip;
+                        strings_of_option run_as_user;
+                        strings_of_option run_as_useruid;
+                        strings_of_option max_upload_slots;
+                        strings_of_option dynamic_slots;
+                        strings_of_option max_hard_upload_rate;
+                        strings_of_option max_hard_download_rate;
+                        strings_of_option max_opened_connections;
+                        strings_of_option max_concurrent_downloads;
                       ] 
                   
                   | 2 -> 
                       [
-                        strings_of_option gui_bind_addr; 
-                        strings_of_option telnet_bind_addr; 
-                        strings_of_option http_bind_addr; 
-                        strings_of_option chat_bind_addr; 
-                        strings_of_option gui_port; 
-                        strings_of_option telnet_port; 
-                        strings_of_option http_port; 
-                        strings_of_option chat_port; 
-                        strings_of_option http_realm; 
-                        strings_of_option allowed_ips; 
+                        strings_of_option gui_bind_addr;
+                        strings_of_option telnet_bind_addr;
+                        strings_of_option http_bind_addr;
+                        strings_of_option chat_bind_addr;
+                        strings_of_option gui_port;
+                        strings_of_option telnet_port;
+                        strings_of_option http_port;
+                        strings_of_option chat_port;
+                        strings_of_option http_realm;
+                        strings_of_option allowed_ips;
                       ] 
                   | 3 -> 
-                      [
-                        strings_of_option html_mods_use_relative_availability; 
-                        strings_of_option html_mods_human_readable; 
-                        strings_of_option html_mods_vd_network; 
-                        strings_of_option html_mods_vd_active_sources; 
-                        strings_of_option html_mods_vd_age; 
-                        strings_of_option html_mods_vd_last; 
-                        strings_of_option html_mods_vd_prio; 
-                        strings_of_option html_mods_vd_queues; 
-                        strings_of_option html_mods_show_pending; 
-                        strings_of_option html_mods_load_message_file; 
-                        strings_of_option html_mods_max_messages; 
-                        strings_of_option html_mods_bw_refresh_delay; 
-                        strings_of_option use_html_frames; 
-                        strings_of_option html_checkbox_vd_file_list;     
-                        strings_of_option html_checkbox_search_file_list;     
-                        strings_of_option commands_frame_height; 
-                        strings_of_option html_vd_barheight; 
-                        strings_of_option display_downloaded_results; 
-                        strings_of_option vd_reload_delay; 
-                        strings_of_option html_use_gzip; 
-                        strings_of_option html_mods_vd_gfx;
-                        strings_of_option html_mods_vd_gfx_split;
-                        strings_of_option html_mods_vd_gfx_fill;
-                        strings_of_option html_mods_vd_gfx_flip;
-                        strings_of_option html_mods_vd_gfx_mean;
-                        strings_of_option html_mods_vd_gfx_transparent;
-                        strings_of_option html_mods_vd_gfx_png;
-                        strings_of_option html_mods_vd_gfx_h;
-                        strings_of_option html_mods_vd_gfx_x_size;
-                        strings_of_option html_mods_vd_gfx_y_size;
-                        strings_of_option html_mods_vd_gfx_tag;
-                        strings_of_option html_mods_vd_gfx_tag_use_source;
-                        strings_of_option html_mods_vd_gfx_tag_source;
-                        strings_of_option html_mods_vd_gfx_tag_png;
-                        strings_of_option html_mods_vd_gfx_tag_enable_title;
-                        strings_of_option html_mods_vd_gfx_tag_title;
-                        strings_of_option html_mods_vd_gfx_tag_title_x_pos;
-                        strings_of_option html_mods_vd_gfx_tag_title_y_pos;
-                        strings_of_option html_mods_vd_gfx_tag_dl_x_pos;
-                        strings_of_option html_mods_vd_gfx_tag_dl_y_pos;
-                        strings_of_option html_mods_vd_gfx_tag_ul_x_pos;
-                        strings_of_option html_mods_vd_gfx_tag_ul_y_pos;
-                        strings_of_option html_mods_vd_gfx_tag_x_size;
-                        strings_of_option html_mods_vd_gfx_tag_y_size;
-                      ] 
+                      ([
+                        strings_of_option html_mods_use_relative_availability;
+                        strings_of_option html_mods_human_readable;
+                        strings_of_option html_mods_vd_network;
+                        strings_of_option html_mods_vd_active_sources;
+                        strings_of_option html_mods_vd_age;
+                        strings_of_option html_mods_vd_last;
+                        strings_of_option html_mods_vd_prio;
+                        strings_of_option html_mods_vd_queues;
+                        strings_of_option html_mods_show_pending;
+                        strings_of_option html_mods_load_message_file;
+                        strings_of_option html_mods_max_messages;
+                        strings_of_option html_mods_bw_refresh_delay;
+                        strings_of_option use_html_frames;
+                        strings_of_option html_checkbox_vd_file_list;
+                        strings_of_option html_checkbox_search_file_list;
+                        strings_of_option commands_frame_height;
+                        strings_of_option html_vd_barheight;
+                        strings_of_option display_downloaded_results;
+                        strings_of_option vd_reload_delay;
+                        strings_of_option html_use_gzip;
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_remove)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_split)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_fill)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_flip)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_mean)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_transparent)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_png)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_h)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_x_size)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_y_size)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_use_source)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_source)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_png)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_enable_title)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title_x_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title_y_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_dl_x_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_dl_y_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_ul_x_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_ul_y_pos)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_x_size)] else []) @ [
+			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_y_size)] else []))
                   | 4 -> 
                       [
                         strings_of_option save_options_delay; 
