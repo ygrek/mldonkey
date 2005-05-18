@@ -23,7 +23,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 4025: Enable sha1new on Solaris and Windows
 4026: Remove all servers with "rem all" works now
 4027: Fix jpg viewing with gdstats
-4028: Remove gd generated files
+4028: Remove gd generated files (cosmetic code update 2005/05/19)
 4029: EDK: Print warning if enable_servers false
 
 2005/05/13: spiralvoice

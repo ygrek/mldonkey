@@ -1337,7 +1337,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option allowed_ips;
                       ] 
                   | 3 -> 
-                      ([
+                      [
                         strings_of_option html_mods_use_relative_availability;
                         strings_of_option html_mods_human_readable;
                         strings_of_option html_mods_vd_network;
@@ -1358,31 +1358,33 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option display_downloaded_results;
                         strings_of_option vd_reload_delay;
                         strings_of_option html_use_gzip;
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_remove)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_split)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_fill)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_flip)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_mean)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_transparent)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_png)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_h)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_x_size)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_y_size)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_use_source)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_source)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_png)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_enable_title)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title_x_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_title_y_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_dl_x_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_dl_y_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_ul_x_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_ul_y_pos)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_x_size)] else []) @ [
-			] @ (if Autoconf.has_gd then [(strings_of_option html_mods_vd_gfx_tag_y_size)] else []))
+			] @ (if Autoconf.has_gd then [
+                        strings_of_option html_mods_vd_gfx;
+                        strings_of_option html_mods_vd_gfx_remove;
+                        strings_of_option html_mods_vd_gfx_split;
+                        strings_of_option html_mods_vd_gfx_fill;
+                        strings_of_option html_mods_vd_gfx_flip;
+                        strings_of_option html_mods_vd_gfx_mean;
+                        strings_of_option html_mods_vd_gfx_transparent;
+                        strings_of_option html_mods_vd_gfx_png;
+                        strings_of_option html_mods_vd_gfx_h;
+                        strings_of_option html_mods_vd_gfx_x_size;
+                        strings_of_option html_mods_vd_gfx_y_size;
+                        strings_of_option html_mods_vd_gfx_tag;
+                        strings_of_option html_mods_vd_gfx_tag_use_source;
+                        strings_of_option html_mods_vd_gfx_tag_source;
+                        strings_of_option html_mods_vd_gfx_tag_png;
+                        strings_of_option html_mods_vd_gfx_tag_enable_title;
+                        strings_of_option html_mods_vd_gfx_tag_title;
+                        strings_of_option html_mods_vd_gfx_tag_title_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_title_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_x_size;
+                        strings_of_option html_mods_vd_gfx_tag_y_size;
+			] else [])
                   | 4 -> 
                       [
                         strings_of_option save_options_delay; 
