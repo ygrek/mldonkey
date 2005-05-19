@@ -11,6 +11,16 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/05/19: spiralvoice
+
+Remove big, dcgui, giFT, hwd, lopster and small from ./icons
+GTK old- and newgui and GTK2 GUI compile without those dirs.
+
+Only these sets are used:
+./config/Makefile.in:  ICONS_CHOICE=icons/rsvg
+./config/Makefile.in:    ICONS_CHOICE=icons/tux
+./config/Makefile.in:    ICONS_CHOICE=icons/kde
+
 2005/05/17: spiralvoice
 
 3985: Create pid file
