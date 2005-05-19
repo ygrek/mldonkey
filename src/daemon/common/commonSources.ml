@@ -25,6 +25,7 @@ open BasicSocket
 
 open TcpBufferedSocket
 open CommonFile
+open CommonGlobals
 open CommonOptions
 open CommonTypes
 
@@ -441,22 +442,68 @@ let rec find_max_overloaded q managers =
         (* let max_s = functions.function_max_sources_per_file () in
         (file_priority f)*(max_s/20) + max_s > !all_ready_s + new_s *)
         (file_priority f) + 20 > !ready_count
-
+        
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         print                                         *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let print buf =
-        Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
-        
-        Printf.bprintf buf "File sources per manager queue:\n";
-        Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
+ 
+       let print buf output_type =
+        let timer = Unix.localtime (float_of_int(last_time ()) +. 1000000000.) in
+        let time_to_string time =
+          let h0 = string_of_int(time.Unix.tm_hour ) in
+          let m0 = string_of_int(time.Unix.tm_min ) in
+          let s0 = string_of_int(time.Unix.tm_sec ) in
+          (if String.length h0 = 2 then h0 else "0"^h0)
+            ^":"^ (if String.length m0 = 2 then m0 else "0"^m0)
+            ^":"^ (if String.length s0 = 2 then s0 else "0"^s0)
+        in
+        let pos_to_string v =
+          (if v > 0 then string_of_int(v) else "-")
+        in
+        let html_tr_one () = Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>" in
+        let html_tr_two () = Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>" in
+
+        (* Header *)
+        if output_type = HTML then
+          begin
+            Printf.bprintf buf "\\<div class=results\\>";
+            html_mods_table_header buf "sourcesTable" "sources" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [
+              ("", "srh", "Statistics on sources ");
+              ("", "srh", "@ " ^(time_to_string timer));
+              ("", "srh", "File sources per manager queue"); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
+
+            html_mods_table_header buf "sourcesTable" "sources" [
+              ( "0", "srh", "Filename", "Name" );
+              ( "0", "srh", "New sources", "New" );
+              ( "0", "srh", "Good sources", "Good" );
+              ( "0", "srh", "Ready sources", "Ready" );
+              ( "0", "srh", "Waiting sources", "Wait" );
+              ( "0", "srh", "Old sources 1", "Old1" );
+              ( "0", "srh", "Old sources 2", "Old2" );
+              ( "0", "srh", "Old sources 3", "Old3" );
+              ( "0", "srh", "Number of retries", "N..try" );
+              ( "0", "srh", "Connected sources", "Conn..ed" );
+              ( "0", "srh", "Connecting sources", "Conn..ing" );
+              ( "0", "srh", "Busy sources", "Busy" );
+              ( "0", "srh", "Total sources", "Total" ) ];
+          end
+        else
+          begin
+            Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
+
+            Printf.bprintf buf "File sources per manager queue:\n";
+            Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
                         (* "9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999"
                            11*5 chars
                            one row each: all,indirect,ready*)
+          end;
+
         let nsources_per_queue = Array.create nqueues 0 in
         let nready_per_queue = Array.create nqueues 0 in
         let nready_throttled_per_queue = Array.create nqueues 0 in
@@ -465,6 +512,13 @@ let rec find_max_overloaded q managers =
         let nall = ref 0 in
         let naact = ref 0 in
         let naneed = ref 0 in
+        let my_file_sources_managers = 
+          Sort.list
+            (fun f1 f2 ->
+              file_best_name (f1.manager_file ()) < file_best_name (f2.manager_file ())
+            ) !file_sources_managers
+        in
+        (* Files *)
         List.iter (fun m ->
             let name = file_best_name (m.manager_file ()) in
             if m.manager_all_sources <> 0 then
@@ -473,17 +527,29 @@ let rec find_max_overloaded q managers =
                 let antready = ref 0 in
                 let anindirect = ref 0 in
                 let aninvalid = ref 0 in
+                let slist = ref [] in
+                let sreadylist = ref [] in
+                let streadylist = ref [] in
+                let sindirectlist = ref [] in
+                let sinvalidlist = ref [] in
                 let sready = ref "" in
                 let stready = ref "" in
                 let sindirect = ref "" in
                 let sinvalid = ref "" in
+                (* Queues *)
                 for i = 0 to nqueues -1 do
                   let q = m.manager_sources.(i) in
-                  Printf.bprintf buf "%4d " (Queue.length q);
+                  if output_type = HTML then
+                      slist := !slist @ [
+                        ("", "sr", (pos_to_string (Queue.length q))); ]
+                  else
+                      Printf.bprintf buf "%4d " (Queue.length q);
+
                   let nready = ref 0 in
                   let nindirect = ref 0 in
                   let ninvalid = ref 0 in
                   let nsources = ref 0 in
+                  (* Sources *)
                   Queue.iter (fun (time, s) ->
                     incr nsources;
                     if M.indirect_source s.source_uid then
@@ -498,10 +564,26 @@ let rec find_max_overloaded q managers =
                         print_source buf s
                       end
                   ) q;
-                  sready := Printf.sprintf "%s%4d " !sready !nready;
-                  stready := Printf.sprintf "%s%4d " !stready (count_file_ready_sources m i true);
-                  sindirect := Printf.sprintf "%s%4d " !sindirect !nindirect;
-                  sinvalid := Printf.sprintf "%s%4d " !sinvalid !ninvalid;
+
+                  if output_type = HTML then
+                    begin
+                      sreadylist := !sreadylist @ [
+                        ("", "sr", (pos_to_string (Queue.length q))); ] ;
+                      streadylist := !streadylist @ [
+                        ("", "sr", (pos_to_string (count_file_ready_sources m i true))); ] ;
+                      sindirectlist := !sindirectlist @ [
+                        ("", "sr", (pos_to_string !nindirect)); ] ;
+                      sinvalidlist := !sinvalidlist @ [
+                        ("", "sr", (pos_to_string !ninvalid)); ] ;
+                    end
+                  else
+                    begin
+                      sready := Printf.sprintf "%s%4d " !sready !nready;
+                      stready := Printf.sprintf "%s%4d " !stready (count_file_ready_sources m i true);
+                      sindirect := Printf.sprintf "%s%4d " !sindirect !nindirect;
+                      sinvalid := Printf.sprintf "%s%4d " !sinvalid !ninvalid
+                    end;
+
                   anready := !anready + !nready;
                   antready := !antready + (count_file_ready_sources m i true);
                   anindirect := !anindirect + !nindirect;
@@ -510,34 +592,134 @@ let rec find_max_overloaded q managers =
                   nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
                   ninvalid_per_queue.(i) <- ninvalid_per_queue.(i) + !ninvalid;
                   nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
-                done;
-                Printf.bprintf buf "%4d %s\n" m.manager_all_sources name;
-                Printf.bprintf buf "%s%4d     ready  %d active%s\n" !sready !anready m.manager_active_sources
-                    (if file_state (m.manager_file ()) = FileDownloading && need_new_sources m then
-                       begin
-                         incr naneed;
-                         "  needs sources"
-                       end
-                     else
-                         ""
+                done; (* end Queues *)
+
+                if output_type = HTML then
+                  begin
+                    html_tr_one ();
+                    html_mods_td buf ([
+                      ("Filename", "sr", (shorten name !!max_name_len)); ]
+                    @ !slist @
+                    [ ("", "sr", Printf.sprintf "%d" m.manager_all_sources); ]);
+                    Printf.bprintf buf "\\</tr\\>\n";
+
+                    html_tr_two ();
+                    html_mods_td buf ([
+                      ("", "sr", ((Printf.sprintf "ready with %d active" 
+                        m.manager_active_sources) ^ (
+                        if file_state (m.manager_file ()) = FileDownloading && need_new_sources m then
+                          begin
+                            incr naneed;
+                            " and needs sources"
+                          end
+                        else
+                          ""
+                        ))); ]
+                      @ !sreadylist @
+                    [ ("", "sr", Printf.sprintf "%d" !anready); ]);
+                    Printf.bprintf buf "\\</tr\\>\n";
+
+                    html_tr_two ();
+                    html_mods_td buf ([
+                      ("", "sr", "throttled ready"); ]
+                    @ !streadylist @
+                    [ ("", "sr", Printf.sprintf "%d" !antready); ]);
+                    Printf.bprintf buf "\\</tr\\>\n";
+
+                    (if !anindirect <> 0 then
+                      begin
+                        html_tr_two ();
+                        html_mods_td buf ([
+                          ("", "sr", "indirect"); ]
+                        @ !sindirectlist @
+                        [ ("", "sr", Printf.sprintf "%d" !anindirect); ]);
+                        Printf.bprintf buf "\\</tr\\>\n";
+                      end
                     );
-                Printf.bprintf buf "%s%4d     throttled ready\n" !stready !antready;
-                if !anindirect <> 0 then
-                  Printf.bprintf buf "%s%4d     indirect\n" !sindirect !anindirect;
-                if !aninvalid <> 0 then
-                  Printf.bprintf buf "%s%4d     invalid\n" !sindirect !anindirect;
+                    (if !aninvalid <> 0 then
+                      begin
+                        html_tr_two ();
+                        html_mods_td buf ([
+                          ("", "sr", "invalid"); ]
+                        @ !sinvalidlist @
+                        [ ("", "sr", Printf.sprintf "%d" !aninvalid); ]);
+                        Printf.bprintf buf "\\</tr\\>\n";
+                      end
+                    );
+                  end
+                else
+                  begin
+                    Printf.bprintf buf "%4d %s\n" m.manager_all_sources name;
+                    Printf.bprintf buf "%s%4d     ready  %d active%s\n" !sready !anready m.manager_active_sources
+                        (if file_state (m.manager_file ()) = FileDownloading && need_new_sources m then
+                           begin
+                             incr naneed;
+                             "  needs sources"
+                           end
+                         else
+                             ""
+                        );
+                    Printf.bprintf buf "%s%4d     throttled ready\n" !stready !antready;
+                    if !anindirect <> 0 then
+                      Printf.bprintf buf "%s%4d     indirect\n" !sindirect !anindirect;
+                    if !aninvalid <> 0 then
+                      Printf.bprintf buf "%s%4d     invalid\n" !sinvalid !aninvalid;
+                  end;
+
                 nall := !nall + m.manager_all_sources;
                 naact := !naact + m.manager_active_sources;
               end
             else
               begin
-                Printf.bprintf buf "None %55s%s\n" ("") name;
+                if output_type = HTML then
+                  begin
+                    html_tr_one ();
+                    html_mods_td buf
+                      [
+                        ("", "sr", name);
+                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
+                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
+                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
+                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
+                      ];
+                    Printf.bprintf buf "\\</tr\\>\n";
+                  end
+                else
+                  Printf.bprintf buf "None %55s%s\n" ("") name;
                 if file_state (m.manager_file ()) = FileDownloading && need_new_sources m then
                   incr naneed;
               end
-        ) !file_sources_managers;
-        
-        Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
+        ) my_file_sources_managers; (* end Files *)
+
+        (* next Header *)
+        if output_type = HTML then
+          begin
+            Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+
+            html_mods_table_header buf "sourcesTable" "sources" [ 
+              ( "0", "srh", "Type", "Type" );
+              ( "0", "srh", "New sources", "New" );
+              ( "0", "srh", "Good sources", "Good" );
+              ( "0", "srh", "Ready sources", "Ready" );
+              ( "0", "srh", "Waiting sources", "Wait" );
+              ( "0", "srh", "Old sources 1", "Old1" );
+              ( "0", "srh", "Old sources 2", "Old2" );
+              ( "0", "srh", "Old sources 3", "Old3" );
+              ( "0", "srh", "Number of retries", "N..try" );
+              ( "0", "srh", "Connected sources", "Conn..ed" );
+              ( "0", "srh", "Connecting sources", "Conn..ing" );
+              ( "0", "srh", "Busy sources", "Busy" );
+              ( "0", "srh", "Total sources", "Total" ) ];
+          end
+        else
+          Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
+
+        let slist = ref [] in
+        let sreadylist = ref [] in
+        let streadylist = ref [] in
+        let sindirectlist = ref [] in
+        let sinvalidlist = ref [] in
+        let speriodlist = ref [] in
         let sready = ref "" in
         let stready = ref "" in
         let sindirect = ref "" in
@@ -547,43 +729,138 @@ let rec find_max_overloaded q managers =
         let antready = ref 0 in
         let anindirect = ref 0 in
         let aninvalid = ref 0 in
+        (* Queues *)
         for i = 0 to nqueues - 1 do
-          Printf.bprintf buf "%4d " nsources_per_queue.(i) ;
-          sready := Printf.sprintf "%s%4d " !sready nready_per_queue.(i);
-          anready := !anready + nready_per_queue.(i);
-          stready := Printf.sprintf "%s%4d " !stready (count_ready_sources i true);
-          antready := !antready + (count_ready_sources i true);
-          sindirect := Printf.sprintf "%s%4d " !sindirect nindirect_per_queue.(i);
-          anindirect := !anindirect + nindirect_per_queue.(i);
-          sinvalid := Printf.sprintf "%s%4d " !sinvalid ninvalid_per_queue.(i);
-          aninvalid := !aninvalid + ninvalid_per_queue.(i);
-          speriod := Printf.sprintf "%s%4d " !speriod queue_period.(i);
-        done;
+          if output_type = HTML then
+            begin
+              slist := !slist @ [
+                ("", "sr", (pos_to_string nsources_per_queue.(i))); ] ;
+              sreadylist := !sreadylist @ [
+                ("", "sr", (pos_to_string nready_per_queue.(i))); ] ;
+              anready := !anready + nready_per_queue.(i);
+              streadylist := !streadylist @ [
+                ("", "sr", (pos_to_string (count_ready_sources i true))); ] ;
+              antready := !antready + (count_ready_sources i true);
+              sindirectlist := !sindirectlist @ [
+                ("", "sr", (pos_to_string nindirect_per_queue.(i))); ] ;
+              anindirect := !anindirect + nindirect_per_queue.(i);
+              sinvalidlist := !sinvalidlist @ [
+                ("", "sr", (pos_to_string ninvalid_per_queue.(i))); ] ;
+              aninvalid := !aninvalid + ninvalid_per_queue.(i);
+              speriodlist := !speriodlist @ [
+                ("", "sr", (pos_to_string queue_period.(i))); ] ;
+            end
+          else
+            begin
+              Printf.bprintf buf "%4d " nsources_per_queue.(i);
+              sready := Printf.sprintf "%s%4d " !sready nready_per_queue.(i);
+              anready := !anready + nready_per_queue.(i);
+              stready := Printf.sprintf "%s%4d " !stready (count_ready_sources i true);
+              antready := !antready + (count_ready_sources i true);
+              sindirect := Printf.sprintf "%s%4d " !sindirect nindirect_per_queue.(i);
+              anindirect := !anindirect + nindirect_per_queue.(i);
+              sinvalid := Printf.sprintf "%s%4d " !sinvalid ninvalid_per_queue.(i);
+              aninvalid := !aninvalid + ninvalid_per_queue.(i);
+              speriod := Printf.sprintf "%s%4d " !speriod queue_period.(i);
+            end;
+        done; (* end Queues *)
         let nsources = ref 0 in
         HS.iter (fun _ -> incr nsources) sources_by_uid;
-        Printf.bprintf buf "%4d all source managers  %d by UID\n" !nall !nsources;
-        Printf.bprintf buf "%s%4d     ready  %d active  %i need sources\n" !sready !anready !naact !naneed;
-        Printf.bprintf buf "%s%4d     throttled ready\n" !stready !antready;
-        if !anindirect <> 0 then
-          Printf.bprintf buf "%s%4d     indirect\n" !sindirect !anindirect;
-        if !aninvalid <> 0 then
-          Printf.bprintf buf "%s%4d     invalid\n" !sinvalid !aninvalid;
-        Printf.bprintf buf "%s     period\n" !speriod;
+        if output_type = HTML then
+          begin
+            html_tr_one ();
+            html_mods_td buf ([
+              ("", "sr", Printf.sprintf "all source managers (%d by UID)" !nsources); ]
+            @ !slist @
+            [ ("", "sr", Printf.sprintf "%d" !nall); ]);
+            Printf.bprintf buf "\\</tr\\>\n";
 
+            html_tr_two ();
+            html_mods_td buf ([
+              ("", "sr", Printf.sprintf "ready with %d active and %i need sources" !naact !naneed); ]
+            @ !sreadylist @
+            [ ("", "sr", Printf.sprintf "%d" !anready); ]);
+            Printf.bprintf buf "\\</tr\\>\n";
+
+            html_tr_two ();
+            html_mods_td buf ([
+              ("", "sr", "throttled ready"); ]
+            @ !streadylist @
+            [ ("", "sr", Printf.sprintf "%d" !antready); ]);
+            Printf.bprintf buf "\\</tr\\>\n";
+
+            (if !anindirect <> 0 then
+              begin
+                html_tr_two ();
+                html_mods_td buf ([
+                  ("", "sr", "indirect"); ]
+                @ !sindirectlist @
+                [ ("", "sr", Printf.sprintf "%d" !anindirect); ]);
+                Printf.bprintf buf "\\</tr\\>\n";
+              end
+            );
+
+            (if !aninvalid <> 0 then
+              begin
+                html_tr_two ();
+                html_mods_td buf ([
+                  ("", "sr", "invalid"); ]
+                @ !sinvalidlist @
+                [ ("", "sr", Printf.sprintf "%d" !aninvalid); ]);
+                Printf.bprintf buf "\\</tr\\>\n";
+              end
+            );
+
+            html_tr_two ();
+            html_mods_td buf ([
+              ("", "sr", "period"); ]
+            @ !speriodlist @
+            [ ("", "sr", "") ]);
+            Printf.bprintf buf "\\</tr\\>\n";
+
+            Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+          end
+        else
+          begin
+            Printf.bprintf buf "%4d all source managers  %d by UID\n" !nall !nsources;
+            Printf.bprintf buf "%s%4d     ready  %d active  %i need sources\n" !sready !anready !naact !naneed;
+            Printf.bprintf buf "%s%4d     throttled ready\n" !stready !antready;
+            if !anindirect <> 0 then
+              Printf.bprintf buf "%s%4d     indirect\n" !sindirect !anindirect;
+            if !aninvalid <> 0 then
+              Printf.bprintf buf "%s%4d     invalid\n" !sinvalid !aninvalid;
+            Printf.bprintf buf "%s     period\n" !speriod;
+          end;
         let nconnected = ref 0 in
-        Fifo.iter (fun (_,s) ->
+        Fifo.iter
+          (fun (_,s) ->
             if s.source_last_attempt = 0 then incr nconnected;
-        ) connecting_sources;
-        Printf.bprintf buf "Connecting Sources: %d entries" 
-          (Fifo.length connecting_sources);
-        if !nconnected > 0 then Printf.bprintf buf " (connected: %d)" !nconnected;
-        Printf.bprintf buf "\n";
-        
-        Printf.bprintf buf "Next Direct Sources: %d entries\n" 
-          (Fifo.length next_direct_sources);
-        
-        Printf.bprintf buf "Next Indirect Sources: %d entries\n"
-          (List.length !next_indirect_sources)
+          ) connecting_sources;
+        if output_type = HTML then
+          begin
+            html_mods_table_header buf "sourcesTable" "sources" [ 
+              ( "0", "srh", "Connecting sources", "Connecting sources" );
+              ( "0", "srh", "Next direct sources", "Next direct sources" );
+              ( "0", "srh", "Next indirect sources", "Next indirect sources" ); ];
+            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [
+              ("", "sr", (Printf.sprintf "%d entries" (Fifo.length connecting_sources)) ^ 
+                (if !nconnected > 0 then Printf.sprintf " (connected: %d)" !nconnected else ("")));
+              ("", "sr", Printf.sprintf "%d entries" (Fifo.length next_direct_sources));
+              ("", "sr", Printf.sprintf "%d entries" (List.length !next_indirect_sources)); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n\\</div\\>"
+          end
+        else
+          begin
+            Printf.bprintf buf "Connecting Sources: %d entries"
+              (Fifo.length connecting_sources);
+            if !nconnected > 0 then Printf.bprintf buf " (connected: %d)" !nconnected;
+            Printf.bprintf buf "\n";
+            Printf.bprintf buf "Next Direct Sources: %d entries\n"
+              (Fifo.length next_direct_sources);
+            Printf.bprintf buf "Next Indirect Sources: %d entries\n"
+              (List.length !next_indirect_sources)
+          end
 
 
 (*************************************************************************)
@@ -1337,7 +1614,7 @@ we will probably query for the other file almost immediatly. *)
             if !verbose_sources > 0 then begin
                 lprintf "CommonSources.refill_sources BEFORE:\n";
                 let buf = Buffer.create 100 in
-                print buf;
+                print buf TEXT;
                 lprintf "%s\n\n" (Buffer.contents buf);
               end;
             
@@ -1615,7 +1892,7 @@ we will probably query for the other file almost immediatly. *)
             if !verbose_sources > 0 then begin
                 lprintf "CommonSources.refill_sources AFTER:\n";
                 let buf = Buffer.create 100 in
-                print buf;
+                print buf TEXT;
                 lprintf "%s\n\n" (Buffer.contents buf);
               end;
           with e -> 

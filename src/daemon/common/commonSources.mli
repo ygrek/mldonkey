@@ -165,8 +165,8 @@ module Make(M:
         
       val attach_sources_to_file : Options.options_section -> (unit -> unit)
         
-      val print : Buffer.t -> unit
-  
+      val print : Buffer.t -> CommonTypes.output_type -> unit
+        
       val indirect_connections : int ref
         
       val dummy_source : source        

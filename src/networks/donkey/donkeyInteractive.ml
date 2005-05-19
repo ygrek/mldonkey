@@ -756,8 +756,8 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
-        DonkeySources.print buf;
-        "done"
+        DonkeySources.print buf o.conn_output;
+        ""
     ), ":\t\t\t\tshow sources currently known";
 
     (*
