@@ -1214,22 +1214,9 @@ AC_OUTPUT(\
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
-
-
 cd ..
-
-if test "$OS_FILES2" = "mingw"; then
-   echo "compiling win32 resource file"
-   windres -o resfile.o config/mldonkey.rc
-fi
-
-if test "$OS_FILES2" = "cygwin"; then
-   echo "compiling win32 resource file"
-   windres -o resfile.o config/mldonkey.rc
-fi
 
 echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
-
 
 echo "The following modules will not be compiled: {" $BAD_TARGETS "}"

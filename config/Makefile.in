@@ -1599,7 +1599,7 @@ mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 #######################################################################
 
 
-opt:  $(TMPSOURCES) $(TARGETS)
+opt:  resfile.o $(TMPSOURCES) $(TARGETS)
 
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 
@@ -1657,7 +1657,7 @@ clean:
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
-	rm -f mldonkey mlgui
+	rm -f mldonkey mlgui mlnet.exe
 	rm -f svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
@@ -1724,7 +1724,15 @@ $(MLTSOURCES): $(OCAMLPP)
 #ocamlpp.byte: tools/ocamlpp.ml
 #	$(OCAMLC) str.cma -o ocamlpp.byte tools/ocamlpp.ml
 
-depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
+resfile.o: 
+	if test "$(OS_FILES2)" = "mingw"; then \
+	  windres -o resfile.o config/mldonkey.rc; \
+	fi; \
+	if test "$(OS_FILES2)" = "cygwin"; then \
+	  windres -o resfile.o config/mldonkey.rc; \
+	fi
+
+depend1:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
@@ -1735,6 +1743,8 @@ depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 			$(MAKE) svg_converter; \
 		fi; \
 	fi
+
+depend: resfile.o depend1
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
 	rm -rf $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)
