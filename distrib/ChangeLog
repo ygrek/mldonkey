@@ -13,6 +13,9 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/05/19: spiralvoice
 
+Replaced docs/http-1.1.txt and docs/uri.txt with links
+to the original files.
+
 Remove big, dcgui, giFT, hwd, lopster and small from ./icons
 GTK old- and newgui and GTK2 GUI compile without those dirs.
 
