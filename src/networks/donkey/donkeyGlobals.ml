@@ -340,7 +340,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
         else file_size
       in
       
-      if file_size <> zero then
+      if file_size <> zero && writable then (* do not truncate if not writable *)
         Unix32.ftruncate64 t file_size;
       
       let nchunks = Int64.to_int (Int64.div 

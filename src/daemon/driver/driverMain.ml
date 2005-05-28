@@ -53,7 +53,6 @@ let _s x = _s "DriverMain" x
 let _b x = _b "DriverMain" x
   
 let keep_console_output = ref false
-let daemon = ref false
   
 let do_daily () =
   incr CommonWeb.days;
@@ -372,8 +371,9 @@ let load_config () =
            log_to_file stderr;
        ), 
        _s ": keep output to stderr after startup";
-      "-daemon", Arg.Set daemon,
-      _s ": start as a daemon (detach from console and run in background";
+      "-daemon", Arg.Unit (fun _ ->
+          lprintf "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead, exiting...\n";
+          exit 0), _s " : this option was removed, core will exit";
       "-find_port", Arg.Set find_other_port, 
       _s " : find another port when one is already used";
     ] @ 
@@ -658,11 +658,5 @@ for config files at the end. *)
 (Printexc2.to_string e) !!log_file *)
           ()
         end else
-              close_log ();
-            
-      
-(* Question: is-it not to late to go in background ? Is-it possible that
-we have started some threads already ? What happens then ? *)
-      if !daemon then MlUnix.detach_daemon ()
+              close_log ()
     end
-       

@@ -2427,15 +2427,6 @@ let _ =
         _s "done"
     ), ":\t\t\t\tclear the table of clients being debugged";
     
-    "daemon", Arg_none (fun o ->
-        if BasicSocket.has_threads () then
-          _s "Cannot detach process after start, when running with threads"
-        else begin
-            MlUnix.detach_daemon ();
-            _s "done"
-          end
-    ), ":\t\t\t\t\tdetach process from console and run in background";
-    
     "merge", Arg_two (fun f1 f2 o ->
         let file1 = file_find (int_of_string f1) in
         let file2 = file_find (int_of_string f2) in

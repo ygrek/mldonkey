@@ -3,6 +3,5 @@
 #where "gstats" = "g2stats"
 #where "Gnutella" = "G2"
 #where "gN" = "g2"
+#where "gnut:" = "g2:"
 #include "src/networks/gnutella/gnutellaInteractive.ml" 
-  
-  

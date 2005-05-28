@@ -88,6 +88,9 @@ let chroot = Unix.chroot
 
 let write = Unix.write
   
+(* Removed code because it did not work properly
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=11514 *)
+(*
 let detach_daemon () =
   try
     let pid =  Unix.fork () in
@@ -115,5 +118,6 @@ let detach_daemon () =
       lprintf "Exception %s in detach_daemon\n"
         (Printexc2.to_string e); 
       exit 2
+*)
 
 let set_nonblock = Unix.set_nonblock

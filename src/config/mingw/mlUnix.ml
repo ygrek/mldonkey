@@ -74,7 +74,6 @@ let max_sockets = getdtablesize () - 10
 let max_filedescs = 50
   
 let chroot _ = ()
-let detach_daemon _ = ()
 
 external set_nonblock: Unix.file_descr -> unit = "ml_set_nonblock"
 
