@@ -372,8 +372,9 @@ let load_config () =
        ), 
        _s ": keep output to stderr after startup";
       "-daemon", Arg.Unit (fun _ ->
-          lprintf "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead, exiting...\n";
-          exit 0), _s " : this option was removed, core will exit";
+          (* Removed due to savannah bug #11514 . *)
+          lprintf "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...\n";
+          exit 0), _s " : this argument was removed, core will exit";
       "-find_port", Arg.Set find_other_port, 
       _s " : find another port when one is already used";
     ] @ 
@@ -536,11 +537,14 @@ let _ =
   lprint_newline ();
   
   if Autoconf.system <> "windows" then
-    (let oc = open_out "mlnet.pid" in
-         output_string oc (Printf.sprintf "%s\n" (string_of_int (Unix.getpid ())));
-         close_out oc;
-         CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid");
-       lprintf "Starting with pid %s\n" (string_of_int (Unix.getpid ())));
+    (* Doesn't work on windows with mingw, because getpid allways returns 948 *)
+    (
+      let oc = open_out "mlnet.pid" in
+      output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
+      close_out oc;
+      CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid" );
+      lprintf "Starting with pid %s\n" ( string_of_int ( Unix.getpid () ) )
+    );
 
   add_init_hook (fun _ ->
       if not !gui_included && ( !!start_gui || !!ask_for_gui ) then

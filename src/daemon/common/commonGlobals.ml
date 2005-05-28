@@ -79,23 +79,21 @@ let version () =
   
 let buildinfo () =
   (
-    "MLNet Multi-Network p2p client version " ^ Autoconf.current_version ^ "\n"
-      ^ (if Autoconf.cvs_version <> "" then ("CVS checkout from " ^ Autoconf.cvs_version ^ "\n") else "")
-      ^ (if Autoconf.svn_version <> "" then ("SVN release " ^ Autoconf.svn_version ^ "\n") else "")
-      ^ "\nNetworks: " ^ !networks_string ^ "\n"
-      ^ "Features:"
-          ^ (if BasicSocket.has_threads () then " threads " else " no-threads ")
-          ^ (if Autoconf.has_zlib then " zlib " else " no-zlib ")
-          ^ (if Autoconf.has_gd then " gd " else " no-gd ")
-          ^ (if Autoconf.has_iconv then " iconv " else " no-iconv ")
-          ^ (if Autoconf.check_bounds then " check-bounds " else " no-check-bounds ")
-	  ^ " " ^ Autoconf.sha1_version
-      ^ "\n\nOcaml version " ^ Autoconf.ocaml_version ^ "\n"
-      ^ "Build on " ^ Autoconf.build_system
-      ^ (if Autoconf.glibc_version <> "" then (" with glibc " ^ Autoconf.glibc_version) else "")
-      ^ "\n"
-      ^ (if Autoconf.config_options <> "" then "\nConfigure options: " ^ Autoconf.config_options else "")
-      ^ (if !patches_string <> "" then "\n " ^ !patches_string else "")
+    "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
+      ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
+      ^ "\nNetworks: " ^ !networks_string
+      ^ "\nFeatures:"
+          ^ (if BasicSocket.has_threads () then " threads" else " no-threads")
+          ^ (if Autoconf.has_zlib then " zlib" else " no-zlib")
+          ^ (if Autoconf.has_gd then " gd" else " no-gd")
+          ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
+          ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
+          ^ " " ^ Autoconf.sha1_version
+      ^ "\nOcaml version: " ^ Autoconf.ocaml_version
+      ^ "\nBuild on: " ^ Autoconf.build_system
+          ^ (if Autoconf.glibc_version <> "" then " with glibc " ^ Autoconf.glibc_version else "")
+      ^ (if Autoconf.configure_arguments <> "" then "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
+      ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
   )
   
 (* Should we try to find another port when we cannot bind to the one set

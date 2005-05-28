@@ -87,37 +87,5 @@ let chroot = Unix.chroot
 
 
 let write = Unix.write
-  
-(* Removed code because it did not work properly
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=11514 *)
-(*
-let detach_daemon () =
-  try
-    let pid =  Unix.fork () in
-    if pid < 0 then failwith "Error in fork";
-    if pid > 0 then exit 0;
-    let sid = Unix.setsid () in
-
-(* Changed in 2.5.27 *)
-    begin
-      let stdin_new = Unix.openfile "/dev/null" [O_RDONLY] 0o444 in
-      Unix.dup2 stdin_new Unix.stdin;
-      Unix.close stdin_new;
-    end;
-    
-    begin
-      let stdout_new = Unix.openfile "/dev/null" [O_WRONLY] 0o666 in
-      Unix.dup2 stdout_new Unix.stdout;
-      Unix.dup2 stdout_new Unix.stderr;
-      Unix.close stdout_new;
-    end;
-    
-    Printf2.detach ();
-        
-  with e ->
-      lprintf "Exception %s in detach_daemon\n"
-        (Printexc2.to_string e); 
-      exit 2
-*)
 
 let set_nonblock = Unix.set_nonblock

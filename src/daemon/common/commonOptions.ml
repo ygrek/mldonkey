@@ -70,13 +70,14 @@ let (file_basedir, home_basedir) =
         lprintf "Exception %s trying to chroot %s\n"
           (Printexc2.to_string e) chroot_dir;
         exit 2
-  with _ ->  
-      (try
-        let s = Sys.getenv "MLDONKEY_DIR" in
-	  if s = "" then "." else s
-       with _ -> 
-            !!mldonkey_directory),
-      home_dir
+  with _ ->
+      (
+        try
+          let s = Sys.getenv "MLDONKEY_DIR" in
+          if s = "" then "." else s
+        with _ ->
+            !!mldonkey_directory
+      ), home_dir
 
 let _ =
   (try

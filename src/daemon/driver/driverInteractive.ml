@@ -1470,80 +1470,60 @@ let print_network_modules buf o =
     end
 
 let print_gdstats buf o =
+  let picture_suffix () =
+    if !!html_mods_vd_gfx_png then
+      Printf.bprintf buf "png\\\"\\>"
+    else
+      Printf.bprintf buf "jpg\\\"\\>";
+  in
   if Autoconf.has_gd then
     (
-      (if !!html_mods_vd_gfx then 
+      if !!html_mods_vd_gfx then
         (
-        Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
-        (if !!html_mods_vd_gfx_split then begin
-          Printf.bprintf buf "\\<img src=\\\"bw_download.";
-          (if !!html_mods_vd_gfx_png then 
-              Printf.bprintf buf "png\\\"\\>"
-          else 
-              Printf.bprintf buf "jpg\\\"\\>"
-          );  
-          (if !!html_mods_vd_gfx_flip then
-              Printf.bprintf buf "\\<br\\>"
-          );
-          Printf.bprintf buf "\\<img src=\\\"bw_upload.";
-          (if !!html_mods_vd_gfx_png then
-            Printf.bprintf buf "png\\\"\\>"
-          else
-            Printf.bprintf buf "jpg\\\"\\>"
-          );
-        end
-      else
-        Printf.bprintf buf "\\<img src=\\\"bw_updown.";
-        (if !!html_mods_vd_gfx_png then
-          Printf.bprintf buf "png\\\"\\>"
-        else
-          Printf.bprintf buf "jpg\\\"\\>")
-        );
-        Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
-        (if !!html_mods_vd_gfx_h then 
-          (
           Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
-          (if !!html_mods_vd_gfx_split then begin
-            Printf.bprintf buf "\\<img src=\\\"bw_h_download.";
-            (if !!html_mods_vd_gfx_png then 
-                Printf.bprintf buf "png\\\"\\>"
-            else 
-                Printf.bprintf buf "jpg\\\"\\>"
-            );  
-            (if !!html_mods_vd_gfx_flip then
-                Printf.bprintf buf "\\<br\\>"
-            );
-            Printf.bprintf buf "\\<img src=\\\"bw_h_upload.";
-            (if !!html_mods_vd_gfx_png then
-              Printf.bprintf buf "png\\\"\\>"
-            else
-              Printf.bprintf buf "jpg\\\"\\>"
-            );
-          end
+          if !!html_mods_vd_gfx_split then
+            begin
+              Printf.bprintf buf "\\<img src=\\\"bw_download.";
+              picture_suffix ();
+              if !!html_mods_vd_gfx_flip then
+                Printf.bprintf buf "\\<br\\>";
+              Printf.bprintf buf "\\<img src=\\\"bw_upload.";
+              picture_suffix ();
+            end
           else
-            Printf.bprintf buf "\\<img src=\\\"bw_h_updown.";
-            (if !!html_mods_vd_gfx_png then
-                Printf.bprintf buf "png\\\"\\>"
-             else
-                Printf.bprintf buf "jpg\\\"\\>")
-          );
-          Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";  
-          ); 
-        );  
-        (if !!html_mods_vd_gfx_tag then begin
-          Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
-          (if !!html_mods_vd_gfx_tag_png then
-            Printf.bprintf buf ".png\\\"\\>"
-          else 
-            Printf.bprintf buf ".jpg\\\"\\>"
-            );
+            begin
+              Printf.bprintf buf "\\<img src=\\\"bw_updown.";
+              picture_suffix ();
+            end;
           Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
-        end
+          if !!html_mods_vd_gfx_h then
+            (
+              Printf.bprintf buf "\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>";
+              if !!html_mods_vd_gfx_split then
+                begin
+                  Printf.bprintf buf "\\<img src=\\\"bw_h_download.";
+                  picture_suffix ();
+                  if !!html_mods_vd_gfx_flip then
+                    Printf.bprintf buf "\\<br\\>";
+                  Printf.bprintf buf "\\<img src=\\\"bw_h_upload.";
+                  picture_suffix ();
+                end
+              else
+                begin
+                  Printf.bprintf buf "\\<img src=\\\"bw_h_updown.";
+                  picture_suffix ();
+                end;
+              Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
+            );
+          if !!html_mods_vd_gfx_tag then
+            begin
+              Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
+              picture_suffix ();
+              Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
+            end;
         );
-        Printf.bprintf buf "";
-        )
-      )
     )
   else
     (* fake call if no gd *)
     CommonGraphics.do_draw_pic "" "" "" download_history download_history
+

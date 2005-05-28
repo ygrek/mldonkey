@@ -4,22 +4,19 @@ AC_PREREQ(2.53)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
-MYCONFIG_ARGS=$*
-echo Arguments: $MYCONFIG_ARGS
-
-MYCONFIG_ARGS_DEFINED=yes
-CONFIG_OPTIONS=$MYCONFIG_ARGS
-echo $MYCONFIG_ARGS
+CONFIGURE_RUN=yes
+CONFIGURE_ARGUMENTS=$*
+echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 CURRENT_VERSION=2.5
 CURRENT_RELEASE=30.15
-SVN_VERSION=""
-CVS_VERSION=""
-if test -d .svn; then
-  SVN_VERSION=`svnversion -n .`
-fi
+SCM_VERSION=""
 if test -f ./subrelease; then
   CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
+fi
+if test -d .svn; then
+  CURRENT_RELEASE=$CURRENT_RELEASE.SVN
+  SCM_VERSION=`svnversion -n .`
 fi
 if test -f ./CVS/Entries ; then
   AC_CHECK_PROG(STAT, stat, stat)
@@ -28,11 +25,14 @@ if test -f ./CVS/Entries ; then
     if test "$ac_cv_prog_SED" = "sed"; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
-        CVS_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
+        CURRENT_RELEASE=$CURRENT_RELEASE.CVS
+        SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
       fi
     fi
   fi
 fi
+echo "Version: $CURRENT_VERSION.$CURRENT_RELEASE  SCM: $SCM_VERSION"
+
 REQUIRED_OCAML=3.08.3
 DOWNLOAD_OCAML_MAJOR=3.08
 DOWNLOAD_OCAML=3.08.3
@@ -480,11 +480,11 @@ if test "$SHA1_VERSION" = "sha1old"; then
         echo "You don't have endian.h or sys/endian.h or machine/endian.h installed."
         echo "This script will fallback on the old slower sha1 implementation."
     else
-	AC_MSG_RESULT($BYTE_ORDER)
-	./endian > ../src/utils/lib/endian.h
-	SHA1_VERSION=sha1new
-	AC_DEFINE(HAVE_LOCAL_ENDIAN_H, 1, [Define to 1 if you have a locally generated endian.h header file.])
-	AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
+        AC_MSG_RESULT($BYTE_ORDER)
+        ./endian > ../src/utils/lib/endian.h
+        SHA1_VERSION=sha1new
+        AC_DEFINE(HAVE_LOCAL_ENDIAN_H, 1, [Define to 1 if you have a locally generated endian.h header file.])
+        AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
     fi
     rm -f ./endian ./endian.exe
 else
@@ -1170,13 +1170,10 @@ AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
 AC_SUBST(CURRENT_VERSION)
 AC_SUBST(CURRENT_RELEASE)
-AC_SUBST(SVN_VERSION)
-AC_SUBST(CVS_VERSION)
+AC_SUBST(SCM_VERSION)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(OS_FILES2)
-AC_SUBST(MYCONFIG_ARGS)
-AC_SUBST(MYCONFIG_ARGS_DEFINED)
 AC_SUBST(TARGET_TYPE)
 AC_SUBST(RPMBUILD)
 
@@ -1199,7 +1196,8 @@ OCAML_VERSION="`$OCAMLC -version`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
 AC_SUBST(OCAML_VERSION)
-AC_SUBST(CONFIG_OPTIONS)
+AC_SUBST(CONFIGURE_ARGUMENTS)
+AC_SUBST(CONFIGURE_RUN)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml

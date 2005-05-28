@@ -284,10 +284,10 @@ all: Makefile config/Makefile.config $(TARGET_TYPE)
 config/configure: config/configure.in
 	cd config; autoconf
 
-ifeq ("$(MYCONFIG_ARGS_DEFINED)" , "yes")
+ifeq ("$(CONFIGURE_RUN)" , "yes")
 
 config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in packages/rpm/Makefile.in
-	./configure $(MYCONFIG_ARGS)
+	./configure $(CONFIGURE_ARGUMENTS)
 
 else
 
@@ -1599,7 +1599,7 @@ mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 #######################################################################
 
 
-opt:  resfile.o $(TMPSOURCES) $(TARGETS)
+opt:  $(TMPSOURCES) $(TARGETS)
 
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 
