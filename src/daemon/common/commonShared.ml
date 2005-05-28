@@ -142,8 +142,7 @@ let new_shared dirname prio filename fullname =
   if !verbose_share then
     lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s\n"
       dirname filename fullname codedname; 
-
-  let size = Unix32.getsize fullname in
+  let size = Unix32.getsize fullname false in
   incr files_scanned;
   files_scanned_size := !files_scanned_size ++ size;
   if Unix2.is_directory fullname then begin
@@ -215,7 +214,6 @@ let shared_find num =
 let shared_iter f =
   H.iter f shareds_by_num
 
-let file_size filename =  Unix32.getsize filename
 let local_dirname = Sys.getcwd ()
   
 (* Prevent sharing of temp directory to avoid sending incomplete files *)
@@ -253,7 +251,7 @@ let shared_scan_directory shared_dir local_dir =
                 end
               else
               try
-                let size = file_size full_name in
+                let size = (Unix32.getsize full_name) false in
                 if size > strategy.sharing_minsize && 
                   size < strategy.sharing_maxsize &&
                   (strategy.sharing_extensions = [] ||

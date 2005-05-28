@@ -187,7 +187,7 @@ let new_file file_id file_name file_size =
           (Printf.sprintf "ON-%s" (Md4.to_string file_id)) in
       let t = Unix32.create_rw file_temp in
       let current_size = try
-          Unix32.getsize file_temp
+          Unix32.getsize file_temp true
         with e ->
             lprintf "Exception %s in current_size\n" (Printexc2.to_string e); 
             Int64.zero

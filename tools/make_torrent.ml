@@ -148,7 +148,7 @@ let _ =
           else  Unix32.create_ro filename
         in
         
-        let length = Unix32.getsize64 t in
+        let length = Unix32.getsize64 t false in
         
         if torrent.torrent_length <> length then begin
             Printf.printf "ERROR: computed size %Ld <> torrent size %Ld"

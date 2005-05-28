@@ -99,17 +99,21 @@ module FDCache = struct
             close t
 
 
-    let local_force_fd t =
+    let local_force_fd t writable =
       check_destroyed t;
       let fd =
         match t.fd with
           None ->
             if !cache_size >= !max_cache_size then  close_one ();
             let fd =
-              try
-                Unix.openfile t.filename rw_flag rights
-              with Unix.Unix_error( (Unix.EACCES | Unix.EROFS) ,_,_) ->
+              if writable then begin
+                try
+                  Unix.openfile t.filename rw_flag rights
+                with Unix.Unix_error( (Unix.EACCES | Unix.EROFS) ,_,_) ->
                   Unix.openfile t.filename ro_flag 0o400
+                end
+              else
+                Unix.openfile t.filename ro_flag 0o400
             in
             incr cache_size;
 (*            lprintf "local_force: opening %d\n" (Obj.magic fd);  *)
@@ -134,11 +138,13 @@ module FDCache = struct
 
     let ftruncate64 t len =
       check_destroyed t;
-      Unix2.c_ftruncate64 (local_force_fd t) len
+      Unix2.c_ftruncate64 (local_force_fd t true) len
 
-    let getsize64 t = 
+    let getsize64 t writable =
       check_destroyed t;
-      Unix2.c_getfdsize64 (local_force_fd t)
+      let s = Unix2.c_getfdsize64 (local_force_fd t writable) in
+      if not writable then close t;
+      s
 
     let mtime64 t =
       check_destroyed t;
@@ -155,13 +161,18 @@ module FDCache = struct
       destroy t
 
     let read file file_pos string string_pos len =
-      let fd = local_force_fd file in
+      let fd = local_force_fd file true in
+      (*
+        I know I am calling local_force_fd with writable = true
+        although we are reading here, but I had problems with
+        it like exceptions in really_write
+      *)
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_read %d\n" len;
       Unix2.really_read fd string string_pos len
 
     let write file file_pos string string_pos len =
-      let fd = local_force_fd file in
+      let fd = local_force_fd file true in
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
       really_write fd string string_pos len
@@ -193,7 +204,7 @@ module type File =   sig
     val close : t -> unit
     val rename : t -> string -> unit
     val ftruncate64 : t -> int64 -> unit
-    val getsize64 : t -> int64
+    val getsize64 : t -> bool -> int64
     val mtime64 : t -> float
     val exists : t -> bool
     val remove : t -> unit
@@ -211,7 +222,7 @@ module DiskFile = struct
     let create = FDCache.create
 
     let apply_on_chunk t pos_s len_s f =
-      let fd = FDCache.local_force_fd t in
+      let fd = FDCache.local_force_fd t true in
       f fd pos_s
 
     let close = FDCache.close
@@ -321,13 +332,13 @@ module MultiFile = struct
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
             let fd = FDCache.create temp_filename in
-            let _ = FDCache.local_force_fd fd in
+            let _ = FDCache.local_force_fd fd true in
             iter tail (pos ++ size)
             ({
                 filename = filename;
                 pos = pos;
                 len = size;
-                current_len = FDCache.getsize64 fd;
+                current_len = FDCache.getsize64 fd true;
                 fd = fd;
                 tail = [];
               } :: files2)
@@ -372,7 +383,7 @@ module MultiFile = struct
       let file_begin = file.pos in
       let max_current_pos = file_begin ++ file.current_len in
       if max_current_pos >= chunk_end then
-        let fd = FDCache.local_force_fd file.fd in
+        let fd = FDCache.local_force_fd file.fd true in
         f fd (chunk_begin -- file_begin)
       else
       let temp_file = Filename.temp_file "chunk" ".tmp" in
@@ -401,7 +412,7 @@ module MultiFile = struct
           file_pos ++ zeros
       );
       FDCache.close file_out;
-      let fd = FDCache.local_force_fd file_out in
+      let fd = FDCache.local_force_fd file_out true in
       try 
         let v = f fd zero in
         Sys.remove temp_file;
@@ -648,7 +659,7 @@ module SparseFile = struct
         
         let chunk = t.chunks.(index) in
         let in_chunk_pos = chunk_begin -- chunk.pos in
-        let fd = FDCache.local_force_fd chunk.fd in
+        let fd = FDCache.local_force_fd chunk.fd true in
         f fd in_chunk_pos
       
       else
@@ -688,7 +699,7 @@ module SparseFile = struct
       iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
       
       FDCache.close file_out;
-      let fd = FDCache.local_force_fd file_out in
+      let fd = FDCache.local_force_fd file_out true in
       try
         let v = f fd zero in
         Sys.remove temp_file;
@@ -758,7 +769,7 @@ module SparseFile = struct
     let ftruncate64 t size =
       t.size <- size
 
-    let getsize64 t = t.size
+    let getsize64 t writable = t.size
 
     let mtime64 t =
       let st = Unix.LargeFile.stat t.dirname in
@@ -958,11 +969,12 @@ let mtime64 t =
   | SparseFile t -> SparseFile.mtime64 t
   | Destroyed -> failwith "Unix32.mtime64 on destroyed FD"
       
-let getsize64 t =
+let getsize64 t writable =
   match t.file_kind with
-  | DiskFile t -> DiskFile.getsize64 t
+  | DiskFile t -> DiskFile.getsize64 t writable
+    (* only avoid opening rw on shared files, shared files can only be DiskFile *)
   | MultiFile t -> MultiFile.getsize64 t
-  | SparseFile t -> SparseFile.getsize64 t
+  | SparseFile t -> SparseFile.getsize64 t writable
   | Destroyed -> failwith "Unix32.getsize64 on destroyed FD"
 
 let fds_size = Unix2.c_getdtablesize ()
@@ -1198,7 +1210,7 @@ let remove t =
   | SparseFile t -> SparseFile.remove t
   | Destroyed -> failwith "Unix32.remove on destroyed FD"
       
-let getsize s =  getsize64 (create_ro s)
+let getsize s writable =  getsize64 (create_ro s) writable
 let mtime s =  mtime64 (create_ro s)
 
 let file_exists s = exists (create_ro s)

@@ -341,7 +341,7 @@ module Make(M: sig
     
     let file s =
       let digest = String.create hash_length in
-      let file_size = Unix32.getsize s in
+      let file_size = Unix32.getsize s false in
       unsafe_file digest s file_size;
       digest
     

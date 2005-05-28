@@ -374,7 +374,7 @@ let exec_command telnet line sock =
       let file = correct_file file in
       if !verbose_dp500 then lprintf "Size of [%s]\n" file;
       let fd = Unix32.create_ro file in
-      let size = Unix32.getsize64 fd in
+      let size = Unix32.getsize64 fd false in
       write_string sock (Printf.sprintf "%015Ld" size)
     else
     if command = "GET" then
@@ -395,7 +395,7 @@ let exec_command telnet line sock =
             end;
           let pclink_buf, len_read = 
             if len_read = 0 then
-              let size = Unix32.getsize64 fd in
+              let size = Unix32.getsize64 fd false in
               let size = Int64.to_int size in
               String.create size, size
             else

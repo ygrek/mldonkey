@@ -91,7 +91,7 @@ let bitprint_file fd file_size partial =
   let sha1 = Sha1.digest_subfile fd zero file_size in
   let tiger = TigerTree.digest_subfile fd zero file_size in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger);
-  let file_size = Unix32.getsize64 fd in
+  let file_size = Unix32.getsize64 fd false in
   let nchunks = Int64.to_int (Int64.div 
         (Int64.sub file_size Int64.one) tiger_block_size) + 1 in
   let chunks = 
@@ -118,7 +118,7 @@ let bitprint_file fd file_size partial =
   
 let bitprint_filename filename partial =
   let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd in
+  let file_size = Unix32.getsize64 fd false in
   let (sha1, tiger2) = bitprint_file fd file_size partial in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger2);
   ()
@@ -159,7 +159,7 @@ let ed2k_hash_file fd file_size partial =
 
 let sha1_hash_filename block_size filename =
   let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd in
+  let file_size = Unix32.getsize64 fd false in
   let nchunks = Int64.to_int (Int64.div 
         (Int64.sub file_size Int64.one) block_size) + 1 in
   for i = 0 to nchunks - 1 do
@@ -180,7 +180,7 @@ let sha1_hash_filename block_size filename =
   
 let ed2k_hash_filename filename partial = 
   let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd in
+  let file_size = Unix32.getsize64 fd false in
   let md4 = ed2k_hash_file fd file_size partial in
   lprintf "ed2k://|file|%s|%Ld|%s|/\n" 
     (Filename.basename filename)
@@ -195,7 +195,7 @@ let ed2k_hash_filename filename partial =
   
 let sig2dat_hash_filename filename partial =
   let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd in
+  let file_size = Unix32.getsize64 fd false in
   let len64 = min (Int64.of_int 307200) file_size in
   let len = Int64.to_int len64 in
   let s = String.create len in

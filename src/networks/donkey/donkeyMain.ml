@@ -195,14 +195,15 @@ let enable () =
       
       Hashtbl.iter (fun _ file ->
           try
-            if file_state file <> FileDownloaded then begin
+            if file_state file <> FileDownloaded then begin (* add not finished files *)
                 current_files := file :: !current_files;
 (*                set_file_size file (file_size file) *)
               end else begin
                 try
                   let file_disk_name = file_disk_name file in
                   if Unix32.file_exists file_disk_name &&
-                    Unix32.getsize file_disk_name <> Int64.zero then begin
+                    Unix32.getsize file_disk_name false <> Int64.zero then begin
+                    (* getsize writable=false is ok because file has state FileDownloaded *)
                       lprintf "FILE DOWNLOADED\n"; 
                       
                       DonkeyOneFile.declare_completed_file file;

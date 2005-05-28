@@ -24,8 +24,8 @@ val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   
 (* val seek64 : t -> int64 -> Unix.seek_command -> int64  *)
-val getsize : string -> int64
-val getsize64 : t -> int64
+val getsize : string -> bool -> int64
+val getsize64 : t -> bool -> int64
 val ftruncate64 : t -> int64 -> unit
 
 val close_all : unit -> unit

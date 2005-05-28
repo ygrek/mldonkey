@@ -14,6 +14,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 2005/05/28: spiralvoice
 
 4040: EDK: Do not truncate shared files
+4043: Avoid locking shared files
 4044: G2: Enable dllink support for servers and friends
 4045: Remove command "-daemon", use 'mlnet > /dev/null 2>&1 &' instead
 4050: Sync with Amorphous rev325

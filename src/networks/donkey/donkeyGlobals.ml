@@ -334,7 +334,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
       let file_size =
         if file_size = Int64.zero then
           try
-            Unix32.getsize file_diskname
+            Unix32.getsize file_diskname writable
           with _ ->
               failwith "Zero length file ?"
         else file_size

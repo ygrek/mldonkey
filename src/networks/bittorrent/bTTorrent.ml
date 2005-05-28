@@ -241,7 +241,7 @@ let make_torrent announce filename =
               if Unix2.is_directory fullname then
                 iter_directory list basename
               else
-                (basename, Unix32.getsize fullname) :: list
+                (basename, Unix32.getsize fullname false) :: list
             in
             iter_files left dirname tail
       in
@@ -253,7 +253,7 @@ let make_torrent announce filename =
   in
   
   Unix32.flush_fd t;
-  let length = Unix32.getsize64 t in
+  let length = Unix32.getsize64 t false in
   let npieces = 1+ Int64.to_int ((length -- one) // chunk_size) in
   let pieces = Array.create npieces Sha1.null in
   for i = 0 to npieces - 1 do

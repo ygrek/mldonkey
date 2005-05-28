@@ -3299,7 +3299,8 @@ module Check = struct
     
     
     let nfiles = Array.length block_sizes
-    let file_size = Unix32.getsize file       
+    let file_size = Unix32.getsize file true
+    (* I know this module is commented out, but change it anyway *)
     
     let _ =
       

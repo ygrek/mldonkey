@@ -215,7 +215,7 @@ let check_shared_files () =
                 lprintf "Shared file doesn't exist\n"; 
                 raise Not_found;
               end;
-            if Unix32.getsize sh.shared_name <> sh.shared_size then begin
+            if Unix32.getsize sh.shared_name false <> sh.shared_size then begin
                 lprintf "Bad shared file size\n" ; 
                 raise Not_found;
               end;
