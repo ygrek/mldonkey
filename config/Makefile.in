@@ -113,6 +113,18 @@ CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 # use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
 
+ifeq ("$(OS_FILES2)", "mingw")
+
+RESFILE= resfile.o
+
+endif
+
+ifeq ("$(OS_FILES2)", "cygwin")
+
+RESFILE= resfile.o
+
+endif
+
 ifeq ("$(DEVEL)", "yes")
 
 TARGETS += mldonkey_installer$(EXE)
@@ -1599,7 +1611,7 @@ mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 #######################################################################
 
 
-opt:  $(TMPSOURCES) $(TARGETS)
+opt:  $(RESFILE) $(TMPSOURCES) $(TARGETS)
 
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 
@@ -1657,8 +1669,9 @@ clean:
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
-	rm -f mldonkey mlgui mlnet.exe
+	rm -f mldonkey mlgui mlnet.exe mlgui.exe
 	rm -f svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
+	rm -f svg_converter.exe ed2k_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -1724,15 +1737,11 @@ $(MLTSOURCES): $(OCAMLPP)
 #ocamlpp.byte: tools/ocamlpp.ml
 #	$(OCAMLC) str.cma -o ocamlpp.byte tools/ocamlpp.ml
 
-resfile.o: 
-	if test "$(OS_FILES2)" = "mingw"; then \
-	  windres -o resfile.o config/mldonkey.rc; \
-	fi; \
-	if test "$(OS_FILES2)" = "cygwin"; then \
-	  windres -o resfile.o config/mldonkey.rc; \
-	fi
+resfile.o:
+	windres -o resfile.o config/mldonkey.rc
 
-depend1:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
+depend:   $(RESFILE) \
+	pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES)
 	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
@@ -1743,8 +1752,6 @@ depend1:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 			$(MAKE) svg_converter; \
 		fi; \
 	fi
-
-depend: resfile.o depend1
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
 	rm -rf $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)

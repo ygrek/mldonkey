@@ -20,7 +20,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/05/19: spiralvoice
 
-4033: Fix "make clean" on MinGW/Cygwin
+4033: Fix "make clean" on MinGW/Cygwin (updated 2005/05/28)
 4034: HTML: sources command has HTML output now (from beedauchon)
 
 Replaced docs/http-1.1.txt and docs/uri.txt with links
