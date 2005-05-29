@@ -27,6 +27,7 @@ open Printf2
 open Md4
 
 open CommonOptions
+open CommonComplexOptions
 open CommonGlobals
 open Options
 open CommonTypes
@@ -227,6 +228,15 @@ let shared_add_directory shared_dir local_dir =
   waiting_directories := (shared_dir, local_dir) :: !waiting_directories
   
 let shared_scan_directory shared_dir local_dir =
+  let incoming_files_inode = 
+    ((Unix.stat ((CommonComplexOptions.incoming_files ()).shdir_dirname)).Unix.st_ino)
+  in
+  let incoming_directories_inode = 
+    ((Unix.stat ((CommonComplexOptions.incoming_directories ()).shdir_dirname)).Unix.st_ino)
+  in
+  let temp_directory_inode =
+    ((Unix.stat !!temp_directory).Unix.st_ino)
+  in
   let dirname = shared_dir.shdir_dirname in
   let strategy = 
     CommonComplexOptions.sharing_strategies shared_dir.shdir_strategy in
@@ -246,9 +256,24 @@ let shared_scan_directory shared_dir local_dir =
             let local_name = Filename.concat local_dir file in
             try
               if Unix2.is_directory full_name then begin
-                  if strategy.sharing_recursive then
+	        if strategy.sharing_recursive then
+	          if Sys.os_type <> "Win32" then (* Win32 means MinGW here as it does not supports inode nums *)
+	          begin
+		    let inode = ((Unix.stat full_name).Unix.st_ino) in
+		      if inode = incoming_files_inode then
+		        if !verbose_share then lprintf "avoid sharing incoming_files %s\n" full_dir else ()
+		      else
+		        if inode = incoming_directories_inode then
+			  if !verbose_share then lprintf "avoid sharing incoming_directories %s\n" full_dir else ()
+			else
+			  if inode = temp_directory_inode then
+			    if !verbose_share then lprintf "avoid sharing temp %s\n" full_dir else ()
+			  else
+			    shared_add_directory shared_dir local_name
+                  end
+                  else
                     shared_add_directory shared_dir local_name
-                end
+		end
               else
               try
                 let size = (Unix32.getsize full_name) false in
