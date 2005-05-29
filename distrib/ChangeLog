@@ -11,6 +11,11 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/05/30: spiralvoice
+
+4051: mailer:encode subject and include a time zone
+4055: Allow canceling of ed2k downloads if G2 is enabled
+
 2005/05/28: spiralvoice
 
 4040: EDK: Do not truncate shared files

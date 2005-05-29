@@ -11,6 +11,7 @@ type date_format =
 | Space
 | Colon
 | Dot
+| Zone
   
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
                 "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec"|]
@@ -35,6 +36,11 @@ let string_of_date formats tm =
       | Space -> s ^ " "
       | Colon -> s ^ ":"
       | Dot -> s ^ "."
+      | Zone -> s ^ "-0000" (* BUG: RFC 2822: Though "-0000" also indicates Universal Time, it is
+         used to indicate that the time was generated on a system that may be
+	    in a local time zone other than Universal Time and therefore
+	       indicates that the date-time contains no information about the local
+	          time zone. *)
   ) "" formats
 
   
@@ -51,7 +57,7 @@ let simple date =
     (Unix.localtime date)
   
 let mail_string date =
-    string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second]
+    string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second;Space;Zone]
       (Unix.localtime date)
 
 let hour_in_secs = 3600

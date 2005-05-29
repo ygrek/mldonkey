@@ -29,7 +29,53 @@ type mail = {
     mail_subject : string;
     mail_body : string;
   }
-  
+
+let rfc2047_encode h encoding  s =
+  let beginning = "=?" ^ encoding ^"?q?" in
+  let ending = "?=" in
+  let space = " " in
+  let crlf = "\r\n" in
+  let maxlen = 75 in (* max lenght of a line *)
+  let willbelines = ((String.length h + String.length s) * 3 / 
+      (maxlen - (String.length beginning + String.length ending)) +1) in
+  let res = String.create (willbelines * maxlen) in
+  let pos = ref 0 in
+  let rl = ref 0 in
+  let hexa_digit x =
+    if x >= 10 then Char.chr (Char.code 'A' + x - 10)
+    else Char.chr (Char.code '0' + x) in
+  let copy tanga = begin
+      for ii=0 to (String.length tanga -1) do
+        res.[!pos] <- tanga.[ii]; incr pos;
+      done;
+    end;
+  in    
+  copy h; 
+  copy beginning;
+  for i=0 to (String.length s)-1 do
+     let l = (!pos / (maxlen-String.length ending)) in
+    if l > !rl then begin
+      incr rl;
+      copy ending;
+      copy crlf;
+      copy space;
+      copy beginning;
+    end ;
+   match s.[i] with
+    | 'a'..'z' | 'A'..'Z' | '0'..'9' ->
+        res.[!pos] <- s.[i]; incr pos
+    | ' ' -> res.[!pos] <- '_'; incr pos 
+    | c ->
+        res.[!pos] <- '=';
+        res.[!pos+1] <- hexa_digit (Char.code c / 16);
+        res.[!pos+2] <- hexa_digit (Char.code c mod 16);
+        pos := !pos + 3
+    ;	
+  done;
+  copy ending;
+  String.sub res 0 !pos
+ 
+ 
 let simple_connect hostname port = (* from netbase.ml *)
   let s = socket PF_INET SOCK_STREAM 0 in
   let h = Ip.from_name  hostname in
@@ -57,18 +103,18 @@ let make_mail mail new_style =
   
   if new_style then
 	Printf.sprintf 
-	"From: mldonkey <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
+	"From: mldonkey <%s>\r\nTo: %s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
 	mail.mail_from
 	mail.mail_to
-	mail.mail_subject
+	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
 	mail_date
 	mail.mail_body
     else
 	Printf.sprintf 
-	"From: mldonkey %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
+	"From: mldonkey %s\r\nTo: %s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
 	mail.mail_from
 	mail.mail_to
-	mail.mail_subject
+	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
 	mail_date
 	mail.mail_body
 

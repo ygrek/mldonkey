@@ -71,8 +71,15 @@ let options_prefix = "G2-"
 let has_accept = true
 let accept_header = "application/x-gnutella2"
 let max_known_peers_default = 20
-let accept_ed2kuid = true
-let accept_bitprint = true
+
+(* All false, so that there is only one network per uri type
+   until an better url and result handler is in place and
+   the thing with non-primary downloads works ( gives an
+   assertion failure if we add an ed2k file in
+   CommonSwarming2 at line 609 "assert (not tt.t_primary);"
+   ) *)
+let accept_ed2kuid = false
+let accept_bitprint = false
 let accept_md5ext = false
   
   
