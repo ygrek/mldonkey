@@ -283,7 +283,17 @@ let set_client_has_a_slot c b =
   if not b && impl.impl_client_has_slot then begin
       impl.impl_client_has_slot <- false;
       uploaders := Intmap.remove (client_num c) !uploaders;
-      client_must_update c
+      client_must_update c;
+(*
+TODO
+If an upload slot is closed the previously uploaded file
+is still kept open. There should be a check if other users
+are currently uploading that file, if not close it.
+Until this is coded all files are closed, it does not harm
+the work of the core but avoids locking files which makes
+them unaccessable on Windows.  
+*)
+      Unix32.close_all ()
     end
   else
   if b && not impl.impl_client_has_slot then  begin

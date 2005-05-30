@@ -17,7 +17,8 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 4046: Hotfix: Circumvent max_hard_download_rate/2 bug
 4051: mailer:encode subject and include a time zone
 4055: Allow canceling of ed2k downloads if G2 is enabled
-4056: Close all files of core receives SIGHUP
+4056: Close all files if core receives SIGHUP
+4057: Hotfix: Close files if an upload slots gets free
 
 2005/05/28: spiralvoice
 
