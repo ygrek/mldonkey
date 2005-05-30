@@ -19,6 +19,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 4055: Allow canceling of ed2k downloads if G2 is enabled
 4056: Close all files if core receives SIGHUP
 4057: Hotfix: Close files if an upload slots gets free
+4058: Remove donkey_devel code, it is outdated
 
 2005/05/28: spiralvoice
 

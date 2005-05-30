@@ -80,17 +80,7 @@ COMMON=src/daemon/common
 DRIVER=src/daemon/driver
 MP3=src/utils/mp3tagui
 
-ifeq ("$(DEVEL)", "yes")
-
-DONKEY_DIR=donkey_devel
-
-else
-
-DONKEY_DIR=donkey
-
-endif
-
-SRC_DONKEY=src/networks/$(DONKEY_DIR)
+SRC_DONKEY=src/networks/donkey
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
@@ -1446,7 +1436,7 @@ EXPAND_DRIVER(mlg2,GNUTELLA2,gnutella2)
 EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlfileTP,FILETP,fileTP)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
-EXPAND_DRIVER(mldonkey,DONKEY,$(DONKEY_DIR))
+EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)

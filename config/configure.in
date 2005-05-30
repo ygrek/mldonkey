@@ -125,8 +125,6 @@ ifelse(AC_ACVERSION, [2.13], [],
 
 ])
 
-AC_ARG_ENABLE(devel, [  --enable-devel          (undocumented)], [DEVEL="$enableval"])
-
 IM=yes
 
 SWARMING1=no
@@ -1151,7 +1149,6 @@ AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(BROOSNET)
 
-AC_SUBST(DEVEL)
 AC_SUBST(JABBR)
 
 AC_SUBST(BUILD_NEWGUI)
