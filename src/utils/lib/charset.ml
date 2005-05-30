@@ -29,6 +29,8 @@
 (*                                                                                *)
 (**********************************************************************************)
 
+type uchar = int
+
 type charset =
 | ANSI_X3_4_1968 | ANSI_X3_4_1986 | ASCII | CP367 | IBM367 | ISO_IR_6 | ISO646_US | ISO_646_IRV_1991 | US | US_ASCII | CSASCII
 | UTF_8
@@ -162,6 +164,159 @@ external get_charset : unit -> string = "ml_locale_charset"
 external get_default_language : unit -> string = "ml_get_default_language"
 external convert_string : string -> string -> string -> string = "ml_convert_string"
 external is_utf8 : string -> bool = "ml_utf8_validate"
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                          utf8_get                                              *)
+(*                                                                                *)
+(**********************************************************************************)
+
+(* taken from camomile *)
+(* $Id$ *)
+(* Copyright 2002, 2003 Yamagata Yoriyuki. distributed with LGPL *)
+
+let utf8_look s i =
+  let n' =
+    let n = Char.code s.[i] in
+    if n < 0x80 then n else
+    if n <= 0xdf then
+      (n - 0xc0) lsl 6 lor (0x7f land (Char.code s.[i + 1]))
+    else if n <= 0xef then
+      let n' = n - 0xe0 in
+      let m0 = Char.code s.[i + 2] in
+      let m = Char.code (String.unsafe_get s (i + 1)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      n' lsl 6 lor (0x7f land m0)
+    else if n <= 0xf7 then
+      let n' = n - 0xf0 in
+      let m0 = Char.code s.[i + 3] in
+      let m = Char.code (String.unsafe_get s (i + 1)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 2)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      n' lsl 6 lor (0x7f land m0)     
+    else if n <= 0xfb then
+      let n' = n - 0xf8 in
+      let m0 = Char.code s.[i + 4] in
+      let m = Char.code (String.unsafe_get s (i + 1)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 2)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 3)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      n' lsl 6 lor (0x7f land m0)     
+    else if n <= 0xfd then
+      let n' = n - 0xfc in
+      let m0 = Char.code s.[i + 5] in
+      let m = Char.code (String.unsafe_get s (i + 1)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 2)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 3)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      let m = Char.code (String.unsafe_get s (i + 4)) in
+      let n' = n' lsl 6 lor (0x7f land m) in
+      n' lsl 6 lor (0x7f land m0)
+    else invalid_arg "utf8_look"
+  in
+  if n' lsr 31 = 0 then n' else
+  invalid_arg "utf8_look char_of_uint"
+
+let rec search_head s i =
+  if i >= String.length s then i else
+  let n = Char.code (String.unsafe_get s i) in
+  if n < 0x80 || n >= 0xc2 then i else
+  search_head s (i + 1)
+
+let utf8_next s i = 
+  let n = Char.code s.[i] in
+  if n < 0x80 then i + 1 else
+  if n < 0xc0 then search_head s (i + 1) else
+  if n <= 0xdf then i + 2
+  else if n <= 0xef then i + 3
+  else if n <= 0xf7 then i + 4
+  else if n <= 0xfb then i + 5
+  else if n <= 0xfd then i + 6
+  else invalid_arg "utf8_next"
+
+let rec nth_aux s i n =
+  if n = 0 then i else
+  nth_aux s (utf8_next s i) (n - 1)
+
+let nth s n = nth_aux s 0 n
+
+let utf8_get s n = utf8_look s (nth s n)
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                          utf8_length                                           *)
+(*                                                                                *)
+(**********************************************************************************)
+
+(* taken from camomile *)
+(* $Id$ *)
+(* Copyright 2002, 2003 Yamagata Yoriyuki. distributed with LGPL *)
+
+let rec length_aux s c i =
+  if i >= String.length s then c else
+  let n = Char.code (String.unsafe_get s i) in
+  let k =
+    if n < 0x80 then 1 else
+    if n < 0xc0 then invalid_arg "UTF8.length" else
+    if n < 0xe0 then 2 else
+    if n < 0xf0 then 3 else
+    if n < 0xf8 then 4 else
+    if n < 0xfc then 5 else
+    if n < 0xfe then 6 else
+    invalid_arg "UTF8.length" in
+  length_aux s (c + 1) (i + k)
+
+let utf8_length s = length_aux s 0 0
+
+(**********************************************************************************)
+(*                                                                                *)
+(*                          add_uchar (internal)                                  *)
+(*                                                                                *)
+(**********************************************************************************)
+
+
+(* taken from camomile *)
+(* $Id$ *)
+(* Copyright 2002, 2003 Yamagata Yoriyuki. distributed with LGPL *)
+
+external uint_code : uchar -> int = "%identity"
+
+let add_uchar buf u =
+  let masq = 0b111111 in
+  let k = uint_code u in
+  if k < 0 || k >= 0x4000000 then begin
+    Buffer.add_char buf (Char.chr (0xfc + (k lsr 30)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 24) land masq))); 
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 18) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 12) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 6) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor (k land masq)));
+  end else if k <= 0x7f then
+    Buffer.add_char buf (Char.unsafe_chr k)
+  else if k <= 0x7ff then begin
+    Buffer.add_char buf (Char.unsafe_chr (0xc0 lor (k lsr 6)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor (k land masq)))
+  end else if k <= 0xffff then begin
+    Buffer.add_char buf (Char.unsafe_chr (0xe0 lor (k lsr 12)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 6) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor (k land masq)));
+  end else if k <= 0x1fffff then begin
+    Buffer.add_char buf (Char.unsafe_chr (0xf0 + (k lsr 18)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 12) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 6) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor (k land masq)));
+  end else begin
+    Buffer.add_char buf (Char.unsafe_chr (0xf8 + (k lsr 24)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 18) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 12) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor ((k lsr 6) land masq)));
+    Buffer.add_char buf (Char.unsafe_chr (0x80 lor (k land masq)));
+  end
 
 (**********************************************************************************)
 (*                                                                                *)
@@ -1493,6 +1648,13 @@ let locale =
   with _ -> ASCII
 
 let locstr =
+  Printf.printf "Blocking system signals until core is started...\n";
+  (* block signals until core started correctly *)
+  (MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> ())));
+  (MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> ())));
+
   let s = charset_to_string locale in
   Printf.printf "Current locale of the target machine is %s\n" s;
   flush stdout;
@@ -1656,20 +1818,47 @@ let convert ~from_charset ~to_charset s =
 
 (**********************************************************************************)
 (*                                                                                *)
+(*                          slow_encode_from_utf8                                 *)
+(*                                                                                *)
+(**********************************************************************************)
+
+let slow_encode_from_utf8 s to_codeset =
+  let us = ref "" in
+  let slen = utf8_length s in
+  let buf = Buffer.create 10 in
+  for i = 0 to (slen - 1) do
+    try
+      let uchar = utf8_get s i in
+      add_uchar buf uchar;
+      let s' = Buffer.contents buf in
+      Buffer.reset buf;
+      let s' = convert_string s' to_codeset "UTF-8" in
+      us := !us ^ s'
+    with _ ->
+      us := !us ^ char_const
+  done;
+  !us
+
+(**********************************************************************************)
+(*                                                                                *)
 (*                          slow_encode                                           *)
 (*                                                                                *)
 (**********************************************************************************)
 
 let slow_encode s to_codeset =
-  let us = ref "" in
-  let slen = String.length s in
-  for i = 0 to (slen - 1) do
-    try
-      us := !us ^ (convert_string (String.sub s i 1) to_codeset locstr)
-    with _ ->
-      us := !us ^ char_const
-  done;
-  !us
+  if is_utf8 s
+  then slow_encode_from_utf8 s to_codeset
+  else begin
+    let us = ref "" in
+    let slen = String.length s in
+    for i = 0 to (slen - 1) do
+      try
+        us := !us ^ (convert_string (String.sub s i 1) to_codeset locstr)
+      with _ ->
+        us := !us ^ char_const
+    done;
+    !us
+  end
 
 (**********************************************************************************)
 (*                                                                                *)
@@ -1719,20 +1908,9 @@ let to_locale s =
             try
               convert_string s locstr "UTF-8"
             with _ ->
-              begin
-                let us = ref "" in
-                let slen = String.length s in
-                for i = 0 to (slen - 1) do
-                  try
-                    us := !us ^ (convert_string (String.sub s i 1) locstr "UTF-8")
-                  with _ ->
-                    us := !us ^ char_const
-                done;
-                !us
-              end
+              slow_encode_from_utf8 s locstr
           end
   end
-
 
 let _ =
   set_default_charset_list default_language

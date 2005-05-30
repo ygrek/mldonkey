@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/05/30: spiralvoice
 
+3984: Make filename_conversions option implementation safe
 4042: Avoid sharing temp dir
 4046: Hotfix: Circumvent max_hard_download_rate/2 bug
 4051: mailer:encode subject and include a time zone
@@ -20,6 +21,8 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 4056: Close all files if core receives SIGHUP
 4057: Hotfix: Close files if an upload slots gets free
 4058: Remove donkey_devel code, it is outdated
+4060: Extend core startup message
+4061: Block system signals during core startup
 
 2005/05/28: spiralvoice
 

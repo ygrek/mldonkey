@@ -1097,19 +1097,28 @@ let password = define_option current_section ["password"]
 
 *********************)
 
-let filename_conversions = define_expert_option current_section
-    ["filename_conversions"] 
-    "The conversions to apply on characters depending on their ASCII code"
-    (list_option (tuple2_option (int_option, string_option)))
-  [   
-    (228, "ae");
-    (246, "oe");
-    (252, "ue");
-    (223, "ss");
-    (196, "Ae");
-    (214, "Oe");
-    (220, "Ue"); 
-  ]        
+let safe_utf8 s =
+  if Charset.is_utf8 s
+  then s
+  else failwith (Printf.sprintf "%s is not an UTF-8 string.\n" s)
+
+let value_to_utf8 v =
+  let s = Options.value_to_string v in
+  safe_utf8 s
+
+let utf8_to_value s =
+  let s = safe_utf8 s in
+  Options.string_to_value s
+
+let utf8_option =
+    define_option_class "Utf8"
+    value_to_utf8 utf8_to_value
+
+let utf8_filename_conversions = define_expert_option current_section
+    ["utf8_filename_conversions"] 
+    "The conversions to apply on Unicode characters"
+    (list_option (tuple2_option (int_option, utf8_option))) []
+
 let client_timeout = define_expert_option current_section ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 40.
 

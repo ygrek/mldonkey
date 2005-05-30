@@ -42,26 +42,42 @@ open CommonComplexOptions
   
   
 (*************  ADD/REMOVE FUNCTIONS ************)
+let check_forbidden_chars (uc : Charset.uchar) =
+  match uc with
+  | 47  (* '/'  *)
+  | 92  (* '\\' *) -> 95 (* '_' *)
+  (* Windows can't do these *)
+  | 58  (* ':'  *)
+  | 42  (* '*'  *)
+  | 63  (* '?'  *)
+  | 34  (* '"'  *)
+  | 60  (* '<'  *)
+  | 62  (* '>'  *)
+  | 124 (* '|'  *)
+  | 37  (* '%'  *) when Autoconf.system = "windows" -> 95 (* '_' *)
+  | _ -> uc
 
 let canonize_basename name =
   let buf = Buffer.create 100 in
-  for i = 0 to String.length name - 1 do
+  let uname = Charset.to_utf8 name in
+  for i = 0 to Charset.utf8_length uname - 1 do
     (* replace chars on users request *)
-    let c = name.[i] in
-    let nc = int_of_char c in
+    let uc = Charset.utf8_get uname i in
     try
-      Buffer.add_string buf (List.assoc nc !!filename_conversions)
+      let us = List.assoc uc !!utf8_filename_conversions in
+      for j = 0 to Charset.utf8_length us - 1 do
+        let uc' = Charset.utf8_get us j in
+        let uc'' = check_forbidden_chars uc' in
+        Charset.add_uchar buf uc''
+      done
     with _ ->
-      Buffer.add_char buf
-        (match c with
-         | '/' | '\\' -> '_'
-         (* Windows can't do these *)
-         | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '%' when Autoconf.system = "windows" -> '_'
-         | _ -> c
-        )
+      begin
+        let uc' = check_forbidden_chars uc in
+        Charset.add_uchar buf uc'
+      end
   done;
   Charset.to_locale (Buffer.contents buf)
-  
+
 let file_commited_name incoming_dir file =   
   let network = file_network file in
   let best_name = file_best_name file in

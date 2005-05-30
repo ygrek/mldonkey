@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+type uchar = int
+
 type charset =
 | ANSI_X3_4_1968 | ANSI_X3_4_1986 | ASCII | CP367 | IBM367 | ISO_IR_6 | ISO646_US | ISO_646_IRV_1991 | US | US_ASCII | CSASCII
 | UTF_8
@@ -136,12 +138,33 @@ type charset =
 | I_869 | CP_GR | CP869 | IBM869 | CSIBM869
 | CP1125
 
-(* convert ~from_charset ~to_charset s :
- * raise CharsetError if the string [s] is not entirely convertible.
- *)
-
+(** [convert ~from_charset ~to_charset s]
+    raise CharsetError if the string s is not entirely convertible. *)
 val convert : from_charset : charset -> to_charset : charset -> string -> string
 
+(** [is_utf8 s]
+    returns TRUE if s is a valid UTF-8, otherwise returns FALSE.
+    Other functions assume strings are valid UTF-8, so it is prudent
+    to test their validity for strings from untrusted origins. *)
 val is_utf8 : string -> bool
+
+(** [to_utf8 s]
+    Converts the input string to UTF-8. *)
 val to_utf8 : string -> string
+
+(** [to_locale s]
+    Converts the input string to the encoding of the current locale. *)
 val to_locale : string -> string
+
+(** [utf8_get s n]
+    returns [n]-th Unicode character of [s].
+    The call requires O(n)-time. *)
+val utf8_get : string -> int -> uchar
+
+(** [utf8_length s]
+    returns the number of Unicode characters contained in s *)
+val utf8_length : string -> int
+
+(** [add_uchar buf u]
+    add one Unicode character to the buffer. *)
+val add_uchar : Buffer.t -> uchar -> unit

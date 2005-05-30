@@ -419,30 +419,6 @@ If you want to share files, you should:
   Unix2.safe_mkdir !!temp_directory
 
 let _ =
-  if Autoconf.system <> "windows" then 
-    MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
-
-  if Autoconf.system <> "windows" then 
-    MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP\n";
-         BasicSocket.close_all ();
-	 Unix32.close_all ();
-         CommonGlobals.print_localtime ();));
-
-  if Autoconf.system <> "windows" then
-    MlUnix.set_signal  Sys.sigpipe
-      (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
-
-  MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> lprintf "SIGINT\n";
-        CommonGlobals.exit_properly 0));
-
-  MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> lprintf "SIGTERM\n";
-        CommonGlobals.exit_properly 0))
-
-let _ =
 
   let t = Unix.localtime (Unix.time ()) in
   if (t.Unix.tm_year<=104) then
@@ -525,14 +501,19 @@ let _ =
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
-  lprintf (_b "\nWelcome to MLdonkey client\n"); 
-  lprintf (_b "Check http://www.mldonkey.net/ for updates\n"); 
-  lprintf (_b "To command: telnet %s %d\n") 
-	(if !!telnet_bind_addr = Ip.any then "127.0.0.1" 
-		else Ip.to_string !!telnet_bind_addr)  !!telnet_port; 
-  lprintf (_b "Or with browser: http://%s:%d\n") 
-	(if !!http_bind_addr = Ip.any then "127.0.0.1" 
-		else Ip.to_string !!http_bind_addr)  !!http_port; 
+  lprintf (_b "\nWelcome to MLdonkey client\n");
+  lprintf (_b "Check http://www.mldonkey.net/ for updates\n");
+  lprintf (_b "To command: telnet %s %d\n")
+	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
+		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
+  lprintf (_b "Or with browser: http://%s:%d\n")
+	(if !!http_bind_addr = Ip.any then "127.0.0.1"
+		else Ip.to_string !!http_bind_addr)  !!http_port;
+  lprintf (_b "For a GUI check out http://sancho-gui.sourceforge.net\n");
+  lprintf (_b "Connect to IP %s, port %d\n")
+	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
+		else Ip.to_string !!gui_bind_addr)  !!gui_port;
+  lprintf (_b "If you connect from a remote machine adjust allowed_ips\n\n");
   
   lprint_string (DriverControlers.text_of_html !!motd_html);
   lprint_newline ();
@@ -588,6 +569,31 @@ let _ =
   if !!create_mlsubmit then save_mlsubmit_reg ();
   DriverInteractive.initialization_completed := true;
   DriverInteractive.save_config ();
+
+  if Autoconf.system <> "windows" then 
+    MlUnix.set_signal  Sys.sigchld
+      (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
+
+  if Autoconf.system <> "windows" then 
+    MlUnix.set_signal  Sys.sighup
+      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP\n";
+         BasicSocket.close_all ();
+	 Unix32.close_all ();
+         CommonGlobals.print_localtime ();));
+
+  if Autoconf.system <> "windows" then
+    MlUnix.set_signal  Sys.sigpipe
+      (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
+
+  MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> lprintf "SIGINT\n";
+        CommonGlobals.exit_properly 0));
+
+  MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> lprintf "SIGTERM\n";
+        CommonGlobals.exit_properly 0));
+
+  lprintf (_b "Activated system signal handling\n\n");
   
   Unix32.max_cache_size := MlUnix.max_filedescs
  
