@@ -684,6 +684,8 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
   
 let available_commands_are = _s  "Available commands are:\n"
   
+let main_commands_are = _s  "Main commands are:\n"
+
 let command_not_authorized = _s "Command not authorized\n use 'auth <user> <password>' before."
 
 let bad_login = _s  "Bad login/password"

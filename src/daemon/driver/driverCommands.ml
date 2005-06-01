@@ -340,13 +340,35 @@ let _ =
     ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
     
     "version", Arg_none (fun o ->
-        if use_html_mods o then Printf.sprintf "\\<P\\>" ^ 
-            CommonGlobals.version () else CommonGlobals.version ()
+        let buf = o.conn_buf in
+        let version = CommonGlobals.version () in
+        if o.conn_output = HTML then 
+          begin
+            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "versionTable" "results" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [ ("", "srh", version); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+          end
+        else 
+            Printf.bprintf buf "%s" version;
+        ""
     ), ":\t\t\t\tprint mldonkey version";
     
     "buildinfo", Arg_none (fun o ->
-        if use_html_mods o then Printf.sprintf "\\<P\\>" ^ 
-            CommonGlobals.buildinfo () else CommonGlobals.buildinfo ()
+        let buf = o.conn_buf in
+        let buildinfo = CommonGlobals.buildinfo () in
+        if o.conn_output = HTML then 
+          begin
+            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "versionTable" "results" [];
+            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" buildinfo); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+          end
+        else 
+            Printf.bprintf buf "%s" buildinfo;
+        ""
     ), ":\t\t\t\tprint mldonkey core build information";
     
     "activity", Arg_one (fun arg o ->
@@ -2288,12 +2310,12 @@ let _ =
           Printf.sprintf (_b "Download %d renamed to %s") num new_name
         with _ -> Printf.sprintf (_b "No file number %d") num
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
-    
-    
-    "dllink", Arg_multiple (fun args o ->        
+
+
+    "dllink", Arg_multiple (fun args o ->
         if !verbose then lprintf "dllink\n";
         let buf = o.conn_buf in
-        let query_networks url = 
+        let query_networks url =
           if not (networks_iter_until_true
                     (fun n -> 
                        try 
@@ -2303,11 +2325,39 @@ let _ =
                            (Printexc2.to_string e) (n.network_name);
                          false
                     )) then
-            _s "Unable to match URL"
+            let output = (if o.conn_output = HTML then begin
+                let buf = Buffer.create 100 in
+                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "dllinkTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [ ("", "srh", "Unable to match URL"); ];
+                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+                html_mods_td buf [ ("", "sr", url); ];
+                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf
+              end 
+            else begin
+                Printf.sprintf "Unable to match URL : %s" url
+            end) in
+            _s output
           else
-            _s "done"
+            let output = (if o.conn_output = HTML then begin
+                let buf = Buffer.create 100 in
+                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "dllinkTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [ ("", "srh", "Added link"); ];
+                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+                html_mods_td buf [ ("", "sr", url); ];
+                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf
+              end
+            else begin
+                Printf.sprintf "Added link : %s" url
+            end) in
+            _s output
         in
-        
+
         let url = String2.unsplit args ' ' in
         if (String2.starts_with url "http") then (
             let u = Url.of_string url in
@@ -2320,36 +2370,68 @@ let _ =
                 H.req_user_agent = 
                        Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
             } in
-            H.whead r 
+            H.whead r
                 (fun headers ->
                    (* Combine the list of header fields into one string *)
-                   let concat_headers = 
+                   let concat_headers =
                      (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
                    in
                    ignore (query_networks concat_headers)
                 );
-            _s "Parsing HTTP url..."
+            let output = (if o.conn_output = HTML then begin
+                let buf = Buffer.create 100 in
+                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "dllinkTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [ ("", "srh", "Parsing HTTP url"); ];
+                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+                html_mods_td buf [ ("", "sr", url); ];
+                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf
+              end
+            else begin
+                Printf.sprintf "Parsing HTTP url : %s" url
+            end) in
+            _s output
             )
         else
             query_networks url
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
-    
-    "dllinks", Arg_one (fun arg o ->        
+
+    "dllinks", Arg_one (fun arg o ->
         let buf = o.conn_buf in
         
         let file = File.to_string arg in
         let lines = String2.split_simplify file '\n' in
         List.iter (fun line ->
-            ignore (networks_iter_until_true (fun n -> 
+            ignore (networks_iter_until_true (fun n ->
                   network_parse_url n line))
         ) lines;
-        _s "done"
+        let output = (if o.conn_output = HTML then begin
+            let buf = Buffer.create 100 in
+            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "dllinksTable" "results" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [ ("", "srh", "Added links"); ];
+            Printf.bprintf buf "\\</tr\\>";
+            List.iter (fun line ->
+                Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+                html_mods_td buf [ ("", "sr", line); ];
+                Printf.bprintf buf "\\</tr\\>\\";
+            ) lines;
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+            Buffer.contents buf
+          end
+        else begin
+            Printf.sprintf "done"
+        end) in
+        _s output
     ), "<file> :\t\t\t\tdownload all the links contained in the file";
     
   ]
 
-  
-  
+
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Driver/Xpert                                  *)
@@ -2497,36 +2579,34 @@ let _ =
     ), ":\t\t\tselect html_mods_style <#>";
     
     "rss", Arg_none (fun o ->
-        
         let buf = o.conn_buf in
         let module CW = CommonWeb in
         Hashtbl.iter (fun url feed ->
-            (if o.conn_output = HTML then begin
-                Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=\\\"results\\\"\\>\\<tr\\>\n";
-                Printf.bprintf buf "\\<td class=\\\"bu bbig\\\" title=\\\"%s: " url;
-                Printf.bprintf buf "loaded %d hours ago\\\"\\>\n"
-              end 
-            else begin
-                Printf.bprintf buf "%s:\n" url;
-                Printf.bprintf buf "   loaded %d hours ago\n"
-            end)
-              (feed.CW.rss_date / 3600);
             let r = feed.CW.rss_value in
             if o.conn_output = HTML then begin
-                Printf.bprintf buf "\\<b\\>%s\\</b\\>\n" r.Rss.ch_title;
-                Printf.bprintf buf "\\</td\\>\\</tr\\>"
-              end 
-            else
-            Printf.bprintf buf "   title: %s\n" r.Rss.ch_title;
+                Printf.bprintf buf "\\</pre\\>\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "rssTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [
+                  (r.Rss.ch_title ^ " : " ^ url ^ (Printf.sprintf ", loaded %d hours ago" (feed.CW.rss_date / 3600)), "srh", r.Rss.ch_title); ];
+                Printf.bprintf buf "\\</tr\\>"
+              end
+            else begin
+                Printf.bprintf buf "%s:\n" url;
+                Printf.bprintf buf "   loaded %d hours ago\n" (feed.CW.rss_date / 3600);
+                Printf.bprintf buf "   title: %s\n" r.Rss.ch_title;
+            end;
+            html_mods_cntr_init ();
             List.iter (fun item ->
                 match item.Rss.item_title, item.Rss.item_link with
                   None, _
                 | _, None -> ()
                 | Some title, Some link ->
                   if o.conn_output = HTML then begin
-                      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td class=\\\"sr\\\"\\>";
-                      Printf.bprintf buf "\\<a href=\\\"submit?q=dllink+%s\\\"\\ title=\\\"%s\\\"\\>%s\\</a\\>\n" (Url.encode link) link title;
-                      Printf.bprintf buf "\\</td\\>\\</tr\\>"
+                      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+                      html_mods_td buf [
+                        (title, "sr", "\\<a href=\\\"submit?q=dllink+" ^ (Url.encode link) ^ "\\\"\\ title=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>"); ];
+                      Printf.bprintf buf "\\</tr\\>"
                     end 
                   else begin
                       Printf.bprintf buf "     %s\n" title;
@@ -2534,7 +2614,7 @@ let _ =
                     end
             ) r.Rss.ch_items;
             if o.conn_output = HTML then
-                Printf.bprintf buf "\\</table\\>";
+                Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>\\<pre\\>";
         ) CW.rss_feeds;
         ""
         
@@ -2566,9 +2646,10 @@ let _ =
     
     ), "<theme>:\t\t\tselect html_theme";
     
-    "mem_stats", Arg_one (fun level o -> 
+    "mem_stats", Arg_one (fun level o ->
         let buf = o.conn_buf in
-        Heap.print_memstats (int_of_string level) buf;
+        Heap.print_memstats (int_of_string level) buf
+          (if o.conn_output = HTML then true else false);
         ""
     ), ":\t\t\t\tprint memory stats";
     

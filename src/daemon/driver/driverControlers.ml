@@ -98,22 +98,41 @@ let eval auth cmd o =
     [] -> ()
   | ["longhelp"] | ["??"] ->
       let module M = CommonMessages in
-      Buffer.add_string  buf M.available_commands_are;
-      if use_html_mods o then begin
-          let counter = ref 0 in
+      if o.conn_output = HTML then begin
+          Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
+          html_mods_table_header buf "helpTable" "results" [];
+          Buffer.add_string buf "\\<tr\\>";
+          html_mods_td buf [
+            ("", "srh", M.available_commands_are);
+            ("", "srh", "");
+            ("", "srh", ""); ];
+          Buffer.add_string buf "\\</tr\\>";
+          html_mods_cntr_init ();
           List.iter (fun (cmd, _, _, help) ->
-              incr counter;
               let ncmd = ref cmd in
               let nhelp = ref help in
-              Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"(if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-              html_mods_td buf [ ("", "sr", !ncmd); ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp) ];
+              Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [ 
+                ("", "sr", "\\<a href=\\\"submit?q=" ^ !ncmd ^
+                  "\\\"\\>" ^ !ncmd ^ "\\</a\\>");
+                ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp);
+                ("", "sr", "\\<a href=\\\"http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=" ^ !ncmd ^
+                  "\\\"\\>wiki\\</a\\>"); ];
               Printf.bprintf buf "\\</tr\\>\n";
           ) 
           (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
             !CommonNetwork.network_commands);
-          Printf.bprintf buf "\\</table\\>\\</div\\>"
+          Printf.bprintf buf "\\</table\\>\\</div\\>";
+          html_mods_table_header buf "helpTable" "results" [];
+          Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+          html_mods_td buf [
+            ("", "sr", "< > : required parameter");
+            ("", "sr", "[< >] : optionnal parameter");
+            ("", "sr", "< 1 | 2 > : alternative parameter"); ];
+          Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"
         end else        
         begin
+          Buffer.add_string  buf M.available_commands_are;
           let list = Hashtbl2.to_list2 commands_by_kind in
           let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
           List.iter (fun (s,list) ->
@@ -127,8 +146,103 @@ let eval auth cmd o =
         
     | ["help"] | ["?"] ->
           let module M = CommonMessages in
-          Buffer.add_string  buf
-            "Main commands are:
+           if o.conn_output = HTML then
+             begin
+               Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
+               html_mods_table_header buf "helpTable" "results" [];
+               Buffer.add_string buf "\\<tr\\>";
+               html_mods_td buf [
+                 ("", "srh", M.main_commands_are);
+                 ("", "srh", ""); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$bServers:$n");
+                 ("", "sr", ""); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=vm\\\"\\>" ^
+                   "vm\\</a\\>$n");
+                 ("", "sr", "list connected servers"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=vma\\\"\\>" ^
+                   "vma\\</a\\>$n");
+                 ("", "sr", "list all servers"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rc/x <num>$n");
+                 ("", "sr", "connect/disconnect from a server"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$bDownloads:$n");
+                 ("", "sr", ""); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=vd\\\"\\>" ^
+                   "vd\\</a\\>$n");
+                 ("", "sr", "view current downloads"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rcancel/pause/resume <num>$n");
+                 ("", "sr", "cancel/pause/resume download <num>"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$bSearches:$n");
+                 ("", "sr", ""); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rs  <keywords>$n");
+                 ("", "sr", "start a search for keywords <keywords> on the network"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=vr\\\"\\>" ^
+                   "vr\\</a\\>$n");
+                 ("", "sr", "view results of the last search"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rd <num>$n");
+                 ("", "sr", "download result number <num>"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=vs\\\"\\>" ^
+                   "vs\\</a\\>$n");
+                 ("", "sr", "view previous searches"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rvr <num>$n");
+                 ("", "sr", "view results of search <num>"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$bGeneral:$n");
+                 ("", "sr", ""); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$r\\<a href=\\\"submit?q=save\\\"\\>" ^
+                   "save\\</a\\>$n");
+                 ("", "sr", "save configuration files"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rkill$n");
+                 ("", "sr", "kill mldonkey properly"); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "$rq$n");
+                 ("", "sr", "quit this interface"); ];
+               Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\n";
+               html_mods_table_header buf "helpTable" "results" [];
+               Buffer.add_string buf "\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "Use '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
+                   "longhelp\\</a\\>$n' or '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
+                   "??\\</a\\>$n' for all commands."); ];
+               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+               html_mods_td buf [
+                 ("", "sr", "Use '$rhelp command$n' or '$r? command$n' for help on a command."); ];
+               Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>\n"
+            end
+          else
+              Buffer.add_string  buf
+              "Main commands are:
 
 $bServers:$n
           $rvm$n : list connected servers
@@ -151,19 +265,7 @@ $bGeneral:$n
           $rkill$n : kill mldonkey properly
           $rq$n : quit this interface
 
-Use '$r";
-           if o.conn_output = HTML then
-             Buffer.add_string buf "\\<a href=\\\"submit?q=longhelp\\\"\\>";
-           Buffer.add_string buf "longhelp";
-           if o.conn_output = HTML then
-             Buffer.add_string buf "\\</a\\>";
-           Buffer.add_string buf "$n' or '$r";
-           if o.conn_output = HTML then
-             Buffer.add_string buf "\\<a href=\\\"submit?q=longhelp\\\"\\>";
-           Buffer.add_string buf "??";
-           if o.conn_output = HTML then
-             Buffer.add_string buf "\\</a\\>";
-           Buffer.add_string buf "$n' for all commands.
+Use '$rlonghelp$n' or '$r??$n' for all commands.
 Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
     | "?" :: args | "help" :: args ->

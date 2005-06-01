@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/06/02: spiralvoice
+
+4063: HTML: Some improvements (all by beedauchon)
+
 2005/05/30: spiralvoice
 
 3984: Make filename_conversions option implementation safe
