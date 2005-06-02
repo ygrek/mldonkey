@@ -136,6 +136,13 @@ module FDCache = struct
       Unix2.rename t.filename f;
       destroy t
 
+    let multi_rename t f file =
+      check_destroyed t;
+      close t;
+      Unix2.safe_mkdir (Filename.dirname (Filename.concat f file));
+      Unix2.rename t.filename (Filename.concat f file);
+      destroy t
+
     let ftruncate64 t len =
       check_destroyed t;
       Unix2.c_ftruncate64 (local_force_fd t true) len
@@ -421,7 +428,6 @@ module MultiFile = struct
           Sys.remove temp_file;
           raise e
 
-
     let close t =
       List.iter (fun file -> FDCache.close file.fd) t.files
 
@@ -430,13 +436,7 @@ module MultiFile = struct
 
     let rename t f =
       close t;
-      Unix2.rename t.dirname f
-
-      (*
-      List.iter (fun file ->
-          file.fd.FDCache.filename <- Filename.concat t.dirname file.filename
-      ) t.files
-*)
+      List.iter (fun file -> FDCache.multi_rename file.fd f file.filename) t.files
 
     let ftruncate64 t size =
       t.size <- size

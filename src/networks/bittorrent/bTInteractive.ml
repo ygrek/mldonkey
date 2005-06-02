@@ -99,7 +99,7 @@ let op_file_commit file new_name =
           (Filename.basename file.file_torrent_diskname)
       in
       (try
-          Sys.rename file.file_torrent_diskname new_torrent_diskname;
+          Unix2.rename file.file_torrent_diskname new_torrent_diskname;
         with _ -> 
           (lprintf "BT op_file_commit: failed to rename %s to %s\n"
               file.file_torrent_diskname new_torrent_diskname));

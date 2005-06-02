@@ -401,7 +401,7 @@ let file_fd file =
 let set_file_fd file fd =
   (as_file_impl file).impl_file_fd <- fd
 
-let set_file_disk_name file filename=
+let set_file_disk_name file filename =
   let orig_fd = file_fd file in
   if orig_fd != Unix32.bad_fd then
     Unix32.rename orig_fd filename

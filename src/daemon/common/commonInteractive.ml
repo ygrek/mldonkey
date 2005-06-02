@@ -117,16 +117,18 @@ let file_commit file =
         let incoming =
           if Unix2.is_directory file_name then
             incoming_directories ()
-          else 
+          else
             incoming_files ()
         in        
         let new_name = file_commited_name 
             incoming.shdir_dirname file in
+	if Unix2.is_directory file_name then Unix2.safe_mkdir new_name;
         (try
             set_file_disk_name file new_name;
             let best_name = file_best_name file in  
             Unix32.destroy (file_fd file);
             if !verbose_files then lprintf "commonInteractive.file_commit: destroyed\n";
+	    if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
             let impl = as_file_impl file in
             
 (* When the commit action is called, the file is supposed not to exist
@@ -135,7 +137,7 @@ anymore. *)
             
             begin
               try
-                if not (Unix2.is_directory new_name) then 
+                if not (Unix2.is_directory new_name) then
                   ignore (CommonShared.new_shared 
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);

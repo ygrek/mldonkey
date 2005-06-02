@@ -684,7 +684,7 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 and client_to_client c sock msg = 
   if !verbose_msg_clients then begin
       let (timeout, next) = get_rtimeout sock in
-      lprintf "CLIENT %d: (%d, %d,%d) Received %s" 
+      lprintf "CLIENT %d: (%d, %d,%d) Received %s\n"
         (client_num c)
       (last_time ())
       (int_of_float timeout)
