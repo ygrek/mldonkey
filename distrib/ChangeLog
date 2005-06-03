@@ -11,9 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-2005/06/02: spiralvoice
+2005/06/03: spiralvoice
 
 4067: BT: Fix multifile commit
+      (updated to create dirs with rights 777)
 4063: HTML: Some improvements (all by beedauchon)
 
 2005/05/30: spiralvoice

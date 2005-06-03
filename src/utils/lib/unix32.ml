@@ -139,7 +139,9 @@ module FDCache = struct
     let multi_rename t f file =
       check_destroyed t;
       close t;
-      Unix2.safe_mkdir (Filename.dirname (Filename.concat f file));
+      (let d = (Filename.dirname (Filename.concat f file)) in
+        Unix2.safe_mkdir d;
+	Unix.chmod d 0o777);
       Unix2.rename t.filename (Filename.concat f file);
       destroy t
 

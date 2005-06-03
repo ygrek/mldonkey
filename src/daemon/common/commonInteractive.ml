@@ -122,7 +122,11 @@ let file_commit file =
         in        
         let new_name = file_commited_name 
             incoming.shdir_dirname file in
-	if Unix2.is_directory file_name then Unix2.safe_mkdir new_name;
+	if Unix2.is_directory file_name then
+	  begin
+	    Unix2.safe_mkdir new_name;
+	    Unix.chmod new_name 0o777
+	  end;
         (try
             set_file_disk_name file new_name;
             let best_name = file_best_name file in  
