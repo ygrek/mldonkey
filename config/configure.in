@@ -9,7 +9,7 @@ CONFIGURE_ARGUMENTS=$*
 echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=30.15
+CURRENT_RELEASE=30.16
 SCM_VERSION=""
 if test -f ./subrelease; then
   CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
