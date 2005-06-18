@@ -519,7 +519,7 @@ let _ =
   lprint_newline ();
   
   if Autoconf.system <> "windows" then
-    (* Doesn't work on windows with mingw, because getpid allways returns 948 *)
+    (* Doesn't work on windows with mingw, because getpid always returns 948 *)
     (
       let oc = open_out "mlnet.pid" in
       output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
