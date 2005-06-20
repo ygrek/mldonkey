@@ -1,6 +1,6 @@
 let perl_path = "@PERL@"
 let check_bounds = @CHECKBOUNDS@
-let current_version = "@CURRENT_VERSION@.@CURRENT_RELEASE@"
+let current_version = "@MLDONKEY_VERSION@"
 let scm_version = "@SCM_VERSION@"
 let ocaml_version = "@OCAML_VERSION@"
 let glibc_version = "@GLIBC_VERSION@"

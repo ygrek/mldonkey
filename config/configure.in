@@ -8,31 +8,48 @@ CONFIGURE_RUN=yes
 CONFIGURE_ARGUMENTS=$*
 echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
-CURRENT_VERSION=2.5
-CURRENT_RELEASE=30.16
-SCM_VERSION=""
-if test -f ./subrelease; then
-  CURRENT_RELEASE=${CURRENT_RELEASE}`cat ./subrelease`
-fi
+MAJOR_VERSION=2
+MINOR_VERSION=5
+SUB_VERSION1=30       # set to 0 if you want to disable this value
+SUB_VERSION2=16       # set to 0 if you want to disable this value
 if test -d .svn; then
-  CURRENT_RELEASE=$CURRENT_RELEASE.SVN
+  AC_MSG_NOTICE(checking SVN revision) 
+  SUB_VERSION3="SVN"
   SCM_VERSION=`svnversion -n .`
 fi
 if test -f ./CVS/Entries ; then
+  AC_MSG_NOTICE(checking CVS checkout date) 
   AC_CHECK_PROG(STAT, stat, stat)
   if test "$ac_cv_prog_STAT" = "stat"; then
     AC_CHECK_PROG(SED, sed, sed)
     if test "$ac_cv_prog_SED" = "sed"; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
-        CURRENT_RELEASE=$CURRENT_RELEASE.CVS
+        SUB_VERSION3="CVS"
         SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
       fi
     fi
   fi
 fi
-echo "Version: $CURRENT_VERSION.$CURRENT_RELEASE  SCM: $SCM_VERSION"
-
+MLDONKEY_VERSION=$MAJOR_VERSION.$MINOR_VERSION
+if test ! "$SUB_VERSION1" = "0"; then
+  MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION1
+  if test ! "$SUB_VERSION2" = "0"; then
+    MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION2
+  fi
+fi
+if test -f ./subrelease; then
+  MLDONKEY_VERSION=$MLDONKEY_VERSION`cat ./subrelease`
+fi
+if test ! -z "$SUB_VERSION3"; then
+  MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
+fi
+echo -n "Version: $MLDONKEY_VERSION"
+if test ! -z "$SCM_VERSION"; then
+  echo " - SCM: $SCM_VERSION"
+else
+  echo ""
+fi
 REQUIRED_OCAML=3.08.3
 DOWNLOAD_OCAML_MAJOR=3.08
 DOWNLOAD_OCAML=3.08.3
@@ -577,7 +594,7 @@ fi
 if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
   LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
 fi
-
+AC_MSG_NOTICE(checking for activated networks)
   if test "$DONKEY" = "yes"; then
     if test "$ZLIB" = "yes"; then
        AC_CHECK_FILE(../src/networks/donkey,DONKEY=yes, [
@@ -1165,9 +1182,12 @@ AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
 AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
-AC_SUBST(CURRENT_VERSION)
-AC_SUBST(CURRENT_RELEASE)
+AC_SUBST(MLDONKEY_VERSION)
 AC_SUBST(SCM_VERSION)
+AC_SUBST(MAJOR_VERSION)
+AC_SUBST(MINOR_VERSION)
+AC_SUBST(SUB_VERSION1)
+AC_SUBST(SUB_VERSION2)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(OS_FILES2)

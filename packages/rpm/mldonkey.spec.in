@@ -1,12 +1,10 @@
 %define name       mldonkey
 %define Name       Mldonkey
 %define summary    Door to the 'donkey' network
-%define version    @CURRENT_VERSION@
-%define release    @CURRENT_RELEASE@
+%define version    @MLDONKEY_VERSION@
 
 Name:           %{name}
 Version:        %{version}
-Release:        %{release}
 Summary:        %{summary}
 License:        GPL
 Source0:        %{name}.sources.tar.bz2

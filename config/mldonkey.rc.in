@@ -9,8 +9,8 @@
 // #include "version.h"
 
 1 VERSIONINFO
-FILEVERSION 2,5,28,0
-PRODUCTVERSION 2,5,28,0
+FILEVERSION @MAJOR_VERSION@,@MINOR_VERSION@,@SUB_VERSION1@,@SUB_VERSION2@
+PRODUCTVERSION @MAJOR_VERSION@,@MINOR_VERSION@,@SUB_VERSION1@,@SUB_VERSION2@
 FILEOS VOS__WINDOWS32
 FILETYPE VFT_APP
 {
@@ -23,7 +23,7 @@ FILETYPE VFT_APP
             VALUE "FileDescription", "MLdonkey - multiuser P2P daemon\000"
             VALUE "FileVersion", "\000"
             VALUE "InternalName", "Counter Counter\000"
-            VALUE "LegalCopyright", " (C) 2000-2004 mldonkey team (see README)\000"
+            VALUE "LegalCopyright", " (C) 2000-2005 mldonkey team (see README)\000"
           //  VALUE "LegalTrademarks"," "\000"
             VALUE "OriginalFilename", "mlnet.exe\000"
             VALUE "ProductName", "MLdonkey - multiuser P2P daemon\000"

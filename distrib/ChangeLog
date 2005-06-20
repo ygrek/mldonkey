@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/20: spiralvoice
 
+4099: Automatically insert version number in Windows ressource file
 4093: Add Buildinfo button to HTML, Help+
 4092: Add Razorback-Stats and Bitzi links to upstats
 4091: EDK: Some progress on the cancel bug

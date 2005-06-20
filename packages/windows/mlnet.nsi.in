@@ -3,7 +3,7 @@
 ;Written by Joost Verburg
 
 !define MUI_PRODUCT "MLdonkey" ;Define your own software name here
-!define MUI_VERSION "@CURRENT_VERSION@-@CURRENT_RELEASE@" ;Define your own software version here
+!define MUI_VERSION "@MLDONKEY_VERSION@" ;Define your own software version here
 
 !include "MUI.nsh"
 
@@ -11,7 +11,7 @@
 ;Configuration
 
   ;General
-  OutFile "MLdonkey_@CURRENT_VERSION@-@CURRENT_RELEASE@_win32_installer.exe"
+  OutFile "MLdonkey_@MLDONKEY_VERSION@_win32_installer.exe"
 
   ;Folder selection page
   InstallDir "$PROGRAMFILES\${MUI_PRODUCT}"
