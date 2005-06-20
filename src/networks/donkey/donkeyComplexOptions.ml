@@ -605,15 +605,13 @@ let force_add_server ip port =
       s        
       
 let check_add_server ip port =
-  if !!update_server_list &&
-    Ip.valid ip && Ip.reachable ip &&
+  if Ip.valid ip && Ip.reachable ip &&
     not (is_black_address ip port) && port <> 4662 then
     force_add_server ip port
   else raise Not_found
 
 let safe_add_server ip port =
-  if !!update_server_list &&
-    Ip.valid ip && Ip.reachable ip &&
+  if Ip.valid ip && Ip.reachable ip &&
     not (is_black_address ip port) && port <> 4662 then
     try
       ignore (DonkeyGlobals.find_server ip port)

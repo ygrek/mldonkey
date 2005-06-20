@@ -295,7 +295,7 @@ let client_to_server s t sock =
   
   | M.ServerListReq l ->
       if !verbose then lprintf "donkeyServers: Received serverlist\n";
-      if !!update_server_list then
+      if !!update_server_list_server then
         let module Q = M.ServerList in
         List.iter (fun s ->
             safe_add_server s.Q.ip s.Q.port

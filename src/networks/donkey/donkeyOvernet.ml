@@ -391,6 +391,11 @@ let overnet_md4 = define_option overnet_section
   [Proto.options_section_name; "md4"]
   "The MD4 of the Overnet client" Md4.option (Md4.random ())
 
+let overnet_update_nodes = define_option overnet_section
+  [Proto.options_section_name; "update_nodes"]
+  "Set this option to false if you don't want to receive new Overnet peers"
+    bool_option true
+
 let gui_overnet_options_panel = 
   (*
   define_option overnet_section ["gui_overnet_options_panel"]
@@ -696,8 +701,8 @@ let udp_send p msg =
   p.peer_last_send <- last_time ();
   udp_send_direct p.peer_ip p.peer_port msg
 
-let bootstrap ip port = 
-  if Ip.valid ip && Ip.reachable ip && port <> 0 then begin
+let bootstrap ip port =
+  if !!overnet_update_nodes && Ip.valid ip && Ip.reachable ip && port <> 0 then begin
       LimitedList.add !!boot_peers (ip,port);
       boot_peers_copy := (ip,port) :: !boot_peers_copy
     end

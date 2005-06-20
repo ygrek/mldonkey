@@ -635,7 +635,7 @@ let update_client_from_tags c tags =
 
       | Field_UNKNOWN "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
-              DonkeyProtoClient.update_emule_proto_from_miscoptions1 
+              DonkeyProtoClient.update_emule_proto_from_miscoptions1
               c.client_emule_proto i)
       | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
@@ -643,12 +643,12 @@ let update_client_from_tags c tags =
       | _ -> ()
   ) tags
     
-let update_emule_proto_from_tags c tags = 
-  List.iter (fun tag -> 
+let update_emule_proto_from_tags c tags =
+  List.iter (fun tag ->
       match tag.tag_name with
-        Field_UNKNOWN "compatibleclient" -> 
+        Field_UNKNOWN "compatibleclient" ->
           for_int_tag tag (fun i ->
-              match i with 
+              match i with
                 1 -> c.client_brand <- Brand_cdonkey
               | 2 -> c.client_brand <- Brand_lmule
               | 3 -> c.client_brand <- Brand_amule
@@ -658,33 +658,33 @@ let update_emule_proto_from_tags c tags =
               | 10 -> c.client_brand <- Brand_mldonkey3
               | 20 -> c.client_brand <- Brand_lphant
               | _ -> ()
-          )          
+          )
       | Field_UNKNOWN "compression" ->
-          for_int_tag tag (fun i -> 
+          for_int_tag tag (fun i ->
               c.client_emule_proto.emule_compression <- i)
       | Field_UNKNOWN "udpver" ->
-          for_int_tag tag (fun i -> 
-              c.client_emule_proto.emule_udpver <- i)          
+          for_int_tag tag (fun i ->
+              c.client_emule_proto.emule_udpver <- i)
       | Field_UNKNOWN "udpport" -> ()
       | Field_UNKNOWN "sourceexchange" ->
-          for_int_tag tag (fun i -> 
-              c.client_emule_proto.emule_sourceexchange <- i)          
+          for_int_tag tag (fun i ->
+              c.client_emule_proto.emule_sourceexchange <- i) 
       | Field_UNKNOWN "comments" ->
-          for_int_tag tag (fun i -> 
-              c.client_emule_proto.emule_comments <- i)          
+          for_int_tag tag (fun i ->
+              c.client_emule_proto.emule_comments <- i)
       | Field_UNKNOWN "extendedrequest" ->
-          for_int_tag tag (fun i -> 
-              c.client_emule_proto.emule_extendedrequest <- i)          
+          for_int_tag tag (fun i ->
+              c.client_emule_proto.emule_extendedrequest <- i)
       | Field_UNKNOWN "features" ->
-          for_int_tag tag (fun i -> 
-              c.client_emule_proto.emule_secident <- i land 0x3)          
+          for_int_tag tag (fun i ->
+              c.client_emule_proto.emule_secident <- i land 0x3)
       
       | _ -> 
           if !verbose_msg_clients then
             lprintf "Unknown Emule tag: [%s]\n" (escaped_string_of_field tag)
   ) tags
 
-let query_id ip port id =
+let rec query_id ip port id =
   let client_ip = client_ip None in
 
 (* TODO: check if we are connected to this server. If yes, issue a 
@@ -692,21 +692,22 @@ let query_id ip port id =
   if ip_reachable client_ip then
     let module Q = DonkeyProtoUdp.QueryCallUdp in
 (*    lprintf "Ask connection from indirect client\n"; *)
-    
-    let s = check_add_server ip port in
+
+    try
+      let s = DonkeyGlobals.find_server ip port in
     match s.server_sock with 
-      NoConnection | ConnectionWaiting _ ->
-        
-(* OK, this fixes the problem with Lugdunum servers, but there should be 
+      NoConnection | ConnectionWaiting _ -> ()
+
+(* OK, this fixes the problem with Lugdunum servers, but there should be
 another better way, since this functionnality is still useful... 
-  
+
   DonkeyProtoCom.udp_send (get_udp_sock ())
         ip (port+4)
         (DonkeyProtoUdp.QueryCallUdpReq {
             Q.ip = client_ip;
             Q.port = !!donkey_port;
             Q.id = id;
-          }) *) ()
+          }) *)
     | Connection sock ->
         printf_string "[QUERY ID]";
         server_send sock (
@@ -714,68 +715,14 @@ another better way, since this functionnality is still useful...
           let module C = M.QueryID in
           M.QueryIDReq id
         );
-(*                   Fifo.put s.server_id_requests file *)
         ()
-        
-        
-(* I think query_file was this saying from HighTime about:
-    Do not ask for all files if we don't know which files it
-    have. It's maybe like 3~4 times that i fix this bug and
-    it will be the last time : i won't submit another patch
-    if you don't apply this one. It's not only save some
-    bandwidth but also it should allow us to not be banned
-    by emule which don't like to receive lots of file
-    requests.
-let query_files c sock =  
-  
-  let s = c.client_source in
-  if s.DonkeySources.source_files = [] then begin
-      lprintf "Unknown Incoming clients\n";
-      List.iter (fun file ->
-          if file_state file = FileDownloading then begin
-              DonkeySources.set_request_result s file.file_sources
-                File_possible
-            end
-      ) !current_files;
-    end *) (* else
-    lprintf "Client has %d requests to emit\n" 
-      (List.length s.DonkeySources.source_files); *)
-    
-  (*
-  let nall_queries = ref 0 in
-  let nqueries = ref 0 in
+    with _ ->
+      if !!update_server_list_client then
+        begin
+          ignore(check_add_server ip port);
+          query_id ip port id
+        end
 
-(*  lprintf "Client %d:\n" (client_num c);  *)
-  let files = ref [] in
-  (if c.client_source.DonkeySources.source_files = [] then begin
-(*        lprintf "  query all files\n";  *)
-        files := !current_files 
-      
-      end else
-      List.iter (fun r ->
-          if r.request_score > File_not_found then begin
-(*              lprintf "   query file %s\n" (file_best_name r.request_file); 
-               *)
-              files := r.request_file :: !files
-            end;
-      ) c.client_source.source_files);
-
-(*
-  if !files = [] then begin
-      lprintf "   No queries to send !\n"; 
-    end;
-*)
-  
-  List.iter (fun file ->
-      incr nall_queries;
-      DonkeySources.query_file c file)
-  !files;
-  if !nqueries > 0 then
-    c.client_last_filereqs <- last_time ();
-  if !verbose then begin
-      lprintf "sent %d/%d file queries\n" !nqueries !nall_queries;
-    end
-*)
 
 external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
 let hash x = hash_param 10 100 x
@@ -1002,7 +949,7 @@ let client_to_client for_files c t sock =
       
       begin
         match t.CR.server_info with
-          Some (ip, port) -> safe_add_server ip port
+          Some (ip, port) -> if !!update_server_list_client then safe_add_server ip port
         | _ -> ()
       end;
       
@@ -1984,7 +1931,7 @@ let read_first_message overnet m sock =
       
       begin
         match t.CR.server_info with
-          Some (ip, port) ->  safe_add_server ip port
+          Some (ip, port) ->  if !!update_server_list_client then safe_add_server ip port
         | None -> 
             if overnet then begin
                 lprintf "incoming Overnet client\n"; 

@@ -100,9 +100,13 @@ let force_client_high_id = define_option donkey_section ["force_client_high_id"]
     "send all clients your IP regardless of what ID was assigned by the server"
     bool_option false
 
-let update_server_list = define_option donkey_section
-    ["update_server_list"] "Set this option to false if you don't want auto
-    update of servers list" bool_option true
+let update_server_list_server = define_option donkey_section
+    ["update_server_list_server"] "Set this option to false if you don't want to
+    receive new servers from servers" bool_option true
+
+let update_server_list_client = define_option donkey_section
+    ["update_server_list_client"] "Set this option to false if you don't want to
+    receive new servers from clients" bool_option false
 
 let keep_best_server = define_expert_option donkey_section
     ["keep_best_server"] "Set this option to false if you don't want mldonkey
@@ -302,7 +306,8 @@ let gui_donkey_options_panel =
 (*    "Maximal Source Age", shortname max_sources_age, "T"; *)
     "Maximal Server Age", shortname max_server_age, "T";
     "Min Left Servers After Clean", shortname min_left_servers, "T";
-    "Update Server List", shortname update_server_list, "B";
+    "Update Server List Server", shortname update_server_list_server, "B";
+    "Update Server List Client", shortname update_server_list_client, "B";
     "Servers Walking Period", shortname servers_walking_period, "T";
     "Force High ID", shortname force_high_id, "B";
     "Max Number of Connected Servers", shortname max_connected_servers, "T";

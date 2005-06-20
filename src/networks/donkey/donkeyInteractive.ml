@@ -87,6 +87,7 @@ let forget_search s =
   
   
 let load_server_met filename =
+  if !!update_server_list_server then
   try
     let module S = DonkeyImport.Server in
     let s = File.to_string filename in
@@ -109,6 +110,7 @@ let load_server_met filename =
       lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
       filename;
       0
+  else 0
 
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
       

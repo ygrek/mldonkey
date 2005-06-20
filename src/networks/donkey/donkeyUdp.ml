@@ -226,7 +226,7 @@ let udp_client_handler t p =
     match p.UdpSocket.udp_addr with
       | Unix.ADDR_INET(ip, port) ->
           let ip = Ip.of_inet_addr ip in
-          if !!update_server_list then
+          if !!update_server_list_server then
             let s = check_add_server ip (port-4) in
             (* set last_conn, but add a 2 minutes offset to prevent 
                staying connected to this server *)
