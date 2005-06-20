@@ -542,6 +542,9 @@ onClick=\"mSub('output','longhelp')\">LongHelp</TD>
 <TD class=\"bu bbig\" title=\"Network listing\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','networks')\">Networks</TD>
+<TD class=\"bu bbig\" title=\"Buildinfo\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','buildinfo')\">Buildinfo</TD>
 <TD class=\"bu bbig\" title=\"View ChangeLog\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
