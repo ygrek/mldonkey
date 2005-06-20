@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/20: spiralvoice
 
+4092: Add Razorback-Stats and Bitzi links to upstats
 4091: EDK: Some progress on the cancel bug
 4090: Overnet: Add stats to mem_stats and code cleanup
 4089: gdstats: Update second graph correctly

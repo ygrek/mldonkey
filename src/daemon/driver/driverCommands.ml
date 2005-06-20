@@ -1800,7 +1800,7 @@ let _ =
         
         if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
         else Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %s uploaded | Shared(%d): %s\n" 
+        Printf.bprintf buf "Session: %s uploaded | Shared(%d): %s\n" 
           (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes);
         
         let list = ref [] in
@@ -1814,7 +1814,8 @@ let _ =
             ( "1", "srh", "Total file requests", "Reqs" ) ; 
             ( "1", "srh", "Total bytes sent", "Total" ) ; 
             ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
-            ( "0", "srh", "Filename", "Filename" ) ]
+            ( "0", "srh", "Filename", "Filename" );
+	    ( "0", "srh", "Statistic links", "Stats" ) ]
         else
           begin
             Printf.bprintf buf " Requests |  Bytes   | Uploaded | File\n";
@@ -1838,7 +1839,7 @@ let _ =
                     (Filename.basename impl.impl_shared_codedname)
                   (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
-                
+
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
                 
@@ -1850,7 +1851,11 @@ let _ =
                   ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
                   ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
                   ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
-                      ed2k (Filename.basename impl.impl_shared_codedname)) ];
+                      ed2k (Filename.basename impl.impl_shared_codedname));
+		  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
+		    Printf.sprintf "\\<a href=\\\"http://stats.razorback2.com/ed2khistory?ed2k=%s\\\"\\>%s\\</a\\>
+		                    \\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>"
+		      (Md4.to_string impl.impl_shared_id) "R" (Md4.to_string impl.impl_shared_id) "B")) ];
                 Printf.bprintf buf "\\</tr\\>\n";
               end
             else
