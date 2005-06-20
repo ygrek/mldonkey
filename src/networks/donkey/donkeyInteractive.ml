@@ -1280,6 +1280,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
   );
   file_ops.op_file_cancel <- (fun file ->
+      file.file_swarmer <- None;
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
       DonkeySources.remove_file_sources_manager file.file_sources;
