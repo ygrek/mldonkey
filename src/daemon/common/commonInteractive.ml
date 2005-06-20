@@ -824,14 +824,27 @@ open CommonFile
 let force_download_quotas () = 
   let files = List.sort (fun f1 f2 -> 
         let v = file_priority f2 - file_priority f1 in
-        if v <> 0 then v else
-(* Try to download in priority files with fewer bytes missing
-   Rationale: once completed, it may allow to recover some disk space *)
-        let r1 = file_size f1 -- file_downloaded f1 in
-        let r2 = file_size f2 -- file_downloaded f2 in
-        if r1 = r2 then 0 else
-        if r2 < r1 then 1 else -1 
-        )
+        if v <> 0 then v else begin
+          (**
+            * [egs] do not start downloading
+            * a small file against an already active download
+            **)
+          let d1 = file_downloaded f1 in
+          let d2 = file_downloaded f2 in
+            if (d1=0L ) && (d2 > 0L) 
+            then 1
+            else if ( d2=0L ) && (d1 > 0L)
+            then -1 
+            else begin
+              (* Try to download in priority files with fewer bytes missing
+               Rationale: once completed, it may allow to recover some disk space *)
+              let r1 = file_size f1 -- d1 in
+              let r2 = file_size f2 -- d2 in
+                if r1 = r2 then 0 else
+                  if r2 < r1 then 1 else -1
+            end
+        end
+  )
     !!CommonComplexOptions.files in
   
   let rec iter list priority files ndownloads nqueued =
