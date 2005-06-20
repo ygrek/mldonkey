@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/20: spiralvoice
 
+4090: Overnet: Add stats to mem_stats and code cleanup
 4089: gdstats: Update second graph correctly
 4085: change download priority to keep started download rolling
 4071: Code cleanup: Replace lprintf_newline with "\n"
