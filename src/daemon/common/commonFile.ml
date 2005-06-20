@@ -547,7 +547,7 @@ let file_print file o =
         n.network_name
         (file_num file)
         (String2.shorten 80 (file_best_name file))
-        (Md4.to_string info.G.file_md4)
+	(string_of_uids info.G.file_uids)
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
         (file_priority file);
