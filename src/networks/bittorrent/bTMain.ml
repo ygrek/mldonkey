@@ -58,6 +58,10 @@ let enable () =
     Unix2.safe_mkdir seeded_directory;
     Unix2.safe_mkdir tracked_directory;
     Unix2.safe_mkdir downloads_directory;
+    Unix2.can_write_to_directory old_torrents_directory;
+    Unix2.can_write_to_directory seeded_directory;
+    Unix2.can_write_to_directory tracked_directory;
+    Unix2.can_write_to_directory downloads_directory;
     is_enabled := true;
     if !!BTTracker.tracker_port > 0 then (
         try BTTracker.start_tracker () 

@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/20: spiralvoice
 
+4104: Check accessibility of used directories on core startup
 4101: Telnet: Show BT hash in vd <num>
 4099: Automatically insert version number in Windows ressource file
 4093: Add Buildinfo button to HTML, Help+

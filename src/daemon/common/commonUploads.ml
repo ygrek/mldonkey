@@ -420,6 +420,7 @@ let make_tiger_tree array =
 let build_tiger_tree_file uid ttr = 
   let s = make_tiger_tree ttr in
   Unix2.safe_mkdir "ttr";
+  Unix2.can_write_to_directory "ttr";
   File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) s
   
 let rec start_job_for sh (wanted_id, handler) = 

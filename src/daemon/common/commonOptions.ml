@@ -86,6 +86,7 @@ let _ =
      lprintf "Exception %s to create dir %s\n"
        (Printexc2.to_string e) file_basedir;
      exit 2);
+  Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
 
   if Sys.file_exists "mlnet.pid" then
@@ -108,6 +109,7 @@ let _ =
         Filename.concat config_dir "mlnet_strings"
   in
   Unix2.safe_mkdir (Filename.dirname filename);
+  Unix2.can_write_to_directory (Filename.dirname filename);
   set_strings_file filename
 
 

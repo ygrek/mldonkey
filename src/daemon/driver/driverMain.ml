@@ -414,9 +414,14 @@ If you want to share files, you should:
   
   List.iter (fun s ->
       Unix2.safe_mkdir s.shdir_dirname;
+      if s.shdir_strategy = "incoming_directories" ||
+         s.shdir_strategy = "incoming_files" then
+	Unix2.can_write_to_directory s.shdir_dirname
   ) !!CommonComplexOptions.shared_directories;
   Unix2.safe_mkdir "searches";
-  Unix2.safe_mkdir !!temp_directory
+  Unix2.can_write_to_directory "searches";
+  Unix2.safe_mkdir !!temp_directory;
+  Unix2.can_write_to_directory !!temp_directory
 
 let _ =
 

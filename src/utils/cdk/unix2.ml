@@ -57,11 +57,17 @@ let is_link filename =
 let rec safe_mkdir dir =  
   if Sys.file_exists dir then begin
       if not (is_directory dir) then 
-        failwith (Printf.sprintf "%s not a directory" dir)
+        failwith (Printf.sprintf "%s already exists but is not a directory" dir)
     end
   else 
   if is_link dir then
-    failwith (Printf.sprintf "%s is an orphan symbolic link" dir)
+    begin try
+      let dir = opendir dir in () 
+      with
+        Unix.Unix_error (EACCES, _, _) -> failwith (Printf.sprintf "access denied for directory %s" dir)
+      | Unix.Unix_error (ENOENT, _, _) -> failwith (Printf.sprintf "directory %s not found, orphaned link?" dir)
+      | e -> failwith (Printf.sprintf "error %s for directory %s" (Printexc2.to_string e) dir)
+    end
   else begin
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
@@ -134,3 +140,23 @@ let rec remove_all_directory dirname =
         Sys.remove filename
   ) files;
   Unix.rmdir dirname
+
+let random () =
+  let s = String.create 7 in
+  for i = 0 to 6 do
+    s.[i] <- char_of_int (97 + Random.int 26)
+  done;
+  s
+
+let can_write_to_directory dirname =
+  let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
+  try
+    (let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 temp_file in
+      output_string oc "accesstest";
+      close_out oc);
+    (try Sys.remove temp_file with _ -> ())
+  with
+    Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.EACCES) ->
+      failwith (Printf.sprintf "can not create files in directory %s, check rights..." dirname)
+  | Sys_error s -> failwith (Printf.sprintf "%s for directory %s" s dirname)
+  | e -> failwith (Printf.sprintf "%s for directory %s" (Printexc2.to_string e) dirname)

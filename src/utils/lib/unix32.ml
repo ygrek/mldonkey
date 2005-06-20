@@ -141,7 +141,8 @@ module FDCache = struct
       close t;
       (let d = (Filename.dirname (Filename.concat f file)) in
         Unix2.safe_mkdir d;
-	Unix.chmod d 0o777);
+	Unix.chmod d 0o777;
+	Unix2.can_write_to_directory d);
       Unix2.rename t.filename (Filename.concat f file);
       destroy t
 
@@ -320,6 +321,7 @@ module MultiFile = struct
 
     let create dirname files =
       Unix2.safe_mkdir dirname;
+      Unix2.can_write_to_directory dirname;
       let rec iter files pos files2 =
         match files with
           [] ->
@@ -340,6 +342,7 @@ module MultiFile = struct
         | (filename, size) :: tail ->
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
+	    Unix2.can_write_to_directory (Filename.dirname temp_filename);
             let fd = FDCache.create temp_filename in
             let _ = FDCache.local_force_fd fd true in
             iter tail (pos ++ size)
@@ -550,6 +553,7 @@ module SparseFile = struct
       let dirname = filename ^ ".chunks" in
 (*      lprintf "Creating directory %s\n" dirname; *)
       Unix2.safe_mkdir dirname;
+      Unix2.can_write_to_directory dirname;
       {
         filename = filename;
         dirname = dirname;
