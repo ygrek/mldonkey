@@ -638,7 +638,7 @@ let update_link_stats () =
   trimto 5 short_delay_bandwidth_samples
   
 let history_size = 720
-let history_h_size = 24
+let history_h_size = 720
 
 let upload_history = Fifo2.create ()
 let download_history = Fifo2.create ()
