@@ -29,7 +29,7 @@ let disable_gfx_support () =
     html_mods_vd_gfx_tag =:= false
 
 let show_nogd_debug_msg () =
-  lprintf "Warning: Gd support was not compiled (install libgd-dev to enable it)"; lprint_newline ()
+  lprintf "Warning: Gd support was not compiled (install libgd-dev to enable it)\n"
 
 let remove_files () =
 (  

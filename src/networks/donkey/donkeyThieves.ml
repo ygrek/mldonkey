@@ -26,6 +26,7 @@ open Printf2
 
 open BasicSocket
 open CommonTypes
+open CommonOptions
 open CommonNetwork
 open Md4
 open GuiTypes
@@ -100,8 +101,8 @@ let register_client_hash ip hash =
 	| _, _, _ ->
 	    (* it switched to a hash that's used somewhere else, 
 	       that's certainly a theft. *)
-	    lprintf "That hash was already used somewhere else, that's certainly a theft!";
-            lprint_newline ();
+	    if !verbose then
+	      lprintf "That hash was already used somewhere else, that's certainly a theft!\n";
 	    false
 ;;
 let clean_thieves () =

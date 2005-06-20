@@ -123,10 +123,7 @@ let client_handler2 c ff f =
   let msgs = ref 0 in
   fun sock nread ->
 
-    if !verbose then begin
-        lprintf "between clients %d" nread; 
-        lprint_newline ();
-      end;
+    if !verbose then lprintf "between clients %d\n" nread;
     let module M= DonkeyProtoClient in
     let b = TcpBufferedSocket.buf sock in
     try
@@ -135,10 +132,7 @@ let client_handler2 c ff f =
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
-            if !verbose then begin
-                lprintf "client_to_client"; 
-                lprint_newline ();
-              end;
+            if !verbose then lprintf "client_to_client\n";
             let s = String.sub b.buf (b.pos+5) msg_len in
             buf_used b  (msg_len + 5);
             let t = M.parse emule_version opcode s in
@@ -155,11 +149,7 @@ lprint_newline (); *)
     with Not_found -> ()
   
 let cut_messages parse f sock nread =
-  if !verbose then begin
-      lprintf "server to client %d" nread; 
-      lprint_newline ();
-    end;
-
+  if !verbose then lprintf "server to client %d\n" nread;
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
@@ -167,10 +157,7 @@ let cut_messages parse f sock nread =
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
-          if !verbose then begin
-              lprintf "server_to_client"; 
-              lprint_newline ();
-            end;
+          if !verbose then lprintf "server_to_client\n";
           let s = String.sub b.buf (b.pos+5) msg_len in
           buf_used b (msg_len + 5);
           let t = parse opcode s in
@@ -193,8 +180,7 @@ let udp_send t ip port msg =
     let s = Buffer.contents buf in
     UdpSocket.write t false s ip port
   with e ->
-      lprintf "Exception %s in udp_send" (Printexc2.to_string e);
-      lprint_newline () 
+      lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
       
 let udp_handler f sock event =
   let module M = DonkeyProtoUdp in
@@ -223,7 +209,7 @@ let udp_basic_handler f sock event =
             if len = 0 || 
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
                 if !verbose_unknown_messages then begin
-                    lprintf "Received unknown UDP packet"; lprint_newline ();
+                    lprintf "Received unknown UDP packet\n";
                     dump pbuf;
                   end;
               end else begin
@@ -231,8 +217,8 @@ let udp_basic_handler f sock event =
                 f t p
               end
           with e ->
-              lprintf "Error %s in udp_basic_handler"
-                (Printexc2.to_string e); lprint_newline () 
+              lprintf "Error %s in udp_basic_handler\n"
+                (Printexc2.to_string e)
       ) ;
   | _ -> ()
 
@@ -250,9 +236,7 @@ let tag_file file =
       let name = if String2.starts_with name "hidden." then
           String.sub name 7 (String.length name - 7)
         else name in
-      if !verbose then begin
-          lprintf "SHARING %s" name; lprint_newline ();
-        end;
+      if !verbose then lprintf "SHARING %s\n" name;
       name
     ))::
   (int64_tag Field_Size file.file_file.impl_file_size) ::
@@ -261,12 +245,9 @@ let tag_file file =
         FormatNotComputed next_time when
         next_time < last_time () ->
           (try
-              if !verbose then begin
-                  lprintf "%s: FIND FORMAT %s"
+              if !verbose then lprintf "%s: FIND FORMAT %s\n"
                     (string_of_date (last_time ()))
                   (file_disk_name file); 
-                  lprint_newline ();
-                end;
               file.file_format <- (
                 match
                 CommonMultimedia.get_info 

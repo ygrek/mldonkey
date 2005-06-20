@@ -166,22 +166,18 @@ module Known = struct
     
     
     let print t =
-      lprintf "KNOWN.MET: %d files" (List.length t); lprint_newline ();
+      lprintf "KNOWN.MET: %d files\n" (List.length t);
       List.iter (fun f ->
           try
-            lprintf "  FILE %s" (Md4.to_string f.md4);
-            lprint_newline ();
-            lprintf "  mtime: %s" (Int64.to_string f.mtime);
-            lprint_newline ();
-            lprintf "  Blocks: %d" (Array.length f.blocks);
-            lprint_newline ();
+            lprintf "  FILE %s\n" (Md4.to_string f.md4);
+            lprintf "  mtime: %s\n" (Int64.to_string f.mtime);
+            lprintf "  Blocks: %d\n" (Array.length f.blocks);
             Array.iter (fun m ->
-                lprintf "    %s" (Md4.to_string m);
-                lprint_newline ();
+                lprintf "    %s\n" (Md4.to_string m);
             ) f.blocks;
             print_tags f.tags;
             lprint_newline ();
-          with _ -> lprintf "EEEEE"; lprint_newline ();
+          with _ -> lprintf "EEEEE\n";
       ) t;
       lprint_newline ();
       
@@ -257,23 +253,20 @@ module Part = struct
     
     let print f =
       try
-        lprintf "  FILE %s" (Md4.to_string f.md4);
-        lprint_newline ();
-        lprintf "  Blocks: %d" (Array.length f.blocks);
-        lprint_newline ();
+        lprintf "  FILE %s\n" (Md4.to_string f.md4);
+        lprintf "  Blocks: %d\n" (Array.length f.blocks);
         Array.iter (fun m ->
-            lprintf "    %s" (Md4.to_string m);
-            lprint_newline ();
+            lprintf "    %s\n" (Md4.to_string m);
         ) f.blocks;
         lprint_newline ();
-        lprintf " Absent blocks:"; lprint_newline ();
+        lprintf " Absent blocks:\n";
         List.iter (fun (t1,n1) ->
-            lprintf "%10s - %10s" (Int64.to_string t1)
-            (Int64.to_string n1); lprint_newline ();
+            lprintf "%10s - %10s\n" (Int64.to_string t1)
+            (Int64.to_string n1);
         ) f.absents;
         print_tags f.tags;
         lprint_newline ();
-      with _ -> lprintf "EEEEE"; lprint_newline ();
+      with _ -> lprintf "EEEEE\n";
           
     
   end
@@ -315,8 +308,7 @@ module Pref = struct
       }
       
     let print t = 
-      lprintf "PREF.MET %s" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "PREF.MET %s\n" (Md4.to_string t.md4);
       
       print_tags t.client_tags;
       lprint_newline ();

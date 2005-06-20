@@ -183,14 +183,8 @@ let input_old_result ic =
   printf_char '>';
   
   let o = Obj.repr hresult in
-  lprintf "Type int: %s" (string_of_bool (Obj.is_int o));
-  lprint_newline ();
-  if not (Obj.is_int o) then begin
-      lprintf "Size: %d" (Obj.size o);
-      lprint_newline ();
-      
-      
-    end;
+  lprintf "Type int: %s\n" (string_of_bool (Obj.is_int o));
+  if not (Obj.is_int o) then lprintf "Size: %d\n" (Obj.size o);
     
   let info = {
       result_num = 0;
@@ -508,9 +502,9 @@ let find s =
   let docs = DocIndexer.query index req in
 (*  lprintf "%d results" (Array.length docs); lprint_newline (); *)
   Array.iter (fun doc ->
-      if DocIndexer.filtered doc then begin
-          lprintf "doc filtered"; lprint_newline ();
-        end else
+      if DocIndexer.filtered doc then
+        lprintf "doc filtered\n"
+      else
       let r = doc_value doc in
       
       let rs = try
@@ -551,14 +545,13 @@ let init () =
             done
           with 
             End_of_file -> 
-              lprintf "done"; lprint_newline ();
+              lprintf "done\n";
               close_in ic
           | e -> (* some error *)
-              lprintf "Error %s reading history file"
-                (Printexc2.to_string e)
-              ; lprint_newline ();
+              lprintf "Error %s reading history file\n"
+                (Printexc2.to_string e);
               close_in ic;
-              lprintf "Generating new file"; lprint_newline ();
+              lprintf "Generating new file\n";
               begin try
                   (try close_history_oc () with _ -> ());
                   (try Sys.remove "history.met" with _ -> ());
@@ -567,9 +560,8 @@ let init () =
                   ) !list;
                   close_history_oc ();
                 with e ->            
-                    lprintf "Error %s generating new history file"
-                      (Printexc2.to_string e);
-                    lprint_newline () 
+                    lprintf "Error %s generating new history file\n"
+                      (Printexc2.to_string e)
               end
         with _ -> ());
       save_file_history =:= true;
@@ -630,7 +622,6 @@ let install_hooks () =
 (*        lprintf "SET NEW FILTERS"; lprint_newline (); *)
         DocIndexer.filter_words index (String2.stem !!filters)
       with e ->
-          lprintf "Error %s in set filters" (Printexc2.to_string e);
-          lprint_newline ();
+          lprintf "Error %s in set filters\n" (Printexc2.to_string e)
   )
   

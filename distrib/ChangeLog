@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/06/20: spiralvoice
+
+4071: Code cleanup: Replace lprintf_newline with "\n"
+---------------------------------------------------------------------
 2005/06/06: spiralvoice (version 2.5.30.16 = tag release-2-5-30-16)
 
 4070: Exit core on startup if a port is already used

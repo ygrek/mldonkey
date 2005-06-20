@@ -1194,9 +1194,8 @@ let http_handler o t r =
               
               | args -> 
                   List.iter (fun (s,v) ->
-                      lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
-                      lprint_newline ()) args;
-                  
+                      lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
+                  args;
                   raise Not_found
             end
         
@@ -1258,9 +1257,8 @@ let http_handler o t r =
                   
               | args -> 
                   List.iter (fun (s,v) ->
-                      lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
-                      lprint_newline ()) args;
-                  
+                      lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
+		  args;
                   raise Not_found                  
             end
             

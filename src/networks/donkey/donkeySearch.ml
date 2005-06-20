@@ -143,8 +143,8 @@ let local_search search =
 TcpBufferedSocket.write_string t_out (Buffer.contents buf)
   *)
     with e ->
-        lprintf "Exception %s while starting local_index_find"
-          (Printexc2.to_string e); lprint_newline ()
+        lprintf "Exception %s while starting local_index_find\n"
+          (Printexc2.to_string e)
 
 *)
   

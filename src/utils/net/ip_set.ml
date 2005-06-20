@@ -104,14 +104,12 @@ let load_merge bl filename =
 	    end else 
 	      raise Not_found
 	with _ ->
-	  lprintf "Syntax error: %s" line;
-	  lprint_newline ()
+	  lprintf "Syntax error: %s\n" line
     done;
     bl_empty (* not reached *)
   with End_of_file ->
     close_in cin;
-    lprintf "IP blacklist: %d ranges loaded" !nranges;
-    lprint_newline ();
+    lprintf "IP blacklist: %d ranges loaded\n" !nranges;
     !bl
 
 let load filename =

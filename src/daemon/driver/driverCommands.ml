@@ -587,8 +587,8 @@ let _ =
               server_print s o;
               incr nb_servers;
             with e ->
-                lprintf "Exception %s in server_print"
-                  (Printexc2.to_string e); lprint_newline ();
+                lprintf "Exception %s in server_print\n"
+                  (Printexc2.to_string e);
         ) !!servers;
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         Printf.bprintf buf "Servers: %d known\n" !nb_servers;

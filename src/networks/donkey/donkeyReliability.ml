@@ -146,13 +146,12 @@ let block_reliability b =
     *)
 
 let print_reliability ip =
-  lprintf "%s is %s" (Ip.to_string ip)
+  lprintf "%s is %s\n" (Ip.to_string ip)
   (match ip_reliability ip with
       Reliability_neutral -> "neutral"
     | Reliability_reliable -> "reliable"
     | Reliability_suspicious 0 -> "has sent corrupted data"
-    | Reliability_suspicious s -> Printf.sprintf "suspicious of level %d" s);
-  lprint_newline ()
+    | Reliability_suspicious s -> Printf.sprintf "suspicious of level %d" s)
   
 let bprint_reliability buf ip =
   Printf.bprintf buf "%s is %s\n" (Ip.to_string ip)

@@ -98,10 +98,8 @@ let supernode_browse_handler node msg sock =
   match msg with
 
   | M.ViewFilesReplyReq t ->
-      lprintf "****************************************";
-      lprint_newline ();
-      lprintf "       BROWSE FILES REPLY         ";
-      lprint_newline ();
+      lprintf "****************************************\n";
+      lprintf "       BROWSE FILES REPLY         \n";
       let module Q = M.ViewFilesReply in
 
       begin
@@ -118,8 +116,8 @@ let supernode_browse_handler node msg sock =
 		  ()
           ) t;
         with e ->
-            lprintf "Exception in ViewFilesReply %s"
-              (Printexc2.to_string e); lprint_newline ();
+            lprintf "Exception in ViewFilesReply %s\n"
+              (Printexc2.to_string e);
       end;
       node.node_last_browse <- last_time ();
       close sock Closed_by_user
@@ -197,13 +195,11 @@ let client_connection_handler t event =
                   (DonkeyProtoCom.client_handler2 c read_first_message
                     (client_to_client []));
               
-              with e -> lprintf "Exception %s in init_connection"
-                    (Printexc2.to_string e);
-                  lprint_newline ());
+              with e -> lprintf "Exception %s in init_connection\n"
+                    (Printexc2.to_string e));
           with e ->
-              lprintf "Exception %s in client_connection_handler"
+              lprintf "Exception %s in client_connection_handler\n"
                 (Printexc2.to_string e);
-              lprint_newline ();
               Unix.close s
         end      
       else begin

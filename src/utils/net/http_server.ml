@@ -345,7 +345,7 @@ let complete_multipart_data request ic tail =
             |  _ -> 
                 let tmpfile = Filename.temp_file "http_" "" in
                 if !debug then begin
-                    lprintf "WARNING: saving to file %s" tmpfile; lprint_newline ();
+                    lprintf "WARNING: saving to file %s\n" tmpfile;
                   end;
                 let oc = open_out tmpfile in
                 let rec iter n empty_line =
@@ -394,9 +394,7 @@ let complete_multipart_data request ic tail =
             end;
           raise Exit
       | [] -> 
-          if !debug then begin
-              lprintf "NO LINES"; lprint_newline ();
-            end;
+          if !debug then lprintf "NO LINES\n";
           raise Exit
     in
     if !end_boundary_found then field :: previous else
@@ -408,7 +406,7 @@ let complete_multipart_data request ic tail =
 
 let parse_post_args f len req b =
 (* parse post args *)
-  lprintf "CALL HANDLR"; lprint_newline ();
+  lprintf "CALL HANDLR\n";
   let s = String.sub b.rbuf b.rpos len in
   Select.buf_used b len;
   let args = Url.cut_args s in
@@ -417,12 +415,12 @@ let parse_post_args f len req b =
   f b req
   
 let check_len f len b pos2 =
-  lprintf "check_len: len %d rlen %d" len b.rlen; lprint_newline ();
+  lprintf "check_len: len %d rlen %d\n" len b.rlen;
   if b.rlen >= len then f b
 
 let complete_post_request ( f : handler ) buf request =
   let len = request.options.content_length in
-  lprintf "check_len: len %d rlen %d" len buf.rlen; lprint_newline ();
+  lprintf "check_len: len %d rlen %d\n" len buf.rlen;
   if buf.rlen >= len then
     parse_post_args f len request buf
   else
@@ -637,8 +635,7 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      lprintf "No such file: %s (%s)" file (Printexc2.to_string e); 
-      lprint_newline ();
+      lprintf "No such file: %s (%s)\n" file (Printexc2.to_string e); 
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown
 *)      

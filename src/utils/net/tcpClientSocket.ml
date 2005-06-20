@@ -108,8 +108,8 @@ end;
       t.wfbuf.buf <- "";
       close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
     with e ->
-        lprintf "Exception %s in TcpBufferedSocket.close" 
-          (Printexc2.to_string e); lprint_newline ();
+        lprintf "Exception %s in TcpBufferedSocket.close\n"
+          (Printexc2.to_string e);
         raise e
   end
   
@@ -120,11 +120,9 @@ let shutdown t s =
 end;
   *)
   (try BasicSocket.shutdown t.sock s with e -> 
-       lprintf "exception %s in shutdown" (Printexc2.to_string e);
-        lprint_newline () );
+       lprintf "exception %s in shutdown\n" (Printexc2.to_string e));
   (try close t s with  e -> 
-        lprintf "exception %s in shutdown" (Printexc2.to_string e);
-        lprint_newline ())
+        lprintf "exception %s in shutdown\n" (Printexc2.to_string e))
 
 let buf_create max = 
   {
@@ -212,15 +210,14 @@ let buf_add t b s pos1 len =
       end
     else
     if b.len + len > b.max_buf_size then begin
-        lprintf "BUFFER OVERFLOW %d+%d> %d" b.len len b.max_buf_size ; 
-        lprint_newline ();
+        lprintf "BUFFER OVERFLOW %d+%d> %d\n" b.len len b.max_buf_size ; 
         
         lprintf "MESSAGE [";
         for i = pos1 to pos1 + (mini len 20) - 1 do
           lprintf "(%d)" (int_of_char s.[i]);
         done;
         if len > 20 then lprintf "...";
-        lprintf "]"; lprint_newline ();
+        lprintf "]\n";
         
         t.event_handler t BUFFER_OVERFLOW;
       end
@@ -536,7 +533,7 @@ let dump_socket t buf =
   
 let create name fd handler =
   if !debug then begin
-      lprintf "[fd %d %s]" (Obj.magic fd) name; lprint_newline ();
+      lprintf "[fd %d %s]\n" (Obj.magic fd) name;
     end;
   MlUnix.set_close_on_exec fd;
   let t = {
@@ -605,13 +602,12 @@ let connect name host port handler =
     with 
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
     | e -> 
-        lprintf "For host %s port %d" (Unix.string_of_inet_addr host)
-        port; lprint_newline ();
+        lprintf "For host %s port %d\n"
+	  (Unix.string_of_inet_addr host) port;
         close t "connect failed";
         raise e
   with e -> 
-      lprintf "+++ Exception BEFORE CONNECT %s" (Printexc2.to_string e);
-      lprint_newline ();
+      lprintf "+++ Exception BEFORE CONNECT %s\n" (Printexc2.to_string e);
       raise e
       
   

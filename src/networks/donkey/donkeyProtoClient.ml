@@ -145,7 +145,7 @@ module Connect  = struct
     
     let print t = 
       lprintf "CONNECT:\n";
-      lprintf "version: %d" t.version; lprint_newline ();
+      lprintf "version: %d\n" t.version;
       lprintf "MD4: %s\n" (Md4.to_string t.md4); 
       lprintf "ip: %s\n" (Ip.to_string t.ip);
       lprintf "port: %d\n" t.port;
@@ -336,8 +336,7 @@ let get_bitmap s pos =
   chunks, pos
 
 let print_bitmap chunks =
-  lprint_newline ();
-  lprint_string "   ";
+  lprint_string "\n   ";
   Array.iter (fun b -> 
       if b then lprintf "1" else lprintf "0") chunks
 
@@ -428,8 +427,7 @@ module QueryChunksReply = struct (* Request 80 *)
       }
       
     let print t =
-      lprintf "CHUNKS for %s" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "CHUNKS for %s\n" (Md4.to_string t.md4);
       lprint_string "   ";
       Array.iter (fun b -> 
           if b then lprintf "1" else lprintf "0") t.chunks;
@@ -471,8 +469,7 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
       }
 
     let print t =
-      lprintf "CHUNKS for %s" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "CHUNKS for %s\n" (Md4.to_string t.md4);
       lprint_string "   ";
       Array.iter (fun b -> 
           lprintf "  %s" (Md4.to_string b))
@@ -745,8 +742,7 @@ module Sources = struct
       }
     
     let print t = 
-      lprintf "SOURCES for %s:\n" (Md4.to_string t.md4);
-      lprint_newline ();
+      lprintf "SOURCES for %s:\n\n" (Md4.to_string t.md4);
       List.iter (fun (ip1, port, ip2) ->
           lprintf "  %s:%d:%s\n" (Ip.to_string ip1) port(Ip.to_string ip2);
           lprint_newline ();) t.sources
@@ -845,7 +841,7 @@ module EmuleQueueRanking = struct
       
     let parse len s = get_int16 s 1      
     let print t = 
-      lprintf "QUEUE RANKING: %d" t; lprint_newline ()
+      lprintf "QUEUE RANKING: %d\n" t
 
     let string_null10 = String.make 10 (char_of_int 0)
       
@@ -861,7 +857,7 @@ module QueueRank = struct
       
     let parse len s = get_int s 1      
     let print t = 
-      lprintf "QUEUE RANK: %d" t; lprint_newline ()
+      lprintf "QUEUE RANK: %d\n" t
 
     let write buf t = 
       buf_int buf t
@@ -876,8 +872,7 @@ module EmuleRequestSources = struct
       get_md4 s 1
       
     let print t = 
-      lprintf "EMULE REQUEST SOURCES: %s" (Md4.to_string t);
-      lprint_newline ()
+      lprintf "EMULE REQUEST SOURCES: %s\n" (Md4.to_string t)
 
     let write buf t = 
       buf_md4 buf t 
@@ -1292,11 +1287,11 @@ and parse emule_version magic s =
           with
           | e -> 
               if !CommonOptions.verbose_unknown_messages then begin
-                  lprintf "Unknown message From client: %s (magic %d)"
-                    (Printexc2.to_string e) magic; lprint_newline ();
+                  lprintf "Unknown message From client: %s (magic %d)\n"
+                    (Printexc2.to_string e) magic;
                   let tmp_file = Filename.temp_file "comp" "pak" in
                   File.from_string tmp_file s;
-                  lprintf "Saved unknown packet %s" tmp_file; lprint_newline ();
+                  lprintf "Saved unknown packet %s\n" tmp_file;
                   
                   dump s;
                   lprint_newline ();
@@ -1314,18 +1309,17 @@ and parse emule_version magic s =
           end;	   
         UnknownReq s        *)
     | _ -> 
-        if !CommonOptions.verbose_unknown_messages then begin
-            lprintf "Strange magic: %d" magic; lprint_newline ();
-          end;
+        if !CommonOptions.verbose_unknown_messages then
+            lprintf "Strange magic: %d\n" magic;
         raise Not_found
   with
   | e -> 
       if !CommonOptions.verbose_unknown_messages then begin
-          lprintf "Unknown message From client: %s (magic %d)"
-              (Printexc2.to_string e) magic; lprint_newline ();
+          lprintf "Unknown message From client: %s (magic %d)\n"
+              (Printexc2.to_string e) magic;
 	      	     let tmp_file = Filename.temp_file "comp" "pak" in
 	     File.from_string tmp_file s;
-	     lprintf "Saved unknown packet %s" tmp_file; lprint_newline ();
+	     lprintf "Saved unknown packet %s\n" tmp_file;
 
           dump s;
           lprint_newline ();

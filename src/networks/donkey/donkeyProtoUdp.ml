@@ -418,7 +418,7 @@ let parse magic s =
     | _ -> raise Exit  
   with
     e -> 
-      lprintf "From UDP:"; lprint_newline ();
+      lprintf "From UDP:\n";
       dump s;
       UnknownUdpReq (magic, s)
       

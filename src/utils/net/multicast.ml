@@ -70,8 +70,7 @@ let recv sock buffer =
   
 let send sock deering port message =
   let multicast_addr = deering_addr deering in
-  lprintf "ADDR: %s" (string_of_inet_addr multicast_addr);
-  lprint_newline ();
+  lprintf "ADDR: %s\n" (string_of_inet_addr multicast_addr);
   let to_addr = Unix.ADDR_INET(multicast_addr, port) in
   let e = sendto sock message 0 (String.length message) [] to_addr in
   if e < 0 then failwith "sendto"

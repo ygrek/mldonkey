@@ -1544,7 +1544,7 @@ let _ =
   CommonWeb.add_web_kind "server.met" (fun _ filename ->
       lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
-      lprintf "%d SERVERS ADDED" n; lprint_newline ();    
+      lprintf "%d SERVERS ADDED\n" n;
   );
   CommonWeb.add_web_kind "servers.met" (fun _ filename ->
       lprintf "FILE LOADED\n"; 

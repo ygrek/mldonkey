@@ -129,8 +129,7 @@ let dump_sub s pos len =
     let n = int_of_char c in
     lprintf "(%d)" n            
   done;
-  lprintf "]\n";
-  lprint_newline ()
+  lprintf "]\n\n"
 
   
 let buf_string8 buf s =
