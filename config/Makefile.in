@@ -1703,6 +1703,8 @@ releaseclean: clean moreclean
 
 distclean: releaseclean
 	rm -rf patches/local
+	rm -rf mldonkey-distrib-*
+	rm -rf *.tar.bz2 
 
 maintainerclean: distclean
 	echo rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml
@@ -1811,6 +1813,16 @@ release.mlnet.static: mlnet.static opt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	cp mlnet.static $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+
+release.mlnet.distri: mlnet.static opt
+	rm -rf mldonkey-*
+	cp -R distrib $(DISDIR)
+	cp mlnet $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
+	cp mlnet.static $(DISDIR)/mlnet.static && strip $(DISDIR)/mlnet.static
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar

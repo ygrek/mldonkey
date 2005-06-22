@@ -11,9 +11,14 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/06/23: spiralvoice
+
+4083: new build target: release.mlnet.distri
+      it contains both the dynamic and the static linked core
+
 2005/06/22: spiralvoice
 
-4115: sort output of "links" in alphabetically order
+4115: sort output of "links" in alphabetically order (by Knocker)
 
 2005/06/20: spiralvoice
 
