@@ -1876,16 +1876,21 @@ let _ =
         let buf = o.conn_buf in
         let list = ref [] in
         shared_iter (fun s ->
-            let impl = as_shared_impl s in
-            list := impl :: !list );
-        let list = Sort.list (fun f1 f2 ->
-              (f1.impl_shared_requests = f2.impl_shared_requests &&
-                f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
-              (f1.impl_shared_requests > f2.impl_shared_requests )
-          ) !list in
+          let impl = as_shared_impl s in
+          list := impl :: !list
+        );
+
+        let list =
+          List.sort ( fun f1 f2 ->
+            String.compare
+              (Filename.basename f1.impl_shared_codedname)
+              (Filename.basename f2.impl_shared_codedname)
+        ) !list in
+
         List.iter (fun impl ->
-            if (impl.impl_shared_id <> Md4.null) then Printf.bprintf buf "ed2k://|file|%s|%s|%s|/\n"
-                (Filename.basename impl.impl_shared_codedname)
+          if (impl.impl_shared_id <> Md4.null) then
+           Printf.bprintf buf "ed2k://|file|%s|%s|%s|/\n"
+              (Filename.basename impl.impl_shared_codedname)
               (Int64.to_string impl.impl_shared_size)
               (Md4.to_string impl.impl_shared_id);
         ) list;
