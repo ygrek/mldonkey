@@ -333,7 +333,7 @@ let client_to_server s t sock =
   | M.InfoReq (users, files) ->
       s.server_nusers <- Int64.of_int users;
       s.server_nfiles <- Int64.of_int files;
-      if (users < !!min_users_on_server) then
+      if (users < !!min_users_on_server && not s.server_preferred) then
         begin
           lprintf "%s:%d remove server min_users_on_server limit hit!\n"
             (Ip.to_string s.server_ip) s.server_port;
