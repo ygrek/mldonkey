@@ -1033,7 +1033,7 @@ LIBGD_GIF=no
 AC_CHECK_LIB(gd, gdImageGif,[LIBGD_GIF=yes])
 
 LIBGD_PNG=no
-AC_CHECK_LIB(gd, gdImagePng, [LIBGD_JPG=yes])
+AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes])
 
 LIBGD_JPG=no
 AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes])
