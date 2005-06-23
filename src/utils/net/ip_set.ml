@@ -104,7 +104,7 @@ let load_merge bl filename =
 	    end else 
 	      raise Not_found
 	with _ ->
-	  lprintf "Syntax error: %s\n" line
+	  lprintf "Syntax error while loading IP blocklist in line %s\n" line
     done;
     bl_empty (* not reached *)
   with End_of_file ->
