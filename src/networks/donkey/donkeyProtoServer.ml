@@ -68,6 +68,7 @@ module Connect = struct
        "\017", Field_UNKNOWN "version";
        "\015", Field_UNKNOWN "port";
        "\032", Field_UNKNOWN "extended";
+       "\251", Field_UNKNOWN "emule_version";
       ]
     
     let parse len s =

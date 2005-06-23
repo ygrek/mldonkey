@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/23: spiralvoice
 
+4120: EDK: send emule_version to servers (by Knocker)
 4083: new build target: release.mlnet.distri
       it contains both the dynamic and the static linked core
 
