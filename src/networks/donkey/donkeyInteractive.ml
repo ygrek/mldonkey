@@ -548,10 +548,13 @@ let commands = [
     ), ":\t\t\tload history.dat file";
     
     "servers", Arg_one (fun filename o ->
+	let nservers = List.length (Hashtbl2.to_list servers_by_key) in
         let buf = o.conn_buf in
         try
           let n = load_server_met filename in
-          Printf.sprintf "%d servers loaded" n
+          Printf.sprintf "%d servers found, %d new ones inserted" 
+	    n
+	    ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc2.to_string e)
     ), "<filename> :\t\t\tadd the servers from a server.met file";
