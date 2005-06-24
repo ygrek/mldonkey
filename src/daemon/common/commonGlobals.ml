@@ -85,7 +85,10 @@ let buildinfo () =
       ^ "\nFeatures:"
           ^ (if BasicSocket.has_threads () then " threads" else " no-threads")
           ^ (if Autoconf.has_zlib then " zlib" else " no-zlib")
-          ^ (if Autoconf.has_gd then " gd" else " no-gd")
+          ^ (if Autoconf.has_gd && Autoconf.has_gd_png && Autoconf.has_gd_jpg then " gd(jpg/png)" else "")
+	  ^ (if Autoconf.has_gd && Autoconf.has_gd_png && not Autoconf.has_gd_jpg then " gd(png)" else "")
+	  ^ (if Autoconf.has_gd && not Autoconf.has_gd_png && Autoconf.has_gd_jpg then " gd(jpg)" else "")
+	  ^ (if not Autoconf.has_gd then " no-gd" else "")
           ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
           ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
           ^ " " ^ Autoconf.sha1_version

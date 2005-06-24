@@ -1511,7 +1511,12 @@ let _ =
   );
   option_hook client_buffer_size (fun _ ->
       TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
-  )
+  );
+  if Autoconf.has_gd then
+    option_hook html_mods_vd_gfx_png (fun _ ->
+      if not Autoconf.has_gd_png && !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= false;
+      if not Autoconf.has_gd_jpg && not !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= true
+    )
 
 let verbose_msg_clients = ref false
 let verbose_msg_raw = ref false

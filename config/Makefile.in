@@ -145,8 +145,15 @@ ifeq ("$(ZLIB)" , "yes")
 endif
 
 ifeq ("$(GD)", "yes")
-  LIBS_flags += -cclib -lgd -cclib -lpng -cclib -ljpeg -cclib -lfreetype -cclib -lm
-  LIBS_flags += -ccopt -DHAVE_JPEG -ccopt -W -ccopt -Wall -ccopt -Wno-unused
+  LIBS_flags += -cclib -lgd -cclib -lfreetype -cclib -lm
+  LIBS_flags += -ccopt -W -ccopt -Wall -ccopt -Wno-unused
+  ifeq ("$(GD_JPG)", "yes")
+    LIBS_flags += -cclib -ljpeg
+  endif
+  ifeq ("$(GD_PNG)", "yes")
+    LIBS_flags += -cclib -lpng
+    LIBS_flags += -ccopt -DHAVE_JPEG
+  endif
   CDK_SRCS +=  $(CDK)/gd.ml $(CDK)/gdstubs.c
 endif
 

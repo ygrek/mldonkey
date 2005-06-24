@@ -32,6 +32,8 @@ let check_array s pos =
 let has_iconv = if "@ICONV@" = "yes" then true else false
 
 let has_gd = @HAS_GD@
+let has_gd_png = @HAS_GD_PNG@
+let has_gd_jpg = @HAS_GD_JPG@
 
 let has_zlib = @HAS_ZLIB@
 let zlib__uncompress_string2 s = @ZLIB__UNCOMPRESS_STRING2@

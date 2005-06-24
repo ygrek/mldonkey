@@ -11,10 +11,12 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/06/25: spiralvoice
+
+4125: Some configure.in fixes if libpng is misssing in libgd
+
 2005/06/23: spiralvoice
 
-Fix for configure when checking if libgd was compiled with libpng,
-thanks to White_FrosT
 4122: EDK: "server <met>" command now responds with a clearer answer
       (by Knocker)
 4121: EDK: Dont remove prefered server if server_users < min_users_on_server

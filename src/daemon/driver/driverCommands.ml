@@ -1380,15 +1380,17 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option display_downloaded_results;
                         strings_of_option vd_reload_delay;
                         strings_of_option html_use_gzip;
-			] @ (if Autoconf.has_gd then [
-                        strings_of_option html_mods_vd_gfx;
+			] @ (if Autoconf.has_gd then
+			[strings_of_option html_mods_vd_gfx;] else []) @
+			(if Autoconf.has_gd_jpg && Autoconf.has_gd_png
+			 then [strings_of_option html_mods_vd_gfx_png;] else []) @
+			(if Autoconf.has_gd then [
                         strings_of_option html_mods_vd_gfx_remove;
                         strings_of_option html_mods_vd_gfx_split;
                         strings_of_option html_mods_vd_gfx_fill;
                         strings_of_option html_mods_vd_gfx_flip;
                         strings_of_option html_mods_vd_gfx_mean;
                         strings_of_option html_mods_vd_gfx_transparent;
-                        strings_of_option html_mods_vd_gfx_png;
                         strings_of_option html_mods_vd_gfx_h;
                         strings_of_option html_mods_vd_gfx_x_size;
                         strings_of_option html_mods_vd_gfx_y_size;

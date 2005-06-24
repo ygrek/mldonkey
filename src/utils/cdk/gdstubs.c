@@ -20,6 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "../../../config/config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -139,6 +141,7 @@ value ml_image_create(value sx, value sy) {
 }
 
 value ml_image_open_png(value filename) {
+#ifdef HAVE_GD_PNG
   CAMLparam1(filename);
   CAMLlocal1(v);
   FILE *in;
@@ -160,10 +163,14 @@ value ml_image_open_png(value filename) {
   IM_VAL(v) = im;
 
   CAMLreturn(v);
+#else
+  raise_constant(*(value *)caml_named_value("gd type not supported"));
+  return Val_unit;
+#endif
 }
 
 value ml_image_open_jpeg(value filename) {
-#ifdef HAVE_JPEG
+#ifdef HAVE_GD_JPG
   FILE *in;
   gdImagePtr im;
   CAMLparam1(filename);
@@ -335,17 +342,20 @@ value ml_get_height(value gdw) {
 }
 
 value ml_save_png(value gdw, value filename) {
+#ifdef HAVE_GD_PNG
   FILE *out;
   
   out = fopen(String_val(filename), "wb");
   gdImagePng(IM_VAL(gdw), out);
   fclose(out);
-  
+#else
+  raise_constant(*(value*)caml_named_value("gd type not supported"));
+#endif
   return Val_unit;
 }
 
 value ml_save_jpeg(value gdw, value filename, value quality) {
-#ifdef HAVE_JPEG
+#ifdef HAVE_GD_JPG
   FILE *out;
 
   out = fopen(String_val(filename), "wb");
@@ -365,6 +375,7 @@ void really_putblock (struct channel *, char *, long);
 #define Channel(v) (*((struct channel **) (Data_custom_val(v))))
 
 value ml_dump_png(value gdw, value chan) {
+#ifdef HAVE_GD_PNG
   int size;
   void* dat;
 
@@ -372,11 +383,14 @@ value ml_dump_png(value gdw, value chan) {
   really_putblock(Channel(chan), dat, size);
   free(dat);
   
+#else
+  raise_constant(*(value*)caml_named_value("gd type not supported"));
+#endif
   return Val_unit;
 }
 
 value ml_dump_jpeg(value gdw, value chan, value quality) {
-#ifdef HAVE_JPEG
+#ifdef HAVE_GD_JPG
   int size;
   void* dat;
 

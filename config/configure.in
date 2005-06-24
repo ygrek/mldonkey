@@ -474,9 +474,7 @@ AC_CHECK_HEADERS(sys/poll.h,,)
 AC_CHECK_FUNCS(poll,,)
 
 ZLIB=no
-AC_CHECK_LIB(z,inflate,[ZLIB=yes])
-AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
-
+AC_CHECK_LIB(z,inflate,[AC_CHECK_HEADERS(zlib.h,[ZLIB=yes],)])
 if test "$ZLIB" = "yes"; then
   HAS_ZLIB=true
   ZLIB__UNCOMPRESS_STRING2="Zlib.uncompress_string2 s"
@@ -1023,44 +1021,58 @@ else
 fi
 
 # testing for gd support
-LIBPNG=no
-AC_CHECK_LIB(png, png_create_read_struct , [LIBPNG=yes])
 
-LIBJPEG=no
-AC_CHECK_LIB(jpeg, jpeg_CreateCompress, [LIBJPEG=yes])
-
-LIBGD_GIF=no
-AC_CHECK_LIB(gd, gdImageGif,[LIBGD_GIF=yes])
-
-LIBGD_PNG=no
-AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes])
-
-LIBGD_JPG=no
-AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes])
-
-AC_MSG_CHECKING(compile with gd)
+HAS_GD=false
+HAS_GD_JPG=false
+HAS_GD_PNG=false
+GD_JPG=no
+GD_PNG=no
 if test "$GD" != "no"; then
   GD=no
-  if test "$ZLIB" = "no"; then
-    echo "you need to install zlib"
-  else
+  LIBGD=no
+  AC_CHECK_LIB(gd, gdImageCreate , [LIBGD=yes])
+  if test "$LIBGD" = "yes"; then
+    LIBPNG=no
+    AC_CHECK_LIB(png, png_create_read_struct , [LIBPNG=yes])
+    LIBGD_PNG=no
+    AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes])
     if test "$LIBPNG" = "no"; then
-      echo "you need to install libpng"
+      AC_MSG_NOTICE(png support not available)
     else
-      if test "$LIBJPEG" = "no"; then
-        echo "you need to install libjpeg"
+      if test "$LIBGD_PNG" = "yes"; then
+        GD=yes
+        HAS_GD_PNG=true
+	GD_PNG=yes
+        AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
+        AC_MSG_NOTICE(using png support in libgd)
       else
-        if test "$LIBGD_PNG" = "yes"; then
-          echo "you need to install gd (libgd-dev)"
-        else
-          if test "$LIBGD_JPG" = "yes"; then
-            GD=yes
-          fi
-        fi
+        HAS_GD_PNG=false
+        AC_MSG_NOTICE(png support not available in libgd)
       fi
     fi
+    LIBJPEG=no
+    AC_CHECK_LIB(jpeg, jpeg_CreateCompress, [LIBJPEG=yes])
+    LIBGD_JPG=no
+    AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes])
+    if test "$LIBJPEG" = "no"; then
+      AC_MSG_NOTICE(jpeg support not available)
+    else
+      if test "$LIBGD_JPG" = "yes"; then
+        GD=yes
+  	HAS_GD_JPG=true
+	GD_JPG=yes
+        AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
+        AC_MSG_NOTICE(using jpeg support in libgd)
+      else
+  	HAS_GD_JPG=false
+        AC_MSG_NOTICE(jpeg support not available in libgd)
+      fi
+    fi
+  else
+    AC_MSG_NOTICE(libgd not available)
   fi
 fi
+AC_MSG_CHECKING(support for graphical statistics)
 if test "$GD" != "no"; then
   HAS_GD=true
   cp -f ../src/daemon/common/commonGraphics.gd.ml ../src/daemon/common/commonGraphics.ml
@@ -1073,18 +1085,14 @@ fi
 
 MD4ARCH=$arch
 case $host in
-  i386-pc-linux*) MD4COMP=as; MD4ARCH=i386;;
-  i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;
+  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
+  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
+  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
+  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
   i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
   i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
   i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
   i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
-  i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
-  i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
-  i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
-  i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
   *) MD4COMP=cc;;
 esac
 
@@ -1150,6 +1158,8 @@ AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
 AC_SUBST(ZLIB)
 AC_SUBST(GD)
+AC_SUBST(GD_JPG)
+AC_SUBST(GD_PNG)
 AC_SUBST(ICONV)
 
 AC_SUBST(OPEN_NAPSTER)
@@ -1201,6 +1211,8 @@ AC_SUBST(GTKCFLAGS)
 AC_SUBST(GTKLLIBS)
 AC_SUBST(GTKLFLAGS)
 AC_SUBST(HAS_GD)
+AC_SUBST(HAS_GD_PNG)
+AC_SUBST(HAS_GD_JPG)
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
 AC_SUBST(ZLIB__COMPRESS_STRING)

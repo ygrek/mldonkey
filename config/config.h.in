@@ -138,3 +138,9 @@
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
+
+/* Define to 1 if you have png support in libgd. */
+#undef HAVE_GD_PNG
+
+/* Define to 1 if you have jpg support in libgd. */
+#undef HAVE_GD_JPG
