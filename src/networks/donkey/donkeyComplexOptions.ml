@@ -629,7 +629,7 @@ let remove_server ip port =
 let config_files_loaded = ref false  
       
 let load _ =
-  lprintf "LOADING SHARED FILES AND SOURCES\n"; 
+  lprintf "EDK: Loading shared files\n"; 
   (try
       Options.load shared_files_ini;
       Options.load stats_ini;
