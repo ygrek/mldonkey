@@ -72,7 +72,7 @@ let network_name num = try
     | "Direct Connect" -> "DC"
     | "Donkey" -> "eDK"
     | "OpenFT" -> "oFT"
-    | "Open Napster" -> "NAP"
+    | "OpenNapster" -> "NAP"
     | "LimeWire" -> "GTL"
     | "Gnutella" -> "GTL"
     | "Fasttrack" -> "FT"

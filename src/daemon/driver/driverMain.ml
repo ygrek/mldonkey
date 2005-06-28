@@ -255,12 +255,10 @@ let load_config () =
   in
   if not exists_downloads_ini then
     begin
-      lprintf "No config file (downloads.ini) found. Generating one.\n"; 
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
       if not exists_users_ini then
         begin
-          lprintf "No config file (users.ini) found. Generating one.\n"; 
           let oc = open_out (options_file_name users_ini) in
           close_out oc; 
         end;
@@ -428,8 +426,8 @@ let _ =
   let t = Unix.localtime (Unix.time ()) in
   if (t.Unix.tm_year<=104) then
     begin
-      lprintf "\n\n\nYour system has a system date earlier than 2004, please correct it.\n";
-      lprintf "MLdonkey can not work with such a system date, exiting...\n";
+      lprintf (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.\n");
+      lprintf (_b "MLdonkey can not work with such a system date, exiting...\n");
       CommonGlobals.exit_properly 0
     end;
 
@@ -439,14 +437,14 @@ let _ =
       ignore(Ip.from_name hostname)
     with
      e ->
-        lprintf "\nDNS resolution does not work! Looking up %s failed with %s.\n"
+        lprintf (_b "\nDNS resolution does not work! Looking up %s failed with %s.")
            hostname (Printexc2.to_string e);
-	lprintf "The core therefore is unable to get eDonkey serverlists and loading\n";
-	lprintf ".torrent files via dllink from websites is also impossible.\n\n";
-	lprintf "If you are using MLDonkey in a chroot environment you should\n";
-	lprintf "consider reading this article to get DNS support back:\n";
-	lprintf "http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n"
-  );
+	lprintf "
+The core therefore is unable to get eDonkey serverlists and loading
+.torrent files via dllink from websites is also impossible.
+If you are using MLDonkey in a chroot environment you should
+consider reading this article to get DNS support back:
+http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 
   load_config ();
   
@@ -466,19 +464,29 @@ let _ =
   end;
 
 (*  lprintf "(3) networks_iter load_complex_options\n"; *)
+  lprint_string (DriverControlers.text_of_html !!motd_html);
+  lprintf (_b "\nCheck http://www.mldonkey.net/ for updates\n");
   networks_iter (fun r -> network_load_complex_options r);
-  networks_iter_all (fun r -> 
-      lprintf  (_b "Network %s %s\n") r.network_name
-        (if network_is_enabled r then 
-          (_s "enabled") else (_s "disabled"));
-      );  
+  lprintf (_b "enabling networks: ");
   networks_iter (fun r -> 
 (*      lprintf "(4) networks_iter enabling\n"; *)
       network_enable r;
+      lprintf (_b "%s ") r.network_name;
 (* are there drawbacks to start recover_temp unconditionally here ? *)
       if !!recover_temp_on_startup then
         network_recover_temp r;
   );
+  lprint_newline ();
+  lprintf (_b "disabled networks: ");
+  let found = ref false in
+    networks_iter_all (fun r ->
+        if not (network_is_enabled r) then
+	  begin
+	    found := true;
+            lprintf (_b "%s ") r.network_name
+	  end);
+  if not !found then lprintf (_b "none");
+  lprint_newline ();
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
   
@@ -506,8 +514,6 @@ let _ =
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
-  lprintf (_b "\nWelcome to MLdonkey client\n");
-  lprintf (_b "Check http://www.mldonkey.net/ for updates\n");
   lprintf (_b "To command: telnet %s %d\n")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
@@ -518,10 +524,8 @@ let _ =
   lprintf (_b "Connect to IP %s, port %d\n")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
-  lprintf (_b "If you connect from a remote machine adjust allowed_ips\n\n");
+  lprintf (_b "If you connect from a remote machine adjust allowed_ips\n");
   if Autoconf.system = "windows" then lprintf (_b "%s") win_message;
-  lprint_string (DriverControlers.text_of_html !!motd_html);
-  lprint_newline ();
   
   if Autoconf.system <> "windows" then
     (* Doesn't work on windows with mingw, because getpid always returns 948 *)
@@ -530,7 +534,7 @@ let _ =
       output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
       close_out oc;
       CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid" );
-      lprintf "Starting with pid %s\n" ( string_of_int ( Unix.getpid () ) )
+      if !verbose then lprintf (_b "Starting with pid %s\n") (string_of_int(Unix.getpid ()))
     );
 
   add_init_hook (fun _ ->
@@ -598,7 +602,7 @@ let _ =
     (Sys.Signal_handle (fun _ -> lprintf "SIGTERM\n";
         CommonGlobals.exit_properly 0));
 
-  lprintf (_b "Activated system signal handling\n\n");
+  if !verbose then lprintf (_b "Activated system signal handling\n\n");
   
   Unix32.max_cache_size := MlUnix.max_filedescs
  
@@ -606,8 +610,6 @@ let _ =
   lprintf (_b "Core started"); 
   core_included := true;
   CommonGlobals.print_localtime ();
-  CommonGlobals.do_at_exit (fun _ -> CommonGlobals.print_localtime ());
-  CommonGlobals.do_at_exit (fun _ -> lprintf "Core stopped");
 
   let security_space_filename = "config_files_space.tmp" in  
   begin
@@ -649,8 +651,8 @@ for config files at the end. *)
       Sys.remove security_space_filename;
       DriverInteractive.save_config ();
 
-      CommonGlobals.print_localtime ();
-      lprintf (_b "Core stopped\n")
+      lprintf (_b "Core stopped");
+      CommonGlobals.print_localtime ()
     );
   
   if not !keep_console_output then begin

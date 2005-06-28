@@ -466,7 +466,7 @@ let load opfile =
       really_load opfile.file_name opfile.file_sections;
     opfile.file_after_load_hook ()
   with
-    Not_found | Sys_error _ -> lprintf "No %s found\n" opfile.file_name
+    Not_found | Sys_error _ -> (* lprintf "No %s found\n" opfile.file_name *) ()
       
 let append opfile filename =
   try

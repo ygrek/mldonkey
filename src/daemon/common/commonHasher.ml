@@ -39,9 +39,6 @@ external job_done : 'a job -> bool = "ml_job_done"
 external job_start : 'a job -> Unix.file_descr -> unit = "ml_job_start"
   
 let _ =
-  if BasicSocket.has_threads () then begin
-      lprintf "\nUsing threads\n"; 
-    end;
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
 (*      lprintf "test job\n";  *)
       try

@@ -2830,7 +2830,7 @@ it is verified as soon as possible. *)
       (try 
           let d = get_value "file_downloaded" value_to_int64 in
           
-          if d <> downloaded t && not !verbose_hidden_errors then begin
+          if d <> downloaded t && !verbose_hidden_errors then begin
               lprintf "ERROR: CommonSwarming: stored downloaded value not restored  !!! (%Ld/%Ld)\n" (downloaded t) d;
               lprintf "ERROR: CommonSwarming: present:\n";
               List.iter (fun (x,y) ->

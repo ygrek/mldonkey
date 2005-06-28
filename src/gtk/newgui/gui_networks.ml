@@ -101,7 +101,7 @@ let retrieve_net_box name box =
     | "Fasttrack" -> (box#box_ftt, 2)
     | "Donkey" -> (box#box_ed2k, 3)
     | "Gnutella" -> (box#box_gnut, 4)
-    | "Open Napster" -> (box#box_nap, 5)
+    | "OpenNapster" -> (box#box_nap, 5)
     | "Soulseek" -> (box#box_slsk, 6)
     | _ -> raise Not_found
 

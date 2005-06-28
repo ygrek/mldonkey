@@ -1648,7 +1648,6 @@ let locale =
   with _ -> ASCII
 
 let locstr =
-  Printf.printf "Blocking system signals until core is started...\n";
   (* block signals until core started correctly *)
   (MlUnix.set_signal  Sys.sigint
     (Sys.Signal_handle (fun _ -> ())));
@@ -1796,11 +1795,11 @@ let set_default_charset_list (lang : string) =
   (* Let's get rid of charset aliases *)
   let l = List.map (fun li -> List.hd li) (charset_list_from_language lang) in
   enc_list := List.map (fun c -> charset_to_string c ) l;
-  Printf.printf "List of charmap used to convert the strings:\n";
+(*  Printf.printf "List of charmap used to convert the strings:\n";
   List.iter (fun enc ->
     Printf.printf "  Use encoding %s\n" enc; 
   ) !enc_list;
-  flush stdout;
+  flush stdout; *)
   nenc := List.length !enc_list
 
 (**********************************************************************************)

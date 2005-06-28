@@ -39,7 +39,7 @@ module DO = CommonOptions
   
 open CommonNetwork
   
-let network = new_network "ON" "Open Napster"
+let network = new_network "ON" "OpenNapster"
     [ 
     NetworkHasServers; 
     NetworkHasRooms;

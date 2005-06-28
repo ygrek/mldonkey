@@ -153,7 +153,7 @@ let net_name gf =
 let short_net_name gf =
     let nn = net_name gf in
 	match nn with 
-   | "Open Napster" -> "N"
+   | "OpenNapster" -> "N"
    | "Direct Connect" -> "C"
    | "FileTP" -> "T"
    | _ -> String.sub nn 0 1 

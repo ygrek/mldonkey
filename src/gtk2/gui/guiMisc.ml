@@ -630,7 +630,7 @@ let network_name num = try
     match (Hashtbl.find G.networks num).net_name with
       "Direct Connect" -> "DC"
     | "Donkey" -> "eDK"
-    | "Open Napster" -> "NAP"
+    | "OpenNapster" -> "NAP"
     | "G2" -> "GTL2"
     | "Gnutella" -> "GTL1"
     | "Fasttrack" -> "FT"
@@ -643,7 +643,7 @@ let network_full_name num = try
     match (Hashtbl.find G.networks num).net_name with
       "Direct Connect" -> !M.nT_lb_net_dc
     | "Donkey" -> !M.nT_lb_net_ed2k
-    | "Open Napster" -> !M.nT_lb_net_nap
+    | "OpenNapster" -> !M.nT_lb_net_nap
     | "G2" -> !M.nT_lb_net_gnut2
     | "Gnutella" -> !M.nT_lb_net_gnut
     | "Fasttrack" -> !M.nT_lb_net_ftt
@@ -692,7 +692,7 @@ let network_pixb num ~(size : GuiArt.icon_size) ?desat () =
               "BitTorrent" -> M.icon_net_bittorrent
             | "Direct Connect" -> M.icon_net_dc
             | "Donkey" -> M.icon_net_ed2k
-            | "Open Napster" -> M.icon_net_napster
+            | "OpenNapster" -> M.icon_net_napster
             | "G2" -> M.icon_net_gnutella2
             | "Gnutella" -> M.icon_net_gnutella1
             | "Fasttrack" -> M.icon_net_fasttrack

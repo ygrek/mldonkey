@@ -204,12 +204,14 @@ module Proto = struct
                         peer_ip := Ip.of_string ip;
                         peer_tcpport := int_of_string port;
                     | _ ->
-                        lprintf "Ill formed bcp: [%s]\n" bcp;
+        		if !verbose_overnet then
+                          lprintf "Ill formed bcp: [%s]\n" bcp;
                   else
-                    lprintf "Ill formed bcp: [%s]\n" bcp;
+		    if !verbose_overnet then
+                      lprintf "Ill formed bcp: [%s]\n" bcp;
               )
           | _ ->
-            if !verbose_hidden_errors then
+            if !verbose_overnet then
               lprintf "Unused source tag [%s]\n"
                 (escaped_string_of_field tag)
       ) r_tags;
@@ -391,7 +393,7 @@ module Proto = struct
                 if len < 2 || 
                   int_of_char pbuf.[0] <> 227 then 
                   begin
-                    if !CommonOptions.verbose_unknown_messages then begin
+                    if !verbose_unknown_messages then begin
                         lprintf "Received unknown UDP packet\n";
                         dump pbuf;
                       end

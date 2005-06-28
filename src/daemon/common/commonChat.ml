@@ -45,16 +45,18 @@ let send_paquet_to_mlchat (p : C.packet) =
     flush chanout;
     close_out chanout
   with
-  | Unix.Unix_error (e,s1,s2) ->
+  | Unix.Unix_error (e,s1,s2) -> if !CommonOptions.verbose then begin
       let s = (Unix.error_message e)^" : "^s1^" "^s2 in
       lprintf "%s\nchat_app_host=%s chat_app_port=%d\n" s
             !!O.chat_app_host !!O.chat_app_port;
       close_out chanout
-  | e ->
+      end
+  | e -> if !CommonOptions.verbose then begin
       lprintf "%s\nchat_app_host=%s chat_app_port=%d\n"
         (Printexc2.to_string e)
             !!O.chat_app_host !!O.chat_app_port;
       close_out chanout
+      end
 
 
 let send_chat_proto name ad_opt m =
