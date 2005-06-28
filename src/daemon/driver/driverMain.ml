@@ -519,7 +519,7 @@ let _ =
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf (_b "If you connect from a remote machine adjust allowed_ips\n\n");
-  
+  if Autoconf.system = "windows" then lprintf (_b "%s") win_message;
   lprint_string (DriverControlers.text_of_html !!motd_html);
   lprint_newline ();
   

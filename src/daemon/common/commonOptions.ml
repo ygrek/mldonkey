@@ -1431,6 +1431,12 @@ let _ =
       enable_overnet =:= true;
       enable_bittorrent =:= true
   
+let win_message =
+"\n\nNEVER close this windows with the close button
+on the top right corner of this window!
+Instead use the kill command in Telnet or HTML,
+the kill function of a GUI or CTRL+C.\n\n"
+
 let _ =
   let in_hook = ref false in
   option_hook global_login (fun _ ->
@@ -1448,6 +1454,7 @@ let _ =
         try
           let oc = open_out !!log_file in
           lprintf_to_file := true;
+          if Autoconf.system = "windows" then lprintf "%s" win_message;
           lprintf "Logging in %s\n" !!log_file;
           log_to_file oc;
         with e ->
