@@ -102,7 +102,7 @@ external select: t list -> float -> unit = "ml_select"
 external use_poll : bool -> unit = "ml_use_poll"
 external has_threads : unit -> bool = "ml_has_pthread"
 
-(*  external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput" *)
+external setsock_iptos_throughput: Unix.file_descr -> int = "ml_setsock_iptos_throughput"
 
 (*************************************************************************)
 (*                                                                       *)

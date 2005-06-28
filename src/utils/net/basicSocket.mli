@@ -99,7 +99,7 @@ val close_all : unit -> unit
   
 val start_time : int
   
-(* external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"*)
+external setsock_iptos_throughput: Unix.file_descr -> int = "ml_setsock_iptos_throughput"
  
 val sock_num : t -> int
 val string_of_date : int -> string

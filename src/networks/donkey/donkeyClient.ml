@@ -1763,7 +1763,7 @@ let client_handler2 c sock event =
       | _ -> ()
       
 let init_connection sock ip =
-(*  ignore (setsock_iptos_throughput (fd (TcpBufferedSocket.sock sock))); *)
+  TcpBufferedSocket.setsock_iptos_throughput sock;
   
   let nolimit = try
       Ip.matches ip !!nolimit_ips

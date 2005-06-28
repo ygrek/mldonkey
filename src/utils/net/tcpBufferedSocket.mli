@@ -56,6 +56,7 @@ val create : token -> string -> Unix.file_descr -> handler -> t
 val create_simple : token -> string -> Unix.file_descr -> t
 val create_blocking : token -> string -> Unix.file_descr -> handler -> t
 val buf : t -> buf
+val setsock_iptos_throughput : t -> unit
 val set_reader : t -> (t -> int -> unit) -> unit
 val sock_used : t -> int -> unit
 val buf_create : int -> buf

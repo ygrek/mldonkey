@@ -448,6 +448,10 @@ let buf_add t b s pos1 len =
 (*************************************************************************)
 
 let buf t = t.rbuf
+let setsock_iptos_throughput t =
+  ignore (setsock_iptos_throughput (fd (t.sock_in)));
+  ignore (setsock_iptos_throughput (fd (t.sock_out)))
+
 let closed t = closed t.sock_out
 let error t = t.error
 let sock_used t nused = buf_used t.rbuf nused
