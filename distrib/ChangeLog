@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/29: spiralvoice
 
+4128: Notification mail: show hash and download time
 4127: Add TOS support
 4123: First steps toward integrated user-management:
       new commands "remove_user" and "users",

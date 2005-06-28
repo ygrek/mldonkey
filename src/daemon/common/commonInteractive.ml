@@ -197,15 +197,30 @@ let file_cancel file =
   with e ->
       lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
 
-        
+let time_to_string time =
+  let days = time / 60 / 60 / 24 in
+  let rest = time - days * 60 * 60 * 24 in
+  let hours = rest / 60 / 60 in
+  let rest = rest - hours * 60 * 60 in
+  let minutes = rest / 60 in
+  let seconds = rest - minutes * 60 in
+    if days > 0
+    then Printf.sprintf " %dd " days
+    else if hours > 0
+    then Printf.sprintf " %dh %dm " hours minutes
+    else Printf.sprintf " %dm " minutes
+
 let mail_for_completed_file file =
   if !!mail <> "" then
     let module M = Mailer in
+    let info = file_info file in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in
 
-    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\n" 
+    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nHash: %s\r\nFile was downloaded in%s\r\n" 
       (file_best_name file)
       (file_size file)
+      (string_of_uids info.G.file_uids)
+      (let age = (BasicSocket.last_time ()) - info.G.file_age in time_to_string age)
     in
     
     let line3 = if (file_comment file) <> "" then
