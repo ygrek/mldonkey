@@ -1173,7 +1173,7 @@ let http_handler o t r =
                     | "downloaders" | "uploaders" | "scan_temp" | "cs"
                     | "version" | "rename" | "force_download" | "close_fds"
                     | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
-                    | "unshare" | "stats" -> drop_pre := true;
+                    | "unshare" | "stats" | "users" -> drop_pre := true;
                     | _ -> ());
                   
                   Printf.bprintf buf "%s\n" 

@@ -11,6 +11,13 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/06/29: spiralvoice
+
+4123: First steps toward integrated user-management:
+      new commands "remove_user" and "users",
+      only "admin" is allowed to kill the core
+      HTML interface to setup users (Options, Users)
+
 2005/06/25: spiralvoice
 
 4125: Some configure.in fixes if libpng is misssing in libgd

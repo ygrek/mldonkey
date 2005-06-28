@@ -281,8 +281,14 @@ let _ =
     ), ":\t\t\t\t\t$bclose telnet$n";
     
     "kill", Arg_none (fun o ->
-        CommonGlobals.exit_properly 0;
-        _s "exit"), ":\t\t\t\t\t$bsave and kill the server$n";
+        if o.conn_user == default_user then
+	  begin
+            CommonGlobals.exit_properly 0;
+	    _s "exit"
+	  end
+        else
+          _s "Only 'admin' is allowed to do that"
+        ), ":\t\t\t\t\t$bsave and kill the server$n";
     
     "add_url", Arg_two (fun kind url o ->
         let buf = o.conn_buf in
@@ -535,7 +541,8 @@ formID.msgText.value=\\\"\\\";
     
     
     "add_user", Arg_two (fun user pass o ->
-        if o.conn_user == default_user then
+        if o.conn_user == default_user 
+	   || o.conn_user == (find_ui_user user) then
           try
             let p = List.assoc user !!users in
             let pass = Md4.string pass in
@@ -550,6 +557,91 @@ formID.msgText.value=\\\"\\\";
           _s "Only 'admin' is allowed to do that"
     ), "<user> <passwd> :\t\tadd a new mldonkey user";
     
+    "remove_user", Arg_one (fun user o ->
+        if o.conn_user == default_user then
+	  if user = "admin" then
+	    _s "User 'admin' can not be removed"
+	  else
+	    begin
+	      let found = ref false in
+		users =:= List.filter (fun (s,_) ->
+		let diff = s <> user in
+		  if not diff then found := true;
+		  diff
+		) !!users;
+	        if !found then
+		  _s (Printf.sprintf "user %s removed" user)
+	        else
+	          _s (Printf.sprintf "user %s not found" user)
+	    end
+        else
+          _s "Only 'admin' is allowed to do that"
+    ), "<user> :\t\tremove a mldonkey user";
+
+
+    "users", Arg_none (fun o ->
+        if o.conn_user == default_user then
+        
+        let buf = o.conn_buf in
+        
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: { 
+                   var getdir = prompt('Input: <user> <pass>','user pass')
+                   var reg = new RegExp (' ', 'gi') ;
+                   var outstr = getdir.replace(reg, '+');
+                   parent.fstatus.location.href='submit?q=add_user+' + outstr;
+                   setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add User\\</a\\>
+\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\> 
+\\<tr\\>\\<td\\>";
+            
+            html_mods_table_header buf "sharesTable" "shares" [ 
+              ( "0", "srh ac", "Click to remove user", "Remove" ) ; 
+              ( "0", "srh", "User", "Username" ) ]; 
+            
+            let counter = ref 0 in
+
+            List.iter (fun (user,_) -> 
+                incr counter;
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+		if user <> "admin" then Printf.bprintf buf "
+        \\<td title=\\\"Click to remove user\\\" 
+        onMouseOver=\\\"mOvr(this);\\\" 
+        onMouseOut=\\\"mOut(this);\\\"
+        onClick=\\\'javascript:{ 
+        parent.fstatus.location.href=\\\"submit?q=remove_user+\\\\\\\"%s\\\\\\\"\\\"; 
+        setTimeout(\\\"window.location.reload()\\\",1000);}'
+        class=\\\"srb\\\"\\>Remove\\</td\\>" user
+		else Printf.bprintf buf "
+        \\<td title=\\\"\\\" 
+        class=\\\"srb\\\"\\>------\\</td\\>";
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user
+            )
+            !!users;
+            
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+          end
+        else 
+          begin
+            Printf.bprintf buf "Users:\n";
+            List.iter (fun (user,_) -> 
+                Printf.bprintf buf "  %s\n" 
+                user)
+            !!users;
+          end;
+        ""
+        else
+          _s "Only 'admin' is allowed to do that"
+    ), ":\t\t\t\t\tprint users";
+
     "calendar_add", Arg_two (fun hour action o ->
         calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
         :: !!calendar;
@@ -1204,6 +1296,7 @@ let _ =
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
@@ -1517,6 +1610,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
