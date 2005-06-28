@@ -34,7 +34,7 @@ We don't use emule udp extension, client_md4 in sourceexchange or complete sourc
 file request *)
 let mldonkey_emule_proto = {
     emule_comments = 1;
-    emule_version = 43600; (* compatible client can also be set here *)
+    emule_version = 171720704;
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;

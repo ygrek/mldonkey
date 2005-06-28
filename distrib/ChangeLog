@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/06/29: spiralvoice
 
+4135: Change emule_version
 4134: Clean core startup messages and log output
 4130: Print warning message for Windows users
 4128: Notification mail: show hash and download time
