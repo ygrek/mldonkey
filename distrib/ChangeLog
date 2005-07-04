@@ -11,6 +11,11 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/04: spiralvoice
+
+patch posted in bug 13619:
+  Always returns ASCII(C) locale when it use libcharset
+
 2005/06/29: spiralvoice
 
 4135: Change emule_version

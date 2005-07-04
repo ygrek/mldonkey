@@ -1362,10 +1362,10 @@ ml_locale_charset(void)
 
   const char *str;
 
+  setlocale(LC_CTYPE, "");
   #ifdef HAVE_LOCALE_CHARSET
     str = locale_charset ();
   #else
-    setlocale(LC_CTYPE, "");
     str = nl_langinfo(CODESET);
   #endif
 
