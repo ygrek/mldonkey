@@ -141,8 +141,7 @@ let new_shared dirname prio filename fullname =
         name in
   let codedname = Filename.concat dirname filename in
   if !verbose_share then
-    lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s\n"
-      dirname filename fullname codedname; 
+    lprintf "commonShared: sharing %s\n" fullname;
   let size = Unix32.getsize fullname false in
   incr files_scanned;
   files_scanned_size := !files_scanned_size ++ size;
@@ -312,7 +311,7 @@ let _ =
     
 let shared_add_directory shared_dir =
   if shared_dir.shdir_dirname <> "" then begin
-      if !verbose_share then lprintf "SHARING %s PRIO %d\n" shared_dir.shdir_dirname
+      if !verbose_share then lprintf "commonShared: Sharing %s prio %d\n" shared_dir.shdir_dirname
         shared_dir.shdir_priority;
       shared_add_directory shared_dir ""
     end

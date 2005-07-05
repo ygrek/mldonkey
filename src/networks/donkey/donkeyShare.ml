@@ -264,14 +264,8 @@ let local_dirname = Sys.getcwd ()
   
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
-      if !verbose_share then begin
-          lprintf "********** NETWORK SHARE ************\n";
-          lprintf "FULLNAME %s\n" fullname; 
-        end;
-(*      let codedname = Filename.basename codedname in*)
-      if !verbose_share then begin
-          lprintf "CODEDNAME %s\n" codedname; 
-        end;
+      if !verbose_share then
+        lprintf "donkeyShare: Sharing %s\n" fullname; 
       try
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
@@ -281,7 +275,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
             (fullname, size, mtime) in
         (* if s.sh_mtime = mtime && s.sh_size = size then begin *)
             if !verbose_share then begin 
-                lprintf "USING OLD MD4s for %s\n" fullname;
+                lprintf "donkeyShare: Using old MD4s for %s\n" fullname;
               end;
             new_file_to_share s codedname None
 (*          end else begin
@@ -294,7 +288,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
           end *)
       with Not_found ->
           if !verbose_share then begin
-              lprintf "No info on %s\n" fullname; 
+              lprintf "donkeyShare: No info on %s\n" fullname; 
             end;
           
           let rec iter list left =

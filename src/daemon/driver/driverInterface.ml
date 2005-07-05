@@ -1112,7 +1112,7 @@ let gui_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf "CONNECTION FROM GUI\n"; 
+      lprintf "GUI: Connection from %s\n" (Ip.to_string from_ip);
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1141,7 +1141,7 @@ let gui_handler t event =
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf "Connection from that IP %s not allowed\n"
+          lprintf "Connection from IP %s not allowed\n"
             (Ip.to_string from_ip);
           Unix.close s
         end
@@ -1151,7 +1151,7 @@ let gift_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf "CONNECTION FROM GUI\n"; 
+      lprintf "Gift: Connection from %s\n" (Ip.to_string from_ip);
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1179,7 +1179,7 @@ let gift_handler t event =
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf "Connection from that IP %s not allowed\n"
+          lprintf "Connection from IP %s not allowed\n"
             (Ip.to_string from_ip);
           Unix.close s
         end

@@ -115,7 +115,7 @@ let start_interfaces () =
           chat_port DriverControlers.chat_handler);  
       try
         CommonChat.send_hello ()
-      with _ -> lprintf (_b "CommonChat.send_hello failed"); 
+      with _ -> if !verbose then lprintf (_b "CommonChat.send_hello failed");
     end;
   
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
