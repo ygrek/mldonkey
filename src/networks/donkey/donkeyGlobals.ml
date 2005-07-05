@@ -105,7 +105,6 @@ let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file)
 let file_best_name file = file_best_name (as_file file)
-let set_file_disk_name file = set_file_disk_name (as_file file)
   
 let client_num c = client_num (as_client c)  
 let file_num c = file_num (as_file c)  

@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/05: spiralvoice
 
+4142: Remove unneeded code
 4141: Cleaned logging
 4140: New option: create_dir_mask
       New directories in incoming_directories are created

@@ -161,7 +161,6 @@ let (shared_ops : CommonUploads.shared_file CommonShared.shared_ops) =
   CommonShared.new_shared_ops network
 
 let file_disk_name file = file_disk_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
 
 let nservers = ref 0
 

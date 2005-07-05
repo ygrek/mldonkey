@@ -56,7 +56,6 @@ let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file)
-let set_file_disk_name file = set_file_disk_name (as_file file)
 let file_state file = file_state (as_file file)  
 let file_num file = file_num (as_file file)
 let file_must_update file = file_must_update (as_file file)
