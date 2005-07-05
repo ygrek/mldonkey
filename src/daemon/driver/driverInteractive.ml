@@ -704,7 +704,7 @@ let html_mods_done_files buf files =
 \\<td title=\\\"Network\\\" class=dlheader\\>Network\\</td\\>
 \\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
-\\<td title=\\\"MD4\\\" class=dlheader\\>MD4\\</td\\>
+\\<td title=\\\"Hash\\\" class=dlheader\\>Hash\\</td\\>
 
 \\</tr\\>
 " (List.length files);
@@ -721,7 +721,7 @@ let html_mods_done_files buf files =
             (Printf.sprintf "\\<td class=dl\\>%s\\</td\\>"
             (Int64.to_string file.file_size));
             (Printf.sprintf "\\<td class=dl\\>%s\\</td\\>"
-            (Md4.to_string file.file_md4))
+            (string_of_uids file.file_uids))
         |]
     ) files);
   Printf.bprintf buf "\\</form\\>"

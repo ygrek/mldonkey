@@ -19,7 +19,7 @@
 
 type t
 
-  
+val create_dir_mask : string ref
 val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   

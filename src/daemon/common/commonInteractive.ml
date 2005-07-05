@@ -20,6 +20,7 @@
 open AnyEndian
 open LittleEndian
 open Int64ops
+open Misc
 open Printf2
 open CommonOptions
 open BasicSocket  
@@ -123,12 +124,11 @@ let file_commit file =
         let new_name = file_commited_name 
             incoming.shdir_dirname file in
 	if Unix2.is_directory file_name then
-	  begin
-	    Unix2.safe_mkdir new_name;
-	    Unix.chmod new_name 0o777
-	  end;
+	  Unix2.safe_mkdir new_name;
         (try
             set_file_disk_name file new_name;
+	    if Unix2.is_directory new_name then
+	      Unix.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in  
             Unix32.destroy (file_fd file);
             if !verbose_files then lprintf "commonInteractive.file_commit: destroyed\n";

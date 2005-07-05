@@ -28,6 +28,7 @@ let chunk_min_size = ref (Int64.of_int 65000)
 
 let max_buffered = ref (Int64.of_int (1024*1024))
 
+let create_dir_mask = ref "755"
 let verbose = false
 let max_cache_size = ref 50
 
@@ -141,7 +142,7 @@ module FDCache = struct
       close t;
       (let d = (Filename.dirname (Filename.concat f file)) in
         Unix2.safe_mkdir d;
-	Unix.chmod d 0o777;
+	Unix.chmod d (Misc.int_of_octal_string !create_dir_mask);
 	Unix2.can_write_to_directory d);
       Unix2.rename t.filename (Filename.concat f file);
       destroy t

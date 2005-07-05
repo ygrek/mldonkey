@@ -20,3 +20,15 @@
 let hexa_digit x =
   if x >= 10 then Char.chr (Char.code 'A' + x - 10)
   else Char.chr (Char.code '0' + x)
+
+let rec octal x =
+  if x < 8 then x else (x mod 10) + 8 * (octal (x / 10))
+
+let int_of_octal_string s =
+  let l = String.length s in
+  let octal_of_char c =
+    int_of_char c - int_of_char '0' in
+  let rec octal_aux acc i =
+    if i < l then octal_aux (acc * 8 + (octal_of_char s.[i])) (i+1)
+    else acc in
+  octal_aux 0 0

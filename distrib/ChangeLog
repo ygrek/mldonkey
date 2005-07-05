@@ -13,6 +13,9 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/05: spiralvoice
 
+4140: New option: create_dir_mask
+      New directories in incoming_directories are created
+      with these rights. 
 4139: EDK: don't ask clients for non-downloading files
 
 2005/07/04: spiralvoice

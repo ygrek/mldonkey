@@ -1435,6 +1435,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option max_hard_upload_rate;
                         strings_of_option max_hard_download_rate;
                         strings_of_option max_opened_connections;
+                        strings_of_option max_connections_per_second; 
                         strings_of_option max_concurrent_downloads;
                       ] 
                   
@@ -1510,7 +1511,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option client_timeout; 
                         strings_of_option compaction_delay; 
                         strings_of_option min_reask_delay; 
-                        strings_of_option max_connections_per_second; 
                         strings_of_option buffer_writes; 
                         strings_of_option buffer_writes_delay; 
                         strings_of_option buffer_writes_threshold; 
@@ -1523,6 +1523,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option file_completed_cmd; 
                         strings_of_option allow_browse_share; 
                         strings_of_option auto_commit; 
+			strings_of_option create_dir_mask;
                         strings_of_option log_file; 
                         strings_of_option log_size; 
                       ] 

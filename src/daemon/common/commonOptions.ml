@@ -24,7 +24,6 @@ open BasicSocket
 open TcpBufferedSocket
 open Options
 open Unix
-
   
   
 let bin_dir = Filename.dirname Sys.argv.(0)
@@ -921,27 +920,14 @@ let propagate_servers = define_expert_option current_section ["propagate_servers
 
 let current_section = path_section
 
-let temp_directory = define_option current_section ["temp_directory" ] 
-    "The directory where temporary files should be put" 
+let temp_directory = define_option current_section ["temp_directory"]
+    "The directory where temporary files should be put"
     string_option "temp"
 
-(*
-let incoming_directory_prio =
-  define_expert_option current_section ["incoming_directory_prio" ]
-      "The upload prio of the incoming directory"
-          int_option 0
+let create_dir_mask = define_option current_section ["create_dir_mask"]
+    "New directories in incoming_directories are created with these rights"
+    string_option "755"
 
-let incoming_directory = 
-  define_option current_section ["incoming_directory" ] 
-    "The directory where downloaded files should be moved after commit" 
-    string_option "incoming"
-
-let default_sharing_strategy =
-  define_option current_section ["default_sharing_strategy" ] 
-    "Sharing strategy the share command will use when none is specified"
-    string_option "all_files"
-*)
-  
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
@@ -955,14 +941,6 @@ let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
     "Name of GUI to start" string_option 
     (Filename.concat bin_dir "mlgui")
 
-  
-  
-  
-  
-  
-  
-  
-  
   
 (*************************************************************************)
 (*                                                                       *)
@@ -1194,6 +1172,10 @@ let _ =
       TcpBufferedSocket.copy_read_buffer := !!copy_read_buffer
   )
 
+let _ =
+  option_hook create_dir_mask (fun _ ->
+      Unix32.create_dir_mask := !!create_dir_mask
+  )
 
 
   (*
