@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/05: spiralvoice
+
+4139: EDK: don't ask clients for non-downloading files
+
 2005/07/04: spiralvoice
 
 patch posted in bug 13619:

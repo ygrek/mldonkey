@@ -1486,7 +1486,8 @@ is checked for the file.
               | Some (chunks, _) ->
                   received_client_bitmap c file chunks
           end;
-          DonkeySources.query_files c.client_source
+	  if file_state file = FileDownloading then
+	    DonkeySources.query_files c.client_source
         
         with Not_found -> 
             if !verbose_unexpected_messages then
