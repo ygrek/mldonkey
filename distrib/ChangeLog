@@ -11,7 +11,8 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-2005/07/05: spiralvoice
+---------------------------------------------------------------------
+2005/07/05: spiralvoice (version 2.5.30.17 = tag release-2-5-30-17)
 
 4142: Remove unneeded code
 4141: Cleaned logging

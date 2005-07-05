@@ -11,7 +11,7 @@ echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 MAJOR_VERSION=2
 MINOR_VERSION=5
 SUB_VERSION1=30       # set to 0 if you want to disable this value
-SUB_VERSION2=16       # set to 0 if you want to disable this value
+SUB_VERSION2=17       # set to 0 if you want to disable this value
 if test -d .svn; then
   AC_MSG_NOTICE(checking SVN revision) 
   SUB_VERSION3="SVN"
