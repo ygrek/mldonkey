@@ -275,29 +275,10 @@ type overnet_search = {
     
     mutable search_queries : int;
     mutable search_requests : int; 
-
     mutable search_start : int;
-(*
-    mutable search_last_insert : int; 
-    
-    mutable search_not_asked_peers : XorSet.t;
-    mutable search_asked_peers : XorSet.t;
-    mutable search_done_peers : XorSet.t;
-
-(* nb of peers in search_not_asked_peers + search_asked_peers + search_done_peers *)
-    mutable search_total_peers : int;
-
-(* already tested peers, either they are in asked/not_asked/done, either they are useless*)
-    mutable search_known_peers : (Ip.t*int, peer) Hashtbl.t;
-*)
-    
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
     mutable search_nresults : int; (* number of results messages *)
     mutable search_hits : int;     (* number of diff results *)
-    (*
-    mutable search_publish_files : file list;
-mutable search_publish_file : bool;
-  *)
     }
 
 exception MessageNotImplemented
@@ -324,7 +305,8 @@ module Make(Proto: sig
     open Proto
 
     let lprintf () =
-      lprintf "[%s] " redirector_section; lprintf
+      lprintf "[%s] "
+      (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf
       
 (********************************************************************
 
@@ -893,7 +875,7 @@ let new_peer_message p =
 let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
-  if !verbose_overnet  then 
+  if !verbose_overnet then 
     lprintf () "UDP FROM %s:%d:\n  %s " 
       (Ip.to_string other_ip) other_port
       (message_to_string t);
@@ -1158,15 +1140,6 @@ let enable () =
       udp_sock := Some sock;
       UdpSocket.set_write_controler sock udp_write_controler;
 
-(* every 3min try a new publish search, if any 
-      add_session_timer enabler 180. (fun _ ->
-          if !!enable_overnet then begin
-              find_new_peers ();
-              do_publish_shared_files ();
-            end
-      );
-*)
-      
       add_session_timer enabler 1. (fun _ ->
           if !!enable_overnet then 
             let my_peer = my_peer () in
@@ -1392,14 +1365,16 @@ let _ =
             html_mods_table_header buf "ovstatsTable" "sources" [];
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
-              ("", "srh", "Overnet / Kademlia statistics");
+              ("", "srh", Printf.sprintf "%s statistics"
+              (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"));
               ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
               ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
           end
         else
           begin
-            Printf.bprintf buf "Overnet / Kademlia statistics:\n"; 
+            Printf.bprintf buf "%s statistics:\n"
+	    (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
           end;
@@ -1419,8 +1394,7 @@ let _ =
                 Printf.bprintf buf "\\</tr\\>";
               end
             else
-            Printf.bprintf buf 
-              "Search %s for %s\n"
+            Printf.bprintf buf "Search %s for %s\n"
               
 (* ", %d asked, %d done, %d hits, %d results) %s%s\n" *)
               (match s.search_kind with
@@ -1441,8 +1415,8 @@ let _ =
                           i npeers nasked); ];
                       Printf.bprintf buf "\\</tr\\>";
 
-              end
-            else
+		    end
+		  else
                   Printf.bprintf buf
                   "   nbits[%d] = %d peers not asked, %d peers asked\n"
                     i npeers nasked
@@ -1486,12 +1460,10 @@ let _ =
     
     "store", Arg_none (fun o -> 
         let buf = o.conn_buf in
-        
-          Printf.bprintf buf "Overnet store:\n"; 
-          
+          Printf.bprintf buf "%s store:\n"
+          (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
           PublishedKeywords.print buf;
           PublishedFiles.print buf;
-        
         ""
     ), ":\t\t\t\tdump the Overnet/Kademlia File Store";
 
@@ -1625,14 +1597,43 @@ Define a function to be called when the "mem_stats" command
   
 **************************************************************)
 
-  Heap.add_memstat "DonkeyOvernet" (fun level buf ->
-      Printf.bprintf buf "Boot peers: %d\n" (LimitedList.length !!boot_peers);
+  Heap.add_memstat
+    (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia")
+    (fun level buf ->
+      Printf.bprintf buf "%s statistics:\n"
+      (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
+      Printf.bprintf buf "  boot_peers: %d\n" (LimitedList.length !!boot_peers);
       update_buckets ();
-      Printf.bprintf buf "%d buckets with %d peers\n"
-            !n_used_buckets !connected_peers;
-      Printf.bprintf buf "Overnet / Kademlia statistics:\n"; 
+      Printf.bprintf buf "%d buckets with %d peers\n" !n_used_buckets !connected_peers;
       Printf.bprintf buf "  Search hits: %d\n" !search_hits;
       Printf.bprintf buf "  Source hits: %d\n" !source_hits;
+      Printf.bprintf buf "  Hashtbl.lenght known_peers: %d\n" (Hashtbl.length known_peers);
+      let n_search_known_peers = ref 0 in
+      let n_search_waiting_peers = ref 0 in
+      let n_search_asked_peers = ref 0 in
+      let n_search_ok_peers = ref 0 in
+      let n_search_results = ref 0 in
+      let n_overnet_searches = ref 0 in
+      List.iter ( fun s ->
+              for i = 128 downto 0 do
+               let n_search_known_peers =
+                 !n_search_known_peers + (Hashtbl.length s.search_known_peers) in
+               let n_search_waiting_peers =
+                 !n_search_waiting_peers + (Fifo.length s.search_waiting_peers.(i)) in
+               let n_search_asked_peers =
+                 !n_search_asked_peers + (Fifo.length s.search_asked_peers.(i)) in
+               let n_search_ok_peers =
+                 !n_search_ok_peers + (Fifo.length s.search_ok_peers.(i)) in
+               let n_search_results =
+                 !n_search_results + (Hashtbl.length s.search_results) in ()
+              done;
+             incr n_overnet_searches
+      ) !overnet_searches;
+      Printf.bprintf buf "  n_search_known_peers: %d\n" !n_search_known_peers;
+      Printf.bprintf buf "  n_search_waiting_peers: %d\n" !n_search_waiting_peers;
+      Printf.bprintf buf "  n_search_asked_peers: %d\n" !n_search_asked_peers;
+      Printf.bprintf buf "  n_search_ok_peers: %d\n" !n_search_ok_peers;
+      Printf.bprintf buf "  n_search_results: %d\n" !n_search_results;
+      Printf.bprintf buf "  n_overnet_searches: %d\n" !n_overnet_searches;
   );
 end
-

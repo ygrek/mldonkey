@@ -1,0 +1,3400 @@
+ChangeLog
+=========
+
+                Many changes and patches applied, 
+            labeled as UNSTABLE until further tested.
+
+I changed the release mechanism in a way that minor updates like
+this one will not get a release tag in CVS, also the version
+number reported by MLDonkey will stay the same.
+
+All numbers mentioned here can be found as patches on
+http://savannah.nongnu.org/patch/?group=mldonkey
+
+
+2005/07/06: spiralvoice
+
+Split Changelog in two parts, all stuff newer than 2.5.30.14 is now
+in distrib/ChangeLog
+---------------------------------------------------------------------
+2005/04/26: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
+
+3908: Split patch 3900: Vorbis file support
+3949: Some improvements for graphical stats
+3950: bug fixes for the gtk2 GUI
+3951: servers enhancement
+---------------------------------------------------------------------
+2005/04/25: spiralvoice (version 2.5.30.13 = tag release-2-5-30-13)
+This version shares the same code as Amorphous revision 286.
+
+3947: More build fixes for sha1new on FreeBSD 
+---------------------------------------------------------------------
+2005/04/24: spiralvoice (version 2.5.30.12 = tag release-2-5-30-12)
+
+3943: Fix building without gd
+3944: Sync with Amorphous 284
+* lots of whitespace cleanups
+* Some cleanups in configure.in .
+* Corrected that --enable-gd is the default
+---------------------------------------------------------------------
+2005/04/24: spiralvoice (version 2.5.30.11 = tag release-2-5-30-11)
+
+3942: Fix for Gnutella/G2/Fasttrack dllink handling
+---------------------------------------------------------------------
+2005/04/24: spiralvoice (version 2.5.30.10 = tag release-2-5-30-10)
+
+3938: Print cwd on core start to help users finding their ini files
+3939: gd generated bandwith-usage graphic in the web-ui
+3941: Sync with Amorphous rev280/281
+* Little fix for the buildsystem for commonGraphics.
+* Fix the sha1new configure-test for FreeBSD.
+* I hope, that i fixed problems with linking libiconv for FreeBSD.
+* Change the iconv check a bit. Users with unusual locations
+should use --with-libiconv-prefix with configure. Still
+seems not to work right on FreeBSD.
+* Fix sha1new for FreeBSD for sure now.
+
+---------------------------------------------------------------------
+2005/04/23: spiralvoice (version 2.5.30.9 = tag release-2-5-30-9)
+
+3919: Move users/passwords from downloads.ini to users.ini which has rights 600
+3930: Build fixes for FreeBSD & OpenBSD (some more patches)
+3935: Core did not create incoming on first start
+3937: Whitespace cleanup of configure --help
+---------------------------------------------------------------------
+2005/04/23: spiralvoice (version 2.5.30.8 = tag release-2-5-30-8)
+
+Mozilla MLdonkey Protocol Handler updated to version 1.5
+3924: More bt peer ids + clean up networks cmd in html (table sorts properly)
+3926: mac osx gtk2 gui building
+3930: Build fixes for FreeBSD & OpenBSD
+3931: Prevent DDOSing fm2.imesh.com
+3932: Print warning if core cant do DNS lookups
+---------------------------------------------------------------------
+2005/04/20: spiralvoice (version 2.5.30.7 = 2.6pre19, tag release-2-5-30-7)
+
+3915: Show only searchable networks in HTML, search
+3916: Change Opennap servers_list_url to a working one
+3918: HTML: Print network capabilities table
+3921: Change Fasttrack temp file names 
+3922: Re-enable use of ft:// links to add Fasttrack servers
+---------------------------------------------------------------------
+2005/04/13: spiralvoice (version 2.5.30.6 = 2.6pre18, tag release-2-5-30-6)
+
+* Add an headder-file to charsetstubs.c so it compiles on
+  certain platforms. This fixes savannah bug #12683.
+
+To compile on FreeBSD and OpenBSD link these files:
+
+/usr/local/include/libcharset.h
+/usr/local/include/localcharset.h
+/usr/local/include/iconv.h
+
+to /usr/include and /usr/local/lib/libcharset* to /usr/lib.
+---------------------------------------------------------------------
+
+2005/04/13: spiralvoice (version 2.5.30.5 = 2.6pre17, tag release-2-5-30-5)
+
+3894: New build targets: release.utils.shared & release.utils.static
+3895: Amorphous patches from SVN revision 259
+* If using iconv in an libiconv, check for libcharset.h and
+use it, if it is not present use localcharset.h . This
+should fix compiling on some systems.
+* Lower AC_PREREQ to 2.53 (debian wood needs that).
+* Some whitespace fixing for configure --help .
+* Use -mno-cygwin for cc when --enable-mingw is used. But it
+seems like it does not prevent the freezing we know from
+cygwin compiled cores.
+* Use the present fd for getsize64 in unix32. This should
+fix multi-files for bt in win32, as win32 only allows one
+fd per file because of the default locking behaviour.
+* Ignore exceptions from utimes, as in win32 the default
+locking behaviour prevents them.
+
+3896: BT support for file_started_cmd
+3901: Change HTML headers from iso-8859-1 to UTF-8
+3902: Amorphous patches from SVN revision 264
+* Add -mno-cygwin to -ccopt for ocaml. Seems not to fix
+--enable-mingw either.
+* Clean up canonize_basename, now that we have charset
+conversion. Now we should be able to have most chars in
+filenames if the locale is set right.
+* When shorten-ing names, just use Charset.to_utf8 instead
+of String.excaped . Now non-ASCII chars should show up
+nicely in web-ui and telnet-ui. The conversion should be
+done when these strings enter the core, but that would be
+quite a task.
+* Remove an Charset.to_locale that shouldn't be there.
+
+3903: Remove some log messages
+3904: Format "vd <num>" output in telnet to have md4 hashes back
+3905: Prevent crash on start when wrong system date is set
+3906: Fix GTK1 GUI compile (was broken since patch 3867)
+3907: Fix UTF-8 stuff
+3909: Some cosmetical stuff from Amorphous rev 266
+---------------------------------------------------------------------
+
+2005/04/07: spiralvoice (version 2.5.30-4 = 2.6pre16, tag release-2-5-30-4)
+
+3889: Clean logfile
+3887: Syncing Savannah CVS with Amorphous SVN
+* Applied savannah patch #3867 with small modifications, so
+it builds on systems that don't have libiconv but have
+iconv() in libc (i hope it still works on systems with
+libiconv :) ) and so that the gui protocol version 30
+behaves as before.
+- new gui protocol version 31 (see guiProto.ml) fixes
+savannah bug #11988 : GUI-Protocol doesn't send hashes
+for files not from the donkey-network
+- fix for savannah bug #12390 : GTK2 GUI configuration
+problem
+- bt shares now show up under shares
+- gtk2-gui: fix some bugs in text display (while using
+Pango markup)
+- gtk2-gui: fix upload/download rate of clients
+- gtk2-gui: md4 is replaced by uids everywhere (downloads,
+uploads, results)
+* Patch from beedauchon on irc fixes that gnutella and
+gnutella2 options had the same prefix.
+* Corrected debug-output in http_client.ml form last commit.
+* Little debug-log cleanup.
+* Fixed savannah bug #12348 gnutella (and related networks)
+accumulated more and more ultrapeers (servers) during
+runtime and did not forget them, so memory usage growed
+over time.
+---------------------------------------------------------------------
+
+2005/04/04: spiralvoice (version 2.5.30-3 = 2.6pre15, tag release-2-5-30-3)
+
+3883: Fix compile errors in GTK1 GUIs due to patch #3867
+---------------------------------------------------------------------
+
+2005/04/04: spiralvoice (version 2.5.30-2 = 2.6pre14, tag release-2-5-30-2)
+
+3864: html-interface: slightly easier renaming
+3867: bug fixes for the new GTK2 GUI
+
+3873: Syncing Amorphous 2-5-30ac with 2-5-30-1 
+* Now really fixed the infinite loop in the sourcemanagement.
+* The check for the version of ocaml in the configure file
+should be fixed now. Now 3.08.3* and 3.08.2* (for mac only
+3.08.2+4 to +8) are recognized. If needed 3.08.3 should be
+downloaded correctly.
+* Some debug-output cleaning.
+* Updated warning message for old mldonkey clients, they
+should at least upgrade to 16v.
+* Removed option master_server_min_users as it was not used
+in the code.
+
+3874: Extend vd command with parameters
+* add telnet commands
+vd queued
+vd downloading
+vd paused
+shows only chosen downloads
+tip: use aliases vdd -> vd downloading
+vdq -> vd queued
+vdp -> vd paused
+
+3876: Support subrelease in configure.in
+3877: Identify more bt peer ids (client software)
+3882: Decode http-header-name location case-insensitive
+---------------------------------------------------------------------
+
+2005/03/20: spiralvoice (version 2.5.30-1 = 2.6pre13, tag release-2-5-30-1)
+
+This release shares the same code as Amorphous SVN release 2-5-30ab
+except the fact is needs Ocaml 3.08.3
+
+3792 : EDK/HTML: More readable uptime in cs
+3795 : Updated files for bugs building GTK2 GUI, GTK1 newgui and GTK1 oldgui
+* To build GTK1 newgui: ./configure
+  To build GTK1 oldgui: ./configure --disable-newgui
+  To build GTK2 GUI: ./configure --enable-gtk2
+  lablgtk-1.2.7 and lablgtk2-2.4.0 can both be installed at the same time.
+
+3816 : New URLs in FakeCheck. Corrected Bitzi URL
+3573 : Allows for aliased commands in driverCommands
+3822 : Fix for completed files appear multiple times in upstats
+3829 : Options care
+
+3828 : Opennap compiles again
+* this does not mean the module actually works;-)
+
+3830 : Review build process
+* Ocaml 3.08.3 is now required to build MLDonkey
+* Removed config/Makefile.config.i?86.in files. If you want
+  to build for an arch that is not the build-machine then
+  use for example ./configure --host=i586-pc-linux-gnu .
+* Added the opt-binaries from utils to make clean.
+* Added configure option --enable-debug .
+* Removed the configure options for directconnect and
+  audiogalaxy, any developer wo wants to work on them can
+  add them again and nobody else should use them.
+
+3791 : Syncing 2.5.30 and Amorphous 2.5.30aa
+
+* Adapted a change to the command "sources" from savannah
+  patch #3621 that had a new command "tsources". "sources"
+  now prints it's information in a much more compact table.
+* Savannah patch #3304 has UTF 8 encoding for strings from
+  the core.
+* Changed so redirectors (gwebcaches) for gnutella/g2 are
+  only contacted once a day. This is no good solution, but
+  it should prevent us from harming the network.
+* Prevent active_udp_queue in g2 from growing over length
+  100 and eating all memory (this is a workaround and
+  should be fixed for real someday).
+* Now ./configure checks for autoconf259 and autoconf-2.59
+  and uses these instead of autoconf. AC_PREREQ in
+  configure.in is now set to 2.59 instead of 2.5 .
+* The default port for the gift gui is now 0, to disable it,
+  because it did not ask for authentication.
+---------------------------------------------------------------------
+
+2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
+
+This version solves the serious file corruption bug in version 2-5-29
+---------------------------------------------------------------------
+These patches were applied to 2-5-29 by b8_bavard without mentioning
+in Changelog:
+
+3357: BT: use config option for hardcoded TCP-read-timeout
+3326: html_mods: Show sources info in vd # output again
+      (bt_vd_soft.diff + html_print_sources.diff)
+-------------------------------------------------------------------
+This patch was applied to 2-5-28-1 by spiralvoice without mentioning
+in Changelog:
+
+3672: Let mldonkey upload (complete files) work with Low ID clients
+-------------------------------------------------------------------
+
+These patches are part of release 2.5.30:
+
+3676: BT/fileTP HTTP header check (header_checks-fix.diff)
+3551: new gtk2 gui (3551_1_29.patch.gz, rsvg_icons_set.patch.gz)
+3308: Optionally skip (queued/paused) files in html vd display
+3461: [EDK] Fix some bugs (3461_29.patch, tweak_commonSources.2-5-28-fixed.patch)
+3476: Fix bug in friends file list
+3481: Let configure fail if Ocaml and wget are not available
+3484: Add vd link for nocheckboxes html interface (3484_2.patch)
+3490: Some leftovers from patch_pack 2-5-28h
+      (lowid_29.patch, cleanups_small-fixes.patch, 3490_2.patch)
+3491: Some stuff for config/Makefile.config.i?86.in
+3494: BT: tracker interval fixed again (this patch replaces
+      patch 3447 from 2-5-28-1, 3494_29.patch)
+3522: BT guarding.p2p support
+3575: Detect if config/ directory is absent during configure
+3603: Error in mldonkey-design.tex
+3604: Fix for bug #11394 - HTTP redirection
+3608: EDK: Higher default for walker_server_lifetime 
+3609: New extensions for video search (extensions28.patch)
+3610: Kademlia nodes are collected even if Kademlia is disabled
+3615: Small typo, clean logfile
+      (log.patch, log.patch (for Overnet messages, new in 2-5-28p,
+      typo.patch, 3615_4_29, replaces edkudp_messages.patch,
+      3615_5_29, replaces compatableclient.patch)
+3616: fix for too much source-queries to servers for 2.5.28i
+      (3616_29.patch)
+3620: Donkey guarding.p2p support (3620_29.patch)
+3621: new command "tsources" prints table of sources
+3622: we should only ask for sources if we need_new_sources (3622_29.patch)
+3627: Adding EDK servers with edk://server did not work
+3631: Solve configure problem on Mac - fixes bug 11365
+3634: This patch addes RazorBack's file history link to interface 
+3637: Fix for MacOS Orphaned File Descriptor Bug
+3648: HTML: Display sharing strategies in Options, Shares
+3652: TELNET: Display search result summary
+3653: Handle HTML error 304 in http_client.ml (3653_29.patch)
+3655: Bugfix for multiple sourceexchanges with the same peer
+      (3655_2.patch)
+3656: Parse eMules ipfilter.dat for use in IP blocking function
+3672: Let mldonkey upload (complete files) work with Low ID clients
+3675: EDK: keep_cancelled_in_old_files works again
+3677: Fix for bug #11686 - fileTP cancel
+3680: get more infos on servers per UDP
+3685: fileTP FTP quick fix
+3688: Avoid Exception Pervasives.Exit in QueryFileReq
+3707: Use Ocaml 3.08.2 instead of 3.08.0 when no Ocaml is installed yet
+3715: Some care for options
+3719: New command: buildinfo (3719.patch, buildinfo2.patch, 3719_3.patch)
+3721: HTML: Remove filewatcher.org from Search function
+3725: EDK: 15 new eMule mods
+3726: EDK: Better recognition for Shareaza clients
+3728: EDK: vd <num> source score display bugfix
+3734: Configurable socket option so_keepalive (3734_29.patch)
+3737: FT/GT: Canceling download works again (3737_29.patch)
+3744: bugfix #11362 and some description cleanup
+3754: Bitzi lookup works again in Search results interface (3754_29.patch)
+3157: Send core update message to "new mldonkey" (3157_29.patch)
+3681: remove guarding block of indirect sources
+3717: improvement of patch 3672 (additonally bugfix for wrong Hi/Lo-ID in serverlist)
+3773: Solve compile bug in tools (dp500.patch, make_torrent.patch)
+3673: do not send the entire list of shadred file to servers every 5 minutes
+      (3673_29.patch)
+3291: Fix for bug 9996 - Missing Date Header in Emails
+      (fixed problems with 3291_29.patch)
+3736: Bugfix for Chunks-Randomizing and LowID recognition on inbound connections
+3722: Enhancements to the sourceexchange and some minor ED2K bugfixes (3722_29.patch)
+3735: Sourcemanagement revisited (3735_29.patch)
+3776: Fix for file corruption in CVS 2-5-29
+3777: Lots of backported stuff from Amorphous branch 205
+      (backport.patch, log.patch)
+
+-------------------------------------------------------------------
+
+UPDATE (2005/02/20): branch 2-5-28 was updated, to check out use "-r release-2-5-28-1"
+
+A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !
+	(if you do a checkout/update , use tag 'release-2-5.28' instead)
+	
+2004/10/26: Fabrice (version 2.5.29 = 2.6pre11, tag release-2-5-29)
+  - Bittorrent: files should be shared even after commit.
+  - Removed some options:
+       * "incoming_directory", replaced by "shared_directories", with
+           strategy "incoming_files" (for downloaded files) and
+           "incoming_directories" (for downloaded directories on Bittorrent).
+       * For networks, "network_options_prefix" and "commit_in_subdir".
+
+2004/10/22: Fabrice
+  - Measure latencies between clients and send them to redirectors:
+     * On TCP connections
+     * On UDP: 
+         * Edonkey Server Ping/Pong
+         * Overnet/Kademlia clients Connect/ConnectReply
+         * Fasttrack Supernode Ping/Pong
+
+2004/10/18: Fabrice
+  - Many changes and patches applied, labeled as UNSTABLE until further
+      tested.
+  - Applied Savannah patches: #3321 (print_sources), #3338 (BT-quit), 
+     #3341 (BT-numwant), #3352 (GUI-GetVersion), #3356 (BT-showfile),
+     #3363 (gzip-0len), #3407 (BT-referer), #3408 (complete),
+     #3409 (download-sort), #3411 (setoptions), #3412 (BT-delay),
+     #3413 (BT-messages), #3414 (BT-latepeerid), #3415 (ED2K-ip),
+     #3420 (BT-chooser), #3421 (BT-events), #3422 (BT-reshare),
+     #3423 (BT-manualstop), #3425 (BT-latepeerid2), #3427 (logchats),
+     #3428 (BT-delay2), #3429 (BT-handler), #3430 (BT-verify),
+     #3435 (BT-assert1), #3436 (BT-parsehead), #3438 (ED2K-proto),
+     #3439 (swarm2), #3442 (kad-options), #3443 (log)
+  - Default is now Swarming2.
+
+2004/10/13: Fabrice
+  - Gnutella/Gnutella2: deflate_connections works
+
+2004/10/07: Fabrice
+  - CommonUploads: 
+      * Description of shared files is saved on disk during execution.
+      * Computed UIDs, Md4s and tiger-trees are stored in shared_files.ini
+          between executions.
+  - Fasttrack:
+      * Experimental ultrapeer mode for local experimentations (will not
+          work on the Fasttrack network).
+
+2004/10/03: Fabrice
+  - Bittorrent:
+      * Start download without the torrent, when enough information is known.
+
+2004/09/27: Fabrice
+  - Fasttrack:
+      * Clean protocol specification
+      * Basic ultrapeer
+
+2004/09/21: Fabrice
+  - Gnutella/Gnutella2: 
+      * Implemented basic ultrapeer (without Bloom filters)
+      * Implemented HTTP upload
+      * Implemented TigerTree verification
+
+2004/08/31: Fabrice
+  - Bug fixes: 
+      * chunk*.tmp are always removed
+  - Applied patches: #3305 (config gtk), #3306 (mlgui align), #3307 (clean),
+      #3313 (ft), #3317 (bt softs), #3319 (floats), 
+
+2004/08/18: Fabrice (version 2.5.28 = 2.6pre10, tag release-2-5-28)
+  - Tested CommonSwarming2 with Edonkey and BT (should also work with 
+      Fasttrack).
+ 
+2004/08/17: Fabrice
+  - Applied patches: #3279 (cygwin), #3288 (aclocal), #3291 (maildate),
+      #3292 (no gtk-config), #3554 (sharedbytes), #3561 (htmlpref),
+      #3574 (gziphtml)
+
+2004/08/16: Fabrice
+  - Bug fixes:
+      * CommonSwarming: one bug causing BAD WRITE, and one bug causing bad
+          selection of the block to download first.
+  - CommmonSwarming2:
+      * New "merge f1 f2" command to declare that data from file f2 should be
+          saved in file f1. Not that all the data already downloaded to f2 is
+          currently lost.
+
+2004/08/12: Fabrice
+  - Bug fixes:
+      * DriverCommands: add_user shouldn't raise exception anymore (bug #9990) 
+
+2004/08/11: Fabrice
+  - Bug fixes:
+      * DonkeyOptions: compute_md4_delay forced above 0.1 (bug #8812)
+      * CommonNetwork: use Url.decode on urls 
+      * Http_client: correct Host header (bug #8705)
+  - Applied patch #2974 (wget)
+  - CommonSwarming2: new implementation for multi-network swarming (not
+      working yet). Not used anyway unless -enable-swarming2 is specified.
+
+2004/08/10: Fabrice (version 2.5.27 = 2.6pre9, tag release-2-5-27)
+  - Applied patch #3276 (gui proto 29)
+  - Bug fixes:
+      * CommonInteractive: Filename conversion of forbidden Windows characters
+          before saving files (bug #9213)
+      * MlUnix: stdout and stderr are not closed, just redirected to /dev/null
+          (bug #8580)
+      * DonkeyFiles: limit upload to client to max_msg_size (bug #9818).
+      * CommonSources: fixed bug preventing saved sources from being used
+          (and thus previously known emule clients from being used).
+      * CommonSwarming: save and reload chunks ages
+      * FasttrackComplexOptions: sources are correctly loaded
+  - Fasttack now uses module CommonHosts
+
+2004/08/09: Fabrice (version 2.5.26 = 2.6pre8, tag release-2-5-26)
+  - Bug fixes:
+      * GuiDecoding: bug causing deconnection for protocol 28
+      * New Fasttrack files from giFT-Fasttrack
+      * New option filename_conversions in downloads.ini to translate chars
+          in names before saving files.
+      * DonkeyClient: fixed QueueRankReq handling
+
+2004/08/09: Fabrice (version 2.5.25 = 2.6pre7, tag release-2-5-25)
+  - Bug fixes (to be tested):
+      * CommonSwarming: removed downloaded counter, use the file's one.
+          Verified files should now be seen correclty after verify_chunks or
+          recover_temp.
+      * CommonInteractive: modified canonize_basename to replace chars
+          outside 32-127 by ?. Should solve saving of CJK files on disk.
+      * Unix32: open in read-only if EROFS is raised
+      * DonkeyComplexOptions: force use of update_server_list variable, and
+          check IP reachability (bug #7200). Should also fix bug #8971.
+      * DonkeyClient: Don't ask for slot if no interesting chunk. Use
+         good_client_rank option to put clients in "good_sources" queue.
+         (bug #9016).
+      * DonkeyClient: removed "connection_ok" in query_locations to
+         allow servers to become master (bug #7741).
+      * DonkeyServer: new command "preferred" to choose preferred servers,
+         that will become masters immediatly and with priority if connected
+         (which should happen automatically during the walking process).
+         (bugs #9247/#9655)
+      * GnutellaServers: added gnutella2_needed variable to decide when to
+         keep a connection in Gnutella/Gnutella2 (bug #9697).
+      * GnutellaRedirector: set delay between reconnections to redirector
+         to 1 hour. (bug #9686)
+      * CommonHosts: added option to limit the number of known hosts
+          in Gnutella "max_known_hosts" (default 1000) (bug #8416)
+      * configure.in: changed REQUIRED_OCAML to 3.08 (bug #9939)
+      * DonkeyOvernet: searches are removed after 5 minutes.
+  - Applied patch #3274 (ocaml3.08)
+
+2004/08/06: Fabrice
+  - Applied patches: #3269 (int64), #3266 (mc), #3267 (ocaml3.08)
+
+2004/08/05: Fabrice (version 2.5.24 = 2.6pre6, tag release-2-5-24)
+  - Bug fixes:
+      * CommonSwarming: remove "double the downloaded size" of downloads.
+      * DonkeyComplexOptions: prevents saving options before loading them,
+          which used to destroy the file_sources.ini and shared_files_new.ini
+          files.
+      * CommonSources: check_time discarded the real time.
+      * DonkeyOvernet: enabling Overnet at runtime wouldn't start it.
+      * DonkeyShare: downloaded files should be shared immediatly.
+  - Applied patches: #3264 (emule mods)
+  - Overnet/Kademlia: added prebuckets. Number of peers limited to 20 per
+      bucket and 100 per prebucket. Boot peers addresses from redirector.
+
+2004/08/04: Fabrice (version 2.5.23 = 2.6pre5, tag release-2-5-23)
+  - ocaml-3.08 is required to compile now.
+  - Overnet and Emule-Kademlia share the same (partial) implementation:
+      * Use global options "enable_overnet", "enable_kademlia" and
+          "enable_servers" to choose which modes you want to use.
+      * See the options for Kademlia and Overnet in donkey.ini.
+      * Use kad_ and ov_ prefixes to call commands for these networks
+         ("kad_buckets" gives the current connection status, "kad_boots"
+           gives the number of known peers to bootstrap, "kad_stats" gives
+           the current status of searches, "kad_store" for what is published
+           on the client)
+      * Currently working:
+         * Search for keywords (normal searches)
+         * Search for files (localisation of sources)
+         * Replies to external searches
+
+2004/08/01: Fabrice
+  - Applied Savannah patches: #3249 (no udp), #3250 (mem_stats), 
+     #3251 (verify_chunks)
+
+2004/07/30: Fabrice
+  - Applied patches: #3053 (configure), #3064 (bt share), #3146 (ed2k servers),
+     #3160 (emule mods), #3183 (config saved), #3235 (zlib), #3242 (Makefile),
+     #3245 (bt nuploaders), #3246 (bt cookies)
+  - Added src/networks/donkey/donkeyProtoKademlia.ml. Rewritting DonkeyOvernet
+     to fix the implementation of Overnet, and to make it usable for Kademlia.
+
+2004/07/29: Fabrice
+  - CommonSwarming: re-implemented chunk duplication.
+
+2004/07/29: Fabrice  (version 2.5.22 = 2.6pre4, tag release-2-5-22)
+  - Fixed a bug in number of sources computation.
+
+2004/07/28: Fabrice
+  - New subtree src/gtk2 to compile the GUI with gtk2. You need lablgtk2
+     installed, and use "./configure --enable-gtk2" to enable. Some things
+     are broken, such as availability display (but when is that pixmap
+     destroyed ???).
+  - New message InterestedInSources in the GUI protocol, to save more
+     bandwidth by sending sources information only when asked.
+
+2004/07/02: Fabrice
+  - Applied Savannah patches: #3165 (ipset), #3166 (mozilla height),
+   #3178 (BT compatct). #3184 (hightime)
+
+
+2004/06/25: Fabrice
+  - Applied Savannah patch: #3162
+	
+2004/06/18: Fabrice
+  - GUI protocol:
+    * New message InterestedInSources
+    * Fields file_all_sources and file_active_sources correct for eDonkey 
+       plugin. Should save some bw, mem and cpu in the GUI, when only this
+       info needs to be displayed.
+
+2004/06/17: Fabrice
+  - Major changes in search results management:
+    * New option 'save_results' (default is 0)
+        0 : results are not saved between sessions
+        1 : results first appearance are saved between sessions
+        2 : full results are saved
+    * Local search is now always available. A structure to search old
+        results (in the same session, and in former sessions if 
+        save_results = 2) is built for 5 minutes, so the memory should
+        be reclaimed 6 minutes after the last local search.
+    * All results for all networks are stored on disk, not in memory.
+    * The 's' command output displays a 'N' for new results, i.e. results
+        that never appeared before that search.
+    * New option 'special_queries' in 'searches.ini' defining 
+        abbreviations for search arguments (eg "-movies" means 
+         "avi -minsize 650000000 -maxsize 735000000") that can be
+        used with 's' and 'ls': "s -movies dvdrip fr"
+  - Command 'mem_stats' now takes an argument (0 for normal, 1 for more
+       details).
+  - Applied patches: #3120 (html), #3124 (ed2khash)
+ 
+2004/06/03: Fabrice
+  - Fixed bug adding unwanted friends
+
+2004/05/30: Fabrice
+  - Added RSS loading via option web_infos, with command "rss" to print them.
+  - Applied patches from Savannah: #3005 (networks), #3007 (printf2),
+     #3008, #3016 (solaris), #3017 (log),#3023 (telnet), #3024 (log), 
+     #3028 (donkey-ip), #3029 (firewalled), #3030 (log), 
+     #3031 (ft users), #3033 (chmod), #3039 (Makefiles), 
+     #3046 (telnet), #3065 (misc), #3067 (bsd), #3096 (wincomp),
+     #3100 (force dl), #3070 (upload)
+
+2004/05/05: Fabrice (version 2.5.21 = 2.6pre3, tag release-2-5-21)
+  - DonkeyClient: re-implemented indirect connections that were lost since
+      2.5.17
+  - For some reason, download seems to be limited to max_hard_download_rate/2.
+      Try to increase this option until a fix is found. 
+
+2004/05/04:
+  - Applied patches: disconnect (Spiralvoice)
+  - Applied Savannah patches: #3003, #2988
+  - Fixed bug preventing connections with Overnet clients.
+  - New command 'activity'
+
+2004/05/03: Fabrice (version 2.5.19 = 2.6pre1, tag release-2-5-19)
+  - Applied patches from Savannah: #3002 (cs_total), #3001 (newgui_csources),
+      #2993 (guiprio), #2988 (cs_html), #2983 (typo18),
+      #2978 (shorten results), #2975 (title opfile), #2966 (telnet stats),
+      #2965 (min users), #2964 (htmlmod), #2963 (lugdu_share), 
+      #2942 (emule mod), #2941 (options)
+    * #2952 is postponed until I understand if it is already included in the
+       Emule better compatibility work done.
+    * #2974 is postponed for verification of compatibility with other platforms
+
+2004/05/02: Fabrice
+  - Fixed bug causing lost of partially downloaded chunks.
+  - Fixed bug in recover_bytes, and added new Edonkey command 
+      'recover_bytes <file_num>' to recover files at a byte
+      level (i.e. partially downloaded chunks)
+
+2004/05/01: Fabrice
+  - Improved Emule compatibility: 
+     * Send 'emule_miscoptions1' on Connect, store emule features
+     * Receive EmuleCompressedPart messages (if Zlib)
+     * Receive SourceExchanges messages version 2
+     * Receive QueryFile messages containing QueryChunksReplyReq
+     * Send QueryFile messages containing QueryChunksReplyReq
+     * Send EmuleRequestSourcesReq even for small files
+     * Send QueryChunksReplyReq only if chunks not known
+     * Send JoinSlotReq with md4 
+
+2004/04/29: Fabrice
+  - DonkeyPandora: print packets and check encoding/decoding of
+      Edonkey packets using traces captured by tcpdump and treated
+      with Pandora.
+
+2004/04/25: Fabrice (version 2.5.19, tag release-2-5-19)
+  - Hardcoded size packet_frame_size to 1 in tcpBufferSocket.ml, so 
+     bw-management should be the same as in 2.5.16
+
+2004/04/22: Fabrice
+  - Memory leak bug found in the bandwidth management. Udp packets are not
+      sent because all the upload bandwidth is used. Partially fixed by
+      limiting the size of the queue of packets.
+
+2004/04/20: Fabrice
+  - Applied patches from Habi
+
+2004/04/16: Fabrice (version 2.5.18, tag release-2-5-18)
+  - Fixed bug solved by patch #2937
+  - DonkeyInteractive: new command 'set_brothers' to associate a list of
+      files as probably colocated.
+  - CommonSources: everything should work now.
+ 
+2004/04/15: Fabrice
+  - CommonSources: the implementation seems correct and enough efficient,
+      still missing the limitation on the number of sources.
+  - CommonSwarming: better handling of the 'last_seen' field
+
+2004/04/11: Fabrice
+  - Applied Savannah patches: #2928 (already downloaded), 
+       #2861 (useless options), #2852 (typo), #2915 (avoid getpeername),
+       #2911 (bt log), #2907 (html prio), #2896 (autoconf), 
+       #2872 (voo html), #2871 (clean servers), #2866 (autorel),
+
+2004/04/07: Fabrice
+  - DonkeyNeighbours: try to use semantic links to find new sources for
+      files among known sources. Send hit-ratio to redirector to gather
+      stats.
+
+2004/04/06: Fabrice
+  - CommonGlobals: only execute 'do_at_exit' in the main process, not
+      in the forked ones (should solve bug #7738).
+
+2004/03/23: Fabrice
+  - CommonSwarming: print an error message instead of pausing a file. Still
+      to find the origin of the error message.
+  - Bandwidth management has changed a bit, but without great success...
+
+2004/03/22: Fabrice
+  - Safer options-saving at exit: close all the sockets to prevent "not
+     enough file descriptors" error and remove a file called
+    "config_files_space.tmp" to free 'config_files_security_space' megabytes
+    created at startup.
+  - Applied patches from Savannah: #2844(share), #2846(bt)
+
+2004/03/21: Fabrice
+  - Applied patches from Savannah: #2832 (telnet_max_name_len), 
+      #2833 (filetp), #2620, #2834 (mingw), #2836 (guardian_p2p url),
+      #2837 (html), #2840 (overnet), #2841 (localtime)
+
+2004/03/18: Fabrice
+  - Applied patches from Savannah: #2792 (doc), #2805 (comestic)
+  - PClink for DP500: better handling of long filenames to prevent
+       freezing the player.
+
+2004/03/17: Fabrice
+  - Applied some patches for Solaris
+
+2004/03/17: Fabrice (version 2.5.17, tag release-2-5-17)
+  - TcpBufferedSocket: new option 'copy_read_buffer', every byte downloaded
+     from the network is copied twice, so more CPU used, but maybe better 
+     network performances.
+  - Donkey plugin: code clean-up to use CommonSwarming. Some features are
+     now disabled, such as "reliability" until they are implemented in
+     CommonSwarming (and so, shared by other plugins).
+
+2004/03/16: Fabrice
+  - New function 'CommonFile.recover_bytes' to recover files using non-zero
+     bytes interval written in the file. New associated option
+     'max_recover_gap' to indicate how many consecutive zeroes in
+     the file between non-zero bytes should still be considered as part of
+     a downloaded segment.
+
+2004/03/12: Fabrice
+  - IP: fixed option 'allow_local_network' 
+  - GUI protocol:
+      * New GUI protocol 26 with new format for CoreProtocol adding
+          the max known opcodes for to_gui and from_gui messages.
+      * The GUI can now receives unknown messages without breaking the
+          connection.
+
+2004/03/10: Fabrice
+  - Applied patches: #2760, #2766, #2767, #2768, #2773
+
+2004/03/09: Fabrice
+  - Applied patch backchanges.patch (HighTime) for BT plugin
+
+2004/03/07: Fabrice (version 2.5.16, tag release-2-5-16)
+  - Applied patches:
+        #2750 (blocking_updated2), #2753 (bug 2586)
+        #2751 (get_range)          #2754 (depend_mingw)
+        #2752 (sourcesanitize)
+
+2004/03/07: Fabrice (version 2.5.15, tag release-2-5-15)
+  - Applied patches #2755 (joinqueuemd4), #2866 (bttt), #2867 (buf_str)
+
+
+2004/03/06: Fabrice (version 2.5.14, tag release-2-5-14)
+  - Http_server: replies are filled in the handler and sent by the server
+      (not by the handler anymore). HEAD/GET requests should be treated
+      correctly.
+  - New URL "http://http_ip:http_port/preview_download?q=file_num" where
+     "file_num" is the download number (in telnet for eg). Can be used to
+     preview files with mplayer.
+
+2004/03/05: Fabrice
+  - New tool "ocamlpp" used for preprocessing files with .mlt extensions.
+  - Applied patches: 
+      #2640, #2677 (cosmetic patches),
+      #2686 (remove array bound error in guiDecoding),
+      #2691 (close splash screen), 
+      #2694 (status bar in downloads),
+      #2710 (default sharing strategy),
+      #2720 (mail),
+      #2724 (frame height),
+      #2726 (bind BT),
+      #2727 (options)
+  - GUI Protocol:
+     * New message: NetworkMessage (network, message) for network-specific
+         GUI messages: opcode 63[2 bytes], len[4 bytes], message[len]
+     * get_string and buf_string can store strings greater than 65536 bytes
+         (when len = 0xffff, there is another 4-bytes integer giving the full
+         len)
+  - Fixed bug in commonHasher_c.c for files > 2 GB
+
+2004/02/17: Fabrice (version 2.5.13, tag release-2-5-13)
+  - Applied patches #2638, #2639
+  - New tool "subconv" to easily modify .sub and .srt subtitles files.
+  - FileTP:
+     * Files are immediatly added, without checking first their size nor
+        their existence.
+  - Streaming of files for Kiss DP500 Divx player, including
+      files from temp/ and incoming/. See the dp500_ options.
+
+2004/02/16: Fabrice (version 2.5.12, tag release-2-5-12)
+  - Applied patches #2616, #2617, #2618, #2625, #2626, #2627, #2631,
+      #2634, #2637
+  - Telnet: 
+      * Now, "cancel" does not cancel files, files are just put in a list,
+          and you need to type "confirm yes" to definitively cancel them.
+
+2004/02/10: Fabrice (version 2.5.11, tag release-2-5-11)
+  - New GUI protocol 24, all times in relative-time.
+  - Re-applied patch #2603
+  - ./config/configure.in: select former or new implementation of sha1
+      depending on the presence of byteswap.h and endian.h.
+  - Applied patches #2611, #2612, #2613, #2614 
+
+2004/02/09: Fabrice (version 2.5.10, tag release-2-5-10)
+  * Applied patches sha1, #2597, #2603, #2604
+  * New GUI messages: 
+      Gui -> Core: GetUploaders, GetPending, 
+                   GetSearches, (GetSearch search_id),
+                   (ConnectClient cid), (DisconnectClient cid)
+      Core -> Gui: (Uploaders num_list), (Pending num_list), 
+                   (Search search_request)
+     GetSearches and GetSearch allow a GUI to query for former searches and
+      to receive the results corresponding to a particular former search.
+  * New console command "disconnect <client_id>"
+  * FileTP:
+     * New option 'remote_shells' to define, for each hostname, which 
+         remote shell to use and with which arguments (e.g. if you want
+         to use rsh or ssh with username@hostname or a particular port).
+         still no password allowed...
+     * New version of 'get_range' that accepts a 'rangex' argument to
+         send the data without base64 encoding (works for me, but I don't 
+         know for other shells). Set the 'get_range' option to set the
+         path of the remote get_range command, and 'range_arg' to use
+         either 'range' or 'rangex'.
+
+2004/02/07: Fabrice (version 2.5.9, tag release-2-5-9)
+  * Applied patches #2428, #2595, #2596
+  * TcpBufferedSocket: 'exec_command' only creates one TcpBufferedSocket.t
+     both for reading and writing.
+  * FileTP:
+     * Basic "remote shell" protocol (using ssh):
+        use 'http <ssh://hostname/relative-filename>' to download the file
+        hostname:~/relative-filename. ssh must be able to connect to the
+        host without password exchange. The remote host must have the
+        'get_range' utility in the PATH of ssh (use "make utils" to
+        have 'get_range' compiled with in mldonkey). The transfer rate is
+        not very good (30 KB/s, either because of too small 
+        tcpBufferedSocket buffers, or because of the base64 encoding).
+
+2004/02/06: Fabrice (version 2.5.8, tag release-2-5-8)
+  * FileTP:
+     * Basic FTP protocol: 
+        use 'http <ftp://url>' and 'mirror <ftp://url>'
+     * Option 'mirrors': list of list of interchangeable url prefixes.
+
+2004/02/06: Fabrice (version 2.5.7, tag release-2-5-7)
+  * New network 'FileTP' for simple file transfer protocols:
+     * Basic HTTP protocol: 
+        use 'http <http://url>' to start a download.
+        use 'mirror <file_num> <http://url>' to add a mirror.
+  * TcpBufferedSocket: initial size of buffer now depends on the last
+        read input. might cause problems in memory until a better cache of
+        buffers is implemented
+
+2004/02/06: Fabrice (version 2.5.6, tag release-2-5-6)
+  * CommonInteractive:
+     * file_cancel: removes the file itself
+  * Unix32:
+     * new function 'destroy' to completely destroy a FD, so that it cannot
+        be used afterwards (but it does not remove the file). Used
+        in CommonInteractive.file_commit and CommonInteractive.file_cancel.
+  * DonkeyInteractive: clients might get stucked if they tried to
+      upload a file that has just been commited, since the name is not
+      updated anymore in Unix32.rename. We need to remove the former 'file' 
+      structure and then add a new one for the shared file, thus disconnecting
+      all the former uploaders (knowing them, they will reconnect asap :)).
+      To be done.
+  * Applied patches #2586, #2587, #2588
+
+2004/02/05: Fabrice (version 2.5.5, tag release-2-5-5)
+  * Change in the version numbers, keep only 3 digits :)
+
+2004/02/04: Fabrice (version 2.5.4+8, tag release-2-5-4-8)
+  * Bittorrent:
+     * New version of uploaders choice.
+  * Applied patches #2571, #2579, #2580 (is patch #2578 reversed ?)
+
+2004/02/04: Fabrice (version 2.5.4+7)
+  * Bittorent:
+     * Fixed upload for seeded files, and probably some other bugs.
+  * Telnet interface:
+     * ?? display commands per category
+
+2004/02/03: Fabrice (version 2.5.4+6)
+  * Applied patches #2556, #2558, #2559, #2561, #2568, #2569, #2571, 
+       #2572, #2574
+  * TcpBufferedSocket: event CONNECTED is sent the first time a socket
+      is available for writting.
+  * Newgui:
+     * Gui_cdget: Updated some regexps to correctly query IMDB.
+  * Bittorrent:
+     * BTTracker: the tracker should work. 
+     * New internal command "torrents" to list URLs of files in
+        torrents/tracked/
+
+2004/02/02: Fabrice (version 2.5.4+5)
+  * New Internationnalisation format: short strings are stored for translation
+      in ~/.mldonkey/mlnet_strings.$LANG. The new scheme allows easy 
+      translation of options descriptions and all other strings used
+      after CommonOption. Can also be used to translate the interfaces.
+      Unfortunately, this new scheme makes most of the former translations
+      obsolete, but most of them have been approximately changed to the
+      new format (see distrib/i18n/mlnet_strings.*, copy yours in
+      ~/.mldonkey/ to check)
+
+2004/02/01/ Fabrice (version 2.5.4+4)
+  * Applied patches #2532 (new-gui), #2535 (INSTALL.txt), #2549 (vers mesg), 
+       #2550 (minsize shared)
+
+2004/01/28: Fabrice (version 2.5.4+3)
+  * CommonShared:
+     Strategies of sharing can be defined in "searches.ini" (recursive or not,
+      min file size, extensions). 
+     * Predefined strategies:
+         [all_files]: recursively all files > 10 KB
+         [mp3s]: recursively .mp3 < 10 MB
+         [avis]: recursively .avi > 500 MB
+         [only_directory]: not recursive, all files > 10 KB
+     * Strategy for incoming/ is now [only_directory].
+     * Format of "shared_directories" option changed accordingly: new default
+        directory shared/ with strategy [all_files].
+  * CommonComplexOptions:
+     file_state, file_age and file_size are saved for all networks in options.
+  * CommonSwarming:
+     functions to save and load chunks and present_chunks from options.
+
+2004/01/27: Fabrice
+  * TcpBufferedSocket: 
+    * Weak form of connection_manager, that should progressively be used to
+        better distribute connections among networks.
+    * Zlib Compression of connection is now done transparently.
+  * Int32ops: removed Int32 operations. int32 should be removed as many times
+      as possible to avoid limitations at 4GB. Bittorrent protocol does not
+      support files > 4 GB (check new version ?)
+
+2004/01/26: Fabrice
+  * CommonSwarming: completely rewritten. No partition anymore. Better
+      block choice strategy. More efficient strutures.
+  * BTTracker: 
+      * new directories in "torrents/":
+        * downloads/: .torrent of files being currently downloaded
+        * tracked/: .torrent of files being currently tracked (maybe seeded)
+        * seeded/: .torrent of files being currently seeded
+      * mldonkey command 'compute_torrent' computes a .torrent file for a
+        filename and put it in torrents/tracked/. The file is immediatly
+        tracked.
+      * mldonkey tracker can be accessed:
+          http://ip:6881/tracker?info_hash=.... -> for the tracker
+          http://ip:6881/filename.torrent -> to download 'filename.torrent'
+
+2004/01/23: Fabrice
+  * ed2k_hash: new option -check <size> to compute different hashes on
+      a generated file of size <size> KB, to test DiskFile, SparseFile and
+      MultiFile implementations. 
+  * Unix32:
+     * Open ALL files in RW mode by default, and fall back in RO mode in
+        case of error. 
+     * New format SparseFile completely implemented. 
+     * Unix32.rename makes the Unix32.t invalid. Might cause some bugs
+        when sharing just commited files (TO CHECK).
+  * Options:
+     * New EXPERIMENTAL option 'emulate_sparsefiles' in downloads.ini,
+        to emulate sparse files on non-sparse filesystems (e.g. FAT).
+        Currently only works for Edonkey files, and <preview> and
+        <recover_file> won't work for them.
+
+2004/01/16: Fabrice
+  * Fixed problem with files.ini when downloading BitTorrent files
+
+2004/01/15: Fabrice
+  * Applied Savannah patches #2480, #2481 (emule), #2482 (old GUI)
+
+2004/01/14: Fabrice
+  * Applied Savannah patches:
+     #2475, #2474 (bin modes), #2479 (BT), #2473 (negative time),
+     #2437 (force-download typo), #2423 ("links" command), #2421 (connecttime),
+     #2417 (message 21), #2415 (LSD not banned), #2414 (old GUI),
+     #2413 (emule tags), #2411 (emule stats), #2473 (telnet)
+  * Applied Pango's patch: common_recover_temp
+
+2003/12/22: Fabrice
+  * make_torrent: 
+     * .torrent filename is specified by -torrent
+     * New option "-split <filename>" that will split <filename> in smaller
+         files according to a .torrent file.
+  * Applied pause.patch 
+
+2003/12/17: Fabrice
+  * Applied upload_slots patch again
+
+2003/12/16: Dek
+  * mldonkey CVS moved to berlios until savannah is back again.
+     see https://developer.berlios.de/cvs/?group_id=610 
+     for server-details, web-CVS etc.
+  
+2003/12/16: Fabrice
+  * Applied patches from spiralvoice page: prevent_interface_close, xmule,
+     emule_tags, upload_cnum, suxx_wap, mld_cb10, remove_challenge,
+     upload_slots, html_gnutella2, amule
+     
+2003/12/15: Fabrice
+  * Modified "forget" command
+  * Bittorrent: crash when commiting directories fixed
+
+2003/12/09: Fabrice
+  * Opennap: removed redondant client_port option
+  * Gnutella2: removed options with same values as for Gnutella
+
+2003/12/08: Fabrice
+  * New option 'allow_local_network' to allow connections on the local
+     network for debugging purpose.
+  * Bittorrent:
+      * If 'tracker_port' is not nul, a WEB server is started inside mldonkey
+         that is used as a tracker, with url:
+                 http://YOUR-IP:<tracker_port>/tracker
+      * New option 'shared_torrent_files', a list of pairs:
+          torrent_files = [
+               ("/test_bt.torrent", "../../one_torrent_file.torrent");
+          ]
+        where the first string in the pair is the relative url on the 
+        tracker web-server http://YOUR-IP:<tracker_port>/test_bt.torrent
+        and the second is the filename .torrent on the disk to be served.
+      * New option 'tracked_files': a list of the filenames of the .torrent
+          files that should be tracked.
+      * New option 'shared_files': a list of pairs (path to .torrent file, 
+          path to corresponding shared file).
+
+2003/12/06: Fabrice
+  * New option file_started_cmd (by default "mlprogress") used when a
+     new download is started to display a progress popup. Set to "" to
+     disable.
+  * Improved progress popup.
+
+2003/12/06: Fabrice
+  * Added 'mlprogress <num>' program that popup a window to display the
+     download of file <num> (thx to b8_zoggy). Not tested yet.
+
+2003/12/06: Fabrice
+  * Applied Spiralvoice patches ban.clients, win.patch, patch_pack2c
+  * Added option 'allow_any_command' to use ! instead of !! for 
+     arbitrary commands (false by default for security reasons)
+  
+2003/12/05: Fabrice
+  * Merged devel/ and stable/ branches for Gnutella2
+
+2003/12/04: Fabrice
+  * Added module CommonBitzi (merge with devel version)
+
+2003/12/03: Fabrice
+  * Updated ed2k_hash to compute Sig2dat and Bitprints. For Mac users, you can
+     check whether bitprints with tiger-trees are correctly computed:
+       ./ed2k_hash.byte -hash bp COPYING 
+     gives:
+      urn:bitprint:QI3PHA4WVH75CAL72NCNTXZE3SNHU6K3.5URJJG7REVGICNBK5UQBPFGIEO234ZJ3MX2T54I
+      Partial   0 : 5URJJG7REVGICNBK5UQBPFGIEO234ZJ3MX2T54I
+
+2003/12/02: Fabrice
+  * Applied patch #2399 (anti-thieves v2)
+  * Splitted Gnutella and Gnutella2 plugins
+
+2003/12/02: Fabrice
+  * gui_messages.ini.dutch added
+  * Suppressed UDP frames sent by a firewalled client, causing it to be
+      black-listed.
+
+2003/12/01: Fabrice
+  * Applied patch #2390
+  * Added Autoconf.windows boolean
+  * New tool 'make_torrent' generated by 'make make_torrent', that can be
+      used to generate, print, verify and modify .torrent files.
+
+2003/11/29: Fabrice
+  * Applied patch #2382 (mingw), #2380 (anti-thieves),
+     #2384 (gui), #2386 (gui)
+  * Removed client addr as string in GUI protocol 20
+
+2003/11/29: Fabrice
+  * Unix32: create_ro = create_rw
+  * New module BTTracker, to implement a tracker for BitTorrent.
+      Command "compute_torrent <filename>" in console to generate
+      the torrent file associated with filename. Not working yet.
+
+2003/11/29: Fabrice
+  * Removed patch #1261 
+  * Applied patch #2243 (bind sockets), #2377 (mlnet.static),
+      #2378 (ocaml url)
+  * Fixed compilation problem in oldgui
+  * ED2K: send compressed ShareReq message to zlib-enabled servers.
+
+2003/11/29: Fabrice
+  * Unix32: fixed a bug preventing the creation of a correct directory in BT
+
+2003/11/28: Fabrice
+  * Unix32: some bug fixes which may have caused bad Sha1 computation in BT at 
+      inner file borders.
+
+2003/11/28: Fabrice
+  * Applied GUI patches #2372 (renamefile), #2373 (newgui), 
+       #2374 (configwin), #2375 (im), #2376 (configure)
+  * Applied HTML patches #2151, #2264
+
+
+2003/11/27: Fabrice
+  * Removed patch #2341 (for fun :) )
+  * Applied patch #2139 (html mod), #2371 (telnet)
+  * Compressed connections to servers work, multiple replies to a search
+      in one UDP packet works too.
+
+2003/11/27: Fabrice
+  * Unix32: and yet another bug fixed in MultiFile: no more 
+      Invalid_argument("Unix.write") error
+
+2003/11/27: Fabrice
+   * Applied patches #2341 (BT), #2354 (BT with MultiFile), 
+       #2339 (improved telnet), #2311 (Overnet [EXPERIMENTAL])
+    BUT: is there a bug on Savannah, or is it my browser that incorrectly
+     download patches with &quot;, &gt;, etc... inside ?
+  * Fixed ed2k_hash compile error
+  * Hardcoded emule protocol version set to 0x30, connect to Razorblack
+  * Unix32: another bug fixed causing "really_write 0 BYTES" errors.
+
+2003/11/27: Fabrice
+   * Bug with Unix32.read fixed (no flush).
+   * New file type MultiFile in Unix32, created with create_multifile, to
+       be used by BT. 
+
+2003/11/24: Fabrice
+   * New UDP protocol implemented:
+	* Understand servers flags in UDP pongs
+	* Query for and understand multiple replies in one packet
+	* Query sources for multiple files, and understand multiple files sources 
+	     in one packet
+   * server_last_message updated correctly.
+
+2003/11/24: Fabrice
+   * Suppressed option client_server_md4 (to correcly connect to all servers)
+   * Copy Emule behavior for client-client connection
+   * Send ET_COMPATIBLE flag in EmuleClientInfo with number 10
+   * Send EmuleClientInfo as soon as Emule client is identified
+   * Set verbose = "unk" to save unknown packets in /tmp/ directory
+	
+2003/11/21: Fabrice
+   * Applied patches: #2097, #2099, #2110 (mingw), 
+       #2111, #2193 (telnet), #2248, #2255 (XSS bug), 
+       #2268 (server zlib), #2269 (opennap napigator)
+
+2003/11/21: Fabrice
+   * Applied patches on BT: #2135, #2158, #2247, #2254, #2256
+   * Applied patch #2299 (files > 2 GB), #2263 (don't ban uploaders),
+       #2202 (gnutella2 DDOS)
+   * Gnutella/gnutella2 plugin compiled again
+
+2003/11/20: Fabrice
+   * Modified to compile with ocaml-3.07
+   * Started merging -devel and -stable versions
+      * Gnutella and Gnutella2 plugins disabled
+      * Should fix GUI protocol problems with G2GUI
+
+2003/11/17: Fabrice
+   * Applied patches
+      - GUI: #2080-#2087
+        + By default, the new gui is built. To build the former one, run
+            ./configure -disable-newgui
+        + When switching from one gui to another one, the .mldonkey_gui* files
+            may be incorrect, so you are advised to save them or delete them
+            before switching.
+      - #2067 ("nu" for bittorrent), 
+        #2070 (new option "all_sources_on_telnet"),
+        #2094 (sort files by priority for each downloader)
+   * Some modifications for soulseek:
+      * Retry connect only after 300 seconds.
+      * Don't retry connect after INVALIDPASS unless login or password is
+          changed
+
+2003/10/12: Simon (release-2-5-4)
+   * Applied patches #2033 (hide-dirs), #2038 (ocaml-3.07), 
+      #2039 (mlsubmit.reg), #2041 (hide-psswd)
+
+2003/10/10: Simon
+   * Removed patch #1765
+	
+2003/10/09: Simon
+   * Applied patches #1608 (anti-thieves), #1669 (anti-spam), 
+	#1692 (min-users-per-server), #1695 (html-mods),
+	#1710 (regexp in voo), #1711 (sorted voo), 
+	#1714 (gui priority bug fix), #1715 (fasttrack),
+	#1732 (mldonkey_submit), #1733 (viewfiles 6 hours),
+	#1734 (browse-friends), #1743 (bittorrent compliance),
+	#1748 (emule-bugfix), #1753 (max-conn-servers),
+	#1765 (limit-reqs DANGER), #1801 (http-proxy),
+	#1843 (message-file), #1862 (download-amount),
+	#2024 (filenames), #2025 (friends-slots),
+	suxx-lugdunum-fix-v2
+	
+	DELAYED: #1911 (hidden-chunks)
+
+	
+2003/06/07: Simon (release-2-5-3)
+   * Applied patches #1582, #1594, #1598
+
+2003/06/06: 
+  - CVS Modifications: Branches:
+    * new branch release-2-5-devel for development version
+    * default branch is STABLE now
+    * branch release-2-5-1-patches is obsolete and should not be used anymore
+         The last tag in this branch release-2-5-3 is still the most STABLE
+         version here.
+
+2003/06/05: Simon  (release-2-5-3)(branch: release-2-5-1-patches)
+  - Fixed ENORMOUS bug in donkey that could cause corruption on other clients
+     All the md4s will be recomputed for all shared files at next startup.
+
+2003/05/28: Simon (release-2-5-2)
+  *
+  *   Completely unstable. For development only. This version may corrupt
+  *   all your downloads, destroy your config files, and so on...
+  *
+  - Common:
+      * CommonHosts: use the same system to manage hosts in Gnutella and
+          Fasttrack (later in eDonkey and Overnet ?)
+      * CommonUploads: save all UIDs (Sha1...) in shared_files.ini
+      * CommonDownloads: 
+         * A file can be downloaded together from FT, Gnutella and BitTorrent
+	     Downloads are displayed as on the "MultiNet" network.
+         * The 'add_uid' command can be used to extend the knowledge on a file
+             so that it can be downloaded from other networks.
+  - Gnutella:
+      * Discard results without UIDs
+  - New plugin 'donkey_devel' not working yet, enabled with option
+	-enable-open_donkey, replace the other one, and should be able
+	in the future to share downloads with other networks.
+	
+2003/06/02: Simon  (release-2-5-1)
+  - BitTorrent: bug fix when reconnecting to tracker (remove empty event field)
+  - DriverMain: remove use of "cp" command
+  - Applied patches #1530, #1531, #1543, #1548 and #1563
+	
+2003/05/27: Simon
+  - Applied patches #1530, #1531
+
+2003/05/26: Simon
+  - Fixed 'install' target of Makefile
+
+2003/05/26: Fabrice  (release-2-5)
+  Stable release 2.5
+
+2003/05/26: Simon  (release-2-5-rc3)
+  - Fasttrack:
+      * Reduce client_name to 32 characters
+      * Stop computing useless SHA1 hashes (inherited from Gnutella copy/paste)
+
+2003/05/26: Simon  (release-2-5-rc2)
+  - GUI:
+      * Plugins sorted in config panel
+  - Fixed bug adding one file several times in 'old_files'
+
+2003/05/25: Simon  (release-2-5-rc1)
+  - Applied patch #1523, #1527
+  - Fasttrack:
+      * Limitation on the number of simultaneous sources for a file
+  - Fixed major file corruption bug when using 'buffer_writes' in bittorrent,
+      fasttrack and gnutella.
+
+2003/05/24: Simon  (release-2-4-6)
+  - Mac OS X:
+      * Fixed a compilation problem
+  - GUI:
+      * Fixed the problem with servers appearing as New Hosts
+  - Plugins initialized in the correct order (no downloads restarted at 0%)
+
+2003/05/23: Simon  (release-2-4-5)
+  - Fasttrack:
+      * Ask for a range only after the connection has succeeded
+      * Support for Complex queries
+      * Works on PPC now
+  - Bittorrent:
+      * Force flush with "buffer_writes" option before Sha1 computation
+  - Applied patches #1512, #1513
+
+2003/05/21: Simon
+  - Applied patch #1510
+  - "set enable_... true/false" should now immediatly trigger the network 
+      (before that, a restart was necessary)
+
+2003/05/20: Simon (release-2-4-4)
+  - Bug fix: the bug causing too many open file descriptors and pausing
+      recovered files maybe fixed.
+  - Gnutella:
+     * Fixed problem with \r in GWebCache
+  - Fasttrack:
+     * sig2dat:// links added
+     * Automatically replace spaces in client name by _
+  - Searches can be limited to particular network (bug fix in GUI)
+
+2003/05/19: Simon (release-2-4-3)
+  - Applied patch #1503
+  - Fasttrack: working good now :)
+     * Use HTTP/1.0 (really necessary ? probably not)
+     * Recover sources for files
+     * Reconnect to good sources immediatly
+     * Ask longer ranges
+  - Gnutella2:
+     * Added number of leaves per ultrapeer
+
+2003/05/18: Simon (release-2-4-2)
+  - Applied patches #1476, #1477, #1479 and #1481
+  - FastTrack:
+     * Can look for new sources
+  - Added mldonkey/tools/pandora/ to help understand protocols
+
+2003/05/14: Simon (release-2-4-1)
+  - FastTrack: first try, far from complete, only for x86 !!!
+     * Copy of gnutella/ plugin architecture to fasttrack/
+     * Cipher C stubs available from Ocaml
+     * Connection to main server: OK
+     * Connections to ultrapeers: OK
+     * Simple Searches sent: OK
+     * Results received: OK
+     * Downloads: OK, no recover yet
+  - Config: copy old downloads.ini to downloads_expert.ini and
+      donkey.ini if the latter ones are absent
+ 
+2003/05/10: Simon (release-2.4-0)
+  - BitTorrent:
+     * Fixed a bug making mldonkey use 100% of CPU when misbehaving clients
+        send thousands of Have messages
+     * New option 'delete_original' to get rid of the old file when splitting
+        is successful
+  - Gnutella2: 
+     * Enabled by default when Gnutella is enabled
+     * XML tags correctly added to results
+  - GUI:
+     * Added 'New Server' button
+  - Searches:
+     * Added the ability to choose the network for each search
+  - Options:
+     * Fixed bug with options that couldn't be changed anymore in WEB interface
+  - Update ed2k_mozilla/mldonkey_protocol_handler.xpi to version 1.2
+
+2003/05/09: Simon (release-2-4-rc12)
+  - ed2k_hash: computation false for multichunks files, fixed.
+  - Gnutella2:
+     * Reply to QKR
+     * Reply to Q2 for URN requests
+     * Limit downloads to 5 slots (max_available_slots option in gnutella.ini)
+     * Support HTTP/1.1 upload, and /uri-res/N2R?urn:sha1: queries
+  - Options: options have been splitted in different files:
+     'downloads.ini' : most simple options
+     'downloads_expert.ini' : options for experts
+     'donkey.ini' :  simple options for edonkey
+     'donkey_expert.ini' : edonkey options for experts
+
+2003/05/08: Simon (release-2-4-rc11)
+  - RPM: new Makefile rule 'rpm' to build rpms for mldonkey
+  - Gnutella: 
+     * Use both keyword and uid searches to recover files
+     * Make a recover search at download startup (next one every hour)
+     * Compiled only if Zlib is available
+     * Gnutella2 support working (no upload yet... for sunday). To try,
+        set enable_gnutella first to true, then set enable_gnutella2 to true
+        in the gnutella plugin (and maybe enable_gnutella1 to false...)
+     * Remove hosts older than 3 hours
+  - Donkey:
+     * Keeps pending messages to clients
+  - ftruncate64 implementation rewritten
+  - GUI:  
+     * options panels are not options anymore
+     * Protocol version 15:
+       * ForgetSearch is replaced by CloseSearch which takes 2 args and 
+          opcode 53
+
+2003/05/07: Simon (release-2-4-rc10)
+  - Applied patches #1459, #1460 and #1462
+  - Soulseek: 
+     * New option 'servers', with mail.slsk.org:2240 by default
+  - GUI:
+     * Only send modified options
+
+2003/05/05: Simon (release-2-4-rc9)
+  - eDonkey:
+     * Added ed2k_hash to the distribution (use 'make ed2k_hash' to compile)
+  - Options:
+     * List parsing should be tail recursive now
+  - Gnutella1/Gnutella2:
+     * Better management of hosts
+     * More aggressive with QKR queries
+  - DNS: correctly handle names starting with numbers (bittorrent URLs for
+      example)
+
+2003/05/02: Simon
+  - Gnutella2:
+     * Fixed defragmentation
+     * Fixed QH2_H_DN message
+
+2003/05/01: Simon (v release-2-4-rc9)
+  - Gnutella:
+     * Added GGEP extensions to PONG messages
+     * Added Bye-Packet support
+
+2003/04/30: Simon (v release-2-4-rc8)
+  - Applied patch #1432
+  - Gnutella:
+     * COBS implemented and incoming GGEP
+     * Some Vendor-Messages
+     * More headers understood
+  - BitTorrent:
+     * Better control of max_opened_connections
+     * More Aggressive lifetime for connections (10 minutes without downloads)
+ 
+2003/04/26: Simon
+  - Applied patches #1427, #1428
+
+2003/04/24: Simon
+  - Applied patch #1424
+  - Changes in 64bits system calls
+  - Gnutella:
+     * Bug fixes: HTTP return code is correctly tested
+
+2003/04/23: Simon (v release-2-4-rc6)
+  - Applied patch #1402
+  - Prevent exceptions from raising from calls to lprintf
+  - Fixed bug in Unix32 causing error with file descriptors
+     (and maybe file corruption)
+  - BitTorrent:
+     * Commit directories in multiple files
+
+2003/04/22: Simon (v release-2-4-rc5)
+  - Gnutella:
+     * Old host discovery system doesnot work anymore. Implemented
+         GWebCache system
+     * Option prefix set to GNUT
+  - Updated to use ocaml-3.06+27 which should support all Mac OS X versions
+  - Applied pango's patches:
+       88_login_missing_in_gui, 89_better_xs_messages, 90_limit_indirects
+  - Applied patch #1397 (upload priority)
+  - Bittorrent:
+     * Fixed problem with never finishing downloads
+  - Driver:
+     * Fixed problem with availability display
+  - Gnutella:
+     * Don't use 'Accept:' header for gnutella1 hosts, since most of them
+         refuse the connection
+ 
+2003/04/20: Simon
+  - Complete reorganization of source tree
+  - GUI: exit uses CTRL-q instead of CTRL-e
+
+2003/04/19: Simon (v release-2-4-rc4)
+  - Applied patch #1393, #1395
+  - Gnutella2 (not yet working):
+     * Encoder/Decoder tested successfully on real shareaza recorded stream
+     * Some handlers
+
+2003/04/18: Simon
+  - Applied patches #1389, #1391
+
+2003/04/17: Simon
+  - Changes in Makefile:
+        * Compile only mlnet and mlnet+gui
+        * mldonkey_gui is renamed in mlgui
+        * mldonkey_gui2 is renamed in mlgui2, and not compiled by default
+        * Added target 'install' (use --prefix configure option). 
+             * Create mldonkey, mlslsk,... as links to mlnet
+             * Create mldonkey_gui as a link to mlgui
+  - Fixed generated mlsubmit.reg
+  - Donkey: 
+     * last_high_id is only changed if option use_server_id is set
+
+2003/04/16: Simon
+  - Changed version number to 2.4-rc4
+  - Bittorrent:
+     * More aggressive reask delay of 2 minutes
+     * Improve detection of end of download
+  - Removed Sha1 and Tiger assertions in md4.ml, but set a flag when
+      computation failed.
+
+2003/04/15: Simon (v 2.04rc3)
+  - CommonUploads: changed a bad comparison in download_engine
+  - Applied patch #1385, #1387
+  - Bittorrent: 
+     * Fixed a bug that prevented the download from starting in some cases
+     * Any client from which some bytes were downloaded obtains immediatly 
+        an upload slot
+     * Can send several requests at once when enough bw is available
+
+2003/04/14: Simon (v 2.04rc2)
+  - Donkey: more accurate when asking for slots
+
+2003/04/13: Simon
+  - Applied patches #1377, #1379 and #1382 
+  - BitTorrent:
+     * File Pause/Resume
+     * More checks to detect download termination
+  - Limewire plugin renamed to Gnutella
+
+2003/04/08: Simon  (v 2.04rc1-15)
+  - Applied patch #1372 (= #1373 I hope)
+  - Tiger: try to prevent Bus Error bugs on Solaris by aligning the buffer
+  - BitTorrent: 
+      * Verify file before commiting
+      * Properly cancel files
+  - Unix32: flush buffers before closing files
+  - Donkey: connections have now a lifetime of 20 minutes at the 
+     beginning, increased when receiving important messages (upload, download).
+     Connections above max_opened_connections have only 1 minute 30 to life.
+     Might improve the limit on the number of connections.
+
+2003/04/07: Simon  (v 2.04rc1-14)
+  - Fixed bug with client_uid option in mlnet.
+  - Applied patch #1370
+  - BitTorrent: 
+      * fixed problems in URLs when contacting tracker '+' -> '%20'
+      * Update Downloaded chunks in interface
+      * Resent chunks queries on Unchoke (correct ?)
+  - Gnutella: Send urn:sha1: when available in QueryReplies
+
+2003/04/06: Simon
+  - Applied pango's patch 87_preview_from_all_interfaces
+  - Remove Queries page from GUI menu
+  - Applied patch #1366
+
+2003/04/06: Simon  (v 2.04rc1-13)
+  - BitTorrent: almost complete implementation, still to test
+      Current Restrictions:
+        * No support for multiple files in one file (open files.ini, 
+          you will find the positions of the sub-files there)
+        * No support for releasing files
+      But upload WORKS correctly
+  - Lot of code has moved, need some more testing before stable 2.04
+
+2003/04/04: Simon
+  - LimeWire Plugin:
+     * GUID fixed
+  - Some C warnings removed
+  - Moved donkey/ upload code to common/commonUploads.ml to be used by other
+      plugins
+  - Fixed Tiger Tree function on BigEndian platforms
+
+2003/04/03: Simon 
+  - Fixed bugs #3079 and #3080 :)
+  - New common/commonSwarming.ml module to handle swarming for all networks
+      that support it.
+  - LimeWire Plugin:
+     * Swarming possible, not completely tested
+     * More headers understood: 
+       X-Gnutella-Alternate-Location, X-Gnutella-Content-URN,
+         Remote-IP
+
+2003/04/01: Simon  (v 2.04rc1-12)
+  - Fixed per user Column Sorting in HTTP interface
+  - Fixed bug #3003 :)
+  - Fixed Filepath.path_to_string so that "" becomes [], and not [""] that
+      makes mldonkey shares its own directory.
+  - Implementation of Tiger trees correct for files < 1 MB
+  - Lots of changes in Unix32
+  - Applied patch #1340
+  - Limewire Plugin: probably lots of bugs, many changes
+     * Gnutella2 support started:
+        * Handshakes
+        * Protocol Encoding/Decoding not tested
+        * UDP socket
+     * Support for Magnets and HUGE
+     * Different results if different UIDs, requests for files by UID
+  - Applied pango's patches: 85_ip_from_highids, 86_priority_patch
+
+2003/03/26: Simon
+  - CommonHasher: implemented asynchronous hashing of files using sha1.
+  - Applied patch #1324
+
+2003/03/24: Simon (v 2.04rc1-11)
+  - Fixed compilation problem of md4_c.c and md5_c.c
+
+2003/03/23: Simon (v 2.04rc1-10)
+  - Gnutella/Limewire:
+    * Upload tested successfully with gtk-gnutella
+    * Push message understood (danger: unlimited number of connections)
+    * Added computation of sha1 digests in Md4 module, digests of shared
+         files are not yet computed.
+  - Bug fixes:
+    * Bandwidth should be displayed correctly in WEB interface: the
+       control_ bandwidth should be displayed instead of tcp_ which includes
+       interfaces.
+    * Filename: assert failure removed
+  - Applied patch #1320
+
+2003/03/22: Simon (v 2.04rc1-9)
+  - Bug fixes:
+    * log_file with -daemon option
+    * pending slots should only contain connected clients
+  - Applied patches:
+    * pango:
+       71_upload_slots_dynamic_allocation
+       81_implicit_dllink_ovlink_commands
+       83_hide_upload_slots_round_robin
+    * Savannah: #1315, #1319
+
+2003/03/21: Simon (v 2.04rc1-8)
+  - Fixed config/Makefile.in to compile static binaries
+  - Bug fix: don't close stdout when a log_file is provided
+
+2003/03/20: Simon (v 2.04rc1-7)
+  - Build libraries before building executables
+  - Applied patch #1300, #1302, #1303, #1307
+  - Use file_add_downloaded in all plugins: display correct download rate
+
+2003/03/19: Simon (v 2.04rc1-6)
+  - Applied patch #1297, #1298
+  - New command 'rename'
+  - New option 'minimal_packet_size' 
+  - TcpBufferSocket: use 'minimal_packet_size' instead of 'ip_packet_size'
+  - Modifications in Unix32 to abstract operations on big files. Next step:
+     filesystems that don't support sparse-files (Windows)
+  - 'auto_commit' is not done immediatly, but tested every minute
+  - Bug fix: Paused files were caused by Printf.printf and print_newline
+      with stdout closed (or terminal killed). Replaced by lprintf and
+      lprint_newline.
+
+2003/03/19: Simon
+  - MinGW port:
+        * Unix.write limited to 16 kB.
+
+2003/03/19: Simon (v 2.04rc1-5)
+  - MinGW port:
+	* Support for non-blocking sockets
+         * New file .depend.mingw for dependencies under MinGW
+         * If an error appears compiling mlnet, try "make mldonkey"
+  - Applied patch #1294 
+
+2003/03/18: Simon (v 2.04rc1-4)
+  - Applied patches #1271, #1272
+  - New experimental options 'buffer_writes', 'buffer_writes_delay' and
+       'buffer_writes_threshold' to buffer writes to decrease HD usage.
+  - Applied pango's patches:
+      * pango, don't forget that you should modify config/Makefile.in and
+         not only Makefile.
+      51_new_chunks_scheduling
+      62_wait_for_id_before_publishing
+      77_reliable_sources
+      80_file_received_file_downloaded
+
+2003/03/15: Simon
+  - New command 'calendar_add' to add a command to the calendar
+  - Remove dependency to Zlib in LimeWire/eDonkey
+
+2003/03/14: Simon
+  - Applied patch #1266
+  - Fixed Challenge, so that it does not depend on Ocaml version
+
+2003/03/13: Simon (v 2.04rc1-3)
+  - Applied patch #1263, #1264
+  - Fixed bug with allowed_commands option
+
+2003/03/12: Simon (v 2.04rc1-2)
+  - Applied patch #1259, #1261,
+    + pango: 01_more_blocreq_checks, 08_better_default_parameters,
+             60_no_emule_quota, 78_lugdunum_pings_fix, 79_auto_commit
+
+2003/03/11: Simon (v 2.04rc1-1)
+  - New changes for Emule compatibility.
+  - Added option 'log_file' in downloads.ini
+
+2003/03/10: Simon (release-2-04rc1)
+  - Changes in replies to Emule AvailableSlot
+  - Applied patches #1250, #1251
+  - Terminal mode: recognize Window size when possible (rfc 1073)
+  - Upload queue has been cleaned. Doesn't work as a fifo anymore.
+
+2003/03/10: Release 2.03, 
+
+  We are forced to release a new stable version a bit earlier than expected,
+due to problems with old clients accessing savannah at startup.
+  Compared to the 2.02 release, this new release provides:
+   * Better Emule compatibility
+   * New improved sources management (fewer sources, but better sources)
+   * Improved interfaces: 
+       * new WEB interface (use html_mods option to use the old one)
+       * some colors in terminal (use term_ansi option to disable)
+       * new external searches in the GUI
+
+2003/03/10: Simon
+  - Fixed 0 upload bug :)
+
+2003/03/06: Simon
+  - Debug: new commands 'debug_client <nums>' to see messages exchanged with
+      those clients, and 'clear_debug' to clear the debug table.
+  - New option '-daemon' and new command 'daemon' to run mldonkey in
+      daemon mode.
+  - New commands 'log_file <file>' and 'close_log' to log output to a file.
+  - New command '! <cmd>' to execute a system command from the interface.
+      The <cmd> command must have been defined in the option
+      'allowed_commands' as the symbolic name for another command.
+      You cannot pass arguments, only those associated with the command
+      in 'allowed_commands' are used (default example: df)
+  - New multi-user system:
+     * Options 'password', 'http_login' and 'http_password' have been
+       replaced by one option 'users', that should not be edited manually
+       (to reset, remove it completely), since the passwords are encrypted
+       in config files.
+     * The default user is 'admin'. He should not be removed. He is the
+       only one who has the right to add new users. Default password is
+       "" (empty)
+     * 'auth <user> <password>' is used to change the user in a 
+         console/GUI session
+     * 'add_user <user> <password>' is used to add a user, or change the
+         password associated with it. Only 'admin' is allowed to use this
+         command.
+     * Searches are now displayed per user. All other views are shared 
+         between users.
+  - Bug fixes:
+     * Bug in GUI proto 7..13, where force param of Download_query was
+        sent with bad opcode.
+  - Links to the WEB server of savannah have been banned: in web_infos and
+      network_update_url. The redirector is temporarily used to provide this
+      information.
+  - Telnet interface: 
+     * ANSI escape sequences: option "term_ansi", command "ansi true/false",
+        to activate/disactivate colors on terminal
+     * Command "term <width> <height>" for prompt on last line, until I 
+        remember how to detect terminal size automatically.
+  - New option 'max_concurrent_downloads', and new state Queued for files
+      being downloaded. Only the 'max_concurrent_downloads' files with
+      highest priority are really being downloaded, other files with
+      lower priority are waiting.
+  - Limewire/Gnutella:
+     * Correctly send the QRT table to ultrapeers
+     * Almost able to reply to searches
+  - GUI:
+     * Upload tab: new button "Add Shared Directory"
+  - Applied patches #1247, #1228, #1235, #1242, #1248, #1232
+  - Bug fixes in eDonkey:
+     * 'peer_ip' is only called if reliable_sources is activated
+     * A client cannot appear twice in the pending slots queue 
+
+2003/03/05: Simon (v 2.02-29 next release: monday)
+  - IMPORTANT Bug fixes (thx pango):
+     * Corrupted blocks are removed
+     * Re-order arguments when computing md4 with threads
+       -> all your shared files hashes will be recomputed :(
+
+2003/03/05: Simon (v 2.02-28)
+  - Bug Fixes:
+     * 'vr' should not raise Exception in String.sub, fix in
+         result_format_of_name
+  - Direct-Connect: use async DNS by threads when available
+  - Applied patches #1226, #1227 from Savannah
+  - Options: some memory improvements (clear unused initial options,
+      avoid building intermediate data structures)
+
+2003/03/04: Simon (v 2.02-27)
+  - Bug fixes: 
+     * 'log' command correctly set the size of the log (otherwise, an 
+      exception is raised... and no GUI can connect for eg)
+
+2003/03/04: Simon (v 2.02-26)
+  - Applied patches #1219, #1220, #1221, #1222
+  - Redirection of output to a log:
+     * Only startup messages are sent to stdout
+     * New argument -stdout for all messages to be sent to stdout
+     * New commands: 'log' to see the last non-printed messages,
+       'stdout <true|false>' to enable/disable messages to stdout again.
+
+2003/03/03: Simon (v 2.02-25)
+  - Source Management:
+       * Query files every min_reask_delay even when already connected
+       * Removed the 2 queues for really bad files
+  - Emule compatibility: on disconnect, file queries are stored if 
+     a JoinSlot message was sent, and reused if an unrequested AvailableSlot
+     message is received (to be tested).
+  - Duplication of similar chunks between files (the next step should be
+      to only download one of these chunks) tested every 5 minutes
+  - Applied patches #1203, #1204, #1210 and #1215
+  - Applied patch 77_trusted_sources, activated by option 'trusted_sources'
+  - New option 'max_indirect_connections' to limit the number of incoming
+      connections.
+  - New command 'options' to print options by section
+
+2003/03/02: Simon (v 2.02-24)
+  - New commands 'share <dir>' and 'unshare <dir>' to manipulate
+      shared_directories
+  - Applied pango's patch 71_upload_slots_dynamic_allocation, controlled
+      by option 'dynamic_slots' (false by default)
+  - Applied patch #1199
+  - Bug Fixes:
+       * Computation of guptime
+       * Dropping all sources of files when too many sources
+       * Mailer that don't accept the <..> addresses (new option
+          'add_mail_brackets')
+  - Added detection of similar chunks between files, not used yet
+  - Applied patch #1200, with option 'filename_in_subject'
+  - Source Management:
+       * Changed default for min_reask_delay to 600 seconds
+       * Two new queues, one for good clients (every 10 minutes), one for
+           bad clients (every 6 hours)
+
+2003/03/01: Simon (v 2.02-23)
+  - Bug fixes:
+    * stats should be correctly saved
+    * sources above max_sources_per_file should be correctly removed
+    * IMPORTANT: JoinSlot message should be sent correctly again at 
+       each connection
+  - Gui: added a "Scan Ports" command to autodetect core port. Be careful, it
+    can trigger intrusion detection softwares ! It is partially asynchronous,
+    so that the replies may appear several seconds after the function returned.
+ 
+2003/02/28: Simon (v 2.02-22)
+  - eDonkey: respect max_sources_per_file
+  - Applied patch #1198, stats saved as options in 'stats.ini'
+  - Added link to French forum on main WEB page
+
+2003/02/26: Simon (v 2.02-21)
+  - eDonkey: 
+      * Save hashes of commited files in shared_files.ini to remove
+        rehashing commited files on startup
+      * Remove / after the md4 in ed2k links      
+      * Full-Chunks SUPPORTED
+  - Applied patch #1185
+  - Applied pango's patches:
+       63_revert_optimize_chunks_display
+       65_fix_file_unbound_argument, 
+       66_fix_ocl_parsing,
+       67_can_download_from_uploaders,
+       70_fix_duplicates_in_pending_slots_fifo
+       74_emule_protocol_version
+     Comments on patches not applied: 
+      * 73: should not use Weak.t but remove the client when disconnected.
+      * 58: not sure what it does exactly
+      * 60: emule quotas remain until full-chunk is fixed
+      * 69: no full-chunk until we and edonkey can support it
+      * other ones (51, 68, 71, 72): touch the internals of the sensible
+         upload/download engine. need more time to check
+  - Fix: correctly cache IPs in Ip.async_ip
+
+2003/02/25: Simon (v 2.02-20)
+  - Applied patch #1174, #1177, #1178
+  - With threads, asynchronous DNS resolution of urls
+  - GUI: ed2k links directly saved to selection, but doesnot work yet
+  - eDonkey: 
+     * Try to work around the incoming Emule connections sending
+        an immediate AvailableSlot
+     * Inverted 2 shared/commit lines in CommonComplexOptions.file_commit to
+        prevent rehashing of downloaded files
+  - ./configure: Improved pthread support
+
+2003/02/25: Simon (v 2.02-19)
+  - Fixed Makefile for pthread library
+
+2003/02/24: Simon (v 2.02-18)
+  - eDonkey: 
+     * Fixes: good sources dropped
+  - Limewire:
+     * Implementation of Query Routing 0.1
+  - Applied patches #1169, #1173
+  - ./configure: use option -enable-pthread-lib=pthread, or whatever, to enable
+       use of threads
+
+2003/02/22: Simon (v 2.02-17)
+  - GUI: new application mldonkey_installer'. Guess its goal. Need
+      -enable-devel in ./configure . Not working yet.
+  - Applied patch #1165, #1164, #1161
+
+2003/02/21: Simon
+  - eDonkey: 
+     * Removed slot reserved for mldonkey2
+     * Added some UDP messages for Emule (not yet used)
+  - Applied patch toggle_browse_share by Martin
+  - Applied patch #1151, #1152 and #1156
+     pango's ones: 
+        59_fix_gui2_compile_warning
+        61_remove_zone_present_field,
+        62_telnet_use_interface_buffer
+        63_optimize_html_mods_chunks
+        64_html_mods_upstats_links
+  - Fix: 'uploaders' command only prints connected clients.
+  - ./configure: new option -enable-pthread, if you want to compute some
+      md4s in another thread. 
+
+2003/02/20: Simon (v 2.02-16) tag unstable-2-02-16
+  - Applied patch #1137: new html_mods
+  - Added some options in 'vo':
+       client_name,allowed_ips,client_ip, force_client_ip
+  - ./configure:
+       * If no native code compiler is available, compile in bytecode (HPPA)
+       * New option -disable-gui
+  - Protocols: 
+       * Overnet: Fixed message 27, removed message 33
+       * eDonkey: added message 92
+       * Try to print the IP:port for unknown packets
+  - Net: mtu changed to 1500
+
+2003/02/19: Simon (v 2.02-15)
+  - Applied patch #1136: better mail output
+  - Applied patch adding "rem" command
+  - Applied patch #1128: Adding chunk_width edit option
+  - Applied patch #890: FakeCheck link
+  - Donkey:
+     * Try to recover direct address from connecting client
+     * Try to ask good connecting clients to reconnect (either by tcp or udp)
+
+2003/02/19: Simon (v 2.02-14)
+  - Bug fix: vd <num> (patch #1135)
+
+2003/02/18: Simon (v 2.02-13)
+  - Upgraded to lattest html_mods
+  - GUI: 
+       * You can now pass the full path to a file filled with urls (ed2k://) in 
+         the ed2k:// entry
+
+2003/02/18: Simon (v 2.02-12)
+  - fixed bug exiting on set_request_result not found.
+
+2003/02/18: Simon  (release unstable-2-02-11)
+  - DonkeyServers: fixed a bug with socket Lifetimes
+  - Fixed bugs in gpattern and vm commands
+
+2003/02/17: Simon (release unstable-2-02-10)
+  - DonkeySources3: new source management (use 'sources' command for info)
+      * Increased default max_clients_per_second to 30
+      * Removed ban on rank > 500
+  - Applied last html_mods patch. Does not work well on my Mozilla version.
+     So, disabled by default (activate with html_mods = true). WEB Messages
+     have been changed, so that foreign translations are not ok anymore.
+  - DonkeyServers: query more files before deconnection from clients.
+
+2003/02/15: Simon
+  - GUI:
+      * Added small icons (used by default)
+  - Core:
+      * better chroot support
+         * set shell variable MLDONKEY_CHROOT=/dir if you want mldonkey to
+            chroot itself in /dir. mldonkey must be started as root (or setuid)
+            and should drop its priviledges using run_as_user/run_as_useruid.
+         * added option 'run_as_useruid'. The directory where mldonkey
+            will save its files must be writtable by this user, and
+            the incoming directory too (recall: options can be set on the
+            command line: #root> /usr/local/bin/mldonkey -run_as_useruid 502).
+
+2003/02/09: Simon
+  - GUI:
+      * New query tabs: "ShareReactor Search" and "Jigle Search"
+      * More options in "FreeDB Search" tab
+  - Ip: DNS queries are now always cached.
+
+2003/02/07: Simon
+  - Applied patch #1079 (fragmentation)
+  - DonkeyOvernet:
+      * Keyword store completely rewritten
+      * Remove keywords older than 1 hour 
+
+2003/02/06: Simon
+  - GUI:
+      * New query tab "IMDB Search"
+
+2003/02/05: Simon
+  - Applied html_mods patch 2 from Mike Jones
+  - GUI:
+      * New query tab "FreeDB Search"
+
+2003/02/04: Simon
+  - Ported to Ocaml CVS version: 3.06+21 is required on Mac OS X. Downloads
+      are done from Savannah for 3.06 and 3.06+21
+  - GUI: 
+      * New message CleanTables sent every 30 minutes to the GUI to clean
+          source tables.
+  - DonkeyProto: closer to Overnet 0.44, still some information missing
+      A client browse trace is available in DonkeyProtoClient.ml
+
+2003/02/03: Simon
+  - WEB interface: applied patch html_mods
+  - Applied patch 1053 (separated blocks in GUI)
+  - GUI: 
+    * moved column popup on right button
+
+2003/02/01: Simon
+  - GUI: display rank when possible
+
+2003/01/30: Simon (tag unstable-2-02-9, and good week-end)
+  - Net: attempt to take into account TCP/IP packets size in bandwidth control.
+      Seems to work better
+  - GUI: 
+       * Change file priority in GUI
+       * New option 'downloads_up' to permute downloads/downloaded
+       * Click on column titles to sort/add/remove them
+  - Donkey: 
+       * Ask files from server in decreasing priorities order
+       * Should be able to import Emule .part.met files
+  - Mailer: patch from <moumar@netcourrier.com> applied
+
+2003/01/30: Zoggy
+  - Changed The License of okey, configwin, mp3tag and mlchat to GPL
+  - one tab per list in the column configuration tab (gui/settings)
+
+2003/01/28: Simon 
+  - GUI: 
+       * new protocol 12
+       * New state "Queued out" for sources
+       * New state "Aborted <reason>" for files
+       * Some items copied from the "downloaded" contextual menu to the
+           "Downloading" contextual menu
+  - Donkey:
+       * Sources Management a la 2-02-5 updated (next time, choose your
+           source management depending on an option ?)
+  - Overnet:
+       * New option "enable_overnet" (true by default), accessible from
+          GUI Settings
+
+2003/01/26: Simon (tag unstable-2-02-8) 
+  - Added bundle binaries (core + gui with communication via FIFO) to
+      ease use of alternative networks (mldc+gui, mlslsk+gui, etc).
+  - Donkey:
+       * FIX: connections to Overnet
+       * Updated 'cs' command
+       * FIX: seens in stats replaced by successful connections
+  - Console:
+       * 'mem_stats' prints a bit more info (not yet enough)
+
+2003/01/25: Simon
+  - Direct-Connect:
+       * FIX: Active searches don't work, go back to passive
+
+2003/01/25: Simon (tag unstable-2-02-7) 
+  - Direct-Connect:
+       * Better management of users in servers/rooms
+       * Servers headers displayed in GUI console
+       * Active Searches enabled if not "firewalled"
+           (don't forget to set the 'firewalled' option if needed, or
+           to set 'force_client_ip' since IP detection does not work
+          as in edonkey) 
+  - GUI:
+       * Queries moved to server tab
+       * FIX: rooms work correctly
+       * Console:
+          - limited to 500 lines
+          - FIX: Font "fixed" is not required anymore 
+          - Combo/history of commands
+  - Donkey:
+       * New option 'log_clients_on_console' to log client disconnections
+          on GUI console
+  - Emule Support:
+       * Propagate max 20 direct sources, not older than 10 minutes, verified.
+
+2003/01/24: Simon
+  - Emule Support: 
+       * Compressed packets are accepted (not yet requested)
+       * Second Sources packet format accepted
+  - Direct-Connect:
+       * Respect the timeout between searches
+       * Take file state into account
+  - FIX: 
+       * don't touch client_ip if not changed
+       * correctly remove "Bad clients"
+  - DonkeySources1: 
+       * remove sources not connected since
+                max_source_age * 12 h (half-days instead of days). 
+       * correctly save source_age
+       * take priority and popularity into account for score
+
+2003/01/23: Simon
+  - FIX:
+       * Opennap plugin should compile again
+       * Last chunk always downloaded first
+  - Patch applied: new_client_stats (cs command)
+  - DonkeySources:
+       * Improved 'sources' command stats
+       * Scores of sources are saved
+       * File state is taken into account for the score
+       * Sources with rank > 300 are not kept in good clients
+  - Direct-Connect: no leeching anymore !
+       * mldc replies correctly to passive searches (ie on the same hub)
+       
+2003/01/22: Simon (tag unstable-2-02-6)
+  * Mainly a bug-fix release for 2-02-5. Lots of features still missing
+     (sources' scores are not saved, lastreqs,cancelled files sources not
+      immediatly removed,...)
+
+  - Fix: problem with downloads never starting
+  - Fix: problem with partial chunks not saved
+  - Added www.mldonkey.org in the HTTP interface
+  - Better information on request results for each client
+  - New option 'verbosity' to choose which warnings to display. 
+
+2003/01/19: Simon
+  - Replaced date using floats by ints (lots of new bugs...)
+      Please, signal any incompatibility with guis (mldonkeywatch...)
+
+2003/01/17: Simon
+  - Started implementing new source management system
+
+2003/01/16: Simon
+  - Global change to use int64 instead of int32 everywhere. I hope I didnot
+      forget places, otherwise big bugs.
+
+2003/01/16: Fabrice
+  - Added doc/overnet.txt
+
+2003/01/15: Simon
+  - DonkeySources1: 
+    * Old sources are stored in two queues to always start by the best ones
+    * FIX: Connected sources are also saved
+    * FIX: Connected sources are also printed
+
+2003/01/14: Simon
+  - DonkeyInteractive: FIX: "out-of-bound" error
+  - DriverControlers: shorter help
+  - DonkeyProtoClient: 
+      * FIX: for cDonkey, send both QueryChunksReq and QueryFileReq
+  - DonkeyOneFile: fixed non-shared partial downloads at startup
+  - Options: values can be aliases to reduce space usage (
+     used in file_sources.ini)
+  - DonkeySources1: 
+      * FIX: sources are sorted to avoid recently-connected sources in 
+     front of the queue.
+      * clients ranking > 1000 put in concurrent_sources, not good sources
+  - DonkeyClient: 
+      * connection lifetime of connection set to 1 minute, and prolounged
+            if either peer uploads or downloads
+      * FIX: challenge is also send for incomning connection
+      * ban clients with queue ranking > 1000 and send them a message
+      * send a bad QueueRanking  to banned clients asking to enter
+          the queue.
+  - CommonOption: save_options_delay default set to 15 minutes
+  - config/Makefile.in: IRC compiled by default
+
+2003/01/13: Simon (tag unstable-2-02-5)
+  - DonkeyClients: add md4s of connected clients to a hashtbl to prevent
+      accepting two connections from the same client.
+  - DonkeySources1: 
+     * new sources are queued LIFO.
+     * old sources are immediatly stored in old_sources.
+     * fixed adding several times the same file to one source
+  - DonkeyOptions: md4 now identifies mldonkey as emule.
+  - Gui_downloads: expose events redraw the color bar 
+  - DonkeyServers: black-list servers on port 4662
+
+2003/01/12: Simon
+  - DonkeyGlobals: remove 1 from size to compute nchunks in new_file
+  - DonkeyTypes: removed field file_all_chunks, recomputed
+  - DonkeyComplexOptions: save mtime and chunk states. mldonkey should not
+      compute the md4 at each startup anymore.
+
+2003/01/11: Simon
+  - Source Management: ask for new sources only if we have fewer than
+      600 * max_clients_per_second new/good sources.
+  - IRC: completely working ?
+      * Connect to server and login
+      * General channels (right-menu on IRC account) such as '#mldonkey' :)
+      * In channels: receive messages, receive users, send messages, close chat
+      * Private channels with users (double-click on user)
+
+2003/01/10: Simon (tag unstable-2-02-4)
+  - Gui: display chunks availability when selecting a source
+  - DonkeyComplexOptions: saved some space in file_sources.ini
+  - DonkeyClient: 
+     * JoinQueue are not forgotten when the queue is full.
+  - DonkeyGlobals: Use Weak Hashtbl for udp_clients. Should save memory.
+  - New command 'sources' to print the state of the different source queues.
+  - DonkeySources2: Always use the same client_num for the same source
+      (to avoid flooding the GUI with new clients)
+  - Pango's patches: 39_readable_server_banners, 40_boot_time_is_redundant, 
+     43_waiting_queries_late_filtering, 46_overnet_fix_errormsg, 
+     50_tight_file_commit, 52_self_create_mldonkey_gui_ini ,
+     53_dont_propagate_overnet_sources, 55_overnet_send_appropriate_infos
+     57_optional_servers_walking
+
+2003/01/10: Simon (tag unstable-2-02-3)
+  - DonkeySources2: fixes from 2003/01/08 had been reverted by CVS. 
+      Sources were dropped under heavy usage
+
+2003/01/09: Simon (tag unstable-2-02-2)
+  - DonkeyClient/DonkeyProtoClient: complete implementation of Emule 
+      client-to-client source propagation.
+  - DonkeyClient: limitation of file groups to 1000 files
+      (should save memory)
+  - DonkeyGlobals: removed the mldonkey letters in md4
+  - Makefile: 'mlim' is compiled only if mldonkey_gui is compiled
+  - DonkeyOptions: removed options are back in downloads.ini  
+
+2003/01/08: Simon (tag unstable-2-02-1)
+  - Fixed some bugs in new sources management. Seems to works pretty well.
+  - For fun: new mldonkey authentification, just to see how long it will take
+     to emule devels to break it :)
+
+2003/01/07: Simon
+  - ./configure:
+     * called automatically by make when needed
+     * -enable-im has been removed
+     * -enable-devel has been added for development things
+  - IM: 
+     * Friends, accounts and rooms are packed inside a notebook
+     * IRC connects and join channels, but the channel widget is not done
+     * The IM widget is available from mldonkey_gui IM menu
+     * 'mlim' is mldonkey IM-specific program
+  - Donkey:
+     * New source management seems to work, not complete yet
+     * Upload: fill client buffers depending on the upload rate
+
+2003/01/02: Simon
+  - Makefile: simplification and regeneration from config/Makefile.in
+
+2002/12/29: Simon
+  - Gui: fixed the display of the number of shared files
+
+2002/12/28: Simon
+  - DonkeyServers: 
+    * New option 'keep_best_server' (default true) to automatically change
+       the server mldonkey remains connected when it finds a better server
+    * walker: does not reconnect if already connected to more than
+       the maximal number of servers (option 'max_walker_servers' (default 1)).
+
+2002/12/27: Simon
+  - Opennap: send shared files to server after connection.
+
+2002/12/26: Simon
+  - Options: 
+    * new options file 'edonkey.ini' for options specific to eDonkey/Overnet
+    * eDonkey specific options moved from 'downloads.ini' to 'edonkey.ini'
+  - Direct-Connect: upload works correctly. Need more tests. Maybe add
+     different mailing-lists for (mldonkey-dc@, mldonkey-nap@,...)
+
+2002/12/25: Simon
+  - New argument -find_port, to search other ports when the ones specified are
+      already used. The options are modified accordingly.
+  - Option 'allowed_ips': changed are immediatly taken into account for
+      the HTTP interface.
+  - Major Bug: fixed bug of 100% CPU usage when timeout < 0.0001 and poll used.
+  - Direct-Connect: upload of shared list works
+  - Makefile: different executables for each network. 
+     'mldonkey' -> eDonkey2000 + Overnet
+     'mldc' -> Direct-Connect
+     'mlgnut' -> Gnutella
+     'mlslsk' -> SoulSeek
+     'mlnap' -> Open Napster
+    and 'mlnet' for all networks
+
+2002/12/24: Simon
+  - Test for existence of the GUI before asking or trying to start it
+
+2002/12/23: Simon (tag release-2-02)
+  MAJOR BUG FIX:
+  - DonkeyClient: fixed a bug preventing download from indirect clients.
+
+2002/12/21: Simon (tag release-2-01-4) 
+  - DonkeyOvernet: updated TCP protocol to overnet 0.42
+  - Bug fixes:
+   * DonkeyOneFile: removed a bug disconnecting from time to time an uploader.
+   * DonkeyClient: 
+     * verify that clients have received a slot before uploading
+     * remove client from upload queue when reconnecting
+
+2002/12/20: Simon
+  - Applied patch #812 (KDE Icon set). The old icons can still be used by
+     changing the Makefile line : ICONS_CHOICE=big
+  - Applied patch #852 (wildcards in black-list)
+  - Applied patch #855: correctly sort servers before remove_old_servers
+  - Removed some options for Overnet: publish and search for sources
+      is now automatic
+  - DonkeyOptions: new options:
+     ban_queue_jumper (true): if you want to ban clients reasking files too fast
+     ban_period (6): how long are they banned
+     send_warning_messages (false): send a message when a client is banned
+     max_emule_slots (33): percent of upload slots that emule clients can use
+       (cannot be set under 25%)
+
+
+2002/12/19: Simon
+  - DonkeyClient: quota limitations:
+     * Emule clients can not get more than 1/3 of the upload slots
+     * at least one mldonkey client can always enter the queue
+  - DonkeyClient: banning mechanism for clients that connect too often
+     (don't prevent downloading from them)
+  - Gui: 
+     * Remove duplicates at end of list
+
+2002/12/18: Simon
+  - Multi-column sort should work again.
+  - Reverted again the query for all files to a query for one file.
+
+2002/12/18: Simon (tag release-2-01-3)
+  - Removed the Credit System. The world is already unfair enough, no need
+      to bring a monetary system here. Moreover, it prevents correct downloads
+      from other mldonkey clients !
+  - Overnet: Applied Norbert Lataille's patch 3.0
+
+2002/12/18: Simon (tag release-2-01-2)
+  - MinGW port: should compile and seems to run. Not yet tested enough.
+  - DonkeyServers: 
+    * Better way to choose the master servers: if a new
+      server has 5 times more users or at least 1000 more users than a master
+      server, it replaces the master server.
+    * Don't remove old servers if we are connected to them !
+
+2002/12/17: Simon
+  - Prevent downloading the entire file list at every connection to a friend
+  - Added Ip.reachable to remove local network addresses
+  - Started port to native Windows via MinGW
+
+2002/12/16: Simon
+  - Applied Martin's patch on WEB Realm
+  - Added option 'run_as_user' that can be used to change (setuid) the
+      priviledges of mldonkey after ports binding.
+  - Started implementing upload in Direct-Connect
+  - New command 'friends' to print a list of all friends
+
+2002/12/15: Simon
+  - Applied Norbert Lataille's patch 2.5 on Overnet publish
+  - Applied Andre Hinrichs's patch for better help
+  - Applied Pango's patches (20021213b):
+     05_save_client_last_filereqs: applied
+     07_keep_user_filenames: applied
+     20_vd_sharp_urls: applied
+     21_queue_new_sources
+     24_unbroke_random_order: applied
+     25_bolder_remove_old_sources
+     29_mrvn_eta: applied
+     32_xou_web_interface: applied
+     34_suxxx_display_chunks_in_telnet: applied
+     35_fix_console: applied
+
+2002/12/12: Simon
+  - Rewritten remove_old_servers, scheduled every 15 min
+     * CommonComplexOptions.servers is an intmap, not a list anymore
+     * Delays are printed
+     * Black-listed servers are removed immediatly
+     * Last Connection is extracted immediatly
+
+2002/12/09: Simon (tag release-2-01)
+  - Fabrice should compile and release binaries for 2.01
+  - Fixed problem with stats
+  - Overnet: added an option for publish (false by default since still in dev)
+  - IM: Only Yahoo works
+  - A message is sent to old clients only randomly. 
+
+2002/12/08: Simon
+  - Applied Overnet publish patch from Norbert LATAILLE
+  - The Overnet patch is too aggressive (about 5 kB/s). It really needs to
+     be tune.
+
+2002/12/07: Simon
+  - Fixed bug in "nu" command (thanks Rudolf Polzer)
+  - "reshare" now add new files to upload.
+
+2002/12/06: Simon
+  - Applying Pango's patch: 
+       01_display_server_banners: banners already appear in GUI console
+       02_force_high_id: applied
+       03_overnet_boot_dns_resolution: already done
+       05_network_signature_change: applied
+       06_wrong_lowid_display: already done
+       07_keep_user_filenames: applied
+       08_better_default_parameters: partially applied
+       09_md4_speedup.patch: already done
+       10_port_blacklist: applied
+       11_max_connected_servers_offbyone: already done
+       12_files_md4_corruption: already done
+       13_revert_iptos: applied, but why in and out ?
+       14_get_chunks_in_random_order: applied, but with an option to disable it
+       15_fix_ovweb_default_site: applied, but an option would be better
+       16_sources_per_chunk: applied
+       18_remove_cancelled_downloads: applied
+       20_vd_sharp_urls: applied
+       24_check_for_x: applied
+       22_connect_on_server_urls: applied
+       26_old_file_on_cancel: applied, but option, disabled by default
+       23_uploaders_command: applied
+       27_selective_hide_files: applied
+
+   NOT APPLIED, need some discussion:
+       17_hide_chunks_being_uploaded: 
+       21_fifo_new_sources:
+       25_bolder_remove_old_sources:
+
+2002/12/04: Simon
+  - Gpattern: fixed bugs introduced by mldonkey :)
+  - Gui_servers, Gui_friends: server users list and file sources list are only
+      update 1/10 second after selection to avoid flickering.
+
+2002/12/02: Simon
+  - Moved some code in the GUI driver to avoid sending many messages when
+      GUI use the POLL extension.
+
+2002/12/01: Simon
+  - Applets: new directory applets/, containing 3 sub-directories:
+     * api: a common C api used by applets to chat with mldonkey on its GUI port
+     * kde: a KDE panel applet
+     * gnome: a GNOME panel applet
+    A lot to be done. I know a bit GTK, not QT ...
+    The Client_stats message is not yet completely filled with useful data
+    by the core. 
+
+2002/11/20: Simon
+  - IM: 
+      * Accounts Window, and Toplevel menu to access it
+      * Contacts Window works
+      * Dialog Window
+
+2002/11/18: Simon
+  - Gui_rooms: each opened room has its own users/messages widgets, to avoid
+	reprinting all messages when changing of room. Maxence, could you
+	look at that and explain me how to destroy a widget when room is
+	closed
+  - CommonInteractive: raise Not_found when the option doesnot exists
+	(no more "option NAME value changed" for non-existing options :)
+  - Instant Messaging: Started implementing the interface for instant 
+	messaging.
+
+2002/11/17: Simon
+  - CommonClient: check MD4 replies from client (inspired from patch #662)
+  - DriverMain: track options_version, to be able to update the options
+	when a new version of mldonkey is used.
+
+2002/11/16: Simon
+  - CommonOptions: added the redirector-generated server list to web_infos,
+	and an option to change the redirector. Now, we should probably
+	disable auto_update_server by default, since the relocator gives
+	a nice server list. Or we should give more weight to new servers
+	when trying to connect.
+
+2002/11/15: Simon
+  - DonkeyServer: added sending of UDP pings. Check that pings have been
+	replied before sending extended search/locate requests.
+  - DonkeyClient: changed mldonkey-specific protocol to recognize old
+	clients, and send a warning.
+
+2002/11/14: Simon
+  - Fixed bug #1701 ?: read at least 1000 bytes before writing stream
+	in a file from Limewire. Gnutella clients problem, or is_http_ok is
+	not strict enough.
+  - Fixed bug #1708 ?: rewritten get_page and wget in net/http_client.ml
+	to avoid fd leak.
+  - Support #101511: in the Upload panel of the GUI, the contextual menu
+	offers to print ed2k links in the Console panel.
+  - GuiTypes: new event Server_message_event to send server messages to
+	the GUI console.
+  - GuiEncoding/GuiDeconding: now, protocol versions will only change when
+	the encoding of some old messages changes, not when new messages
+	are added, so that new messages can be handled even if an old
+	format is used for other messages (old GUIs can benefit from new
+	messages)
+  - DonkeyOvernet: change the URL in 'ovweb'
+  - DonkeyProtoCom: sending much more information to the redirector, so that:
+	- we can generate our own server list
+	- we can generate an overnet peer list
+	- we can gather some statistics on node bandwidth usage to decide
+	    when to create supernodes.
+  - Observer: now generates a 'servers.met' file every 5 minutes, which is
+	sent to savannah, if I find the command :), but the dest is:
+	"http://savannah.nongnu.org/download/mldonkey/network/servers.met"
+	if you want to add to your web_infos.
+	Servers inside are guaranteed alive in the last 5 hours (well,
+	unless the redirector is down which is often true :( )
+
+2002/11/13: Simon
+  - common/commonOptions.ml: new option "network_update_url" to
+	download files "motd.html" and "motd.conf" used to update some
+	parameters in all clients. "motd.conf" is displayed in the
+	HTML and telnet interfaces, and at startup. Why not in the GUI :) ?
+	These URLs are downloaded every day, and can change the configuration
+	of the client remotely. This will be used later to test different
+	parameters to activate/desactivate ultrapeers behaviors.
+  - donkey/donkeyServer.ml: new implementation of remove_old_servers. The
+	new implementation sorts the servers, and remove all those that
+	exceed their age, but guaranty to let at least "min_left_servers" in
+	the list.
+  - donkey/donkeySupernode.ml: started implementation of supernodes.
+	Supernodes are mldonkey clients, that act as pseudo-servers:
+	- they accept queries from mldonkey clients
+	- they index files from all clients
+  - donkey/donkeyOvernet.ml: fixed bug preventing removal of old
+	connected peers.
+  - config/configure.in: REQUIRED_LABLGTK=1.2.4 (please, dont force
+	people to upgrade if it is not REQUIRED). Use the configure
+	script to detect the version and to generate stubs for simple
+	modifications (lib/gAutoconf.ml.new.in). Only upgrade for
+	major reasons (ocaml release eg).
+
+2002/11/11: Simon
+  - config/configure.in: detection of lablgtk version to be able to compile
+	without lablgtk-20021031 (must find mouse position, zoggy ??). 
+	GToolbox.popup_menu is generated by ./configure from 
+	lib/gAutoconf.ml.new.in
+  - gpattern/gpattern.ml: using arrays instead of lists. filters directly 
+	integrated. Forces many changes in gui/gui*.ml, but should be much
+	faster.
+  - gui/gui_downloads.ml: Call to remove_client removed until a new message
+	is added	for that in the protocol
+  - net/udpSocket.ml: implementation of SOCKS 5 support for UDP. Must 
+         check that bytes are correctly ordered.
+
+2002/11/10: Simon
+  - Fabrice has to move, and his new employer does not allow him to
+	program in other open-source projects (for Intellectual Property 
+	problems). So he will keep administrating the project (web site, 
+	forums, releases), while I'm integrated in the developper team
+	as main developper... As a start, I have some bugs to fix, and
+	I would like to create a parallel network over edonkey2000 using
+	mldonkey supernodes.
+
+2002/11/06: zoggy
+  - changes to use lablgtk-20021031 (@#!:@* Why the fuck did you do that ? 
+	you are the only developper to use it, nobody can compile now :(
+	
+2002/11/04: mldonkey
+  - Applied patch #634 (increase buffer size for md4 comp.)
+            patch #631 (max_connected_servers off by one)
+            patch #630 (low id display)
+            patch #632 (use DNS in "boot")
+
+2002/10/23: Simon
+  - New implementation of 'remove_old_clients'
+
+2002/10/22: mldonkey
+  - Patch #576 applied.
+  - i18n: 
+      * Message files changed: ~/.mldonkey_gui_messages.ini for GUI and
+          ~/.mldonkey_messages.ini for core
+      * Some messages customizable in core
+      * web_common_header, html_header and download_html_header moved
+          to ~/.mldonkey_messages.ini
+      * ~/.mldonkey_messages.ini can be overwritten MLDONKEY_MESSAGES
+
+2002/10/21: mldonkey
+  - lib/options.ml: always close open files. "Too Many Open File" bug again.
+
+2002/10/20: mldonkey
+  - New default options for 'web_common_header' and 'html_header' by Xou.
+  - Patches #572, #573 and #574 applied.
+
+2002/10/16: mldonkey
+  - release 2.00
+  - fix: uploaded files do not appear twice in panel
+  - fix: empty results are not accepted anymore (Overnet ?)
+  - fix: "ovweb" accepts URLs since default site is down
+
+2002/10/15: mldonkey
+  - fix: files should not appear twice anymore in upload panel (files whose
+      md4s have been computed replace [are not added anymore to] their
+      corresponding temporary shared file).
+  - fix: added must_write in udpSocket.ml when bandwidth controler is used
+      (UDP packets were not sent anymore...)
+  - fix: upload not more than the bandwidth each second
+
+2002/10/14: mldonkey
+  - add: internationalisation
+      * envirronment variable MLDONKEY_GUI_MESSAGES
+  - fix: rewritten upload in edonkey. Old mode can be restaured with option
+     'new_upload_system' set to false
+
+2002/10/13: mldonkey
+  - add: internationalisation
+      * new module lib/gettext.ml for format options
+      * new GUI config file gui_messages.ini
+      * new directory i18n to store gui_messages.ini.?? files for
+         contributed languages
+
+2002/10/12: mldonkey
+  - fix: support for several GUIs at the same time
+      * Changes in how objects updates are monitored
+      * Lots of changes in DriverInterface        
+
+2002/10/11: mldonkey
+  - add: 'close_all_sockets' command to close all connection sockets.
+      Added to the SIGHUP signal handler.
+  - fix: SIGHUP doesn't call network_enable/disable anymore. Bug about
+      automatic disabling of edonkey plugin ?
+  - fix: new udp bandwidth management
+  - add: starting reimplementing multi-gui
+
+2002/10/09: mldonkey
+  - add: catch SIGTERM and save the config before exiting
+  - add: publication on Overnet has been implemented, but not tested yet.
+  - fix: "ovstats" displays more information on current searches
+
+2002/10/08: mldonkey
+  - fix: bug in indexer2.ml that prevented complex searches in local history
+      and in filters.
+  - patch #556 and debian/ from #553 from Goswin von Brederlow. Some problems
+      with the end of the patch #553.
+      * Availability seen in % of missing chunks, and height in color bar.
+      * New "last-seen" and "Age" columns in GUI
+      * No segfault on division by zero when size=0
+      * No queries for paused files.
+      * New debian/ directory
+  - GUI protocol 9
+  - add: gui open a message box when password is not valid.
+
+2002/10/07: mldonkey
+  - fix: "forget_search" should work correctly now
+  - fix: use Unix.LargeFile.stat instead of Unix.stat to avoid 
+      exception when sharing files greater than 1.7 Go
+  - add: filters. Need to enable 'filter_search' option, and to 
+      change 'filter_search_delay' (results are gathered during this delay,
+      and all filtered together and displayed, so results are displayed
+      with this period, and no results are displayed before the delay).
+
+2002/10/06: mldonkey
+  - fix: split add_interesting_client in two different functions:
+      force_fast_connect_client (connect immediatly, regardless of
+       min_reask_delay) and connect_as_soon_as_possible.
+  - fix bug #1291: vma does now display all servers
+  - add: new command "version"
+  - fix: "nu" can take negative arguments to decrease the no-upload period
+  - fix: stop adding MD4 to proposed names
+
+2002/10/05: mldonkey
+  - fix: clients_lists are now stored in a 5 buckets array, one per minute.
+      Strange behavior: the list is almost always full, and the number of fds
+      increases dangerously. set client_timeout to 30 or smaller to
+      improve that ? Must check that this timeout is changed when the client
+      becomes interesting (queued for upload or download). Also set
+      max_clients_per_second to more than 5...
+  - fix: prefered files are not queried twice anymore, nor client repeatedly 
+     queried after connection, to avoid Emule Black-list stupid mechanism.
+  - fix: unknown commands should print an error now
+  - add: new command "priority" that can be used to change the priority of
+      a file. Such files will get priority times more bandwidth than
+      normal connections.
+  - fix: 
+     * new command "use_poll" to switch between poll and select.
+     * Fixed bug in poll making huge CPU usage
+  - add: new messages for publishing files on Overnet.
+
+2002/10/04: mldonkey
+  - fix: file_best_name should be used more often
+  - fix: recover_temp should use the best available name
+  - fix: the number of overnet peers saved in servers.ini is now limited
+      by overnet_max_known_peers
+
+2002/10/03: mldonkey
+  - add: new files for IP multicast, not used, probably never
+  - add: overnet URLs in "ovlink", statistics "ovstats"
+  - add: overnet new options to reduce memory usage "overnet_max_search_hits"
+      and "overnet_max_waiting_peers"
+
+2002/10/02: mldonkey
+  - add: priority of files
+     * read power added to TcpBufferedSocket.t for priviledged connections
+     * DonkeyTypes.file_priority for priviledged files
+     * DonkeyTypes.client_power for priviledged clients
+
+2002/10/01: mldonkey
+  - add: more debug output for 'dump_heap'
+  - donkeyClients.ml: SourceReq clients are not immediatly added to
+     clients_list
+
+2002/09/29: mldonkey
+  - fix: bug #1252: servers were added several times in Opennap/DC to each user.
+  - fix: ed2k link should appear again in 'download' mail
+
+2002/09/28: mldonkey
+  - fix: sources are correctly removed from the GUI locations panel
+  - fix: Makefile should correctly compile targets 'static' and 'byte'
+  - fix: Add command
+       MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" make cdk/heap_c.o
+      to compile with "dump_head" command.
+
+2002/09/28: mldonkey
+  - fix: incoming connections timeout are now correctly set, and
+      connections should be correctly initialized.
+  - fix: 
+     * With select, you cannot use more than 1024 file descriptors
+       (otherwise, it segfaults)
+     * Added poll support, that allows to use more than 1024 fds and
+        is used by default.
+  - fix: better control of the number of used fds
+  - add: message in GUI starter about the 'ask_for_gui' option
+  - fix: faster sharing of downloaded files (probably present chunks are
+     checked first)
+  - fix: Ip.valid check for class D addresses
+  - add: new option 'verbose_overnet'
+  - fix: a file name is changed only if it was the MD4 before.
+  - fix: don't query blocks for Paused files
+
+2002/09/27: mldonkey
+  - fix: upload improvements
+     * names are correctly chosen, and sent to the server
+     * all BUFFER_OVERFLOW due to long file lists have been removed
+     * after restart, non commited files are still shared.
+     * bug fixed when shared file list is too long (shortened message)
+     * the size of the ShareReq message directly depends on the space
+        available in the server buffer.
+     * md4s for downloaded files are never recomputed after commit
+  - fix: force download:
+     * new contectual menu item "Force Download" in GUI result panel
+     * "force_download" should now work well
+  - add: core errors are displayed in the GUI console (maybe the last line
+     of the console should be displayed in the status bar ?)
+  - GUI protocol 7 for "force" argument to Download_query
+
+2002/09/27: zoggy
+   - add : web directory to manage source files of generated mldonkey pages
+   - change : chat protocol version (-> 1.1) to be able to communicate with
+	mlchat from Cameleon
+
+2002/09/25: mldonkey
+  - add: new module common/commonDownloads.ml to share the functions used
+      in all network where downloads are in one piece.
+  - fix: mail, chat and file_completed_cmd are used for all finished downloads
+       not only eDonkey (CommonInteractive.file_complete)
+  - fix: file_commit now moves the file to incoming/. All networks must now
+       use the "commit" function, not only edonkey.
+  - fix: try to save the md4 of each file before sharing it.
+
+2002/09/24: mldonkey
+  - fix: renewed my passport (6 hours)
+  - fix: prevent "BAD BAD BAD" lines from removing good sources. Very Important
+     Bug for your downloads.
+
+2002/09/23: mldonkey
+  - fix: mldonkey_gui prints a better error message when the hostname couldn't 
+      be resolved.
+  - fix: the configure script allows ocaml versions with +n extensions.
+  - add: new program mldonkey_guistarter to start the GUI immediatly at
+      mldonkey startup
+    * New options 'ask_for_gui', 'start_gui', 'mldonkey_bin' and 'mldonkey_gui'
+    * New option panel 'Startup'
+  - fix: get_int64 works correctly (no more negative upload counters)
+
+2002/09/22: mldonkey
+  - fix: udp packets added to bandwidth computation
+  - GUI:
+     - add: new option panel for plugins
+     - add: each plugin defines its own option for the GUI panel
+     - fix: when gui_poll, don't send options values
+  - Overnet: 
+     * No need for servers anymore :), searches and downloads are OK
+        (but no filter on search results)
+  - add: lots of debug messages for bandwidth control. 
+     * I should probably remove from remaining_bytes the size of the
+        TCP packet header, each time the write/read is OK.
+     * I should optionnally include the GUIs in the control !
+
+2002/09/21: mldonkey
+  - fix: removal of out-of-bounds accesses, not supported by Ocaml on 
+        OSX Jaguar
+     * added check in ./configure for MacOsX 6.0 to enable CheckBounds
+     * added -inline 10 for checkbounds to be removed for other archs (5
+        would be enough)
+     * added Autoconf.check_string calls in littleEndian.ml and bigEndian.ml
+  - add: Overnet works for simple queries and sources
+     * two options disabled by default: overnet_search_keyword and
+           overnet_search_sources
+
+2002/09/20: mldonkey
+  - add: OverNet should now be able to add sources to eDonkey downloads
+     (it is triggered using the "overnet" command). You need peers to
+     access OverNet: see the end of the distrib/servers.ini file.
+  - fix: started debugging mldonkey on Mac OS X 10.2
+     - fix : SIGBUS in telnet "q" command.
+     - need to check all possible array/string out-of-bounds accesses.
+
+2002/09/19: mldonkey
+  - add: OverNet support started in donkey/donkeyProtoOvernet.ml and
+      donkey/donkeyOvernet.ml. Can connect to OverNet peers and learn 
+      more peers.
+  - add: new donkey command "import_temp <dir>" to import old files
+     currently downloaded by edonkey in mldonkey.
+  - fix: Bug #1052 (buffer overflow warnings when MLdonkey is reading 
+      my shared files)
+
+2002/09/18: mldonkey
+  - fix: Bug #420 (Wrong permission on imported files)
+  - fix: Bugs #421 and #591 (vd: meta refresh use external ip)
+  - fix: Bug #842 (mldonkey overwrites the modified download.ini)
+  - fix: Bug #878 (Hidden files are shared)
+  - fix: Bug #1053 (no warning when overwriting files)
+      Note: / and \ in names are also replaced by _
+       Duplicated files get a .2 , .3, etc
+
+2002/09/16: mldonkey
+  - fix: Bug #432 (same packet is send with the same data)
+
+2002/09/15: mldonkey
+  - add: GUI
+      * Display the current upload/download rate in bytes.
+
+2002/09/14: mldonkey
+  - add: New options in downloads.ini:
+      * [gui_options_panel] to configure the options that are configurable in
+       the GUI without modifying the GUI. Fix for Bug #844
+      * [debug_net] to display more information about low-level network layer
+  - add: GUI
+      * New protocol 5 for message [Add_section_option]
+      * Boolean and filename options have special entries
+      * More client options in the GUI option panel
+  - fix: LimeWire
+      * Correctly display file sources
+      * No more Unix.write errors due to early disconnections
+      * More ultra-peers agent types allowed
+
+2002/09/11: mldonkey
+  - add: CyMeS server directory
+
+2002/09/08: mldonkey
+  - fix: prevent connecting several times to the same server
+  - fix: remove_old_servers should work again
+  - fix: 'vo' command only display one-line options
+
+2002/09/07: mldonkey
+  - Fix: Removed mldonkey_ suffix from names.
+  - Add: option 'files_queries_per_minute' and 'files_queries_initial_delay'
+      in downloads.ini to meet lugdunum master and Smurk UK requests.
+  - Fix: edonkey private messages should work again.
+
+2002/09/05: mldonkey
+  - fix: upload tab should work
+
+2002/09/04: zoggy
+  - add : upstats in the uploads tab
+	
+2002/09/04: mldonkey
+  - fix: shared files are not shared between all networks anymore (each 
+     network has its own shared file type).
+  - add: edonkey protocol files are not hidden anymore
+  - add: upload per shared file.
+  - add: new upload messages in GUI protocol 4
+
+2002/09/03: mldonkey
+  - Soulseek:
+      * Browse friend and simple downloads should work.
+
+2002/08/30: zoggy
+  - add : download a whole directory from a friend
+  - fix : the 'goto <page>' actions, because of the new rooms and uploads tabs
+  - add : an option to specify if we display sizes with G,M, and k suffixes
+  - code : moved the servers, downloads and uploads status label to
+    Gui_servers.pane_servers, Gui_downloads.pane_downloads and
+    Gui_uploads.box_upstats so they can be updated more accurately,
+    and not each time a message comes.
+	
+2002/08/29: zoggy
+  - add :Now display the tree of files instead of just the list of files
+    for the selected friend (with a new option files_auto_expand_depth)
+  - add : new added chat room automatically selected
+	
+2002/08/29: mldonkey
+  - CVS commit on Savannah:
+      * Ocaml 3.06 is now used to compile.
+      * donkey/donkey.lam is not distributed anymore with mldonkey.
+          It should be downloaded as:
+           http://pauillac.inria.fr/~lefessan/src/edonkey/donkey.lam.SOME_MD5
+          and copied in the donkey/ directory.
+
+          where SOME_MD5 is the contents of the file donkey/donkey.lam.md5
+
+          This can be automated by the configure script.
+  - GUI protocol version 4:
+      * new message Room_remove_user
+  - Updates to be sent to the GUI are now stored in common/commonEvent.ml
+  - Only one GUI can be connected to mldonkey at any given time.
+  - Soulseek: 
+      * Join/Leave room works with dialog and user updates.
+
+2002/08/23: mldonkey
+  - update: ocaml 3.06 should now be used to compile mldonkey without secret/.
+  - add: GUI protocol version 3 should work for poll.
+  - Private messages are now received in a special (hidden) chat room,
+     which is used to send messages to the GUI.
+  - fix: Gui_columns has been rewritten with functors
+  - fix: commonChatRoom.ml renamed in commonRoom.ml
+  - add: room panel now displays both active and inactive rooms.
+  - add: better SoulSeek support:
+     * Searches work (no download yet :(
+     * Join/Leave room works (no dialog yet)
+
+2002/08/23: zoggy
+  - add : an uploads tab (modules Gui_uploads and Gui_uploads_base)
+	  only the tab for this evening, gotta go sleeeeeeep
+	
+2002/08/22: mldonkey
+  - gui_proto.ml has been cut in guiTypes.ml (types), guiProto.ml (protocols)
+     and guiEncoding.ml and guiDecoding.ml.
+  - Better soulseek support
+
+2002/08/21: zoggy
+  - fix : memorize the size of the vpane in the friends tab, 
+	  for the chat notebook.
+	  BTW, mldonkey compiled like a breeze will ocaml 3.06 
+	  without patch :-) I let mldonkey change the configure 
+	  script, don't want to disturb ;-)
+	
+2002/08/19: zoggy
+  - fix : a bug closing two chat boxes instead of one
+  - add : in chat rooms, try to get the user name and give him
+	  its own color to display his name in the messages
+  - add : file sizes in downloads and result boxes now displayed
+	  with G(iga), M(ega) or k(ilo) suffixes
+  - fix : scrollbar added to the chat room boxes, and the text
+	  with the messages is not editable any more. 
+	  Chat rooms on direct connect work, except that kicked
+	  people are not removed from the list.
+	
+2002/08/18: zoggy
+  - add: chat integrated in the gui; pb with the Gtk Main loop:
+	 the chat window receive no event; will investigate,
+	 or add the chat boxes in a notebook of the friends tab ?
+	 Ok, done. I had to find my way through the not really clear
+	 code of the Gui_proto module. And surprise, the code
+	 indent is really, really bad, making it still more difficult 
+	 to understand...
+	 Yet to do : change and memorize the size of the chat notebook,
+	 but now i gotta go while it is not raining.
+	
+2002/08/16: mldonkey
+  - add: New command "dd <size> <md4>" originally used by mldonkey_submit.
+     mldonkey now generates a mlsubmit.reg file that can be used under Windows
+     to submit ed2k urls to mldonkey (thanks to equinox), and the 
+     mldonkey_submit file.
+  - fix: Client files are now stored in a tree in the GUIs.
+  - fix: Config/config.guess and .sub updated.
+
+2002/08/15: mldonkey
+  - fix: "set" and "vo" should work on simple options of all networks.
+  - add: New option "calendar" to execute commands at different hours of day.
+
+2002/08/14: mldonkey
+  - add: The ./configure script is now able to download, compile and install
+      locally (not as root) ocaml and lablgtk to be able to compile mldonkey.
+  - fix: The ocaml-3.05.patch file contains the fix for the memory bug.
+
+2002/08/12: mldonkey
+  - Olivier and Manu now work on another branch for servers rings
+
+2002/08/10: mldonkey
+  - Move bigEndian.ml to littleEndian.ml to be correct :)
+  - Started implementing the OpenFT plugin, using LimeWire plugin code.
+
+2002/08/09: mldonkey
+  - Client_ip is now always recomputed to avoid keeping an old IP address after
+   the IP changed (unless force_client_ip is true)
+  - The md4 is only used to save a file if no other name is available
+  - Files of new friends are correctly displayed (the client structure in the
+     friend list was not the canonized one).
+  - When sighup is sent, all networks are reset (disable/enable). Can be used
+     after a reset of the DSL connection.
+  - Removed friends are not kept as Contact any more.
+
+2002/08/08: mldonkey 
+  - Fixed bug in mldonkey_gui2 preventing removal of downloaded files.
+  - Number of downloaded files is now displayed in mldonkey_gui. I still
+     don't understand why so many features of the first GUI have been
+     removed from the new GUI. Moreover, the object-oriented style makes
+     it hard to understand and uggly to program. PLEASE, never put objects
+     in the core.
+
+2002/08/08: zoggy
+  - fix : extended search button now does not appear any more in the friends tab
+  - add : the user must confirm before cancelling a download
+  - fix : window and global variables cleared when disconnected
+  - fix : Detect disconnection to client in the GUI
+	
+2002/08/07: mldonkey
+  - Upload statistics are correctly displayed by GUIs
+  - Upload is now computed in bytes
+  - Server_state and Client_state messages are used again.
+  - Fixed bug in TcpBufferedSocket preventing UDP packets from being sent when
+       bandwidth control is disabled (prevent Extended Searches).
+  - Fixed bug in Options causing Stack Overflow in convert_list
+  - Implemented simple form of subscription in server
+  - Predicate should now work completely in server
+  - Number of replies to a query limited to 1000
+  - Fixed bug in mldonkey_gui2 forcing GUI protocol 0
+
+2002/08/06: mldonkey
+  - Rewritten server code to recognize mldonkey clients
+  - New GUI protocol 2
+  - Local search works again
+  - New subscribe button
+
+2002/08/05: mldonkey
+  - The eDonkey server now shares the list of servers with the eDonkey client
+  - An error in the ocaml-3.05 patch has been fixed.
+
+2002/08/02: mldonkey
+  - Fixed a bug in eDonkey saving sources for files in files.ini
+  - Fixed a bug in the parsing of server.met files downloaded from the WEB
+     (there was a "made by ..." at the end !!)
+  - load_url now supports HTTP 302 redirections
+  - Fixed a bug to connect to friends at startup
+
+2002/08/01: mldonkey
+  - Fixed a bug in the GUI protocol version 0
+  - More fields in commonFile.file_impl. Download rate is computed the same
+      way for all networks.
+  - LimeWire download bug fixed (3 mp3s loaded for test)
+
+2002/08/01: mldonkey
+  - Fixed bug with multiple files displayed in the GUI
+  - New GUI protocol 1 containing Client_stats
+
+2002/07/31: mldonkey
+  - Old gui2 compiles normally and works.
+  - SendMessage (-1, PrivateMessage (num, string)) is used to send a private
+     message outside any room.
+
+2002/07/30: mldonkey
+  ********* Ocaml 3.05 should now be used to compile mldonkey ********
+  - The patch to the ocamlopt compiler is not required anymore.
+
+2002/07/29: mldonkey
+ - Re-included old gui as gui2/ and mldonkey_gui2. Not yet working. 
+     Let the user choose until mldonkey_gui is working properly.
+
+2002/07/27: mldonkey
+ - GUI: 
+    o Only connected servers are normally displayed.
+    o New button to display all servers.
+
+2002/07/26: zoggy
+ - GUI: Extended search button only available in the result box of the 
+	last query
+ - GUI : fixed font for the console
+	
+2002/07/24: mldonkey
+ - Added GUI counter for better protocol compression.
+ - Removed user_remove function
+
+2002/07/23: mldonkey
+ - Bug fix in Ocaml weak hash tables
+ - First file downloaded on DC (yeah !!)
+
+2002/07/21: mldonkey
+ - Fixed a bug in the GUI protocol
+ - Improve timers behaviors
+
+2002/07/16: mldonkey
+ - Upload should be OK in Direct-Connect
+ - CDDB: research is possible in index. building the index takes at least 
+     600 Mo of RAM ... maybe some work to compress it.
+
+2002/07/15: mldonkey
+ - New structure network_info
+ - Direct-Connect: allow other clients to browse our client
+ - CDDB: use_tags is able to index a freedb database. take about 300 Mo for
+    the full indexed database. need to build a server now.
+ - Donkey: fixed a buf in the protocol that removed shared files from shared
+     list.
+
+2002/07/14: mldonkey
+ - New env variable MLDONKEY_DIR
+
+2002/07/13: mldonkey
+ - More options in alternative networks.
+ - ./configure script accepts a --disable-multinet option.
+ - New option -check_impl to display unimplemented methods.
+ - New behavior for computing the downloaded size in donkey.
+
+2002/07/11: mldonkey
+ - Upload on edonkey is priviledged, thanks to the upload_power option.
+    Done by giving more upload to some connections in TcpBufferedSocket.
+
+2002/07/10: mldonkey
+ - Protocol between GUI and Core completely rewritten. No more Ocaml specific.
+     Other GUIs are encouraged to move to this new protocol.
+ - network-specific URLs are supported:
+     ed2k://|file|...
+     ed2k://|server|ip|port|
+     ed2k://|friend|ip|port|
+     dc://|server|ip:port|
+     dc://|friend|ip:port|
+ - Client browsing in Opennap.
+
+2002/07/04: mldonkey
+ - Better types for result, client, user and file in LimeWire
+
+2002/07/03: mldonkey
+ - Better Opennap support
+    - Should no more be 'too many pending searches'.
+    - Better types for result, client, user and file.
+
+2002/07/02: mldonkey
+ - Per network options better supported (use "set" command with a prefix).
+ - One step towards soulseek implementation.
+ - Started implementing 'disable' methods.
+ - Using Weak hash tables for all common modules.
+
+*** 2002/07/01: in holidays :) no network access for two weeks ...
+
+2002/06/30: mldonkey
+ - HE3 compress/decompress code completely working for DirectConnect
+ - Can download file list in DirectConnect (not display it)
+ - Client IP correctly detected.
+
+2002/06/29: mldonkey
+ - Added columns configuration for users in GUI.
+ - Added message BrowseUser from GUI to Core and user_ops.op_user_browse_files.
+ - Communication between clients in Direct Connect started.
+ - User information from Direct Connect displayed in GUI (admin/link/bytes)
+
+2002/06/28: mldonkey
+ - Fixed several problems in WEB/telnet interface
+ - Added enable(disable) networks menu in GUI (disable not implemented):
+     networks can be started from GUI. New message EnableNetwork from GUI.
+ - Added display networks menu in GUI: servers and results from a network
+     can be hidden.
+
+2002/06/27: mldonkey
+ - Started using Weak Hashtbl in common/ structures to avoid memory leaks.
+ - The GUI displays correctly eDonkey, Open-Napster, LimeWire and DirectConnect.
+ - Lots of debbugging messages have been removed.
+
+Pre-Release 1.99:
+  Complete change of the architecture. mldonkey should now support multiple
+   peer-to-peer networks. Currently, download is possible from:
+
+    * Audiogalaxy support: works great (oups, not useful anymore :(
+     1) Must set 'enable_audiogalaxy' to true in downloads.ini 
+     2) Start mldonkey. It should create 'audiogal.ini'. If you don't have any
+        audiogalaxy account, create an account: go on http://localhost:4081/
+        (if you are running mldonkey on localhost), and create it.
+     3) Stop mldonkey. Edit audiogal.ini. Set the 'login' and 'password' 
+         options from your account.
+     4) Restart mldonkey. Go on http://localhost:4081/ to choose files to
+         download. 
+
+   * LimeWire bridge. works great.
+     1) Must set 'enable_limewire' to true in downloads.ini
+     2) It should automatically connect to several ultra peers.
+     - Recover downloads works
+
+   * Open Napster support. Seems to work.
+     1) Must set 'enable_opennap' to true in downloads.ini
+
+   * Direct Connect support. Not working  yet.
+     1) Must set 'enable_directconnect' to true in downloads.ini
+     2) You can connect to some hubs and search for files. Download
+      is not yet working, nor sharing, so that you will probably be
+      kicked fast.
+
+  IMPORTANT:
+   If you want to test some of these networks, edit the downloads.ini to
+   enable them. There are a lot of debugging messages (pipe to /dev/null,
+   don't kill the terminal). Most telnet commmands should work, but it is
+   not sure. In the GUI, use the File->Settings->GUI->Columns panel and,
+   for each type of structure, add the Network column to see in which 
+   network a server or a file is located.
+
+  * Improved server implementation (enable_server option). Not working yet.
+  * Started implementing freedb bridge. Not working yet.
+  * replace Sys.rename with Unix2.rename (to allow cross-device moves)
+  * brand new GUI : choice of columns, icons, external chat utility, support
+	for custom searches. See file ~/.mldonkey_gui.ini for changing icons
+	and keyboard shortcuts. Searches skeletons are defined in the
+	searches.ini file in the directory where you launched the mldonkey core.
+
+
+Release 1.16:
+  * Compaction forced every 'compaction_delay' hours (default is 2).
+  * File age computed for files smaller than one chunk. Better downloads for
+      these files.
+  * Servers sending extended search results are remembered, and immediatly
+     asked if their files are downloaded.
+  * Predicates in Indexer should work in most cases.
+  * Fixed #100833: new options 'http_bind_addr', 'gui_bind_addr', 
+     'telnet_bind_addr' and 'telnet_bind_addr'.
+  * Started implementing 'use_tags', a program to rename mp3s from tags (and
+      maybe from freedb, someone interested ?)
+  * New option 'propagate_sources' to allow mldonkey to propagate sources
+     to other peers. When enabled, send far fewer messages than in 1.15.
+  * Fixed #100870: WEB interface can be configured through 'html_header', 
+     'web_common_header' and 'vd_reload_delay'
+  * GUI buffer size increased. Can be set by 'interface_buffer' in 
+     ~/.mldonkey_gui.ini
+  * Fixed bug making mldonkey use 100% CPU for long periods.
+  * Fixed option name for 'update_server_list'
+  * New options 'max_sources_per_file' to limit the number of sources for
+    a given file. One source is removed each time a new source is added 
+    above this number.
+  * New command 'id' to display ID numbers for connected servers.
+  * 'client_buffer_size' set to 500000 by default.
+  * Fixed bug in ocaml patch that made open_mldonkey never finish downloads.
+
+Release 1.15:
+  * Started implementing mldonkey_s (eDonkey compatible server)
+  * GUI:
+    - Should fit in 640x480 screens.
+    - Server can be specified by ip:port in Add Server entry.
+    - Removed some non-tailrecursive functions.
+  * Core acts now with all (direct) clients as a server to diffuse sources
+     for files. Indirect mldonkey clients can also receive information.
+  * WEB interface:
+    - New option 'customized_searches' that can be used to add new
+       queries in the WEB interface (see new option file searches.ini
+       for examples).
+    - Improved searches (work also in the GTK GUI): 
+       * In the keyword/artist/title/album fields, a '-' in front of
+        a word means 'without'. Words separated by
+        spaces must appear in the reply. 
+       * In the format field: you can specify several formats, separated by
+        spaces. A '-' in front of a format means you don't want that format.
+    - New options 'web_header' and 'web_header_frame' to customize the header
+       displayed by the Web interface.
+    - Generate correct HTML with HEAD and TITLE :)
+    - Downloads can be sorted by name/percent/downloaded/size/rate.
+    - Paused downloads are correctly displayed.
+    - Use tables instead of spaces (for non-fixed fonts).
+    - Added option 'use_html_frames'. When frames are enabled, clicking
+       on a result to download will only modify the second frame.
+    - Checklist of downloads and results can be activated/desactivated with
+      the option 'html_checkbox_file_list'.
+    - The number of days since the file was last seen complete is now displayed
+  * Core:
+    - New option 'file_completed_cmd' for a command which is called when 
+     a file download is completed with as arguments: 
+     <filename on disk> <md4> <size> <names on the edonkey networks>*
+    - Started moving local indexation from mldonkey to an auxiliary program,
+     controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
+     See the 'Using auxiliary programs for local indexation' section in
+     the help (in progress, doesn't work).
+    - New command line option -client_ip that can be used to force the
+     IP used by mldonkey (if you have a firewall). Be careful with
+     dynamic IPs.
+    - Delay between md4 computation can be set by 'compute_md4_delay' option.
+     Chunks downloaded improve to reduce long md4 computations.
+  * Most problems with ed2k:// links should be fixed (/ at the end, and
+     spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
+  * Improved implementation of indexation. Documents description are
+     stored on disk. Different choices of indexation.
+  * Server black list: 'bs <ip1> <ip2> ...' in console to add IPs to the
+    server blacklist. Servers on this black list are eventually removed,
+    and will never be added again.
+  * New option 'master_server_min_users' that prevent mldonkey from remaining
+     connected to a server with too few users.
+  * New option 'dont_update_server_list' to disable automatic update of
+     server lists.
+  * Telnet interface: 
+     - New command 'remove_old_servers'
+  * New (less-aggressive) management of sources:
+     - New option 'max_source_age' (in days) to remove old sources.
+     - New option 'max_clients_per_second' to prevent bursts of connections.
+  * Faster computation of md4s for i486/i586/i686 Linux systems.
+  * Fixed bugs:  
+   - #100662: only valid server IPs are accepted.
+   - Use IP returned by getsockname instead of the one from gethostbyname.
+   - #100761: new option 'update_server_list' to choose whether you want 
+     mldonkey to automatically add new servers to your server list.
+   - Fixed bug preventing sharing of in-download files after restart.
+   - Fixed bug making history.met always increase.
+
+Release 1.14:
+  * Bandwidth is now controled by the 'max_hard_download_rate' and
+      'max_hard_upload_rate' options. Old rate options are obsolete.
+  * All simple options can now be set by arguments on the command line (use 
+     -help to show arguments).
+  * Bug fixes:
+    - Removed non-tailrecursive function in options.ml causing segfault when
+       loading files.ini.
+    - Connected clients without names in GUI should not appear anymore.
+    - Remove 2 minutes timeout for queued clients.
+
+Release 1.13:
+  * Annotations on files in file 'comments.met'. Commands 'comments <filename>'
+    to load a file, and 'comment <md4> <comment>' to add a new comment.
+    Such comments could be downloaded from web sites (sharereactor.com).
+  * New option 'web_infos' and new command 'add_url' on console: allow
+    to download a file from the WEB automatically everyday (or less 
+    frequently). Currently, only server.met and comments.met files are
+    supported.
+  * GUI:
+     - New config file in $HOME/.mldonkey_gui.ini with GUI options
+     - colors added in lists (see .mldonkey_gui.ini)
+     - Layout is saved.
+     - File locations are updated.
+     - Improved protocol to decrease bandwidth
+     - Comments are displayed in searches, and can be added in contextual menu.
+     - Shortcuts can be configured by options.
+  * Mailer accept non-canonnical addresses.
+  * Option 'verbose': '#' for download, 'U' for upload, and other messages.
+  * When possible, find extra names for files in history.
+  * Console:
+      - New command 'close_fds' to close all open files, to free space on disk 
+        after remove.
+      - New command 'pause' and 'resume' to pause and resume downloads (use
+         arg 'all' to apply to all files).
+  * Some control on how many connections can be opened per minute.
+  * Better scheduling of compaction (new option 'compaction_overhead')
+     in both core and GUI that caused delay when exiting.
+  * Bug fixes:
+    - Remove block change causing many 'exceeding block boundaries'
+    - history.dat changed to history.met, using more secure marshaling.
+    - OVERFLOW with GUI should not appear anymore.
+    - Compaction makes GUI memory usage better.
+
+Release 1.12:
+  * Bug fixes:
+    - Remove error 'bad file descriptor' when saving files.
+    - Remove possible infinite loop in upload function.
+
+Release 1.11:
+  * Option 'shared_directories' to specify other directories where files to
+   share can be found.
+  * Setting 'telnet_port', 'http_port' or 'gui_port' to 0 disables the
+      corresponding access.
+  * Console: 
+   - Sort results by size in vr.
+   - When 'd' fails with Already_done, you can use 'force_download' to force
+      an already downloaded file to be restarted.
+   - New command 'dllink' taking an ed2k URL to download as argument.
+   - Command 'set' can be used to set the allowed_ips option:
+       set allowed_ips '127.0.0.1 128.91.255.255' 
+     255 is for networks.
+   - shorten names in 'vd' output (see 'max_name_len' option). 
+  * WEB:
+   - New Cancel links in 'vd' output.
+   - New 'Complex Search' link in interface.
+   - 'View Options' output can be edited to modify options.
+  * GUI:
+   - The GUI tries to connect to the core every second until it succeeds.
+   - Corrected MD4 columns
+   - In search panel, 'Max hits' combo set the maximal number of replies
+      per server.
+  * Bug fixes:
+   - Don't add twice the incoming dir to shared file names.
+   - Cross-partition moves fail, but filename is renamed in temp dir.
+   - Limited open fds for files to 50 (doesn't limit shared files
+       and downloaded files).
+   - Execute entry on WEB interface always displayed.
+   - Removed a timeout closing all client connection after 2 minutes.
+   - Shared files are opened in read-only mode.
+
+Release 1.10:
+  * Default timeout for server connection set to 5 for faster connection.
+  * Options are now divided into four configuration files: downloads.ini,
+      servers.ini, friends.ini and files.ini.
+  * Console: better display of downloads.
+  * Verification of IP addresses for admin ('allowed_ips' option).
+  * WEB interface: added pragma no-cache. 
+  * Keep checking servers in the background.
+  * GUI: Auto-resize is now delayed. Default selection
+     mode is EXTENDED. Contextual menu items to switch between
+    auto-resize/manual resize and EXTENDED/MULTIPLE selection.
+  * Send a mail when download is finished. You must complete the
+    'smtp_server', 'smtp_port' and 'mail' options.
+  * Bug fixes: partial page in WEB interface fixed (often with vr).
+      Removed two minutes timeout on good client connections.
+      NoSpaceLeft causes pause in download.
+
+Release 1.09:
+  * Bug fixes: fixed bad md4 computation of the first chunk, preventing
+     completion of downloads.
+  * New command 'recover_temp' to recover all lost files from the temp
+     directory.
+  * See  http://www.freesoftware.fsf.org/mldonkey/ for porting mldonkey on new OSes.
+
+Release 1.08:
+  * Remove use of the 'mmap' system call.
+  * Better management of delays between connection attempts.
+  * Local searches use minsize/maxsize information.
+  * More information on availability on WEB/console interface.
+  * Small improvement in MD4 computation. Shared files MD4s are saved in
+     a 'shared_files.ini' file to avoid computating them again.
+  * Filters on replies: set the 'filters' option to a string containing
+     sub-words you want to remove, separated by spaces.
+  * Maximal download rate can be specified in 'max_download_rate' option.
+   (need probably to be rewritten more carefully).
+  * Bug fixes: files greater than 9mb in incoming/ can now be shared,
+      ftruncate replaced by lseek (for vfat FS), multiple connections to
+      the same client fixed.
+
+Release 1.07:
+  * Exchange of sets of sources between mldonkey clients.
+  * Started implementing chat between friends.
+  * GUI allows adding friends by specifying IP and port. New 
+     'Connect friend' menu. Better properties of files.
+  * New menu item 'preview' in GUI, associated with option 'previewer'.
+  * New menu 'Select All' in lists.
+  * Bug fixes: in mp3 tags edition, in connected servers count, in
+    displaying friends files, in passive connections.
+
+Release 1.06:
+  * History of seen files. New commands: 'ls' for local search on the history,
+    of search on servers, 'clh' for clear local history. New options: 
+    'use_file_history' to allow history on files, 'save_file_history' to
+    save the history on disk. For now, search only by words (not size).
+  * Authentification by the 'auth' command on the telnet client.
+  * Bug fixes: servers disconnected viewed as connected.
+
+Release 1.05:
+ * UDP protocol implemented: extended searches to all servers.
+ * Improved HTTP interface (port 4080).
+ * Limitation on minimal upload dropped to 1 kB/s.
+ * Fixed bug preventing queries on multiple words.
+
+Release 1.04:
+  * Improved WEB interface (download files by clicking).
+  * Stats on upload.
+
+Release 1.03:
+  * Upload can be disabled temporarily, if your client has been running long
+   enough.
+
+Release 1.02:
+  * max_upload_rate is not modified automically anymore.
+  * command-line client available from the GUI.
+
+Release 1.01:
+  * New command 'set' in command-line client to change options values
+  * Command-line client accessible from the GUI or any 
+   WEB browser (at http://localhost:4080/)
+
+Release 1.00:
+  * Upload/download works
+  * Friends works
+  * Complex queries works
+  * Command-line interface works
+  * Graphical interface works
+  * Import old config works
