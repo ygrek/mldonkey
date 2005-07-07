@@ -151,20 +151,19 @@ let of_list l =
   of_list_aux l BL_Empty
 
 let print_list buf bl =
-
   let rec print_list_aux bl =
     match bl with
-	BL_Empty -> 0
+        BL_Empty -> 0
       | BL_Range (red, left, br, right) ->
-	  let nleft = print_list_aux left in
-	  if br.blocking_hits > 0 then
-	    Printf.bprintf buf "%s (%d hits): %s - %s\n" 
-	      br.blocking_description
-	      br.blocking_hits
-	      (Ip.to_string br.blocking_begin)
-	      (Ip.to_string br.blocking_end);
-	  let nright = print_list_aux right in
-	    nleft + 1 + nright in
+          let nleft = print_list_aux left in
+          if br.blocking_hits > 0 then
+            Printf.bprintf buf "%s (%d hits): %s - %s\n" 
+              br.blocking_description
+              br.blocking_hits
+              (Ip.to_string br.blocking_begin)
+              (Ip.to_string br.blocking_end);
+          let nright = print_list_aux right in
+          nleft + 1 + nright in
 
   let count = print_list_aux bl in
   Printf.bprintf buf "%d ranges\n" count

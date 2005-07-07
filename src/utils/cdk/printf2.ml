@@ -77,7 +77,7 @@ let extract_format fmt start stop widths =
       in fill_format start (List.rev widths)
 
 (* Decode a %format and act on it.
-   [fmt] is the printf format style, and [pos] points to a [%] character.  
+   [fmt] is the printf format style, and [pos] points to a [%] character.
    After consuming the appropriate number of arguments and formatting
    them, one of the three continuations is called:
    [cont_s] for outputting a string (args: string, next pos)
@@ -184,17 +184,16 @@ let cprintf kont fmt =
   and cont_t printer i =
     Buffer.add_string dest (printer ()); doprn i
   in doprn 0
-  
-let lprintf_handler = ref (fun s -> 
-      Printf.printf "Message [%s] discared\n" s;
-      print_newline ();
+
+let lprintf_handler = ref (fun s ->
+      Printf.printf "Message [%s] discarded\n" s;
   )
-  
-let lprintf fmt = 
+
+let lprintf fmt =
   cprintf (fun s -> try !lprintf_handler s with _ -> ())
   (fmt : ('a,unit, unit) format )
-  
-let lprintf_nl fmt = 
+
+let lprintf_nl fmt =
   cprintf (fun s -> try !lprintf_handler (s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
@@ -202,19 +201,19 @@ let lprint_newline () = lprintf "\n"
 let lprint_char c = lprintf "%c" c
 let lprint_int c = lprintf "%d" c
 let lprint_string c = lprintf "%s" c
-  
+
 let set_lprintf_handler f =
   lprintf_handler := f
-  
+
 let lprintf_max_size = ref 100
 let lprintf_size = ref 0
 let lprintf_fifo = Fifo.create ()
 let lprintf_to_stdout = ref true
-  
+
 let lprintf_output = ref (Some stderr)
-  
+
 let _ =
-  set_lprintf_handler (fun s ->       
+  set_lprintf_handler (fun s ->
       match !lprintf_output with
         Some out when !lprintf_to_stdout ->
           Printf.fprintf out "%s" s; flush out
@@ -230,7 +229,7 @@ let detach () =
   match !lprintf_output with
     Some oc when oc == Pervasives.stdout -> lprintf_output := None
   | _ -> ()
-  
+
 let close_log () =
   lprintf_to_stdout := false;
   match !lprintf_output with
@@ -240,7 +239,6 @@ let close_log () =
         close_out oc;
       lprintf_output := None
 
-        
 let log_to_file oc =
   close_log ();
   lprintf_output := Some oc;
@@ -254,6 +252,6 @@ let log_to_buffer buf =
       Buffer.add_string buf s
     done
   with _ -> ()
-      
+
 let set_logging b =
   lprintf_to_stdout := b

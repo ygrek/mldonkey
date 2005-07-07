@@ -12,6 +12,11 @@ All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
 
+2005/07/07: spiralvoice
+
+4146: Use lprintf_nl instead of "lprint_newline ()" or "\n"
+      (by beedauchon)
+
 2005/07/06: spiralvoice
 
 4118: Improve Overnet/Kademlia logging and mem_stats output

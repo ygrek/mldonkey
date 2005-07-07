@@ -130,7 +130,7 @@ let find_port server_name bind_addr port_option handler =
       with e ->
           if !find_other_port then iter (port+1)
           else begin
-              lprintf "Exception %s while starting %s\n" server_name
+              lprintf_nl "Exception %s while starting %s" server_name
                 (Printexc2.to_string e);
               None
             end
@@ -183,7 +183,7 @@ let connection_can_try cc =
   connection_next_try cc < last_time ()
 
 let print_control c =
-  lprintf "Connection Control: ok = %d seconds ago, state = %d, last tried = %d seconds ago, delay = %d, next in %d seconds\n"
+  lprintf_nl "Connection Control: ok = %d seconds ago, state = %d, last tried = %d seconds ago, delay = %d, next in %d seconds"
     (last_time () - c.control_last_ok) c.control_state (last_time () - c.control_last_try) c.control_min_reask (connection_next_try c - last_time ())
   
 let connection_must_try cc =
@@ -780,7 +780,7 @@ let parse_magnet url =
   url-encoded *)
           name := Printf.sprintf "%s&%s" !name value
         else
-          lprintf "MAGNET: unused field %s = %s\n"
+          lprintf_nl "MAGNET: unused field %s = %s"
             value arg
     ) url.Url.args;
     !name, !uids
@@ -895,7 +895,7 @@ let do_if_connected tcp_connection f =
 let print_localtime () =
 let t = Unix.localtime (Unix.time ()) in
   let { Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday; Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
-  lprintf " on localtime: %2d/%2d, %02d:%02d:%02d\n" tm_mday (tm_mon+1) tm_hour tm_min tm_sec
+  lprintf_nl " on localtime: %2d/%2d, %02d:%02d:%02d" tm_mday (tm_mon+1) tm_hour tm_min tm_sec
 
       
 let new_activity () = {

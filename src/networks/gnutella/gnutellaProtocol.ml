@@ -242,7 +242,7 @@ let cached_qrt_table = ref ""
 
 let update_shared_words () = 
   if !verbose_share then
-    lprintf "update_shared_words\n";
+    lprintf_nl "update_shared_words";
   all_shared_words := [];
   cached_qrt_table := "";
   let module M = CommonUploads in
@@ -257,7 +257,7 @@ let update_shared_words () =
     List.iter (fun sh ->
         let info = IndexedSharedFiles.get_result sh.shared_info in
         if !verbose_share then
-          lprintf "CODED name: %s\n" sh.M.shared_codedname;
+          lprintf_nl "CODED name: %s" sh.M.shared_codedname;
         register_words sh.M.shared_codedname;
         List.iter (fun uid ->
             words := WordSet.add (Uid.to_string uid) !words
@@ -278,7 +278,7 @@ let update_shared_words () =
       List.iter (fun s ->
         lprintf "%s " s
       ) !all_shared_words;
-      lprint_newline ()
+      lprintf_nl ""
     end
 
         
@@ -315,14 +315,14 @@ let parse_headers c first_line headers =
           List.assoc "x-gnutella-alternate-location" headers in
         let locations = String2.split locations ',' in
         
-        lprintf "Alternate locations\n";
+        lprintf_nl "Alternate locations";
         let urls = List.map (fun s ->
               match String2.split_simplify s ' ' with
-                [] -> lprintf "Cannot parse : %s\n" s; ""
+                [] -> lprintf_nl "Cannot parse : %s" s; ""
               | url :: _ ->
-                  lprintf "  Location: %s\n" url; url
+                  lprintf_nl "  Location: %s" url; url
           ) locations in
-        lprintf "\n";
+        lprintf_nl "";
         
         let files = ref [] in
         (try
@@ -523,7 +523,7 @@ let find_file_to_upload gconn url =
       match url.Url.args with
         [(urn,_)] ->
           if !verbose_msg_clients then
-            lprintf "Found /uri-res/N2R request\n";
+            lprintf_nl "Found /uri-res/N2R request";
           find_by_uid (Uid.of_string urn)
       
       | _ -> failwith "Cannot parse /uri-res/N2R request"
@@ -534,7 +534,7 @@ let find_file_to_upload gconn url =
     let num = String.sub file 5 (pos - 5) in
     let filename = String.sub file (pos+1) (String.length file - pos - 1) in
     if !verbose_msg_clients then
-      lprintf "Download of file %s, filename = %s\n" num filename;
+      lprintf_nl "Download of file %s, filename = %s" num filename;
     let num = int_of_string num in
     Hashtbl.find shareds_by_id  num
   in

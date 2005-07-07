@@ -346,11 +346,11 @@ let manage_hosts () =
 (* For each file, we allow only (nranges+5) simultaneous communications, 
   to prevent too many clients from saturing the line for only one file. *)
           let max_nconnected_clients = nranges file in
-(*          lprintf "max_nconnected_clients: %d > %d\n" max_nconnected_clients 
+(*           lprintf "max_nconnected_clients: %d > %d\n" max_nconnected_clients
            file.file_nconnected_clients; *)
           while file.file_nconnected_clients < max_nconnected_clients do
             let (_,c) = Queue.take file.file_clients_queue in
-(*            lprintf "One client\n"; *)
+              if !verbose then lprintf "One client\n";
             c.client_in_queues <- List2.removeq file c.client_in_queues;
             
             

@@ -763,7 +763,7 @@ let andnot q1 q2 = QAndNot (q1,q2)
 let rec mftp_query_of_query_entry qe =
   match qe with
     Q_AND ([]) -> QNone
-  | Q_AND [_] -> lprintf "Q_AND [_]\n"; QNone
+  | Q_AND [_] -> lprintf_nl "Q_AND [_]"; QNone
   | Q_COMBO _ -> assert false
   | Q_AND (h :: q) ->
       List.fold_left
@@ -771,7 +771,7 @@ let rec mftp_query_of_query_entry qe =
 	(mftp_query_of_query_entry h)
 	q
 
-  | Q_OR [_] -> lprintf "Q_OR [_]\n"; QNone
+  | Q_OR [_] -> lprintf_nl "Q_OR [_]"; QNone
   | Q_OR ([]) -> QNone
   | Q_OR (h :: q) ->
       List.fold_left

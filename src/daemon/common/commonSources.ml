@@ -449,6 +449,7 @@ let rec find_max_overloaded q managers =
 (*                         print                                         *)
 (*                                                                       *)
 (*************************************************************************)
+
  
        let print buf output_type =
         let timer = Unix.localtime (float_of_int(last_time ()) +. 1000000000.) in
@@ -592,6 +593,7 @@ let rec find_max_overloaded q managers =
                   nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
                   ninvalid_per_queue.(i) <- ninvalid_per_queue.(i) + !ninvalid;
                   nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
+
                 done; (* end Queues *)
 
                 if output_type = HTML then
@@ -636,6 +638,7 @@ let rec find_max_overloaded q managers =
                         Printf.bprintf buf "\\</tr\\>\n";
                       end
                     );
+
                     (if !aninvalid <> 0 then
                       begin
                         html_tr_two ();
@@ -671,6 +674,7 @@ let rec find_max_overloaded q managers =
               end
             else
               begin
+
                 if output_type = HTML then
                   begin
                     html_tr_one ();

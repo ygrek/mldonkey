@@ -22,7 +22,7 @@ open Int64ops
 open Printf2
 
 open BasicSocket
-open Autoconf  
+  
 open CommonInteractive
 open CommonInteractive
 
@@ -30,8 +30,7 @@ open CommonDownloads
 open CommonTypes
 open CommonOptions
 open CommonGlobals
-open CommonNetwork
-open CommonGraphics
+open CommonNetwork  
   
 open DriverInterface
 
@@ -86,11 +85,11 @@ let second_timer timer =
   (try 
       update_link_stats () 
     with e -> 
-        lprintf (_b "Exception %s\n") (Printexc2.to_string e));
+        lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
 	  (try 
      CommonUploads.refill_upload_slots ()
    with e -> 
-        lprintf (_b "Exception %s\n") (Printexc2.to_string e));
+        lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
   CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
   ()
@@ -101,7 +100,7 @@ let start_interfaces () =
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
-          lprintf (_b "Exception %s while starting HTTP interface\n")
+          lprintf_nl (_b "Exception %s while starting HTTP interface")
             (Printexc2.to_string e);
     end;
   
@@ -130,7 +129,7 @@ let start_interfaces () =
 
 let _ =
   CommonWeb.add_web_kind "motd.html" (fun _ filename ->
-      lprintf (_b "motd.html changed\n"); 
+      lprintf_nl (_b "motd.html changed"); 
     motd_html =:= File.to_string filename
   );
   CommonWeb.add_web_kind "motd.conf" (fun _ filename ->
@@ -148,13 +147,13 @@ let _ =
 	| "del_item" ->
             CommonInteractive.del_item_from_fully_qualified_options name value
 	| _ -> 
-	    lprintf (_b "UNUSED LINE: %s\n") line
+	    lprintf_nl (_b "UNUSED LINE: %s") line
           
       done;
     with 
     | End_of_file ->
 	close_in ic
-    | e -> lprintf (_b "Error while reading motd.conf(%s): %s\n") filename
+    | e -> lprintf_nl (_b "Error while reading motd.conf(%s): %s") filename
 	(Printexc2.to_string e); 
 	close_in ic
 			   );
@@ -187,7 +186,7 @@ let save_mlsubmit_reg () =
 
     "admin" "" (Ip.to_string (client_ip None)) !!http_port
   in
-  File.from_string "mlsubmit.reg" file;
+  File.from_string (Filename.concat file_basedir "mlsubmit.reg") file;
     
 (* Generate the mldonkey_submit file *)
   
@@ -236,9 +235,9 @@ while (my $uri = shift @ARGV) {
     (Ip.to_string (client_ip None)) !!http_port
     "admin" ""
   in
-  File.from_string "mldonkey_submit" file;
+  File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
   try
-  Unix.chmod "mldonkey_submit" 0o755
+  Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
   with
   e -> ()
 
@@ -266,7 +265,7 @@ let load_config () =
   else
     if not exists_users_ini then
       begin
-        lprintf "No config file (users.ini) found. Importing users from downloads.ini.\n"; 
+        lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini."; 
         ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
       end;
 
@@ -292,7 +291,7 @@ let load_config () =
       Options.load users_ini;
 (*      Options.load downloads_expert_ini;       *)
     with e -> 
-        lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
+        lprintf_nl "Exception %s during options load" (Printexc2.to_string e); 
         exit 2;
         ());  
   
@@ -341,14 +340,14 @@ let load_config () =
   
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
-          lprintf "%s\n" (CommonGlobals.version ());
+          lprintf_nl "%s" (CommonGlobals.version ());
           exit 0), _s " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-format", Arg.String (fun file ->
           let format = CommonMultimedia.get_info file in
           ()), _s  " <filename> : check file format";
       "-test_ip", Arg.String (fun ip ->
-          lprintf "%s = %s\n" ip (Ip.to_string (Ip.of_string ip));
+          lprintf_nl "%s = %s" ip (Ip.to_string (Ip.of_string ip));
           exit 0), _s "<ip> : undocumented";
       "-check_impl", Arg.Unit (fun _ ->
           CommonNetwork.check_network_implementations ();
@@ -356,7 +355,7 @@ let load_config () =
           CommonServer.check_server_implementations ();
           CommonFile.check_file_implementations ();
 (*          CommonResult.check_result_implementations (); *)
-          lprint_newline ();
+          lprintf_nl "";
           exit 0), 
       _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
@@ -371,7 +370,7 @@ let load_config () =
        _s ": keep output to stderr after startup";
       "-daemon", Arg.Unit (fun _ ->
           (* Removed due to savannah bug #11514 . *)
-          lprintf "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...\n";
+          lprintf_nl "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...";
           exit 0), _s " : this argument was removed, core will exit";
       "-find_port", Arg.Set find_other_port, 
       _s " : find another port when one is already used";
@@ -476,7 +475,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
       if !!recover_temp_on_startup then
         network_recover_temp r;
   );
-  lprint_newline ();
+  lprintf_nl "";
   lprintf (_b "disabled networks: ");
   let found = ref false in
     networks_iter_all (fun r ->
@@ -486,7 +485,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
             lprintf (_b "%s ") r.network_name
 	  end);
   if not !found then lprintf (_b "none");
-  lprint_newline ();
+  lprintf_nl "";
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
   
@@ -534,7 +533,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
       output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
       close_out oc;
       CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid" );
-      if !verbose then lprintf (_b "Starting with pid %s\n") (string_of_int(Unix.getpid ()))
+      if !verbose then lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
     );
 
   add_init_hook (fun _ ->
@@ -549,7 +548,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
         with Not_found -> 
-            lprintf (_b "Not running under X, not trying to start the GUI\n")
+            lprintf_nl (_b "Not running under X, not trying to start the GUI")
             );
   );
  
@@ -558,9 +557,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
         let new_pw = Unix.getpwnam !!run_as_user  in
         MlUnix.setuid new_pw.Unix.pw_uid;
         let pw = Unix.getpwuid (Unix.getuid()) in
-        lprintf (_b "mldonkey is now running as %s\n")  pw.Unix.pw_name;
+        lprintf_nl (_b "mldonkey is now running as user %s")  pw.Unix.pw_name;
       with e ->
-          lprintf (_b "Exception %s trying to set user_uid [%s]\n")
+          lprintf_nl (_b "Exception %s trying to set user_uid [%s]")
           (Printexc2.to_string e) !!run_as_user;
           exit 2
     end;
@@ -568,9 +567,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   if !!run_as_useruid <> 0 then begin
       try
         MlUnix.setuid !!run_as_useruid;
-        lprintf (_b "mldonkey is now running as uid %d\n")  !!run_as_useruid;
+        lprintf_nl (_b "mldonkey is now running as uid %d")  !!run_as_useruid;
       with e ->
-          lprintf (_b "Exception %s trying to set user_uid [%d]\n")
+          lprintf_nl (_b "Exception %s trying to set user_uid [%d]")
           (Printexc2.to_string e) !!run_as_useruid;
           exit 2
     end;
@@ -581,37 +580,38 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 
   if Autoconf.system <> "windows" then 
     MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
+      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGCHLD"));
 
   if Autoconf.system <> "windows" then 
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP\n";
+      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGHUP";
          BasicSocket.close_all ();
 	 Unix32.close_all ();
          CommonGlobals.print_localtime ();));
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sigpipe
-      (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
+      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGPIPE"));
 
   MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> lprintf "SIGINT\n";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "SIGINT";
         CommonGlobals.exit_properly 0));
 
   MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> lprintf "SIGTERM\n";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "SIGTERM";
         CommonGlobals.exit_properly 0));
 
-  if !verbose then lprintf (_b "Activated system signal handling\n\n");
+  if !verbose then lprintf_nl (_b "Activated system signal handling\n");
   
   Unix32.max_cache_size := MlUnix.max_filedescs
  
 let _ =
-  lprintf (_b "Core started"); 
+  let security_space_filename = "config_files_space.tmp" in 
+  
+  lprintf_nl (_b "Core started"); 
   core_included := true;
   CommonGlobals.print_localtime ();
-
-  let security_space_filename = "config_files_space.tmp" in  
+ 
   begin
 (* Create a 'config_files_security_space' megabytes file to protect some space
 for config files at the end. *)
@@ -631,9 +631,9 @@ for config files at the end. *)
       in
       Unix32.close security_space_fd;
     with _ ->
-        lprintf (_b "Cannot create Security space file:\n");
-        lprintf (_b " not enough space on device or bad permissions\n");
-        lprintf (_b "Exiting...\n");
+        lprintf_nl (_b "Cannot create Security space file:");
+        lprintf_nl (_b " not enough space on device or bad permissions");
+        lprintf_nl (_b "Exiting...");
         exit 2;
   end;  
   CommonGlobals.do_at_exit (fun _ -> 

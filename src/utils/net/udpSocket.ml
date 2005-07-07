@@ -184,11 +184,10 @@ let print_addr addr =
   begin
     match addr with
       Unix.ADDR_INET(ip, port) ->
-        lprintf "ADDR_INET (%s, %d)" (Unix.string_of_inet_addr ip) port
+        lprintf_nl "ADDR_INET (%s, %d)" (Unix.string_of_inet_addr ip) port
     | Unix.ADDR_UNIX s ->
-        lprintf "ADDR_UNIX (%s)" s;
-  end;
-  lprint_newline ()
+        lprintf_nl "ADDR_UNIX (%s)" s;
+  end
 
 let max_delayed_send = 30
   

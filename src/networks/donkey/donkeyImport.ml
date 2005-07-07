@@ -163,25 +163,21 @@ module Known = struct
           Array.iter (buf_md4 buf) file.blocks;
           buf_tags buf file.tags names_of_tag
       ) t
-    
-    
+
     let print t =
-      lprintf "KNOWN.MET: %d files\n" (List.length t);
+      lprintf_nl "KNOWN.MET: %d files" (List.length t);
       List.iter (fun f ->
           try
-            lprintf "  FILE %s\n" (Md4.to_string f.md4);
-            lprintf "  mtime: %s\n" (Int64.to_string f.mtime);
-            lprintf "  Blocks: %d\n" (Array.length f.blocks);
+            lprintf_nl "  FILE %s" (Md4.to_string f.md4);
+            lprintf_nl "  mtime: %s" (Int64.to_string f.mtime);
+            lprintf_nl "  Blocks: %d" (Array.length f.blocks);
             Array.iter (fun m ->
-                lprintf "    %s\n" (Md4.to_string m);
+                lprintf_nl "    %s" (Md4.to_string m);
             ) f.blocks;
             print_tags f.tags;
-            lprint_newline ();
-          with _ -> lprintf "EEEEE\n";
+            lprintf_nl "";
+          with _ -> lprintf_nl "Error : no file in known.met\n";
       ) t;
-      lprint_newline ();
-      
-      
   end
 
 module Part = struct 
@@ -249,28 +245,23 @@ module Part = struct
       buf_int16 buf (Array.length file.blocks);
       Array.iter (buf_md4 buf) file.blocks;
       buf_tags buf file.tags names_of_tag
-    
-    
+
     let print f =
       try
-        lprintf "  FILE %s\n" (Md4.to_string f.md4);
-        lprintf "  Blocks: %d\n" (Array.length f.blocks);
+        lprintf_nl "  FILE %s" (Md4.to_string f.md4);
+        lprintf_nl "  Blocks: %d" (Array.length f.blocks);
         Array.iter (fun m ->
-            lprintf "    %s\n" (Md4.to_string m);
+            lprintf_nl "    %s" (Md4.to_string m);
         ) f.blocks;
-        lprint_newline ();
-        lprintf " Absent blocks:\n";
+        lprintf_nl " Absent blocks:";
         List.iter (fun (t1,n1) ->
-            lprintf "%10s - %10s\n" (Int64.to_string t1)
+            lprintf_nl "%10s - %10s" (Int64.to_string t1)
             (Int64.to_string n1);
         ) f.absents;
         print_tags f.tags;
-        lprint_newline ();
-      with _ -> lprintf "EEEEE\n";
-          
-    
+      with _ -> lprintf "Error: no file\n";
   end
-  
+
 module Pref = struct
     
     type t = {
@@ -311,10 +302,10 @@ module Pref = struct
       lprintf "PREF.MET %s\n" (Md4.to_string t.md4);
       
       print_tags t.client_tags;
-      lprint_newline ();
+      lprintf_nl "";
       
       print_tags t.option_tags;
-      lprint_newline ()
+      lprintf_nl ""
 (*
 (14)
 (2)(0)(0)(0)

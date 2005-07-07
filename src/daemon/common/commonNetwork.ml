@@ -27,7 +27,7 @@ open CommonTypes
 let ni n m = 
   let s = Printf.sprintf "Network.%s not implemented by %s" 
       m n in
-  lprintf "%s\n" s; 
+  lprintf_nl "%s" s; 
   s
   
 let fni n m =  failwith (ni n m)
@@ -46,58 +46,58 @@ let networks_by_num = Hashtbl.create 11
 let networks_ops = ref []
 
 let check_network_implementations () =
-  lprintf "\n---- Methods not implemented for CommonNetwork ----\n\n";
+  lprintf_nl "\n---- Methods not implemented for CommonNetwork ----\n";
   List.iter (fun (c, cc) ->
       let n = c.network_name in
-      lprintf "\n  Network %s\n\n" n; 
+      lprintf_nl "\n  Network %s\n" n; 
       if c.network_config_file == cc.network_config_file then 
-        lprintf "network_config_file\n";
+        lprintf_nl "network_config_file";
       if c.op_network_connected_servers == cc.op_network_connected_servers then 
-        lprintf "op_network_connected_servers\n";
+        lprintf_nl "op_network_connected_servers";
       if c.op_network_is_enabled == cc.op_network_is_enabled then 
-        lprintf "op_network_is_enabled\n";
+        lprintf_nl "op_network_is_enabled";
       if c.op_network_save_complex_options == cc.op_network_save_complex_options
         then 
-        lprintf "op_network_save_complex_options\n";
+        lprintf_nl "op_network_save_complex_options";
       if c.op_network_load_complex_options == cc.op_network_load_complex_options
         then 
-        lprintf "op_network_load_complex_options\n";
+        lprintf_nl "op_network_load_complex_options";
       if c.op_network_enable == cc.op_network_enable then 
-        lprintf "op_network_enable\n";
+        lprintf_nl "op_network_enable";
       if c.op_network_add_server == cc.op_network_add_server then 
-        lprintf "op_network_add_server\n";
+        lprintf_nl "op_network_add_server";
       if c.op_network_server_of_option == cc.op_network_server_of_option then 
-        lprintf "op_network_server_of_option";
+        lprintf_nl "op_network_server_of_option";
       if c.op_network_file_of_option == cc.op_network_file_of_option then 
-        lprintf "op_network_file_of_option";
+        lprintf_nl "op_network_file_of_option";
       if c.op_network_client_of_option == cc.op_network_client_of_option then 
-        lprintf "op_network_client_of_option";
+        lprintf_nl "op_network_client_of_option";
       if c.op_network_recover_temp == cc.op_network_recover_temp then 
-        lprintf "op_network_recover_temp\n";
+        lprintf_nl "op_network_recover_temp";
       if c.op_network_search == cc.op_network_search then 
-        lprintf "op_network_search\n";
+        lprintf_nl "op_network_search";
       if c.op_network_share == cc.op_network_share then 
-        lprintf "op_network_share\n";
+        lprintf_nl "op_network_share";
       if c.op_network_private_message == cc.op_network_private_message then 
-        lprintf "op_network_private_message\n";
+        lprintf_nl "op_network_private_message";
       if c.op_network_parse_url == cc.op_network_parse_url then 
-        lprintf "op_network_parse_url\n";
+        lprintf_nl "op_network_parse_url";
       if c.op_network_connect_servers == cc.op_network_connect_servers then 
-        lprintf "op_network_connect_servers\n";
+        lprintf_nl "op_network_connect_servers";
       if c.op_network_forget_search == cc.op_network_forget_search then 
-        lprintf "op_network_forget_search\n";
+        lprintf_nl "op_network_forget_search";
       if c.op_network_close_search == cc.op_network_close_search then 
-        lprintf "op_network_close_search\n";
+        lprintf_nl "op_network_close_search";
       if c.op_network_extend_search == cc.op_network_extend_search then 
-        lprintf "op_network_extend_search\n";
+        lprintf_nl "op_network_extend_search";
       if c.op_network_clean_servers == cc.op_network_clean_servers then 
-        lprintf "op_network_clean_servers\n";
+        lprintf_nl "op_network_clean_servers";
       if c.op_network_display_stats == cc.op_network_display_stats then 
-        lprintf "op_network_display_stats\n";
+        lprintf_nl "op_network_display_stats";
       if c.op_network_info == cc.op_network_info then 
-        lprintf "op_network_info\n";
+        lprintf_nl "op_network_info";
   ) !networks_ops;
-  lprint_newline () 
+  lprintf_nl "" 
   
 let network_connected_servers n = n.op_network_connected_servers ()
 let network_is_enabled n = n.op_network_is_enabled ()
@@ -120,7 +120,7 @@ let networks_iter f =
       with
       | IgnoreNetwork -> ()
       | e ->
-          lprintf "Exception %s in Network.iter for %s\n"
+          lprintf_nl "Exception %s in Network.iter for %s"
             (Printexc2.to_string e) r.network_name;
   ) !networks
   
@@ -131,7 +131,7 @@ let networks_iter_until_true f =
       with 
         IgnoreNetwork -> false
       | e ->
-          lprintf "Exception %s in Network.iter for %s\n"
+          lprintf_nl "Exception %s in Network.iter for %s"
             (Printexc2.to_string e) r.network_name;
           false
   ) !networks
@@ -142,7 +142,7 @@ let networks_iter_all f =
       with
       | IgnoreNetwork -> ()
       | e ->
-          lprintf "Exception %s in Network.iter for %s\n"
+          lprintf_nl "Exception %s in Network.iter for %s"
             (Printexc2.to_string e) r.network_name;
   ) !networks
   
@@ -152,7 +152,7 @@ let networks_iter_all_until_true f =
       with
         IgnoreNetwork -> false
       | e ->
-          lprintf "Exception %s in Network.iter for %s\n"
+          lprintf_nl "Exception %s in Network.iter for %s"
             (Printexc2.to_string e) r.network_name;
           false
   ) !networks
@@ -252,6 +252,6 @@ let new_network shortname name flags =
     networks_string := r.network_name
   else
     networks_string := Printf.sprintf "%s  %s" !networks_string r.network_name;
-(*  lprintf "Network %s registered\n" r.network_name; *)
+(*  lprintf_nl "Network %s registered" r.network_name; *)
   r
   

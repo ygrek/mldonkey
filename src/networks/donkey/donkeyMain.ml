@@ -75,7 +75,7 @@ let second_timer timer =
       DonkeySources.connect_sources connection_manager;
     with e ->
         if !verbose_sources > 2 then 
-          lprintf "Exception %s while checking sources\n" 
+          lprintf_nl "Exception %s while checking sources" 
             (Printexc2.to_string e)
   )
 
@@ -204,7 +204,7 @@ let enable () =
                   if Unix32.file_exists file_disk_name &&
                     Unix32.getsize file_disk_name false <> Int64.zero then begin
                     (* getsize writable=false is ok because file has state FileDownloaded *)
-                      lprintf "FILE DOWNLOADED\n"; 
+                      lprintf_nl "FILE DOWNLOADED"; 
                       
                       DonkeyOneFile.declare_completed_file file;
                     end
@@ -213,7 +213,7 @@ let enable () =
                     file_commit (as_file file)
               end
           with e ->
-              lprintf "Exception %s while recovering download %s\n"
+              lprintf_nl "Exception %s while recovering download %s"
                 (Printexc2.to_string e) (file_disk_name file); 
       ) files_by_md4;
       
@@ -256,7 +256,7 @@ be useful when users want to share files that they had already previously
               udp_sock := Some sock;
               UdpSocket.set_write_controler sock udp_write_controler;
             with e ->
-                lprintf "Exception %s while binding UDP socket\n"
+                lprintf_nl "Exception %s while binding UDP socket"
                   (Printexc2.to_string e);
           end;
           sock
@@ -328,7 +328,7 @@ be useful when users want to share files that they had already previously
 *)
 
   with e ->
-      lprintf "Error: Exception %s during startup\n"
+      lprintf_nl "Error: Exception %s during startup"
         (Printexc2.to_string e)
 
 let _ =
@@ -375,21 +375,21 @@ let _ =
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        lprint_newline ();
+        lprintf_nl "";
     ), " <filename> : print a known.met file";
     "-part", Arg.String (fun file ->
         let module K = DonkeyImport.Part in
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        lprint_newline ();
+        lprintf_nl "";
     ), " <filename> : print a .part.met file";
     "-server", Arg.String (fun file ->
         let module K = DonkeyImport.Server in
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        lprint_newline ();
+        lprintf_nl "";
         exit 0
     ), " <filename> : print a server.met file";
     "-pref", Arg.String (fun file ->
@@ -397,14 +397,14 @@ let _ =
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        lprint_newline ();
+        lprintf_nl "";
     ), " <filename> : print a server.met file";
     "-peers", Arg.String (fun file ->
         let module K = DonkeyOvernetImport.Peer in
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        lprint_newline ();
+        lprintf_nl "";
         exit 0
     ), " <filename> : print a contact.dat file";
   ]

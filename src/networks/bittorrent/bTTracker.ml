@@ -24,18 +24,18 @@ open CommonOptions
 open Printf2
 
 open BasicSocket
-  
+
 open CommonGlobals
-  
+
 open BTOptions
 open BTTypes
 open BTGlobals
 open Bencode
 
-  
+
 open Gettext  
 let _s x = _s "BTTracker" x
-let _b x = _b "BTTracker" x  
+let _b x = _b "BTTracker" x
 
 (* 
 
@@ -45,7 +45,7 @@ and also check which chunks they have before sending them sources, so
 that we can filter out immediatly sources that are not interesting for
 them.
 *)
-  
+
 (*
 
 torrents/: for BitTorrent
@@ -57,7 +57,6 @@ torrents/: for BitTorrent
 
   *)
 
-  
 open Http_server
 
 type tracker_peer = {
@@ -268,7 +267,7 @@ let http_handler t r =
 
 (* Try to find the .torrent file, normally in torrents/, but maybe
 in sub-directories in former versions. *)
-        
+
         let filename = 
           let file_name = Filename.concat old_torrents_directory filename in
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
@@ -286,19 +285,19 @@ in sub-directories in former versions. *)
               (Printf.sprintf "Tracker HTTPD: torrent [%s] not found" filename)
         in
         r.reply_content <- File.to_string filename
-  
+
   with e ->
-      lprintf "BTTracker: for request [%s] exception %s\n" 
+      lprintf_nl "[BT]: Tracker: for request [%s] exception %s"
         (Url.to_string r.get_url) (Printexc2.to_string e);
-      
+
       r.reply_head <- "404 Not Found"
-      
+
 (* We came back to the "universal" tracker, i.e. a tracker for all files
 with only a limitation on the number. So, this function is not useful anymore.
-  
-let scan_tracked_directory _ = 
+
+let scan_tracked_directory _ =
   let filenames = Unix2.list_directory tracked_directory in
-  
+
   let old_tracked_files = !current_tracked_files in
   current_tracked_files := Hashtbl.create 13;
   List.iter (fun filename ->
@@ -346,21 +345,21 @@ let stop_tracker () =
       TcpServerSocket.close sock Closed_by_user;
       tracker_sock := None
 
-(* Every 600 seconds *)
+(* Every 600 seconds, refresh the peers list *)
 let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
   let trackers = ref [] in
-  
-  if !verbose_msg_servers then lprintf "clean_tracker_timer\n";
+
+  if !verbose_msg_servers then lprintf_nl "[BT]: clean_tracker_timer";
   Hashtbl.iter (fun _ tracker ->
       let list = ref [] in
       let old_peers = ref [] in
-      Hashtbl.iter (fun _ peer -> 
+      Hashtbl.iter (fun _ peer ->
           if peer.peer_active < time_threshold then
             old_peers := peer :: !old_peers
           else
           if Ip.valid peer.peer_ip && ip_reachable peer.peer_ip then
-            list := peer :: !list) 
+            list := peer :: !list)
       tracker.tracker_table;
       List.iter (fun p ->
           Hashtbl.remove tracker.tracker_table p.peer_id
@@ -376,7 +375,6 @@ let clean_tracker_timer () =
   List.iter (fun t ->
       Hashtbl.add tracked_files t.tracker_id t
   ) !trackers
-  
+
 let _ =
   add_infinite_timer 600. clean_tracker_timer
-  

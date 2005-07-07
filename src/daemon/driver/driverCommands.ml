@@ -1452,7 +1452,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option http_realm;
                         strings_of_option allowed_ips;
                       ] 
-                  | 3 -> 
+                  | 3 ->
                       [
                         strings_of_option html_mods_use_relative_availability;
                         strings_of_option html_mods_human_readable;
@@ -1912,7 +1912,7 @@ let _ =
             ( "1", "srh", "Total bytes sent", "Total" ) ; 
             ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
             ( "0", "srh", "Filename", "Filename" );
-	    ( "0", "srh", "Statistic links", "Stats" ) ]
+            ( "0", "srh", "Statistic links", "Stats" ) ]
         else
           begin
             Printf.bprintf buf " Requests |  Bytes   | Uploaded | File\n";

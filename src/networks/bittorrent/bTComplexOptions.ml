@@ -159,7 +159,7 @@ let value_to_file file_size file_state assocs =
         (get_value  "file_sources" (
           value_to_list (ClientOption.of_value file)))
     with e -> 
-        lprintf "Exception %s while loading sources\n"
+        lprintf_nl "[BT]: Exception %s while loading sources"
           (Printexc2.to_string e); 
   );
 
@@ -206,7 +206,7 @@ send us more clients.
         Int64Swarmer.swarmer_to_value swarmer assocs
   with
     e ->
-      lprintf "BTComplexOptions: exception %s in file_to_value\n"
+      lprintf_nl "BTComplexOptions: exception %s in file_to_value"
         (Printexc2.to_string e); raise e
       
 let old_files = 

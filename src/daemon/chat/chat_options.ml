@@ -156,8 +156,7 @@ let
           (match option_name with
              [] -> "???"
            | name :: _ -> name);
-        lprintf "%s" (Printexc2.to_string e);
-        lprint_newline ();
+        lprintf_nl "%s" (Printexc2.to_string e);
         default_value
     end;
   o
@@ -299,8 +298,7 @@ let really_load filename options =
       let list =
 	try parse_gwmlrc stream with
           e ->
-            lprintf "At pos %d/%d" (Stream.count s) (Stream.count stream);
-            lprint_newline ();
+            lprintf_nl "At pos %d/%d" (Stream.count s) (Stream.count stream);
             raise e
       in
       List.iter
@@ -312,27 +310,26 @@ let really_load filename options =
             exec_hooks o
           with
             e ->
-             lprintf "Exc %s" (Printexc2.to_string e); lprint_newline ())
+             lprintf_nl "Exc %s" (Printexc2.to_string e))
 	options;
       list
     with
       e ->
-	lprintf "Error %s in %s" (Printexc2.to_string e) filename;
-	lprint_newline ();
+	lprintf_nl "Error %s in %s" (Printexc2.to_string e) filename;
 	[]
 ;;
       
 let load opfile =
   try opfile.file_rc <- really_load opfile.file_name opfile.file_options with
     Not_found -> 
-      lprintf "No %s found" opfile.file_name; lprint_newline ()
+      lprintf_nl "No %s found" opfile.file_name
 ;;
 
 let append opfile filename =
   try opfile.file_rc <-
     really_load filename opfile.file_options @ opfile.file_rc with
     Not_found -> 
-      lprintf "No %s found" filename; lprint_newline ()
+      lprintf_nl "No %s found" filename
 ;;
       
 let ( !! ) o = o.option_value;;
@@ -572,11 +569,10 @@ let save opfile =
             o.option_class.to_value o.option_value 
           with
             e ->
-              lprintf "Error while saving option \"%s\": %s"
+              lprintf_nl "Error while saving option \"%s\": %s"
                 (try List.hd o.option_name with
                   _ -> "???")
               (Printexc2.to_string e);
-              lprint_newline ();
               StringValue ""))
     (List.rev opfile.file_options));
   if not opfile.file_pruned then begin
@@ -656,8 +652,7 @@ let value_to_tuple2 (c1, c2) v =
     List [v1; v2] -> from_value c1 v1, from_value c2 v2
   | SmallList [v1; v2] -> from_value c1 v1, from_value c2 v2
   | List l | SmallList l ->
-      lprintf "list of %d" (List.length l);
-      lprint_newline ();
+      lprintf_nl "list of %d" (List.length l);
       failwith "Options: not a tuple2 list option"
   | _ -> failwith "Options: not a tuple2 option"
 ;;

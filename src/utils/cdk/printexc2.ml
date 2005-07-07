@@ -19,7 +19,7 @@
 
 open Printf2;;
 open Printf
-  
+
 let locfmt =
   Obj.magic (match Sys.os_type with
   | "MacOS" -> "File \"%s\"; line %d; characters %d to %d ### %s"
@@ -83,31 +83,28 @@ let print fct arg =
     raise x
 
 let register_exn f = printers := f :: !printers
-  
+
 let catch s f x =
   try f x with
     e -> 
-      lprintf "Uncaught exception in %s: %s" s (to_string e);
-      lprint_newline () 
-  
+      lprintf_nl "Uncaught exception in %s: %s" s (to_string e)
+
 let catch2 s f x y =
   try f x y with
     e -> 
-      lprintf "Uncaught exception in %s: %s" s (to_string e);
-      lprint_newline () 
-  
+      lprintf_nl "Uncaught exception in %s: %s" s (to_string e)
+
 let vcatchexn s f =
   try Some (f ()) with
     e -> 
-      lprintf "Uncaught exception in %s: %s" s (to_string e);
-      lprint_newline ();
+      lprintf_nl "Uncaught exception in %s: %s" s (to_string e);
       None
 
 let _ =
   register_exn (fun e ->
       match e with
         Unix.Unix_error (e, f, arg) ->
-          Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else 
+          Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else
               "on " ^ arg) (Unix.error_message e)
           | _ -> raise e
   )

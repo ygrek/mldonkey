@@ -31,6 +31,11 @@ Soulburner
 Denis Fortin (Hightime)
 Spiralvoice
 Zet
+Amorphous
+Knocker
+Schlumpf
+su_blanc
+bogeyman
 
 Fasttrack plugin from giFT-fasttrack:
 Markus Kern

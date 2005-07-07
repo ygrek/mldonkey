@@ -249,7 +249,7 @@ let parse_head sock s =
               | _ -> options
             with e ->
                 if !debug then begin
-                    lprintf "Exception %s in header %s\n"
+                    lprintf_nl "[HTTPSRV]: Exception %s in header %s"
                       (Printexc2.to_string e) name;
                   end;
                 options
@@ -390,11 +390,11 @@ let complete_multipart_data request ic tail =
               lprintf "ILL FORMED LINE: [%s]" name;
               List.iter (fun (name, v) ->
                   lprintf " (%s,%s)" name v) args;
-              lprint_newline ();
+              lprint_nl "";
             end;
           raise Exit
       | [] -> 
-          if !debug then lprintf "NO LINES\n";
+          if !debug then lprintf_nl "NO LINES";
           raise Exit
     in
     if !end_boundary_found then field :: previous else
@@ -406,7 +406,7 @@ let complete_multipart_data request ic tail =
 
 let parse_post_args f len req b =
 (* parse post args *)
-  lprintf "CALL HANDLR\n";
+  lprintf_nl "CALL HANDLER";
   let s = String.sub b.rbuf b.rpos len in
   Select.buf_used b len;
   let args = Url.cut_args s in
@@ -415,12 +415,12 @@ let parse_post_args f len req b =
   f b req
   
 let check_len f len b pos2 =
-  lprintf "check_len: len %d rlen %d\n" len b.rlen;
+  lprintf_nl "check_len: len %d rlen %d" len b.rlen;
   if b.rlen >= len then f b
 
 let complete_post_request ( f : handler ) buf request =
   let len = request.options.content_length in
-  lprintf "check_len: len %d rlen %d\n" len buf.rlen;
+  lprintf_nl "check_len: len %d rlen %d" len buf.rlen;
   if buf.rlen >= len then
     parse_post_args f len request buf
   else
@@ -635,7 +635,7 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      lprintf "No such file: %s (%s)\n" file (Printexc2.to_string e); 
+      lprintf_nl "[HTTPSRV]: No such file: %s (%s)" file (Printexc2.to_string e); 
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown
 *)      
@@ -797,7 +797,7 @@ let handler config t event =
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> TcpBufferedSocket.close sock Closed_for_overflow;
-	       lprintf "BUFFER OVERFLOW\n" );  ()
+	       lprintf_nl "[HTTPSRV]: BUFFER OVERFLOW" );  ()
       else
         Unix.close s
   | _ -> ()
@@ -854,7 +854,7 @@ let parse_range range =
     x, Some y, Some z
   with 
   | e ->
-      lprintf "Exception %s for range [%s]\n" 
+      lprintf_nl "[HTTPSRV]: Exception %s for range [%s]"
         (Printexc2.to_string e) range;
       raise e
 
@@ -872,7 +872,7 @@ open Int64ops
 (*  Range: bytes=31371876- *)
 let request_range r =
   List.iter (fun (h, v1) ->
-      lprintf "HEADER [%s] = [%s]\n" h v1
+      lprintf_nl "[HTTPSRV]: HEADER [%s] = [%s]" h v1
   ) r.headers;
   let range = List.assoc "Range" r.headers in
   match parse_range range with

@@ -245,30 +245,29 @@ le mot apparait.
         end
     
     let print idx =
-      lprintf "INDEX"; lprint_newline ();  
+      lprintf_nl "INDEX";
       let rec iter pos tree =
         match tree.tree_expr with
         | Suffix s ->
             spaces pos;
-            lprintf "SUFFIX %d" s.suffix_num; lprint_newline (); 
+            lprintf_nl "SUFFIX %d" s.suffix_num;
         | String (s, num) ->
             spaces pos;
-            lprintf "[%s]  ---> [%d]" s num.suffix_num;  
+            lprintf "[%s]  ---> [%d]" s num.suffix_num;
             spaces pos;
             lprintf "  ";
             List.iter (fun w ->
-                lprintf "%s " w.word_string) num.suffix_words;
-            lprint_newline ();
+                lprintf_nl "%s " w.word_string) num.suffix_words;
         | List(num, list) ->
             spaces pos;
-            lprintf "List [%d]" num.suffix_num; lprint_newline ();
+            lprintf_nl "List [%d]" num.suffix_num;
             List.iter (fun (c, tree) ->
                 spaces (pos+2);
-                lprintf "Char [%c]" c; lprint_newline ();
+                lprintf_nl "Char [%c]" c;
                 iter (pos+4) tree
             ) list;
         | Filtered tree ->
-            lprintf "FILTERED"; lprint_newline ();
+            lprintf_nl "FILTERED";
             iter (pos+2) tree
       in
       iter 0 idx.index_tree
@@ -281,10 +280,9 @@ le mot apparait.
       }
     
     let print_word_docs w =
-      lprintf "Word [%s]" w.word_string; lprint_newline ();
+      lprintf_nl "Word [%s]" w.word_string;
       List.iter (fun (doc, _) ->
-          lprintf "    %d" (Doc.num doc); lprint_newline ()) w.word_docs;
-      lprint_newline ()
+          lprintf_nl "    %d" (Doc.num doc)) w.word_docs
     
     let rec print_suffix_docs suffix = 
       List.iter (fun w ->
@@ -301,7 +299,7 @@ le mot apparait.
           print_suffix_docs s;
           List.iter (fun (c,t) -> print_all_docs t.tree_expr) list
       | Filtered t ->
-          lprintf "filtered"; lprint_newline ();
+          lprintf_nl "filtered";
           print_all_docs t.tree_expr
 
 
@@ -336,7 +334,7 @@ le mot apparait.
           None -> s.suffix_words | Some w -> w :: s.suffix_words)
     
     let add_filter idx s =
-(*  lprintf "ADD FILETRR ON %s" s; lprint_newline (); *)
+(*  lprintf "ADD FILTER ON %s" s; lprint_newline (); *)
       let len = String.length s in
       let rec iter pos tree =
         if pos = len then begin

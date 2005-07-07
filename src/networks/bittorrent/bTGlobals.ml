@@ -157,7 +157,7 @@ let add_torrent_infos file trackers =
   ) trackers
 
 let create_temp_file file_temp file_files =
-  if !CommonOptions.verbose_files then lprintf "create_temp_file %s\n" file_temp;
+  if !CommonOptions.verbose_files then lprintf_nl "create_temp_file %s" file_temp;
   let file_fd =
     if file_files <> [] then
       Unix32.create_multifile file_temp

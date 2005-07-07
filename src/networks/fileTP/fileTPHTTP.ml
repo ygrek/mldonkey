@@ -46,6 +46,7 @@ open FileTPProtocol
 
 open FileTPClients
 
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)
@@ -144,12 +145,12 @@ let rec client_parse_header c gconn sock header =
             unknown_header := !unknown_header || not (List.mem header known_download_headers)
         ) headers;
         if !unknown_header then begin
-            lprintf "FT DEVEL: Download Header contains unknown fields\n";
+            lprintf_nl "FileTP DEVEL: Download Header contains unknown fields";
             lprintf "    %s\n" first_line;
             List.iter (fun (header, (value,header2)) ->
                 lprintf "    [%s] = [%s](%s)\n" header value header2;
             ) headers;
-            lprintf "FT DEVEL: end of header\n";        
+            lprintf_nl "FileTP DEVEL: end of header";
           end;
       end;
     
@@ -219,7 +220,7 @@ let rec client_parse_header c gconn sock header =
             if code <> 206 && code <> 200 then raise Not_found;
             let (len,_) = List.assoc "content-length" headers in
             let len = Int64.of_string len in
-            lprintf "Specified length: %Ld\n" len;
+            if !verbose then lprintf_nl "Specified length: %Ld" len;
             match d.download_ranges with
               [] -> raise Not_found
             | (start_pos,end_pos,r) :: _ -> 
@@ -244,7 +245,7 @@ let rec client_parse_header c gconn sock header =
     (try
         let (len,_) = List.assoc "content-length" headers in
         let len = Int64.of_string len in
-        lprintf "Specified length: %Ld\n" len;
+        if !verbose then lprintf_nl "Specified length: %Ld" len;
         if len <> end_pos -- start_pos then
           begin
             failwith "\n\nERROR: bad computed range: %Ld-%Ld/%Ld \n%s\n"
@@ -256,7 +257,7 @@ let rec client_parse_header c gconn sock header =
             (String.escaped header)
     );
     
-    lprintf "Receiving range: %Ld-%Ld (len = %Ld)\n%s\n"    
+    if !verbose then lprintf_nl "Receiving range: %Ld-%Ld (len = %Ld)\n%s"
       start_pos end_pos (end_pos -- start_pos)
     (String.escaped header)
     ;
@@ -300,7 +301,7 @@ end_pos !counter_pos b.len to_read;
                 Int64Swarmer.received up
                   !counter_pos b.buf b.pos to_read_int;
           with e -> 
-              lprintf "FT: Exception %s in Int64Swarmer.received\n"
+              lprintf_nl "FileTP: Exception %s in Int64Swarmer.received"
                 (Printexc2.to_string e)
         end;
         c.client_reconnect <- true;
@@ -314,7 +315,7 @@ end_pos !counter_pos b.len to_read;
           | r :: _ -> 
 (*
               let (x,y) = Int64Swarmer.range_range r in
-              lprintf "Received %Ld [%Ld] (%Ld-%Ld) -> %Ld\n"
+              if !verbose then lprintf_nl "Received %Ld [%Ld] (%Ld-%Ld) -> %Ld"
                 !counter_pos to_read
                 x y 
                 (new_downloaded -- old_downloaded)
@@ -381,7 +382,7 @@ let http_check_size url start_download_file =
     } in
   
   H.whead r (fun headers ->      
-      lprintf "RECEIVED HEADERS\n";
+      if !verbose then lprintf_nl "RECEIVED HEADERS";
       let content_length = ref None in
       List.iter (fun (name, content) ->
           if String.lowercase name = "content-length" then
@@ -417,7 +418,7 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should no
   even in this case... *)
         
         | CONNECTED ->
-          lprintf "CONNECTED !!! Asking for range...\n"; 
+          if !verbose then lprintf_nl "CONNECTED !!! Asking for range...";
           f sock
         | _ -> ()
     )

@@ -144,7 +144,7 @@ let set_file_size file size =
     
 let new_file file_id file_name file_size = 
   let file_temp = Filename.concat !!temp_directory 
-      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
+      (Printf.sprintf "FileTP-%s" (Md4.to_string file_id)) in
   let t = Unix32.create_rw file_temp in
   let rec file = {
       file_file = file_impl;

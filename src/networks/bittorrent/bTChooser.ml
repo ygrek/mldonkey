@@ -58,7 +58,7 @@ let choose_next_uploaders files fun_comp =
             possible_uploaders := (c::!possible_uploaders);
           end )  f.file_clients;
       if !verbose_upload then
-          lprintf "clients num %d as possible uploaders for file %s\n" (List.length !possible_uploaders) f.file_name;
+          lprintf_nl "[BT]: clients num %d as possible uploaders for file %s\n" (List.length !possible_uploaders) f.file_name;
       (*Interested clients with a connection*)
       let filtl = List.filter (fun c -> c.client_interested == true 
             && (c.client_sock != NoConnection) 
@@ -82,12 +82,12 @@ let choose_next_uploaders files fun_comp =
       full_list := !full_list @ to_add;
       if !verbose_upload then
         begin
-          lprintf "  potential uploaders count: %d list:" (List.length to_add);
+          lprintf "[BT]: potential uploaders count: %d list: [" (List.length to_add);
           List.iter (fun cr ->
               let (ip,port) = cr.client_host in
                   lprintf " %s:%d" (Ip.to_string ip) port;
              ) to_add;
-          lprintf "\n";
+          lprintf_nl " ]";
         end;
   
   ) files;
@@ -131,24 +131,24 @@ let choose_uploaders files =
   begin
     if !verbose_upload then
         begin
-          lprintf "next_uploaders: %d List:" (List.length next_uploaders);
+          lprintf "[BT]: next_uploaders: %d list: [" (List.length next_uploaders);
           List.iter (fun cr ->
               let (ip,port) = cr.client_host in
                   lprintf " %s:%d" (Ip.to_string ip) port;
              ) next_uploaders;
-          lprintf "\n";
+          lprintf_nl " ]";
         end;
     if (List.length next_uploaders) > !!max_bt_uploaders then
         let keep,rest = List2.cut !!max_bt_uploaders next_uploaders in
         begin
           if !verbose_upload then
              begin
-               lprintf "cut next_uploaders: %d List:" (List.length keep);
+               lprintf "[BT]: cut next_uploaders: %d list: [" (List.length keep);
                List.iter (fun cr ->
                     let (ip,port) = cr.client_host in
                         lprintf " %s:%d" (Ip.to_string ip) port;
                    ) keep;
-               lprintf "\n";
+               lprintf_nl " ]";
              end;
           keep
         end

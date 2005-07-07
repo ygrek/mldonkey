@@ -215,7 +215,7 @@ With bencoded payload:
           int: begin
           int: length (power of 2, 2 ^ 15)
 
-Chock/unchock every 10 seconds        
+Choke/unchoke every 10 seconds        
 *)
 
 
@@ -276,7 +276,7 @@ module TcpMessages = struct
       | Ping -> "Ping"
       | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
     
-    let parser opcode m = 
+    let parsing opcode m = 
         match opcode with
           0 -> Choke
         | 1 -> Unchoke

@@ -21,7 +21,6 @@
 (** Functions used in client<->client communication  
 *)
 
-
 (** A peer (or client) is always a remote peer in this file.
   A Piece is a portion of the file associated with a hash (sha1).
   In mldonkey a piece is referred as a block inside the swarming system.
@@ -30,7 +29,7 @@
   In mldonkey a SubPiece is referred as a range inside the swarming system.
   @see  <http://wiki.theory.org/index.php/BitTorrentSpecification> wiki for some
   unofficial (but more detailed) specs.
-*) 
+*)
 
 open Int64ops
 open AnyEndian
@@ -53,8 +52,8 @@ open CommonTypes
 open CommonFile
 open CommonSwarming
 open CommonGlobals
-open CommonDownloads  
-  
+open CommonDownloads
+
 open BTRate
 open BTTypes
 open BTProtocol
@@ -88,18 +87,18 @@ let current_uploaders = ref ([] : BTTypes.client list)
    get_sources_from_tracker for an example)
 *)
 let connect_trackers file event f =
-  
-  let args,must_check_delay, downloaded, left = 
-    
+
+  let args,must_check_delay, downloaded, left =
+
     match file.file_swarmer with
-      None -> 
-        begin 
+      None ->
+        begin
           match event with
           | "started" -> [("event", "started")],true,zero,zero
           | "stopped" -> [("event", "stopped")],false,zero,zero
           | _ -> [],true, zero, zero
         end
-    
+
     | Some swarmer ->
         let local_downloaded = Int64Swarmer.downloaded swarmer in
         let left = file_size file -- local_downloaded in
@@ -109,8 +108,8 @@ let connect_trackers file event f =
         | "stopped" -> [("event", "stopped")],false,local_downloaded, left
         | _ -> [],true,local_downloaded, left
   in
-  
-  let args = 
+
+  let args =
     ("info_hash", Sha1.direct_to_string file.file_id) ::
     ("peer_id", Sha1.direct_to_string !!client_uid) ::
     ("port", string_of_int !!client_port) ::
@@ -240,26 +239,27 @@ let disconnect_client c reason =
           c.client_new_chunks <- [];
           c.client_interesting <- false;
           c.client_alrd_sent_interested <- false;
-	    -------------------^^^^^--------------------*)
+    -------------------^^^^^--------------------*)
           if (c.client_registered_bitfield) then
             begin
               match c.client_uploader with
                 None -> ()
               | Some up ->
                   c.client_uploader <- None;
-(* If the client registered a bitfield then 
-		we must unregister him to update the swarmer
-		(Useful for availability)
-	      *)
+                  (* If the client registered a bitfield then
+                     we must unregister him to update the swarmer
+                     (Useful for availability)
+                  *)
                   Int64Swarmer.unregister_uploader up
 (*	      c.client_registered_bitfield <- false;
           for i = 0 to String.length c.client_bitmap - 1 do
             c.client_bitmap.[0] <- '0';
-			      done*)
+          done*)
             end;
-(* Don't test if a client have an upload slot because
-	  it don't have one (removed during earlier in
-	    set_client_disconnected c reason) *)
+          (* Don't test if a client have an upload slot because
+             it don't have one (removed during earlier in
+          set_client_disconnected c reason)
+          *)
           if (List.mem c !current_uploaders) then
             begin
 (*BTGlobals.remove_client*)
@@ -270,35 +270,31 @@ let disconnect_client c reason =
             remove_client c;
         with _ -> ()
   end
-  
-    
 
-      
+
 (** Disconnect all clients of a file
   @param file The file to which we must disconnects all clients
-*)   
-let disconnect_clients file = 
+*)
+let disconnect_clients file =
   let must_keep = ref true in
     (match file_state file with
        | FilePaused | FileCancelled -> must_keep:=false
        | _-> ()
     );
   Hashtbl.iter (fun _ c ->
-  if not ( !must_keep && (client_has_a_slot (as_client c) || c.client_interested)) then	
+  if not ( !must_keep && (client_has_a_slot (as_client c) || c.client_interested)) then
     begin
       if !verbose_msg_clients then
-        lprintf "disconnect since download is finished\n";
+        lprintf_nl "disconnect since download is finished";
       disconnect_client c Closed_by_user
     end
   ) file.file_clients
-          
-
 
 
 (** What to do when a file is finished
   @param file the finished file
 *)
-let download_finished file = 
+let download_finished file =
     if List.memq file !current_files then
       begin
         connect_trackers file "completed" (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
@@ -315,28 +311,22 @@ let download_finished file =
   A file is finished if all blocks are verified.
   @param file The file to check status
 *)
-let check_finished swarmer file = 
+let check_finished swarmer file =
   if Int64Swarmer.check_finished swarmer then
       download_finished file
-      
-    
 
-
-    
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
 (* Official client seems to use max_range_request 5 and max_range_len 2^14 *)
 (* How much requests in the 'pipeline' *)
 let max_range_requests = 5
 (* How much bytes we can request in one Piece *)
 
-    
 
-
-(** A wrapper to send Interested message to a client. 
+(** A wrapper to send Interested message to a client.
   (Send interested only if needed)
   @param c The client to send Interested
 *)    
-let send_interested c = 
+let send_interested c =
   if c.client_interesting && (not c.client_alrd_sent_interested) then
     begin
       c.client_alrd_sent_interested <- true;
@@ -344,25 +334,22 @@ let send_interested c =
     end
 
 
-
-
 (** Send a Bitfield message to a client. 
   @param c The client to send the Bitfield message
-*)    
-let send_bitfield c = 
+*)
+let send_bitfield c =
   let bitmap =
     match c.client_file.file_swarmer with
       None -> 
 (* This must be a seeded file... *)
         String.make (Array.length c.client_file.file_chunks) '3'
     | Some swarmer ->
-        Int64Swarmer.verified_bitmap swarmer 
+        Int64Swarmer.verified_bitmap swarmer
   in
-  
-  if !verbose then begin 
-      lprintf "SENDING Verified bitmap: [%s]\n" bitmap;
-      end; 
-  send_client c (BitField 
+
+  if !verbose then lprintf_nl "SENDING Verified bitmap: [%s]" bitmap;
+
+  send_client c (BitField
       (        
       let nchunks = String.length bitmap in
       let len = (nchunks+7)/8 in
@@ -378,54 +365,47 @@ let send_bitfield c =
       done;
       s
     ))
-  
 
-  
-
-
-
-  
 let counter = ref 0
 
 
-
-(** This function is called to parse the first message that 
+(** This function is called to parse the first message that
   a client send.
-  @param counter Don't know what it is
+  @param counter client num
   @param cc Expected client (probably useless now that we don't save any client)
   @param init_sent A boolean to know if we sent this client the handshake message
   @param gconn Don't know
   @param sock The socket we use for this client
-  @param proto Not used???
+  @param proto Unused (required by tuple type?)
   @param file_id The file hash (sha1) of the file involved in this exchange
 *)
 (* removed: @param peer_id The hash (sha1) of the client. (Should be checked)
 *)
-let rec client_parse_header counter cc init_sent gconn sock 
-    (proto, file_id) = 
+let rec client_parse_header counter cc init_sent gconn sock
+    (proto, file_id) =
   try
     set_lifetime sock 600.;
     if !verbose_msg_clients then
-      lprintf "client_parse_header %d\n" counter;
-    
+      lprintf_nl "client_parse_header %d" counter;
+
     let file = Hashtbl.find files_by_uid file_id in
     if !verbose_msg_clients then
-      lprintf "file found\n";
-    let c = 
-      match !cc with 
+      lprintf_nl "file found";
+    let c =
+      match !cc with
         None ->
           let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) in
-          if !verbose_connect then lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
+          if !verbose_connect then lprintf_nl "CLIENT %d: incoming CONNECTION" (client_num c);
           cc := Some c;
           c
       | Some c ->
-          (* Does it happen that this c was alread used to connect sucessfully?
+          (* Does it happen that this c was already used to connect successfully?
              If yes then this must happen: *)
           c.client_received_peer_id <- false;
           c
          (* client could have had Sha1.null as peer_id/uid *)
          (* this is to be done, later
-         if c.client_uid <> peer_id then 
+         if c.client_uid <> peer_id then
           c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
           c
          *)
@@ -447,75 +427,72 @@ let rec client_parse_header counter cc init_sent gconn sock
                     cc := Some ccc;
                     ccc)
             end else
-            c       *)   
+            c       *)
     in
-    
+
     if !verbose_msg_clients then begin
         let (ip,port) = c.client_host in
-          lprintf "CLIENT %d: Connected (%s:%d)\n" (client_num c)
+          lprintf_nl "[BT]: CLIENT %d: Connected (%s:%d)" (client_num c)
             (Ip.to_string ip) port;
       end;
-    
+
     (match c.client_sock with
         NoConnection ->
           if !verbose_msg_clients then
-            lprintf "Client was not connected !!!\n";
+            lprintf_nl "[BT]: Can't connect to client !!!";
           c.client_sock <- Connection sock
       | ConnectionWaiting token ->
           cancel_token token;
           if !verbose_msg_clients then
-            lprintf "Client was not connected !!!\n";
+            lprintf_nl "[BT]: Waiting for connection to client !!!";
           c.client_sock <- Connection sock
-      | Connection s when s != sock -> 
-          if !verbose_msg_clients then 
-            lprintf "CLIENT %d: IMMEDIATE RECONNECTION\n" (client_num c);
+      | Connection s when s != sock ->
+          if !verbose_msg_clients then
+            lprintf_nl "[BT]: CLIENT %d: IMMEDIATE RECONNECTION" (client_num c);
           disconnect_client c (Closed_for_error "Reconnected");
           c.client_sock <- Connection sock;
       | Connection _  -> ()
     );
-    
+
     set_client_state (c) (Connected (-1));
-    if not init_sent then 
+    if not init_sent then
       begin
         c.client_incoming<-true;
         send_init !!client_uid file_id sock;
       end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
-      lprintf "file and client found\n";
+      lprintf_nl "[BT]: file and client found";
 (*    if not c.client_incoming then *)
     send_bitfield c;
     c.client_blocks_sent <- file.file_blocks_downloaded;
 (*
-      TODO !!! : send interested if and only if we are interested 
+      TODO !!! : send interested if and only if we are interested
       -> we must recieve at least other peer bitfield.
       in common swarmer -> compare : partition -> partition -> bool
     *)
 
 (*    send_client c Unchoke;  *)
-    
+
     set_rtimeout sock !!client_timeout;
 (*Once parse succesfully we define the function
     client_to_client to be the function used when a message
     is read*)
     gconn.gconn_handler <- Reader (fun gconn sock ->
-        bt_handler TcpMessages.parser (client_to_client c) c sock
+        bt_handler TcpMessages.parsing (client_to_client c) c sock
     );
-    
+
     ()
   with
       | Not_found ->
           let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
           if !verbose_unexpected_messages then
-            lprintf "BT: %s:%d requested a file that is not shared [%s]\n"
+            lprintf_nl "[BT]: %s:%d requested a file that is not shared [%s]"
               (Ip.to_string ip) port (Sha1.to_hexa file_id)
       | e ->
-          lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
+          lprintf_nl "[BT]: Exception %s in client_parse_header" (Printexc2.to_string e);
       close sock (Closed_for_exception e);
       raise e
-
-
-
 
 
 (** Update the bitmap of a client. Unclear if it is still useful.
@@ -526,7 +503,7 @@ and update_client_bitmap c =
   let swarmer = match file.file_swarmer with
       None -> assert false
     | Some swarmer -> swarmer in
-  let up = 
+  let up =
     match c.client_uploader with
       None ->
         let up = Int64Swarmer.register_uploader swarmer (as_client c)
@@ -536,22 +513,23 @@ and update_client_bitmap c =
     | Some up ->
         up
   in
-  
+
   let bitmap = match c.client_bitmap with
-      None -> 
+      None ->
         let len = Int64Swarmer.partition_size swarmer in
         let bitmap = String.make (len*8) '0' in
         c.client_bitmap <- Some bitmap;
         bitmap
     | Some bitmap -> bitmap
   in
-  
+
   if c.client_new_chunks <> [] then
     let chunks = c.client_new_chunks in
     c.client_new_chunks <- [];
     let file = c.client_file in
     List.iter (fun n -> bitmap.[n] <- '1') chunks;
     Int64Swarmer.update_uploader up (AvailableCharBitmap bitmap)
+
 
 (** In this function we decide which piece we must request from client.
   @param sock Socket of the client
@@ -562,73 +540,73 @@ and get_from_client sock (c: client) =
 (*Check if there's not enough requests in the 'pipeline'
     and if a request can be send (not choked and file is downloading) *)
   if List.length c.client_ranges_sent < max_range_requests && 
-    file_state file = FileDownloading && (c.client_choked == false)  then 
+    file_state file = FileDownloading && (c.client_choked == false) then
 (*num is the number of the piece, x and y are the position
 of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
-    
-    
+
     let up = match c.client_uploader with
         None -> assert false
       | Some up -> up in 
-    let swarmer = Int64Swarmer.uploader_swarmer up in       
-    
+    let swarmer = Int64Swarmer.uploader_swarmer up in
+
   try
     let num, x,y, r = 
       if !verbose_msg_clients then begin
-          lprintf "CLIENT %d: Finding new range to send\n" (client_num c);
+          lprintf_nl "[BT]: CLIENT %d: Finding new range to send" (client_num c);
         end;
-      
+
       if !verbose_swarming then begin
-          lprintf "Current download:\n  Current chunks: "; 
+          lprintf_nl "[BT]: Current download:\n  Current chunks: ";
           List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks;
-          lprintf "\n  Current ranges: ";
+          lprintf_nl "\n[BT]: Current ranges: ";
           List.iter (fun (p1,p2, r) ->
-              let (x,y) = Int64Swarmer.range_range r 
+              let (x,y) = Int64Swarmer.range_range r
               in
               lprintf "%Ld-%Ld[%Ld-%Ld] " p1 p2 x y) c.client_ranges_sent;
           (match c.client_range_waiting with
               None -> ()
             | Some (x,y,r) -> lprintf "Waiting %Ld-%Ld\n" x y);
-          lprintf "\n  Current block: ";
+          lprintf_nl "\nBT: Current block: ";
           (match c.client_block with
-              None -> lprintf "none\n"
+              None -> lprintf_nl "none"
             | Some b -> Int64Swarmer.print_block b);
-          lprintf "\n\nFinding Range: \n";
+          lprintf_nl "\nBT: Finding Range:";
         end;
       try
-(*We must find a block to request first, and then 
-	some range inside this block*)
+        (*We must find a block to request first, and then 
+          some range inside this block
+        *)
         let rec iter () =
           match c.client_block with
-            None -> 
+            None ->
               if !verbose_swarming then
-                lprintf "No block\n";
+                lprintf_nl "No block";
               update_client_bitmap c;
               (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
-(*Find a free block in the swarmer*)
+              (*Find a free block in the swarmer*)
               let b = Int64Swarmer.find_block up in
-              if !verbose_swarming then begin 
-                  lprintf "Block Found: "; Int64Swarmer.print_block b;
+              if !verbose_swarming then begin
+                  lprintf "[BT]: Block Found: "; Int64Swarmer.print_block b;
                 end; 
               c.client_block <- Some b;
-(*We put the found block in client_block to 
-		request range in this block. (Useful for 
-		not searching each time a new block)
-	      *)	      
+             (*We put the found block in client_block to
+               request range in this block. (Useful for
+               not searching each time a new block)
+              *)
               iter ()
           | Some b ->
               if !verbose_swarming then begin
-                  lprintf "Current Block: "; Int64Swarmer.print_block b;
+                  lprintf "[BT]: Current Block: "; Int64Swarmer.print_block b;
                 end;
               try
-(*Given a block find a range inside*)
+                (*Given a block find a range inside*)
                 let (x,y,r) = 
                   match c.client_range_waiting with
                     Some (x,y,r) -> 
                       c.client_range_waiting <- None;
                       (x,y,r)
                   | None -> Int64Swarmer.find_range up in
-                
+
                 let (x,y,r) =
                   if y -- x > max_range_len then begin
                       c.client_range_waiting <- Some (x ++ max_range_len, y, r);
@@ -638,41 +616,40 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 (*                Int64Swarmer.alloc_range r; *)
                 let num = Int64Swarmer.block_num swarmer b in
                 if !verbose_swarming then
-                  lprintf "Asking %d For Range %Ld-%Ld\n" num x y;
-                
+                  lprintf_nl "[BT]: Asking %d For Range %Ld-%Ld" num x y;
+
                 num, x -- file.file_piece_size ** Int64.of_int num, y -- x, r
               with Not_found ->
-(*If we don't find a range to request inside the block,
-		iter to choose another block*)
-                  if !verbose_swarming then 
-                    lprintf "Could not find range in current block\n";
+                  (*If we don't find a range to request inside the block,
+                    iter to choose another block*)
+                  if !verbose_swarming then
+                    lprintf_nl "[BT]: Could not find range in current block";
 (*                  c.client_blocks <- List2.removeq b c.client_blocks; *)
                   c.client_block <- None;
                   iter ()
         in
         iter ()
-      with Not_found -> 
-(*If we don't find a block to request we can check if the
-	  file is finished (if there's missing pieces we can't decide
-	  that the file is finished because we didn't found 
-	  a block to ask)*)
-          
+      with Not_found ->
+          (*If we don't find a block to request we can check if the
+            file is finished (if there's missing pieces we can't decide
+            that the file is finished because we didn't found
+            a block to ask)
+          *)
           if !verbose_swarming then
-            lprintf "Unable to get a block !!\n";
+            lprintf_nl "[BT]: Unable to get a block !!";
           Int64Swarmer.compute_bitmap swarmer;
           check_finished swarmer file;
           raise Not_found
     in
     send_client c (Request (num,x,y));
     if !verbose_msg_clients then
-      lprintf "CLIENT %d: Asking %s For Range %Ld-%Ld\n"
+      lprintf_nl "[BT]: CLIENT %d: Asking %s For Range %Ld-%Ld"
         (client_num c)
-      (Sha1.to_string c.client_uid) 
+      (Sha1.to_string c.client_uid)
       x y
   with Not_found ->
         if not (Int64Swarmer.check_finished swarmer) && !verbose_hidden_errors then
-          lprintf "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished...\n"
-
+          lprintf_nl "[BT]: BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished..."
 
 
 (** In this function we match a message sent by a client
@@ -772,8 +749,9 @@ and client_to_client c sock msg =
         if (List.length !current_uploaders < (!!max_uploaders_per_torrent-1)) &&
           (List.mem c (!current_uploaders)) == false && c.client_interested then
           begin
-(*we are probably an optimistic uploaders for this client
-             don't miss the oportunity if we can*)
+            (*we are probably an optimistic uploaders for this client
+              don't miss the oportunity if we can
+            *)
             current_uploaders := c::(!current_uploaders);
             c.client_sent_choke <- false;
             set_client_has_a_slot (as_client c) true;
@@ -808,55 +786,57 @@ and client_to_client c sock msg =
                       bitmap.[i*8+j] <- '1';
                     end
                   else 
-                    bitmap.[i*8+j] <- '0';	    
+                    bitmap.[i*8+j] <- '0';
                 done;
               done;
 
               update_client_bitmap c;
-              
-              let verified = Int64Swarmer.verified_bitmap swarmer in        
+
+              let verified = Int64Swarmer.verified_bitmap swarmer in
               let npieces = Int64Swarmer.partition_size swarmer in
               for i = 0 to npieces -1  do
+                (* lprintf "bitmap: %c, verified: %c" bitmap.[i] verified.[i]; *)
                 if bitmap.[i] = '1' && verified.[i] < '2' then
                   c.client_interesting <- true;
               done;
               
-              if !verbose_msg_clients then 
-                lprintf "BitField translated\n";
-              if !verbose_msg_clients then 
-                lprintf "Old BitField Unregistered\n";
+              if !verbose_msg_clients then
+                lprintf_nl "[BT]: BitField translated";
+              if !verbose_msg_clients then
+                lprintf_nl "[BT]: Old BitField Unregistered";
               (match c.client_uploader with
                   None -> assert false
                 | Some up ->
-                    Int64Swarmer.update_uploader up 
+                    Int64Swarmer.update_uploader up
                       (AvailableCharBitmap bitmap));
-              c.client_registered_bitfield <- true;	  
+              c.client_registered_bitfield <- true;
               c.client_bitmap <- Some bitmap;
               send_interested c;
-              if !verbose_msg_clients then 
-                lprintf "New BitField Registered\n";
+              if !verbose_msg_clients then
+                lprintf_nl "[BT]: New BitField Registered";
 (*        for i = 1 to max_range_requests - List.length c.client_ranges do
           (try get_from_client sock c with _ -> ())
         done*)
         end;
-        (*a bitfield must only be sent after the handshake and befor everything else: NOT here
-        if c.client_incoming then send_bitfield c;*)
-    
+        (*a bitfield must only be sent after the handshake and before everything else: NOT here
+          if c.client_incoming then send_bitfield c;
+        *)
+
     | Have n ->
-(*A client can send a Have without sending a Bitfield*)
+(*A client can send a "Have" without sending a Bitfield*)
         begin
           match c.client_file.file_swarmer with
             None -> ()
-          | Some swarmer -> 
+          | Some swarmer ->
               let n = Int64.to_int n in
               let verified = Int64Swarmer.verified_bitmap swarmer in
+              (* lprintf_nl "verified: %c;" verified.[n]; *)
               if verified.[n] < '2' then begin
                   c.client_interesting <- true;
-                  send_interested c;  
+                  send_interested c;
                   c.client_new_chunks <- n :: c.client_new_chunks;
                   update_client_bitmap c;
                 end;
-
 
 (*        begin
           match c.client_bitmap, c.client_uploader with
@@ -878,27 +858,27 @@ and client_to_client c sock msg =
                   done*)
                       end
                   end
-          | None, Some _ -> lprintf "no bitmap but client_uploader\n";
-	  | Some _ , None ->lprintf "bitmap but no client_uploader\n";
-	  | None, None -> lprintf "no bitmap no client_uploader\n";
+          | None, Some _ -> lprintf "[BT]: no bitmap but client_uploader\n";
+	  | Some _ , None ->lprintf "[BT]: bitmap but no client_uploader\n";
+	  | None, None -> lprintf "[BT]: no bitmap no client_uploader\n";
         end
 *)      
         end
-        
+
     | Interested ->
         c.client_interested <- true;
-    
+
     | Choke ->
         begin
           set_client_state (c) (Connected (-1));
-          (*remote peer will clear the list of range we sent*)
+          (* remote peer will clear the list of range we sent *)
           begin
            match c.client_uploader with
               None ->
-                (* Afaik this is no protocolviolation and happens if the client
+                (* Afaik this is no protocol violation and happens if the client
                    didn't send a client bitmap after the handshake. *)
                 let (ip,port) = c.client_host in
-                  if !verbose_msg_clients then lprintf "BT: %s:%d with software %s : Choke send, but no client bitmap\n"
+                  if !verbose_msg_clients then lprintf_nl "[BT]: %s:%d with software %s : Choke send, but no client bitmap"
                     (Ip.to_string ip) port (c.client_software)
             | Some up -> 
                 Int64Swarmer.clear_uploader_ranges up
@@ -907,27 +887,26 @@ and client_to_client c sock msg =
           c.client_range_waiting <- None;
           c.client_choked <- true;
         end
-    
+
     | NotInterested -> 
         c.client_interested <- false;
-    
+
     | Unchoke ->
         begin
           c.client_choked <- false;
-(*remote peer cleared our request : re-request*)
+          (* remote peer cleared our request : re-request *)
           for i = 1 to max_range_requests - 
             List.length c.client_ranges_sent do
             (try get_from_client sock c with _ -> ())
           done
         end
-    
-    
+
     | Request (n, pos, len) ->
         if len > max_request_len then begin
             close sock (Closed_for_error "Request longer than 1<<16");
             raise Exit
           end;
-        
+
         if !CommonUploads.has_upload = 0 then
           begin
             if client_has_a_slot (as_client c) then
@@ -937,7 +916,7 @@ and client_to_client c sock msg =
                   [] ->
                       CommonUploads.ready_for_upload (as_client c);
                   | _ -> ());
-                c.client_upload_requests <- 
+                c.client_upload_requests <-
                   c.client_upload_requests @ [n,pos,len];
                 let file = c.client_file in
                 match file.file_shared with
@@ -952,35 +931,34 @@ and client_to_client c sock msg =
               begin
                 send_client c Choke;
                 c.client_sent_choke <- true;
-                c.client_upload_requests <- [];                 
+                c.client_upload_requests <- [];
               end
           end;
-        
-    
+
     | Ping -> ()
         (*We don't 'generate' a Ping message on a Ping.*)
-    
+
     | Cancel _ -> ()
   with e ->
-      lprintf "Error %s while handling MESSAGE: %s\n" (Printexc2.to_string e) (TcpMessages.to_string msg)
-      
+      lprintf_nl "[BT]: Error %s while handling MESSAGE: %s" (Printexc2.to_string e) (TcpMessages.to_string msg)
 
 
 (** The function used to connect to a client.
 The connection is not immediately initiated. It will
-be put in a fifo and dequeud according to
+be put in a fifo and dequeued according to
 !!max_connections_per_second. (@see commonGlobals.ml)
 @param c The client we must connect
 *)      
 let connect_client c =
-  if can_open_connection connection_manager && 
-	(let (ip,port) = c.client_host in match Ip_set.match_ip !Ip_set.bl ip with
-	     None -> true
-	   | Some br ->
-	       if !verbose_connect then
-		 lprintf "%s:%d blocked: %s\n"
-		   (Ip.to_string ip) port br.blocking_description;
-	       false)		
+  if can_open_connection connection_manager &&
+    (let (ip,port) = c.client_host in
+     match Ip_set.match_ip !Ip_set.bl ip with
+       None -> true
+     | Some br ->
+         if !verbose_connect then
+           lprintf_nl "[BT]: %s:%d blocked: %s"
+             (Ip.to_string ip) port br.blocking_description;
+         false)
   then
   match c.client_sock with
     NoConnection ->
@@ -989,32 +967,32 @@ let connect_client c =
         add_pending_connection connection_manager (fun token ->
             try
               if !verbose_msg_clients then begin
-                  lprintf "CLIENT %d: connect_client\n" (client_num c);
+                  lprintf_nl "[BT]: CLIENT %d: connect_client" (client_num c);
                 end;
               let (ip,port) = c.client_host in
               if !verbose_msg_clients then begin
-                  lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                  lprintf_nl "[BT]: connecting %s:%d" (Ip.to_string ip) port;
                 end;
               connection_try c.client_connection_control;
                 begin
-                  let sock = connect token "bittorrent download" 
+                  let sock = connect token "bittorrent download"
                       (Ip.to_inet_addr ip) port
                       (fun sock event ->
                         match event with
                           BASIC_EVENT LTIMEOUT ->
                             if !verbose_msg_clients then
-                              lprintf "CLIENT %d: LIFETIME\n" (client_num c);
+                              lprintf_nl "[BT]: CLIENT %d: LIFETIME" (client_num c);
                             close sock Closed_for_timeout
                         | BASIC_EVENT RTIMEOUT ->
                             if !verbose_msg_clients then
-                              lprintf "CLIENT %d: RTIMEOUT (%d)\n" (client_num c)
+                              lprintf_nl "[BT]: CLIENT %d: RTIMEOUT (%d)" (client_num c)
                               (last_time ())
                               ;
                             close sock Closed_for_timeout
                         | BASIC_EVENT (CLOSED r) ->
                             begin
                               match c.client_sock with
-                              | Connection s when s == sock -> 
+                              | Connection s when s == sock ->
                                   disconnect_client c r
                               | _ -> ()
                             end;
@@ -1029,32 +1007,32 @@ let connect_client c =
                   let file = c.client_file in
                   
                   if !verbose_msg_clients then begin
-                      lprintf "READY TO DOWNLOAD FILE\n";
+                      lprintf_nl "[BT]: READY TO DOWNLOAD FILE";
                     end;
-                  
+
                   send_init !!client_uid file.file_id sock;
 (* Fabrice: Initialize the client bitmap and uploader fields to <> None *)
                   update_client_bitmap c;
 (*              (try get_from_client sock c with _ -> ());*)
                   incr counter;
-(*We 'hook' the client_parse_header function to the socket
-	      This function will then be called when the first message will
-	      be parsed*)
+                  (*We 'hook' the client_parse_header function to the socket
+                    This function will then be called when the first message will
+                    be parsed
+                  *)
                   set_bt_sock sock !verbose_msg_clients
                     (BTHeader (client_parse_header !counter (ref (Some c)) true))
                 end
             with e ->
-                lprintf "Exception %s while connecting to client\n" 
+                lprintf_nl "[BT]: Exception %s while connecting to client"
                   (Printexc2.to_string e);
                 disconnect_client c (Closed_for_exception e)
         );
-(*Since this is a pending connection put ConnectionWaiting
-      in client_sock
-*)
+      (*Since this is a pending connection put ConnectionWaiting
+        in client_sock
+      *)
       in
       c.client_sock <- ConnectionWaiting token
   | _ -> ()
-
 
 
 (** The Listen function (very much like in C : TCP Socket Server).
@@ -1062,40 +1040,43 @@ Monitors client connection to us.
 *)
 let listen () =
   try
-    let s = TcpServerSocket.create "bittorrent client server" 
+    let s = TcpServerSocket.create "bittorrent client server"
         (Ip.to_inet_addr !!client_bind_addr)
         !!client_port
         (fun sock event ->
           match event with
-            TcpServerSocket.CONNECTION (s, 
+            TcpServerSocket.CONNECTION (s,
               Unix.ADDR_INET(from_ip, from_port)) ->
-(*Receiving an event TcpServerSocket.CONNECTION from
-	      the TcpServerSocket means that a new client try 
-		to connect to us*)
-	      let ip = (Ip.of_inet_addr from_ip) in 
-              if !verbose_sources > 1 then lprintf "CONNECTION RECEIVED FROM %s\n"
+              (*Receiving an event TcpServerSocket.CONNECTION from
+                the TcpServerSocket means that a new client try
+                to connect to us
+              *)
+              let ip = (Ip.of_inet_addr from_ip) in
+              if !verbose_sources > 1 then lprintf_nl "[BT]: CONNECTION RECEIVED FROM %s"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
-(*Reject this connection if we don't want
-		to bypass the max_connection parameter*)
-              if can_open_connection connection_manager && 
-		(match Ip_set.match_ip !Ip_set.bl ip with
-		     None -> true
-		   | Some br ->
-		       if !verbose_connect then
-			 lprintf "%s:%d blocked: %s\n"
-			   (Ip.to_string ip) from_port br.blocking_description;
-		       false)		
-	      then
+              (*Reject this connection if we don't want
+                to bypass the max_connection parameter
+              *)
+              if can_open_connection connection_manager &&
+                (match Ip_set.match_ip !Ip_set.bl ip with
+                   None -> true
+                 | Some br ->
+                     if !verbose_connect then
+                       lprintf_nl "[BT]: %s:%d blocked: %s"
+                         (Ip.to_string ip) from_port br.blocking_description;
+                     false)
+              then
                 begin
                   let token = create_token connection_manager in
                   let sock = TcpBufferedSocket.create token
-                      "bittorrent client connection" s 
-                      (fun sock event -> 
+                      "bittorrent client connection" s
+                      (fun sock event ->
                         match event with
-                          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
-(*monitor read and life timeout on client
-			sockets*)
+                          BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                          (*monitor read and life timeout on client
+                            sockets
+                          *)
                             close sock Closed_for_timeout
                         | _ -> ()
                     )
@@ -1108,7 +1089,7 @@ let listen () =
                       match !c with
                         Some c ->  begin
                             match c.client_sock with
-                            | Connection s when s == sock -> 
+                            | Connection s when s == sock ->
                                 disconnect_client c r
                             | _ -> ()
                           end
@@ -1232,65 +1213,63 @@ for parsing the response*)
                                 port := Int64.to_int p
                             | _ -> ()
                         ) list;
-                        
+
                         if !peer_id != Sha1.null &&
                           !peer_id <> !!client_uid &&
                           !peer_ip != Ip.null &&
-                          !port <> 0 && 
+                          !port <> 0 &&
                           (match match_ip !Ip_set.bl !peer_ip with
                               None -> true
                             | Some br ->
                                 if !verbose_connect then
-                                  lprintf "%s:%d blocked: %s\n"
+                                  lprintf_nl "[BT]: %s:%d blocked: %s"
                                     (Ip.to_string !peer_ip) !port br.blocking_description;
                                 false)
                         then
                           let c = new_client file !peer_id (!peer_ip,!port)
                           in
-                          if !verbose_sources > 1 then lprintf "Received %s:%d\n" (Ip.to_string !peer_ip)
+                          if !verbose_sources > 1 then lprintf_nl "[BT]: Received %s:%d" (Ip.to_string !peer_ip)
                           !port;
                           ()
-                    
-                    
                     | _ -> assert false
-                
                 ) list
             | String "peers", String p ->
                 let rec iter_comp s pos l =
                   if pos < l then
                     let ip = Ip.of_ints (get_uint8 s pos,get_uint8 s (pos+1),
                         get_uint8 s (pos+2),get_uint8 s (pos+3))
-                    and port = get_int16 s (pos+4) 
+                    and port = get_int16 s (pos+4)
                     in 
                     ignore( new_client file Sha1.null (ip,port));
                     t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
-                    
+
                     iter_comp s (pos+6) l
                 in
                 iter_comp p 0 (String.length p)
-            | _ -> lprintf "BT: received unknown entry in answer from tracker: %s\n" (Bencode.print key)
+            | String "private", Int n -> ()
+              (* TODO: if set to 1, disable peer exchange *)
+
+            | _ -> lprintf_nl "[BT]: received unknown entry in answer from tracker: %s : %s" (Bencode.print key) (Bencode.print value)
         ) list;
-(*Now, that we have added new clients to a file, it's time
-	to connect to them*)
-        if !verbose_sources > 0 then 
-          lprintf "get_sources_from_tracker: got %i sources for file %s\n" 
+       (*Now, that we have added new clients to a file, it's time
+         to connect to them*)
+        if !verbose_sources > 0 then
+          lprintf_nl "[BT]: get_sources_from_tracker: got %i source(s) for file %s"
             t.tracker_last_clients_num file.file_name;
         resume_clients file
-    
-    | _ -> assert false    
+
+    | _ -> assert false
   in
-  let event = 
+  let event =
     if file.file_tracker_connected then ""
     else "started"
   in
   connect_trackers file event f
-    
-    
-  
+
 
 (** Check to see if file is finished, if not 
   try to get sources for it
-*)  
+*)
 let recover_files () =
   List.iter (fun file ->
       match file.file_swarmer with
@@ -1304,11 +1283,11 @@ let recover_files () =
               (try 
                   connect_trackers file "" (fun _ _ -> ()) with _ -> ())
           | FilePaused -> () (*when we are paused we do nothing, not even logging this vvvv*)
-          | s -> lprintf "Other state %s!!\n" (string_of_state s)
+          | s -> lprintf_nl "[BT]: Other state %s!!" (string_of_state s)
       ) !current_files
-      
+
 let upload_buffer = String.create 100000
-  
+
 
 (**
   Send a Piece message 
@@ -1316,7 +1295,7 @@ let upload_buffer = String.create 100000
   @param sock The socket of the client
   @param c The client
 *)  
-let rec iter_upload sock c = 
+let rec iter_upload sock c =
   match c.client_upload_requests with
     [] -> ()
   | (num, pos, len) :: tail ->
@@ -1379,16 +1358,13 @@ let client_can_upload c allowed =
   )
 
 
-
 (** Probably useless now
 *)
 let file_resume file = 
-(* useless with no saving of sources
-  resume_clients file;
-*)
+  (*useless with no saving of sources
+     resume_clients file;
+  *)
   (try get_sources_from_tracker file  with _ -> ())
-
-
 
 
 
@@ -1397,21 +1373,21 @@ let file_resume file =
   @param file the file we want to stop
 *)
 let file_stop file =
-    if file.file_tracker_connected then 
+    if file.file_tracker_connected then
     begin
-      connect_trackers file "stopped" (fun _ _ -> 
-          lprintf "BT-Tracker return: stopped %s\n" file.file_name;
+      connect_trackers file "stopped" (fun _ _ ->
+          lprintf_nl "[BT]: BT-Tracker return: stopped %s" file.file_name;
           file.file_tracker_connected <- false)
     end
-      
+
 (**
   Create the 'hooks'
-*)            
+*)
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
   file_ops.op_file_resume <- file_resume;
   file_ops.op_file_recover <- file_resume;
-  file_ops.op_file_pause <- (fun file -> 
+  file_ops.op_file_pause <- (fun file ->
       Hashtbl.iter (fun _ c ->
           match c.client_sock with
             Connection sock -> close sock Closed_by_user
@@ -1422,8 +1398,6 @@ let _ =
   );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
-        lprintf "CLIENT %d: client_enter_upload_queue\n" (client_num c);
+        lprintf_nl "[BT]: CLIENT %d: client_enter_upload_queue" (client_num c);
       ready_for_upload (as_client c));
   network.op_network_connected_servers <- (fun _ -> []);
-
-  

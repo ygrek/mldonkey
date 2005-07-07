@@ -182,7 +182,7 @@ let client_enter_upload_queue client =
 let ni n m = 
   let s = Printf.sprintf "Client.%s not implemented by %s" 
       m n.network_name in
-  lprintf "%s\n" s;
+  lprintf_nl "%s" s;
   s
   
 let fni n m =   failwith (ni n m)
@@ -214,28 +214,28 @@ let new_client_ops network =
   c
 
 let check_client_implementations () =
-  lprintf "\n---- Methods not implemented for CommonClient ----\n\n";
+  lprintf_nl "\n---- Methods not implemented for CommonClient ----\n";
   List.iter (fun (c, cc) ->
       let n = c.op_client_network.network_name in
-      lprintf "\n  Network %s\n\n" n; 
+      lprintf_nl "\n  Network %s\n" n; 
       if c.op_client_to_option == cc.op_client_to_option then 
-        lprintf "op_client_to_option\n";
+        lprintf_nl "op_client_to_option";
       if c.op_client_info == cc.op_client_info then
-        lprintf "op_client_info\n";
+        lprintf_nl "op_client_info";
       if c.op_client_say == cc.op_client_say then
-        lprintf "op_client_say\n";
+        lprintf_nl "op_client_say";
       if c.op_client_files == cc.op_client_files then
-        lprintf "op_client_files\n";
+        lprintf_nl "op_client_files";
       if c.op_client_disconnect == cc.op_client_disconnect then
-        lprintf "op_client_disconnect\n";
+        lprintf_nl "op_client_disconnect";
       if c.op_client_connect == cc.op_client_connect then
-        lprintf "op_client_connect\n";
+        lprintf_nl "op_client_connect";
       if c.op_client_clear_files == cc.op_client_clear_files then
-        lprintf "op_client_clear_files\n";
+        lprintf_nl "op_client_clear_files";
       if c.op_client_browse == cc.op_client_browse then
-        lprintf "op_client_browse\n";
+        lprintf_nl "op_client_browse";
   ) !clients_ops;
-  lprint_newline () 
+  lprintf_nl ""
   
 let client_find num = 
   H.find clients_by_num (as_client { dummy_client_impl with

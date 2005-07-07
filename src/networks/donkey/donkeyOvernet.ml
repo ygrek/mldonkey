@@ -304,10 +304,13 @@ module Make(Proto: sig
 
     open Proto
 
+    let lprintf_nl () =
+      lprintf "[%s]: " redirector_section; lprintf_nl
+
     let lprintf () =
       lprintf "[%s] "
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf
-      
+
 (********************************************************************
 
                      STATIC MEMORY
@@ -752,7 +755,7 @@ let get_closest_peers md4 nb =
         Fifo.put fifo p;
         if p.peer_last_recv <> 0 then begin
             if !verbose_overnet then begin
-            lprintf () "Adding good search peer %s:%d\n"
+            lprintf_nl () "Adding good search peer %s:%d"
               (Ip.to_string p.peer_ip) p.peer_port;
 	    end;
             decr nb;
@@ -831,7 +834,7 @@ let add_search_peer s p =
     end
 
 let create_search kind md4 =   
-  if !verbose_overnet then lprintf () "create_search\n";
+  if !verbose_overnet then lprintf_nl () "create_search";
   let s = {
       search_md4 = md4;
       search_kind = kind;
@@ -847,7 +850,7 @@ let create_search kind md4 =
       search_results = Hashtbl.create 13;
     } in
   List.iter (add_search_peer s) (get_closest_peers md4 max_search_queries);
-  if !verbose_overnet then lprintf () "create_search done\n";
+  if !verbose_overnet then lprintf_nl () "create_search done";
   overnet_searches := s :: !overnet_searches;
   s
 
@@ -876,7 +879,7 @@ let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
   if !verbose_overnet then 
-    lprintf () "UDP FROM %s:%d:\n  %s " 
+    lprintf_nl () "UDP FROM %s:%d:\n  %s" 
       (Ip.to_string other_ip) other_port
       (message_to_string t);
   match t with
@@ -895,7 +898,7 @@ let udp_client_handler t p =
             new_peer_message p;
             if other_port <> p.peer_port || other_ip <> p.peer_ip then
               if !verbose_overnet then
-              lprintf () "Bad IP or port\n";
+              lprintf_nl () "Bad IP or port";
             let p = new_peer p in
             ()
         | p :: tail ->
@@ -942,8 +945,7 @@ let udp_client_handler t p =
       if !verbose_hidden_errors then
         begin
           lprintf () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
-          lprintf () "\tCode: %d" opcode; dump s;
-          lprintf () "\n"
+          lprintf_nl () "\tCode: %d" opcode; dump s;
         end
   
   | OvernetSearchFilesResults (md4, results) ->      
@@ -969,12 +971,12 @@ let udp_client_handler t p =
                           incr search_hits;
                           s.search_hits <- s.search_hits + 1;
                           Hashtbl.add s.search_results r_md4 r_tags;
-                          
                           if !verbose_overnet then begin
-                              lprintf () "FILE FOUND, TAGS:\n "; 
-                              print_tags r_tags; lprint_newline ()
-                            end;
-                          
+                              lprintf_nl () "FILE FOUND, TAGS:"; 
+                              print_tags r_tags;
+                              lprintf_nl () ""
+                        end;
+
                           DonkeyOneFile.search_found true sss r_md4 r_tags;
                         end
                   ) results
@@ -1319,7 +1321,7 @@ let load_contact_dat filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf () "Exception %s while loading %s\n" (Printexc2.to_string e)
+      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       0
 
@@ -1481,10 +1483,10 @@ let _ =
             (Ip.of_string ip)
           (int_of_string port)
           (OvernetUnknown (opcode,msg));
-          lprintf () "Sending UDP message %d to %s:%s\n" opcode ip port;
-          dump msg; lprintf () "\n"; "Sending UDP message"
+          lprintf_nl () "Sending UDP message %d to %s:%s" opcode ip port;
+          dump msg; lprintf_nl () ""; "Sending UDP message"
         with _ ->
-            lprintf () "Unable to send UDP message\n"; "Unable to send UDP message"
+            lprintf_nl () "Unable to send UDP message"; "Unable to send UDP message"
     ), ":\t\t\t\tsend UDP message (<ip> <port> <msg in hex>)";
 
       "buckets", Arg_none (fun o ->
@@ -1516,10 +1518,10 @@ let _ =
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
-    if !verbose then lprintf () "========= overnet_search =========\n";
+    if !verbose then lprintf_nl () "========= overnet_search =========";
     let ws = keywords_of_query q in
     List.iter (fun w -> 
-        if !verbose then lprintf () "overnet_search for %s\n" w;
+        if !verbose then lprintf_nl () "overnet_search for %s" w;
         let s = create_keyword_search w ss in
         Hashtbl.iter (fun r_md4 r_tags -> 
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;

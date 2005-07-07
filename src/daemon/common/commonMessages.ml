@@ -792,9 +792,9 @@ let load_message_file () =
       Sys_error _ ->
         (try Options.save message_file with _ -> ())
     | e ->
-        lprintf (_b "Error %s loading message file %s\n")
+        lprintf_nl (_b "Error %s loading message file %s")
           (Printexc2.to_string e)
         (Options.options_file_name message_file);
-        lprintf (_b "Using default messages.\n");
+        lprintf_nl (_b "Using default messages.");
   end
   )

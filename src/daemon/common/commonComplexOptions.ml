@@ -83,9 +83,9 @@ module FileOption = struct
           set_file_state file file_state;       
           if !verbose then
           (match file_state with
-              FileDownloading -> lprintf "New downloading file\n";
-            | FileDownloaded -> lprintf "New downloaded file\n";
-            | _ -> lprintf "New file with other state\n"
+              FileDownloading -> lprintf_nl "New downloading file";
+            | FileDownloaded -> lprintf_nl "New downloaded file";
+            | _ -> lprintf_nl "New file with other state"
           );
           
           (try
@@ -248,7 +248,7 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                lprintf "Network %s not supported\n" network;
+                lprintf_nl "Network %s not supported" network;
                 raise e
               in
           let server = network_server_of_option network assocs in

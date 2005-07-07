@@ -53,7 +53,7 @@ and 'a server_ops = {
 let ni n m = 
   let s = Printf.sprintf "Server.%s not implemented by %s" 
       m n.network_name in
-  lprintf "%s\n" s; 
+  lprintf_nl "%s" s; 
   s
   
 let fni n m =  failwith (ni n m)
@@ -189,36 +189,36 @@ let new_server_ops network =
   
 
 let check_server_implementations () =
-  lprintf "\n----- Methods not implemented for CommonServer ----\n\n";
+  lprintf_nl "\n----- Methods not implemented for CommonServer ----\n";
   List.iter (fun (c, cc) ->
       let n = c.op_server_network.network_name in
-      lprintf "\n  Network %s\n\n" n; 
+      lprintf_nl "\n  Network %s\n" n; 
       if c.op_server_remove == cc.op_server_remove then 
-        lprintf "op_server_remove\n";
+        lprintf_nl "op_server_remove";
       if c.op_server_to_option == cc.op_server_to_option then
-        lprintf "op_server_to_option\n";
+        lprintf_nl "op_server_to_option";
       if c.op_server_info == cc.op_server_info then
-        lprintf "op_server_info\n";
+        lprintf_nl "op_server_info";
       if c.op_server_sort == cc.op_server_sort then
-        lprintf "op_server_sort\n";
+        lprintf_nl "op_server_sort";
       if c.op_server_connect == cc.op_server_connect then
-        lprintf "op_server_connect\n";
+        lprintf_nl "op_server_connect";
       if c.op_server_disconnect == cc.op_server_disconnect then
-        lprintf "op_server_disconnect\n";
+        lprintf_nl "op_server_disconnect";
       if c.op_server_find_user == cc.op_server_find_user then
-        lprintf "op_server_find_user\n";
+        lprintf_nl "op_server_find_user";
       if c.op_server_query_users == cc.op_server_query_users then
-        lprintf "op_server_query_users\n";
+        lprintf_nl "op_server_query_users";
       if c.op_server_users == cc.op_server_users then
-        lprintf "op_server_users\n";
+        lprintf_nl "op_server_users";
       if c.op_server_cid == cc.op_server_cid then
-        lprintf "op_server_cid\n";
+        lprintf_nl "op_server_cid";
       if c.op_server_rename == cc.op_server_rename then
-        lprintf "op_server_rename\n";
+        lprintf_nl "op_server_rename";
       if c.op_server_set_preferred == cc.op_server_set_preferred then
-        lprintf "op_server_set_preferred\n";
+        lprintf_nl "op_server_set_preferred";
   ) !servers_ops;
-  lprint_newline () 
+  lprintf_nl "" 
 
 let server_find (num : int) = 
   H.find servers_by_num  (as_server { dummy_server_impl with

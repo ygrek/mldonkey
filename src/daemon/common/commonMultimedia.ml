@@ -56,13 +56,13 @@ let print_string4 v s =
       lprint_char c
     else lprintf "[%d]" int
   done;
-  lprint_newline ()
+  lprintf_nl ""
 
 let print_int32 s i=
-  lprintf "%s: %Ld\n" s i
+  lprintf_nl "%s: %Ld" s i
 
 let print_int16 s i=
-  lprintf "%s: %d\n" s i
+  lprintf_nl "%s: %d" s i
 
 (**********************************************************************************)
 (*                                                                                *)
@@ -703,7 +703,7 @@ let get_info file =
       match e with
         FormatFound f -> f
       | e -> 
-          lprintf "get_info: Exception in %s\n" (Printexc2.to_string e);
+          lprintf_nl "get_info: Exception in %s" (Printexc2.to_string e);
           FormatUnknown
           
           

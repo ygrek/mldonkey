@@ -153,7 +153,7 @@ let parse_range range =
 
 let parse_range range =
   let x, y, z = parse_range range in
-  lprintf "Range parsed: %Ld-%s/%s" x
+  if !verbose then lprintf "Range parsed: %Ld-%s/%s" x
     (match y with None -> "" | Some y -> Int64.to_string y)    
   (match z with None -> "*" | Some y -> Int64.to_string y);
   x, y, z

@@ -871,7 +871,6 @@ let get_shared_info_version_10 proto s pos =
   }
 
 
-
 (***************
 
      Decoding of messages from the GUI to the Core 
@@ -881,165 +880,171 @@ let get_shared_info_version_10 proto s pos =
 let from_gui (proto : int array) opcode s =
   try
 
-    let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in    
+    let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in
     if !verbose_gui_decoding then
-      lprintf "FROM GUI: Opcode %d\n" opcode; 
+      lprintf_nl "FROM GUI: Opcode %d" opcode; 
     match opcode with
       0 -> GuiProtocol (get_int s 2)
-    
+
     | 1 -> ConnectMore_query
+
     | 2 -> CleanOldServers
+
     | 3 -> KillServer
+
     | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
+
     | 5
-    | 52 -> 
+    | 52 ->
         if proto < 14 then
            let pass,_ = get_string s 2 in Password ("admin", pass)
         else
         let pass,pos = get_string s 2 in
         let login,pos = get_string s pos in
         Password (login, pass)
-    | 6 -> 
+
+    | 6 ->
         let local = get_bool s 2 in
         let search, pos = get_search get_query  proto s 3 in
         search.search_type <- if local then LocalSearch else RemoteSearch;
         Search_query search
-    | 7 -> 
+
+    | 7 ->
         let list, pos = get_list get_string s 2 in
         let result_num = get_int s pos in
         Download_query (list, result_num, false)
-    
+
     | 8 -> let string, pos = get_string s 2 in
-        lprintf "Received string: [%s]\n" (String.escaped string);
+        lprintf_nl "Received string: [%s]" (String.escaped string);
         Url string 
+
     | 9 -> let int = get_int s 2 in RemoveServer_query int
+
     | 10 ->
         let list, pos = get_list (fun s pos ->
               let s1, pos = get_string s pos in
               let s2, pos = get_string s pos in
               (s1,s2), pos) s 2 in
         SaveOptions_query list
-    
+
     | 11 ->
         let int = get_int s 2 in 
         RemoveDownload_query  int
-    
+
     | 12 -> 
         let int = get_int s 2 in 
         ServerUsers_query  int
-    
+
     | 13 ->
         let int = get_int s 2 in 
         let s, pos = get_string s 6 in
         SaveFile (int, s)
-    
+
     | 14 ->
         let int = get_int s 2 in 
         AddClientFriend  int
-    
+
     | 15 ->          
         let int = get_int s 2 in 
         AddUserFriend  int
-    
+
     | 16 ->
         let int = get_int s 2 in 
         RemoveFriend  int
-    
+
     | 17 -> RemoveAllFriends
-    
+
     | 18 -> 
         let string, pos = get_string s 2 in
         FindFriend string
-    
+
     | 19 -> 
         let int = get_int s 2 in 
         ViewUsers  int
-    
+
     | 20 -> 
         let int = get_int s 2 in 
         ConnectAll  int
-    
+
     | 21 ->
         let int = get_int s 2 in 
         ConnectServer  int
-    
+
     | 22 -> 
         let int = get_int s 2 in 
         DisconnectServer  int
-    
+
     | 23 ->
         let int = get_int s 2 in 
         let bool = get_bool s 6 in
         SwitchDownload  (int, bool) 
-    
+
     | 24 ->
         let int = get_int s 2 in 
         VerifyAllChunks  int
-    
+
     | 25 ->
         let int = get_int s 2 in 
         QueryFormat  int
-    
+
     | 26 ->
         let int = get_int s 2 in
         let tag, pos = get_mp3  s 6 in
         ModifyMp3Tags (int, tag)
-    
+
     | 27 ->
         let int = get_int s 2 in 
         CloseSearch  (int, true)
-    
+
     | 28 ->
         let s1, pos = get_string s 2 in
         let s2, pos = get_string s pos in
         SetOption (s1, s2)
-    
+
     | 29 ->
         let s1, pos = get_string s 2 in
         Command s1
-    
+
     | 30 ->
         let int = get_int s 2 in 
         Preview  int
-    
+
     | 31 ->
         let int = get_int s 2 in 
         ConnectFriend  int
-    
+
     | 32 ->
         let int = get_int s 2 in 
         GetServer_users  int
-    
+
     | 33 ->
         let int = get_int s 2 in 
         GetClient_files  int
-    
+
     | 34 ->
         let int = get_int s 2 in 
         GetFile_locations  int
-    
+
     | 35 ->
         let int = get_int s 2 in 
         GetServer_info  int
-    
+
     | 36 ->
         let int = get_int s 2 in 
         GetClient_info  int
-    
+
     | 37 ->
         let int = get_int s 2 in 
         GetFile_info  int
-    
+
     | 38 ->
         let int = get_int s 2 in 
         GetUser_info  int
-    
+
     | 39 ->
         let int = get_int s 2 in 
-        let room_message, pos = get_message  s 6 in
-        
+        let room_message, pos = get_message  s 6 in        
         let msg = SendMessage (int, room_message) in
-        
         begin
           match msg with
 (* Change private message from former GUIs to MessageToClient ! *)
@@ -1047,32 +1052,39 @@ let from_gui (proto : int array) opcode s =
               MessageToClient (num,s)
           | _ -> msg
         end
-    
+
     | 40 ->
         let int = get_int s 2 in 
         let bool = get_bool s 6 in 
         EnableNetwork (int, bool) 
-    
+
     | 41 ->
         let int = get_int s 2 in 
         BrowseUser  int
+
     | 42 -> let s, pos = get_search get_query  proto s 2 in Search_query s
+
     | 43 -> 
         let int = get_int s 2 in 
         let message, pos = get_string s 6 in
         MessageToClient (int, message)
+
     | 44 -> GetConnectedServers
+
     | 45 -> GetDownloadFiles
+
     | 46 -> GetDownloadedFiles
-    | 47 -> 
+
+    | 47 ->
         let list, pos = get_list (fun s pos -> 
               (get_int s pos, 1 = get_uint8 s (pos+4)), pos+5) s 2 in
         GuiExtensions list
+
     | 48 ->
         SetRoomState (get_int s 2, get_room_state s 6)
-    
+
     | 49 -> RefreshUploadStats
-    
+
     | 50 ->
         let list, pos = get_list get_string s 2 in
         let result_num = get_int s pos in
@@ -1081,7 +1093,9 @@ let from_gui (proto : int array) opcode s =
 
     | 51 ->
         SetFilePriority(get_int s 2, get_int s 6)      
-            
+
+    (* 52 -> see 5 *)
+
     | 53 ->
         let int = get_int s 2 in 
         let bool = get_bool s 6 in 
@@ -1092,7 +1106,7 @@ let from_gui (proto : int array) opcode s =
         let ip = get_ip s 6 in
         let port = get_int16 s 10 in
         AddServer_query (net, ip, port) 
-        
+
     | 55 ->
         let list, pos = get_list  (fun s pos ->
               let opcode = get_int16 s pos in
@@ -1101,7 +1115,6 @@ let from_gui (proto : int array) opcode s =
               (opcode, from_guip, proto), pos+7
           )  s 2 in
         MessageVersions list
-
 
     | 56 ->
         let num = get_int s 2 in
@@ -1116,24 +1129,24 @@ let from_gui (proto : int array) opcode s =
 
     | 59 ->
         GetSearches
-        
+
     | 60 ->
         GetSearch (get_int s 2)
 
     | 61 ->
         ConnectClient (get_int s 2)
-        
+
     | 62 ->
         DisconnectClient (get_int s 2)
-        
+
     | 63 ->
         let n = get_int s 2 in
         let s, pos = get_string s 6 in
         NetworkMessage (n, s)
-        
+
     | 64 ->
         InterestedInSources (get_bool s 2)
-        
+
     | 65 -> 
         GetVersion
 
@@ -1149,17 +1162,15 @@ let from_gui (proto : int array) opcode s =
          ServerSetPreferred (num, b)
 
     | _ -> 
-        lprintf "FROM GUI:Unknown message %d\n" opcode; 
+        lprintf_nl "FROM GUI:Unknown message %d" opcode; 
         raise FromGuiMessageNotImplemented
-  
-  
+
   with e ->
-      lprintf "Decoding gui proto[%d]: exception %s, opcode %d\n" proto.(opcode)
+      lprintf_nl "Decoding gui proto[%d]: exception %s, opcode %d" proto.(opcode)
         (Printexc2.to_string e) opcode;
       dump s;
-      lprint_newline ();
       raise e
-      
+
 (***************
 
      Decoding of messages from the Core to the GUI 
@@ -1178,13 +1189,13 @@ let dummy_option =
     M.option_type = "";
     M.option_advanced = false;
   }
-      
+
 let to_gui (proto : int array)  opcode s =
   try
-    let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
+    let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in
     
     if !verbose_gui_decoding then
-      lprintf "TO GUI: Opcode %d\n" opcode;   
+      lprintf_nl "TO GUI: Opcode %d" opcode;
     match opcode with
     | 0 ->
         let version = get_int s 2 in
@@ -1605,14 +1616,13 @@ let to_gui (proto : int array)  opcode s =
         Version s
         
     | _ -> 
-        lprintf "TO GUI:Unknown message %d\n" opcode; 
+        lprintf_nl "TO GUI:Unknown message %d" opcode; 
         raise Not_found
 
 
   with e ->
-      lprintf "Decoding gui proto[%d]: exception %s, opcode %d\n" proto.(opcode)
+      lprintf_nl "Decoding gui proto[%d]: exception %s, opcode %d" proto.(opcode)
         (Printexc2.to_string e) opcode;
       
       dump s;
-      lprint_newline ();
       raise e

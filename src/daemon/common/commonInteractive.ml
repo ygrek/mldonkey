@@ -23,10 +23,10 @@ open Int64ops
 open Misc
 open Printf2
 open CommonOptions
-open BasicSocket  
+open BasicSocket
 open TcpBufferedSocket
 open Options
-  
+
 open CommonClient
 open CommonServer
 open CommonNetwork
@@ -39,9 +39,8 @@ open CommonResult
 open CommonServer
 open CommonTypes
 open CommonComplexOptions
-  
-  
-  
+
+
 (*************  ADD/REMOVE FUNCTIONS ************)
 let check_forbidden_chars (uc : Charset.uchar) =
   match uc with
@@ -79,7 +78,7 @@ let canonize_basename name =
   done;
   Charset.to_locale (Buffer.contents buf)
 
-let file_commited_name incoming_dir file =   
+let file_commited_name incoming_dir file =
   let network = file_network file in
   let best_name = file_best_name file in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
@@ -97,7 +96,7 @@ let file_commited_name incoming_dir file =
       iter 1
     else new_name in
   new_name  
-  
+
 (********
 These two functions 'file_commit' and 'file_cancel' should be the two only
 functions in mldonkey able to destroy a file, the first one by moving it, 
@@ -107,7 +106,7 @@ Note that when the network specific file_commit function is called, the
 file has already been moved to the incoming/ directory under its new
 name.
 *)
-  
+
 let file_commit file =
   let impl = as_file_impl file in
   if impl.impl_file_state = FileDownloaded then
@@ -121,24 +120,24 @@ let file_commit file =
           else
             incoming_files ()
         in        
-        let new_name = file_commited_name 
+        let new_name = file_commited_name
             incoming.shdir_dirname file in
-	if Unix2.is_directory file_name then
-	  Unix2.safe_mkdir new_name;
+        if Unix2.is_directory file_name then
+          Unix2.safe_mkdir new_name;
         (try
             set_file_disk_name file new_name;
-	    if Unix2.is_directory new_name then
-	      Unix.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
+            if Unix2.is_directory new_name then
+              Unix.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in  
             Unix32.destroy (file_fd file);
-            if !verbose_files then lprintf "commonInteractive.file_commit: destroyed\n";
-	    if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
+            if !verbose_files then lprintf_nl "commonInteractive.file_commit: destroyed";
+            if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
             let impl = as_file_impl file in
-            
+
 (* When the commit action is called, the file is supposed not to exist
 anymore. *)
             impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
-            
+
             begin
               try
                 if not (Unix2.is_directory new_name) then
@@ -146,15 +145,15 @@ anymore. *)
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
-                  lprintf "Exception %s while trying to share commited file\n"
+                  lprintf_nl "Exception %s while trying to share commited file"
                     (Printexc2.to_string e);
             end;
-            
+
             update_file_state impl FileShared;
             done_files =:= List2.removeq file !!done_files;
             files =:= List2.removeq file !!files;
             
-            if !verbose_files then lprintf "commonInteractive.file_commit: going to secondaries...\n";
+            if !verbose_files then lprintf_nl "commonInteractive.file_commit: going to secondaries...";
             List.iter (fun file ->
 (* Commit the file first, and share it after... *)
                 try
@@ -163,18 +162,18 @@ anymore. *)
                   impl.impl_file_ops.op_file_cancel impl.impl_file_val;
                   done_files =:= List2.removeq file !!done_files;
                   files =:= List2.removeq file !!files;
-                  
+
                 with e ->
-                    lprintf "Exception %s in file_commit secondaries\n" (Printexc2.to_string e);
+                    lprintf_nl "Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
           with e ->
-              lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e))
+              lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
-        
+
 let file_cancel file =
   try
-    let impl = as_file_impl file in    
-    if impl.impl_file_state <> FileCancelled then 
+    let impl = as_file_impl file in
+    if impl.impl_file_state <> FileCancelled then
       let subfiles = file_files file in
       if file != List.hd subfiles then
         failwith "Cannot cancel non primary file";
@@ -184,18 +183,18 @@ let file_cancel file =
             impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             files =:= List2.removeq file !!files;
           with e ->
-              lprintf "Exception %s in file_cancel\n" (Printexc2.to_string e);
+              lprintf_nl "Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
-      (try  
+      (try
           let fd = file_fd file in
-          if fd != Unix32.bad_fd then Unix32.remove (file_fd file)  
-        with e -> 
-            lprintf "Sys.remove %s exception %s\n" 
+          if fd != Unix32.bad_fd then Unix32.remove (file_fd file)
+        with e ->
+            lprintf_nl "Sys.remove %s exception %s"
               (file_disk_name file)
             (Printexc2.to_string e); );
       Unix32.destroy (file_fd file);
   with e ->
-      lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
+      lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let time_to_string time =
   let days = time / 60 / 60 / 24 in
@@ -224,7 +223,7 @@ let mail_for_completed_file file =
     in
     
     let line3 = if (file_comment file) <> "" then
-	Printf.sprintf "\r\nComment: %s\r\n" (file_comment file)
+        Printf.sprintf "\r\nComment: %s\r\n" (file_comment file)
       else
         Printf.sprintf "";
     in
@@ -233,15 +232,15 @@ let mail_for_completed_file file =
         Printf.sprintf "[mldonkey] file received - %s"
         (file_best_name file)
       else
-        Printf.sprintf "mldonkey, file received";        
+        Printf.sprintf "mldonkey, file received";
     in
 
     let line4 = if !!url_in_mail <> "" then
-	Printf.sprintf "\r\n<%s/%s>\r\n" !!url_in_mail (Url.encode (file_best_name file))
+        Printf.sprintf "\r\n<%s/%s>\r\n" !!url_in_mail (Url.encode (file_best_name file))
       else
         Printf.sprintf "";
     in
-    
+
     let mail = {
         M.mail_to = !!mail;
         M.mail_from = !!mail;
@@ -253,20 +252,19 @@ let mail_for_completed_file file =
 let chat_for_completed_file file =
   CommonChat.send_warning_for_downloaded_file (file_best_name file)
 
-      
 let file_completed (file : file) =
   try
     let impl = as_file_impl file in
     if impl.impl_file_state = FileDownloading then begin
         files =:= List2.removeq file !!files;
         done_files =:= file :: !!done_files;
-        update_file_state impl FileDownloaded;  
+        update_file_state impl FileDownloaded;
         let file_name = file_disk_name file in
         let file_id = Filename.basename file_name in
         ignore (CommonShared.new_shared "completed" 0 (
             file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
-              lprintf "Exception %s in sendmail\n" (Printexc2.to_string e);
+              lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
               );
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
@@ -279,14 +277,11 @@ let file_completed (file : file) =
               Int64.to_string (file_size file);
               file_best_name file
             |]
-          
           end
-      
-      
       end
   with e ->
-      lprintf "Exception in file_completed: %s\n" (Printexc2.to_string e)
-      
+      lprintf_nl "Exception in file_completed: %s" (Printexc2.to_string e)
+
 let file_add impl state = 
   try
     let file = as_file impl in
@@ -302,13 +297,13 @@ let file_add impl state =
           | FileAborted _
           | FileDownloading
           | FileQueued
-          | FilePaused -> 
+          | FilePaused ->
               files =:= file :: !!files);
         update_file_state impl state
       end
   with e ->
-      lprintf "Exception in file_add: %s\n" (Printexc2.to_string e)
-      
+      lprintf_nl "Exception in file_add: %s" (Printexc2.to_string e)
+
 let server_remove server =
   try
     let impl = as_server_impl server in
@@ -319,8 +314,8 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      lprintf "Exception in server_remove: %s\n" (Printexc2.to_string e)
-  
+      lprintf_nl "Exception in server_remove: %s" (Printexc2.to_string e)
+
 let server_add impl =
   let server = as_server impl in
   if impl.impl_server_state = NewHost then begin
@@ -338,7 +333,7 @@ let friend_add c =
       contacts := List2.removeq c !contacts;
       impl.impl_client_ops.op_client_browse impl.impl_client_val true
     end
-    
+
 (* Maybe we should not add the client to the contact list and completely remove
 it ? *)
 let friend_remove c =
@@ -355,11 +350,11 @@ let friend_remove c =
         client_must_update c;
         contacts := List2.removeq c !contacts;
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-      end        
-      
+      end
+
   with e ->
-      lprintf "Exception in friend_remove: %s\n" (Printexc2.to_string e)
-  
+      lprintf_nl "Exception in friend_remove: %s" (Printexc2.to_string e)
+
 let contact_add c =
   let impl = as_client_impl c in
   if not (is_friend c || is_contact c) then begin
@@ -368,7 +363,7 @@ let contact_add c =
       contacts := c :: !contacts;
       impl.impl_client_ops.op_client_browse impl.impl_client_val true
     end
-    
+
 let contact_remove c =
   try
     let impl = as_client_impl c in
@@ -379,22 +374,19 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
       end
   with e ->
-      lprintf "Exception in contact_remove: %s\n" (Printexc2.to_string e)
+      lprintf_nl "Exception in contact_remove: %s" (Printexc2.to_string e)
 
-  
-  
-  
+
 let time_of_sec sec = 
   let hours = sec / 60 / 60 in
   let rest = sec - hours * 60 * 60 in
   let minutes = rest / 60 in
   let seconds = rest - minutes * 60 in
-    if hours > 0 then Printf.sprintf "%d:%02d:%02d" hours minutes seconds
-	else if minutes > 0 then Printf.sprintf "%d:%02d" minutes seconds
-    	else Printf.sprintf "00:%02d" seconds
-  
+  if hours > 0 then Printf.sprintf "%d:%02d:%02d" hours minutes seconds
+  else if minutes > 0 then Printf.sprintf "%d:%02d" minutes seconds
+  else Printf.sprintf "00:%02d" seconds
 
-  
+
 let display_vd = ref false
 
 let start_download file =
@@ -406,7 +398,7 @@ let start_download file =
         "-file";
         string_of_int (CommonFile.file_num file);
       |]
-      
+
 let download_file o arg =
   let user = o.conn_user in
   let buf = o.conn_buf in
@@ -415,8 +407,8 @@ let download_file o arg =
       match user.ui_last_search with
         None -> "no last search"
       | Some s ->
-          let result = List.assoc (int_of_string arg) user.ui_last_results  in
-          let files = CommonResult.result_download 
+          let result = List.assoc (int_of_string arg) user.ui_last_results in
+          let files = CommonResult.result_download
             result [] false in
           List.iter start_download files;
           "download started"
@@ -424,7 +416,7 @@ let download_file o arg =
     | Failure s -> s
     | _ -> "could not start download"
   )
-  
+
 let start_search user query buf =
   let s = CommonSearch.new_search user query in
   begin
@@ -503,7 +495,7 @@ let send_custom_query user buf query args =
       | Q_KEYWORDS _ -> 
           let value = get_arg "keywords" in
           want_and_not andnot (fun w -> QHasWord w) QNone value
-      
+
       | Q_AND list ->
           begin
             let ands = ref [] in
@@ -515,7 +507,7 @@ let send_custom_query user buf query args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QAnd (q1,q2)) q1 tail
           end
-      
+
       | Q_HIDDEN list ->
           begin
             let ands = ref [] in
@@ -527,7 +519,7 @@ let send_custom_query user buf query args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QAnd (q1,q2)) q1 tail
           end
-      
+
       | Q_OR list ->
           begin
             let ands = ref [] in
@@ -539,7 +531,7 @@ let send_custom_query user buf query args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QOr (q1,q2)) q1 tail
           end
-      
+
       | Q_ANDNOT (q1, q2) ->
           begin
             let r1 = iter q1 in
@@ -547,9 +539,9 @@ let send_custom_query user buf query args =
               QAndNot(r1, iter q2)
             with Not_found -> r1
           end
-      
+
       | Q_MODULE (s, q) -> iter q
-      
+
       | Q_MINSIZE _ ->
           let minsize = get_arg "minsize" in
           let unit = get_arg "minsize_unit" in
@@ -557,7 +549,7 @@ let send_custom_query user buf query args =
           let minsize = Int64.of_string minsize in
           let unit = Int64.of_string unit in
           QHasMinVal (Field_Size, Int64.mul minsize unit)
-      
+
       | Q_MAXSIZE _ ->
           let maxsize = get_arg "maxsize" in
           let unit = get_arg "maxsize_unit" in
@@ -565,7 +557,7 @@ let send_custom_query user buf query args =
           let maxsize = Int64.of_string maxsize in
           let unit = Int64.of_string unit in
           QHasMaxVal (Field_Size, Int64.mul maxsize unit)
-      
+
       | Q_FORMAT _ ->
           let format = get_arg "format" in
           let format_propose = get_arg "format_propose" in
@@ -576,45 +568,45 @@ let send_custom_query user buf query args =
           want_comb_not andnot
             or_comb
             (fun w -> QHasField(Field_Format, w)) QNone format
-      
+
       | Q_MEDIA _ ->
           let media = get_arg "media" in
           let media_propose = get_arg "media_propose" in
-          let media = if media = "" then 
+          let media = if media = "" then
               if media_propose = "" then raise Not_found
               else media_propose
             else media in
           QHasField(Field_Type, media)
-      
+
       | Q_MP3_ARTIST _ ->
           let artist = get_arg "artist" in
           if artist = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Artist, w)) QNone artist
-      
+
       | Q_MP3_TITLE _ ->
           let title = get_arg "title" in
           if title = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Title, w)) QNone title
-      
+
       | Q_MP3_ALBUM _ ->
           let album = get_arg "album" in
           if album = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Album, w)) QNone album
-      
+
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
           QHasMinVal(Field_UNKNOWN "bitrate", Int64.of_string bitrate)
-    
+
     in
     try
       let request = CommonIndexing.simplify_query (iter q) in
       Printf.bprintf buf "Sending query !!!";
-      
-      let s = 
+
+      let s =
         let module G = GuiTypes in
         { G.search_num = 0;
           G.search_query = request;
@@ -630,8 +622,8 @@ let send_custom_query user buf query args =
       ignore (start_search user s buf)
     with
       Not_found ->
-        Printf.bprintf buf "Void query %s" query        
-  with 
+        Printf.bprintf buf "Void query %s" query
+  with
     Not_found ->
       Printf.bprintf buf "No such custom search %s" query
   | Exit -> ()
@@ -647,30 +639,30 @@ let opfile_args r opfile =
   let prefix = r.network_shortname ^ "-" in
   let args = simple_options prefix opfile in
   args
-  
+
 let all_simple_options () =
   let options = ref (sort_options
-      (simple_options "" downloads_ini) 
+      (simple_options "" downloads_ini)
     )
   in
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
           options := !options @ (opfile_args r opfile)
       )
-      r.network_config_file 
+      r.network_config_file
   );
   !options
 
-let parse_simple_options args = 
+let parse_simple_options args =
   let v = all_simple_options () in
   match args with
-    [] -> v 
+    [] -> v
     | args ->
       let match_star = Str.regexp "\\*" in
-      let options_filter = Str.regexp ("^\\(" 
-        ^ (List.fold_left (fun acc a -> acc 
-        ^ (if acc <> "" then "\\|" else "") 
-        ^ (Str.global_replace match_star ".*" a)) "" args) 
+      let options_filter = Str.regexp ("^\\("
+        ^ (List.fold_left (fun acc a -> acc
+        ^ (if acc <> "" then "\\|" else "")
+        ^ (Str.global_replace match_star ".*" a)) "" args)
         ^ "\\)$") in
       List.filter (fun o -> Str.string_match options_filter o.option_name 0) v
 
@@ -698,7 +690,7 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then lprintf "For option %s\n" name; 
+  if !verbose then lprintf_nl "For option %s" name;
   let rec iter prefix opfile =
     let args = simple_options prefix opfile in
     List.iter (fun o ->
@@ -721,11 +713,10 @@ let apply_on_fully_qualified_options name f =
               false
             with Exit -> true
         )) then begin
-        lprintf "Could not set option %s\n" name; 
+        lprintf_nl "Could not set option %s" name;
         raise Not_found
       end
   with Exit -> ()
-      
 
 let set_fully_qualified_options name value =
   apply_on_fully_qualified_options name (fun opfile old_name old_value ->
@@ -745,12 +736,12 @@ let get_fully_qualified_options name =
 let add_item_to_fully_qualified_options name value =
   ()
 
-let del_item_from_fully_qualified_options name value = 
+let del_item_from_fully_qualified_options name value =
   ()
 
 let keywords_of_query query =
   let keywords = ref [] in
-  
+
   let rec iter q = 
     match q with
     | QOr (q1,q2) 
@@ -780,19 +771,18 @@ let keywords_of_query query =
           | _ -> ()
         end
     | QNone ->
-        lprintf "LimewireInteractive.start_search: QNone in query\n";
+        lprintf_nl "LimewireInteractive.start_search: QNone in query";
         ()
   in
   iter query;
   !keywords
 
 let gui_options_panels = ref ([] : (string * (string * string * string) list) list)
-  
+
 let register_gui_options_panel name panel =
   if not (List.mem_assoc name !gui_options_panels) then
     gui_options_panels := (name, panel) :: !gui_options_panels
-    
-    
+
 let _ =
   add_infinite_timer filter_search_delay (fun _ ->
 (*      if !!filter_search then *) begin
@@ -804,7 +794,7 @@ let _ =
       end;
       CommonSearch.Filter.clear ();
   )
-  
+
 let search_add_result filter s r =
   if !CommonSearch.clean_local_search <> 0 then
     CommonSearch.Local.add r;
@@ -816,11 +806,11 @@ let search_add_result filter s r =
     CommonSearch.Filter.add r
 
 let main_options = ref ([] : (string * Arg.spec * string) list)
-  
+
 let add_main_options list =
   main_options := !main_options @ list
 
-  
+
 (*************************************************************
 
 Every minute, sort the files by priority, and test if the
@@ -831,13 +821,13 @@ is a max_concurrent_downloads constraint.
 In the future, we could try to mix this with the multi-users
 system to give some fairness between downloads of different 
 users.
-  
-**************************************************************)  
+
+**************************************************************)
 
 open CommonFile
-  
-let force_download_quotas () = 
-  let files = List.sort (fun f1 f2 -> 
+
+let force_download_quotas () =
+  let files = List.sort (fun f1 f2 ->
         let v = file_priority f2 - file_priority f1 in
         if v <> 0 then v else begin
           (**
@@ -861,7 +851,7 @@ let force_download_quotas () =
         end
   )
     !!CommonComplexOptions.files in
-  
+
   let rec iter list priority files ndownloads nqueued =
     match list, files with
       [], [] -> ()
@@ -877,8 +867,8 @@ let force_download_quotas () =
             iter tail (file_priority f) (f :: files) ndownloads (nqueued+1)
         | _ ->
             iter tail (file_priority f) files ndownloads nqueued
-        
-  and iter_line list priority files ndownloads nqueued = 
+
+  and iter_line list priority files ndownloads nqueued =
     if ndownloads > !!max_concurrent_downloads then
       match files with
         [] -> assert false
@@ -897,13 +887,13 @@ let force_download_quotas () =
             FileQueued ->
               set_file_state f FileDownloading;
               iter_line list priority tail (ndownloads+1) (nqueued-1)
-          | _ -> iter_line list priority tail ndownloads nqueued      
+          | _ -> iter_line list priority tail ndownloads nqueued
     else
       iter list priority [] ndownloads nqueued
-    
+
   in
   iter files max_int [] 0 0
-  
+
 let _ =
   option_hook max_concurrent_downloads (fun _ ->
       force_download_quotas ()   

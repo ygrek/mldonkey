@@ -155,7 +155,7 @@ module Make(Doc : sig
               | Some node -> node
               | Filtered _ -> 
                   Doc.filter doc true;
-                  lprintf "doc filtered"; lprint_newline (); 
+                  lprintf_nl "doc filtered";
                   raise Not_found
             else
               add_char node c

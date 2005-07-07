@@ -253,7 +253,7 @@ module P = struct
                       peer_kind := kind)
               | _ ->
                 if !verbose_hidden_errors then
-                  lprintf "Unused source tag [%s]\n"
+                  lprintf_nl "Unused source tag [%s]"
                     (escaped_string_of_field tag)
           ) r_tags;
           {
@@ -395,7 +395,7 @@ module P = struct
           magic <> kademlia_packed_header_code) then
         begin
           if !CommonOptions.verbose_unknown_messages then begin
-              lprintf "Received unknown UDP packet\n";
+              lprintf_nl "Received unknown UDP packet";
               dump pbuf;
             end;
           raise Not_found
@@ -432,7 +432,7 @@ module P = struct
         
         if !verbose_overnet then 
           begin            
-            lprintf "Sending UDP to %s:%d type %s (opcode 0x%02X len %d)\n" 
+            lprintf_nl "Sending UDP to %s:%d type %s (opcode 0x%02X len %d)"
               (Ip.to_string ip) port (message_to_string msg) (get_uint8 s 1)
             (String.length s);
 (*dump s; lprint_newline ();*)
@@ -448,7 +448,7 @@ module P = struct
         UdpSocket.write sock ping s ip port
       with
       | MessageNotImplemented -> ()
-      | e -> lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
+      | e -> lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
           
     let udp_handler f sock event =
       match event with
@@ -468,10 +468,10 @@ module P = struct
               with e ->
                 if !verbose_hidden_errors then
                 begin
-                  lprintf "Error %s in udp_handler, dump of packet:\n"
+                  lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
-                  lprint_newline ()
+                  lprintf_nl ""
                 end
           );
       | _ -> ()

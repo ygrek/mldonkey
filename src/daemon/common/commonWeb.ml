@@ -58,7 +58,7 @@ let mldonkey_wget url f =
   
   
 let load_url kind url =
-  lprintf "QUERY URL %s\n" url; 
+  lprintf_nl "CommonWeb: QUERY URL %s" url; 
   let f = 
     try 
       (List.assoc kind !file_kinds) url
@@ -73,7 +73,7 @@ let load_file kind file =
   try 
     (List.assoc kind !file_kinds) file file
   with e -> 
-      lprintf "Exception %s while loading kind %s\n" 
+      lprintf_nl "Exception %s while loading kind %s" 
         (Printexc2.to_string e)
       kind
 
@@ -185,7 +185,7 @@ let connect_redirector () =
             UdpSocket.write propagation_socket false s (Ip.from_name name) port;
             
           with e ->
-              lprintf "Exception %s in udp_sendonly\n" (Printexc2.to_string e);
+              lprintf_nl "Exception %s in udp_sendonly" (Printexc2.to_string e);
         end      
     end
 

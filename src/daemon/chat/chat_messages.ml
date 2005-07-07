@@ -56,7 +56,7 @@ let op_config = "<file>  use <file> as configuration file instead of default ~/.
 (** Print the given string if we are in verbose mode.*)
 let verbose s =
   if !verbose_mode then
-    (lprint_string s ; lprint_newline ())
+    (lprint_string s ; lprintf_nl "")
 
 (** {2 Help messages} *)
 

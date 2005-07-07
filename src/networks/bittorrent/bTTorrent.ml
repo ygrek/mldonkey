@@ -24,19 +24,19 @@ open CommonOptions
 open Printf2
 
 open BasicSocket
-  
+
 open CommonGlobals
-  
+
 open BTOptions
 open BTTypes
 open Bencode
 
-  
-open Gettext  
-let _s x = _s "BTTorrent" x
-let _b x = _b "BTTorrent" x  
 
-(* 
+open Gettext
+let _s x = _s "BTTorrent" x
+let _b x = _b "BTTorrent" x
+
+(*
 
 We could have a a-la-edonkey tracker: it would connect back to incoming
   client, and check whether they are accessible from the outside world,
@@ -44,7 +44,7 @@ and also check which chunks they have before sending them sources, so
 that we can filter out immediatly sources that are not interesting for
 them.
 *)
-  
+
 (*
 
 torrents/: for BitTorrent
@@ -82,7 +82,7 @@ let decode_torrent s =
             let current_file = ref "" in
             let current_length = ref zero in
             let length_set = ref false in
-            
+
             List.iter (fun (key, value) ->
                 match key, value with
                   String "path", List path ->
@@ -157,7 +157,7 @@ let decode_torrent s =
   assert (!file_info = Bencode.decode (Bencode.encode !file_info));
   
   let file_id = Sha1.string (Bencode.encode !file_info) in
-  let npieces = 
+  let npieces =
     1+ Int64.to_int ((!length -- one) // !file_piece_size)
   in
 (*            lprintf "npieces %d length %Ld piece %Ld %d\n"

@@ -105,17 +105,14 @@ let print_string4 v s =
     if int > 31 && int <127 then
       lprint_char c
     else lprintf "[%d]" int
-  done;
-  lprint_newline ()
+  done
 
 let print_int32 s i=
-  lprintf "%s: %s" s (Int64.to_string i);
-  lprint_newline ()
+  lprintf_nl "%s: %s" s (Int64.to_string i)
 
 let print_int16 s i=
-  lprintf "%s: %d" s i;
-  lprint_newline ()
-  
+  lprintf "%s: %d" s i
+
 let load file =
   let ic = open_in file in
 (* pos: 0 *)
@@ -124,8 +121,7 @@ let load file =
 
 (* pos: 4 *)
   let size = input_int32 ic in
-  lprintf "SIZE %s" (Int64.to_string size);
-  lprint_newline ();
+  lprintf_nl "SIZE %s" (Int64.to_string size);
 
 (* pos: 8 *)
   let s = input_string4 ic in
@@ -137,22 +133,20 @@ let load file =
 
 (* position 16 *)
   let rec iter_list pos end_pos =
-    lprintf "POS %s/%s" (Int64.to_string pos) (Int64.to_string end_pos);
-    lprint_newline ();    
+    lprintf_nl "POS %s/%s" (Int64.to_string pos) (Int64.to_string end_pos);
     if pos < end_pos then begin
 (* on peut s'arreter quand size = 0 *)
         seek_in ic (Int64.to_int pos);
         let size2 = input_int32 ic in
-        lprintf "SIZE2 %s" (Int64.to_string size2);
-        lprint_newline ();
+        lprintf_nl "SIZE2 %s" (Int64.to_string size2);
         
         let header_name = input_string4 ic in
-        print_string4 "header" header_name; lprint_newline ();
+        print_string4 "header" header_name; lprintf_nl "";
 (* pos: pos + 8 *)       
         begin
           match header_name with
             "hdrl" ->
-              lprintf "HEADER"; lprint_newline ();
+              lprintf_nl "HEADER";
               
               let s = input_string4 ic in
               if s <> "avih" then failwith "Bad AVI file (avih absent)";
@@ -196,10 +190,10 @@ let load file =
                   iter_list pos_in last_pos
               
           | "movi" ->
-              lprintf "CHUNKS"; lprint_newline ();
+              lprintf_nl "CHUNKS"
               
           | "strl" ->
-              lprintf "STREAM DESCRIPTION"; lprint_newline ();
+              lprintf_nl "STREAM DESCRIPTION";
               
               let offset = Int64.of_int 4  in
               let pos0 = Int64.add pos offset in
@@ -207,7 +201,7 @@ let load file =
               iter_list pos0 end_pos0
 
           | "strh" ->
-              lprintf "STREAM HEADER"; lprint_newline ();
+              lprintf_nl "STREAM HEADER";
               
               ignore (input_string4 ic);
               
