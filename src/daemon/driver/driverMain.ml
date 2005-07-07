@@ -608,7 +608,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 let _ =
   let security_space_filename = "config_files_space.tmp" in 
   
-  lprintf_nl (_b "Core started"); 
+  lprintf (_b "Core started"); 
   core_included := true;
   CommonGlobals.print_localtime ();
  

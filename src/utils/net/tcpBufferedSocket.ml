@@ -1841,7 +1841,10 @@ let proc_net_timer _ =
     
   
 let _ =
+  Heap.add_memstat "tcpBufferedSocket" (fun level buf ->
+      Printf.bprintf buf "  %d latencies\n" (Hashtbl.length latencies);
+      Printf.bprintf buf "  %d entries in net_stats\n" (Hashtbl.length net_stats);
+  );
   add_infinite_timer 1.0 proc_net_timer 
-  
-  
+
 let packet_frame_size = ref 250

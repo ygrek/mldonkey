@@ -156,7 +156,7 @@ let resolve_name name =
   with _ ->
       lprintf "[NS]: Resolving [%s] ..." name;
       let ip = gethostbyname name in
-      lprintf "[NS]: done\n";
+      lprintf_nl "[NS]: done";
       Hashtbl.add ip_cache name (ip, current_time +. 3600.);
       ip
 
@@ -233,6 +233,12 @@ let async_ip name f =
 
 (* We check for names every 1/10 second. Too long ? *)
 let _ =
+  Heap.add_memstat "IP" (fun level buf ->
+      Printf.bprintf buf "  %d IPs in ip_cache\n" (Hashtbl.length ip_cache);
+      Printf.bprintf buf "  %d entries in hostname_table\n" (Hashtbl.length hostname_table);
+      Printf.bprintf buf "  %d entries in ip_fifo\n" (Fifo.length ip_fifo);
+  );
+
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
       let current_time = Unix.gettimeofday () in
       while true do

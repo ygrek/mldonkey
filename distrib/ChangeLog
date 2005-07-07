@@ -14,6 +14,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/07: spiralvoice
 
+4153: More infos for mem_stats
 4146: Use lprintf_nl instead of "lprint_newline ()" or "\n"
       (by beedauchon)
 

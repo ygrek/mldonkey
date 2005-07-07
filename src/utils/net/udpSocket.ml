@@ -532,6 +532,12 @@ let get_latencies verbose =
   Buffer.contents b
       
 let _ =
+  Heap.add_memstat "udpSocket" (fun level buf ->
+      Printf.bprintf buf "  %d latencies\n" (Hashtbl.length latencies);
+      Printf.bprintf buf "  %d entries in pings_fifo\n" (Fifo.length pings_fifo);
+      Printf.bprintf buf "  %d entries in pings_hashtbl\n" (Hashtbl.length pings_hashtbl);
+  );
+
   add_infinite_timer 5. (fun _ ->
       try
         while true do
