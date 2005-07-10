@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/10: spiralvoice
+
+4156: tray icon in x11 for GTK2 GUI
+4157: fix mlnet.pid checking at start up for GUI
 
 2005/07/07: spiralvoice
 

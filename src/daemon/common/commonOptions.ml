@@ -87,17 +87,17 @@ let _ =
      exit 2);
   Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
-
-  if Sys.file_exists "mlnet.pid" then
-    begin
-      lprintf "\n\n\nPID file mlnet.pid exists in %s\n"
-      file_basedir;
-      lprintf "This means another MLDonkey process could still be working\n";
-      lprintf "with this directory. Please shut it down before starting\n";
-      lprintf "a new instance here. If you are sure no other process uses\n";
-      lprintf "this directory delete mlnet.pid and restart the core.\n";
-      exit 2
-    end;
+  if (String2.starts_with (Filename.basename Sys.argv.(0))  "mlnet")
+    then if Sys.file_exists "mlnet.pid"
+      then begin
+        lprintf "\n\n\nPID file mlnet.pid exists in %s\n"
+        file_basedir;
+        lprintf "This means another MLDonkey process could still be working\n";
+        lprintf "with this directory. Please shut it down before starting\n";
+        lprintf "a new instance here. If you are sure no other process uses\n";
+        lprintf "this directory delete mlnet.pid and restart the core.\n";
+        exit 2
+      end;
 
   lprintf "The .ini-files are saved in %s\n" file_basedir;
 

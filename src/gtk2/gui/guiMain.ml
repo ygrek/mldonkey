@@ -537,7 +537,7 @@ let core_menu gui on_quit =
         ~modi:[`CONTROL] ~flags:[`VISIBLE] GdkKeysyms._k;
     end;
   let im =
-    GMenu.image_menu_item ~label:!M.mW_lb_im ~use_mnemonic:true
+    GMenu.image_menu_item ~label:!M.mW_me_im ~use_mnemonic:true
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_im ~size:A.SMALL ()) ())
       ~packing:menu#add ()
   in
@@ -619,8 +619,13 @@ let tray_menu gui on_quit =
         (fun _ -> GuiCom.send KillServer
       ));
     end;
+  let restore =
+    GMenu.image_menu_item ~label:!M.mW_me_restore ~use_mnemonic:true
+      ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_interfaces ~size:A.SMALL ()) ())
+      ~packing:menu#add ()
+  in
   let im =
-    GMenu.image_menu_item ~label:!M.mW_lb_im ~use_mnemonic:true
+    GMenu.image_menu_item ~label:!M.mW_me_im ~use_mnemonic:true
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_im ~size:A.SMALL ()) ())
       ~packing:menu#add ()
   in
@@ -634,6 +639,11 @@ let tray_menu gui on_quit =
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_quit ~size:A.SMALL ()) ())
       ~packing:menu#add ()
   in
+  ignore (restore#connect#activate 
+    (fun _ ->
+       gui.window#show ();
+       G.tray.destroy_tray ();
+  ));
   ignore (im#connect#activate 
     (fun _ -> GuiWindow.display_im gui ()
   ));
@@ -803,16 +813,10 @@ let main () =
 
   ignore (w#event#connect#delete ~callback:
     (fun _ ->
-       if Autoconf.system = "windows"
-         then begin
-           w#misc#hide ();
-           let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.LARGE () in
-           G.tray.create_tray icon "MLDonkey";
-           true
-         end else begin
-           quit ();
-           true
-         end
+       w#misc#hide ();
+       let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.MEDIUM () in
+       G.tray.create_tray icon "MLDonkey";
+       true
   ));
 
   let main_menu = core_menu gui quit in
@@ -832,33 +836,30 @@ let main () =
     !l
   );
 
-  if Autoconf.system = "windows"
-    then begin
-      !G.set_systray_callback (fun ev ->
-             match ev with
-               DOUBLE_CLICKED ->
-                 begin
-                   (if !!verbose then lprintf' "tray double clicked\n");
-                   G.tray.destroy_tray ();
-                   w#misc#show ();
-                   w#maximize ();
-                 end
-             | RBUTTON_CLICKED ->
-                 begin
-                   (if !!verbose then lprintf' "tray right clicked\n");
-                   let menu = tray_menu gui quit in
-                   let w_opt = GWindow.toplevel menu in
-                   match w_opt with
-                       None -> (if !!verbose then lprintf' "No toplevel window\n"; flush stdout)
-                     | Some win ->
-                         begin
-                           win#set_position `MOUSE;
-                           win#show ()
-                         end
-                 end
-             | _ -> ()
-           )
-    end;
+  !G.set_systray_callback (fun ev ->
+    match ev with
+        DOUBLE_CLICKED ->
+           begin
+             (if !!verbose then lprintf' "tray double clicked\n");
+             G.tray.destroy_tray ();
+             w#misc#show ();
+             w#maximize ();
+           end
+      | RBUTTON_CLICKED ->
+           begin
+             (if !!verbose then lprintf' "tray right clicked\n");
+             let menu = tray_menu gui quit in
+             let w_opt = GWindow.toplevel menu in
+             match w_opt with
+                 None -> (if !!verbose then lprintf' "No toplevel window\n"; flush stdout)
+               | Some win ->
+                   begin
+                     win#set_position `MOUSE;
+                     win#show ()
+                   end
+           end
+      | _ -> ()
+  );
 
   CommonGlobals.do_at_exit (fun _ ->
       GuiMisc.save_gui_options gui;

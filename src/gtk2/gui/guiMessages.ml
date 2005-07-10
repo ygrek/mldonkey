@@ -351,6 +351,8 @@ let mW_me_scan_ports  = ref ""
 let mW_me_reconnect_to  = ref ""
 let mW_me_settings  = ref ""
 let mW_me_main_menu  = ref ""
+let mW_me_im  = ref ""
+let mW_me_restore = ref ""
 
 (* Settings Window *)
 
@@ -794,6 +796,8 @@ let load_messages () =
   mW_me_reconnect_to  :=  _s "Reconnect t_o";
   mW_me_settings  :=  !mW_lb_settings;
   mW_me_main_menu  :=  _s "Main me_nu";
+  mW_me_im  := _s "_Im";
+  mW_me_restore := _s "R_estore";
 
 (* Settings Window *)
 

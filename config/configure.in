@@ -885,15 +885,9 @@ fi
 if test "$USE_GTK2" = "yes" ; then
   GTK=gtk2
   GUIS="mldonkey_gui\$(EXE)"
-  case "`uname -s`" in
-    *win32* | *WIN32* | MINGW* )
-      GTKCFLAGS="`pkg-config --cflags-only-I gtk+-2.0`"
-      GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
-      GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
-      ;;
-    *)
-      ;;
-  esac
+  GTKCFLAGS="`pkg-config --cflags-only-I gtk+-2.0`"
+  GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
+  GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
 else
   GTK=gtk
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
