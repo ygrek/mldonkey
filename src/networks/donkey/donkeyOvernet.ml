@@ -33,18 +33,18 @@ open CommonInteractive
 open CommonNetwork
 open CommonOptions
 open CommonSources
-  
+
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeyOptions
 open DonkeyMftp
 
-(* 
+(*
 * Store published files.
 *)
-  
-type peer = 
-  { 
+
+type peer =
+  {
     peer_md4 : Md4.t;
     mutable peer_ip : Ip.t;
     mutable peer_port : int;
@@ -54,15 +54,15 @@ type peer =
     mutable peer_last_send : int;
   }
 
-type search_kind = 
+type search_kind =
   Search_for_keyword  of unit option
 | Search_for_file
 | Search_for_kind of int
-  
+
 type t =
 (* KADEMLIA_BOOTSTRAP_REQ *)
 | OvernetConnect of peer
-  
+
 (* KADEMLIA_BOOTSTRAP_RES *)
 | OvernetConnectReply of peer list
 
@@ -71,43 +71,43 @@ type t =
 
 (* KADEMLIA_HELLO_RES *)
 | OvernetPublicized of peer option
-  
+
 (* KADEMLIA_REQ *)
-| OvernetSearch of 
-(* 2 is OK for most searches, number of replies? *) int * 
+| OvernetSearch of
+(* 2 is OK for most searches, number of replies? *) int *
 (* searched file or keyword *) Md4.t *
   Md4.t option (* Our UID *)
 
 (* KADEMLIA_RES *)
-| OvernetSearchReply of 
+| OvernetSearchReply of
   Md4.t *
   peer list (* the two closest peers in the binary tree of md4s *)
 
 (* KADEMLIA_SEARCH_REQ *)
-| OvernetGetSearchResults of 
+| OvernetGetSearchResults of
   Md4.t * (* target *)
   search_kind *   (* type *)
   int *   (* min *)
   int     (* max *)
-  
+
 (* The following two messages are encoded in Overnet and Kademlia in the same
 message, but we prefer to have two different messages at this level, for
 search for files and search for sources. *)
-  
+
 (* KADEMLIA_SEARCH_RES *)
 | OvernetSearchFilesResults of
 (* query *)  Md4.t *
   (Md4.t * tag list) list (* results *)
 
-(* KADEMLIA_SEARCH_RES *)  
+(* KADEMLIA_SEARCH_RES *)
 | OvernetSearchSourcesResults of Md4.t * peer list
-  
+
 (* KADEMLIA_PUBLISH_REQ *)
-| OvernetPublishFiles of 
+| OvernetPublishFiles of
 (* keyword or file md4 *) Md4.t *
 (* md4 of file or client md4 *) (Md4.t *  tag list) list
 
-| OvernetPublishSources of 
+| OvernetPublishSources of
 (* keyword or file md4 *) Md4.t * peer list
 
 (* KADEMLIA_PUBLISH_RES *)
@@ -140,67 +140,67 @@ let print_peer buf p =
     (Md4.to_string p.peer_md4) (Ip.to_string p.peer_ip) p.peer_port
     (if p.peer_tcpport <> 0 then Printf.sprintf "tcp = %d" p.peer_tcpport
     else "") p.peer_kind
-  
+
 let message_to_string t =
   let buf = Buffer.create 100 in
   begin
     match t with
-      OvernetConnect p -> 
+      OvernetConnect p ->
         Buffer.add_string buf "OvernetConnect\n";
         print_peer buf p
-    | OvernetConnectReply peers -> 
+    | OvernetConnectReply peers ->
         Buffer.add_string buf "OvernetConnectReply\n";
         List.iter (print_peer buf) peers
-    | OvernetPublicize p -> 
+    | OvernetPublicize p ->
         Buffer.add_string buf "OvernetPublicize\n";
-        print_peer buf p        
-    | OvernetPublicized p -> 
+        print_peer buf p
+    | OvernetPublicized p ->
         Buffer.add_string buf "OvernetPublicized\n";
         (match p with
           Some p -> print_peer buf p
         | None -> ())
-    | OvernetSearch (nresults, md4, _) -> 
+    | OvernetSearch (nresults, md4, _) ->
         Buffer.add_string buf "OvernetSearch\n";
         Printf.bprintf buf "   target = %s nresults = %d\n"
           (Md4.to_string md4) nresults
-    | OvernetSearchReply (target, peers) -> 
+    | OvernetSearchReply (target, peers) ->
         Buffer.add_string buf "OvernetSearchReply\n";
         Printf.bprintf buf "  target = %s npeers = %d\n"
           (Md4.to_string target) (List.length peers);
-        List.iter (print_peer buf) peers        
+        List.iter (print_peer buf) peers
     | OvernetGetSearchResults (target, _, _, _) ->
         Printf.bprintf buf "OvernetGetSearchResults %s\n" (Md4.to_string target)
     | OvernetSearchFilesResults (target, results) ->
-        Printf.bprintf buf "OvernetSearchFilesResults %s\n" 
+        Printf.bprintf buf "OvernetSearchFilesResults %s\n"
           (Md4.to_string target);
         List.iter (fun (r_md4, r_tags) ->
             Printf.bprintf buf "    %s\n       " (Md4.to_string r_md4);
-            bprint_tags buf r_tags ; 
+            bprint_tags buf r_tags ;
             Printf.bprintf buf "\n";
         ) results
     | OvernetSearchSourcesResults (target, peers) ->
-        Printf.bprintf buf "OvernetSearchSourcesResults %s\n" 
+        Printf.bprintf buf "OvernetSearchSourcesResults %s\n"
           (Md4.to_string target);
         List.iter (print_peer buf) peers
     | OvernetPublishFiles (target, results) ->
-        Printf.bprintf buf "OvernetPublish %s\n" 
+        Printf.bprintf buf "OvernetPublish %s\n"
           (Md4.to_string target);
         List.iter (fun (r_md4, r_tags) ->
             Printf.bprintf buf "    %s\n       " (Md4.to_string r_md4);
-            bprint_tags buf r_tags ; 
+            bprint_tags buf r_tags ;
             Printf.bprintf buf "\n";
         ) results
     | OvernetPublishSources (target, peers) ->
-        Printf.bprintf buf "OvernetPublishSources %s\n" 
+        Printf.bprintf buf "OvernetPublishSources %s\n"
           (Md4.to_string target);
         List.iter (print_peer buf) peers
     | OvernetPublished target ->
         Printf.bprintf buf "OvernetPublished %s\n" (Md4.to_string target)
-    | _ -> 
+    | _ ->
         Buffer.add_string buf "unknown\n"
   end;
   Buffer.contents buf
-  
+
 (*
 TODO OVERNET
 ----
@@ -234,11 +234,11 @@ R 1Eh (30) : (nothing) (=> BCP type 2)
 S 15h (21) : md4 (my MD4) IP (my ip) port (my port UDP)
 R 16h (22) : port (his ??? TCP port)
 *)
-  
+
 module XorSet = Set.Make (
   struct
     type t = Md4.t * peer
-    let compare (m1,p1) (m2,p2) = 
+    let compare (m1,p1) (m2,p2) =
       compare (m1,p1.peer_md4, p1.peer_ip) (m2,p2.peer_md4, p2.peer_ip)
   end
 )
@@ -246,7 +246,7 @@ module XorSet = Set.Make (
 module XorMd4Set = Set.Make (
     struct
       type t = Md4.t (* distance *) * Md4.t (* md4 *)
-      let compare (m1,p1) (m2,p2) = 
+      let compare (m1,p1) (m2,p2) =
         let c = compare m1 m2 in
         if c = 0 then compare p1 p2 else c
     end
@@ -258,12 +258,12 @@ module XorMd4Map = Map.Make (
       let compare = compare
     end
   )
-  
+
 type search_for =
 | FileSearch of file
 | KeywordSearch of CommonTypes.search
 | FillBuckets
-  
+
 type overnet_search = {
     search_md4 : Md4.t;
     mutable search_kind : search_for;
@@ -272,9 +272,9 @@ type overnet_search = {
     search_waiting_peers : peer Fifo.t array;
     search_asked_peers : peer Fifo.t array;
     search_ok_peers : peer Fifo.t array;
-    
+
     mutable search_queries : int;
-    mutable search_requests : int; 
+    mutable search_requests : int;
     mutable search_start : int;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
     mutable search_nresults : int; (* number of results messages *)
@@ -282,23 +282,23 @@ type overnet_search = {
     }
 
 exception MessageNotImplemented
-  
+
 module Make(Proto: sig
 
       val enable_overnet : bool Options.option_record
       val overnet_port : int Options.option_record
       val overnet_tcpport : int Options.option_record
       val overnet_section : Options.options_section
-        
+
       val redirector_section : string
       val options_section_name : string
       val command_prefix : string
       val source_brand : bool
-        
+
       val udp_send : UdpSocket.t -> Ip.t -> int -> bool -> t -> unit
-      val udp_handler : (t -> UdpSocket.udp_packet -> unit) -> 
+      val udp_handler : (t -> UdpSocket.udp_packet -> unit) ->
         UdpSocket.t -> UdpSocket.event -> unit
-        
+
       val web_info : string
     end) = struct
 
@@ -324,7 +324,7 @@ let min_peers_before_connect = 5
 let max_searches_for_publish = 5
 let max_search_queries = 64
 let max_search_requests = 20
-  
+
 let is_enabled = ref false
 
 
@@ -334,43 +334,43 @@ let is_enabled = ref false
 
 *********************************************************************)
 
-let overnet_store_size = 
-  define_option overnet_section [Proto.options_section_name; "store_size"] "Size of the filename storage used to answer queries" 
+let overnet_store_size =
+  define_option overnet_section [Proto.options_section_name; "store_size"] "Size of the filename storage used to answer queries"
     int_option 2000
 
-let overnet_max_known_peers = 
-  define_option overnet_section [Proto.options_section_name; "max_known_peers"] 
-  "maximal number of peers to keep overnet connected (should be >2048)" 
+let overnet_max_known_peers =
+  define_option overnet_section [Proto.options_section_name; "max_known_peers"]
+  "maximal number of peers to keep overnet connected (should be >2048)"
     int_option 8192
 
-let overnet_search_keyword = 
-  define_option overnet_section [Proto.options_section_name; "search_keyword"] 
+let overnet_search_keyword =
+  define_option overnet_section [Proto.options_section_name; "search_keyword"]
   "allow extended search to search on overnet" bool_option true
 
-let overnet_search_timeout = 
-  define_option overnet_section [Proto.options_section_name; "search_timeout"] 
+let overnet_search_timeout =
+  define_option overnet_section [Proto.options_section_name; "search_timeout"]
   "How long shoud a search on Overnet wait for the last answer before terminating"
     int_option 140
-      
-let overnet_query_peer_period = 
-  define_option overnet_section [Proto.options_section_name; "query_peer_period"] 
+
+let overnet_query_peer_period =
+  define_option overnet_section [Proto.options_section_name; "query_peer_period"]
   "Period between two queries in the overnet tree (should not be set under 5)"
     float_option 5.
-      
-let overnet_max_search_hits = 
-  define_option overnet_section [Proto.options_section_name; "max_search_hits"] 
+
+let overnet_max_search_hits =
+  define_option overnet_section [Proto.options_section_name; "max_search_hits"]
   "Max number of hits in a search on Overnet"
-    int_option 200 
-      
-let overnet_republish = 
-  define_option overnet_section [Proto.options_section_name; "republish"] 
+    int_option 200
+
+let overnet_republish =
+  define_option overnet_section [Proto.options_section_name; "republish"]
   "Interval (in seconds) before republish files"
     float_option 10800.
 
-let overnet_exclude_peers = 
-  define_option overnet_section [Proto.options_section_name; "exclude_peers"] 
+let overnet_exclude_peers =
+  define_option overnet_section [Proto.options_section_name; "exclude_peers"]
   "These IP addresses cannot be peers. Elements are separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
-    ip_list_option [Ip.of_string "1.0.0.0"]   
+    ip_list_option [Ip.of_string "1.0.0.0"]
 
 let overnet_md4 = define_option overnet_section
   [Proto.options_section_name; "md4"]
@@ -381,7 +381,7 @@ let overnet_update_nodes = define_option overnet_section
   "Set this option to false if you don't want to receive new Overnet peers"
     bool_option true
 
-let gui_overnet_options_panel = 
+let gui_overnet_options_panel =
   (*
   define_option overnet_section ["gui_overnet_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
@@ -396,9 +396,9 @@ let gui_overnet_options_panel =
     "Search Internal Period", shortname overnet_query_peer_period, "T";
     "Search Max Hits", shortname overnet_max_search_hits, "T";
   ]
-      
-let overnet_options_version = 
-  define_option overnet_section [Proto.options_section_name; "options_version"] 
+
+let overnet_options_version =
+  define_option overnet_section [Proto.options_section_name; "options_version"]
     "(internal)"
     int_option 0
 
@@ -407,56 +407,56 @@ let overnet_options_version =
 
 
                         MUTABLE STRUCTURES
-  
+
 
 *********************************************************************)
 
 let connected_peers = ref 0
 
 module LimitedList = struct
-    
+
     type key = Ip.t * int
-    
+
     type 'a t = {
-        objects_fifo : key Fifo.t; 
+        objects_fifo : key Fifo.t;
         mutable max_objects : int;
         objects_table : (key, key) Hashtbl.t;
       }
 
     let length t = Fifo.length t.objects_fifo
-      
+
     let create max_objects = {
         objects_fifo = Fifo.create ();
         max_objects = max_objects;
         objects_table = Hashtbl.create 127;
       }
-      
-    let add t key = 
+
+    let add t key =
       let (ip, port) = key in
       if Ip.valid ip && ip <> Ip.localhost && Ip.reachable ip &&
         not (Hashtbl.mem t.objects_table key) then
         begin
           Hashtbl.add t.objects_table key key;
           Fifo.put t.objects_fifo key;
-          if Fifo.length t.objects_fifo = t.max_objects then 
+          if Fifo.length t.objects_fifo = t.max_objects then
             let key = Fifo.take t.objects_fifo in
             Hashtbl.remove t.objects_table key
         end
-        
+
     let to_list t =
-      Fifo.to_list t.objects_fifo        
+      Fifo.to_list t.objects_fifo
 
     let iter f t =
       Fifo.iter f t.objects_fifo
-      
+
     let set_max_objects t max_objects =
       while Fifo.length t.objects_fifo > max_objects do
             let key = Fifo.take t.objects_fifo in
             Hashtbl.remove t.objects_table key
       done;
       t.max_objects <- max_objects
-        
-      
+
+
     let value_to_t v =
       let t = create 100000 in
       match v with
@@ -464,7 +464,7 @@ module LimitedList = struct
           List.iter (fun v ->
               match v with
                 List [ip; port] | SmallList [ip; port] ->
-                  add t (Ip.of_string (value_to_string ip), 
+                  add t (Ip.of_string (value_to_string ip),
                     value_to_int port)
               | _ -> failwith "not a limited IP list"
           ) l;
@@ -475,41 +475,41 @@ module LimitedList = struct
       List (List2.tail_map (fun (ip,port) ->
             SmallList [string_to_value (Ip.to_string ip); int_to_value port]
         ) (to_list t))
-          
+
     let option = define_option_class "LimitedList"
           value_to_t value_of_t
-      
+
   end
-  
+
 let boot_peers = define_option servers_section
     [Proto.options_section_name; "boot_peers"]
     "List of IP addresses to use to boot Kademlia networks"
     LimitedList.option (LimitedList.create 2000)
 
 let boot_peers_copy = ref []
-  
+
 (* the total number of buckets used. We must fill a bucket before using the
 next one. When a bucket is full, and we want to add a new peer, we must
 either split the bucket, if it is the last one, or remove one peer from the
 bucket.
 
 What we want: we don't want to put too many peers in the buckets.
-The buckets should preferably contain peers that have already send us a 
+The buckets should preferably contain peers that have already send us a
   message, because we are not sure for other peers.
   *)
 
-let n_used_buckets = ref 0 
-  
+let n_used_buckets = ref 0
+
 (* We distinguish between buckets and prebuckets: peers in buckets are peers
 that sent us a message in the last hour, whereas peers in the prebuckets
 are peers that we are not sure of. *)
 let buckets = Array.init 129 (fun _ -> Fifo.create ())
 let prebuckets = Array.init 129 (fun _ -> Fifo.create ())
-  
+
 let known_peers = Hashtbl.create 127
 let to_ping = ref []
 
-(* 
+(*
 We keep the data in buckets depending on the number of bits they have
 in common with our identifier. When we exceed the desired storage,
 we start removing associations from the buckets with the fewest common
@@ -517,25 +517,25 @@ bits. Once every 30 minutes, we remove the associations which are older
 than 1 hour.
 *)
 
-  
+
 (* Argh, we MUST verify how MD4s are compared, from left to right, or from
 right to left ?? *)
 
 (* common_bits: compute the number of common bits between a md4 and our
   identifier. *)
-  
+
 let common_bits m1 m2 =
   let n =
     let m = Md4.xor m1 m2 in
 (*    lprintf () "XOR: %s\n" (Md4.to_bits m); *)
-    let rec iter m i = 
+    let rec iter m i =
 (*      lprintf () "iter %d\n" i;  *)
       if i = 16 then 128 else
       let c = m.[i] in
       if c = '\000' then iter m (i+1)
       else
         iter_bit (i*8) (int_of_char c)
-    
+
     and iter_bit nbits c =
 (*      lprintf () "iter_bit %d %d\n" nbits c; *)
       if c land 0x80 <> 0 then nbits else
@@ -546,55 +546,55 @@ let common_bits m1 m2 =
   (*  lprintf () "Common bits: %s - %s = %d\n"
     (Md4.to_string m1) (Md4.to_string m2) n; *)
   n
-  
+
 let bucket_number md4 =
   common_bits md4 !!overnet_md4
-  
+
   (*
 (* TODO: this structure MUST disappear. It is not Kademlia ! *)
-let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = 
+let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record =
   raise Not_found
     *)
 
 (*let firewalled_overnet_peers = Hashtbl.create 13*)
-    
+
 let search_hits = ref 0
 let source_hits = ref 0
 
-    
-let udp_sock = ref None  
-  
+
+let udp_sock = ref None
+
 let overnet_searches = ref []
 
 (********************************************************************
 
 
                            FUNCTIONS
-  
+
 
 *********************************************************************)
 
 module Publish (M : sig
-      type t    
+      type t
       val item_name : string
     end) = struct
-    
+
     type publish = {
-        mutable publish_last_recv : int; 
+        mutable publish_last_recv : int;
         publish_key : (Md4.t * Md4.t);
         publish_value : M.t;
       }
-      
+
     let keyword_to_files_buckets = Array.init 129 (fun _ -> Fifo.create ())
-    
+
     let keyword_to_files_table =  Hashtbl.create 127
-    
+
     let keywords_table =  Hashtbl.create 127
-    
+
     let n_files_stored = ref 0
     let max_soft_stored_files = 1000
     let max_hard_stored_files = 2000
-      
+
     let publish md4 r_md4 r_tags =
       let key = (md4, r_md4) in
       try
@@ -611,18 +611,18 @@ module Publish (M : sig
               Hashtbl.add keywords_table md4 p;
               let bucket = bucket_number md4 in
               Fifo.put keyword_to_files_buckets.(bucket) p;
-              incr n_files_stored;          
+              incr n_files_stored;
             end
-    
+
     let refresh () =
       Hashtbl.clear keywords_table;
       Hashtbl.clear keyword_to_files_table;
       n_files_stored := 0;
-      
+
       let maxtime = last_time () - 3600 in
       try
         for bucket = 128 downto 0 do
-          
+
           let b = keyword_to_files_buckets.(bucket) in
           let len = Fifo.length b in
           if len > 0 then
@@ -630,7 +630,7 @@ module Publish (M : sig
             keyword_to_files_buckets.(bucket) <- bb;
             for i = 1 to len do
               let p = Fifo.take b in
-              if p.publish_last_recv > maxtime && 
+              if p.publish_last_recv > maxtime &&
                 !n_files_stored < max_soft_stored_files then begin
                   Fifo.put bb p;
                   Hashtbl.add keyword_to_files_table p.publish_key p;
@@ -640,8 +640,8 @@ module Publish (M : sig
                 end
             done
         done
-      with Exit -> ()  
-          
+      with Exit -> ()
+
     let print buf =
       Printf.bprintf buf "Store for %s\n" M.item_name;
       Printf.bprintf buf "  Stored items: %d (%d < %d)\n" !n_files_stored
@@ -652,8 +652,8 @@ module Publish (M : sig
           Printf.bprintf buf "    bucket[%d] : %d items\n" bucket len
       done
 
-    let get md4 = 
-      List2.tail_map (fun p -> p.publish_value) 
+    let get md4 =
+      List2.tail_map (fun p -> p.publish_value)
       (Hashtbl.find_all keywords_table md4)
   end
 
@@ -661,12 +661,12 @@ module PublishedKeywords = Publish(struct
       type t = Md4.t * tag list
       let item_name = "Keywords"
     end)
-  
+
 module PublishedFiles = Publish(struct
       type t = peer
       let item_name = "Files"
     end)
-  
+
 let debug_client ip = false
 (*  Ip.matches ip !!overnet_debug_clients *)
 
@@ -691,8 +691,8 @@ let bootstrap ip port =
       LimitedList.add !!boot_peers (ip,port);
       boot_peers_copy := (ip,port) :: !boot_peers_copy
     end
-      
-let new_peer p =  
+
+let new_peer p =
   let ip = p.peer_ip in
   if Ip.valid ip && ip <> Ip.localhost && Ip.reachable ip &&
     p.peer_port <> 0 then
@@ -712,10 +712,10 @@ restart. *)
 (* Now, enter it in the buckets *)
         let bucket = bucket_number p.peer_md4 in
         if bucket < !n_used_buckets then begin
-            
+
             if Fifo.length prebuckets.(bucket) = max_peers_per_prebucket then
               let pp = Fifo.take prebuckets.(bucket) in
-              Fifo.put prebuckets.(bucket) 
+              Fifo.put prebuckets.(bucket)
 (* If we heard of the head of the bucket in the last 30 minutes, we should
   keep it. *)
               (if pp.peer_last_recv > last_time () - 1800 then pp else p)
@@ -724,9 +724,9 @@ restart. *)
           end else
         if !n_used_buckets < 128 then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
-            
+
             while !n_used_buckets < 128 &&
-              Fifo.length prebuckets.(!n_used_buckets) 
+              Fifo.length prebuckets.(!n_used_buckets)
               = max_peers_per_bucket do
               let b = prebuckets.(!n_used_buckets) in
               incr n_used_buckets;
@@ -741,7 +741,7 @@ restart. *)
         p
   else
     p
-            
+
 let get_closest_peers md4 nb =
   let bucket = bucket_number md4 in
   let bucket = min !n_used_buckets bucket in
@@ -766,9 +766,9 @@ let get_closest_peers md4 nb =
     iter (min !nb (Fifo.length fifo))
   in
   add_list  bucket;
-  
+
   if !nb > 0 then begin
-      
+
       let rec iter bucket =
         if bucket <= !n_used_buckets then begin
             add_list bucket;
@@ -776,7 +776,7 @@ let get_closest_peers md4 nb =
           end
       in
       iter (bucket+1);
-      
+
       let rec iter bucket =
         if bucket >= 0 then begin
             add_list bucket;
@@ -789,7 +789,7 @@ let get_closest_peers md4 nb =
   !list
 
 let my_peer () =
-  { 
+  {
     peer_md4 = !!overnet_md4;
     peer_ip = client_ip None;
     peer_port = !!overnet_port;
@@ -830,10 +830,10 @@ let add_search_peer s p =
   if not (Hashtbl.mem s.search_known_peers key) then begin
       Hashtbl.add s.search_known_peers key p;
       let nbits = common_bits p.peer_md4 s.search_md4 in
-      Fifo.put s.search_waiting_peers.(nbits) p;      
+      Fifo.put s.search_waiting_peers.(nbits) p;
     end
 
-let create_search kind md4 =   
+let create_search kind md4 =
   if !verbose_overnet then lprintf_nl () "create_search";
   let s = {
       search_md4 = md4;
@@ -854,41 +854,41 @@ let create_search kind md4 =
   overnet_searches := s :: !overnet_searches;
   s
 
-let create_keyword_search w s =   
+let create_keyword_search w s =
   let md4 = Md4.string w in
   let search = create_search (KeywordSearch s) md4 in
-  search  
+  search
 
 let ip_of_udp_packet p =
   match p.UdpSocket.udp_addr with
     Unix.ADDR_INET (inet, port) ->
       Ip.of_inet_addr inet
   | _ -> assert false
-    
+
 let port_of_udp_packet p =
   match p.UdpSocket.udp_addr with
     Unix.ADDR_INET (inet, port) -> port
   | _ -> assert false
 
 
-let new_peer_message p = 
+let new_peer_message p =
 (*  lprintf () "*** Updating time for %s:%d\n" (Ip.to_string p.peer_ip) p.peer_port; *)
   p.peer_last_recv <- last_time ()
-  
+
 let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
-  if !verbose_overnet then 
-    lprintf_nl () "UDP FROM %s:%d:\n  %s" 
+  if !verbose_overnet then
+    lprintf_nl () "UDP FROM %s:%d:\n  %s"
       (Ip.to_string other_ip) other_port
       (message_to_string t);
   match t with
-  
+
   | OvernetConnect p ->
       new_peer_message p;
       let p = new_peer p in
       udp_send p (OvernetConnectReply (get_any_peers 20))
-  
+
   | OvernetConnectReply ps ->
       UdpSocket.declare_pong other_ip;
       let rec iter list =
@@ -906,27 +906,27 @@ let udp_client_handler t p =
             iter tail
       in
       iter ps;
-    
+
   | OvernetPublicize p ->
       new_peer_message p;
       let p = new_peer p in
       udp_send p  (OvernetPublicized (Some (my_peer ())))
-  
+
   | OvernetPublicized None ->
       ()
-  
+
   | OvernetPublicized (Some p) ->
       new_peer_message p;
       let p = new_peer p in
       ()
-  
+
   | OvernetSearch (nresults, md4, from_who) ->
-      
+
       let peers = get_closest_peers md4 nresults in
       udp_send_direct other_ip other_port (OvernetSearchReply (md4,peers))
-  
+
   | OvernetSearchReply (md4, peers) ->
-      
+
       let peers = List2.tail_map new_peer peers in
       List.iter (fun s ->
           if s.search_md4 = md4 then begin
@@ -935,24 +935,24 @@ let udp_client_handler t p =
                 let p = Hashtbl.find s.search_known_peers
                     (other_ip, other_port) in
                 new_peer_message p;
-                let nbits = common_bits p.peer_md4 s.search_md4 in      
-                Fifo.put s.search_ok_peers.(nbits) p;      
+                let nbits = common_bits p.peer_md4 s.search_md4 in
+                Fifo.put s.search_ok_peers.(nbits) p;
               with _ -> ()
             end
       ) !overnet_searches;
-  
+
   | OvernetUnknown (opcode, s) ->
       if !verbose_hidden_errors then
         begin
           lprintf () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
           lprintf_nl () "\tCode: %d" opcode; dump s;
         end
-  
-  | OvernetSearchFilesResults (md4, results) ->      
-      List.iter (fun s -> 
+
+  | OvernetSearchFilesResults (md4, results) ->
+      List.iter (fun s ->
           if s.search_md4 = md4 then begin
               s.search_nresults <- s.search_nresults + 1;
-              
+
               begin
                 try
                   let p = Hashtbl.find s.search_known_peers
@@ -960,19 +960,19 @@ let udp_client_handler t p =
                   new_peer_message p;
                 with _ -> ()
               end;
-              
+
               match s.search_kind with
                 FileSearch file -> ()
-              
+
               | KeywordSearch sss ->
                   List.iter (fun (r_md4, r_tags) ->
-                      if not (Hashtbl.mem s.search_results r_md4) then 
+                      if not (Hashtbl.mem s.search_results r_md4) then
                         begin
                           incr search_hits;
                           s.search_hits <- s.search_hits + 1;
                           Hashtbl.add s.search_results r_md4 r_tags;
                           if !verbose_overnet then begin
-                              lprintf_nl () "FILE FOUND, TAGS:"; 
+                              lprintf_nl () "FILE FOUND, TAGS:";
                               print_tags r_tags;
                               lprintf_nl () ""
                         end;
@@ -981,15 +981,15 @@ let udp_client_handler t p =
                         end
                   ) results
               | FillBuckets -> ()
-                  
+
             end
       ) !overnet_searches
-  
+
   | OvernetSearchSourcesResults (md4, peers) ->
-      List.iter (fun s -> 
+      List.iter (fun s ->
           if s.search_md4 = md4 then begin
               s.search_nresults <- s.search_nresults + 1;
-              
+
               begin
                 try
                   let p = Hashtbl.find s.search_known_peers
@@ -997,25 +997,25 @@ let udp_client_handler t p =
                   new_peer_message p;
                 with _ -> ()
               end;
-              
+
               match s.search_kind with
-                FileSearch file -> 
+                FileSearch file ->
                   List.iter (fun p ->
                       let ip = p.peer_ip in
                       let port = p.peer_tcpport in
                       if Ip.valid ip && ip_reachable ip && port <> 0 then
-                        let s = DonkeySources.find_source_by_uid 
+                        let s = DonkeySources.find_source_by_uid
                             (Direct_address (ip, port))  in
                         incr source_hits;
-                        DonkeySources.set_request_result s 
+                        DonkeySources.set_request_result s
                            file.file_sources File_new_source;
                         DonkeySources.set_source_brand s source_brand
                   ) peers
-                  
+
               | KeywordSearch sss -> ()
               | FillBuckets -> ()
 
-                  
+
             end
       ) !overnet_searches
 
@@ -1023,7 +1023,7 @@ let udp_client_handler t p =
       List.iter (fun (r_md4, r_tags) ->
           PublishedKeywords.publish md4 r_md4 (r_md4, r_tags)
       ) files
-      
+
   | OvernetPublishSources (md4, files) ->
       List.iter (fun p ->
           PublishedFiles.publish md4 p.peer_md4 p
@@ -1057,7 +1057,7 @@ let query_next_peers () =
           FillBuckets -> 10
         | _ -> 2
       in
-      
+
       let rec iter nbits todo =
         if  nbits >= 0 then
           let len = Fifo.length s.search_waiting_peers.(nbits) in
@@ -1067,7 +1067,7 @@ let query_next_peers () =
             udp_send p (OvernetSearch (nresults, s.search_md4, Some p.peer_md4));
             s.search_queries <- s.search_queries + 1;
             Fifo.put  s.search_asked_peers.(nbits) p;
-            
+
             (if todo > 1 then iter nbits (todo - 1))
           else
             iter (nbits-1) todo
@@ -1078,72 +1078,72 @@ let query_next_peers () =
           ) (get_closest_peers s.search_md4 max_search_queries)
       in
       iter 128 2
-      
+
   ) !overnet_searches
 
 let recover_file file =
   if file_state file = FileDownloading then
     let search = create_search (FileSearch file) file.file_md4 in
     ()
-    
+
 let check_current_downloads () =
   List.iter recover_file !DonkeyGlobals.current_files
 
 let update_buckets () =
-  
+
 (* 1. Clean the buckets from too old peers ( last contact > 1 hour ) *)
 
   let overtime = last_time () - 3600 in
-  
+
   for i = 0 to !n_used_buckets do
-    
+
     let b = buckets.(i) in
     for j = 1 to Fifo.length b do
       let p = Fifo.take b in
       if p.peer_last_recv > overtime then Fifo.put b p else
         decr connected_peers
     done
-    
+
   done;
-  
+
 (* 2. Complete buckets with new peers from the prebuckets with
 ( last_contact < 1 hour ) *)
-  
+
   for i = 0 to !n_used_buckets - 1 do
     let b = buckets.(i) in
     if Fifo.length b < max_peers_per_bucket then begin
-        
+
         try
           let pb = prebuckets.(i) in
           for j = 1 to Fifo.length pb do
-            
+
             let p = Fifo.take pb in
             if p.peer_last_recv > overtime then begin
                 Fifo.put b p;
                 incr connected_peers;
                 if Fifo.length b = max_peers_per_bucket then raise Exit
               end else Fifo.put pb p
-            
+
           done
         with Exit -> ()
-        
+
       end
   done;
-  
+
   ()
-  
-let enable () = 
+
+let enable () =
   if !!enable_overnet && not !is_enabled then begin
       let enabler = is_enabled in
       is_enabled := true;
-      
+
       let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
           (!!overnet_port) (Proto.udp_handler udp_client_handler)) in
       udp_sock := Some sock;
       UdpSocket.set_write_controler sock udp_write_controler;
 
       add_session_timer enabler 1. (fun _ ->
-          if !!enable_overnet then 
+          if !!enable_overnet then
             let my_peer = my_peer () in
 
 (* ping old peers regularly *)
@@ -1159,7 +1159,7 @@ let enable () =
 (* ping unknown peers *)
             begin
               match !boot_peers_copy with
-                [] -> 
+                [] ->
                   boot_peers_copy := LimitedList.to_list !!boot_peers
               | _ ->
                   if !connected_peers < 100 then
@@ -1170,23 +1170,23 @@ let enable () =
                           boot_peers_copy := tail;
                           udp_send_ping ip port (OvernetConnect my_peer);
                           ()
-                    
+
                     done
             end;
       );
-      
-      
+
+
       LimitedList.set_max_objects !!boot_peers  2000 ;
       add_timer 60. (fun _ ->
           LimitedList.set_max_objects !!boot_peers  2000;
       );
-      
+
       add_session_timer enabler 10. (fun _ ->
-          
+
           List.iter (fun s ->
-              
+
               if s.search_requests < max_search_requests then begin
-                  let nrequests = 
+                  let nrequests =
                     match s.search_kind with
                       FillBuckets -> 0
                     | FileSearch _ -> 1
@@ -1212,19 +1212,19 @@ let enable () =
                     with Exit -> ()
                   done
                 end
-          
+
           ) !overnet_searches
-      
+
       );
-      
+
       add_session_timer enabler 60. (fun _ ->
 
           update_buckets ();
-          
+
 (* compute which peers to ping in the next minute *)
           to_ping := [];
           let n_to_ping = ref 0 in
-          
+
           let ping_peers b =
             let overtime = last_time () - 1800 in
             Fifo.iter (fun p ->
@@ -1235,19 +1235,19 @@ let enable () =
                     if !n_to_ping = 60 then raise Exit
                   end
             ) b
-          in            
-          
+          in
+
           begin
             try
-              for i = !n_used_buckets downto 8 do 
-                ping_peers buckets.(i);                
-                ping_peers prebuckets.(i);                
+              for i = !n_used_buckets downto 8 do
+                ping_peers buckets.(i);
+                ping_peers prebuckets.(i);
               done;
-              for i = min !n_used_buckets 7 downto 0 do 
-                ping_peers buckets.(i);                
+              for i = min !n_used_buckets 7 downto 0 do
+                ping_peers buckets.(i);
               done;
-              for i = min !n_used_buckets 7 downto 0 do 
-                ping_peers prebuckets.(i);                
+              for i = min !n_used_buckets 7 downto 0 do
+                ping_peers prebuckets.(i);
               done;
             with Exit -> ()
           end;
@@ -1263,10 +1263,10 @@ let enable () =
       add_session_timer enabler 3600. (fun _ ->
           let s = create_search FillBuckets !!overnet_md4 in
           ()
-      ); 
-      
+      );
+
       let s = create_search FillBuckets !!overnet_md4 in
-      
+
       add_session_option_timer enabler overnet_query_peer_period  (fun _ ->
           if !!enable_overnet then begin
               query_next_peers ()
@@ -1282,29 +1282,29 @@ let enable () =
       add_timer 30. (fun _ ->
           if !!enable_overnet then begin
               check_current_downloads ();
-            end            
+            end
       );
 
   end
-  
-let disable () = 
+
+let disable () =
   if !is_enabled then
     begin
       is_enabled := false;
       (match !udp_sock with
           None -> ()
-        | Some sock -> 
+        | Some sock ->
             udp_sock := None;
             UdpSocket.close sock Closed_by_user);
     end
 
 let _ =
   option_hook enable_overnet
-    (fun _ -> 
+    (fun _ ->
       if !CommonOptions.start_running_plugins then
         if !!enable_overnet = false then disable() else enable ()
   );
-  option_hook overnet_query_peer_period 
+  option_hook overnet_query_peer_period
     (fun _ -> if !!overnet_query_peer_period < 5. then overnet_query_peer_period =:= 5.)
 
 let load_contact_dat filename =
@@ -1340,7 +1340,7 @@ let register_commands list =
     (List2.tail_map (fun (n,f,h) -> (n, "Network/Overnet", f,h)) list)
 
 let _ =
-  register_commands 
+  register_commands
     (List.map (fun (command, args, help) ->
         command_prefix ^ command, args, help)
     [
@@ -1350,15 +1350,15 @@ let _ =
         bootstrap ip port;
         Printf.sprintf "peer %s:%d added" (Ip.to_string ip) port
     ), "<ip> <port> :\t\t\tadd an Overnet/Kademlia peer";
-    
-    "link", Arg_multiple (fun args o ->        
+
+    "link", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let url = String2.unsplit args ' ' in
         if parse_overnet_url url then
           "download started"
         else "bad syntax"
     ), "<fhalink> :\t\t\tdownload fha:// link";
-    
+
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf and sum = ref 0 in
         if o.conn_output = HTML then
@@ -1397,7 +1397,7 @@ let _ =
               end
             else
             Printf.bprintf buf "Search %s for %s\n"
-              
+
 (* ", %d asked, %d done, %d hits, %d results) %s%s\n" *)
               (match s.search_kind with
                 KeywordSearch _ -> "keyword"
@@ -1412,7 +1412,7 @@ let _ =
                     begin
                       Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
                       html_mods_td buf [
-                        ("", "sr", 
+                        ("", "sr",
                           Printf.sprintf "nbits[%d] = %d peer(s) not asked, %d peer(s) asked"
                           i npeers nasked); ];
                       Printf.bprintf buf "\\</tr\\>";
@@ -1428,10 +1428,10 @@ let _ =
         ) !overnet_searches;
         if o.conn_output = HTML then
           Printf.bprintf buf "\\</div\\>\n";
-        
+
         "";
     ), ":\t\t\t\tOvernet/Kademlia Stats";
-    
+
     "web", Arg_multiple (fun args o ->
         let urls =
           match args with
@@ -1453,14 +1453,14 @@ let _ =
         try
           let n = load_contact_dat filename in
           Printf.sprintf "%d overnet peers loaded" n;
-        with e -> 
+        with e ->
             Printf.sprintf "error %s while loading file" (Printexc2.to_string e)
     ), "<filename> :\t\t\tload the peers from a contact.dat file";
-    
+
     "md4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string !!overnet_md4);
     ), ":\t\t\t\t\tget client MD4 address on the Overnet/Kademlia network";
-    
-    "store", Arg_none (fun o -> 
+
+    "store", Arg_none (fun o ->
         let buf = o.conn_buf in
           Printf.bprintf buf "%s store:\n"
           (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
@@ -1495,7 +1495,7 @@ let _ =
           Printf.bprintf buf "Number of used buckets %d with %d peers\n"
             !n_used_buckets !connected_peers;
           for i = 0 to !n_used_buckets do
-            if Fifo.length buckets.(i) > 0 || 
+            if Fifo.length buckets.(i) > 0 ||
               Fifo.length prebuckets.(i) > 0 then
               Printf.bprintf buf "   bucket[%d] : %d peers (prebucket %d)\n"
                 i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
@@ -1514,16 +1514,16 @@ let _ =
 
   ]);
   ()
-  
+
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
     if !verbose then lprintf_nl () "========= overnet_search =========";
     let ws = keywords_of_query q in
-    List.iter (fun w -> 
+    List.iter (fun w ->
         if !verbose then lprintf_nl () "overnet_search for %s" w;
         let s = create_keyword_search w ss in
-        Hashtbl.iter (fun r_md4 r_tags -> 
+        Hashtbl.iter (fun r_md4 r_tags ->
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;
     )
     ws
@@ -1533,27 +1533,27 @@ let forget_search ss =
       match s.search_kind with
         KeywordSearch sss when ss == sss -> false
       | _ -> true) !overnet_searches
-    
+
 let _ =
   CommonWeb.add_redirector_info Proto.redirector_section (fun buf ->
       update_buckets ();
       let peers = get_any_peers 32 in
       buf_int buf (List.length peers);
       List.iter (fun p ->
-          buf_ip buf p.peer_ip; 
+          buf_ip buf p.peer_ip;
           buf_int16 buf p.peer_port;
           buf_int16 buf p.peer_tcpport;
-      ) 
+      )
       peers;
   )
 
-let cancel_recover_file file = 
+let cancel_recover_file file =
   overnet_searches := List.filter (fun s ->
       match s.search_kind with
         FileSearch f when f == file -> false
       | _ -> true) !overnet_searches
 
-let _ =    
+let _ =
   CommonWeb.add_web_kind web_info (fun _ filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
@@ -1567,14 +1567,14 @@ let _ =
                 Ip.async_ip name (fun ip ->
                     let port = int_of_string port in
                     if !verbose_overnet then begin
-                        lprintf () "ADDING OVERNET PEER %s:%d\n" name port; 
+                        lprintf_nl () "ADDING OVERNET PEER %s:%d" name port;
                       end;
                     bootstrap ip port)
-            | _ -> 
-                lprintf () "BAD LINE ocl: %s\n" s;
-          with _ -> 
+            | _ ->
+                lprintf_nl () "BAD LINE ocl: %s" s;
+          with _ ->
               begin
-                lprintf () "DNS failed\n"; 
+                lprintf_nl () "DNS failed";
               end
       ) lines
   );
@@ -1585,10 +1585,10 @@ let _ =
     begin
       CommonWeb.add_web_kind "contact.dat" (fun _ filename ->
           if !verbose_overnet then
-            lprintf () "LOADED contact.dat\n";
+            lprintf_nl () "LOADED contact.dat";
           let n = load_contact_dat filename in
           if !verbose_overnet then
-            lprintf () "%d PEERS ADDED\n" n;
+            lprintf_nl () "%d PEERS ADDED" n;
         );
     end;
 
@@ -1596,7 +1596,7 @@ let _ =
 
 Define a function to be called when the "mem_stats" command
   is used to display information on structure footprint.
-  
+
 **************************************************************)
 
   Heap.add_memstat

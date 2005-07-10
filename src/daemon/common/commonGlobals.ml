@@ -31,8 +31,8 @@ open TcpBufferedSocket
 (*                                                                       *)
 (*                         short_lazy                                    *)
 (*                                                                       *)
-(*************************************************************************)  
-  
+(*************************************************************************)
+
 (* Store the result of a computation for a very short time to avoid
 recomputing it too often. Each value is associated with a uniq
  '(string, int1, int2)' that should be provided by the caller.
@@ -43,14 +43,14 @@ module ShortLazy : sig
   end = struct
 
     type t
-    
+
     let short_lazy_values = Hashtbl.create 111
     let compute name f x =
       let f = (Obj.magic f : t -> t) in
       let x = (Obj.magic x : t) in
       try
         let (f',x',v) = Hashtbl.find short_lazy_values name in
-        
+
         if f' != f || x <> x' then
           (Hashtbl.remove short_lazy_values name; raise Not_found);
         Obj.magic (v : t)
@@ -58,11 +58,11 @@ module ShortLazy : sig
           let v = f x in
           Hashtbl.add short_lazy_values name (f,x,v);
           Obj.magic (v : t)
-    
+
     let _ =
       add_infinite_timer 5. (fun _ -> Hashtbl.clear short_lazy_values)
   end
-  
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         ............                                  *)
@@ -70,13 +70,13 @@ module ShortLazy : sig
 (*************************************************************************)
 
 let networks_string = ref ""
-  
+
 let patches_string = ref ""
 
-let version () = 
-  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"  
+let version () =
+  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"
     Autoconf.current_version !networks_string
-  
+
 let buildinfo () =
   (
     "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
@@ -98,7 +98,7 @@ let buildinfo () =
       ^ (if Autoconf.configure_arguments <> "" then "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
       ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
   )
-  
+
 (* Should we try to find another port when we cannot bind to the one set
 in an option, and then change the option accordingly. ?> *)
 let find_other_port = ref false
@@ -117,7 +117,7 @@ let shorten str limit =
 
 let client_short_name c =
   shorten c !!max_client_name_len
-  
+
 let find_port server_name bind_addr port_option handler =
   if !!port_option <> 0 then
     let rec iter port =
@@ -137,38 +137,38 @@ let find_port server_name bind_addr port_option handler =
     in
     iter !!port_option
   else None
-  
+
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 
 let printf_char c =
-  if !verbose then 
+  if !verbose then
     (lprint_char c)
-    
+
 let printf_string c =
-  if !verbose then 
+  if !verbose then
     (lprint_string c)
 
 let minutes25 = 25 * 60
-  
+
 let new_connection_control () = {
     control_last_ok = 0;
     control_state = 0;
     control_last_try = 0;
     control_min_reask = !!min_reask_delay;
   }
-  
+
 let new_connection_control_recent_ok () = {
     control_last_ok = last_time () - minutes25;
     control_state = 0;
     control_last_try = 0;
     control_min_reask = !!min_reask_delay;
   }
-  
-let connection_ok cc = 
+
+let connection_ok cc =
   cc.control_last_ok <- last_time ();
   cc.control_state <- 0
-  
+
 let connection_try cc =
   cc.control_last_try <- last_time ()
 
@@ -185,7 +185,7 @@ let connection_can_try cc =
 let print_control c =
   lprintf_nl "Connection Control: ok = %d seconds ago, state = %d, last tried = %d seconds ago, delay = %d, next in %d seconds"
     (last_time () - c.control_last_ok) c.control_state (last_time () - c.control_last_try) c.control_min_reask (connection_next_try c - last_time ())
-  
+
 let connection_must_try cc =
   cc.control_state <- 0
 
@@ -195,47 +195,47 @@ let connection_set_last_conn cc lc =
 let connection_last_conn cc =
   cc.control_last_ok
 
-let connection_delay cc = 
+let connection_delay cc =
   cc.control_last_try <- last_time ();
   cc.control_state <- 0
-  
-let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
+
+let upload_control = TcpBufferedSocket.create_write_bandwidth_controler
     "Upload"
     (!!max_hard_upload_rate * 1024)
-  
-let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
+
+let download_control = TcpBufferedSocket.create_read_bandwidth_controler
   "Download"
     (!!max_hard_download_rate * 2048) (* TODO: changed from 1024 to 2048 because of bug *)
 
-      
+
 let _ =
-  option_hook max_hard_upload_rate (fun _ -> 
-      TcpBufferedSocket.change_rate upload_control 
-        (!!max_hard_upload_rate * 1024));  
+  option_hook max_hard_upload_rate (fun _ ->
+      TcpBufferedSocket.change_rate upload_control
+        (!!max_hard_upload_rate * 1024));
   option_hook max_hard_download_rate (fun _ ->
       let rate = !!max_hard_download_rate in
-      TcpBufferedSocket.change_rate download_control 
+      TcpBufferedSocket.change_rate download_control
         (rate * 2048)) (* TODO: changed from 1024 to 2048 because of bug *)
 
 let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
 let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
-  
+
 let gui_server_sock = ref (None : TcpServerSocket.t option)
-  
+
 let pid = Unix.getpid ()
-  
+
 let do_at_exit f =
-  Pervasives.at_exit (fun _ -> 
+  Pervasives.at_exit (fun _ ->
       if Unix.getpid () = pid then
         try f () with e -> ())
-      
+
 let exit_properly n = Pervasives.exit n
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )
-  
-  
+
+
 let want_and_not andnot f none value =
 (*   lprintf "want_and_not [%s]\n" value; *)
   let ws = String2.split_simplify value ' ' in
@@ -270,7 +270,7 @@ let want_comb_not andnot comb f none value =
   ) ws;
   let wanted = match !wanted with
       [] -> none
-    | w :: tail -> 
+    | w :: tail ->
         List.fold_left (fun q w ->
             comb q  (f w)
         ) (f w) tail
@@ -283,7 +283,7 @@ let want_comb_not andnot comb f none value =
             comb q  (f w)
         ) (f w) tail)
 
-            
+
 let string_of_tags tags =
   let buf = Buffer.create 100 in
       List.iter (fun t ->
@@ -302,15 +302,15 @@ let rec find_tag name tags =
     [] -> raise Not_found
   | { tag_name = tag_name; tag_value = v } :: _ when tag_name = name -> v
   | _ :: tail -> find_tag name tail
-      
-      
-      
-  
+
+
+
+
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
 let gui_counter = ref 2
 
   (*
-let ip_of_addr addr f = 
+let ip_of_addr addr f =
   if addr.addr_name <> "" then
     if addr.addr_age + !!ip_cache_timeout < last_time () then begin
         Ip.async_ip  addr.addr_name (fun ip ->
@@ -321,8 +321,8 @@ let ip_of_addr addr f =
       f addr.addr_ip
   else
     f addr.addr_ip
-  
-let sync_ip_of_addr addr = 
+
+let sync_ip_of_addr addr =
   if addr.addr_name <> "" then
     if addr.addr_age + !!ip_cache_timeout < last_time () then begin
         let ip = Ip.from_name  addr.addr_name in
@@ -333,18 +333,18 @@ let sync_ip_of_addr addr =
       addr.addr_ip
   else
     addr.addr_ip
-    
+
 let new_addr_ip ip = {
     addr_ip = ip; addr_name = Ip.to_string ip; addr_age = 0;
   }
-  
+
 let new_addr_name name = {
     addr_ip = Ip.null; addr_name = name; addr_age = 0
   }
-  
+
 let string_of_addr addr =
   if addr.addr_name = "" then Ip.to_string addr.addr_ip else addr.addr_name
-    
+
 let addr_of_string s =
   let ip = try Ip.of_string s with _ -> Ip.null in
   if ip <> Ip.null then new_addr_ip ip else new_addr_name s
@@ -357,7 +357,7 @@ let  download_counter = ref Int64.zero
 let nshared_files = ref 0
 let nshared_bytes = ref Int64.zero
 let shared_counter = ref Int64.zero
-            
+
 let string_of_field t =
   match t with
   | Field_Artist -> "artist"
@@ -374,7 +374,7 @@ let string_of_field t =
   | Field_Bitrate -> "bitrate"
   | Field_Codec -> "codec"
   | Field_UNKNOWN s -> s
-            
+
 let field_of_string t =
   match String.lowercase t with
   | "artist" -> Field_Artist
@@ -393,14 +393,14 @@ let field_of_string t =
   | _ -> Field_UNKNOWN t
 
 let escaped_string_of_field tag =
-  match tag.tag_name with 
+  match tag.tag_name with
   | Field_UNKNOWN s -> String.escaped s
   | t -> string_of_field t
 
-      
+
 let string_of_tag tag =
   Printf.sprintf "  \"%s\" = %s" (escaped_string_of_field tag)
-  (string_of_tag_value tag.tag_value)  
+  (string_of_tag_value tag.tag_value)
 
 let rec print_tags tags =
   match tags with
@@ -429,24 +429,23 @@ let rec bprint_tags buf tags =
 let aborted_download = ref (None : int option)
 
 (* let searches = ref ([] : search list) *)
-  
+
 let core_included = ref false
 let gui_included = ref false
 
 let gui_reconnected = ref false
-  
+
 let core_gui_fifo = (Fifo.create () : GuiProto.to_gui Fifo.t)
 let gui_core_fifo = (Fifo.create () : GuiProto.from_gui Fifo.t)
-  
+
 let init_hooks = ref ([] : (unit -> unit) list)
-  
+
 let add_init_hook f =
   init_hooks := f :: !init_hooks
 
+let chat_message_fifo = (Fifo.create () : (int * string * int * string * string) Fifo.t)
 
-let chat_message_fifo = (Fifo.create () : (int * string * int * string * string) Fifo.t) 
-
-let log_chat_message i num n s = 
+let log_chat_message i num n s =
   Fifo.put chat_message_fifo (last_time(),i,num,n,s);
   try
     let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 !messages_log in
@@ -455,12 +454,12 @@ let log_chat_message i num n s =
   with e ->
     lprintf "[ERROR] Exception %s while trying to log message to %s\n"
       (Printexc2.to_string e) !messages_log;
-  
-  while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
+
+  while (Fifo.length chat_message_fifo) > !!html_mods_max_messages do
     let foo = Fifo.take chat_message_fifo in ()
   done
 let last_message_log = ref 0
-  
+
 let html_mods_table_header buf n c l =
     Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>" 
     c n n c;
@@ -471,11 +470,11 @@ let html_mods_table_header buf n c l =
     Printf.bprintf buf "\\</tr\\>"
 
 let html_mods_td buf l =
-    List.iter (fun (t,c,d)  -> 
-     Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>" 
+    List.iter (fun (t,c,d)  ->
+     Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>"
      c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
     ) l
-  
+
 let html_mods_counter = ref true
 
 let html_mods_cntr () =
@@ -487,10 +486,10 @@ let html_mods_cntr_init () =
 
 (* ripped from gui_misc *)
 
-let ko = 1024.0 
-let mo = ko *. ko 
-let go = mo *. ko 
-let tob = go *. ko 
+let ko = 1024.0
+let mo = ko *. ko
+let go = mo *. ko
+let tob = go *. ko
 
 let size_of_int64 size =
   if !!html_mods_human_readable then
@@ -510,19 +509,19 @@ let size_of_int64 size =
        Int64.to_string size
   else
     Int64.to_string size
-  
+
 let debug_clients = ref Intset.empty
 
 let default_user = {
     ui_user_name = "admin";
-    ui_user_searches = []; 
+    ui_user_searches = [];
     ui_last_search = None;
     ui_last_results = [];
     ui_http_conn = None;
   }
-  
+
 let ui_users = ref [default_user]
-        
+
 let find_ui_user user =
   let rec iter list =
     match list with
@@ -536,22 +535,21 @@ let find_ui_user user =
           } in
         ui_users := u :: !ui_users;
         u
-    | u :: tail -> 
+    | u :: tail ->
         if u.ui_user_name = user then u else iter tail
   in
   iter !ui_users
-  
-  
-let valid_password user pass =  
+
+let valid_password user pass =
   let pass = Md4.Md4.string pass in
   try
     let password = List.assoc user !!users in
-    password = pass 
+    password = pass
   with _ -> false
 
 (* control_: means that it is the limited bandwidth, not the unlimited one
   used by the interfaces. tcp_: the full bandwidth (limited+unlimited) *)
-      
+
 let udp_upload_rate = ref 0
 (* let tcp_upload_rate = ref 0 *)
 let control_upload_rate = ref 0
@@ -580,24 +578,24 @@ let last samples =
   try
     Fifo2.read samples
   with _ ->
-      (last_time (), dummy_sample) 
+      (last_time (), dummy_sample)
 
 let derive (t1, sample1) (t2, sample2) =
   let dt = t2 - t1 in
   if dt <> 0 then
     let fdt = float_of_int dt in
-    (dt, Array.init nmeasures 
+    (dt, Array.init nmeasures
         (fun i -> int_of_float ((sample2.(i) -. sample1.(i)) /. fdt)))
   else
-    (0, Array.make nmeasures 0) 
+    (0, Array.make nmeasures 0)
 
 let update_link_stats () =
-  
+
   let put time sample samples =
     assert (Array.length sample = nmeasures);
     Fifo2.put samples (time, sample) in
-  
-  let last_count_time, last_sample = 
+
+  let last_count_time, last_sample =
     last bandwidth_samples in
   let time = last_time () in
   let sample = [|
@@ -607,10 +605,10 @@ let update_link_stats () =
       Int64.to_float (moved_bytes download_control);
       Int64.to_float !udp_uploaded_bytes;
       Int64.to_float !udp_downloaded_bytes;|] in
-  
+
   (match derive (last_count_time, last_sample) (time, sample) with
       _, [|tur; tdr; cur; cdr; uur; udr|] ->
-        
+
 (*
   tcp_upload_rate := tur;
   tcp_download_rate := tdr;
@@ -624,11 +622,11 @@ let update_link_stats () =
 (*
   lprintf "BANDWIDTH %d/%d %d/%d\n" !control_upload_rate !tcp_upload_rate
     !control_download_rate !tcp_download_rate ;
-*) 
+*)
   put time sample bandwidth_samples;
   trimto 20 bandwidth_samples;
-  
-  let sd_last_count_time, sd_last_sample = 
+
+  let sd_last_count_time, sd_last_sample =
     last short_delay_bandwidth_samples in
   (match derive (sd_last_count_time, sd_last_sample) (time, sample) with
       _, [|tur; _; cur; _; uur; _|] ->
@@ -636,10 +634,10 @@ let update_link_stats () =
         sd_control_upload_rate := cur;
         sd_udp_upload_rate := uur
     | _ -> failwith "wrong number of measures");
-  
+
   put time sample short_delay_bandwidth_samples;
   trimto 5 short_delay_bandwidth_samples
-  
+
 let history_size = 720
 let history_h_size = 720
 
@@ -648,13 +646,13 @@ let download_history = Fifo2.create ()
 let upload_h_history = Fifo2.create ()
 let download_h_history = Fifo2.create ()
 
-let upload_usage () = 
+let upload_usage () =
   !udp_upload_rate + !control_upload_rate
 
-let short_delay_upload_usage () = 
+let short_delay_upload_usage () =
   !sd_udp_upload_rate + !sd_control_upload_rate
 
-let download_usage () = 
+let download_usage () =
   !udp_download_rate + !control_download_rate
 
 let update_download_history () =
@@ -701,14 +699,14 @@ let detected_downlink_capacity () =
 
 let new_tag name v =
   { tag_name = name; tag_value = v }
-  
-let int_tag s i = 
+
+let int_tag s i =
   { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
 
-let int64_tag s i = 
+let int64_tag s i =
   { tag_name = s; tag_value = Uint64 i }
 
-let string_tag s i = 
+let string_tag s i =
   { tag_name = s; tag_value = String i }
 
 let for_int_tag tag f =
@@ -729,7 +727,7 @@ let for_int64_tag tag f =
 
 let for_two_int16_tag tag f =
   match tag.tag_value with
-    Uint64 i | Fint64 i -> 
+    Uint64 i | Fint64 i ->
       let i1 = Int64.to_int (right64 i 16) in
       let i0 = Int64.to_int i in
       let i0 = i0 land 0xffff in
@@ -739,7 +737,7 @@ let for_two_int16_tag tag f =
   | Addr _ -> ()
   | Pair _ -> ()
   | Uint8 n | Uint16 n -> f n 0
-      
+
 let for_string_tag tag f =
   match tag.tag_value with
     Uint64 _ | Fint64 _ -> ()
@@ -747,11 +745,11 @@ let for_string_tag tag f =
   | Addr _ -> ()
   | Pair _ -> ()
   | Uint16 _ | Uint8 _ -> ()
-      
+
 (* Name,FrameHeight *)
 let html_mods_styles = ref
-  [| ("Green",42) ; ("Tang",42); ("L.Blue",42); 
-	 ("L.Purple",42); ("Monochrome",42); ("Corona",42); |]
+  [| ("Green",42) ; ("Tang",42); ("L.Blue",42);
+	 ("L.Purple",42); ("Monochrome",42); ("Corona",42); ("Coronax",42); |]
 
 let partial_chunk c =
   match c with
@@ -759,22 +757,22 @@ let partial_chunk c =
   | _ -> false
 
 module Connections = struct
-      
+
   end
-  
-      
+
+
 let parse_magnet url =
   let url = Url.of_string url in
-  if url.Url.short_file = "magnet:" then 
+  if url.Url.short_file = "magnet:" then
     let uids = ref [] in
     let name = ref "" in
     List.iter (fun (value, arg) ->
         if String2.starts_with value "xt" then
           uids := Uid.expand (Uid.of_string arg :: !uids)
-        else 
+        else
         if String2.starts_with value "dn" then
           name := Url.decode arg
-        else 
+        else
         if arg = "" then
 (* This is an error in the magnet, where a & has been kept instead of being
   url-encoded *)
@@ -788,26 +786,26 @@ let parse_magnet url =
 
     (*
 module CanBeCompressed = struct
-    
+
     let to_deflate = ref []
     let to_deflate_len = ref 0
-        
+
     let compression_buffer_len = 20000
     let compression_buffer = String.create compression_buffer_len
-    
+
     let deflate_connection sock =
       lprintf "Creating deflate connection\n";
       let comp = Deflate (Zlib.inflate_init true, Zlib.deflate_init 6 true) in
-      CompressedConnection (comp, 
+      CompressedConnection (comp,
         buf_create !max_buffer_size, buf_create !max_buffer_size, sock)
-    
+
     let rec iter_deflate sock zs wbuf =
       if wbuf.len > 0 then begin
           lprintf "iter_deflate\n";
           let (_, used_in, used_out) = Zlib.deflate zs
-              wbuf.buf wbuf.pos wbuf.len 
+              wbuf.buf wbuf.pos wbuf.len
               compression_buffer 0 compression_buffer_len
-              Zlib.Z_SYNC_FLUSH in      
+              Zlib.Z_SYNC_FLUSH in
           lprintf "deflated %d/%d -> %d\n" used_in wbuf.len used_out;
           lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
           write sock compression_buffer 0 used_out;
@@ -815,29 +813,29 @@ module CanBeCompressed = struct
           if used_in > 0 || used_out > 0 then
             iter_deflate sock zs wbuf
         end
-        
+
     let deflate_timer _ =
       List.iter (fun conn ->
-          try 
+          try
             match conn with
               CompressedConnection (comp, _, wbuf, sock) ->
                 if closed sock then raise Exit;
                 let Deflate (_, zs) = comp in
                 iter_deflate sock zs wbuf
             | _ -> ()
-          with e -> 
+          with e ->
               lprintf "[ERROR] Exception %s in CanBeCompressed.deflate_timer\n"
                 (Printexc2.to_string e)
       ) !to_deflate;
       to_deflate := [];
       to_deflate_len := 0
-    
+
     let to_deflate conn =
       if not (List.memq conn !to_deflate) then
         to_deflate := conn :: !to_deflate;
       if !to_deflate_len > 1000000 then
         deflate_timer ()
-    
+
     let write_string conn s =
       lprintf "write_string\n";
       let len = String.length s in
@@ -849,12 +847,12 @@ module CanBeCompressed = struct
           to_deflate conn;
           buf_add sock wbuf s 0 len
       | _ -> assert false
-    
+
     let rec iter_inflate zs sock b rbuf =
       if b.len > 0 then begin
           lprintf "iter_inflate %d\n" b.len;
           lprintf "[%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
-          let (_, used_in, used_out) = Zlib.inflate zs b.buf b.pos b.len 
+          let (_, used_in, used_out) = Zlib.inflate zs b.buf b.pos b.len
               compression_buffer 0 compression_buffer_len
               Zlib.Z_SYNC_FLUSH in
           lprintf "inflated %d/%d -> %d\n" used_in b.len used_out;
@@ -864,14 +862,14 @@ module CanBeCompressed = struct
           if used_in > 0 || used_out > 0 then
             iter_inflate zs sock b rbuf
         end
-        
+
     let buf conn =
       lprintf "CanBeCompressed.buf\n";
       try
         match conn with
           Connection sock -> buf sock
         | CompressedConnection (comp,rbuf,_,sock) ->
-            
+
             let b = buf sock in
             let Deflate (zs, _) = comp in
             if b.len > 0 then iter_inflate zs sock b rbuf;
@@ -886,18 +884,18 @@ module CanBeCompressed = struct
 
 let ip_reachable ip =
   !!allow_local_network || Ip.reachable ip
-  
+
 let do_if_connected tcp_connection f =
   match tcp_connection with
     Connection sock -> f sock
   | _ -> ()
-  
+
 let print_localtime () =
 let t = Unix.localtime (Unix.time ()) in
   let { Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday; Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
   lprintf_nl " on localtime: %2d/%2d, %02d:%02d:%02d" tm_mday (tm_mon+1) tm_hour tm_min tm_sec
 
-      
+
 let new_activity () = {
     activity_begin = BasicSocket.last_time ();
     activity_client_overnet_connections = 0;
@@ -913,7 +911,7 @@ let new_activity () = {
 let nactivities = ref 0
 let activities = Fifo.create ()
 let activity = ref (new_activity ())
-  
+
 let _ =
   add_infinite_timer 60. (fun _ ->
       Fifo.put activities !activity;
@@ -924,4 +922,4 @@ let _ =
         end;
       activity := new_activity ()
   )
-  
+

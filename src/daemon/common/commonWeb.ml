@@ -169,32 +169,31 @@ let gen_redirector_packet () =
 (*                                                                       *)
 (*                         connect_redirector                            *)
 (*                                                                       *)
-(*************************************************************************) 
-      
-let propagation_socket = UdpSocket.create_sendonly ()  
+(*************************************************************************)
+
+let propagation_socket = UdpSocket.create_sendonly ()
 let counter = ref 1
-  
+
 let connect_redirector () =
   if !!propagate_servers then begin
       decr counter;
       if !counter = 0 then begin
           counter := 6;
           let s = gen_redirector_packet () in
-          try            
+          try
             let name, port = !!mlnet_redirector in
             UdpSocket.write propagation_socket false s (Ip.from_name name) port;
-            
+
           with e ->
               lprintf_nl "Exception %s in udp_sendonly" (Printexc2.to_string e);
-        end      
+        end
     end
 
-      
 (*************************************************************************)
 (*                                                                       *)
 (*                         load_web_infos                                *)
 (*                                                                       *)
-(*************************************************************************) 
+(*************************************************************************)
 
 let load_web_infos () =
 (* Try to connect the redirector to get interesting information, since we
@@ -219,7 +218,7 @@ support the charge, at least, currently. *)
         set_reader sock (cut_messages (fun opcode s ->
               if !verbose_redirector then lprintf "redirector info received\n";
               let module L = LittleEndian in
-              
+
               let motd_html_s, pos = L.get_string16 s 2 in
               let pos = if motd_html_s <> "XX" then 
                   let servers_met_s, pos = L.get_string16 s pos in
@@ -227,13 +226,13 @@ support the charge, at least, currently. *)
                   let peers_dat_s, pos = L.get_string16 s pos in
                   let motd_conf_s, pos = L.get_string16 s pos in
                   let peers_kad_s, pos = L.get_string16 s pos in
-                  
+
                   motd_html =:= motd_html_s;
-                  
+
                   let servers_met_file = Filename.temp_file "servers" ".met" in
                   File.from_string servers_met_file servers_met_s;
                   load_file "servers.met" servers_met_file;
-                  
+
                   let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
                   File.from_string peers_ocl_file peers_ocl_s;
                   load_file "ocl" peers_ocl_file;
@@ -241,20 +240,19 @@ support the charge, at least, currently. *)
                   let peers_dat_file = Filename.temp_file "contacts" ".dat" in
                   File.from_string peers_dat_file peers_dat_s;
                   load_file "contact.dat" peers_dat_file;
-                  
+
                   let motd_conf_file = Filename.temp_file "motd" ".conf" in
                   File.from_string motd_conf_file motd_conf_s;
-                  load_file "motd.conf" motd_conf_file;              
-                  
+                  load_file "motd.conf" motd_conf_file;
+
                   let peers_kad_file = Filename.temp_file "peers" ".kad" in
                   File.from_string peers_kad_file peers_kad_s;
                   load_file "kad" peers_kad_file;
-                  
+
                   pos
                 else
-                
-                
-                let get_item s pos = 
+
+                let get_item s pos =
                   let kind, pos = get_string32 s pos in
                   let file, pos = get_string32 s pos in
                   (kind, file), pos
@@ -269,21 +267,19 @@ support the charge, at least, currently. *)
               in
               let ip = L.get_ip s pos in
               last_high_id := ip;
-              
+
               lprintf "Redirector info loaded (IP set to %s)\n"
                 (Ip.to_string ip);
               TcpBufferedSocket.set_lifetime sock 30.;
-          
-          
+
           ));
         write_string sock packet
-        
+
       with e -> 
           lprintf "Exception %s while connecting redirector\n"
             (Printexc2.to_string e)
   );
-  
-  
+
   if !!network_update_url <> "" then begin
     load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
     load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
@@ -299,7 +295,7 @@ type rss_feed = {
     
 let rss_feeds = Hashtbl.create 10
 
-  
+
 let _ =
   add_web_kind "rss" (fun url filename ->
       let c = Rss.channel_of_file filename in
@@ -320,7 +316,7 @@ let _ =
 let initialized = ref false
 let tcp_latencies_block = ref ""
 let udp_latencies_block = ref ""
-  
+
 let _ =
 (* Latency block *)
   add_redirector_info "LTCY" (fun buf ->
@@ -330,12 +326,12 @@ let _ =
           udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
           initialized := true;
         end;
-      
+
       buf_int buf !!loop_delay;
-      
+
 (* TCP block *)
       Buffer.add_string buf !tcp_latencies_block;
-      
+
 (* UDP block *)
       Buffer.add_string buf !udp_latencies_block;
   );

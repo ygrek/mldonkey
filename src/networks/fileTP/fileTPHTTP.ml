@@ -57,7 +57,7 @@ let http_send_range_request c range sock d =
   let url = d.download_url in
   
   let (x,y) = range in
-  let range = Printf.sprintf "%Ld-%Ld" x (y -- Int64.one) in
+  let range = Printf.sprintf "%Ld-%Ld" x (y -- (Int64.one)) in
 
   let buf = Buffer.create 100 in
   
@@ -275,15 +275,15 @@ let rec client_parse_header c gconn sock header =
           end;
         
         let b = TcpBufferedSocket.buf sock in
-        let to_read = min (end_pos -- !counter_pos) 
+        let to_read = (*min (end_pos -- !counter_pos) *)
           (Int64.of_int b.len) in
-(*
-        lprintf "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld\n"
+
+        if !verbose then lprintf "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld\n"
 end_pos !counter_pos b.len to_read;
-   *)
+   
         let to_read_int = Int64.to_int to_read in
 (*
-  lprintf "CHUNK: %s\n" 
+        if !verbose then lprintf "CHUNK: %s\n" 
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
         let swarmer = match file.file_swarmer with
             None -> assert false | Some sw -> sw

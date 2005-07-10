@@ -19,6 +19,7 @@
 
 open Printf2
 open Md4
+open Int64ops
 open CommonClient
 open Options
 open CommonTypes
@@ -30,7 +31,7 @@ open CommonGlobals
 (*                         TYPES                                         *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
@@ -55,11 +56,11 @@ type 'a file_impl = {
 
 and 'a file_ops = {
     mutable op_file_network : network;
-    
+
 (* This method is called just before the file is moved to the incomming
 section, and thus, before it is shared. *)
     mutable op_file_commit : ('a -> string -> unit);
-    
+
 (* This method is called when the name under which the file should be saved
 has been changed. The method should not perform the move, just know that
 it will happen soon. *)
@@ -89,15 +90,15 @@ it will happen soon. *)
 (*                         as_file...                                    *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let as_file  (file : 'a file_impl) =
   let (file : file) = Obj.magic file in
   file
-  
+
 let as_file_impl  (file : file) =
   let (file : 'a file_impl) = Obj.magic file in
   file
-  
+
 let file_num file =
   let impl = as_file_impl  file in
   impl.impl_file_num
@@ -121,8 +122,8 @@ let dummy_file_impl = {
     impl_file_comment = "";
     impl_file_probable_name = None;
   }
-  
-let dummy_file = as_file dummy_file_impl  
+
+let dummy_file = as_file dummy_file_impl
 
 (*************************************************************************)
 (*                                                                       *)
@@ -139,7 +140,6 @@ module H = Weak2.Make(struct
 
 let file_counter = ref 0
 let files_by_num = H.create 1027
-  
 
 (*************************************************************************)
 (*                                                                       *)
@@ -147,12 +147,12 @@ let files_by_num = H.create 1027
 (*                                                                       *)
 (*************************************************************************)
 
-let ni n m = 
-  let s = Printf.sprintf "File.%s not implemented by %s" 
+let ni n m =
+  let s = Printf.sprintf "File.%s not implemented by %s"
       m n.network_name in
-  lprintf_nl "%s" s; 
+  lprintf_nl "%s" s;
   s
-  
+
 let fni n m = failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
@@ -177,8 +177,7 @@ let update_file_num impl =
       H.add files_by_num (as_file impl);
       file_must_update (as_file impl);
     end
-    
-    
+
 let update_file_state impl state =
   impl.impl_file_state <- state;
   file_must_update (as_file impl)
@@ -225,11 +224,11 @@ let file_resume (file : file) =
       file.impl_file_ops.op_file_resume file.impl_file_val
   | _ -> ()
 
-let set_file_state file state = 
+let set_file_state file state =
   let impl = as_file_impl file in
   update_file_state impl state
 
-let set_file_comment file comment = 
+let set_file_comment file comment =
   let impl = as_file_impl file in
   impl.impl_file_comment <- comment
 
@@ -241,7 +240,7 @@ let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_best_name
   
-let set_file_best_name file name = 
+let set_file_best_name file name =
   let file = as_file_impl file in
   let name = String2.replace name '/' "::" in
   file.impl_file_best_name <- name
@@ -250,11 +249,9 @@ let set_file_format (file : file) format =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_set_format file.impl_file_val format
 
-
 let file_check (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_check file.impl_file_val
-
 
 let file_recover (file : file) =
   let file = as_file_impl file in
@@ -277,16 +274,16 @@ let file_active_sources file =
   try impl.impl_file_ops.op_file_active_sources impl.impl_file_val with _ -> []
 
 (* Default for networks that don't implement it *)
-let default_file_print_sources_html file buf = 
+let default_file_print_sources_html file buf =
   let cfile = as_file file in
   let allsources = ref (file_all_sources cfile) in
   if List.length !allsources > 0 then begin
 
-    html_mods_table_header buf "sourcesTable" "sources al" [ 
-        ( "1", "srh br ac", "Client number", "Num" ) ; 
-        ( "0", "srh br", "Client Name", "Name" ) ; 
-        ( "0", "srh br", "IP address", "IP address" ) ; 
-        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+    html_mods_table_header buf "sourcesTable" "sources al" [
+        ( "1", "srh br ac", "Client number", "Num" ) ;
+        ( "0", "srh br", "Client Name", "Name" ) ;
+        ( "0", "srh br", "IP address", "IP address" ) ;
+        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
         ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ];
 
     html_mods_cntr_init ();
@@ -320,27 +317,26 @@ let default_file_print_sources_html file buf =
 
 let file_print_sources_html (file : file) buf =
   let file = as_file_impl file in
-  try file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf with _ -> 
+  try file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf with _ ->
     default_file_print_sources_html file buf
-  
+
 let file_print_html file buf =
   let impl = as_file_impl file in
   impl.impl_file_ops.op_file_print_html impl.impl_file_val buf
-  
-  
-let file_find num = 
+
+let file_find num =
   H.find files_by_num (as_file {
     dummy_file_impl   with impl_file_num = num
   })
 
 let file_state file =
   let impl = as_file_impl file in
-  impl.impl_file_state  
-  
+  impl.impl_file_state
+
 let file_add_source (file : file) c =
   client_must_update c;
   CommonEvent.add_event (File_add_source_event (file,c))
-  
+
 let file_remove_source (file : file) c =
   CommonEvent.add_event (File_remove_source_event (file,c))
 
@@ -348,7 +344,7 @@ let rec last = function
     [x] -> x
   | _ :: l -> last l
   | _ -> (Int64.zero, 0)
-    
+
 let sample_timer () =
   let trimto list length =
     let (list, _) = List2.cut length list in
@@ -358,7 +354,7 @@ let sample_timer () =
   H.iter (fun file ->
       let impl = as_file_impl file in
       impl.impl_file_last_received <-
-        trimto ((impl.impl_file_received, time) :: 
+        trimto ((impl.impl_file_received, time) ::
         impl.impl_file_last_received) 
       !!CommonOptions.download_sample_size;
       match impl.impl_file_last_received with
@@ -380,7 +376,7 @@ let file_download_rate impl =
   in
   impl.impl_file_last_rate <- rate;
   rate
-  
+
 let add_file_downloaded file n =
   let impl = as_file_impl file in
   impl.impl_file_downloaded <- Int64.add impl.impl_file_downloaded n;
@@ -388,13 +384,13 @@ let add_file_downloaded file n =
   if Int64.compare n Int64.zero > 0 then
     impl.impl_file_received <- Int64.add impl.impl_file_received n;
   file_must_update_downloaded (as_file impl)
-  
+
 let file_size file = 
   (as_file_impl file).impl_file_size
-  
+
 let file_disk_name file =
   Unix32.filename (as_file_impl file).impl_file_fd
-      
+
 let file_fd file =
   (as_file_impl file).impl_file_fd
 
@@ -405,20 +401,20 @@ let set_file_disk_name file filename =
   let orig_fd = file_fd file in
   if orig_fd != Unix32.bad_fd then
     Unix32.rename orig_fd filename
-  
+
 let file_downloaded file = (as_file_impl file).impl_file_downloaded
 
 let file_network file =
   (as_file_impl file).impl_file_ops.op_file_network
 
-let file_priority file = 
+let file_priority file =
   (as_file_impl file).impl_file_priority
-  
-let set_file_priority file p = 
+
+let set_file_priority file p =
   let impl = as_file_impl file in
   if impl.impl_file_priority <> p then begin
-      impl.impl_file_priority <- p;      
-      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;      
+      impl.impl_file_priority <- p;
+      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;
       file_must_update file
     end
 
@@ -439,17 +435,16 @@ let file_preview (file : file) =
 
 module G = GuiTypes
 
-let file_downloaders file o cnt = 
+let file_downloaders file o cnt =
   let buf = o.conn_buf in
 
       let srcs = file_active_sources file in
-		
       let counter = ref cnt in
       List.iter (fun c ->
 	match (client_state c) with
-            Connected_downloading _ -> 
+            Connected_downloading _ ->
               (begin
-                if use_html_mods o then begin 
+                if use_html_mods o then begin
                   if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
 		    then incr counter;
 		  end
@@ -467,7 +462,7 @@ let file_downloaders file o cnt =
 (*                         file_print                                    *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 (* Use span for Opera DOM compatibility *)
 let colored_chunks chunks =
   let ostr = ref "" in
@@ -493,61 +488,59 @@ let colored_chunks chunks =
   nextbit 99;
   !ostr
 
-let file_print file o = 
+let file_print file o =
   let impl = as_file_impl file in
   let info = file_info file in
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
   let srcs = file_all_sources file in
   let active_srcs = file_active_sources file in
-  
-  
+
   if use_html_mods o then begin
-      
-      html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
-        ( "0", "srh br", "File Info", "Info" ) ; 
-        ( "0", "srh", "Value", "Value" ) ]; 
-      
+
+      html_mods_table_header buf "sourcesInfo" "sourcesInfo" [
+        ( "0", "srh br", "File Info", "Info" ) ;
+        ( "0", "srh", "Value", "Value" ) ];
+
       Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
       html_mods_td buf [
         ("File number/Network", "sr br", "[#] Network");
         ("", "sr", Printf.sprintf "[%d] %s" (file_num file) n.network_name) ];
-      
+
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
       html_mods_td buf [
         ("Downloaded/Total size", "sr br", "DLed/Size");
-        ("", "sr", Printf.sprintf "%s bytes of %s bytes" 
+        ("", "sr", Printf.sprintf "%s bytes of %s bytes"
             (Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
-      
+
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
       html_mods_td buf [
         ("File priority", "sr br", "Priority");
         ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
-      
+
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
       html_mods_td buf [
         ("Number of file sources", "sr br", "Sources");
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
-      
+
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
       let tt = ref "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
       html_mods_td buf [
         (!tt, "sr br", "Chunks");
         (!tt, "sr", info.G.file_chunks) ];
-                  
-                
+
       file_print_html file buf;
       
       Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
       Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
-    
+
     end else
     begin
-      Printf.bprintf buf "[%-s %5d]\n%s\n%s\nTotal   %10s\nPartial %10s\npriority %d\n" 
+      Printf.bprintf buf "[%-s %5d]\n%s\n%s\nTotal   %10s\nPartial %10s\npriority %d\n"
         n.network_name
         (file_num file)
         (String2.shorten 80 (file_best_name file))
-	(string_of_uids info.G.file_uids)
+        (string_of_uids info.G.file_uids)
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
         (file_priority file);
@@ -558,7 +551,7 @@ let file_print file o =
             Printf.bprintf buf "Probable name: %s\n" filename);
       List.iter (fun (name,_) -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
     end;
-  
+
   (try
             
       if !!print_all_sources then begin
@@ -576,20 +569,13 @@ let file_print file o =
         end
     
     with _ -> ())
-  
-
-
-
-
-  
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         add_segment (internal)                        *)
 (*                                                                       *)
 (*************************************************************************)
-open Int64ops
-  
+
 let add_segment begin_pos end_pos segments =
 (*  lprintf "Adding segment %Ld - %Ld\n" begin_pos end_pos;  *)
   match segments with
@@ -606,7 +592,7 @@ let add_segment begin_pos end_pos segments =
 (*                         recover_bytes                                 *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let recover_bytes file =
   let size = file_size file in
   let fd = file_fd file in
@@ -615,7 +601,7 @@ let recover_bytes file =
   let s = String.create len in
   
   let rec iter_file_out file_pos segments =
-    
+
 (*    lprintf "iter_file_out pos = %Ld\n" file_pos; *)
     if file_pos = size then segments else
     
@@ -628,16 +614,16 @@ let recover_bytes file =
     then 
       iter_string_out (file_pos++max64) 0 max segments
     else segments
-        
+
   and iter_file_in file_pos begin_pos segments =
 (*    lprintf "iter_file_in file_pos = %Ld begin_pos = %Ld\n" file_pos begin_pos; *)
-    
+
     if file_pos = size then
       if begin_pos <> size then
         add_segment begin_pos size segments 
       else segments
     else
-    
+
     let max64 = min len64 (size -- file_pos) in
     let max = Int64.to_int max64 in
     if try
@@ -650,14 +636,14 @@ let recover_bytes file =
     if begin_pos < file_pos then 
       add_segment begin_pos file_pos segments
     else segments
-  
+
   and iter_string_out file_pos pos max segments =
-    
+
 (*    lprintf "iter_string_out file_pos = %Ld pos = %d len = %d\n"
       file_pos pos max;
-    
+
     iter_string_out_ file_pos pos max segments
-    
+
   and  iter_string_out_ file_pos pos max segments = *)
     if pos = max then
       iter_file_out file_pos segments
@@ -668,17 +654,17 @@ let recover_bytes file =
     let begin_pos = file_pos -- (Int64.of_int (max - pos)) in
 (*    lprintf "  Downloaded byte at %Ld\n" begin_pos; *)
     iter_string_in file_pos (pos+1) max begin_pos  segments
-  
+
   and iter_string_in file_pos pos max begin_pos segments =
 
     (*
     lprintf "iter_string_in file_pos = %Ld pos = %d len = %d begin_pos = %Ld\n"
     file_pos pos max begin_pos;
-  
+
     iter_string_in_ file_pos pos max begin_pos segments
-    
+
   and iter_string_in_ file_pos pos max begin_pos segments = *)
-    
+
     if pos = max then
       iter_file_in file_pos begin_pos segments
     else
@@ -689,7 +675,7 @@ let recover_bytes file =
       (add_segment begin_pos end_pos segments)
     else
       iter_string_in file_pos (pos+1) max begin_pos segments
-    
+
   in
   let segments = List.rev (iter_file_out zero []) in
   (*
@@ -707,8 +693,8 @@ let recover_bytes file =
 (*************************************************************************)
 
 let files_ops = ref []
-  
-let new_file_ops network = 
+
+let new_file_ops network =
   let f = 
     {
       op_file_network =  network;
@@ -783,8 +769,8 @@ let check_file_implementations () =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-    
-let _ = 
+
+let _ =
   Heap.add_memstat "CommonFile" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) files_by_num;
@@ -803,12 +789,12 @@ let file_write file offset s pos len =
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
       AnyEndian.dump_sub s pos len;
 *)
-  
+
   if !!CommonOptions.buffer_writes then 
     Unix32.buffered_write_copy (file_fd file) offset s pos len
   else
     Unix32.write  (file_fd file) offset s pos len
-  
+
 let file_verify file key begin_pos end_pos =
   Unix32.flush_fd (file_fd file);
   if !verbose_md4 then begin
@@ -818,15 +804,15 @@ let file_verify file key begin_pos end_pos =
   try
     let computed = match key with
       | Ed2k md4 ->
-          let result = Md4.digest_subfile (file_fd file) 
+          let result = Md4.digest_subfile (file_fd file)
             begin_pos (end_pos -- begin_pos) in
           Ed2k result
       | Sha1 sha1 ->
-          let result = Sha1.digest_subfile (file_fd file) 
+          let result = Sha1.digest_subfile (file_fd file)
             begin_pos (end_pos -- begin_pos) in
           Sha1 result
       | TigerTree ttr ->
-          let result = TigerTree.digest_subfile (file_fd file) 
+          let result = TigerTree.digest_subfile (file_fd file)
             begin_pos (end_pos -- begin_pos) in
           TigerTree result
       | _ -> 
@@ -850,7 +836,7 @@ let file_mtime file = Unix32.mtime64 (file_fd file)
 let file_copy file1 file2 pos1 pos2 size =
   Unix32.copy_chunk (file_fd file1)  (file_fd file2)
   pos1 pos2 (Int64.to_int size)
-  
+
 let propose_filename file =
 (*  lprintf "propose_filename...\n"; *)
   let impl = as_file_impl file in

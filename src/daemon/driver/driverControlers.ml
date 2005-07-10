@@ -35,14 +35,14 @@ open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
 
-  
+
 let rec dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
       if escaped then
         match c with
         | 'O' -> if with_frames then
               if !!html_mods then Buffer.add_string b "output"
-              else Buffer.add_string b " target=\"output\""; 
+              else Buffer.add_string b " target=\"output\"";
               false
         | 'S' -> if with_frames then
               if !!html_mods then Buffer.add_string b "fstatus"
@@ -50,37 +50,37 @@ let rec dollar_escape o with_frames s =
               false
         | 'P' -> if with_frames then
               if !!html_mods then Buffer.add_string b "_parent"
-              else Buffer.add_string b " target=\"_parent\""; 
+              else Buffer.add_string b " target=\"_parent\"";
               false
         | 'G' -> false
-            
+
         | 'r' ->
-            if o.conn_output = ANSI then 
+            if o.conn_output = ANSI then
               Buffer.add_string b Terminal.ANSI.ansi_RED;
             false
-            
+
         | 'b' ->
-            if o.conn_output = ANSI then 
+            if o.conn_output = ANSI then
               Buffer.add_string b Terminal.ANSI.ansi_BLUE;
             false
-            
+
         | 'g' ->
             if o.conn_output = ANSI then
               Buffer.add_string b Terminal.ANSI.ansi_GREEN;
             false
-            
+
         | 'n' ->
-            if o.conn_output = ANSI then 
+            if o.conn_output = ANSI then
               Buffer.add_string b Terminal.ANSI.ansi_NORMAL;
             false
-            
-        | _ -> 
+
+        | _ ->
 (*
             try
               Buffer.add_string b (dollar_escape with_frames
                   (CommonNetwork.escape_char c));
               false
-            
+
             with _ -> *)
                 Buffer.add_char b '$'; Buffer.add_char b c; false
       else
@@ -112,14 +112,14 @@ let eval auth cmd o =
               let ncmd = ref cmd in
               let nhelp = ref help in
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-              html_mods_td buf [ 
+              html_mods_td buf [
                 ("", "sr", "\\<a href=\\\"submit?q=" ^ !ncmd ^
                   "\\\"\\>" ^ !ncmd ^ "\\</a\\>");
                 ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp);
                 ("", "sr", "\\<a href=\\\"http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=" ^ !ncmd ^
                   "\\\"\\>wiki\\</a\\>"); ];
               Printf.bprintf buf "\\</tr\\>\n";
-          ) 
+          )
           (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
             !CommonNetwork.network_commands);
           Printf.bprintf buf "\\</table\\>\\</div\\>";
@@ -130,7 +130,7 @@ let eval auth cmd o =
             ("", "sr", "[< >] : optionnal parameter");
             ("", "sr", "< 1 | 2 > : alternative parameter"); ];
           Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"
-        end else        
+        end else
         begin
           Buffer.add_string  buf M.available_commands_are;
           let list = Hashtbl2.to_list2 commands_by_kind in
@@ -142,8 +142,8 @@ let eval auth cmd o =
                   Printf.bprintf buf "$r%s$n %s\n" cmd help;
               ) list
           ) list;
-        end 
-        
+        end
+
     | ["help"] | ["?"] ->
           let module M = CommonMessages in
            if o.conn_output = HTML then
@@ -271,21 +271,21 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
     | "?" :: args | "help" :: args ->
           List.iter (fun arg ->
               List.iter (fun (cmd, _, _, help) ->
-                  if cmd = arg then    
-                    Printf.bprintf  buf "%s %s\n" cmd help) 
+                  if cmd = arg then
+                    Printf.bprintf  buf "%s %s\n" cmd help)
               !CommonNetwork.network_commands)
           args
     | one :: two ->
-	let cmd, args = 
-	  (try
-	     let command = List.assoc one !!alias_commands in
-	     match String2.split command ' ' with
-		 []   -> raise Not_found (* can't happen *)
-	       | [a]  -> a, two
-	       | a::b -> a, (b @ two)
-	   with
-	       Not_found -> one, two)
-	in
+        let cmd, args =
+          (try
+             let command = List.assoc one !!alias_commands in
+             match String2.split command ' ' with
+                 []   -> raise Not_found (* can't happen *)
+               | [a]  -> a, two
+               | a::b -> a, (b @ two)
+           with
+               Not_found -> one, two)
+        in
       if cmd = "q" then
         raise CommonTypes.CommandCloseSocket
       else
@@ -301,21 +301,21 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             o.conn_user <- find_ui_user user;
             let module M = CommonMessages in
             Buffer.add_string buf M.full_access
-          end else 
+          end else
         let module M = CommonMessages in
         Buffer.add_string buf M.bad_login
       else
       if !auth then
-        DriverCommands.execute_command 
-          !CommonNetwork.network_commands o cmd args      
+        DriverCommands.execute_command
+          !CommonNetwork.network_commands o cmd args
       else
       let module M = CommonMessages in
       Buffer.add_string buf M.command_not_authorized
 
-              
-(* This function is called every hour to check if we have something to do 
+
+(* This function is called every hour to check if we have something to do
 just now *)
-        
+
 let calendar_options = {
     conn_buf = Buffer.create 1000;
     conn_output = TEXT;
@@ -324,7 +324,7 @@ let calendar_options = {
     conn_user = default_user;
     conn_width = 80; conn_height = 0;
   }
-      
+
 let check_calendar () =
   let time = last_time () in
   let tm = Unix.localtime (date_of_int time) in
@@ -334,27 +334,27 @@ let check_calendar () =
           eval (ref true) command calendar_options;
           lprintf "Calendar execute: %s\n%s\n" command
             (Buffer.contents calendar_options.conn_buf);
-          Buffer.clear calendar_options.conn_buf;          
+          Buffer.clear calendar_options.conn_buf;
         end
   ) !!calendar
-  
+
 
 (*************************************************************
 
                   The Telnet Server
-  
-**************************************************************)  
 
-let before_telnet_output o sock = 
+**************************************************************)
+
+let before_telnet_output o sock =
   if o.conn_output = ANSI && o.conn_height <> 0 then
-    write_string sock (Printf.sprintf 
-        "%s%s\n%s%s" 
+    write_string sock (Printf.sprintf
+        "%s%s\n%s%s"
         (Terminal.gotoxy 0 (o.conn_height-3))
       Terminal.ANSI.ansi_CLREOL
       Terminal.ANSI.ansi_CLREOL
       (Terminal.gotoxy 0 (o.conn_height-3)))
-  
-let after_telnet_output o sock = 
+
+let after_telnet_output o sock =
   if o.conn_output = ANSI && o.conn_height <> 0 then
     write_string sock (Printf.sprintf "\n\n%s"
         (Terminal.gotoxy 0 (o.conn_height - 2)));
@@ -362,9 +362,9 @@ let after_telnet_output o sock =
     write_string sock (Printf.sprintf "%sMLdonkey command-line:%s\n> "
       Terminal.ANSI.ansi_REVERSE
       Terminal.ANSI.ansi_NORMAL)
-  
-(*  
-let user_reader o telnet sock nread  = 
+
+(*
+let user_reader o telnet sock nread  =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -375,7 +375,7 @@ let user_reader o telnet sock nread  =
       if c <> 13 && c <> 10 && (c < 32 || c > 127) then
         lprintf "term[%d] = %d\n" i c;
     done;
-    
+
     if i < end_pos then
       let c = b.buf.[i] in
       let c = int_of_char c in
@@ -391,7 +391,7 @@ let user_reader o telnet sock nread  =
             eval telnet.telnet_auth cmd o;
             Buffer.add_char buf '\n';
             if o.conn_output = ANSI then Buffer.add_string buf "$n";
-            TcpBufferedSocket.write_string sock 
+            TcpBufferedSocket.write_string sock
               (dollar_escape o false (Buffer.contents buf));
             after_telnet_output o sock;
           end;
@@ -406,7 +406,7 @@ let user_reader o telnet sock nread  =
     (try
        shutdown sock "user quit";
      with _ -> ());
-  | e -> 
+  | e ->
       before_telnet_output o sock;
       TcpBufferedSocket.write_string sock
         (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e));
@@ -432,9 +432,9 @@ type telnet_conn = {
   }
 
 
-let iac_will_naws = "\255\253\031"  
-  
-let user_reader o telnet sock nread  = 
+let iac_will_naws = "\255\253\031"
+
+let user_reader o telnet sock nread  =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -450,19 +450,19 @@ let user_reader o telnet sock nread  =
       if c <> '\255' && telnet.telnet_iac then begin
           telnet.telnet_iac <- false;
           (match c with
-              '\250' | '\251' -> 
-                Buffer.add_char telnet.telnet_buffer c;                
+              '\250' | '\251' ->
+                Buffer.add_char telnet.telnet_buffer c;
                 telnet.telnet_wait <- 1
-            | _ -> 
+            | _ ->
                 Buffer.clear telnet.telnet_buffer
           );
           iter ()
         end else
-      
+
       let i = int_of_char c in
       telnet.telnet_iac <- false;
       let is_normal_char = i > 31 && i < 127 in
-      
+
       if telnet.telnet_wait = 1 then begin
           Buffer.add_char telnet.telnet_buffer c;
           let cmd = Buffer.contents telnet.telnet_buffer in
@@ -470,11 +470,11 @@ let user_reader o telnet sock nread  =
           let len = String.length cmd in
           if len = 2 then
             match cmd with
-              "\251\031" -> 
+              "\251\031" ->
                 Buffer.clear telnet.telnet_buffer
-            | "\250\031" -> 
+            | "\250\031" ->
                 telnet.telnet_wait <- 4
-            | _ -> 
+            | _ ->
                 (*
                 lprintf "telnet server: Unknown control sequence %s\n"
                   (String.escaped cmd);                *)
@@ -483,23 +483,23 @@ let user_reader o telnet sock nread  =
           let s = String.sub cmd 0 2 in
           Buffer.clear telnet.telnet_buffer;
           match s with
-          | "\250\031" -> 
+          | "\250\031" ->
               let dx = BigEndian.get_int16 cmd 2 in
               let dy = BigEndian.get_int16 cmd 4 in
               o.conn_width <- dx;
               o.conn_height <- dy;
 (*              lprintf "SIZE RECEIVED %d x %d\n" dx dy; *)
-          | _ -> 
+          | _ ->
               (*
               lprintf "telnet server: Unknown control sequence %s\n"
               (String.escaped cmd); *)
               ()
-        end else 
+        end else
       if telnet.telnet_wait > 1 then begin
           Buffer.add_char telnet.telnet_buffer c;
           telnet.telnet_wait <- telnet.telnet_wait - 1;
         end else
-      if is_normal_char then 
+      if is_normal_char then
         Buffer.add_char telnet.telnet_buffer c
       else begin
 (* evaluate the command *)
@@ -513,7 +513,7 @@ let user_reader o telnet sock nread  =
               eval telnet.telnet_auth cmd o;
               Buffer.add_char buf '\n';
               if o.conn_output = ANSI then Buffer.add_string buf "$n";
-              TcpBufferedSocket.write_string sock 
+              TcpBufferedSocket.write_string sock
                 (dollar_escape o false (Buffer.contents buf));
               after_telnet_output o sock;
             end;
@@ -528,35 +528,35 @@ let user_reader o telnet sock nread  =
     (try
        shutdown sock Closed_by_user;
      with _ -> ());
-  | e -> 
+  | e ->
       before_telnet_output o sock;
       TcpBufferedSocket.write_string sock
         (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e));
       after_telnet_output o sock
 
-  
+
 let user_closed sock  msg =
   user_socks := List2.removeq sock !user_socks;
   ()
 
 (* Here, we clearly need a good html parser to remove tags, and to translate
 special characters. Avoid them in the meantime. *)
-let text_of_html html = 
-  String2.convert false (fun buf state c -> 
+let text_of_html html =
+  String2.convert false (fun buf state c ->
     if state then
-      c <> '>' 
-    else 
+      c <> '>'
+    else
       if c = '<' then true else begin
-	Buffer.add_char buf c;
-	false
+        Buffer.add_char buf c;
+        false
       end
 ) html
-  
-let telnet_handler t event = 
+
+let telnet_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip !!allowed_ips then 
+      if Ip.matches from_ip !!allowed_ips then
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token
           "telnet connection"
@@ -573,7 +573,7 @@ let telnet_handler t event =
             conn_sortvd = NotSorted;
             conn_filter = (fun _ -> ());
             conn_user = default_user;
-            conn_width = 80; 
+            conn_width = 80;
             conn_height = 0;
           } in
         TcpBufferedSocket.prevent_close sock;
@@ -589,9 +589,9 @@ let telnet_handler t event =
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
             "\n$bWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
-        
+
         after_telnet_output o sock
-      else 
+      else
         Unix.close s
 
   | _ -> ()
@@ -599,10 +599,10 @@ let telnet_handler t event =
 (*************************************************************
 
                   The Chat Server
-  
-**************************************************************)  
 
-let chat_handler t event = 
+**************************************************************)
+
+let chat_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       (
@@ -615,59 +615,59 @@ let chat_handler t event =
               conn_user = default_user;
               conn_width = 80; conn_height = 0;
             } in
-          
-	 let from_ip = Ip.of_inet_addr from_ip in
-	 if Ip.matches from_ip !!allowed_ips then 
-	   (
-	    let chanin = Unix.in_channel_of_descr s in
-	    let chanout = Unix.out_channel_of_descr s in
-	    let paq = Chat_proto.read_packet_channel chanin in
-	    let ret = 
-	      match paq with
-		((v,id,(host,port)),iddest,pro) ->
-		  if v <> CommonChat.version then 
-		    None
-		  else
-		    Some paq
-	    in
-	    close_out chanout;
-	    (match ret with
-	      None -> ()
-	    | Some ((v,id,(host,port)),iddest,pro) ->
-		match pro with
-		  Chat_proto.Hello ->
-		    CommonChat.send_hello_ok ()
-		| Chat_proto.HelloOk -> ()
-		| Chat_proto.AddOpen _ -> ()
-		| Chat_proto.Byebye -> ()
-		| Chat_proto.RoomMessage _ ->
-		    (* A VOIR *)
-		    ()
-		| Chat_proto.Message s ->
-		    if iddest = !!CommonOptions.chat_console_id then
-		   (* we must eval the string as a command *)
-		      (
+
+         let from_ip = Ip.of_inet_addr from_ip in
+         if Ip.matches from_ip !!allowed_ips then
+           (
+            let chanin = Unix.in_channel_of_descr s in
+            let chanout = Unix.out_channel_of_descr s in
+            let paq = Chat_proto.read_packet_channel chanin in
+            let ret =
+              match paq with
+                ((v,id,(host,port)),iddest,pro) ->
+                  if v <> CommonChat.version then
+                    None
+                  else
+                    Some paq
+            in
+            close_out chanout;
+            (match ret with
+              None -> ()
+            | Some ((v,id,(host,port)),iddest,pro) ->
+                match pro with
+                  Chat_proto.Hello ->
+                    CommonChat.send_hello_ok ()
+                | Chat_proto.HelloOk -> ()
+                | Chat_proto.AddOpen _ -> ()
+                | Chat_proto.Byebye -> ()
+                | Chat_proto.RoomMessage _ ->
+                    (* A VOIR *)
+                    ()
+                | Chat_proto.Message s ->
+                    if iddest = !!CommonOptions.chat_console_id then
+                   (* we must eval the string as a command *)
+                      (
                             let buf = o.conn_buf in
                             Buffer.clear buf;
-		       let auth = ref true in
-		       eval auth s o;
-		       CommonChat.send_text !!CommonOptions.chat_console_id None 
-			 (dollar_escape o false (Buffer.contents buf));
-		       Buffer.reset buf
-		      )
-		    else
-		   (* we must forward the message *)
-                      (networks_iter (fun r ->
-			network_private_message r iddest s)
+                       let auth = ref true in
+                       eval auth s o;
+                       CommonChat.send_text !!CommonOptions.chat_console_id None
+                         (dollar_escape o false (Buffer.contents buf));
+                       Buffer.reset buf
                       )
-	    )
-	   )
-	 else 
+                    else
+                   (* we must forward the message *)
+                      (networks_iter (fun r ->
+                        network_private_message r iddest s)
+                      )
+            )
+           )
+         else
            Unix.close s
      with
        Failure mess ->
-	 lprintf "%s\n" mess;
-	 Unix.close s
+         lprintf "%s\n" mess;
+         Unix.close s
     )
   | _ ->
       ()
@@ -675,31 +675,31 @@ let chat_handler t event =
 (*************************************************************
 
                   The HTTP Server
-  
-**************************************************************)  
+
+**************************************************************)
 
 let buf = Buffer.create 1000
-      
-let html_page = ref true  
+
+let html_page = ref true
 
 open Http_server
 
 let get_theme_page page =
-	let theme = Filename.concat html_themes_dir !!html_mods_theme in
-	let fname = Filename.concat theme page in fname
+        let theme = Filename.concat html_themes_dir !!html_mods_theme in
+        let fname = Filename.concat theme page in fname
 
-let theme_page_exists page = 
-	if Sys.file_exists (get_theme_page page) then true else false 
+let theme_page_exists page =
+	if Sys.file_exists (get_theme_page page) then true else false
 
 (* if files are small really_input should be okay *)
 let read_theme_page page =
-	let theme_page = get_theme_page page in
-	let file = open_in theme_page in
-	let size = (Unix.stat theme_page).Unix.st_size in
-	let s = String.make size ' ' in
-	let ok = really_input file s 0 size in
-	close_in file; s
-  
+        let theme_page = get_theme_page page in
+        let file = open_in theme_page in
+        let size = (Unix.stat theme_page).Unix.st_size in
+        let s = String.make size ' ' in
+        let ok = really_input file s 0 size in
+        close_in file; s
+
 let add_simple_commands buf =
   let this_page = "commands.html" in
   Buffer.add_string buf (
@@ -707,7 +707,7 @@ let add_simple_commands buf =
       read_theme_page this_page else
     if !!html_mods then !!CommonMessages.web_common_header_mods0
     else !!CommonMessages.web_common_header_old)
-  
+
 let http_add_gen_header r =
   add_reply_header r "Server" "MLdonkey";
   add_reply_header r "Connection" "close"
@@ -716,15 +716,15 @@ let add_gzip_headers r =
   if Autoconf.has_zlib && !!html_use_gzip then begin
     add_reply_header r "Content-Encoding" "gzip";
     add_reply_header r "Vary" "Accept-Encoding";
-  end 
+  end
 
-let http_add_html_header r = 
+let http_add_html_header r =
   http_add_gen_header r;
   add_reply_header r "Pragma" "no-cache";
   add_reply_header r "Content-Type" "text/html; charset=UTF-8";
   add_gzip_headers r
 
-let http_add_css_header r = 
+let http_add_css_header r =
   http_add_gen_header r;
   add_reply_header r "Content-Type" "text/css; charset=UTF-8";
   add_gzip_headers r
@@ -743,56 +743,56 @@ let http_add_jpg_header r =
   http_add_gen_header r;
   add_reply_header r "Content-Type" "image/jpg;";
   add_gzip_headers r
-  
+
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
-  
+
 let html_open_page buf t r open_body =
   Buffer.clear buf;
   html_page := true;
   http_add_html_header r;
-  
-  if not !!html_mods then 
+
+  if not !!html_mods then
     (Buffer.add_string buf
-      "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
+      "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\"
         \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";)
     else Buffer.add_string buf "<html>\n<head>\n";
-  
+
   if !CommonInteractive.display_vd then begin
-	let this_page = "dheader.html" in 
-      Buffer.add_string buf 
+        let this_page = "dheader.html" in
+      Buffer.add_string buf
         (
-		if !!html_mods_theme != "" && theme_page_exists this_page then
-			read_theme_page this_page else
-			if !!html_mods then !!CommonMessages.download_html_header_mods0 
-			else !!CommonMessages.download_html_header_old);
+                if !!html_mods_theme != "" && theme_page_exists this_page then
+                        read_theme_page this_page else
+                        if !!html_mods then !!CommonMessages.download_html_header_mods0
+                        else !!CommonMessages.download_html_header_old);
       Printf.bprintf buf "<meta http-equiv=Refresh
           content=\"%d\">" !!vd_reload_delay;
-    end else 
-	let this_page = "header.html" in
+    end else
+        let this_page = "header.html" in
     Buffer.add_string buf (
-		if !!html_mods_theme != "" && theme_page_exists this_page then
-			read_theme_page this_page else
-			if !!html_mods then !!CommonMessages.html_header_mods0
-			else !!CommonMessages.html_header_old);
-  
+                if !!html_mods_theme != "" && theme_page_exists this_page then
+                        read_theme_page this_page else
+                        if !!html_mods then !!CommonMessages.html_header_mods0
+                        else !!CommonMessages.html_header_old);
+
   Buffer.add_string buf "</head>\n";
-  if open_body then Buffer.add_string buf "<body>\n";    
+  if open_body then Buffer.add_string buf "<body>\n";
   if not !!use_html_frames then add_simple_commands buf;
   ()
-  
+
 let html_close_page buf =
-  Buffer.add_string buf "</body>\n";  
+  Buffer.add_string buf "</body>\n";
   Buffer.add_string buf "</html>\n";
   ()
 
 let clear_page buf =
   Buffer.clear buf;
   html_page := false
-  
+
 let http_handler o t r =
   CommonInteractive.display_vd := false;
   clear_page buf;
-  
+
   let user = if r.options.login = "" then "admin" else r.options.login in
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
@@ -814,10 +814,10 @@ let http_handler o t r =
               add_reply_header r "Server" "MLdonkey";
               add_reply_header r "Connection" "close";
               add_reply_header r "Content-Type" "text/vnd.wap.wml";
-              let dlkbs = 
+              let dlkbs =
                 (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
               let ulkbs =
-                (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in 
+                (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
               Printf.bprintf buf "
 <?xml version=\"1.0\"?>
 <!DOCTYPE wml PUBLIC \"-//WAPFORUM//DTD WML 1.1//EN\" \"http://www.wapforum.org/DTD/wml_1.1.xml\">
@@ -835,15 +835,15 @@ let http_handler o t r =
 (* functions *)
               List.iter (fun (arg, value) ->
                   match arg with
-                    "VDC" -> 
+                    "VDC" ->
                       let num = int_of_string value in
                       let file = file_find num in
                       file_cancel file
-                  | "VDP" -> 
+                  | "VDP" ->
                       let num = int_of_string value in
                       let file = file_find num in
                       file_pause file
-                  | "VDR" -> 
+                  | "VDR" ->
                       let num = int_of_string value in
                       let file = file_find num in
                       file_resume file
@@ -855,17 +855,16 @@ let http_handler o t r =
               let mfiles = List2.tail_map file_info !!files in
               List.iter (fun file ->
                   Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable file (Int64.sub file.file_size file.file_downloaded)) (print_human_readable file file.file_size);
-              
+
               ) mfiles;
               Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
               Printf.bprintf buf "</small></p>";
-              
-              
+
               Printf.bprintf buf "</card></wml>";
-            end	
+            end
         | "/commands.html" ->
             html_open_page buf t r true;
-            let this_page = "commands.html" in 
+            let this_page = "commands.html" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
                 read_theme_page this_page else
@@ -874,12 +873,12 @@ let http_handler o t r =
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
-                let this_page = "frames.html" in 
+                let this_page = "frames.html" in
                 if !!html_mods_theme != "" && theme_page_exists this_page then
                   Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
                   Printf.bprintf buf "
-			 <frameset src=\"index\" rows=\"%d,25,*\">
+                         <frameset src=\"index\" rows=\"%d,25,*\">
                   <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"commands.html\">
                   <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"noframe.html\">
                <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"oneframe.html\">
@@ -892,7 +891,7 @@ let http_handler o t r =
                   <frame name=\"fstatus\" src=\"noframe.html\">
                </frameset>
                <frame name=\"output\" src=\"oneframe.html\">
-            </frameset>" !!commands_frame_height; 
+            </frameset>" !!commands_frame_height;
               end else
               html_open_page buf t r true
         | "/complex_search.html" ->
@@ -900,7 +899,7 @@ let http_handler o t r =
             CommonSearch.complex_search buf
         | "/noframe.html" -> 
             html_open_page buf t r true
-        
+
         | "/oneframe.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!motd_html
@@ -908,22 +907,22 @@ let http_handler o t r =
         | "/bw_updown.png" ->
             do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
             (* Buffer.clear buf; *)
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_updown.png" in
             Buffer.add_string buf showgraph
-        
+
         | "/bw_updown.jpg" ->
             do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
             (* Buffer.clear buf;*)
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_updown.jpg" in
             Buffer.add_string buf showgraph
 
         | "/bw_download.png" ->
             do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_download.png" in
             Buffer.add_string buf showgraph
@@ -931,14 +930,14 @@ let http_handler o t r =
         | "/bw_download.jpg" ->
             do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
             Buffer.clear buf;
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_download.jpg" in
             Buffer.add_string buf showgraph
 
         | "/bw_upload.png" ->
             do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_upload.png" in
             Buffer.add_string buf showgraph
@@ -946,7 +945,7 @@ let http_handler o t r =
         | "/bw_upload.jpg" ->
             do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
             Buffer.clear buf;
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_upload.jpg" in
             Buffer.add_string buf showgraph
@@ -954,7 +953,7 @@ let http_handler o t r =
         | "/bw_h_updown.png" ->
             do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
             (* Buffer.clear buf; *)
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_h_updown.png" in
             Buffer.add_string buf showgraph
@@ -962,14 +961,14 @@ let http_handler o t r =
         | "/bw_h_updown.jpg" ->
             do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
             (* Buffer.clear buf;*)
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_updown.jpg" in
             Buffer.add_string buf showgraph
 
         | "/bw_h_download.png" ->
             do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_h_download.png" in
             Buffer.add_string buf showgraph
@@ -977,14 +976,14 @@ let http_handler o t r =
         | "/bw_h_download.jpg" ->
             do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
             Buffer.clear buf;
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_download.jpg" in
             Buffer.add_string buf showgraph
 
         | "/bw_h_upload.png" ->
             do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "bw_h_upload.png" in
             Buffer.add_string buf showgraph
@@ -992,7 +991,7 @@ let http_handler o t r =
         | "/bw_h_upload.jpg" ->
             do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
             Buffer.clear buf;
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_upload.jpg" in
             Buffer.add_string buf showgraph
@@ -1000,7 +999,7 @@ let http_handler o t r =
 
         | "/tag.png" ->
             do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
-            html_page := false; 
+            html_page := false;
             http_add_png_header r;
             let showgraph = File.to_string "tag.png" in
             Buffer.add_string buf showgraph
@@ -1008,33 +1007,33 @@ let http_handler o t r =
         | "/tag.jpg" ->
             do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
             (* Buffer.clear buf;*)
-            html_page := false; 
+            html_page := false;
             http_add_jpg_header r;
             let showgraph = File.to_string "tag.jpg" in
             Buffer.add_string buf showgraph
 
         | "/filter" ->
             html_open_page buf t r true;
-            let b = Buffer.create 10000 in 
+            let b = Buffer.create 10000 in
             let filter = ref (fun _ -> ()) in
-            begin              
+            begin
               match r.get_url.Url.args with
                 ("num", num) :: args ->
                   List.iter (fun (arg, value) ->
                       match arg with
-                      | "media" -> 
+                      | "media" ->
                           let old_filter = !filter in
                           filter := (fun r ->
                               if r.result_type = value then raise Not_found;
                               old_filter r
                           )
-                      | "format" -> 
+                      | "format" ->
                           let old_filter = !filter in
                           filter := (fun r ->
                               if r.result_format = value then raise Not_found;
                               old_filter r
                           )
-                      | "size" -> 
+                      | "size" ->
                           let old_filter = !filter in
                           let mega5 = Int64.of_int (5 * 1024 * 1024) in
                           let mega20 = Int64.of_int (20 * 1024 * 1024) in
@@ -1047,28 +1046,28 @@ let http_handler o t r =
                             | _ -> Int64.zero, Int64.max_int
                           in
                           filter := (fun r ->
-                              if r.result_size >= min && 
+                              if r.result_size >= min &&
                                 r.result_size <= max then
                                 raise Not_found;
                               old_filter r
                           )
                       | _ -> ()
                   )  args;
-                  
+
                   let num = int_of_string num in
                   let s = search_find num in
-                  
+
                   DriverInteractive.print_search b s
                     { o with conn_filter = !filter };
-                  
+
                   Buffer.add_string buf (html_escaped 
                       (Buffer.contents b))
-              
+
               | _ -> 
                   Buffer.add_string buf "Bad filter"
             end
-        
-        
+
+
         | "/results" ->
             html_open_page buf t r true;
             let b = Buffer.create 10000 in
@@ -1076,39 +1075,38 @@ let http_handler o t r =
                 match arg with
                   "d" -> begin
                       try
-                        let num = int_of_string value in 
+                        let num = int_of_string value in
                         let r = find_result num in
                         let files = result_download r [] false in
                         List.iter CommonInteractive.start_download files;
                         
                         let module M = CommonMessages in
                         Gettext.buftext buf M.download_started num
-                      with  e -> 
-                          Printf.bprintf buf "Error %s with %s<br>" 
+                      with  e ->
+                          Printf.bprintf buf "Error %s with %s<br>"
                             (Printexc2.to_string e) value;
                     end
                 | _ -> ()
             ) r.get_url.Url.args;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
-        
-        
+
         | "/files" ->
-            
+
             List.iter (fun (arg, value) ->
                 match arg with
-                  "cancel" -> 
+                  "cancel" ->
                     let num = int_of_string value in
                     let file = file_find num in
                     file_cancel file
-                | "pause" -> 
+                | "pause" ->
                     let num = int_of_string value in
                     let file = file_find num in
                     file_pause file
-                | "resume" -> 
+                | "resume" ->
                     let num = int_of_string value in
                     let file = file_find num in
                     file_resume file
-                | "sortby" -> 
+                | "sortby" ->
                     begin
                       match value with
                       | "Percent" -> o.conn_sortvd <- ByPercent
@@ -1135,7 +1133,7 @@ let http_handler o t r =
             DriverInteractive.display_file_list b o;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
-        
+
         | "/submit" ->
             begin
               match r.get_url.Url.args with
@@ -1150,7 +1148,7 @@ let http_handler o t r =
                       | "sortby", "priority" -> o.conn_sortvd <- ByPriority
                       | _ -> ()
                   ) other_args;
-                  let s = 
+                  let s =
                     let b = o.conn_buf in
                     clear_page b;
                     eval (ref true) cmd o;
@@ -1161,11 +1159,11 @@ let http_handler o t r =
 (* Konqueror doesn't like html within <pre> *)
                   let drop_pre = ref false in
                   let rawcmd = ref cmd in
-                  
+
                   if String.contains cmd ' ' then
                     rawcmd := String.sub cmd 0 (String.index cmd ' ');
-                  
-                  (match !rawcmd with 
+
+                  (match !rawcmd with
                     | "vm" | "vma" | "view_custom_queries"  | "xs" | "vr"
                     | "afr" | "friend_remove" | "reshare" | "recover_temp"
                     | "c" | "commit" | "bw_stats" | "ovweb" | "friends"
@@ -1175,30 +1173,30 @@ let http_handler o t r =
                     | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
                     | "unshare" | "stats" | "users" -> drop_pre := true;
                     | _ -> ());
-                  
-                  Printf.bprintf buf "%s\n" 
+
+                  Printf.bprintf buf "%s\n"
                     (if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
-              
+
               | [ ("custom", query) ] ->
                   html_open_page buf t r true;
                   CommonSearch.custom_query buf query
-              
+
               | ("custom", query) :: args ->
                   html_open_page buf t r true;
-                  send_custom_query o.conn_user buf query  args
-              
+                  send_custom_query o.conn_user buf query args
+
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
                   CommonInteractive.set_fully_qualified_options name value;
                   Buffer.add_string buf "Option value changed"
-              
+
               | args -> 
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end
-        
+
         | "/preview_download" ->
             begin
               clear_page buf;
@@ -1208,8 +1206,8 @@ let http_handler o t r =
                   let file = file_find file_num in
                   let fd = file_fd file in
                   let size = file_size file in
-                  
-                  let (begin_pos, end_pos) = 
+
+                  let (begin_pos, end_pos) =
                     try
                       let (begin_pos, end_pos) = request_range r in
                       let end_pos = match end_pos with
@@ -1217,8 +1215,8 @@ let http_handler o t r =
                         | Some end_pos -> end_pos in
                       let range_size = end_pos -- begin_pos in
                       add_reply_header r "Content-Length"
-                        (Int64.to_string range_size);                      
-                      add_reply_header r "Content-Range" 
+                        (Int64.to_string range_size);
+                      add_reply_header r "Content-Range"
                         (Printf.sprintf "bytes %Ld-%Ld/%Ld"
                           begin_pos (end_pos -- one)
                         size);
@@ -1229,23 +1227,23 @@ let http_handler o t r =
                           (Int64.to_string size);
                         zero, size
                   in
-                  
+
                   add_reply_header r "Content-type" "application/binary";
                   add_reply_header r "Accept-Ranges" "bytes";
 
                   let s = String.create 200000 in
                   set_max_output_buffer r.sock (String.length s);
-                  set_rtimeout r.sock 10000.;                  
+                  set_rtimeout r.sock 10000.;
                   let rec stream_file file pos sock =
                     let max = (max_refill sock) - 1 in
                     if max > 0 && !pos < end_pos then
-                      let max64 = min (end_pos -- !pos) (Int64.of_int max)  in
+                      let max64 = min (end_pos -- !pos) (Int64.of_int max) in
                       let max = Int64.to_int max64 in
                       Unix32.read fd !pos s 0 max;
                       pos := !pos ++ max64;
                       set_lifetime sock 60.;
 (*                      lprintf "HTTPSEND: refill %d %Ld\n" max !pos;*)
-(*                    lprintf "HTTPSEND: [%s]\n" (String.escaped 
+(*                    lprintf "HTTPSEND: [%s]\n" (String.escaped
                         (String.sub s 0 max)); *)
                       write sock s 0 max;
                       if output_buffered sock = 0 then begin
@@ -1258,10 +1256,10 @@ let http_handler o t r =
               | args -> 
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
-		  args;
-                  raise Not_found                  
+                  args;
+                  raise Not_found
             end
-            
+
         | "/h.css" ->
             clear_page buf;
             http_add_css_header r;
@@ -1271,8 +1269,8 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !CommonMessages.html_css_mods
               else !!CommonMessages.html_css_old)
-        
-        | "/dh.css" ->          
+
+        | "/dh.css" ->
             clear_page buf;
             http_add_css_header r;
             let this_page = "dh.css" in
@@ -1281,7 +1279,7 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !CommonMessages.download_html_css_mods
               else !!CommonMessages.download_html_css_old)
-        
+
         | "/i.js" ->
             clear_page buf;
             http_add_js_header r;
@@ -1291,8 +1289,8 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.html_js_mods0
               else !!CommonMessages.html_js_old)
-        
-        | "/di.js" ->          
+
+        | "/di.js" ->
             clear_page buf;
             http_add_js_header r;
             let this_page = "di.js" in
@@ -1308,32 +1306,31 @@ let http_handler o t r =
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
           r.reply_stream <- None
     end;
-  
+
   if !html_page then  html_close_page buf;
   let s = Buffer.contents buf in
   let s = dollar_escape o !!use_html_frames s in
   r.reply_content <- if Autoconf.has_zlib && !!html_use_gzip then Autoconf.zlib__gzip_string s else s
-        
-let http_options = { 
+
+let http_options = {
     conn_buf = Buffer.create 10000;
     conn_output = HTML;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());
     conn_user = default_user;
     conn_width = 80; conn_height = 0;
-  }      
-  
-let create_http_handler () = 
+  }
+
+let create_http_handler () =
   let config = {
       bind_addr = Ip.to_inet_addr !!http_bind_addr ;
       port = !!http_port;
       requests = [];
       addrs = !!allowed_ips;
       base_ref = "";
-      default = http_handler http_options;      
+      default = http_handler http_options;
     } in
   option_hook allowed_ips (fun _ -> config.addrs <- !!allowed_ips);
   let sock = find_port "http server" !!http_bind_addr http_port
       (Http_server.handler config) in
   config.port <- !!http_port
-  

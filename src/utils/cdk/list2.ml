@@ -35,7 +35,7 @@ let rec remove_rec ele list tail =
       if e = ele then remove_rec ele list tail
       else
         remove_rec ele list (e :: tail)
-        
+
 let remove ele list =
   remove_rec ele list []
 
@@ -43,14 +43,14 @@ let rec remove_one_rec ele list tail =
   match list with
     [] -> List.rev tail
   | e :: list ->
-      if e = ele then 
+      if e = ele then
         List.rev_append tail list
       else
         remove_one_rec ele list (e :: tail)
-        
+
 let remove_one ele list =
   remove_rec ele list []
-  
+
 let rec removeq_first ele list =
   match list with
     e :: tail when e == ele -> tail
@@ -68,7 +68,7 @@ let rec cut_rec n list r =
     (0,_) | (_, []) -> List.rev r, list
   | _, x :: tail ->
       cut_rec (n-1) tail (x :: r)
-      
+
 let cut n list =
   if n < 0 then failwith "List2.sub: invalid parameter";
   cut_rec n list []
@@ -76,28 +76,28 @@ let cut n list =
 let tail_map f list = 
   List.rev (List.rev_map f list)
 
-  
+
 let rec assoc_inv x = function
     [] -> raise Not_found
   | (a,b)::l -> if b = x then a else assoc_inv x l
-        
+
 let safe_iter f list =
   List.iter (fun v -> try f v with _ -> ()) list
-  
+
 let min list =
   let rec iter m tail =
-    match tail with 
+    match tail with
       [] -> m
     | m' :: tail ->
         iter (min m' m) tail
   in
   match list with
     [] -> raise Not_found
-  | m :: tail -> iter m tail  
-      
+  | m :: tail -> iter m tail
+
 let max list =
   let rec iter m tail =
-    match tail with 
+    match tail with
       [] -> m
     | m' :: tail ->
         iter (max m' m) tail

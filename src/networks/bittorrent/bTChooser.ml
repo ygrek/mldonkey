@@ -1,5 +1,5 @@
-(* Copyright 2003, Denis Fortin 
-   
+(* Copyright 2003, Denis Fortin
+
     This file is part of mldonkey.
 
     mldonkey is free software; you can redistribute it and/or modify
@@ -53,15 +53,15 @@ let choose_next_uploaders files fun_comp =
       let max_list = ref ([] : BTTypes.client list) in
       (*all clients*)
       let possible_uploaders = ref ([] :  BTTypes.client list) in
-      Hashtbl.iter (fun _ c -> 
+      Hashtbl.iter (fun _ c ->
           begin
             possible_uploaders := (c::!possible_uploaders);
           end )  f.file_clients;
       if !verbose_upload then
           lprintf_nl "[BT]: clients num %d as possible uploaders for file %s\n" (List.length !possible_uploaders) f.file_name;
       (*Interested clients with a connection*)
-      let filtl = List.filter (fun c -> c.client_interested == true 
-            && (c.client_sock != NoConnection) 
+      let filtl = List.filter (fun c -> c.client_interested == true
+            && (c.client_sock != NoConnection)
         ) !possible_uploaders in
       (*sort by biggest contributor*)
       let sortl = List.sort fun_comp filtl in
@@ -89,7 +89,7 @@ let choose_next_uploaders files fun_comp =
              ) to_add;
           lprintf_nl " ]";
         end;
-  
+
   ) files;
   !full_list
 
@@ -102,7 +102,7 @@ let choose_best_downloaders files =
           ((file_size b)--(match b.file_swarmer with None -> Int64.of_int 0 | Some swarmer -> CommonDownloads.Int64Swarmer.downloaded swarmer))
         ) files in
   let files = List.stable_sort
-       (fun a b -> compare 
+       (fun a b -> compare
                     (CommonFile.file_priority (CommonFile.as_file b.file_file))
                     (CommonFile.file_priority (CommonFile.as_file a.file_file))
                     ) files in
@@ -113,14 +113,14 @@ let choose_best_downloaders files =
 
 let choose_best_uploaders files =
   (*use sort function that puts the client we upload best to on top*)
-  choose_next_uploaders files (fun a b -> Rate.compare b.client_upload_rate 
+  choose_next_uploaders files (fun a b -> Rate.compare b.client_upload_rate
         a.client_upload_rate)
 
 
 let choose_uploaders files =
   (*list of new uploaders from the files we download and the files we seed*)
   let next_uploaders =
-       ( (choose_best_downloaders (List.filter 
+       ( (choose_best_downloaders (List.filter
               (fun f ->  file_state f = FileDownloading )
               !current_files ))
        @ (choose_best_uploaders (List.filter

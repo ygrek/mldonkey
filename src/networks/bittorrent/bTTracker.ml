@@ -33,11 +33,11 @@ open BTGlobals
 open Bencode
 
 
-open Gettext  
+open Gettext
 let _s x = _s "BTTracker" x
 let _b x = _b "BTTracker" x
 
-(* 
+(*
 
 We could have a a-la-edonkey tracker: it would connect back to incoming
   client, and check whether they are accessible from the outside world,
@@ -65,7 +65,7 @@ type tracker_peer = {
     mutable peer_port : int;
     mutable peer_active : int;
   }
-  
+
 type tracker = {
     tracker_id : Sha1.t;
     mutable tracker_table : (Sha1.t, tracker_peer) Hashtbl.t;
@@ -73,38 +73,37 @@ type tracker = {
     mutable tracker_message_content : string;
     mutable tracker_message_time : int;
   }
-    
-let tracker_sock = ref None  
+
+let tracker_sock = ref None
 let tracked_files = Hashtbl.create 13
 let ntracked_files = ref 0
-  
+
 let tracker_port = define_option bittorrent_section ["tracker_port"]
   "The port to bind the tracker to"
     int_option 6881
-  
+
 let max_tracked_files = define_option bittorrent_section ["max_tracked_files"]
   "The maximal number of tracked files (to prevend saturation attack)"
     int_option 100
-  
+
 let max_tracker_reply = define_option bittorrent_section ["max_tracker_reply"]
   "The maximal number of peers returned by the tracker"
     int_option 20
 
-  
-  
+
 let int64_of_string v =
   try
     Int64.of_string v
   with e ->
-      lprintf "Exception %s in int64_of_string [%s]\n" 
+      lprintf "Exception %s in int64_of_string [%s]\n"
         (Printexc2.to_string e) v;
       raise e
-  
+
 let int_of_string v =
   try
     int_of_string v
   with e ->
-      lprintf "Exception %s in int_of_string [%s]\n" 
+      lprintf "Exception %s in int_of_string [%s]\n"
         (Printexc2.to_string e) v;
       raise e
 
@@ -117,11 +116,11 @@ let void_message = Bencode.encode (
 
 let reply_has_tracker r info_hash peer_id peer_port peer_event =
 
-  lprintf "tracker contacted for %s\n" (Sha1.to_string info_hash);
+  lprintf_nl "[BT]: tracker contacted for %s" (Sha1.to_string info_hash);
   let tracker = try
-      Hashtbl.find tracked_files info_hash 
+      Hashtbl.find tracked_files info_hash
     with Not_found ->
-        lprintf "Need new tracker\n";
+        lprintf_nl "[BT]: Need new tracker";
         if !ntracked_files < !!max_tracked_files then
           let tracker = {
               tracker_id = info_hash;
@@ -133,54 +132,56 @@ let reply_has_tracker r info_hash peer_id peer_port peer_event =
           incr ntracked_files;
           Hashtbl.add tracked_files info_hash tracker;
           tracker
-        else 
-          failwith "Too many tracked files"
+        else
+          failwith "BT]: Too many tracked files"
   in
-  
-  let peer = 
-    try 
-      let peer = 
+
+  let peer =
+    try
+      let peer =
         Hashtbl.find tracker.tracker_table peer_id
       in
       peer.peer_ip <- fst (TcpBufferedSocket.peer_addr r.sock);
       peer.peer_port <- peer_port;
       peer.peer_active <- last_time ();
       peer
-    with _ -> 
-        let peer = 
-          { 
+    with _ ->
+        let peer =
+          {
             peer_id = peer_id;
             peer_ip = fst (TcpBufferedSocket.peer_addr r.sock);
             peer_port = peer_port;
             peer_active = last_time ();
           } in
-        lprintf "adding new peer\n";
+        lprintf_nl "BT]: adding new peer";
         Hashtbl.add tracker.tracker_table peer_id peer;
         Fifo.put tracker.tracker_peers peer;
         peer
   in
   let message =
     match peer_event with
-      "completed" -> void_message
+      "completed" ->
+        void_message
 (* Reply with clients that could not connect to this tracker otherwise *)
-    | "stopped" -> void_message
+    | "stopped" ->
+        void_message
 (* Don't return anything *)
     | _ ->
 (* Return the 20 best peers. In fact, we should only return peers if
   this peer is behind a firewall. *)
-        
+
         if tracker.tracker_message_time < last_time () then
-          
+
           let list = ref [] in
-          lprintf "Tracker collecting peers:\n";
+          lprintf_nl "BT]: Tracker collecting peers:";
           (try
               for i = 1 to !!max_tracker_reply do
                 let peer = Fifo.take tracker.tracker_peers in
-                lprintf "   %s:%d\n" (Ip.to_string peer.peer_ip)peer.peer_port;
+                lprintf_nl "   %s:%d" (Ip.to_string peer.peer_ip)peer.peer_port;
                 list := peer :: !list
               done
             with _ -> ());
-                    
+
           lprintf "Tracker sending %d peers\n" (List.length !list);
           List.iter (fun p ->
               lprintf "Tracker send: %s:%d\n" 
@@ -189,45 +190,45 @@ let reply_has_tracker r info_hash peer_id peer_port peer_event =
           ) !list;
 
 (* reply by sending [head] *)
-          
-          let message = 
+
+          let message =
             Dictionary [
               String "interval", Int (Int64.of_int 600);
-              String "peers", List 
+              String "peers", List
                 (List.map (fun p ->
                     Dictionary [
-                      String "peer id", String 
+                      String "peer id", String
                         (Sha1.direct_to_string p.peer_id);
                       String "ip", String (Ip.to_string p.peer_ip);
-                      String "port", 
+                      String "port",
                       Int (Int64.of_int p.peer_port);
                     ]
                 ) !list)
             ]
           in
           let m = Bencode.encode message in
-          
+
 (* We cache the reply for one minute if we sent enough replies. *)
           if List.length !list = !!max_tracker_reply then begin
               tracker.tracker_message_time <- last_time () + 60;
               tracker.tracker_message_content <- m;
             end;
           m
-        else 
+        else
           tracker.tracker_message_content
   in
-  
-  r.reply_content <-  message
-  
+
+  r.reply_content <- message
+
 let http_handler t r =
   try
     add_reply_header r "Server" "MLdonkey";
     add_reply_header r "Connection" "close";
     add_reply_header r "Content-Type" "application/x-bittorrent";
-    
+
     match r.get_url.Url.short_file with
       "/tracker" ->
-        
+
         let args = r.get_url.Url.args in
         let info_hash = ref Sha1.null in
         let peer_id = ref Sha1.null in
@@ -243,20 +244,22 @@ let http_handler t r =
             | "port" -> port := int_of_string arg
             | "uploaded" -> uploaded := int64_of_string arg
             | "downloaded" -> downloaded := int64_of_string arg
-            | "left" -> left  := int64_of_string arg
+            | "left" -> left := int64_of_string arg
             | "event" -> event := arg
-            | _ -> lprintf "BTTracker: Unexpected [%s=%s]\n" name arg
+            | _ -> lprintf_nl "BT]: BTTracker: Unexpected [%s=%s]" name arg
         ) args;
-        
-        lprintf "Connection received by tracker: \n";
-        lprintf "    info_hash: %s\n" (Sha1.to_string !info_hash);
-        lprintf "    event: %s\n" !event;
-        
-        reply_has_tracker r !info_hash !peer_id !port !event          
-    
+
+        lprintf_nl "[BT]: Connection received by tracker:";
+        lprintf_nl "    info_hash: %s" (Sha1.to_string !info_hash);
+        lprintf_nl "    event: %s" !event;
+        lprintf_nl "    downloaded: %d" (Int64.to_int !downloaded);
+        lprintf_nl "    uploaded: %d" (Int64.to_int !uploaded);
+
+        reply_has_tracker r !info_hash !peer_id !port !event
+
     | filename ->
 
-        lprintf "Request for .torrent [%s]\n" filename;
+        lprintf_nl "BT]: Request for .torrent [%s]" filename;
         if (Filename2.last_extension filename <> ".torrent") then
           failwith "Incorrect filename 1";
         for i = 1 to String.length filename - 1 do
@@ -268,7 +271,7 @@ let http_handler t r =
 (* Try to find the .torrent file, normally in torrents/, but maybe
 in sub-directories in former versions. *)
 
-        let filename = 
+        let filename =
           let file_name = Filename.concat old_torrents_directory filename in
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
           if Sys.file_exists file_name then file_name else
@@ -278,10 +281,10 @@ in sub-directories in former versions. *)
           let file_name = Filename.concat tracked_directory filename in
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
           if Sys.file_exists file_name then file_name else
-          let file_name = Filename.concat seeded_directory filename in 
+          let file_name = Filename.concat seeded_directory filename in
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
-          if Sys.file_exists file_name then file_name else 
-            failwith 
+          if Sys.file_exists file_name then file_name else
+            failwith
               (Printf.sprintf "Tracker HTTPD: torrent [%s] not found" filename)
         in
         r.reply_content <- File.to_string filename
@@ -305,7 +308,7 @@ let scan_tracked_directory _ =
       try
         let s = File.to_string filename in
         let (info_hash : Sha1.t), torrent = decode_torrent s in
-        let tracker = 
+        let tracker =
           try
             Hashtbl.find old_tracked_files info_hash
           with Not_found ->
@@ -321,7 +324,7 @@ let scan_tracked_directory _ =
   ) filenames
     *)
 
-let start_tracker () = 
+let start_tracker () =
   if !!tracker_port <> 0 then
     let config = {
         bind_addr = Unix.inet_addr_any ;
@@ -329,14 +332,14 @@ let start_tracker () =
         requests = [];
         addrs = [ Ip.of_string "255.255.255.255" ];
         base_ref = "";
-        default = http_handler;      
+        default = http_handler;
       } in
     let sock = TcpServerSocket.create "BT tracker"
-        (Ip.to_inet_addr !!client_bind_addr) 
+        (Ip.to_inet_addr !!client_bind_addr)
       !!tracker_port (Http_server.handler config) in
     tracker_sock := Some sock;
     ()
-    
+
 let stop_tracker () =
   match !tracker_sock with
     None -> ()

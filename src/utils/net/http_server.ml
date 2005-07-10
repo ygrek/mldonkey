@@ -22,7 +22,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 let verbose = ref false
-  
+
 let html_escaped s =
   String2.convert false (fun b escaped c ->
       if escaped then
@@ -69,18 +69,18 @@ let decode64 s =
 
 
 let debug = ref false
-  
+
 type auth =
 | No_auth
 | Read_auth
 | Write_auth
 
 
-type header =  
+type header =
   Unknown of string * string
 | Referer of Url.url
 | Authorization of auth
-  
+
 
 exception ProcessForked
 exception ThreadForked
@@ -96,7 +96,7 @@ type options = {
   }
 
 type full_header = string * string (* * string * (string * string) list) *)
-  
+
 type form_arg = {
     arg_name : string;
     arg_value : string;
@@ -104,11 +104,11 @@ type form_arg = {
     arg_headers : full_header list;
   }
 
-type version = 
+type version =
   HTTP1_0
 | HTTP1_1
 | HTTP
-  
+
 type request = {
     sock : TcpBufferedSocket.t;
     request : string;
@@ -117,7 +117,7 @@ type request = {
     options : options;
     headers : full_header list;
     form_args : form_arg list;
-    
+
     mutable reply_head : string;
     mutable reply_headers : (string * string) list;
     mutable reply_content : string;
@@ -135,15 +135,15 @@ and config = {
     default : handler;
   }
 
-  
+
 let escaped s =
   String2.convert () (fun b _ c ->
       match c with
         '\r' -> Buffer.add_string b "\\r"
       | '\n' -> Buffer.add_string b "\\n\n"
       | _ -> Buffer.add_char b c) s
-    
-  
+
+
 let default_options = {
 (*    authorization = No_auth;*)
     referer = None;
@@ -170,7 +170,7 @@ let rec parse_headers lines headers =
       in
       let line, tail = iter line tail in
       let len = String.length line in
-      
+
       let sep = String.index line ':' in
       let name = String.sub line 0 sep in
       let rec iter sep =
@@ -181,20 +181,20 @@ let rec parse_headers lines headers =
       in
       let value = iter (sep+1) in
       (*
-      let head, args = 
-        try 
-          Http_lexer.get_value (Lexing.from_string value) 
+      let head, args =
+        try
+          Http_lexer.get_value (Lexing.from_string value)
         with _ -> "", []
       in
-*)      
+*)
       parse_headers tail ((name, (value (* , head, args *) )) :: headers)
 
       (*
-      
+
 let content_type_str =   "Content-Type"
 
 *)
-  
+
 let split_head s =
   let rec iter pos1 res =
     try
@@ -203,24 +203,24 @@ let split_head s =
       let line = String.sub s pos1 (pos2 - pos1) in
       if line = "" then List.rev res else
       iter (pos3+1) (line :: res)
-    with _ -> 
+    with _ ->
         let last_line = String.sub s pos1 (String.length s - pos1) in
         List.rev (if last_line = "" then res else last_line :: res)
   in
   iter 0 []
-  
+
 let parse_head sock s =
   let h = split_head s in
 (*  List.iter (fun s -> lprintf "LINE: [%s]\n" (escaped s)) h; *)
-  match h with 
+  match h with
     [] -> failwith "Http_server: Empty head"
   | ans :: headers ->
 (* get the status line *)
       let fin_meth = String.index ans ' ' in
       let meth = String.sub ans 0 fin_meth in
       let fin_file = String.index_from ans (fin_meth + 1) ' ' in
-      let file = String.sub ans (fin_meth+1) (fin_file-fin_meth-1) in
-      let version = match ans.[String.length ans - 1] with 
+      let file = String.sub ans (fin_meth+2) (fin_file-fin_meth-2) in
+      let version = match ans.[String.length ans - 1] with
           '0' -> HTTP1_0
         | '1' -> HTTP1_1
         | _ -> HTTP
@@ -229,14 +229,14 @@ let parse_head sock s =
       let options = List.fold_left (fun options
               (name, value (* , head, args *)) ->
             try
-              match String.lowercase name with 
+              match String.lowercase name with
                 "authorization" ->
                 let _, pass = String2.cut_at value ' ' in
                 let pass = decode64 pass in
                 let login, pswd = String2.cut_at pass ':' in
                 { options with
                   login = login;
-                  passwd = pswd } 
+                  passwd = pswd }
               | "content-length"
                 ->
                 { options with content_length = int_of_string value }
@@ -253,7 +253,7 @@ let parse_head sock s =
                       (Printexc2.to_string e) name;
                   end;
                 options
-                
+
         ) default_options headers in
       {
         sock = sock;
@@ -267,7 +267,7 @@ stream_out = Stream_out.create oc;
         request = meth;
         form_args = [];
         version = version;
-        
+
         reply_head = "200 OK";
         reply_headers = [];
         reply_stream = None;
@@ -285,7 +285,7 @@ let convert_nl s =
       | _ -> Buffer.add_char b c) s
 
   (*
-  
+
 let complete_multipart_data request ic tail =
   let _, boundary = String2.cut_at tail '=' in
   let boundary_len = String.length boundary in
@@ -302,7 +302,7 @@ let complete_multipart_data request ic tail =
     if line = boundary || line = boundary2 then
       get_one_part []
     else find_first ()
-  
+
   and get_one_part previous =
     let rec get_lines lines =
       try
@@ -313,10 +313,10 @@ let complete_multipart_data request ic tail =
     let lines = get_lines [] in
     let field =
       match lines with
-        ("Content-Disposition", (_, "form-data", ("name", name) :: 
+        ("Content-Disposition", (_, "form-data", ("name", name) ::
             args))
         :: other_lines
-        ->  
+        ->
           begin
             match other_lines, args with
               [], [] ->
@@ -325,11 +325,11 @@ let complete_multipart_data request ic tail =
                   let line = Stream_in.input_netline ic in
                   if line = boundary || line = boundary2
                     || (
-                      (line = end_boundary || line = end_boundary2) 
+                      (line = end_boundary || line = end_boundary2)
                       && (end_boundary_found := true; true)
                       )
                   then
-                    Buffer.contents buf 
+                    Buffer.contents buf
                   else
                     begin
                       Buffer.add_string buf (convert_nl line);
@@ -342,23 +342,23 @@ let complete_multipart_data request ic tail =
                   arg_headers = lines;
                   arg_args = args
                 }
-            |  _ -> 
+            |  _ ->
                 let tmpfile = Filename.temp_file "http_" "" in
                 if !debug then begin
                     lprintf "WARNING: saving to file %s\n" tmpfile;
                   end;
                 let oc = open_out tmpfile in
                 let rec iter n empty_line =
-                  if n > !upload_limit then 
+                  if n > !upload_limit then
                     failwith "File too big for upload"
                   else
                   let line = Stream_in.input_line ic in
-                  if line = boundary || line = boundary2 || 
+                  if line = boundary || line = boundary2 ||
                     line = boundary3 || line = boundary4
                     || (
                       (line = end_boundary || line = end_boundary2
                           || line = end_boundary3 || line = end_boundary4
-                        ) 
+                        )
                       && (end_boundary_found := true; true)
                       )
                    then
@@ -373,7 +373,7 @@ let complete_multipart_data request ic tail =
                       if n > 0 && empty_line = "" then output_char oc '\n';
                       output_string oc line;
                       iter (len + 1 + n) empty_line
-                    end                  
+                    end
                 in
                 iter 0 "";
                 Finalizer.add finalizers tmpfile (fun _ ->
@@ -383,7 +383,7 @@ let complete_multipart_data request ic tail =
                   arg_headers = lines;
                   arg_args = args
                 }
-                
+
           end
       | (name, (_,value, args)) :: lines ->
           if !debug then begin
@@ -393,14 +393,14 @@ let complete_multipart_data request ic tail =
               lprint_nl "";
             end;
           raise Exit
-      | [] -> 
+      | [] ->
           if !debug then lprintf_nl "NO LINES";
           raise Exit
     in
     if !end_boundary_found then field :: previous else
     get_one_part (field :: previous)
   in
-  let form_args = List.rev (find_first ()) in 
+  let form_args = List.rev (find_first ()) in
   { request with form_args = form_args }
     *)
 
@@ -413,7 +413,7 @@ let parse_post_args f len req b =
   let req = { req with get_url = { req.get_url
       with Url.args = args }} in
   f b req
-  
+
 let check_len f len b pos2 =
   lprintf_nl "check_len: len %d rlen %d" len b.rlen;
   if b.rlen >= len then f b
@@ -426,7 +426,7 @@ let complete_post_request ( f : handler ) buf request =
   else
   let post_reader = Select.buf_reader buf (check_len (parse_post_args f len request) len ) in
   buf.fd_task.Select.reader <- post_reader
-  
+
 (*
   if request.request = "POST" then
     let value = request.options.content_type in
@@ -442,14 +442,14 @@ let complete_post_request ( f : handler ) buf request =
       if nleft > 0 then
         let nread = Stream_in.input ic s 0 (min nleft 1000) in
         Buffer.add_substring buf s 0 nread;
-        if nread = nleft then Buffer.contents buf 
+        if nread = nleft then Buffer.contents buf
         else
         if nread = 0 then failwith "Connection close while reading"
         else
           iter (nleft - nread)
       else Buffer.contents buf
 in
-  
+
 let doc = iter request.options.content_length in
 *)
     let args = Url.cut_args doc in
@@ -460,11 +460,11 @@ let doc = iter request.options.content_length in
 
 let connection_wrapper = ref
     (fun f t x -> f t x)
-  
+
 let fd t = t.fd
 exception ForbiddenAddr
 
-  
+
 let stream_out_string buf s =
   Select.write buf.fd_task s 0 (String.length s)
 
@@ -473,7 +473,7 @@ let head_404_error =
   "Server: http_server (ocaml)\n" ^
   "Connection: close\n" ^
   "Content-Type: text/html; charset=iso-8859-1\n"
-  
+
 let error_404 oc page =
   stream_out_string oc head_404_error;
   stream_out_string oc "\n";
@@ -481,24 +481,24 @@ let error_404 oc page =
 
 let head_404_simple_msg =
   head_404_error ^ "\n<html><body>erreur 404</body></html>"
-  
+
 let simple_error_404 oc =
   error_404 oc
-    "<html><body>erreur 404</body></html>" 
-  
+    "<html><body>erreur 404</body></html>"
+
 let head_200_html_page =
   "HTTP/1.0 200 OK\n" ^
   "Server: http_server (ocaml)\n" ^
   "Connection: close\n" ^
-  "Content-Type: text/html; charset=iso-8859-1\n" 
-  
+  "Content-Type: text/html; charset=iso-8859-1\n"
+
 let output_page oc page =
-  stream_out_string oc head_200_html_page;  
+  stream_out_string oc head_200_html_page;
   stream_out_string oc "\n";
   stream_out_string oc page;
   at_write_end oc.fd_task shutdown
-  
-  
+
+
 let print_request oc request =
   error_404 oc "";
   stream_out_string oc "<html><body>\n";
@@ -518,11 +518,11 @@ let print_request oc request =
           arg.arg_name arg.arg_value);
       List.iter (fun (name, (value,_,_)) ->
           stream_out_string oc (Printf.sprintf "ARG HEADER: [%s]=[%s]<br>\n"
-              name value)) arg.arg_headers;      
-      ) request.form_args; 
+              name value)) arg.arg_headers;
+      ) request.form_args;
   stream_out_string oc "</html></body>\n";
   at_write_end oc.fd_task shutdown
-  
+
 let html_content =  "text/html; charset=iso-8859-1"
 let content_types = [
     ".htm", html_content;
@@ -546,16 +546,16 @@ let content_types = [
     ".ogm",          "video/ogm";
     ".fli",          "video/fli";
     ".flc",          "video/fli";
-    
+
     ".ps", "application/postscript";
     ".pdf","application/pdf";
     ".txt", "text/plain";
-    ".gif", "image/gif";  
+    ".gif", "image/gif";
   ]
-  
-let content_type_exts = 
+
+let content_type_exts =
   List.map (fun (a,b) -> (b,a)) content_types
-  
+
 let content_encodings = [
     ".gz", "x-gzip";
     ".gz", "gzip";
@@ -564,9 +564,9 @@ let content_encodings = [
     ".pgp",          "pgp"
   ]
 
-let content_encoding_exts = 
+let content_encoding_exts =
   List.map (fun (a,b) -> (b,a)) content_encodings
-  
+
 let add_content_type oc file =
   let exts = Filename2.extensions (String.lowercase  file) in
   (try
@@ -577,9 +577,9 @@ let add_content_type oc file =
             let ext = "." ^ ext in
             try
               let t = List.assoc ext content_types in
-              stream_out_string oc 
+              stream_out_string oc
                 (Printf.sprintf "Content-Type: %s\n" t)
-            with _ -> 
+            with _ ->
 (*
   lprintf "No content-type for %s" ext;
 lprint_newline ();
@@ -602,7 +602,7 @@ let add_content_encoding oc file =
               stream_out_string oc
                 (Printf.sprintf "Content-Encoding: %s\n"
                   encoding)
-            with _ -> 
+            with _ ->
 (*                lprintf "No encoding for %s" ext;
 lprint_newline ();
   *)
@@ -611,17 +611,17 @@ lprint_newline ();
       iter exts
     with _ ->         ())
 
-  
-let give_doc buf request = 
+
+let give_doc buf request =
   let t = buf.fd_task.info in
   let file = request.get_url.Url.file in
   try
     if String2.subcontains file ".." then raise Not_found;
-    let file = 
+    let file =
       Filename.concat t.config.base_ref file in
     if Unix2.is_directory file then
       raise Not_found
-    else      
+    else
     let ans = File.to_string file  in
     stream_out_string buf "HTTP/1.0 200 OK\n";
     stream_out_string buf "Server: http_server (ocaml)\n";
@@ -635,18 +635,18 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      lprintf_nl "[HTTPSRV]: No such file: %s (%s)" file (Printexc2.to_string e); 
+      lprintf_nl "[HTTPSRV]: No such file: %s (%s)" file (Printexc2.to_string e);
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown
-*)      
+*)
 
-let need_auth r name = 
+let need_auth r name =
   r.reply_head <- "401 Unauthorized";
   r.reply_headers <- [
     "Connection", "close";
     "WWW-Authenticate", Printf.sprintf "Basic realm=\"%s\"" name
   ]
-  
+
 (*
 let simple_give_auth psread pswrite request  =
   try
@@ -658,23 +658,23 @@ let simple_give_auth psread pswrite request  =
       (lprintf  "  Access: Read"; lprint_newline ();
         Read_auth)
     else raise Not_found
-  with _ -> 
+  with _ ->
       lprintf "  Access: Forbidden"; lprint_newline ();
       No_auth
-    
-let check_auth auth give_auth handler buf request = 
+
+let check_auth auth give_auth handler buf request =
   let authorization = give_auth request in
   match auth, authorization with
-    No_auth, _ 
+    No_auth, _
   | Read_auth, (Read_auth | Write_auth)
   | Write_auth, Write_auth -> handler buf request
   | _ -> need_auth buf
-       
-      
+
+
 let fork_request handler req = handler req
 
-  
-let create config = 
+
+let create config =
 (*
   Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
 Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
@@ -685,7 +685,7 @@ Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
   bind fds (Unix.ADDR_INET (Unix.inet_addr_any, config.port));
   listen fds 5;
   let t =
-    { 
+    {
       config = config;
       fd = fds;
       regaddrs = Str.regexp config.addrs;
@@ -698,16 +698,16 @@ Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
     *)
 
 open TcpBufferedSocket
-  
-let manage config sock head = 
-  
+
+let manage config sock head =
+
   let request = parse_head sock head in
   let rec iter reqs =
     match reqs with
       (file, handler) :: reqs when file = request.get_url.Url.short_file ->
         handler sock request
     | _ :: reqs -> iter reqs
-    | [] -> 
+    | [] ->
         config.default sock request
   in
   iter config.requests;
@@ -731,7 +731,7 @@ let manage config sock head =
     TcpBufferedSocket.set_max_output_buffer sock (len + clen);
 (*  lprintf "HTTPSEND: [%s]\n" (String.escaped s); - log commented out *)
   TcpBufferedSocket.write_string sock s;
-    
+
   if request.request <> "HEAD" then begin
 (*        lprintf "HTTPSEND: [%s]\n" (String.escaped c); - log commented out *)
       TcpBufferedSocket.write_string sock c;
@@ -741,14 +741,14 @@ let manage config sock head =
           set_refill sock refill;
     end;
   TcpBufferedSocket.close_after_write sock
-      
-  
-let request_handler config sock nread =  
+
+
+let request_handler config sock nread =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
-(*  lprintf "received [%s]\n" (String.escaped 
+(*  lprintf "received [%s]\n" (String.escaped
       (String.sub b.buf new_pos nread)); - log commented out *)
   let rec iter i =
     let end_pos = b.pos + b.len in
@@ -766,7 +766,7 @@ let request_handler config sock nread =
           let header = String.sub b.buf b.pos len in
           buf_used b len;
           manage config sock header
-        else 
+        else
           iter (i+1)
       else
         iter (i+1)
@@ -776,21 +776,21 @@ let request_handler config sock nread =
   try
     iter new_pos
   with e ->
-      lprintf "HTTPSERVER: Exception %s in request_handler\n"
+      lprintf "[HTTPSRV]: Exception %s in request_handler\n"
         (Printexc2.to_string e);
       close sock (Closed_for_exception e)
 
-let request_closer sock msg = 
+let request_closer sock msg =
   ()
-  
-let handler config t event = 
+
+let handler config t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
 (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip config.addrs then 
+      if Ip.matches from_ip config.addrs then
         let token = create_token unlimited_connection_manager in
-        let sock = TcpBufferedSocket.create_simple 
+        let sock = TcpBufferedSocket.create_simple
             token "http connection" s in
         TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_reader sock (request_handler config);
@@ -803,11 +803,11 @@ let handler config t event =
   | _ -> ()
 
 let create config =
-  let t = TcpServerSocket.create "http server" config.bind_addr 
+  let t = TcpServerSocket.create "http server" config.bind_addr
     config.port (handler config) in
   t
-  
-let add_reply_header r header value = 
+
+let add_reply_header r header value =
   let rec iter headers add =
     match headers with
       [] -> if add then [header, value] else []
@@ -818,7 +818,7 @@ let add_reply_header r header value =
           (h, v) :: (iter tail true)
   in
   r.reply_headers <- iter r.reply_headers true
-  
+
 
 let parse_range range =
   try
@@ -841,18 +841,18 @@ let parse_range range =
         String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
     in
     if slash_pos = len then
-      x, Some y, None (* "bytes=x-y" *)      
+      x, Some y, None (* "bytes=x-y" *)
     else
-    if slash_pos = star_pos - 1 then 
+    if slash_pos = star_pos - 1 then
       x, Some y, None (* "bytes x-y/*" *)
     else
 (* bytes x-y/len *)
-    
+
     let z = Int64.of_string (
         String.sub range (slash_pos+1) (len - slash_pos -1) )
     in
     x, Some y, Some z
-  with 
+  with
   | e ->
       lprintf_nl "[HTTPSRV]: Exception %s for range [%s]"
         (Printexc2.to_string e) range;
@@ -862,13 +862,13 @@ let parse_range range =
 let parse_range range =
   let x, y, z = parse_range range in
   lprintf "Range parsed: %Ld-%s/%s" x
-    (match y with None -> "" | Some y -> Int64.to_string y)    
-  (match z with None -> "*" | Some y -> Int64.to_string y); 
+    (match y with None -> "" | Some y -> Int64.to_string y)
+  (match z with None -> "*" | Some y -> Int64.to_string y);
   x, y, z
     *)
 
 open Int64ops
-  
+
 (*  Range: bytes=31371876- *)
 let request_range r =
   List.iter (fun (h, v1) ->
@@ -884,4 +884,4 @@ let request_range r =
         x, Some (y ++ Int64.one)
   | x, Some y, None ->
       x, Some (y ++ Int64.one)
-      
+

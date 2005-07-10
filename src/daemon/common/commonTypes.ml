@@ -354,7 +354,7 @@ type connection_control = {
     mutable control_min_reask : int;
   }
 
-type output_type = TEXT | HTML | ANSI
+type output_type = TEXT | HTML | ANSI | XML | XHTML
   
 type sortvd_type = 
   BySize

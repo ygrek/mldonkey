@@ -22,7 +22,7 @@ open Int64ops
 open Printf2
 
 open BasicSocket
-  
+
 open CommonInteractive
 open CommonInteractive
 
@@ -30,12 +30,12 @@ open CommonDownloads
 open CommonTypes
 open CommonOptions
 open CommonGlobals
-open CommonNetwork  
-  
+open CommonNetwork
+
 open DriverInterface
 
 module Dp500 = DriverLink.DP500(struct
-      
+
       module CommonTypes = CommonTypes
       module CommonFile = CommonFile
       module CommonOptions = CommonOptions
@@ -43,16 +43,16 @@ module Dp500 = DriverLink.DP500(struct
       let incoming_directory () =
         (CommonComplexOptions.incoming_files ()).shdir_dirname
       let files () = !!CommonComplexOptions.files
-      
+
     end)
-  
+
 open Gettext (* open last  as most modules redefine _s and _b *)
-  
+
 let _s x = _s "DriverMain" x
 let _b x = _b "DriverMain" x
-  
+
 let keep_console_output = ref false
-  
+
 let do_daily () =
   incr CommonWeb.days;
   CommonWeb.load_web_infos ()
@@ -65,12 +65,12 @@ let minute_timer () =
       Int64Swarmer.verify_some_chunks ()
     with _ -> ()
   );
-  
+
   if !!auto_commit then
     List.iter (fun file ->
         file_commit file
     ) !!CommonComplexOptions.done_files
-  
+
 let hourly_timer timer =
   incr CommonWeb.hours;
   if !CommonWeb.hours mod 24 = 0 then do_daily ();
@@ -79,57 +79,57 @@ let hourly_timer timer =
   DriverControlers.check_calendar ();
   CommonWeb.connect_redirector ();
   CommonFile.propose_filenames ()
-  
+
 
 let second_timer timer =
-  (try 
-      update_link_stats () 
-    with e -> 
+  (try
+      update_link_stats ()
+    with e ->
         lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
-	  (try 
+	  (try
      CommonUploads.refill_upload_slots ()
-   with e -> 
+   with e ->
         lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
   CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
   ()
-  
+
 let start_interfaces () =
-  
-  
+
+
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
           lprintf_nl (_b "Exception %s while starting HTTP interface")
             (Printexc2.to_string e);
     end;
-  
+
   ignore (find_port  "telnet server" !!telnet_bind_addr
-      telnet_port DriverControlers.telnet_handler);  
+      telnet_port DriverControlers.telnet_handler);
 
   Dp500.start ();
-  
+
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
-          chat_port DriverControlers.chat_handler);  
+          chat_port DriverControlers.chat_handler);
       try
         CommonChat.send_hello ()
       with _ -> if !verbose then lprintf (_b "CommonChat.send_hello failed");
     end;
-  
+
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
-    gui_port gui_handler;  
+    gui_port gui_handler;
   if !!gift_port <> 0 then
     ignore (find_port "gift server"  !!gui_bind_addr
         gift_port gift_handler);
-  
+
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info;
   add_infinite_timer 1. second_timer
 
 
 let _ =
   CommonWeb.add_web_kind "motd.html" (fun _ filename ->
-      lprintf_nl (_b "motd.html changed"); 
+      lprintf_nl (_b "motd.html changed");
     motd_html =:= File.to_string filename
   );
   CommonWeb.add_web_kind "motd.conf" (fun _ filename ->
@@ -146,15 +146,15 @@ let _ =
             CommonInteractive.add_item_to_fully_qualified_options name value
 	| "del_item" ->
             CommonInteractive.del_item_from_fully_qualified_options name value
-	| _ -> 
+	| _ ->
 	    lprintf_nl (_b "UNUSED LINE: %s") line
-          
+
       done;
-    with 
+    with
     | End_of_file ->
 	close_in ic
     | e -> lprintf_nl (_b "Error while reading motd.conf(%s): %s") filename
-	(Printexc2.to_string e); 
+	(Printexc2.to_string e);
 	close_in ic
 			   );
   CommonWeb.add_web_kind "guarding.p2p" (fun _ filename ->
@@ -165,11 +165,11 @@ let _ =
 
 
 let save_mlsubmit_reg () =
-  
+
 (* Generate the mlsubmit.reg file *)
 
-  let file = Printf.sprintf 
-    
+  let file = Printf.sprintf
+
    "Windows Registry Editor Version 5.00
 
 [HKEY_CLASSES_ROOT\\ed2k]
@@ -187,11 +187,11 @@ let save_mlsubmit_reg () =
     "admin" "" (Ip.to_string (client_ip None)) !!http_port
   in
   File.from_string (Filename.concat file_basedir "mlsubmit.reg") file;
-    
+
 (* Generate the mldonkey_submit file *)
-  
-  let file = Printf.sprintf 
-  
+
+  let file = Printf.sprintf
+
 "#!%s
 
 # Submit an eDonkey download request to mldonkey
@@ -230,7 +230,7 @@ while (my $uri = shift @ARGV) {
 		print \"Not an ed2k URI: $_\n\";
 	}
 }
-" 
+"
       Autoconf.perl_path
     (Ip.to_string (client_ip None)) !!http_port
     "admin" ""
@@ -242,11 +242,11 @@ while (my $uri = shift @ARGV) {
   e -> ()
 
 let load_config () =
-  
+
   DriverInterface.install_hooks ();
 
 (**** LOAD OPTIONS ****)
-  
+
   let exists_downloads_ini =
     Sys.file_exists (options_file_name downloads_ini) in
   let exists_users_ini =
@@ -255,22 +255,22 @@ let load_config () =
   if not exists_downloads_ini then
     begin
       let oc = open_out (options_file_name downloads_ini) in
-      close_out oc; 
+      close_out oc;
       if not exists_users_ini then
         begin
           let oc = open_out (options_file_name users_ini) in
-          close_out oc; 
+          close_out oc;
         end;
     end
   else
     if not exists_users_ini then
       begin
-        lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini."; 
+        lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini.";
         ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
       end;
 
 (*
-  let exists_expert_ini = Sys.file_exists 
+  let exists_expert_ini = Sys.file_exists
       (options_file_name downloads_expert_ini) in
   if not exists_expert_ini then begin
       if exists_downloads_ini then begin
@@ -280,21 +280,21 @@ let load_config () =
           (try Unix2.copy "downloads.ini" "donkey_expert.ini" with _ -> ());
 
           end else begin
-          
-          lprintf "No config file found. Generating one.\n"; 
+
+          lprintf "No config file found. Generating one.\n";
           let oc = open_out (options_file_name downloads_expert_ini) in
-          close_out oc; 
+          close_out oc;
         end
     end; *)
-  (try 
+  (try
       Options.load downloads_ini;
       Options.load users_ini;
 (*      Options.load downloads_expert_ini;       *)
-    with e -> 
-        lprintf_nl "Exception %s during options load" (Printexc2.to_string e); 
+    with e ->
+        lprintf_nl "Exception %s during options load" (Printexc2.to_string e);
         exit 2;
-        ());  
-  
+        ());
+
   (* Here, we try to update options when a new version of mldonkey is
      used. For example, we can add new web_infos... *)
   CommonOptions.update_options ();
@@ -305,28 +305,28 @@ let load_config () =
         commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
       CommonMessages.colour_changer ();
     end;
-  networks_iter_all (fun r -> 
+  networks_iter_all (fun r ->
 (*      lprintf "(n) loading network config file\n"; *)
       List.iter (fun opfile ->
           try
             Options.load opfile
           with Sys_error _ ->
               Options.save_with_help opfile
-      )      
-      r.network_config_file 
+      )
+      r.network_config_file
   );
 
 
-(**** PARSE ARGUMENTS ***)    
-  
+(**** PARSE ARGUMENTS ***)
+
   let more_args = ref [] in
-  
-  
+
+
   more_args := !more_args
     @ (Options.simple_args "" downloads_ini);
   more_args := !more_args
     @ (Options.simple_args "" users_ini);
-  
+
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
           let prefix = r.network_shortname ^ "-" in
@@ -335,9 +335,9 @@ let load_config () =
                 (Printf.sprintf "-%s" arg, spec, help)) args
           in
           more_args := !more_args @ args
-      ) r.network_config_file 
+      ) r.network_config_file
   );
-  
+
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
           lprintf_nl "%s" (CommonGlobals.version ());
@@ -356,41 +356,41 @@ let load_config () =
           CommonFile.check_file_implementations ();
 (*          CommonResult.check_result_implementations (); *)
           lprintf_nl "";
-          exit 0), 
+          exit 0),
       _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
           keep_console_output := true;
           log_to_file stdout;
-      ), 
+      ),
        _s ": keep output to stdout after startup";
        "-stderr", Arg.Unit (fun _ ->
            keep_console_output := true;
            log_to_file stderr;
-       ), 
+       ),
        _s ": keep output to stderr after startup";
       "-daemon", Arg.Unit (fun _ ->
           (* Removed due to savannah bug #11514 . *)
           lprintf_nl "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...";
           exit 0), _s " : this argument was removed, core will exit";
-      "-find_port", Arg.Set find_other_port, 
+      "-find_port", Arg.Set find_other_port,
       _s " : find another port when one is already used";
-    ] @ 
+    ] @
       !more_args
       @
     !main_options)
     (fun file -> ()
 (*      Files.dump_file file; exit 0 *)
   ) "";
-    
+
 
 (**** CREATE DIRS   ****)
-  
+
   (*
   Unix2.safe_mkdir !!incoming_directory;
-  
+
   File.from_string (Filename.concat !!incoming_directory "Readme.txt")
   "This directory contains the files downloaded, after commit.
-The 'incoming/files/' folder contains simple files. 
+The 'incoming/files/' folder contains simple files.
 The 'incoming/directories/' folder contains whole directories (probably
    downloaded with Bittorrent).
 
@@ -399,16 +399,16 @@ If you want to share files, you should:
    in the 'incoming/files/' folder, or better, in the shared/ folder.
    is for downloaded files. Files to be shared should be
    put in the 'shared/' directory instead.
-  - Put directories that should be shared as one file in the 
+  - Put directories that should be shared as one file in the
    'incoming/directories/' folder. Currently, such directories can only be
    shared on the Bittorrent network, by providing the corresponding
    .torrent in the 'torrents/seeded/' folder.
 ";
-  
+
   Unix2.safe_mkdir (Filename.concat !!incoming_directory "files");
   Unix2.safe_mkdir (Filename.concat !!incoming_directory "directories");
 *)
-  
+
   List.iter (fun s ->
       Unix2.safe_mkdir s.shdir_dirname;
       if s.shdir_strategy = "incoming_directories" ||
@@ -425,8 +425,8 @@ let _ =
   let t = Unix.localtime (Unix.time ()) in
   if (t.Unix.tm_year<=104) then
     begin
-      lprintf (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.\n");
-      lprintf (_b "MLdonkey can not work with such a system date, exiting...\n");
+      lprintf_nl (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.");
+      lprintf_nl (_b "MLdonkey can not work with such a system date, exiting...");
       CommonGlobals.exit_properly 0
     end;
 
@@ -447,7 +447,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 
   load_config ();
   
-  add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
+  add_infinite_option_timer download_sample_rate CommonFile.sample_timer;
 
 (*  lprintf "(1) CommonComplexOptions.load\n"; *)
   CommonComplexOptions.load ();
@@ -467,7 +467,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   lprintf (_b "\nCheck http://www.mldonkey.net/ for updates\n");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf (_b "enabling networks: ");
-  networks_iter (fun r -> 
+  networks_iter (fun r ->
 (*      lprintf "(4) networks_iter enabling\n"; *)
       network_enable r;
       lprintf (_b "%s ") r.network_name;
@@ -475,8 +475,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
       if !!recover_temp_on_startup then
         network_recover_temp r;
   );
-  lprintf_nl "";
-  lprintf (_b "disabled networks: ");
+  lprintf (_b "\ndisabled networks: ");
   let found = ref false in
     networks_iter_all (fun r ->
         if not (network_is_enabled r) then
@@ -488,27 +487,27 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   lprintf_nl "";
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
-  
-  TcpBufferedSocket.set_max_opened_connections 
+
+  TcpBufferedSocket.set_max_opened_connections
     (fun _ -> !!max_opened_connections);
-  TcpBufferedSocket.set_max_connections_per_second 
+  TcpBufferedSocket.set_max_connections_per_second
     (fun _ -> !!max_connections_per_second);
-  
+
   add_infinite_option_timer save_options_delay (fun timer ->
       DriverInteractive.save_config ());
   start_interfaces ();
-  
+
   add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
 
-  List.iter 
+  List.iter
     CommonShared.shared_add_directory
-  !!CommonComplexOptions.shared_directories;  
-  
+  !!CommonComplexOptions.shared_directories;
+
   add_infinite_timer 1800. (fun timer ->
       DriverInteractive.browse_friends ());
-  
+
   Options.prune_file downloads_ini;
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
@@ -525,7 +524,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf (_b "If you connect from a remote machine adjust allowed_ips\n");
   if Autoconf.system = "windows" then lprintf (_b "%s") win_message;
-  
+
   if Autoconf.system <> "windows" then
     (* Doesn't work on windows with mingw, because getpid always returns 948 *)
     (
@@ -547,23 +546,23 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
           if !!ask_for_gui  && Sys.file_exists !!mldonkey_gui &&
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
-        with Not_found -> 
+        with Not_found ->
             lprintf_nl (_b "Not running under X, not trying to start the GUI")
             );
   );
- 
+
   if !!run_as_user <> "" then begin
       try
-        let new_pw = Unix.getpwnam !!run_as_user  in
+        let new_pw = Unix.getpwnam !!run_as_user in
         MlUnix.setuid new_pw.Unix.pw_uid;
         let pw = Unix.getpwuid (Unix.getuid()) in
-        lprintf_nl (_b "mldonkey is now running as user %s")  pw.Unix.pw_name;
+        lprintf_nl (_b "mldonkey is now running as user %s") pw.Unix.pw_name;
       with e ->
           lprintf_nl (_b "Exception %s trying to set user_uid [%s]")
           (Printexc2.to_string e) !!run_as_user;
           exit 2
     end;
- 
+
   if !!run_as_useruid <> 0 then begin
       try
         MlUnix.setuid !!run_as_useruid;
@@ -573,16 +572,16 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
           (Printexc2.to_string e) !!run_as_useruid;
           exit 2
     end;
-  
+
   if !!create_mlsubmit then save_mlsubmit_reg ();
   DriverInteractive.initialization_completed := true;
   DriverInteractive.save_config ();
 
-  if Autoconf.system <> "windows" then 
+  if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sigchld
       (Sys.Signal_handle (fun _ -> lprintf_nl "SIGCHLD"));
 
-  if Autoconf.system <> "windows" then 
+  if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ -> lprintf_nl "SIGHUP";
          BasicSocket.close_all ();
@@ -602,16 +601,16 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
         CommonGlobals.exit_properly 0));
 
   if !verbose then lprintf_nl (_b "Activated system signal handling\n");
-  
+
   Unix32.max_cache_size := MlUnix.max_filedescs
- 
+
 let _ =
-  let security_space_filename = "config_files_space.tmp" in 
-  
-  lprintf (_b "Core started"); 
+  let security_space_filename = "config_files_space.tmp" in
+
+  lprintf (_b "Core started");
   core_included := true;
   CommonGlobals.print_localtime ();
- 
+
   begin
 (* Create a 'config_files_security_space' megabytes file to protect some space
 for config files at the end. *)
@@ -635,17 +634,16 @@ for config files at the end. *)
         lprintf_nl (_b " not enough space on device or bad permissions");
         lprintf_nl (_b "Exiting...");
         exit 2;
-  end;  
-  CommonGlobals.do_at_exit (fun _ -> 
+  end;
+  CommonGlobals.do_at_exit (fun _ ->
       (* If we have an error with too many file-descriptors,
          just close all of them *)
       (try
          BasicSocket.close_all ();
        with e ->
-           lprintf "Exception %s in do_at_exit while closing sockets.\n"
+           lprintf_nl "Exception %s in do_at_exit while closing sockets."
              (Printexc2.to_string e);
       );
-      CommonGraphics.remove_files ();
       (* In case we have no more space on filesystem for
          config files, remove the security space file *)
       Sys.remove security_space_filename;
@@ -654,17 +652,17 @@ for config files at the end. *)
       lprintf (_b "Core stopped");
       CommonGlobals.print_localtime ()
     );
-  
+
   if not !keep_console_output then begin
-      lprintf (_b "Disabling output to console, to enable: stdout true\n");
-      
+      lprintf_nl (_b "Disabling output to console, to enable: stdout true");
+
       if !!log_file <> "" then begin
           (*
           try
             Printf.printf "+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX+\n";
             let oc = open_out !!log_file in
             lprintf "Logging in %s\n" !!log_file;
-            
+
             (* Don't close stdout !!!
             (match !lprintf_output with
                None -> () | Some oc -> close_out oc);

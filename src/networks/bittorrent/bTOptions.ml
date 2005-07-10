@@ -24,50 +24,22 @@ open Options
 
 let bittorrent_ini = create_options_file "bittorrent.ini"
 let bittorrent_section = file_section bittorrent_ini ["Bittorrent"] "Bittorrent options"
-  
+
 let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"
     int_option 6882
-  
-  
+
 let client_uid = define_option bittorrent_section ["client_uid"]
     "The UID of this client" Sha1.option (Sha1.random ())
 
-  
 let shortname o =
   Printf.sprintf "BT-%s" (shortname o)
-  
-let gui_bittorrent_options_panel = 
-  (*
-  define_option bittorrent_section ["gui_bittorrent_options_panel"]
-    "Which options are configurable in the GUI option panel, and in the
-  bittorrent section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
-(list_option (tuple3_option (string_option, string_option, string_option)))
-*)
-  
+
+let gui_bittorrent_options_panel =
   [
     "Port", shortname client_port, "T";
   ]
 
-  
-    
-(*
-let torrent_files =
-  define_option bittorrent_section ["torrent_files"]
-  "The torrent files to serve on the tracker WEB server"
-    (list_option (tuple2_option (string_option, filename_option))) []
-    
-let tracked_files = 
-  define_option bittorrent_section ["tracked_files"]
-  "The files tarcked on this tracker"
-    (list_option filename_option) []
-
-let shared_files = 
-  define_option bittorrent_section ["shared_files"]
-  "The files shared on this torrent server (pair .torrent file, and path to shared file or directory)"
-    (list_option (tuple2_option (filename_option, filename_option))) []
-*)  
-    
 let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
     "Ask the tracker for new sources only if you have fewer than that number of sources"
     int_option 20
@@ -80,7 +52,7 @@ let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
     "Maximum number of uploaders for bittorrent"
     int_option 5
 
-(* numwant: Optional. Number of peers that the client would like to receive from the tracker. 
+(* numwant: Optional. Number of peers that the client would like to receive from the tracker.
 This value is permitted to be zero. If omitted, typically defaults to 50 peers.   *)
 
 let numwant = define_option bittorrent_section ["numwant"]
@@ -100,8 +72,7 @@ let _ =
       (fun _ ->
         if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5)
   end
-  
-  
+
 let cookies = define_option bittorrent_section ["cookies"]
     "Cookies send with http request to get .torrent file"
     (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
@@ -109,4 +80,4 @@ let cookies = define_option bittorrent_section ["cookies"]
 let referers = define_option bittorrent_section ["referers"]
     "Referer sent with http request to get .torrent file" 
     (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
-    
+

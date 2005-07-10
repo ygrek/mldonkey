@@ -41,19 +41,19 @@ type client = {
     mutable client_chunks : (int64 * int64) list;
     mutable client_uploader : Int64Swarmer.uploader option;
     mutable client_ranges_sent : (int64 * int64 * Int64Swarmer.range) list;
-    mutable client_range_waiting : 
+    mutable client_range_waiting :
     (int64 * int64 * Int64Swarmer.range) option;
     mutable client_block : Int64Swarmer.block option;
-    
+
     mutable client_received_peer_id : bool;
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)
     mutable client_choked : bool;      (* we received a Choke from the client *)
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
-    
+
     mutable client_bitmap : string option;
     mutable client_new_chunks : int list;
-    
+
     mutable client_upload_requests : (int * int64 * int64) list;
     mutable client_allowed_to_write : int64;
     mutable client_upload_rate : Rate.t;
@@ -61,7 +61,7 @@ type client = {
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
     mutable client_optimist_time : int;
-    
+
     mutable client_blocks_sent : int list;
     mutable client_good : bool;
     mutable client_num_try : int;
@@ -80,7 +80,7 @@ and tracker_info = {
     mutable tracker_last_conn : int;
     mutable tracker_last_clients_num : int;
   }
-  
+
 and file = {
     file_file : file CommonFile.file_impl;
     file_piece_size : int64;
@@ -89,7 +89,7 @@ and file = {
     mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;
-    mutable file_chunks : Sha1.t array; 
+    mutable file_chunks : Sha1.t array;
     mutable file_files : (string * int64) list;
     mutable file_blocks_downloaded : int list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)

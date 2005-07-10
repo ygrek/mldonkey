@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/10: spiralvoice
 
+4159: Removed whitespaces
 4156: tray icon in x11 for GTK2 GUI
 4157: fix mlnet.pid checking at start up for GUI
 

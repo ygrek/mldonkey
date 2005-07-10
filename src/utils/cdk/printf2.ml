@@ -49,7 +49,7 @@ let format_string format s =
     try parse_format false 1 with Failure _ -> bad_format format 0 in
   if String.length s < p then begin
     let res = String.make p ' ' in
-    if neg 
+    if neg
     then String.blit s 0 res 0 (String.length s)
     else String.blit s 0 res (p - String.length s) (String.length s);
     res
@@ -91,7 +91,7 @@ let extract_format fmt start stop widths =
    rely on the fact that we'll get a "nul" character if we access
    one past the end of the string.  These "nul" characters are then
    caught by the [_ -> bad_format] clauses below.
-   Don't do this at home, kids. *) 
+   Don't do this at home, kids. *)
 
 let scan_format fmt pos cont_s cont_a cont_t =
   let rec scan_flags widths i =
@@ -163,7 +163,7 @@ let scan_format fmt pos cont_s cont_a cont_t =
     | _ ->
         bad_format fmt pos
   in scan_flags [] (pos + 1)
-  
+
 let cprintf kont fmt =
   let fmt = (Obj.magic fmt : string) in
   let len = String.length fmt in
@@ -222,7 +222,7 @@ let _ =
             ignore (Fifo.take lprintf_fifo)
           else
             incr lprintf_size;
-          Fifo.put lprintf_fifo s 
+          Fifo.put lprintf_fifo s
   )
 
 let detach () =

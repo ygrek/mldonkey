@@ -277,23 +277,24 @@ let _ =
                 if not job.error then begin
                     let ip = 
                       let list = Array.to_list job.entries in
-                      get_non_local_ip list       
+                      get_non_local_ip list
                     in
 (*        lprintf "Ip found for %s: %s\n" job.name (to_string ip);  *)
                     Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin
-                    lprintf "Error: %s: address not found\n" job.name;
+                    lprintf "[NS]: lookup error: %s: address not found\n" job.name;
+                    raise Not_found
                   end
               end else raise Exit
       done
   )
-  
-  
+
+
 type addr =
   AddrIp of t
 | AddrName of string
-  
+
 let string_of_addr ip =
   match ip with
     AddrIp ip -> to_string ip

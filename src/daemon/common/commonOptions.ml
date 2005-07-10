@@ -33,25 +33,25 @@ let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 let hidden_dir_prefix =
   if Autoconf.system = "windows" then "" else "."
 
-let config_dir_basename = hidden_dir_prefix ^ "mldonkey" 
-  
+let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
+
 let config_dir = Filename.concat home_dir config_dir_basename
-  
+
 let installer_ini = create_options_file (Filename.concat config_dir
       "installer.ini")
-  
+
 let installer_section = file_section installer_ini [] ""
-  
-let mldonkey_directory = 
-  define_option installer_section ["mldonkey_directory"] 
+
+let mldonkey_directory =
+  define_option installer_section ["mldonkey_directory"]
     "The directory where mldonkey's option files are" string_option "."
 
 let _ =
   (try Options.load installer_ini with _ -> ())
-  
-let (file_basedir, home_basedir) = 
+
+let (file_basedir, home_basedir) =
   try
-    if (String2.starts_with 
+    if (String2.starts_with
           (Filename.basename Sys.argv.(0))  "mlgui")
     then raise Exit;
     let chroot_dir = Sys.getenv "MLDONKEY_CHROOT" in
@@ -59,14 +59,14 @@ let (file_basedir, home_basedir) =
       Unix.chdir chroot_dir;
       let new_passwd = Filename.concat chroot_dir "/etc/passwd" in
       if not (Sys.file_exists new_passwd) then begin
-          lprintf "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option\n"
+          lprintf_nl "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option"
         end;
       MlUnix.chroot chroot_dir;
-      lprintf "mldonkey is now running in %s\n"  chroot_dir;
+      lprintf_nl "mldonkey is now running in %s"  chroot_dir;
         ".", "."
-        
+
     with e ->
-        lprintf "Exception %s trying to chroot %s\n"
+        lprintf_nl "Exception %s trying to chroot %s"
           (Printexc2.to_string e) chroot_dir;
         exit 2
   with _ ->
@@ -82,7 +82,7 @@ let _ =
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
-     lprintf "Exception %s to create dir %s\n"
+     lprintf_nl "Exception %s to create dir %s"
        (Printexc2.to_string e) file_basedir;
      exit 2);
   Unix2.can_write_to_directory file_basedir;
@@ -90,16 +90,16 @@ let _ =
   if (String2.starts_with (Filename.basename Sys.argv.(0))  "mlnet")
     then if Sys.file_exists "mlnet.pid"
       then begin
-        lprintf "\n\n\nPID file mlnet.pid exists in %s\n"
+        lprintf_nl "\n\n\nPID file mlnet.pid exists in %s"
         file_basedir;
-        lprintf "This means another MLDonkey process could still be working\n";
-        lprintf "with this directory. Please shut it down before starting\n";
-        lprintf "a new instance here. If you are sure no other process uses\n";
-        lprintf "this directory delete mlnet.pid and restart the core.\n";
+        lprintf_nl "This means another MLDonkey process could still be working";
+        lprintf_nl "with this directory. Please shut it down before starting";
+        lprintf_nl "a new instance here. If you are sure no other process uses";
+        lprintf_nl "this directory delete mlnet.pid and restart the core.";
         exit 2
       end;
 
-  lprintf "The .ini-files are saved in %s\n" file_basedir;
+  lprintf_nl "The .ini-files are saved in %s" file_basedir;
 
   let filename =
         try
@@ -148,7 +148,7 @@ let servers_section = file_section servers_ini [] ""
 let users_section = file_section users_ini ["Users"] "User accounts on the core"
 
 let empty_password = Md4.string ""
-  
+
 let users = define_option users_section ["users"]
   "The users that are defined on this core. The default user is
 called 'admin', and uses an empty password. To create new users,
@@ -178,7 +178,7 @@ let addr_option  =  define_option_class "Addr"
       addr, int_of_string port)
       (fun (addr, port) -> string_to_value (Printf.sprintf "%s:%d" addr port))
 
-let _ = 
+let _ =
   Options.set_string_wrappers ip_list_option
     (fun list ->
       List.fold_left (fun s ip ->
@@ -206,8 +206,8 @@ let _ = Random.self_init ()
 let random_letter () =
   char_of_int (97 + Random.int 26)
 
-let new_name () = 
-  (Printf.sprintf "%c%c%c%c%c%c" 
+let new_name () =
+  (Printf.sprintf "%c%c%c%c%c%c"
     (random_letter ()) (random_letter ()) (random_letter ())
     (random_letter ()) (random_letter ()) (random_letter ()))
 
@@ -275,18 +275,18 @@ or for editing the ini-file: allowed_ips = [ \"127.0.0.1\"; \"192.168.1.2\";]
 wildcard=255 ie: use 192.168.0.255 for 192.168.0.*"
     ip_list_option [Ip.localhost]
 
-let gui_port = 
+let gui_port =
   define_option current_section ["gui_port"]
     ~desc: "The port to connect the GUI"
   "port for Graphical Interfaces" int_option 4001
 
-let gift_port = 
+let gift_port =
   define_option current_section ["gift_port"]
     ~desc: "The port to connect for GiFT GUIs."
   "port for GiFT Graphical Interfaces interaction. It was 1213, but the default is
 now 0 for disabled, because it does not check for a password." int_option 0
 
-let http_port = 
+let http_port =
   define_option current_section ["http_port"]
     ~desc: "The port to connect via HTTP"
   "The port used to connect to your client with a WEB browser" int_option 4080
@@ -309,7 +309,7 @@ let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
 
 let print_all_sources =
   define_expert_option current_section ["print_all_sources"] "Should *all* sources for a file be shown on HTML/telnet vd <num>" bool_option true
-    
+
 let improved_telnet =
   define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
 
@@ -338,7 +338,7 @@ let max_hard_upload_rate = define_option current_section ["max_hard_upload_rate"
   "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 7
-  
+
 let max_hard_download_rate = define_option current_section ["max_hard_download_rate"]
   "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
@@ -358,7 +358,7 @@ let dynamic_slots = define_option current_section ["dynamic_slots"]
     "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 
 let max_connections_per_second = define_option current_section
-    ["max_connections_per_second"] 
+    ["max_connections_per_second"]
   "Maximal number of connections that can be opened per second"
   int_option 5
 
@@ -373,7 +373,7 @@ let nolimit_ips = define_option current_section ["nolimit_ips"]
   "list of IP addresses allowed to connect to the core with no limit on
 upload/download and upload slots.  List separated by spaces, wildcard=255
 ie: use 192.168.0.255 for 192.168.0.* "
-    ip_list_option [Ip.localhost]  
+    ip_list_option [Ip.localhost]
 
 let copy_read_buffer = define_option current_section
     ["copy_read_buffer"]
@@ -550,7 +550,7 @@ let html_mods_vd_gfx_tag_title = define_expert_option current_section
     ["html_mods_vd_gfx_tag_title"] "Tag graph title" string_option "MLNet traffic"
 
 let html_mods_vd_gfx_tag_title_x_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_title_x_pos"] "Tag graph title x pos in vd output 
+    ["html_mods_vd_gfx_tag_title_x_pos"] "Tag graph title x pos in vd output
     " int_option 4
 
 let html_mods_vd_gfx_tag_title_y_pos = define_expert_option current_section
@@ -606,7 +606,7 @@ let html_mods_bw_refresh_delay = define_option current_section
     ["html_mods_bw_refresh_delay"] "bw_stats refresh delay (seconds)" int_option 11
 
 let html_mods_theme = define_option current_section
-    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory, leave blank to use internal theme" 
+    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory, leave blank to use internal theme"
     string_option ""
 
 let use_html_mods o =
@@ -617,7 +617,7 @@ let html_checkbox_vd_file_list = define_expert_option current_section
 
 let html_checkbox_search_file_list = define_expert_option current_section
     ["html_checkbox_search_file_list"] "Whether to use checkboxes in the WEB interface for search result list" bool_option false
-  
+
 let html_use_gzip = define_expert_option current_section
     ["html_use_gzip"] "Use gzip compression on web pages" bool_option false
 
@@ -663,11 +663,11 @@ let web_infos = define_option current_section
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   [
-    ("server.met", 24, 
+    ("server.met", 24,
       "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
     ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
-    ("guarding.p2p", 96, 
+    ("guarding.p2p", 96,
       "http://www.bluetack.co.uk/config/antip2p.txt");
   ]
 
@@ -682,21 +682,21 @@ let ip_blocking = define_expert_option current_section ["ip_blocking"]
 let _ =
   option_hook ip_blocking (fun _ ->
     try
-      Ip_set.bl := if !!ip_blocking <> "" then 
+      Ip_set.bl := if !!ip_blocking <> "" then
       	             Ip_set.load !!ip_blocking
         	   else Ip_set.bl_empty
     with _ -> ()
   )
-  
+
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
     14 bytes sometimes, so modify to take that into account)"
     int_option 40
-  
+
 let mtu_packet_size = define_expert_option current_section ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
-  
+
 let packet_frame_size = define_expert_option current_section 
     ["packet_frame_size"]
   "The size of the frame packet on your network (on my cable link, it is 250)"
@@ -716,7 +716,7 @@ let network_update_url =
   define_expert_option current_section ["network_update_url"]
     "URL where mldonkey can download update information on the network"
     string_option ""
-  
+
 let mlnet_redirector = define_expert_option current_section ["redirector"]
     "IP:port of the network redirector"
     addr_option ("129.104.11.42", 3999)
@@ -728,13 +728,13 @@ let _ =
       if ip = "128.93.52.5" then 
         mlnet_redirector =:=  ("129.104.11.42", 3999)
   )
-  
+
 let http_proxy_server = define_option current_section ["http_proxy_server"]
     "Direct HTTP queries to HTTP proxy" string_option ""
 let http_proxy_port = define_option current_section ["http_proxy_port"]
     "Port of HTTP proxy" int_option 8080
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
-    "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)" 
+    "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
     bool_option false
 
 
@@ -745,14 +745,14 @@ let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
 (*                         Mail section                                  *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let current_section = mail_section
 
-let smtp_server = define_option current_section ["smtp_server"] 
+let smtp_server = define_option current_section ["smtp_server"]
   "The mail server you want to use (must be SMTP). Use hostname or IP address"
     string_option "127.0.0.1"
 
-let smtp_port = define_option current_section ["smtp_port"] 
+let smtp_port = define_option current_section ["smtp_port"]
   "The port to use on the mail server (default 25)"
   int_option 25
 
@@ -763,7 +763,7 @@ let mail = define_option current_section ["mail"]
 let add_mail_brackets = define_option current_section ["add_mail_brackets"]
   "Does your mail-server need <...> around addresses"
   bool_option false
-  
+
 let filename_in_subject = define_option current_section ["filename_in_subject"]
     "Send filename in mail subject" bool_option true
 
@@ -781,7 +781,7 @@ let url_in_mail = define_option current_section ["url_in_mail"]
 (*************************************************************************)
 
 let current_section = download_section
-    
+
 let auto_commit = define_option current_section
     ["auto_commit"]
   "Set to false if you don't want mldonkey to automatically put completed files in incoming directory"
@@ -793,7 +793,7 @@ let commit_unverified_files = define_option current_section
   "Set to true if you want MLdonkey to commit files without verifying them completely"
     bool_option false
 *)
-  
+
 let emulate_sparsefiles = define_expert_option current_section
     ["emulate_sparsefiles"]
   "Set to true if you want MLdonkey to emulate sparse files on your disk.
@@ -801,11 +801,11 @@ let emulate_sparsefiles = define_expert_option current_section
   Works only on Edonkey plugin. EXPERIMENTAL."
     bool_option false
 
-let max_concurrent_downloads = define_option current_section 
-    ["max_concurrent_downloads"] 
+let max_concurrent_downloads = define_option current_section
+    ["max_concurrent_downloads"]
   "The maximal number of files in Downloading state (other ones are Queued)"
     int_option 60
-  
+
   (*
 let delete_original = define_option current_section ["delete_original"]
   "Should MLdonkey delete the file downloaded when splitting has been succesful"
@@ -816,11 +816,11 @@ let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
 should be interpreted as downloaded during a recovery"
     int64_option (Int64.of_int 16)
-    
-let file_completed_cmd = define_option current_section 
+
+let file_completed_cmd = define_option current_section
     ["file_completed_cmd"] "A command that is called when a file is completely
     downloaded. Arguments are: <file_name on disk> <md4> <size>"
-    string_option "" 
+    string_option ""
 
 let file_started_cmd = define_option current_section
     ["file_started_cmd"]
@@ -904,7 +904,7 @@ let mldonkey_bin = define_expert_option current_section ["mldonkey_bin"]
     string_option bin_dir
 
 let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
-    "Name of GUI to start" string_option 
+    "Name of GUI to start" string_option
     (Filename.concat bin_dir "mlgui")
 
 
@@ -924,7 +924,7 @@ let allowed_commands = define_option current_section
 commands should short, so that the core is not blocked more than necessary."
     (list_option (tuple2_option (string_option, string_option)))
   [ "df", "df";
-    "ls", "ls incoming"; 
+    "ls", "ls incoming";
   ]
 
 let allow_any_command = define_option current_section
@@ -932,7 +932,7 @@ let allow_any_command = define_option current_section
   "Allow you to use any command with ! in the interface instead of only the
 ones in allowed_commands"
     bool_option false
-  
+
 let allow_browse_share = define_option current_section ["allow_browse_share"]
   "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 2
 
@@ -952,17 +952,17 @@ let current_section = mlchat_section
 
 (** {2 Chat} *)
 
-let chat_app_port = 
+let chat_app_port =
   define_expert_option current_section ["chat_app_port"]
     "port of the external chat application"
     int_option 5036
 
-let chat_app_host = 
+let chat_app_host =
   define_expert_option current_section ["chat_app_host"]
     "hostname of the external chat application"
     string_option "localhost"
 
-let chat_port = 
+let chat_port =
   define_expert_option current_section ["chat_port"]
     "port used by the external chat application to use the core as a proxy"
     int_option 4002
@@ -996,23 +996,23 @@ let save_results = define_option current_section ["save_results"]
     "(experimental)" int_option 0
 
 let use_result_history = define_expert_option current_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option false
-    
-let filters = define_option current_section ["filters"] 
+
+let filters = define_option current_section ["filters"]
     "filters on replies (replies will be kept)."
     string_list_option ""
-  
+
 let buffer_writes = define_option current_section ["buffer_writes"]
     "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     bool_option false
 
 let buffer_writes_delay = define_expert_option current_section ["buffer_writes_delay"]
-    "Buffer writes and flush after buffer_writes_delay seconds (experimental)" 
+    "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     float_option 30.
 
 let buffer_writes_threshold = define_expert_option current_section ["buffer_writes_threshold"]
-  "Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)" 
+  "Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)"
     int_option 1024
-  
+
 let emule_mods_count = define_option current_section ["emule_mods_count"]
     "build statistics about eMule mods"
     bool_option false
@@ -1022,7 +1022,7 @@ let emule_mods_showall = define_option current_section ["emule_mods_showall"]
     bool_option false
 
   (*
-let password = define_option current_section ["password"] 
+let password = define_option current_section ["password"]
   "The password to access your client from the GUI (setting it disables
   the command-line client)" string_option ""
 *)
@@ -1084,7 +1084,7 @@ let update_gui_delay = define_expert_option current_section ["update_gui_delay"]
 let http_realm =
   define_expert_option current_section ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
 
-let use_html_frames = define_expert_option current_section ["use_html_frames"] 
+let use_html_frames = define_expert_option current_section ["use_html_frames"]
     "This option controls whether the WEB interface should use frames or not" bool_option true
 
 let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 42
@@ -1142,7 +1142,7 @@ let web_header = define_expert_option current_section
     ["web_header"] "The header displayed in the WEB interface"
     string_option
     "
-  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
+  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a>
 WEB server</h2>
   <br>
 </table>
@@ -1196,18 +1196,18 @@ let save_options_delay =
   float_option 900.0
 
 let server_connection_timeout = define_expert_option current_section
-  ["server_connection_timeout"] 
+  ["server_connection_timeout"]
   "timeout when connecting to a server" float_option 30.
 
 let download_sample_rate = define_expert_option current_section ["download_sample_rate"]
   "The delay between one glance at a file and another" float_option 1.
- 
+
 let download_sample_size = define_expert_option current_section ["download_sample_size"]
     "How many samples go into an estimate of transfer rates" int_option 10
 
 let calendar = define_expert_option current_section ["calendar"]
   "This option defines a set of date at which some commands have to be executed.
-  For each tuple, the first argument is a list of week days (from 0 to 6), 
+  For each tuple, the first argument is a list of week days (from 0 to 6),
   the second is a list of hours (from 0 to 23) and the last one a command to
   execute. Can be used with 'pause all' and 'resume all' for example to
   resume and pause downloads automatically for the night."
@@ -1220,42 +1220,35 @@ let calendar = define_expert_option current_section ["calendar"]
     "The time an ip address can be kept in the cache"
     int_option 3600 *)
   
-let compaction_overhead = define_expert_option current_section 
+let compaction_overhead = define_expert_option current_section
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 25
-      
+
 let max_displayed_results = define_expert_option current_section
     ["max_displayed_results"]
     "Maximal number of results displayed for a search"
     int_option 1000
-  
+
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
     int_option 4
 
 
-  
-  
-  
-  
-  
-  
-  
 (*************************************************************************)
 (*                                                                       *)
 (*                         Debug section                                  *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let current_section = debug_section
 
-let allow_local_network = 
+let allow_local_network =
   define_expert_option current_section ["allow_local_network"]
-  "If this option is set, IP addresses on the local network are allowed 
+  "If this option is set, IP addresses on the local network are allowed
 (only for debugging)" bool_option false
 
-let log_size = 
+let log_size =
   define_expert_option current_section ["log_size"]
     "size of log in number of records" int_option 300
 
@@ -1319,7 +1312,7 @@ let client_ip sock =
     if !last_high_id <> Ip.null then begin
         if !last_high_id <> Ip.localhost && !!set_client_ip <> !last_high_id then
           set_client_ip =:= !last_high_id;
-        !last_high_id 
+        !last_high_id
       end
     else
       match sock with
@@ -1353,12 +1346,12 @@ let _ =
   | "mlslsk" -> enable_soulseek =:= true
   | "mlbt" -> enable_bittorrent =:= true
   | "mlnap" -> enable_opennap =:= true
-  | _ -> 
+  | _ ->
 (* default *)
       enable_donkey =:= true;
       enable_overnet =:= true;
       enable_bittorrent =:= true
-  
+
 let win_message =
 "\n\nNEVER close this windows with the close button
 on the top right corner of this window!
@@ -1371,7 +1364,7 @@ let _ =
       let len = String.length !!global_login in
       let prefix = "mldonkey_" in
       let prefix_len = String.length prefix in
-      if len > prefix_len && 
+      if len > prefix_len &&
         String.sub !!global_login 0 prefix_len = prefix then
         global_login =:= new_name ()
   );
@@ -1412,9 +1405,9 @@ let _ =
             web_infos =:= List2.remove remove !!web_infos
       )
       [
-        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
+        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");
         ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
-      ]  
+      ]
   );
   (*
   option_hook shared_extensions (fun _ ->
@@ -1436,7 +1429,7 @@ let _ =
       TcpBufferedSocket.packet_frame_size := !!packet_frame_size
   );
   option_hook network_update_url (fun _ ->
-      if !!network_update_url = 
+      if !!network_update_url =
         "http://savannah.nongnu.org/download/mldonkey/network/" then
         network_update_url =:= "");
   option_hook minor_heap_size (fun _ ->
@@ -1507,7 +1500,7 @@ let set_all v =
   verbose_unexpected_messages := v;
   verbose_hidden_errors := v
 
-let _ = 
+let _ =
   option_hook verbosity (fun _ ->
       BasicSocket.verbose_bandwidth := 0;
       verbose_sources := 0;
@@ -1541,14 +1534,14 @@ let _ =
           | "redir" -> verbose_redirector := true
           | "unexp" -> verbose_unexpected_messages := true
           | "hid" -> verbose_hidden_errors := true
-              
+
           | "all" ->
-              
+
               verbose_sources := 1;
               set_all true;
-              
+
           | _ -> lprintf_nl "Unknown verbosity tag: %s" s
-      
+
       ) (String2.split_simplify !!verbosity ' ')
   )
 
@@ -1563,7 +1556,7 @@ let _ =
 
 let _ =
   option_hook messages_filter (fun _ ->
-      is_not_spam := if !!messages_filter <> "" then 
+      is_not_spam := if !!messages_filter <> "" then
         let r = Str.regexp_case_fold !!messages_filter in
         (fun s -> try
               ignore (Str.search_forward r s 0);
@@ -1580,7 +1573,7 @@ let http_proxy_tcp_update _ =
 
 let _ =
   let proxy_update _ =
-    http_proxy := 
+    http_proxy :=
     (match !!http_proxy_server with
         "" -> None
       | _  -> Some (!!http_proxy_server, !!http_proxy_port));
@@ -1590,7 +1583,7 @@ let _ =
   option_hook http_proxy_port proxy_update;
   option_hook http_proxy_tcp http_proxy_tcp_update
 
-let _ = 
+let _ =
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
 
@@ -1627,7 +1620,7 @@ let rec update_options () =
           "http://varchars.com/rss/suprnova-movies.rss");
       ];
       update 1
-      
+
   | 1 ->
       (* 5 ms is a good unit, for measuring latency between clients. *)
       loop_delay =:= 5;

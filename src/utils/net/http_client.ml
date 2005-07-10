@@ -28,7 +28,7 @@ open Unix
 open Url
 open TcpBufferedSocket
 
-  
+
 type http_request =
   GET
 | POST
@@ -38,12 +38,12 @@ type http_request =
 | TRACE
 
 let verbose = ref false
-  
+
   (*
 | OPTIONS of url option (* None = '*' *)
 | CONNECT of string * int
 *)
-  
+
 type request = {
     req_headers : ( string * string ) list;
     req_user_agent : string;
@@ -92,14 +92,14 @@ let make_full_request r =
     url);
   Printf.bprintf res " HTTP/1.0\r\nHost: %s%s\r\n" url.server (if url.port != 80 then Printf.sprintf ":%d" url.port else "");
   List.iter (fun (a,b) ->
-      Printf.bprintf res "%s: %s\r\n" a b      
+      Printf.bprintf res "%s: %s\r\n" a b
   ) r.req_headers;
   Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
   Printf.bprintf res "Accept: %s\r\n" r.req_accept;
   Printf.bprintf res "Connection: close\r\n";
  (match r.req_referer with None -> ()
     | Some url -> 
-        Printf.bprintf res "Referer: %s\r\n"  (Url.to_string_no_args url));
+        Printf.bprintf res "Referer: %s\r\n" (Url.to_string_no_args url));
   if is_real_post then begin
       let post = Buffer.create 80 in
       let rec make_post = function
@@ -155,14 +155,14 @@ let parse_header headers_handler sock header =
         headers_handler sock ans_code headers;
       with _ -> 
           TcpBufferedSocket.close sock (Closed_for_error "bad header")
-  
+
 let read_header header_handler sock nread =  
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
   (*
-  lprintf "received [%s]" (String.escaped 
+  lprintf "received [%s]" (String.escaped
       (String.sub b.buf new_pos nread));
   *)
   let rec iter i =
@@ -174,7 +174,7 @@ let read_header header_handler sock nread =
           let len = i + 2 - b.pos in
           let header = String.sub b.buf b.pos len in
           buf_used b len;
-          header_handler sock header        
+          header_handler sock header
         else
         if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
           let len = i + 3 - b.pos in
@@ -197,7 +197,7 @@ let http_reply_handler nr headers_handler sock nread =
   
 let get_page r content_handler f =
   let rec get_url level r =
-    
+
     let url = r.req_url in
 (*
     let args = ref [] in
@@ -205,7 +205,7 @@ let get_page r content_handler f =
     let ispost = ref false in
     let timeout = ref 300.0 in
     let proxy = ref None in
-    List.iter (function   
+    List.iter (function
       | Args l -> args := l@ !args
       | Headers l -> headers := l @ !headers;
       | Post -> ispost := true
@@ -230,7 +230,7 @@ let get_page r content_handler f =
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "http client connecting"
             (Ip.to_inet_addr ip)
-          port (fun _ e -> 
+          port (fun _ e ->
               ()
 (*              lprintf "Event %s\n"
                 (match e with
@@ -253,14 +253,14 @@ let get_page r content_handler f =
         if !verbose then 
           lprintf "Http_client.get_page: %s\n" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
-        TcpBufferedSocket.set_reader sock (http_reply_handler nread 
+        TcpBufferedSocket.set_reader sock (http_reply_handler nread
             (default_headers_handler url level));
         set_rtimeout sock 5.;
         TcpBufferedSocket.set_closer sock (fun _ _ -> ()
 (*        lprintf "Connection closed nread:%b\n" !nread; *)
         )
     )
-  
+
   and default_headers_handler old_url level sock ans_code headers =
     let print_headers () =
       List.iter
@@ -280,7 +280,7 @@ let get_page r content_handler f =
               (* lprintf "default_headers_handler closer\n"; *)
               f ()
             );
-        
+
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
@@ -294,8 +294,8 @@ let get_page r content_handler f =
         set_reader sock content_handler;
         let buf = TcpBufferedSocket.buf sock in
         if buf.len > 0 then
-          content_handler sock buf.len 
-    
+          content_handler sock buf.len
+
     | 301 | 302 | 304 ->
         if !verbose then lprintf "Http_client %d: Redirect\n" ans_code;
         if level < 10 then
@@ -323,15 +323,15 @@ let get_page r content_handler f =
             with e ->
                 lprintf "Http_client: error understanding redirect response %d\n" ans_code;
                 print_headers ()
-                
+
           end
         else lprintf "Http_client: more than 10 redirections, aborting."
-          
+
     | 404 ->
         lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
-          
+
     | _ ->
         lprintf "Http_client: bad reply %d for: %s\n"
           ans_code (Url.to_string_no_args r.req_url);
@@ -340,8 +340,8 @@ let get_page r content_handler f =
 
   in get_url 0 r
 
-  
-let wget r f = 
+
+let wget r f =
   
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0 in
@@ -375,15 +375,15 @@ let wget r f =
       close_out oc;
       try
         (f filename : unit);
-        Sys.remove filename 
+        Sys.remove filename
       with  e ->  lprintf
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
-          Sys.remove filename 
+          Sys.remove filename
   )
   
-let whead r f = 
-  
+let whead r f =
+
   get_page r
     (fun maxlen headers ->
       lprintf "Http_client.headers...\n";
@@ -392,8 +392,8 @@ let whead r f =
         close sock Closed_by_user
     )
   (fun _ ->  ())
-  
-let wget_string r f progress = 
+
+let wget_string r f progress =
     
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0 in
@@ -419,8 +419,8 @@ let wget_string r f progress =
       f (Buffer.contents file_buf)
   )
 
-  
-let split_header header =     
+
+let split_header header =
   for i = 0 to String.length header - 1 do
     if header.[i] = '\r' then header.[i] <- '\n';
   done;
@@ -446,4 +446,3 @@ let cut_headers headers =
   with e ->
       lprintf "Exception in cut_headers: %s\n" (Printexc2.to_string e);
       raise e
-      
