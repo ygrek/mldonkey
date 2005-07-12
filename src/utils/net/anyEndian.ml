@@ -77,7 +77,7 @@ let buf_sha1 buf s = Buffer.add_string buf (Sha1.direct_to_string s)
 let get_sha1 s pos =
   try Sha1.direct_of_string (String.sub s pos 20)  
   with e ->
-      lprintf "exception in get_sha1 %d s=%s\n" pos (String.escaped s); 
+(*      lprintf "exception in get_sha1 %d s=%s\n" pos (String.escaped s); *)
       raise e
       
 let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
@@ -85,7 +85,7 @@ let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
 let get_md4 s pos =
   try Md4.direct_of_string (String.sub s pos 16)  
   with e ->
-    lprintf "exception in get_md4 %d s=%s\n" pos (String.escaped s); 
+(*    lprintf "exception in get_md4 %d s=%s\n" pos (String.escaped s); *)
     raise e
 
       

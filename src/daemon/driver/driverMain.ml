@@ -583,7 +583,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGHUP";
+      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP";
          BasicSocket.close_all ();
 	 Unix32.close_all ();
          CommonGlobals.print_localtime ();));
