@@ -269,6 +269,7 @@ class box columns friend_tab =
       | Col_client_rating -> compare f1.gclient_rating f2.gclient_rating
       | Col_client_connect_time -> compare f1.gclient_connect_time f2.gclient_connect_time
       | Col_client_software -> compare f1.gclient_software f2.gclient_software
+      | Col_client_release -> compare f1.gclient_release f2.gclient_release
       | Col_client_emulemod -> compare f1.gclient_emulemod f2.gclient_emulemod
       | Col_client_downloaded -> compare f1.gclient_downloaded f2.gclient_downloaded
       | Col_client_uploaded -> compare f1.gclient_uploaded f2.gclient_uploaded
@@ -300,6 +301,7 @@ class box columns friend_tab =
       | Col_client_rating -> string_of_int f.gclient_rating
       | Col_client_connect_time -> Gui_graph.time_to_string (f.gclient_connect_time)
       | Col_client_software -> f.gclient_software
+      | Col_client_release -> f.gclient_release
       | Col_client_emulemod -> f.gclient_emulemod
       | Col_client_downloaded -> Gui_misc.size_of_int64 f.gclient_downloaded
       | Col_client_uploaded -> Gui_misc.size_of_int64 f.gclient_uploaded
@@ -428,6 +430,7 @@ class box_friends box_files friend_tab =
         client_chat_port = 0;
         client_connect_time = c.gclient_connect_time;
         client_software = c.gclient_software;
+        client_release = c.gclient_release;
         client_emulemod = c.gclient_emulemod;
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
@@ -448,6 +451,7 @@ class box_friends box_files friend_tab =
         gclient_rating = c.client_rating;
         gclient_connect_time = (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;
+        gclient_release = c.client_release;
         gclient_emulemod = c.client_emulemod;
         gclient_downloaded = c.client_downloaded;
         gclient_uploaded = c.client_uploaded;
@@ -484,6 +488,7 @@ class box_friends box_files friend_tab =
           f.gclient_rating <- f_new.client_rating;
           f.gclient_connect_time <-  (BasicSocket.last_time () - f_new.client_connect_time);
           f.gclient_software <- f_new.client_software;
+          f.gclient_release <- f_new.client_release;
           f.gclient_emulemod <- f_new.client_emulemod;
           f.gclient_downloaded <- f_new.client_downloaded;
           f.gclient_uploaded <- f_new.client_uploaded;
@@ -631,6 +636,7 @@ class box_list friend_tab =
         client_chat_port = 0;
         client_connect_time = c.gclient_connect_time;
         client_software = c.gclient_software;
+        client_release = c.gclient_release;
         client_emulemod = c.gclient_emulemod;
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
@@ -651,6 +657,7 @@ class box_list friend_tab =
         gclient_rating = c.client_rating;
         gclient_connect_time =  (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;
+        gclient_release = c.client_release;
         gclient_emulemod = c.client_emulemod;
         gclient_downloaded = c.client_downloaded;
         gclient_uploaded = c.client_uploaded;

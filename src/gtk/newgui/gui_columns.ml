@@ -139,6 +139,7 @@ type client_column =
 | Col_client_rating
 | Col_client_connect_time
 | Col_client_software
+| Col_client_release
 | Col_client_emulemod
 | Col_client_downloaded
 | Col_client_uploaded
@@ -154,6 +155,7 @@ let client_column_strings = [
     Col_client_rating,  M.c_client_rating, 5 ;
     Col_client_connect_time,  M.c_client_connect_time, 6 ;
     Col_client_software,  M.c_client_software, 7 ;
+    Col_client_release,  M.c_client_release, 7 ;
     Col_client_emulemod,  M.c_client_emulemod, 8 ;
     Col_client_downloaded,  M.c_client_downloaded, 9 ;
     Col_client_uploaded,  M.c_client_uploaded, 10 ;

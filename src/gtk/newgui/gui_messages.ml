@@ -1394,6 +1394,9 @@ let c_client_rating =
 let c_client_software = 
   _s 
   "Brand"
+let c_client_release = 
+  _s 
+  "Rel"
 let c_client_emulemod = 
   _s 
   "Mod"
