@@ -450,9 +450,11 @@ let stats_by_brand_mod = Array.init brand_mod_count (fun _ ->
   { dummy_mod_stats with brand_mod_seen = 0 }
   )
 
+let start_session = ref start_time
+
 let count_seen c =
   stats_all.brand_seen <- stats_all.brand_seen + 1;
-  if !!emule_mods_count && c.client_mod_brand != Brand_mod_unknown then mod_stats_all.brand_mod_seen <- mod_stats_all.brand_mod_seen + 1;
+  if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_seen <- mod_stats_all.brand_mod_seen + 1;
   (match c.client_brand with
       Brand_unknown -> () (* be careful, raising an exception here will
 abort all other operations after that point for this client...*)
@@ -474,7 +476,7 @@ abort all other operations after that point for this client...*)
 
 let count_banned c =
   stats_all.brand_banned <- stats_all.brand_banned + 1;
-  if !!emule_mods_count && c.client_mod_brand != Brand_mod_unknown then mod_stats_all.brand_mod_banned <- mod_stats_all.brand_mod_banned + 1;
+  if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_banned <- mod_stats_all.brand_mod_banned + 1;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->
@@ -494,7 +496,7 @@ let count_banned c =
 
 let count_filerequest c =
   stats_all.brand_filerequest <- stats_all.brand_filerequest + 1;
-  if !!emule_mods_count && c.client_mod_brand != Brand_mod_unknown then mod_stats_all.brand_mod_filerequest <- mod_stats_all.brand_mod_filerequest + 1;
+  if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_filerequest <- mod_stats_all.brand_mod_filerequest + 1;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->
@@ -516,7 +518,7 @@ let count_download c f v =
   download_counter := Int64.add !download_counter v;
   c.client_downloaded <- Int64.add c.client_downloaded v;
   stats_all.brand_download <- Int64.add stats_all.brand_download v;
-  if !!emule_mods_count && c.client_mod_brand != Brand_mod_unknown then mod_stats_all.brand_mod_download <- Int64.add mod_stats_all.brand_mod_download v;
+  if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_download <- Int64.add mod_stats_all.brand_mod_download v;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->
@@ -538,7 +540,7 @@ let count_upload c f v =
   upload_counter := Int64.add !upload_counter v;
   c.client_uploaded <- Int64.add c.client_uploaded v;
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
-  if !!emule_mods_count && c.client_mod_brand != Brand_mod_unknown then mod_stats_all.brand_mod_upload <- Int64.add mod_stats_all.brand_mod_upload v;
+  if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_upload <- Int64.add mod_stats_all.brand_mod_upload v;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->
@@ -568,14 +570,14 @@ let print_stats buf =
   let one_minute = 60 in
   let one_hour = 3600 in
   let one_day = 86400 in
-  let uptime = last_time () - start_time in
-  let days = uptime / one_day in
-  let rem = uptime - days * one_day in
+  let session_time = last_time () - !start_session in
+  let days = session_time / one_day in
+  let rem = session_time - days * one_day in
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
     Printf.bprintf buf "Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
-        days hours mins uptime;
+        days hours mins session_time;
 
 
   if stats_all.brand_seen = 0 then
@@ -607,7 +609,7 @@ let print_stats buf =
   else begin
       Printf.bprintf buf "\n            Total downloads: %18s (%5.1f KB/s)\n"
       (Int64.to_string stats_all.brand_download)
-      ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0);
+      ((Int64.to_float stats_all.brand_download) /. (float_of_int session_time) /. 1024.0);
     for i=1 to brand_count-1 do
       Printf.bprintf buf "%27s: %18s (%5.1f %%)\n"
 	(brand_to_string (brand_of_int i))
@@ -621,7 +623,7 @@ let print_stats buf =
   else begin
       Printf.bprintf buf "\n              Total uploads: %18s (%5.1f KB/s)\n"
       (Int64.to_string stats_all.brand_upload)
-      ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0);
+      ((Int64.to_float stats_all.brand_upload) /. (float_of_int session_time) /. 1024.0);
     for i=1 to brand_count-1 do
       Printf.bprintf buf "%27s: %18s (%5.1f %%)\n"
 	(brand_to_string (brand_of_int i))
@@ -670,9 +672,10 @@ let new_print_stats buf o =
   let one_minute = 60 in
   let one_hour = 3600 in
   let one_day = 86400 in
+  let session_time = last_time () - !start_session in
   let uptime = last_time () - start_time in
-  let days = uptime / one_day in
-  let rem = maxi 1 (uptime - days * one_day) in
+  let days = session_time / one_day in
+  let rem = maxi 1 (session_time - days * one_day) in
 
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
@@ -719,7 +722,7 @@ let new_print_stats buf o =
   if use_html_mods o then
     begin
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        days hours mins uptime;
+        days hours mins session_time;
       stats_html_header buf;
 
       let counter = ref 0 in
@@ -782,8 +785,8 @@ let new_print_stats buf o =
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand.(i).brand_upload stats_all.brand_upload)))
 
-            (if !showTotal then ((Int64.to_float sstats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-            else ((Int64.to_float stats_by_brand.(i).brand_upload) /.  (float_of_int uptime) /. 1024.0))
+            (if !showTotal then ((Int64.to_float sstats_all.brand_upload) /. (float_of_int session_time) /. 1024.0)
+            else ((Int64.to_float stats_by_brand.(i).brand_upload) /.  (float_of_int session_time) /. 1024.0))
 
             (size_of_int64 (if !showTotal then sstats_all.brand_download else
                     stats_by_brand.(i).brand_download))
@@ -791,8 +794,8 @@ let new_print_stats buf o =
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand.(i).brand_download stats_all.brand_download)))
 
-            (if !showTotal then ((Int64.to_float sstats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-            else ((Int64.to_float stats_by_brand.(i).brand_download) /.  (float_of_int uptime) /. 1024.0))
+            (if !showTotal then ((Int64.to_float sstats_all.brand_download) /. (float_of_int session_time) /. 1024.0)
+            else ((Int64.to_float stats_by_brand.(i).brand_download) /.  (float_of_int session_time) /. 1024.0))
 
             (if !showTotal then
              (if sstats_all.brand_upload = Int64.zero then 0.0 else
@@ -894,7 +897,7 @@ let new_print_stats buf o =
   else
     begin
       Printf.bprintf buf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
-        days hours mins uptime;
+        days hours mins session_time;
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
 
@@ -911,10 +914,10 @@ let new_print_stats buf o =
             stats_by_brand.(i).brand_seen
               (percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
             ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
-              ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+              ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int session_time) /. 1024.0)
               (percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download)
             ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
-              ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
+              ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int session_time) /. 1024.0)
               (percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload)
             stats_by_brand.(i).brand_banned
               (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
@@ -927,9 +930,9 @@ let new_print_stats buf o =
         "Total"
         sstats_all.brand_seen
         ((Int64.to_float sstats_all.brand_download) /. 1024.0 /. 1024.0)
-          ((Int64.to_float sstats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+          ((Int64.to_float sstats_all.brand_download) /. (float_of_int session_time) /. 1024.0)
         ((Int64.to_float sstats_all.brand_upload) /. 1024.0 /. 1024.0)
-          ((Int64.to_float sstats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+          ((Int64.to_float sstats_all.brand_upload) /. (float_of_int session_time) /. 1024.0)
         sstats_all.brand_banned
         sstats_all.brand_filerequest;
 
@@ -984,9 +987,10 @@ let new_print_mod_stats buf o =
   let one_minute = 60 in
   let one_hour = 3600 in
   let one_day = 86400 in
+  let session_time = last_time () - !start_session in
   let uptime = last_time () - start_time in
-  let days = uptime / one_day in
-  let rem = maxi 1 (uptime - days * one_day) in
+  let days = session_time / one_day in
+  let rem = maxi 1 (session_time - days * one_day) in
 
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
@@ -997,7 +1001,7 @@ let new_print_mod_stats buf o =
   if use_html_mods o then
     begin
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        days hours mins uptime;
+        days hours mins session_time;
       stats_html_header buf;
 
       let counter = ref 0 in
@@ -1060,8 +1064,8 @@ let new_print_mod_stats buf o =
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand_mod.(i).brand_mod_upload mod_stats_all.brand_mod_upload)))
 
-            (if !showTotal then ((Int64.to_float mod_stats_all.brand_mod_upload) /. (float_of_int uptime) /. 1024.0)
-            else ((Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) /.  (float_of_int uptime) /. 1024.0))
+            (if !showTotal then ((Int64.to_float mod_stats_all.brand_mod_upload) /. (float_of_int session_time) /. 1024.0)
+            else ((Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) /.  (float_of_int session_time) /. 1024.0))
 
             (size_of_int64 (if !showTotal then mod_stats_all.brand_mod_download else
                     stats_by_brand_mod.(i).brand_mod_download))
@@ -1069,8 +1073,8 @@ let new_print_mod_stats buf o =
             (max 0.0 (if !showTotal then 100.0 else (percent_of_int64s
             stats_by_brand_mod.(i).brand_mod_download mod_stats_all.brand_mod_download)))
 
-            (if !showTotal then ((Int64.to_float mod_stats_all.brand_mod_download) /. (float_of_int uptime) /. 1024.0)
-            else ((Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /.  (float_of_int uptime) /. 1024.0))
+            (if !showTotal then ((Int64.to_float mod_stats_all.brand_mod_download) /. (float_of_int session_time) /. 1024.0)
+            else ((Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /.  (float_of_int session_time) /. 1024.0))
 
             (if !showTotal then
              (if mod_stats_all.brand_mod_upload = Int64.zero then 0.0 else
@@ -1191,7 +1195,7 @@ let new_print_mod_stats buf o =
   else
     begin
       Printf.bprintf buf "Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
-        days hours mins uptime;
+        days hours mins session_time;
       Printf.bprintf buf "         MOD| seen      |  Downloads       |  Uploads         |  Banned\n";
       Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
       Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"
@@ -1199,9 +1203,9 @@ let new_print_mod_stats buf o =
         "Total"
         mod_stats_all.brand_mod_seen
         ((Int64.to_float mod_stats_all.brand_mod_download) /. 1024.0 /. 1024.0)
-      ((Int64.to_float mod_stats_all.brand_mod_download) /. (float_of_int uptime) /. 1024.0)
+      ((Int64.to_float mod_stats_all.brand_mod_download) /. (float_of_int session_time) /. 1024.0)
       ((Int64.to_float mod_stats_all.brand_mod_upload) /. 1024.0 /. 1024.0)
-      ((Int64.to_float mod_stats_all.brand_mod_upload) /. (float_of_int uptime) /. 1024.0)
+      ((Int64.to_float mod_stats_all.brand_mod_upload) /. (float_of_int session_time) /. 1024.0)
       mod_stats_all.brand_mod_banned
         (percent_of_ints mod_stats_all.brand_mod_banned mod_stats_all.brand_mod_seen);
 
@@ -1214,10 +1218,10 @@ let new_print_mod_stats buf o =
           stats_by_brand_mod.(i).brand_mod_seen
             (percent_of_ints stats_by_brand_mod.(i).brand_mod_seen mod_stats_all.brand_mod_seen)
           ((Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /. 1024.0 /. 1024.0)
-          ((Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /. (float_of_int uptime) /. 1024.0)
+          ((Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /. (float_of_int session_time) /. 1024.0)
           (percent_of_int64s stats_by_brand_mod.(i).brand_mod_download mod_stats_all.brand_mod_download)
           ((Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) /. 1024.0 /. 1024.0)
-          ((Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) /. (float_of_int uptime) /. 1024.0)
+          ((Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) /. (float_of_int session_time) /. 1024.0)
           (percent_of_int64s stats_by_brand_mod.(i).brand_mod_upload mod_stats_all.brand_mod_upload)
           stats_by_brand_mod.(i).brand_mod_banned
             (percent_of_ints stats_by_brand_mod.(i).brand_mod_banned mod_stats_all.brand_mod_banned)
@@ -1328,4 +1332,41 @@ let _ =
         new_print_mod_stats buf o;
         ""
     ), ":\t\t\t\t\tshow table of download/upload by eMule MODs";
+    "reset_stats", "Network/Donkey",Arg_none (
+      fun o ->
+
+       Array.iteri  (
+	 fun x _ ->
+	   stats_by_brand.(x).brand_seen <- 0;
+	   stats_by_brand.(x).brand_banned <- 0;
+	   stats_by_brand.(x).brand_filerequest <- 0;
+	   stats_by_brand.(x).brand_download <- 0L;
+	   stats_by_brand.(x).brand_upload <- 0L;
+       ) stats_by_brand;
+
+       Array.iteri (
+	 fun x _ ->
+	   stats_by_brand_mod.(x).brand_mod_seen <- 0;
+	   stats_by_brand_mod.(x).brand_mod_banned <- 0;
+	   stats_by_brand_mod.(x).brand_mod_filerequest <- 0;
+	   stats_by_brand_mod.(x).brand_mod_download <- Int64.zero;
+	   stats_by_brand_mod.(x).brand_mod_upload <- Int64.zero
+       ) stats_by_brand_mod;
+
+       stats_all.brand_seen <- 0;
+       stats_all.brand_banned <- 0;
+       stats_all.brand_filerequest <- 0;
+       stats_all.brand_download <- 0L;
+       stats_all.brand_upload <- 0L;
+
+       mod_stats_all.brand_mod_seen <- 0;
+       mod_stats_all.brand_mod_banned <- 0;
+       mod_stats_all.brand_mod_filerequest <- 0;
+       mod_stats_all.brand_mod_download <- Int64.zero;
+       mod_stats_all.brand_mod_upload <- Int64.zero;
+
+       start_session := last_time ();
+
+       "done"
+    ), ":\t\t\t\t\treset session statistics";
   ]
