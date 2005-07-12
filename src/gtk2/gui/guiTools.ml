@@ -432,32 +432,35 @@ let color_of_name name =
 *)
 
 let fit_string_to_pixels s ~context ~pixels =
+  let us = U.utf8_of s in
   let pango_layout = Pango.Layout.create context#as_context in
-  Pango.Layout.set_text pango_layout s;
-  let s' =
+  Pango.Layout.set_text pango_layout us;
+  let us' =
     if fst (Pango.Layout.get_pixel_size pango_layout) <= pixels
-    then s
+    then us
     else begin
-      let len = String.length s in
-      let ext = "..." ^ (String.sub s (len - 7) 7) in
-      let rec adjust_string str n len =
+      let len = Glib.Utf8.length us in
+      let uca = Glib.Utf8.to_unistring us in
+      let uca_ext = Array.sub uca (len - 7) 7 in
+      let ext = "..." ^ (Glib.Utf8.from_unistring uca_ext) in
+      let rec adjust_string n len =
         if n = len
-          then str
+          then us
           else begin
-            let str' = U.utf8_of ((String.sub str 0 n) ^ ext) in
-            Pango.Layout.set_text pango_layout str';
-            let str_pixels = fst (Pango.Layout.get_pixel_size pango_layout) in
+            let ustr = (Glib.Utf8.from_unistring (Array.sub uca 0 n)) ^ ext in
+            Pango.Layout.set_text pango_layout ustr;
+            let ustr_pixels = fst (Pango.Layout.get_pixel_size pango_layout) in
             (* Printf.printf "width %d - Pango.Layout.get_pixel_size %d Pango.Layout.get_text %s\n" 
                pixels s_width (Pango.Layout.get_text pango_layout);
             flush stdout; *)
-            if str_pixels < pixels
-              then adjust_string str (n + 1) len
-              else str'
+            if ustr_pixels < pixels
+              then adjust_string (n + 1) len
+              else ustr
           end
       in
-      adjust_string s 0 len
+      adjust_string 0 len
     end
-  in s'
+  in us'
 
 
 

@@ -13,8 +13,8 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/13: spiralvoice
 
-4158: EDK: Parse and display version numbers
-      also in GTK2 GUI (by su_blanc)
+4160: resize properly the names in the gtk2 gui (by su_blanc)
+4158: EDK: Parse and display version numbers, also in GTK2 GUI (by su_blanc)
 4114: EDK: new command "reset_stats" (by Knocker)
 
 2005/07/10: spiralvoice
