@@ -50,7 +50,15 @@ let gnutella_hostfiles = define_option gnutella_section
   "A list of GWCache urls"
     (list_option string_option)
   [
-    "http://gwebcache.bearshare.net/gcache.php"
+    "http://cache.kicks-ass.net:8000";
+    "http://gwc.jooz.net:8010/gwc";
+    "http://gwc.mine.nu:3333";
+    "http://gwc1.nouiz.org/servlet/GWebCache/req";
+    "http://gwcrab.sarcastro.com:8001";
+    "http://kisama.ath.cx:8080";
+    "http://krill.shacknet.nu:20095/gwc";
+    "http://overbeer.ghostwhitecrab.de";
+    "http://pokerface.bishopston.net:3558";
   ]
 
 let urlfiles = define_option gnutella_section 
@@ -58,7 +66,15 @@ let urlfiles = define_option gnutella_section
   "A list of GWCache urls"
     (list_option string_option)
   [
-    "http://gwebcache.bearshare.net/gcache.php"
+    "http://cache.kicks-ass.net:8000";
+    "http://gwc.jooz.net:8010/gwc";
+    "http://gwc.mine.nu:3333";
+    "http://gwc1.nouiz.org/servlet/GWebCache/req";
+    "http://gwcrab.sarcastro.com:8001";
+    "http://kisama.ath.cx:8080";
+    "http://krill.shacknet.nu:20095/gwc";
+    "http://overbeer.ghostwhitecrab.de";
+    "http://pokerface.bishopston.net:3558";
   ]
   
 let redirectors = define_option gnutella_section 

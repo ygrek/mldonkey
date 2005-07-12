@@ -51,20 +51,9 @@ type file_uri =
 let port = 6347
 let config_file = "gnutella2.ini"
 let redirectors = [
-    "http://dlaikar.de/cgi-bin/gcache2-cgi/gcache.cgi";
-    "http://fast.papajema.com/cgi-bin/gcache.cgi";
-    "http://gwc.fspn.cryptnet.net/gcache.cgi";
-    "http://gwc.gnewsgroups.com/cgi-bin/gcache.cgi";
     "http://gwc.mamarazzi.net/";
-    "http://gwebcache.jonatkins.com/cgi-bin/gwebcache.cgi";
     "http://g2cache.theg2.net/gwcache/lynnx.asp";
-    "http://user1.7host.com/dgwc2/lynnx.asp";
-    "http://www20.brinkster.com/dgc2/lynnx.asp";
     "http://ptzldd1.ath.cx/perlgcache.cgi";
-    "http://www25.brinkster.com/dcache/dcache.asp";
-    "http://gwebcache4.jonatkins.com/cgi-bin/perlgcache.cgi";
-    "http://gwebcache2.jonatkins.com/cgi-bin/gwebcache.cgi";
-    "http://gwebcache5.jonatkins.com/cgi-bin/perlgcache.cgi";
   ]
 
 let options_prefix = "G2-"
