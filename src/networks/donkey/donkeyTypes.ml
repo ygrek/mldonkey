@@ -130,6 +130,7 @@ type file_tag_name =
 type emule_proto = {
     mutable emule_comments : int;
     mutable emule_version : int;
+    mutable emule_release : string;
     mutable emule_secident : int;
     mutable emule_noviewshared : int;
     mutable emule_supportpreview : int;
@@ -931,6 +932,7 @@ let dummy_source = {
 let dummy_emule_proto = {
     emule_comments = 0;
     emule_version = 0;
+    emule_release = "";
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;
@@ -945,4 +947,3 @@ let dummy_emule_proto = {
 
 let emule_proto () = 
   { dummy_emule_proto with emule_version = 0 }
-  

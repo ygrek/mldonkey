@@ -424,6 +424,7 @@ let _ =
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
         P.client_software = "";
+        P.client_release = "";
         P.client_emulemod = "";
         P.client_downloaded = zero;
         P.client_uploaded = zero;
@@ -476,6 +477,7 @@ let _ =
             (short_string_of_connection_state (client_state cc)));
           ("", "sr", cinfo.GuiTypes.client_name);
           ("", "sr", "gN"); (* cinfo.GuiTypes.client_software *)
+          ("", "sr", ""); (* cinfo.GuiTypes.client_release *)
           ] @
           (if !show_emulemods_column then [("", "sr", "")] else [])
           @ [

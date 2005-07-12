@@ -992,6 +992,7 @@ let _ =
         P.client_chat_port = 0 ;
         P.client_connect_time = c.client_connect_time;
         P.client_software = gbrand_to_string c.client_brand;
+        P.client_release = c.client_emule_proto.emule_release;
         P.client_emulemod = gbrand_mod_to_string c.client_mod_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
@@ -1168,6 +1169,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
           ( "0", "srh", "Client state", "CS" ) ;
           ( "0", "srh", "Client name", "Name" ) ;
           ( "0", "srh", "Client brand", "CB" ) ;
+          ( "0", "srh", "Client release", "CR" ) ;
         ] @
           (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
         @ [
@@ -1228,6 +1230,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
               (short_string_of_connection_state (client_state c)) );
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+            ("", "sr", c.client_emule_proto.emule_release);
             ] @
             (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
             @ [
@@ -1487,6 +1490,7 @@ lprint_newline ();
                         short_string_of_connection_state (client_state c));
                       (Md4.to_string c.client_md4, "sr", client_short_name c.client_name);
                       ("", "sr", gbrand_to_string c.client_brand);
+                      ("", "sr", c.client_emule_proto.emule_release);
                       ] @
                       (if !!emule_mods_count then [("", "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
                       @ [

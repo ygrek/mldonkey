@@ -13,12 +13,14 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/13: spiralvoice
 
-4114: EDK: new command "reset_stats"
+4158: EDK: Parse and display version numbers
+      also in GTK2 GUI (by su_blanc)
+4114: EDK: new command "reset_stats" (by Knocker)
 
 2005/07/10: spiralvoice
 
-4159: Removed whitespaces
-4156: tray icon in x11 for GTK2 GUI
+4159: Removed whitespaces (by beedauchon)
+4156: tray icon in x11 for GTK2 GUI (by su_blanc)
 4157: fix mlnet.pid checking at start up for GUI
 
 2005/07/07: spiralvoice

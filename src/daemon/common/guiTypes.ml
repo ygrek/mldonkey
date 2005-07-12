@@ -207,6 +207,7 @@ type client_info = {
     mutable client_chat_port : int;
     mutable client_connect_time : int;
     mutable client_software : string;
+    mutable client_release : string;
     mutable client_emulemod : string;
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;

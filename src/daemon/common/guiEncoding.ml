@@ -599,8 +599,12 @@ let buf_client proto buf c =
       if proto >= 20 then begin
           buf_int_date proto buf c.client_connect_time
       end;
-      if proto >= 21 then
-        buf_string buf c.client_emulemod;
+      if proto >= 21 then begin
+        buf_string buf c.client_emulemod
+      end;
+      if proto >= 33 then begin
+        buf_string buf c.client_release
+      end;
     end
     
 let buf_network proto buf n =

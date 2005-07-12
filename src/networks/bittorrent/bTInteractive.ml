@@ -549,6 +549,7 @@ let op_client_info c =
     P.client_chat_port = 0 ;
     P.client_connect_time = BasicSocket.last_time ();
     P.client_software = c.client_software;
+    P.client_release = "";
     P.client_emulemod = "";
     P.client_downloaded = c.client_downloaded;
     P.client_uploaded = c.client_uploaded;
@@ -603,6 +604,7 @@ let op_client_dprint_html c o file str =
           (short_string_of_connection_state (client_state cc)));
         ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
         ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+        ("", "sr", ""); (* cinfo.GuiTypes.client_release *)
       ] @
         (if !show_emulemods_column then [("", "sr", "")] else [])
       @ [

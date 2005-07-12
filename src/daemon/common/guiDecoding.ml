@@ -686,6 +686,7 @@ let get_client proto s pos =
       client_files = None;
       client_connect_time = 0;
       client_software = "";
+      client_release = "";
       client_emulemod = "";
       client_downloaded = zero;
       client_uploaded = zero;
@@ -710,7 +711,7 @@ let get_client proto s pos =
       "", pos -> None, pos
     | s, pos -> Some s, pos
   in
-  let connect_time, pos = 
+  let connect_time, pos =
     if proto >= 20 then
       get_int_date proto s pos
     else 0, pos
@@ -719,8 +720,12 @@ let get_client proto s pos =
     if proto >= 21 then
       get_string s pos
       else "", pos
-  in 
-  {
+   in
+   let release, pos =
+     if proto >= 33 then
+       get_string s pos
+       else "", pos
+   in  {
     client_num = num;
     client_network = net;
     client_kind = kind;
@@ -733,13 +738,13 @@ let get_client proto s pos =
     client_files = None;
     client_connect_time = connect_time;
     client_software = software;
+    client_release = release;
     client_emulemod = emulemod;
     client_downloaded = downloaded;
     client_uploaded = uploaded;
     client_upload = upload;
 (*    client_sock_addr = sock_addr; *)
   }, pos
-  
 
 let default_flags = [
     NetworkHasServers ;
@@ -749,7 +754,7 @@ let default_flags = [
     NetworkHasChat;
     NetworkHasUpload
   ]
-  
+
 let get_network proto s pos =
   let num = get_int s pos in
   let name, pos = get_string s (pos+4) in
@@ -788,7 +793,7 @@ let get_network proto s pos =
   }, pos
 
 
-let get_user s pos = 
+let get_user s pos =
   let num = get_int s pos in
   let md4 = get_md4 s (pos+4) in
   let name, pos = get_string s (pos+20) in

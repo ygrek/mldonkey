@@ -450,14 +450,8 @@ let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
     c.client_brand <- (
-      if String2.subcontains c.client_name "[ePlus]" then
-	Brand_emuleplus
-      else
-	if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
-          if String2.subcontains c.client_name "shareaza.com" then
-            Brand_shareaza
-          else
-            Brand_newemule
+      if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+       Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
     else
@@ -595,7 +589,6 @@ let string_of_tags_list tags =
   !s 
 
 let identify_client_mod_brand c tags =
-
   if c.client_mod_brand = Brand_mod_unknown then begin
       List.iter (fun tag ->
         let s = to_lowercase (string_of_tag_value tag.tag_value) in 
@@ -619,8 +612,44 @@ let identify_client_mod_brand c tags =
    end
   end
 
+let identify_client_compat_brand num old_brand =
+    match num with
+      0 -> old_brand
+    | 1 -> Brand_cdonkey
+    | 2 -> Brand_lmule
+    | 3 -> Brand_amule
+    | 4 -> Brand_shareaza
+    | 5 -> Brand_emuleplus
+    | 6 -> Brand_hydranode
+    | 10 -> Brand_mldonkey3
+    | 20 -> Brand_lphant
+    | _ -> lprintf_nl "EDK: unknown compatibleclient %d (please report to dev team)" num; Brand_unknown
+
+let identify_emule_release num brand =
+     let s = Misc.dec2bin num 32 in
+     let block2 = (String.sub s 8 7) in
+     let block3 = (String.sub s 15 7) in
+     let block4 = (String.sub s 22 3) in
+     let rel = Printf.sprintf "%s.%s%s"
+        (string_of_int(Misc.bin2dec (int_of_string block2)))
+        (string_of_int(Misc.bin2dec (int_of_string block3)))
+        (if brand = Brand_newemule || brand = Brand_emuleplus then
+	   begin
+	     match Misc.bin2dec (int_of_string block4) with
+	       0 -> "a"
+	     | 1 -> "b"
+	     | 2 -> "c"
+	     | 3 -> "d"
+	     | 4 -> "e"
+	     | 5 -> "f"
+	     | 6 -> "g"
+	     | _ -> ""
+	   end
+	 else ("." ^ (string_of_int(Misc.bin2dec (int_of_string block4)))))
+     in 
+     if rel = "0.0.0" then "" else rel
+
 let update_client_from_tags c tags =
-  c.client_tags <- tags;
   List.iter (fun tag ->
       match tag.tag_name with
       | Field_UNKNOWN "name" -> ()
@@ -630,16 +659,31 @@ let update_client_from_tags c tags =
 (* Kademlia: we should use this client to bootstrap Kademlia *)
               if kad_port <> 0 && !!enable_kademlia then
                 DonkeyProtoKademlia.Kademlia.bootstrap 
-                  c.client_ip kad_port
-          )
-
+                  c.client_ip kad_port)
       | Field_UNKNOWN "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
               DonkeyProtoClient.update_emule_proto_from_miscoptions1
               c.client_emule_proto i)
       | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_version <- i)
+              c.client_emule_proto.emule_version <- i;
+	      let num = (int_of_string("0b" ^ String.sub (Misc.dec2bin i 32) 0 8)) in
+	        let brand = 
+		  identify_client_compat_brand num c.client_brand
+		in c.client_brand <- brand;
+              c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
+      | Field_UNKNOWN "mod_version" ->
+          let s = to_lowercase (string_of_tag_value tag.tag_value) in 
+            begin
+            let rec iter i len =
+              if i < len then
+                let sub = fst mod_array.(i) in
+                  if (String2.subcontains s sub) then
+                    c.client_mod_brand <- snd mod_array.(i)
+                  else iter (i+1) len
+            in
+              iter 0 (Array.length mod_array)
+           end
       | _ -> ()
   ) tags
     
@@ -647,18 +691,11 @@ let update_emule_proto_from_tags c tags =
   List.iter (fun tag ->
       match tag.tag_name with
         Field_UNKNOWN "compatibleclient" ->
-          for_int_tag tag (fun i ->
-              match i with
-                1 -> c.client_brand <- Brand_cdonkey
-              | 2 -> c.client_brand <- Brand_lmule
-              | 3 -> c.client_brand <- Brand_amule
-              | 4 -> c.client_brand <- Brand_shareaza
-              | 5 -> c.client_brand <- Brand_emuleplus
-              | 6 -> c.client_brand <- Brand_hydranode
-              | 10 -> c.client_brand <- Brand_mldonkey3
-              | 20 -> c.client_brand <- Brand_lphant
-              | _ -> ()
-          )
+	  for_int_tag tag (fun i ->
+	    let brand =
+	      identify_client_compat_brand i c.client_brand
+	    in c.client_brand <- brand;
+	    c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
       | Field_UNKNOWN "compression" ->
           for_int_tag tag (fun i ->
               c.client_emule_proto.emule_compression <- i)
@@ -678,7 +715,6 @@ let update_emule_proto_from_tags c tags =
       | Field_UNKNOWN "features" ->
           for_int_tag tag (fun i ->
               c.client_emule_proto.emule_secident <- i land 0x3)
-      
       | _ -> 
           if !verbose_msg_clients then
             lprintf "Unknown Emule tag: [%s]\n" (escaped_string_of_field tag)
@@ -903,7 +939,7 @@ let client_to_client for_files c t sock =
       lprintf "Message from %s" (string_of_client c);
       CommonGlobals.print_localtime ();
       M.print t;
-      lprintf "\n"
+      lprintf_nl ""
     end;
   
   match t with
@@ -935,8 +971,7 @@ let client_to_client for_files c t sock =
         if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
 
-      update_client_from_tags c t.CR.tags;
-
+      c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
             { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
@@ -944,9 +979,22 @@ let client_to_client for_files c t sock =
           | _ -> ()
       ) c.client_tags;
       identify_client_brand c;
+      update_client_from_tags c t.CR.tags;
       Hashtbl.add connected_clients t.CR.md4 c;
 (*      connection_ok c.client_connection_control; *)
-      
+      if !verbose_msg_clienttags then begin
+        M.ConnectReply.print t;
+	let s1 = c.client_emule_proto.emule_release in
+	let s2 = gbrand_mod_to_string c.client_mod_brand in
+	  if s1 <> "" then
+	    lprintf_nl "  [%s%s %s]\n"
+	      (gbrand_to_string c.client_brand)
+	      (if s2 <> "" then Printf.sprintf "(%s)" s2 else "")
+	      s1
+	  else
+	    lprintf_nl "\n"
+      end;
+
       begin
         match t.CR.server_info with
           Some (ip, port) -> if !!update_server_list_client then safe_add_server ip port
@@ -1725,7 +1773,7 @@ end else *)
       if !verbose_unknown_messages then begin
           lprintf "Unused Client Message:\n"; 
           M.print t;
-          lprintf "\n"
+          lprintf_nl ""
         end
       
 let client_handler c sock event = 
@@ -1817,7 +1865,7 @@ let read_first_message overnet m sock =
       lprintf "Message from incoming client";
       CommonGlobals.print_localtime ();
       M.print m;
-      lprintf "\n"
+      lprintf_nl ""
     end;
 
   match m with
@@ -1846,12 +1894,12 @@ let read_first_message overnet m sock =
         if low_id t.CR.ip then
             match t.CR.server_info with
             | None ->
-                Invalid_address  (!name, Md4.to_string t.CR.md4)
+                Invalid_address (!name, Md4.to_string t.CR.md4)
             | Some (ip,port) ->
                 if Ip.valid ip && Ip.reachable ip then
                     Indirect_address (ip, port, id_of_ip t.CR.ip)
                 else
-                    Invalid_address  (!name, Md4.to_string t.CR.md4)
+                    Invalid_address (!name, Md4.to_string t.CR.md4)
         else
         if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
             Direct_address (t.CR.ip, t.CR.port)
@@ -1861,16 +1909,17 @@ let read_first_message overnet m sock =
       
       let c = new_client kind in
       
-      
-      
-      if c.client_debug || !verbose_msg_clients then begin  
-          lprintf "First Message\n";
+      if c.client_debug || !verbose_msg_clients || !verbose_msg_clienttags then begin  
+          lprintf "First Message: ";
           M.print m;
-          lprintf "\n";
+	  lprintf_nl "\n"
         end;
       
       Hashtbl.add connected_clients t.CR.md4 c;
-      
+
+      set_client_name c !name t.CR.md4;
+      c.client_tags <- t.CR.tags;
+      identify_client_brand c;
       update_client_from_tags c t.CR.tags;
       
       begin
@@ -1894,37 +1943,11 @@ let read_first_message overnet m sock =
             raise Not_found
       end;
 
-(*
-      begin
-        match c.client_source, kind with
-          None, Direct_address (ip, port) ->
-            let s = DonkeySources.create_source 0 (last_time ()) (ip, port) in
-            c.client_source <- Some s;
-            c.client_files := !(s.source_files);
-        | _ -> 
-            c.client_indirect_address <- indirect;
-      end;
-*)
-      
-      set_client_name c !name t.CR.md4;
-(*      connection_try c.client_connection_control;
-      connection_ok c.client_connection_control; *)
-      
-      if not (register_client_hash (peer_ip sock) t.CR.md4) &&
-        !!ban_identity_thieves then
+      if !!ban_identity_thieves && 
+        not (register_client_hash (peer_ip sock) t.CR.md4) then
         ban_client c sock "is probably using stolen client hashes";
       
-      List.iter (fun ban ->
-          if String2.subcontains c.client_name ban then begin
-              client_send c (
-                M.SayReq "[AUTOMATED WARNING] Sorry, you have not understood P2P");
-              set_client_state c BlackListedHost;
-              lprintf "Client[%d]: banned (%s)\n" (client_num c) ban;
-              raise Not_found
-            end)
-      ["Mison"]; (* People who don't understand P2P themselves please leave this list alone *)
-      
-      if  !!reliable_sources && 
+      if !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
           set_client_state c BlackListedHost;
           raise Not_found
@@ -1939,14 +1962,6 @@ let read_first_message overnet m sock =
                 DonkeySources.set_source_brand c.client_source overnet;
               end
       end;
-
-(*      List.iter (fun s ->
-		   match s.server_sock with
-		       None -> ()
-		     | Some _ -> if ?? = s.server_ip then
-			 c.client_brand <- Brand_server
-) (connected_servers ()) *)
-      identify_client_brand c;
 
       if supports_eep c.client_brand then
         begin
@@ -1971,18 +1986,6 @@ let read_first_message overnet m sock =
           }
         else
           begin
-(*	 if (c.client_brand == Brand_server) then begin
-          M.ConnectReplyReq {
-            C.md4 = !!server_client_md4;
-            C.ip = client_ip (Some sock);
-            C.port = !client_port;
-            C.tags = !client_tags;
-            C.server_info = t.CR.server_info;
-            C.left_bytes = left_bytes; 
-          }
-	 end
-	 else
-	 begin *)
             M.ConnectReplyReq {
               C.md4 = !!client_md4;
               C.ip = client_ip (Some sock);
@@ -1994,9 +1997,6 @@ let read_first_message overnet m sock =
             }
           end;
       );
-      
-      
-      
       
       if DonkeySources.source_brand c.client_source then
         !activity.activity_client_overnet_indirect_connections <-
@@ -2013,7 +2013,7 @@ let read_first_message overnet m sock =
       Some c
       
   | M.NewUserIDReq _ ->
-      M.print m; lprintf "\n";
+      lprintf "NewUserIDReq: "; M.print m; lprintf_nl "";
       None
   
   | _ -> 

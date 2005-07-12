@@ -31,7 +31,7 @@ let gui_extension_poll = 1
   
 let to_gui_last_opcode = 58
 let from_gui_last_opcode = 67
-let best_gui_version = 32
+let best_gui_version = 33
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -62,6 +62,9 @@ Version 32:
     guiEncoding.ml .
   GUI -> Core: message 66 [SERVER_RENAME]
   GUI -> Core: message 67 [SERVER_SET_PREFERRED]
+
+Version 33:
+  CORE -> GUI: message 15 [CLIENT_INFO] encoding and decoding of the field client_release 
 
   *)
   

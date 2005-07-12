@@ -28,13 +28,25 @@ open CommonGlobals
 open DonkeyTypes
 open DonkeyMftp
   
+let emule_version b1 b2 b3 b4 b5 =
+  let s = Printf.sprintf "%s"
+    (string_of_int(int_of_string("0b" ^
+    (Misc.dec2bin (int_of_string b1) 8) ^
+    (Misc.dec2bin (int_of_string b2) 7) ^
+    (Misc.dec2bin (int_of_string b3) 7) ^
+    (Misc.dec2bin (int_of_string b4) 3) ^
+    (Misc.dec2bin (int_of_string b5) 7))))
+  in s
+
 (* TODO : update this
 I downgraded some of those to get better results :
 We don't use emule udp extension, client_md4 in sourceexchange or complete sources in
 file request *)
 let mldonkey_emule_proto = {
     emule_comments = 1;
-    emule_version = 171720704;
+    emule_version = (int_of_string (emule_version "10" Autoconf.sub_version1 Autoconf.sub_version2 "0" "0"));
+      (* first parameter means compatibleclient, MLDonkeys value is 10 *)
+    emule_release = "";
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;
@@ -144,23 +156,22 @@ module Connect  = struct
       }
     
     let print t = 
-      lprintf_nl "CONNECT:";
-      lprintf_nl "version: %d" t.version;
-      lprintf_nl "MD4: %s" (Md4.to_string t.md4); 
-      lprintf_nl "ip: %s" (Ip.to_string t.ip);
-      lprintf_nl "port: %d" t.port;
+      lprintf "Connect (version %d) from [%s:%d] MD4: %s"
+        t.version
+        (Ip.to_string t.ip)
+	t.port
+        (Md4.to_string t.md4);
+      (match t.server_info with
+          None -> lprintf_nl ""
+        | Some (ip, port) ->
+            lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
       lprintf "tags: ";
       print_tags t.tags;
-      lprintf_nl "";
-      (match t.server_info with
-          None -> ()
-        | Some (ip, port) ->
-            lprintf_nl "ip_server: %s" (Ip.to_string ip);
-            lprintf_nl "port_server: %d" port);
-      String.iter (fun c -> lprintf "(%d)" (int_of_char c)) 
-      t.left_bytes;
-      lprintf_nl ""
-    
+      if String.length t.left_bytes <> 0 then begin
+        lprintf "  left bytes = ";
+        String.iter (fun c -> lprintf "(%d)" (int_of_char c))
+        t.left_bytes  end
+
     let write buf t =
       buf_int8 buf t.version;
       buf_md4 buf t.md4;
@@ -223,21 +234,20 @@ module ConnectReply  = struct
       }
     
     let print t = 
-      lprintf_nl "CONNECT REPLY:";
-      lprintf_nl "MD4: %s" (Md4.to_string t.md4); 
-      lprintf_nl "ip: %s" (Ip.to_string t.ip);
-      lprintf_nl "port: %d" t.port;
+      lprintf "Connect reply from [%s:%d] MD4: %s"
+        (Ip.to_string t.ip)
+	t.port
+        (Md4.to_string t.md4);
+      (match t.server_info with
+          None -> lprintf_nl ""
+        | Some (ip, port) ->
+            lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
       lprintf "tags: ";
       print_tags t.tags;
-      lprintf_nl "";
-      (match t.server_info with
-          None -> ()
-        | Some (ip, port) ->
-            lprintf_nl "ip_server: %s" (Ip.to_string ip);
-            lprintf_nl "port_server: %d" port);
-      String.iter (fun c -> lprintf "(%d)" (int_of_char c)) 
-      t.left_bytes;
-      lprintf_nl ""
+      if String.length t.left_bytes <> 0 then begin
+        lprintf "  left bytes = ";
+        String.iter (fun c -> lprintf "(%d)" (int_of_char c))
+        t.left_bytes  end
       
     let write buf t =
       buf_md4 buf t.md4;

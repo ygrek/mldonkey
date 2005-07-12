@@ -32,3 +32,19 @@ let int_of_octal_string s =
     if i < l then octal_aux (acc * 8 + (octal_of_char s.[i])) (i+1)
     else acc in
   octal_aux 0 0
+
+(* taken from http://kazaan.no-ip.com/~kazaan/item-1094206424.html *)
+let dec2bin num len =
+  let rec d2b v fig =
+    if fig < 0 then ""
+    else
+      match (v asr fig) land 1 with
+          0 -> "0" ^ (d2b v (fig - 1))
+	| x -> "1" ^ (d2b v (fig - 1))
+  in
+    d2b num (len-1)
+
+(* taken from http://www.hh.iij4u.or.jp/~kazaan/old/ObjectiveCaml.html *)
+let bin2dec num =
+  let s = string_of_int num in
+    int_of_string ("0b" ^ s)

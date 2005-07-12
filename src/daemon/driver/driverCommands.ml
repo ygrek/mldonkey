@@ -310,26 +310,36 @@ let _ =
     ), ":\t\t\t\trecover lost files from temp directory";
 
     "vc", Arg_multiple (fun args o ->
-        if args = ["all"] then begin 
+        if args = ["all"] then begin
             let buf = o.conn_buf in
 
-            if use_html_mods o then html_mods_table_header buf "vcTable" "vc" [
+            if use_html_mods o then html_mods_table_header buf "vcTable" "vc" ([
                 ( "1", "srh ac", "Client number", "Num" ) ;
                 ( "0", "srh", "Network", "Network" ) ;
                 ( "0", "srh", "IP address", "IP address" ) ;
-                ( "0", "srh", "Client name", "Client name" ) ];
+                ( "0", "srh", "Client name", "Client name" ) ;
+                ( "0", "srh", "Client brand", "CB" ) ;
+                ( "0", "srh", "Client release", "CR" ) ;
+                ] @
+                (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else []));
 
             let counter = ref 0 in
             let all_clients_list = clients_get_all () in
             List.iter (fun num ->
                 let c = client_find num in
+                let i = client_info c in
                 if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\"
 			 title=\\\"Add as friend\\\" 
 			 onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"
             onMouseOver=\\\"mOvr(this);\\\"
             onMouseOut=\\\"mOut(this);\\\"\\>"
                     (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
-                client_print c o;
+                    client_print c o;
+                    html_mods_td buf ([
+                     ("", "sr", i.client_software);
+                     ("", "sr", i.client_release);
+                     ] @
+                     (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else []));
                 if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
                 else Printf.bprintf buf "\n";
                 incr counter;
@@ -2019,6 +2029,7 @@ let _ =
                   ( "0", "srh", "IP address", "IP address" ) ;
                   ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
+                  ( "0", "srh", "Client release", "CR" ) ;
                   ] @
                   (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
                   @ [
@@ -2050,6 +2061,7 @@ let _ =
                             ("", "sr", (string_of_kind  i.client_kind));
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             ("", "sr", i.client_software);
+                            ("", "sr", i.client_release);
                             ] @
                             (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
                             @ [
@@ -2078,6 +2090,7 @@ let _ =
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
+                  ( "0", "srh", "Client release", "CR" ) ;
                   ] @
                   (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
                   @ [
@@ -2103,6 +2116,7 @@ let _ =
 
                       html_mods_td buf ([
                         ("", "sr", i.client_software);
+                        ("", "sr", i.client_release);
                         ] @
                         (if !!emule_mods_count then [("", "sr", i.client_emulemod )] else [])
                         @ [
@@ -2253,6 +2267,7 @@ let _ =
               ( "0", "srh", "Client state", "CS" ) ;
               ( "0", "srh", "Client name", "Name" ) ;
               ( "0", "srh", "Client brand", "CB" ) ;
+              ( "0", "srh", "Client release", "CR" ) ;
             ] @
               (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
             @ [
