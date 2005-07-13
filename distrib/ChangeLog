@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/13: spiralvoice
 
+Remove obsolete ./src/gtk/gui2 directory
 4165: Clean log file
 4164: Gnutella/G2: Update Webcache URLs
 4160: resize properly the names in the gtk2 gui (by su_blanc)

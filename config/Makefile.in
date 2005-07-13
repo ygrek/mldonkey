@@ -62,7 +62,6 @@ else
     SRC_GUI=src/gtk/newgui
   else
     SRC_GUI=src/gtk/gui
-    SRC_GUI2=src/gtk/gui2
     ICONS_CHOICE=icons/kde
     GUI=OLDGUI
   endif
@@ -816,7 +815,7 @@ ifeq ("$(COMPILE_GUI)" , "yes")
     GTK_LIBS_opt=-I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
     GTK_STATIC_LIBS_opt=-I +lablgtk2 lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
   else
-    SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) $(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
+    SUBDIRS += $(SRC_GUI) $(CONFIGWIN) $(OKEY) $(GPATTERN) $(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
     GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
     GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
     GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
@@ -1245,12 +1244,6 @@ OLDGUI_SRCS=  \
 
 GUI_SRCS= $($(GUI)_SRCS)
 
-GUI2_SRCS= $(SRC_GUI2)/gui2_messages.ml $(SRC_GUI2)/gui2_keys.ml \
-  $(SRC_GUI2)/gui2_options.ml $(SRC_GUI2)/gui2_GList.ml $(SRC_GUI2)/gui2.zog \
-  $(SRC_GUI2)/myCList.ml $(SRC_GUI2)/gui2_handler.ml \
-  $(SRC_GUI2)/gui2_misc.ml $(SRC_GUI2)/gui2_config.ml \
-  $(SRC_GUI2)/gui2_main.ml
-
 ifeq ("$(USE_GTK2)", "yes")
   MLDONKEYGUI_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 else
@@ -1258,9 +1251,6 @@ else
 endif
 
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
-
-MLDONKEYGUI2_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
-MLDONKEYGUI2_SRCS= $(GUI2_SRCS) $(MAIN_SRCS)
 
 ifeq ("$(USE_GTK2)", "yes")
   MLDONKEY_IM_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
