@@ -52,77 +52,71 @@ let html_css_mods0 = define_option message_section ["html_css_mods0"]
 "
 body {
 background: @C0@; margin-top: 3px; margin-left: 5px; margin-right: 5px; 
-font-family: Verdana, sans-serif;
-font-size: 12px;
+font-family: Verdana, sans-serif; font-size: 12px;
 scrollbar-face-color: @C1@; scrollbar-shadow-color: @C1@;
-scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: #000000;
-scrollbar-darkshadow-color: #000000; scrollbar-track-color: @C0@;
-scrollbar-arrow-color: #000000; }
-table.commands {border: #000 solid 1px; background: @C0@ }
-table.topcommands {background: @C0@; border: #000 solid 1px; border-top: @C3@ solid 1px; border-left: @C3@ solid 1px;} 
-pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
-p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
-input.txt {background: @C6@}
-input.txt2 {background: @C11@;
+scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: @C34@;
+scrollbar-darkshadow-color: @C34@; scrollbar-track-color: @C0@;
+scrollbar-arrow-color: @C34@; }
+table.commands { border: @C27@ solid 1px; background: @C0@ }
+table.topcommands { background: @C0@; border: @C27@ solid 1px; border-top: @C3@ solid 1px; border-left: @C3@ solid 1px; } 
+pre { color: @C26@; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px; }
+p { color: @C26@; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px; }
+input.txt { background: @C6@ }
+input.txt2 { background: @C11@;
 font: 12px courier; padding: 0px;
-width: 38px; height: 18px; line-height: 14px; color: #000;
-BORDER-RIGHT: #fff 2px solid; BORDER-TOP: #000 1px solid;
-BORDER-LEFT: #000 1px solid; BORDER-BOTTOM: #fff 2px solid;
-}
-input.but2 {background: @C14@;
+width: 38px; height: 18px; line-height: 14px; color: @C26@;
+border-right: @C35@ 2px solid; border-top: @C27@ 1px solid; border-left: @C27@ 1px solid; border-bottom: @C35@ 2px solid; }
+input.but2 { background: @C14@;
 border: 0px; padding: 0px; font: bold 10px verdana; 
-width: 36px; height: 14px;}
-input.but {background: @C7@};
+width: 36px; height: 14px; }
+input.but { background: @C7@ };
 
 a:link,a:active,a:visited { text-decoration: none; font-face: verdana;
-font-size: 10px; color: #000000; }
-a:hover { color: #000000; text-decoration: underline;}
+font-size: 10px; color: @C28@; }
+a:hover { color: @C29@; text-decoration: underline;}
 .bu {
 vertical-align: middle; white-space: nowrap;
 background: @C8@; color: @C9@;
 font-family: Verdana; font-size: 9px; line-height: 12px;
 margin-top: 0px; margin-bottom: 0px;
 padding-left: 6px; padding-right: 6px; padding-top: 1px; padding-bottom: 1px;
-border: #FFF 0px solid; 
-}
+border: @C35@ 0px solid; }
 .bbig {
 text-align: center; font-size: 10px; font-family: Verdana; font-weight: 500;
-border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
+border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: @C27@ 1px solid; border-right: @C27@ 1px solid;
 padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
-color: #000; background: @C11@;
-}
+color: @C26@; background: @C11@; }
 .bbigm {
 text-align: center; font: bold 10px verdana; 
-border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
+border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: @C27@ 1px solid; border-right: @C27@ 1px solid;
 padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
-color: #000; background: @C14@;
-}
+color: @C26@; background: @C14@; }
 .bsmall { background: @C12@; }
 .bsmall1 { background: @C11@; }
 .bsmall2 { background: @C13@; }
 .bsmall3 { background: @C14@; }
-.bbig2 {background: @C14@; }
-.bbig3 {background: @C1@; }
+.bbig2 { background: @C14@; }
+.bbig3 { background: @C1@; }
 .b1 { border-left: @C15@ solid 1px; border-top: @C15@ solid 1px; border-right: @C15@ solid 1px; border-bottom: @C15@ solid 1px; }
 .b2 { border-left: @C15@ solid 0px; border-top: @C15@ solid 1px; border-right: @C15@ solid 1px; border-bottom: @C15@ solid 1px; }
 .b3 { border-left: @C15@ solid 1px; border-top: @C15@ solid 0px; border-right: @C15@ solid 1px; border-bottom: @C15@ solid 1px; }
 .b4 { border-left: @C15@ solid 0px; border-top: @C15@ solid 0px; border-right: @C15@ solid 1px; border-bottom: @C15@ solid 1px; }
-.bb1 { border-left: #000 solid 1px; border-top: @C3@ solid 1px; border-right: @C3@ solid 1px; border-bottom: #000 solid 1px; }
-.bb2 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: @C3@ solid 0px; border-bottom: #000 solid 1px; }
-.bb3 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: #000 solid 0px; border-bottom: #000 solid 0px; }
-.bb4 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: #000 solid 1px; border-bottom: #000 solid 0px; }
-.src { border-left: #000 solid 0px; border-top: #000 solid 0px; border-right: #000 solid 1px; border-bottom: #000 solid 1px; }
+.bb1 { border-left: @C27@ solid 1px; border-top: @C3@ solid 1px; border-right: @C3@ solid 1px; border-bottom: @C27@ solid 1px; }
+.bb2 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: @C3@ solid 0px; border-bottom: @C27@ solid 1px; }
+.bb3 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: @C27@ solid 0px; border-bottom: @C27@ solid 0px; }
+.bb4 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 0px; }
+.src { border-left: @C27@ solid 0px; border-top: @C27@ solid 0px; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 1px; }
 .srctd { font-family: Verdana; font-size: 8px; }
-td.fbig { cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: @C10@; border-top: #000 solid 1px; border-left: #000 solid
-1px; }
-td.pr { border-right: #000 solid 1px; }
-td.fbigb { border-top: #000 solid 0px; border-bottom: #000 solid 1px; }
+td.fbig { color: @C26@; cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: @C10@; 
+border-top: @C27@ solid 1px; border-left: @C27@ solid 1px; }
+td.pr { border-right: @C27@ solid 1px; }
+td.fbigb { border-top: @C27@ solid 0px; border-bottom: @C27@ solid 1px; }
 td, tr {font-size: 12px; font-face: verdana; }
-td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
-td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #555;  }
-td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @C26@; }
+td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @C36@; }
+td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @C26@; }
 td.srh { cursor: pointer; vertical-align: top; background: @C16@; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px;
-font-family: verdana; font-size: 10px; color: #000;  }
+font-family: verdana; font-size: 10px; color: @C26@;  }
 tr.dl-1, td.dl-1 { background: @C20@; }
 tr.dl-2, td.dl-2 { background: @C21@; }
 .mOvr1, tr.mOvr1 {background: @C17@; cursor: pointer; }
@@ -134,25 +128,24 @@ table.shares, table.vc, table.results, table.networkInfo {
  margin-right: auto;
  margin-left: auto;
  border: 1;
- border: #000 solid 1px;
- border-collapse: collapse;
-}
-table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px; border-collapse: collapse;}
-table.sources {border: 1; border: #000 solid 1px; border-collapse: collapse; }
+ border: @C27@ solid 1px;
+ border-collapse: collapse; }
+table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left: auto; border: 1; border: @C27@ solid 1px; border-collapse: collapse; }
+table.sources {border: 1; border: @C27@ solid 1px; border-collapse: collapse; }
 table.main { margin-right: auto; margin-left: auto; }
 div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,
 div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { text-align: center; }
-td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px;
-border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
+td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 1px;
+border-left: @C27@ solid 1px; border-top: @C27@ solid 0px; padding-left: 3px; padding-right: 3px; }
 td.act { font-size: 10px; font-weight: 700; }
-td.br {border-right: #000 dotted 1px;}
+td.br {border-right: @C27@ dotted 1px;}
 td.ar {text-align: right;}
 td.al {text-align: left;}
 td.ac {text-align: center;}
-.chunk0 { background: @C22@}
-.chunk1 { background: @C23@}
-.chunk2 { background: @C2@}
-.chunk3 { background: @C8@}
+.chunk0 { left:0px; top:0px; height:12px; background: @C22@}
+.chunk1 { left:0px; top:0px; height:12px; background: @C23@}
+.chunk2 { left:0px; top:0px; height:12px; background: @C2@}
+.chunk3 { left:0px; top:0px; height:12px; background: @C8@}
 "
 
 let html_js_mods0 = define_option message_section ["html_js_mods0"] 
@@ -287,42 +280,41 @@ let download_html_css_mods0 = define_option message_section ["download_html_css_
   "Download CSS - style 0" 
     string_option  
 "
-body{background-color:@C4@;color: #000; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
-td,pre {color: #000; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px;}
-table.downloaders { margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px;}
+body{ background-color:@C4@;color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
+td,pre { color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px; }
+table.downloaders { margin-right: auto; margin-left: auto; border: 1; border: @C27@ solid 1px; }
 div.main { text-align: center; }
 table.main { margin-right: auto; margin-left: auto; }
-td.loaded{padding-top: 0px; padding-bottom: 0px; background-color:@C24@; font-size:1px; line-height: 2px;}
-td.remain{padding-top: 0px; padding-bottom: 0px; background-color:@C25@; font-size:1px; line-height: 2px;}
-td.downloaded{font-family: Verdana; font-weight: 500; font-size: 12px; color: #000;}
-td.dl { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
-td.dlheader {cursor: pointer; color: #000000; font-family: Verdana, serif; font-size: 10px;
+td.loaded{ padding-top: 0px; padding-bottom: 0px; background-color:@C24@; font-size:1px; line-height: 2px; }
+td.remain{ padding-top: 0px; padding-bottom: 0px; background-color:@C25@; font-size:1px; line-height: 2px; }
+td.downloaded{ font-family: Verdana; font-weight: 500; font-size: 12px; color: @C26@; }
+td.dl { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: @C26@;  }
+td.dlheader { cursor: pointer; color: @C26@; font-family: Verdana, serif; font-size: 10px;
 border-bottom: solid 1px; background: @C16@; padding-left: 3px;
-padding-right: 3px;}
+padding-right: 3px; }
 input.checkbox { background: @C16@; vertical-align: middle; height: 10px; width: 10px; }
-td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
+td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: @C26@;  }
 table { cellspacing: 0; cellpadding: 0; }
-td.ar {text-align: right;}
-td.al {text-align: left;}
-td.ac {text-align: center;}
-td.brs {border-right: #000 solid 1px; padding-left: 2px; padding-right: 2px; text-align: center;}
-td.np {padding-left: 2px; padding-right: 0px; text-align: center;}
-td.big { border-top: #000 solid 1px; border-left: #000 solid 1px; }
-td.pr { border-right: #000 solid 1px; }
-.bigbutton { font-family: Verdana, serif; font-size: 10px; background: @C0@; border: @C0@ solid 1px; cursor: pointer; }
+td.ar { text-align: right; }
+td.al { text-align: left; }
+td.ac { text-align: center; }
+td.brs { border-right: @C27@ solid 1px; padding-left: 2px; padding-right: 2px; text-align: center; }
+td.np { padding-left: 2px; padding-right: 0px; text-align: center; }
+td.big { border-top: @C27@ solid 1px; border-left: @C27@ solid 1px; }
+td.pr { border-right: @C27@ solid 1px; }
+.bigbutton { color: @C26@; font-family: Verdana, serif; font-size: 10px; background: @C0@; border: @C0@ solid 1px; cursor: pointer; }
 .headbutton {
  width: 100%; font-family: Verdana, serif; font-size: 10px; border: @C16@ solid 1px; background: @C16@; 
- padding-left: 5px; padding-right: 5px; cursor: pointer;
-}
+ padding-left: 5px; padding-right: 5px; cursor: pointer; }
 tr.dl-1 { background: @C20@; }
 tr.dl-2 { background: @C21@; }
-tr.mOvrDL, .mOvrDL {background: @C17@; cursor: pointer; }
-input {font-family: tahoma; font-size: 10px}
+tr.mOvrDL, .mOvrDL { background: @C17@; cursor: pointer; }
+input { font-family: tahoma; font-size: 10px; }
 a{ text-decoration: none; font-weight: bold;}
-a:link,a:active,a:visited { color: #000; }
-a:hover { color: #000; text-decoration: underline;}
-a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
-.extern:hover { color: #000; }
+a:link,a:active,a:visited { color: @C30@; }
+a:hover { color: @C31@; text-decoration: underline; }
+a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
+.extern:hover { color: @C33@; }
 "
 
 let download_html_js_mods0 = define_option message_section ["download_html_js_mods0"] 
@@ -703,7 +695,95 @@ let no_such_command  = message "no_such_command"
   
 let bad_number_of_args = _s    "Bad number of arguments"
 
-(* Colour arrays 
+(* Colour arrays
+
+Main CSS :
+
+body { background: @C0@;    
+scrollbar-face-color: @C1@; scrollbar-shadow-color: @C1@;
+scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: @C34@;
+scrollbar-darkshadow-color: @C34@; scrollbar-track-color: @C0@;
+scrollbar-arrow-color: @C34@; }
+table.commands { border: @C27@; background: @C0@;}
+table.topcommands { background: @C0@; border: @C27@; border-top: @C3@; border-left: @C3@;} 
+pre { color: @C26@; }
+p { color: @C26@; }
+input.txt { background: @C6@; }
+input.txt2 { background: @C11@; color: @C26@;
+border-right: @C35@; border-top: @C27@; border-left: @C27@; border-bottom: @C35@; }
+input.but2 { background: @C14@; }
+input.but { background: @C7@; }
+a:link,a:active,a:visited { color: @C28@; }
+a:hover { color: @C29@; }
+.bu { background: @C8@; color: @C9@; border: @C35@; }
+.bbig { border-top: @C3@;  border-left: @C3@;  border-bottom: @C27@;  border-right: @C27@;
+color: @C26@; background: @C11@; }
+.bbigm { border-top: @C3@; border-left: @C3@; border-bottom: @C27@; border-right: @C27@;
+color: @C26@; background: @C14@; }
+.bsmall { background: @C12@; }
+.bsmall1 { background: @C11@; }
+.bsmall2 { background: @C13@; }
+.bsmall3 { background: @C14@; }
+.bbig2 { background: @C14@; }
+.bbig3 { background: @C1@; }
+.b1 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b2 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b3 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b4 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.bb1 { border-left: @C27@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
+.bb2 { border-left: @C5@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
+.bb3 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
+.bb4 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
+.src { border-left: @C27@; border-top: @C27@; border-right: @C27@; border-bottom: @C27@; }
+td.fbig { background: @C10@; border-top: @C27@; border-left: @C27@; }
+td.pr { border-right: @C27@; }
+td.fbigb { border-top: @C27@; border-bottom: @C27@; }
+td.sr { color: @C26@; }
+td.srp { color: @C36@; }
+td.srw { color: @C26@; }
+td.srh { vertical-align: top; background: @C16@; color: @C26@; }
+tr.dl-1, td.dl-1 { background: @C20@; }
+tr.dl-2, td.dl-2 { background: @C21@; }
+.mOvr1, tr.mOvr1 {background: @C17@; }
+.mOvr2, tr.mOvr2 {background: @C18@; }
+.mOvr3, tr.mOvr3 {background: @C19@; }
+table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
+table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
+table.shares, table.vc, table.results, table.networkInfo { border: @C27@; }
+table.sourcesInfo, table.serversC { border: @C27@; }
+table.sources { border: @C27@;}
+td.srb { border-right: @C27@; border-bottom: @C27@;
+border-left: @C27@; border-top: @C27@; }
+td.br { border-right: @C27@;}
+.chunk0;{ background: @C22@}
+.chunk1 { background: @C23@}
+.chunk2 { background: @C2@}
+.chunk3 { background: @C8@}
+
+Download CSS
+body{ background-color:@C4@; color: @C26@; }
+td,pre { color: @C26@; }
+table.downloaders { border: @C27@;}
+td.loaded{ background-color:@C24@; }
+td.remain{ background-color:@C25@; }
+td.downloaded{ color: @C26@;}
+td.dl { color: @C26@;  }
+td.dlheader { color: @C26@;  
+border-bottom: ( background: @C16@; }
+input.checkbox { background: @C16@; }
+td.sr { color: @C26@; }
+td.brs { border-right: @C27@; }
+td.big { border-top: @C27@;  border-left: @C27@; }
+td.pr { border-right: @C27@; }
+.bigbutton { background: @C0@; border: @C0@; color: @C26@; }
+.headbutton { border: @C16@; background: @C16@; }
+tr.dl-1 { background: @C20@; }
+tr.dl-2 { background: @C21@; }
+tr.mOvrDL, .mOvrDL { background: @C17@;  }
+a:link,a:active,a:visited { color: @C30@; }
+a:hover { color: @C31@; }
+a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
+.extern:hover { color: @C33@; }
 
 0 - background                       13 - bsmall2 - (options, memstats)
 1 - scrollbar face                   14 - bsmall3 - (load onet peers)
@@ -719,47 +799,78 @@ let bad_number_of_args = _s    "Bad number of arguments"
 11 - bbig background (vma button)    24 - vd downloaded
 12 - bsmall back (Help!)             25 - vd remaining
 
+26 - general text
+27 - general border
+28 - anchor
+29 - anchor hover
+30 - download anchor
+31 - download hover anchor
+32 - external anchor
+33 - external hover anchor
+34 - some scrollbar
+35 - some border
+36 - one td text
 *)
 
-let ncarr = ref 6
+let ncarr = ref 7
 let carr = Array.create !ncarr [||]
 let _ = (
     (* Default green *)    
     carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#33F"; "#E5FFE5"; "#B2CCB2";
-                    "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#00F"; "#3D3D3D"; 
-                    "#86BE86"; "#B2CCB2"; "#BCD6BC"; "#A8C2A8"; "#A3BDA3"; 
-                    "#718B71"; "#90C890"; "#BADEBA"; "#F00"; "#94AE94"; 
-                    "#FFF"; "#EEE"; "#F33"; "#1010DC" ; "#72AA72"; "#EEE" |];
+                    "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#00F"; "#3D3D3D";
+                    "#86BE86"; "#B2CCB2"; "#BCD6BC"; "#A8C2A8"; "#A3BDA3";
+                    "#718B71"; "#90C890"; "#BADEBA"; "#F00"; "#94AE94";
+                    "#FFF"; "#EEE"; "#F33"; "#1010DC" ; "#72AA72"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
 	(* Orange Tang *)
     carr.(1) <- [| "#EEE"; "FF8800";  "FF8800"; "#FAD08F"; "F5F5F5";
-                    "#F2C074"; "#FF9900"; "#FF9900"; "#FF7700"; "#FFF"; 
-                    "#FF9D2D"; "#FF8800"; "#FF8800"; "#FF8800"; "#FF8800"; 
-                    "#FF9900"; "#FF8800"; "#FACF8E"; "#FACF8E"; "#FACF8E"; 
-                    "#FFF"; "#EEE"; "#DDD"; "#FACD88" ; "#FF9900"; "#EEE" |];
+                    "#F2C074"; "#FF9900"; "#FF9900"; "#FF7700"; "#FFF";
+                    "#FF9D2D"; "#FF8800"; "#FF8800"; "#FF8800"; "#FF8800";
+                    "#FF9900"; "#FF8800"; "#FACF8E"; "#FACF8E"; "#FACF8E";
+                    "#FFF"; "#EEE"; "#DDD"; "#FACD88" ; "#FF9900"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
     (* Light blue *)
     carr.(2) <- [| "#B3E7FF"; "#7CB1CA";  "#6BE4FF"; "#E6F7FF"; "#9ED3EC";
-                    "#E6F7FF"; "#9BDFFF"; "#8CBFD7"; "#7AF3FF"; "#000"; 
-                    "#4EBCEF"; "#9BCEE6"; "#A3D8F1"; "#91C4DC"; "#8CBFD7"; 
-                    "#5B8EA6"; "#5CCBFF"; "#BFE5F7"; "#7FBCD9"; "#99D6F2"; 
-                    "#FFF"; "#EEE"; "#4DBCF0"; "#48C1DC"; "#63C3F0"; "#EEE" |];
+                    "#E6F7FF"; "#9BDFFF"; "#8CBFD7"; "#7AF3FF"; "#000";
+                    "#4EBCEF"; "#9BCEE6"; "#A3D8F1"; "#91C4DC"; "#8CBFD7";
+                    "#5B8EA6"; "#5CCBFF"; "#BFE5F7"; "#7FBCD9"; "#99D6F2";
+                    "#FFF"; "#EEE"; "#4DBCF0"; "#48C1DC"; "#63C3F0"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
     (* Light purple *)                
     carr.(3) <- [| "#CAB2E4"; "#9982B3";  "#C29FE8"; "#E1D7ED"; "#BEA5DA";
-                    "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#D9B6FF"; "#000"; 
-                    "#9360CD"; "#B29DCC"; "#BDA5D7"; "#AB94C5"; "#A68FC0"; 
-                    "#786392"; "#A06ED8"; "#BE9EE3"; "#D9C5F1"; "#C0A2E0"; 
-                    "#FFF"; "#EEE"; "#9A77C0"; "#AE8BD4"; "#9054D1"; "#EEE" |];
+                    "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#D9B6FF"; "#000";
+                    "#9360CD"; "#B29DCC"; "#BDA5D7"; "#AB94C5"; "#A68FC0";
+                    "#786392"; "#A06ED8"; "#BE9EE3"; "#D9C5F1"; "#C0A2E0";
+                    "#FFF"; "#EEE"; "#9A77C0"; "#AE8BD4"; "#9054D1"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
     (* Monochrome *)
     carr.(4) <- [| "#C8C8C8"; "#878787";  "#5D5D5D"; "#E6E6E6"; "#A8A8A8";
-                    "#E6E6E6"; "#B3B3B3"; "#999"; "#494949"; "#000"; 
-                    "#686868"; "#AAA"; "#B6B6B6"; "#9F9F9F"; "#999"; 
-                    "#5E5E5E"; "#7F7F7F"; "#C1C1C1"; "#DFBDBD"; "#A4A4A4"; 
-                    "#FFF"; "#EEE"; "#989898"; "#6C6C6C"; "#424242"; "#EEE" |];
+                    "#E6E6E6"; "#B3B3B3"; "#999"; "#494949"; "#000";
+                    "#686868"; "#AAA"; "#B6B6B6"; "#9F9F9F"; "#999";
+                    "#5E5E5E"; "#7F7F7F"; "#C1C1C1"; "#DFBDBD"; "#A4A4A4";
+                    "#FFF"; "#EEE"; "#989898"; "#6C6C6C"; "#424242"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
     (* Corona *)
     carr.(5) <- [| "#C1CADE"; "#8195D6";  "#BCCADC"; "#FFF"; "#B7C0D4";
                     "#FFF"; "#FFF"; "#6B80BF"; "#B2C0D2"; "#000";
                     "#778BCC"; "#95A9EA"; "#9AAEEF"; "#90A4E5"; "#869FE0";
                     "#364A8B"; "#687CBD"; "#6578BB"; "#CF82C5"; "#8195D6";
-                    "#FFF"; "#EEE"; "#5668AB"; "#C1CFE1"; "#6476B9"; "#EEE" |];
+                    "#FFF"; "#EEE"; "#5668AB"; "#C1CFE1"; "#6476B9"; "#EEE";
+                    "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "FFF"; "#555" |];
+    (* Coronax *)
+    carr.(6) <- [| "#B1BACE"; "#5165A6";  "#BCCADC"; "#FFF"; "#B7C0D4";
+                    "#FFF"; "#FFF"; "#6B80BF"; "#B2C0D2"; "#000";
+                    "#778BCC"; "#95A9EA"; "#9AAEEF"; "#90A4E5"; "#869FE0";
+                    "#364A8B"; "#687CBD"; "#6578BB"; "#CF82C5"; "#5165A6";
+                    "#768FD0"; "#E08686"; "#5668AB"; "#C1CFE1"; "#6476B9"; "#EEE";
+                    "#D4C9B7"; "#000"; "#000"; "#000"; "#000"; "#000";
+                    "#000"; "#000099"; "#000"; "#8195D6"; "#555" |];
 )
 
 let html_css_mods = ref ""

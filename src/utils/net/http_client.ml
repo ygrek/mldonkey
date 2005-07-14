@@ -196,8 +196,9 @@ let http_reply_handler nr headers_handler sock nread =
   read_header (parse_header headers_handler) sock nread
   
 let get_page r content_handler f =
+  let error = ref false in
   let rec get_url level r =
-
+  try
     let url = r.req_url in
 (*
     let args = ref [] in
@@ -226,27 +227,30 @@ let get_page r content_handler f =
     in
 (*    lprintf "async_ip ...\n"; *)
     Ip.async_ip server (fun ip ->
-(*        lprintf "IP done %s:%d\n" (Ip.to_string ip) port; *)
+(*         lprintf "IP done %s:%d\n" (Ip.to_string ip) port;*)
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "http client connecting"
-            (Ip.to_inet_addr ip)
-          port (fun _ e ->
-              ()
-(*              lprintf "Event %s\n"
-                (match e with
-                  WRITE_DONE -> "WRITE_DONE"
-                | CAN_REFILL -> "CAN_REFILL"
-                | BUFFER_OVERFLOW -> "BUFFER_OVERFLOW"
-                | READ_DONE n -> Printf.sprintf "READ_DONE %d" n
-                | BASIC_EVENT e ->
-                    match e with
-                      (CLOSED s) -> Printf.sprintf "CLOSED %s" s
-                    | RTIMEOUT -> "RTIMEOUT"
-                    | LTIMEOUT -> "LTIMEOUT"
-                    | WTIMEOUT -> "WTIMEOUT"
-                    | CAN_READ -> "CAN_READ"
-                    | CAN_WRITE -> "CAN_WRITE"
-              ) *)
+            (try Ip.to_inet_addr ip with e -> raise Not_found)
+          port (fun sock e -> 
+              () 
+(*              if !verbose then
+                  lprintf "Event %s\n"
+                    (match e with
+                      CONNECTED -> "CONNECTED"
+                    | WRITE_DONE -> "WRITE_DONE"
+                    | CAN_REFILL -> "CAN_REFILL"
+                    | BUFFER_OVERFLOW -> "BUFFER_OVERFLOW"
+                    | READ_DONE n -> Printf.sprintf "READ_DONE %d" n
+                    | BASIC_EVENT e ->
+                        match e with
+                          (CLOSED s) -> Printf.sprintf "CLOSED %s" (string_of_reason s)
+                        | RTIMEOUT -> "RTIMEOUT"
+                        | LTIMEOUT -> "LTIMEOUT"
+                        | WTIMEOUT -> "WTIMEOUT"
+                        | CAN_READ -> "CAN_READ"
+                        | CAN_WRITE -> "CAN_WRITE"
+                    )
+ *)
           )
         in
         let nread = ref false in
@@ -259,7 +263,9 @@ let get_page r content_handler f =
         TcpBufferedSocket.set_closer sock (fun _ _ -> ()
 (*        lprintf "Connection closed nread:%b\n" !nread; *)
         )
+
     )
+  with e -> lprintf "Http_client: error in get_url\n"; raise Not_found
 
   and default_headers_handler old_url level sock ans_code headers =
     let print_headers () =
@@ -322,30 +328,38 @@ let get_page r content_handler f =
             
             with e ->
                 lprintf "Http_client: error understanding redirect response %d\n" ans_code;
-                print_headers ()
-
+                print_headers ();
+                raise Not_found
+                
           end
-        else lprintf "Http_client: more than 10 redirections, aborting."
-
+        else 
+          lprintf "Http_client: more than 10 redirections, aborting.";
+          raise Not_found
+          
     | 404 ->
-        lprintf "Http_client 404: Not found %s\n" (Url.to_string_no_args r.req_url);
+        lprintf "Http_client: 404: Not found for: %s\n" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
 
     | _ ->
-        lprintf "Http_client: bad reply %d for: %s\n"
+        lprintf "Http_client: %d: bad reply for: %s\n"
           ans_code (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
-
-  in get_url 0 r
-
-
-let wget r f =
+  in 
+  get_url 0 r;
+  if !error = true then begin
+      lprintf "Http_client: failed!!\n"; 
+      raise Not_found
+    end
+  
+  
+let wget r f = 
   
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0 in
   
+  try
   get_page r
     (fun maxlen headers sock nread ->
 (*      lprintf "received %d\n" nread; *)
@@ -379,11 +393,13 @@ let wget r f =
       with  e ->  lprintf
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
-          Sys.remove filename
+          Sys.remove filename;
+          raise Not_found
   )
-  
-let whead r f =
+  with e -> lprintf "Http_client: error in wget\n"; raise Not_found
 
+let whead r f = 
+  
   get_page r
     (fun maxlen headers ->
       lprintf "Http_client.headers...\n";

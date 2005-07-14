@@ -680,7 +680,14 @@ let chat_handler t event =
 
 let buf = Buffer.create 1000
 
-let html_page = ref true
+type http_file =
+  BIN
+| HTM
+| MLHTM
+| TXT
+| UNK
+
+let http_file_type = ref UNK
 
 open Http_server
 
@@ -719,36 +726,44 @@ let add_gzip_headers r =
   end
 
 let http_add_html_header r =
+  http_file_type := HTM;
   http_add_gen_header r;
   add_reply_header r "Pragma" "no-cache";
   add_reply_header r "Content-Type" "text/html; charset=UTF-8";
   add_gzip_headers r
 
 let http_add_css_header r =
+  http_file_type := TXT;
   http_add_gen_header r;
   add_reply_header r "Content-Type" "text/css; charset=UTF-8";
   add_gzip_headers r
 
 let http_add_js_header r =
+  http_file_type := TXT;
   http_add_gen_header r;
   add_reply_header  r "Content-Type" "text/javascript; charset=UTF-8";
   add_gzip_headers r
 
-let http_add_png_header r =
+let http_add_png_header r clen =
+  http_file_type := BIN;
   http_add_gen_header r;
   add_reply_header r "Content-Type" "image/png;";
+  add_reply_header r "Accept-Ranges" "bytes";
+  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen);
   add_gzip_headers r
 
-let http_add_jpg_header r =
+let http_add_jpg_header r clen =
+  http_file_type := BIN;
   http_add_gen_header r;
   add_reply_header r "Content-Type" "image/jpg;";
+  add_reply_header r "Accept-Ranges" "bytes";
+  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen);
   add_gzip_headers r
 
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 
 let html_open_page buf t r open_body =
   Buffer.clear buf;
-  html_page := true;
   http_add_html_header r;
 
   if not !!html_mods then
@@ -787,7 +802,7 @@ let html_close_page buf =
 
 let clear_page buf =
   Buffer.clear buf;
-  html_page := false
+  http_file_type := UNK
 
 let http_handler o t r =
   CommonInteractive.display_vd := false;
@@ -897,7 +912,7 @@ let http_handler o t r =
         | "/complex_search.html" ->
             html_open_page buf t r true;
             CommonSearch.complex_search buf
-        | "/noframe.html" -> 
+        | "/noframe.html" ->
             html_open_page buf t r true
 
         | "/oneframe.html" ->
@@ -907,109 +922,109 @@ let http_handler o t r =
         | "/bw_updown.png" ->
             do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
             (* Buffer.clear buf; *)
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_updown.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_updown.jpg" ->
             do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
             (* Buffer.clear buf;*)
-            html_page := false;
-            http_add_jpg_header r;
-            let showgraph = File.to_string "bw_updown.jpg" in
-            Buffer.add_string buf showgraph
+            let showgraph = File.to_string_alt "bw_updown.jpg" in
+            let size = Buffer.length showgraph in
+            http_add_jpg_header r size;
+            Buffer.add_buffer buf showgraph
 
         | "/bw_download.png" ->
             do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_download.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_download.jpg" ->
             do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
             Buffer.clear buf;
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "bw_download.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_upload.png" ->
             do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_upload.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_upload.jpg" ->
             do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
             Buffer.clear buf;
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "bw_upload.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_h_updown.png" ->
             do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
             (* Buffer.clear buf; *)
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_h_updown.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
-        
+
         | "/bw_h_updown.jpg" ->
             do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
             (* Buffer.clear buf;*)
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_updown.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_h_download.png" ->
             do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_h_download.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_h_download.jpg" ->
             do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
             Buffer.clear buf;
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_download.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_h_upload.png" ->
             do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "bw_h_upload.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
 
         | "/bw_h_upload.jpg" ->
             do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
             Buffer.clear buf;
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "bw_h_upload.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
 
         | "/tag.png" ->
             do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
-            html_page := false;
-            http_add_png_header r;
             let showgraph = File.to_string "tag.png" in
+            let size = String.length showgraph in
+            http_add_png_header r size;
             Buffer.add_string buf showgraph
-        
+
         | "/tag.jpg" ->
             do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
             (* Buffer.clear buf;*)
-            html_page := false;
-            http_add_jpg_header r;
             let showgraph = File.to_string "tag.jpg" in
+            let size = String.length showgraph in
+            http_add_jpg_header r size;
             Buffer.add_string buf showgraph
 
         | "/filter" ->
@@ -1307,9 +1322,14 @@ let http_handler o t r =
           r.reply_stream <- None
     end;
 
-  if !html_page then  html_close_page buf;
-  let s = Buffer.contents buf in
-  let s = dollar_escape o !!use_html_frames s in
+  let s =
+    match !http_file_type with
+      HTM -> html_close_page buf; dollar_escape o !!use_html_frames (Buffer.contents buf)
+    | MLHTM -> html_close_page buf; dollar_escape o !!use_html_frames (Buffer.contents buf)
+    | TXT
+    | BIN -> Buffer.contents buf
+    | UNK -> "Unknown type for content :" ^ (Buffer.contents buf)
+  in
   r.reply_content <- if Autoconf.has_zlib && !!html_use_gzip then Autoconf.zlib__gzip_string s else s
 
 let http_options = {

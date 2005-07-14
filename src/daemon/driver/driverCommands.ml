@@ -1547,6 +1547,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			(if Autoconf.has_gd then [
 			strings_of_option html_mods_vd_gfx_remove;
 			strings_of_option html_mods_vd_gfx_split;
+			strings_of_option html_mods_vd_gfx_stack;
 			strings_of_option html_mods_vd_gfx_fill;
 			strings_of_option html_mods_vd_gfx_flip;
 			strings_of_option html_mods_vd_gfx_mean;

@@ -452,7 +452,7 @@ let log_chat_message i num n s =
     Printf.fprintf oc "%s: %s (%s): %s\n" (Date.simple (BasicSocket.date_of_int (last_time ()))) n i s;
     close_out oc;
   with e ->
-    lprintf "[ERROR] Exception %s while trying to log message to %s\n"
+    lprintf_nl "[ERROR] Exception %s while trying to log message to %s"
       (Printexc2.to_string e) !messages_log;
 
   while (Fifo.length chat_message_fifo) > !!html_mods_max_messages do
@@ -460,17 +460,78 @@ let log_chat_message i num n s =
   done
 let last_message_log = ref 0
 
-let html_mods_table_header buf n c l =
-    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>" 
+let html_mods_commands buf n c l =
+    (* Name Class List *)
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\"
+    name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0
+    width=\\\"100pc\\\"\\>\\<tbody\\>\\<tr\\>"
     c n n c;
-    List.iter (fun (w,x,y,z)  -> 
-     Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>" 
+    List.iter (fun (w,x,y,z)  ->
+     (* Class Title Onclick Value *)
+     Printf.bprintf buf "\\<td class=\\\"%s\\\"
+     title=\\\"%s\\\" onMouseOver=\\\"mOvr(this,'mOvr1');\\\" onMouseOut=\\\"mOut(this);\\\"
+     onClick=\\\"%s\\\" \\>%s\\</td\\>"
+     w x y z;
+    ) l;
+    Printf.bprintf buf "\\</tr\\>\\</tbody\\>\\</table\\>\\</div\\>"
+
+(*
+  html_mods_commands buf "commandsTable" "commands" [
+    ( "bu bbig", "Extend search to more servers and view results", "mSub('output','vr');", "Extend search" ) ;
+*)
+
+
+let html_mods_table_header buf n c l =
+    (* Name Class List *)
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>"
+    c n n c;
+    List.iter (fun (w,x,y,z)  ->
+     (* Sort Class Title Value *)
+     Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
      w x y z;
     ) l;
     Printf.bprintf buf "\\</tr\\>"
 
-let html_mods_td buf l =
+let html_mods_table_no_header buf n c l =
+    (* 1 row * n cols *)
+    (* Name Class List *)
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>"
+    c n n c;
     List.iter (fun (t,c,d)  ->
+    (* Title Class Value *)
+     Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>"
+     c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
+    ) l;
+    Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"
+
+let html_mods_table_one_row buf n c l =
+    (* 1 row * n cols *)
+    (* Name Class List *)
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>"
+    c n n c;
+    List.iter (fun (t,c,d)  ->
+    (* Title Class Value *)
+     Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>"
+     c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
+    ) l;
+    Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"
+
+let html_mods_table_one_col buf n c l =
+    (* n rows * 1 col *)
+    (* Name Class List *)
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>"
+    c n n c;
+    List.iter (fun (t,c,d)  ->
+    (* Title Class Value *)
+     Printf.bprintf buf "\\<tr\\>\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>\\</tr\\>"
+     c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
+    ) l;
+    Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"
+
+let html_mods_td buf l =
+    (* List *)
+    List.iter (fun (t,c,d)  ->
+    (* Title Class Value *)
      Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>"
      c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
     ) l
@@ -539,6 +600,7 @@ let find_ui_user user =
         if u.ui_user_name = user then u else iter tail
   in
   iter !ui_users
+
 
 let valid_password user pass =
   let pass = Md4.Md4.string pass in

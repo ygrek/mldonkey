@@ -110,6 +110,7 @@ let ybb() = win_y() - bottom_margin
 let ybs() = ybb() - ybt 
 let vdt() = float_of_int(ybs()) /. float_of_int(vmax_auto())
 let vdt_m link = float_of_int(ybs()) /. float_of_int(vmax link)
+let vdt_stack link = float_of_int(ybs() / 2) /. float_of_int(vmax link)
 
 let ttl = ref ""
 let vl = ref ""
@@ -139,7 +140,18 @@ let draw_borders mypic gcolor =
   mypic#line ~x1:(fx (xdivisions())) ~y1:ybt ~x2:(fx (xdivisions())) ~y2:my_y gcolor;
   mypic#line ~x1:xbl ~y1:(fy 0) ~x2:my_x ~y2:(fy 0) gcolor;
   mypic#line ~x1:xbl ~y1:(fy (ydivisions())) ~x2:my_x ~y2:(fy (ydivisions())) gcolor
-    
+
+let draw_stack_borders mypic gcolor =
+  let my_y = (ybb()) in
+  let fx x = int_of_float ((((float_of_int x) /. (fxdivisions())) *. (float_of_int(xbs()))) +. (float_of_int xbl)) in
+  let my_x = (xbr()) in
+  let fy x = int_of_float ((((float_of_int x) /. (fydivisions())) *. (float_of_int(ybs()))) +. (float_of_int ybt)) in
+  mypic#line ~x1:(fx 0) ~y1:ybt ~x2:(fx 0) ~y2:my_y gcolor;
+  mypic#line ~x1:(fx (xdivisions())) ~y1:ybt ~x2:(fx (xdivisions())) ~y2:my_y gcolor;
+  mypic#line ~x1:xbl ~y1:(fy 0) ~x2:my_x ~y2:(fy 0) gcolor;
+  mypic#line ~x1:xbl ~y1:(fy (ydivisions())) ~x2:my_x ~y2:(fy (ydivisions())) gcolor;
+  mypic#line ~x1:xbl ~y1:(my_y - ((my_y - ybt) / 2)) ~x2:my_x ~y2:(my_y - ((my_y - ybt) / 2)) gcolor
+
 let draw_x_grid mypic gcolor =
   let my_y = (ybb()) in
   let fx x = int_of_float ((((float_of_int x) /. (fxdivisions())) *. (float_of_int(xbs()))) +. (float_of_int xbl)) in
@@ -203,6 +215,26 @@ let draw_v_legend mypic g legend_text lcolor gcolor offset =
     done;
     mypic#string ~font:Gd.Font.small ~x:(my_x + 5) ~y:((fy (y_divisions())) - 5) ~s:(legend_text) lcolor
 
+let draw_stack_v_top_legend mypic g legend_text lcolor gcolor offset =
+  let my_x = (xbr()) in
+  let my_y = (ybb()  - (ybs() / 2)) in
+  let fy x = int_of_float ((float_of_int my_y) -. (((float_of_int x) /. (y_fdivisions())) *. (float_of_int(ybs())))) in
+  let vtext n = (string_of_float (float_of_int(int_of_float((float_of_int (my_y - (fy n))) /. (vdt_stack g) /. 1024. *. 100.)) /. 100.)) in
+    for n = 1 to ((y_divisions()) - 1) do
+      mypic#string ~font:Gd.Font.small ~x:(my_x + 5) ~y:((fy n) - 12 + offset) ~s:(vtext n) gcolor;
+    done;
+    mypic#string ~font:Gd.Font.small ~x:(my_x + 5) ~y:((fy (y_divisions())) - 5) ~s:(legend_text) lcolor
+
+let draw_stack_v_bottom_legend mypic g legend_text lcolor gcolor offset =
+  let my_x = (xbr()) in
+  let my_y = (ybb()  - (ybs() / 2)) in
+  let fy x = int_of_float ((float_of_int my_y) +. (((float_of_int x) /. (y_fdivisions())) *. (float_of_int(ybs())))) in
+  let vtext n = (string_of_float (float_of_int(int_of_float((float_of_int ((fy n) - my_y)) /. (vdt_stack g) /. 1024. *. 100.)) /. 100.)) in
+    for n = 1 to ((y_divisions()) - 1) do
+      mypic#string ~font:Gd.Font.small ~x:(my_x + 5) ~y:((fy n) - 12 + offset) ~s:(vtext n) gcolor;
+    done;
+    mypic#string ~font:Gd.Font.small ~x:(my_x + 5) ~y:((fy (y_divisions())) - 5) ~s:(legend_text) lcolor
+
 let draw_h_legend mypic g legend_text gcolor my_time =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
@@ -260,6 +292,77 @@ let draw_load mypic g my_color shadow_color =
     done;
   end
   )
+
+let draw_stack_download mypic g my_color shadow_color =
+  let my_x = (xbr()) in
+  let my_x2 = (xbs()) in
+  let my_y = (ybb() - (ybs() / 2)) in
+  let my_y2 = (ybs() / 2) in
+  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
+  and y_c1 n = (my_y - (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
+  and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
+  (if !!html_mods_vd_gfx_fill then begin
+        mypic#line ~x1:(fx 0) ~y1:my_y
+         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then 
+         ((y_c1 0) - 3) else ((y_c1 0))) shadow_color;
+    for n = 0 to ((graph_length(g)) - 1) do
+  (* trick to make sure filling will not fail *)
+      if n = ((graph_length(g)) - 1) then
+        mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 2 then
+         ((y_c1 n) - 2) else ((y_c1 n))) ~x2:((fx (n+1))) ~y2:((y_c2 n)) shadow_color
+      else begin     
+        mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 2 then
+         ((y_c1 n) - 2) else ((y_c1 n)))
+         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y - 2 then 
+         ((y_c2 n) - 2) else ((y_c2 n))) shadow_color
+      end
+    done;
+  mypic#fill ~x:(my_x - 1) ~y:(my_y - 1) my_color;
+  end
+  else begin
+    for n = 0 to ((graph_length(g)) - 1) do
+      mypic#line ~x1:((fx n) + 1) ~y1:((y_c1 n) + 1) ~x2:((fx (n+1)) + 1) ~y2:((y_c2 n) + 1) shadow_color;
+      mypic#line ~x1:(fx n) ~y1:(y_c1 n) ~x2:(fx (n+1)) ~y2:(y_c2 n) my_color
+    done;
+  end
+  )
+
+let draw_stack_upload mypic g my_color shadow_color =
+  let my_x = (xbr()) in
+  let my_x2 = (xbs()) in
+  let my_y = (ybb() - (ybs() / 2)) in
+  let my_y2 = (ybs() / 2) in
+  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
+  and y_c1 n = (my_y + (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
+  and y_c2 n = (my_y + (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
+  (if !!html_mods_vd_gfx_fill then begin
+        mypic#line ~x1:(fx 0) ~y1:my_y
+         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then 
+         ((y_c1 0) - 3) else ((y_c1 0))) shadow_color;
+    for n = 0 to ((graph_length(g)) - 1) do
+  (* trick to make sure filling will not fail *)
+      if n = ((graph_length(g)) - 1) then
+        mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y + 2 then
+         ((y_c1 n) + 2) else ((y_c1 n))) ~x2:((fx (n+1))) ~y2:((y_c2 n)) shadow_color
+      else begin     
+        mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y + 2 then
+         ((y_c1 n) + 2) else ((y_c1 n)))
+         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y + 2 then 
+         ((y_c2 n) + 2) else ((y_c2 n))) shadow_color
+      end
+    done;
+  mypic#fill ~x:(my_x - 1) ~y:(my_y + 1) my_color;
+  end
+  else begin
+    for n = 0 to ((graph_length(g)) - 1) do
+      mypic#line ~x1:((fx n) + 1) ~y1:((y_c1 n) + 1) ~x2:((fx (n+1)) + 1) ~y2:((y_c2 n) + 1) shadow_color;
+      mypic#line ~x1:(fx n) ~y1:(y_c1 n) ~x2:(fx (n+1)) ~y2:(y_c2 n) my_color
+    done;
+  end
+  )
+
 
 let draw_mean_line mypic g my_color gcolor =
   let my_x = (xbr())
@@ -356,22 +459,35 @@ let do_draw_pic ttl vl hl gdown gup =
   if !!html_mods_vd_gfx_transparent then 
     mypic#colors#set_transparent white;
   (* draw graph *)
-  draw_borders mypic black;
   draw_title mypic ttl black g_y;
   draw_dual_top_legend mypic "download" black green darkgrey "upload" black red darkgrey g_y;
-  draw_v_legend mypic gdown vl black darkgreen 0;
-  draw_v_legend mypic gup vl black darkred 10;
   draw_h_legend mypic gdown hl black samples_time;
-  if !!html_mods_vd_gfx_fill then html_mods_vd_gfx_fill =:= false;
-  draw_load mypic gdown green darkgrey;
-  draw_load mypic gup red darkgrey;
-  draw_x_grid mypic black;
-  draw_y_grid mypic black;
-  draw_arrow mypic darkred;  
-  (if !!html_mods_vd_gfx_mean then
-    draw_mean_line mypic gdown green black;
-    draw_mean_line mypic gup red black
-  );
+  (if !!html_mods_vd_gfx_stack then begin
+    draw_stack_borders mypic black;
+    draw_stack_v_top_legend mypic gdown vl black darkgreen 5;
+    draw_stack_v_bottom_legend mypic gup vl black darkred 5;
+    (* enable filling for stack graph *)
+    if not !!html_mods_vd_gfx_fill then html_mods_vd_gfx_fill =:= true;
+    draw_stack_download mypic gdown green darkgrey;
+    draw_stack_upload mypic gup red darkgrey;
+    draw_x_grid mypic black;
+    draw_y_grid mypic black    
+   end
+  else begin
+    draw_borders mypic black;
+    draw_v_legend mypic gdown vl black darkgreen 0;
+    draw_v_legend mypic gup vl black darkred 10;
+    if !!html_mods_vd_gfx_fill then html_mods_vd_gfx_fill =:= false;
+    draw_load mypic gdown green darkgrey;
+    draw_load mypic gup red darkgrey;
+    draw_x_grid mypic black;
+    draw_y_grid mypic black;
+    (if !!html_mods_vd_gfx_mean then
+      draw_mean_line mypic gdown green black;
+      draw_mean_line mypic gup red black
+    );
+  end);
+  draw_arrow mypic darkred;
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_updown.png"
   else

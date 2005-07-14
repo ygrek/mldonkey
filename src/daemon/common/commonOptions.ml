@@ -503,6 +503,10 @@ let html_mods_vd_gfx_split = define_expert_option current_section
     ["html_mods_vd_gfx_split"] "Split download and upload graph in vd output"
     bool_option false
 
+let html_mods_vd_gfx_stack = define_expert_option current_section
+    ["html_mods_vd_gfx_stack"] "Stacked download and upload graph"
+    bool_option true
+
 let html_mods_vd_gfx_flip = define_expert_option current_section
     ["html_mods_vd_gfx_flip"] "Flip up/side graph position in vd output"
     bool_option true
@@ -512,7 +516,7 @@ let html_mods_vd_gfx_mean = define_expert_option current_section
     bool_option true
 
 let html_mods_vd_gfx_transparent = define_expert_option current_section
-    ["html_mods_vd_gfx_transparent"] "Show transparent graph in vd output"
+    ["html_mods_vd_gfx_transparent"] "Show transparent graph in vd output (only for png)"
     bool_option true
 
 let html_mods_vd_gfx_png = define_expert_option current_section
@@ -1447,7 +1451,7 @@ let _ =
         (!!minor_heap_size * 1024) };
   );
   option_hook client_buffer_size (fun _ ->
-      TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
+      TcpBufferedSocket.max_buffer_size := maxi 1000000 !!client_buffer_size
   );
   if Autoconf.has_gd then
     option_hook html_mods_vd_gfx_png (fun _ ->

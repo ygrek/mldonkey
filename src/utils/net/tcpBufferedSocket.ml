@@ -30,7 +30,7 @@ let max_connections_per_second = ref (fun () -> 50)
 let opened_connections = ref 0
 let opened_connections_this_second = ref 0
 
-let max_buffer_size = ref 100000
+let max_buffer_size = ref 1000000
 
 let bind_address = ref Unix.inet_addr_any
 let ip_packet_size = ref 40
@@ -410,9 +410,9 @@ let buf_add t b s pos1 len =
       end
     else
     if b.len + len > b.max_buf_size then begin
-        lprintf "BUFFER OVERFLOW %d+%d> %d    " b.len len b.max_buf_size ;
+        lprintf "[TCP_BS]: BUFFER OVERFLOW %d+%d> %d " b.len len b.max_buf_size ;
 
-        lprintf "MESSAGE [";
+        lprintf "MESSAGE: [";
         for i = pos1 to pos1 + (mini len 20) - 1 do
           lprintf "(%d)" (int_of_char s.[i]);
         done;
@@ -1520,7 +1520,7 @@ let set_max_output_buffer  t len =
 let to_deflate = ref []
 let to_deflate_len = ref 0
 
-let compression_buffer_len = 20000
+let compression_buffer_len = !max_buffer_size / 10
 let compression_buffer = String.create compression_buffer_len
 
 let deflate_connection sock =

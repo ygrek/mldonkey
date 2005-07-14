@@ -25,7 +25,7 @@ let to_string name =
   let cont = ref true in
   let rec iter buf nb_read =
     let buf_size = String.length buf in
-    let to_read = min (buf_size - nb_read) 10000 in
+    let to_read = min (buf_size - nb_read) 8192 in
     let tmp = input chan buf nb_read to_read in
     if tmp = 0 then 
       String.sub buf 0 nb_read
@@ -41,7 +41,36 @@ let to_string name =
   let buf = iter buf 0 in
   close_in chan;
   buf
-  
+
+let read_whole_chan chan =
+  let buf = Buffer.create 1024 in
+  let rec loop () =
+    Buffer.add_char buf (input_char chan);
+    loop ()
+  in
+  try
+    loop ()
+  with
+    End_of_file -> close_in chan; buf
+
+let to_string_alt name =
+  let chan = open_in_bin name in
+  read_whole_chan chan
+
+let to_copy in_name out_name =
+  let in_chan = open_in_bin in_name and
+  out_chan = open_out_bin out_name in
+  try
+    let rec rcpy () =
+      let c = input_byte in_chan in
+      output_byte out_chan c;
+      flush out_chan;
+      rcpy ();
+    in
+    rcpy ()
+  with
+    End_of_file -> ()
+
 let from_string name s =
   let oc = open_out name in
   output_string oc s;
