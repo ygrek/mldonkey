@@ -19,61 +19,60 @@
 
 open Options
 open Printf2
-  
+
 open AnyEndian
 open LittleEndian
 
-open BasicSocket  
+open BasicSocket
 open TcpBufferedSocket
-  
+
 open CommonGlobals
 open CommonOptions
 open CommonTypes
-  
-let days = ref 0      
-let hours = ref 0    
+
+let days = ref 0
+let hours = ref 0
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         load_url                                      *)
 (*                                                                       *)
-(*************************************************************************) 
+(*************************************************************************)
 
 let file_kinds = ref []
 
 let add_web_kind kind f =
   file_kinds := (kind,f) :: !file_kinds
 
-let mldonkey_wget url f = 
+let mldonkey_wget url f =
   let module H = Http_client in
   let r = {
       H.basic_request with
       H.req_url = Url.of_string url;
       H.req_proxy = !CommonOptions.http_proxy;
-      H.req_user_agent = 
+      H.req_user_agent =
       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
     } in
-  
-  H.wget r f  
-  
-  
+
+  H.wget r f
+
 let load_url kind url =
-  lprintf_nl "CommonWeb: QUERY URL %s" url; 
-  let f = 
-    try 
+  lprintf_nl "CommonWeb: QUERY URL %s" url;
+  let f =
+    try
       (List.assoc kind !file_kinds) url
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-  in 
+  in
   try
     mldonkey_wget url f
   with e -> failwith (Printf.sprintf "Exception %s while loading %s"
           (Printexc2.to_string e) url)
-  
+
 let load_file kind file =
-  try 
+  try
     (List.assoc kind !file_kinds) file file
-  with e -> 
-      lprintf_nl "Exception %s while loading kind %s" 
+  with e ->
+      lprintf_nl "Exception %s while loading kind %s"
         (Printexc2.to_string e)
       kind
 
@@ -81,8 +80,8 @@ let load_file kind file =
 (*                                                                       *)
 (*                         cut_messages (internal)                       *)
 (*                                                                       *)
-(*************************************************************************) 
-  
+(*************************************************************************)
+
 let cut_messages f sock nread =
   let b = buf sock in
   try
@@ -98,15 +97,15 @@ let cut_messages f sock nread =
       else raise Not_found
     done
   with Not_found -> ()
-  
+
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         add_redirector_info                           *)
 (*                                                                       *)
-(*************************************************************************) 
-    
-(* Learn how many people are using mldonkey at a current time, and which 
+(*************************************************************************)
+
+(* Learn how many people are using mldonkey at a current time, and which
 servers they are connected to --> build a database of servers
 
 Now, get some more information:
@@ -114,7 +113,7 @@ Now, get some more information:
 - How much data is shared ?
 
 Note that the exact content/type/name of the files is not sent, nor
-any private information. Just for statistics. Can be disabled in the 
+any private information. Just for statistics. Can be disabled in the
   downloads.ini config file anyway.
 *)
 let buf = TcpBufferedSocket.internal_buf
@@ -126,21 +125,21 @@ let buf_addr buf (ip,port) =
 let buf_string buf s =
   buf_int16 buf (String.length s);
   Buffer.add_string buf s
-  
+
 let redirector_infos = ref []
 let add_redirector_info (n : string) (f : Buffer.t -> unit) =
   redirector_infos := (n,f) :: !redirector_infos
 
-let gen_redirector_packet () = 
-  
+let gen_redirector_packet () =
+
   let infos =
     List.map (fun (n,f) ->
-        n, 
+        n,
         ( Buffer.clear buf;
           f buf;
           Buffer.contents buf)
     ) !redirector_infos in
-  
+
   Buffer.clear buf;
   buf_int8 buf 212; (* udp_magic *)
   buf_int8 buf 2;   (* type of data sent *)
@@ -156,13 +155,13 @@ let gen_redirector_packet () =
   buf_int16 buf !!max_hard_download_rate;
   buf_int buf (compute_lost_byte upload_control);
   buf_int buf (compute_lost_byte download_control);
-  
+
   buf_list (fun buf (n,s) ->
       buf_string buf n;
       buf_string buf s
   ) buf infos;
-  
-  let s = Buffer.contents buf in    
+
+  let s = Buffer.contents buf in
   s
 
 (*************************************************************************)
@@ -203,24 +202,24 @@ support the charge, at least, currently. *)
   let packet = gen_redirector_packet () in
   Ip.async_ip name (fun ip ->
       try
-        if !verbose_redirector then lprintf "connecting to redirector\n";
+        if !verbose_redirector then lprintf_nl "connecting to redirector";
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "connect redirector"
-            (Ip.to_inet_addr ip) port            
+            (Ip.to_inet_addr ip) port
             (fun sock event ->
               match event with
-              | BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
+              | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
                   TcpBufferedSocket.close sock Closed_for_timeout
               | _ -> ())
         in
         TcpBufferedSocket.set_rtimeout sock 30.;
         let to_read = ref [] in
         set_reader sock (cut_messages (fun opcode s ->
-              if !verbose_redirector then lprintf "redirector info received\n";
+              if !verbose_redirector then lprintf_nl "redirector info received";
               let module L = LittleEndian in
 
               let motd_html_s, pos = L.get_string16 s 2 in
-              let pos = if motd_html_s <> "XX" then 
+              let pos = if motd_html_s <> "XX" then
                   let servers_met_s, pos = L.get_string16 s pos in
                   let peers_ocl_s, pos = L.get_string16 s pos in
                   let peers_dat_s, pos = L.get_string16 s pos in
@@ -231,14 +230,17 @@ support the charge, at least, currently. *)
 
                   let servers_met_file = Filename.temp_file "servers" ".met" in
                   File.from_string servers_met_file servers_met_s;
+                  if !!enable_donkey then
                   load_file "servers.met" servers_met_file;
 
                   let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
                   File.from_string peers_ocl_file peers_ocl_s;
+                  if !!enable_overnet then
                   load_file "ocl" peers_ocl_file;
 
                   let peers_dat_file = Filename.temp_file "contacts" ".dat" in
                   File.from_string peers_dat_file peers_dat_s;
+                  if !!enable_overnet then
                   load_file "contact.dat" peers_dat_file;
 
                   let motd_conf_file = Filename.temp_file "motd" ".conf" in
@@ -247,6 +249,7 @@ support the charge, at least, currently. *)
 
                   let peers_kad_file = Filename.temp_file "peers" ".kad" in
                   File.from_string peers_kad_file peers_kad_s;
+                  if !!enable_kademlia then
                   load_file "kad" peers_kad_file;
 
                   pos
@@ -275,7 +278,7 @@ support the charge, at least, currently. *)
           ));
         write_string sock packet
 
-      with e -> 
+      with e ->
           lprintf "Exception %s while connecting redirector\n"
             (Printexc2.to_string e)
   );
@@ -285,21 +288,28 @@ support the charge, at least, currently. *)
     load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
   end;
   List.iter (fun (kind, period, url) ->
-      if !days mod period = 0 then load_url kind url
-  ) !!CommonOptions.web_infos
+      if !days mod period = 0 then
+        match kind with
+        | "contact.dat" -> if !!enable_overnet then load_url kind url
+        | "guarding.p2p" -> load_url kind url
+        | "kad" -> if !!enable_kademlia then load_url kind url
+        | "ocl" -> if !!enable_overnet then load_url kind url
+        | "server.met" -> if !!enable_donkey then load_url kind url
+        | _ -> lprintf_nl "unparsed kind to refresh: %s" kind; load_url kind url
+            ) !!CommonOptions.web_infos
 
 type rss_feed = {
     mutable rss_date : int;
     mutable rss_value : Rss.channel;
   }
-    
+
 let rss_feeds = Hashtbl.create 10
 
 
 let _ =
   add_web_kind "rss" (fun url filename ->
       let c = Rss.channel_of_file filename in
-      let feed = 
+      let feed =
         try Hashtbl.find rss_feeds url with
           Not_found ->
             let feed = {
@@ -320,7 +330,7 @@ let udp_latencies_block = ref ""
 let _ =
 (* Latency block *)
   add_redirector_info "LTCY" (fun buf ->
-      
+
       if not !initialized then begin
           tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
           udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
@@ -341,4 +351,3 @@ let _ =
       tcp_latencies_block := TcpBufferedSocket.get_latencies verbose_redirector;
       udp_latencies_block := UdpSocket.get_latencies verbose_redirector;
   )
-

@@ -1581,8 +1581,8 @@ let _ =
 
   (* Add this kind of web_info only for overnet (Edonkey
      Kademlia has web_info = "kad"). *)
-  if web_info = "ocl" then
-    begin
+  if web_info = "contact.dat" then begin
+    if !!enable_overnet && !!overnet_update_nodes then
       CommonWeb.add_web_kind "contact.dat" (fun _ filename ->
           if !verbose_overnet then
             lprintf_nl () "LOADED contact.dat";

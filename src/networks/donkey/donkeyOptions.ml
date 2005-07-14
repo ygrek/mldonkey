@@ -104,6 +104,10 @@ let update_server_list_server = define_option donkey_section
     ["update_server_list_server"] "Set this option to false if you don't want to
     receive new servers from servers" bool_option true
 
+let update_server_list_server_met = define_option donkey_section
+    ["update_server_list_server_met"] "Set this option to false if you don't want to
+    receive new servers from server.met" bool_option true
+
 let update_server_list_client = define_option donkey_section
     ["update_server_list_client"] "Set this option to false if you don't want to
     receive new servers from clients" bool_option false
@@ -111,6 +115,11 @@ let update_server_list_client = define_option donkey_section
 let keep_best_server = define_expert_option donkey_section
     ["keep_best_server"] "Set this option to false if you don't want mldonkey
     to change the master servers it is connected to" bool_option true
+
+let connect_only_preferred_server = define_expert_option donkey_section
+  ["connect_only_preferred_server"]
+  "only servers which are set to 'preferred' will be connected"
+  bool_option false
 
 let max_walker_servers = define_expert_option donkey_section
     ["max_walker_servers"] "Number of servers that can be used to walk
@@ -307,6 +316,7 @@ let gui_donkey_options_panel =
     "Maximal Server Age", shortname max_server_age, "T";
     "Min Left Servers After Clean", shortname min_left_servers, "T";
     "Update Server List Server", shortname update_server_list_server, "B";
+    "Update Server List Server.met", shortname update_server_list_server_met, "B";
     "Update Server List Client", shortname update_server_list_client, "B";
     "Servers Walking Period", shortname servers_walking_period, "T";
     "Force High ID", shortname force_high_id, "B";

@@ -87,7 +87,7 @@ let forget_search s =
 
 
 let load_server_met filename =
-  if !!update_server_list_server then
+  if !!update_server_list_server_met then
   try
     let module S = DonkeyImport.Server in
     let s = File.to_string filename in
