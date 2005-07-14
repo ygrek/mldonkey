@@ -445,38 +445,44 @@ let print_connected_servers o =
       try
         let list = network_connected_servers r in
         if List.mem NetworkHasServers r.network_flags ||
-          List.mem NetworkHasSupernodes r.network_flags 
-           then begin  
-       if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
-       Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
-         (List.length list) r.network_name;
-       if use_html_mods o then Printf.bprintf buf "\\</div\\>";
-		end;
-       if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
+          List.mem NetworkHasSupernodes r.network_flags
+        then begin
+           if use_html_mods o then begin
+               Printf.bprintf buf "\\<div class=servers\\>";
+               html_mods_table_one_row buf "serversTable" "servers" [
+                 ("", "srh", Printf.sprintf "--- Connected to %d servers on the %s network ---\n"
+                   (List.length list) r.network_name); ]
+             end
+           else
+             Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
+               (List.length list) r.network_name;
+           if use_html_mods o then Printf.bprintf buf "\\</div\\>";
+          end;
+         if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
 
       html_mods_cntr_init ();
        List.iter (fun s ->
         server_print s o;
        ) (List.sort (fun s1 s2 -> compare (server_num s1) (server_num s2)) list);
-        if use_html_mods o && List.length list > 0 then 
+        if use_html_mods o && List.length list > 0 then
            Printf.bprintf buf "\\</table\\>\\</div\\>";
-  	if Autoconf.donkey = "yes" && r.network_name = "Donkey" && not !!enable_servers then
+        if Autoconf.donkey = "yes" && r.network_name = "Donkey" && not !!enable_servers then
           begin
-	    if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
+            if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
             Printf.bprintf buf "You disabled server usage, therefore you are not able to connect ED2K servers.\n";
             Printf.bprintf buf "To use servers again 'set enable_servers true'\n";
-	    if use_html_mods o then Printf.bprintf buf "\\</div\\>"
-	  end;
+            if use_html_mods o then Printf.bprintf buf "\\</div\\>"
+          end;
        with e ->
            Printf.bprintf  buf "Exception %s in print_connected_servers"
              (Printexc2.to_string e);
   )
 
-let send_custom_query user buf query args = 
+let send_custom_query user buf query args =
   try
     let q = List.assoc query (CommonComplexOptions.customized_queries()) in
     let args = ref args in
-    let get_arg arg_name = 
+    let get_arg arg_name =
 (*      lprintf "Getting %s\n" arg_name; *)
       match !args with
         (label, value) :: tail ->

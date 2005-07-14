@@ -468,24 +468,77 @@ let colored_chunks chunks =
   let ostr = ref "" in
   let previous = ref 0 in
   let runlength = ref 0 in
+
+  let missing = ref 0 in
+  let partial = ref 0 in
+  let complete = ref 0 in
+  let verified = ref 0 in
+
+  let chunks_length=Array.length chunks in
+  let rl_divider=
+    if chunks_length > !!html_vd_chunk_graph_max_width then
+       (float_of_int !!html_vd_chunk_graph_max_width) /. (float_of_int chunks_length)
+    else
+      1.
+  in
+
+  let resize n = (int_of_float (floor ((float_of_int n) *. rl_divider))) in
   let nextbit b =
     if b = !previous then
       incr runlength
     else begin
       if !runlength > 0 then begin
-	ostr := !ostr ^ Printf.sprintf 
-	"\\<span class=\\\"chunk%d\\\"\\>" !previous;
-	while !runlength > 0 do
-          ostr := !ostr ^ "\\&nbsp;";
-          decr runlength
-	done;
-    ostr := !ostr ^ "\\</span\\>"
+        match !!html_vd_chunk_graph_style with
+        | 0 ->
+          let rl_resized = resize !runlength in
+          (* Show only "visible" chunks *)
+          if rl_resized > 0 then
+            ostr := !ostr ^ Printf.sprintf 
+            "\\<span class=\\\"chunk%d\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>" !previous rl_resized
+        | 1 | 2 ->
+          (match !previous with
+          | 0 -> missing := !missing + !runlength
+          | 1 -> partial := !partial + !runlength
+          | 2 -> complete := !complete + !runlength
+          | 3 -> verified := !verified + !runlength
+          | _ -> ())
+        | _ -> ();
       end;
       previous := b;
       runlength := 1
     end in
   Array.iter (fun b -> nextbit b) chunks;
   nextbit 99;
+  (match !!html_vd_chunk_graph_style with
+  | 1 ->
+    ostr := !ostr 
+    ^ Printf.sprintf "
+\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>"
+  (resize !missing) (resize !partial) (resize !complete) (resize !verified)
+  | 2 ->
+    ostr := !ostr 
+    ^ Printf.sprintf "
+\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
+\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>"
+  (resize !verified) (resize !complete) (resize !partial) (resize !missing)
+  | _ -> ());
+
+(*
+  ostr := !ostr 
+  ^ Printf.sprintf 
+  "\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !missing)
+  ^ Printf.sprintf 
+  "\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !partial)
+  ^ Printf.sprintf 
+  "\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !complete)
+  ^ Printf.sprintf 
+  "\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !verified);
+*)
   !ostr
 
 let file_print file o =
@@ -527,7 +580,13 @@ let file_print file o =
       let tt = ref "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
       html_mods_td buf [
         (!tt, "sr br", "Chunks");
-        (!tt, "sr", info.G.file_chunks) ];
+        (!tt, "sr", if !!html_vd_chunk_graph then
+          (colored_chunks (Array.init (String.length info.G.file_chunks)
+          (fun i -> ((int_of_char info.G.file_chunks.[i])-48))))
+          else
+            info.G.file_chunks
+        ) ];
+
 
       file_print_html file buf;
       

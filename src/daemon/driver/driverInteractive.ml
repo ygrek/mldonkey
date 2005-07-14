@@ -679,14 +679,15 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
   Printf.bprintf buf "\\</form\\>"
 
 end
-else Printf.bprintf buf "No files"
+else
+  html_mods_table_one_row buf "downloaderTable" "downloaders" [
+    ("", "srh", "!! No files, please use search or the dllink <url> command to add a new download !!"); ]
 
-
-let html_mods_done_files buf files = 
+let html_mods_done_files buf files =
 
   Printf.bprintf buf "\\</pre\\>
 \\<div class=\\\"main\\\"\\>
-\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<table class=main cellspacing=0 cellpadding=0\\>
 
 \\<tr\\>\\<td\\>
 
@@ -926,15 +927,23 @@ let display_file_list buf o =
     Printf.bprintf buf "%0sDownloaded %d files\n" (if !!term_ansi then "$n" else "") (List.length !!done_files);
   if !!done_files <> [] then begin
 (*      List.iter (fun file -> CommonFile.file_print file o)   !!done_files; *)
-      simple_print_file_list true buf 
-        (List2.tail_map file_info !!done_files) o; 
-      if not (use_html_mods o) then 
+      simple_print_file_list true buf
+        (List2.tail_map file_info !!done_files) o;
+      if not (use_html_mods o) then
         if !!auto_commit then
-          Printf.bprintf buf
-            "Files will be automatically commited in the incoming directory"
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "searchTable" "search" [
+              ("", "srh", "Files will be automatically commited in the incoming directory"); ]
+          else
+            Printf.bprintf buf
+              "Files will be automatically commited in the incoming directory"
         else
-          Printf.bprintf buf
-          "Use 'commit' to move downloaded files to the incoming directory"
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "searchTable" "search" [
+              ("", "srh", "Use 'commit' to move downloaded files to the incoming directory"); ]
+          else
+            Printf.bprintf buf
+              "Use 'commit' to move downloaded files to the incoming directory"
     end
 
 
@@ -989,7 +998,7 @@ let old_print_search buf o results =
                       Printf.bprintf buf "\\<td title=\\\"";
                       let nl = ref false in
                       List.iter (fun t ->
-                          match t.tag_name with 
+                          match t.tag_name with
                           | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()
                           | _ ->
                               Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^

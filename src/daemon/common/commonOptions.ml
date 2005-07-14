@@ -593,6 +593,15 @@ let html_mods_vd_queues = define_expert_option current_section
 let html_vd_barheight = define_expert_option current_section
     ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
 
+let html_vd_chunk_graph = define_expert_option current_section
+    ["html_vd_chunk_graph"] "Whether to display chunks list as graph or text in vd output" bool_option true
+
+let html_vd_chunk_graph_style = define_expert_option current_section
+    ["html_vd_chunk_graph_style"] "Change style of chunk graph" int_option 0
+
+let html_vd_chunk_graph_max_width = define_expert_option current_section
+    ["html_vd_chunk_graph_max_width"] "Change max width of chunk graph" int_option 880
+
 let html_mods_show_pending = define_expert_option current_section
     ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
 

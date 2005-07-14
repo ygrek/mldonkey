@@ -778,10 +778,21 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
         if !xs_last_search >= 0 then begin
             try
               DonkeyUdp.make_xs (CommonSearch.search_find !xs_last_search);
-              "extended search started"
-            with e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
-          end else "No previous search to extend"),
-    ":\t\t\t\t\textend the last search";
+              if o.conn_output = HTML then
+                html_mods_table_one_row buf "searchTable" "search" [
+                  ("", "srh", "Extended search started"); ]
+              else
+                Printf.bprintf buf "extended search started";
+            with e -> Printf.bprintf buf "Error %s" (Printexc2.to_string e)
+          end else begin
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "searchTable" "search" [
+                ("", "srh", "No previous search to extend"); ]
+            else
+              Printf.bprintf buf "No previous search to extend";
+          end;
+        ""
+    ), ":\t\t\t\t\textend the last search";
 
     "clh", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -805,7 +816,12 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeyServers.remove_old_servers ();
-        "clean done"
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "Clean done"); ]
+        else
+          Printf.bprintf buf "clean done";
+        ""
     ), ":\t\t\tremove servers that have not been connected for several days";
 
 

@@ -529,10 +529,21 @@ let custom_query buf query =
       Printf.bprintf buf "No custom search %s" query
   end
   else
-  Printf.bprintf buf "
+    begin
+(*       html_mods_table_header buf "searchTable" "search" [];
+      html_mods_td buf [
+        ("", "srh", "No searchable networks enabled"); ];
+ *)
+      Buffer.add_string buf "<div class=\"results\">
+<table id=\"memstatsTable\" name=\"searchTable\" class=\"search\" cellspacing=0 cellpadding=0>
+<tr><td class=\"srh\" >No searchable networks enabled</td>";
+
+      Buffer.add_string buf "</tr></table></div>\n"
+    end
+(*   Printf.bprintf buf "
 <h3> No searchable networks enabled </h3>
   "
-
+ *)
 let complex_search buf =
   can_search := false;
   Hashtbl.iter (fun name net ->
@@ -540,18 +551,24 @@ let complex_search buf =
             can_search := true;
       with _ -> ()
   ) CommonNetwork.networks_by_name;
+  Buffer.add_string buf "<div class=\"results\">
+<table id=\"memstatsTable\" name=\"searchTable\" class=\"search\" cellspacing=0 cellpadding=0>
+<tr><td class=\"srh\" >";
+
 
   Buffer.add_string  buf
     "
 <center>
 <h2> Complex Search </h2>
 </center>
+</td>
     ";
 
   if !can_search then begin
 
   Buffer.add_string  buf
     "
+<td>
 <form action=\"submit\">
 <table border=0>
 <tr>
@@ -725,16 +742,28 @@ Min bitrate
       with _ -> ()
   ) CommonNetwork.networks_by_name;
   Printf.bprintf buf "
-      </select></td></tr>";
+      </select></td></tr></table></form></td>";
   end;
-  if not !can_search then
+  if not !can_search then begin
+(*       html_mods_table_header buf "searchTable" "search" [];
+      html_mods_td buf [
+        ("", "srh", "No searchable networks enabled"); ];
+ *)
+      Printf.bprintf buf "<td><div class=\"results\">
+<table id=\"memstatsTable\" name=\"searchTable\" class=\"search\" cellspacing=0 cellpadding=0>
+<tr><td class=\"srh\" >No searchable networks enabled</td>";
+
+      Buffer.add_string buf "</tr></table></div></td>\n"
+    end;
+    (*
   Printf.bprintf buf "
 <h3> No searchable networks enabled </h3>
   ";
+  *)
   Buffer.add_string buf
     "
 </table>
-</form>
+</div>
 "
   
 let search_forget user s =

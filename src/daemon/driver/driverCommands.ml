@@ -329,10 +329,10 @@ let _ =
                 let c = client_find num in
                 let i = client_info c in
                 if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\"
-			 title=\\\"Add as friend\\\" 
-			 onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"
-            onMouseOver=\\\"mOvr(this);\\\"
-            onMouseOut=\\\"mOut(this);\\\"\\>"
+                  title=\\\"Add as friend\\\"
+                  onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"
+                  onMouseOver=\\\"mOvr(this);\\\"
+                  onMouseOut=\\\"mOut(this);\\\"\\>"
                     (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
                     client_print c o;
                     html_mods_td buf ([
@@ -692,13 +692,26 @@ let _ =
                 lprintf "Exception %s in server_print\n"
                   (Printexc2.to_string e);
         ) !!servers;
-        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-        Printf.bprintf buf "Servers: %d known\n" !nb_servers;
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\</table\\>\\</div\\>";
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", Printf.sprintf "Servers: %d known" !nb_servers); ]
+          end
+        else
+          Printf.bprintf buf "Servers: %d known\n" !nb_servers;
         if Autoconf.donkey = "yes" && not !!enable_servers then
           begin
-            if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
-            Printf.bprintf buf "You disabled server usage, therefore you are not able to connect ED2K servers.\n";
-            Printf.bprintf buf "To use servers again 'set enable_servers true'\n";
+            if use_html_mods o then begin
+                Printf.bprintf buf "\\<div class=servers\\>";
+                html_mods_table_one_row buf "upstatsTable" "upstats" [
+                  ("", "srh", ("You disabled server usage, therefore you are not" ^
+                    " able to connect ED2K servers. " ^
+                    "To use servers again 'set enable_servers true'")); ]
+              end
+            else
+              Buffer.add_string buf ("You disabled server usage, therefore you are not" ^
+                " able to connect ED2K servers.\n" ^
+                "To use servers again 'set enable_servers true'\n");
             if use_html_mods o then Printf.bprintf buf "\\</div\\>"
           end;
     ""), ":\t\t\t\t\tlist all known servers";
@@ -731,19 +744,31 @@ let _ =
     ), "<num> :\t\t\tprint banner of connected server <num>";
 
     "c", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
         match args with
           [] ->
             networks_iter network_connect_servers;
-            _s "connecting more servers"
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "Connecting more servers"); ]
+            else
+              Printf.bprintf buf "connecting more servers";
+            _s
+        ""
         | _ ->
             List.iter (fun num ->
                 let num = int_of_string num in
                 let s = server_find num in
                 server_connect s
             ) args;
-            _s "connecting server"
-    ),
-    "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "Connecting more servers"); ]
+            else
+              Printf.bprintf buf "connecting server";
+            _s
+        ""
+    ), "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
 
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
@@ -1139,7 +1164,13 @@ let _ =
         | [] ->
             begin
               match user.ui_user_searches with
-                [] -> "No search to print"
+                [] ->
+                  if o.conn_output = HTML then
+                    html_mods_table_one_row buf "searchTable" "search" [
+                      ("", "srh", "No search to print"); ]
+                  else
+                    Printf.bprintf buf "No search to print";
+            ""
               | s :: _ ->
                   DriverInteractive.print_search buf s o;
                   ""
@@ -1179,36 +1210,48 @@ let _ =
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
-        Printf.bprintf  buf "Searching %d queries\n" (
-          List.length user.ui_user_searches);
-        List.iter (fun s ->
-            Printf.bprintf buf "%s[%-5d]%s %s %s (found %d)\n"
-              (if o.conn_output = HTML then
-                Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\" target=fstatus\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num 
-              else "")
-            s.search_num
-              s.search_string
-              (if o.conn_output = HTML then "\\</a\\>" else "")
-            (if s.search_waiting = 0 then _s "done" else
-                string_of_int s.search_waiting)
-            s.search_nresults
-        ) (Sort.list (fun f1 f2 -> f1.search_num < f2.search_num)
-          user.ui_user_searches); ""), ":\t\t\t\t\tview all queries";
+        let num_searches = List.length user.ui_user_searches in
+        if num_searches < 1 then
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "searchTable" "search" [
+              ("", "srh", "No search yet"); ]
+          else
+            Printf.bprintf buf "No search yet"
+        else begin
+            if o.conn_output = HTML then
+              Printf.bprintf  buf "Searching %d queries\n" (
+                List.length user.ui_user_searches);
+            List.iter (fun s ->
+                Printf.bprintf buf "%s[%-5d]%s %s %s (found %d)\n"
+                  (if o.conn_output = HTML then
+                    Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\" target=fstatus\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num
+                  else "")
+                s.search_num
+                  s.search_string
+                  (if o.conn_output = HTML then "\\</a\\>" else "")
+                (if s.search_waiting = 0 then _s "done" else
+                    string_of_int s.search_waiting)
+                s.search_nresults
+            ) (Sort.list (fun f1 f2 -> f1.search_num < f2.search_num)
+            user.ui_user_searches)
+          end;
+        ""
+    ), ":\t\t\t\t\tview all queries";
 
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
         if o.conn_output <> HTML then
           Printf.bprintf buf "%d custom queries defined\n"
             (List.length (customized_queries ()));
-        List.iter (fun (name, q) ->
+        let custom_commands = ref [] in
+	List.iter (fun (name, q) ->
             if o.conn_output = HTML then
               begin
-
                 if use_html_mods o then
-                  Printf.bprintf buf
-                    "\\<a href=\\\"submit\\?custom=%s\\\" target=\\\"$O\\\"\\>%s\\</a\\> "
-                    (Url.encode name) name
-
+                  custom_commands := !custom_commands @ [ ( "bu bbig",
+                  Printf.sprintf "%s" name,
+                  Printf.sprintf "top.output.location.href='submit\\?custom=%s'" (Url.encode name),
+                  Printf.sprintf "%s" name ) ; ]
                 else
                   Printf.bprintf buf
                     "\\<a href=\\\"submit\\?custom=%s\\\" $O\\> %s \\</a\\>\n"
@@ -1220,31 +1263,43 @@ let _ =
         ) (customized_queries ());
 
         if use_html_mods o then
-          Printf.bprintf buf "\\<a
-            href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FileHeaven\\</a\\> \\<a
-            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FileDonkey\\</a\\> \\<a
-            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> ";
-
+          html_mods_commands buf "commandsTable" "commands" (!custom_commands @ [
+            ("bu bbig", "Visit FileHeaven",
+             "top.output.location.href='http://www.fileheaven.org/'", "FileHeaven");
+            ("bu bbig", "Visit FileDonkey",
+             "top.output.location.href='http://www.filedonkey.com/'", "FileDonkey");
+            ("bu bbig", "Visit Bitzi",
+             "top.output.location.href='http://www.fileheaven.org/'", "Bitzi");
+          ]);
         ""
     ), ":\t\t\tview custom queries";
 
     "d", Arg_multiple (fun args o ->
         List.iter (fun arg ->
             CommonInteractive.download_file o arg) args;
-        ""),
-    "<num> :\t\t\t\t$bfile to download$n";
+        ""
+    ), "<num> :\t\t\t\t$bfile to download$n";
 
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
         match !CommonGlobals.aborted_download with
-          None -> "No download to force"
+          None ->
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "downloadTable" "downloads" [
+                ("", "srh", "No download to force"); ]
+            else
+              Printf.bprintf buf "No download to force";
+        ""
         | Some r ->
             let r = CommonResult.find_result r in
-            let files = CommonResult.result_download
-                r [] true
-            in
+            let files = CommonResult.result_download r [] true in
             List.iter CommonInteractive.start_download files;
-            "download forced"
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "downloadTable" "downloads" [
+                ("", "srh", "Download forced"); ]
+            else
+              Printf.bprintf buf "Download forced";
+        ""
     ), ":\t\t\t\tforce download of an already downloaded file";
 
     ]
@@ -1479,6 +1534,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_checkbox_search_file_list;
 			strings_of_option commands_frame_height;
 			strings_of_option html_vd_barheight;
+			strings_of_option html_vd_chunk_graph;
+			strings_of_option html_vd_chunk_graph_style;
+			strings_of_option html_vd_chunk_graph_max_width;
 			strings_of_option display_downloaded_results;
 			strings_of_option vd_reload_delay;
 			strings_of_option html_use_gzip;
@@ -1897,24 +1955,30 @@ let _ =
             _s "directory removed"
           end else
           _s "directory already unshared"
-    
+
     ), "<dir> :\t\t\t\tshare directory <dir>";
 
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
-        
-        if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
-        else Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Session: %s uploaded | Shared(%d): %s\n"
-          (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes);
 
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>";
+            html_mods_table_one_row buf "upstatsTable" "upstats" [
+              ("", "srh", Printf.sprintf "Session: %s uploaded | Shared(%d): %s\n"
+                (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)); ]
+          end
+        else begin
+            Printf.bprintf buf "Upload statistics:\n";
+            Printf.bprintf buf "Session: %s uploaded | Shared(%d): %s\n"
+              (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)
+          end;
         let list = ref [] in
         shared_iter (fun s ->
             let impl = as_shared_impl s in
             list := impl :: !list
         );
 
-        if use_html_mods o then 
+        if use_html_mods o then
           html_mods_table_header buf "upstatsTable" "upstats" [
             ( "1", "srh", "Total file requests", "Reqs" ) ;
             ( "1", "srh", "Total bytes sent", "Total" ) ;
@@ -1945,23 +2009,26 @@ let _ =
                   (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
 
-		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-		  (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-		
-		let uploaded = Int64.to_float impl.impl_shared_uploaded in
-		let size = Int64.to_float impl.impl_shared_size in
-		
-		html_mods_td buf [
-		  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
-		  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
-		  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
-		  ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
-		      ed2k (Filename.basename impl.impl_shared_codedname));
-		  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
-		    Printf.sprintf "\\<a href=\\\"http://stats.razorback2.com/ed2khistory?ed2k=%s\\\"\\>%s\\</a\\>
-				    \\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>"
-		      (Md4.to_string impl.impl_shared_id) "R" (Md4.to_string impl.impl_shared_id) "B")) ];
-		Printf.bprintf buf "\\</tr\\>\n";
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                  (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+
+                let uploaded = Int64.to_float impl.impl_shared_uploaded in
+                let size = Int64.to_float impl.impl_shared_size in
+
+                html_mods_td buf [
+                  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
+                  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
+                  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
+                  ("", "sr", (if impl.impl_shared_id = Md4.null then
+                    (Filename.basename impl.impl_shared_codedname)
+                  else
+                    Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
+                      ed2k (Filename.basename impl.impl_shared_codedname)));
+                  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
+                    Printf.sprintf "\\<a href=\\\"http://stats.razorback2.com/ed2khistory?ed2k=%s\\\"\\>%s\\</a\\>
+                                    \\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>"
+                      (Md4.to_string impl.impl_shared_id) "R" (Md4.to_string impl.impl_shared_id) "B")) ];
+                Printf.bprintf buf "\\</tr\\>\n";
               end
             else
               Printf.bprintf buf "%9d | %8s | %7s%% | %-50s\n"
@@ -2001,29 +2068,33 @@ let _ =
         ) list;
         "Done"
     ), ":\t\t\t\t\tlist links of shared files";
-    
+
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
 
-        let nuploaders = Intmap.length !uploaders in 
+        let nuploaders = Intmap.length !uploaders in
 
         if use_html_mods o then
 
           begin
 
             let counter = ref 0 in
-
-            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
+            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>";
+            html_mods_table_one_row buf "uploadersTable" "uploaders" [
+              ("", "srh", Printf.sprintf "Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
+                (Fifo.length CommonUploads.upload_clients)
+                (Intmap.length !CommonUploads.pending_slots_map)); ];
+(*             Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
               (Fifo.length CommonUploads.upload_clients)
             (Intmap.length !CommonUploads.pending_slots_map);
-
+ *)
             if nuploaders > 0 then
 
               begin
 
-                html_mods_table_header buf "uploadersTable" "uploaders" ([ 
-                  ( "1", "srh ac", "Client number", "Num" ) ; 
-                  ( "0", "srh", "Network", "Network" ) ; 
+                html_mods_table_header buf "uploadersTable" "uploaders" ([
+                  ( "1", "srh ac", "Client number", "Num" ) ;
+                  ( "0", "srh", "Network", "Network" ) ;
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ;
@@ -2344,7 +2415,13 @@ let _ =
         List.iter (fun file ->
             file_commit file
         ) !!done_files;
-        "Commited"
+        let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "Commited"); ]
+        else
+          Printf.bprintf buf "Commited";
+        ""
     ) , ":\t\t\t\t\t$bmove downloaded files to incoming directory$n";
 
     "vd", Arg_multiple (fun args o ->
@@ -2394,7 +2471,7 @@ let _ =
 				\\</tr\\>\\</table\\>
 				\\</td\\>\\</tr\\>
 				\\<tr\\>\\<td\\>" num num
-                else begin	
+                else begin
                     Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
                     Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
                     Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\> \n " num;
@@ -2785,7 +2862,13 @@ let _ =
 
     "close_fds", Arg_none (fun o ->
         Unix32.close_all ();
-        "All files closed"
+        let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "All files closed"); ]
+        else
+          Printf.bprintf buf "All files closed";
+        ""
     ), ":\t\t\t\tclose all files (use to free space on disk after remove)";
 
     "debug_socks", Arg_none (fun o ->
@@ -2794,15 +2877,34 @@ let _ =
     ), ":\t\t\t\tfor debugging only";
 
     "block_list", Arg_none (fun o ->
-      Ip_set.print_list o.conn_buf !Ip_set.bl;
-      _s "done"
+      let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          let mybuf = Buffer.create 1000 in
+          let mytable = ref [] in
+          let split_string c str =
+            let rec aux s acc =
+              try  let ind=String.index s c in
+                     aux (String.sub s (ind+1) ((String.length s) - ind -1 ))
+                         ((String.sub s 0 ind)::acc)
+              with Not_found -> List.rev (s::acc)
+              in aux str []; in
+          let split_lines = split_string '\n' in
+          Ip_set.print_list mybuf !Ip_set.bl;
+          let listtmp = split_lines (Buffer.contents mybuf) in
+           (List.iter (fun s ->
+             mytable := !mytable @ [ ("", "srh", s); ]
+            ) listtmp);
+          html_mods_table_one_col buf "serversTable" "servers" !mytable
+        else
+          Ip_set.print_list buf !Ip_set.bl;
+      _s ""
     ), ":\t\t\t\tdisplay the list of blocked IP ranges that were hit";
 
     "block_test", Arg_one (fun arg o ->
       let ip = Ip.of_string arg in
       _s (match match_ip_aux !Ip_set.bl ip with
-	  None -> "Not blocked"
-	| Some br ->
-	    Printf.sprintf "Blocked, %s\n" br.blocking_description)),
-      "<ip> :\t\t\tcheck whether an IP is blocked";
+          None -> "Not blocked"
+        | Some br ->
+          Printf.sprintf "Blocked, %s\n" br.blocking_description)
+    ), "<ip> :\t\t\tcheck whether an IP is blocked";
   ]

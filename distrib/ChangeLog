@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/14: spiralvoice
+
+4168: HTML: Graphical chunk display in vd <num> (by beedauchon)
+
 2005/07/13: spiralvoice
 
 Remove obsolete ./src/gtk/gui2 directory
