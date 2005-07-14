@@ -687,7 +687,7 @@ let web_infos = define_option current_section
 let rss_feeds = define_expert_option current_section ["rss_feeds"]
     "URLs of RSS feeds"
     (list_option Url.option) []
-  
+
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
     "IP blocking list filename (peerguardian format)"
     string_option "guarding.p2p"
@@ -710,7 +710,7 @@ let mtu_packet_size = define_expert_option current_section ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
 
-let packet_frame_size = define_expert_option current_section 
+let packet_frame_size = define_expert_option current_section
     ["packet_frame_size"]
   "The size of the frame packet on your network (on my cable link, it is 250)"
     int_option 250
@@ -725,7 +725,7 @@ let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
   This implies some bandwidth-cost (with 200 connections ~10-20%)"
     bool_option !BasicSocket.socket_keepalive
 
-let network_update_url = 
+let network_update_url =
   define_expert_option current_section ["network_update_url"]
     "URL where mldonkey can download update information on the network"
     string_option ""
@@ -738,7 +738,7 @@ let mlnet_redirector = define_expert_option current_section ["redirector"]
 let _ =
   option_hook mlnet_redirector (fun _ ->
       let (ip, port) = !!mlnet_redirector in
-      if ip = "128.93.52.5" then 
+      if ip = "128.93.52.5" then
         mlnet_redirector =:=  ("129.104.11.42", 3999)
   )
 
@@ -1130,7 +1130,7 @@ let dp500_buffer =
   define_expert_option current_section ["dp500_buffer"]
     "(experimental)" int_option 2000000
 
-let dp500_directory = 
+let dp500_directory =
   define_expert_option current_section ["dp500_directory"]
     "(experimental)" string_option "dp500"
 
@@ -1232,9 +1232,9 @@ let calendar = define_expert_option current_section ["calendar"]
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
     int_option 3600 *)
-  
+
 let compaction_overhead = define_expert_option current_section
-    ["compaction_overhead"] 
+    ["compaction_overhead"]
     "The percentage of free memory before a compaction is triggered"
     int_option 25
 
@@ -1250,7 +1250,7 @@ let options_version = define_expert_option current_section ["options_version"]
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         Debug section                                  *)
+(*                         Debug section                                 *)
 (*                                                                       *)
 (*************************************************************************)
 

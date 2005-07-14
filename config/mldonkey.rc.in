@@ -19,7 +19,7 @@ FILETYPE VFT_APP
 	    BLOCK "000004b0" // LANG_NEUTRAL,UNICODE_CP
         {
 		    VALUE "Comments","MLdonkey is distributed under the terms of the GNU General Public License Version 2. Sourcecode is available at http://www.mldonkey.net\000"
-            VALUE "CompanyName", "\000"
+            VALUE "CompanyName", "mldonkey team\000"
             VALUE "FileDescription", "MLdonkey - multiuser P2P daemon\000"
             VALUE "FileVersion", "\000"
             VALUE "InternalName", "Counter Counter\000"

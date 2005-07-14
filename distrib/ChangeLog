@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/14: spiralvoice
 
+4173: Clear whitespace from code
 4168: HTML: Graphical chunk display in vd <num> (by beedauchon)
 4167: Gdstats: Fix corrupted pics output/improved output (by beedauchon)
 
@@ -41,9 +42,6 @@ Remove obsolete ./src/gtk/gui2 directory
 
 4118: Improve Overnet/Kademlia logging and mem_stats output
       (overnet_log,patch)
-
-Split Changelog in two parts, all stuff older than 2.5.30.15 is now
-in docs/ChangeLog.old
 ---------------------------------------------------------------------
 2005/07/05: spiralvoice (version 2.5.30.17 = tag release-2-5-30-17)
 
@@ -203,3 +201,5 @@ from rev293:
 * Patch from beedauchon fixes transparency issues with
 graphical stats.
 ---------------------------------------------------------------------
+Split Changelog in two parts, all stuff older than 2.5.30.15 is now
+in docs/ChangeLog.old

@@ -22,23 +22,19 @@ open Gettext
 open Options
 open Str (* global_replace *)
 
-  
+
 let _s x = _s "CommonMessages" x
 let _b x = _b "CommonMessages" x
-  
+
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
   with _ ->
       Filename.concat CommonOptions.config_dir "messages.ini"
-    
-      (* 
-let _ =
-  lprintf "Using Message File %s\n" message_file_name; 
-  *)  
+
 
 let message_file = Options.create_options_file message_file_name
 let message_section = file_section message_file [] ""
-    
+
 let message name t x = define_option message_section [name] "" t x
 let string name x = define_option message_section [name] "" string_option x
 
@@ -46,19 +42,19 @@ let string name x = define_option message_section [name] "" string_option x
 
 (* Style 0 *)
 
-let html_css_mods0 = define_option message_section ["html_css_mods0"] 
-  "Main CSS style 0" 
-    string_option  
+let html_css_mods0 = define_option message_section ["html_css_mods0"]
+  "Main CSS style 0"
+    string_option
 "
 body {
-background: @C0@; margin-top: 3px; margin-left: 5px; margin-right: 5px; 
+background: @C0@; margin-top: 3px; margin-left: 5px; margin-right: 5px;
 font-family: Verdana, sans-serif; font-size: 12px;
 scrollbar-face-color: @C1@; scrollbar-shadow-color: @C1@;
 scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: @C34@;
 scrollbar-darkshadow-color: @C34@; scrollbar-track-color: @C0@;
 scrollbar-arrow-color: @C34@; }
 table.commands { border: @C27@ solid 1px; background: @C0@ }
-table.topcommands { background: @C0@; border: @C27@ solid 1px; border-top: @C3@ solid 1px; border-left: @C3@ solid 1px; } 
+table.topcommands { background: @C0@; border: @C27@ solid 1px; border-top: @C3@ solid 1px; border-left: @C3@ solid 1px; }
 pre { color: @C26@; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px; }
 p { color: @C26@; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px; }
 input.txt { background: @C6@ }
@@ -67,7 +63,7 @@ font: 12px courier; padding: 0px;
 width: 38px; height: 18px; line-height: 14px; color: @C26@;
 border-right: @C35@ 2px solid; border-top: @C27@ 1px solid; border-left: @C27@ 1px solid; border-bottom: @C35@ 2px solid; }
 input.but2 { background: @C14@;
-border: 0px; padding: 0px; font: bold 10px verdana; 
+border: 0px; padding: 0px; font: bold 10px verdana;
 width: 36px; height: 14px; }
 input.but { background: @C7@ };
 
@@ -87,7 +83,7 @@ border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: @C27@ 1p
 padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
 color: @C26@; background: @C11@; }
 .bbigm {
-text-align: center; font: bold 10px verdana; 
+text-align: center; font: bold 10px verdana;
 border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: @C27@ 1px solid; border-right: @C27@ 1px solid;
 padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
 color: @C26@; background: @C14@; }
@@ -107,7 +103,7 @@ color: @C26@; background: @C14@; }
 .bb4 { border-left: @C5@ solid 1px; border-top: @C3@ solid 1px; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 0px; }
 .src { border-left: @C27@ solid 0px; border-top: @C27@ solid 0px; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 1px; }
 .srctd { font-family: Verdana; font-size: 8px; }
-td.fbig { color: @C26@; cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: @C10@; 
+td.fbig { color: @C26@; cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: @C10@;
 border-top: @C27@ solid 1px; border-left: @C27@ solid 1px; }
 td.pr { border-right: @C27@ solid 1px; }
 td.fbigb { border-top: @C27@ solid 0px; border-bottom: @C27@ solid 1px; }
@@ -148,16 +144,16 @@ td.ac {text-align: center;}
 .chunk3 { left:0px; top:0px; height:12px; background: @C8@}
 "
 
-let html_js_mods0 = define_option message_section ["html_js_mods0"] 
-  "Main JS include style 0" 
-    string_option  
+let html_js_mods0 = define_option message_section ["html_js_mods0"]
+  "Main JS include style 0"
+    string_option
 "
 <!--
 var mOvrClass='';
 function mOvr(src,clrOver) {
  if (clrOver == undefined) {var clrOver='mOvr1'};
  mOvrClass = src.className;
- src.className = clrOver + ' ' + mOvrClass + ' ' + clrOver; 
+ src.className = clrOver + ' ' + mOvrClass + ' ' + clrOver;
 }
 function mOut(src) {
  src.className=mOvrClass;
@@ -175,7 +171,7 @@ function mSub(target,cmd) {
  	}
  } else {
  location.href=\"submit?q=\" + cmd;
- }               
+ }
 }
 function showTab(t){
 	for (i=1; i<=6; i++) document.getElementById(\"tab\" + i).style.display = \"none\";
@@ -198,11 +194,11 @@ function _tabCreateArray(obj,st){
 			_raw = _raw.replace((new RegExp('\\\\\\(','gi')), '');
 		   if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
 		 if (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) {
-		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; } 
+		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; }
 		  else {
-			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; } 
+			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; }
 			else {
-				 if (_raw.indexOf(\"M\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024; } 
+				 if (_raw.indexOf(\"M\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024; }
 				 else {
 					if (_raw.indexOf(\"k\") != -1) { _raw = parseFloat(_raw) * 1024; }
 				 }
@@ -213,11 +209,11 @@ function _tabCreateArray(obj,st){
 	}
 	if (st==1) { _tabS.sort(_cmpFloat); }
 	else { _tabS.sort(_cmpTxt); }
-	if (!_tabMode) {_tabS.reverse()}			
+	if (!_tabMode) {_tabS.reverse()}
 	for(var i=0;i<_nRows-1;i++){
 			var tr = _tabS[i].ar.cloneNode(true);
 			var oChild=tb.rows.item(i+1);
-			if (i % 2 == 0) { tr.className = 'dl-1'; } 
+			if (i % 2 == 0) { tr.className = 'dl-1'; }
 		               else { tr.className = 'dl-2'; }
 			tb.replaceChild(tr,oChild);
 	}
@@ -242,7 +238,7 @@ function _cmpFloat(a,b) {
 	return (parseFloat(b.s) - parseFloat(a.s));
 }
 function _tabSort(obj,st){
-	if (_tabLast==obj) {_tabMode=!(_tabMode);} 
+	if (_tabLast==obj) {_tabMode=!(_tabMode);}
 	else {_tabMode=true;}
 	_tabCreateArray(obj,st);
 	_tabLast=obj;
@@ -256,7 +252,7 @@ top.fstatus.document.writeln(\"<link href='h.css' rel='stylesheet' type='text/cs
 top.fstatus.document.writeln(\"</head><body><center><table width=99% border=0 cellspacing=0 cellpadding=0>\");
 top.fstatus.document.writeln(\"<form action=submit target=$O name=cmdFormular> \" );
 top.fstatus.document.writeln(\"<tr><td width=100% nowrap>\");
-top.fstatus.document.writeln(\" <input class='txt' style='width: 99%; height: 20px; font-size: 12px;\'\"); 
+top.fstatus.document.writeln(\" <input class='txt' style='width: 99%; height: 20px; font-size: 12px;\'\");
 top.fstatus.document.writeln(\" type=text name=q value=''> </td><td width=1>\");
 top.fstatus.document.writeln(\"	<input class='but' style='color: #FFF; font-weight: 600; height: 20px; font-size: 10px;'\");
 top.fstatus.document.writeln(\"type=submit value=Execute></td></form>\");
@@ -266,19 +262,22 @@ top.fstatus.document.close();
 //-->
   "
 
-let html_header_mods0 = define_option message_section ["html_header_mods0"] 
-  "Header - style 0" 
+let html_header_mods0 = define_option message_section ["html_header_mods0"]
+  "Header - style 0"
     string_option
   "
 <title>MLdonkey: Web Interface</title>
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
+<meta name=\"generator\" content=\"MLDonkey\" />
+<meta name=\"robots\" content=\"noindex,nofollow\" />
+<link rel=\"shortcut icon\" href=\"favicon.ico\" type=\"image/x-icon\" />
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" />
 <script language=\"javascript\" src=\"i.js\">
 </script>
 "
 
-let download_html_css_mods0 = define_option message_section ["download_html_css_mods0"] 
-  "Download CSS - style 0" 
-    string_option  
+let download_html_css_mods0 = define_option message_section ["download_html_css_mods0"]
+  "Download CSS - style 0"
+    string_option
 "
 body{ background-color:@C4@;color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
 td,pre { color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px; }
@@ -304,7 +303,7 @@ td.big { border-top: @C27@ solid 1px; border-left: @C27@ solid 1px; }
 td.pr { border-right: @C27@ solid 1px; }
 .bigbutton { color: @C26@; font-family: Verdana, serif; font-size: 10px; background: @C0@; border: @C0@ solid 1px; cursor: pointer; }
 .headbutton {
- width: 100%; font-family: Verdana, serif; font-size: 10px; border: @C16@ solid 1px; background: @C16@; 
+ width: 100%; font-family: Verdana, serif; font-size: 10px; border: @C16@ solid 1px; background: @C16@;
  padding-left: 5px; padding-right: 5px; cursor: pointer; }
 tr.dl-1 { background: @C20@; }
 tr.dl-2 { background: @C21@; }
@@ -317,35 +316,35 @@ a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
 .extern:hover { color: @C33@; }
 "
 
-let download_html_js_mods0 = define_option message_section ["download_html_js_mods0"] 
-  "Download JS include style 0" 
-    string_option  
+let download_html_js_mods0 = define_option message_section ["download_html_js_mods0"]
+  "Download JS include style 0"
+    string_option
 "
 <!--
 var mOvrClass='';
 function mOvr(src,clrOver) {
  if (clrOver == undefined) {var clrOver='mOvrDL'};
  mOvrClass = src.className;
- src.className = mOvrClass + ' ' + clrOver; 
+ src.className = mOvrClass + ' ' + clrOver;
 }
 function mOut(src) {
  src.className=mOvrClass;
 }
 //-->
 "
-  
-let download_html_header_mods0 = define_option message_section ["download_html_header_mods0"] 
-  "Download header - style 0" 
+
+let download_html_header_mods0 = define_option message_section ["download_html_header_mods0"]
+  "Download header - style 0"
     string_option
   "
 <title>MLDonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
 <script language=\"javascript\" src=\"di.js\"></script>
   "
-  
-let web_common_header_mods0 = define_option message_section ["web_common_header_mods0"] 
-  "Web header - style 0" 
-    string_option 
+
+let web_common_header_mods0 = define_option message_section ["web_common_header_mods0"]
+  "Web header - style 0"
+    string_option
 "
 <!-- Main Table -->
 <TABLE BORDER=0 cellspacing=1 cellpadding=0 width=\"100%\"><TR>
@@ -387,28 +386,28 @@ onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</T
 <DIV ID=\"tab1\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"Current downloads\" 
+<TD class=\"bu bbig\" title=\"Current downloads\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vd')\">Downloads</TD>
-<TD class=\"bu bbig\" title=\"Current downloaders\" 
+<TD class=\"bu bbig\" title=\"Current downloaders\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','downloaders')\">Downloaders</TD>
-<TD class=\"bu bbig\" title=\"Upload statistics\" 
+<TD class=\"bu bbig\" title=\"Upload statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','upstats')\">Uploads</TD>
-<TD class=\"bu bbig\" title=\"Uploaders\" 
+<TD class=\"bu bbig\" title=\"Uploaders\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','uploaders')\">Uploaders</TD>
-<TD class=\"bu bbig\" title=\"Commit downloaded files to incoming directory\" 
+<TD class=\"bu bbig\" title=\"Commit downloaded files to incoming directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','commit')\">Commit</TD>
-<TD class=\"bu bbig\" title=\"Check shared files for removal\" 
+<TD class=\"bu bbig\" title=\"Check shared files for removal\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','reshare')\">Reshare</TD>
-<TD class=\"bu bbig\" title=\"List contents of the temp directory\" 
+<TD class=\"bu bbig\" title=\"List contents of the temp directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','scan_temp')\">Scan temp</TD>
-<TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\" 
+<TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','bw_stats')\">Bandwidth stats</TD>
 </TR></TBODY></TABLE></DIV>
@@ -416,31 +415,31 @@ onClick=\"mSub('fstatus','bw_stats')\">Bandwidth stats</TD>
 <DIV ID=\"tab2\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"Extend search to more servers and view results\" 
+<TD class=\"bu bbig\" title=\"Extend search to more servers and view results\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','xs');mSub('output','vr');\">Extend search</TD>
-<TD class=\"bu bbig\" title=\"View search results\" 
+<TD class=\"bu bbig\" title=\"View search results\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vr')\">Search results</TD>
-<TD class=\"bu bbig\" title=\"View searches\" 
+<TD class=\"bu bbig\" title=\"View searches\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vs')\">View searches</TD>
-<TD class=\"bu bbig\" title=\"Complex search\" 
+<TD class=\"bu bbig\" title=\"Complex search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','custom=Complex+Search')\">Complex search</TD>
-<TD class=\"bu bbig\" title=\"MP3 search\" 
+<TD class=\"bu bbig\" title=\"MP3 search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','custom=MP3+Search')\">MP3 search</TD>
-<TD class=\"bu bbig\" title=\"Movie search\" 
+<TD class=\"bu bbig\" title=\"Movie search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','custom=Movie+Search')\">Movie search</TD>
-<TD class=\"bu bbig\" title=\"Album search\" 
+<TD class=\"bu bbig\" title=\"Album search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','custom=Album+Search')\">Album search</TD>
-<TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\" 
+<TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
-<TD class=\"bu bbig\" title=\"View RSS feeds\" 
+<TD class=\"bu bbig\" title=\"View RSS feeds\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','rss')\">RSS</TD>
 </TR></TBODY></TABLE></DIV>
@@ -448,47 +447,47 @@ onClick=\"mSub('output','rss')\">RSS</TD>
 <DIV ID=\"tab3\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"List connected servers\" 
+<TD class=\"bu bbig\" title=\"List connected servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vm')\">Connected servers</TD>
-<TD class=\"bu bbig\" title=\"List all servers\" 
+<TD class=\"bu bbig\" title=\"List all servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vma')\">All servers</TD>
-<TD class=\"bu bbig\" title=\"Connect to more servers\" 
+<TD class=\"bu bbig\" title=\"Connect to more servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','c')\">Connect to more servers</TD>
-<TD class=\"bu bbig\" title=\"Remove old servers\" 
+<TD class=\"bu bbig\" title=\"Remove old servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
-<TD class=\"bu bbig\" title=\"Open Serverlist\" 
+<TD class=\"bu bbig\" title=\"Open Serverlist\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://ed2k.2x4u.de/list.html'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
 <DIV ID=\"tab4\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"eDonkey statistics in a table\" 
+<TD class=\"bu bbig\" title=\"eDonkey statistics in a table\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','cs')\">eDonkey Table</TD>
-<TD class=\"bu bbig\" title=\"eMule MODs statistics\" 
+<TD class=\"bu bbig\" title=\"eMule MODs statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','csm')\">eMule MODs</TD>
-<TD class=\"bu bbig\" title=\"Overnet statistics\" 
+<TD class=\"bu bbig\" title=\"Overnet statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','ov_stats')\">Overnet</TD>
-<TD class=\"bu bbig\" title=\"Kademlia statistics\" 
+<TD class=\"bu bbig\" title=\"Kademlia statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','kad_stats')\">Kademlia</TD>
-<TD class=\"bu bbig\" title=\"Gnutella statistics\" 
+<TD class=\"bu bbig\" title=\"Gnutella statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','gstats')\">Gnutella</TD>
-<TD class=\"bu bbig\" title=\"Gnutella2 statistics\" 
+<TD class=\"bu bbig\" title=\"Gnutella2 statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','g2stats')\">Gnutella2</TD>
-<TD class=\"bu bbig\" title=\"Memory statistics\" 
+<TD class=\"bu bbig\" title=\"Memory statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','mem_stats 0')\">Memory</TD>
-<TD class=\"bu bbig\" title=\"Sources statistics\" 
+<TD class=\"bu bbig\" title=\"Sources statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','sources')\">Sources</TD>
 </TR></TBODY></TABLE></DIV>
@@ -496,31 +495,31 @@ onClick=\"mSub('output','sources')\">Sources</TD>
 <DIV ID=\"tab5\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"Settings\" 
+<TD class=\"bu bbig\" title=\"Settings\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','voo+1')\">Settings</TD>
-<TD class=\"bu bbig\" title=\"View/edit shared directories\" 
+<TD class=\"bu bbig\" title=\"View/edit shared directories\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','shares')\">Shares</TD>
-<TD class=\"bu bbig\" title=\"Friends\" 
+<TD class=\"bu bbig\" title=\"Friends\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','friends')\">Friends</TD>
-<TD class=\"bu bbig\" title=\"View/send messages (20 second refresh)\" 
+<TD class=\"bu bbig\" title=\"View/send messages (20 second refresh)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','message')\">Messages</TD>
-<TD class=\"bu bbig\" title=\"IP blocking statistics\" 
+<TD class=\"bu bbig\" title=\"IP blocking statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','block_list')\">IP blocking</TD>
-<TD class=\"bu bbig\" title=\"Recover files from temp directory\" 
+<TD class=\"bu bbig\" title=\"Recover files from temp directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','recover_temp');mSub('output','scan_temp');\">Recover temp</TD>
-<TD class=\"bu bbig\" title=\"Close all files (use to free space on disk after remove)\" 
+<TD class=\"bu bbig\" title=\"Close all files (use to free space on disk after remove)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','close_fds')\">Close files</TD>
-<TD class=\"bu bbig\" title=\"View all clients\" 
+<TD class=\"bu bbig\" title=\"View all clients\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vc+all')\">View clients</TD>
-<TD class=\"bu bbig\" title=\"View web infos\" 
+<TD class=\"bu bbig\" title=\"View web infos\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','vwi')\">View web infos</TD>
 </TR></TBODY></TABLE></DIV>
@@ -528,31 +527,31 @@ onClick=\"mSub('output','vwi')\">View web infos</TD>
 <DIV ID=\"tab6\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
-<TD class=\"bu bbig\" title=\"Long help\" 
+<TD class=\"bu bbig\" title=\"Long help\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','longhelp')\">LongHelp</TD>
-<TD class=\"bu bbig\" title=\"Network listing\" 
+<TD class=\"bu bbig\" title=\"Network listing\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','networks')\">Networks</TD>
-<TD class=\"bu bbig\" title=\"Buildinfo\" 
+<TD class=\"bu bbig\" title=\"Buildinfo\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','buildinfo')\">Buildinfo</TD>
-<TD class=\"bu bbig\" title=\"View ChangeLog\" 
+<TD class=\"bu bbig\" title=\"View ChangeLog\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
-<TD class=\"bu bbig\" title=\"HomePage\" 
+<TD class=\"bu bbig\" title=\"HomePage\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
-<TD class=\"bu bbig\" title=\"Wiki (User updated FAQ/documentation)\" 
+<TD class=\"bu bbig\" title=\"Wiki (User updated FAQ/documentation)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://mldonkey.berlios.de/modules.php?name=Wiki'\">Wiki</TD>
-<TD class=\"bu bbig\" title=\"Support forums (english/german)\" 
+<TD class=\"bu bbig\" title=\"Support forums (english/german)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Support forums</TD>
-<TD class=\"bu bbig\" title=\"View core log\" 
+<TD class=\"bu bbig\" title=\"View core log\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','log')\">Log</TD>
-<TD class=\"bu bbig\" title=\"Kill core\" 
+<TD class=\"bu bbig\" title=\"Kill core\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','kill')\">Kill core</TD>
 </TR></TBODY></TABLE></DIV>
@@ -563,40 +562,40 @@ onClick=\"mSub('output','kill')\">Kill core</TD>
 let html_css_old = define_option message_section
   ["html_css_old"]
   "The old css"
-    string_option  
+    string_option
   "
 body,th,td { background-color:#EAE8CF;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 12px; }
 a { text-decoration: none; }
 a:hover { text-decoration: underline; color: #660000; }
 a:link,a:active,a:visited { color: #660000; }
 a.extern:visited,a.extern:active { color: #000099; }
-a.extern:hover { color: #000000; } 
+a.extern:hover { color: #000000; }
   "
 
 let html_js_old = define_option message_section
   ["html_js_old"]
   "The old js"
-    string_option  
+    string_option
   "
 <!--
 function CheckInput(){
 var cmdString = document.cmdFormular.q.value;
-return true; 
+return true;
 }
 //-->
   "
 
 let html_header_old = define_option message_section ["html_header_old"]
   "The header used in the WEB interface (modify to add your CSS)"
-    string_option  
+    string_option
   "<title>MLDonkey: Web Interface</title>
 <link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
 <script language=\"javascript\" src=\"i.js\"></script>
     "
-  
+
 let download_html_css_old = define_option message_section ["download_html_css_old"]
   "The small CSS)"
-    string_option  
+    string_option
   "
 body { background-color: #EAE8CF; color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; margin: 2; }
 td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; }
@@ -611,18 +610,18 @@ a:hover { color: #000000; text-decoration: underline;}
 a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
   "
-  
+
 let download_html_js_old = define_option message_section ["download_html_js_old"]
   "The old js"
-    string_option  
+    string_option
 "
 <!--
 //-->
   "
-  
+
 let download_html_header_old = define_option message_section ["download_html_header_old"]
   "The header used in the WEB interface for downloads (modify to add your CSS)"
-    string_option  
+    string_option
   "
 <title>MLdonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
@@ -676,15 +675,14 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
   </table>
 "
 
-  
 let available_commands_are = _s  "Available commands are:\n"
-  
+
 let main_commands_are = _s  "Main commands are:\n"
 
 let command_not_authorized = _s "Command not authorized\n use 'auth <user> <password>' before."
 
 let bad_login = _s  "Bad login/password"
-  
+
 let full_access = _s "Full access enabled"
 
 let download_started = message "download_started"
@@ -692,130 +690,13 @@ let download_started = message "download_started"
 
 let no_such_command  = message "no_such_command"
     (T.boption (T.string T.bformat))   "No such command %s\n"
-  
+
 let bad_number_of_args = _s    "Bad number of arguments"
-
-(* Colour arrays
-
-Main CSS :
-
-body { background: @C0@;    
-scrollbar-face-color: @C1@; scrollbar-shadow-color: @C1@;
-scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: @C34@;
-scrollbar-darkshadow-color: @C34@; scrollbar-track-color: @C0@;
-scrollbar-arrow-color: @C34@; }
-table.commands { border: @C27@; background: @C0@;}
-table.topcommands { background: @C0@; border: @C27@; border-top: @C3@; border-left: @C3@;} 
-pre { color: @C26@; }
-p { color: @C26@; }
-input.txt { background: @C6@; }
-input.txt2 { background: @C11@; color: @C26@;
-border-right: @C35@; border-top: @C27@; border-left: @C27@; border-bottom: @C35@; }
-input.but2 { background: @C14@; }
-input.but { background: @C7@; }
-a:link,a:active,a:visited { color: @C28@; }
-a:hover { color: @C29@; }
-.bu { background: @C8@; color: @C9@; border: @C35@; }
-.bbig { border-top: @C3@;  border-left: @C3@;  border-bottom: @C27@;  border-right: @C27@;
-color: @C26@; background: @C11@; }
-.bbigm { border-top: @C3@; border-left: @C3@; border-bottom: @C27@; border-right: @C27@;
-color: @C26@; background: @C14@; }
-.bsmall { background: @C12@; }
-.bsmall1 { background: @C11@; }
-.bsmall2 { background: @C13@; }
-.bsmall3 { background: @C14@; }
-.bbig2 { background: @C14@; }
-.bbig3 { background: @C1@; }
-.b1 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
-.b2 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
-.b3 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
-.b4 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
-.bb1 { border-left: @C27@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
-.bb2 { border-left: @C5@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
-.bb3 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
-.bb4 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
-.src { border-left: @C27@; border-top: @C27@; border-right: @C27@; border-bottom: @C27@; }
-td.fbig { background: @C10@; border-top: @C27@; border-left: @C27@; }
-td.pr { border-right: @C27@; }
-td.fbigb { border-top: @C27@; border-bottom: @C27@; }
-td.sr { color: @C26@; }
-td.srp { color: @C36@; }
-td.srw { color: @C26@; }
-td.srh { vertical-align: top; background: @C16@; color: @C26@; }
-tr.dl-1, td.dl-1 { background: @C20@; }
-tr.dl-2, td.dl-2 { background: @C21@; }
-.mOvr1, tr.mOvr1 {background: @C17@; }
-.mOvr2, tr.mOvr2 {background: @C18@; }
-.mOvr3, tr.mOvr3 {background: @C19@; }
-table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
-table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
-table.shares, table.vc, table.results, table.networkInfo { border: @C27@; }
-table.sourcesInfo, table.serversC { border: @C27@; }
-table.sources { border: @C27@;}
-td.srb { border-right: @C27@; border-bottom: @C27@;
-border-left: @C27@; border-top: @C27@; }
-td.br { border-right: @C27@;}
-.chunk0;{ background: @C22@}
-.chunk1 { background: @C23@}
-.chunk2 { background: @C2@}
-.chunk3 { background: @C8@}
-
-Download CSS
-body{ background-color:@C4@; color: @C26@; }
-td,pre { color: @C26@; }
-table.downloaders { border: @C27@;}
-td.loaded{ background-color:@C24@; }
-td.remain{ background-color:@C25@; }
-td.downloaded{ color: @C26@;}
-td.dl { color: @C26@;  }
-td.dlheader { color: @C26@;  
-border-bottom: ( background: @C16@; }
-input.checkbox { background: @C16@; }
-td.sr { color: @C26@; }
-td.brs { border-right: @C27@; }
-td.big { border-top: @C27@;  border-left: @C27@; }
-td.pr { border-right: @C27@; }
-.bigbutton { background: @C0@; border: @C0@; color: @C26@; }
-.headbutton { border: @C16@; background: @C16@; }
-tr.dl-1 { background: @C20@; }
-tr.dl-2 { background: @C21@; }
-tr.mOvrDL, .mOvrDL { background: @C17@;  }
-a:link,a:active,a:visited { color: @C30@; }
-a:hover { color: @C31@; }
-a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
-.extern:hover { color: @C33@; }
-
-0 - background                       13 - bsmall2 - (options, memstats)
-1 - scrollbar face                   14 - bsmall3 - (load onet peers)
-2 - chunk2                           15 - border color of top buttons
-3 - scrollbar highlight color        16 - table header background
-4 - vd page background               17 - mOver1 back
-5 - big buttons, border highlight    18 - mOver2 back
-6 - input.txt                        19 - mOver3 back
-7 - input.but                        20 - dl-1 back
-8 - chunk3                           21 - dl-2 back
-9 - foreground text for top buttons  22 - chunk0
-10 - fbig background (tabs)          23 - chunk1
-11 - bbig background (vma button)    24 - vd downloaded
-12 - bsmall back (Help!)             25 - vd remaining
-
-26 - general text
-27 - general border
-28 - anchor
-29 - anchor hover
-30 - download anchor
-31 - download hover anchor
-32 - external anchor
-33 - external hover anchor
-34 - some scrollbar
-35 - some border
-36 - one td text
-*)
 
 let ncarr = ref 7
 let carr = Array.create !ncarr [||]
 let _ = (
-    (* Default green *)    
+    (* Default green *)
     carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#33F"; "#E5FFE5"; "#B2CCB2";
                     "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#00F"; "#3D3D3D";
                     "#86BE86"; "#B2CCB2"; "#BCD6BC"; "#A8C2A8"; "#A3BDA3";
@@ -839,7 +720,7 @@ let _ = (
                     "#FFF"; "#EEE"; "#4DBCF0"; "#48C1DC"; "#63C3F0"; "#EEE";
                     "#000"; "#000"; "#000"; "#000"; "#000"; "#000";
                     "#000"; "#000099"; "#000"; "FFF"; "#555" |];
-    (* Light purple *)                
+    (* Light purple *)
     carr.(3) <- [| "#CAB2E4"; "#9982B3";  "#C29FE8"; "#E1D7ED"; "#BEA5DA";
                     "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#D9B6FF"; "#000";
                     "#9360CD"; "#B29DCC"; "#BDA5D7"; "#AB94C5"; "#A68FC0";
@@ -885,15 +766,15 @@ let colour_changer () =
       html_css_mods := global_replace (Str.regexp (Printf.sprintf "@C%d@" i))
        carr.(!mstyle).(i) !html_css_mods;
       download_html_css_mods := global_replace (Str.regexp (Printf.sprintf "@C%d@" i))
-       carr.(!mstyle).(i) !download_html_css_mods 
+       carr.(!mstyle).(i) !download_html_css_mods
      ) carr.(!mstyle)
-  
+
 let load_message_file () =
   (
 
 (* Don't bother loading it for most users so their settings will always be current,
    without having to delete message_section for each new version.
-   Users can set _load_message_section true if they want to modify and use their own. 
+   Users can set _load_message_section true if they want to modify and use their own.
    (reload_messages command)
 *)
 	if (not !!CommonOptions.html_mods) || (!!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file) then begin

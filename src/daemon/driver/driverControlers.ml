@@ -885,7 +885,7 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.web_common_header_mods0
               else !!CommonMessages.web_common_header_old)
-        | "/" | "/index.html" -> 
+        | "/" | "/index.html" ->
             if !!use_html_frames then begin
                 html_open_page buf t r false;
                 let this_page = "frames.html" in
@@ -893,7 +893,7 @@ let http_handler o t r =
                   Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
                   Printf.bprintf buf "
-                         <frameset src=\"index\" rows=\"%d,25,*\">
+            <frameset src=\"index\" rows=\"%d,25,*\">
                   <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"commands.html\">
                   <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"noframe.html\">
                <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"oneframe.html\">
@@ -1075,10 +1075,10 @@ let http_handler o t r =
                   DriverInteractive.print_search b s
                     { o with conn_filter = !filter };
 
-                  Buffer.add_string buf (html_escaped 
+                  Buffer.add_string buf (html_escaped
                       (Buffer.contents b))
 
-              | _ -> 
+              | _ ->
                   Buffer.add_string buf "Bad filter"
             end
 
@@ -1094,7 +1094,7 @@ let http_handler o t r =
                         let r = find_result num in
                         let files = result_download r [] false in
                         List.iter CommonInteractive.start_download files;
-                        
+
                         let module M = CommonMessages in
                         Gettext.buftext buf M.download_started num
                       with  e ->
@@ -1144,7 +1144,7 @@ let http_handler o t r =
                 | _ -> ()
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
-            
+
             DriverInteractive.display_file_list b o;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
@@ -1205,7 +1205,7 @@ let http_handler o t r =
                   CommonInteractive.set_fully_qualified_options name value;
                   Buffer.add_string buf "Option value changed"
 
-              | args -> 
+              | args ->
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
                   args;
@@ -1267,8 +1267,8 @@ let http_handler o t r =
                         end
                   in
                   r.reply_stream <- Some (stream_file file (ref begin_pos))
-                  
-              | args -> 
+
+              | args ->
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
                   args;

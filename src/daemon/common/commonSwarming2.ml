@@ -189,7 +189,7 @@ module HU = Weak2.Make(struct
 let uploaders_by_num = HU.create 113
 
 let edonkey_range_size = Int64.of_int (180 * 1024)
-  
+
 let swarmer_counter = ref 0
 
 let has_multinet = true
@@ -2255,7 +2255,7 @@ we thus might put a lot of clients on the same range !
             up.up_ranges <- up.up_ranges @ [key];
             r.range_nuploading <- r.range_nuploading + 1;
             if r.range_current_begin = r.range_end then
-              lprintf "CS error: range is empty <<<<<<<<<<<--------- error\n";
+              lprintf "CS error: range is empty error\n";
             key
           end else
         match r.range_next with
@@ -3005,9 +3005,9 @@ let has_secondaries t =
 (*                         subfiles                                      *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let subfiles t =
-  List.map (fun t -> t.t_file) t.t_s.s_networks    
+  List.map (fun t -> t.t_file) t.t_s.s_networks
 
 (*************************************************************************)
 (*                                                                       *)
@@ -3038,7 +3038,7 @@ module SwarmerOption = struct
         ("file_size", int64_to_value s.s_size);
         ("file_name", string_to_value s.s_filename);
         ("file_bitmap", string_to_value s.s_verified_bitmap);
-        ("file_chunk_sizes", list_to_value int64_to_value 
+        ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_block_size) s.s_networks));
         ]
 

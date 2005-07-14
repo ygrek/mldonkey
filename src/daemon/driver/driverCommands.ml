@@ -306,7 +306,13 @@ let _ =
               CommonNetwork.network_recover_temp r
             with _ -> ()
         );
-        _s "done"
+        let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "Recover temp finished"); ]
+        else
+          Printf.bprintf buf "Recover temp finished";
+        _s ""
     ), ":\t\t\t\trecover lost files from temp directory";
 
     "vc", Arg_multiple (fun args o ->
@@ -1777,52 +1783,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 the name between []"
     ), ":\t\t\t\t$bprint options values by section$n";
 
-(*
-    "options", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
-        match args with
-          [] ->
-            let sections = ref [] in
-            Printf.bprintf buf "Available sections for options: \n";
-            List.iter (fun  (section, message, option, optype) ->
-                if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  $b%s$n\n" section;
-                    sections := section :: !sections
-                  end
-            ) gui_options_panel;
-
-            List.iter (fun (section, list) ->
-                if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  $b%s$n\n" section;
-                    sections := section :: !sections
-                  end)
-            ! CommonInteractive.gui_options_panels;
-            "\n\nUse 'options section' to see options in this section"
-
-        | sections ->
-            List.iter (fun s ->
-                Printf.bprintf buf "Options in section $b%s$n:\n" s;
-                List.iter (fun (section, message, option, optype) ->
-                    if s = section then
-                      Printf.bprintf buf "  %s [$r%s$n]= $b%s$n\n"
-                        message option
-                        (get_fully_qualified_options option)
-                ) gui_options_panel;
-
-                List.iter (fun (section, list) ->
-                    if s = section then
-                      List.iter (fun (message, option, optype) ->
-                          Printf.bprintf buf "  %s [$b%s$n]= $b%s$n\n"
-                            message option
-                            (get_fully_qualified_options option)
-                      ) list)
-                ! CommonInteractive.gui_options_panels;
-            ) sections;
-            "\nUse '$rset option \"value\"$n' to change a value where options is
-the name between []"
-    ), ":\t\t\t\t$bprint options values by section$n";
-*)
-
   ]
 
 (*************************************************************************)
@@ -1838,19 +1798,24 @@ let _ =
     "reshare", Arg_none (fun o ->
         let buf = o.conn_buf in
         shared_check_files ();
-        _s "check done"
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "Reshare check done"); ]
+        else
+          Printf.bprintf buf "Reshare check done";
+        _s ""
     ), ":\t\t\t\tcheck shared files for removal";
-    
+
     "shares", Arg_none (fun o ->
 
         let buf = o.conn_buf in
-        
+
         if use_html_mods o then begin
-            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: { 
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
                    var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
@@ -1859,15 +1824,15 @@ let _ =
                     }\\\"\\>Add Share\\</a\\>
 \\</td\\>
 \\</tr\\>\\</table\\>
-\\</td\\>\\</tr\\> 
+\\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
 
-            html_mods_table_header buf "sharesTable" "shares" [ 
-              ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ; 
-              ( "1", "srh ar", "Priority", "P" ) ; 
+            html_mods_table_header buf "sharesTable" "shares" [
+              ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ;
+              ( "1", "srh ar", "Priority", "P" ) ;
               ( "0", "srh", "Directory", "Directory" ) ;
-              ( "0", "srh", "Strategy", "Strategy" ) ]; 
-            
+              ( "0", "srh", "Strategy", "Strategy" ) ];
+
             let counter = ref 0 in
 
 (* TODO update HTML for incoming directories now in shared_directories
@@ -1875,14 +1840,14 @@ let _ =
 \\<td class=\\\"sr ar\\\"\\>0\\</td\\>\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
 *)
 
-            List.iter (fun shared_dir -> 
+            List.iter (fun shared_dir ->
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-        \\<td title=\\\"Click to unshare this directory\\\" 
-        onMouseOver=\\\"mOvr(this);\\\" 
+        \\<td title=\\\"Click to unshare this directory\\\"
+        onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
-        onClick=\\\'javascript:{ 
-        parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
+        onClick=\\\'javascript:{
+        parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"
         setTimeout(\\\"window.location.reload()\\\",1000);}'
         class=\\\"srb\\\"\\>Unshare\\</td\\>
         \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>

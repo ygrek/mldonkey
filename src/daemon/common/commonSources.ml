@@ -303,19 +303,19 @@ module Make(M:
 (*                         Global tables                                 *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let sources_by_uid = HS.create 13557      
-      let sources_by_num = H.create 13557      
-      
+
+      let sources_by_uid = HS.create 13557
+      let sources_by_num = H.create 13557
+
       let file_sources_managers = ref []
-      
+
       let connecting_sources = Fifo.create ()
-      
+
       let next_direct_sources = Fifo.create ()
       let next_indirect_sources = ref []
-      
-      
-      let active_queue q = 
+
+
+      let active_queue q =
         q >= connected_sources_queue && q <= busy_sources_queue
 
 (*************************************************************************)
@@ -1446,6 +1446,7 @@ we will probably query for the other file almost immediatly. *)
         if file_state (file.manager_file ()) = FileDownloading then
           let r = find_request s file in
           if r.request_time + !!min_reask_delay <= last_time () then
+
             (* There is really no need to query a not found source again
                for the file ... not even after an hour! *)
             if r.request_score > not_found_score then
