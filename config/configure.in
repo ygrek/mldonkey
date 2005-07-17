@@ -59,7 +59,14 @@ if test -f ./CVS/Entries ; then
 	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "darwin"]; then
 	  SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
 	else
-	  SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
+	  if [ test "$SYSTEM" = "openbsd"]; then
+	    AC_CHECK_PROG(GREP, grep, grep)
+	    if test "$ac_cv_prog_GREP" = "grep"; then
+	      SCM_VERSION=`$STAT -f %a ./CVS/Entries | grep -v Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\1-\2-\4 \3/'`
+	    fi
+	  else
+	    SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
+	  fi
 	fi
       fi
     fi
