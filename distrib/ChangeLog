@@ -14,6 +14,8 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 2005/07/18: spiralvoice
 
 4182: Get CVS date in configure for OpenBSD
+4175: HTML: Add Multiline File Information in download table
+      (4175_4.patch)
 
 2005/07/17: spiralvoice
 

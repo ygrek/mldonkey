@@ -33,10 +33,20 @@ let html_escaped s =
       | '>' -> Buffer.add_string b "&gt;"; false
       | '&' -> Buffer.add_string b "&amp;"; false
       | '"' -> Buffer.add_string b "&quot;"; false
-      | '\039' -> Buffer.add_string b "&#39;"; false
       | '\\' -> true
       | _ -> Buffer.add_char b c; false
   ) s
+
+let html_real_escaped s =
+  String2.convert false (fun b escaped c ->
+      if escaped then
+        (Buffer.add_char b c; false)
+      else
+        match c with
+        '\039' -> Buffer.add_string b "&#39;"; false
+      | '\\' -> true
+      | _ -> Buffer.add_char b c; false
+  ) (html_escaped s)
 
 
 (* base 64 decoding *)

@@ -69,7 +69,7 @@ and config = {
 val create : config -> TcpServerSocket.t
 val need_auth : request -> string -> unit
 val html_escaped : string -> string
-
+val html_real_escaped : string -> string
   
 val add_reply_header : request -> string -> string -> unit
 val handler : config -> 'a -> TcpServerSocket.event -> unit
