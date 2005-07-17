@@ -14,6 +14,7 @@ val network_connected_servers :
   CommonTypes.network -> CommonTypes.server list
 val network_is_enabled : CommonTypes.network -> bool
 val network_save_complex_options : CommonTypes.network -> unit
+val network_save_sources : CommonTypes.network -> unit
 val network_load_complex_options : CommonTypes.network -> unit
 val network_enable : CommonTypes.network -> unit
 val network_disable : CommonTypes.network -> unit

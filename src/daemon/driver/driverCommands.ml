@@ -1352,9 +1352,14 @@ let _ =
             Printf.sprintf "Error %s" (Printexc2.to_string e)
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
-    "save", Arg_none (fun o ->
-        DriverInteractive.save_config ();
-        _s "saved"), ":\t\t\t\t\tsave";
+    "save", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+	  ["options"] -> DriverInteractive.save_config (); _s "options saved"
+	| ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
+	| _ -> DriverInteractive.save_config ();
+	       CommonComplexOptions.save_sources (); _s "options and sources saved"
+        ), "<options|sources|(empty for all)>:\t\tsave options and/or sources";
 
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in

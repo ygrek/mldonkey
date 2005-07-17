@@ -59,6 +59,9 @@ let check_network_implementations () =
       if c.op_network_save_complex_options == cc.op_network_save_complex_options
         then 
         lprintf_nl "op_network_save_complex_options";
+      if c.op_network_save_sources == cc.op_network_save_sources
+        then 
+        lprintf_nl "op_network_save_sources";
       if c.op_network_load_complex_options == cc.op_network_load_complex_options
         then 
         lprintf_nl "op_network_load_complex_options";
@@ -102,6 +105,7 @@ let check_network_implementations () =
 let network_connected_servers n = n.op_network_connected_servers ()
 let network_is_enabled n = n.op_network_is_enabled ()
 let network_save_complex_options n = n.op_network_save_complex_options ()
+let network_save_sources n = n.op_network_save_sources ()
 let network_load_complex_options n = n.op_network_load_complex_options ()
 let network_enable n =  n.op_network_enable ()
 let network_disable n = n.op_network_disable () 
@@ -218,6 +222,7 @@ let new_network shortname name flags =
       op_network_connected_servers = (fun _ -> fni name "connected_servers");
       op_network_is_enabled =  (fun _ -> fni name "is_enabled");
       op_network_save_complex_options =  (fun _ -> ni_ok name "save_complex_options");
+      op_network_save_sources =  (fun _ -> ni_ok name "save_sources");
       op_network_load_complex_options =  (fun _ -> ni_ok name "load_complex_options");
       op_network_enable =  (fun _ -> ni_ok name "enable");
       op_network_disable =  (fun _ -> ni_ok name "disable");

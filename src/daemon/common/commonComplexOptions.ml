@@ -887,7 +887,7 @@ shared_directories *)
 (*                                                                       *)
 (*************************************************************************)
 
-let load () = 
+let load () =
   Options.load files_ini;
   Options.load servers_ini;
   Options.load searches_ini;
@@ -898,10 +898,10 @@ let load () =
   ) !!known_uids;
   known_uids =:= [];
   Options.load friends_ini
-  
-let save () = 
+
+let save () =
   networks_iter (fun n -> network_save_complex_options n);
-  
+
   Options.save_with_help files_ini;
   Options.save_with_help searches_ini;
   Options.save_with_help friends_ini;
@@ -922,4 +922,9 @@ let save () =
         results =:= [];
     end;
   lprintf "Options correctly saved";
+  CommonGlobals.print_localtime ()
+
+let save_sources () =
+  networks_iter (fun n -> network_save_sources n);
+  lprintf "Sources correctly saved";
   CommonGlobals.print_localtime ()

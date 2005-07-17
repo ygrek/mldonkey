@@ -454,6 +454,7 @@ type network = {
     mutable op_network_connected_servers : (unit -> server list);
     mutable op_network_is_enabled : (unit -> bool);
     mutable op_network_save_complex_options : (unit -> unit);
+    mutable op_network_save_sources : (unit -> unit);
     mutable op_network_load_complex_options : (unit -> unit);
     mutable op_network_enable : (unit -> unit);
     mutable op_network_disable : (unit -> unit);

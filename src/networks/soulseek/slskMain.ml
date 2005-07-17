@@ -87,6 +87,7 @@ let _ =
         if !!enable_soulseek then network_enable network
       else network_disable network);
   network.op_network_save_complex_options <- SlskComplexOptions.save_config;
+  network.op_network_save_sources <- (fun _ -> ());
 (*
   network.op_network_load_simple_options <- (fun _ -> 
       try Options.load soulseek_ini

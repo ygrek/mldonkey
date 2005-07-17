@@ -161,5 +161,5 @@ let _ =
   file_ops.op_file_to_option <- file_to_value;
   (* Shut up message "Network.save/load_complex_options not implemented by FileTP" *)
   network.op_network_load_complex_options <- (fun _ -> ());
-  network.op_network_save_complex_options <- (fun _ -> ())
-
+  network.op_network_save_complex_options <- (fun _ -> ());
+  network.op_network_save_sources <- (fun _ -> ())

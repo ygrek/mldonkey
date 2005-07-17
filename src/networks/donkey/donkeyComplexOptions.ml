@@ -686,22 +686,22 @@ let sources_loaded = ref false  (* added 2.5.24 *)
 
 let save _ =
   if !config_files_loaded then begin
-(*  lprintf "SAVING SHARED FILES AND SOURCES\n"; *)
       Options.save_with_help shared_files_ini;
       guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
       diff_time := (last_time () - start_time);
       Options.save_with_help stats_ini;
       Options.save_with_help mod_stats_ini;
-      create_online_sig ();
-    end;
+      create_online_sig ()
+    end
+
+let save_sources _ =
   if !sources_loaded then begin
       save_time =:= last_time ();
       let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
       Options.save_with_help file_sources_ini;
       cleaner ()
     end
-(*  lprintf "SAVED\n";  *)
-    
+
 let guptime () = !!guptime - !diff_time
   
 let load_sources () = 
@@ -743,6 +743,7 @@ let _ =
   
   network.op_network_load_complex_options <- load;
   network.op_network_save_complex_options <- save;
+  network.op_network_save_sources <- save_sources;
   
   let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
   cleaner ()

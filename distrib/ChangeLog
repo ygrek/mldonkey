@@ -15,6 +15,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 4175: HTML: Add Multiline File Information in search results
 4174: EDK: Re-enable source exchange with eMule clients
+4163: EDK: Avoid saving sources every save_options_delay
 
 2005/07/14: spiralvoice
 

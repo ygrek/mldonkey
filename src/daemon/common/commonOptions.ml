@@ -1205,7 +1205,8 @@ let client_buffer_size = define_expert_option current_section
 
 let save_options_delay =
   define_expert_option current_section ["save_options_delay"]
-    "The delay between two saves of the 'downloads.ini' file (default is 15 minutes)"
+    "The delay between two saves of the 'downloads.ini' file (default is 15 minutes).
+    Changes to this option require a core restart."
   float_option 900.0
 
 let server_connection_timeout = define_expert_option current_section

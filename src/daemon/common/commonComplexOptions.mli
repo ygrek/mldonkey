@@ -19,6 +19,7 @@
 
 val load : unit -> unit
 val save : unit -> unit
+val save_sources : unit -> unit
   
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record

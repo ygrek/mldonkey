@@ -518,7 +518,8 @@ let _ =
   );
   
   network.op_network_connected <- (fun _ -> !connected_servers != []);
-  network.op_network_save_complex_options <- (fun _ -> ())
+  network.op_network_save_complex_options <- (fun _ -> ());
+  network.op_network_save_sources <- (fun _ -> ())
 
   (*
           If you run a packet sniffer on WPNP (WinMX Peer Network Protocol) packets, it will soon become apparent that these packets are not transmitted in cleartext. For instance, search terms cannot directly be found 

@@ -648,6 +648,7 @@ for config files at the end. *)
          config files, remove the security space file *)
       Sys.remove security_space_filename;
       DriverInteractive.save_config ();
+      CommonComplexOptions.save_sources ();
 
       lprintf (_b "Core stopped");
       CommonGlobals.print_localtime ()
