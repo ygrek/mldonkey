@@ -1812,7 +1812,7 @@ release.static: static opt
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
-release.mlnet.static: mlnet.static opt
+release.mlnet.static: mlnet.static
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	cp mlnet.static $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
@@ -1821,7 +1821,7 @@ release.mlnet.static: mlnet.static opt
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
-release.mlnet.distri: mlnet.static opt
+release.mlnet.distri: mlnet mlnet.static
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	cp mlnet $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
