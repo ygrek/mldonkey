@@ -1918,7 +1918,14 @@ let _ =
         let found = ref false in
         shared_directories =:= List.filter (fun sd ->
             let diff = sd.shdir_dirname <> arg in
-            if not diff then found := true;
+            if not diff then begin
+	      found := true;
+	      shared_iter (fun s ->
+	        let impl = as_shared_impl s in
+		  if (Filename.dirname impl.impl_shared_fullname) = arg
+		    then shared_unshare s
+	      )
+	    end;
             diff
         ) !!shared_directories;
         if !found then begin

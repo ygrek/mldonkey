@@ -249,7 +249,6 @@ let check_shared_files () =
                       (s.sh_name, s.sh_size, s.sh_mtime) s;
                     known_shared_files =:= s :: !!known_shared_files;
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
-                    shared_remove  sh.shared_shared;
                   end
                 else
                   job_creater ())

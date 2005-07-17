@@ -58,6 +58,7 @@ let do_daily () =
   CommonWeb.load_web_infos ()
 
 let minute_timer () =
+  CommonShared.shared_check_files ();
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
   CommonResult.dummy_result.result_time <- last_time ();
@@ -74,7 +75,6 @@ let minute_timer () =
 let hourly_timer timer =
   incr CommonWeb.hours;
   if !CommonWeb.hours mod 24 = 0 then do_daily ();
-  CommonShared.shared_check_files ();
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ();
   CommonWeb.connect_redirector ();
