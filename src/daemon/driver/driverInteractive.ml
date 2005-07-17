@@ -958,6 +958,8 @@ let old_print_search buf o results =
   let user = o.conn_user in
   let counter = ref 0 in
   if use_html_mods o then
+  begin
+    Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>pop up description layer\\</div\\>\n";
     html_mods_table_header buf "resultsTable" "results" [
       ( "0", "srh", "Network", "Network" ) ;
       ( "0", "srh", "File", "File (mouseover)" ) ;
@@ -966,7 +968,7 @@ let old_print_search buf o results =
       ( "1", "srh ar", "Complete Sources", "C" ) ;
       ( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ;
       ( "0", "srh", "Tags", "Tags (mouseover)" ) ] ;
-
+  end;
   (try
       List.iter (fun (rs,r,avail) ->
           if !!display_downloaded_results || not r.result_done  then begin
@@ -994,19 +996,30 @@ let old_print_search buf o results =
                   "--";
 
               if o.conn_output = HTML then begin
-                  if !!html_mods then begin
-                      Printf.bprintf buf "\\<td title=\\\"";
+                  if !!html_mods then
+                    begin
+                      Printf.bprintf buf "\\<td onMouseOut=\\\"hideLayer()\\\" onMouseOver=\\\"popLayer('";
+                      begin
+                        match r.result_names with
+                          [] -> ()
+                        | name :: names ->
+                           Printf.bprintf buf "%s" (Http_server.html_escaped name);
+                            List.iter (fun s ->
+                               if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
+                                Printf.bprintf buf "       %s" (Http_server.html_escaped s)
+                            ) names;
+                        if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
+                      end;
                       let nl = ref false in
                       List.iter (fun t ->
                           match t.tag_name with
                           | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()
                           | _ ->
-                              Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^
+                              Buffer.add_string buf ((if !nl then "<br>" else begin nl := true;"" end) ^
                                   "|| (" ^
                                 escaped_string_of_field t ^ "): " ^ get_tag_value t);
                       ) r.result_tags;
-
-                      Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                      Printf.bprintf buf "')\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
                     end
                   else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                 end;

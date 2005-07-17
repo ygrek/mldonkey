@@ -33,6 +33,7 @@ let html_escaped s =
       | '>' -> Buffer.add_string b "&gt;"; false
       | '&' -> Buffer.add_string b "&amp;"; false
       | '"' -> Buffer.add_string b "&quot;"; false
+      | '\039' -> Buffer.add_string b "&#39;"; false
       | '\\' -> true
       | _ -> Buffer.add_char b c; false
   ) s
