@@ -112,6 +112,8 @@ let unshare_file file =
   match file.file_shared with
     None -> ()
   | Some s -> 
+      if !verbose_share then
+        lprintf_nl "EDK: unshare_file %s" file.file_diskname;
       file.file_shared <- None;
       decr nshared_files;
       CommonShared.shared_calculate_total_bytes ();

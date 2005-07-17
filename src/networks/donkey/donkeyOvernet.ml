@@ -1518,10 +1518,10 @@ let _ =
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
-    if !verbose then lprintf_nl () "========= overnet_search =========";
+    if !verbose_overnet then lprintf_nl () "========= overnet_search =========";
     let ws = keywords_of_query q in
     List.iter (fun w ->
-        if !verbose then lprintf_nl () "overnet_search for %s" w;
+        if !verbose_overnet then lprintf_nl () "overnet_search for %s" w;
         let s = create_keyword_search w ss in
         Hashtbl.iter (fun r_md4 r_tags ->
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;

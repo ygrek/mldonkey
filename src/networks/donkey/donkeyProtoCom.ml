@@ -82,6 +82,7 @@ let direct_client_sock_send emule_version sock m =
 let client_send c m =
   let emule_version = c.client_emule_proto in
   if !verbose_msg_clients || c.client_debug then begin
+      CommonGlobals.print_localtime ();
       lprintf "Sent to client[%d] %s(%s)" (client_num c)
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
@@ -90,7 +91,6 @@ let client_send c m =
             lprintf " [%s:%d]" (Ip.to_string ip) port;
             
       );
-      CommonGlobals.print_localtime ();
       DonkeyProtoClient.print m;
       lprintf_nl "";
     end;

@@ -84,9 +84,8 @@ let new_file_to_share sh codedname old_impl =
       | _ -> md4_of_array md4s
     in
     
-    if !verbose_share then begin
-    lprintf "Sharing file with MD4: %s\n" (Md4.to_string md4);
-    end;
+    if !verbose_share then
+      lprintf_nl "EDK: Sharing file with MD4: %s" (Md4.to_string md4);
     
     let file = new_file sh.sh_name FileShared md4 sh.sh_size
         [Filename.basename sh.sh_name, GuiTypes.noips()]
@@ -126,9 +125,9 @@ let new_file_to_share sh codedname old_impl =
 		 Int64Swarmer.verify_all_blocks s true;
 		 *)
                 if !verbose_share then
-                  lprintf "verified map of %s = %s\n"
+                  lprintf_nl "EDK: verified map of %s = %s"
 		         (codedname) (Int64Swarmer.verified_bitmap s))
-      | None -> if !verbose_share then lprintf "no swarmer for %s\n" codedname;
+      | None -> if !verbose_share then lprintf_nl "EDK: no swarmer for %s" codedname;
     (try 
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)
@@ -141,10 +140,10 @@ let new_file_to_share sh codedname old_impl =
 lprint_newline ());
   *)
     if !verbose_share then begin
-        lprintf "Sharing %s\n" sh.sh_name;
+        lprintf_nl "EDK: Sharing %s" sh.sh_name;
     end;
   with e ->
-      lprintf "Exception %s while sharing %s\n" (Printexc2.to_string e)
+      lprintf_nl "EDK: Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name
       
   

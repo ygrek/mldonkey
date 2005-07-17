@@ -55,7 +55,7 @@ let search_handler s t =
 (*  search.search_handler (Waiting s.search_waiting) *)
 
 let make_xs ss =
-  if !verbose then lprintf "******** make_xs ********\n";
+  if !verbose_udp then lprintf "******** make_xs ********\n";
   if ss.search_num <> !xs_last_search then
     begin
       xs_last_search := ss.search_num;
@@ -98,7 +98,7 @@ when receiving an old ping.
               Udp.QueryMultipleUdpReq ss.search_query);
   ) before;
 
-  if !verbose then lprintf "===================== STARTING SEARCH ON OVERNET =========\n";
+  if !verbose_overnet then lprintf "===================== STARTING SEARCH ON OVERNET =========\n";
   DonkeyProtoOvernet.Overnet.overnet_search ss;
   DonkeyProtoKademlia.Kademlia.overnet_search ss
           

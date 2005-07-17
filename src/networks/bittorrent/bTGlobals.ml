@@ -81,7 +81,6 @@ let network = new_network "BT" "BitTorrent"
     [
     NetworkHasMultinet;
     NetworkHasUpload;
-    NetworkHasStats;
   ]
 
 let connection_manager = network.network_connection_manager

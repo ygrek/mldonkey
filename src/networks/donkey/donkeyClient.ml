@@ -237,8 +237,8 @@ let disconnect_client c reason =
       (try
           c.client_comp <- None;
           if c.client_debug then begin
+	    CommonGlobals.print_localtime ();
             lprintf "Client[%d]: disconnected" (client_num c);
-           CommonGlobals.print_localtime ();
           end;
           (try if c.client_checked then count_seen c with _ -> ());
           (try if !!log_clients_on_console && c.client_name <> "" then 
@@ -936,8 +936,8 @@ let client_to_client for_files c t sock =
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf "Message from %s" (string_of_client c);
       CommonGlobals.print_localtime ();
+      lprintf "Message from %s" (string_of_client c);
       M.print t;
       lprintf_nl ""
     end;
@@ -1862,8 +1862,8 @@ let read_first_message overnet m sock =
   let module M = DonkeyProtoClient in
     
   if !verbose_msg_clients then begin
-      lprintf "Message from incoming client";
       CommonGlobals.print_localtime ();
+      lprintf "Message from incoming client";
       M.print m;
       lprintf_nl ""
     end;
@@ -2142,7 +2142,8 @@ let query_locations_reply s t =
     let nlocs = List.length t.Q.locs in
     
     if !verbose_location then
-        lprintf "Received %d sources from donkey Server for %s\n" nlocs (file_best_name file);
+        lprintf "EDK: Received %d sources from server %s:%s for %s\n"
+	   nlocs (Ip.to_string s.server_ip) (string_of_int s.server_port) (file_best_name file);
     
     s.server_score <- s.server_score + 3;
 

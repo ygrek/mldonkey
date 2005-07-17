@@ -116,7 +116,6 @@ let already_done = Failure "File already downloaded (use 'force_download' if nec
 
 let really_query_download filenames size md4 location old_file absents =
 
-  if !verbose then lprintf "really_query_download..................... \n";
   begin
     try
       let file = Hashtbl.find files_by_md4 md4 in
@@ -1361,7 +1360,6 @@ let _ =
 
 (* TODO RESULT *)
   network.op_network_recover_temp <- (fun _ ->
-      if !verbose then lprintf "op_network_recover_temp ++++++++++++++++++++++++++\n";
       let files = Unix2.list_directory !!temp_directory in
       List.iter (fun filename ->
           let uid =
@@ -1541,9 +1539,7 @@ let _ =
 
 let _ =
   shared_ops.op_shared_unshare <- (fun file ->
-      if !verbose_share then lprintf "************ UNSHARE FILE ************\n";
       unshare_file file;
-
 (* Should we or not ??? *)
       if file_state file = FileShared then
         try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ();

@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/17: spiralvoice
 
+4177: Clear logging, first steps toward time stamps
 4175: HTML: Add Multiline File Information in search results
 4174: EDK: Re-enable source exchange with eMule clients
 4163: EDK: Avoid saving sources every save_options_delay

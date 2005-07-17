@@ -293,13 +293,13 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             then
               begin
                 if !verbose_share then
-                  lprintf "New Edonkey file with changed filename %s to %s\n"
+                  lprintf_nl "EDK: New file with changed filename %s to %s"
                     file.file_diskname file_diskname;
                 file.file_diskname <- file_diskname;
               end
           else
             if !verbose_share then
-              lprintf "New Edonkey file with not changed different filename %s and %s\n"
+              lprintf_nl "EDK: New file with not changed different filename %s and %s"
                 file.file_diskname file_diskname;
         end;
       if Unix32.destroyed (file_fd file)
@@ -309,12 +309,12 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           file.file_file.impl_file_fd <-
             Unix32.create_diskfile file.file_diskname Unix32.rw_flag 0o666;
       if Unix32.destroyed (file_fd file) then
-          lprintf "New Edonkey file with %b && %b remaining destroyed fd %s\n"
+          lprintf_nl "New Edonkey file with %b && %b remaining destroyed fd %s"
             (not writable) (file.file_diskname = file_diskname) file.file_diskname;
       file
   with _ ->
-      if !verbose then
-        lprintf "New Edonkey file with md4: %s\n" (Md4.to_string md4);
+      if !verbose_share then
+        lprintf_nl "EDK: New file with md4: %s" (Md4.to_string md4);
       let file_exists = Unix32.file_exists file_diskname in
       
       let t = 

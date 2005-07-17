@@ -101,10 +101,9 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
-      if !verbose then begin 
+      if !verbose_share then
           lprintf "NEW SHARED %s/%s\n" impl.impl_shared_codedname
             impl.impl_shared_fullname; 
-        end; 
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
       H.add shareds_by_num (as_shared impl);
@@ -248,7 +247,7 @@ let shared_scan_directory shared_dir local_dir =
   if can_share dirname then
     try
       let files = Unix2.list_directory full_dir in
-      if !verbose_share then lprintf "Sharing sub-directory %s\n" full_dir; 
+      if !verbose_share then lprintf_nl "commonShared: Sharing sub-directory %s" full_dir; 
       List.iter (fun file ->
           if file <> "" && file.[0] <> '.' then
             let full_name = Filename.concat full_dir file in
@@ -260,13 +259,13 @@ let shared_scan_directory shared_dir local_dir =
 	          begin
 		    let inode = ((Unix.stat full_name).Unix.st_ino) in
 		      if inode = incoming_files_inode then
-		        if !verbose_share then lprintf "avoid sharing incoming_files %s\n" full_dir else ()
+		        if !verbose_share then lprintf_nl "avoid sharing incoming_files %s" full_dir else ()
 		      else
 		        if inode = incoming_directories_inode then
-			  if !verbose_share then lprintf "avoid sharing incoming_directories %s\n" full_dir else ()
+			  if !verbose_share then lprintf_nl "avoid sharing incoming_directories %s" full_dir else ()
 			else
 			  if inode = temp_directory_inode then
-			    if !verbose_share then lprintf "avoid sharing temp %s\n" full_dir else ()
+			    if !verbose_share then lprintf_nl "avoid sharing temp %s" full_dir else ()
 			  else
 			    shared_add_directory shared_dir local_name
                   end

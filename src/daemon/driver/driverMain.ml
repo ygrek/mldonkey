@@ -583,10 +583,12 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf "SIGHUP";
+      (Sys.Signal_handle (fun _ ->
+	 CommonGlobals.print_localtime ();
+	 lprintf_nl "SIGHUP";
          BasicSocket.close_all ();
-	 Unix32.close_all ();
-         CommonGlobals.print_localtime ();));
+	 Unix32.close_all ()
+         ));
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sigpipe
@@ -607,9 +609,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
 let _ =
   let security_space_filename = "config_files_space.tmp" in
 
-  lprintf (_b "Core started");
-  core_included := true;
   CommonGlobals.print_localtime ();
+  lprintf_nl (_b "Core started");
+  core_included := true;
 
   begin
 (* Create a 'config_files_security_space' megabytes file to protect some space
@@ -650,8 +652,8 @@ for config files at the end. *)
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
 
-      lprintf (_b "Core stopped");
-      CommonGlobals.print_localtime ()
+      CommonGlobals.print_localtime ();
+      lprintf_nl (_b "Core stopped")
     );
 
   if not !keep_console_output then begin

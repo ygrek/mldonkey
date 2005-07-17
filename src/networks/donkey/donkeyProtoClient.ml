@@ -1230,8 +1230,9 @@ let rec parse_emule_packet emule opcode len s =
         in
         EmuleMultiPacketAnswerReq (md4, iter s 17 len)
     
-    | code -> 
-(*        Printf.printf "UNKNOWN EMULE MESSAGE %d" code; print_newline ();*)
+    | code ->
+        if !CommonOptions.verbose_unknown_messages then
+          lprintf_nl "EDK: unknown eMule message %d" code;
         raise Not_found
   in
 (*
