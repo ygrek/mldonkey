@@ -715,10 +715,33 @@ let update_emule_proto_from_tags c tags =
       | Field_UNKNOWN "features" ->
           for_int_tag tag (fun i ->
               c.client_emule_proto.emule_secident <- i land 0x3)
+      | Field_UNKNOWN "mod_version" ->
+          let s = to_lowercase (string_of_tag_value tag.tag_value) in 
+            begin
+            let rec iter i len =
+              if i < len then
+                let sub = fst mod_array.(i) in
+                  if (String2.subcontains s sub) then
+                    c.client_mod_brand <- snd mod_array.(i)
+                  else iter (i+1) len
+            in
+              iter 0 (Array.length mod_array)
+           end
       | _ -> 
           if !verbose_msg_clients then
             lprintf "Unknown Emule tag: [%s]\n" (escaped_string_of_field tag)
   ) tags
+
+let fight_disguised_mods c =
+   if (c.client_brand = Brand_mldonkey2 || c.client_brand = Brand_mldonkey3)
+     && (c.client_mod_brand = Brand_mod_morphxt || c.client_mod_brand = Brand_mod_ionix) then
+       c.client_brand <- Brand_newemule;
+   if c.client_emule_proto.emule_release <> "" && c.client_brand = Brand_mldonkey2 then
+      c.client_brand <- Brand_newemule;
+   if c.client_brand = Brand_edonkey && c.client_mod_brand = Brand_mod_plus then
+      c.client_brand <- Brand_emuleplus;
+   if c.client_brand = Brand_emuleplus && c.client_mod_brand = Brand_mod_plus then
+      c.client_mod_brand <- Brand_mod_unknown
 
 let rec query_id ip port id =
   let client_ip = client_ip None in
@@ -980,6 +1003,7 @@ let client_to_client for_files c t sock =
       ) c.client_tags;
       identify_client_brand c;
       update_client_from_tags c t.CR.tags;
+      fight_disguised_mods c;
       Hashtbl.add connected_clients t.CR.md4 c;
 (*      connection_ok c.client_connection_control; *)
       if !verbose_msg_clienttags then begin
@@ -1921,7 +1945,7 @@ let read_first_message overnet m sock =
       c.client_tags <- t.CR.tags;
       identify_client_brand c;
       update_client_from_tags c t.CR.tags;
-      
+      fight_disguised_mods c;
       begin
         match c.client_source.DonkeySources.source_sock with
         | NoConnection -> 

@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/17: spiralvoice
 
+4181: EDK: Control identified versions
 4180: EDK: Files copied to incoming dir for sharing do not
       appear in upstats after hashing
 4179: Get CVS date in configure for FreeBSD & Mac OS X
