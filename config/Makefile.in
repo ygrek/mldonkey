@@ -1608,7 +1608,7 @@ opt:  $(RESFILE) $(TMPSOURCES) $(TARGETS)
 
 byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
 
-static: $(PATCHED_OCAMLOPT) $(foreach target, $(TARGETS), $(target).static)
+static: $(foreach target, $(TARGETS), $(target).static)
 
 kde_applet: $(APPLET_OBJS)
 	cd src/applets/kde; ./configure --prefix /usr; make

@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/17: spiralvoice
 
+4179: Get CVS date in configure for FreeBSD & Mac OS X
 4178: Dont build GUI on "make release.mlnet.static"
 4177: Clear logging, first steps toward time stamps
 4175: HTML: Add Multiline File Information in search results
