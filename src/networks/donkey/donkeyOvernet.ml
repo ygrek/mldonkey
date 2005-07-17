@@ -412,6 +412,7 @@ let overnet_options_version =
 *********************************************************************)
 
 let connected_peers = ref 0
+let pre_connected_peers = ref 0
 
 module LimitedList = struct
 
@@ -438,7 +439,7 @@ module LimitedList = struct
         begin
           Hashtbl.add t.objects_table key key;
           Fifo.put t.objects_fifo key;
-          if Fifo.length t.objects_fifo = t.max_objects then
+          if Fifo.length t.objects_fifo > t.max_objects then
             let key = Fifo.take t.objects_fifo in
             Hashtbl.remove t.objects_table key
         end
@@ -689,7 +690,12 @@ let udp_send p msg =
 let bootstrap ip port =
   if !!overnet_update_nodes && Ip.valid ip && Ip.reachable ip && port <> 0 then begin
       LimitedList.add !!boot_peers (ip,port);
-      boot_peers_copy := (ip,port) :: !boot_peers_copy
+      boot_peers_copy := (ip,port) :: !boot_peers_copy;
+(* Limit boot_peers_copy, if needed by the timer it will be set to
+   LimitedList.to_list !!boot_peers there *)
+      if (List.length !boot_peers_copy) > (2 * LimitedList.length !!boot_peers)
+      then
+        boot_peers_copy := (ip,port) :: [];
     end
 
 let new_peer p =
@@ -703,8 +709,6 @@ let new_peer p =
         pp.peer_last_recv <- p.peer_last_recv;
       pp
     with _ ->
-(* Add the peer to the table of known peers *)
-        Hashtbl.add known_peers key p;
 (* First, enter the peer in the boot_peers to be able to use at next
 restart. *)
         bootstrap p.peer_ip p.peer_port;
@@ -714,15 +718,29 @@ restart. *)
         if bucket < !n_used_buckets then begin
 
             if Fifo.length prebuckets.(bucket) = max_peers_per_prebucket then
+	    begin
+              let l = last_time () - 1800 in
               let pp = Fifo.take prebuckets.(bucket) in
               Fifo.put prebuckets.(bucket)
 (* If we heard of the head of the bucket in the last 30 minutes, we should
   keep it. *)
-              (if pp.peer_last_recv > last_time () - 1800 then pp else p)
-            else
-              Fifo.put prebuckets.(bucket) p
-          end else
-        if !n_used_buckets < 128 then begin
+                (if pp.peer_last_recv > l then pp else p);
+              if pp.peer_last_recv <= l then
+              begin
+(* Add the peer to the table of known peers *)
+                Hashtbl.add known_peers key p;
+(* And remove pp *)
+                let ppkey = (pp.peer_ip, pp.peer_port) in
+                Hashtbl.remove known_peers ppkey
+              end
+	    end  
+            else begin
+               Hashtbl.add known_peers key p;
+               Fifo.put prebuckets.(bucket) p;
+               incr pre_connected_peers
+            end
+        end
+        else if !n_used_buckets < 128 then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
 
             while !n_used_buckets < 128 &&
@@ -737,7 +755,7 @@ restart. *)
                     prebuckets.(!n_used_buckets) else b) p
               done
             done
-          end;
+        end;
         p
   else
     p
@@ -1101,7 +1119,12 @@ let update_buckets () =
     for j = 1 to Fifo.length b do
       let p = Fifo.take b in
       if p.peer_last_recv > overtime then Fifo.put b p else
+      begin
+        (* remove the peer also from known_peers *)
+        let key = (p.peer_ip, p.peer_port) in
+	Hashtbl.remove known_peers key;
         decr connected_peers
+      end
     done
 
   done;
@@ -1121,6 +1144,7 @@ let update_buckets () =
             if p.peer_last_recv > overtime then begin
                 Fifo.put b p;
                 incr connected_peers;
+		decr pre_connected_peers;
                 if Fifo.length b = max_peers_per_bucket then raise Exit
               end else Fifo.put pb p
 
@@ -1252,10 +1276,22 @@ let enable () =
             with Exit -> ()
           end;
 
+(* reset the Hashtbls and Fifos for searches that are older than 5 minutes *)
+          let l = last_time () - 300 in
+	  List.iter ( fun s ->
+	     if s.search_requests < max_search_requests &&
+	     s.search_start > l then begin
+               Hashtbl.clear s.search_known_peers;
+	       Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
+	       Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
+	       Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
+	       Hashtbl.clear s.search_results;
+	     end
+	  ) !overnet_searches;
 (* remove searches that are older than 5 minutes *)
           overnet_searches := List.filter (fun s ->
               s.search_requests < max_search_requests &&
-              s.search_start > last_time () - 300
+              s.search_start > l
           ) !overnet_searches;
       );
 
@@ -1283,6 +1319,12 @@ let enable () =
           if !!enable_overnet then begin
               check_current_downloads ();
             end
+      );
+      add_infinite_timer 1800. (fun _ ->
+          if !!enable_overnet then begin
+	      PublishedKeywords.refresh ();
+	      PublishedFiles.refresh ();
+            end            
       );
 
   end
@@ -1492,8 +1534,8 @@ let _ =
       "buckets", Arg_none (fun o ->
           let buf = o.conn_buf in
           update_buckets ();
-          Printf.bprintf buf "Number of used buckets %d with %d peers\n"
-            !n_used_buckets !connected_peers;
+          Printf.bprintf buf "Number of used buckets %d with %d peers (prebucket: %d peers)\n"
+            !n_used_buckets !connected_peers !pre_connected_peers;
           for i = 0 to !n_used_buckets do
             if Fifo.length buckets.(i) > 0 ||
               Fifo.length prebuckets.(i) > 0 then
@@ -1529,10 +1571,26 @@ let overnet_search (ss : search) =
     ws
 
 let forget_search ss =
+  begin
+(* reset the Hashtbls and Fifos *)
+    List.iter ( fun s ->
+    match s.search_kind with
+      KeywordSearch sss when ss == sss ->
+        begin
+          Hashtbl.clear s.search_known_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
+          Hashtbl.clear s.search_results;
+        end
+      | _ -> ()
+    ) !overnet_searches;
+(* Remove from overnet_searches *)    
   overnet_searches := List.filter (fun s ->
       match s.search_kind with
         KeywordSearch sss when ss == sss -> false
       | _ -> true) !overnet_searches
+  end    
 
 let _ =
   CommonWeb.add_redirector_info Proto.redirector_section (fun buf ->
@@ -1548,10 +1606,26 @@ let _ =
   )
 
 let cancel_recover_file file =
-  overnet_searches := List.filter (fun s ->
+   begin
+(* reset the Hashtbls and Fifos *)
+    List.iter ( fun s ->
+    match s.search_kind with
+      FileSearch f when f == file ->
+        begin
+          Hashtbl.clear s.search_known_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
+          Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
+          Hashtbl.clear s.search_results;
+        end
+      | _ -> ()
+    ) !overnet_searches;
+(* Remove from overnet_searches *)
+   overnet_searches := List.filter (fun s ->
       match s.search_kind with
         FileSearch f when f == file -> false
       | _ -> true) !overnet_searches
+   end   
 
 let _ =
   CommonWeb.add_web_kind web_info (fun _ filename ->
@@ -1606,7 +1680,9 @@ Define a function to be called when the "mem_stats" command
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
       Printf.bprintf buf "  boot_peers: %d\n" (LimitedList.length !!boot_peers);
       update_buckets ();
-      Printf.bprintf buf "%d buckets with %d peers\n" !n_used_buckets !connected_peers;
+      Printf.bprintf buf "  %d buckets with %d peers and %d prebucket peers\n"
+            !n_used_buckets !connected_peers !pre_connected_peers;
+
       Printf.bprintf buf "  Search hits: %d\n" !search_hits;
       Printf.bprintf buf "  Source hits: %d\n" !source_hits;
       Printf.bprintf buf "  Hashtbl.lenght known_peers: %d\n" (Hashtbl.length known_peers);
@@ -1618,16 +1694,16 @@ Define a function to be called when the "mem_stats" command
       let n_overnet_searches = ref 0 in
       List.iter ( fun s ->
               for i = 128 downto 0 do
-               let n_search_known_peers =
-                 !n_search_known_peers + (Hashtbl.length s.search_known_peers) in
-               let n_search_waiting_peers =
-                 !n_search_waiting_peers + (Fifo.length s.search_waiting_peers.(i)) in
-               let n_search_asked_peers =
-                 !n_search_asked_peers + (Fifo.length s.search_asked_peers.(i)) in
-               let n_search_ok_peers =
-                 !n_search_ok_peers + (Fifo.length s.search_ok_peers.(i)) in
-               let n_search_results =
-                 !n_search_results + (Hashtbl.length s.search_results) in ()
+               n_search_known_peers :=
+                 !n_search_known_peers + (Hashtbl.length s.search_known_peers);
+               n_search_waiting_peers :=
+                 !n_search_waiting_peers + (Fifo.length s.search_waiting_peers.(i));
+               n_search_asked_peers :=
+                 !n_search_asked_peers + (Fifo.length s.search_asked_peers.(i));
+               n_search_ok_peers :=
+                 !n_search_ok_peers + (Fifo.length s.search_ok_peers.(i));
+               n_search_results :=
+                 !n_search_results + (Hashtbl.length s.search_results);
               done;
              incr n_overnet_searches
       ) !overnet_searches;
