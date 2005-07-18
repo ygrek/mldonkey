@@ -678,6 +678,8 @@ let chat_handler t event =
 
 **************************************************************)
 
+open Http_server
+
 let buf = Buffer.create 1000
 
 type http_file =
@@ -687,16 +689,74 @@ type http_file =
 | TXT
 | UNK
 
+type file_ext =
+  BINARY
+| CSS
+| HTMLS
+| ICON
+| JPEG
+| JAVASCRIPT
+| MPEG
+| PNG
+| TEXTS
+| UNKN
+| WML
+
 let http_file_type = ref UNK
 
-open Http_server
+let extension_to_file_ext extension =
+  match extension with
+  | "bin" -> BINARY
+  | "css" -> CSS
+  | "htm"
+  | "html" -> HTMLS
+  | "ico" -> ICON
+  | "jpeg"
+  | "jpg" -> JPEG
+  | "js" -> JAVASCRIPT
+  | "mpeg"
+  | "mpg" -> MPEG
+  | "png" -> PNG
+  | "txt" -> TEXTS
+  | "wml" -> WML
+  | _ -> UNKN
+
+let ext_to_file_type ext =
+  match ext with
+    UNKN -> UNK
+  | BINARY -> BIN
+  | CSS -> TXT
+  | HTMLS -> HTM
+  | ICON -> BIN
+  | JAVASCRIPT -> TXT
+  | JPEG -> BIN
+  | MPEG -> BIN
+  | PNG -> BIN
+  | TEXTS -> TXT
+  | WML -> TXT
+
+let ext_to_mime_type ext =
+  match ext with
+    UNKN -> ""
+  | BINARY -> "application/octet-stream"
+  | CSS -> "text/css"
+  | HTMLS -> "text/html"
+  | ICON -> "image/x-icon"
+  | JAVASCRIPT -> "text/javascript"
+  | JPEG -> "image/jpg"
+  | MPEG -> "video/mpeg"
+  | PNG -> "image/png"
+  | TEXTS -> "text/plain"
+  | WML -> "text/vnd.wap.wml"
+
+let default_charset = "charset=UTF-8"
 
 let get_theme_page page =
         let theme = Filename.concat html_themes_dir !!html_mods_theme in
         let fname = Filename.concat theme page in fname
 
 let theme_page_exists page =
-	if Sys.file_exists (get_theme_page page) then true else false
+        if Sys.file_exists (get_theme_page page) then true else false
 
 (* if files are small really_input should be okay *)
 let read_theme_page page =
@@ -726,40 +786,55 @@ let add_gzip_headers r =
   end
 
 let http_add_html_header r =
-  http_file_type := HTM;
+  let ext = extension_to_file_ext "html" in
+  http_file_type := ext_to_file_type ext;
   http_add_gen_header r;
   add_reply_header r "Pragma" "no-cache";
-  add_reply_header r "Content-Type" "text/html; charset=UTF-8";
+  add_reply_header r "Content-Type" ((ext_to_mime_type ext) ^ ";" ^ default_charset);
   add_gzip_headers r
 
-let http_add_css_header r =
-  http_file_type := TXT;
+let http_add_text_header r ext =
+  http_file_type := ext_to_file_type ext;
   http_add_gen_header r;
-  add_reply_header r "Content-Type" "text/css; charset=UTF-8";
+  add_reply_header  r "Content-Type" ((ext_to_mime_type ext) ^ ";" ^ default_charset);
   add_gzip_headers r
 
-let http_add_js_header r =
-  http_file_type := TXT;
-  http_add_gen_header r;
-  add_reply_header  r "Content-Type" "text/javascript; charset=UTF-8";
-  add_gzip_headers r
-
-let http_add_png_header r clen =
-  http_file_type := BIN;
-  http_add_gen_header r;
-  add_reply_header r "Content-Type" "image/png;";
+let http_add_bin_info_header r clen =
   add_reply_header r "Accept-Ranges" "bytes";
-  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen);
-  add_gzip_headers r
+  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen)
 
-let http_add_jpg_header r clen =
-  http_file_type := BIN;
+let http_add_bin_header r ext clen =
+  http_file_type := ext_to_file_type ext;
   http_add_gen_header r;
-  add_reply_header r "Content-Type" "image/jpg;";
-  add_reply_header r "Accept-Ranges" "bytes";
-  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen);
+  add_reply_header r "Content-Type" (ext_to_mime_type ext);
+  http_add_bin_info_header r clen;
   add_gzip_headers r
 
+let http_send_bin r buf filename =
+  let file_to_send = File.to_string filename in
+  let clen = String.length file_to_send in
+  let ext_pos = (String.rindex filename '.') + 1 in
+  let exten = (String.sub filename ext_pos ((String.length filename) - ext_pos)) in
+  if !verbose_msg_servers then
+    lprintf_nl "[HTTP]: Extension found [%s] for file: [%s]" exten filename;
+  let ext = extension_to_file_ext exten in
+  http_add_bin_header r ext clen;
+  Buffer.add_string buf file_to_send
+
+let http_error_no_gd img_type =
+  match img_type with
+    "jpg" ->
+      (match Autoconf.has_gd_jpg with
+        true -> false
+      | false -> lprintf_nl "[HTTP] : Warning: GD jpg support disabled"; true)
+  | "png" ->
+      (match Autoconf.has_gd_png with
+        true -> false
+      | false -> lprintf_nl "[HTTP] : Warning: GD png support disabled"; true)
+  | _ ->
+      (match Autoconf.has_gd with
+        true -> false
+      | false -> lprintf_nl "[HTTP] : Warning: GD support disabled"; true)
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 
 let html_open_page buf t r open_body =
@@ -797,8 +872,7 @@ let html_open_page buf t r open_body =
 
 let html_close_page buf =
   Buffer.add_string buf "</body>\n";
-  Buffer.add_string buf "</html>\n";
-  ()
+  Buffer.add_string buf "</html>\n"
 
 let clear_page buf =
   Buffer.clear buf;
@@ -826,9 +900,7 @@ let http_handler o t r =
         | "/wap.wml" ->
             begin
               clear_page buf;
-              add_reply_header r "Server" "MLdonkey";
-              add_reply_header r "Connection" "close";
-              add_reply_header r "Content-Type" "text/vnd.wap.wml";
+              http_add_text_header r WML;
               let dlkbs =
                 (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
               let ulkbs =
@@ -874,7 +946,6 @@ let http_handler o t r =
               ) mfiles;
               Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
               Printf.bprintf buf "</small></p>";
-
               Printf.bprintf buf "</card></wml>";
             end
         | "/commands.html" ->
@@ -920,112 +991,107 @@ let http_handler o t r =
             Buffer.add_string buf !!motd_html
 
         | "/bw_updown.png" ->
-            do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
-            (* Buffer.clear buf; *)
-            let showgraph = File.to_string "bw_updown.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+              false ->
+                do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+                http_send_bin r buf "bw_updown.png"
+            | true -> raise Not_found)
 
         | "/bw_updown.jpg" ->
-            do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
-            (* Buffer.clear buf;*)
-            let showgraph = File.to_string_alt "bw_updown.jpg" in
-            let size = Buffer.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_buffer buf showgraph
+            (match http_error_no_gd "jpg" with
+              false ->
+                do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+                http_send_bin r buf "bw_updown.jpg"
+            | true -> raise Not_found)
 
         | "/bw_download.png" ->
-            do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
-            let showgraph = File.to_string "bw_download.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+              false ->
+                do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+                http_send_bin r buf "bw_download.png"
+            | true -> raise Not_found)
 
         | "/bw_download.jpg" ->
-            do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
-            Buffer.clear buf;
-            let showgraph = File.to_string "bw_download.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "jpg" with
+              false ->
+                do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+                http_send_bin r buf "bw_download.jpg"
+            | true -> raise Not_found)
 
         | "/bw_upload.png" ->
-            do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
-            let showgraph = File.to_string "bw_upload.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+              false ->
+                do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+                http_send_bin r buf "bw_upload.png"
+            | true -> raise Not_found)
 
         | "/bw_upload.jpg" ->
-            do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
-            Buffer.clear buf;
-            let showgraph = File.to_string "bw_upload.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "jpg" with
+            | false ->
+                do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+                http_send_bin r buf "bw_upload.jpg"
+            | true -> raise Not_found)
 
         | "/bw_h_updown.png" ->
-            do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
-            (* Buffer.clear buf; *)
-            let showgraph = File.to_string "bw_h_updown.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+            | false ->
+                do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+                http_send_bin r buf "bw_h_updown.png"
+            | true -> raise Not_found)
 
         | "/bw_h_updown.jpg" ->
-            do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
-            (* Buffer.clear buf;*)
-            let showgraph = File.to_string "bw_h_updown.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "jpg" with
+            | false ->
+                do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+                http_send_bin r buf "bw_h_updown.jpg"
+            | true -> raise Not_found)
 
         | "/bw_h_download.png" ->
-            do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
-            let showgraph = File.to_string "bw_h_download.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+            | false ->
+                do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+                http_send_bin r buf "bw_h_download.png"
+            | true -> raise Not_found)
 
         | "/bw_h_download.jpg" ->
-            do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
-            Buffer.clear buf;
-            let showgraph = File.to_string "bw_h_download.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "jpg" with
+            | false ->
+                do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+                http_send_bin r buf "bw_h_download.jpg"
+            | true -> raise Not_found)
 
         | "/bw_h_upload.png" ->
-            do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
-            let showgraph = File.to_string "bw_h_upload.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+            | false ->
+                do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+                http_send_bin r buf "bw_h_upload.png"
+            | true -> raise Not_found)
 
         | "/bw_h_upload.jpg" ->
-            do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
-            Buffer.clear buf;
-            let showgraph = File.to_string "bw_h_upload.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
-
+            (match http_error_no_gd "jpg" with
+            | false ->
+                do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+                http_send_bin r buf "bw_h_upload.jpg"
+            | true -> raise Not_found)
 
         | "/tag.png" ->
-            do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
-            let showgraph = File.to_string "tag.png" in
-            let size = String.length showgraph in
-            http_add_png_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "png" with
+            | false ->
+                do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+                http_send_bin r buf "tag.png"
+            | true -> raise Not_found)
 
         | "/tag.jpg" ->
-            do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
-            (* Buffer.clear buf;*)
-            let showgraph = File.to_string "tag.jpg" in
-            let size = String.length showgraph in
-            http_add_jpg_header r size;
-            Buffer.add_string buf showgraph
+            (match http_error_no_gd "jpg" with
+            | false ->
+                do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+                http_send_bin r buf "tag.jpg"
+            | true -> raise Not_found)
+
+        | "/favicon.ico" ->
+            if !verbose_msg_servers then
+              lprintf_nl "[BT]: favicon.ico request received by tracker";
+            http_send_bin r buf "favicon.ico"
 
         | "/filter" ->
             html_open_page buf t r true;
@@ -1277,7 +1343,7 @@ let http_handler o t r =
 
         | "/h.css" ->
             clear_page buf;
-            http_add_css_header r;
+            http_add_text_header r CSS;
             let this_page = "h.css" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1287,7 +1353,7 @@ let http_handler o t r =
 
         | "/dh.css" ->
             clear_page buf;
-            http_add_css_header r;
+            http_add_text_header r CSS;
             let this_page = "dh.css" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1297,7 +1363,7 @@ let http_handler o t r =
 
         | "/i.js" ->
             clear_page buf;
-            http_add_js_header r;
+            http_add_text_header r JAVASCRIPT;
             let this_page = "i.js" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1307,7 +1373,7 @@ let http_handler o t r =
 
         | "/di.js" ->
             clear_page buf;
-            http_add_js_header r;
+            http_add_text_header r JAVASCRIPT;
             let this_page = "di.js" in
             Buffer.add_string buf (
               if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1317,7 +1383,9 @@ let http_handler o t r =
         | cmd ->
             html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" (html_escaped cmd)
-      with e ->
+      with
+      | Not_found -> Printf.bprintf buf "404 Not found"
+      | e ->
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
           r.reply_stream <- None
     end;

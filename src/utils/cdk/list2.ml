@@ -72,8 +72,8 @@ let rec cut_rec n list r =
 let cut n list =
   if n < 0 then failwith "List2.sub: invalid parameter";
   cut_rec n list []
-  
-let tail_map f list = 
+
+let tail_map f list =
   List.rev (List.rev_map f list)
 
 
@@ -105,3 +105,14 @@ let max list =
   match list with
     [] -> raise Not_found
   | m :: tail -> iter m tail
+
+let shuffle list =
+  let a = Array.of_list list in
+  let len = Array.length a in
+  for i = 0 to len-1 do
+    let p = Random.int (len-1) in
+    let tmp = a.(i) in
+    a.(i) <- a.(p);
+    a.(p) <- tmp;
+  done;
+  Array.to_list a

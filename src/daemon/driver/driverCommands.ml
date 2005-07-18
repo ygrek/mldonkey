@@ -2859,16 +2859,8 @@ let _ =
         if o.conn_output = HTML then
           let mybuf = Buffer.create 1000 in
           let mytable = ref [] in
-          let split_string c str =
-            let rec aux s acc =
-              try  let ind=String.index s c in
-                     aux (String.sub s (ind+1) ((String.length s) - ind -1 ))
-                         ((String.sub s 0 ind)::acc)
-              with Not_found -> List.rev (s::acc)
-              in aux str []; in
-          let split_lines = split_string '\n' in
           Ip_set.print_list mybuf !Ip_set.bl;
-          let listtmp = split_lines (Buffer.contents mybuf) in
+          let listtmp = String2.split (Buffer.contents mybuf) '\n' in
            (List.iter (fun s ->
              mytable := !mytable @ [ ("", "srh", s); ]
             ) listtmp);

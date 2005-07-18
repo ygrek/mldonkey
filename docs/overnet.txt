@@ -42,6 +42,8 @@ char[]:            message args
 28     OvernetGetMyIPResult
 29     OvernetGetMyIPDone
 
+33     OvernetPeerNotFound
+
 3) Conventions:
 ---------------
 

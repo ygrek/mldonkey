@@ -31,6 +31,19 @@ let print_memstats (level : int) buf output_type =
   let memstat_list = List.rev !memstat_functions in
   if output_type = true then
     begin
+      let split_l s c =
+        let len = String.length s in
+        let rec iter pos =
+          try
+            if pos = len then [""] else
+            let pos2 = String.index_from s pos c in
+            if pos2 = pos then "" :: iter (pos+1) else
+              (String.sub s pos (pos2-pos)) :: (iter (pos2+1))
+          with _ -> [String.sub s pos (len-pos)]
+        in
+        iter 0
+      in
+(*
       let split_string c str =
         let rec aux s acc =
           try  let ind=String.index s c in
@@ -39,7 +52,7 @@ let print_memstats (level : int) buf output_type =
           with Not_found -> List.rev (s::acc)
           in aux str []; in
       let split_lines = split_string '\n' in
-
+ *)
       List.iter (fun (m,f) ->
 (*
           html_mods_table_header buf "memstatsTable" "memstats" [
@@ -49,7 +62,7 @@ let print_memstats (level : int) buf output_type =
 \\>\\<tr\\>\\<td class=\\\"srh\\\" \\>Module %s\\</td\\>\\</tr\\>" m;
           let buftmp = Buffer.create 100 in
           f level buftmp;
-          let listtmp = split_lines (Buffer.contents buftmp) in
+          let listtmp = split_l (Buffer.contents buftmp) '\n' in
           (List.iter (fun s ->
 (*
               html_mods_td buf [

@@ -570,11 +570,11 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','csm')\">eMule MODs</TD>
 <TD class=\"bu bbig\" title=\"Overnet statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','ov_stats')\">Overnet</TD>
-<TD class=\"bu bbig\" title=\"Kademlia statistics\"
+onClick=\"showTab(4);mSub('fstatus','ov_view_stats_cmds');mSub('output','ov_stats')\">Overnet</TD>
+<TD class=\"bu bbig\" title=\"Kademlia statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','kad_stats')\">Kademlia</TD>
-<TD class=\"bu bbig\" title=\"Gnutella statistics\"
+onClick=\"showTab(4);mSub('fstatus','kad_view_stats_cmds');mSub('output','kad_stats')\">Kademlia</TD>
+<TD class=\"bu bbig\" title=\"Gnutella statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','gstats')\">Gnutella</TD>
 <TD class=\"bu bbig\" title=\"Gnutella2 statistics\"
@@ -788,6 +788,123 @@ let no_such_command  = message "no_such_command"
     (T.boption (T.string T.bformat))   "No such command %s\n"
 
 let bad_number_of_args = _s    "Bad number of arguments"
+
+(* Colour arrays list for debug and devs
+
+Main CSS :
+
+body { background: @C0@;    
+scrollbar-face-color: @C1@; scrollbar-shadow-color: @C1@;
+scrollbar-highlight-color: @C3@; scrollbar-3dlight-color: @C34@;
+scrollbar-darkshadow-color: @C34@; scrollbar-track-color: @C0@;
+scrollbar-arrow-color: @C34@; }
+table.commands { border: @C27@; background: @C0@;}
+table.topcommands { background: @C0@; border: @C27@; border-top: @C3@; border-left: @C3@;} 
+pre { color: @C26@; }
+p { color: @C26@; }
+input.txt { background: @C6@; }
+input.txt2 { background: @C11@; color: @C26@;
+border-right: @C35@; border-top: @C27@; border-left: @C27@; border-bottom: @C35@; }
+input.but2 { background: @C14@; }
+input.but { background: @C7@; }
+a:link,a:active,a:visited { color: @C28@; }
+a:hover { color: @C29@; }
+.bu { background: @C8@; color: @C9@; border: @C35@; }
+.bbig { border-top: @C3@;  border-left: @C3@;  border-bottom: @C27@;  border-right: @C27@;
+color: @C26@; background: @C11@; }
+.bbigm { border-top: @C3@; border-left: @C3@; border-bottom: @C27@; border-right: @C27@;
+color: @C26@; background: @C14@; }
+.bsmall { background: @C12@; }
+.bsmall1 { background: @C11@; }
+.bsmall2 { background: @C13@; }
+.bsmall3 { background: @C14@; }
+.bbig2 { background: @C14@; }
+.bbig3 { background: @C1@; }
+.b1 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b2 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b3 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.b4 { border-left: @C15@; border-top: @C15@; border-right: @C15@; border-bottom: @C15@; }
+.bb1 { border-left: @C27@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
+.bb2 { border-left: @C5@; border-top: @C3@; border-right: @C3@; border-bottom: @C27@; }
+.bb3 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
+.bb4 { border-left: @C5@; border-top: @C3@; border-right: @C27@; border-bottom: @C27@; }
+.src { border-left: @C27@; border-top: @C27@; border-right: @C27@; border-bottom: @C27@; }
+td.fbig { background: @C10@; border-top: @C27@; border-left: @C27@; }
+td.pr { border-right: @C27@; }
+td.fbigb { border-top: @C27@; border-bottom: @C27@; }
+td.sr { color: @C26@; }
+td.srp { color: @C36@; }
+td.srw { color: @C26@; }
+td.srh { vertical-align: top; background: @C16@; color: @C26@; }
+tr.dl-1, td.dl-1 { background: @C20@; }
+tr.dl-2, td.dl-2 { background: @C21@; }
+.mOvr1, tr.mOvr1 {background: @C17@; }
+.mOvr2, tr.mOvr2 {background: @C18@; }
+.mOvr3, tr.mOvr3 {background: @C19@; }
+table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
+table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
+table.shares, table.vc, table.results, table.networkInfo { border: @C27@; }
+table.sourcesInfo, table.serversC { border: @C27@; }
+table.sources { border: @C27@;}
+td.srb { border-right: @C27@; border-bottom: @C27@;
+border-left: @C27@; border-top: @C27@; }
+td.br { border-right: @C27@;}
+.chunk0;{ background: @C22@}
+.chunk1 { background: @C23@}
+.chunk2 { background: @C2@}
+.chunk3 { background: @C8@}
+
+Download CSS
+body{ background-color:@C4@; color: @C26@; }
+td,pre { color: @C26@; }
+table.downloaders { border: @C27@;}
+td.loaded{ background-color:@C24@; }
+td.remain{ background-color:@C25@; }
+td.downloaded{ color: @C26@;}
+td.dl { color: @C26@;  }
+td.dlheader { color: @C26@;  
+border-bottom: ( background: @C16@; }
+input.checkbox { background: @C16@; }
+td.sr { color: @C26@; }
+td.brs { border-right: @C27@; }
+td.big { border-top: @C27@;  border-left: @C27@; }
+td.pr { border-right: @C27@; }
+.bigbutton { background: @C0@; border: @C0@; color: @C26@; }
+.headbutton { border: @C16@; background: @C16@; }
+tr.dl-1 { background: @C20@; }
+tr.dl-2 { background: @C21@; }
+tr.mOvrDL, .mOvrDL { background: @C17@;  }
+a:link,a:active,a:visited { color: @C30@; }
+a:hover { color: @C31@; }
+a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
+.extern:hover { color: @C33@; }
+
+0 - background                       13 - bsmall2 - (options, memstats)
+1 - scrollbar face                   14 - bsmall3 - (load onet peers)
+2 - chunk2                           15 - border color of top buttons
+3 - scrollbar highlight color        16 - table header background
+4 - vd page background               17 - mOver1 back
+5 - big buttons, border highlight    18 - mOver2 back
+6 - input.txt                        19 - mOver3 back
+7 - input.but                        20 - dl-1 back
+8 - chunk3                           21 - dl-2 back
+9 - foreground text for top buttons  22 - chunk0
+10 - fbig background (tabs)          23 - chunk1
+11 - bbig background (vma button)    24 - vd downloaded
+12 - bsmall back (Help!)             25 - vd remaining
+
+26 - general text
+27 - general border
+28 - anchor
+29 - anchor hover
+30 - download anchor
+31 - download hover anchor
+32 - external anchor
+33 - external hover anchor
+34 - some scrollbar
+35 - some border
+36 - one td text
+*)
 
 let ncarr = ref 7
 let carr = Array.create !ncarr [||]

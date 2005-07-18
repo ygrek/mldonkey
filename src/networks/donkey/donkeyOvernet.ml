@@ -962,7 +962,7 @@ let udp_client_handler t p =
   | OvernetUnknown (opcode, s) ->
       if !verbose_hidden_errors then
         begin
-          lprintf () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
+          lprintf_nl () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
           lprintf_nl () "\tCode: %d" opcode; dump s;
         end
 
@@ -1377,6 +1377,10 @@ let parse_overnet_url url =
       true
   | _ -> false
 
+let command_prefix_to_net =
+  if command_prefix = "ov_" || Proto.redirector_section = "DKKO" then "Overnet"
+  else "Kademlia"
+
 let register_commands list =
   register_commands
     (List2.tail_map (fun (n,f,h) -> (n, "Network/Overnet", f,h)) list)
@@ -1391,7 +1395,7 @@ let _ =
         let port = int_of_string port in
         bootstrap ip port;
         Printf.sprintf "peer %s:%d added" (Ip.to_string ip) port
-    ), "<ip> <port> :\t\t\tadd an Overnet/Kademlia peer";
+    ), ("<ip> <port> :\t\t\tadd an " ^ command_prefix_to_net ^ " peer");
 
     "link", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -1401,6 +1405,25 @@ let _ =
         else "bad syntax"
     ), "<fhalink> :\t\t\tdownload fha:// link";
 
+    "view_stats_cmds", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        html_mods_commands buf "commandsTable" "commands" ([
+          ("bu bbig", command_prefix_to_net ^ " boots list",
+           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "boots'",
+           command_prefix_to_net ^ " boots");
+          ("bu bbig", command_prefix_to_net ^ " buckets list",
+           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "buckets'",
+           command_prefix_to_net ^ " buckets");
+          ("bu bbig", command_prefix_to_net ^ " stats",
+           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "stats'",
+           command_prefix_to_net ^ " stats");
+          ("bu bbig", command_prefix_to_net ^ " store list",
+           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "store'",
+           command_prefix_to_net ^ " store");
+          ]);
+        "";
+    ), (":\t\t\t\t" ^ command_prefix_to_net ^ " Stats commands");
+
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf and sum = ref 0 in
         if o.conn_output = HTML then
@@ -1409,8 +1432,7 @@ let _ =
             html_mods_table_header buf "ovstatsTable" "sources" [];
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
-              ("", "srh", Printf.sprintf "%s statistics"
-              (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"));
+              ("", "srh", Printf.sprintf "%s statistics" command_prefix_to_net);
               ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
               ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
@@ -1418,7 +1440,7 @@ let _ =
         else
           begin
             Printf.bprintf buf "%s statistics:\n"
-	    (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
+	    (command_prefix_to_net);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
           end;
@@ -1472,7 +1494,7 @@ let _ =
           Printf.bprintf buf "\\</div\\>\n";
 
         "";
-    ), ":\t\t\t\tOvernet/Kademlia Stats";
+    ), ":\t\t\t\t" ^ command_prefix_to_net ^ " Stats";
 
     "web", Arg_multiple (fun args o ->
         let urls =
@@ -1504,12 +1526,36 @@ let _ =
 
     "store", Arg_none (fun o ->
         let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          begin
+            let buftmp = Buffer.create 100 in
+            PublishedKeywords.print buftmp;
+            let listtmp = String2.split (Buffer.contents buftmp) '\n' in
+            let keywords = ref [] in
+            List.iter (fun s ->
+                keywords := !keywords @ [("", "dl-1", s);]
+            ) listtmp;
+            Buffer.clear buftmp;
+            PublishedFiles.print buftmp;
+            let listtmp = String2.split (Buffer.contents buftmp) '\n' in
+            let files = ref [] in
+            List.iter (fun s ->
+                files := !files @ [("", "dl-1", s);]
+              ) listtmp;
+            Buffer.clear buftmp;
+            html_mods_table_one_col buf "ovstoreTable" "results" ([
+              ("", "srh", Printf.sprintf "%s store" command_prefix_to_net);
+              ] @ !keywords @ !files);
+          end
+        else
+          begin
           Printf.bprintf buf "%s store:\n"
-          (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
+          (command_prefix_to_net);
           PublishedKeywords.print buf;
           PublishedFiles.print buf;
+        end;
         ""
-    ), ":\t\t\t\tdump the Overnet/Kademlia File Store";
+    ), ":\t\t\t\tdump the " ^ command_prefix_to_net ^ " File Store";
 
     "send_udp", Arg_three (fun ip port hex o ->
         try
@@ -1531,29 +1577,56 @@ let _ =
             lprintf_nl () "Unable to send UDP message"; "Unable to send UDP message"
     ), ":\t\t\t\tsend UDP message (<ip> <port> <msg in hex>)";
 
-      "buckets", Arg_none (fun o ->
-          let buf = o.conn_buf in
-          update_buckets ();
+     "buckets", Arg_none (fun o ->
+         let buf = o.conn_buf in
+         update_buckets ();
+         if o.conn_output != HTML then
           Printf.bprintf buf "Number of used buckets %d with %d peers (prebucket: %d peers)\n"
             !n_used_buckets !connected_peers !pre_connected_peers;
-          for i = 0 to !n_used_buckets do
-            if Fifo.length buckets.(i) > 0 ||
-              Fifo.length prebuckets.(i) > 0 then
+         for i = 0 to !n_used_buckets do
+           if Fifo.length buckets.(i) > 0 ||
+             Fifo.length prebuckets.(i) > 0 then
               Printf.bprintf buf "   bucket[%d] : %d peers (prebucket %d)\n"
                 i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
-          done;
-          ""
-      ), ":\t\t\t\tprint buckets table status";
+         done;
+         if o.conn_output = HTML then
+           begin
+             let listtmp = String2.split (Buffer.contents buf) '\n' in
+             let buckets = ref [] in
+             List.iter (fun s ->
+                 buckets := !buckets @ [("", "dl-1", s);]
+             ) listtmp;
+             Buffer.clear buf;
+             html_mods_table_one_col buf "ovbucketsTable" "results" ([
+               ("", "srh",
+                 Printf.sprintf "Number of used buckets %d with %d peers"
+                   !n_used_buckets !connected_peers);
+               ] @ !buckets);
+           end;          ""
+     ), ":\t\t\t\tprint buckets table status";
 
-      "boots", Arg_none (fun o ->
-          let buf = o.conn_buf in
-          LimitedList.iter (fun (ip, port) ->
-              Printf.bprintf buf "   %s:%d\n" (Ip.to_string ip) port;
-          ) !!boot_peers;
-          Printf.sprintf "Boot peers: %d\n" (LimitedList.length !!boot_peers);
-
-      ), ":\t\t\t\tprint boot peers";
-
+     "boots", Arg_none (fun o ->
+         let buf = o.conn_buf in
+         LimitedList.iter (fun (ip, port) ->
+             Printf.bprintf buf "   %s:%d\n" (Ip.to_string ip) port;
+         ) !!boot_peers;
+         if o.conn_output = HTML then
+           begin
+             let listtmp = String2.split (Buffer.contents buf) '\n' in
+             let boots = ref [] in
+             List.iter (fun s ->
+                 boots := !boots @ [("", "dl-1", s);]
+             ) listtmp;
+             Buffer.clear buf;
+             html_mods_table_one_col buf "ovbucketsTable" "results" ([
+               ("", "srh",
+                 Printf.sprintf "Boot peers: %d\n" (LimitedList.length !!boot_peers));
+               ] @ !boots);
+           end
+         else
+           Printf.bprintf buf "Boot peers: %d\n" (LimitedList.length !!boot_peers);
+         ""
+     ), ":\t\t\t\tprint boot peers";
   ]);
   ()
 

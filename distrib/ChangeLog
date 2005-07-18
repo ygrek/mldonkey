@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/18: spiralvoice
 
+4183: HTML: Overnet/Kademlia stats improvements (by beedauchon)
 4118: Solve memory leak in Overnet/Kademlia
 4182: Get CVS date in configure for OpenBSD
 4175: HTML: Add Multiline File Information in download table
