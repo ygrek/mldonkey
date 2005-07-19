@@ -9,14 +9,8 @@ CONFIGURE_ARGUMENTS=$*
 echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 MAJOR_VERSION=2
-MINOR_VERSION=5
-SUB_VERSION1=30       # set to 0 if you want to disable this value
-SUB_VERSION2=17       # set to 0 if you want to disable this value
-
-# this will be the feature MLDonkey version number
-#MAJOR_VERSION=3
-#MINOR_VERSION=0
-#SUB_VERSION1=0   # range 0-7 due to eMule limitations
+MINOR_VERSION=6
+SUB_VERSION=0   # range 0-7 due to eMule limitations
 
 AC_CANONICAL_HOST
 AC_MSG_NOTICE(Building on $host)
@@ -96,11 +90,8 @@ if test -f ./CVS/Entries ; then
 fi
 fi
 MLDONKEY_VERSION=$MAJOR_VERSION.$MINOR_VERSION
-if test ! "$SUB_VERSION1" = "0"; then
-  MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION1
-  if test ! "$SUB_VERSION2" = "0"; then
-    MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION2
-  fi
+if test ! "$SUB_VERSION" = "0"; then
+  MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION
 fi
 if test -f ./subrelease; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION`cat ./subrelease`
@@ -1219,8 +1210,7 @@ AC_SUBST(MLDONKEY_VERSION)
 AC_SUBST(SCM_VERSION)
 AC_SUBST(MAJOR_VERSION)
 AC_SUBST(MINOR_VERSION)
-AC_SUBST(SUB_VERSION1)
-AC_SUBST(SUB_VERSION2)
+AC_SUBST(SUB_VERSION)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(OS_FILES2)

@@ -44,7 +44,7 @@ We don't use emule udp extension, client_md4 in sourceexchange or complete sourc
 file request *)
 let mldonkey_emule_proto = {
     emule_comments = 1;
-    emule_version = (int_of_string (emule_version "10" Autoconf.sub_version1 Autoconf.sub_version2 "0" "0"));
+    emule_version = (int_of_string (emule_version "10" Autoconf.major_version Autoconf.minor_version Autoconf.sub_version "0"));
       (* first parameter means compatibleclient, MLDonkeys value is 10 *)
     emule_release = "";
     emule_secident = 0;
