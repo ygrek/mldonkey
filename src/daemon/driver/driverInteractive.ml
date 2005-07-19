@@ -504,10 +504,13 @@ function submitPriority(num,cp,sel) {
 }
 //--\\>\\</script\\>
 
-\\<div class=main\\>
-\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:
--100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>pop up description layer\\</div\\>
-\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=\\\"files\\\"\\>
+\\<div class=main\\>";
+
+if !!html_mods_use_js_tooltips then Printf.bprintf buf 
+"\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:
+-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+
+	Printf.bprintf buf "\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=\\\"files\\\"\\>
 \\<table class=main cellspacing=0 cellpadding=0\\>
 
 \\<tr\\>\\<td\\>
@@ -576,24 +579,28 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
   print_table_html_mods buf
     (List.map (fun file ->
         [|
-          (if downloading file then
-              Printf.sprintf "
-				onMouseOver=\\\"mOvr(this);popLayer('%s<br>Network: %s');return true;\\\" onMouseOut=\\\"mOut(this);hideLayer()\\\"\\>
-                \\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\>\\</td\\>
+          (if !!html_mods_use_js_tooltips then
+                        Printf.sprintf "
+                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>File#: %d<br>Network: %s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+                        (Http_server.html_real_escaped file.file_name)
+			file.file_num
+                        (net_name file)
+			!!html_mods_js_tooltips_wait
+			!!html_mods_js_tooltips_timeout
+			!!html_mods_js_tooltips_wait
+			 else Printf.sprintf "
+                               onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
+
+	(if downloading file then
+              Printf.sprintf "\\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\>\\</td\\>
                 \\<td class=\\\"dl al np\\\"\\>R\\</td\\>
                 \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
-		(Http_server.html_real_escaped file.file_name)
-		(net_name file)
                 file.file_num
-                file.file_num
+                file.file_num		
             else
-              Printf.sprintf "
-				onMouseOver=\\\"mOvr(this);popLayer('%s<br>Network: %s');return true;\\\" onMouseOut=\\\"mOut(this);hideLayer()\\\"\\>
-                \\<td class=\\\"dl al np\\\"\\>P\\</td\\>
+              Printf.sprintf "\\<td class=\\\"dl al np\\\"\\>P\\</td\\>
                 \\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=resume type=checkbox value=%d\\>\\</td\\>
                 \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
-		(Http_server.html_real_escaped file.file_name)
-		(net_name file)
                 file.file_num
                 file.file_num);
 
@@ -605,9 +612,10 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           ( let size = Int64.to_float file.file_size in
             let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
+	    (if !!html_mods_use_js_tooltips then
             Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
 			class=\\\"dl al\\\"\\>%s\\<br\\>
-			\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
+	    		\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
 			\\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
 			\\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
 			\\</tr\\>\\</table\\>\\</td\\>"
@@ -617,6 +625,22 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
             (truncate (downloaded /. size *. 100.))
 	    (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.))
+	 else
+	     Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
+                        title=\\\"[File#: %d] [Net: %s]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
+                        \\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
+                        \\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+                        \\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+                        \\</tr\\>\\</table\\>\\</td\\>"
+            file.file_num
+            file.file_num
+                        (net_name file)
+                        (if !!max_name_len < String.length file.file_name then " " ^ file.file_name else "")
+            (short_name file)
+            (!!html_vd_barheight)
+            (truncate (downloaded /. size *. 100.))
+            (!!html_vd_barheight)
+            (truncate ( (1. -. downloaded /. size) *. 100.)));
           );
 
           (ctd file.file_num (size_of_int64 file.file_size));
@@ -962,7 +986,7 @@ let old_print_search buf o results =
   let counter = ref 0 in
   if use_html_mods o then
   begin
-    Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>pop up description layer\\</div\\>\n";
+    if !!html_mods_use_js_tooltips then Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>\n";
     html_mods_table_header buf "resultsTable" "results" [
       ( "0", "srh", "Network", "Network" ) ;
       ( "0", "srh", "File", "File (mouseover)" ) ;
@@ -1000,8 +1024,9 @@ let old_print_search buf o results =
 
               if o.conn_output = HTML then begin
                   if !!html_mods then
+		    if !!html_mods_use_js_tooltips then
                     begin
-                      Printf.bprintf buf "\\<td onMouseOut=\\\"hideLayer()\\\" onMouseOver=\\\"popLayer('";
+                      Printf.bprintf buf "\\<td onMouseOver=\\\"setTimeout('popLayer(\\\\\'";
                       begin
                         match r.result_names with
                           [] -> ()
@@ -1021,7 +1046,25 @@ let old_print_search buf o results =
                               Buffer.add_string buf ((if !nl then "<br>" else begin nl := true;"" end) ^
                                 escaped_string_of_field t ^ ": " ^ get_tag_value t);
                       ) r.result_tags;
-                      Printf.bprintf buf "')\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                    Printf.bprintf buf "\\\\\'),%d');setTimeout('hideLayer()',%d);return true;\\\"  onMouseOut=\\\"hideLayer();setTimeout('hideLayer()',%d);return true;\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>"
+			!!html_mods_js_tooltips_wait
+			!!html_mods_js_tooltips_timeout
+			!!html_mods_js_tooltips_wait
+			 r.result_num
+		    end
+		    else begin
+                      Printf.bprintf buf "\\<td title=\\\"";
+                      let nl = ref false in
+                      List.iter (fun t ->
+                          match t.tag_name with
+                          | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()
+                          | _ ->
+                              Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^
+                                  "|| (" ^
+                                escaped_string_of_field t ^ "): " ^ get_tag_value t);
+                      ) r.result_tags;
+
+                      Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
                     end
                   else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                 end;

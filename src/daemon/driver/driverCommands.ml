@@ -1551,6 +1551,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option display_downloaded_results;
 			strings_of_option vd_reload_delay;
 			strings_of_option html_use_gzip;
+			strings_of_option html_mods_use_js_tooltips;
+			strings_of_option html_mods_js_tooltips_wait;
+			strings_of_option html_mods_js_tooltips_timeout;
 			] @ (if Autoconf.has_gd then
 			[strings_of_option html_mods_vd_gfx;] else []) @
 			(if Autoconf.has_gd_jpg && Autoconf.has_gd_png

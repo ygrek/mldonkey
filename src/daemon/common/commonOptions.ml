@@ -634,7 +634,14 @@ let html_checkbox_search_file_list = define_expert_option current_section
 let html_use_gzip = define_expert_option current_section
     ["html_use_gzip"] "Use gzip compression on web pages" bool_option false
 
+let html_mods_use_js_tooltips = define_expert_option current_section
+    ["html_mods_use_js_tooltips"] "Whether to use the fancy javascript tooltips or plain html-title" bool_option true
 
+let html_mods_js_tooltips_wait = define_expert_option current_section
+    ["html_mods_js_tooltips_wait"] "How long to wait before displaying the tooltips" int_option 0
+
+let html_mods_js_tooltips_timeout = define_expert_option current_section
+    ["html_mods_js_tooltips_timeout"] "How long to display the tooltips" int_option 100000
 
 
 (*************************************************************************)
