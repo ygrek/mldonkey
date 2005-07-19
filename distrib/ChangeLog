@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/19: spiralvoice
+
+4186: SCM date for Windows / FreeBSD configure enhancement
+
 2005/07/18: spiralvoice
 
 4183: HTML: Overnet/Kademlia stats improvements (by beedauchon)

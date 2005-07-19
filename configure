@@ -8,6 +8,18 @@ rm -f *.cma *.cmxa *.a
 rm -f mlgnut mlnap mlbt mldonkey mlslsk mldonkey_gui*
 rm -f build/*.cma build/*.cmxa build/*.a
 touch .depend
+
+case "`uname -s`" in
+  *FreeBSD*)
+    CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+    export CPPFLAGS
+    LDFLAGS="${LDFLAGS} -L/usr/local/lib"
+    export LDFLAGS
+    ;;
+  *)
+    ;;
+esac
+
 if test ! -d config; then
     echo "Missing ./config/ directory. Re-download mldonkey"
 else
@@ -17,9 +29,11 @@ else
               ac="autoconf259"
           else if which autoconf-2.59; then
               ac="autoconf-2.59"
+          else if which autoconf-2.5x; then
+              ac="autoconf-2.5x"
           else
               ac="autoconf"
-          fi; fi
+          fi; fi; fi
           echo "Running Autoconf ($ac)..."
           $ac
        fi \

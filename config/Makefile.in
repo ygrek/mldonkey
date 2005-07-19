@@ -292,7 +292,20 @@ COMMON_CLIENT_SRCS= \
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
 config/configure: config/configure.in
-	cd config; autoconf
+	cd config
+	if which autoconf259; then
+	  ac="autoconf259"
+	else
+	  if which autoconf-2.59; then
+	    ac="autoconf-2.59"
+	    if which autoconf-2.5x; then
+	      ac="autoconf-2.5x"
+	    else
+	      ac="autoconf"
+	    fi
+	  fi
+	fi
+	$ac									
 
 ifeq ("$(CONFIGURE_RUN)" , "yes")
 
