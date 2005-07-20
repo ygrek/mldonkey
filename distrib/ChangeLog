@@ -13,6 +13,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 
 2005/07/20: spiralvoice
 
+4193: CommonGraphics : some whitespace cleanups
 4190: Gdstats: Fix tag.png/jpg link output
 4188: Overnet: Dont put our own ID in the buckets (by Bogeyman)
 

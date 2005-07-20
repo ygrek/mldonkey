@@ -38,11 +38,13 @@ let reverse lst =
     match lst with
       [] -> acc
     | x::xs -> reverseAux xs (x::acc)
-  in reverseAux lst [] 
+  in reverseAux lst []
+
 let rec sumlist lst =
   match lst with
     [] -> 0
   | x::xs -> if (x > 0) then x + sumlist xs else sumlist xs
+
 let rec maxlist lst = match lst with
   [] -> 0
   | [x] -> x
@@ -53,6 +55,7 @@ let rec maxlist lst = match lst with
 let samples_time = 5
 let samples_h_time = 720
 
+(* set _x and _y with boundaries *)
 let tag_x() = if !!html_mods_vd_gfx_tag_x_size < 130 then 130
   else if !!html_mods_vd_gfx_tag_x_size > 3600 then 3600
   else !!html_mods_vd_gfx_tag_x_size
@@ -67,22 +70,22 @@ let win_y() = if !!html_mods_vd_gfx_y_size < 200 then 200
   else !!html_mods_vd_gfx_y_size
 
 let vtext = "0"
-let x_divisions() = (win_x()) / 80 
+let x_divisions() = (win_x()) / 80
 let y_divisions() = (win_y()) / 30
 let x_fdivisions() = float_of_int (x_divisions())
 let y_fdivisions() = float_of_int (y_divisions())
- 
+
 (* todo: limit to 4 max *)
-let xmult = 1 
-let xgmult = 16 
+let xmult = 1
+let xgmult = 16
 (* todo: limit to 4 max *)
-let ymult = 1 
-let xdivisions() = (x_divisions()) * xmult 
+let ymult = 1
+let xdivisions() = (x_divisions()) * xmult
 let fxdivisions() = float_of_int (xdivisions())
-let xgdivisions() = (x_divisions()) * xgmult 
+let xgdivisions() = (x_divisions()) * xgmult
 let fxgdivisions() = float_of_int (xgdivisions())
-let ydivisions() = (y_divisions()) * ymult 
-let fydivisions() = float_of_int (ydivisions()) 
+let ydivisions() = (y_divisions()) * ymult
+let fydivisions() = float_of_int (ydivisions())
 let vmax_auto() = if detected_downlink_capacity () < detected_uplink_capacity () then
     (detected_uplink_capacity ())
   else
@@ -90,7 +93,7 @@ let vmax_auto() = if detected_downlink_capacity () < detected_uplink_capacity ()
 
 let vmax link = (detected_link_capacity link)
 
-let vx() = (fxgdivisions()) /. (x_fdivisions()) 
+let vx() = (fxgdivisions()) /. (x_fdivisions())
 let vy() = (((float_of_int(vmax_auto())) /. 1024.) +. 2.) /. (y_fdivisions())
 let vy_m link = (((float_of_int(vmax link)) /. 1024.) +. 2.) /. (y_fdivisions())
 
@@ -104,10 +107,10 @@ let samples_size = win_x() - (left_margin + right_margin)
 
 let xbl = left_margin
 let xbr() = win_x() - right_margin
-let xbs() = xbr() - xbl 
-let ybt = top_margin 
+let xbs() = xbr() - xbl
+let ybt = top_margin
 let ybb() = win_y() - bottom_margin
-let ybs() = ybb() - ybt 
+let ybs() = ybb() - ybt
 let vdt() = float_of_int(ybs()) /. float_of_int(vmax_auto())
 let vdt_m link = float_of_int(ybs()) /. float_of_int(vmax link)
 let vdt_stack link = float_of_int(ybs() / 2) /. float_of_int(vmax link)
@@ -175,7 +178,7 @@ let draw_arrow mypic gcolor =
   mypic#fill ~x:(my_x - 1) ~y:(my_y - 1) gcolor;
   mypic#fill ~x:(my_x - 1) ~y:(my_y + 1) gcolor;
   mypic#fill ~x:(my_x + 1) ~y:(my_y) gcolor
-          
+
 let draw_tag mypic title gdown gup gcolor  =
   let my_sum gl = List.fold_left (+) 0 (Fifo2.to_list gl) in
   let meanx gl = ((float_of_int (my_sum gl)) /. (float_of_int ((Fifo2.length gl) - 1))) in
@@ -246,9 +249,9 @@ let draw_h_legend mypic g legend_text gcolor my_time =
   let timer n = Unix.localtime (basetime -. ((float_of_int(n)) *. float_of_int(my_time) *. vx())) in
   let time_string n =
     let time = timer n in
-    let h0 = string_of_int(time.Unix.tm_hour ) and                (* H *)
-    m0 = string_of_int(time.Unix.tm_min ) and               (* M *)
-    s0 = string_of_int(time.Unix.tm_sec ) in              (* S *)
+    let h0 = string_of_int(time.Unix.tm_hour ) and    (* H *)
+    m0 = string_of_int(time.Unix.tm_min ) and         (* M *)
+    s0 = string_of_int(time.Unix.tm_sec ) in          (* S *)
     (if String.length h0 = 2 then h0 else "0"^h0) ^":"^
     (if String.length m0 = 2 then m0 else "0"^m0) ^":"^
     (if String.length s0 = 2 then s0 else "0"^s0) in
@@ -269,17 +272,17 @@ let draw_load mypic g my_color shadow_color =
   and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. (vdt_m g)))) in
   (if !!html_mods_vd_gfx_fill then begin
         mypic#line ~x1:(fx 0) ~y1:my_y
-         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then 
+         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then
          ((y_c1 0) - 3) else ((y_c1 0))) shadow_color;
     for n = 0 to ((graph_length(g)) - 1) do
   (* trick to make sure filling will not fail *)
       if n = ((graph_length(g)) - 1) then
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 3 then
          ((y_c1 n) - 3) else ((y_c1 n))) ~x2:((fx (n+1))) ~y2:((y_c2 n)) shadow_color
-      else begin     
+      else begin
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 3 then
          ((y_c1 n) - 3) else ((y_c1 n)))
-         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y - 3 then 
+         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y - 3 then
          ((y_c2 n) - 3) else ((y_c2 n))) shadow_color
       end
     done;
@@ -304,17 +307,17 @@ let draw_stack_download mypic g my_color shadow_color =
   and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
   (if !!html_mods_vd_gfx_fill then begin
         mypic#line ~x1:(fx 0) ~y1:my_y
-         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then 
+         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then
          ((y_c1 0) - 3) else ((y_c1 0))) shadow_color;
     for n = 0 to ((graph_length(g)) - 1) do
   (* trick to make sure filling will not fail *)
       if n = ((graph_length(g)) - 1) then
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 2 then
          ((y_c1 n) - 2) else ((y_c1 n))) ~x2:((fx (n+1))) ~y2:((y_c2 n)) shadow_color
-      else begin     
+      else begin
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y - 2 then
          ((y_c1 n) - 2) else ((y_c1 n)))
-         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y - 2 then 
+         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y - 2 then
          ((y_c2 n) - 2) else ((y_c2 n))) shadow_color
       end
     done;
@@ -339,17 +342,17 @@ let draw_stack_upload mypic g my_color shadow_color =
   and y_c2 n = (my_y + (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
   (if !!html_mods_vd_gfx_fill then begin
         mypic#line ~x1:(fx 0) ~y1:my_y
-         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then 
+         ~x2:(fx 0) ~y2:(if y_c1 0 >= my_y - 3 then
          ((y_c1 0) - 3) else ((y_c1 0))) shadow_color;
     for n = 0 to ((graph_length(g)) - 1) do
   (* trick to make sure filling will not fail *)
       if n = ((graph_length(g)) - 1) then
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y + 2 then
          ((y_c1 n) + 2) else ((y_c1 n))) ~x2:((fx (n+1))) ~y2:((y_c2 n)) shadow_color
-      else begin     
+      else begin
         mypic#line ~x1:((fx n)) ~y1:(if y_c1 n >= my_y + 2 then
          ((y_c1 n) + 2) else ((y_c1 n)))
-         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y + 2 then 
+         ~x2:((fx (n+1))) ~y2:(if y_c2 n >= my_y + 2 then
          ((y_c2 n) + 2) else ((y_c2 n))) shadow_color
       end
     done;
@@ -381,7 +384,7 @@ let draw_mygraph mypic ttl top_title vl hl g =
   (* init pic *)
 (
   let g_y = win_y() in
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -389,7 +392,7 @@ let draw_mygraph mypic ttl top_title vl hl g =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
-  
+
   (* draw graph *)
   draw_borders mypic black;
   draw_title mypic ttl black g_y;
@@ -414,7 +417,7 @@ let do_chan_pic ttl vl hl gdown gup =
 
   let mypic = Gd.create ~x:win_x() ~y:win_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -447,7 +450,7 @@ let do_draw_pic ttl vl hl gdown gup =
   let g_y = win_y() in
   let mypic = Gd.create ~x:(win_x()) ~y:g_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -456,7 +459,7 @@ let do_draw_pic ttl vl hl gdown gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
-  if !!html_mods_vd_gfx_transparent then 
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_title mypic ttl black g_y;
@@ -471,7 +474,7 @@ let do_draw_pic ttl vl hl gdown gup =
     draw_stack_download mypic gdown green darkgrey;
     draw_stack_upload mypic gup red darkgrey;
     draw_x_grid mypic black;
-    draw_y_grid mypic black    
+    draw_y_grid mypic black
    end
   else begin
     draw_borders mypic black;
@@ -502,7 +505,7 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   let g_y = win_y() in
   let mypic = Gd.create ~x:g_x ~y:g_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -510,8 +513,8 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
-  
-  if !!html_mods_vd_gfx_transparent then 
+
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
@@ -525,7 +528,7 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   draw_arrow mypic darkred;
   if !!html_mods_vd_gfx_mean then
     draw_mean_line mypic gdown green black;
-  
+
   (if !!html_mods_vd_gfx_png then
     mypic#save_as_png "bw_download.png"
   else
@@ -540,8 +543,7 @@ let do_draw_up_pic ttl top_title vl hl gup =
   let g_y = win_y() in
   let mypic = Gd.create ~x:g_x ~y:g_y in
 
-  (* declare colors *)
-
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -550,7 +552,7 @@ let do_draw_up_pic ttl top_title vl hl gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
-  if !!html_mods_vd_gfx_transparent then 
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
@@ -579,7 +581,7 @@ let do_draw_h_pic ttl vl hl gdown gup =
   let g_y = win_y() in
   let mypic = Gd.create ~x:(win_x()) ~y:g_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -588,7 +590,7 @@ let do_draw_h_pic ttl vl hl gdown gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
-  if !!html_mods_vd_gfx_transparent then 
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
@@ -602,7 +604,7 @@ let do_draw_h_pic ttl vl hl gdown gup =
   draw_load mypic gup red darkgrey;
   draw_x_grid mypic black;
   draw_y_grid mypic black;
-  draw_arrow mypic darkred;  
+  draw_arrow mypic darkred;
   (if !!html_mods_vd_gfx_mean then
     draw_mean_line mypic gdown green black;
     draw_mean_line mypic gup red black
@@ -621,7 +623,7 @@ let do_draw_down_h_pic ttl top_title vl hl gdown =
   let g_y = win_y() in
   let mypic = Gd.create ~x:g_x ~y:g_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -630,7 +632,7 @@ let do_draw_down_h_pic ttl top_title vl hl gdown =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
-  if !!html_mods_vd_gfx_transparent then 
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
@@ -659,8 +661,7 @@ let do_draw_up_h_pic ttl top_title vl hl gup =
   let g_y = win_y() in
   let mypic = Gd.create ~x:g_x ~y:g_y in
 
-  (* declare colors *)
-
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -669,7 +670,7 @@ let do_draw_up_h_pic ttl top_title vl hl gup =
   let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
-  if !!html_mods_vd_gfx_transparent then 
+  if !!html_mods_vd_gfx_transparent then
     mypic#colors#set_transparent white;
   (* draw graph *)
   draw_borders mypic black;
@@ -696,16 +697,16 @@ let do_draw_tag title gdown gup =
 (
   let g_x = tag_x() in
   let g_y = tag_y() in
-  let mypic = if !!html_mods_vd_gfx_tag_use_source then 
+  let mypic = if !!html_mods_vd_gfx_tag_use_source then
     (if !!html_mods_vd_gfx_tag_png then
       Gd.open_png (!!html_mods_vd_gfx_tag_source ^ ".png")
     else
       Gd.open_jpeg (!!html_mods_vd_gfx_tag_source ^ ".jpg")
     )
-  else 
+  else
   Gd.create ~x:g_x ~y:g_y in
 
-  (* declare colors *)
+  (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
@@ -723,7 +724,7 @@ let do_draw_tag title gdown gup =
 )
 
 let really_remove_files () =
-  let files = 
+  let files =
     ["bw_updown"; "bw_download"; "bw_upload"; "bw_h_updown"; "bw_h_download"; "bw_h_upload"; "tag"]
   in
   let f file =
