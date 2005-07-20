@@ -709,13 +709,16 @@ let new_peer p =
         pp.peer_last_recv <- p.peer_last_recv;
       pp
     with _ ->
+
+        let bucket = bucket_number p.peer_md4 in
 (* First, enter the peer in the boot_peers to be able to use at next
 restart. *)
-        bootstrap p.peer_ip p.peer_port;
+        if bucket <> 128 then
+            bootstrap p.peer_ip p.peer_port;
 
-(* Now, enter it in the buckets *)
-        let bucket = bucket_number p.peer_md4 in
-        if bucket < !n_used_buckets then begin
+(* bucket = 128 is returned for our very own ID, we dont want it in our buckets 
+   Then, enter it in the buckets *)
+        if bucket < !n_used_buckets && bucket <> 128 then begin
 
             if Fifo.length prebuckets.(bucket) = max_peers_per_prebucket then
 	    begin
@@ -740,7 +743,7 @@ restart. *)
                incr pre_connected_peers
             end
         end
-        else if !n_used_buckets < 128 then begin
+        else if !n_used_buckets < 128 && bucket <> 128 then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
 
             while !n_used_buckets < 128 &&

@@ -11,6 +11,10 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/20: spiralvoice
+
+4188: Overnet: Dont put our own ID in the buckets (by Bogeyman)
+
 2005/07/19: spiralvoice (version 2.6.0 = tag release-2-6-0)
 
 4175: New option html_mods_use_js_tooltips, default true
