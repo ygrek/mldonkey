@@ -1571,7 +1571,7 @@ let print_gdstats buf o =
             );
           if !!html_mods_vd_gfx_tag then
             begin
-              Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag";
+              Printf.bprintf buf "\\<br\\>\\<br\\>\\<table class=bw_stats cellpadding=0 cellspacing=0 align=center\\>\\<tr\\>\\<td\\>\\<img src=\\\"tag.";
               picture_suffix ();
               Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>";
             end;
