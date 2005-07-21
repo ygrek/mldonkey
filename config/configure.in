@@ -170,11 +170,20 @@ AC_ARG_ENABLE(profile, [  --enable-profile        allows you to profile mlnet us
 DEBUG=no
 AC_ARG_ENABLE(debug, [  --enable-debug          allows you to compile mlnet with debug symbols], [DEBUG="$enableval"])
 
-BUILD_GUI=yes
-BUILD_NEWGUI=yes
-AC_ARG_ENABLE(newgui, [  --disable-newgui        allows you to compile the old-gui], [BUILD_NEWGUI="$enableval"])
-AC_ARG_ENABLE(gui,           [  --disable-gui           allows you to remove the GUI], [BUILD_GUI="$enableval"])
-AC_ARG_ENABLE(gtk2, [  --enable-gtk2           allows you to compile using GTK2], [USE_GTK2="$enableval"])
+GUI=no
+AC_ARG_ENABLE(gui,           [  --disable-gui           allows you to disable GUI build (default)], [GUI="$enableval"])
+AC_ARG_ENABLE(gui,           [  --enable-gui=oldgui|newgui1|newgui2
+                          allows you to choose a GUI (default: newgui2 - is a GTK2 GUI, other GUIs use GTK1)], [GUI="$enableval"])
+if test "$GUI" = "yes"; then
+  GUI=newgui2
+fi
+if test ! "$GUI" = "newgui2"; then
+  if test ! "$GUI" = "newgui1"; then
+    if test ! "$GUI" = "oldgui"; then
+      GUI=no
+    fi
+  fi
+fi
 
 PTHREAD_LIBS=yes
 AC_ARG_ENABLE(pthread, [  --disable-pthread       allows you to disable pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
@@ -183,7 +192,7 @@ AC_ARG_ENABLE(pthread-lib, [  --enable-pthread-lib    legacy option], [PTHREAD_L
 if [ test "$SYSTEM" = "windows"]; then
   ICONV=no
 else
-ICONV=yes
+  ICONV=yes
 fi
 AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv for compiling on broken windows environments], [ICONV="$enableval"])
 
@@ -775,11 +784,11 @@ fi
 
 
 # Check for GTK only if we want to build the GUI
-if test "$BUILD_GUI" = "yes"; then
+if test ! "$GUI" = "no"; then
   echo "---------------------------------------------------------"
   echo "Checking the libraries required to build the GTK GUI."
   echo "---------------------------------------------------------"
-  if test "$USE_GTK2" = "yes"; then
+  if test "$GUI" = "newgui2"; then
     AC_MSG_CHECKING(for Zlib)
     if test "$ZLIB" = "yes"; then
       AC_MSG_RESULT(yes)
@@ -793,7 +802,6 @@ if test "$BUILD_GUI" = "yes"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          BUILD_NEWGUI=no
           REQUIRED_LABLGTK=2.4.0
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
@@ -838,7 +846,7 @@ if test "$GTK_CONFIG" = "no"; then
 else
   AC_MSG_CHECKING(for native code $LABLGTK_NAME)
   if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
-     if test "$USE_GTK2" = "yes"; then
+     if test "$GUI" = "newgui2"; then
        if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablrsvg.$OCAMLLIB_EXT; then
          AC_MSG_RESULT(yes)
          LABLGTK_CONFIG=yes
@@ -896,7 +904,7 @@ else
           export PATH
           echo $PATH
 
-          if test "$USE_GTK2" = "yes"; then
+          if test "$GUI" = "newgui2"; then
             $GNU_MAKE configure --with-rsvg
             $GNU_MAKE world
             $GNU_MAKE install
@@ -924,14 +932,12 @@ else
   fi
 fi
 
-if test "$USE_GTK2" = "yes" ; then
-  GTK=gtk2
+if test "$GUI" = "newgui2" ; then
   GUIS="mldonkey_gui\$(EXE)"
   GTKCFLAGS="`pkg-config --cflags-only-I gtk+-2.0`"
   GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
   GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
 else
-  GTK=gtk
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
 fi
 
@@ -989,17 +995,18 @@ AC_MSG_CHECKING(compile GTK GUI)
   if test "$LABLGTK_CONFIG" = "no"; then
         AC_MSG_RESULT(no)
         BAD_TARGETS="$BAD_TARGETS $GUIS"
-        COMPILE_GUI=no
         RELEASENAME="$RELEASENAME-nogui"
+	GUI="no"
   else
         MORE_TARGETS="$MORE_TARGETS $GUIS"
-        COMPILE_GUI=yes
         AC_MSG_RESULT(yes)
-        if test "$BUILD_NEWGUI" = "yes"; then
+	GTK=gtk
+        if test "$GUI" = "newgui1"; then
         echo "compiling newgui"
         else
-        if test "$USE_GTK2" = "yes"; then
+        if test "$GUI" = "newgui2"; then
         echo "compiling gtk2 gui"
+	GTK=gtk2
         else
         echo "compiling oldgui"
         fi
@@ -1191,11 +1198,9 @@ AC_SUBST(BROOSNET)
 
 AC_SUBST(JABBR)
 
-AC_SUBST(BUILD_NEWGUI)
-
 AC_SUBST(SUPERNODES)
 
-AC_SUBST(COMPILE_GUI)
+AC_SUBST(GUI)
 AC_SUBST(REQUIRED_OCAML)
 AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
@@ -1215,8 +1220,6 @@ AC_SUBST(TARGET_TYPE)
 AC_SUBST(RPMBUILD)
 
 AC_SUBST(TMK)
-AC_SUBST(GTK)
-AC_SUBST(USE_GTK2)
 AC_SUBST(GTKCFLAGS)
 AC_SUBST(GTKLLIBS)
 AC_SUBST(GTKLFLAGS)

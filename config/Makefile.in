@@ -43,27 +43,29 @@ CRYPT_LIBS_byte=-cclib -lcrypt
 
 #######################################################################
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   ICONS_CHOICE=icons/rsvg
   SRC_GUI=src/gtk2/gui
-  GUI=GTK2GUI
+  GUI_CODE=GTK2GUI
   IM_GUI=src/gtk2/im
   CHAT_GUI=src/gtk2/chat
+  GTK=gtk2
 else
   CONFIGWIN=src/gtk/configwin
   GPATTERN=src/gtk/gpattern
   OKEY=src/gtk/okey
   IM_GUI=src/im
   CHAT_GUI=src/gtk/chat
-  ifeq ("$(BUILD_NEWGUI)", "yes")
+  GTK=gtk
+  ifeq ("$(GUI)", "newgui1")
     SRC_PROGRESS=src/gtk/progress
     ICONS_CHOICE=icons/tux
-    GUI=NEWGUI
+    GUI_CODE=NEWGUI
     SRC_GUI=src/gtk/newgui
   else
     SRC_GUI=src/gtk/gui
     ICONS_CHOICE=icons/kde
-    GUI=OLDGUI
+    GUI_CODE=OLDGUI
   endif
 endif
 
@@ -575,7 +577,7 @@ CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
 mlnet+gui_CMXA= \
   cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   icons.cmxa guibase.cmxa gui.cmxa
@@ -808,8 +810,8 @@ install:: opt
          fi
 
 
-ifeq ("$(COMPILE_GUI)" , "yes")
-  ifeq ("$(USE_GTK2)", "yes")
+ifneq ("$(GUI)" , "no")
+  ifeq ("$(GUI)", "newgui2")
     SUBDIRS += $(SRC_GUI) $(SRC_GUI)/x11 $(SRC_GUI)/win32 $(ICONS_CHOICE) +lablgtk2
     GTK_LIBS_byte=-I +lablgtk2 $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
     GTK_LIBS_opt=-I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
@@ -1138,10 +1140,10 @@ OLDGUI_SMALL_ICONS= \
   icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
   icons/small/view_users_small.xpm
 
-ICONS= $($(GUI)_ICONS)
-SMALL_ICONS= $($(GUI)_SMALL_ICONS)
+ICONS= $($(GUI_CODE)_ICONS)
+SMALL_ICONS= $($(GUI_CODE)_SMALL_ICONS)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
   ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_svg.ml)
 else
@@ -1151,7 +1153,7 @@ endif
 
 $(ALL_ICONS_SRCS): $(ALL_ICONS)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   GUI_BASE_SRCS= \
     $(SRC_GUI)/guiUtf8.ml      $(SRC_GUI)/guiMessages.ml \
     $(SRC_GUI)/guiColumns.ml   $(SRC_GUI)/guiOptions.ml \
@@ -1242,9 +1244,9 @@ OLDGUI_SRCS=  \
   $(SRC_GUI)/gui_config.ml \
   $(SRC_GUI)/gui_main.ml
 
-GUI_SRCS= $($(GUI)_SRCS)
+GUI_SRCS= $($(GUI_CODE)_SRCS)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   MLDONKEYGUI_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 else
   MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
@@ -1252,19 +1254,19 @@ endif
 
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   MLDONKEY_IM_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
 else
   MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 endif
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/guiImMain.ml  $(MAIN_SRCS)
 else
   MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/gui_im_main.ml  $(MAIN_SRCS)
 endif
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   STARTER_CMXA=cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
   STARTER_SRCS= $(SRC_GUI)/guiStarter.ml
 else
@@ -1272,13 +1274,13 @@ else
   STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 endif
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   INSTALLER_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
 else
   INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 endif
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   INSTALLER_SRCS= \
     $(SRC_GUI)/gui_installer_base.ml  $(SRC_GUI)/gui_installer.ml
 else
@@ -1302,7 +1304,7 @@ CHAT_EXE_SRCS= \
   $(CHAT)/chat_data.ml \
   $(CHAT)/chat_args.ml
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   CHAT_EXE_SRCS += $(CHAT_GUI)/chat_art.ml $(CHAT_GUI)/chat_configwin.ml 
 endif
 
@@ -1314,7 +1316,7 @@ CHAT_EXE_SRCS += \
   $(CHAT)/mlchat.ml \
   $(CHAT_GUI)/chat_main.ml
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   MLCHAT_CMXA= cdk.cmxa icons.cmxa
 else
   MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
@@ -1324,7 +1326,7 @@ MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
 TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE)
-ifeq ("$(BUILD_NEWGUI)", "yes")
+ifeq ("$(GUI)", "newgui")
   TARGETS += mlprogress$(EXE)
 endif
 
@@ -1342,7 +1344,7 @@ IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
 
 IM_CORE +=  $(IM)/irc/irc.ml
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   IM_GUI_CORE += $(IM_GUI)/guiImAccounts.ml $(IM_GUI)/guiImChat.ml \
                  $(IM_GUI)/guiImRooms.ml    $(IM_GUI)/guiIm.ml
 else
@@ -1405,7 +1407,7 @@ CORE_SRCS += $($2_SRCS)
 
 ## TARGETS += $1$(EXE)
 
-ifeq ("$(COMPILE_GUI)" , "yes")
+ifneq ("$(GUI)" , "no")
 
 ## BUNDLE_TARGETS += $1+gui$(EXE)
 
@@ -1418,7 +1420,7 @@ $1_SRCS= $(MAIN_SRCS)
 
 EXPAND_LIB($2,$1)
 
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
 $1+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa $1.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
@@ -1445,7 +1447,7 @@ EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
 libclient_SRCS= $(COMMON_CLIENT_SRCS)
-ifeq ("$(USE_GTK2)", "yes")
+ifeq ("$(GUI)", "newgui2")
   libgmisc_SRCS=
 else
   libgmisc_SRCS= $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS)
@@ -1462,7 +1464,7 @@ EXPAND_LIB(libclient,client)
 EXPAND_LIB(DRIVER,driver)
 EXPAND_LIB(CORE,core)
 
-ifneq ("$(USE_GTK2)", "yes")
+ifneq ("$(GUI)", "newgui2")
   EXPAND_LIB(libgmisc,gmisc)
 endif
 
@@ -1527,10 +1529,8 @@ EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui)
 EXPAND(MLPROGRESS, mlprogress,GTK, MLPROGRESS)
 EXPAND(MLDONKEYGUI,mlgui,GTK,MLDONKEYGUI)
 
-ifneq ("$(BUILD_NEWGUI)", "yes")
- ifneq ("$(USE_GTK2)", "yes")
-   EXPAND(MLDONKEYGUI2,mlgui2,GTK,MLDONKEYGUI2)
- endif
+ifeq ("$(GUI)", "oldgui")
+ EXPAND(MLDONKEYGUI2,mlgui2,GTK,MLDONKEYGUI2)
 endif
 
 EXPAND(mldc,mldc,NO,mldc)
@@ -1647,8 +1647,8 @@ $(LIB)/md4_comp.o: $(LIB)/md4_$(MD4COMP).o
 
 
 zogml:
-	(for i in $(GUI)/gui*_base.zog ; do \
-		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > $(GUI)/`basename $$i zog`ml ;\
+	(for i in $(GUI_CODE)/gui*_base.zog ; do \
+		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > $(GUI_CODE)/`basename $$i zog`ml ;\
 	done)
 
 #######################################################################
@@ -1710,7 +1710,7 @@ distclean: releaseclean
 	rm -rf *.tar.bz2 
 
 maintainerclean: distclean
-	echo rm -f $(GUI)/gui.ml $(GUI)/gui_zog.ml
+	echo rm -f $(GUI_CODE)/gui.ml $(GUI_CODE)/gui_zog.ml
 	rm -f config/configure
 	rm -f packages/rpm/Makefile
 	rm -f Makefile
@@ -1742,10 +1742,8 @@ depend:   $(RESFILE) \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
-	if test "$(COMPILE_GUI)" = "yes"; then \
-		if test "$(USE_GTK2)" = "yes"; then \
-			$(MAKE) svg_converter; \
-		fi; \
+	if test "$(GUI)" = "newgui2"; then \
+		$(MAKE) svg_converter; \
 	fi
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
@@ -1769,8 +1767,8 @@ utils.static: svg_converter ed2k_hash.static make_torrent.static copysources.sta
 #######################################################################
 
 DISDIR=mldonkey-distrib
-#distrib/Readme.txt: $(GUI)/gui_messages.ml
-#	grep -A 1000 help_text $(GUI)/gui_messages.ml | grep -v '"' > distrib/Readme.txt
+#distrib/Readme.txt: $(GUI_CODE)/gui_messages.ml
+#	grep -A 1000 help_text $(GUI_CODE)/gui_messages.ml | grep -v '"' > distrib/Readme.txt
 
 
 debug:
@@ -1780,7 +1778,7 @@ debug:
 
 RELEASE_TARGETS=mlnet 
 
-ifeq ("$(COMPILE_GUI)" , "yes")
+ifneq ("$(GUI)" , "no")
 RELEASE_TARGETS += mlgui mlnet+gui mlguistarter mlchat
 endif
 

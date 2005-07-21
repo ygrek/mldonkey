@@ -11,6 +11,18 @@ number reported by MLDonkey will stay the same.
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+2005/07/21: spiralvoice
+
+4195: GUI: Change configure options
+
+Now "./configure" compiles no GUI, "--disable-gui" is default.
+To use a GUI use "--enable-gui", this enabled GTK2 GUI.
+Other options are:
+--enable-gui=newgui2 (use GTK2 GUI)
+--enable-gui=newgui1 (use GTK1 newgui)
+--enable-gui=oldgui  (use GTK1 oldgui)
+Options like "--disable-newgui" or "--enable-gtk2" were removed.
+
 2005/07/20: spiralvoice
 
 4193: CommonGraphics : some whitespace cleanups
