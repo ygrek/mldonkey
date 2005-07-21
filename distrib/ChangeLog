@@ -1,22 +1,19 @@
-ChangeLog
-=========
-
-                Many changes and patches applied, 
-            labeled as UNSTABLE until further tested.
-
-I changed the release mechanism in a way that minor updates like
+The release mechanism was changed in a way that minor updates like
 this one will not get a release tag in CVS, also the version
 number reported by MLDonkey will stay the same.
 
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
+ChangeLog
+=========
+
 2005/07/21: spiralvoice
 
 4195: GUI: Change configure options
 
 Now "./configure" compiles no GUI, "--disable-gui" is default.
-To use a GUI use "--enable-gui", this enabled GTK2 GUI.
+To use a GUI use "--enable-gui", this enables GTK2 GUI.
 Other options are:
 --enable-gui=newgui2 (use GTK2 GUI)
 --enable-gui=newgui1 (use GTK1 newgui)
