@@ -25,7 +25,7 @@ Options like "--disable-newgui" or "--enable-gtk2" were removed.
 4193: CommonGraphics : some whitespace cleanups
 4190: Gdstats: Fix tag.png/jpg link output
 4188: Overnet: Dont put our own ID in the buckets (by Bogeyman)
-
+---------------------------------------------------------------------
 2005/07/19: spiralvoice (version 2.6.0 = tag release-2-6-0)
 
 4175: New option html_mods_use_js_tooltips, default true
