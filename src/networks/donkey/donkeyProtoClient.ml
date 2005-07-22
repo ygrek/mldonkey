@@ -162,7 +162,7 @@ module Connect  = struct
 	t.port
         (Md4.to_string t.md4);
       (match t.server_info with
-          None -> lprintf_nl ""
+          None -> lprint_newline ()
         | Some (ip, port) ->
             lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
       lprintf "tags: ";
@@ -239,7 +239,7 @@ module ConnectReply  = struct
 	t.port
         (Md4.to_string t.md4);
       (match t.server_info with
-          None -> lprintf_nl ""
+          None -> lprint_newline ()
         | Some (ip, port) ->
             lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
       lprintf "tags: ";
@@ -303,7 +303,7 @@ module JoinQueue = struct
       lprintf "JOIN QUEUE";
       (match t with None -> () | Some md4 ->
             lprintf " OF %s" (Md4.to_string md4));
-      lprintf_nl ""
+      lprint_newline ()
           
     let write emule buf t = 
       if extendedrequest emule > 0 then
@@ -396,7 +396,7 @@ module QueryFile  = struct
         None -> ()
       | Some (bitmap, ncompletesources) ->
           print_bitmap bitmap; 
-          lprintf_nl "";
+          lprint_newline ();
           if ncompletesources >= 0 then
             lprintf_nl "Complete sources: %d" ncompletesources
     
@@ -441,7 +441,7 @@ module QueryChunksReply = struct (* Request 80 *)
       lprint_string "   ";
       Array.iter (fun b -> 
           if b then lprintf "1" else lprintf "0") t.chunks;
-      lprintf_nl ""
+      lprint_newline ()
     
     let write buf t =
       buf_md4 buf t.md4;
@@ -484,7 +484,7 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
       Array.iter (fun b -> 
           lprintf "  %s" (Md4.to_string b))
       t.chunks;
-      lprintf_nl ""
+      lprint_newline ()
       
     let write buf t =
       buf_md4 buf t.md4;
@@ -661,7 +661,7 @@ module ViewFilesReply = struct
           lprintf_nl "  port: %d" t.f_port;
           lprintf "  tags: ";
           print_tags t.f_tags;
-          lprintf_nl "";) t
+          lprint_newline ();) t
     
     let rec write_files buf files =
       match files with
@@ -834,7 +834,7 @@ module EmuleClientInfo = struct
       lprintf_nl "  protversion: %d" t.version;
       lprintf "  tags: "; 
       print_tags t.tags;
-      lprintf_nl ""
+      lprint_newline ()
         
     let write buf t = 
       buf_int8 buf t.version;
@@ -1302,7 +1302,7 @@ and parse emule_version magic s =
                   File.from_string tmp_file s;
                   lprintf_nl "Saved unknown packet %s" tmp_file;
                   dump s;
-                  lprintf_nl "";
+                  lprint_newline ();
                 end;
               UnknownReq (magic,s)
               
@@ -1330,7 +1330,7 @@ and parse emule_version magic s =
 	     lprintf_nl "Saved unknown packet %s" tmp_file;
 
           dump s;
-          lprintf_nl "";
+          lprint_newline ();
         end;
       UnknownReq (magic,s)
   

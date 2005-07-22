@@ -24,7 +24,7 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
 open CommonDownloads
 open CommonSwarming
 open CommonInteractive
@@ -35,25 +35,24 @@ open CommonComplexOptions
 open CommonClient
 open CommonTypes
 open CommonOptions
-open CommonGlobals  
+open CommonGlobals
 open CommonNetwork
-  
+
 open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
 
-      
 (*************************************************************
 
 Define the instances of the plugin classes, that we be filled
 later with functions defining the specialized methods for this
 plugin.
-  
-**************************************************************)  
-  
+
+**************************************************************)
+
 let network = CommonNetwork.new_network "ED2K" "Donkey"
-         [ 
-    NetworkHasServers; 
+         [
+    NetworkHasServers;
     NetworkHasSearch;
     NetworkHasUpload;
     NetworkHasMultinet;
@@ -64,31 +63,30 @@ let network = CommonNetwork.new_network "ED2K" "Donkey"
 let connection_manager = network.network_connection_manager
 let connections_controler = TcpServerSocket.create_connections_contoler
     "Edonkey" (fun _ _ -> true)
-  
-let (shared_ops : file CommonShared.shared_ops) = 
+
+let (shared_ops : file CommonShared.shared_ops) =
   CommonShared.new_shared_ops network
 
-let (server_ops : server CommonServer.server_ops) = 
+let (server_ops : server CommonServer.server_ops) =
   CommonServer.new_server_ops network
 
-let (room_ops : server CommonRoom.room_ops) = 
+let (room_ops : server CommonRoom.room_ops) =
   CommonRoom.new_room_ops network
-  
-let (user_ops : user CommonUser.user_ops) = 
+
+let (user_ops : user CommonUser.user_ops) =
   CommonUser.new_user_ops network
-  
-let (file_ops : file CommonFile.file_ops) = 
+
+let (file_ops : file CommonFile.file_ops) =
   CommonFile.new_file_ops network
 
-let (client_ops : client CommonClient.client_ops) = 
+let (client_ops : client CommonClient.client_ops) =
   CommonClient.new_client_ops network
 
-let (pre_shared_ops : file_to_share CommonShared.shared_ops) = 
+let (pre_shared_ops : file_to_share CommonShared.shared_ops) =
   CommonShared.new_shared_ops network
-    
-let (shared_ops : file CommonShared.shared_ops) = 
+
+let (shared_ops : file CommonShared.shared_ops) =
   CommonShared.new_shared_ops network
-  
 
 let client_must_update c =
   client_must_update (as_client c.client_client)
@@ -97,7 +95,7 @@ let server_must_update s =
   server_must_update (as_server s.server_server)
 
 let as_client c = as_client c.client_client
-let as_file file = as_file file.file_file    
+let as_file file = as_file file.file_file
 let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)
@@ -105,10 +103,10 @@ let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file)
 let file_best_name file = file_best_name (as_file file)
-  
-let client_num c = client_num (as_client c)  
-let file_num c = file_num (as_file c)  
-let server_num c = server_num (as_server c.server_server)  
+
+let client_num c = client_num (as_client c)
+let file_num c = file_num (as_file c)
+let server_num c = server_num (as_server c.server_server)
 
 
 (*************************************************************************)
@@ -122,14 +120,14 @@ let tag_client = 200
 let tag_server = 201
 let tag_file   = 202
 
-let page_size = Int64.of_int 4096    
-  
+let page_size = Int64.of_int 4096
+
 let client_to_client_tags = ref ([] : tag list)
 let client_to_server_tags = ref ([] : tag list)
-let emule_info = 
+let emule_info =
   let module E = DonkeyProtoClient.EmuleClientInfo in
   {
-    E.version = 66; 
+    E.version = 66;
     E.protversion = 66;
     E.tags = [];
   }
@@ -140,21 +138,21 @@ let overnet_connect_tags = ref ([] :  tag list)
 let overnet_md4 = Md4.random()
 let nservers = ref 0
 let xs_last_search = ref (-1)
-  
-let zone_size = Int64.of_int (180 * 1024) 
+
+let zone_size = Int64.of_int (180 * 1024)
 let block_size = Int64.of_int 9728000
-  
+
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
-    
+
 let files_queries_per_minute = 3 (* queries for 3 files cost 3*16=48 server-credits; we did get 60 (1 each second) *)
-    
+
 let nclients = ref 0
 
 let protocol_version = 62
 let max_file_groups = 1000
-let master_server = ref (None: DonkeyTypes.server option)  
+let master_server = ref (None: DonkeyTypes.server option)
 let udp_sock = ref (None: UdpSocket.t option)
-let listen_sock = ref (None : TcpServerSocket.t option)  
+let listen_sock = ref (None : TcpServerSocket.t option)
 let reversed_sock = ref (None : TcpServerSocket.t option)
 let servers_ini_changed = ref true
 let new_shared = ref false
@@ -164,35 +162,35 @@ let new_shared = ref false
 (*                         Global tables                                 *)
 (*                                                                       *)
 (*************************************************************************)
-    
+
 module H = Weak2.Make(struct
       type t = client
       let hash c = Hashtbl.hash c.client_kind
-      
+
       let equal x y = x.client_kind = y.client_kind
     end)
-  
+
 let clients_by_kind = H.create 127
 let clients_root = ref []
 let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
-  
+
 (* let remaining_time_for_clients = ref (60 * 15) *)
 
 let current_files = ref ([] : file list)
 let xs_servers_list = ref ([] : server list)
 let connected_server_list = ref ([]  : server list)
-  
+
 let (banned_ips : (Ip.t, int) Hashtbl.t) = Hashtbl.create 113
-let (old_requests : (int * int, request_record) Hashtbl.t) = 
+let (old_requests : (int * int, request_record) Hashtbl.t) =
   Hashtbl.create 13013
 
 let (file_groups_fifo : Md4.t Fifo.t) = Fifo.create ()
 let (connected_clients : (Md4.t, client) Hashtbl.t) = Hashtbl.create 130
-  
+
 let udp_servers_list = ref ([] : server list)
 let interesting_clients = ref ([] : client list)
-  
+
 let files_by_md4 = Hashtbl.create 127
 let find_file md4 = Hashtbl.find files_by_md4 md4
 
@@ -201,24 +199,24 @@ in the shared_files_info *)
 let shared_files_info = (Hashtbl.create 127
     : (string * int64 * float, shared_file_info) Hashtbl.t)
 let shared_files = ref ([] : file_to_share list)
-let new_shared_files = ref [] 
-  
+let new_shared_files = ref []
+
 let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
-    
+
 let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
 
 let file_md4s_to_register = ref ([] : file list)
-  
+
 module UdpClientWHashtbl = Weak2.Make(struct
       type t = udp_client
       let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
-      
+
       let equal x y = x.udp_client_port = y.udp_client_port
         && x.udp_client_ip = y.udp_client_ip
     end)
 
 let udp_clients = UdpClientWHashtbl.create 1023
-  
+
 let join_queue_by_md4 = Hashtbl.create 13
 let join_queue_by_id  = Hashtbl.create 13
 
@@ -227,39 +225,44 @@ let join_queue_by_id  = Hashtbl.create 13
 (*                         Global functions                              *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let _ =
   network.op_network_connected_servers <- (fun _ ->
-      List2.tail_map (fun s -> as_server s.server_server) !connected_server_list   
+      List2.tail_map (fun s -> as_server s.server_server) !connected_server_list
   )
-  
-let hashtbl_remove table key v = 
+
+let lprintf_nl () =
+  lprintf "%s[EDK]: "
+  (log_time ()); lprintf_nl2
+
+let lprintf_n () =
+  lprintf "%s[EDK]: "
+  (log_time ()); lprintf
+
+let hashtbl_remove table key v =
   try
     let vv = Hashtbl.find table key in
-    if vv == v then 
+    if vv == v then
       Hashtbl.remove table key
   with _ -> ()
 
 let add_connected_server c =
   connected_server_list := c :: !connected_server_list
-  
+
 let remove_connected_server c =
   connected_server_list := List2.removeq c !connected_server_list
 
 let connected_servers () = !connected_server_list
-        
+
 let get_udp_sock () =
   match !udp_sock with
     None -> failwith "No UDP socket"
   | Some sock -> sock
 
-
-
-  
 (* compute the name used to save the file *)
-  
+
 let update_best_name file =
-  
+
   let best_name = file_best_name file in
 (*  lprintf "update_best_name: %s\n" best_name; *)
   if best_name = file_string_of_uid (Ed2k file.file_md4)
@@ -276,12 +279,11 @@ let update_best_name file =
       | Some best_name ->
           let best_name = String2.replace best_name '/' "::" in
           set_file_best_name file best_name;
-          if !verbose then lprintf "BEST NAME now IS %s" best_name;
+          if !verbose then lprintf_nl () "BEST NAME now IS %s" best_name;
     with Not_found -> ()
 
-        
 let new_file file_diskname file_state md4 file_size filenames writable =
-  
+
   try
       let file = find_file md4 in
       if file.file_diskname <> file_diskname then
@@ -293,13 +295,13 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             then
               begin
                 if !verbose_share then
-                  lprintf_nl "EDK: New file with changed filename %s to %s"
+                  lprintf_nl () "New file with changed filename %s to %s"
                     file.file_diskname file_diskname;
                 file.file_diskname <- file_diskname;
               end
           else
             if !verbose_share then
-              lprintf_nl "EDK: New file with not changed different filename %s and %s"
+              lprintf_nl () "New file with not changed different filename %s and %s"
                 file.file_diskname file_diskname;
         end;
       if Unix32.destroyed (file_fd file)
@@ -309,18 +311,18 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           file.file_file.impl_file_fd <-
             Unix32.create_diskfile file.file_diskname Unix32.rw_flag 0o666;
       if Unix32.destroyed (file_fd file) then
-          lprintf_nl "New Edonkey file with %b && %b remaining destroyed fd %s"
+          lprintf_nl () "New Edonkey file with %b && %b remaining destroyed fd %s"
             (not writable) (file.file_diskname = file_diskname) file.file_diskname;
       file
   with _ ->
       if !verbose_share then
-        lprintf_nl "EDK: New file with md4: %s" (Md4.to_string md4);
+        lprintf_nl () "New file with md4: %s" (Md4.to_string md4);
       let file_exists = Unix32.file_exists file_diskname in
-      
-      let t = 
+
+      let t =
         if
 (* Don't use this for shared files ! *)
-          writable && 
+          writable &&
 (* Only if the option is set *)
           !!emulate_sparsefiles &&
 (* Only if the file does not already exists *)
@@ -338,14 +340,14 @@ let new_file file_diskname file_state md4 file_size filenames writable =
               failwith "Zero length file ?"
         else file_size
       in
-      
+
       if file_size <> zero && writable then (* do not truncate if not writable *)
         Unix32.ftruncate64 t file_size;
-      
-      let nchunks = Int64.to_int (Int64.div 
+
+      let nchunks = Int64.to_int (Int64.div
             (Int64.sub file_size Int64.one) block_size) + 1 in
       let md4s = if file_size <= block_size then
-          [md4] 
+          [md4]
         else [] in
       let rec file = {
           file_diskname = file_diskname;
@@ -358,22 +360,22 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
           file_sources = DonkeySources.create_file_sources_manager
-            (Md4.to_string md4) 
+            (Md4.to_string md4)
         }
       and file_impl = {
           dummy_file_impl with
           impl_file_val = file;
           impl_file_ops = file_ops;
-          impl_file_age = last_time ();          
+          impl_file_age = last_time ();
           impl_file_size = file_size;
           impl_file_fd = t;
           impl_file_best_name = Filename.basename file_diskname;
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
-      
+
       file.file_sources.DonkeySources.manager_file <- (fun () -> as_file file);
-      
+
       (match file_state with
           FileShared -> ()
         | _ ->
@@ -382,18 +384,18 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             in
             file.file_swarmer <- Some swarmer;
 (*
-        Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+        Int64Swarmer.set_writer swarmer (fun offset s pos len ->
 (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
       AnyEndian.dump_sub s pos len;
 *)
-            
-            if !!CommonOptions.buffer_writes then 
+
+            if !!CommonOptions.buffer_writes then
               Unix32.buffered_write_copy t offset s pos len
             else
               Unix32.write  t offset s pos len
         ); *)
-            Int64Swarmer.set_verifier swarmer 
+            Int64Swarmer.set_verifier swarmer
               (if md4s = [] then VerificationNotAvailable else
                 Verification (Array.of_list (List.map (fun md4 -> Ed2k md4) md4s))
             );
@@ -403,29 +405,29 @@ let new_file file_diskname file_state md4 file_size filenames writable =
                     file_must_update file
                   end)
       );
-      
+
       update_best_name file;
       file_add file_impl file_state;
       Heap.set_tag file tag_file;
       Hashtbl.add files_by_md4 md4 file;
       file
-  
+
   (*
 
   for i = 0 to file.file_nchunks - 1 do
-    if client_chunks.(i) then 
+    if client_chunks.(i) then
       let new_n = file.file_available_chunks.(i) + 1 in
       if new_n  < 11 then  file_must_update file;
       file.file_available_chunks.(i) <- new_n;
   done
 
-let remove_client_chunks file client_chunks = 
+let remove_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then
       let new_n = file.file_available_chunks.(i) - 1 in
       if new_n < 11 then file_must_update file;
       file.file_available_chunks.(i) <- new_n;
-      client_chunks.(i) <- false  
+      client_chunks.(i) <- false
   done
     *)
 
@@ -443,10 +445,10 @@ let is_black_address ip port =
         None -> false
       | Some br ->
           if !verbose_connect then
-            lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port br.Ip_set.blocking_description;
+            lprintf_nl () "%s:%d blocked: %s" (Ip.to_string ip) port br.Ip_set.blocking_description;
           true))
-  
-let new_server ip port score = 
+
+let new_server ip port score =
   let key = (ip) in
   try
     let found = Hashtbl.find servers_by_key key in
@@ -486,9 +488,9 @@ let new_server ip port score =
         server_flags = 0;
         server_has_zlib = false;
       }
-      and server_impl = 
+      and server_impl =
         {
-          dummy_server_impl with          
+          dummy_server_impl with
           CommonServer.impl_server_val = s;
           CommonServer.impl_server_ops = server_ops;
         }
@@ -497,11 +499,11 @@ let new_server ip port score =
       Heap.set_tag s tag_server;
       Hashtbl.add servers_by_key key s;
       server_must_update s;
-      s      
+      s
 
 let find_server ip port =
   let key = (ip) in
-  Hashtbl.find servers_by_key key  
+  Hashtbl.find servers_by_key key
 
 let remove_server ip port =
   let key = (ip) in
@@ -512,12 +514,12 @@ let remove_server ip port =
     (match s.server_sock with
         NoConnection -> ()
       | ConnectionWaiting token -> cancel_token token
-      | Connection sock -> 
+      | Connection sock ->
           TcpBufferedSocket.shutdown sock Closed_by_user);
     server_remove (as_server s.server_server)
   with _ -> ()
 
-let dummy_client = 
+let dummy_client =
   let module D = DonkeyProtoClient in
   let rec c = {
       client_client = client_impl;
@@ -562,25 +564,24 @@ let dummy_client =
       client_connection_time = 0;
       } and
     client_impl = {
-      dummy_client_impl with            
+      dummy_client_impl with
       impl_client_val = c;
       impl_client_ops = client_ops;
       impl_client_upload = None;
     }
   in
-  c  
-    
-  
-let create_client key =  
+  c
+
+let create_client key =
   let module D = DonkeyProtoClient in
   let s = DonkeySources.find_source_by_uid key in
   let rec c = {
 (*      dummy_client with *)
-      
+
       client_client = client_impl;
 (*      client_connection_control =  new_connection_control_recent_ok ( ()); *)
       client_next_view_files = last_time () - 1;
-      client_kind = key;   
+      client_kind = key;
       client_upload = None;
       client_source = s;
 (*      client_sock = NoConnection; *)
@@ -610,8 +611,8 @@ let create_client key =
       client_connect_time = 0;
       client_requests_received = 0;
       client_requests_sent = 0;
-      client_indirect_address = None;      
-      client_slot = SlotNotAsked; 
+      client_indirect_address = None;
+      client_slot = SlotNotAsked;
       client_debug = Intset.mem s.DonkeySources.source_num !debug_clients;
       client_pending_messages = [];
       client_emule_proto = emule_proto ();
@@ -619,7 +620,7 @@ let create_client key =
       client_connection_time = 0;
       } and
     client_impl = {
-      dummy_client_impl with            
+      dummy_client_impl with
       impl_client_val = c;
       impl_client_ops = client_ops;
       impl_client_upload = None;
@@ -639,9 +640,9 @@ let new_client key =
 
 let create_client = ()
 
-let find_client_by_key key = 
+let find_client_by_key key =
   H.find clients_by_kind { dummy_client with client_kind = key }
-  
+
 let client_type c =
   client_type (as_client c)
 
@@ -650,13 +651,13 @@ let set_client_type c t=
 
 let friend_add c =
   friend_add (as_client c)
-      
+
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
       c.client_name <- name;
       c.client_md4 <- md4;
     end
-    
+
 exception ClientFound of client
 let find_client_by_name name =
   try
@@ -666,7 +667,7 @@ let find_client_by_name name =
     raise Not_found
   with ClientFound c -> c
 
-let local_mem_stats level buf = 
+let local_mem_stats level buf =
   Gc.compact ();
   let client_counter = ref 0 in
   let unconnected_unknown_clients = ref 0 in
@@ -704,7 +705,7 @@ end;
           let buf_len, nmsgs = TcpBufferedSocket.buf_size sock in
           (try
               Hashtbl.find connected_clients_by_num num
-            with _ -> 
+            with _ ->
                 incr connected_clients;
                 waiting_msgs := !waiting_msgs + nmsgs;
                 buffers := !buffers + buf_len;
@@ -715,7 +716,7 @@ end;
           if TcpBufferedSocket.closed sock then
             incr closed_connections;
   ) clients_by_kind;
-  
+
   let bad_clients_in_files = ref 0 in
   Hashtbl.iter (fun _ file ->
       DonkeySources.iter_all_sources (fun s ->
@@ -725,10 +726,10 @@ end;
                   Indirect_address _ -> incr bad_clients_in_files
                 | _ -> ()
               end
-          | _ -> ()              
+          | _ -> ()
       ) file.file_sources;
   ) files_by_md4;
-  
+
   Printf.bprintf buf "Clients: %d\n" !client_counter;
   Printf.bprintf buf "   Bad Clients: %d/%d\n" !unconnected_unknown_clients
     !bad_clients_in_files;
@@ -743,7 +744,7 @@ end;
   Printf.bprintf buf "   Dead clients: %d\n" !dead_clients;
   Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
   ()
-  
+
 let remove_client c =
   client_remove (as_client c);
 (*  hashtbl_remove clients_by_kind c.client_kind c; *)
@@ -751,7 +752,7 @@ let remove_client c =
   ()
 
 
-let friend_remove c = 
+let friend_remove c =
   friend_remove  (as_client c)
 
 
@@ -762,21 +763,21 @@ let last_connected_master () =
   let masters = ref [] in
   List.iter (
     fun s ->
-      if s.server_master then 
+      if s.server_master then
         match s.server_sock with
-          | Connection _ -> 
+          | Connection _ ->
               masters := s :: !masters
           | _ -> s.server_master <- false
   ) server_list;
   match !masters with
   | s :: _ -> s
   | [] -> raise Not_found
-  
+
 let last_connected_server () =
-  match !servers_list with 
+  match !servers_list with
   | s :: _ -> s
-  | [] -> 
-      servers_list := 
+  | [] ->
+      servers_list :=
       Hashtbl.fold (fun key s l ->
           s :: l
       ) servers_by_key [];
@@ -784,7 +785,6 @@ let last_connected_server () =
         [] -> raise Not_found
       | s :: _ -> s
 
-          
 let all_servers () =
   Hashtbl.fold (fun key s l ->
       s :: l
@@ -800,7 +800,7 @@ let string_of_file_state s =
   | FileNew -> "File New"
   | FileAborted s -> Printf.sprintf "Aborted: %s" s
   | FileQueued -> "File Queued"
-      
+
 let left_bytes = "MLDK"
 
 let overnet_server_ip = ref Ip.null
@@ -939,7 +939,7 @@ let brand_mod_to_string b =
   | Brand_mod_freeangel -> "freeangel"
   | Brand_mod_enos -> "enos"
   | Brand_mod_webys -> "webys"
-    
+
 let string_of_client c =
   Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
   c.client_name (brand_to_string c.client_brand)
@@ -954,21 +954,21 @@ let string_of_client c =
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
       if !verbose then begin
-          lprintf "BAD RESULT:\n";
+          lprintf_n () "BAD RESULT:";
           List.iter (fun tag ->
               lprintf "[%s] = [%s]" (string_of_field tag.tag_name)
                 (string_of_tag_value tag.tag_value);
-              lprintf "\n";
+              lprint_newline ();
           ) tags;
         end;
       false
     end
   else true
-    
+
 let result_of_file md4 tags =
   let rec r = {  dummy_result with
       result_uids = [Uid.create (Ed2k md4)];
-    } in  
+    } in
   List.iter (fun tag ->
       match tag with
         { tag_name = Field_Filename; tag_value = String s } ->
@@ -989,13 +989,12 @@ let result_of_file md4 tags =
     Some rs
   else None
 
-      
 (*************************************************************
 
 Define a function to be called when the "mem_stats" command
   is used to display information on structure footprint.
-  
-**************************************************************)  
+
+**************************************************************)
 
 let _ =
   Heap.add_memstat "DonkeyGlobals" (fun level buf ->
@@ -1004,7 +1003,7 @@ let _ =
       Printf.bprintf buf  "Clients_by_kind: %d\n" (List.length list);
       if level > 0 then
         List.iter (fun c ->
-            Printf.bprintf buf "[%d ok: %s rating: %d]\n" 
+            Printf.bprintf buf "[%d ok: %s rating: %d]\n"
               (client_num c)
             (string_of_date (c.client_source.DonkeySources.source_age))
 (* TODO: add connection state *)
@@ -1012,34 +1011,32 @@ let _ =
             ;
         ) list;
   );
-      
+
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
 
-    
 (*************************************************************
 
    Save the state of the client positive queries for files
  if a JoinQueue message was sent. Use this information if
  an AvailableSlot message is received while not JoinQueue
  message was sent (client_asked_for_slot false).
-  
+
 **************************************************************)
-  
-  
-let client_id c = 
+
+let client_id c =
   match c.client_kind with
     Direct_address (ip, port) -> (ip, port, zero)
   | Indirect_address (ip, port, id) -> (ip, port, id)
   | Invalid_address _ -> (Ip.null, 0, zero)
-      
+
 let save_join_queue c =
   if c.client_file_queue <> [] then
     let files = List.map (fun (file, chunks, _) ->
           file, Array.copy chunks
       ) c.client_file_queue in
     begin
-      if c.client_debug then 
-        lprintf "Saving %d files associated with %s\n"
+      if c.client_debug then
+        lprintf_nl () "Saving %d files associated with %s"
         (List.length files) (Md4.to_string c.client_md4);
       Hashtbl.add join_queue_by_md4 c.client_md4 (files, last_time ());
       try
@@ -1051,22 +1048,21 @@ let save_join_queue c =
 let half_hour = 30 * 60
 let clean_join_queue_tables () =
   let current_time = last_time () in
-  
+
   let list = Hashtbl2.to_list2 join_queue_by_md4 in
   Hashtbl.clear join_queue_by_md4;
   List.iter (fun (key, ((v,time) as e)) ->
       if time + half_hour > current_time then
         Hashtbl.add join_queue_by_md4 key e
   ) list;
-    
+
   let list = Hashtbl2.to_list2 join_queue_by_id in
   Hashtbl.clear join_queue_by_id;
   List.iter (fun (key, ((v,time) as e)) ->
       if time + half_hour > current_time then
         Hashtbl.add join_queue_by_id key e
   ) list
-  
-  
+
 let server_accept_multiple_getsources s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_getsources) <> 0
 

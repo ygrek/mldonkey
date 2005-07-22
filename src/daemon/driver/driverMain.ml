@@ -355,7 +355,7 @@ let load_config () =
           CommonServer.check_server_implementations ();
           CommonFile.check_file_implementations ();
 (*          CommonResult.check_result_implementations (); *)
-          lprintf_nl "";
+          lprint_newline ();
           exit 0),
       _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
@@ -463,10 +463,10 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   end;
 
 (*  lprintf "(3) networks_iter load_complex_options\n"; *)
-  lprint_string (DriverControlers.text_of_html !!motd_html);
-  lprintf (_b "\nCheck http://www.mldonkey.net/ for updates\n");
+  lprintf_nl "%s" (DriverControlers.text_of_html !!motd_html);
+  lprintf_nl (_b "Check http://www.mldonkey.net/ for updates");
   networks_iter (fun r -> network_load_complex_options r);
-  lprintf (_b "enabling networks: ");
+  lprintf (_b "%senabling networks: ") (log_time ());
   networks_iter (fun r ->
 (*      lprintf "(4) networks_iter enabling\n"; *)
       network_enable r;
@@ -475,7 +475,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
       if !!recover_temp_on_startup then
         network_recover_temp r;
   );
-  lprintf (_b "\ndisabled networks: ");
+  lprintf (_b "\n%sdisabled networks: ") (log_time ());
   let found = ref false in
     networks_iter_all (fun r ->
         if not (network_is_enabled r) then
@@ -484,7 +484,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
             lprintf (_b "%s ") r.network_name
 	  end);
   if not !found then lprintf (_b "none");
-  lprintf_nl "";
+  lprint_newline ();
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
 
@@ -512,17 +512,17 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
-  lprintf (_b "To command: telnet %s %d\n")
+  lprintf_nl (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
-  lprintf (_b "Or with browser: http://%s:%d\n")
+  lprintf_nl (_b "Or with browser: http://%s:%d")
 	(if !!http_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!http_bind_addr)  !!http_port;
-  lprintf (_b "For a GUI check out http://sancho-gui.sourceforge.net\n");
-  lprintf (_b "Connect to IP %s, port %d\n")
+  lprintf_nl (_b "For a GUI check out http://sancho-gui.sourceforge.net");
+  lprintf_nl (_b "Connect to IP %s, port %d")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
-  lprintf (_b "If you connect from a remote machine adjust allowed_ips\n");
+  lprintf_nl (_b "If you connect from a remote machine adjust allowed_ips");
   if Autoconf.system = "windows" then lprintf (_b "%s") win_message;
 
   if Autoconf.system <> "windows" then
@@ -584,7 +584,6 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ ->
-	 CommonGlobals.print_localtime ();
 	 lprintf_nl "SIGHUP";
          BasicSocket.close_all ();
 	 Unix32.close_all ()
@@ -602,14 +601,13 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
     (Sys.Signal_handle (fun _ -> lprintf_nl "SIGTERM";
         CommonGlobals.exit_properly 0));
 
-  if !verbose then lprintf_nl (_b "Activated system signal handling\n");
+  if !verbose then lprintf_nl (_b "Activated system signal handling");
 
   Unix32.max_cache_size := MlUnix.max_filedescs
 
 let _ =
   let security_space_filename = "config_files_space.tmp" in
 
-  CommonGlobals.print_localtime ();
   lprintf_nl (_b "Core started");
   core_included := true;
 
@@ -652,7 +650,6 @@ for config files at the end. *)
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
 
-      CommonGlobals.print_localtime ();
       lprintf_nl (_b "Core stopped")
     );
 

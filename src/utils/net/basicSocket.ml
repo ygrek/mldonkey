@@ -243,7 +243,7 @@ let must_read t b  =
   end
 
 let print_socket buf s =
-  Printf.bprintf buf "FD %s:%d: %20s\n"
+  Printf.bprintf buf "FD %s:%d: %20s"
      (s.name) (get_fd_num s.fd)
   (Date.to_string s.born)
 
@@ -330,7 +330,7 @@ let create_blocking name fd handler =
     } in
 (*  lprintf "ADD ONE TASK\n"; *)
   if !debug then begin
-      lprintf "OPENING: %s" ( sprint_socket t);
+      lprintf_nl "OPENING: %s" ( sprint_socket t);
     end;
   fd_tasks := t :: !fd_tasks;
   add_fd_to_event_set t;
@@ -511,7 +511,7 @@ let rec exec_timers = function
 let loop () =
   add_infinite_timer 1.0 (fun _ ->
       if !verbose_bandwidth > 0 then
-        lprintf "[BW1] Resetting bandwidth counters\n";
+        lprintf_nl "[BW1] Resetting bandwidth counters";
       List.iter (fun f -> try f () with _ -> ()) !bandwidth_second_timers
   );
   while true do
@@ -553,7 +553,7 @@ timeout := 5.;
       select !fd_tasks !timeout;
     with
     | e ->
-        lprintf "Exception %s in Select.loop\n" (Printexc2.to_string e);
+        lprintf_nl "Exception %s in Select.loop" (Printexc2.to_string e);
   done
 
 
@@ -567,7 +567,7 @@ let shutdown t s =
 let nb_sockets () = !nb_sockets
 
 let stats buf t =
-  lprintf "Socket %d\n" (get_fd_num t.fd)
+  lprintf_nl "Socket %d" (get_fd_num t.fd)
 
 let sock_num t = get_fd_num t.fd
 
@@ -651,5 +651,5 @@ let _ =
       if !debug then
         let buf = Buffer.create 100 in
         print_sockets buf;
-        lprintf "%s\n" (Buffer.contents buf);
+        lprintf_nl "%s" (Buffer.contents buf);
   )

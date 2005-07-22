@@ -54,6 +54,10 @@ open CommonGlobals
 open CommonOptions
 open DonkeyStats
 
+let lprintf_nl () =
+  lprintf "%s[EDK]: "
+    (log_time ()); lprintf_nl2
+
 let result_name r =
   match r.result_names with
     [] -> None
@@ -61,7 +65,7 @@ let result_name r =
 
 
 let op_file_proposed_filenames file =
-  if !verbose then lprintf "op_file_proposed_filenames\n";
+  if !verbose then lprintf_nl () "op_file_proposed_filenames";
   List2.tail_map fst file.file_filenames
 
 let reconnect_all file =
@@ -107,7 +111,7 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
+      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       0
   else 0
@@ -137,15 +141,15 @@ let really_query_download filenames size md4 location old_file absents =
            && not (Sys.file_exists file_diskname)
           then
             (try
-              lprintf "Renaming edonkey temp-file from %s to %s\n"
+              lprintf_nl () "Renaming edonkey temp-file from %s to %s"
                   filename file_diskname;
               Unix2.rename filename file_diskname;
               Unix.chmod file_diskname 0o644;
               with e ->
-                lprintf "Could not rename %s to %s: exception %s\n"
+                lprintf_nl () "Could not rename %s to %s: exception %s"
                   filename file_diskname (Printexc2.to_string e);
             )
-        else lprintf "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b\n"
+        else lprintf_nl () "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b"
                filename (Sys.file_exists filename)
                file_diskname (Sys.file_exists file_diskname);
     | _ -> ()
@@ -280,7 +284,7 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
+      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       [], []
 
@@ -300,7 +304,7 @@ let import_temp temp_dir =
             List.iter (fun tag ->
                 match tag with
                   { tag_name = Field_Filename; tag_value = String s } ->
-                    lprintf "Import Donkey %s\n" s;
+                    lprintf_nl () "Import Donkey %s" s;
 
                     filenames := s :: !filenames;
                 | { tag_name = Field_Size; tag_value = Uint64 v } ->
@@ -334,7 +338,7 @@ let import_config dirname =
       | { tag_name = Field_UNKNOWN "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
-          else (lprintf "Bad temp directory, using default\n";
+          else (lprintf_nl () "Bad temp directory, using default";
               )
       | _ -> ()
   ) ot;
@@ -942,7 +946,7 @@ let _ =
           } in
         v
       with e ->
-          lprintf "Exception %s in op_file_info\n" (Printexc2.to_string e);
+          lprintf_nl () "Exception %s in op_file_info" (Printexc2.to_string e);
           raise e
 
   )
@@ -1371,7 +1375,7 @@ let _ =
               (try
                  try_recover_temp_file filename md4
                with e ->
-                 lprintf "exception %s in recover_temp\n"
+                 lprintf_nl () "exception %s in recover_temp"
                  (Printexc2.to_string e);
               )
           | NoUid ->
@@ -1380,7 +1384,7 @@ let _ =
                    let md4 = Md4.of_string filename in
                    try_recover_temp_file filename md4
                  with e ->
-                   lprintf "exception %s in recover_temp\n"
+                   lprintf_nl () "exception %s in recover_temp"
                      (Printexc2.to_string e);
               )
           | _ -> ()
@@ -1410,7 +1414,7 @@ let _ =
       | Some files ->
           List2.tail_map (fun r -> "", r) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      lprintf "*************** should browse  ***********\n";
+      lprintf_nl () "*************** should browse  ***********";
       match c.client_source.DonkeySources.source_sock with
       | Connection sock    ->
 (*
@@ -1424,8 +1428,8 @@ lprint_newline ();
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
       | NoConnection ->
-          lprintf "****************************************\n";
-          lprintf "       TRYING TO CONTACT FRIEND         \n";
+          lprintf_nl () "****************************************";
+          lprintf_nl () "       TRYING TO CONTACT FRIEND";
 
           reconnect_client c
       | _ -> ()
@@ -1564,18 +1568,18 @@ let _ =
 
 let _ =
   CommonWeb.add_web_kind "server.met" (fun _ filename ->
-      lprintf "FILE LOADED\n";
+      lprintf_nl () "server.met loaded";
       let n = load_server_met filename in
-      lprintf "%d SERVERS ADDED\n" n;
+      lprintf_nl () "%d servers added" n;
   );
   CommonWeb.add_web_kind "servers.met" (fun _ filename ->
-      lprintf "FILE LOADED\n";
+      lprintf_nl () "servers.met loaded";
       let n = load_server_met filename in
-      lprintf "%d SERVERS ADDED\n" n;
+      lprintf_nl () "%d servers added" n;
   );
   CommonWeb.add_web_kind "comments.met" (fun _ filename ->
 (* TODO      DonkeyIndexer.load_comments filename; *)
-      lprintf "COMMENTS ADDED\n";
+      lprintf_nl () "COMMENTS ADDED";
   );
 
   file_ops.op_file_proposed_filenames <- op_file_proposed_filenames;

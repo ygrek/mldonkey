@@ -323,7 +323,7 @@ module Proto = struct
             if !verbose_overnet then begin
                 lprintf_nl "Received code %d message.\nDump:" opcode;
                 dump s;
-                lprintf_nl "";
+                lprint_newline ();
               end;
             
             let peer, _ = get_peer s 0 in
@@ -373,7 +373,7 @@ module Proto = struct
               begin
                 lprintf_nl "UNKNOWN: opcode %d" opcode;
                 dump s;
-                lprintf_nl "";
+                lprint_newline ();
               end;
             OvernetUnknown (opcode, s)
       with e ->
@@ -381,7 +381,7 @@ module Proto = struct
             begin
               lprintf_nl "Error %s while parsing opcode %d" (Printexc2.to_string e) opcode;
               dump s;
-              lprintf_nl "";
+              lprint_newline ();
             end;
           OvernetUnknown (opcode, s)
     
@@ -417,7 +417,7 @@ module Proto = struct
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
-                  lprintf_nl ""
+                  lprint_newline ()
                 end
           );
       | _ -> ()

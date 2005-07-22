@@ -56,7 +56,7 @@ let print_string4 v s =
       lprint_char c
     else lprintf "[%d]" int
   done;
-  lprintf_nl ""
+  lprint_newline ()
 
 let print_int32 s i=
   lprintf_nl "%s: %Ld" s i

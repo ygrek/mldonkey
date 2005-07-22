@@ -19,6 +19,7 @@
 
 open Autoconf
 
+val log_time : unit -> string
 val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
 (** [cprintf k format arguments] is the same as [printf format arguments],
     except that the resulting string is passed as argument to [k]; the
@@ -26,6 +27,7 @@ val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
 
 val lprintf :  ('a, unit, unit) format -> 'a
 val lprintf_nl :  ('a, unit, unit) format -> 'a
+val lprintf_nl2 :  ('a, unit, unit) format -> 'a
 val lprint_newline : unit -> unit  
 val lprint_char : char -> unit  
 val lprint_string : string -> unit  

@@ -56,6 +56,9 @@ open DonkeyStats
    Once the block has been finished allow changing order.
 *)
 
+let lprintf_nl () =
+  lprintf "%s[EDK]: " (log_time ()); lprintf_nl2
+
 let sort_file_queue c =
   match c.client_download with
     Some _ -> ()
@@ -64,12 +67,12 @@ let sort_file_queue c =
         [] -> ()
       | [ (file, chunks, up) ] ->
           if !verbose_download || c.client_debug then begin
-              lprintf "sort_file_queue: single file. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+              lprintf_nl () "sort_file_queue: single file. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
             end
       | (file, chunks, up) :: _ ->
           let fn = file_num file in
           if !verbose_download || c.client_debug then begin
-              lprintf "sort_file_queue: multiple files. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+              lprintf_nl () "sort_file_queue: multiple files. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
             end;
           c.client_file_queue <- List.stable_sort (fun (f1, _, _) (f2, _, _) ->
               let v = file_priority f2 - file_priority f1 in
@@ -87,7 +90,7 @@ let sort_file_queue c =
           | (file, chunks, _) :: _ ->
               if (file_num file) <> fn then begin
                   if !verbose_download || c.client_debug then begin
-                      lprintf "sort_file_queue: queue change. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
+                      lprintf_nl () "sort_file_queue: queue change. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
                     end;
 (*
 (*                  c.client_chunks <- chunks; *)
@@ -113,7 +116,7 @@ let unshare_file file =
     None -> ()
   | Some s -> 
       if !verbose_share then
-        lprintf_nl "EDK: unshare_file %s" file.file_diskname;
+        lprintf_nl () "unshare_file %s" file.file_diskname;
       file.file_shared <- None;
       decr nshared_files;
       CommonShared.shared_calculate_total_bytes ();
@@ -175,14 +178,14 @@ let check_file_downloaded file =
           
           let downloaded = Int64Swarmer.downloaded swarmer in
           if file_downloaded file <> downloaded then begin
-              lprintf "ERROR: file_downloaded file (%Ld) <> downloaded swarmer (%Ld)\n"
+              lprintf_nl () "ERROR: file_downloaded file (%Ld) <> downloaded swarmer (%Ld)"
                 (file_downloaded file) downloaded
             end;
           
           if verified then begin
               if (file_size file <> downloaded)
               then
-                lprintf "DonkeyOneFile: Downloaded size differs after complete verification\n";
+                lprintf_nl () "Downloaded size differs after complete verification";
               download_finished file
             end
             
@@ -392,7 +395,7 @@ let rec get_from_client c =
 let request_slot c = 
     if c.client_slot = SlotNotAsked then begin
       if !verbose_download then begin
-          lprintf "start_download...\n";
+          lprintf_nl () "start_download";
         end;
       do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
           sort_file_queue c;
@@ -412,12 +415,12 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
   match c.client_download with
     None -> 
       if !verbose_hidden_errors then
-        lprintf "DonkeyOneFile.block_received: block received but no file !\n  Received: %s\n" (Md4.to_string md4)
+        lprintf_nl ()"block_received: block received but no file !\n  Received: %s" (Md4.to_string md4)
   | Some (file, up) ->
       
       if file.file_md4 <> md4 then begin
           if !verbose_hidden_errors then
-            lprintf "DonkeyOneFile.block_received: block for bad file\n  Received: %s\n  Expected: %s\n" (Md4.to_string md4) (Md4.to_string file.file_md4)
+            lprintf_nl () "block_received: block for bad file\n  Received: %s\n  Expected: %s" (Md4.to_string md4) (Md4.to_string file.file_md4)
         end else begin
           DonkeySources.set_request_result c.client_source file.file_sources File_upload;
           
@@ -468,7 +471,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
           
           if new_downloaded -- old_downloaded < len64 then
               if !verbose_download then begin
-                lprintf "ALREADY RECEIVED: %Ld < %Ld\n"
+                lprintf_nl () "ALREADY RECEIVED: %Ld < %Ld"
               (new_downloaded -- old_downloaded) len64;          
               end;
           get_from_client c

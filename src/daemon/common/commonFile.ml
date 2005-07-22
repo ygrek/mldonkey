@@ -821,7 +821,7 @@ let check_file_implementations () =
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then
         lprintf_nl "op_file_print_sources_html";
   ) !files_ops;
-  lprintf_nl ""
+  lprint_newline ()
 
 (*************************************************************************)
 (*                                                                       *)

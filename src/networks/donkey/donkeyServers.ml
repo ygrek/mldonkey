@@ -46,6 +46,10 @@ open DonkeyGlobals
 
 module Udp = DonkeyProtoUdp
 
+let lprintf_nl () =
+  lprintf "%s[EDK]: "
+  (log_time ()); lprintf_nl2
+
 (* Constants *)
 let udp_requests_new  = 5
 let udp_requests_old  = 3
@@ -122,7 +126,7 @@ let query_locations_timer () =
               List.iter (
                 fun file -> 
                   if !verbose_location then
-                    lprintf "donkeyServers: TCP: Query Location of %s\n" 
+                    lprintf_nl () "TCP: Query Location of %s"
                       (file_best_name file);
                   let module M = DonkeyProtoServer in
                   server_send sock ( M.QueryLocationReq file.file_md4  ) 
@@ -173,7 +177,7 @@ let udp_query_sources () =
     ()
   done;
   if !verbose_location then
-    lprintf "donkeyServers: udp_query_source to: %2d old %2d new servers\n" 
+    lprintf_nl () "udp_query_source to: %2d old %2d new servers"
       (List.length !old_servers) (List.length !new_servers);
 
   try
@@ -201,7 +205,7 @@ let udp_query_sources () =
     ) !old_servers;
 
   with e ->
-    lprintf "udp_query_sources: %s\n" (Printexc2.to_string e)
+    lprintf_nl () "udp_query_sources: %s" (Printexc2.to_string e)
 
 
       
@@ -255,8 +259,8 @@ let client_to_server s t sock =
   s.server_last_message <- last_time ();
   
   if !verbose_msg_servers then begin
-    lprintf "Message from server:\n"; 
-    DonkeyProtoServer.print t; lprintf "\n"
+    lprintf_nl () "Message from server:";
+    DonkeyProtoServer.print t; lprint_newline ()
   end;
   
   match t with
@@ -294,7 +298,7 @@ let client_to_server s t sock =
       CommonEvent.add_event (Console_message_event msg)
   
   | M.ServerListReq l ->
-      if !verbose then lprintf "donkeyServers: Received serverlist\n";
+      if !verbose then lprintf_nl () "donkeyServers: Received serverlist";
       if !!update_server_list_server then
         let module Q = M.ServerList in
         List.iter (fun s ->
@@ -335,7 +339,7 @@ let client_to_server s t sock =
       s.server_nfiles <- Int64.of_int files;
       if (users < !!min_users_on_server && not s.server_preferred) then
         begin
-          lprintf "%s:%d remove server min_users_on_server limit hit!\n"
+          lprintf_nl () "%s:%d remove server min_users_on_server limit hit!"
             (Ip.to_string s.server_ip) s.server_port;
           
           disconnect_server s Closed_for_timeout;
@@ -347,7 +351,7 @@ let client_to_server s t sock =
       (* This can either be a reply to a QueryID or a indirect request for
          connection from another client. In this case, we should immediatly 
          connect. *)
-      if !verbose then lprintf "donkeyServers: QueryIDReplyReq: received\n";
+      if !verbose then lprintf_nl () "QueryIDReplyReq: received";
       let module Q = M.QueryIDReply in
       if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
         try
@@ -355,14 +359,14 @@ let client_to_server s t sock =
               None -> raise Not_found
             | Some file ->
                 if !verbose then
-                  lprintf "donkeyServers: QueryIDReplyReq: This was a QueryID reply !?\n";
+                  lprintf_nl () "QueryIDReplyReq: This was a QueryID reply !?";
                 let s = DonkeySources.find_source_by_uid 
                   (Direct_address (t.Q.ip, t.Q.port)) in
                 DonkeySources.set_request_result s file.file_sources 
                   File_new_source
         with _ ->
           if !verbose then
-            lprintf "donkeyServers: QueryIDReplyReq: Calling back to %s:%d\n"
+            lprintf_nl () "QueryIDReplyReq: Calling back to %s:%d"
               (Ip.to_string t.Q.ip) t.Q.port;
           let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
           DonkeyClient.reconnect_client c;
@@ -370,7 +374,7 @@ let client_to_server s t sock =
 
   | M.QueryIDFailedReq t ->
       if !verbose then
-        lprintf "donkeyServers: QueryIDFailedReq:\n";
+        lprintf_nl () "QueryIDFailedReq:";
       ignore (Fifo.take s.server_id_requests)
         
   | M.QueryReplyReq t ->
@@ -521,9 +525,9 @@ let rec connect_one_server restart =
             if !servers_list = [] then begin
               if !print_empty_list then begin
                 print_empty_list := false;
-                lprintf "Looks like you have no servers in your servers.ini\n";
-                lprintf "You should either use the one provided with mldonkey\n";
-                lprintf "or import one from the WEB\n";
+                lprintf_nl () "Looks like you have no servers in your servers.ini";
+                lprintf_nl () "You should either use the one provided with mldonkey";
+                lprintf_nl () "or import one from the WEB";
               end;
                 
               raise Not_found;
@@ -578,7 +582,7 @@ let rec check_server_connections () =
  * clean serverlist 
  *)
 let remove_old_servers () =
-  if !verbose then lprintf "REMOVE OLD SERVERS\n";  
+  if !verbose then lprintf_nl () "REMOVE OLD SERVERS";
   let t1 = Unix.gettimeofday () in
 (*
 The new tactic: we sort the servers (the more recently connected first,
@@ -598,7 +602,7 @@ position to the min_left_servers position.
           (connection_last_conn s.server_connection_control, s) :: !to_keep
   ) servers_by_key;
   let t2 = Unix.gettimeofday () in
-  if !verbose then lprintf "Delay to detect black-listed servers: %2.2f\n" (t2 -. t1); 
+  if !verbose then lprintf_nl () "Delay to detect black-listed servers: %2.2f" (t2 -. t1);
   
   if List.length !to_keep > !!min_left_servers then begin
   let array = Array.of_list !to_keep in
@@ -609,7 +613,7 @@ position to the min_left_servers position.
   if !verbose then 
     for i = 0 to Array.length array - 1 do
       let ls, s = array.(i) in
-      lprintf "server %d last_conn %d\n" (server_num s) ls;
+      lprintf_nl () "server %d last_conn %d" (server_num s) ls;
       
     done;
 
@@ -620,7 +624,7 @@ position to the min_left_servers position.
         if ls < min_last_conn && s.server_sock = NoConnection 
           && not s.server_preferred then begin
         if !verbose then begin
-            lprintf "Server too old: %s:%d\n" 
+            lprintf_nl () "Server too old: %s:%d" 
               (Ip.to_string s.server_ip) s.server_port;
             
           end;
@@ -629,16 +633,16 @@ position to the min_left_servers position.
   done;
   end;
   let t3 = Unix.gettimeofday () in
-  if !verbose then lprintf "Delay to detect old servers: %2.2f\n" (t3 -. t2); 
+  if !verbose then lprintf_nl () "Delay to detect old servers: %2.2f" (t3 -. t2);
 
   List.iter (fun s ->
     remove_server s.server_ip s.server_port
   ) !to_remove;
 
   let t4 = Unix.gettimeofday () in
-  if !verbose then lprintf "Delay to finally remove servers: %2.2f\n" (t4 -. t3);   
+  if !verbose then lprintf_nl () "Delay to finally remove servers: %2.2f" (t4 -. t3);
   if (List.length !to_remove) > 0 || !verbose then
-    lprintf "Removed %d old edonkey servers.\n" (List.length !to_remove)
+    lprintf_nl () "Removed %d old edonkey servers." (List.length !to_remove)
 
   
 (* Keep connecting to servers in the background. Don't stay connected to 
@@ -679,7 +683,7 @@ let walker_timer () =
                   if connection_can_try s.server_connection_control then
                     begin
                       if !verbose then
-                        lprintf "WALKER: try connect %s\n"
+                        lprintf_nl () "WALKER: try connect %s"
                           (Ip.to_string s.server_ip);
                       connect_server s
                     end
@@ -687,7 +691,7 @@ let walker_timer () =
                     begin
                       delayed_list := s :: !delayed_list;
                       if !verbose then
-                        lprintf "WALKER: connect %s delayed\n"
+                        lprintf_nl () "WALKER: connect %s delayed"
                           (Ip.to_string s.server_ip);
                     end
               | _ -> ()
@@ -738,23 +742,21 @@ let update_master_servers _ =
         match s.server_sock with
         | Connection _ -> 
             if !verbose then begin
-                lprintf "MASTER: OLD MASTER %s\n" (Ip.to_string s.server_ip);
+                lprintf_nl () "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
               end;
             masters := s :: !masters
         | _ -> s.server_master <- false
   ) server_list;
   let nmasters = ref (List.length !masters) in
   
-  if !verbose then begin
-      lprintf "MASTER: nmaster %d\n\n" !nmasters;
-    end;
+  if !verbose then
+    lprintf_nl () "MASTER: nmaster %d" !nmasters;
   
   let make_master s =
     (* normal servers don't have our SHARE, so send list if it becomes a master *)
     do_if_connected s.server_sock (fun sock ->
-        if !verbose then begin
-            lprintf "   MASTER: %s\n" (Ip.to_string s.server_ip); 
-          end;
+        if !verbose then
+          lprintf_nl () "   MASTER: %s" (Ip.to_string s.server_ip); 
         s.server_master <- true;
         incr nmasters;
       
@@ -776,7 +778,7 @@ let update_master_servers _ =
     if !nconnected_servers > max_allowed_connected_servers then
       begin
         if !verbose then
-            lprintf "MASTER: DISCONNECT %s\n" (Ip.to_string s.server_ip);
+            lprintf_nl () "MASTER: DISCONNECT %s" (Ip.to_string s.server_ip);
         nconnected_servers := !nconnected_servers - 3;
         do_if_connected  s.server_sock (fun sock ->
             (* We will disconnect from this server.
@@ -795,7 +797,7 @@ let update_master_servers _ =
             - connection_last_conn s.server_connection_control
           in
           if !verbose then
-              lprintf "MASTER: Checking ip:%s ct:%d\n" (Ip.to_string s.server_ip) connection_time;
+              lprintf_nl () "MASTER: Checking ip:%s ct:%d" (Ip.to_string s.server_ip) connection_time;
           if not s.server_master 
             && (s.server_preferred
                  || connection_time > !!become_master_delay
@@ -806,7 +808,7 @@ let update_master_servers _ =
                 if (!nmasters < max_allowed_connected_servers) then
                   begin
                     if !verbose then
-                        lprintf "   MASTER: RAISING %s (%Ld)\n" 
+                        lprintf_nl () "   MASTER: RAISING %s (%Ld)"
                                   (Ip.to_string s.server_ip) s.server_nusers;
                     make_master s
                   end
@@ -825,8 +827,8 @@ let update_master_servers _ =
                           then
                             begin
                               if !verbose then
-                                lprintf
-                                  "   MASTER: RAISING %s (%Ld) instead of %s (%Ld)\n"
+                                lprintf_nl ()
+                                  "   MASTER: RAISING %s (%Ld) instead of %s (%Ld)"
                                   (Ip.to_string s.server_ip) s.server_nusers
                                   (Ip.to_string ss.server_ip) ss.server_nusers;
                               ss.server_master <- false;
@@ -840,7 +842,7 @@ let update_master_servers _ =
         )
     ) server_list;
   if !verbose then
-      lprintf "MASTER: clean %d connected %d masters\n" 
+      lprintf_nl () "MASTER: clean %d connected %d masters"
         !nconnected_servers !nmasters
 
 

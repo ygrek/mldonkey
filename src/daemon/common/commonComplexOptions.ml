@@ -921,10 +921,8 @@ let save () =
         Options.save_with_help results_ini;
         results =:= [];
     end;
-  CommonGlobals.print_localtime ();
   lprintf_nl "Options correctly saved"
 
 let save_sources () =
   networks_iter (fun n -> network_save_sources n);
-  CommonGlobals.print_localtime ();
   lprintf_nl "Sources correctly saved"

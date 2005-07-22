@@ -18,28 +18,34 @@
 *)
 open Options
 open Printf2
-  
+
 open BasicSocket
-open TcpBufferedSocket  
-  
+open TcpBufferedSocket
+
 open AnyEndian
 open LittleEndian
 
-open CommonOptions  
+open CommonOptions
 open CommonTypes
 open CommonGlobals
 open CommonFile
-open CommonGlobals  
-  
+open CommonGlobals
+
 open DonkeyOptions
 open DonkeyGlobals
 open DonkeyTypes
 open DonkeyMftp
-  
-let buf = TcpBufferedSocket.internal_buf
-  
 
-        
+let lprintf_nl () =
+  lprintf "%s[EDK]: "
+    (log_time ()); lprintf_nl2
+
+let lprintf_n () =
+  lprintf "%s[EDK]: "
+    (log_time ()); lprintf
+
+let buf = TcpBufferedSocket.internal_buf
+
 let client_msg_to_string emule_version msg =
   Buffer.clear buf;
   buf_int8 buf 0;
@@ -50,18 +56,17 @@ let client_msg_to_string emule_version msg =
   s.[0] <- char_of_int magic;
   str_int s 1 len;
   s
-  
+
 let server_msg_to_string msg =
   Buffer.clear buf;
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoServer.write buf msg;
-  
-  
+
   if !verbose_msg_servers then begin
-      lprintf_nl "MESSAGE TO SERVER:";  
-      DonkeyProtoServer.print msg; 
-      lprintf_nl "";
+      lprintf_nl () "MESSAGE TO SERVER:";
+      DonkeyProtoServer.print msg;
+      lprint_newline ();
     end;
 
   let s = Buffer.contents buf in
@@ -78,21 +83,20 @@ let server_send sock m =
 
 let direct_client_sock_send emule_version sock m =
   write_string sock (client_msg_to_string emule_version m)
-  
+
 let client_send c m =
   let emule_version = c.client_emule_proto in
   if !verbose_msg_clients || c.client_debug then begin
-      CommonGlobals.print_localtime ();
-      lprintf "Sent to client[%d] %s(%s)" (client_num c)
+      lprintf_n () "Sent to client[%d] %s(%s)" (client_num c)
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
           Indirect_address _ | Invalid_address _ -> ()
         | Direct_address (ip,port) ->
-            lprintf " [%s:%d]" (Ip.to_string ip) port;
-            
+            lprintf_nl2 " [%s:%d]" (Ip.to_string ip) port;
+
       );
       DonkeyProtoClient.print m;
-      lprintf_nl "";
+      lprint_newline ();
     end;
   do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
       direct_client_sock_send emule_version sock m)
@@ -109,12 +113,11 @@ let emule_send sock m =
     *)
 
 (* let client_msg_to_string m = client_msg_to_string 227 m *)
-  
+
 let servers_send socks m =
   let m = server_msg_to_string m in
   List.iter (fun s -> write_string s m) socks
-  
-      
+
 let client_handler2 c ff f =
   let emule_version = match !c with
       None -> emule_proto ();
@@ -123,7 +126,7 @@ let client_handler2 c ff f =
   let msgs = ref 0 in
   fun sock nread ->
 
-    if !verbose then lprintf_nl "[DK]: between clients %d" nread;
+    if !verbose then lprintf_nl () "between clients %d" nread;
     let module M= DonkeyProtoClient in
     let b = TcpBufferedSocket.buf sock in
     try
@@ -132,24 +135,24 @@ let client_handler2 c ff f =
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
-            if !verbose then lprintf_nl "[DK]: client_to_client";
+            if !verbose then lprintf_nl () "client_to_client";
             let s = String.sub b.buf (b.pos+5) msg_len in
             buf_used b  (msg_len + 5);
             let t = M.parse emule_version opcode s in
-(*          M.print t;   
+(*          M.print t;
 lprint_newline (); *)
             incr msgs;
             match !c with
-              None -> 
+              None ->
                 c := ff t sock
             | Some c -> f c t sock
           end
         else raise Not_found
       done
     with Not_found -> ()
-  
+
 let cut_messages parse f sock nread =
-  if !verbose then lprintf_nl "[DK]: server to client %d" nread;
+  if !verbose then lprintf_nl () "server to client %d" nread;
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
@@ -157,7 +160,7 @@ let cut_messages parse f sock nread =
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
-          if !verbose then lprintf_nl "[DK]: server_to_client";
+          if !verbose then lprintf_nl () "server_to_client";
           let s = String.sub b.buf (b.pos+5) msg_len in
           buf_used b (msg_len + 5);
           let t = parse opcode s in
@@ -168,25 +171,25 @@ let cut_messages parse f sock nread =
   with Not_found -> ()
 
 let udp_send t ip port msg =
-  
+
   if !verbose_udp then begin
-      lprintf_nl "[DK]: Message UDP to %s:%d\n%s" (Ip.to_string ip) port
+      lprintf_nl () "Message UDP to %s:%d\n%s" (Ip.to_string ip) port
         (DonkeyProtoUdp.print msg);
     end;
-  
+
   try
     Buffer.clear buf;
     DonkeyProtoUdp.write buf msg;
     let s = Buffer.contents buf in
     UdpSocket.write t false s ip port
   with e ->
-      lprintf_nl "[DK]: Exception %s in udp_send" (Printexc2.to_string e)
-      
+      lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)
+
 let udp_handler f sock event =
   let module M = DonkeyProtoUdp in
   match event with
     UdpSocket.READ_DONE ->
-      UdpSocket.read_packets sock (fun p -> 
+      UdpSocket.read_packets sock (fun p ->
           try
             let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
@@ -198,18 +201,18 @@ let udp_handler f sock event =
           with e -> ()
       ) ;
   | _ -> ()
-    
+
 let udp_basic_handler f sock event =
   match event with
     UdpSocket.READ_DONE ->
-      UdpSocket.read_packets sock (fun p -> 
+      UdpSocket.read_packets sock (fun p ->
           try
             let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
-            if len = 0 || 
+            if len = 0 ||
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
                 if !verbose_unknown_messages then begin
-                    lprintf_nl "[DK]: Received unknown UDP packet";
+                    lprintf_nl () "Received unknown UDP packet";
                     dump pbuf;
                   end;
               end else begin
@@ -217,7 +220,7 @@ let udp_basic_handler f sock event =
                 f t p
               end
           with e ->
-              lprintf_nl "[DK]: Error %s in udp_basic_handler"
+              lprintf_nl () "Error %s in udp_basic_handler"
                 (Printexc2.to_string e)
       ) ;
   | _ -> ()
@@ -225,10 +228,10 @@ let udp_basic_handler f sock event =
 
 let new_string msg s =
   let len = String.length s - 5 in
-  str_int s 1 len  
-  
+  str_int s 1 len
+
 let empty_string = ""
-  
+
 let tag_file file =
   (string_tag Field_Filename
     (
@@ -236,7 +239,7 @@ let tag_file file =
       let name = if String2.starts_with name "hidden." then
           String.sub name 7 (String.length name - 7)
         else name in
-      if !verbose then lprintf_nl "[DK]: SHARING %s" name;
+      if !verbose then lprintf_nl () "Sharing %s" name;
       name
     ))::
   (int64_tag Field_Size file.file_file.impl_file_size) ::
@@ -245,12 +248,12 @@ let tag_file file =
         FormatNotComputed next_time when
         next_time < last_time () ->
           (try
-              if !verbose then lprintf_nl "%s: FIND FORMAT %s"
+              if !verbose then lprintf_nl () "%s: Find format %s"
                     (string_of_date (last_time ()))
-                  (file_disk_name file); 
+                  (file_disk_name file);
               file.file_format <- (
                 match
-                CommonMultimedia.get_info 
+                CommonMultimedia.get_info
                     (file_disk_name file)
                 with
                   FormatUnknown -> FormatNotComputed (last_time () + 300)
@@ -258,7 +261,7 @@ let tag_file file =
             with _ -> ())
       | _ -> ()
     );
-    
+
     match file.file_format with
       FormatNotComputed _ | FormatUnknown -> []
     | AVI _ ->
@@ -298,12 +301,12 @@ let tag_file file =
           { tag_name = Field_Type; tag_value = String kind };
           { tag_name = Field_Format; tag_value = String format };
         ]
-  )        
+  )
 
 (* Computes tags for shared files (for clients) *)
 let make_tagged sock files =
   (List2.tail_map (fun file ->
-      { 
+      {
         f_md4 = file.file_md4;
         f_ip = client_ip sock;
         f_port = !!donkey_port;
@@ -327,10 +330,10 @@ let make_tagged_server newer_server sock files =
       ) files)
   else
     make_tagged sock files
-  
+
 let server_send_share compressed sock msg =
   if !verbose then
-      lprintf_nl "[DK]: Sending %d file(s) to server" (List.length msg);
+      lprintf_nl () "Sending %d file(s) to server" (List.length msg);
   let max_len =
     !!client_buffer_size - 100
       - TcpBufferedSocket.remaining_to_write sock
@@ -347,7 +350,7 @@ let server_send_share compressed sock msg =
       str_int s 0 nfiles;
       let s = String.sub s 0 prev_len in
       if !verbose_share then
-         lprintf "[DK]: Sending %d share(s) to server : " nfiles;
+         lprintf_nl () "Sending %d share(s) to server : " nfiles;
       Buffer.clear buf;
       let s_c =
         if compressed && Autoconf.has_zlib then
@@ -360,17 +363,17 @@ let server_send_share compressed sock msg =
       if compressed && ((String.length s_c) < (String.length s))  then
         begin
           if !verbose_share then
-            lprintf_nl "Using zlib";
+            lprintf_nl () "Using zlib";
           buf_int8 buf 0xD4;
           buf_int buf 0;
           buf_int8 buf 21; (* ShareReq *)
           Buffer.add_string buf s_c;
           Buffer.contents buf
         end
-      else 
+      else
         begin
           if !verbose_share then
-            lprintf_nl "No compression";
+            lprintf_nl () "No compression";
           buf_int8 buf 227;
           buf_int buf 0;
           buf_int8 buf 21; (* ShareReq *)
@@ -381,9 +384,9 @@ let server_send_share compressed sock msg =
   let len = String.length s - 5 in
   str_int s 1 len;
   write_string sock s
-  
+
 let client_send_files sock msg =
-  let max_len = !!client_buffer_size - 100 - 
+  let max_len = !!client_buffer_size - 100 -
     TcpBufferedSocket.remaining_to_write sock in
   Buffer.clear buf;
   buf_int8 buf 227;
@@ -400,6 +403,5 @@ let client_send_files sock msg =
   str_int s 6 nfiles;
   write_string sock s
 
-  
 let udp_server_send s t =
-  udp_send (get_udp_sock ()) s.server_ip (s.server_port+4)  t
+  udp_send (get_udp_sock ()) s.server_ip (s.server_port+4) t

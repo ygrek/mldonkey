@@ -39,11 +39,6 @@ type http_request =
 
 let verbose = ref false
 
-  (*
-| OPTIONS of url option (* None = '*' *)
-| CONNECT of string * int
-*)
-
 type request = {
     req_headers : ( string * string ) list;
     req_user_agent : string;
@@ -57,6 +52,10 @@ type request = {
 
 type content_handler = 
   int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
+
+let lprintf_nl () =
+  lprintf "%s[HTTPcl]: "
+      (log_time ()); lprintf_nl2
 
 let basic_request = {
     req_url = Url.of_string "http://www.mldonkey.net/";
@@ -117,7 +116,7 @@ let make_full_request r =
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
   if !verbose then
-    lprintf "Http_client.make_full_request on URL: %s\n" s;
+    lprintf_nl () "make_full_request on URL: %s" (String.escaped s);
   s
 
 let split_head s =
@@ -139,7 +138,7 @@ let parse_header headers_handler sock header =
   match headers with 
     [] -> failwith "Ill formed reply"
   | ans :: headers ->
-      if !verbose then lprintf "Http_client.parse_header: ANSWER %s\n" ans;
+      if !verbose then lprintf_nl () "parse_header: ANSWER %s" ans;
       let ans_code = int_of_string (String.sub ans 9 3) in
       let headers = List.map (fun s ->
             let sep = String.index s ':' in
@@ -255,7 +254,7 @@ let get_page r content_handler f =
         in
         let nread = ref false in
         if !verbose then 
-          lprintf "Http_client.get_page: %s\n" (String.escaped request);
+          lprintf_nl () "get_page: %s" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
         TcpBufferedSocket.set_reader sock (http_reply_handler nread
             (default_headers_handler url level));
@@ -265,13 +264,13 @@ let get_page r content_handler f =
         )
 
     )
-  with e -> lprintf "Http_client: error in get_url\n"; raise Not_found
+  with e -> lprintf_nl () "error in get_url"; raise Not_found
 
   and default_headers_handler old_url level sock ans_code headers =
     let print_headers () =
       List.iter
         (fun (name, value) ->
-          lprintf "[%s]=[%s]\n" name value;
+          lprintf_nl () "[%s]=[%s]" name value;
         ) headers;
     in
     (* print_headers (); *)
@@ -293,7 +292,7 @@ let get_page r content_handler f =
               try
                 content_length := int_of_string content
               with _ -> 
-                  lprintf "bad content length [%s]\n" content;
+                  lprintf_nl () "bad content length [%s]" content;
         ) headers;
         let location = "Location", Url.to_string old_url in
         let content_handler = content_handler !content_length (location::headers) in
@@ -303,7 +302,7 @@ let get_page r content_handler f =
           content_handler sock buf.len
 
     | 301 | 302 | 304 ->
-        if !verbose then lprintf "Http_client %d: Redirect\n" ans_code;
+        if !verbose then lprintf_nl () "%d: Redirect" ans_code;
         if level < 10 then
           begin
             try
@@ -322,34 +321,34 @@ let get_page r content_handler f =
                   Printf.sprintf "http://%s:%d%s"
                     old_url.Url.server old_url.Url.port !url
               in
-              if !verbose then lprintf "Redirected to %s\n" url;
+              if !verbose then lprintf_nl () "Redirected to %s" url;
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
             with e ->
-                lprintf "Http_client: error understanding redirect response %d\n" ans_code;
+                lprintf_nl () "error understanding redirect response %d" ans_code;
                 print_headers ();
                 raise Not_found
                 
           end
         else 
-          lprintf "Http_client: more than 10 redirections, aborting.";
+          lprintf_nl () "more than 10 redirections, aborting.";
           raise Not_found
           
     | 404 ->
-        lprintf "Http_client: 404: Not found for: %s\n" (Url.to_string_no_args r.req_url);
+        lprintf_nl () "404: Not found for: %s" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
 
     | _ ->
-        lprintf "Http_client: %d: bad reply for: %s\n"
+        lprintf_nl () "%d: bad reply for: %s"
           ans_code (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
   in 
   get_url 0 r;
   if !error = true then begin
-      lprintf "Http_client: failed!!\n"; 
+      lprintf_nl () "failed!";
       raise Not_found
     end
   
@@ -379,8 +378,8 @@ let wget r f =
         end)
   (fun _ ->  
       let s = Buffer.contents file_buf in
-      if s = "" then begin  
-          lprintf "Empty content for url %s\n" 
+      if s = "" then begin
+          lprintf_nl () "Empty content for url %s"
             (Url.to_string r.req_url);
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
@@ -390,19 +389,19 @@ let wget r f =
       try
         (f filename : unit);
         Sys.remove filename
-      with  e ->  lprintf
+      with  e ->  lprintf_nl ()
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
           Sys.remove filename;
           raise Not_found
   )
-  with e -> lprintf "Http_client: error in wget\n"; raise Not_found
+  with e -> lprintf_nl () "error in wget"; raise Not_found
 
 let whead r f = 
   
   get_page r
     (fun maxlen headers ->
-      lprintf "Http_client.headers...\n";
+      lprintf_nl () "headers...";
       (try f headers with _ -> ());
       fun sock nread -> 
         close sock Closed_by_user
@@ -460,5 +459,5 @@ let cut_headers headers =
           String.sub s (pos+1) (len-pos-1), key
     ) headers
   with e ->
-      lprintf "Exception in cut_headers: %s\n" (Printexc2.to_string e);
+      lprintf_nl () "Exception in cut_headers: %s" (Printexc2.to_string e);
       raise e

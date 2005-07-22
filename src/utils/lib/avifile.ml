@@ -141,7 +141,7 @@ let load file =
         lprintf_nl "SIZE2 %s" (Int64.to_string size2);
         
         let header_name = input_string4 ic in
-        print_string4 "header" header_name; lprintf_nl "";
+        print_string4 "header" header_name; lprint_newline ();
 (* pos: pos + 8 *)       
         begin
           match header_name with

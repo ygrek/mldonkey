@@ -20,12 +20,17 @@
 
 open Autoconf
 
-
 external format_int: string -> int -> string = "caml_format_int"
 external format_int32: string -> int32 -> string = "caml_int32_format"
 external format_nativeint: string -> nativeint -> string = "caml_nativeint_format"
 external format_int64: string -> int64 -> string = "caml_int64_format"
 external format_float: string -> float -> string = "caml_format_float"
+
+let log_time () =
+let t = Unix.localtime (Unix.time ()) in
+  let { Unix.tm_year = tm_year; Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday;
+        Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
+    Printf.sprintf "%4d/%02d/%02d %02d:%02d:%02d " (tm_year+1900) (tm_mon+1) tm_mday tm_hour tm_min tm_sec
 
 let bad_format fmt pos =
   invalid_arg
@@ -194,6 +199,10 @@ let lprintf fmt =
   (fmt : ('a,unit, unit) format )
 
 let lprintf_nl fmt =
+  cprintf (fun s -> try !lprintf_handler ((Printf.sprintf "%s" (log_time ()))^s^"\n") with _ -> ())
+  (fmt : ('a,unit, unit) format )
+
+let lprintf_nl2 fmt =
   cprintf (fun s -> try !lprintf_handler (s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 

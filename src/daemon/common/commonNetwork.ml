@@ -100,7 +100,7 @@ let check_network_implementations () =
       if c.op_network_info == cc.op_network_info then 
         lprintf_nl "op_network_info";
   ) !networks_ops;
-  lprintf_nl "" 
+  lprint_newline ()
   
 let network_connected_servers n = n.op_network_connected_servers ()
 let network_is_enabled n = n.op_network_is_enabled ()

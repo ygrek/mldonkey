@@ -1,6 +1,10 @@
 
 open Printf2
 
+let lprintf_nl () =
+  lprintf "%s[IPblock]: "
+  (log_time ()); lprintf_nl2
+
 (* range name, ip min, ip max (inclusive) *)
 type blocking_range = {
   blocking_description: string;
@@ -104,12 +108,12 @@ let load_merge bl filename =
 	    end else 
 	      raise Not_found
 	with _ ->
-	  lprintf "Syntax error while loading IP blocklist in line %s\n" line
+	  lprintf_nl () "Syntax error while loading IP blocklist in line %s" line
     done;
     bl_empty (* not reached *)
   with End_of_file ->
     close_in cin;
-    lprintf "IP blacklist: %d ranges loaded\n" !nranges;
+    lprintf_nl () "%d ranges loaded" !nranges;
     !bl
 
 let load filename =

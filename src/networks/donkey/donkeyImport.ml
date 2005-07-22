@@ -175,7 +175,7 @@ module Known = struct
                 lprintf_nl "    %s" (Md4.to_string m);
             ) f.blocks;
             print_tags f.tags;
-            lprintf_nl "";
+            lprint_newline ();
           with _ -> lprintf_nl "Error : no file in known.met\n";
       ) t;
   end
@@ -302,10 +302,10 @@ module Pref = struct
       lprintf "PREF.MET %s\n" (Md4.to_string t.md4);
       
       print_tags t.client_tags;
-      lprintf_nl "";
+      lprint_newline ();
       
       print_tags t.option_tags;
-      lprintf_nl ""
+      lprint_newline ()
 (*
 (14)
 (2)(0)(0)(0)

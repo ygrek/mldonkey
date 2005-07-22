@@ -952,12 +952,6 @@ let do_if_connected tcp_connection f =
     Connection sock -> f sock
   | _ -> ()
 
-let print_localtime () =
-let t = Unix.localtime (Unix.time ()) in
-  let { Unix.tm_year = tm_year; Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday; Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
-  lprintf "%4d/%2d/%2d, %02d:%02d:%02d: " (tm_year+1900) (tm_mon+1) tm_mday tm_hour tm_min tm_sec
-
-
 let new_activity () = {
     activity_begin = BasicSocket.last_time ();
     activity_client_overnet_connections = 0;

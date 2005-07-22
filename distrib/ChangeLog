@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/07/22: spiralvoice
+
+4204: Improve logging with timestamps (incomplete)
+
 2005/07/21: spiralvoice
 
 4195: GUI: Change configure options

@@ -1111,7 +1111,7 @@ let commands_frame_height = define_expert_option current_section ["commands_fram
 
 let motd_html = define_expert_option current_section ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
-    URL directory" string_option "<br><div align=\"center\"><h3> Welcome to MLdonkey </h3></div>"
+    URL directory" string_option "<br><div align=\"center\"><h3>Welcome to MLdonkey</h3></div>"
 
 let compaction_delay = define_expert_option current_section ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"

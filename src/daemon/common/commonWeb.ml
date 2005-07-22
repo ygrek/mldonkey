@@ -57,7 +57,7 @@ let mldonkey_wget url f =
   H.wget r f
 
 let load_url kind url =
-  lprintf_nl "CommonWeb: QUERY URL %s" url;
+  lprintf_nl "CommonWeb: Loading %s" url;
   let f =
     try
       (List.assoc kind !file_kinds) url

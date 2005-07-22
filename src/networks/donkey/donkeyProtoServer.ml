@@ -91,7 +91,7 @@ module Connect = struct
       lprintf_nl "port: %d" t.port;
       lprintf "tags: ";
       print_tags t.tags;
-      lprintf_nl ""
+      lprint_newline ()
 
     let bprint oc t = 
       Printf.bprintf oc "CONNECT:\n";
@@ -175,12 +175,13 @@ module SetID = struct
        }
 
     let print t =
-      lprintf_nl "SET_ID:\n%s" (if t.zlib then "Zlib" else "");
-      lprintf_nl "id: %s" (Ip.to_string t.ip);
-      match t.port with
-        None -> ()
+      lprintf "SET_ID: %s id: %s %s"
+        (if t.zlib then "Zlib" else "")
+	(Ip.to_string t.ip)
+        (match t.port with
+        None -> Printf.sprintf ""
         | Some port ->
-           lprintf_nl "Real Port: %d" port
+           Printf.sprintf "Real Port: %d" port)
 
     let bprint oc t =
       Printf.bprintf oc "SET_ID: %s\n"  (if t.zlib then "Zlib" else "");
@@ -265,7 +266,7 @@ module Share = struct
           lprintf_nl "  port: %d" t.f_port;
           lprintf "  tags: ";
           print_tags t.f_tags;
-          lprintf_nl "";) t
+          lprint_newline ();) t
     
     let bprint oc t = 
       Printf.bprintf oc "SHARED:\n";
@@ -464,7 +465,7 @@ module QueryReply  = struct
           lprintf_nl "  port: %d" t.f_port;
           lprintf "  tags: ";
           print_tags t.f_tags;
-          lprintf_nl "") t
+          lprint_newline ()) t
 
     let bprint oc t = 
       Printf.bprintf oc "FOUND:\n";
@@ -623,7 +624,7 @@ translation, i.e. Field_Artist = "Artist" instead of "artist" *)
           lprintf "print_query: QNone in query\n";
           ()
     
-    let  print t = 
+    let print t = 
       lprintf "QUERY";
       print_query t
     
@@ -794,7 +795,7 @@ module QueryUsersReply = struct (* request 67 *)
           lprintf_nl "port: %d" t.port;
           lprintf "tags: ";
           print_tags t.tags;
-          lprintf_nl "";) t
+          lprint_newline ();) t
 
     let bprint oc t = 
       Printf.bprintf oc "QUERY USERS REPLY:\n";
@@ -1162,7 +1163,7 @@ let rec parse magic s =
           File.from_string tmp_file s;
           lprintf_nl "Saved unknown packet %s" tmp_file; 
           dump s;
-          lprintf_nl "";
+          lprint_newline ();
         end;
       UnknownReq s
       
@@ -1226,7 +1227,7 @@ let print t =
         done;
         lprintf_nl "]";
   end;
-  lprintf_nl ""
+  lprint_newline ()
 
 
 let bprint oc t =

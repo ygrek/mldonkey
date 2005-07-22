@@ -278,7 +278,7 @@ let update_shared_words () =
       List.iter (fun s ->
         lprintf "%s " s
       ) !all_shared_words;
-      lprintf_nl ""
+      lprint_newline ()
     end
 
         
@@ -322,7 +322,7 @@ let parse_headers c first_line headers =
               | url :: _ ->
                   lprintf_nl "  Location: %s" url; url
           ) locations in
-        lprintf_nl "";
+        lprint_newline ();
         
         let files = ref [] in
         (try

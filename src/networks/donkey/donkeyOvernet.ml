@@ -305,7 +305,9 @@ module Make(Proto: sig
     open Proto
 
     let lprintf_nl () =
-      lprintf "[%s]: " redirector_section; lprintf_nl
+      lprintf "%s[%s]: "
+      (log_time ())
+      (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf_nl2
 
     let lprintf () =
       lprintf "[%s] "

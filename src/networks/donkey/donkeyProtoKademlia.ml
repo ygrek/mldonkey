@@ -471,7 +471,7 @@ module P = struct
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e); 
                   dump p.UdpSocket.udp_content;
-                  lprintf_nl ""
+                  lprint_newline ()
                 end
           );
       | _ -> ()

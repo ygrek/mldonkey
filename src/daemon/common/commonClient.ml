@@ -235,7 +235,7 @@ let check_client_implementations () =
       if c.op_client_browse == cc.op_client_browse then
         lprintf_nl "op_client_browse";
   ) !clients_ops;
-  lprintf_nl ""
+  lprint_newline ()
   
 let client_find num = 
   H.find clients_by_num (as_client { dummy_client_impl with

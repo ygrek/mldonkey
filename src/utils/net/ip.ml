@@ -154,9 +154,8 @@ let resolve_name name =
       with _ -> ip
     else ip
   with _ ->
-      lprintf "[NS]: Resolving [%s] ..." name;
+      lprintf_nl "[DNS]: Resolving [%s] ..." name;
       let ip = gethostbyname name in
-      lprintf_nl "[NS]: done";
       Hashtbl.add ip_cache name (ip, current_time +. 3600.);
       ip
 
@@ -283,7 +282,7 @@ let _ =
                     Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin
-                    lprintf "[NS]: lookup error: %s: address not found\n" job.name;
+                    lprintf "[DNS]: lookup error: %s: address not found\n" job.name;
                     raise Not_found
                   end
               end else raise Exit

@@ -47,12 +47,12 @@ let send_paquet_to_mlchat (p : C.packet) =
   with
   | Unix.Unix_error (e,s1,s2) -> if !CommonOptions.verbose then begin
       let s = (Unix.error_message e)^" : "^s1^" "^s2 in
-      lprintf "Testing chat: %s\nChat app IP %s, port %d\n" s
+      lprintf_nl "Error %s with chat on IP %s, port %d" s
             !!O.chat_app_host !!O.chat_app_port;
       close_out chanout
       end
   | e -> if !CommonOptions.verbose then begin
-      lprintf "Testing chat: %s\nChat app IP %s, port %d\n"
+      lprintf_nl "Error %s with chat on IP %s, port %d"
         (Printexc2.to_string e)
             !!O.chat_app_host !!O.chat_app_port;
       close_out chanout

@@ -218,7 +218,7 @@ let check_server_implementations () =
       if c.op_server_set_preferred == cc.op_server_set_preferred then
         lprintf_nl "op_server_set_preferred";
   ) !servers_ops;
-  lprintf_nl "" 
+  lprint_newline ()
 
 let server_find (num : int) = 
   H.find servers_by_num  (as_server { dummy_server_impl with
