@@ -232,11 +232,11 @@ let _ =
   )
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
   (log_time ()); lprintf_nl2
 
 let lprintf_n () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
   (log_time ()); lprintf
 
 let hashtbl_remove table key v =

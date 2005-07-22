@@ -117,6 +117,11 @@ let files_by_uid = Hashtbl.create 13
 let max_range_len = Int64.of_int (1 lsl 14)
 let max_request_len = Int64.of_int (1 lsl 16)
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[BT] "
+    (log_time ()); lprintf_nl2
+      
 let check_if_interesting file c =
 
   if not c.client_alrd_sent_notinterested then
@@ -158,7 +163,7 @@ let add_torrent_infos file trackers =
   ) trackers
 
 let create_temp_file file_temp file_files =
-  if !CommonOptions.verbose_files then lprintf_nl "create_temp_file %s" file_temp;
+  if !CommonOptions.verbose_files then lprintf_nl () "create_temp_file %s" file_temp;
   let file_fd =
     if file_files <> [] then
       Unix32.create_multifile file_temp

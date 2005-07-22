@@ -37,8 +37,8 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
-  (log_time ()); lprintf_nl2
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf_nl2
 
 let new_shared_files = ref []
 
@@ -144,9 +144,9 @@ let new_file_to_share sh codedname old_impl =
 lprint_newline ());
   *)
     if !verbose_share then
-      lprintf_nl () "EDK: Sharing %s" sh.sh_name;
+      lprintf_nl () "Sharing %s" sh.sh_name;
   with e ->
-      lprintf_nl () "EDK: Exception %s while sharing %s" (Printexc2.to_string e)
+      lprintf_nl () "Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name
       
   

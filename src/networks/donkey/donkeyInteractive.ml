@@ -55,7 +55,7 @@ open CommonOptions
 open DonkeyStats
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
     (log_time ()); lprintf_nl2
 
 let result_name r =

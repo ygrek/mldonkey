@@ -57,7 +57,8 @@ open DonkeyStats
 *)
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: " (log_time ()); lprintf_nl2
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf_nl2
 
 let sort_file_queue c =
   match c.client_download with

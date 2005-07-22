@@ -47,7 +47,7 @@ open DonkeyGlobals
 module Udp = DonkeyProtoUdp
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
   (log_time ()); lprintf_nl2
 
 (* Constants *)

@@ -57,6 +57,11 @@ torrents/: for BitTorrent
 
   *)
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[bTTrack] "
+    (log_time ()); lprintf_nl2
+      
 open Http_server
 
 type tracker_peer = {
@@ -95,7 +100,7 @@ let int64_of_string v =
   try
     Int64.of_string v
   with e ->
-      lprintf "Exception %s in int64_of_string [%s]\n"
+      lprintf_nl () "Exception %s in int64_of_string [%s]"
         (Printexc2.to_string e) v;
       raise e
 
@@ -103,7 +108,7 @@ let int_of_string v =
   try
     int_of_string v
   with e ->
-      lprintf "Exception %s in int_of_string [%s]\n"
+      lprintf_nl () "Exception %s in int_of_string [%s]"
         (Printexc2.to_string e) v;
       raise e
 
@@ -116,11 +121,11 @@ let void_message = Bencode.encode (
 
 let reply_has_tracker r info_hash peer_id peer_port peer_event =
 
-  lprintf_nl "[BT]: tracker contacted for %s" (Sha1.to_string info_hash);
+  lprintf_nl () "tracker contacted for %s" (Sha1.to_string info_hash);
   let tracker = try
       Hashtbl.find tracked_files info_hash
     with Not_found ->
-        lprintf_nl "[BT]: Need new tracker";
+        lprintf_nl () "Need new tracker";
         if !ntracked_files < !!max_tracked_files then
           let tracker = {
               tracker_id = info_hash;
@@ -133,7 +138,7 @@ let reply_has_tracker r info_hash peer_id peer_port peer_event =
           Hashtbl.add tracked_files info_hash tracker;
           tracker
         else
-          failwith "BT]: Too many tracked files"
+          failwith "[BT] Too many tracked files"
   in
 
   let peer =
@@ -153,7 +158,7 @@ let reply_has_tracker r info_hash peer_id peer_port peer_event =
             peer_port = peer_port;
             peer_active = last_time ();
           } in
-        lprintf_nl "BT]: adding new peer";
+        lprintf_nl () "adding new peer";
         Hashtbl.add tracker.tracker_table peer_id peer;
         Fifo.put tracker.tracker_peers peer;
         peer
@@ -173,18 +178,18 @@ let reply_has_tracker r info_hash peer_id peer_port peer_event =
         if tracker.tracker_message_time < last_time () then
 
           let list = ref [] in
-          lprintf_nl "BT]: Tracker collecting peers:";
+          lprintf_nl () "Tracker collecting peers:";
           (try
               for i = 1 to !!max_tracker_reply do
                 let peer = Fifo.take tracker.tracker_peers in
-                lprintf_nl "   %s:%d" (Ip.to_string peer.peer_ip)peer.peer_port;
+                lprintf_nl () "   %s:%d" (Ip.to_string peer.peer_ip)peer.peer_port;
                 list := peer :: !list
               done
             with _ -> ());
 
-          lprintf "Tracker sending %d peers\n" (List.length !list);
+          lprintf_nl () "Tracker sending %d peers" (List.length !list);
           List.iter (fun p ->
-              lprintf "Tracker send: %s:%d\n" 
+              lprintf_nl () "Tracker send: %s:%d"
                 (Ip.to_string p.peer_ip) p.peer_port;
               Fifo.put tracker.tracker_peers p
           ) !list;
@@ -246,20 +251,20 @@ let http_handler t r =
             | "downloaded" -> downloaded := int64_of_string arg
             | "left" -> left := int64_of_string arg
             | "event" -> event := arg
-            | _ -> lprintf_nl "BT]: BTTracker: Unexpected [%s=%s]" name arg
+            | _ -> lprintf_nl () "Unexpected [%s=%s]" name arg
         ) args;
 
-        lprintf_nl "[BT]: Connection received by tracker:";
-        lprintf_nl "    info_hash: %s" (Sha1.to_string !info_hash);
-        lprintf_nl "    event: %s" !event;
-        lprintf_nl "    downloaded: %d" (Int64.to_int !downloaded);
-        lprintf_nl "    uploaded: %d" (Int64.to_int !uploaded);
+        lprintf_nl () "Connection received by tracker:";
+        lprintf_nl () "    info_hash: %s" (Sha1.to_string !info_hash);
+        lprintf_nl () "    event: %s" !event;
+        lprintf_nl () "    downloaded: %d" (Int64.to_int !downloaded);
+        lprintf_nl () "    uploaded: %d" (Int64.to_int !uploaded);
 
         reply_has_tracker r !info_hash !peer_id !port !event
 
     | filename ->
 
-        lprintf_nl "BT]: Request for .torrent [%s]" filename;
+        lprintf_nl () "Request for .torrent [%s]" filename;
         if (Filename2.last_extension filename <> ".torrent") then
           failwith "Incorrect filename 1";
         for i = 1 to String.length filename - 1 do
@@ -290,7 +295,7 @@ in sub-directories in former versions. *)
         r.reply_content <- File.to_string filename
 
   with e ->
-      lprintf_nl "[BT]: Tracker: for request [%s] exception %s"
+      lprintf_nl () "for request [%s] exception %s"
         (Url.to_string r.get_url) (Printexc2.to_string e);
 
       r.reply_head <- "404 Not Found"
@@ -353,7 +358,7 @@ let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
   let trackers = ref [] in
 
-  if !verbose_msg_servers then lprintf_nl "[BT]: clean_tracker_timer";
+  if !verbose_msg_servers then lprintf_nl () "clean_tracker_timer";
   Hashtbl.iter (fun _ tracker ->
       let list = ref [] in
       let old_peers = ref [] in

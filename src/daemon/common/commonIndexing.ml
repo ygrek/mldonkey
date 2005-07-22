@@ -324,9 +324,9 @@ module Make(Stored : sig
           let docs = DocIndexer.query index req in
 (*  lprintf "%d results\n" (List.length docs);  *)
           Array.iter (fun doc ->
-              if DocIndexer.filtered doc then begin
-                  lprintf "doc filtered\n"; 
-                end else
+              if DocIndexer.filtered doc then
+                lprintf_nl "[cInd] doc filtered"
+              else
               let r = Document.doc_value doc in
 (*    merge_result s doc.num; *)
 (*          lprintf "search_add_result: %d\n" r.result_num;  *)
@@ -348,4 +348,3 @@ module Make(Stored : sig
       ) 
       
   end
-  

@@ -30,6 +30,15 @@ open CommonOptions
 open CommonTypes
 open CommonFile
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[cCO] "
+    (log_time ()); lprintf_nl2
+      
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[cCO] "
+    (log_time ()); lprintf
 
 (*************************************************************************)
 (*                                                                       *)
@@ -83,9 +92,9 @@ module FileOption = struct
           set_file_state file file_state;       
           if !verbose then
           (match file_state with
-              FileDownloading -> lprintf_nl "New downloading file";
-            | FileDownloaded -> lprintf_nl "New downloaded file";
-            | _ -> lprintf_nl "New file with other state"
+              FileDownloading -> lprintf_nl () "New downloading file";
+            | FileDownloaded -> lprintf_nl () "New downloaded file";
+            | _ -> lprintf_nl () "New file with other state"
           );
           
           (try
@@ -248,7 +257,7 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                lprintf_nl "Network %s not supported" network;
+                lprintf_nl () "Network %s not supported" network;
                 raise e
               in
           let server = network_server_of_option network assocs in
@@ -921,8 +930,8 @@ let save () =
         Options.save_with_help results_ini;
         results =:= [];
     end;
-  lprintf_nl "Options correctly saved"
+  lprintf_nl () "Options correctly saved"
 
 let save_sources () =
   networks_iter (fun n -> network_save_sources n);
-  lprintf_nl "Sources correctly saved"
+  lprintf_nl () "Sources correctly saved"

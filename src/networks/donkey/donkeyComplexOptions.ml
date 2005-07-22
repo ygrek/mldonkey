@@ -61,7 +61,7 @@ I know this is stupid, but "give the people what they want"..
 *)
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
   (log_time ()); lprintf_nl2
 
 let create_online_sig () =

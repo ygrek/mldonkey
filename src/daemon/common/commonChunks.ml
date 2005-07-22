@@ -20,10 +20,10 @@
 open Int64ops
 open Options
 open Printf2
-  
+
 open CommonOptions
 open CommonTypes
-  
+
 type chunk_descr = {
     chunk_checksum_type : file_uid_id * int64;
     chunk_checksum : uid_type;
@@ -35,9 +35,9 @@ type w = {
     mutable w_wanted : (file * (file -> chunk_descr -> unit)) list;
     mutable w_available : file list;
   }
-  
+
 let chunks = Hashtbl.create 13
-  
+
 let find_chunk chunk =
   try
     Hashtbl.find chunks chunk
@@ -45,21 +45,19 @@ let find_chunk chunk =
       let w = { w_wanted = []; w_available = [] } in
       Hashtbl.add chunks chunk w;
       w
-  
-let add_wanted_chunk file chunk declare_available_chunk = 
+
+let add_wanted_chunk file chunk declare_available_chunk =
   let w = find_chunk chunk in
   w.w_wanted <- (file, declare_available_chunk) :: w.w_wanted;
-  List.iter (fun file -> 
+  List.iter (fun file ->
       declare_available_chunk file chunk) w.w_available
-  
+
 let remove_wanted_chunk file chunk_descr = ()
 let find_wanted_chunks file = []
-  
-let declare_available_chunk file chunk = 
+
+let declare_available_chunk file chunk =
   let w = find_chunk chunk in
   List.iter (fun (_, declare_available_chunk) ->
       declare_available_chunk file chunk) w.w_wanted;
   w.w_available <- file :: w.w_available;
   w.w_wanted <- List.filter (fun (f,_) -> f != file) w.w_wanted
-
-  

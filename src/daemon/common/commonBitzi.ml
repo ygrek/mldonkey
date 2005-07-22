@@ -24,7 +24,7 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 open Md4
-  
+
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
@@ -40,7 +40,7 @@ type bitzi_state =
 | Bitzi_ticket of string
 
 and bitzi_ticket = {
-    mutable bitzi_state : bitzi_state; 
+    mutable bitzi_state : bitzi_state;
     mutable bitzi_uids : Uid.t list;
     bitzi_size : int64;
   }
@@ -48,17 +48,17 @@ and bitzi_ticket = {
 let add_uid ticket uid =
   if not (List.mem uid ticket.bitzi_uids) then
     ticket.bitzi_uids <- uid :: ticket.bitzi_uids
-  
+
 let add_uids ticket uids =
   List.iter (add_uid ticket) uids
-    
-(* 
-  
+
+(*
+
 To find equivalent UIDs on different networks, we can use www.bitzi.com:
 
 http://ticket.bitzi.com/rdf/BCLD3DINKJJRGYGHIYAX7HG5HXSM3XNH.E4IHTEMZIJE4NBCWSBZ6TIWQTDGYYXVPGIRJ5KQ
-http://ticket.bitzi.com/rdf/urn:sha1:BCLD3DINKJJRGYGHIYAX7HG5HXSM3XNH 
-  
+http://ticket.bitzi.com/rdf/urn:sha1:BCLD3DINKJJRGYGHIYAX7HG5HXSM3XNH
+
   # let t = Xml.parse_file "xml1";;
 val t : Xml.xml =
   Xml.XML ("rdf:RDF",
@@ -80,12 +80,12 @@ val t : Xml.xml =
       ("dc:format", "audio/mp3"); ("bz:fileLength", "4577608");
 ("bz:fileFirst20Bytes", "4944330200000000006E54543200000F00546865");
 
-  
+
 ("bz:fileMD5", "NTUHNJDIJH6IDHQ5GPOSUFVSCM");
 ("bz:fileUUHash", "mcR96OHbEJLjxV4eudW9YDMW8q4");
 ("bz:fileED2kHash", "83d6c3bef2732d310bd9105e850c7864");
 
-  
+
       ("mm:duration", "286743"); ("bz:audioBitrate", "128");
       ("bz:audioSamplerate", "44100"); ("bz:audioChannels", "1");
       ("bz:audioSha1", "LQAIDHEMU43QFN5JNYFAVFEYZI3TOZ6L")],
@@ -110,18 +110,18 @@ val t : Xml.xml =
 
   *)
 
-let make_request url = 
-  
+let make_request url =
+
   let module H = Http_client in
   let r = {
       H.basic_request with
-      
+
       H.req_url = Url.of_string url;
       H.req_user_agent = "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]";
       H.req_referer = None;
       H.req_request = H.GET;
     } in
-  
+
   r
 
 let progress _ _ = ()
@@ -134,8 +134,8 @@ let parse_bitzi_ticket ticket s =
   List.iter (fun xml ->
       let (header, args, _) = Xml.xml_of xml in
       match header with
-        "rdf:Description" -> 
-(*                                 
+        "rdf:Description" ->
+(*
 ("bz:fileMD5", "NTUHNJDIJH6IDHQ5GPOSUFVSCM");
 ("bz:fileUUHash", "mcR96OHbEJLjxV4eudW9YDMW8q4");
 ("bz:fileED2kHash", "83d6c3bef2732d310bd9105e850c7864");
@@ -170,8 +170,8 @@ let parse_possible_bitzi_ticket sha1 ticket s =
   List.iter (fun xml ->
       let (header, args, _) = Xml.xml_of xml in
       match header with
-        "rdf:Description" -> 
-(*                                 
+        "rdf:Description" ->
+(*
 ("bz:fileMD5", "NTUHNJDIJH6IDHQ5GPOSUFVSCM");
 ("bz:fileUUHash", "mcR96OHbEJLjxV4eudW9YDMW8q4");
 ("bz:fileED2kHash", "83d6c3bef2732d310bd9105e850c7864");
@@ -203,13 +203,13 @@ let parse_possible_bitzi_ticket sha1 ticket s =
 
 let request_possible_bitzi_ticket file sha1 =
   lprintf "***** request_possible_bitzi_ticket *****\n";
-  Http_client.wget_string 
+  Http_client.wget_string
     (make_request
       (Printf.sprintf "http://ticket.bitzi.com/rdf/urn:sha1:%s"
-        (Sha1.to_string sha1))) 
+        (Sha1.to_string sha1)))
   (parse_possible_bitzi_ticket sha1 file) progress
 
-let parse_bitzi_lookup file s = 
+let parse_bitzi_lookup file s =
   lprintf "******* parse_bitzi_lookup *******\n%s\n"
     (String.escaped s);
   let rec iter pos =
@@ -232,33 +232,33 @@ let query_bitzi_ticket ticket =
       ticket.bitzi_state <- Bitzi_try_indirect_lookup;
       List.iter (fun uid ->
           match Uid.to_uid uid with
-            Sha1 sha1 ->              
+            Sha1 sha1 ->
               lprintf "Retrieve bitzi ticket\n";
-              Http_client.wget_string 
+              Http_client.wget_string
                 (make_request
                   (Printf.sprintf "http://ticket.bitzi.com/rdf/urn:sha1:%s"
-                    (Sha1.to_string sha1))) 
+                    (Sha1.to_string sha1)))
               (parse_bitzi_ticket ticket) progress
           | _ -> ()
       ) ticket.bitzi_uids;
-      
+
   | Bitzi_try_indirect_lookup ->
       ticket.bitzi_state <- Bitzi_not_found;
       List.iter (fun uid ->
           match Uid.to_uid uid with
             Ed2k ed2k ->
-              
+
               lprintf "********** Retrieve bitzi lookup by ed2k\n";
-              Http_client.wget_string 
+              Http_client.wget_string
                 (make_request
                   (Printf.sprintf "http://bitzi.com/lookup/urn:ed2k:%s" (Md4.to_string ed2k)))
               (parse_bitzi_lookup ticket) progress
           | Md5Ext md5ext ->
-              
+
               lprintf "********** Retrieve bitzi lookup by sig2dat\n";
               let md5ext = Md5Ext.to_string md5ext in
               let len = String.length md5ext in
-              Http_client.wget_string 
+              Http_client.wget_string
                 (make_request
                   (Printf.sprintf "http://bitzi.com/lookup/sig2dat:%s" (String.sub md5ext 1 (len -2))))
               (parse_bitzi_lookup ticket) progress

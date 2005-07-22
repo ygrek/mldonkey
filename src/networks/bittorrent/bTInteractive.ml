@@ -50,6 +50,16 @@ open Gettext
 let _s x = _s "BTInteractive" x
 let _b x = _b "BTInteractive" x
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[BT] "
+      (log_time ()); lprintf_nl2
+      
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[BT] "
+    (log_time ()); lprintf
+
 let op_file_all_sources file =
 (*      lprintf "file_sources\n"; *)
   let list = ref [] in
@@ -85,14 +95,14 @@ let op_file_commit file new_name =
       set_file_state file FileShared;
 
       if Unix32.destroyed (file_fd file) then
-        if !verbose_files then lprintf_nl "[BT]: op_file_commit: FD is destroyed... repairing";
+        if !verbose_files then lprintf_nl () "op_file_commit: FD is destroyed... repairing";
 
 (* During the commit operation, for security, the file_fd is destroyed. So
   we create it again to be able to share this file again. *)
       set_file_fd (as_file file) (create_temp_file new_name file.file_files);
 
       if Unix32.destroyed (file_fd file) then
-        lprintf_nl "[BT]: op_file_commit: FD is destroyed... could not repair !!!";
+        lprintf_nl () "op_file_commit: FD is destroyed... could not repair!";
 
       let new_torrent_diskname =
         Filename.concat seeded_directory
@@ -101,7 +111,7 @@ let op_file_commit file new_name =
       (try
           Unix2.rename file.file_torrent_diskname new_torrent_diskname;
         with _ ->
-          (lprintf_nl "BT op_file_commit: failed to rename %s to %s"
+          (lprintf_nl () "op_file_commit: failed to rename %s to %s"
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
@@ -231,10 +241,10 @@ let op_file_print_sources_html file buf =
     end
 
 let op_file_check file =
-  lprintf_nl "[BT]: Checking chunks of %s" file.file_name;
+  lprintf_nl () "Checking chunks of %s" file.file_name;
   match file.file_swarmer with
     None ->
-      lprintf_nl "[BT]: verify_chunks: no swarmer to verify chunks"
+      lprintf_nl () "verify_chunks: no swarmer to verify chunks"
   | Some swarmer ->
       Int64Swarmer.verify_all_chunks swarmer true
 
@@ -332,7 +342,7 @@ let load_torrent_string s =
   File.from_string torrent_diskname s;
 
   if !verbose_torrent then
-    lprintf_nl "[BT]: Starting torrent download with diskname:%s"
+    lprintf_nl () "Starting torrent download with diskname:%s"
         torrent_diskname;
   let file = new_download file_id torrent torrent_diskname in
   BTClients.get_sources_from_tracker file;
@@ -342,7 +352,7 @@ let load_torrent_string s =
 
 let load_torrent_file filename =
   if !verbose_torrent then
-    lprintf_nl "[BT]: BTInteractive.load_torrent_file %s" filename;
+    lprintf_nl () "BTInteractive.load_torrent_file %s" filename;
   let s = File.to_string filename in
   (* Delete the torrent if it is in the downloads dir. because it gets saved
      again under the torrent name and we don't want to clutter up this dir. .*)
@@ -355,10 +365,10 @@ let parse_tracker_reply file t filename =
 (*This is the function which will be called by the http client
 for parsing the response*)
 (* Interested only in interval*)
-  if !verbose_msg_servers then lprintf_nl "[BT]: Filename %s" filename;
+  if !verbose_msg_servers then lprintf_nl () "Filename %s" filename;
   let v = Bencode.decode (File.to_string filename) in
 
-  if !verbose_msg_servers then lprintf_nl "[BT]: Received: %s" (Bencode.print v);
+  if !verbose_msg_servers then lprintf_nl () "Received: %s" (Bencode.print v);
   t.tracker_interval <- 600;
   match v with
     Dictionary list ->
@@ -366,9 +376,9 @@ for parsing the response*)
           match (key, value) with
             String "interval", Int n ->
               t.tracker_interval <- Int64.to_int n;
-              if !verbose_msg_servers then lprintf_nl "[BT]: .. interval %d .." t.tracker_interval
+              if !verbose_msg_servers then lprintf_nl () ".. interval %d .." t.tracker_interval
           | String "failure reason", String failure ->
-                lprintf_nl "[BT]: Failure from BT-Tracker in file: %s Reason: %s" file.file_name failure
+                lprintf_nl () "Failure from Tracker in file: %s Reason: %s" file.file_name failure
           (*TODO: merge with f from get_sources_from_tracker and parse the rest of the answer, too.
             also connect to the sources we receive or instruct tracker to send none, perhaps based
             on an config option. firewalled people could activate the option and then seed torrents, too.*)
@@ -377,7 +387,7 @@ for parsing the response*)
   | _ -> assert false
 
 let try_share_file torrent_diskname =
-  if !verbose_share then lprintf_nl "[BT]: BTInteractive.try_share_file: %s" torrent_diskname;
+  if !verbose_share then lprintf_nl () "try_share_file: %s" torrent_diskname;
   let s = File.to_string torrent_diskname in
   let file_id, torrent = BTTorrent.decode_torrent s in
 
@@ -394,7 +404,7 @@ let try_share_file torrent_diskname =
               let filename =
                 Filename.concat sh.shdir_dirname torrent.torrent_name
               in
-              if !verbose_share then lprintf_nl "[BT]: Checking for %s" filename;
+              if !verbose_share then lprintf_nl () "Checking for %s" filename;
               if Sys.file_exists filename then filename else
                 iter tail
             else
@@ -406,17 +416,17 @@ let try_share_file torrent_diskname =
     let file = new_file file_id torrent torrent_diskname
         filename FileShared in
     BTShare.must_share_file file;
-    if !verbose_share then lprintf_nl "[BT]: Sharing file %s" filename;
+    if !verbose_share then lprintf_nl () "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
       (parse_tracker_reply file)
   with e ->
-      lprintf_nl "[BT]: BTInteractive: cannot share torrent %s for %s"
+      lprintf_nl () "cannot share torrent %s for %s"
         torrent_diskname (Printexc2.to_string e)
 
 (* Call one minute after start, and then every 20 minutes. Should
   automatically contact the tracker. *)
 let share_files _ =
-  if !verbose_share then lprintf_nl "[BT]: BTInteractive.share_files";
+  if !verbose_share then lprintf_nl () "share_files";
   List.iter (fun dir ->
       let filenames = Unix2.list_directory dir in
       List.iter (fun file ->
@@ -429,7 +439,7 @@ let share_files _ =
       if not (Sys.file_exists file.file_torrent_diskname) &&
         file_state file = FileShared then
         begin
-          if !verbose_share then lprintf_nl "[BT]: Removing torrent share for %s" file.file_torrent_diskname;
+          if !verbose_share then lprintf_nl () "Removing torrent share for %s" file.file_torrent_diskname;
           BTClients.file_stop file;
           remove_file file;
           BTClients.disconnect_clients file
@@ -439,19 +449,19 @@ let share_files _ =
 let retry_all_ft () =
   Hashtbl.iter (fun _ ft ->
       try ft.ft_retry ft with e ->
-          lprintf_nl "[BT]: ft_retry: exception %s" (Printexc2.to_string e)
+          lprintf_nl () "ft_retry: exception %s" (Printexc2.to_string e)
   ) ft_by_num
 
 let load_torrent_from_web r ft =
   if !verbose_torrent then
-      lprintf_nl "[BT]: load_torrent_from_web...";
+      lprintf_nl () "load_torrent_from_web...";
   let module H = Http_client in
 
   if !verbose_torrent then
-      lprintf_nl "[BT]: calling...";
+      lprintf_nl () "calling...";
   H.wget r (fun filename ->
       if !verbose_torrent then
-          lprintf_nl "[BT]: done...";
+          lprintf_nl () "done...";
       if ft_state ft = FileDownloading then begin
           load_torrent_file filename;
           file_cancel (as_ft ft);
@@ -459,7 +469,7 @@ let load_torrent_from_web r ft =
 
 let valid_torrent_extension url =
   let ext = String.lowercase (Filename2.last_extension url) in
-  if !verbose_torrent then lprintf_nl "[BT]: Last extension: %s" ext;
+  if !verbose_torrent then lprintf_nl () "Last extension: %s" ext;
   if ext = ".torrent" || ext = ".tor" then true else false
 
 let get_regexp_string text r =
@@ -472,7 +482,7 @@ let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   try
     let real_url = get_regexp_string url (Str.regexp location_regexp) in
-    if !verbose_torrent then lprintf_nl "[BT]: Trying to load %s really %s" url real_url;
+    if !verbose_torrent then lprintf_nl () "Trying to load %s really %s" url real_url;
     if (valid_torrent_extension real_url)
        || (String2.contains url "Content-Type: application/x-bittorrent")
       then (
@@ -507,7 +517,7 @@ let op_network_parse_url url =
         let ft = new_ft file_diskname in
         ft.ft_retry <- load_torrent_from_web r ;
         load_torrent_from_web r ft;
-        if !verbose_torrent then lprintf_nl "[BT]: wget started";
+        if !verbose_torrent then lprintf_nl () "wget started";
         true
       )
     else
@@ -516,19 +526,19 @@ let op_network_parse_url url =
     | Not_found ->
       if (valid_torrent_extension url) then
         try
-          if !verbose_torrent then lprintf_nl "[BT]: Not_found and trying to load %s" url;
+          if !verbose_torrent then lprintf_nl () "Not_found and trying to load %s" url;
           load_torrent_file url;
           true
         with e ->
-          lprintf_nl "[BT]: Exception %s while 2nd loading" (Printexc2.to_string e);
+          lprintf_nl () "Exception %s while 2nd loading" (Printexc2.to_string e);
           false
       else
         begin
-          if !verbose_torrent then lprintf_nl "[BT]: Not_found and url has non valid torrent extension: %s" url;
+          if !verbose_torrent then lprintf_nl () "Not_found and url has non valid torrent extension: %s" url;
           false
         end
     | e ->
-       lprintf_nl "[BT]: Exception %s while loading" (Printexc2.to_string e);
+       lprintf_nl () "Exception %s while loading" (Printexc2.to_string e);
        false
 
 let op_client_info c =
@@ -693,10 +703,10 @@ let op_gui_message s =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
-      if !verbose_torrent then lprintf_nl "[BT]: received torrent from gui...";
+      if !verbose_torrent then lprintf_nl () "received torrent from gui...";
       let _ = load_torrent_string text in
       ()
-  | opcode -> failwith (Printf.sprintf "[BT]: Unknown message opcode %d" opcode)
+  | opcode -> failwith (Printf.sprintf "[BT] Unknown message opcode %d" opcode)
 
 let _ =
 
@@ -730,7 +740,7 @@ let _ =
   network.op_network_recover_temp <-
     (fun _ ->
      if !verbose_hidden_errors then
-       lprintf_nl "[BT]: recover_temp is not implemented for Bittorrent.";
+       lprintf_nl () "recover_temp is not implemented for Bittorrent.";
     );
 
   client_ops.op_client_info <- op_client_info;
@@ -743,7 +753,7 @@ let _ =
   CommonNetwork.register_commands commands;
 
   shared_ops.op_shared_unshare <- (fun file ->
-      (if !verbose_share then lprintf_nl "[BT]: ************ UNSHARE FILE ************");
+      (if !verbose_share then lprintf_nl () "unshare file");
       BTShare.unshare_file file);
   shared_ops.op_shared_info <- (fun file ->
    let module T = GuiTypes in

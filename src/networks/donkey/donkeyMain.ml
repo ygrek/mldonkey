@@ -46,8 +46,8 @@ open DonkeyThieves
 open DonkeyOptions
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
-  (log_time ()); lprintf_nl2
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf_nl2
 
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey);

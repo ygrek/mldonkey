@@ -58,12 +58,12 @@ let full_client_identifier c =
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
     (log_time ()); lprintf_nl2
 
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
     (log_time ()); lprintf
 
 (* Lifetime of a socket after sending interesting messages *)
@@ -2171,7 +2171,7 @@ let query_locations_reply s t =
     let nlocs = List.length t.Q.locs in
     
     if !verbose_location then
-        lprintf_nl () "EDK: Received %d sources from server %s:%s for %s"
+        lprintf_nl () "Received %d sources from server %s:%s for %s"
 	   nlocs (Ip.to_string s.server_ip) (string_of_int s.server_port) (file_best_name file);
     
     s.server_score <- s.server_score + 3;

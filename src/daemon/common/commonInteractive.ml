@@ -40,7 +40,6 @@ open CommonServer
 open CommonTypes
 open CommonComplexOptions
 
-
 (*************  ADD/REMOVE FUNCTIONS ************)
 let check_forbidden_chars (uc : Charset.uchar) =
   match uc with
@@ -130,7 +129,7 @@ let file_commit file =
               Unix.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in
             Unix32.destroy (file_fd file);
-            if !verbose_files then lprintf_nl "commonInteractive.file_commit: destroyed";
+            if !verbose_files then lprintf_nl "[cInt] file_commit: destroyed";
             if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
             let impl = as_file_impl file in
 
@@ -145,7 +144,7 @@ anymore. *)
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
-                  lprintf_nl "Exception %s while trying to share commited file"
+                  lprintf_nl "[cInt]Exception %s while trying to share commited file"
                     (Printexc2.to_string e);
             end;
 
@@ -153,7 +152,7 @@ anymore. *)
             done_files =:= List2.removeq file !!done_files;
             files =:= List2.removeq file !!files;
 
-            if !verbose_files then lprintf_nl "commonInteractive.file_commit: going to secondaries...";
+            if !verbose_files then lprintf_nl "[cInt]file_commit: going to secondaries...";
             List.iter (fun file ->
 (* Commit the file first, and share it after... *)
                 try
@@ -164,10 +163,10 @@ anymore. *)
                   files =:= List2.removeq file !!files;
 
                 with e ->
-                    lprintf_nl "Exception %s in file_commit secondaries" (Printexc2.to_string e);
+                    lprintf_nl "[cInt]Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
           with e ->
-              lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
+              lprintf_nl "[cInt]Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
 let file_cancel file =
@@ -183,18 +182,18 @@ let file_cancel file =
             impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             files =:= List2.removeq file !!files;
           with e ->
-              lprintf_nl "Exception %s in file_cancel" (Printexc2.to_string e);
+              lprintf_nl "[cInt]Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
       (try
           let fd = file_fd file in
           if fd != Unix32.bad_fd then Unix32.remove (file_fd file)
         with e ->
-            lprintf_nl "Sys.remove %s exception %s"
+            lprintf_nl "[cInt]Sys.remove %s exception %s"
               (file_disk_name file)
             (Printexc2.to_string e); );
       Unix32.destroy (file_fd file);
   with e ->
-      lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let time_to_string time =
   let days = time / 60 / 60 / 24 in
@@ -264,7 +263,7 @@ let file_completed (file : file) =
         ignore (CommonShared.new_shared "completed" 0 (
             file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
-              lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
+              lprintf_nl "[cInt]Exception %s in sendmail" (Printexc2.to_string e);
               );
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
@@ -280,7 +279,7 @@ let file_completed (file : file) =
           end
       end
   with e ->
-      lprintf_nl "Exception in file_completed: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in file_completed: %s" (Printexc2.to_string e)
 
 let file_add impl state =
   try
@@ -302,7 +301,7 @@ let file_add impl state =
         update_file_state impl state
       end
   with e ->
-      lprintf_nl "Exception in file_add: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in file_add: %s" (Printexc2.to_string e)
 
 let server_remove server =
   try
@@ -314,7 +313,7 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      lprintf_nl "Exception in server_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in server_remove: %s" (Printexc2.to_string e)
 
 let server_add impl =
   let server = as_server impl in
@@ -353,7 +352,7 @@ let friend_remove c =
       end
 
   with e ->
-      lprintf_nl "Exception in friend_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in friend_remove: %s" (Printexc2.to_string e)
 
 let contact_add c =
   let impl = as_client_impl c in
@@ -374,7 +373,7 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
       end
   with e ->
-      lprintf_nl "Exception in contact_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt]Exception in contact_remove: %s" (Printexc2.to_string e)
 
 
 let time_of_sec sec =
@@ -696,7 +695,7 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then lprintf_nl "For option %s" name;
+  if !verbose then lprintf_nl "[cInt]Change option %s" name;
   let rec iter prefix opfile =
     let args = simple_options prefix opfile in
     List.iter (fun o ->
@@ -719,7 +718,7 @@ let apply_on_fully_qualified_options name f =
               false
             with Exit -> true
         )) then begin
-        lprintf_nl "Could not set option %s" name;
+        lprintf_nl "[cInt]Could not set option %s" name;
         raise Not_found
       end
   with Exit -> ()
@@ -777,7 +776,7 @@ let keywords_of_query query =
           | _ -> ()
         end
     | QNone ->
-        lprintf_nl "LimewireInteractive.start_search: QNone in query";
+        lprintf_nl "[cInt]start_search: QNone in query";
         ()
   in
   iter query;

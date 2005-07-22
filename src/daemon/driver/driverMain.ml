@@ -24,7 +24,6 @@ open Printf2
 open BasicSocket
 
 open CommonInteractive
-open CommonInteractive
 
 open CommonDownloads
 open CommonTypes

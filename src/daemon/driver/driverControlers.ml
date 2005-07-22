@@ -35,6 +35,10 @@ open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[dCon] "
+    (log_time ()); lprintf_nl2
 
 let rec dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
@@ -332,8 +336,8 @@ let check_calendar () =
       if (List.mem tm.Unix.tm_wday days || days = [])  &&
         (List.mem tm.Unix.tm_hour hours || hours = []) then begin
           eval (ref true) command calendar_options;
-          lprintf "Calendar execute: %s\n%s\n" command
-            (Buffer.contents calendar_options.conn_buf);
+          lprintf_nl () "Calendar execute: %s" command;
+          lprintf_nl () "%s" (Buffer.contents calendar_options.conn_buf);
           Buffer.clear calendar_options.conn_buf;
         end
   ) !!calendar
@@ -666,7 +670,7 @@ let chat_handler t event =
            Unix.close s
      with
        Failure mess ->
-         lprintf "%s\n" mess;
+         lprintf_nl () "%s" mess;
          Unix.close s
     )
   | _ ->
@@ -816,7 +820,7 @@ let http_send_bin r buf filename =
   let ext_pos = (String.rindex filename '.') + 1 in
   let exten = (String.sub filename ext_pos ((String.length filename) - ext_pos)) in
   if !verbose_msg_servers then
-    lprintf_nl "[HTTP]: Extension found [%s] for file: [%s]" exten filename;
+    lprintf_nl () "Extension found [%s] for file: [%s]" exten filename;
   let ext = extension_to_file_ext exten in
   http_add_bin_header r ext clen;
   Buffer.add_string buf file_to_send
@@ -826,15 +830,15 @@ let http_error_no_gd img_type =
     "jpg" ->
       (match Autoconf.has_gd_jpg with
         true -> false
-      | false -> lprintf_nl "[HTTP] : Warning: GD jpg support disabled"; true)
+      | false -> lprintf_nl () "Warning: GD jpg support disabled"; true)
   | "png" ->
       (match Autoconf.has_gd_png with
         true -> false
-      | false -> lprintf_nl "[HTTP] : Warning: GD png support disabled"; true)
+      | false -> lprintf_nl () "Warning: GD png support disabled"; true)
   | _ ->
       (match Autoconf.has_gd with
         true -> false
-      | false -> lprintf_nl "[HTTP] : Warning: GD support disabled"; true)
+      | false -> lprintf_nl () "Warning: GD support disabled"; true)
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 
 let html_open_page buf t r open_body =
@@ -1090,7 +1094,7 @@ let http_handler o t r =
 
         | "/favicon.ico" ->
             if !verbose_msg_servers then
-              lprintf_nl "[BT]: favicon.ico request received by tracker";
+              lprintf_nl () "favicon.ico request received by tracker";
             http_send_bin r buf "favicon.ico"
 
         | "/filter" ->
@@ -1273,7 +1277,7 @@ let http_handler o t r =
 
               | args ->
                   List.iter (fun (s,v) ->
-                      lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
+                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end
@@ -1336,7 +1340,7 @@ let http_handler o t r =
 
               | args ->
                   List.iter (fun (s,v) ->
-                      lprintf "[%s]=[%s]\n" (String.escaped s) (String.escaped v))
+                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end

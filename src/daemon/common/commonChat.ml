@@ -30,7 +30,7 @@ let (!!) = Options.(!!)
 let send_paquet_to_mlchat (p : C.packet) =
   let domain = Unix.PF_INET in
   let sock = Unix.socket domain Unix.SOCK_STREAM 0 in
-  let inet_addr = 
+  let inet_addr =
     let host = !!O.chat_app_host in
     try Unix.inet_addr_of_string host
     with _ ->
@@ -62,7 +62,7 @@ let send_paquet_to_mlchat (p : C.packet) =
 let send_chat_proto name ad_opt m =
   let ad =
     match ad_opt with
-      None -> 
+      None ->
 	(* utiliser le port de chat et l'hostname du core donkey *)
 	(Unix.gethostname (), !!O.chat_port)
     | Some ad -> ad
@@ -75,7 +75,7 @@ let send_text name ad_opt s =
   send_chat_proto name ad_opt (C.Message s)
 
 let send_add_open name ad_opt =
-  let ad = 
+  let ad =
     match ad_opt with
       None -> (Unix.gethostname (), !!O.chat_port)
     | Some ad -> ad

@@ -37,11 +37,11 @@ open DonkeyTypes
 open DonkeyMftp
 
 let lprintf_nl () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
     (log_time ()); lprintf_nl2
 
 let lprintf_n () =
-  lprintf "%s[EDK]: "
+  lprintf "%s[EDK] "
     (log_time ()); lprintf
 
 let buf = TcpBufferedSocket.internal_buf

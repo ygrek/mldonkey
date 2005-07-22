@@ -34,10 +34,10 @@ type 'a job = {
 
 let (fifo : string job Fifo.t) = Fifo.create ()
 let current_job = ref None
-  
+
 external job_done : 'a job -> bool = "ml_job_done"
 external job_start : 'a job -> Unix.file_descr -> unit = "ml_job_start"
-  
+
 let _ =
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
 (*      lprintf "test job\n";  *)
@@ -47,22 +47,21 @@ let _ =
         | Some (job, fd) ->
 (*            lprintf "job done\n";  *)
             if job_done job then begin
-                if !verbose_md4 then begin
-                    lprintf "Job finished\n"; 
-                  end;
+                if !verbose_md4 then
+                  lprintf_nl "[cHa] Job finished";
                 current_job := None;
                 Unix.close fd;
-                (try job.job_handler job with e -> 
-                      lprintf "exception %s in job_handler\n"
-                        (Printexc2.to_string e); 
+                (try job.job_handler job with e ->
+                      lprintf_nl "[cHa] exception %s in job_handler"
+                        (Printexc2.to_string e);
                       );
                 raise Not_found
               end
       with _ ->
 
-          let job = try Fifo.take fifo 
-              
-            with e -> 
+          let job = try Fifo.take fifo
+
+            with e ->
 (*                lprintf "No waiting job\n"; *)
                 raise e
           in
@@ -71,23 +70,22 @@ let _ =
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
             if !verbose_md4 then begin
-                lprintf "Starting job %s %Ld %Ld %s\n" job.job_name
+                lprintf_nl "[cHa] Starting job %s %Ld %Ld %s" job.job_name
                   job.job_begin job.job_len
                   (match job.job_method with
                     MD5 -> "MD5"
                   | TIGER -> "TIGER"
                   | SHA1 -> "SHA1"
-                  | MD4 -> "MD4"); 
+                  | MD4 -> "MD4");
               end;
             job_start job fd;
-            if !verbose_md4 then begin
-                lprintf "Job started\n"; 
-              end
+            if !verbose_md4 then
+              lprintf_nl "[cHa] Job started"
           with e ->
-              lprintf "Exception %s in starting job\n" 
-                (Printexc2.to_string e); 
+              lprintf_nl "[cHa] Exception %s in starting job"
+                (Printexc2.to_string e);
   )
-  
+
 let compute_md4 name begin_pos len f =
   let job = {
       job_name = name;
@@ -99,7 +97,7 @@ let compute_md4 name begin_pos len f =
       job_error = false;
     } in
   Fifo.put fifo (Obj.magic job)
-  
+
 let compute_sha1 name begin_pos len f =
   let job = {
       job_name = name;
@@ -111,7 +109,7 @@ let compute_sha1 name begin_pos len f =
       job_error = false;
     } in
   Fifo.put fifo (Obj.magic job)
-  
+
 let compute_md5 name begin_pos len f =
   let job = {
       job_name = name;
@@ -123,7 +121,7 @@ let compute_md5 name begin_pos len f =
       job_error = false;
     } in
   Fifo.put fifo (Obj.magic job)
-  
+
 let compute_tiger name begin_pos len f =
   let job = {
       job_name = name;
@@ -135,4 +133,3 @@ let compute_tiger name begin_pos len f =
       job_error = false;
     } in
   Fifo.put fifo (Obj.magic job)
-  

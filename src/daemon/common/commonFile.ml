@@ -26,6 +26,16 @@ open CommonTypes
 open CommonOptions
 open CommonGlobals
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[cF] "
+    (log_time ()); lprintf_nl2
+      
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[cF] "
+    (log_time ()); lprintf
+	    
 (*************************************************************************)
 (*                                                                       *)
 (*                         TYPES                                         *)
@@ -150,7 +160,7 @@ let files_by_num = H.create 1027
 let ni n m =
   let s = Printf.sprintf "File.%s not implemented by %s"
       m n.network_name in
-  lprintf_nl "%s" s;
+  lprintf_nl () "%s" s;
   s
 
 let fni n m = failwith (ni n m)
@@ -786,40 +796,40 @@ let new_file_ops network =
   f
 
 let check_file_implementations () =
-  lprintf_nl "\n---- Methods not implemented for CommonFile ----\n";
+  lprintf_nl () "\n---- Methods not implemented for CommonFile ----";
   List.iter (fun (c, cc) ->
       let n = c.op_file_network.network_name in
-      lprintf_nl "\n  Network %s" n; 
+      lprintf_nl () "\n  Network %s" n; 
       if c.op_file_to_option == cc.op_file_to_option then 
-        lprintf_nl "op_file_to_option";
+        lprintf_nl () "op_file_to_option";
       if c.op_file_info == cc.op_file_info then
-        lprintf_nl "op_file_info";
+        lprintf_nl () "op_file_info";
       if c.op_file_commit == cc.op_file_commit then
-        lprintf_nl "op_file_commit";
+        lprintf_nl () "op_file_commit";
       if c.op_file_save_as == cc.op_file_save_as then
-        lprintf_nl "op_file_save_as";
+        lprintf_nl () "op_file_save_as";
       if c.op_file_cancel == cc.op_file_cancel then
-        lprintf_nl "op_file_cancel";
+        lprintf_nl () "op_file_cancel";
       if c.op_file_pause == cc.op_file_pause then
-        lprintf_nl "op_file_pause";
+        lprintf_nl () "op_file_pause";
       if c.op_file_resume == cc.op_file_resume then
-        lprintf_nl "op_file_resume";
+        lprintf_nl () "op_file_resume";
 (*      if c.op_file_disk_name == cc.op_file_disk_name then
         lprintf_nl "op_file_disk_name"; *)
       if c.op_file_check == cc.op_file_check then
-        lprintf_nl "op_file_check";
+        lprintf_nl () "op_file_check";
       if c.op_file_recover == cc.op_file_recover then
-        lprintf_nl "op_file_recover";
+        lprintf_nl () "op_file_recover";
       if c.op_file_set_format == cc.op_file_set_format then
-        lprintf_nl "op_file_set_format";
+        lprintf_nl () "op_file_set_format";
       if c.op_file_all_sources == cc.op_file_all_sources then
-        lprintf_nl "op_file_all_sources";
+        lprintf_nl () "op_file_all_sources";
       if c.op_file_active_sources == cc.op_file_active_sources then
-        lprintf_nl "op_file_active_sources";
+        lprintf_nl () "op_file_active_sources";
       if c.op_file_print_html == cc.op_file_print_html then
-        lprintf_nl "op_file_print_html";
+        lprintf_nl () "op_file_print_html";
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then
-        lprintf_nl "op_file_print_sources_html";
+        lprintf_nl () "op_file_print_sources_html";
   ) !files_ops;
   lprint_newline ()
 
@@ -857,7 +867,7 @@ let file_write file offset s pos len =
 let file_verify file key begin_pos end_pos =
   Unix32.flush_fd (file_fd file);
   if !verbose_md4 then begin
-      lprintf_nl "Checksum to compute: %Ld-%Ld of %s" begin_pos end_pos
+      lprintf_nl () "Checksum to compute: %Ld-%Ld of %s" begin_pos end_pos
         (file_disk_name file);
     end;
   try
@@ -879,7 +889,7 @@ let file_verify file key begin_pos end_pos =
     in
     let result = computed = key in
     if !verbose_md4 then begin
-        lprintf_nl "Checksum computed: %s against %s = %s"
+        lprintf_nl () "Checksum computed: %s against %s = %s"
           (string_of_uid key) 
         (string_of_uid computed)
         (if result then "VERIFIED" else "CORRUPTED");
@@ -887,7 +897,7 @@ let file_verify file key begin_pos end_pos =
     result
   with
     | Not_found -> raise Not_found
-    | _ -> if !verbose_md4 then lprintf_nl "Checksum computed: chunk MISSING";
+    | _ -> if !verbose_md4 then lprintf_nl () "Checksum computed: chunk MISSING";
     false
 
 let file_mtime file = Unix32.mtime64 (file_fd file)
