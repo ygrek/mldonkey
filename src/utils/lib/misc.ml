@@ -48,3 +48,74 @@ let dec2bin num len =
 let bin2dec num =
   let s = string_of_int num in
     int_of_string ("0b" ^ s)
+
+let zip_extract_entry ifile e =
+  if e.Zip.is_directory then begin
+    try
+      Unix.mkdir e.Zip.filename 0o777
+    with Unix.Unix_error(Unix.EEXIST, _, _) -> ()
+  end else begin
+    Zip.copy_entry_to_file ifile e e.Zip.filename
+  end
+
+let zip_extract zipfile =
+  let ic = Zip.open_in zipfile in
+  List.iter (zip_extract_entry ic) (Zip.entries ic);
+  Zip.close_in ic
+
+let rec zip_add_entry oc file =
+  let s = Unix.stat file in
+  match s.Unix.st_kind with
+    Unix.S_REG ->
+      Zip.copy_file_to_entry file oc ~mtime:s.Unix.st_mtime file
+  | Unix.S_DIR ->
+      Zip.add_entry "" oc ~mtime:s.Unix.st_mtime
+        (if Filename.check_suffix file "/" then file else file ^ "/");
+      let d = Unix.opendir file in
+      begin try
+        while true do
+          let e = Unix.readdir d in
+          if e <> "." && e <> ".." then zip_add_entry oc (Filename.concat file e)
+        done
+      with End_of_file -> ()
+      end;
+      Unix.closedir d
+  | _ -> ()  
+
+let zip_create zipfile files =
+  let oc = Zip.open_out zipfile in
+  Array.iter (zip_add_entry oc) files;
+  Zip.close_out oc
+
+let gz_extract filename =
+  begin
+    let file = ref "" in
+    try
+      let buffer = String.create 4096 in
+      let file_out = Filename.temp_file "arch_" ".tmp" in
+      file := file_out;
+      let ic = Gzip.open_in filename in
+      let oc = open_out_bin file_out in
+	let rec decompress () =
+	  let n = Gzip.input ic buffer 0 (String.length buffer) in
+            if n = 0 then ()
+	    else
+	      begin
+		output oc buffer 0 n;
+		decompress()
+	      end
+	    in decompress();
+            Gzip.close_in ic;
+	    close_out oc;
+	    file_out
+    with e -> (try Sys.remove !file with _ -> ()); raise e
+  end
+
+open Misc2
+
+let archive_extract filename archive_type =
+  match archive_type with
+    "zip" -> zip_extract filename; ""
+  | "bz2" -> Misc2.bz2_extract filename
+  | "gz" -> gz_extract filename
+  | _ -> failwith "wrong archive type %s" archive_type

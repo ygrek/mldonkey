@@ -666,7 +666,7 @@ let web_infos = define_option current_section
     the format: (kind, period, url), where kind is either
     'server.met' for a server.met file containing ed2k server, or
     'comments.met' for a file of comments, or
-    'guarding.p2p' for a blocklist file, or
+    'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or
     'ocl' for file in the ocl format containing overnet peers, or
     'contact.dat' for an contact.dat file containing overnet peers,
     and period is the period between updates (in hours),
@@ -696,8 +696,8 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
     (list_option Url.option) []
 
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
-    "IP blocking list filename (peerguardian format)"
-    string_option "guarding.p2p"
+    "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format"
+    string_option ""
 
 let _ =
   option_hook ip_blocking (fun _ ->

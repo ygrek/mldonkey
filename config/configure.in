@@ -542,6 +542,17 @@ else
   echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
 
+BZIP2=no
+AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[AC_CHECK_HEADERS(bzlib.h,[BZIP2=yes],)])
+if test "$BZIP2" = "yes"; then
+  HAS_BZIP2=true
+  cp -f ../src/utils/lib/misc2_bz2.ml ../src/utils/lib/misc2.ml
+  AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
+else
+  cp -f ../src/utils/lib/misc2_no_bz2.ml ../src/utils/lib/misc2.ml
+  HAS_BZIP2=false
+fi
+
 AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h,[SHA1_VERSION=sha1new; break],[SHA1_VERSION=sha1old])
 if test "$SHA1_VERSION" = "sha1old"; then
     AC_MSG_CHECKING(trying to guess endianess) 
@@ -1177,6 +1188,7 @@ AC_SUBST(LABLGL_CMXA)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
 AC_SUBST(ZLIB)
+AC_SUBST(BZIP2)
 AC_SUBST(GD)
 AC_SUBST(GD_JPG)
 AC_SUBST(GD_PNG)
@@ -1230,6 +1242,7 @@ AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
 AC_SUBST(ZLIB__COMPRESS_STRING)
 AC_SUBST(ZLIB__GZIP_STRING)
+AC_SUBST(HAS_BZIP2)
 
 AC_SUBST(COMMONSWARMING)
 

@@ -382,7 +382,8 @@ let wget r f =
           lprintf_nl () "Empty content for url %s"
             (Url.to_string r.req_url);
         end;
-      let filename = Filename.temp_file "http_" ".tmp" in
+      let ext = (String.lowercase (Filename2.extension r.req_url.Url.short_file)) in
+      let filename = Filename.temp_file "http_" (if ext = "" then ".tmp" else ext) in
       let oc = open_out_bin filename in
       output_string oc s;
       close_out oc;

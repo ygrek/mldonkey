@@ -144,3 +144,6 @@
 
 /* Define to 1 if you have jpg support in libgd. */
 #undef HAVE_GD_JPG
+
+/* Define to 1 if you have bzip2 support. */
+#undef USE_BZIP2

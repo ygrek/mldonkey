@@ -155,9 +155,9 @@ let _ =
     | e -> lprintf_nl (_b "Error while reading motd.conf(%s): %s") filename
 	(Printexc2.to_string e);
 	close_in ic
-			   );
+  );
   CommonWeb.add_web_kind "guarding.p2p" (fun _ filename ->
-      Ip_set.bl := Ip_set.load filename
+      lprintf_nl "web_infos.file_kinds p2p %s" filename; Ip_set.bl := Ip_set.load filename
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
   )
 

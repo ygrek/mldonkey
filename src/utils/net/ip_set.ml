@@ -2,7 +2,7 @@
 open Printf2
 
 let lprintf_nl () =
-  lprintf "%s[IPblock]: "
+  lprintf "%s[IPblock] "
   (log_time ()); lprintf_nl2
 
 (* range name, ip min, ip max (inclusive) *)
@@ -77,7 +77,8 @@ let match_ip bl ip =
     | None -> ());
   m
 
-let load_merge bl filename =
+let load_merge bl filename remove =
+  lprintf_nl () "creating block table from %s" filename;
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
   let ipfilter_regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *- *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *, *[0-9]+ *, *\\(.*\\)$" in
 
@@ -113,11 +114,48 @@ let load_merge bl filename =
     bl_empty (* not reached *)
   with End_of_file ->
     close_in cin;
+    if remove then (try Sys.remove filename with _ -> ());
     lprintf_nl () "%d ranges loaded" !nranges;
     !bl
 
 let load filename =
-  load_merge bl_empty filename
+   lprintf_nl () "loading %s" filename;
+   if Sys.file_exists filename then
+     let ext = String.lowercase (Filename2.extension filename) in
+       match ext with
+	 ".zip" | ".p2p.zip" ->
+	   begin
+	     try
+	       let file = Zip.find_entry (Zip.open_in filename) "guarding.p2p" in
+		 lprintf_nl () "guarding.p2p found in zip file";
+		 let s = Misc.archive_extract filename "zip" in
+		 load_merge bl_empty file.Zip.filename true
+	       with e ->
+		 lprintf_nl () "Exception %s while extracting guarding.p2p from %s"
+		   (Printexc2.to_string e) filename;
+		   bl_empty
+	   end
+       | ".bz2" | ".p2p.bz2" | ".gz" | ".p2p.gz" ->
+	   begin
+	     let filetype =
+	       if ext = ".bz2" || ext = ".p2p.bz2" then "bz2" else "gz" in
+	     try
+		 let s = Misc.archive_extract filename filetype in
+		   load_merge bl_empty s true
+	       with e ->
+		 lprintf_nl () "Exception %s while extracting from %s"
+		   (Printexc2.to_string e) filename;
+		   bl_empty
+	   end
+       | ".tar.bz2" | ".p2p.tar.bz2" | ".tar.gz" | ".p2p.tar.gz" ->
+	    lprintf_nl () "tar files are not (yet) supported, please untar %s" filename;
+	    bl_empty
+       | _ -> load_merge bl_empty filename false
+   else
+     begin
+       lprintf_nl () "file %s not found" filename;
+       bl_empty
+     end
 
 let of_list l =
   let rec of_list_aux l bl =
