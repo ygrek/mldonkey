@@ -860,7 +860,7 @@ DonkeySources.recompute_ready_sources ()        *)
 
 (*      DonkeyStats.save_download_history file; *)
 
-      if !!keep_cancelled_in_old_files
+      if !!keep_downloaded_in_old_files
           && not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
       DonkeyShare.remember_shared_info file new_name;
