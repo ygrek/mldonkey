@@ -901,7 +901,7 @@ let http_handler o t r =
       in
       try
         match r.get_url.Url.short_file with
-        | "/wap.wml" ->
+        | "wap.wml" ->
             begin
               clear_page buf;
               http_add_text_header r WML;
@@ -952,7 +952,7 @@ let http_handler o t r =
               Printf.bprintf buf "</small></p>";
               Printf.bprintf buf "</card></wml>";
             end
-        | "/commands.html" ->
+        | "commands.html" ->
             html_open_page buf t r true;
             let this_page = "commands.html" in
             Buffer.add_string buf (
@@ -960,7 +960,7 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.web_common_header_mods0
               else !!CommonMessages.web_common_header_old)
-        | "/" | "/index.html" ->
+        | "" | "index.html" ->
             if !!use_html_frames then begin
                 html_open_page buf t r false;
                 let this_page = "frames.html" in
@@ -984,120 +984,120 @@ let http_handler o t r =
             </frameset>" !!commands_frame_height;
               end else
               html_open_page buf t r true
-        | "/complex_search.html" ->
+        | "complex_search.html" ->
             html_open_page buf t r true;
             CommonSearch.complex_search buf
-        | "/noframe.html" ->
+        | "noframe.html" ->
             html_open_page buf t r true
 
-        | "/oneframe.html" ->
+        | "oneframe.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!motd_html
 
-        | "/bw_updown.png" ->
+        | "bw_updown.png" ->
             (match http_error_no_gd "png" with
               false ->
                 do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
                 http_send_bin r buf "bw_updown.png"
             | true -> raise Not_found)
 
-        | "/bw_updown.jpg" ->
+        | "bw_updown.jpg" ->
             (match http_error_no_gd "jpg" with
               false ->
                 do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
                 http_send_bin r buf "bw_updown.jpg"
             | true -> raise Not_found)
 
-        | "/bw_download.png" ->
+        | "bw_download.png" ->
             (match http_error_no_gd "png" with
               false ->
                 do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
                 http_send_bin r buf "bw_download.png"
             | true -> raise Not_found)
 
-        | "/bw_download.jpg" ->
+        | "bw_download.jpg" ->
             (match http_error_no_gd "jpg" with
               false ->
                 do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
                 http_send_bin r buf "bw_download.jpg"
             | true -> raise Not_found)
 
-        | "/bw_upload.png" ->
+        | "bw_upload.png" ->
             (match http_error_no_gd "png" with
               false ->
                 do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
                 http_send_bin r buf "bw_upload.png"
             | true -> raise Not_found)
 
-        | "/bw_upload.jpg" ->
+        | "bw_upload.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
                 do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
                 http_send_bin r buf "bw_upload.jpg"
             | true -> raise Not_found)
 
-        | "/bw_h_updown.png" ->
+        | "bw_h_updown.png" ->
             (match http_error_no_gd "png" with
             | false ->
                 do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
                 http_send_bin r buf "bw_h_updown.png"
             | true -> raise Not_found)
 
-        | "/bw_h_updown.jpg" ->
+        | "bw_h_updown.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
                 do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
                 http_send_bin r buf "bw_h_updown.jpg"
             | true -> raise Not_found)
 
-        | "/bw_h_download.png" ->
+        | "bw_h_download.png" ->
             (match http_error_no_gd "png" with
             | false ->
                 do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
                 http_send_bin r buf "bw_h_download.png"
             | true -> raise Not_found)
 
-        | "/bw_h_download.jpg" ->
+        | "bw_h_download.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
                 do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
                 http_send_bin r buf "bw_h_download.jpg"
             | true -> raise Not_found)
 
-        | "/bw_h_upload.png" ->
+        | "bw_h_upload.png" ->
             (match http_error_no_gd "png" with
             | false ->
                 do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
                 http_send_bin r buf "bw_h_upload.png"
             | true -> raise Not_found)
 
-        | "/bw_h_upload.jpg" ->
+        | "bw_h_upload.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
                 do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
                 http_send_bin r buf "bw_h_upload.jpg"
             | true -> raise Not_found)
 
-        | "/tag.png" ->
+        | "tag.png" ->
             (match http_error_no_gd "png" with
             | false ->
                 do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
                 http_send_bin r buf "tag.png"
             | true -> raise Not_found)
 
-        | "/tag.jpg" ->
+        | "tag.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
                 do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
                 http_send_bin r buf "tag.jpg"
             | true -> raise Not_found)
 
-        | "/favicon.ico" ->
+        | "favicon.ico" ->
             if !verbose_msg_servers then
               lprintf_nl () "favicon.ico request received by tracker";
             http_send_bin r buf "favicon.ico"
 
-        | "/filter" ->
+        | "filter" ->
             html_open_page buf t r true;
             let b = Buffer.create 10000 in
             let filter = ref (fun _ -> ()) in
@@ -1152,8 +1152,7 @@ let http_handler o t r =
                   Buffer.add_string buf "Bad filter"
             end
 
-
-        | "/results" ->
+        | "results" ->
             html_open_page buf t r true;
             let b = Buffer.create 10000 in
             List.iter (fun (arg, value) ->
@@ -1175,7 +1174,7 @@ let http_handler o t r =
             ) r.get_url.Url.args;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 
-        | "/files" ->
+        | "files" ->
 
             List.iter (fun (arg, value) ->
                 match arg with
@@ -1219,7 +1218,7 @@ let http_handler o t r =
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 
-        | "/submit" ->
+        | "submit" ->
             begin
               match r.get_url.Url.args with
               | ("q", cmd) :: other_args ->
@@ -1282,7 +1281,7 @@ let http_handler o t r =
                   raise Not_found
             end
 
-        | "/preview_download" ->
+        | "preview_download" ->
             begin
               clear_page buf;
               match r.get_url.Url.args with
@@ -1345,7 +1344,7 @@ let http_handler o t r =
                   raise Not_found
             end
 
-        | "/h.css" ->
+        | "h.css" ->
             clear_page buf;
             http_add_text_header r CSS;
             let this_page = "h.css" in
@@ -1355,7 +1354,7 @@ let http_handler o t r =
               if !!html_mods then !CommonMessages.html_css_mods
               else !!CommonMessages.html_css_old)
 
-        | "/dh.css" ->
+        | "dh.css" ->
             clear_page buf;
             http_add_text_header r CSS;
             let this_page = "dh.css" in
@@ -1365,7 +1364,7 @@ let http_handler o t r =
               if !!html_mods then !CommonMessages.download_html_css_mods
               else !!CommonMessages.download_html_css_old)
 
-        | "/i.js" ->
+        | "i.js" ->
             clear_page buf;
             http_add_text_header r JAVASCRIPT;
             let this_page = "i.js" in
@@ -1375,7 +1374,7 @@ let http_handler o t r =
               if !!html_mods then !!CommonMessages.html_js_mods0
               else !!CommonMessages.html_js_old)
 
-        | "/di.js" ->
+        | "di.js" ->
             clear_page buf;
             http_add_text_header r JAVASCRIPT;
             let this_page = "di.js" in

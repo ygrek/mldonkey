@@ -234,7 +234,7 @@ let parse_head sock s =
       let fin_meth = String.index ans ' ' in
       let meth = String.sub ans 0 fin_meth in
       let fin_file = String.index_from ans (fin_meth + 1) ' ' in
-      let file = String.sub ans (fin_meth+1) (fin_file-fin_meth-1) in
+      let file = String.sub ans (fin_meth+2) (fin_file-fin_meth-2) in
       let version = match ans.[String.length ans - 1] with
           '0' -> HTTP1_0
         | '1' -> HTTP1_1

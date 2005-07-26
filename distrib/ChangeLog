@@ -10,6 +10,7 @@ ChangeLog
 
 2005/07/26: spiralvoice
 
+4031: HTML: relative refs in HTML output
 4191: Access to disk data (free space, max file name length)
       This is first step implmenting this, checkout the
       disk command for debugging.
