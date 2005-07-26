@@ -25,7 +25,7 @@ open Options
 
 open BasicSocket
 open TcpBufferedSocket
-  
+
 open CommonShared
 open CommonUploads
 open CommonOptions
@@ -36,8 +36,8 @@ open CommonComplexOptions
 open CommonTypes
 open CommonFile
 open CommonGlobals
-open CommonDownloads  
-  
+open CommonDownloads
+
 open FileTPTypes
 open FileTPOptions
 open FileTPGlobals
@@ -59,16 +59,16 @@ let shell_command hostname =
         cmd, Array.of_list args
     | _ -> raise Not_found
   with
-  | _ -> 
-      "ssh",  [|  "ssh"; hostname |]  
-      
+  | _ ->
+      "ssh",  [|  "ssh"; hostname |]
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
 
-let segment_received c num s pos = 
+let segment_received c num s pos =
   if String.length s > 0 then
     let d =
       match c.client_downloads with
@@ -80,32 +80,31 @@ let segment_received c num s pos =
               raise Exit;
             end;
           d
-    in  
+    in
     let file = d.download_file in
 (*
-  lprintf "CHUNK: %s\n" 
+  lprintf "CHUNK: %s\n"
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-    
+
     begin
       try
         match d.download_uploader with
           None -> assert false
         | Some up ->
-            
+
             let swarmer = Int64Swarmer.uploader_swarmer up in
-            let old_downloaded = 
+            let old_downloaded =
               Int64Swarmer.downloaded swarmer in
             Int64Swarmer.received up
               pos s 0 (String.length s);
-            
-            let new_downloaded = 
+
+            let new_downloaded =
               Int64Swarmer.downloaded swarmer in
-            
+
             if new_downloaded = file_size file then
               download_finished file;
-            
-            
-      with e -> 
+
+      with e ->
           lprintf "FT: Exception %s in Int64Swarmer.received\n"
             (Printexc2.to_string e)
     end;
@@ -116,30 +115,29 @@ let segment_received c num s pos =
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
   *)
-    
+
     (match d.download_ranges with
-      | (xx,yy,r) :: tail when  pos >= xx && pos <= yy -> 
+      | (xx,yy,r) :: tail when  pos >= xx && pos <= yy ->
           let (x,y) = Int64Swarmer.range_range r in
-          lprintf "Remaining: %Ld-%Ld/%Ld-%Ld\n" 
+          lprintf "Remaining: %Ld-%Ld/%Ld-%Ld\n"
             x y xx yy;
           if x = y then begin
-              d.download_ranges <- tail; 
+              d.download_ranges <- tail;
               (match c.client_sock with
                   Connection sock ->
                     for i = 1 to max_queued_ranges do
                       if List.length d.download_ranges <= max_queued_ranges then
                         (try get_from_client sock c with _ -> ());
-                    done; 
+                    done;
                 | _ -> ());
 (* If we have no more range to receive, disconnect *)
               lprintf "\n ********** RANGE DOWNLOADED  ********** \n";
-              
             end
       | (xx,yy,r) :: tail ->
           let (x,y) = Int64Swarmer.range_range r in
           lprintf "Bad range (%Ld): %Ld-%Ld/%Ld-%Ld\n"  pos
             x y xx yy;
-      | [] -> 
+      | [] ->
           lprintf "***** outside of ranges !!!\n"
     )
 
@@ -148,21 +146,12 @@ lprintf "READ: buf_used %d\n" to_read_int;
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
-let ssh_send_range_request c (x,y) sock d =  
+
+let ssh_send_range_request c (x,y) sock d =
   let file = d.download_url.Url.full_file in
-  TcpBufferedSocket.write_string sock 
+  TcpBufferedSocket.write_string sock
     (Printf.sprintf "%s %s %Ld %Ld %d '.%s'\n"  !!get_range !!range_arg x y
     (file_num d.download_file) file);
-  ()
-  
-(*************************************************************************)
-(*                                                                       *)
-(*                         MAIN                                          *)
-(*                                                                       *)
-(*************************************************************************)
-        
-let ssh_set_sock_handler c sock = 
   ()
 
 (*************************************************************************)
@@ -170,8 +159,17 @@ let ssh_set_sock_handler c sock =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
-let ssh_check_size url start_download_file = 
+
+let ssh_set_sock_handler c sock =
+  ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let ssh_check_size url start_download_file =
   let token = create_token unlimited_connection_manager in
   let shell, args = shell_command url.Url.server in
   lprintf "SHELL: ";
@@ -180,7 +178,7 @@ let ssh_check_size url start_download_file =
   lprintf "\n";
   let sock, pid = exec_command token  shell args (fun _ _ -> ());
   in
-  
+
   set_rtimer sock (fun _ ->
       lprintf "SSH TIMER\n";
       (try Unix.kill Sys.sigkill pid with _ -> ());
@@ -214,8 +212,8 @@ let ssh_check_size url start_download_file =
             iter (i+1)
       in
       iter 0
-  );  
-  let command =    (Printf.sprintf "%s size '.%s' ; exit\n" !!get_range 
+  );
+  let command =    (Printf.sprintf "%s size '.%s' ; exit\n" !!get_range
       url.Url.full_file) in
   lprintf "SSH send [%s]\n" command;
   TcpBufferedSocket.write_string sock command;
@@ -227,15 +225,13 @@ let ssh_check_size url start_download_file =
 (*                                                                       *)
 (*************************************************************************)
 
-  
-  
 type segment =
   Nothing
 | SegmentPos of int * int64 * int * int
 | SegmentXPos of int * int64 * int * int
 | Segment of int * int64 * int * int * string
 | SegmentX of int * int64 * int * int * string
-  
+
 let ssh_connect token c f =
   let ip = c.client_hostname in
   let shell, args = shell_command c.client_hostname in
@@ -251,20 +247,20 @@ let ssh_connect token c f =
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
       let rec iter () =
-        
+
         match !segment with
           SegmentXPos (file_num, pos, len, elen) ->
-            
+
             if b.len >= elen then begin
                 segment := SegmentX (file_num, pos, len, elen,
                   String.sub b.buf b.pos elen);
                 buf_used b elen;
                 iter0 0
               end
-            
+
         | _ ->
             iter0 0
-            
+
       and iter0 i =
         if i < b.len then
           if b.buf.[b.pos + i] = '\n' then begin
@@ -274,7 +270,7 @@ let ssh_connect token c f =
               let line = String.sub b.buf b.pos slen in
 (*              lprintf "SSH LINE [%s]\n" line; *)
               buf_used b (i+1);
-              
+
               if String2.starts_with line "[SEGMENT " && !segment = Nothing then
                 let line = String.sub line 9 (String.length line - 10) in
                 lprintf "segmented [%s]\n" line;
@@ -287,7 +283,7 @@ let ssh_connect token c f =
                     segment := SegmentPos (file_num, pos,len,elen);
                     lprintf "Waiting for segment...\n";
                     iter0 0
-                    
+
                 | ["8bits"; file_num; pos; len; elen] ->
                     let file_num = int_of_string file_num in
                     let pos = Int64.of_string pos in
@@ -296,7 +292,7 @@ let ssh_connect token c f =
                     segment := SegmentXPos (file_num, pos,len,elen);
                     lprintf "Waiting for segment X...\n";
                     iter ()
-                    
+
                 | _ ->
                     lprintf "SSH: unexpected segment\n";
                     disconnect_client c (Closed_for_error "unexpected reply")
@@ -315,7 +311,7 @@ let ssh_connect token c f =
                     segment_received c file_num ss pos;
                     segment := Nothing;
                     iter0 0
-                    
+
                 | SegmentX (file_num, pos, len, elen, ss) ->
                     lprintf "******* SEGMENT RECEIVED *******\n";
                     segment_received c file_num ss pos;
@@ -324,7 +320,7 @@ let ssh_connect token c f =
                 | _ ->
                     lprintf "SSH: unexpected end of segment\n";
                     disconnect_client c (Closed_for_error "unexpected reply")
-                    
+
               else
               match !segment with
                 Nothing -> iter0 0
@@ -338,13 +334,13 @@ let ssh_connect token c f =
                   end
             end else
             iter0 (i+1)
-            
+
       in
       iter ()
-  );  
+  );
   f sock;
   sock
-  
+
 let proto =
   {
     proto_send_range_request = ssh_send_range_request;
@@ -353,5 +349,3 @@ let proto =
     proto_string = "ssh";
     proto_connect = ssh_connect;
   }
-  
-  

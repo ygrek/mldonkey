@@ -25,7 +25,7 @@ open Options
 
 open BasicSocket
 open TcpBufferedSocket
-  
+
 open CommonShared
 open CommonUploads
 open CommonOptions
@@ -36,8 +36,8 @@ open CommonComplexOptions
 open CommonTypes
 open CommonFile
 open CommonGlobals
-open CommonDownloads  
-  
+open CommonDownloads
+
 open FileTPTypes
 open FileTPOptions
 open FileTPGlobals
@@ -60,9 +60,9 @@ let range_reader c d counter_pos end_pos sock nread =
         disconnect_client c Closed_by_user;
         raise Exit;
       end;
-    
+
     let b = TcpBufferedSocket.buf sock in
-    let to_read = min (end_pos -- !counter_pos) 
+    let to_read = min (end_pos -- !counter_pos)
       (Int64.of_int b.len) in
 (*
         lprintf "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld\n"
@@ -70,39 +70,38 @@ end_pos !counter_pos b.len to_read;
    *)
     let to_read_int = Int64.to_int to_read in
 (*
-  lprintf "CHUNK: %s\n" 
+  lprintf "CHUNK: %s\n"
 (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-    
+
     begin
       try
         match d.download_uploader with
           None -> assert false
         | Some up ->
-            
+
             let swarmer = Int64Swarmer.uploader_swarmer up in
-            let old_downloaded = 
+            let old_downloaded =
               Int64Swarmer.downloaded swarmer in
-            
+
             Int64Swarmer.received up
               !counter_pos b.buf b.pos to_read_int;
-            let new_downloaded = 
+            let new_downloaded =
               Int64Swarmer.downloaded swarmer in
-            
-            
+
             if new_downloaded = file_size file then
               download_finished file;
-            
-      with e -> 
+
+      with e ->
         lprintf "FT: Exception %s in Int64Swarmer.received\n"
           (Printexc2.to_string e)
   end;
   c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
-  
+
   (match d.download_ranges with
       [] -> lprintf "EMPTY Ranges !!!\n"
-    | r :: _ -> 
+    | r :: _ ->
         ()
   );
 (*
@@ -126,7 +125,7 @@ let download_on_port c d (x,y) ip port =
   let token = create_token unlimited_connection_manager in
   let sock = TcpBufferedSocket.connect token "http client connecting"
       (Ip.to_inet_addr ip)
-    port (fun _ e -> 
+    port (fun _ e ->
         ()
     )
   in
@@ -138,7 +137,7 @@ let download_on_port c d (x,y) ip port =
   )
 
 let write_reqs sock reqs =
-  
+
   let buf = Buffer.create 100 in
   List.iter (fun s -> Printf.bprintf buf "%s\r\n" s) reqs;
   let request = Buffer.contents buf in
@@ -149,7 +148,7 @@ let write_reqs sock reqs =
     let ispost = ref false in
     let timeout = ref 300.0 in
     let proxy = ref None in
-    List.iter (function   
+    List.iter (function
       | Args l -> args := l@ !args
       | Headers l -> headers := l @ !headers;
       | Post -> ispost := true
@@ -159,8 +158,8 @@ let write_reqs sock reqs =
     let headers = !headers in
     let ispost = !ispost in
     let proxy = !proxy in
-*)    
-  
+*)
+
   TcpBufferedSocket.write_string sock request
 
 (*************************************************************************)
@@ -168,13 +167,13 @@ let write_reqs sock reqs =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
-let ftp_send_range_request c (x,y) sock d =  
+
+let ftp_send_range_request c (x,y) sock d =
 
   lprintf "FTP: Asking range %Ld-%Ld\n" x y ;
-  
+
   let file = d.download_url.Url.full_file in
-  let reqs = [ 
+  let reqs = [
       Printf.sprintf "CWD %s" (Filename.dirname file);
 (* 250 *)
       "PASV";
@@ -186,9 +185,8 @@ let ftp_send_range_request c (x,y) sock d =
     ]
   in
 
-  
   write_reqs sock reqs;
-  
+
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
       let rec iter i =
@@ -200,22 +198,22 @@ let ftp_send_range_request c (x,y) sock d =
               let line = String.sub b.buf b.pos slen in
               lprintf "FTP LINE [%s]\n" line;
               buf_used b (i+1);
-              if slen > 4 && String.sub line 0 4 = "227 " then 
+              if slen > 4 && String.sub line 0 4 = "227 " then
                 try
                   let pos = String.index line '(' in
                   let line = String.sub line (pos+1) (slen - pos - 1) in
                   let pos = String.index line ')' in
                   let line = String.sub line 0 pos in
-                  match 
+                  match
                     List.map int_of_string (
                       String2.split_simplify line ',') with
                     [a0;a1;a2;a3;p0;p1] ->
-                      let ip = Ip.of_string 
+                      let ip = Ip.of_string
                           (Printf.sprintf "%d.%d.%d.%d" a0 a1 a2 a3) in
                       let port = p0 * 256 + p1 in
                       set_rtimeout sock 3600.;
                       download_on_port c d (x,y) ip port
-                  | _ -> 
+                  | _ ->
                       lprintf "FTP: cannot read ip address [%s]\n" line;
                       close sock Closed_by_user
                 with e ->
@@ -240,21 +238,20 @@ let ftp_send_range_request c (x,y) sock d =
       iter 0
   );
   set_rtimeout sock 15.;
-  TcpBufferedSocket.set_closer sock (fun _ _ -> 
-    lprintf "\n+++++++++++ DISCONNECTED ++++++++++++++\n"  
-      
+  TcpBufferedSocket.set_closer sock (fun _ _ ->
+    lprintf "\n+++++++++++ DISCONNECTED ++++++++++++++\n"
   );
-  ()  
+  ()
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-        
-let ftp_set_sock_handler c sock = 
-  
-  write_reqs sock 
+
+let ftp_set_sock_handler c sock =
+
+  write_reqs sock
     [
 (* 220 messages... *)
     "USER anonymous";
@@ -266,7 +263,7 @@ let ftp_set_sock_handler c sock =
     "PWD";
 (* 257 "/" *)
     "TYPE I";
-(* 200 *)    
+(* 200 *)
   ]
  (*  set_fileTP_sock sock (HttpHeader (client_parse_header c)) *)
 
@@ -275,10 +272,10 @@ let ftp_set_sock_handler c sock =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
-let ftp_check_size url start_download_file = 
 
-  let reqs = [ 
+let ftp_check_size url start_download_file =
+
+  let reqs = [
 (* 220 messages... *)
       "USER anonymous";
 (* 331 *)
@@ -300,7 +297,7 @@ let ftp_check_size url start_download_file =
   let buf = Buffer.create 100 in
   List.iter (fun s -> Printf.bprintf buf "%s\r\n" s) reqs;
   let request = Buffer.contents buf in
-  
+
   let server, port = url.Url.server, url.Url.port in
 (*    lprintf "async_ip ...\n"; *)
   Ip.async_ip server (fun ip ->
@@ -308,7 +305,7 @@ let ftp_check_size url start_download_file =
       let token = create_token unlimited_connection_manager in
       let sock = TcpBufferedSocket.connect token "http client connecting"
           (Ip.to_inet_addr ip)
-        port (fun _ e -> 
+        port (fun _ e ->
             ()
         )
       in
@@ -327,7 +324,7 @@ let ftp_check_size url start_download_file =
                   buf_used b (i+1);
                   if slen > 4 && String.sub line 0 4 = "213 "
                   then begin
-                      let result_size = 
+                      let result_size =
                         Int64.of_string (String.sub line 4 (slen - 4))
                       in
                       lprintf "SIZE: [%Ld]\n" result_size;
@@ -345,7 +342,6 @@ let ftp_check_size url start_download_file =
 (*        lprintf "Connection closed nread:%b\n" !nread; *)
       )
   );
-   
   ()
 
 (*************************************************************************)
@@ -356,7 +352,7 @@ let ftp_check_size url start_download_file =
 
 let ftp_connect token c f =
   let ip = Ip.from_name c.client_hostname in
-  connect token "fileTP download" 
+  connect token "fileTP download"
       (Ip.to_inet_addr ip) c.client_port
       (fun sock event ->
         match event with
@@ -366,7 +362,7 @@ let ftp_connect token c f =
             disconnect_client c s
 
         | CONNECTED ->
-          lprintf "CONNECTED !!! Asking for range...\n"; 
+          lprintf "CONNECTED !!! Asking for range...\n";
           f sock
         | _ -> ()
     )
@@ -376,7 +372,7 @@ let ftp_connect token c f =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let proto =
   {
     proto_send_range_request = ftp_send_range_request;
@@ -385,5 +381,3 @@ let proto =
     proto_string = "ftp";
     proto_connect = ftp_connect;
   }
-  
-  

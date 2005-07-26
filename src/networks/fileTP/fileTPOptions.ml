@@ -23,30 +23,24 @@ open Options
 
 let fileTP_ini = create_options_file "fileTP.ini"
 
-let fileTP_section = file_section fileTP_ini ["FileTP"] "FileTP options"  
-  
+let fileTP_section = file_section fileTP_ini ["FileTP"] "FileTP options"
+
   (*
 let enabled = define_option fileTP_section
     ["fileTP2_enabled"]
     "Do you want to support FileTP2 protocol (not yet supported)"
     bool_option true
-*)  
-  
+*)
+
 let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
 
 let mirrors = define_option fileTP_section ["mirrors"]
     "A list of lists, where each list contains equivalent prefixes for mirrors"
     (list_option (list_option string_option))
-  
-  (*
-   [
-      [
+  (* [
 "http://www-ftp.lip6.fr/pub/linux/distributions/mandrake/";
 "http://mirrors.kernel.org/mandrake/";
-     ]
-   ]
-*)
-
+     ] *)
   []
 
 let remote_shells = define_option fileTP_section ["remote_shells"]
@@ -54,31 +48,29 @@ let remote_shells = define_option fileTP_section ["remote_shells"]
     (list_option (tuple2_option (string_option, list_option string_option)))
   []
 
-  
 let get_range = define_option fileTP_section ["get_range"]
   "The command to call to get a range"
     string_option "get_range"
-  
+
 let range_arg = define_option fileTP_section ["range_arg"]
   "The argument to !!get_range to get a range"
     string_option "range"
-  
+
   (*
-let verbose_clients = 
-  define_option fileTP_section ["verbose_clients"] 
-  "level of verbosity when communicating with clients" 
+let verbose_clients =
+  define_option fileTP_section ["verbose_clients"]
+  "level of verbosity when communicating with clients"
     int_option 0
-    
-let verbose_servers = 
-  define_option fileTP_section ["verbose_servers"] 
+
+let verbose_servers =
+  define_option fileTP_section ["verbose_servers"]
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-  
 let shortname o =
   Printf.sprintf "FTP-%s" (shortname o)
-  
-let gui_fileTP_options_panel = 
+
+let gui_fileTP_options_panel =
   (*
   define_option fileTP_section ["gui_fileTP_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
@@ -86,9 +78,9 @@ let gui_fileTP_options_panel =
 (list_option (tuple3_option (string_option, string_option, string_option)))
   *)
   [
-(*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 
+(*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T";
     "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
     "Max Known Peers", shortname max_known_peers, "T";    *)
   ]
-  
-let network_name = "KaZaA"
+
+let network_name = "FileTP"

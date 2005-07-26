@@ -21,7 +21,7 @@ open Queues
 open Md4
 
 open GuiTypes
-  
+
 open CommonTypes
 open CommonDownloads
 
@@ -52,7 +52,7 @@ and file = {
 
 and download = {
     download_file : file;
-    download_url : Url.url; 
+    download_url : Url.url;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
@@ -61,12 +61,11 @@ and download = {
 
 and tp_proto = {
     proto_send_range_request : (client -> (int64 * int64) ->
-        TcpBufferedSocket.t -> download -> unit);    
+        TcpBufferedSocket.t -> download -> unit);
     proto_set_sock_handler : (client -> TcpBufferedSocket.t -> unit);
     proto_string : string;
-    proto_check_size : Url.url -> 
+    proto_check_size : Url.url ->
        (int64 -> unit) -> unit;
     proto_connect : TcpBufferedSocket.token ->
       client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t;
   }
-  

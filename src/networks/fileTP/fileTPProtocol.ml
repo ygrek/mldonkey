@@ -42,7 +42,7 @@ and gconn = {
     mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
     mutable gconn_close_on_write : bool;
   }
-  
+
 module type FileTPProtocol = sig
     val handler : gconn -> TcpBufferedSocket.t -> unit
   end
@@ -68,7 +68,7 @@ let handlers info gconn =
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();
 end; *)
-                    
+
                     (try h gconn sock header with
                         e -> close sock (Closed_for_exception e));
                     if not (TcpBufferedSocket.closed sock) then begin
@@ -83,15 +83,15 @@ end; *)
                 iter (i+1) false
           in
           iter begin_pos false
-      | Reader h -> 
+      | Reader h ->
           let len = b.len in
           h gconn sock;
           if b.len < len then iter_read sock b.len
-          
+
   in
   iter_read
 
-let set_fileTP_sock sock ghandler = 
+let set_fileTP_sock sock ghandler =
   let gconn = {
       gconn_handler = ghandler;
       gconn_refill = [];
@@ -107,11 +107,11 @@ let set_fileTP_sock sock ghandler =
     fun sock ->
       match gconn.gconn_refill with
         [] -> ()
-      | _ :: tail -> 
+      | _ :: tail ->
           gconn.gconn_refill <- tail;
           match tail with
-            [] -> 
-              if gconn.gconn_close_on_write then 
+            [] ->
+              if gconn.gconn_close_on_write then
                 set_lifetime sock 30.
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
@@ -136,41 +136,39 @@ let parse_range range =
     let y = Int64.of_string (
         String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
     in
-    if slash_pos = star_pos - 1 then 
+    if slash_pos = star_pos - 1 then
       x, Some y, None (* "bytes x-y/*" *)
     else
 (* bytes x-y/len *)
-    
+
     let z = Int64.of_string (
         String.sub range (slash_pos+1) (len - slash_pos -1) )
     in
     x, Some y, Some z
-  with 
+  with
   | e ->
-      lprintf "Exception %s for range [%s]\n" 
+      lprintf "Exception %s for range [%s]\n"
         (Printexc2.to_string e) range;
       raise e
 
 let parse_range range =
   let x, y, z = parse_range range in
   if !verbose then lprintf "Range parsed: %Ld-%s/%s" x
-    (match y with None -> "" | Some y -> Int64.to_string y)    
+    (match y with None -> "" | Some y -> Int64.to_string y)
   (match z with None -> "*" | Some y -> Int64.to_string y);
   x, y, z
 
-
-  
 let udp_handler f sock event =
   match event with
     UdpSocket.READ_DONE ->
-      UdpSocket.read_packets sock (fun p -> 
+      UdpSocket.read_packets sock (fun p ->
           try
             let pbuf = p.UdpSocket.udp_content in
             let len = String.length pbuf in
             f p
           with e ->
               lprintf "Error %s in udp_handler\n"
-                (Printexc2.to_string e); 
+                (Printexc2.to_string e);
       ) ;
   | _ -> ()
 
