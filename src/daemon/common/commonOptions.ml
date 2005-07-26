@@ -696,7 +696,8 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
     (list_option Url.option) []
 
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
-    "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format"
+    "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format
+  Zip files must contain either a file named guarding.p2p or guarding_full.p2p."
     string_option ""
 
 let _ =

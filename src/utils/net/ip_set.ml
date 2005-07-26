@@ -131,9 +131,18 @@ let load filename =
 		 let s = Misc.archive_extract filename "zip" in
 		 load_merge bl_empty file.Zip.filename true
 	       with e ->
-		 lprintf_nl () "Exception %s while extracting guarding.p2p from %s"
-		   (Printexc2.to_string e) filename;
-		   bl_empty
+		 begin
+		   try
+		     let file = Zip.find_entry (Zip.open_in filename) "guarding_full.p2p" in
+		       lprintf_nl () "guarding_full.p2p found in zip file";
+		       let s = Misc.archive_extract filename "zip" in
+		       load_merge bl_empty file.Zip.filename true
+		     with e ->
+		       lprintf_nl () "Exception %s while extracting guarding.p2p/guarding_full.p2p from %s"
+			 (Printexc2.to_string e) filename;
+		       lprintf_nl () "One of the mentioned files has to be present in the zip file";
+		       bl_empty
+		 end
 	   end
        | ".bz2" | ".p2p.bz2" | ".gz" | ".p2p.gz" ->
 	   begin

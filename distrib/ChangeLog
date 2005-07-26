@@ -10,6 +10,7 @@ ChangeLog
 
 2005/07/26: spiralvoice
 
+4242: IPBlock: Support guarding_full.zip
 4241: Fix html_mods_vd_gfx_remove
 4240: EDK: New option keep_downloaded_in_old_files
 
