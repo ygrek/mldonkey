@@ -104,7 +104,7 @@ extern "C"
 #      include "endian.h"
 #    else
 #      include <endian.h>
-#      if !defined(__BEOS__)
+#      if defined(HAVE_BYTESWAP_H)
 #        include <byteswap.h>
 #      endif
 #    endif

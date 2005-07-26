@@ -530,6 +530,8 @@ AC_CHECK_HEADERS([sys/types.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
 # poll if possible
 AC_CHECK_HEADERS(sys/poll.h,,)
 AC_CHECK_FUNCS(poll,,)
+AC_CHECK_HEADERS(sys/vfs.h,,)
+AC_CHECK_HEADERS(sys/param.h,,)
 
 ZLIB=no
 AC_CHECK_LIB(z,inflate,[AC_CHECK_HEADERS(zlib.h,[ZLIB=yes],)])
@@ -553,6 +555,7 @@ else
   HAS_BZIP2=false
 fi
 
+AC_CHECK_HEADERS(byteswap.h,,)
 AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h,[SHA1_VERSION=sha1new; break],[SHA1_VERSION=sha1old])
 if test "$SHA1_VERSION" = "sha1old"; then
     AC_MSG_CHECKING(trying to guess endianess) 

@@ -1814,6 +1814,23 @@ let _ =
         _s ""
     ), ":\t\t\t\tcheck shared files for removal";
 
+     "disk", Arg_one (fun arg o ->
+         let buf = o.conn_buf in
+         Printf.bprintf buf "working on dir %s\n" arg;
+         Printf.bprintf buf "bsize %Ld\n" (MlUnix.bsize arg);
+         Printf.bprintf buf "blocks %Ld\n" (MlUnix.blocks arg);
+         Printf.bprintf buf "bfree %Ld\n" (MlUnix.bfree arg);
+         Printf.bprintf buf "bavail %Ld\n" (MlUnix.bavail arg);
+         Printf.bprintf buf "fnamelen %Ld\n" (MlUnix.fnamelen arg);
+         Printf.bprintf buf "filesystem %s\n" (MlUnix.filesystem arg);
+         Printf.bprintf buf "disktotal %Ld\n" (MlUnix.disktotal arg);
+         Printf.bprintf buf "diskfree %Ld\n" (MlUnix.diskfree arg);
+         Printf.bprintf buf "diskused %Ld\n" (MlUnix.diskused arg);
+         Printf.bprintf buf "percentused %d\n" (MlUnix.percentused arg);
+         Printf.bprintf buf "percentfree %d\n" (MlUnix.percentfree arg);
+         _s ""
+     ), "debug command (example: disk .)";
+
     "shares", Arg_none (fun o ->
 
         let buf = o.conn_buf in
@@ -1836,10 +1853,14 @@ let _ =
 \\<tr\\>\\<td\\>";
 
             html_mods_table_header buf "sharesTable" "shares" [
-              ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ;
-              ( "1", "srh ar", "Priority", "P" ) ;
-              ( "0", "srh", "Directory", "Directory" ) ;
-              ( "0", "srh", "Strategy", "Strategy" ) ];
+               ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ;
+               ( "1", "srh ar", "Priority", "P" ) ;
+               ( "0", "srh", "Directory", "Directory" ) ;
+               ( "0", "srh", "Strategy", "Strategy" ) ;
+               ( "1", "srh ar", "MB used", "MB used" ) ;
+               ( "1", "srh ar", "MB free", "MB free" ) ;
+               ( "1", "srh ar", "% free", "% free" ) ;
+               ( "0", "srh", "Filesystem", "FS" ) ];
 
             let counter = ref 0 in
 
@@ -1849,8 +1870,9 @@ let _ =
 *)
 
             List.iter (fun shared_dir ->
-                incr counter;
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+		let dir = shared_dir.shdir_dirname in
+		incr counter;
+		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
         \\<td title=\\\"Click to unshare this directory\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
@@ -1860,14 +1882,73 @@ let _ =
         class=\\\"srb\\\"\\>Unshare\\</td\\>
         \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+        \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-                (if !counter mod 2 == 0 then "dl-1" else "dl-2")
-                shared_dir.shdir_dirname
-                shared_dir.shdir_priority
-                shared_dir.shdir_dirname
-                shared_dir.shdir_strategy;
+		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
+		dir
+		shared_dir.shdir_priority
+		dir
+		shared_dir.shdir_strategy
+		(if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
+		   else (size_of_int64 (MlUnix.diskused dir)))
+		(if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
+		   else (size_of_int64 (MlUnix.diskfree dir)))
+		(if (MlUnix.percentfree dir) = (-1) then "---"
+		   else string_of_int(MlUnix.percentfree dir))
+		    (MlUnix.filesystem dir);
             )
             !!shared_directories;
+  
+		incr counter;
+	      let dir = !!temp_directory in
+		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+	\\<td title=\\\"\\\"
+	class=\\\"srb\\\"\\>------\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
+		0
+		dir
+		"temp_directory"
+	      (if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (MlUnix.diskused dir)))
+	      (if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (MlUnix.diskfree dir)))
+	      (if (MlUnix.percentfree dir) = (-1) then "---"
+		else string_of_int(MlUnix.percentfree dir))
+	      (MlUnix.filesystem dir);
+
+	    let dir = Sys.getcwd () in
+		incr counter;
+		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+	\\<td title=\\\"\\\"
+	class=\\\"srb\\\"\\>------\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
+		0
+		dir
+		"core_directory"
+	      (if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (MlUnix.diskused dir)))
+	      (if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (MlUnix.diskfree dir)))
+	      (if (MlUnix.percentfree dir) = (-1) then "---"
+		else string_of_int(MlUnix.percentfree dir))
+	      (MlUnix.filesystem dir);
 
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
           end

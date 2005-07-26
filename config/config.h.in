@@ -9,8 +9,8 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
-/* Define to 1 if you have the <endian.h> header file. */
-#undef HAVE_ENDIAN_H
+/* Define to 1 if you have the <byteswap.h> header file. */
+#undef HAVE_BYTESWAP_H
 
 /* Define if you have the iconv() function. */
 #undef HAVE_ICONV
@@ -147,3 +147,9 @@
 
 /* Define to 1 if you have bzip2 support. */
 #undef USE_BZIP2
+
+/* Define to 1 if you have the <sys/vfs.h> header file. */
+#undef HAVE_SYS_VFS_H
+
+/* Define to 1 if you have the <sys/param.h> header file. */
+#undef HAVE_SYS_PARAM_H
