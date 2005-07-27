@@ -203,16 +203,18 @@ let rec start_download_file_from_mirror proto file url u result_size =
   match !content_length with
     None -> failwith "Unable to mirror download (HEAD failed)"
   | Some result_size -> *)
-      lprintf "STARTING DOWNLOAD WITH SIZE %Ld\n" result_size;
+      if !verbose then
+        lprintf_nl "[FILETP]: STARTING DOWNLOAD WITH SIZE %Ld" result_size;
       if file_size file <> result_size then
-        lprintf "Unable to mirror download (files have different sizes)"
+        if !verbose then
+          lprintf_nl "[FILETP]: Error, unable to mirror download (files have different sizes)"
       else
       let client_hostname = url.Url.server in
       let client_port = url.Url.port in
       let c = new_client proto client_hostname client_port in
-      add_download file c url.Url.full_file;
-      FileTPClients.get_file_from_source c file;
-      ()
+      add_download file c url.Url.full_file referer.Url.full_file;
+      FileTPClients.get_file_from_source c file; 
+      ()  
 
 let test_mirrors file urls =
   List.iter (fun url ->
@@ -249,7 +251,7 @@ let download_file_from_mirror file url =
 
 
 
-let rec download_file_from_mirror file u =
+let rec download_file_from_mirror file u r =
 
   let proto = match u.Url.proto with
     | "http" -> FileTPHTTP.proto
@@ -262,8 +264,8 @@ let rec download_file_from_mirror file u =
   let client_hostname = u.Url.server in
   let client_port = u.Url.port in
   let c = new_client proto client_hostname client_port in
-  add_download file c u;
-  FileTPClients.get_file_from_source c file;
+  add_download file c u r;
+  FileTPClients.get_file_from_source c file; 
   ()
 
 and find_mirrors file u =
@@ -286,16 +288,17 @@ and find_mirrors file u =
           let suffix = String.sub url namelen (urllen - namelen) in
           List.iter (fun name ->
               download_file_from_mirror file (Url.of_string
-                (name ^ suffix))) mirrors
+                (name ^ suffix)) (Url.of_string name)) mirrors
         else
           iter2 mirrors tail
   in
   iter1 !!mirrors
 
-let previous_url = ref ""
-
-let download_file url =
+let previous_url = ref ""  
+  
+let download_file url referer = 
   let u = Url.of_string url in
+  let r = Url.of_string referer in
 
   if List.mem u !!old_files && !previous_url <> url then begin
       previous_url := url;
@@ -303,13 +306,14 @@ let download_file url =
     end;
 
   let file = new_file (Md4.random ()) u.Url.full_file zero in
-
-  lprintf "DOWNLOAD FILE %s\n" (file_best_name  file);
+  
+  if !verbose then
+    lprintf_nl "[FILETP]: DOWNLOAD FILE %s" (file_best_name  file); 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-
-  download_file_from_mirror file u;
+  
+  download_file_from_mirror file u r;
   find_mirrors file u
 
 (* I think this is a real bad idea, we should check this by ensuring that the
@@ -338,24 +342,30 @@ let get_regexp_string text r =
    and false otherwise.
  *)
 let rec op_network_parse_url url =
-  if !verbose then lprintf "filetp.op_network_parse_url\n";
+  if !verbose then
+    lprintf_nl "[FILETP] op_network_parse_url";
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
-  if !verbose then lprintf "real url: %s\n" real_url;
+  if !verbose then
+    lprintf "real url: %s\n" real_url;
   if (is_http_torrent url real_url) then false
   else
     if (String2.check_prefix real_url "http://") then (
-      lprintf "http download\n";
+      if !verbose then
+        lprintf_nl "[FILETP]: http download";
       let length_regexp = "Content-Length: \\(.*\\)" in
        try let length = get_regexp_int url (Str.regexp length_regexp) in
          if (length > 0) then begin
-           download_file real_url; true
+           download_file real_url ""; true
          end
          else raise Not_found
-       with Not_found -> lprintf "Unknown file length. Use a web browser\n"; false
+       with Not_found -> 
+           if !verbose then
+             lprintf_nl "[FILETP]: Unknown file length. Use a web browser";
+           false
     )
     else if (String2.check_prefix url "ftp://") || (String2.check_prefix url "ssh://") then (
-      download_file url;
+      download_file url "";
       true
     )
     else
@@ -368,35 +378,92 @@ open Queues
 open GuiTypes
 
 let commands = [
-    "http", "Network/FileTP", Arg_one (fun arg o ->
-        download_file arg;
-        _s "download started"
-    ), " <url> :\t\t\t\tstart downloading this URL";
-
-    "mirror", "Network/FileTP", Arg_two (fun num url o ->
+    "http", "Network/FileTP", Arg_multiple (fun args o ->
         try
-          lprintf "MIRROR [%s] [%s]\n" num url;
-          let u = Url.of_string url in
+        (match args with
+          url :: [referer] -> download_file url referer
+        | [url] -> download_file url ""
+        | _ -> raise Not_found);
+        let buf = o.conn_buf in
+        if o.conn_output = HTML then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "download started"); ]
+        else
+          Printf.bprintf buf "download started";
+        _s ""
+        with Not_found ->
+            if !verbose then
+              lprintf_nl "[FILETP]: Not enough parameters";
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "Not enough parameters"); ]
+            else
+              Printf.bprintf buf "Not enough parameters";
+            _s ""  
+    ), " <url> <referer> :\t\t\t\tstart downloading this URL";
 
-          if List.mem u !!old_files && !previous_url <> url then begin
-              previous_url := url;
+    "mirror", "Network/FileTP", Arg_multiple (fun args o ->
+        try
+          let num = ref "" in
+          let url = ref "" in
+          let referer = ref "" in
+          (match args with
+            nums :: urls :: [referers] -> num := nums; url := urls; referer := referers
+          | nums :: [urls] -> num := nums; url := urls; referer := ""
+          | _ -> raise Not_found);
+
+          if !verbose then
+            lprintf_nl "[FILETP]: MIRROR [%s] [%s]" !num !url;
+          let u = Url.of_string !url in
+          let r = Url.of_string !referer in
+
+          if List.mem u !!old_files && !previous_url <> !url then begin
+              previous_url := !url;
               failwith "URL already downloaded: repeat command again to force";
             end;
-          let num = int_of_string num in
+          let num = int_of_string !num in
           Hashtbl.iter (fun _ file ->
-              lprintf "COMPARE %d/%d\n" (file_num file) num;
+              if !verbose then
+                lprintf_nl "[FILETP]: COMPARE %d/%d" (file_num file) num;
               if file_num file = num then begin
-                  lprintf "Try HEAD from mirror\n";
+                  if !verbose then
+                    lprintf_nl "[FILETP]: Try HEAD from mirror";
 
-                  download_file_from_mirror file u;
+
+                  download_file_from_mirror file u r;
                   find_mirrors file u;
 
                   raise Exit
                 end
           ) files_by_uid;
-          _s "file not found"
-        with Exit -> _s "mirror added"
-    ), " <num> <url> :\t\t\tadd url as mirror for num";
+         let buf = o.conn_buf in
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", "file not found"); ]
+          else
+            Printf.bprintf buf "file not found";
+          _s ""
+        with
+        | Exit -> 
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "mirror added"); ]
+            else
+              Printf.bprintf buf "mirror added";
+            _s ""
+        | Not_found ->
+            if !verbose then
+              lprintf_nl "[FILETP]: Not enough parameters";
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "Not enough parameters"); ]
+            else
+              Printf.bprintf buf "Not enough parameters";
+            _s ""        
+    ), " <num> <url> <referer> :\t\t\tadd url as mirror for num";
     ]
 
 let _ =
@@ -410,6 +477,6 @@ let _ =
   network.op_network_recover_temp <-
     (fun _ ->
      if !verbose_hidden_errors then
-       lprintf "recover_temp is not implemented for FileTP.\n";
+       lprintf_nl "[FILETP]: recover_temp is not implemented for FileTP.";
     );
 

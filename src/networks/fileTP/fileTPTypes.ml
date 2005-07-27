@@ -53,6 +53,7 @@ and file = {
 and download = {
     download_file : file;
     download_url : Url.url;
+    download_referer : Url.url;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;

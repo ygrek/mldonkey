@@ -208,8 +208,8 @@ client_error = false;
       new_client impl;
       Hashtbl.add clients_by_uid key c;
       c
-
-let add_download file c url =
+    
+let add_download file c url referer =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   if !verbose then lprintf "Adding file to client\n";
@@ -221,6 +221,7 @@ let add_download file c url =
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_url = url;
+          download_referer = referer;
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];
@@ -239,6 +240,7 @@ let rec find_download file list =
     [] -> raise Not_found
   | d :: tail ->
       if d.download_file == file then d else find_download file tail
+
 
 let rec find_download_by_index index list =
   match list with
@@ -275,6 +277,7 @@ let set_client_state client state =
 let set_client_disconnected client =
   CommonClient.set_client_disconnected (as_client client)
 
+
 let remove_file file =
   Hashtbl.remove files_by_uid file.file_id;
   current_files := List2.removeq file !current_files
@@ -289,7 +292,6 @@ let old_client_name = ref ""
 let ft_client_name = ref ""
 
 let client_name () =
-
   let name = !!global_login in
   if name != !old_client_name then  begin
       let len = String.length name in

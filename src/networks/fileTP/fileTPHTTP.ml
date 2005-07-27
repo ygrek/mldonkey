@@ -64,7 +64,8 @@ let lprintf_n () =
 
 let http_send_range_request c range sock d =
   let url = d.download_url in
-
+  let referer = d.download_referer in
+  
   let (x,y) = range in
   let range = Printf.sprintf "%Ld-%Ld" x (y -- (Int64.one)) in
 
@@ -80,6 +81,7 @@ let http_send_range_request c range sock d =
                     name); *)
   Printf.bprintf buf "Host: %s\r\n" c.client_hostname;
   Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+  Printf.bprintf buf "Referer: %s\r\n" (Url.to_string referer);
   Printf.bprintf buf "Range: bytes=%s\r\n" range;
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
   Printf.bprintf buf "\r\n";
@@ -178,7 +180,7 @@ let rec client_parse_header c gconn sock header =
       if not (List.memq file !current_files) then begin
     current_files := file :: !current_files;
       end;
-      add_download file c u;
+      add_download file c u r;
       FileTPClients.get_file_from_source c file;
 
      end;
