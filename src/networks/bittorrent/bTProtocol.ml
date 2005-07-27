@@ -341,7 +341,7 @@ let bt_handler parse_fun handler c sock =
             try
                 handler sock p;
             with e ->
-                lprintf "Exception %s in BTProtocol.parse_fun while handling peer_id\n"
+                lprintf_nl "Exception %s in BTProtocol.parse_fun while handling peer_id"
                     (Printexc2.to_string e);
                 dump payload;
                 buf_used b b.len;
@@ -359,7 +359,7 @@ let bt_handler parse_fun handler c sock =
         if msg_len < 0 then
           begin
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
-            lprintf "BT: Unknown message from %s:%d dropped!! peerid:%b data_len:%i msg_len:%i software: %s\n"
+            lprintf_nl "BT: Unknown message from %s:%d dropped!! peerid:%b data_len:%i msg_len:%i software: %s"
                 (Ip.to_string ip) port c.client_received_peer_id b.len msg_len c.client_software;
             dump (String.sub b.buf b.pos (min b.len 30));
             buf_used b b.len;
@@ -370,7 +370,7 @@ let bt_handler parse_fun handler c sock =
              trying to waste our bandwidth ? *)
           begin
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
-            lprintf "btprotocol.bt_handler: closed connection from %s:%d because of too much data!! data_len:%i msg_len:%i software: %s\n"
+            lprintf_nl "btprotocol.bt_handler: closed connection from %s:%d because of too much data!! data_len:%i msg_len:%i software: %s"
                 (Ip.to_string ip) port b.len msg_len c.client_software;
             dump (String.sub b.buf b.pos (min b.len 30));
             buf_used b b.len;
@@ -394,7 +394,7 @@ let bt_handler parse_fun handler c sock =
                     (* lprintf "Parsed, calling handler\n"; *)
                     handler sock p
                 with e ->
-                    lprintf "Exception %s in BTProtocol.parse_fun while handling message with opcode: %d\n"
+                    lprintf_nl "Exception %s in BTProtocol.parse_fun while handling message with opcode: %d"
                       (Printexc2.to_string e) opcode;
                     dump payload;
             else
@@ -407,11 +407,10 @@ let bt_handler parse_fun handler c sock =
   with
     | Wait_for_more s ->
         if closed sock && s <> "after_peer_id" then
-            lprintf "bt_handler: Socket was closed while waiting for more data in %s\n" s
+            lprintf_nl "bt_handler: Socket was closed while waiting for more data in %s" s
     | e ->
-        lprintf "Exception %s in bt_handler\n"
+        lprintf_nl "Exception %s in bt_handler"
           (Printexc2.to_string e)
-
 
 let handlers info gconn =
   let rec iter_read sock nread =
@@ -437,14 +436,14 @@ let handlers info gconn =
             end
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
-              lprintf "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i\n"
+              lprintf_nl "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i"
                 (Ip.to_string ip) port b.len slen;
 
       | Reader h -> 
           h gconn sock
   in
   iter_read
-  
+
 let set_bt_sock sock info ghandler = 
   let gconn = {
       gconn_handler = ghandler;
@@ -469,8 +468,7 @@ let set_bt_sock sock info ghandler =
                 set_lifetime sock 30.
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
-              
-      
+
   
 (*  
 No payload:
@@ -503,12 +501,12 @@ let send_client client_sock msg =
       try
         let s = TcpMessages.write msg in
         if !verbose_msg_clients then begin
-            lprintf "send message: %s\n" (TcpMessages.to_string msg);
+            lprintf_nl "send message: %s" (TcpMessages.to_string msg);
           end;
 (*        dump s; *)
         write_string sock s
   with e ->
-      lprintf "CLIENT : Error %s in send_client\n"
+      lprintf_nl "CLIENT : Error %s in send_client"
         (Printexc2.to_string e)
 )
 

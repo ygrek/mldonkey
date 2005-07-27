@@ -81,9 +81,7 @@ let next_uploaders = ref ([] : BTTypes.client list)
 let current_uploaders = ref ([] : BTTypes.client list)
 
 
-
-
-(** 
+(**
   In this function we connect to a tracker.
   @param file The file concerned by the request
   @param url Url of the tracker to connect
@@ -211,7 +209,8 @@ let recompute_uploaders () =
 (****** Fabrice: why are clients which are disconnected removed ???
   These clients might still be useful to reconnect to, no ? *)
 
-(** This function is called when a client is disconnected 
+
+(** This function is called when a client is disconnected
   (be it by our side or its side).
   A client which disconnects (even only one time) is discarded.
   If it's an uploader which disconnects we recompute uploaders
@@ -221,7 +220,7 @@ let recompute_uploaders () =
 *)
 let disconnect_client c reason =
   if !verbose_msg_clients then
-    lprintf_nl () "CLIENT %d: disconnected: %s" (client_num c) (string_of_reason reason);
+    lprintf_nl () "Client %d: disconnected: %s" (client_num c) (string_of_reason reason);
   begin
     match c.client_sock with
       NoConnection -> ()
@@ -356,7 +355,7 @@ let send_bitfield c =
         Int64Swarmer.verified_bitmap swarmer
   in
 
-  if !verbose then lprintf_nl () "SENDING Verified bitmap: [%s]" bitmap;
+  if !verbose then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
 
   send_client c (BitField
       (
@@ -404,7 +403,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       match !cc with
         None ->
           let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) in
-          if !verbose_connect then lprintf_nl () "CLIENT %d: incoming CONNECTION" (client_num c);
+          if !verbose_connect then lprintf_nl () "Client %d: incoming connection" (client_num c);
           cc := Some c;
           c
       | Some c ->
@@ -412,12 +411,12 @@ let rec client_parse_header counter cc init_sent gconn sock
              If yes then this must happen: *)
           c.client_received_peer_id <- false;
           c
-         (* client could have had Sha1.null as peer_id/uid *)
-         (* this is to be done, later
-         if c.client_uid <> peer_id then
+          (* client could have had Sha1.null as peer_id/uid *)
+          (* this is to be done, later
+          if c.client_uid <> peer_id then
           c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
           c
-         *)
+           *)
 
 (*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
@@ -426,12 +425,12 @@ let rec client_parse_header counter cc init_sent gconn sock
                 (client_num ccc) (client_num c);
               (match ccc.client_sock with
                   Connection _ ->
-                    lprintf "This client is already connected\n";
+                    lprintf_nl "[BT]: This client is already connected";
                     close sock (Closed_for_error "Already connected");
                     remove_client ccc;
                     c
                 | _ ->
-                    lprintf "CLIENT %d: recovered by UID\n" (client_num ccc);
+                    lprintf_nl "[BT]: Client %d: recovered by UID" (client_num ccc);
                     remove_client c;
                     cc := Some ccc;
                     ccc)
@@ -441,14 +440,16 @@ let rec client_parse_header counter cc init_sent gconn sock
 
     if !verbose_msg_clients then begin
         let (ip,port) = c.client_host in
-          lprintf_nl () "[BT]: CLIENT %d: Connected (%s:%d)" (client_num c)
+          lprintf_nl () "Client %d: Connected from %s:%d" (client_num c)
             (Ip.to_string ip) port;
       end;
 
     (match c.client_sock with
         NoConnection ->
-          if !verbose_msg_clients then
-            lprintf_nl () "[BT]: Can't connect to client !!!";
+          if !verbose_msg_clients then begin
+              let (ip,port) = c.client_host in
+              lprintf_nl () "No connection to client (%s:%d)!!!" (Ip.to_string ip) port;
+            end;
           c.client_sock <- Connection sock
       | ConnectionWaiting token ->
           cancel_token token;
@@ -496,7 +497,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       | Not_found ->
           let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
           if !verbose_unexpected_messages then
-            lprintf_nl () "%s:%d requested a file that is not shared [%s]"
+            lprintf_nl () "Client %s:%d requested a file that is not shared [%s]"
               (Ip.to_string ip) port (Sha1.to_hexa file_id)
       | e ->
           lprintf_nl () "Exception %s in client_parse_header" (Printexc2.to_string e);
@@ -566,7 +567,9 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 
       if !verbose_swarming then begin
           lprintf_n () "Current download:\n  Current chunks: ";
-          List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks;
+          (try
+          List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks
+	  with _ -> lprintf "No Chunks");
 	  lprint_newline ();
           lprintf_n () "Current ranges: ";
           List.iter (fun (p1,p2, r) ->
@@ -706,15 +709,14 @@ and client_to_client c sock msg =
         c.client_good <- true;
         if file_state file = FileDownloading then begin
             let position = offset ++ file.file_piece_size *.. num in
-
             let up = match c.client_uploader with
                 None -> assert false
-              | Some up -> up in 
+              | Some up -> up in
             let swarmer = Int64Swarmer.uploader_swarmer up in
 
-            if !verbose_msg_clients then 
+            if !verbose_msg_clients then
               (match c.client_ranges_sent with
-                  [] -> lprintf_nl () "EMPTY Ranges!"
+                  [] -> lprintf_nl () "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
                     let (x,y) = Int64Swarmer.range_range r in
                     lprintf_nl () "Current range %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
@@ -1113,16 +1115,17 @@ let listen () =
                 end
               else
                (*don't forget to close the incoming sock if we can't
-                  open a new connection
+                 open a new connection
                *)
                 Unix.close s
           | _ -> ()
       ) in
     listen_sock := Some s;
     ()
-  with e ->
-      lprintf_nl () "Exception %s while init bittorrent server"
-        (Printexc2.to_string e)
+  with e -> 
+      if !verbose_connect then
+        lprintf_nl () "Exception %s while init bittorrent server"
+          (Printexc2.to_string e)
 
 
 (** This function send keepalive messages to all connected clients
@@ -1206,7 +1209,7 @@ for parsing the response*)
 
                         List.iter (fun v ->
                             match v with
-                              String "peer id", String id -> 
+                              String "peer id", String id ->
                                 peer_id := Sha1.direct_of_string id;
                             | String "ip", String ip ->
                                 peer_ip := Ip.of_string ip
@@ -1215,6 +1218,7 @@ for parsing the response*)
                             | _ -> ()
                         ) list;
 
+                        (* Only record valid clients *)
                         if !peer_id != Sha1.null &&
                           !peer_id <> !!client_uid &&
                           !peer_ip != Ip.null &&
@@ -1397,6 +1401,6 @@ let _ =
   );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
-        lprintf_nl () "CLIENT %d: client_enter_upload_queue" (client_num c);
+        lprintf_nl () "Client %d: client_enter_upload_queue" (client_num c);
       ready_for_upload (as_client c));
   network.op_network_connected_servers <- (fun _ -> []);

@@ -454,7 +454,7 @@ let retry_all_ft () =
 
 let load_torrent_from_web r ft =
   if !verbose_torrent then
-      lprintf_nl () "load_torrent_from_web...";
+      lprintf_nl () "Loading torrent from web";
   let module H = Http_client in
 
   if !verbose_torrent then

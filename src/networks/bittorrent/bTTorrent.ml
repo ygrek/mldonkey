@@ -31,7 +31,6 @@ open BTOptions
 open BTTypes
 open Bencode
 
-
 open Gettext
 let _s x = _s "BTTorrent" x
 let _b x = _b "BTTorrent" x
@@ -92,17 +91,19 @@ let decode_torrent s =
                           match v with
                             String s -> s
                           | _ -> assert false
-                      ) path)
-
+                      ) path);
+                    if !verbose_msg_servers then
+                      lprintf_nl "[BT]: New file received :%s" !current_file
+                | String "path.utf-8", String path_utf8 -> ()
                 | String "length", Int n ->
                     length := !length ++ n;
                     current_length := n;
                     length_set := true
 
                 | String key, _ ->
-                    if !verbose_msg_servers then lprintf "other field [%s] in files\n" key
+                    if !verbose_msg_servers then lprintf_nl "[BT]: other field [%s] with value [%s] in files" key (Bencode.print value)
                 | _ ->
-                    lprintf_nl "[BT]: other field in files\n"
+                    lprintf_nl "[BT]: other field in files"
             ) list;
 
             assert (!length_set);
@@ -198,7 +199,7 @@ let encode_torrent torrent =
   in
 
   let files =
-    match torrent.torrent_files with 
+    match torrent.torrent_files with
       [] ->
         String "length", Int torrent.torrent_length
     | _ ->
@@ -260,7 +261,7 @@ let make_torrent announce filename =
     let begin_pos = chunk_size *.. i in
 
     let end_pos = begin_pos ++ chunk_size in
-    let end_pos = 
+    let end_pos =
       if end_pos > length then length else end_pos in
 
     let sha1 = Sha1.digest_subfile t

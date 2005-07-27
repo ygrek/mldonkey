@@ -10,6 +10,7 @@ ChangeLog
 
 2005/07/27: spiralvoice
 
+4245: BT: Remove whitespace
 4244: Change web_infos period to hours (this is a bugfix,
       no need to change ini files)
       new option: enable_mlnet_redirector
