@@ -738,6 +738,11 @@ let network_update_url =
     "URL where mldonkey can download update information on the network"
     string_option ""
 
+let enable_mlnet_redirector =
+  define_option current_section ["enable_mlnet_redirector"]
+    "Enable the mlnet redirector"
+    bool_option true
+
 let mlnet_redirector = define_expert_option current_section ["redirector"]
     "IP:port of the network redirector"
     addr_option ("129.104.11.42", 3999)

@@ -53,8 +53,7 @@ let _b x = _b "DriverMain" x
 let keep_console_output = ref false
 
 let do_daily () =
-  incr CommonWeb.days;
-  CommonWeb.load_web_infos ()
+  incr CommonWeb.days
 
 let minute_timer () =
   CommonShared.shared_check_files ();
@@ -73,7 +72,7 @@ let minute_timer () =
 
 let hourly_timer timer =
   incr CommonWeb.hours;
-  if !CommonWeb.hours mod 24 = 0 then do_daily ();
+  CommonWeb.load_web_infos ();
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ();
   CommonWeb.connect_redirector ();

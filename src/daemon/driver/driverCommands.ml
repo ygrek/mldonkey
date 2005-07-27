@@ -1657,6 +1657,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option mtu_packet_size;
 			strings_of_option minimal_packet_size;
 			strings_of_option network_update_url;
+			strings_of_option enable_mlnet_redirector;
 			strings_of_option mlnet_redirector;
 			strings_of_option http_proxy_tcp;
 			strings_of_option http_proxy_server;

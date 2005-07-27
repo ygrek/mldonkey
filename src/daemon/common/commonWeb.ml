@@ -174,7 +174,7 @@ let propagation_socket = UdpSocket.create_sendonly ()
 let counter = ref 1
 
 let connect_redirector () =
-  if !!propagate_servers then begin
+  if !!propagate_servers && !!enable_mlnet_redirector then begin
       decr counter;
       if !counter = 0 then begin
           counter := 6;
@@ -198,97 +198,99 @@ let load_web_infos () =
 (* Try to connect the redirector to get interesting information, since we
 are not allowed to use savannah anymore. The redirector should be able to
 support the charge, at least, currently. *)
-  let (name, port) = !!mlnet_redirector in
-  let packet = gen_redirector_packet () in
-  Ip.async_ip name (fun ip ->
-      try
-        if !verbose_redirector then lprintf_nl "connecting to redirector";
-        let token = create_token unlimited_connection_manager in
-        let sock = TcpBufferedSocket.connect token "connect redirector"
-            (Ip.to_inet_addr ip) port
-            (fun sock event ->
-              match event with
-              | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
-                  TcpBufferedSocket.close sock Closed_for_timeout
-              | _ -> ())
-        in
-        TcpBufferedSocket.set_rtimeout sock 30.;
-        let to_read = ref [] in
-        set_reader sock (cut_messages (fun opcode s ->
-              if !verbose_redirector then lprintf_nl "redirector info received";
-              let module L = LittleEndian in
+  if !!enable_mlnet_redirector then begin
+      let (name, port) = !!mlnet_redirector in
+      let packet = gen_redirector_packet () in
+      Ip.async_ip name (fun ip ->
+          try
+            if !verbose_redirector then lprintf_nl "connecting to redirector";
+            let token = create_token unlimited_connection_manager in
+            let sock = TcpBufferedSocket.connect token "connect redirector"
+                (Ip.to_inet_addr ip) port            
+                (fun sock event ->
+                  match event with
+                  | BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
+                      TcpBufferedSocket.close sock Closed_for_timeout
+                  | _ -> ())
+            in
+            TcpBufferedSocket.set_rtimeout sock 30.;
+            let to_read = ref [] in
+            set_reader sock (cut_messages (fun opcode s ->
+                  if !verbose_redirector then lprintf_nl "redirector info received";
+                  let module L = LittleEndian in
 
-              let motd_html_s, pos = L.get_string16 s 2 in
-              let pos = if motd_html_s <> "XX" then
-                  let servers_met_s, pos = L.get_string16 s pos in
-                  let peers_ocl_s, pos = L.get_string16 s pos in
-                  let peers_dat_s, pos = L.get_string16 s pos in
-                  let motd_conf_s, pos = L.get_string16 s pos in
-                  let peers_kad_s, pos = L.get_string16 s pos in
+                  let motd_html_s, pos = L.get_string16 s 2 in
+                  let pos = if motd_html_s <> "XX" then 
+                      let servers_met_s, pos = L.get_string16 s pos in
+                      let peers_ocl_s, pos = L.get_string16 s pos in
+                      let peers_dat_s, pos = L.get_string16 s pos in
+                      let motd_conf_s, pos = L.get_string16 s pos in
+                      let peers_kad_s, pos = L.get_string16 s pos in
 
-                  motd_html =:= motd_html_s;
+                      motd_html =:= motd_html_s;
 
-                  let servers_met_file = Filename.temp_file "servers" ".met" in
-                  File.from_string servers_met_file servers_met_s;
-                  if !!enable_donkey then
-                  load_file "servers.met" servers_met_file;
+                      let servers_met_file = Filename.temp_file "servers" ".met" in
+                      File.from_string servers_met_file servers_met_s;
+                      if !!enable_donkey then
+                      load_file "servers.met" servers_met_file;
 
-                  let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
-                  File.from_string peers_ocl_file peers_ocl_s;
-                  if !!enable_overnet then
-                  load_file "ocl" peers_ocl_file;
+                      let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
+                      File.from_string peers_ocl_file peers_ocl_s;
+                      if !!enable_overnet then
+                        load_file "ocl" peers_ocl_file;
 
-                  let peers_dat_file = Filename.temp_file "contacts" ".dat" in
-                  File.from_string peers_dat_file peers_dat_s;
-                  if !!enable_overnet then
-                  load_file "contact.dat" peers_dat_file;
+                      let peers_dat_file = Filename.temp_file "contacts" ".dat" in
+                      File.from_string peers_dat_file peers_dat_s;
+                      if !!enable_overnet then
+                        load_file "contact.dat" peers_dat_file;
 
-                  let motd_conf_file = Filename.temp_file "motd" ".conf" in
-                  File.from_string motd_conf_file motd_conf_s;
-                  load_file "motd.conf" motd_conf_file;
+                      let motd_conf_file = Filename.temp_file "motd" ".conf" in
+                      File.from_string motd_conf_file motd_conf_s;
+                      load_file "motd.conf" motd_conf_file;              
+                  
+                      let peers_kad_file = Filename.temp_file "peers" ".kad" in
+                      File.from_string peers_kad_file peers_kad_s;
+                      if !!enable_kademlia then
+                        load_file "kad" peers_kad_file;
 
-                  let peers_kad_file = Filename.temp_file "peers" ".kad" in
-                  File.from_string peers_kad_file peers_kad_s;
-                  if !!enable_kademlia then
-                  load_file "kad" peers_kad_file;
+                      pos
+                    else
 
-                  pos
-                else
+                      let get_item s pos = 
+                        let kind, pos = get_string32 s pos in
+                        let file, pos = get_string32 s pos in
+                        (kind, file), pos
+                      in
+                      let files, pos = L.get_list16 get_item s pos in
+                      List.iter (fun (kind, file) ->
+                          let temp_file = Filename.temp_file "temp" ".mld" in
+                          File.from_string temp_file file;
+                          load_file kind temp_file
+                      ) files;
+                      pos
+                  in
+                  let ip = L.get_ip s pos in
+                  last_high_id := ip;
 
-                let get_item s pos =
-                  let kind, pos = get_string32 s pos in
-                  let file, pos = get_string32 s pos in
-                  (kind, file), pos
-                in
-                let files, pos = L.get_list16 get_item s pos in
-                List.iter (fun (kind, file) ->
-                    let temp_file = Filename.temp_file "temp" ".mld" in
-                    File.from_string temp_file file;
-                    load_file kind temp_file
-                ) files;
-                pos
-              in
-              let ip = L.get_ip s pos in
-              last_high_id := ip;
+                  lprintf_nl "Redirector info loaded (IP set to %s)"
+                    (Ip.to_string ip);
+                  TcpBufferedSocket.set_lifetime sock 30.;
 
-              lprintf "Redirector info loaded (IP set to %s)\n"
-                (Ip.to_string ip);
-              TcpBufferedSocket.set_lifetime sock 30.;
+              ));
+            write_string sock packet
 
-          ));
-        write_string sock packet
-
-      with e ->
-          lprintf "Exception %s while connecting redirector\n"
-            (Printexc2.to_string e)
-  );
+          with e -> 
+              lprintf_nl "Exception %s while connecting redirector"
+                (Printexc2.to_string e)
+      )
+    end;
 
   if !!network_update_url <> "" then begin
     load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
     load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
   end;
   List.iter (fun (kind, period, url) ->
-      if !days mod period = 0 then
+      if !hours mod period = 0 then
         match kind with
         | "contact.dat" -> if !!enable_overnet then load_url kind url
         | "guarding.p2p" -> load_url kind url
