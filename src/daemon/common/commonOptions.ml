@@ -683,12 +683,12 @@ let web_infos = define_option current_section
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   [
+    ("guarding.p2p", 96,
+      "http://www.bluetack.co.uk/config/antip2p.txt");
     ("server.met", 24,
       "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
     ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
-    ("guarding.p2p", 96,
-      "http://www.bluetack.co.uk/config/antip2p.txt");
   ]
 
 let rss_feeds = define_expert_option current_section ["rss_feeds"]
@@ -1380,7 +1380,7 @@ let _ =
       enable_bittorrent =:= true
 
 let win_message =
-"\n\nNEVER close this windows with the close button
+"\n\nNEVER close this window with the close button
 on the top right corner of this window!
 Instead use the kill command in Telnet or HTML,
 the kill function of a GUI or CTRL+C.\n\n"
