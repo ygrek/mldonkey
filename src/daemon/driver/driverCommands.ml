@@ -2192,7 +2192,7 @@ let _ =
 
                           client_print_html c o;
                           html_mods_td buf ([
-                            ("", "sr", (string_of_kind  i.client_kind));
+                            ("", "sr", (string_of_kind i.client_kind));
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             ("", "sr", i.client_software);
                             ("", "sr", i.client_release);

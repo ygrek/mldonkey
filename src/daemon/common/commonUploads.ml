@@ -33,7 +33,7 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonOptions
 
-(* 
+(*
 PROBLEMS: most of the time, users won't share their files on all networks.
 We should provide a different directory than incoming/, where files
 would be shared, per directory ?
@@ -43,27 +43,25 @@ and each network would be configured to share or not share different
 directories. Moreover, we should have a different sharing strategy.
 
 Default would be: share all files greater than 1 MB in incoming/ on Edonkey.
-  
+
 *)
 
 (*******************************************************************
 
-  
                          TYPES
 
-  
 *******************************************************************)
 
 let ed2k_block_size = Int64.of_int 9728000
 let tiger_block_size = Int64.of_int (1024 * 1024)
-  
+
 type shared_file = {
     shared_codedname : string;
     shared_info : Store.index;
     shared_fd : Unix32.t;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
-    mutable shared_uids_wanted : 
+    mutable shared_uids_wanted :
     (file_uid_id * (shared_file -> Uid.t -> unit)) list;
   }
 
@@ -74,60 +72,58 @@ and shared_info = {
     mutable shared_tiger : TigerTree.t array;
     mutable shared_bitprint : Uid.t option;
     mutable shared_mtime : float;
-    mutable shared_uids : Uid.t list;    
+    mutable shared_uids : Uid.t list;
     mutable shared_id : int;
   }
-  
+
 and shared_tree =
-  { 
+  {
     shared_dirname : string;
     mutable shared_files : shared_file list;
     mutable shared_dirs : (string * shared_tree) list;
-  }  
+  }
 
 type local_search = {
     mutable local_search_results : (shared_file * shared_info) list;
     mutable local_search_query : query;
   }
-  
+
 module IndexingSharedFiles = struct
 
     let store_name = "shared_store"
 
     let search_query s = s.local_search_query
-      
+
     type search = local_search
     type result = shared_info
-      
+
     let result_names sh = [sh.shared_fullname]
     let result_size sh = sh.shared_size
     let result_uids sh = []
     let result_tags sh = []
-      
-(* We should probably directly use the Store.index here so that all 
+
+(* We should probably directly use the Store.index here so that all
 shared_infos are stored on disk. *)
     type stored_result = Store.index
     let result_index r = r
-      
+
   end
 
 module IndexedSharedFiles = CommonIndexing.Make(IndexingSharedFiles)
-  
-  
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         SAVED SHARED FILES                            *)
 (*                                                                       *)
 (*************************************************************************)
 
-  
 module SharedFileOption = struct
-    
-    let get_value assocs name conv = 
-      try conv (List.assoc name assocs) 
-      with _ -> failwith (Printf.sprintf "Bad shared file %s" name) 
-    
-    let value_to_info v = 
+
+    let get_value assocs name conv =
+      try conv (List.assoc name assocs)
+      with _ -> failwith (Printf.sprintf "Bad shared file %s" name)
+
+    let value_to_info v =
       match v with
         Options.Module assocs ->
           let sh_md4s = get_value assocs "md4s"
@@ -142,7 +138,7 @@ module SharedFileOption = struct
               (value_to_list (fun v ->
                   Uid.of_string (value_to_string v)))
           in
-          
+
           let sh_size = get_value assocs "size"  value_to_int64 in
           let sh_name = get_value assocs "name" value_to_filename in
           let sh_mtime = get_value assocs "mtime" value_to_float in
@@ -154,18 +150,18 @@ module SharedFileOption = struct
               | _ -> ()
           ) sh_uids;
 
-          { shared_fullname = sh_name; 
+          { shared_fullname = sh_name;
             shared_mtime = sh_mtime;
-            shared_size = sh_size; 
+            shared_size = sh_size;
             shared_md4s = sh_md4s;
             shared_tiger = sh_ttr;
             shared_bitprint = !sh_bitprint;
             shared_uids = sh_uids;
             shared_id = 0;
           }
-          
+
       | _ -> failwith "Options: not a shared file info option"
-      
+
     let info_to_value info =
       Options.Module [
         "name", filename_to_value info.shared_fullname;
@@ -175,22 +171,25 @@ module SharedFileOption = struct
         "ttr", array_to_value TigerTree.hash_to_value info.shared_tiger;
         "uids", list_to_value (fun v ->
             string_to_value (Uid.to_string v)) info.shared_uids;
-      ]    
-    
+      ]
+
     let t = define_option_class "SharedFile" value_to_info info_to_value
   end
 
-    
 let shared_ini = create_options_file "shared_files.ini"
 
 let shared_section = file_section shared_ini [] ""
 
-let old_shared_files = define_option shared_section 
-    ["shared_files"] "" 
+let old_shared_files = define_option shared_section
+    ["shared_files"] ""
     (list_option SharedFileOption.t) []
 
 let infos_by_name = Hashtbl.create 113
-  
+
+let lprintf_nl () =
+  lprintf "%s[cUp] "
+    (log_time ()); lprintf_nl2
+
 let _ =
   set_after_load_hook shared_ini (fun _ ->
       List.iter (fun info ->
@@ -209,22 +208,22 @@ let _ =
 
 let load () = try Options.load shared_ini with _ -> ()
 let save () = Options.save shared_ini
-  
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         NETWORK                                       *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
 let network = CommonNetwork.new_network "GS" "Global Shares"
     [ VirtualNetwork ]
 
-let _ = 
+let _ =
   network.op_network_connected <- (fun _ -> false);
   network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
   network.op_network_info <- (fun _ -> raise Not_found);
   network.op_network_info <- (fun n ->
-      { 
+      {
         network_netnum = network.network_num;
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
@@ -236,12 +235,10 @@ let _ =
         network_connected = 0;
       });
   network.op_network_connected_servers <- (fun _ -> [])
-  
-let (shared_ops : shared_file CommonShared.shared_ops) = 
+
+let (shared_ops : shared_file CommonShared.shared_ops) =
   CommonShared.new_shared_ops network
-  
-  
-  
+
 let waiting_shared_files = ref []
 let shareds_by_uid = Hashtbl.create 13
 let shareds_by_id = Hashtbl.create 13
@@ -249,33 +246,29 @@ let shareds_by_id = Hashtbl.create 13
 let add_by_uid uid sh =
   let urn = Uid.to_string uid in
   Hashtbl.add shareds_by_uid uid sh
-  
+
 let find_by_uid uid =
   let urn = Uid.to_string uid in
   Hashtbl.find shareds_by_uid uid
-  
-  
-module SharedFilesIndex = IndexedSharedFiles.MakeIndex (struct 
-      let add_search_result s sh = 
+
+module SharedFilesIndex = IndexedSharedFiles.MakeIndex (struct
+      let add_search_result s sh =
         let r = Hashtbl.find shareds_by_id sh.shared_id in
         s.local_search_results <- (r, sh) :: s.local_search_results
     end)
 
-  
 let current_job = ref None
-              
+
 (*******************************************************************
 
-  
                       DATA STRUCTURES
 
-  
 *******************************************************************)
-  
+
 let shareds_counter = ref 1
 let shared_counter = ref (Int64.zero)
-let shared_files = Hashtbl.create 13 
-  
+let shared_files = Hashtbl.create 13
+
 let new_shared_dir dirname = {
     shared_dirname = dirname;
     shared_files = [];
@@ -286,13 +279,10 @@ let shared_tree = new_shared_dir ""
 
 (*******************************************************************
 
-  
                     HASHES COMPUTATION
 
-  
 *******************************************************************)
-  
-  
+
 let md4_of_list md4s =
   let len = List.length md4s in
   let s = String.create (len * 16) in
@@ -324,11 +314,11 @@ let rec tiger_of_array array pos block =
   let t = Tiger.string s in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
-  
+
 let rec tiger_max_block_size block len =
   if block >= len then block
   else tiger_max_block_size (block*2) len
-  
+
 let tiger_of_array array =
   tiger_of_array array 0 (tiger_max_block_size  1 (Array.length array))
 
@@ -349,7 +339,7 @@ let rec tiger_pos2 nblocks =
   let pos = half + pos in
   pos, list
 
-let tiger_node d1 d2 = 
+let tiger_node d1 d2 =
   let s = String.create (1 + Tiger.length * 2) in
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
@@ -357,7 +347,7 @@ let tiger_node d1 d2 =
   let t = Tiger.string s in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
-  
+
 let rec tiger_tree s array pos block =
   if block = 1 then
     array.(pos)
@@ -369,7 +359,7 @@ let rec tiger_tree s array pos block =
   let d1 = tiger_tree s array pos (block/2) in
   let d2 = tiger_tree s array (pos+block/2) (block/2) in
   tiger_node d1 d2
-  
+
 let rec fill_tiger_tree s list =
   match list with
     [] -> ()
@@ -389,24 +379,24 @@ let rec fill_tiger_tree s list =
       if acc = 1 then s.(pos+half) <- s.(next_pos+2*half);
       fill_tiger_tree s tail
 
-let flatten_tiger_array array = 
+let flatten_tiger_array array =
   let len = Array.length array in
-  let s = String.create ( len * TigerTree.length) in  
+  let s = String.create ( len * TigerTree.length) in
   for i = 0 to len - 1 do
     String.blit (TigerTree.direct_to_string array.(i)) 0
       s (i * TigerTree.length) TigerTree.length
   done;
   s
 
-let unflatten_tiger_array s = 
+let unflatten_tiger_array s =
   let len = String.length s / TigerTree.length in
-  let array = Array.create len TigerTree.null in  
+  let array = Array.create len TigerTree.null in
   for i = 0 to len - 1 do
-    array.(i) <- TigerTree.direct_of_string 
+    array.(i) <- TigerTree.direct_of_string
       (String.sub s (i * TigerTree.length) TigerTree.length)
   done;
   array
-  
+
 let make_tiger_tree array =
   let len = Array.length array in
   let pos, list = tiger_pos2 len in
@@ -416,36 +406,36 @@ let make_tiger_tree array =
   done;
   fill_tiger_tree s list;
   flatten_tiger_array s
-  
-let build_tiger_tree_file uid ttr = 
+
+let build_tiger_tree_file uid ttr =
   let s = make_tiger_tree ttr in
   Unix2.safe_mkdir "ttr";
   Unix2.can_write_to_directory "ttr";
   File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) s
-  
-let rec start_job_for sh (wanted_id, handler) = 
+
+let rec start_job_for sh (wanted_id, handler) =
   let info = IndexedSharedFiles.get_result sh.shared_info in
   try
     List.iter (fun id ->
         match wanted_id,Uid.to_uid id with
-          BITPRINT, Bitprint _ 
+          BITPRINT, Bitprint _
         | SHA1, Sha1 _
         | ED2K, Ed2k _
-        | MD5, Md5 _ 
-        | MD5EXT, Md5Ext _ 
+        | MD5, Md5 _
+        | MD5EXT, Md5Ext _
         | TIGER, TigerTree _
           -> (try handler sh id with _ -> ()); raise Exit
         | _ -> ()
     ) info.shared_uids;
-    
+
     match wanted_id with
-      SHA1 -> 
+      SHA1 ->
         begin
           try
             CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
             zero info.shared_size (fun job ->
                 if job.CommonHasher.job_error then begin
-                    lprintf "Error during hashing of %s\n" info.shared_fullname; 
+                    lprintf_nl () "Error during hashing of %s" info.shared_fullname;
                     current_job := None;
                   end else
                   begin
@@ -454,16 +444,16 @@ let rec start_job_for sh (wanted_id, handler) =
                     let uid = Uid.create (Sha1 sha1) in
                     info.shared_uids <- uid :: info.shared_uids;
                     IndexedSharedFiles.update_result sh.shared_info info;
-                    
+
                     add_by_uid uid sh;
-                    start_job_for sh (wanted_id, handler)  
+                    start_job_for sh (wanted_id, handler)
                   end
             );
           with e ->
               current_job := None;
-              raise e              
-        end    
-        
+              raise e
+        end
+
     | BITPRINT ->
         let sha1 = ref None in
         let tiger = ref None in
@@ -480,13 +470,13 @@ let rec start_job_for sh (wanted_id, handler) =
               info.shared_uids <- uid :: info.shared_uids;
               info.shared_bitprint <- Some uid;
               IndexedSharedFiles.update_result sh.shared_info info;
-              
+
               add_by_uid uid sh;
-              
+
               build_tiger_tree_file uid info.shared_tiger;
-              
+
               start_job_for sh (wanted_id, handler)
-          
+
           | _ -> ()
 (*
 (* Not enough information to compute the bitprint. Ask for the corresponding
@@ -501,9 +491,9 @@ computation ??? *)
 | _ -> ());
   *)
         end
-    
+
     | MD5EXT ->
-        let md5ext =  
+        let md5ext =
           try
             let fd = Unix32.create_rw info.shared_fullname in
             let file_size = Unix32.getsize64 fd false in
@@ -521,8 +511,8 @@ computation ??? *)
         IndexedSharedFiles.update_result sh.shared_info info;
 
         add_by_uid uid sh;
-        start_job_for sh (wanted_id, handler)  
-    
+        start_job_for sh (wanted_id, handler)
+
     | ED2K ->
         let size = info.shared_size in
         let chunk_size = ed2k_block_size  in
@@ -534,10 +524,10 @@ computation ??? *)
                 pos (min (size -- pos) chunk_size)
               (fun job ->
                   if job.CommonHasher.job_error then begin
-                      lprintf "Error during hashing of %s\n" info.shared_fullname; 
+                      lprintf_nl () "Error during hashing of %s" info.shared_fullname;
                       current_job := None;
                     end else begin
-                      
+
                       iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes)
                     end)
             with e ->
@@ -553,12 +543,12 @@ computation ??? *)
           IndexedSharedFiles.update_result sh.shared_info info;
 
           add_by_uid uid sh;
-          start_job_for sh (wanted_id, handler)                
+          start_job_for sh (wanted_id, handler)
         in
         iter zero []
-    
-    | TIGER -> 
-        
+
+    | TIGER ->
+
         if TigerTree.enabled then
 
           let size = info.shared_size in
@@ -570,11 +560,11 @@ computation ??? *)
                   pos (min (size -- pos) chunk_size)
               (fun job ->
                     if job.CommonHasher.job_error then begin
-                      lprintf "Error during hashing of %s\n" 
-                      info.shared_fullname; 
+                      lprintf_nl () "Error during hashing of %s"
+                      info.shared_fullname;
                         current_job := None;
                       end else begin
-                        iter (pos ++ chunk_size) 
+                        iter (pos ++ chunk_size)
                         (job.CommonHasher.job_result :: hashes)
                       end)
             else
@@ -586,16 +576,16 @@ computation ??? *)
             IndexedSharedFiles.update_result sh.shared_info info;
 
             add_by_uid uid sh;
-            start_job_for sh (wanted_id, handler)                
+            start_job_for sh (wanted_id, handler)
           in
           iter zero []
-          
+
     | _ -> raise Exit
-    
-  with Exit -> 
+
+  with Exit ->
       current_job := None
-  | e -> current_job := None; raise e  
-  
+  | e -> current_job := None; raise e
+
 let shared_files_timer _ =
   match !current_job with
   | Some _ -> ()
@@ -607,7 +597,7 @@ let shared_files_timer _ =
             [] ->  waiting_shared_files := tail;
           | uid :: tail ->
               if !verbose_share then
-                lprintf "shared_files_timer: starting job\n";
+                lprintf_nl () "shared_files_timer: starting job";
               sh.shared_uids_wanted <- tail;
               current_job := Some sh;
               start_job_for sh uid
@@ -618,10 +608,8 @@ let ask_for_uid sh uid f =
 
 (*******************************************************************
 
-  
                       FUNCTIONS
 
-  
 *******************************************************************)
 
 let rec add_shared_file node sh dir_list =
@@ -652,7 +640,7 @@ let new_info full_name size =
         IndexedSharedFiles.remove_result index;
         raise Not_found;
       end;
-    
+
     info.shared_id <- !shareds_counter;
     IndexedSharedFiles.update_result index info;
     info, index
@@ -663,23 +651,23 @@ let new_info full_name size =
           shared_mtime = mtime;
           shared_md4s = [||];
           shared_tiger = [||];
-          shared_bitprint = None;          
+          shared_bitprint = None;
           shared_size = size;
           shared_id = !shareds_counter;
         } in
       let index =IndexedSharedFiles.add info in
       Hashtbl.add infos_by_name full_name index;
       info, index
-      
+
 let add_shared full_name codedname size =
   try
     Hashtbl.find shared_files codedname
   with Not_found ->
-      
+
       let fd = Unix32.create_ro full_name in
 
       let info, index = new_info full_name size in
-      
+
       let rec impl = {
           impl_shared_update = 1;
           impl_shared_fullname = full_name;
@@ -691,7 +679,7 @@ let add_shared full_name codedname size =
           impl_shared_ops = shared_ops;
           impl_shared_val = sh;
           impl_shared_requests = 0;
-        } 
+        }
       and sh = {
           shared_info = index;
           shared_codedname = codedname;
@@ -700,15 +688,15 @@ let add_shared full_name codedname size =
           shared_impl = impl;
           shared_uids_wanted = [];
         } in
-      
+
       update_shared_num impl;
-      
+
 (*      lprintf "FILE ADDED: %s\n" codedname;  *)
       Hashtbl.add shared_files codedname sh;
       Hashtbl.add shareds_by_id info.shared_id sh;
-      
+
       List.iter (fun uid -> add_by_uid uid sh) info.shared_uids;
-      
+
       SharedFilesIndex.add sh.shared_info;
       add_shared_file shared_tree sh (String2.split codedname '/');
       shared_counter := Int64.add !shared_counter size;
@@ -719,48 +707,36 @@ let iter f =
   Hashtbl.iter (fun _ sh ->
       f sh
   ) shared_files
-      
-let query q = 
+
+let query q =
   let s = {
     local_search_query = q;
     local_search_results = []
     } in
   SharedFilesIndex.find s;
   s.local_search_results
-  
+
 let find_by_name name = Hashtbl.find shared_files name
-  
+
 (*let find_by_num num = Hashtbl.find table num *)
 
 (**********************************************************************
 
-
                      UPLOAD SCHEDULER
-
 
 ***********************************************************************)
 
 let client_is_connected c = is_connected (client_state c)
-  
-
-(* Move the uploaders and nu commands to driver *)
-
-
-
-
-
-
 
 let upload_clients = (Fifo.create () : client Fifo.t)
-
 
 let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
 (* let (pending_slots_fifo : int Fifo.t)  = Fifo.create () *)
 
-let remaining_bandwidth = ref 0    
-let total_bandwidth = ref 0    
+let remaining_bandwidth = ref 0
+let total_bandwidth = ref 0
 let complete_bandwidth = ref 0
-let counter = ref 1    
+let counter = ref 1
 let sent_bytes = Array.create 10 0
 let has_upload = ref 0
 let upload_credit = ref 0
@@ -768,15 +744,15 @@ let upload_credit = ref 0
 
 let can_write_len sock len =
   let bool1 = can_write_len sock len in
-  let upload_rate = 
+  let upload_rate =
         (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
     * 1024 in
-  let bool2 = 
+  let bool2 =
     (
 (*      lprintf "upload_rate %d -> %d\n" upload_rate
         (upload_rate * (Fifo.length upload_clients)); *)
-(* changed 2.5.24 
-Don't put in a socket more than 10 seconds of upload. 
+(* changed 2.5.24
+Don't put in a socket more than 10 seconds of upload.
   *)
     not_buffer_more sock (upload_rate * 10  (* * (Fifo.length upload_clients) *) ))
   in
@@ -796,7 +772,7 @@ upload_clients; *)
       let c = Fifo.take upload_clients in
       client_can_upload c  !remaining_bandwidth
     end else
-  let per_client = 
+  let per_client =
     let len = Fifo.length upload_clients in
     if len * 10000 < !remaining_bandwidth then
 (* Each client in the Fifo can receive 10000 bytes.
@@ -822,24 +798,24 @@ let rec next_uploads () =
   if !remaining_bandwidth < old_remaining_bandwidth then
     next_uploads ()
 
-let next_uploads () = 
+let next_uploads () =
   sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
   (*
   if !verbose_upload then begin
-      lprintf "Left %d\n" !remaining_bandwidth; 
+      lprintf "Left %d\n" !remaining_bandwidth;
     end; *)
   complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
   incr counter;
   if !counter = 11 then begin
       counter := 1;
-      total_bandwidth := 
+      total_bandwidth :=
       (if !!max_hard_upload_rate = 0 then 10000 * 1024
         else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
       complete_bandwidth := !total_bandwidth;
 (*      lprintf "Init to %d\n" !total_bandwidth;  *)
-      remaining_bandwidth := 0          
+      remaining_bandwidth := 0
     end;
-  
+
   let last_sec = ref 0 in
   for i = 0 to 9 do
     last_sec := !last_sec + sent_bytes.(i)
@@ -852,47 +828,46 @@ let next_uploads () =
       for i = 0 to 9 do
         lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
       done; *)
-      
-    end; *)  
-  remaining_bandwidth := mini (mini (mini 
-        (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) 
-      !total_bandwidth) !complete_bandwidth) 
+
+    end; *)
+  remaining_bandwidth := mini (mini (mini
+        (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000)
+      !total_bandwidth) !complete_bandwidth)
   (!total_bandwidth - !last_sec);
   complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
 (*  lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth;  *)
   sent_bytes.(!counter-1) <- !remaining_bandwidth;
-  if !remaining_bandwidth > 0 then 
+  if !remaining_bandwidth > 0 then
     next_uploads ()
 
 let reset_upload_timer () = ()
-    
+
 let reset_upload_timer _ =
   reset_upload_timer ()
-  
+
 let upload_credit_timer _ =
-  if !has_upload = 0 then 
+  if !has_upload = 0 then
     (if !upload_credit < 300 then incr upload_credit)
   else
     decr has_upload
-    
+
 let ready_for_upload c =
   Fifo.put upload_clients c
-    
+
 let add_pending_slot c =
-  if client_has_a_slot c then begin
-      if !verbose_upload then lprintf "Avoided inserting an uploader in pending slots!\n";
-    end 
-  else 
+  if client_has_a_slot c then
+    if !verbose_upload then lprintf_nl () "Avoided inserting an uploader in pending slots!"
+  else
   if not (Intmap.mem (client_num c) !pending_slots_map) then
     begin
-(* This is useless since it is the goal of the pending_slots_map 
+(* This is useless since it is the goal of the pending_slots_map
         else if Fifo.mem pending_slots_fifo (client_num c) then begin
 	lprintf "Avoided inserting a client twice in pending slots\n";
 	
       end else *)
       pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
     end
-    
+
 let remove_pending_slot c =
   if Intmap.mem (client_num c) !pending_slots_map then
     pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
@@ -906,7 +881,7 @@ let rec give_a_slot c =
       set_client_has_a_slot c true;
       client_enter_upload_queue c
     end
-    
+
 and find_pending_slot () =
   try
     let rec iter () =
@@ -922,7 +897,7 @@ let add_pending_slot c =
   let cprio = ref (shared_prio csh) in
   (* if cdir <> "" then
     lprintf "Testing cdir %s\n" cdir; *)
-  Intmap.iter (fun _ c -> 
+  Intmap.iter (fun _ c ->
     let sh = client_upload c in
     if shared_dir sh = cdir then decr cprio
   ) !CommonClient.uploaders;
@@ -941,16 +916,16 @@ let static_refill_upload_slots () =
   let len = Intmap.length !CommonClient.uploaders in
   if len < !!max_upload_slots then find_pending_slot ()
 
-(* Since dynamic slots allocation is based on feedback, it should not 
- * allocate new slots too fast, since connections need some time to reach 
- * a stable state. 
+(* Since dynamic slots allocation is based on feedback, it should not
+ * allocate new slots too fast, since connections need some time to reach
+ * a stable state.
  * To compensate for that slow pace, slots are allocated quadratically
- * as long as the link is not saturated. 
+ * as long as the link is not saturated.
  *)
 
 let not_saturated_count = ref 0
 let allocation_cluster = ref 1
-  
+
 let dynamic_refill_upload_slots () =
   let reset_state () =
     not_saturated_count := 0;
@@ -958,9 +933,8 @@ let dynamic_refill_upload_slots () =
 
   let open_slots n =
     let i = ref n in
-    if !verbose_upload then begin
-      lprintf "try to allocate %d more slots\n" n;
-    end;
+    if !verbose_upload then
+      lprintf_nl () "try to allocate %d more slots" n;
     while !i > 0 do
       find_pending_slot ();
       decr i
@@ -970,27 +944,24 @@ let dynamic_refill_upload_slots () =
   let min_upload_slots = 3 in
 (*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
   let estimated_capacity = detected_uplink_capacity () in
-  if !verbose_upload then begin
-    lprintf "usage: %d(%d) capacity: %d\n"
-      (short_delay_upload_usage ()) 
-      (upload_usage ()) 
+  if !verbose_upload then
+    lprintf_nl () "usage: %d(%d) capacity: %d"
+      (short_delay_upload_usage ())
+      (upload_usage ())
       estimated_capacity;
-  end;
   let len = Intmap.length !CommonClient.uploaders in
   if len < !!max_upload_slots then begin
 
 (* enough free bw for another slot *)
     if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
-      if !verbose_upload then begin
-	lprintf "uplink not fully used\n";
-      end;
+      if !verbose_upload then
+	lprintf_nl () "uplink not fully used";
       incr not_saturated_count
     end else reset_state ();
-          
+
     if len < min_upload_slots then begin
-      if !verbose_upload then begin
-	lprintf "too few upload slots\n";
-      end;
+      if !verbose_upload then
+	lprintf_nl () "too few upload slots";
       open_slots (min_upload_slots - len);
       reset_state ()
     end else if !not_saturated_count >= 2 then begin
@@ -1033,27 +1004,23 @@ let consume_bandwidth len =
   remaining_bandwidth := !remaining_bandwidth - len
 
 let remaining_bandwidth () = !remaining_bandwidth
-  
-  
 
 (**********************************************************************
 
-
                      DOWNLOAD SCHEDULER
-
 
 ***********************************************************************)
 
-let download_credit = ref 0 
+let download_credit = ref 0
 let download_fifo = Fifo.create ()
-    
+
 let download_engine () =
   if not (Fifo.empty download_fifo) then begin
       let credit = !!max_hard_download_rate in
       let credit = 2 * (if credit = 0 then 10000 else credit) in
       download_credit := !download_credit + credit;
       let rec iter () =
-        if !download_credit > 0 && not (Fifo.empty download_fifo) then  
+        if !download_credit > 0 && not (Fifo.empty download_fifo) then
           begin
             (try
                 let (f, len) = Fifo.take download_fifo in
@@ -1066,67 +1033,62 @@ let download_engine () =
       iter ()
     end
 
-let queue_download_request f len =  
-  if !!max_hard_download_rate = 0 then 
+let queue_download_request f len =
+  if !!max_hard_download_rate = 0 then
     f ()
   else
-    Fifo.put download_fifo (f,len)    
+    Fifo.put download_fifo (f,len)
 
   (* timer started every 1/10 seconds *)
 let upload_download_timer () =
-  (try download_engine () 
-    with e -> 
-        lprintf "Exception %s in download_engine\n"  (Printexc2.to_string e)
+  (try download_engine ()
+    with e ->
+        lprintf_nl () "Exception %s in download_engine" (Printexc2.to_string e)
   );
   (try next_uploads ()
-  with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
-              
-  
+  with e -> lprintf_nl () "exc %s in upload" (Printexc2.to_string e))
+
 let words_of_filename =
   let extension_list = [
       "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" ; "ogm"
     ]
-  in      
+  in
   let rec remove_short list list2 =
     match list with
       [] -> List.rev list2
-    | s :: list -> 
-        if List.mem s extension_list then 
-          remove_short list (s :: list2) else 
-        
+    | s :: list ->
+        if List.mem s extension_list then
+          remove_short list (s :: list2) else
+
         if String.length s < 5 then (* keywords should had list be 5 bytes *)
           remove_short list list2
         else
           remove_short list (s :: list2)
   in
-  
+
   let get_name_keywords file_name =
-    match remove_short (String2.stem file_name) [] with 
-      [] | [_] -> 
-        lprintf "Not enough keywords to recover %s\n" file_name;
+    match remove_short (String2.stem file_name) [] with
+      [] | [_] ->
+        lprintf_nl () "Not enough keywords to recover %s" file_name;
         [file_name]
     | l -> l
   in
   get_name_keywords
-  
-  
-open LittleEndian  
+
+open LittleEndian
 
 let _ =
   CommonWeb.add_redirector_info "SHARED" (fun buf ->
       let module S = CommonShared in
       let total_shared = ref Int64.zero in
       let total_uploaded = ref Int64.zero in
-      
       S.shared_iter (fun s ->
           let i = S.as_shared_impl s in
-          total_uploaded := 
+          total_uploaded :=
           Int64.add !total_uploaded i.S.impl_shared_uploaded;
-          total_shared := 
+          total_shared :=
           Int64.add !total_shared i.S.impl_shared_size
       );
-      
       buf_int64 buf !total_shared;
       buf_int64 buf !total_uploaded;
-      
   )
