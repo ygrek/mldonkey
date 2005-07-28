@@ -851,8 +851,9 @@ let ready_for_upload c =
   Fifo.put upload_clients c
 
 let add_pending_slot c =
-  if client_has_a_slot c then
-    if !verbose_upload then lprintf_nl "[cUp] Avoided inserting an uploader in pending slots!"
+  if client_has_a_slot c then begin
+      if !verbose_upload then lprintf_nl "[cUp] Avoided inserting an uploader in pending slots!"
+    end
   else
   if not (Intmap.mem (client_num c) !pending_slots_map) then
     begin
