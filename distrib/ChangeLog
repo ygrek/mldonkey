@@ -12,12 +12,13 @@ ChangeLog
 
 4250: Remove whitespaces from commonUploads.ml
 4249: HTML: Links to fake check services in search results
+      (by bogeyman)
 
 2005/07/27: spiralvoice
 
 4194: FileTP : Add support for "referer",
-      error messages cleanup
-4245: BT: Remove whitespace
+      error messages cleanup (by beedauchon)
+4245: BT: Remove whitespace (by beedauchon)
 4244: Change web_infos period to hours (this is a bugfix,
       no need to change ini files)
       new option: enable_mlnet_redirector
@@ -25,7 +26,7 @@ ChangeLog
 2005/07/26: spiralvoice
 
 4243: FileTP: Clean lots of whitespaces
-4031: HTML: relative refs in HTML output
+4031: HTML: relative refs in HTML output (by beedauchon)
 4191: Access to disk data (free space, max file name length)
       This is first step implmenting this, checkout the
       disk command for debugging.
