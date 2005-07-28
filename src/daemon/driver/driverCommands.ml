@@ -2089,7 +2089,7 @@ let _ =
                       ed2k (Filename.basename impl.impl_shared_codedname)));
                   ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
                     Printf.sprintf "\\<a href=\\\"http://stats.razorback2.com/ed2khistory?ed2k=%s\\\"\\>%s\\</a\\>
-                                    \\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>"
+                                    \\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>"
                       (Md4.to_string impl.impl_shared_id) "R" (Md4.to_string impl.impl_shared_id) "B")) ];
                 Printf.bprintf buf "\\</tr\\>\n";
               end

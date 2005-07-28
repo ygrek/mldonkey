@@ -987,14 +987,14 @@ let old_print_search buf o results =
   if use_html_mods o then
   begin
     if !!html_mods_use_js_tooltips then Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>\n";
-    html_mods_table_header buf "resultsTable" "results" [
-      ( "0", "srh", "Network", "Network" ) ;
-      ( "0", "srh", "File", "File (mouseover)" ) ;
-      ( "1", "srh ar", "Size", "Size" ) ;
-      ( "1", "srh ar", "Availability", "A" ) ;
-      ( "1", "srh ar", "Complete Sources", "C" ) ;
-      ( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ;
-      ( "0", "srh", "Tags", "Tags (mouseover)" ) ] ;
+    html_mods_table_header_colspan buf "resultsTable" "results" [
+      ( "1", "0", "srh", "Network", "Network" ) ;
+      ( "1", "0", "srh", "File", "File (mouseover)" ) ;
+      ( "1", "1", "srh ar", "Size", "Size" ) ;
+      ( "1", "1", "srh ar", "Availability", "A" ) ;
+      ( "1", "1", "srh ar", "Complete Sources", "C" ) ;
+      ( "3", "0", "srh", "Hash (click for lookup)", "Hash check" ) ;
+      ( "1", "0", "srh", "Tags", "Tags (mouseover)" ) ] ;
   end;
   (try
       List.iter (fun (rs,r,avail) ->
@@ -1097,6 +1097,13 @@ let old_print_search buf o results =
                   else Printf.bprintf buf "\\</a href\\>";
                 end;
               let hash = ref (string_of_uids r.result_uids) in
+	      let real_hash =
+		if String.contains !hash ':' then
+		  String.sub !hash ((String.rindex !hash ':')+1)
+		  ((String.length !hash) - (String.rindex !hash ':') - 1)
+                else
+		  !hash
+	      in
               let cavail = ref (string_of_int avail) in
               let csource = ref "" in
               List.iter (fun t ->
@@ -1111,16 +1118,15 @@ let old_print_search buf o results =
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>%s\\</a\\>\\</td\\>"
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck.php?hash=%s\\\"\\>DF\\</a\\>\\</td\\>
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>BI\\</a\\>\\</td\\>
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>"
                   (size_of_int64 r.result_size)
-                !cavail
+		  !cavail
                   !csource
-
-                  (if String.contains !hash ':' then
-                    String.sub !hash
-                      ((String.rindex !hash ':')+1)
-                    ((String.length !hash) - (String.rindex !hash ':') - 1)
-                  else !hash) !hash
+		  real_hash
+		  real_hash
+		  real_hash
               else	Printf.bprintf  buf "          %10s %10s "
                   (Int64.to_string r.result_size)
                 (string_of_uids r.result_uids);
