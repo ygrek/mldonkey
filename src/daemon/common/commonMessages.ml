@@ -906,7 +906,7 @@ a.extern:visited,a.extern:hover,a.extern:active { color: @C32@; }
 36 - one td text
 *)
 
-let ncarr = ref 7
+let ncarr = ref 8
 let carr = Array.create !ncarr [||]
 let _ = (
     (* Default green *)
@@ -965,6 +965,12 @@ let _ = (
                     "#768FD0"; "#E08686"; "#5668AB"; "#C1CFE1"; "#6476B9"; "#EEE";
                     "#D4C9B7"; "#000"; "#000"; "#000"; "#000"; "#000";
                     "#000"; "#000099"; "#000"; "#8195D6"; "#555" |];
+    (* Construction *)
+    carr.(7) <- [| "#C8C8C8"; "#878787";  "#5D5D5D"; "#E6E6E6"; "#A8A8A8";
+                    "#E6E6E6"; "#B3B3B3"; "#999"; "#494949"; "#000";
+                    "#686868"; "#AAA"; "#B6B6B6"; "#9F9F9F"; "#999";
+                    "#5E5E5E"; "#7F7F7F"; "#ead040"; "#DFBDBD"; "#84A484";
+                    "#FFF"; "#EEE"; "#989898"; "#6C6C6C"; "#424242"; "#EEE" |];
 )
 
 let html_css_mods = ref ""

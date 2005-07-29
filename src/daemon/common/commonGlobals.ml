@@ -825,7 +825,7 @@ let for_string_tag tag f =
 (* Name,FrameHeight *)
 let html_mods_styles = ref
   [| ("Green",42) ; ("Tang",42); ("L.Blue",42);
-	 ("L.Purple",42); ("Monochrome",42); ("Corona",42); ("Coronax",42); |]
+	 ("L.Purple",42); ("Monochrome",42); ("Corona",42); ("Coronax",42); ("Construction",42); |]
 
 let partial_chunk c =
   match c with
