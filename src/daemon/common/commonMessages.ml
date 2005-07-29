@@ -247,7 +247,6 @@ function _tabSort(obj,st){
 function _cmdLine(){
 top.fstatus.document.open();
 top.fstatus.document.clear();
-top.fstatus.document.writeln(\"<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN' 'http://www.w3.org/TR/html4/loose.dtd'>\");
 top.fstatus.document.writeln(\"<html><head>\");
 top.fstatus.document.writeln(\"<link href='h.css' rel='stylesheet' type='text/css'>\");
 top.fstatus.document.writeln(\"</head><body><center><table width=99% border=0 cellspacing=0 cellpadding=0>\");
@@ -323,7 +322,7 @@ let html_header_mods0 = define_option message_section ["html_header_mods0"]
 <meta name=\"robots\" content=\"noindex,nofollow\" />
 <link rel=\"shortcut icon\" href=\"favicon.ico\" type=\"image/x-icon\" />
 <link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" />
-<script type=\"text/javascript\" src=\"i.js\">
+<script language=\"javascript\" src=\"i.js\">
 </script>
 "
 
@@ -436,7 +435,7 @@ let download_html_header_mods0 = define_option message_section ["download_html_h
   "
 <title>MLDonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-<script type=\"text/javascript\" src=\"di.js\"></script>
+<script language=\"javascript\" src=\"di.js\"></script>
   "
 
 let web_common_header_mods0 = define_option message_section ["web_common_header_mods0"]
@@ -444,7 +443,6 @@ let web_common_header_mods0 = define_option message_section ["web_common_header_
     string_option
 "
 <!-- Main Table -->
-<FORM name=cmdFormular action=submit target=output>
 <TABLE BORDER=0 cellspacing=1 cellpadding=0 width=\"100%\"><TR>
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Transfers Tab\"
@@ -470,18 +468,15 @@ onclick=\"showTab(5);mSub('output','voo+1');\">Options</TD></TR></TBODY></TABLE>
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Help+Miscellaneous Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</TD></TR></TBODY></TABLE></TD>
-<TD noWrap width=100% title=\"Input mldonkey commands here\">
-<TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
-<TD style=\"height: 1%; padding: 0px; border: 0px; padding-left: 5px;\" title=\"Input mldonkey command here\">
+<FORM name=cmdFormular action=submit target=output>
+<TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
+<TD style=\"padding: 0px; border: 0px; padding-left: 5px;\" title=\"Input mldonkey command here\">
 <INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
 </TD></TR></TBODY></TABLE></TD><TD noWrap>
-<TABLE class=commands cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
 <TD class=\"bu bbigm\" style=\"padding-top: 0px; padding-bottom: 0px;\" title=\"Input Command\">
 <INPUT class=\"but2\" type=submit value=\"Input\">
-</TD></TR></TBODY></TABLE>
-</TD>
-</TR></TABLE>
-
+</TD></TR></TBODY></TABLE></TD></FORM></TR></TABLE>
 <!-- End Main Table -->
 
 <DIV ID=\"tab1\" style=\"display: none\">
@@ -639,7 +634,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','buildinfo')\">Buildinfo</TD>
 <TD class=\"bu bbig\" title=\"View ChangeLog\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&amp;content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
+onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
 <TD class=\"bu bbig\" title=\"HomePage\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
@@ -656,7 +651,6 @@ onClick=\"mSub('output','log')\">Log</TD>
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','kill')\">Kill core</TD>
 </TR></TBODY></TABLE></DIV>
-</FORM>
 "
 
 (* Old *)
@@ -692,7 +686,7 @@ let html_header_old = define_option message_section ["html_header_old"]
     string_option
   "<title>MLDonkey: Web Interface</title>
 <link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
-<script type=\"text/javascript\" src=\"i.js\"></script>
+<script language=\"javascript\" src=\"i.js\"></script>
     "
 
 let download_html_css_old = define_option message_section ["download_html_css_old"]
@@ -727,7 +721,7 @@ let download_html_header_old = define_option message_section ["download_html_hea
   "
 <title>MLdonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-<script type=\"text/javascript\" src=\"di.js\"></script>
+<script language=\"javascript\" src=\"di.js\"></script>
 "
 
 let web_common_header_old = define_option message_section ["web_common_header_old"]
