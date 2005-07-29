@@ -721,8 +721,13 @@ let new_print_stats buf o =
 
   if use_html_mods o then
     begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        days hours mins session_time;
+      Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
+      html_mods_table_one_row buf "csTable" "cs" [
+        ("", "srh",
+          Printf.sprintf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
+            days hours mins session_time); ];
+      Buffer.add_string buf "\\</div\\>\n";
+
       stats_html_header buf;
 
       let counter = ref 0 in
@@ -806,7 +811,7 @@ let new_print_stats buf o =
              (Int64.to_float stats_by_brand.(i).brand_upload) )));
         end
       done;
-      Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+      Buffer.add_string buf "\\</table\\>\\</div\\>\n";
 
       let gdays = (guptime () + uptime) / one_day in
       let grem = maxi 1 ((guptime () + uptime) - gdays * one_day) in
@@ -815,8 +820,13 @@ let new_print_stats buf o =
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
 
-      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        gdays ghours gmins (guptime() + uptime);
+      Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
+      html_mods_table_one_row buf "csTable" "cs" [
+        ("", "srh",
+          Printf.sprintf "Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
+            gdays ghours gmins (guptime() + uptime)); ];
+      Buffer.add_string buf "\\</div\\>\n";
+
       stats_html_header buf;
 
       showTotal := false;
@@ -892,7 +902,7 @@ let new_print_stats buf o =
             (Int64.to_float !!gstats_by_brand.(i).brand_upload) )))
         end
       done;
-      Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+      Buffer.add_string buf "\\</table\\>\\</div\\>\n";
     end
   else
     begin
@@ -1000,8 +1010,12 @@ let new_print_mod_stats buf o =
 
   if use_html_mods o then
     begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        days hours mins session_time;
+      Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
+      html_mods_table_one_row buf "csTable" "cs" [
+        ("", "srh",
+          Printf.sprintf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
+            days hours mins session_time); ];
+      Buffer.add_string buf "\\</div\\>\n";
       stats_html_header buf;
 
       let counter = ref 0 in
@@ -1085,7 +1099,7 @@ let new_print_mod_stats buf o =
              (Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) )));
         end
       done;
-      Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+      Buffer.add_string buf "\\</table\\>\\</div\\>\n";
 
       let gstats_all =
         let stat = {
@@ -1113,8 +1127,13 @@ let new_print_mod_stats buf o =
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
 
-      Printf.bprintf buf "\n\\<div class=\\\"cs\\\"\\>Total Uptime: %d days, %02dh:%02dm (= %d seconds)\\</div\\>"
-        gdays ghours gmins (guptime() + uptime);
+      Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
+      html_mods_table_one_row buf "csTable" "cs" [
+        ("", "srh",
+          Printf.sprintf "Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
+            gdays ghours gmins (guptime() + uptime)); ];
+      Buffer.add_string buf "\\</div\\>\n";
+
       stats_html_header buf;
 
       showTotal := false;
@@ -1190,7 +1209,7 @@ let new_print_mod_stats buf o =
             (Int64.to_float !!gstats_by_brand_mod.(i).brand_mod_upload) )))
         end
       done;
-      Printf.bprintf buf "\\</table\\>\\</div\\>\n";
+      Buffer.add_string buf "\\</table\\>\\</div\\>\n";
     end
   else
     begin
