@@ -1113,7 +1113,7 @@ let http_realm =
 let use_html_frames = define_expert_option current_section ["use_html_frames"]
     "This option controls whether the WEB interface should use frames or not" bool_option true
 
-let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 42
+let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 46
 
 let motd_html = define_expert_option current_section ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous

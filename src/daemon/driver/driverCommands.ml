@@ -987,7 +987,7 @@ let _ =
                 let newrd = int_of_string (List.hd args) in
                 if newrd > 1 then refresh_delay := newrd;
               end;
-            Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" !refresh_delay;
+            Printf.bprintf buf "\\</body\\>\\<head\\>\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>\\</head\\>\\<body\\>" !refresh_delay;
 
             let dlkbs =
               (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
@@ -2676,7 +2676,7 @@ let _ =
             List.iter (fun line ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
                 html_mods_td buf [ ("", "sr", line); ];
-                Printf.bprintf buf "\\</tr\\>\\";
+                Printf.bprintf buf "\\</tr\\>";
             ) lines;
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
             Buffer.contents buf
