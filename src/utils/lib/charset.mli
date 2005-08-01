@@ -168,3 +168,6 @@ val utf8_length : string -> int
 (** [add_uchar buf u]
     add one Unicode character to the buffer. *)
 val add_uchar : Buffer.t -> uchar -> unit
+
+val default_language : string
+val locstr : string

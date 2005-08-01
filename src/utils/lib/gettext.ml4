@@ -414,8 +414,7 @@ in the default and in the translation. *)
             lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
                (Printexc2.to_string e) filename (Stream.count s)
     with e -> 
-        save_strings_file := true;
-        lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
+        save_strings_file := true
   end;  
   save_strings ()
 

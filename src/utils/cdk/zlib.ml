@@ -28,6 +28,15 @@ external inflate_end: stream -> unit = "camlzip_inflateEnd"
 external update_crc: int32 -> string -> int -> int -> int32
                    = "camlzip_update_crc32"
 
+external zlib_version : unit -> string = "camlzip_zlibversion"
+
+let zlib_version_num () =
+  begin
+    try
+      let s = Printf.sprintf "%s" (zlib_version ()) in s
+    with e -> ""
+  end
+
 let buffer_size = 1024
 
 let compress ?(level = 6) ?(header = true) refill flush =

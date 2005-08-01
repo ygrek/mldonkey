@@ -1655,8 +1655,6 @@ let locstr =
     (Sys.Signal_handle (fun _ -> ())));
 
   let s = charset_to_string locale in
-  Printf.printf "Current locale of the target machine is %s\n" s;
-  flush stdout;
   s
 
 let (enc_list : string list ref) = ref []
@@ -1666,8 +1664,6 @@ let char_const = "_"
 let default_language =
   let s = get_default_language () in
   let s = normalize_language s in
-  Printf.printf "Current language of the target machine is %s\n" s;
-  flush stdout;
   s
 
 (*

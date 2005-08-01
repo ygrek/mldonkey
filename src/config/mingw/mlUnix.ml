@@ -92,3 +92,5 @@ let diskused dir = Int64.of_int (-1)
 let percentused dir = (-1)
 let percentfree dir = (-1)
 let filesystem dir = "not supported"
+
+let glibc_version_num () = ""

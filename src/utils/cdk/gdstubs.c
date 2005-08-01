@@ -30,6 +30,7 @@
 #include <caml/memory.h>
 #include <caml/callback.h>
 #include <caml/fail.h>
+#include <caml/alloc.h>
 
 #include <gd.h>
 #include <gdfontl.h>
@@ -463,4 +464,18 @@ value ml_image_get_transparent(value gdw) {
 value ml_image_set_transparent(value gdw, value c) {
   gdImageColorTransparent(IM_VAL(gdw), Int_val(c));
   return Val_unit;
+}
+
+int ml_image_pngversion(void)
+{
+  CAMLparam0 ();
+  CAMLlocal1 (v);
+#ifdef HAVE_PNGVERSION
+  void* w = png_access_version_number();
+  v = copy_int32 ((int32)w);
+  CAMLreturn (v);
+#else
+  raise_constant(*(value *)caml_named_value("gd type not supported"));
+  return Val_unit;
+#endif
 }

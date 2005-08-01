@@ -218,3 +218,16 @@ statfs_fstatfs (value fdv)
   raise_constant(*(value *)caml_named_value("not supported"));
 #endif
 }
+
+int glibc_version(void)
+{
+  CAMLparam0 ();
+  CAMLlocal1 (v);
+#ifdef HAVE_GNU_LIBC_VERSION_H
+#  include <gnu/libc-version.h>
+  v = copy_string (gnu_get_libc_version());
+  CAMLreturn (v);
+#else
+  raise_constant(*(value *)caml_named_value("not supported"));
+#endif
+}

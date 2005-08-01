@@ -364,3 +364,27 @@ value camlzip_bzDecompressEnd(value stream) {
 #endif
   return Val_unit;
 }
+
+int camlzip_zlibversion(void)
+{
+  CAMLparam0 ();
+  CAMLlocal1 (v);
+#ifdef HAVE_ZLIBVERSION
+  v = copy_string (zlibVersion());
+  CAMLreturn (v);
+#else
+  failwith("zlibVersion not found");
+#endif
+}
+
+int camlzip_bzlibversion(void)
+{
+  CAMLparam0 ();
+  CAMLlocal1 (v);
+#ifdef HAVE_BZLIBVERSION
+  v = copy_string (BZ2_bzlibVersion());
+  CAMLreturn (v);
+#else
+  failwith("bzlibVersion not found");
+#endif
+}

@@ -112,6 +112,14 @@ let _ = Callback.register_exception "error" Error
 
 external statfs : string -> statfs = "statfs_statfs"
 external fstatfs : Unix.file_descr -> statfs = "statfs_fstatfs"
+external glibc_version : unit -> string = "glibc_version"
+
+let glibc_version_num () =
+  begin
+    try
+      let s = Printf.sprintf "%s" (glibc_version ()) in s
+    with e -> ""
+  end
 
 let ( ** ) x y = Int64.mul x y
 let ( ++ ) x y = Int64.add x y

@@ -175,3 +175,9 @@ let close_out oz =
   flush oz;
   Pervasives.close_out oz.out_chan
 
+let bzlib_version_num () =
+  begin
+    try
+      let s = Printf.sprintf "%s" (Bzlib.bzlib_version ()) in s
+    with e -> ""
+  end

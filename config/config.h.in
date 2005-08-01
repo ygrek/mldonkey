@@ -87,6 +87,9 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
+/* Define to 1 if you have the `zlibVersion' function. */
+#undef HAVE_ZLIBVERSION
+
 /* Define as const if the declaration of iconv() needs const. */
 #undef ICONV_CONST
 
@@ -142,14 +145,23 @@
 /* Define to 1 if you have png support in libgd. */
 #undef HAVE_GD_PNG
 
+/* Define to 1 if you have the `png_access_version_number' function. */
+#undef HAVE_PNGVERSION
+
 /* Define to 1 if you have jpg support in libgd. */
 #undef HAVE_GD_JPG
 
 /* Define to 1 if you have bzip2 support. */
 #undef USE_BZIP2
 
+/* Define to 1 if you have the `bzlibVersion' function. */
+#undef HAVE_BZLIBVERSION
+
 /* Define to 1 if you have the <sys/vfs.h> header file. */
 #undef HAVE_SYS_VFS_H
 
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
+
+/* Define to 1 if you have the <gnu/libc-versions.h> header file. */
+#undef HAVE_GNU_LIBC_VERSION_H

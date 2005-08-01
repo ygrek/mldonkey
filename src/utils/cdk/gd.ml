@@ -162,6 +162,23 @@ external do_draw_str: t -> font -> int -> int -> string -> int -> unit
 external do_draw_stru: t -> font -> int -> int -> string -> int -> unit
     = "ml_image_stru" "ml_image_stru_native"
 
+external png_version : unit -> int32 = "ml_image_pngversion"
+
+let png_version_num () =
+  begin
+    try
+      let s = Int32.to_string(png_version ()) in
+        let len = String.length s in
+        let major_version = String.sub s 0 1 in
+	let minor_version = String.sub s 1 2 in
+	let release_version = String.sub s 3 (len-3) in
+	  Printf.sprintf "%ld.%ld.%ld"
+	    (Int32.of_string(major_version))
+	    (Int32.of_string(minor_version))
+	    (Int32.of_string(release_version))
+    with e -> ""
+  end
+
 module Font =
 struct
   let tiny = do_get_font 0

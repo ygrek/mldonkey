@@ -442,7 +442,17 @@ The core therefore is unable to get eDonkey serverlists and loading
 If you are using MLDonkey in a chroot environment you should
 consider reading this article to get DNS support back:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
-
+  (
+    let real_glibc_version = MlUnix.glibc_version_num () in
+      if real_glibc_version <> Autoconf.glibc_version
+         && real_glibc_version <> "" then
+        lprintf (_b"
+Attention!
+This core is running with glibc %s but it was compiled with glibc %s.
+This can lead to unexpected behaviour. Consider compiling the core yourself
+or getting a binary compiled with glibc %s.\n\n")
+          real_glibc_version Autoconf.glibc_version Autoconf.glibc_version
+  );
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;
@@ -461,7 +471,6 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
   end;
 
 (*  lprintf "(3) networks_iter load_complex_options\n"; *)
-  lprintf_nl "%s" (DriverControlers.text_of_html !!motd_html);
   lprintf_nl (_b "Check http://www.mldonkey.net/ for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf (_b "%senabling networks: ") (log_time ());

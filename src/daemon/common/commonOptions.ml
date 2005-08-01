@@ -79,6 +79,10 @@ let (file_basedir, home_basedir) =
       ), home_dir
 
 let _ =
+  lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
+  lprintf_nl "Language %s, locale %s"
+    Charset.default_language Charset.locstr;
+
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
