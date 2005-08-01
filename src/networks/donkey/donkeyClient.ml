@@ -190,6 +190,7 @@ let _ =
   let client_enter_upload_queue c =
     do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
         set_rtimeout sock !!upload_timeout;
+	c.client_connect_time <- last_time ();
         client_send c (
           let module M = DonkeyProtoClient in
           let module Q = M.AvailableSlot in

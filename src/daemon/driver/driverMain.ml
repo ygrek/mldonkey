@@ -64,7 +64,7 @@ let minute_timer () =
       Int64Swarmer.verify_some_chunks ()
     with _ -> ()
   );
-
+  CommonClient.clear_upload_slots ();
   if !!auto_commit then
     List.iter (fun file ->
         file_commit file

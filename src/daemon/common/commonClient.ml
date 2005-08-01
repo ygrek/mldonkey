@@ -34,65 +34,64 @@ type 'a client_impl = {
     mutable impl_client_val : 'a;
     mutable impl_client_ops : 'a client_ops;
   }
-  
+
 and 'a client_ops = {
     mutable op_client_network : network;
-       
+
 (* force connection to the client. *)
     mutable op_client_connect : ('a -> unit);
-    
+
 (* force connection to the client. *)
     mutable op_client_disconnect : ('a -> unit);
- 
+
 (* convert a client structure to be stored in the option file *)
     mutable op_client_to_option : ('a -> (string * option_value) list);
-    
+
 (* convert a client to an info structure used in the interfaces *)
     mutable op_client_info : ('a -> GuiTypes.client_info);
-    
+
 (* send a message to a given client *)
     mutable op_client_say : ('a -> string -> unit);
-    
+
 (* ask a client for its list of files. The boolean argument is used to
 decide whether to connect immediatly or not. *)
     mutable op_client_browse : ('a -> bool -> unit);
-    
+
 (* returns the list of files of a client as already known *)
     mutable op_client_files : ('a -> (string * result) list);
-    
+
 (* used to clear the file list a client *)
     mutable op_client_clear_files : ('a -> unit);
-    
+
     mutable op_client_bprint : ('a -> Buffer.t -> unit);
-    
-    mutable op_client_dprint : ('a -> CommonTypes.ui_conn -> 
+
+    mutable op_client_dprint : ('a -> CommonTypes.ui_conn ->
 	CommonTypes.file -> unit);
 
     mutable op_client_dprint_html : ('a -> CommonTypes.ui_conn ->
     CommonTypes.file -> string -> bool);
-    
+
     mutable op_client_debug : ('a -> bool -> unit);
-    
+
     mutable op_client_can_upload : ('a -> int -> unit);
-    
+
     mutable op_client_enter_upload_queue : ('a -> unit);
   }
-  
+
 let client_counter = CommonUser.user_counter
-  
-  
+
 let as_client  (client : 'a client_impl) =
   let (client : client) = Obj.magic client in
   client
-  
+
 let as_client_impl  (client : client) =
   let (client : 'a client_impl) = Obj.magic client in
   client
 
-let client_num c = 
+let client_num c =
   let c = as_client_impl c in
   c.impl_client_num
-  
+
 let dummy_client_impl = {
     impl_client_type = 0;
     impl_client_state = NewHost;
@@ -105,16 +104,16 @@ let dummy_client_impl = {
   }
 
 let dummy_client = as_client dummy_client_impl
-  
+
 module H = Weak2.Make(struct
       type t = client
       let hash c = Hashtbl.hash (client_num c)
-      
+
       let equal x y = (client_num x) = (client_num y)
     end)
 
 let clients_by_num = H.create 1027
-  
+
 let client_network (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_network
@@ -158,7 +157,7 @@ let client_dprint (client: client) o file =
 let client_dprint_html (client: client) o file str =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_dprint_html client.impl_client_val o file str
-  
+
 let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
@@ -177,20 +176,20 @@ let client_browse client immediate =
 
 let client_enter_upload_queue client =
   let client = as_client_impl client in
-  client.impl_client_ops.op_client_enter_upload_queue client.impl_client_val 
-  
-let ni n m = 
-  let s = Printf.sprintf "Client.%s not implemented by %s" 
+  client.impl_client_ops.op_client_enter_upload_queue client.impl_client_val
+
+let ni n m =
+  let s = Printf.sprintf "Client.%s not implemented by %s"
       m n.network_name in
   lprintf_nl "%s" s;
   s
-  
+
 let fni n m =   failwith (ni n m)
   let ni_ok n m = ignore (ni n m)
 
 let clients_ops = ref []
-  
-let new_client_ops network = 
+
+let new_client_ops network =
   let c = {
       op_client_network =  network;
       op_client_to_option = (fun _ -> fni network "client_to_option");
@@ -217,8 +216,8 @@ let check_client_implementations () =
   lprintf_nl "\n---- Methods not implemented for CommonClient ----\n";
   List.iter (fun (c, cc) ->
       let n = c.op_client_network.network_name in
-      lprintf_nl "\n  Network %s\n" n; 
-      if c.op_client_to_option == cc.op_client_to_option then 
+      lprintf_nl "\n  Network %s\n" n;
+      if c.op_client_to_option == cc.op_client_to_option then
         lprintf_nl "op_client_to_option";
       if c.op_client_info == cc.op_client_info then
         lprintf_nl "op_client_info";
@@ -236,17 +235,17 @@ let check_client_implementations () =
         lprintf_nl "op_client_browse";
   ) !clients_ops;
   lprint_newline ()
-  
-let client_find num = 
+
+let client_find num =
   H.find clients_by_num (as_client { dummy_client_impl with
       impl_client_num = num })
-    
+
 let client_must_update client =
   let impl = as_client_impl client in
   if impl.impl_client_update <> 0 then
     CommonEvent.add_event (Client_info_event client);
   impl.impl_client_update <- 0
-  
+
 let client_must_update_state client =
   let impl = as_client_impl client in
   if impl.impl_client_update > 0 then
@@ -258,7 +257,7 @@ let client_must_update_state client =
 let client_state c =
   let impl = as_client_impl c in
   impl.impl_client_state
-  
+
 let set_client_state c state =
   let impl = as_client_impl c in
   if impl.impl_client_state <> state then begin
@@ -268,7 +267,7 @@ let set_client_state c state =
 
 let uploaders = ref Intmap.empty
 
-let client_has_a_slot c = 
+let client_has_a_slot c =
   (as_client_impl c).impl_client_has_slot
 
 let client_upload c =
@@ -277,8 +276,8 @@ let client_upload c =
 let set_client_upload c sh =
   (as_client_impl c).impl_client_upload <- sh;
   client_must_update c
-  
-let set_client_has_a_slot c b = 
+
+let set_client_has_a_slot c b =
   let impl = as_client_impl c in
   if not b && impl.impl_client_has_slot then begin
       impl.impl_client_has_slot <- false;
@@ -291,7 +290,7 @@ is still kept open. There should be a check if other users
 are currently uploading that file, if not close it.
 Until this is coded all files are closed, it does not harm
 the work of the core but avoids locking files which makes
-them unaccessable on Windows.  
+them unaccessable on Windows.
 *)
       Unix32.close_all ()
     end
@@ -301,15 +300,15 @@ them unaccessable on Windows.
       impl.impl_client_has_slot <- b;
       client_must_update c
     end
-    
+
 let set_client_disconnected c reason =
   let impl = as_client_impl c in
   set_client_has_a_slot c false;
-  
+
   match impl.impl_client_state with
     Connected n -> set_client_state c (NotConnected (reason, n))
   | _ ->  set_client_state c (NotConnected (reason, -1))
-    
+
 let new_client (client : 'a client_impl) =
   incr client_counter;
   client.impl_client_num <- !client_counter;
@@ -317,23 +316,23 @@ let new_client (client : 'a client_impl) =
   H.add clients_by_num client;
   client_must_update client
 
-let book_client_num () = 
+let book_client_num () =
   incr client_counter;
   !client_counter
-  
+
 let new_client_with_num (client : 'a client_impl) num =
   client.impl_client_num <- num;
   let (client : client) = Obj.magic client in
   H.add clients_by_num client;
   client_must_update client
-  
+
 let new_client (client : 'a client_impl) =
   new_client_with_num client (book_client_num ())
-  
+
 let client_remove c =
   H.remove clients_by_num c;
   set_client_state c RemovedHost
-  
+
 let client_type c =
   let impl = as_client_impl c in
   impl.impl_client_type
@@ -345,7 +344,7 @@ let set_client_type c t =
       client_must_update c
     end
 
-let _ = 
+let _ =
   Heap.add_memstat "CommonClient" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) clients_by_num;
@@ -362,9 +361,9 @@ let clients_get_all () =
    directly accessing the hashtable.
  *)
 let clients_by_num = ()
-  
+
 let client_new_file (client :client) (dirname:string) r =
-  CommonEvent.add_event (Client_new_file_event 
+  CommonEvent.add_event (Client_new_file_event
     (client, dirname, (r : result)))
 
 module G = GuiTypes
@@ -392,7 +391,7 @@ let client_print c o =
 	html_mods_td buf [
 	("", "sr", Printf.sprintf "%d" (client_num c));
 	("", "sr", n.network_name);
-	("", "sr", (try match info.G.client_kind with 
+	("", "sr", (try match info.G.client_kind with
              Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
            | Indirect_location _ -> Printf.sprintf "None"
            with _ -> ""));
@@ -413,33 +412,51 @@ let client_print c o =
 
 let is_friend c =
   (client_type c) land client_friend_tag <> 0
-  
-let is_contact c = 
+
+let is_contact c =
   (client_type c) land client_contact_tag <> 0
-  
+
 let set_friend c =
   set_client_type c (client_type c lor client_friend_tag)
-  
+
 let set_contact c =
   set_client_type c (client_type c lor client_contact_tag)
-  
+
 let set_not_friend c =
   set_client_type c (client_type c land (lnot client_friend_tag))
-  
+
 let set_not_contact c =
   set_client_type c (client_type c land (lnot client_contact_tag))
-  
+
 let is_nolimit c =
   (client_type c) land client_nolimit_tag <> 0
-  
+
 let set_nolimit c =
   set_client_type c (client_type c lor client_nolimit_tag)
-  
+
 let is_initialized c =
   client_type c land client_initialized_tag <> 0
-    
+
 let set_initialized c =
   set_client_type c (client_type c lor client_initialized_tag)
 
 let client_has_bitmap (client : client) (file : file) bitmap =
   CommonEvent.add_event (File_update_availability (file, client, bitmap))
+
+let clear_upload_slots () =
+  Intmap.iter (fun _ c ->
+    try
+      let i = client_info c in
+      let ctime = ((BasicSocket.last_time ()) - i.GuiTypes.client_connect_time) / 60 in
+      if i.GuiTypes.client_uploaded = Int64.zero && ctime > 1 then
+        begin
+	  client_disconnect c;
+          lprintf_nl "disconnected client %d: [%s %s] %s after %d minute of silence."
+	    (client_num c)
+	    i.GuiTypes.client_software
+	    i.GuiTypes.client_release
+	    i.GuiTypes.client_name
+	    ctime
+	end
+    with _ -> ()
+  ) !uploaders

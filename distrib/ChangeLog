@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/01: spiralvoice
 
+4257: Kick uploaders which send no data for more than 1 minute
 4256: Print message if glibc version mismatch
       updates for buildinfo (version of libbz2, libz, libpng)
 
