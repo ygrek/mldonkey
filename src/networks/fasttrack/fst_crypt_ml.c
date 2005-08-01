@@ -77,7 +77,7 @@ value ml_cipher_packet_get(value s_v, value pos_v, value in_cipher_v)
 
   seed = htonl  (((unsigned int*)(s+pos))[0]);
   enc_type = htonl (((unsigned int*)(s+pos+4))[0]);
-  enc_type = fst_cipher_decode_enc_type (seed, enc_type);
+  enc_type = fst_cipher_mangle_enc_type (seed, enc_type);
 
   in_cipher->seed = seed;
   in_cipher->enc_type = enc_type;
@@ -118,7 +118,7 @@ value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
 
   ((unsigned int*)(s+pos))[0] = htonl(cipher->seed);
   ((unsigned int*)(s+pos+4))[0] = htonl(
-    fst_cipher_encode_enc_type(cipher->seed, cipher->enc_type));
+    fst_cipher_mangle_enc_type(cipher->seed, cipher->enc_type));
 
   return Val_unit;
 }
@@ -141,7 +141,7 @@ value ml_cipher_packet_set_xored(value cipher_v, value s_v, value pos_v, value x
   seed ^= xor_cipher->seed;
   ((unsigned int*)(s+pos))[0] = htonl(seed);
   ((unsigned int*)(s+pos+4))[0] = htonl(
-    fst_cipher_encode_enc_type(cipher->seed, cipher->enc_type));
+    fst_cipher_mangle_enc_type(cipher->seed, cipher->enc_type));
 
   return Val_unit;
 }

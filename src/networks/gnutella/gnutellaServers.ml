@@ -775,6 +775,8 @@ let manage_hosts () = H.manage_hosts ()
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
+
+let ft_boot () = ()
      
 let _ =
   server_ops.op_server_disconnect <- 

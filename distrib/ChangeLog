@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/02: spiralvoice
+
+4263: Fasttrack: Force bootstrapping nodes
+
 2005/08/01: spiralvoice
 
 4261: HTML: Add DL button - opens dialog for entering links (by omgwtf2)

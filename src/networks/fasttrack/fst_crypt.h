@@ -17,36 +17,6 @@
 #ifndef _CRYPT_H_
 #define _CRYPT_H_
 
-
-
-
-#define FST_DBG(fmt)
-#define FST_DBG_1(fmt,a)
-#define FST_DBG_2(fmt,a,b)
-#define FST_DBG_3(fmt,a,b,c)
-#define FST_DBG_4(fmt,a,b,c,d)
-#define FST_DBG_5(fmt,a,b,c,d,e)
-
-# define FST_HEAVY_DBG(fmt)
-# define FST_HEAVY_DBG_1(fmt,a)
-# define FST_HEAVY_DBG_2(fmt,a,b)
-# define FST_HEAVY_DBG_3(fmt,a,b,c)
-# define FST_HEAVY_DBG_4(fmt,a,b,c,d)
-# define FST_HEAVY_DBG_5(fmt,a,b,c,d,e)
-
-#define FST_WARN(fmt)
-#define FST_WARN_1(fmt,a)
-#define FST_WARN_2(fmt,a,b)
-#define FST_WARN_3(fmt,a,b,c)
-
-#define FST_ERR(fmt)
-#define FST_ERR_1(fmt,a)
-#define FST_ERR_2(fmt,a,b)
-#define FST_ERR_3(fmt,a,b,c)
-
-#define TRUE 1
-#define FALSE 0
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,16 +47,16 @@ void fst_cipher_free (FSTCipher *cipher);
 /* returns FALSE if enc_type is not supported, TRUE otherwise */
 int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type);
 
+/* encrypt / decrypt a byte of data with cipher */
+unsigned char fst_cipher_clock (FSTCipher *cipher);
+
 /* encrypt / decrypt a block of data with cipher */
 void fst_cipher_crypt (FSTCipher *cipher, unsigned char *data, int len);
 
 /*****************************************************************************/
 
-/* returns encrypted enc_type */
-unsigned int fst_cipher_encode_enc_type (unsigned int seed, unsigned int enc_type);
-
-/* returns decrypted enc_type */
-unsigned int fst_cipher_decode_enc_type (unsigned int seed, unsigned int crypted_enc_type);
+/* returns encrypted or decrypted enc_type */
+unsigned int fst_cipher_mangle_enc_type (unsigned int seed, unsigned int enc_type);
 
 /*****************************************************************************/
 

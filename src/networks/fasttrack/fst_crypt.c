@@ -15,8 +15,35 @@
  * General Public License for more details.
  */
 
-#include "../../utils/lib/md5.h"
 #include "fst_crypt.h"
+#include "../../utils/lib/md5.h"
+
+#define FALSE 0
+#define TRUE 1
+
+#define FST_WARN(fmt)
+#define FST_WARN_1(fmt,a)
+#define FST_WARN_2(fmt,a,b)
+#define FST_WARN_3(fmt,a,b,c)
+
+#define FST_ERR(fmt)
+#define FST_ERR_1(fmt,a)
+#define FST_ERR_2(fmt,a,b)
+#define FST_ERR_3(fmt,a,b,c)
+
+#define FST_DBG(fmt)
+#define FST_DBG_1(fmt,a)
+#define FST_DBG_2(fmt,a,b)
+#define FST_DBG_3(fmt,a,b,c)
+#define FST_DBG_4(fmt,a,b,c,d)
+#define FST_DBG_5(fmt,a,b,c,d,e)
+
+#define FST_HEAVY_DBG(fmt)
+#define FST_HEAVY_DBG_1(fmt,a)
+#define FST_HEAVY_DBG_2(fmt,a,b)
+#define FST_HEAVY_DBG_3(fmt,a,b,c)
+#define FST_HEAVY_DBG_4(fmt,a,b,c,d)
+#define FST_HEAVY_DBG_5(fmt,a,b,c,d,e)
 
 /*****************************************************************************/
 
@@ -29,8 +56,6 @@ void enc_type_80 (unsigned int *key, unsigned int seed);
 /*****************************************************************************/
 
 static int pad_init (unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
-static unsigned char clock_cipher (FSTCipher *cipher);
-static unsigned int calculate_num_xor (unsigned int seed);
 static int calculate_num (unsigned int *num, int val);
 static unsigned int seed_step (unsigned int seed);
 static int qsort_cmp_func (const void *ap, const void *bp);
@@ -64,7 +89,7 @@ void fst_cipher_crypt (FSTCipher *cipher, unsigned char *data, int len)
 {
 	for ( ; len > 0; len--, data++)
 	{
-		*data ^= clock_cipher (cipher); 
+		*data ^= fst_cipher_clock (cipher); 
 	}
 }
 
@@ -106,14 +131,14 @@ int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 	if (enc_type & 0x08)
 	{
-		MD5Context ctx;
-		unsigned char md5[MD5_HASH_LEN];
+		ml_MD5Context ctx;
+		unsigned char md5[ml_MD5_HASH_LEN];
 
 		FST_HEAVY_DBG ("init_cipher: enc_type & 0x08");
 
-		MD5Init (&ctx);
-		MD5Update (&ctx, cipher->pad, sizeof(cipher->pad));
-		MD5Final (md5, &ctx);
+		ml_MD5Init (&ctx);
+		ml_MD5Update (&ctx, cipher->pad, sizeof(cipher->pad));
+		ml_MD5Final (md5, &ctx);
 
 		/* correct md5 byte order on big-endian since it's converted to (unsigned int*) below */
 		reverse_bytes ( (unsigned int*)&md5, 4);
@@ -169,16 +194,22 @@ int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 /*****************************************************************************/
 
-/* returns encrypted enc_type */
-unsigned int fst_cipher_encode_enc_type (unsigned int seed, unsigned int enc_type)
+/* returns encrypted or decrypted enc_type */
+unsigned int fst_cipher_mangle_enc_type (unsigned int seed, unsigned int enc_type)
 {
-	return enc_type ^ calculate_num_xor (seed);
-}
+	unsigned int key_80[20];
+	int i;
 
-/* returns decrypted enc_type */
-unsigned int fst_cipher_decode_enc_type (unsigned int seed, unsigned int crypted_enc_type)
-{
-	return crypted_enc_type ^ calculate_num_xor (seed);
+	for (i = 0; i < 20; i++)
+	{
+		seed = seed_step (seed);
+		key_80[i] = seed;
+	}
+
+	seed = seed_step (seed);
+	enc_type_2 (key_80, seed);
+
+	return enc_type ^ key_80[7];
 }
 
 /*****************************************************************************/
@@ -283,7 +314,7 @@ static int pad_init (unsigned int *pseed, unsigned int enc_type, unsigned char* 
  * will be XOR'ed with the plaintext to produce the ciphertext, or with
  * the ciphertext to produce the plaintext.
  */
-static unsigned char clock_cipher (FSTCipher *cipher)
+unsigned char fst_cipher_clock (FSTCipher *cipher)
 {
 	unsigned char xor;
 	unsigned char temp;
@@ -315,8 +346,6 @@ static unsigned char clock_cipher (FSTCipher *cipher)
 		int sortpos = xor + cipher->pad[2];
 		sortpos = ( (sortpos * sortpos) + 2) % (sizeof (cipher->pad) - 4);
 
-		FST_HEAVY_DBG ("clock_cipher: sorting pad");
-		
 		/* Sort those 5 elements according to the qsort_cmp_func comparison
 		* function. */
 		qsort (cipher->pad + sortpos, 5, 1, qsort_cmp_func);
@@ -378,23 +407,6 @@ static unsigned char clock_cipher (FSTCipher *cipher)
 	temp = cipher->add_to_lookup + xor;
 	xor = cipher->lookup[temp];
 	return xor;
-}
-
-static unsigned int calculate_num_xor (unsigned int seed)
-{
-	unsigned int key_80[20];
-	int i;
-
-	for (i = 0; i < 20; i++)
-	{
-		seed = seed_step (seed);
-		key_80[i] = seed;
-	}
-
-	seed = seed_step (seed);
-	enc_type_2 (key_80, seed);
-
-	return key_80[7];
 }
 
 

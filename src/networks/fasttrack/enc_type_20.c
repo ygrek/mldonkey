@@ -61,7 +61,7 @@ static int __attribute__ ((const)) my_sqrt (unsigned char i)
 /* the entry point of this mess */
 /* this all works on unsigned ints so endianess is not an issue */
 
-void mix (u32 *pad, u32 seed);
+static void mix (u32 *pad, u32 seed);
 
 void enc_type_20 (u32 *pad, u32 seed)
 {
@@ -129,7 +129,7 @@ static void minor_37 (u32 *pad);
 #define minor_34 pad[7] ^= my_sqrt(pad[11])
 #define minor_35 pad[5] += my_sqrt(pad[7])
 
-void minor_36 (u32 *pad)
+static void minor_36 (u32 *pad)
 {
 	pad[3] ^= pad[11] * 0xeef27425;
 	pad[3] += my_sqrt (pad[0]);
@@ -145,7 +145,7 @@ void minor_36 (u32 *pad)
 	ROLEQ (pad[12], ROL (pad[9] - 0xe848f43c, 11));
 }
 
-void minor_37 (u32 *pad)
+static void minor_37 (u32 *pad)
 {
 	ROLEQ (pad[2], pad[7] + 0x1b);
 	pad[2] ^= pad[9] * 0x7941955;
@@ -160,7 +160,7 @@ void minor_37 (u32 *pad)
 	pad[18] += pad[0] ^ 0x3cf1856;
 }
 
-void major_1 (u32 *pad, u32 seed)
+static void major_1 (u32 *pad, u32 seed)
 {
 	int branch = (pad[17] ^ pad[4] ^ pad[13]) % 13;
 
@@ -278,7 +278,7 @@ void major_1 (u32 *pad, u32 seed)
 	}
 }
 
-void major_2 (u32 *pad, u32 seed)
+static void major_2 (u32 *pad, u32 seed)
 {
 	int branch = pad[10] & 15;
 
@@ -429,7 +429,7 @@ void major_2 (u32 *pad, u32 seed)
 	pad[12] ^= my_sin (pad[0]) ? 0x96d5a5a4 : pad[5];
 }
 
-void major_3 (u32 *pad, u32 seed)
+static void major_3 (u32 *pad, u32 seed)
 {
 	int branch = (pad[5] ^ seed ^ pad[12]) % 10;
 
@@ -520,7 +520,7 @@ void major_3 (u32 *pad, u32 seed)
 	}
 }
 
-void major_4 (u32 *pad, u32 seed)
+static void major_4 (u32 *pad, u32 seed)
 {
 	int branch = pad[6] % 7;
 
@@ -592,7 +592,7 @@ void major_4 (u32 *pad, u32 seed)
 	}
 }
 
-void major_5 (u32 *pad, u32 seed)
+static void major_5 (u32 *pad, u32 seed)
 {
 	int branch = (pad[13] ^ pad[6] ^ pad[16]) & 15;
 
@@ -746,7 +746,7 @@ void major_5 (u32 *pad, u32 seed)
 	pad[6] *= pad[5] * 0x1d;
 }
 
-void major_6 (u32 *pad, u32 seed)
+static void major_6 (u32 *pad, u32 seed)
 {
 	int branch = pad[17] % 15;
 
@@ -884,7 +884,7 @@ void major_6 (u32 *pad, u32 seed)
 	}
 }
 
-void major_7 (u32 *pad, u32 seed)
+static void major_7 (u32 *pad, u32 seed)
 {
 	int branch = (pad[10] ^ pad[11] ^ pad[18]) & 15;
 
@@ -1091,7 +1091,7 @@ void major_7 (u32 *pad, u32 seed)
 	pad[1] ^= pad[2] & 0x3b627777;
 }
 
-void major_8 (u32 *pad, u32 seed)
+static void major_8 (u32 *pad, u32 seed)
 {
 	int branch = (pad[2] ^ seed ^ pad[17]) & 15;
 
@@ -1282,7 +1282,7 @@ void major_8 (u32 *pad, u32 seed)
 	ROLEQ (pad[2], 0x6c0798b3 ^ seed);
 }
 
-void major_9 (u32 *pad, u32 seed)
+static void major_9 (u32 *pad, u32 seed)
 {
 	int branch = pad[8] & 15;
 
@@ -1425,7 +1425,7 @@ void major_9 (u32 *pad, u32 seed)
 	pad[13] |= pad[3] * 0x3e;
 }
 
-void major_10 (u32 *pad, u32 seed)
+static void major_10 (u32 *pad, u32 seed)
 {
 	int branch = (pad[4] ^ pad[12] ^ pad[17]) & 15;
 
@@ -1615,7 +1615,7 @@ void major_10 (u32 *pad, u32 seed)
 	pad[3] += pad[13] + 0x3ba9c809;
 }
 
-void major_11 (u32 *pad, u32 seed)
+static void major_11 (u32 *pad, u32 seed)
 {
 	int branch = (pad[6] ^ seed ^ pad[14]) & 15;
 
@@ -1787,7 +1787,7 @@ void major_11 (u32 *pad, u32 seed)
 	pad[2] &= ROL (pad[19], 14);
 }
 
-void major_12 (u32 *pad, u32 seed)
+static void major_12 (u32 *pad, u32 seed)
 {
 	int branch = (pad[7] ^ seed ^ pad[18]) & 15;
 
@@ -1956,7 +1956,7 @@ void major_12 (u32 *pad, u32 seed)
 	pad[4] ^= pad[4] - 0xe87fd622;
 }
 
-void major_13 (u32 *pad, u32 seed)
+static void major_13 (u32 *pad, u32 seed)
 {
 	int branch = (pad[4] ^ seed ^ pad[18]) & 15;
 
@@ -2137,7 +2137,7 @@ void major_13 (u32 *pad, u32 seed)
 	pad[16] -= pad[11] < 0x1e7d86ee ? pad[11] : seed;
 }
 
-void major_14 (u32 *pad, u32 seed)
+static void major_14 (u32 *pad, u32 seed)
 {
 	int branch = (pad[8] ^ seed ^ pad[11]) % 14;
 
@@ -2271,7 +2271,7 @@ void major_14 (u32 *pad, u32 seed)
 	pad[12] -= my_sin (pad[10]) ? 0x2818ae3c : seed;
 }
 
-void major_15 (u32 *pad, u32 seed)
+static void major_15 (u32 *pad, u32 seed)
 {
 	int branch = (pad[17] ^ seed ^ pad[19]) % 9;
 
@@ -2355,7 +2355,7 @@ void major_15 (u32 *pad, u32 seed)
 	}
 }
 
-void major_16 (u32 *pad, u32 seed)
+static void major_16 (u32 *pad, u32 seed)
 {
 	int branch = (pad[11] ^ seed ^ pad[5]) % 12;
 
@@ -2468,7 +2468,7 @@ void major_16 (u32 *pad, u32 seed)
 	pad[12] |= ROL (pad[7], 14);
 }
 
-void major_17 (u32 *pad, u32 seed)
+static void major_17 (u32 *pad, u32 seed)
 {
 	int branch = (pad[8] ^ pad[7] ^ pad[12]) % 6;
 
@@ -2531,7 +2531,7 @@ void major_17 (u32 *pad, u32 seed)
 	}
 }
 
-void major_18 (u32 *pad, u32 seed)
+static void major_18 (u32 *pad, u32 seed)
 {
 	int branch = (pad[14] ^ pad[11] ^ pad[17]) & 7;
 
@@ -2613,7 +2613,7 @@ void major_18 (u32 *pad, u32 seed)
 	ROLEQ (pad[18], pad[7] & 0x11);
 }
 
-void major_19 (u32 *pad, u32 seed)
+static void major_19 (u32 *pad, u32 seed)
 {
 	int branch = (pad[18] ^ pad[6] ^ pad[15]) & 3;
 
@@ -2659,7 +2659,7 @@ void major_19 (u32 *pad, u32 seed)
 	}
 }
 
-void major_21 (u32 *pad, u32 seed)
+static void major_21 (u32 *pad, u32 seed)
 {
 	int branch = (pad[1] ^ pad[0] ^ pad[16]) % 11;
 
@@ -2770,7 +2770,7 @@ void major_21 (u32 *pad, u32 seed)
 	pad[11] ^= pad[17] * 0x44;
 }
 
-void major_22 (u32 *pad, u32 seed)
+static void major_22 (u32 *pad, u32 seed)
 {
 	int branch = (pad[5] ^ pad[0] ^ seed) & 15;
 
@@ -2956,7 +2956,7 @@ void major_22 (u32 *pad, u32 seed)
 	pad[0] += my_sin (pad[0]) ? 0x9bcd446 : pad[14];
 }
 
-void major_23 (u32 *pad, u32 seed)
+static void major_23 (u32 *pad, u32 seed)
 {
 	int branch = seed & 1;
 
@@ -2989,7 +2989,7 @@ void major_23 (u32 *pad, u32 seed)
 	ROREQ (pad[7], pad[13]);
 }
 
-void major_24 (u32 *pad, u32 seed)
+static void major_24 (u32 *pad, u32 seed)
 {
 	int branch = (pad[2] ^ seed ^ pad[7]) % 3;
 
@@ -3023,7 +3023,7 @@ void major_24 (u32 *pad, u32 seed)
 	}
 }
 
-void major_25 (u32 *pad, u32 seed)
+static void major_25 (u32 *pad, u32 seed)
 {
 	int branch = (pad[7] ^ pad[2] ^ seed) % 5;
 
@@ -3079,7 +3079,7 @@ void major_25 (u32 *pad, u32 seed)
 	ROLEQ (pad[1], pad[15] + 0x19);
 }
 
-void mix (u32 *pad, u32 seed)
+static void mix (u32 *pad, u32 seed)
 {
 	int branch = (pad[5] ^ pad[9] ^ pad[19]) & 15;
 

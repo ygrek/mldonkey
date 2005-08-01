@@ -164,10 +164,9 @@ let connect_server h =
               if not (Ip.valid ip) then
                 failwith "Invalid IP for server\n";
               let port = s.server_host.host_port in
-              if !verbose_msg_servers then begin
-                  lprintf "CONNECT TO %s:%d\n" 
+              if !verbose_msg_servers then
+                lprintf "CONNECT TO %s:%d\n" 
                     (Ip.string_of_addr h.host_addr) port;
-                end;  
               H.set_request h Tcp_Connect;
               H.try_connect h;
 (* Standard Kazaa clients send a ping first, and only connect if they
@@ -386,9 +385,10 @@ let rec find_ultrapeer queue =
   with _ -> find_ultrapeer queue
 
 let ft_boot () =
+  let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
   let (h : host) = 
-    if !verbose then lprintf "BOOTSTRAPPING FORM IMESH\n";
-    H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer 
+    if !verbose then lprintf_nl "FT: Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
+    H.new_host imesh_ip 1214 IndexServer 
   in
   connect_server h  
 
@@ -400,8 +400,9 @@ let try_connect_ultrapeer connect =
     with _ ->
 (*        lprintf "not in ultrapeers_waiting_queue\n";   *)
         if !!bootstrap_from_imesh then
+	  let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
           let (h : host) = 
-            if !verbose then lprintf "BOOTSTRAPPING FORM IMESH\n";
+	    if !verbose then lprintf_nl "FT: Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
             H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
           find_ultrapeer peers_waiting_queue
         else raise Not_found

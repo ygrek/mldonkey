@@ -114,7 +114,7 @@ static void mix_major24 (u32 *pad, u32 seed);
 #define ROREQ(value, count) value = ROR(value, count)
 #define ROLEQ(value, count) value = ROL(value, count)
 
-void mix_major0 (u32 *pad, u32 seed)
+static void mix_major0 (u32 *pad, u32 seed)
 {
 	int branch = (pad[15] ^ pad[19] ^ seed) % 11;
 
@@ -263,7 +263,7 @@ void mix_major0 (u32 *pad, u32 seed)
 	pad[1] *= pad[1] + 0xfa4e2f52;
 }
 
-void mix_major1 (u32 *pad, u32 seed)
+static void mix_major1 (u32 *pad, u32 seed)
 {
 	int branch = (pad[6] ^ pad[9] ^ pad[12]) % 11;
 
@@ -409,7 +409,7 @@ void mix_major1 (u32 *pad, u32 seed)
 	pad[18] *= pad[18] + 0xf5eb4571;
 }
 
-void mix_major2 (u32 *pad, u32 seed)
+static void mix_major2 (u32 *pad, u32 seed)
 {
 	int branch = pad[9] % 11;
 
@@ -559,7 +559,7 @@ void mix_major2 (u32 *pad, u32 seed)
 	pad[4] ^= seed + 0xf27819a7;
 }
 
-void mix_major3 (u32 *pad, u32 seed)
+static void mix_major3 (u32 *pad, u32 seed)
 {
 	int branch = (pad[10] ^ pad[16] ^ seed) % 11;
 
@@ -704,7 +704,7 @@ void mix_major3 (u32 *pad, u32 seed)
 	pad[8] -= pad[8] ^ 0xc03874d;
 }
 
-void mix_major4 (u32 *pad, u32 seed)
+static void mix_major4 (u32 *pad, u32 seed)
 {
 	int branch = (pad[2] ^ pad[15] ^ seed) % 9;
 
@@ -835,7 +835,7 @@ void mix_major4 (u32 *pad, u32 seed)
 	pad[19] += ROL (seed, 15);
 }
 
-void mix_major5 (u32 *pad, u32 seed)
+static void mix_major5 (u32 *pad, u32 seed)
 {
 	int branch = pad[18] % 11;
 
@@ -983,7 +983,7 @@ void mix_major5 (u32 *pad, u32 seed)
 	pad[7] -= seed - 0xf1ae26ce;
 }
 
-void mix_major6 (u32 *pad, u32 seed)
+static void mix_major6 (u32 *pad, u32 seed)
 {
 	int branch = (pad[3] ^ pad[5] ^ pad[18]) & 7;
 
@@ -1106,7 +1106,7 @@ void mix_major6 (u32 *pad, u32 seed)
 	pad[2] *= ROL (pad[13], 24);
 }
 
-void mix_major7 (u32 *pad, u32 seed)
+static void mix_major7 (u32 *pad, u32 seed)
 {
 	int branch = (pad[3] ^ pad[6] ^ seed) % 11;
 
@@ -1246,7 +1246,7 @@ void mix_major7 (u32 *pad, u32 seed)
 	pad[6] -= pad[16] - 0x19b93371;
 }
 
-void mix_major8 (u32 *pad, u32 seed)
+static void mix_major8 (u32 *pad, u32 seed)
 {
 	int branch = (pad[5] ^ pad[9] ^ pad[19]) % 5;
 
@@ -1344,7 +1344,7 @@ void mix_major8 (u32 *pad, u32 seed)
 	ROREQ (pad[17], pad[10] + 0x1c);
 }
 
-void mix_major9 (u32 *pad, u32 seed)
+static void mix_major9 (u32 *pad, u32 seed)
 {
 	int branch = (pad[1] ^ pad[15] ^ pad[19]) % 11;
 
@@ -1493,7 +1493,7 @@ void mix_major9 (u32 *pad, u32 seed)
 	pad[10] &= pad[0] ^ 0x105d6dd1;
 }
 
-void mix_major10 (u32 *pad, u32 seed)
+static void mix_major10 (u32 *pad, u32 seed)
 {
 	int branch = pad[5] % 11;
 
@@ -1640,7 +1640,7 @@ void mix_major10 (u32 *pad, u32 seed)
 	pad[19] -= pad[6] ^ 0x13892cf5;
 }
 
-void mix_major11 (u32 *pad, u32 seed)
+static void mix_major11 (u32 *pad, u32 seed)
 {
 	int branch = (pad[3] ^ pad[11] ^ pad[17]) % 10;
 
@@ -1779,7 +1779,7 @@ void mix_major11 (u32 *pad, u32 seed)
 	pad[19] -= seed - 0x1dc54aa;
 }
 
-void mix_major12 (u32 *pad, u32 seed)
+static void mix_major12 (u32 *pad, u32 seed)
 {
 	int branch = (pad[7] ^ pad[16] ^ seed) % 6;
 
@@ -1879,7 +1879,7 @@ void mix_major12 (u32 *pad, u32 seed)
 	pad[13] += pad[5] + 0x25393a1;
 }
 
-void mix_major13 (u32 *pad, u32 seed)
+static void mix_major13 (u32 *pad, u32 seed)
 {
 	int branch = (pad[1] ^ pad[12] ^ pad[18]) % 11;
 
@@ -2031,7 +2031,7 @@ void mix_major13 (u32 *pad, u32 seed)
 	pad[13] += seed * 0x2a0d21c3;
 }
 
-void mix_major14 (u32 *pad, u32 seed)
+static void mix_major14 (u32 *pad, u32 seed)
 {
 	int branch = (pad[6] ^ pad[8] ^ pad[15]) % 11;
 
@@ -2179,7 +2179,7 @@ void mix_major14 (u32 *pad, u32 seed)
 	pad[3] -= pad[13] - 0x2669d0a1;
 }
 
-void mix_major15 (u32 *pad, u32 seed)
+static void mix_major15 (u32 *pad, u32 seed)
 {
 	int branch = (pad[12] ^ pad[15] ^ seed) & 3;
 
@@ -2266,7 +2266,7 @@ void mix_major15 (u32 *pad, u32 seed)
 	pad[2] ^= ROR (seed, 12);
 }
 
-void mix_major16 (u32 *pad, u32 seed)
+static void mix_major16 (u32 *pad, u32 seed)
 {
 	int branch = pad[12] % 3;
 
@@ -2342,7 +2342,7 @@ void mix_major16 (u32 *pad, u32 seed)
 	pad[14] -= ROL (pad[10], 20);
 }
 
-void mix_major17 (u32 *pad, u32 seed)
+static void mix_major17 (u32 *pad, u32 seed)
 {
 	int branch = seed & 1;
 
@@ -2411,7 +2411,7 @@ void mix_major17 (u32 *pad, u32 seed)
 	ROLEQ (pad[9], pad[16] * 0x19);
 }
 
-void mix_major18 (u32 *pad, u32 seed)
+static void mix_major18 (u32 *pad, u32 seed)
 {
 	int branch = (pad[13] ^ pad[16] ^ pad[17]) % 7;
 
@@ -2524,7 +2524,7 @@ void mix_major18 (u32 *pad, u32 seed)
 	pad[14] += pad[2] + 0xf431b0d4;
 }
 
-void mix_major19 (u32 *pad, u32 seed)
+static void mix_major19 (u32 *pad, u32 seed)
 {
 	pad[3] ^= seed + 0xd2670e69;
 	seed ^= pad[2] & 0x3bd91a6d;
@@ -2575,7 +2575,7 @@ void mix_major19 (u32 *pad, u32 seed)
 	pad[5] -= ROR (pad[10], 24);
 }
 
-void mix_major20 (u32 *pad, u32 seed)
+static void mix_major20 (u32 *pad, u32 seed)
 {
 	ROLEQ (pad[14], seed & 0xe);
 	seed += pad[15] ^ 0xbf446ce;
@@ -2615,7 +2615,7 @@ void mix_major20 (u32 *pad, u32 seed)
 	pad[14] &= pad[11] ^ 0x79362e5;
 }
 
-void mix_major21 (u32 *pad, u32 seed)
+static void mix_major21 (u32 *pad, u32 seed)
 {
 	int branch = (pad[2] ^ pad[11] ^ pad[15]) % 11;
 
@@ -2764,7 +2764,7 @@ void mix_major21 (u32 *pad, u32 seed)
 	pad[16] += seed | 0x20914367;
 }
 
-void mix_major22 (u32 *pad, u32 seed)
+static void mix_major22 (u32 *pad, u32 seed)
 {
 	int branch = seed % 11;
 
@@ -2912,7 +2912,7 @@ void mix_major22 (u32 *pad, u32 seed)
 	pad[6] -= pad[12] & 0x13175e3d;
 }
 
-void mix_major23 (u32 *pad, u32 seed)
+static void mix_major23 (u32 *pad, u32 seed)
 {
 	int branch = seed % 11;
 
@@ -3062,7 +3062,7 @@ void mix_major23 (u32 *pad, u32 seed)
 	pad[2] -= seed - 0xf9432db1;
 }
 
-void mix_major24 (u32 *pad, u32 seed)
+static void mix_major24 (u32 *pad, u32 seed)
 {
 	int branch = (pad[17] ^ pad[8] ^ pad[10]) % 11;
 

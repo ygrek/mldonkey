@@ -133,14 +133,14 @@ void FSTFinal(unsigned char [20], FST_CTX*);
 
 void FSTInit(FST_CTX *context)
 {
-  MD5Init(& (context->md5_context) );
+  ml_MD5Init(& (context->md5_context) );
   context->todo = 307200;
   context->smallhash = 0xffffffff;
 }
 
 void FSTFinal(unsigned char buffer[20], FST_CTX *context)
 {
-  MD5Final(buffer, & (context->md5_context) );
+  ml_MD5Final(buffer, & (context->md5_context) );
 
 	// and append it to md5 hash
   buffer[16] = context->smallhash & 0xff;
@@ -154,7 +154,7 @@ void FSTUpdate (FST_CTX*context, unsigned char*buffer, unsigned int len)
   if(context->todo>0){
     int baselen = len;
     if (baselen > context->todo) baselen = context->todo;
-    MD5Update( &(context->md5_context), buffer, baselen);
+    ml_MD5Update( &(context->md5_context), buffer, baselen);
     buffer += baselen;
     context->todo -= baselen;
     len -= baselen;
@@ -202,7 +202,7 @@ int fst_hash_file (unsigned char *fth, char *file, int64 filesize)
   FILE *fp;
   unsigned char *buf;
   size_t len;
-  MD5Context md5_ctx;
+  ml_MD5Context md5_ctx;
   unsigned int smallhash;
     
   if((fp = fopen (file, "rb")) == NULL)
@@ -219,9 +219,9 @@ int fst_hash_file (unsigned char *fth, char *file, int64 filesize)
     return 0;
   }
   
-  MD5Init(&md5_ctx);
-  MD5Update(&md5_ctx, buf, len);
-  MD5Final(fth, &md5_ctx);
+  ml_MD5Init(&md5_ctx);
+  ml_MD5Update(&md5_ctx, buf, len);
+  ml_MD5Final(fth, &md5_ctx);
 
 	// calculate 4-byte small hash
   smallhash = 0xffffffff;
@@ -275,14 +275,14 @@ void fst_hash_string (unsigned char *fth, unsigned char *file, int64 filesize)
 {
   unsigned char * buf = file;
   size_t len = filesize;
-  MD5Context md5_ctx;
+  ml_MD5Context md5_ctx;
   unsigned int smallhash;
   
   if (len > FST_HASH_CHUNK) len = FST_HASH_CHUNK;  
   
-  MD5Init(&md5_ctx);
-  MD5Update(&md5_ctx, buf, len);
-  MD5Final(fth, &md5_ctx);
+  ml_MD5Init(&md5_ctx);
+  ml_MD5Update(&md5_ctx, buf, len);
+  ml_MD5Final(fth, &md5_ctx);
 
 	// calculate 4-byte small hash
   smallhash = 0xffffffff;

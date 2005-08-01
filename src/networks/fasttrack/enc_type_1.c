@@ -75,13 +75,13 @@ void enc_type_1 (u8 *out_key, u8 *in_key)
 	big_htole (out_key, num1, 256);
 }
 
-void big_set (u32 *num, u32 val)
+static void big_set (u32 *num, u32 val)
 {
 	memset (num, 0, 4 * 64);
 	num[0] = val;
 }
 
-void big_letoh (u32 *dst, u8 *src)
+static void big_letoh (u32 *dst, u8 *src)
 {
 	int i, j;
 	u32 tmp;
@@ -94,7 +94,7 @@ void big_letoh (u32 *dst, u8 *src)
 	}
 }
 
-void big_htole (u8 *dst, u32 *src, int cnt)
+static void big_htole (u8 *dst, u32 *src, int cnt)
 {
 	int i;
 
@@ -107,7 +107,7 @@ int big_getbit (u32 *num, int i)
 	return (num[i >> 5] >> (i & 0x1f)) & 1;
 }
 
-void big_expmod (u32 *num, u32 *exp, u32 *mod)
+static void big_expmod (u32 *num, u32 *exp, u32 *mod)
 {
 	u32 lnum[64];
 	int i, j;
@@ -127,7 +127,7 @@ void big_expmod (u32 *num, u32 *exp, u32 *mod)
 	memcpy (num, lnum, 64 * 4);
 }
 
-void big_mulmod (u32 *num1, u32 *num2, u32 *mod)
+static void big_mulmod (u32 *num1, u32 *num2, u32 *mod)
 {
 	u32 lnum[128];
 	int len = mod[63] ? 64 : 32;
@@ -136,7 +136,7 @@ void big_mulmod (u32 *num1, u32 *num2, u32 *mod)
 	big_mod (len, num1, lnum, mod);
 }
 
-void big_mul (int cnt, u32 *out, u32 *in1, u32 *in2)
+static void big_mul (int cnt, u32 *out, u32 *in1, u32 *in2)
 {
 	int i, j;
 	u64 k;
@@ -168,7 +168,7 @@ int big_isless (int cnt, u32 *num1, u32 *num2)
 	return 0;
 }
 
-void big_mod (int cnt, u32 *out, u32 *in1, u32 *in2)
+static void big_mod (int cnt, u32 *out, u32 *in1, u32 *in2)
 {
 	u64 x;
 	u32 k, l;

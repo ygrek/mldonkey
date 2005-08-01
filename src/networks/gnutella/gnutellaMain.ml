@@ -124,7 +124,9 @@ let enable () =
             GnutellaHandler.update_shared_files ()
           end
     );
-    
+
+    add_timer 10. (fun _ -> try GnutellaServers.ft_boot () with _ -> ());    
+
     GnutellaInteractive.recover_files ();
     add_session_timer enabler GnutellaProto.recover_files_delay (fun timer ->
         GnutellaInteractive.recover_files ();

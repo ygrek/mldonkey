@@ -571,6 +571,7 @@ end;
                 in
                 iter ()
               with Not_found -> 
+		if !verbose_hidden_errors then
                   lprintf "Unable to get a block !!";
                   check_finished swarmer file;
                   raise Not_found

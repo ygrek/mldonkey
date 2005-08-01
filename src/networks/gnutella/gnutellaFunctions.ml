@@ -158,6 +158,7 @@ let handlers info gconn =
                             (try
                                 h gconn sock (first_line, headers);
                               with e ->
+                                if !verbose_hidden_errors then
                                   lprintf "HttpReader: handler raised %s\n"
                                     (Printexc2.to_string e);
                                   close sock (Closed_for_exception e));
