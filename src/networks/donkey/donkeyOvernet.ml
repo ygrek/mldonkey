@@ -196,6 +196,12 @@ let message_to_string t =
         List.iter (print_peer buf) peers
     | OvernetPublished target ->
         Printf.bprintf buf "OvernetPublished %s\n" (Md4.to_string target)
+    | OvernetPeerNotFound p ->
+        Printf.bprintf buf "OvernetPeerNotFound\n";
+        print_peer buf p
+    | OvernetUnknown21 p ->
+        Printf.bprintf buf "OvernetUnknown21\n";
+        print_peer buf p
     | _ ->
         Buffer.add_string buf "unknown\n"
   end;
@@ -1071,6 +1077,50 @@ let udp_client_handler t p =
                 (OvernetSearchFilesResults (md4, list))
         | _ -> ()
       end
+
+  | OvernetFirewallConnectionACK(md4) ->   
+       if !verbose_overnet && debug_client other_ip then   
+         lprintf_nl () "FIREWALL ACK for md4=%s" (Md4.to_string md4)   
+    
+   | OvernetFirewallConnectionNACK(md4) ->   
+       if !verbose_overnet && debug_client other_ip then   
+         lprintf_nl () "FIREWALL NACK for md4=%s" (Md4.to_string md4)   
+    
+ (* send the answer *)   
+   | OvernetGetMyIP other_port ->   
+       if !verbose_overnet && debug_client other_ip then   
+         lprintf_nl () "GET MY IP (port=%d)\n" other_port;   
+ (* FIXME : should be able to flush the UDP buffer*)   
+       udp_send_direct other_ip other_port (OvernetGetMyIPResult other_ip);   
+       udp_send_direct other_ip other_port OvernetGetMyIPDone   
+    
+   | OvernetGetMyIPResult(ip) ->   
+       if !verbose_overnet && debug_client other_ip then   
+         lprintf_nl () "GET MY IP RESULT (%s)\n" (Ip.to_string ip)   
+    
+   | OvernetGetMyIPDone ->   
+       if !verbose_overnet && debug_client other_ip then   
+         lprintf_nl () "GET MY IP DONE\n"   
+  
+  | OvernetPeerNotFound peer ->
+      begin
+        if !verbose_overnet && debug_client other_ip then
+          lprintf_nl () "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
+            (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip)
+        peer.peer_port peer.peer_kind;
+        let key = (peer.peer_ip, peer.peer_port) in
+        if Hashtbl.mem known_peers key
+        then begin
+            Hashtbl.remove known_peers key;
+          end
+      end
+
+   | OvernetUnknown21 peer ->
+      if !verbose_overnet && debug_client other_ip then begin
+          lprintf_nl () "Unknown 21 message ...";
+          lprintf_nl () "From peer: %s ip: %s:%d kind: %d"
+            (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip) peer.peer_port peer.peer_kind
+        end
 
   | _ -> failwith "Message not understood"
 

@@ -21,6 +21,7 @@ functions are defined in downloadOneFile.ml *)
 
 open Printf2
 open Md4
+open Ip_set
 
 open CommonSources
 open CommonDownloads  
@@ -2200,8 +2201,15 @@ let client_connection_handler overnet t event =
 (*  lprintf "[REMOTE CONN]\n"; *)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-
-      if can_open_indirect_connection () then
+      let from_ip = (Ip.of_inet_addr from_ip) in
+      if can_open_indirect_connection () &&
+        (match Ip_set.match_ip !Ip_set.bl from_ip with
+                   None -> true
+                 | Some br ->
+                     if !verbose_connect then
+                       lprintf "DKOV: %s:%d blocked: %s\n"
+                         (Ip.to_string from_ip) from_port br.blocking_description;
+                     false) then
         begin
 (*          lprintf "+++++++++++++++++++++++++++++++++++++++++++++++\n"; *)
           (try
@@ -2214,7 +2222,7 @@ let client_connection_handler overnet t event =
                   (client_handler2 c) 
 (*client_msg_to_string*)
               in
-              init_connection sock (Ip.of_inet_addr from_ip);
+              init_connection sock from_ip;
               accept_connection_bandwidth sock;
               
 (* Normal connections have 20 minutes to live (AvailableSlot, QueryBloc

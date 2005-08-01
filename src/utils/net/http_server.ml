@@ -798,12 +798,21 @@ let request_handler config sock nread =
 let request_closer sock msg =
   ()
 
+
+open Ip_set
+
 let handler config t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
-(* check here if ip is OK *)
+    (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip config.addrs then
+      if Ip.matches from_ip config.addrs &&
+        (match Ip_set.match_ip !Ip_set.bl from_ip with
+           None -> true
+         | Some br ->
+             lprintf "[HTTPSRV]:  %s:%d blocked: %s\n"
+               (Ip.to_string from_ip) from_port br.blocking_description;
+             false) then
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple
             token "http connection" s in
