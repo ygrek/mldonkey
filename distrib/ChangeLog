@@ -10,7 +10,7 @@ ChangeLog
 
 2005/08/01: spiralvoice
 
-4261: HTML: Add DL button - opens dialog for entering links
+4261: HTML: Add DL button - opens dialog for entering links (by omgwtf2)
 4260: IPblock: Enable IP blocking for Overnet and HTTP server
       (=BT Tracker) (by beedauchon)
 4257: Kick uploaders which send no data for more than 1 minute

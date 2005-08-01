@@ -309,6 +309,17 @@ y = (isNav) ? e.pageY : event.clientY + document.body.scrollTop;
 if (isNav){document.captureEvents(Event.MOUSEMOVE);}
 document.onmousemove = handlerMM;
 
+function dllink() {
+	var l = prompt( \"enter ed2k, sig2dat, torrent or other link\", \"\" );
+	if( l != null ) {
+		var f = document.forms[\"cmdFormular\"];
+		var t = f.elements[\"q\"].value;
+		f.elements[\"q\"].value = \"dllink \" + l;
+		f.submit();
+		f.elements[\"q\"].value = t;
+	}
+}
+
 //-->
   "
 
@@ -468,6 +479,10 @@ onclick=\"showTab(5);mSub('output','voo+1');\">Options</TD></TR></TBODY></TABLE>
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Help+Miscellaneous Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"dllink\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"dllink();\">DL</TD></TR></TBODY></TABLE></TD>
 <FORM name=cmdFormular action=submit target=output>
 <TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
 <TD style=\"padding: 0px; border: 0px; padding-left: 5px;\" title=\"Input mldonkey command here\">
