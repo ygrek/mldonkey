@@ -1,9 +1,15 @@
 
 open Printf2
 
+(* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
   lprintf "%s[IPblock] "
   (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[IPblock] "
+  (log_time ()); lprintf
 
 (* range name, ip min, ip max (inclusive) *)
 type blocking_range = {
@@ -85,9 +91,12 @@ let load_merge bl filename remove =
   let cin = open_in filename in
   let bl = ref bl in
   let nranges = ref 0 in
+  let nlines = ref 0 in
+  let error = ref false in
   try
     while true do
       let line = input_line cin in
+        incr nlines;
 	try
 	  if Str.string_match ipfilter_regexp line 0 then begin
 	    let br = {
@@ -109,10 +118,16 @@ let load_merge bl filename remove =
 	    end else 
 	      raise Not_found
 	with _ ->
-	  lprintf_nl () "Syntax error while loading IP blocklist in line %s" line
+	  if not !error then
+	    begin
+	      lprintf_n () "Syntax error while loading IP blocklist in line";
+	      error := true
+	    end;
+	    lprintf " %d" !nlines;
     done;
     bl_empty (* not reached *)
   with End_of_file ->
+    if !error then lprint_newline ();
     close_in cin;
     if remove then (try Sys.remove filename with _ -> ());
     lprintf_nl () "%d ranges loaded" !nranges;
@@ -121,28 +136,43 @@ let load_merge bl filename remove =
 let load filename =
    lprintf_nl () "loading %s" filename;
    if Sys.file_exists filename then
-     let ext = String.lowercase (Filename2.extension filename) in
-       match ext with
-	 ".zip" | ".p2p.zip" ->
+   let ext = String.lowercase (Filename2.extension filename) in
+    let last_ext = String.lowercase (Filename2.last_extension filename) in
+    let real_ext = if last_ext = ".zip" then
+      last_ext
+    else
+      ext
+    in
+      match real_ext with
+        ".zip" ->
 	   begin
+	   try
+	     let ic = Zip.open_in filename in
 	     try
-	       let file = Zip.find_entry (Zip.open_in filename) "guarding.p2p" in
+	       let file = Zip.find_entry ic "guarding.p2p" in
+	         Zip.close_in ic;
 		 lprintf_nl () "guarding.p2p found in zip file";
 		 let s = Misc.archive_extract filename "zip" in
 		 load_merge bl_empty file.Zip.filename true
 	       with e ->
 		 begin
 		   try
-		     let file = Zip.find_entry (Zip.open_in filename) "guarding_full.p2p" in
+		     let file = Zip.find_entry ic "guarding_full.p2p" in
+		       Zip.close_in ic;
 		       lprintf_nl () "guarding_full.p2p found in zip file";
 		       let s = Misc.archive_extract filename "zip" in
 		       load_merge bl_empty file.Zip.filename true
 		     with e ->
+		       Zip.close_in ic;
 		       lprintf_nl () "Exception %s while extracting guarding.p2p/guarding_full.p2p from %s"
 			 (Printexc2.to_string e) filename;
 		       lprintf_nl () "One of the mentioned files has to be present in the zip file";
 		       bl_empty
 		 end
+	     with e ->
+	       lprintf_nl () "Exception %s while opening %s"
+		 (Printexc2.to_string e) filename;
+	       bl_empty
 	   end
        | ".bz2" | ".p2p.bz2" | ".gz" | ".p2p.gz" ->
 	   begin
