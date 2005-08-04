@@ -54,14 +54,16 @@ let enable () =
   if not !is_enabled then
     let enabler = ref true in
     (* lprintf "enabling...\n"; *)
-    Unix2.safe_mkdir old_torrents_directory;
+    Unix2.safe_mkdir torrents_directory;
     Unix2.safe_mkdir seeded_directory;
     Unix2.safe_mkdir tracked_directory;
     Unix2.safe_mkdir downloads_directory;
-    Unix2.can_write_to_directory old_torrents_directory;
+    Unix2.safe_mkdir old_directory;
+    Unix2.can_write_to_directory torrents_directory;
     Unix2.can_write_to_directory seeded_directory;
     Unix2.can_write_to_directory tracked_directory;
     Unix2.can_write_to_directory downloads_directory;
+    Unix2.can_write_to_directory old_directory;
     is_enabled := true;
     if !!BTTracker.tracker_port > 0 then (
         try BTTracker.start_tracker () 
@@ -133,6 +135,7 @@ let _ =
   *)
   network.op_network_enable <- enable;
   network.network_config_file <- [bittorrent_ini];
+  check_client_uid ();
   network.op_network_info <- (fun n ->
       { 
         network_netnum = network.network_num;

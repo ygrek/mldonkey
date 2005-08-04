@@ -14,6 +14,18 @@ ChangeLog
 4269: IPBlock: Several fixes, better zip file support
 4264: Fasttrack: Force commit of all complete files
 
+4258: BT: Statistics, recognize more clients, min_interval, torrents/old and more...
+      This patch was done by Beedauchon, it incorporates weeks of work from him. 
+* move .torrent to torrents/old if the file is not shared anymore
+* new command rm_old_torrents: delete all files in torrents/old
+* eDonkey like statistics for BT clients (csbt command)
+* compute_torrent and make_torrent can put a comment into the .torrent file
+* MLdonkey computes a BT-compatible client_uid starting with "-ML"
+* parse more fields from .torrent files and display them in HTML interface
+* Tracker: replace "/tracker" by "/announce"
+* Tracker: add "/scrape"
+* Multitracker support for downloading
+
 2005/08/02: spiralvoice
 
 4263: Fasttrack: Force bootstrapping nodes

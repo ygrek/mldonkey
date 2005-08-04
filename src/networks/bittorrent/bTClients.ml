@@ -61,6 +61,7 @@ open BTOptions
 open BTGlobals
 open BTComplexOptions
 open BTChooser
+open BTStats
 open TcpMessages
 
 (* prints a new logline with date, module and starts newline *)
@@ -127,6 +128,9 @@ let connect_trackers file event f =
     ("compact","1") ::
     args
   in
+  let args = if !!send_key then
+      ("key", Sha1.to_hexa !!client_uid) :: args else args
+  in
   let args = if !!numwant > -1 then
       ("numwant", string_of_int !!numwant) :: args else args
   in
@@ -142,39 +146,63 @@ let connect_trackers file event f =
         || t.tracker_last_conn + t.tracker_interval < last_time()
         || ( file.file_clients_num < !!ask_tracker_threshold
             && (file_state file) == FileDownloading
-            && t.tracker_last_conn + !!min_tracker_reask_interval < last_time() )
+            && (if t.tracker_min_interval > !!min_tracker_reask_interval then
+                t.tracker_last_conn + t.tracker_min_interval < last_time()
+              else
+                t.tracker_last_conn + !!min_tracker_reask_interval < last_time() ))
       then
         begin
-          if !verbose_msg_servers then 
-            lprintf_nl () "get_sources_from_tracker: tracker_connected:%s last_clients:%i last_conn-last_time:%i file: %s"
-              (string_of_bool file.file_tracker_connected) t.tracker_last_clients_num
-              (t.tracker_last_conn - last_time()) file.file_name;
+          (* if we already tried to connect but failed, remove tracker *)
+          if file.file_tracker_connected && t.tracker_last_clients_num = 0 &&
+            t.tracker_last_conn < 1 then begin
+              if !verbose_msg_servers then
+                lprintf_nl () "Request error from tracker: removing %s" t.tracker_url;
+              remove_tracker t.tracker_url file
+            end
+          (* Send request to tracker *)
+          else begin
+              let args = if String.length t.tracker_id > 0 then
+                  ("trackerid", t.tracker_id) :: args else args
+              in
+              let args = if String.length t.tracker_key > 0 then
+                  ("key", t.tracker_key) :: args else args
+              in
+              if !verbose_msg_servers then
+                lprintf_nl () "get_sources_from_tracker: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+                  (string_of_bool file.file_tracker_connected)
+                  t.tracker_id t.tracker_key t.tracker_last_clients_num
+                  (t.tracker_last_conn - last_time()) file.file_name;
 
-          let module H = Http_client in
-          let url = t.tracker_url in
-          let r = {
-              H.basic_request with
-              H.req_url = Url.of_string ~args: args url;
-              H.req_proxy = !CommonOptions.http_proxy;
-              H.req_user_agent = 
-              Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
-            } in
+              let module H = Http_client in
+              let url = t.tracker_url in
+              let r = {
+                  H.basic_request with
+                  H.req_url = Url.of_string ~args: args url;
+                  H.req_proxy = !CommonOptions.http_proxy;
+                  H.req_user_agent =
+                    Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+                } in
 
-          if !verbose_msg_servers then
-              lprintf_nl () "Request sent to tracker %s for file: %s"
-                t.tracker_url file.file_name;
-          H.wget r 
-            (fun fileres -> 
-              t.tracker_last_conn <- last_time ();
-              file.file_tracker_connected <- true;
-              f t fileres
-          )
+              if !verbose_msg_servers then
+                  lprintf_nl () "Request sent to tracker %s for file: %s"
+                    t.tracker_url file.file_name;
+              H.wget r
+                (fun fileres ->
+                  t.tracker_last_conn <- last_time ();
+                  file.file_tracker_connected <- true;
+                  f t fileres)
+          end
         end
+
       else
         if !verbose_msg_servers then
-          lprintf_nl () "Request NOT sent to tracker %s - remaning: %d file: %s"
+          lprintf_nl () "Request NOT sent to tracker %s - next request in %ds for file: %s"
             t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
-  ) file.file_trackers
+  ) file.file_trackers;
+  (* if there is no tracker left, do something ? *)
+  if List.length file.file_trackers = 0 then
+    if !verbose_msg_servers then
+      lprintf_nl () "No trackers left ..."
 
 (** In this function we decide which peers will be
   uploaders. We send a choke message to current uploaders
@@ -233,6 +261,7 @@ let disconnect_client c reason =
 (*          List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges; *)
           set_client_disconnected c reason;
           let file = c.client_file in
+          (try if c.client_good then count_seen c with _ -> ());
           (* this is not useful already done in the match
           (try close sock reason with _ -> ());	  *)
 (*---------not needed ?? VvvvvV---------------
@@ -666,7 +695,8 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
       x y
   with Not_found ->
         if not (Int64Swarmer.check_finished swarmer) && !verbose_hidden_errors then
-          lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished..."
+          lprintf_nl ()
+            "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 
 (** In this function we match a message sent by a client
@@ -733,15 +763,17 @@ and client_to_client c sock msg =
             let new_downloaded =
               Int64Swarmer.downloaded swarmer in
 
-            (*Update rate and ammount of data received from client*)
+            (*Update rate and amount of data received from client*)
             c.client_downloaded <- c.client_downloaded ++
               (new_downloaded -- old_downloaded);
             Rate.update c.client_downloaded_rate  (float_of_int len);
-            
+            (* update the stats *)
+            let len64 = Int64.of_int len in
+            count_download c file len64;
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
-                  [] -> lprintf_nl () "EMPTY Ranges!"
-                | (p1,p2,r) :: _ -> 
+                  [] -> lprintf_nl () "EMPTY Ranges !!!"
+                | (p1,p2,r) :: _ ->
                     let (x,y) = Int64Swarmer.range_range r in
                     lprintf_nl () "Received %Ld [%d] %Ld-%Ld[%Ld-%Ld] -> %Ld"
                       position len
@@ -775,11 +807,15 @@ and client_to_client c sock msg =
             send_client c Unchoke;
           end;
 
-(* Check if the client is still interesting for us... *)
+        (* Check if the client is still interesting for us... *)
         check_if_interesting file c
 
     | PeerID p ->
+      c.client_brand <- (parse_brand p);
       c.client_software <- (parse_software p);
+(* TODO : enable it
+      c.client_release <- (parse_release p c.client_brand);
+ *)
       c.client_uid <- Sha1.direct_of_string p;
       (* Disconnect if that is ourselves. *)
       if c.client_uid = !!client_uid then disconnect_client c Closed_by_user
@@ -1153,22 +1189,40 @@ let resume_clients file =
       try
         match c.client_sock with
         | Connection sock -> ()
-            (*i think this one is not really usefull for debugging
-              lprintf "[BT] : RESUME: Client is already connected\n"; *)
+            (*i think this one is not realy usefull for debugging
+              lprintf_nl "[BT]: RESUME: Client is already connected"; *)
         | _ ->
             (try
-	       (*test if we can connect client according to the its
-		 connection_control.
-		 Currently the delay between two try is 120 seconds.
-	       *)
-	       if connection_can_try c.client_connection_control then
-		 connect_client c
-	       else
-		 print_control c.client_connection_control
-	     with _ -> ())
-      with e -> ()
-(* lprintf "Exception %s in resume_clients\n"   (Printexc2.to_string e) *)
+               (*test if we can connect client according to the its
+                 connection_control.
+                 Currently the delay between two try is 120 seconds.
+               *)
+               if connection_can_try c.client_connection_control then
+                 connect_client c
+               else
+                 print_control c.client_connection_control
+             with _ -> ())
+      with e ->
+          if !verbose_connect then
+            lprintf_nl () "Exception %s in resume_clients"   (Printexc2.to_string e)
   ) file.file_clients
+
+(** Check if the value replied by the tracker is correct.
+  @param key the name of the key
+  @param n the value to check
+  @param url Url of the tracker
+  @param name the name of the file
+*)
+let chk_keyval key n url name =
+  let int_n = (Int64.to_int n) in
+  if !verbose_msg_clients then
+    lprintf_nl () "Reply from %s in file: %s has %s: %d" url name key int_n;
+  if int_n > -1 then
+    int_n
+  else begin
+     lprintf_nl () "Reply from %s in file: %s has an invalid %s value: %d" url name key int_n;
+     0
+   end
 
 
 (** In this function we initiate a connection to the file tracker
@@ -1181,22 +1235,72 @@ let resume_clients file =
 *)
 let get_sources_from_tracker file =
   let f t filename =
-(*This is the function which will be called by the http client
-for parsing the response*)
-    let v = Bencode.decode (File.to_string filename) in
-
+    (*This is the function which will be called by the http client
+      for parsing the response
+     *)
+    let tracker_reply =
+      try
+        File.to_string filename
+      with e -> lprintf_nl () "Empty reply from tracker"; ""
+    in
+    let v = 
+       match tracker_reply with
+       | "" ->
+        if !verbose_connect then
+          lprintf_nl () "Empty reply from tracker";
+        Bencode.decode ""
+       | _ -> Bencode.decode tracker_reply
+    in
     t.tracker_interval <- 600;
+    t.tracker_min_interval <- 600;
     t.tracker_last_clients_num <- 0;
     match v with
       Dictionary list ->
         List.iter (fun (key,value) ->
             match (key, value) with
-              String "interval", Int n ->
-                t.tracker_interval <- Int64.to_int n
             | String "failure reason", String failure ->
-                lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name failure
-            | String "complete", Int n -> () (*TODO we should put these two in some var. and perhaps display them in the gui*)
-            | String "incomplete", Int n -> ()
+                (* On failure, remove the faulty tracker from file.file_trackers list *)
+		remove_tracker t.tracker_url file;
+                lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s removed for failure"
+                  t.tracker_url file.file_name failure t.tracker_url
+            | String "warning message", String warning ->
+                lprintf_nl () "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
+            | String "interval", Int n ->
+                t.tracker_interval <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+                (* in case we don't receive "min interval" *)
+                if t.tracker_min_interval > t.tracker_interval then
+                  t.tracker_min_interval <- t.tracker_interval
+            | String "min interval", Int n ->
+                t.tracker_min_interval <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+                (* make sure "min interval" is always < or equal to "interval" *)
+                if t.tracker_min_interval > t.tracker_interval then
+                  t.tracker_min_interval <- t.tracker_interval
+            | String "downloaded", Int n ->
+                t.tracker_torrent_downloaded <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
+            | String "complete", Int n
+            | String "done peers", Int n ->
+                t.tracker_torrent_complete <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
+            | String "incomplete", Int n ->
+                t.tracker_torrent_incomplete <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+                (* if complete > 0 and we receive incomplete we probably won't receive num_peers so we simulate it below *)
+                if t.tracker_torrent_complete > 0 then
+                  t.tracker_torrent_total_clients_count <- (t.tracker_torrent_complete + t.tracker_torrent_incomplete);
+            | String "num peers", Int n ->
+                t.tracker_torrent_total_clients_count <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+                (* if complete > 0 and we receive num_peers we probably won't receive incomplete so we simulate it below *)
+                if t.tracker_torrent_complete > 0 then
+                  t.tracker_torrent_incomplete <- (t.tracker_torrent_total_clients_count - t.tracker_torrent_complete);
+            | String "last", Int n ->
+                t.tracker_torrent_last_dl_req <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
+            | String "key", String n ->
+                t.tracker_key <- n;
+                if !verbose_msg_clients then
+                  lprintf_nl () "%s in file: %s has key: %s" t.tracker_url file.file_name n
+            | String "tracker id", String n ->
+                t.tracker_id <- n;
+                if !verbose_msg_clients then
+                  lprintf_nl () "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
+
             | String "peers", List list ->
                 List.iter (fun v ->
                     match v with
@@ -1316,13 +1420,15 @@ let rec iter_upload sock c =
           c.client_allowed_to_write <- c.client_allowed_to_write -- len;
           c.client_uploaded <- c.client_uploaded ++ len;
           let len = Int64.to_int len in
-(*          CommonUploads.consume_bandwidth (len/2); *)
+          CommonUploads.consume_bandwidth len;
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
-(*update uploade rate from len bytes*)
+         (* update upload rate from len bytes *)
           Rate.update c.client_upload_rate  (float_of_int len);
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
           let _ =
+            (* update stats *)
+            count_filerequest c;
             match file.file_shared with
                 None -> ()
               | Some s ->
@@ -1333,6 +1439,9 @@ let rec iter_upload sock c =
           in
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
+          (* update stats *)
+          let uploaded = Int64.of_int len in
+          count_upload c file uploaded;
           iter_upload sock c
         end else
         begin

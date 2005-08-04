@@ -115,7 +115,7 @@ let op_file_commit file new_name =
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
-    end
+    end	
 
 let op_file_print_html file buf =
 
@@ -127,32 +127,115 @@ let op_file_print_html file buf =
     ("", "sr", file.file_name) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Tracker(s)", "sr br", "Tracker(s)");
+    ("", "sr",
+      (let tracker_string = ref "" in
+       List.iter (fun tracker ->
+        tracker_string := !tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
+      ) file.file_trackers;
+      Printf.sprintf "%s" !tracker_string)) ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
   html_mods_td buf [
-    ("Tracker", "sr br", "Tracker");
-    ("", "sr", match file.file_trackers with
-        [] -> ""
-      | t :: _ -> t.tracker_url) ];
-
-  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>"
-    (html_mods_cntr ());
-  html_mods_td buf [
-    ("Torrent Fname", "sr br", "Torrent Fname");
+    ("Torrent Filename", "sr br", "Torrent Fname");
     ("", "sr", file.file_torrent_diskname) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+
   html_mods_td buf [
-    ("Connect Interval", "sr br", "Con Inverval");
-    ("", "sr", match file.file_trackers with
-        [] -> "-"
-      | t :: _ -> Printf.sprintf "%d" t.tracker_interval ) ];
+    ("Comment", "sr br", "Comment");
+    ("", "sr", match file.file_comment with
+        "" -> "-"
+      | _ -> file.file_comment) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
-    ("Last Connect", "sr br", "Last Connect");
-    ("", "sr", match file.file_trackers with
-        [] -> "-"
-      | t :: _ -> string_of_date t.tracker_last_conn) ]
+    ("Created by", "sr br", "Created by");
+    ("", "sr", match file.file_created_by with
+        "" -> "-"
+      | _ -> file.file_created_by) ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Creation date", "sr br", "Creation date");
+    ("", "sr", Date.to_string (Int64.to_float file.file_creation_date) ) ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Modified by", "sr br", "Modified by");
+    ("", "sr", match file.file_modified_by with
+        "" -> "-"
+      | _ -> file.file_modified_by) ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Encoding", "sr br", "Encoding");
+    ("", "sr", match file.file_encoding with
+        "" -> "-"
+      | _ -> file.file_encoding) ];
+
+  match file.file_trackers with
+      [] -> ()
+    | t :: _ ->
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("Last Connect", "sr br", "Last Connect");
+        ("", "sr", string_of_date t.tracker_last_conn) ];
+
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("Connect Interval", "sr br", "Con Interval");
+        ("", "sr", Printf.sprintf "%d" t.tracker_interval) ];
+
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("Connect Min Interval", "sr br", "Con Min Interval");
+        ("", "sr", Printf.sprintf "%d" t.tracker_min_interval) ];
+      (* show only interesting answers*)
+      if t.tracker_torrent_downloaded > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+            ("Downloaded", "sr br", "Downloaded");
+            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_downloaded) ]
+        end;
+      if t.tracker_torrent_complete > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+            ("Complete (seeds)", "sr br", "Complete");
+            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_complete) ]
+        end;
+      if t.tracker_torrent_incomplete > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+            ("Incomplete (peers)", "sr br", "Incomplete");
+            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_incomplete) ]
+        end;
+      if t.tracker_torrent_total_clients_count > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+            ("Total client count", "sr br", "All clients");
+            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_total_clients_count) ]
+        end;
+      if t.tracker_torrent_last_dl_req > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+            ("Latest torrent request", "sr br", "Latest request");
+            ("", "sr", Printf.sprintf "%ds" t.tracker_torrent_last_dl_req) ]
+        end;
+      if String.length t.tracker_id > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+           ("Tracker id", "sr br", "Tracker id");
+           ("", "sr", Printf.sprintf "%s" t.tracker_id) ]
+        end;
+      if String.length t.tracker_key > 0 then begin
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+           ("Tracker key", "sr br", "Tracker key");
+           ("", "sr", Printf.sprintf "%s" t.tracker_key) ]
+        end
 
 let op_file_print_sources_html file buf =
 
@@ -366,8 +449,19 @@ let parse_tracker_reply file t filename =
 for parsing the response*)
 (* Interested only in interval*)
   if !verbose_msg_servers then lprintf_nl () "Filename %s" filename;
-  let v = Bencode.decode (File.to_string filename) in
-
+    let tracker_reply =
+      try
+        File.to_string filename
+      with e -> lprintf_nl () "Empty reply from tracker"; ""
+    in
+    let v = 
+       match tracker_reply with
+       | "" ->
+        if !verbose_connect then
+          lprintf_nl () "Empty reply from tracker";
+        Bencode.decode ""
+       | _ -> Bencode.decode tracker_reply
+    in
   if !verbose_msg_servers then lprintf_nl () "Received: %s" (Bencode.print v);
   t.tracker_interval <- 600;
   match v with
@@ -419,8 +513,26 @@ let try_share_file torrent_diskname =
     if !verbose_share then lprintf_nl () "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
       (parse_tracker_reply file)
-  with e ->
-      lprintf_nl () "cannot share torrent %s for %s"
+  with
+  | Not_found ->
+      (* if the torrent is still there while the file is gone, remove the torrent *)
+      if !verbose_share then lprintf_nl () "Removing torrent for %s" s;
+      let new_torrent_diskname =
+        Filename.concat old_directory
+          (Filename.basename torrent_diskname)
+      in
+      (try
+          Unix2.rename torrent_diskname new_torrent_diskname;
+        with _ ->
+          (lprintf_nl () "Failed to rename %s to %s"
+              torrent_diskname new_torrent_diskname));
+(*
+      (try Sys.remove torrent_diskname with e ->
+          if !verbose_share then
+            lprintf_nl () "Error: %s while removing torrent %s" (Printexc2.to_string e) s)
+*)
+  | e ->
+      lprintf_nl () "Cannot share torrent %s for %s"
         torrent_diskname (Printexc2.to_string e)
 
 (* Call one minute after start, and then every 20 minutes. Should
@@ -434,8 +546,10 @@ let share_files _ =
           try_share_file filename
       ) filenames
   ) [seeded_directory];
-  let copy_shfiles = !current_files in
+  let shared_files_copy = !current_files in
+ (* if the torrent is gone while the file is still shared, remove the share *)
   List.iter (fun file ->
+      (* if !verbose_share then lprintf_nl () "Checking torrent share for %s" file.file_torrent_diskname; *)
       if not (Sys.file_exists file.file_torrent_diskname) &&
         file_state file = FileShared then
         begin
@@ -444,7 +558,7 @@ let share_files _ =
           remove_file file;
           BTClients.disconnect_clients file
         end
-  ) copy_shfiles
+  ) shared_files_copy
 
 let retry_all_ft () =
   Hashtbl.iter (fun _ ft ->
@@ -559,6 +673,9 @@ let op_client_info c =
     P.client_chat_port = 0 ;
     P.client_connect_time = BasicSocket.last_time ();
     P.client_software = c.client_software;
+(* TODO: switch it
+    P.client_release = c.client_release;
+ *)    
     P.client_release = "";
     P.client_emulemod = "";
     P.client_downloaded = c.client_downloaded;
@@ -614,6 +731,9 @@ let op_client_dprint_html c o file str =
           (short_string_of_connection_state (client_state cc)));
         ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
         ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+(* TODO : switch it
+        ("", "sr", cinfo.GuiTypes.client_release); (* cinfo.GuiTypes.client_release *)
+ *)
         ("", "sr", ""); (* cinfo.GuiTypes.client_release *)
       ] @
         (if !show_emulemods_column then [("", "sr", "")] else [])
@@ -634,39 +754,72 @@ let op_network_connected _ = true
 let commands =
 
     [
-    "compute_torrent", "Network/Bittorrent", Arg_one (fun filename o ->
+    "compute_torrent", "Network/Bittorrent", Arg_multiple (fun args o ->
+      let buf = o.conn_buf in
+      try
+        let filename = ref "" in
+        let comment = ref "" in
+        (match args with
+          fname :: [comm] -> filename := fname; comment := comm
+        | [fname] -> filename := fname
+        | _ -> raise Not_found);
         let announce = Printf.sprintf "http://%s:%d/"
-            (Ip.to_string (CommonOptions.client_ip None))
+          (Ip.to_string (CommonOptions.client_ip None))
           !!BTTracker.tracker_port in
 
-        let basename = Filename.basename filename in
+        let basename = Filename.basename !filename in
         let torrent = Filename.concat seeded_directory
-            (Printf.sprintf "%s.torrent" basename)
-        in
-        BTTorrent.generate_torrent announce torrent filename;
+          (Printf.sprintf "%s.torrent" basename) in
+        let is_private = 0 in
+        BTTorrent.generate_torrent announce torrent !comment (Int64.of_int is_private) !filename;
         try_share_file torrent;
-        ".torrent file generated"
-    ), _s " <filename> :\t\tgenerate the corresponding <filename>.torrent file in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
+        if o.conn_output = HTML then
+          (* TODO: really htmlize it *)
+          Printf.bprintf buf ".torrent file generated"
+        else
+          Printf.bprintf buf ".torrent file generated\n";
+      ""
+      with Not_found -> 
+          if o.conn_output = HTML then
+            (* TODO: really htmlize it *)
+            Printf.bprintf buf "Not enough parameters"
+          else
+            Printf.bprintf buf "Not enough parameters\n";
+      ""
+    ), _s " <filename> <comment>:\t\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
 
     "torrents", "Network/Bittorrent", Arg_none (fun o ->
+      let buf = o.conn_buf in
+      if !!BTTracker.tracker_port <> 0 then begin
+          Printf.bprintf o.conn_buf (_b ".torrent files available:\n");
+          let files_tracked = Unix2.list_directory tracked_directory in
+          let files_downloading = Unix2.list_directory downloads_directory in
+          let files_seeded = Unix2.list_directory seeded_directory in
+          let all_torrents_files = files_tracked @ files_downloading @ files_seeded in
 
-        if !!BTTracker.tracker_port <> 0 then
-          begin
-            Printf.bprintf o.conn_buf (_b ".torrent files available:\n");
-            let files1 = Unix2.list_directory tracked_directory in
-            let files2 = Unix2.list_directory downloads_directory in
-            let files3 = Unix2.list_directory seeded_directory in
-            let files = files1 @ files2 @ files3 in
+          if o.conn_output = HTML then
+            (* TODO: really htmlize it *)
             List.iter (fun file ->
-                Printf.bprintf o.conn_buf "http://%s:%d/%s\n"
+                Printf.bprintf buf "http://%s:%d/%s "
                   (Ip.to_string (CommonOptions.client_ip None))
                 !!BTTracker.tracker_port
                   file
-            ) files;
-            _s "done"
-          end
-        else
-          _s "Tracker not activated (tracker_port = 0)"
+            ) all_torrents_files
+          else
+            List.iter (fun file ->
+                Printf.bprintf buf "http://%s:%d/%s\n"
+                  (Ip.to_string (CommonOptions.client_ip None))
+                !!BTTracker.tracker_port
+                  file
+            ) all_torrents_files;
+        end
+      else
+          if o.conn_output = HTML then
+            (* TODO: really htmlize it *)
+            Printf.bprintf buf "Tracker not activated (tracker_port = 0)"
+          else
+            Printf.bprintf buf "Tracker not activated (tracker_port = 0)\n";
+        _s ""
     ), _s " :\t\t\t\tprint all .torrent files on this server";
 
     "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
@@ -679,21 +832,51 @@ let commands =
     ), _s " :\t\t\tprint all seeded .torrent files on this server";
 
     "reshare_torrents", "Network/Bittorrent", Arg_none (fun o ->
-        share_files ();
-        _s "done"
-       ), _s " :\t\t\trecheck torrents/* directories for changes";
+      share_files ();
+      _s "done"
+    ), _s " :\t\t\trecheck torrents/* directories for changes";
+
+    "rm_old_torrents", "Network/Bittorrent", Arg_none (fun o ->
+      let files_outdated = Unix2.list_directory old_directory in
+      let buf = o.conn_buf in
+      if o.conn_output = HTML then begin
+          (* TODO: really htmlize it *)
+          Printf.bprintf buf "Removing old torrents...";
+          List.iter (fun file ->
+              Printf.bprintf buf "%s "
+                file;
+          ) files_outdated
+        end
+      else begin
+          Printf.bprintf buf "Removing old torrents...\n";
+          List.iter (fun file ->
+              Printf.bprintf buf "%s\n"
+               file
+          ) files_outdated;
+        end;
+      List.iter (fun file ->
+            Sys.remove (Filename.concat old_directory file)
+      ) files_outdated;
+      _s ""
+    ), _s " :\t\t\t\tremove all old .torrent files";
 
     "stop_all_bt", "Network/Bittorrent", Arg_none (fun o ->
-         List.iter (fun file -> BTClients.file_stop file ) !current_files;
-         _s "started sending stops"
-        ), _s " :\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker\n\t\t\t\twhen shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long,\n\t\t\t\tso mldonkey reconnects to the tracker :)";
+      List.iter (fun file -> BTClients.file_stop file ) !current_files;
+      let buf = o.conn_buf in
+      if o.conn_output = HTML then
+          (* TODO: really htmlize it *)
+          Printf.bprintf buf "started sending stops..."
+      else
+        Printf.bprintf buf "started sending stops...\n";
+       _s ""
+    ), _s " :\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker\n\t\t\t\twhen shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long,\n\t\t\t\tso mldonkey reconnects to the tracker :)";
 
-    (*
+(* TODO : add some code from make_torrent
     "print_torrent", Arg_one (fun filename o ->
 
         ".torrent file printed"
     ), " <filename.torrent> : print the content of filename"
-*)
+ *)
 
   ]
 

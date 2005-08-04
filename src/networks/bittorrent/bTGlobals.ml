@@ -81,6 +81,7 @@ let network = new_network "BT" "BitTorrent"
     [
     NetworkHasMultinet;
     NetworkHasUpload;
+    NetworkHasStats;
   ]
 
 let connection_manager = network.network_connection_manager
@@ -182,10 +183,18 @@ let set_trackers file file_trackers =
   file.file_trackers <- (List.map (fun url -> {
           tracker_url = url;
           tracker_interval = 600;
+          tracker_min_interval = 600;
           tracker_last_conn = 0;
           tracker_last_clients_num = 0;
+          tracker_torrent_downloaded = 0;
+          tracker_torrent_complete = 0;
+          tracker_torrent_incomplete = 0;
+          tracker_torrent_total_clients_count = 0;
+          tracker_torrent_last_dl_req = 0;
+          tracker_id = "";
+          tracker_key = "";
         } ) file_trackers) @ file.file_trackers
-    
+
 let new_file file_id t torrent_diskname file_temp file_state =
   try
     Hashtbl.find files_by_uid file_id
@@ -197,6 +206,11 @@ let new_file file_id t torrent_diskname file_temp file_state =
           file_piece_size = t.torrent_piece_size;
           file_id = file_id;
           file_name = t.torrent_name;
+          file_comment = t.torrent_comment;
+          file_created_by = t.torrent_created_by;
+          file_creation_date = t.torrent_creation_date;
+          file_modified_by = t.torrent_modified_by;
+          file_encoding = t.torrent_encoding;
           file_clients_num = 0;
           file_clients = Hashtbl.create 113;
           file_swarmer = None;
@@ -219,7 +233,10 @@ let new_file file_id t torrent_diskname file_temp file_state =
           impl_file_best_name = t.torrent_name;
         }
       in
-      set_trackers file [t.torrent_announce];
+      if List.length t.torrent_announce_list > 1 then
+        set_trackers file t.torrent_announce_list
+      else
+        set_trackers file [t.torrent_announce];
       if file_state <> FileShared then begin
           let kernel = Int64Swarmer.create_swarmer file_temp (file_size file)
             (min max_range_len file.file_piece_size) in
@@ -242,7 +259,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
                           if (bitmap.[num] <> '1') then
                             send_client c (Have (Int64.of_int num));
                           check_if_interesting file c
-                    end
+                    end				
               ) file.file_clients
 
           );
@@ -323,32 +340,38 @@ let check_all s c l =
   let ch = char_of_int c in
   List.for_all (fun i -> s.[i] = ch) l
 
+(* Old decoding routines *)
+
 (* from azureus/gpl *)
 let decode_az_style s =
   if check_all s 45 [0;7] then begin
     let s_id = (String.sub s 1 2) in
     let result = ref
     (match s_id with
+      | "AR" -> "Arctic"
       | "AZ" -> "Azureus"
       | "BB" -> "BitBuddy"
-      | "BX" -> "Bittorrent X"
+      | "BC" -> "BitComet"
       | "BS" -> "BTSlave"
+      | "BX" -> "Bittorrent X"
       | "CT" -> "CTorrent"
       | "LT" -> "libTorrent"
+      | "MT" -> "MoonlightTorrent"
+      | "SB" -> "Swiftbit"
+      | "SN" -> "ShareNET"
+      | "SS" -> "SwarmScope"
       | "TN" -> "Torrent.NET"
       | "TS" -> "TorrentStorm"
-      | "SS" -> "SwarmScope"
-      | "SN" -> "ShareNET"
-      | "MT" -> "MoonlightTorrent"
       | "XT" -> "XanTorrent"
-      | "bk" -> "BitKitten (libtorrent)"
       | "ZT" -> "ZipTorrent"
-      | "AR" -> "Arctic"
-      | "SB" -> "Swiftbit"
+      | "bk" -> "BitKitten (libtorrent)"
       | _ -> "")
     in
-    if not (!result = "") then 
-      result := !result ^ " " ^ (dot_string (String.sub s 3 4));
+    (if (s_id = "BC") then
+      result := !result ^ " " ^ (String.sub s 4 1) ^ "." ^ (String.sub s 5 2)
+    else
+    if not (!result = "") then
+      result := !result ^ " " ^ (dot_string (String.sub s 3 4)));
     !result;
   end else ""
 
@@ -476,9 +499,12 @@ let decode_upnp s =
     "UPnP " ^ (dot_string (String.sub s 1 3))
   else ""
 
-let decode_bitcomet s =
+let decode_old_bitcomet s =
   if "exbc" = String.sub s 0 4 then
-    Printf.sprintf "BitComet %d.%d%d"
+    let bit_sub = if "LORD" = String.sub s 6 4 then
+      "Lord" else "Comet" in
+    Printf.sprintf "Bit%s %d.%d%d"
+      (bit_sub)
       (int_of_char s.[4])
       ((int_of_char s.[5]) / 10)
       ((int_of_char s.[5]) mod 10)
@@ -526,10 +552,30 @@ let decode_non_zero s =
   );
   !result
 
+(* format is : "-ML" ^ version ( of unknown length) ^ "-" ^ random bytes ( of unknown length) *)
+let decode_mldonkey_style s =
+  if check_all s 45 [0] then begin
+    let s_id = String.sub s 1 2 in
+    let result = ref
+     (match s_id with
+     | "ML" -> "MLDonkey"
+     | _ -> "")
+    in
+    if !result != "" then
+      result := !result ^ " " ^ String.sub s 3 ((
+        try String.index_from s 1 s.[0] with Not_found -> 3) - 3);
+    !result
+  end else ""
+
 let parse_software s =
   try
   let rec try_styles i =
-    if i > 16 then "UNKNOWN" else begin
+    if i > 17 then
+      begin
+        lprintf_nl () "Unknown BT client found please report the next line to the dev team :\nBTUC:\"%s\"" (String.escaped s);
+        "UNKNOWN"
+      end
+    else begin
     let res = ref
       (match i with
          | 0 -> decode_az_style s
@@ -545,10 +591,11 @@ let parse_software s =
          | 10 -> decode_shadow s
          | 11 -> decode_bitspirit s
          | 12 -> decode_upnp s
-         | 13 -> decode_bitcomet s
+         | 13 -> decode_old_bitcomet s
          | 14 -> decode_shareaza s
          | 15 -> decode_non_zero s
-         | 16 -> if (Sha1.null) = (Sha1.direct_of_string s) then
+         | 16 -> decode_mldonkey_style s
+         | 17 -> if (Sha1.null) = (Sha1.direct_of_string s) then
                      "NULL" else ""
          | _ -> "ERROR"
        )
@@ -558,6 +605,275 @@ let parse_software s =
   in
   try_styles 0
   with _ -> "ERROR"
+
+(* new decoding routines *)
+
+let brand_to_int b =
+  match b with
+    Brand_unknown -> 0
+  | Brand_abc -> 1
+  | Brand_arctic -> 2
+  | Brand_azureus -> 3
+  | Brand_bitbuddy -> 4
+  | Brand_bitcomet -> 5
+  | Brand_bitkitten -> 6
+  | Brand_bitlord -> 7
+  | Brand_bitsonwheels -> 8
+  | Brand_bitspirit -> 9
+  | Brand_bittornado -> 10
+  | Brand_bittorrentx -> 11
+  | Brand_btplus -> 12
+  | Brand_btslave -> 13
+  | Brand_btugaxp -> 14
+  | Brand_burst -> 15
+  | Brand_ctorrent -> 16
+  | Brand_deadmanwalking -> 17
+  | Brand_exeem -> 18
+  | Brand_experimental -> 19
+  | Brand_g3torrent -> 20
+  | Brand_libtorrent -> 21
+  | Brand_mainline -> 22
+  | Brand_martiniman -> 23
+  | Brand_mldonkey -> 24
+  | Brand_moonlighttorrent -> 25
+  | Brand_plus -> 26
+  | Brand_shadow -> 27
+  | Brand_sharenet -> 28
+  | Brand_shareaza -> 29
+  | Brand_simplebt -> 30
+  | Brand_snark -> 31
+  | Brand_swarmscope -> 32
+  | Brand_swarmy -> 33
+  | Brand_swiftbit -> 34
+  | Brand_teeweety -> 35
+  | Brand_torrentdotnet -> 36
+  | Brand_torrentstorm -> 37
+  | Brand_turbobt -> 38
+  | Brand_upnp -> 39
+  | Brand_xantorrent -> 40
+  | Brand_xbt -> 41
+  | Brand_ziptorrent -> 42
+
+
+let brand_of_int b =
+  match b with
+    0 -> Brand_unknown
+  | 1 -> Brand_abc
+  | 2 -> Brand_arctic
+  | 3 -> Brand_azureus
+  | 4 -> Brand_bitbuddy
+  | 5 -> Brand_bitcomet
+  | 6 -> Brand_bitkitten
+  | 7 -> Brand_bitlord
+  | 8 -> Brand_bitsonwheels
+  | 9 -> Brand_bitspirit
+  | 10 -> Brand_bittornado
+  | 11 -> Brand_bittorrentx
+  | 12 -> Brand_btplus
+  | 13 -> Brand_btslave
+  | 14 -> Brand_btugaxp
+  | 15 -> Brand_burst
+  | 16 -> Brand_ctorrent
+  | 17 -> Brand_deadmanwalking
+  | 18 -> Brand_exeem
+  | 19 -> Brand_experimental
+  | 20 -> Brand_g3torrent
+  | 21 -> Brand_libtorrent
+  | 22 -> Brand_mainline
+  | 23 -> Brand_martiniman
+  | 24 -> Brand_mldonkey
+  | 25 -> Brand_moonlighttorrent
+  | 26 -> Brand_plus
+  | 27 -> Brand_shadow
+  | 28 -> Brand_sharenet
+  | 29 -> Brand_shareaza
+  | 30 -> Brand_simplebt
+  | 31 -> Brand_snark
+  | 32 -> Brand_swarmscope
+  | 33 -> Brand_swarmy
+  | 34 -> Brand_swiftbit
+  | 35 -> Brand_teeweety
+  | 36 -> Brand_torrentdotnet
+  | 37 -> Brand_torrentstorm
+  | 38 -> Brand_turbobt
+  | 39 -> Brand_upnp
+  | 40 -> Brand_xantorrent
+  | 41 -> Brand_xbt
+  | 42 -> Brand_ziptorrent
+  | _ -> raise Not_found
+
+let brand_to_string b =
+  match b with
+    Brand_unknown -> "unknown"
+  | Brand_abc -> "ABC"
+  | Brand_arctic -> "Arctic"
+  | Brand_azureus -> "Azureus"
+  | Brand_bitbuddy -> "Bitbuddy"
+  | Brand_bitcomet -> "BitComet"
+  | Brand_bitkitten -> "BitKitten (libTorrent)"
+  | Brand_bitlord -> "BitLord"
+  | Brand_bitsonwheels -> "BitsOnWheels"
+  | Brand_bitspirit -> "BitSpirit"
+  | Brand_bittornado -> "BitTornado"
+  | Brand_bittorrentx -> "BitTorrent X"
+  | Brand_btplus -> "BitTorrent Plus!"
+  | Brand_btslave -> "BTSlave"
+  | Brand_btugaxp -> "BTugaXP"
+  | Brand_burst -> "Burst !"
+  | Brand_ctorrent -> "CTorrent"
+  | Brand_deadmanwalking -> "Deadman Walking"
+  | Brand_exeem -> "eXeem"
+  | Brand_experimental -> "Experimental"
+  | Brand_g3torrent -> "G3 Torrent"
+  | Brand_libtorrent -> "libTorrent"
+  | Brand_mainline -> "Mainline"
+  | Brand_martiniman -> "Martini Man"
+  | Brand_mldonkey -> "MLdonkey"
+  | Brand_moonlighttorrent -> "MoonlightTorrent"
+  | Brand_plus -> "Plus"
+  | Brand_shadow -> "Shad0w"
+  | Brand_sharenet -> "Sharenet"
+  | Brand_shareaza -> "Shareaza"
+  | Brand_simplebt -> "SimpleBT"
+  | Brand_snark -> "Snark"
+  | Brand_swarmscope -> "SwarmScope"
+  | Brand_swarmy -> "Swarmy"
+  | Brand_swiftbit -> "SwiftBit"
+  | Brand_teeweety -> "Teeweety"
+  | Brand_torrentdotnet -> "Torrent.NET"
+  | Brand_torrentstorm -> "TorrentStorm"
+  | Brand_turbobt -> "TurboBT"
+  | Brand_upnp -> "UPNP"
+  | Brand_xantorrent -> "XanTorrent"
+  | Brand_xbt -> "XBT"
+  | Brand_ziptorrent -> "ZipTorrent"
+
+let parse_brand s =
+  try
+  let the_answer s =
+  (* azureus *)
+  if check_all s 45 [0;7] then begin
+      let s_id = (String.sub s 1 2) in
+      let result = ref
+      (match s_id with
+        | "AR" -> Brand_arctic
+        | "AZ" -> Brand_azureus
+        | "BB" -> Brand_bitbuddy
+        | "BC" -> Brand_bitcomet
+        | "BS" -> Brand_btslave
+        | "BX" -> Brand_bittorrentx
+        | "CT" -> Brand_ctorrent
+        | "LT" -> Brand_libtorrent
+        | "MT" -> Brand_moonlighttorrent
+        | "SB" -> Brand_swiftbit
+        | "SN" -> Brand_sharenet
+        | "SS" -> Brand_swarmscope
+        | "TN" -> Brand_torrentdotnet
+        | "TS" -> Brand_torrentstorm
+        | "XT" -> Brand_xantorrent
+        | "ZT" -> Brand_ziptorrent
+        | "bk" -> Brand_bitkitten
+        | _ -> Brand_unknown)
+      in
+      !result;
+    end
+  else
+  (* mainline *)
+  if check_all s 45 [2;4;6;7] then begin
+      let s_id = String.sub s 0 1 in
+      let result = ref
+       (match s_id with
+       | "M" -> Brand_mainline
+       | _ -> Brand_unknown)
+      in
+(*       if !result != "" then
+        result := !result ^ " " ^ dot_string_of_list s [1;3;5];
+ *)
+      !result;
+    end
+  else
+  (* simple style *)
+  let simple_list = ref
+    [
+      (5, "Azureus", Brand_azureus);
+      (0, "A", Brand_abc);
+      (14, "HTTPBT", Brand_bitcomet);
+      (16, "UDP0", Brand_bitcomet);
+      (6, "LORD", Brand_bitlord);
+      (0, "exbc", Brand_bitcomet);
+      (0, "BOW", Brand_bitsonwheels);
+      (0, "BS", Brand_bitspirit);
+      (0, "T03", Brand_bittornado);
+      (0, "Plus", Brand_btplus);
+      (0, "PRC.P---", Brand_btplus);
+      (0, "P87.P---", Brand_btplus);
+      (0, "S587Plus", Brand_btplus);
+      (0, "oernu", Brand_btugaxp);
+      (0, "btuga", Brand_btugaxp);
+      (4, "btuga", Brand_btugaxp);
+      (0, "BTDWV-", Brand_deadmanwalking);
+      (0, "Deadman Walking-", Brand_deadmanwalking);
+      (0, "eX", Brand_exeem);
+      (0, "-G3", Brand_g3torrent);
+      (0, "martini", Brand_martiniman);
+      (0, "Mbrst", Brand_burst);
+      (0, "S", Brand_shadow);
+      (4, "btfans", Brand_simplebt);
+      (0, "a00---0", Brand_swarmy);
+      (0, "a02---0", Brand_swarmy);
+      (0, "turbobt", Brand_turbobt);
+      (0, "T00---0", Brand_teeweety);
+      (0, "U", Brand_upnp);
+      (0, "DansClient", Brand_xantorrent);
+      (0, "XBT", Brand_xbt);
+    ]
+  in
+  let len = List.length !simple_list in
+  let rec check pos =
+    if pos >= len then Brand_unknown
+    else
+      let (x,y,z) = List.nth !simple_list pos in
+      if (String.sub s x (String.length y)) = y then z
+        else check (pos+1);
+  in
+  if (check 0) != Brand_unknown then
+    check 0
+  else
+  (* shareaza *)
+  let rec not_zeros pos =
+    if pos > 15 then true else
+      if s.[pos] = (char_of_int 0) then false else not_zeros (pos+1)
+  in
+  let rec weird_crap pos =
+    if pos > 19 then true else
+      let i1 = (int_of_char s.[pos]) in
+      let i2 = (int_of_char s.[(pos mod 16)]) in
+      let i3 = (int_of_char s.[(15 - (pos mod 16))]) in
+      if not (i1 = (i2 lxor i3)) then false else weird_crap (pos+1)
+  in
+  if (not_zeros 0) && (weird_crap 16) then Brand_shareaza
+  else
+  if check_all s 3 [9;10;11] then Brand_snark
+  else
+  (* mldonkey style *)
+  if check_all s 45 [0] then begin
+      let s_id = String.sub s 1 2 in
+      let result = ref
+       (match s_id with
+       | "ML" -> Brand_mldonkey
+       | _ -> Brand_unknown)
+      in
+(*      if !result != "" then
+        result := !result ^ " " ^ String.sub s 3 ((
+          try String.index_from s 1 s.[0] with Not_found -> 3) - 3);
+*)
+      !result;
+    end
+  else
+    Brand_unknown
+  in
+  the_answer s
+  with _ -> Brand_unknown
 
 let new_client file peer_id kind =
   try
@@ -582,6 +898,10 @@ let new_client file peer_id kind =
           client_range_waiting = None;
           client_block = None;
           client_uid = peer_id;
+          client_brand = if peer_id != Sha1.null then
+              (parse_brand (Sha1.direct_to_string peer_id))
+            else Brand_unknown;
+          client_release = "";
           client_bitmap = None;
           client_allowed_to_write = zero;
           client_uploaded = zero;
@@ -614,17 +934,32 @@ let new_client file peer_id kind =
       file.file_clients_num <- file.file_clients_num + 1;
       file_add_source (as_file file) (as_client c);
       c
-  
-let remove_file file = 
+
+let remove_file file =
   Hashtbl.remove files_by_uid file.file_id;
   current_files := List2.removeq file !current_files
 
-let remove_client c = 
-    Hashtbl.remove c.client_file.file_clients c.client_host ;
-    c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
-    file_remove_source (as_file c.client_file) (as_client c)
+let remove_client c =
+  Hashtbl.remove c.client_file.file_clients c.client_host ;
+  c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
+  file_remove_source (as_file c.client_file) (as_client c)
 
-let old_torrents_directory = "torrents"
-let downloads_directory = Filename.concat old_torrents_directory "downloads"
-let tracked_directory = Filename.concat old_torrents_directory "tracked"
-let seeded_directory = Filename.concat old_torrents_directory "seeded"
+let remove_tracker url file =
+  if !verbose_msg_servers then
+    List.iter (fun tracker ->
+      lprintf_nl () "Old tracker list :%s" tracker.tracker_url
+    ) file.file_trackers;
+  List.iter (fun bad_tracker ->
+    if bad_tracker.tracker_url = url then
+    file.file_trackers <- List2.remove_first bad_tracker file.file_trackers;
+  ) file.file_trackers;
+  if !verbose_msg_servers then
+    List.iter (fun tracker ->
+      lprintf_nl () "New tracker list :%s" tracker.tracker_url
+    ) file.file_trackers
+
+let torrents_directory = "torrents"
+let downloads_directory = Filename.concat torrents_directory "downloads"
+let tracked_directory = Filename.concat torrents_directory "tracked"
+let seeded_directory = Filename.concat torrents_directory "seeded"
+let old_directory = Filename.concat torrents_directory "old"

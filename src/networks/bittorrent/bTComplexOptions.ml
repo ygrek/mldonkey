@@ -32,19 +32,55 @@ open BTTypes
 open BTOptions
 open BTGlobals
 
+
+let bt_stats_ini = create_options_file "stats_bt.ini"
+let bt_stats_section = file_section bt_stats_ini [] ""
+
+module StatsOption = struct
+
+    let value_to_stat v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv =
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          {
+            brand_seen = value_to_int (List.assoc "seen" assocs);
+            brand_banned = value_to_int (List.assoc "banned" assocs);
+            brand_filerequest = value_to_int (List.assoc "filereqs" assocs);
+            brand_download = value_to_int64 (List.assoc "download" assocs);
+            brand_upload = value_to_int64 (List.assoc "upload" assocs);
+          }
+
+      | _ -> failwith "Options: not a stat option"
+
+    let stat_to_value b =
+      Options.Module [
+        "seen", int_to_value b.brand_seen;
+        "banned", int_to_value b.brand_banned;
+        "filereqs", int_to_value b.brand_filerequest;
+        "download", int64_to_value b.brand_download;
+        "upload", int64_to_value b.brand_upload;
+      ]
+
+
+    let t = define_option_class "Stat" value_to_stat stat_to_value
+  end
+
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
   lprintf "%s[BT] "
     (log_time ()); lprintf_nl2
 
 module ClientOption = struct
-    
-    let value_to_client file v = 
+
+    let value_to_client file v =
       match v with
       | Module assocs ->
-          
+
           let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
+          let get_value_nil name conv =
             try conv (List.assoc name assocs) with _ -> []
           in
           let client_ip = get_value "client_ip" (from_value Ip.option)
@@ -94,7 +130,9 @@ let value_to_file file_size file_state assocs =
     with _ ->
 
         let file_name = get_value "file_name" value_to_string in
-        let file_id = 
+        let file_name_utf8 = Charset.to_utf8 file_name in
+        let file_comment = get_value "file_comment" value_to_string in
+        let file_id =
           try
             Sha1.of_string (get_value "file_id" value_to_string)
           with _ -> failwith "Bad file_id"
@@ -108,7 +146,12 @@ let value_to_file file_size file_state assocs =
               (from_value Sha1.option))
         in
         let file_size = get_value "file_size" value_to_int64 in
-        let file_files = 
+        let file_created_by = get_value "file_created_by" value_to_string in
+        let file_creation_date = get_value "file_creation_date" value_to_int64 in
+        let file_modified_by = get_value "file_modified_by" value_to_string in
+        let file_encoding = get_value "file_encoding" value_to_string in
+        let file_is_private = get_value "file_is_private" value_to_int64 in
+        let file_files =
           try
             let file_files = (get_value "file_files"
                   (value_to_list (fun v ->
@@ -123,16 +166,28 @@ let value_to_file file_size file_state assocs =
         in
         let torrent = {
             torrent_name = file_name;
+            torrent_filename = "";
+            torrent_name_utf8 = file_name_utf8;
+            torrent_comment = file_comment;
             torrent_pieces = file_chunks;
             torrent_piece_size = file_piece_size;
             torrent_files = file_files;
             torrent_length = file_size;
+            torrent_created_by = file_created_by;
+            torrent_creation_date = file_creation_date;
+            torrent_modified_by = file_modified_by;
+            torrent_encoding = file_encoding;
+            torrent_private = file_is_private;
+(*
+            torrent_nodes = file_nodes;
+*)
             torrent_announce =
             (
               try
                 (List.hd file_trackers)
               with _ -> ""
             );
+            torrent_announce_list = file_trackers;
           } in
         let torrent_diskname = Filename.concat downloads_directory
             (file_name ^ ".torrent") in
@@ -224,10 +279,60 @@ let save_config () =
   Options.save_with_help bittorrent_ini
 
 
+let config_files_loaded = ref false
+
+let load _ =
+  lprintf_nl () "Loading stats";
+  (try
+      Options.load bt_stats_ini;
+    with Sys_error _ -> ());
+  check_client_uid ();
+  config_files_loaded := true
+
+let guptime = define_option bt_stats_section ["guptime"] "" int_option 0
+
+let new_stats_array () =
+  Array.init brand_count (fun _ ->
+      { dummy_stats with brand_seen = 0 }
+  )
+
+
+let gstats_by_brand = define_option bt_stats_section ["stats"] ""
+    (array_option StatsOption.t) (new_stats_array ())
+
+
+let _ =
+  option_hook gstats_by_brand (fun _ ->
+      let old_stats = !!gstats_by_brand in
+      let old_len = Array.length old_stats in
+      if old_len <> brand_count then
+        let t = new_stats_array () in
+        for i = 0 to old_len - 1 do
+          t.(i) <- old_stats.(i)
+        done;
+        gstats_by_brand =:= t
+  )
+
+let diff_time = ref 0
+
+let sources_loaded = ref false  (* added 2.5.24 *)
+
+let save _ =
+  if !config_files_loaded then begin
+(*  lprintf "SAVING SHARED FILES AND SOURCES\n"; *)
+      guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
+      diff_time := (last_time () - start_time);
+      Options.save_with_help bt_stats_ini;
+    end
+(*  lprintf "SAVED\n";  *)
+
+let guptime () = !!guptime - !diff_time
+
 let _ =
   network.op_network_file_of_option <- value_to_file;
   file_ops.op_file_to_option <- file_to_value;
+
   (* Shut up message "Network.save/load_complex_options not implemented by BitTorrent" *)
-  network.op_network_load_complex_options <- (fun _ -> ());
-  network.op_network_save_complex_options <- (fun _ -> ());
+  network.op_network_load_complex_options <- load;
+  network.op_network_save_complex_options <- save;
   network.op_network_save_sources <- (fun _ -> ())

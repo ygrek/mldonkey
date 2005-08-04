@@ -25,11 +25,87 @@ open BTRate
 
 type torrent = {
     mutable torrent_name : string;
+    mutable torrent_name_utf8 : string;
+    mutable torrent_filename : string;
     mutable torrent_length : int64;
     mutable torrent_announce : string;
+    mutable torrent_announce_list : string list;
     mutable torrent_piece_size : int64;
     mutable torrent_files :  (string * int64) list;
     mutable torrent_pieces : Sha1.t array;
+    mutable torrent_comment : string;
+    mutable torrent_created_by : string;
+    mutable torrent_creation_date : int64;
+    mutable torrent_modified_by : string;
+    mutable torrent_encoding : string;
+    mutable torrent_private : int64;
+(*
+    mutable torrent_nodes : string;
+*)
+  }
+
+type brand =
+  Brand_unknown
+| Brand_abc
+| Brand_arctic
+| Brand_azureus
+| Brand_bitbuddy
+| Brand_bitcomet
+| Brand_bitkitten
+| Brand_bitlord
+| Brand_bitsonwheels
+| Brand_bitspirit
+| Brand_bittornado
+| Brand_bittorrentx
+| Brand_btplus
+| Brand_btslave
+| Brand_btugaxp
+| Brand_burst
+| Brand_ctorrent
+| Brand_deadmanwalking
+| Brand_exeem
+| Brand_experimental
+| Brand_g3torrent
+| Brand_libtorrent
+| Brand_mainline
+| Brand_martiniman
+| Brand_mldonkey
+| Brand_moonlighttorrent
+| Brand_plus
+| Brand_shadow
+| Brand_sharenet
+| Brand_shareaza
+| Brand_simplebt
+| Brand_snark
+| Brand_swarmscope
+| Brand_swarmy
+| Brand_swiftbit
+| Brand_teeweety
+| Brand_torrentdotnet
+| Brand_torrentstorm
+| Brand_turbobt
+| Brand_upnp
+| Brand_xantorrent
+| Brand_xbt
+| Brand_ziptorrent
+
+let brand_count = 43
+
+type brand_stat = {
+  mutable brand_seen : int;
+  mutable brand_banned : int;
+  mutable brand_filerequest : int;
+  mutable brand_download : Int64.t;
+  mutable brand_upload : Int64.t;
+}
+
+let dummy_stats =
+  {
+    brand_seen = 0;
+    brand_banned = 0;
+    brand_filerequest = 0;
+    brand_download = Int64.zero;
+    brand_upload = Int64.zero
   }
 
 type client = {
@@ -50,6 +126,9 @@ type client = {
     mutable client_choked : bool;      (* we received a Choke from the client *)
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
+
+    mutable client_brand : brand;
+    mutable client_release : string;
 
     mutable client_bitmap : string option;
     mutable client_new_chunks : int list;
@@ -77,8 +156,16 @@ type client = {
 and tracker_info = {
     tracker_url : string;
     mutable tracker_interval : int;
+    mutable tracker_min_interval : int;
     mutable tracker_last_conn : int;
     mutable tracker_last_clients_num : int;
+    mutable tracker_torrent_downloaded : int;
+    mutable tracker_torrent_complete : int;
+    mutable tracker_torrent_incomplete : int;
+    mutable tracker_torrent_total_clients_count : int;
+    mutable tracker_torrent_last_dl_req : int;
+    mutable tracker_id : string;
+    mutable tracker_key : string;
   }
 
 and file = {
@@ -86,6 +173,11 @@ and file = {
     file_piece_size : int64;
     file_id : Sha1.t;
     file_name : string;
+    file_comment : string;
+    file_created_by : string;
+    file_creation_date : int64;
+    file_modified_by : string;
+    file_encoding : string;
     mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;

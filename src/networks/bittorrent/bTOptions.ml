@@ -29,8 +29,30 @@ let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"
     int_option 6882
 
+(* Generate client_uid *)
+let generate_client_uid = 
+  let client_uid_from_version = "-ML" ^ Autoconf.current_version ^ "-" in
+  let client_uid_random_tail = String.create (20 - (String.length client_uid_from_version)) in
+  let sl_client_uid_random_tail = String.length client_uid_random_tail in
+  if sl_client_uid_random_tail > 0  then
+    for i = 0 to sl_client_uid_random_tail - 1 do
+      client_uid_random_tail.[i] <- char_of_int (Random.int 256)
+    done;
+  client_uid_from_version ^ client_uid_random_tail
+
 let client_uid = define_option bittorrent_section ["client_uid"]
-    "The UID of this client" Sha1.option (Sha1.random ())
+    "The UID of this client" Sha1.option (Sha1.direct_of_string generate_client_uid)
+
+(* Check if the uid is in sync with Autoconf.current_version *)
+let check_client_uid () = 
+  let s = Sha1.direct_to_string !!client_uid in 
+  if Autoconf.current_version != String.sub s 3 ((
+    try 
+      String.index_from s 1 s.[0] 
+    with 
+      Not_found -> 3
+    ) - 3) then
+    client_uid =:= Sha1.direct_of_string generate_client_uid
 
 let shortname o =
   Printf.sprintf "BT-%s" (shortname o)
@@ -43,6 +65,10 @@ let gui_bittorrent_options_panel =
 let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
     "Ask the tracker for new sources only if you have fewer than that number of sources"
     int_option 20
+
+let send_key = define_option bittorrent_section ["send_key"]
+    "Send client key to trackers"
+    bool_option true
 
 let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
     "Maximum number of uploaders for one torrent"

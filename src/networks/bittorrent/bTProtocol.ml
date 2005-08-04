@@ -321,8 +321,117 @@ module TcpMessages = struct
       s
   end
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         UdpMessages                                   *)
+(*                                                                       *)
+(*************************************************************************)
+(*  
+
+
+
+
+module UdpMessages = struct
+    
+    type t = 
+      PingReq of int * string * string
+    | SupernodePongReq of int * string * string
+    | NodePongReq of int * string
+    | UnknownReq of int * string
+    let extract_string s pos =
+      let end_pos = String.index_from s pos '\000' in
+      String.sub s pos (end_pos - pos), pos + 1
+    
+    let parse p =
+      match int_of_char p.[0] with
+      | 0x27 -> 
+          let min_enc_type = get_int p 1 in
+          let unknown = String.sub p 5 1 in
+          let netname, pos = extract_string p 6 in
+          
+          PingReq (min_enc_type, unknown, netname)
+      | 0x28 -> 
+          
+          let min_enc_type = get_int p 1 in
+          let unknown = String.sub p 5 6 in
+          let netname, pos = extract_string p 11 in
+          SupernodePongReq (min_enc_type, unknown, netname)
+      
+      | 0x29 -> 
+          let min_enc_type = get_int p 1 in
+          let unknown = String.sub p 5 (String.length p - 5) in
+          NodePongReq (min_enc_type, unknown)
+      | n -> UnknownReq (n, p)
+    
+    let write p =
+      let b = Buffer.create 100 in
+      begin
+        match p with
+        | PingReq (min_enc_type, unknown, netname) ->
+            buf_int8 b 0x27;
+            buf_int b min_enc_type;
+            Buffer.add_string b unknown;
+            Buffer.add_string b netname;
+            buf_int8 b 0x00
+        | SupernodePongReq (min_enc_type, unknown, netname) ->
+            buf_int8 b 0x28;
+            buf_int b min_enc_type;
+            Buffer.add_string b unknown;
+            Buffer.add_string b netname;
+            buf_int8 b 0x00
+        | NodePongReq (min_enc_type, unknown) ->
+            buf_int8 b 0x29;
+            buf_int b min_enc_type;
+            Buffer.add_string b unknown
+        | UnknownReq (opcode, unknown) ->
+            Buffer.add_string b unknown;
+      end;
+      Buffer.contents b
+    
+    let to_string p =
+      let b = Buffer.create 100 in
+      begin
+        match p with
+        | PingReq (min_enc_type, unknown, netname) ->
+            Printf.bprintf b "Ping (%d, " min_enc_type;
+            bprint_ints b unknown;
+            Printf.bprintf b ", %s)" netname
+        | SupernodePongReq (min_enc_type, unknown, netname) ->
+            Printf.bprintf b "SupernodePong (%d, " min_enc_type;
+            bprint_ints b unknown;
+            Printf.bprintf b ", %s)" netname
+        | NodePongReq (min_enc_type, unknown) ->
+            Printf.bprintf b "NodePong (%d, " min_enc_type;
+            bprint_ints b unknown;
+            Printf.bprintf b ")"
+        | UnknownReq (opcode, unknown) ->
+            Printf.bprintf b "Unknown \n    ";
+            bprint_ints b unknown;
+            Printf.bprintf b  "\n    ";
+            bprint_chars b unknown;
+            Printf.bprintf b "\n" 
+      end;
+      Buffer.contents b
+
+    let udp_send t ip port ping msg =
+      
+      if !verbose_udp then begin
+          lprintf "Message UDP to %s:%d\n%s\n" (Ip.to_string ip) port
+            (to_string msg);
+        end;
+      
+      try
+        let s = write msg in
+        UdpSocket.write t ping s ip port
+      with e ->
+          lprintf "FT: Exception %s in udp_send\n" (Printexc2.to_string e)          
+  end
+*)
+
+
 
 exception Wait_for_more of string
+
 let bt_handler parse_fun handler c sock =
   try
     let b = TcpBufferedSocket.buf sock in
