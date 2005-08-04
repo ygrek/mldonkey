@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/04: spiralvoice
+
+4270: Overnet: Convert local IPs sent by OV clients to real IPs
+
 2005/08/02: spiralvoice
 
 4263: Fasttrack: Force bootstrapping nodes

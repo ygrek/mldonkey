@@ -311,7 +311,7 @@ module Make(Proto: sig
     open Proto
 
     let lprintf_nl () =
-      lprintf "%s[%s]: "
+      lprintf "%s[%s] "
       (log_time ())
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf_nl2
 
@@ -914,9 +914,30 @@ let udp_client_handler t p =
   match t with
 
   | OvernetConnect p ->
-      new_peer_message p;
-      let p = new_peer p in
-      udp_send p (OvernetConnectReply (get_any_peers 20))
+      let rec send p =
+        new_peer_message p;
+        let p = new_peer p in
+          udp_send p (OvernetConnectReply (get_any_peers 20))
+      in
+	if Ip.valid p.peer_ip && ip_reachable p.peer_ip && p.peer_port <> 0 then
+	  send p
+	else
+	  if Ip.valid other_ip && ip_reachable other_ip && other_port <> 0 then
+	    begin
+	      if !verbose_overnet then
+	        lprintf_nl () "Connect: convert address %s:%d to %s:%d"
+		  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+	      p.peer_ip <- other_ip;
+	      p.peer_port <- other_port;
+	      send p
+	    end
+	  else
+	    begin
+	      if !verbose_overnet then
+	        lprintf_nl () "Connect: invalid IP %s:%d received from %s:%d"
+	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+	      failwith "Message not understood"
+	    end
 
   | OvernetConnectReply ps ->
       UdpSocket.declare_pong other_ip;
@@ -937,9 +958,30 @@ let udp_client_handler t p =
       iter ps;
 
   | OvernetPublicize p ->
-      new_peer_message p;
-      let p = new_peer p in
-      udp_send p  (OvernetPublicized (Some (my_peer ())))
+      let rec send p =
+        new_peer_message p;
+        let p = new_peer p in
+	  udp_send p (OvernetPublicized (Some (my_peer ())))
+      in
+	if Ip.valid p.peer_ip && ip_reachable p.peer_ip && p.peer_port <> 0 then
+	  send p
+	else
+	  if Ip.valid other_ip && ip_reachable other_ip && other_port <> 0 then
+	    begin
+	      if !verbose_overnet then
+	        lprintf_nl () "Publicize: convert address %s:%d to %s:%d"
+		  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+	      p.peer_ip <- other_ip;
+	      p.peer_port <- other_port;
+	      send p
+	    end
+	  else
+	    begin
+	      if !verbose_overnet then
+	        lprintf_nl () "Publicize: invalid IP %s:%d received from %s:%d"
+	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+	      failwith "Message not understood"
+	    end
 
   | OvernetPublicized None ->
       ()
