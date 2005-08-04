@@ -88,6 +88,7 @@ type chunks =
 type verification =
   NoVerification
 | VerificationNotAvailable
+| ForceVerification
 | Verification of uid_type array
   
 module type Maker = functor (M : CommonEnv) -> sig

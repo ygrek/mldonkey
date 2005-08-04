@@ -299,7 +299,7 @@ let new_file file_temporary file_name file_size file_hash =
   file.file_swarmer <- Some swarmer;
   Hashtbl.add searches_by_uid search.search_uid search;
 (*  lprintf "SET SIZE : %Ld\n" file_size;*)
-  Int64Swarmer.set_verifier swarmer NoVerification;
+  Int64Swarmer.set_verifier swarmer ForceVerification;
   Int64Swarmer.set_verified swarmer (fun _ _ ->
       file_must_update file;
   );

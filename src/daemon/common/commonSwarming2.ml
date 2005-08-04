@@ -1089,6 +1089,10 @@ let verify_chunk t i =
       NoVerification
     | VerificationNotAvailable -> ()
 
+    | ForceVerification ->
+        set_verified_chunk t i;
+        t.t_verified t.t_nverified_blocks i
+
     | Verification chunks when Array.length chunks = nblocks ->
 
         begin try

@@ -12,6 +12,7 @@ ChangeLog
 
 4270: Overnet: Convert local IPs sent by OV clients to real IPs
 4269: IPBlock: Several fixes, better zip file support
+4264: Fasttrack: Force commit of all complete files
 
 2005/08/02: spiralvoice
 

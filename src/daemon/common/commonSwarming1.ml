@@ -519,6 +519,11 @@ let verify_block t i =
     match t.t_verifier with
       NoVerification
     | VerificationNotAvailable -> ()
+
+    | ForceVerification ->
+        set_toverify_block t i;
+        set_verified_chunk t i;
+        t.t_verified t.t_nverified_blocks i
     
     | Verification chunks when Array.length chunks = Array.length t.t_blocks ->
         begin
@@ -1771,7 +1776,8 @@ let duplicate_chunks () =
   HS.iter (fun t ->
       match t.t_verifier with
         NoVerification
-      | VerificationNotAvailable -> ()
+      | VerificationNotAvailable
+      | ForceVerification -> ()
       | Verification checksums 
           when Array.length checksums = Array.length t.t_blocks ->
           let rec iter i len pos bsize size =
