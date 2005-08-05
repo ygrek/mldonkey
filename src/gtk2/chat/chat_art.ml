@@ -23,6 +23,8 @@
 (*                                                                                *)
 (**********************************************************************************)
 
+open CommonGlobals
+
 let table = [
   "icon_settings", (Menu_settings_svg.t, "");
   "icon_help", (Menu_help_svg.t, "");
