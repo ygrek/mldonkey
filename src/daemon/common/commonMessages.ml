@@ -486,7 +486,7 @@ onclick=\"dllink();\">DL</TD></TR></TBODY></TABLE></TD>
 <FORM name=cmdFormular action=submit target=output>
 <TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
 <TD style=\"padding: 0px; border: 0px; padding-left: 5px;\" title=\"Input mldonkey command here\">
-<INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
+<INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q><body onload=\"document.cmdFormular.q.focus();\">
 </TD></TR></TBODY></TABLE></TD><TD noWrap>
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
 <TD class=\"bu bbigm\" style=\"padding-top: 0px; padding-bottom: 0px;\" title=\"Input Command\">
