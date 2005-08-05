@@ -29,7 +29,7 @@ let _b x = _b "CommonMessages" x
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
   with _ ->
-      Filename.concat CommonOptions.config_dir "messages.ini"
+      Filename.concat CommonOptions.home_dir "messages.ini"
 
 
 let message_file = Options.create_options_file message_file_name

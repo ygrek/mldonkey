@@ -47,7 +47,7 @@ let lprintf' fmt =
 
 let chmod_config () =
   let base_config = 
-    (Filename.concat CommonOptions.config_dir "mlgui.ini")
+    (Filename.concat CommonOptions.home_dir "mlgui.ini")
   in
   let save_config =
     base_config ^ ".old"

@@ -36,17 +36,8 @@ that should also be loaded at startup by mldonkey.
 
   
   
-let _ = Unix2.safe_mkdir CommonOptions.config_dir
-let installer_name = Filename.concat CommonOptions.config_dir "installer.ini"
-
-  (*
-let installer_ini = create_options_file installer_name
-  
-let mldonkey_directory = 
-  define_option CommonOptions.installer_section ["mldonkey_directory"] 
-    "The directory where mldonkey's option files are" string_option
-  config_dir
-    *)
+let _ = Unix2.safe_mkdir CommonOptions.home_dir
+let installer_name = Filename.concat CommonOptions.home_dir "installer.ini"
 
 let _ =
   (try Options.load CommonOptions.installer_ini with _ -> ())

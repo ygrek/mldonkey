@@ -10,7 +10,7 @@ let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
       let filename = 
-        Filename.concat CommonOptions.config_dir "gtk2gui_messages.ini"
+        Filename.concat CommonOptions.home_dir "gtk2gui_messages.ini"
       in
       Unix2.safe_mkdir (Filename.dirname filename);
       filename

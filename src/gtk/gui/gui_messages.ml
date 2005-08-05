@@ -26,7 +26,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat CommonOptions.config_dir "gui_messages.ini"
+      Filename.concat CommonOptions.home_dir "gui_messages.ini"
 
       (*
 let _ =
@@ -242,7 +242,7 @@ let mUploads = message "mUploads" (T.option T.format) "Uploads"
 let software = "MLDonkey"
 let software_version = "1.0"
 
-let chat_config_file = Filename.concat CommonOptions.home_basedir ".mldonkey_chat.ini"
+let chat_config_file = Filename.concat CommonOptions.file_basedir "mldonkey_chat.ini"
 
 (** {2 Command line messages} *)
 

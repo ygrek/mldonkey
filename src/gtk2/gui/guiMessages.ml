@@ -23,7 +23,7 @@ open Printf2
 open Options
 open Gettext
 
-let filename = Filename.concat CommonOptions.config_dir "mlnet_strings"
+let filename = Filename.concat CommonOptions.home_dir "mlnet_strings"
 
 let _s x = (* lprintf "searching string %s\n" x; *) GuiUtf8.simple_utf8_of (_s "GuiMessages" x)
 
@@ -970,7 +970,7 @@ let load_messages () =
 (* Messages and string constants. *)
 
 let chat_config_file = 
-  Filename.concat CommonOptions.config_dir "chat.ini"
+  Filename.concat CommonOptions.home_dir "chat.ini"
 
 (* {2 Command line messages} *)
 

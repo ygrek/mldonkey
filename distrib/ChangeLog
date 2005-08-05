@@ -8,6 +8,21 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/05: spiralvoice
+
+4155: Let MLDonkey create its data in $HOME/.mldonkey
+
+Usage instructions:
+* if the core is started in a directory where downloads.ini exists
+  this directory will be used, this is the same behaviour as before
+* on Windows the current directory will always be used,
+  this is consistent with eMule
+* on other systems $HOME/.mldonkey will be created and used,
+  this is consistent with eDonkey, aMule and Unix standards
+* if variable MLDONKEY_DIR is used that directory has priority,
+  to simulate the behaviour without this patch use:
+    export MLDONKEY_DIR="." && ./mlnet
+
 2005/08/04: spiralvoice
 
 4270: Overnet: Convert local IPs sent by OV clients to real IPs

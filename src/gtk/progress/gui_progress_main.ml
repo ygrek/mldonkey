@@ -36,7 +36,7 @@ let verbose_gui_messages = false
 (*module Gui_rooms = Gui_rooms2*)
 let chmod_config () =
   let base_config = 
-    (Filename.concat CommonOptions.config_dir "mldonkey_gui.ini")
+    (Filename.concat CommonOptions.home_dir "mldonkey_gui.ini")
   in
   let save_config =
     base_config^".old"

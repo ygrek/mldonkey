@@ -28,28 +28,29 @@ open Unix
 
 let bin_dir = Filename.dirname Sys.argv.(0)
 
-let home_dir = (try Sys.getenv "HOME" with _ -> ".")
-
 let hidden_dir_prefix =
   if Autoconf.system = "windows" then "" else "."
 
 let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
 
-let config_dir = Filename.concat home_dir config_dir_basename
+let home_dir =
+  match Autoconf.system with
+  | "windows" -> Filename.concat "." config_dir_basename
+  | _ -> Filename.concat (try Sys.getenv "HOME" with _ -> ".") config_dir_basename
 
-let installer_ini = create_options_file (Filename.concat config_dir
+let installer_ini = create_options_file (Filename.concat home_dir
       "installer.ini")
 
 let installer_section = file_section installer_ini [] ""
 
 let mldonkey_directory =
   define_option installer_section ["mldonkey_directory"]
-    "The directory where mldonkey's option files are" string_option "."
+    "The directory where mldonkey's option files are" string_option home_dir
 
 let _ =
   (try Options.load installer_ini with _ -> ())
 
-let (file_basedir, home_basedir) =
+let file_basedir_pre =
   try
     if (String2.starts_with
           (Filename.basename Sys.argv.(0))  "mlgui")
@@ -58,39 +59,55 @@ let (file_basedir, home_basedir) =
     try
       Unix.chdir chroot_dir;
       let new_passwd = Filename.concat chroot_dir "/etc/passwd" in
-      if not (Sys.file_exists new_passwd) then begin
-          lprintf_nl "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option"
-        end;
+      if not (Sys.file_exists new_passwd) then
+        lprintf_nl "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option";
       MlUnix.chroot chroot_dir;
       lprintf_nl "mldonkey is now running in %s"  chroot_dir;
-        ".", "."
+        "."
 
     with e ->
         lprintf_nl "Exception %s trying to chroot %s"
           (Printexc2.to_string e) chroot_dir;
         exit 2
   with _ ->
-      (
         try
           let s = Sys.getenv "MLDONKEY_DIR" in
-          if s = "" then "." else s
+          if s = "" then home_dir else Filename2.normalize s
         with _ ->
-            !!mldonkey_directory
-      ), home_dir
+            home_dir
+
+let file_basedir =
+(* Creating dirs does work differently on Windows than Unix.
+   Dirs like c:\b are split down by unix2.safe_mkdir to "c".
+   This function splits the directory name into the drive name
+   and chdir to it before creating directories.
+   Non-absolute paths in $MLDONKEY_DIR do not work as well *)
+  if Sys.file_exists (Filename.concat (Sys.getcwd ()) "downloads.ini") then
+    (Sys.getcwd ())
+  else
+    if Autoconf.system = "windows" then
+      match String2.split file_basedir_pre ':' with
+      | drive :: directory :: _ ->
+          Unix.chdir (drive ^ ":\\");
+          directory
+      | _ -> lprintf "Please provide an absolute path in MLDONKEY_DIR like d:\\mldonkey, exiting...\n"; exit 2
+    else file_basedir_pre
 
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   lprintf_nl "Language %s, locale %s"
     Charset.default_language Charset.locstr;
+  lprintf_nl "MLDonkey is working in %s" file_basedir;
 
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
-     lprintf_nl "Exception %s to create dir %s"
+     lprintf_nl "Exception (%s) trying to create dir %s"
        (Printexc2.to_string e) file_basedir;
      exit 2);
   Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
+
   if (String2.starts_with (Filename.basename Sys.argv.(0))  "mlnet")
     then if Sys.file_exists "mlnet.pid"
       then begin
@@ -103,16 +120,12 @@ let _ =
         exit 2
       end;
 
-  lprintf_nl "The .ini-files are saved in %s" file_basedir;
-
   let filename =
         try
       Sys.getenv "MLDONKEY_STRINGS"
     with _ ->
-        Filename.concat config_dir "mlnet_strings"
+        "mlnet_strings"
   in
-  Unix2.safe_mkdir (Filename.dirname filename);
-  Unix2.can_write_to_directory (Filename.dirname filename);
   set_strings_file filename
 
 

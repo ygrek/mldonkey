@@ -43,10 +43,10 @@ let define_expert_option a b ?desc c d e =
 module M = Gui_messages
 module C = Gui_columns
 
-let _ = Unix2.safe_mkdir CommonOptions.config_dir
+let _ = Unix2.safe_mkdir CommonOptions.home_dir
   
 let mldonkey_gui_ini = create_options_file 
-    (Filename.concat CommonOptions.config_dir "mldonkey_newgui.ini")
+    (Filename.concat CommonOptions.home_dir "mldonkey_newgui.ini")
   
 module KeyOption = struct
     

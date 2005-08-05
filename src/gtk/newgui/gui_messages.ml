@@ -27,7 +27,7 @@ let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
       let filename = 
-        Filename.concat CommonOptions.config_dir "newgui_messages.ini"
+        Filename.concat CommonOptions.home_dir "newgui_messages.ini"
       in
       Unix2.safe_mkdir (Filename.dirname filename);
       filename
@@ -880,7 +880,7 @@ let mAdd_column_before =
 (** Messages and string constants. *)
 
 let chat_config_file = 
-  Filename.concat CommonOptions.config_dir "chat.ini"
+  Filename.concat CommonOptions.home_dir "chat.ini"
 
 (** {2 Command line messages} *)
 

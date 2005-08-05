@@ -40,10 +40,10 @@ let define_expert_option a b ?desc c d e =
 module M = GuiMessages
 module C = GuiColumns
 
-let _ = Unix2.safe_mkdir CommonOptions.config_dir
+let _ = Unix2.safe_mkdir CommonOptions.home_dir
   
 let gui_ini = create_options_file 
-    (Filename.concat CommonOptions.config_dir "mlgui.ini")
+    (Filename.concat CommonOptions.home_dir "mlgui.ini")
 
 
 
