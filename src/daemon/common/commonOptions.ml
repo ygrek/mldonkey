@@ -83,7 +83,7 @@ let file_basedir =
    and chdir to it before creating directories.
    Non-absolute paths in $MLDONKEY_DIR do not work as well *)
   if Sys.file_exists (Filename.concat (Sys.getcwd ()) "downloads.ini") then
-    (Sys.getcwd ())
+    "."
   else
     if Autoconf.system = "windows" then
       match String2.split file_basedir_pre ':' with

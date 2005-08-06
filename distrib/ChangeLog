@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/06: spiralvoice
+
+4274: Use relative path if downloads.ini is present
+
 2005/08/05: spiralvoice
 
 4272: HTML: Cursor focus in input field
