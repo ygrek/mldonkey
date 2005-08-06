@@ -86,14 +86,15 @@ let valid (j,k,l,i) =
   l >= 0 && l <= 255 &&
   i >= 0 && i <= 255
 
-let reachable ip =
-  !allow_local_network ||
+let local_ip ip =
   match ip with
-    192, 168,_,_ -> false
-  | 10, _, _, _ | 127, _,_,_ -> false
-  | 172, v, _, _ when v > 15 && v < 32 -> false
-  | _ -> true
+    192, 168,_,_ -> true
+  | 10, _, _, _ | 127, _,_,_ -> true
+  | 172, v, _, _ when v > 15 && v < 32 -> true
+  | _ -> false
 
+let reachable ip =
+  !allow_local_network || not (local_ip ip)
 
 let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with

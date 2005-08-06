@@ -1,5 +1,6 @@
 
 open Printf2
+open Ip
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
@@ -76,7 +77,8 @@ let rec match_ip_aux bl ip =
 	  Some br
 
 let match_ip bl ip =
-  let m = match_ip_aux bl ip in
+  let m = if Ip.local_ip ip then None else
+  match_ip_aux bl ip in
   (match m with
       Some br ->
 	br.blocking_hits <- br.blocking_hits + 1

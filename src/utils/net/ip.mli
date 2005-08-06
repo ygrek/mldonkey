@@ -29,6 +29,7 @@ val to_ints : t -> int * int * int * int
 val to_fixed_string : t -> string
 
 val valid : t -> bool
+val local_ip : t -> bool
 val reachable : t -> bool
   
 val resolve_one : t -> string
