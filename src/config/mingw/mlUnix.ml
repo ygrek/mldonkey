@@ -81,16 +81,4 @@ let mini (x: int) y = if x < y then x else y
 
 let write fd s pos len = Unix.write fd s pos (mini len 16000)
 
-let bsize dir = Int64.of_int (-1)
-let blocks dir = Int64.of_int (-1)
-let bfree dir = Int64.of_int (-1)
-let bavail dir = Int64.of_int (-1)
-let fnamelen dir = Int64.of_int 255
-let disktotal dir = Int64.of_int (-1)
-let diskfree dir = Int64.of_int (-1)
-let diskused dir = Int64.of_int (-1)
-let percentused dir = (-1)
-let percentfree dir = (-1)
-let filesystem dir = "not supported"
-
 let glibc_version_num () = ""

@@ -1818,17 +1818,17 @@ let _ =
      "disk", Arg_one (fun arg o ->
          let buf = o.conn_buf in
          Printf.bprintf buf "working on dir %s\n" arg;
-         Printf.bprintf buf "bsize %Ld\n" (MlUnix.bsize arg);
-         Printf.bprintf buf "blocks %Ld\n" (MlUnix.blocks arg);
-         Printf.bprintf buf "bfree %Ld\n" (MlUnix.bfree arg);
-         Printf.bprintf buf "bavail %Ld\n" (MlUnix.bavail arg);
-         Printf.bprintf buf "fnamelen %Ld\n" (MlUnix.fnamelen arg);
-         Printf.bprintf buf "filesystem %s\n" (MlUnix.filesystem arg);
-         Printf.bprintf buf "disktotal %Ld\n" (MlUnix.disktotal arg);
-         Printf.bprintf buf "diskfree %Ld\n" (MlUnix.diskfree arg);
-         Printf.bprintf buf "diskused %Ld\n" (MlUnix.diskused arg);
-         Printf.bprintf buf "percentused %d\n" (MlUnix.percentused arg);
-         Printf.bprintf buf "percentfree %d\n" (MlUnix.percentfree arg);
+         Printf.bprintf buf "bsize %Ld\n" (Unix32.bsize arg);
+         Printf.bprintf buf "blocks %Ld\n" (Unix32.blocks arg);
+         Printf.bprintf buf "bfree %Ld\n" (Unix32.bfree arg);
+         Printf.bprintf buf "bavail %Ld\n" (Unix32.bavail arg);
+         Printf.bprintf buf "fnamelen %Ld\n" (Unix32.fnamelen arg);
+         Printf.bprintf buf "filesystem %s\n" (Unix32.filesystem arg);
+         Printf.bprintf buf "disktotal %Ld - %s\n" (Unix32.disktotal arg) (size_of_int64 (Unix32.disktotal arg));
+         Printf.bprintf buf "diskfree %Ld - %s\n" (Unix32.diskfree arg) (size_of_int64 (Unix32.diskfree arg));
+         Printf.bprintf buf "diskused %Ld - %s\n" (Unix32.diskused arg) (size_of_int64 (Unix32.diskused arg));
+         Printf.bprintf buf "percentused %d\n" (Unix32.percentused arg);
+         Printf.bprintf buf "percentfree %d\n" (Unix32.percentfree arg);
          _s ""
      ), "debug command (example: disk .)";
 
@@ -1858,8 +1858,8 @@ let _ =
                ( "1", "srh ar", "Priority", "P" ) ;
                ( "0", "srh", "Directory", "Directory" ) ;
                ( "0", "srh", "Strategy", "Strategy" ) ;
-               ( "1", "srh ar", "MB used", "MB used" ) ;
-               ( "1", "srh ar", "MB free", "MB free" ) ;
+               ( "1", "srh ar", "HDD used", "used" ) ;
+               ( "1", "srh ar", "HDD free", "free" ) ;
                ( "1", "srh ar", "% free", "% free" ) ;
                ( "0", "srh", "Filesystem", "FS" ) ];
 
@@ -1893,13 +1893,13 @@ let _ =
 		shared_dir.shdir_priority
 		dir
 		shared_dir.shdir_strategy
-		(if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
-		   else (size_of_int64 (MlUnix.diskused dir)))
-		(if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
-		   else (size_of_int64 (MlUnix.diskfree dir)))
-		(if (MlUnix.percentfree dir) = (-1) then "---"
-		   else string_of_int(MlUnix.percentfree dir))
-		    (MlUnix.filesystem dir);
+		(if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+		   else (size_of_int64 (Unix32.diskused dir)))
+		(if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+		   else (size_of_int64 (Unix32.diskfree dir)))
+		(if (Unix32.percentfree dir) = (-1) then "---"
+		   else string_of_int(Unix32.percentfree dir))
+		    (Unix32.filesystem dir);
             )
             !!shared_directories;
   
@@ -1919,13 +1919,13 @@ let _ =
 		0
 		dir
 		"temp_directory"
-	      (if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
-		else (size_of_int64 (MlUnix.diskused dir)))
-	      (if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
-		else (size_of_int64 (MlUnix.diskfree dir)))
-	      (if (MlUnix.percentfree dir) = (-1) then "---"
-		else string_of_int(MlUnix.percentfree dir))
-	      (MlUnix.filesystem dir);
+	      (if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (Unix32.diskused dir)))
+	      (if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (Unix32.diskfree dir)))
+	      (if (Unix32.percentfree dir) = (-1) then "---"
+		else string_of_int(Unix32.percentfree dir))
+	      (Unix32.filesystem dir);
 
 	    let dir = Sys.getcwd () in
 		incr counter;
@@ -1943,13 +1943,13 @@ let _ =
 		0
 		dir
 		"core_directory"
-	      (if (MlUnix.diskused dir) = Int64.of_int (-1) then "---"
-		else (size_of_int64 (MlUnix.diskused dir)))
-	      (if (MlUnix.diskfree dir) = Int64.of_int (-1) then "---"
-		else (size_of_int64 (MlUnix.diskfree dir)))
-	      (if (MlUnix.percentfree dir) = (-1) then "---"
-		else string_of_int(MlUnix.percentfree dir))
-	      (MlUnix.filesystem dir);
+	      (if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (Unix32.diskused dir)))
+	      (if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+		else (size_of_int64 (Unix32.diskfree dir)))
+	      (if (Unix32.percentfree dir) = (-1) then "---"
+		else string_of_int(Unix32.percentfree dir))
+	      (Unix32.filesystem dir);
 
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
           end

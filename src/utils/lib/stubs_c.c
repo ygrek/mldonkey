@@ -913,3 +913,226 @@ value ml_has_pthread(value unit)
 
 #endif
 
+#include <caml/custom.h>
+#include <caml/callback.h>
+
+#if defined(__MINGW32__)
+/* taken from www.greatchief.plus.com/gpc/os-hacks.h */
+#define _fullpath(res,path,size) \
+  (GetFullPathName ((path), (size), (res), NULL) ? (res) : NULL)
+
+#define realpath(path,resolved_path) _fullpath(resolved_path, path, MAX_PATH)
+
+#define FAKED_BLOCK_SIZE 512 /* fake block size */
+
+/* linux-compatible values for fs type */
+#define MSDOS_SUPER_MAGIC     0x4d44
+#define NTFS_SUPER_MAGIC      0x5346544E
+
+struct statfs {
+   long    f_type;     /* type of filesystem (see below) */
+   long    f_bsize;    /* optimal transfer block size */
+   long    f_blocks;   /* total data blocks in file system */
+   long    f_bfree;    /* free blocks in fs */
+   long    f_bavail;   /* free blocks avail to non-superuser */
+   long    f_files;    /* total file nodes in file system */
+   long    f_ffree;    /* free file nodes in fs */
+   long    f_fsid;     /* file system id */
+   long    f_namelen;  /* maximum length of filenames */
+   long    f_spare[6]; /* spare for later */
+};
+
+static int statfs (const char *path, struct statfs *buf)
+  {
+    HINSTANCE h;
+    FARPROC f;
+    int retval = 0;
+    char tmp [MAX_PATH], resolved_path [MAX_PATH];
+    realpath(path, resolved_path);
+    if (!resolved_path)
+      retval = - 1;
+    else
+      {
+        /* check whether GetDiskFreeSpaceExA is supported */
+        h = LoadLibraryA ("kernel32.dll");
+        if (h)
+          f = GetProcAddress (h, "GetDiskFreeSpaceExA");
+        else
+          f = NULL;
+        if (f)
+          {
+            ULARGE_INTEGER bytes_free, bytes_total, bytes_free2;
+            if (!f (resolved_path, &bytes_free2, &bytes_total, &bytes_free))
+              {
+                errno = ENOENT;
+                retval = - 1;
+              }
+            else
+              {
+                buf -> f_bsize = FAKED_BLOCK_SIZE;
+                buf -> f_bfree = (bytes_free.QuadPart) / FAKED_BLOCK_SIZE;
+                buf -> f_files = buf -> f_blocks = (bytes_total.QuadPart) / FAKED_BLOCK_SIZE;
+                buf -> f_ffree = buf -> f_bavail = (bytes_free2.QuadPart) / FAKED_BLOCK_SIZE;
+              }
+          }
+        else
+          {
+            DWORD sectors_per_cluster, bytes_per_sector;
+            if (h) FreeLibrary (h);
+            if (!GetDiskFreeSpaceA (resolved_path, &sectors_per_cluster,
+                   &bytes_per_sector, &buf -> f_bavail, &buf -> f_blocks))
+              {
+                errno = ENOENT;
+                retval = - 1;
+              }
+            else
+              {
+                buf -> f_bsize = sectors_per_cluster * bytes_per_sector;
+                buf -> f_files = buf -> f_blocks;
+                buf -> f_ffree = buf -> f_bavail;
+                buf -> f_bfree = buf -> f_bavail;
+              }
+          }
+        if (h) FreeLibrary (h);
+      }
+
+    /* get the FS volume information */
+    if (strspn (":", resolved_path) > 0) resolved_path [3] = '\0'; /* we want only the root */    
+    if (GetVolumeInformation (resolved_path, NULL, 0, &buf -> f_fsid, &buf -> f_namelen, NULL, tmp, MAX_PATH))
+    /* http://msdn.microsoft.com/library/default.asp?url=/library/en-us/fileio/fs/getvolumeinformation.asp */
+     {
+     	if (strcasecmp ("NTFS", tmp) == 0)
+     	 {
+     	   buf -> f_type = NTFS_SUPER_MAGIC;
+     	 }
+     	else
+     	 {
+     	   buf -> f_type = MSDOS_SUPER_MAGIC;
+     	 }
+     }
+    else
+     {
+       errno = ENOENT;
+       retval = - 1;
+     }
+    return retval;
+}
+
+static value
+copy_statfs (struct statfs *buf)
+{
+  CAMLparam0 ();
+  CAMLlocal2 (bufv, v);
+  bufv = caml_alloc (11, 0);
+  v = copy_int64 (buf->f_type); caml_modify (&Field (bufv, 0), v);
+  v = copy_int64 (buf->f_bsize); caml_modify (&Field (bufv, 1), v);
+  v = copy_int64 (buf->f_blocks); caml_modify (&Field (bufv, 2), v);
+  v = copy_int64 (buf->f_bfree); caml_modify (&Field (bufv, 3), v);
+  v = copy_int64 (buf->f_bavail); caml_modify (&Field (bufv, 4), v);
+  v = copy_int64 (buf->f_files); caml_modify (&Field (bufv, 5), v);
+  v = copy_int64 (buf->f_ffree); caml_modify (&Field (bufv, 6), v);
+  v = copy_int64 (buf->f_namelen); caml_modify (&Field (bufv, 8), v);
+  v = copy_string ("-1"); caml_modify (&Field (bufv, 9), v);
+  v = copy_int64 (-1); caml_modify (&Field (bufv, 10), v);
+  CAMLreturn (bufv);
+}
+
+CAMLprim value
+statfs_statfs (value pathv)
+{
+  CAMLparam1 (pathv);
+  CAMLlocal1 (bufv);
+  const char *path = String_val (pathv);
+  struct statfs buf;
+  if (statfs (path, &buf) == -1)
+    raise_constant(*(value *)caml_named_value("error"));
+  bufv = copy_statfs (&buf);
+  CAMLreturn (bufv);
+}
+
+#else /* defined(__MINGW32__) */
+
+#if (defined HAVE_SYS_PARAM_H && HAVE_SYS_MOUNT_H)
+#  include <sys/param.h>
+#  include <sys/mount.h>
+#  define HAVE_STATS 1
+#endif
+#ifdef HAVE_SYS_VFS_H
+#  include <sys/vfs.h>
+#  define HAVE_STATS 1
+#endif
+
+#ifdef HAVE_STATS
+static value
+#if ((defined (sun) || defined (__sun__)))
+copy_statfs (struct statvfs *buf)
+#else
+copy_statfs (struct statfs *buf)
+#endif
+{
+  CAMLparam0 ();
+  CAMLlocal2 (bufv, v);
+  bufv = caml_alloc (11, 0);
+#if ((defined (sun) || defined (__sun__))) || (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__)
+  v = copy_int64 (-1); caml_modify (&Field (bufv, 0), v);
+#else
+  v = copy_int64 (buf->f_type); caml_modify (&Field (bufv, 0), v);
+#endif /* ((defined (sun) || defined (__sun__))) || (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) */
+  v = copy_int64 (buf->f_bsize); caml_modify (&Field (bufv, 1), v);
+  v = copy_int64 (buf->f_blocks); caml_modify (&Field (bufv, 2), v);
+  v = copy_int64 (buf->f_bfree); caml_modify (&Field (bufv, 3), v);
+  v = copy_int64 (buf->f_bavail); caml_modify (&Field (bufv, 4), v);
+  v = copy_int64 (buf->f_files); caml_modify (&Field (bufv, 5), v);
+  v = copy_int64 (buf->f_ffree); caml_modify (&Field (bufv, 6), v);
+#if ((defined (sun) || defined (__sun__)))
+  v = copy_int64 (-1); caml_modify (&Field (bufv, 7), v);
+  v = copy_int64 (buf->f_namemax); caml_modify (&Field (bufv, 8), v);
+  v = copy_string (buf->f_basetype); caml_modify (&Field (bufv, 9), v);
+  v = copy_int64 (buf->f_frsize); caml_modify (&Field (bufv, 10), v);
+#else
+#if (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#  if defined(__OpenBSD__) || defined(__NetBSD__)
+#    include <sys/syslimits.h>
+     v = copy_int64 (NAME_MAX); caml_modify (&Field (bufv, 8), v);
+#  else
+#    if defined(__APPLE__)
+#      include <unistd.h>
+       v = copy_int64 (_PC_NAME_MAX); caml_modify (&Field (bufv ,8 ), v);
+#    else
+       v = copy_int64 (buf->f_namemax); caml_modify (&Field (bufv, 8), v);
+#    endif /* (__APPLE__) */
+#  endif /* (__OpenBSD__) || defined(__NetBSD__) */
+  v = copy_string (buf->f_fstypename); caml_modify (&Field (bufv, 9), v);
+#else
+  v = copy_int64 (buf->f_namelen); caml_modify (&Field (bufv, 8), v);
+  v = copy_string ("-1"); caml_modify (&Field (bufv, 9), v);
+#endif /* (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
+  caml_modify (&Field (bufv, 7), Val_unit);
+  v = copy_int64 (-1); caml_modify (&Field (bufv, 10), v);
+#endif /*  ((defined (sun) || defined (__sun__))) */
+  CAMLreturn (bufv);
+}
+#endif
+
+CAMLprim value
+statfs_statfs (value pathv)
+{
+#ifdef HAVE_STATS
+  CAMLparam1 (pathv);
+  CAMLlocal1 (bufv);
+  const char *path = String_val (pathv);
+#if ((defined (sun) || defined (__sun__)))
+  struct statvfs buf;
+  if (statvfs (path, &buf) == -1)
+#else
+  struct statfs buf;
+  if (statfs (path, &buf) == -1)
+#endif
+    raise_constant(*(value *)caml_named_value("error"));
+  bufv = copy_statfs (&buf);
+  CAMLreturn (bufv);
+#else
+  raise_constant(*(value *)caml_named_value("not supported"));
+#endif
+}
+#endif /* defined(__MINGW32__) */

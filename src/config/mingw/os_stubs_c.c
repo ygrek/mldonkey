@@ -1,3 +1,10 @@
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/custom.h>
+#include <caml/callback.h>
+#include <caml/fail.h>
+
 #include "../../utils/lib/os_stubs.h"
 
 #ifdef HAS_SIGNALS_H
@@ -9,6 +16,9 @@
 #endif
 
 #define UNIX_BUFFER_SIZE 16384
+
+extern void enter_blocking_section(); 
+extern void leave_blocking_section();
 
 extern int os_read(OS_FD fd, char *buf, int len)
 {
@@ -112,4 +122,3 @@ void os_set_nonblock(OS_SOCKET fd)
     }
   }
 }
-

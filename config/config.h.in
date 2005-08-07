@@ -163,5 +163,8 @@
 /* Define to 1 if you have the <sys/param.h> header file. */
 #undef HAVE_SYS_PARAM_H
 
+/* Define to 1 if you have the <sys/mount.h> header file. */
+#undef HAVE_SYS_MOUNT_H
+
 /* Define to 1 if you have the <gnu/libc-versions.h> header file. */
 #undef HAVE_GNU_LIBC_VERSION_H
