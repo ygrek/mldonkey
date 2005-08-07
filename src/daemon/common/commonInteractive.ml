@@ -387,6 +387,7 @@ let time_of_sec sec =
 
 
 let display_vd = ref false
+let display_bw_stats = ref false
 
 let start_download file =
 

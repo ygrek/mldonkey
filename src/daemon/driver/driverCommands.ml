@@ -489,7 +489,7 @@ let _ =
         | _ ->
             if use_html_mods o then begin
 
-                Printf.bprintf buf "\\<script language=javascript\\>
+                Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>
 \\<!--
 function submitMessageForm() {
 var formID = document.getElementById(\\\"msgForm\\\")
@@ -981,20 +981,19 @@ let _ =
         let buf = o.conn_buf in
         if use_html_mods o then
           begin
-
+            display_bw_stats := true;
             let refresh_delay = ref !!html_mods_bw_refresh_delay in
             if args <> [] then begin
                 let newrd = int_of_string (List.hd args) in
                 if newrd > 1 then refresh_delay := newrd;
               end;
-            Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" !refresh_delay;
 
             let dlkbs =
               (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
             let ulkbs =
               (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
 
-            Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
+            Printf.bprintf buf "\\</head\\>\\<body\\>\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>";
 
@@ -1011,7 +1010,7 @@ let _ =
 
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
 
-            Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s'\\</script\\>"
+            Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s'\\</script\\>"
               dlkbs ulkbs (CommonGlobals.version ())
           end
         else
@@ -1420,7 +1419,7 @@ let _ =
         let buf = o.conn_buf in
         if use_html_mods o then begin
 
-            Printf.bprintf buf "\\<script language=javascript\\>
+            Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>
 \\<!--
 function pluginSubmit() {
 var formID = document.getElementById(\\\"pluginForm\\\");
@@ -1541,6 +1540,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_max_messages;
 			strings_of_option html_mods_bw_refresh_delay;
 			strings_of_option use_html_frames;
+			strings_of_option html_frame_border;
 			strings_of_option html_checkbox_vd_file_list;
 			strings_of_option html_checkbox_search_file_list;
 			strings_of_option commands_frame_height;
@@ -2676,7 +2676,7 @@ let _ =
             List.iter (fun line ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
                 html_mods_td buf [ ("", "sr", line); ];
-                Printf.bprintf buf "\\</tr\\>\\";
+                Printf.bprintf buf "\\</tr\\>";
             ) lines;
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
             Buffer.contents buf
@@ -2703,7 +2703,7 @@ let _ =
 
     "reload_messages", Arg_none (fun o ->
         CommonMessages.load_message_file ();
-        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+        "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
     ), ":\t\t\treload messages file";
 
     "log", Arg_none (fun o ->
@@ -2804,7 +2804,7 @@ let _ =
             CommonMessages.colour_changer() ;
           end;
 
-        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+        "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
     ), ":\t\t\t\ttoggle html_mods";
 
 
@@ -2832,7 +2832,7 @@ let _ =
                 commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
                 CommonMessages.colour_changer ();
               end;
-            "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+            "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
           end
 
     ), ":\t\t\tselect html_mods_style <#>";
@@ -2900,7 +2900,7 @@ let _ =
 (* html_mods =:= true;
             use_html_frames =:= true; *)
             html_mods_theme =:= List.hd args;
-            "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+            "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
           end
 
     ), "<theme>:\t\t\tselect html_theme";

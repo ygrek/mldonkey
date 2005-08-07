@@ -849,19 +849,20 @@ let html_open_page buf t r open_body =
     (Buffer.add_string buf
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\"
         \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";)
-    else Buffer.add_string buf "<html>\n<head>\n";
-
+    else Buffer.add_string buf "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>\n<head>\n";
   if !CommonInteractive.display_vd then begin
-        let this_page = "dheader.html" in
+      let this_page = "dheader.html" in
       Buffer.add_string buf
         (
                 if !!html_mods_theme != "" && theme_page_exists this_page then
                         read_theme_page this_page else
                         if !!html_mods then !!CommonMessages.download_html_header_mods0
                         else !!CommonMessages.download_html_header_old);
-      Printf.bprintf buf "<meta http-equiv=Refresh
-          content=\"%d\">" !!vd_reload_delay;
+      Printf.bprintf buf "<meta http-equiv=\"refresh\" content=\"%d\">" !!vd_reload_delay;
     end else
+    if !CommonInteractive.display_bw_stats then
+      Printf.bprintf buf "<meta http-equiv=\"refresh\" content=\"%d\">" !!html_mods_bw_refresh_delay;
+   
         let this_page = "header.html" in
     Buffer.add_string buf (
                 if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -874,8 +875,8 @@ let html_open_page buf t r open_body =
   if not !!use_html_frames then add_simple_commands buf;
   ()
 
-let html_close_page buf =
-  Buffer.add_string buf "</body>\n";
+let html_close_page buf close_body =
+  if close_body then Buffer.add_string buf "</body>\n";
   Buffer.add_string buf "</html>\n"
 
 let clear_page buf =
@@ -884,6 +885,7 @@ let clear_page buf =
 
 let http_handler o t r =
   CommonInteractive.display_vd := false;
+  CommonInteractive.display_bw_stats := false;
   clear_page buf;
 
   let user = if r.options.login = "" then "admin" else r.options.login in
@@ -967,21 +969,32 @@ let http_handler o t r =
                 if !!html_mods_theme != "" && theme_page_exists this_page then
                   Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
-                  Printf.bprintf buf "
-            <frameset src=\"index\" rows=\"%d,25,*\">
-                  <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"commands.html\">
-                  <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"noframe.html\">
-               <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"oneframe.html\">
-            </frameset>" !!commands_frame_height
+                  (if !!html_frame_border then
+                    Printf.bprintf buf
+"<frameset src=\"index\" rows=\"%d,25,*\">
+<frame name=\"commands\" noresize scrolling=\"no\" noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"commands.html\">
+<frame name=\"fstatus\" noresize scrolling=\"no\" noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"noframe.html\">
+<frame name=\"output\" noresize noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"oneframe.html\">
+</frameset>
+" !!commands_frame_height
+                  else
+                    Printf.bprintf buf
+"<frameset src=\"index\" rows=\"%d,25,*\" frameborder=\"no\">
+<frame name=\"commands\" noresize scrolling=\"no\" noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"commands.html\">
+<frame name=\"fstatus\" noresize scrolling=\"no\" noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"noframe.html\">
+<frame name=\"output\" noresize noshade marginwidth=0 marginheight=0 border=0 framespacing=0 src=\"oneframe.html\">
+</frameset>
+" !!commands_frame_height)
                 else
-                  Printf.bprintf buf "
-            <frameset src=\"index\" rows=\"%d,2*\">
-               <frameset src=\"index\" cols=\"5*,1*\">
-                  <frame name=\"commands\" src=\"commands.html\">
-                  <frame name=\"fstatus\" src=\"noframe.html\">
-               </frameset>
-               <frame name=\"output\" src=\"oneframe.html\">
-            </frameset>" !!commands_frame_height;
+                  Printf.bprintf buf
+"<frameset src=\"index\" rows=\"%d,2*\">
+<frameset src=\"index\" cols=\"5*,1*\">
+<frame name=\"commands\" src=\"commands.html\">
+<frame name=\"fstatus\" src=\"noframe.html\">
+</frameset>
+<frame name=\"output\" src=\"oneframe.html\">
+</frameset>
+" !!commands_frame_height;
               end else
               html_open_page buf t r true
         | "complex_search.html" ->
@@ -1395,8 +1408,8 @@ let http_handler o t r =
 
   let s =
     match !http_file_type with
-      HTM -> html_close_page buf; dollar_escape o !!use_html_frames (Buffer.contents buf)
-    | MLHTM -> html_close_page buf; dollar_escape o !!use_html_frames (Buffer.contents buf)
+      HTM -> html_close_page buf false; dollar_escape o !!use_html_frames (Buffer.contents buf)
+    | MLHTM -> html_close_page buf true; dollar_escape o !!use_html_frames (Buffer.contents buf)
     | TXT
     | BIN -> Buffer.contents buf
     | UNK -> "Unknown type for content :" ^ (Buffer.contents buf)
