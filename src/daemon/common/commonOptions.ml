@@ -35,7 +35,7 @@ let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
 
 let home_dir =
   match Autoconf.system with
-  | "windows" -> Filename.concat "." config_dir_basename
+  | "windows" -> "."
   | _ -> Filename.concat (try Sys.getenv "HOME" with _ -> ".") config_dir_basename
 
 let installer_ini = create_options_file (Filename.concat home_dir
@@ -85,7 +85,7 @@ let file_basedir =
   if Sys.file_exists (Filename.concat (Sys.getcwd ()) "downloads.ini") then
     "."
   else
-    if Autoconf.system = "windows" then
+    if Autoconf.system = "windows" && file_basedir_pre <> home_dir then
       match String2.split file_basedir_pre ':' with
       | drive :: directory :: _ ->
           Unix.chdir (drive ^ ":\\");
