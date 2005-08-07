@@ -1674,66 +1674,68 @@ let _ =
             lprintf_nl () "Unable to send UDP message"; "Unable to send UDP message"
     ), ":\t\t\t\tsend UDP message (<ip> <port> <msg in hex>)";
 
-     "buckets", Arg_none (fun o ->
-         let buf = o.conn_buf in
-         update_buckets ();
-         if o.conn_output != HTML then
+    "buckets", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        update_buckets ();
+        if o.conn_output != HTML then
           Printf.bprintf buf "Number of used buckets %d with %d peers (prebucket: %d peers)\n"
             !n_used_buckets !connected_peers !pre_connected_peers;
-         for i = 0 to !n_used_buckets do
-           if Fifo.length buckets.(i) > 0 ||
-             Fifo.length prebuckets.(i) > 0 then
+        for i = 0 to !n_used_buckets do
+          if Fifo.length buckets.(i) > 0 ||
+            Fifo.length prebuckets.(i) > 0 then
               Printf.bprintf buf "   bucket[%d] : %d peers (prebucket %d)\n"
                 i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
-         done;
-         if o.conn_output = HTML then
-           begin
-             let listtmp = String2.split (Buffer.contents buf) '\n' in
-             let buckets = ref [] in
-             List.iter (fun s ->
-                 buckets := !buckets @ [("", "dl-1", s);]
-             ) listtmp;
-             Buffer.clear buf;
-             html_mods_table_one_col buf "ovbucketsTable" "results" ([
-               ("", "srh",
-                 Printf.sprintf "Number of used buckets %d with %d peers"
-                   !n_used_buckets !connected_peers);
-               ] @ !buckets);
-           end;          ""
-     ), ":\t\t\t\tprint buckets table status";
+        done;
+        if o.conn_output = HTML then
+          begin
+            let listtmp = String2.split (Buffer.contents buf) '\n' in
+            let buckets = ref [] in
+            List.iter (fun s ->
+                buckets := !buckets @ [("", "dl-1", s);]
+            ) listtmp;
+            Buffer.clear buf;
+            html_mods_table_one_col buf "ovbucketsTable" "results" ([
+              ("", "srh",
+                Printf.sprintf "Number of used buckets %d with %d peers (prebucket: %d peers)"
+                  !n_used_buckets !connected_peers !pre_connected_peers);
+              ] @ !buckets);
+          end;
+          ""
+    ), ":\t\t\t\tprint buckets table status";
 
-     "boots", Arg_none (fun o ->
-         let buf = o.conn_buf in
-         LimitedList.iter (fun (ip, port) ->
-             Printf.bprintf buf "   %s:%d\n" (Ip.to_string ip) port;
-         ) !!boot_peers;
-         if o.conn_output = HTML then
-           begin
-             let listtmp = String2.split (Buffer.contents buf) '\n' in
-             let boots = ref [] in
-             List.iter (fun s ->
-                 boots := !boots @ [("", "dl-1", s);]
-             ) listtmp;
-             Buffer.clear buf;
-             html_mods_table_one_col buf "ovbucketsTable" "results" ([
-               ("", "srh",
-                 Printf.sprintf "Boot peers: %d\n" (LimitedList.length !!boot_peers));
-               ] @ !boots);
-           end
-         else
-           Printf.bprintf buf "Boot peers: %d\n" (LimitedList.length !!boot_peers);
-         ""
-     ), ":\t\t\t\tprint boot peers";
+    "boots", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        LimitedList.iter (fun (ip, port) ->
+            Printf.bprintf buf "   %s:%d\n" (Ip.to_string ip) port;
+        ) !!boot_peers;
+        if o.conn_output = HTML then
+          begin
+            let listtmp = String2.split (Buffer.contents buf) '\n' in
+            let boots = ref [] in
+            List.iter (fun s ->
+                boots := !boots @ [("", "dl-1", s);]
+            ) listtmp;
+            Buffer.clear buf;
+            html_mods_table_one_col buf "ovbucketsTable" "results" ([
+              ("", "srh",
+                Printf.sprintf "Boot peers: %d\n" (LimitedList.length !!boot_peers));
+              ] @ !boots);
+          end
+        else
+          Printf.bprintf buf "Boot peers: %d\n" (LimitedList.length !!boot_peers);
+        ""
+    ), ":\t\t\t\tprint boot peers";
+
   ]);
   ()
 
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
-    if !verbose_overnet then lprintf_nl () "========= overnet_search =========";
+    if !verbose_overnet then lprintf_nl () "========= %s_search =========" command_prefix_to_net;
     let ws = keywords_of_query q in
     List.iter (fun w ->
-        if !verbose_overnet then lprintf_nl () "overnet_search for %s" w;
+        if !verbose_overnet then lprintf_nl () "%s_search for %s" command_prefix_to_net w;
         let s = create_keyword_search w ss in
         Hashtbl.iter (fun r_md4 r_tags ->
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;
@@ -1811,7 +1813,7 @@ let _ =
                 Ip.async_ip name (fun ip ->
                     let port = int_of_string port in
                     if !verbose_overnet then begin
-                        lprintf_nl () "ADDING OVERNET PEER %s:%d" name port;
+                        lprintf_nl () "Adding %s peer %s:%d" command_prefix_to_net name port;
                       end;
                     bootstrap ip port)
             | _ ->

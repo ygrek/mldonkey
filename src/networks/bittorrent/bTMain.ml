@@ -33,22 +33,22 @@ open BTTypes
 open CommonTypes
 
 let is_enabled = ref false
-  
+
 let disable enabler () =
   if !enabler then begin
       is_enabled := false;
       enabler := false;
       List.iter (fun file ->
-          Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) 
+          Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user)
           file.file_clients) !current_files;
       (match !listen_sock with None -> ()
-        | Some sock -> 
+        | Some sock ->
             listen_sock := None;
             TcpServerSocket.close sock Closed_by_user);
       BTTracker.stop_tracker ();
       if !!enable_bittorrent then enable_bittorrent =:= false
     end
-    
+
 let enable () =
   (* lprintf "enable\n"; *)
   if not !is_enabled then
@@ -66,7 +66,7 @@ let enable () =
     Unix2.can_write_to_directory old_directory;
     is_enabled := true;
     if !!BTTracker.tracker_port > 0 then (
-        try BTTracker.start_tracker () 
+        try BTTracker.start_tracker ()
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
@@ -76,7 +76,7 @@ let enable () =
     add_timer 10. BTInteractive.share_files;
     add_session_timer enabler 600. BTInteractive.retry_all_ft;
     network.op_network_disable <- disable enabler;
-    
+
     if not !!enable_bittorrent then enable_bittorrent =:= true;
 (*
   List.iter (fun s ->
@@ -93,21 +93,20 @@ let enable () =
         current_files := file :: !current_files
   ) files_by_key;
 *)
-    
 
-    BTClients.recover_files ();  
+
+    BTClients.recover_files ();
     add_session_timer enabler 60.0 (fun timer ->
         BTClients.recover_files ();
     );
-    
+
     add_session_timer enabler 120.0 (fun timer ->
         BTClients.send_pings ();
     );
-    
-  
+
   add_session_timer enabler 10.0 (fun timer ->
       BTClients.recompute_uploaders());
-  
+
   CommonGlobals.do_at_exit ( fun _ ->
     List.iter (fun file ->
 		 BTClients.file_stop file
@@ -116,7 +115,7 @@ let enable () =
 
   BTClients.listen ();
   ()
-  
+
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_bittorrent);
   option_hook enable_bittorrent (fun _ ->
@@ -125,8 +124,8 @@ let _ =
       else network_disable network);
 (*
   network.op_network_save_simple_options <- BTComplexOptions.save_config;
-  network.op_network_load_simple_options <- 
-    (fun _ -> 
+  network.op_network_load_simple_options <-
+    (fun _ ->
       try
         Options.load bittorrent_ini;
       with Sys_error _ ->
@@ -137,7 +136,7 @@ let _ =
   network.network_config_file <- [bittorrent_ini];
   check_client_uid ();
   network.op_network_info <- (fun n ->
-      { 
+      {
         network_netnum = network.network_num;
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
@@ -148,9 +147,7 @@ let _ =
         network_downloaded = Int64.zero;
         network_connected = 0;
       });
-  CommonInteractive.register_gui_options_panel "BitTorrent" 
+  CommonInteractive.register_gui_options_panel "BitTorrent"
   gui_bittorrent_options_panel
-  
-  
+
 let main (toto: int) = ()
-  

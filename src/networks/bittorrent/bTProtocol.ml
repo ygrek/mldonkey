@@ -61,7 +61,7 @@
 
 2. Extract BitTorrent information needed:
 *****************************************
-  
+
 Metainfo files are bencoded dictionaries with the following keys -
 
 'announce'
@@ -107,7 +107,7 @@ muliple file case, it's the name of a directory.
 
 3. Contact the tracker regularly to update file information
 ***********************************************************
-  
+
 Tracker GET requests have the following keys by HTTP:
 
 'info_hash'
@@ -145,21 +145,21 @@ Tracker GET requests have the following keys by HTTP:
 
 'event'
     This is an optional key which maps to 'started', 'completed', or
-    'stopped' (or '', which is the same as not being present). 
-  
+    'stopped' (or '', which is the same as not being present).
+
 ---> bencoded replu:
   { 'failure reason' = ... }
 or
 {
  'interval' = ....; (* before next request to tracker *)
- 'peers' =  [ 
+ 'peers' =  [
    {
     'peer id' = ....;
     'ip' - ....;
     'port' = ....;
    };
    ....
-  ] 
+  ]
 }
 
 4. Contact every peer regularly
@@ -168,27 +168,27 @@ or
 Handshake:
 
 type int = BigEndian.int32
-  
+
 --->
-string8 (prefixed by length): "BitTorrent protocol" 
+string8 (prefixed by length): "BitTorrent protocol"
 int8[8]: reserved(zeros)
 int8[20 bytes]: Sha1.string (Bencode.encode file.file_info)
 int8[20 bytes]: peer id
-  
+
 <---
-string8 (prefixed by length): "BitTorrent protocol" 
+string8 (prefixed by length): "BitTorrent protocol"
 int8[8]: reserved(zeros)
 int8[20 bytes]: Sha1.string (Bencode.encode file.file_info)
 int8[20 bytes]: peer id
 
 ----> disconnect if sha1 don't match, or if peer id is unexpected
 
-msg: 
+msg:
         int: len of message (byte+payload) 0 -> keepalive sent every 2 minutes
         byte8: opcode of message
         int8[..]: payload
-        
-opcodes:        
+
+opcodes:
 Connections start out choked and not interested.
 
 No payload:
@@ -198,10 +198,10 @@ No payload:
     * 3 - not interested: I'm not interested in downloading this file now
 With bencoded payload:
     * 4 - have
-          int : index of new completed chunk          
-    * 5 - bitfield: 
+          int : index of new completed chunk
+    * 5 - bitfield:
           string: a bitfield of bit 1 for downloaded chunks
-          byte: bits are inverted 0....7 ---> 7 .... 0      
+          byte: bits are inverted 0....7 ---> 7 .... 0
     * 6 - request
           int: index
           int: begin
@@ -215,7 +215,7 @@ With bencoded payload:
           int: begin
           int: length (power of 2, 2 ^ 15)
 
-Choke/unchoke every 10 seconds        
+Choke/unchoke every 10 seconds
 *)
 
 
@@ -230,9 +230,9 @@ open BigEndian
 open TcpBufferedSocket
 open AnyEndian
 open BTTypes
-  
+
 type ghandler =
-  BTHeader of (gconn -> TcpBufferedSocket.t -> 
+  BTHeader of (gconn -> TcpBufferedSocket.t ->
   (string * Sha1.t) -> unit)
 | Reader of (gconn -> TcpBufferedSocket.t -> unit)
 
@@ -242,10 +242,9 @@ and gconn = {
     mutable gconn_close_on_write : bool;
   }
 
-  
 module TcpMessages = struct
-    
-    type msg = 
+
+    type msg =
     | Choke
     | Unchoke
     | Interested
@@ -255,10 +254,9 @@ module TcpMessages = struct
     | Request of int * int64 * int64
     | Piece of int * int64 * string * int * int
     | Cancel of int * int64 * int64
-    | Ping  
+    | Ping
     | PeerID of string
-    
-    
+
     let to_string msg =
       match msg with
       | Choke -> "Choke"
@@ -267,16 +265,16 @@ module TcpMessages = struct
       | NotInterested -> "NotInterested"
       | Have n -> Printf.sprintf  "Have %Ld" n
       | BitField s -> Printf.sprintf "BitField %s" (String.escaped s)
-      | Request (index, offset, len) -> 
+      | Request (index, offset, len) ->
           Printf.sprintf "Request %d %Ld[%Ld]" index offset len
-      | Piece (index, offset, s, pos, len) -> 
+      | Piece (index, offset, s, pos, len) ->
           Printf.sprintf "Piece %d %Ld[%d]" index offset len
-      | Cancel (index, offset, len) -> 
+      | Cancel (index, offset, len) ->
           Printf.sprintf "Cancel %d %Ld[%Ld]" index offset len
       | Ping -> "Ping"
       | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
-    
-    let parsing opcode m = 
+
+    let parsing opcode m =
         match opcode with
           0 -> Choke
         | 1 -> Unchoke
@@ -289,10 +287,10 @@ module TcpMessages = struct
         | 8 -> Cancel (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
         | -1 -> PeerID m
         | _ -> raise Not_found
-    
+
     let buf = Buffer.create 100
-    
-    let write msg = 
+
+    let write msg =
       Buffer.clear buf;
       begin
         buf_int buf 0;
@@ -304,17 +302,17 @@ module TcpMessages = struct
         | Have i -> buf_int8 buf 4; buf_int64_32 buf i
         | BitField string -> buf_int8 buf 5; Buffer.add_string buf string
         | Request (index, pos, len) ->
-            buf_int8 buf 6; 
+            buf_int8 buf 6;
             buf_int buf index; buf_int64_32 buf pos; buf_int64_32 buf len
         | Piece (num, index, s, pos, len) ->
-            buf_int8 buf 7; 
+            buf_int8 buf 7;
             buf_int buf num;
-            buf_int64_32 buf index; 
+            buf_int64_32 buf index;
             Buffer.add_substring buf s pos len
-        
+
         | Cancel _ -> ()
         | PeerID _ -> ()
-        | Ping -> ()          
+        | Ping -> ()
       end;
       let s = Buffer.contents buf in
       str_int s 0 (String.length s - 4);
@@ -326,14 +324,14 @@ module TcpMessages = struct
 (*                         UdpMessages                                   *)
 (*                                                                       *)
 (*************************************************************************)
-(*  
+(*
 
 
 
 
 module UdpMessages = struct
-    
-    type t = 
+
+    type t =
       PingReq of int * string * string
     | SupernodePongReq of int * string * string
     | NodePongReq of int * string
@@ -341,28 +339,28 @@ module UdpMessages = struct
     let extract_string s pos =
       let end_pos = String.index_from s pos '\000' in
       String.sub s pos (end_pos - pos), pos + 1
-    
+
     let parse p =
       match int_of_char p.[0] with
-      | 0x27 -> 
+      | 0x27 ->
           let min_enc_type = get_int p 1 in
           let unknown = String.sub p 5 1 in
           let netname, pos = extract_string p 6 in
-          
+
           PingReq (min_enc_type, unknown, netname)
-      | 0x28 -> 
-          
+      | 0x28 ->
+
           let min_enc_type = get_int p 1 in
           let unknown = String.sub p 5 6 in
           let netname, pos = extract_string p 11 in
           SupernodePongReq (min_enc_type, unknown, netname)
-      
-      | 0x29 -> 
+
+      | 0x29 ->
           let min_enc_type = get_int p 1 in
           let unknown = String.sub p 5 (String.length p - 5) in
           NodePongReq (min_enc_type, unknown)
       | n -> UnknownReq (n, p)
-    
+
     let write p =
       let b = Buffer.create 100 in
       begin
@@ -387,7 +385,7 @@ module UdpMessages = struct
             Buffer.add_string b unknown;
       end;
       Buffer.contents b
-    
+
     let to_string p =
       let b = Buffer.create 100 in
       begin
@@ -409,22 +407,22 @@ module UdpMessages = struct
             bprint_ints b unknown;
             Printf.bprintf b  "\n    ";
             bprint_chars b unknown;
-            Printf.bprintf b "\n" 
+            Printf.bprintf b "\n"
       end;
       Buffer.contents b
 
     let udp_send t ip port ping msg =
-      
+
       if !verbose_udp then begin
           lprintf "Message UDP to %s:%d\n%s\n" (Ip.to_string ip) port
             (to_string msg);
         end;
-      
+
       try
         let s = write msg in
         UdpSocket.write t ping s ip port
       with e ->
-          lprintf "FT: Exception %s in udp_send\n" (Printexc2.to_string e)          
+          lprintf "FT: Exception %s in udp_send\n" (Printexc2.to_string e)
   end
 *)
 
@@ -489,7 +487,7 @@ let bt_handler parse_fun handler c sock =
           begin
             buf_used b 4;
             (* lprintf "Message complete: %d\n" msg_len;  *)
-            if msg_len > 0 then 
+            if msg_len > 0 then
                 let opcode = get_int8 b.buf b.pos in
                 let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
                 buf_used b msg_len;
@@ -548,12 +546,12 @@ let handlers info gconn =
               lprintf_nl "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i"
                 (Ip.to_string ip) port b.len slen;
 
-      | Reader h -> 
+      | Reader h ->
           h gconn sock
   in
   iter_read
 
-let set_bt_sock sock info ghandler = 
+let set_bt_sock sock info ghandler =
   let gconn = {
       gconn_handler = ghandler;
       gconn_refill = [];
@@ -569,17 +567,16 @@ let set_bt_sock sock info ghandler =
     fun sock ->
       match gconn.gconn_refill with
         [] -> ()
-      | _ :: tail -> 
+      | _ :: tail ->
           gconn.gconn_refill <- tail;
           match tail with
-            [] -> 
-              if gconn.gconn_close_on_write then 
+            [] ->
+              if gconn.gconn_close_on_write then
                 set_lifetime sock 30.
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
 
-  
-(*  
+(*
 No payload:
     * 0 - choke: you have been blocked
     * 1 - unchoke: you have been unblocked
@@ -587,10 +584,10 @@ No payload:
     * 3 - not interested: I'm not interested in downloading this file now
 With bencoded payload:
     * 4 - have
-          int : index of new completed chunk          
-    * 5 - bitfield: 
+          int : index of new completed chunk
+    * 5 - bitfield:
           string: a bitfield of bit 1 for downloaded chunks
-          byte: bits are inverted 0....7 ---> 7 .... 0      
+          byte: bits are inverted 0....7 ---> 7 .... 0
     * 6 - request
           int: index
           int: begin
@@ -620,8 +617,8 @@ let send_client client_sock msg =
 )
 
 let zero8 = String.make 8 '\000'
-  
-let send_init client_uid file_id sock = 
+
+let send_init client_uid file_id sock =
   let buf = Buffer.create 100 in
   buf_string8 buf  "BitTorrent protocol";
   Buffer.add_string buf zero8;
@@ -629,4 +626,3 @@ let send_init client_uid file_id sock =
   Buffer.add_string buf (Sha1.direct_to_string client_uid);
   let s = Buffer.contents buf in
   write_string sock s
-  

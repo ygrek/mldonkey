@@ -1,6 +1,2 @@
-
-
 #where "Gnutella" = "Fasttrack"
-#include "src/networks/gnutella/gnutellaFunctions.ml" 
-  
-  
+#include "src/networks/gnutella/gnutellaFunctions.ml"

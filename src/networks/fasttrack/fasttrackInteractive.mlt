@@ -1,10 +1,7 @@
-
-#where "_gnutella" = "_fasttrack" 
-#where "gnutella_" = "fasttrack_" 
+#where "_gnutella" = "_fasttrack"
+#where "gnutella_" = "fasttrack_"
 #where "gstats" = "ftstats"
 #where "Gnutella" = "Fasttrack"
 #where "gN" = "fT"
 #where "gnut:" = "ft:"
-#include "src/networks/gnutella/gnutellaInteractive.ml" 
-  
-  
+#include "src/networks/gnutella/gnutellaInteractive.ml"

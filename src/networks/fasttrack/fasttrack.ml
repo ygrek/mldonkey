@@ -18,7 +18,7 @@
 *)
 
 (*
-   This code is translated mainly from Markus Kern work on giFT-Fasttrack 
+   This code is translated mainly from Markus Kern work on giFT-Fasttrack
 *)
 
 open Queues
@@ -44,7 +44,7 @@ open FasttrackComplexOptions
 
 open FasttrackProto
 (*
-  
+
 let send_query ss =
   let f s =
     server_send_query s ss in
@@ -55,4 +55,4 @@ let send_query ss =
 let udp_handler ip port buf =
   FasttrackHandler.udp_packet_handler ip port
   (FasttrackProto.parse_udp_packet  ip  port buf)
-*)      
+*)

@@ -101,7 +101,7 @@ X-KazaaTag: 3==kd8c6QgrXm0wvCYl5Uo0Aa9C7qg=(13)
 Content-Type: audio/mpeg(13)
 \n
 
-  
+
 *)
 
 open Options
@@ -112,7 +112,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 open AnyEndian
-  
+
 open CommonOptions
 open CommonSearch
 open CommonServer
@@ -153,7 +153,7 @@ type cnx = {
   }
 let connections = Hashtbl.create 13
 
-let rec parse_packets pos s ciphers = 
+let rec parse_packets pos s ciphers =
   let len = String.length s - pos in
   if len > 0 then
     let size = TcpMessages.packet_size ciphers s pos len in
@@ -163,20 +163,20 @@ let rec parse_packets pos s ciphers =
         if len >= size then
           let msg = String.sub s pos size in
           let addr, t = TcpMessages.parse ciphers msg in
-          lprintf "MESSAGE: %s\n    %s\n" 
+          lprintf "MESSAGE: %s\n    %s\n"
             (TcpMessages.string_of_path addr)
           (TcpMessages.to_string t);
           parse_packets (pos+size) s ciphers
         else
-          lprintf "Packet too short\n" 
+          lprintf "Packet too short\n"
 
-let parse_netname start_pos s ciphers = 
+let parse_netname start_pos s ciphers =
   let len = String.length s in
   let rec iter pos =
-    if pos < len then 
+    if pos < len then
       if s.[pos] = '\000' then begin
           let netname = String.sub s start_pos (pos-start_pos) in
-          lprintf "netname: [%s]\n" (String.escaped netname); 
+          lprintf "netname: [%s]\n" (String.escaped netname);
 
 (*          test_xinu s (pos+1) len 0x51L; *)
           parse_packets (pos+1) s ciphers
@@ -205,8 +205,8 @@ let get_xinu s pos xtype =
       let len_lo = get_uint8 s (pos+2) in
       let len_hi = get_uint8 s (pos+3) in
       let msg_lo = get_uint8 s (pos+4) in
-      (msg_hi lsl 8) lor msg_lo, (len_hi lsl 8) lor len_lo      
-      
+      (msg_hi lsl 8) lor msg_lo, (len_hi lsl 8) lor len_lo
+
 let rec check_xinu s pos len depth =
   if depth > 5 then depth else
   if pos >= len then depth else
@@ -214,7 +214,7 @@ let rec check_xinu s pos len depth =
     0x50 | 0x52 -> check_xinu  s (pos+1) len (depth + 1)
   | 0x4b ->
       if pos + 5 < len then
-          
+
         let msg_type0, len0 = get_xinu s pos 0 in
         let msg_type1, len1 = get_xinu s pos 1 in
         let msg_type2, len2 = get_xinu s pos 2 in
@@ -222,7 +222,7 @@ let rec check_xinu s pos len depth =
         let check0 = check_xinu s (pos + 5 + len0) len (depth+1) in
         let check1 = check_xinu s (pos + 5 + len1) len (depth+1) in
         let check2 = check_xinu s (pos + 5 + len2) len (depth+1) in
-        
+
         maxi check0 (maxi check1 check2)
       else depth
   | _ -> -10
@@ -234,50 +234,50 @@ let parse (s_out : string) (s_in : string) =
           in_cipher = create_cipher ();
           out_cipher = create_cipher ();
           in_xinu = Int64.of_int 0x51;
-          out_xinu = Int64.of_int 0x51;         
+          out_xinu = Int64.of_int 0x51;
         } in
       begin
         try
-          
+
           get_cipher_from_packet s_out 4 ciphers.out_cipher;
           init_cipher ciphers.out_cipher;
-          
+
           get_cipher_from_packet s_in 0 ciphers.in_cipher;
           init_cipher ciphers.in_cipher;
-          
+
           xor_ciphers ciphers.out_cipher ciphers.in_cipher;
           init_cipher ciphers.out_cipher;
-          
+
           lprintf "HEADER OF CONNECTION: %02x.%02x.%02x.%02x - %02x.%02x.%02x.%02x\n"
             (int_of_char s_out.[0])
           (int_of_char s_out.[1])
           (int_of_char s_out.[2])
           (int_of_char s_out.[3])
-          
+
           (int_of_char s_out.[4])
           (int_of_char s_out.[5])
           (int_of_char s_out.[6])
           (int_of_char s_out.[7])
           ;
-          
+
           begin
             let s = String.create 8 in
             cipher_packet_set ciphers.out_cipher s 0;
             lprintf "OUT CIPHER: [%s]\n" (String.escaped s);
           end;
-          
+
           begin
             let s = String.create 8 in
             cipher_packet_set ciphers.in_cipher s 0;
             lprintf "IN CIPHER: [%s]\n" (String.escaped s);
           end;
-          
+
           (
             let len = String.length s_out in
             let start_pos = 12 in
             apply_cipher ciphers.out_cipher s_out start_pos (len-start_pos);
 (*
-            lprintf "Ciphered: [%s]\n" (String.escaped 
+            lprintf "Ciphered: [%s]\n" (String.escaped
 (String.sub s_out start_pos (min (len - start_pos) 1000)));
   *)
           );
@@ -286,11 +286,11 @@ let parse (s_out : string) (s_in : string) =
             let start_pos = 8 in
             apply_cipher ciphers.in_cipher s_in start_pos (len-start_pos);
 (*
-            lprintf "Ciphered: [%s]\n" (String.escaped 
+            lprintf "Ciphered: [%s]\n" (String.escaped
 (String.sub s_in start_pos (min (len - start_pos) 1000)));
    *)
           );
-          
+
           lprintf "---------------------------------------------->\n";
           lprintf "  HEADER[%s]\n" (String.escaped (String.sub s_out 0 4));
           parse_netname 12 s_out { ciphers with
@@ -299,16 +299,16 @@ let parse (s_out : string) (s_in : string) =
           parse_netname 8 s_in ciphers;
           parsed := true;
 (*
-              (*
-dump_sub s (start_pos) (len - start_pos); 
+ (*
+dump_sub s (start_pos) (len - start_pos);
   *)
-              
-            end
+
+   end
   *)
     with e ->
         lprintf "exception %s while parsing stream\n"
           (Printexc2.to_string e) ;
-        lprintf "  [%s]\n" (String.escaped 
+        lprintf "  [%s]\n" (String.escaped
             (String.sub s_in 0 (min 50 (String.length s_in))))
   end;
   cipher_free ciphers.in_cipher;
@@ -325,7 +325,7 @@ let find_header s pos =
         if s.[pos+2] = '\n' then pos+3
         else iter s (pos+1)
       else iter s (pos+1)
-    else 
+    else
     if s.[pos] = '\r' then
       if s.[pos] = '\n' then
         if s.[pos+1] = '\n' then pos+2
@@ -340,46 +340,46 @@ let find_header s pos =
   in
   let pos2 = iter s pos in
   String.sub s pos (pos2 - pos)
-  
+
 let hescaped s =
   String2.replace_char s '\r' ' ';s
 
-let is_http_stream s = 
-  String2.starts_with s "GET" || 
+let is_http_stream s =
+  String2.starts_with s "GET" ||
   String2.starts_with s "POST" ||
-  String2.starts_with s "HTTP"  
+  String2.starts_with s "HTTP"
 
-type packet = 
+type packet =
   UdpPacket of string * int * string * int * string
 | TcpConnection of cnx
-  
+
 let packets = ref []
 
 let print_packets () =
   let packets = List.sort (fun (t1,_) (t2,_) -> compare t1 t2) !packets in
   List.iter (fun (time, p) ->
-      match p with 
+      match p with
         UdpPacket (ip1, port1, ip2, port2, data) ->
           lprintf "Time %d\n" time;
           lprintf "UDP packet(%d) %s:%d -> %s:%d\n"
-            (String.length data) ip1 port1 ip2 port2;          
+            (String.length data) ip1 port1 ip2 port2;
           let p = UdpMessages.parse data in
           lprintf "     %s\n" (UdpMessages.to_string p)
-          
+
       | TcpConnection cnx ->
           try
-            
+
             let s1 = Buffer.contents cnx.packets_out in
             let s2 = Buffer.contents cnx.packets_in in
-            
+
             if s1 <> "" || s2 <> "" then begin
-                
+
                 if is_http_stream s1 || is_http_stream s2 then begin
 (*
                     lprintf "Time %d\n" time;
-                    lprintf "\nCONNECTION %s:%d --> %s:%d\n" 
+                    lprintf "\nCONNECTION %s:%d --> %s:%d\n"
                     cnx.ip1 cnx.port1 cnx.ip2 cnx.port2;
-                
+
                     (if is_http_stream s1 then
                         let header = find_header s1 0 in
                         lprintf "HTTP connection: [%s]\n" (hescaped header));
@@ -390,29 +390,28 @@ let print_packets () =
                     ()
                   end else begin
                     lprintf "Time %d\n" time;
-                    lprintf "CONNECTION %s:%d --> %s:%d\n" 
+                    lprintf "CONNECTION %s:%d --> %s:%d\n"
                       cnx.ip1 cnx.port1 cnx.ip2 cnx.port2;
-                    
+
                     lprintf "First direction....\n";
-                    let parsed = parse 
-                        (Buffer.contents cnx.packets_out) 
+                    let parsed = parse
+                        (Buffer.contents cnx.packets_out)
                       (Buffer.contents cnx.packets_in) in
                     if not parsed then begin
                         lprintf "Second direction....\n";
-                        let _ = parse 
-                            (Buffer.contents cnx.packets_in) 
+                        let _ = parse
+                            (Buffer.contents cnx.packets_in)
                           (Buffer.contents cnx.packets_out) in
                         ()
                       end
                   end
               end
-          with           
+          with
             | e ->
-              lprintf "Exception %s\n" (Printexc2.to_string e)              
+              lprintf "Exception %s\n" (Printexc2.to_string e)
   ) packets
-        
-  
-let commit () =  
+
+let commit () =
   Hashtbl.iter (fun _ cnx ->
       packets := (cnx.time, TcpConnection cnx) :: !packets
   ) connections;
@@ -420,15 +419,15 @@ let commit () =
 
 let local_net = "129.104"
 let time = ref 0
-  
-let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data = 
-  if not (String2.starts_with ip1 local_net && 
+
+let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data =
+  if not (String2.starts_with ip1 local_net &&
       String2.starts_with ip2 local_net) then
     begin
       incr time;
       let time = !time in
       match kind with
-        UDP -> 
+        UDP ->
           begin
             try
               packets := (time, UdpPacket (ip1,port1,ip2,port2,data)) :: !packets
@@ -437,20 +436,20 @@ let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data =
 (*                lprintf "Could not parse UDP packet:\n"; *)
                 ()
           end
-      | TCP -> 
+      | TCP ->
 
 (*      if port1 = 1214 || port2 = 1214 then *)
           let out_packet = (ip1, port1, ip2, port2) in
           let in_packet = (ip2, port2, ip1, port1) in
-          
+
           try
             let cnx =  Hashtbl.find connections out_packet in
-            Buffer.add_string cnx.packets_out data; 
+            Buffer.add_string cnx.packets_out data;
             ()
           with _ ->
               try
                 let cnx =  Hashtbl.find connections in_packet in
-                Buffer.add_string cnx.packets_in data 
+                Buffer.add_string cnx.packets_in data
               with _ ->
                   let cnx = {
                       time = time;
@@ -463,7 +462,7 @@ let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data =
                     } in
                   Hashtbl.add connections out_packet cnx;
                   Buffer.add_string cnx.packets_out data
-    end              
+    end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -474,12 +473,11 @@ let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data =
 (*                                                                       *)
 (*                                                                       *)
 (*************************************************************************)
-    
 
 
 open Int64ops
 open LittleEndian (* This is bad, since it is the contrary of the default
-FT format, so we will forget it once, and our logs won't be readable 
+FT format, so we will forget it once, and our logs won't be readable
   anymore... *)
 
 type connection = {
@@ -503,20 +501,20 @@ let print c addr t =
 *)
   | M.SearchForwardReq _
     (*
-  | M.SearchForward2Req _ 
-    
+  | M.SearchForward2Req _
+
   | M.ShareFileReq _
   | M.UnshareFileReq _
 *)
-    ->  lprintf "MESSAGE %d from %s:%d time:%d: %s\n    %s\n\n" 
+    ->  lprintf "MESSAGE %d from %s:%d time:%d: %s\n    %s\n\n"
         c.c_npackets (Ip.to_string c.c_ip) c.c_port c.c_time
         (TcpMessages.string_of_path addr)
       (TcpMessages.to_string t)
-      
+
   | _
- 
+
     -> ()
-(*    ->  lprintf "MESSAGE %d from %s:%d time:%d: %s\n    %s\n\n" 
+(*    ->  lprintf "MESSAGE %d from %s:%d time:%d: %s\n    %s\n\n"
         c.c_npackets (Ip.to_string c.c_ip) c.c_port c.c_time
         (TcpMessages.string_of_path addr)
       (TcpMessages.to_string t) *)
@@ -524,17 +522,17 @@ let print c addr t =
       (*
 let parse_head c s pos =
   let xtype = Int64.to_int (Int64.rem c.c_ciphers.in_xinu int64_3) in
-  
-  begin  
+
+  begin
     let msg_type0, len0 = get_xinu s pos 0 in
     let msg_type1, len1 = get_xinu s pos 1 in
     let msg_type2, len2 = get_xinu s pos 2 in
-    
+
     let len = String.length s in
     let check0 = check_xinu s (pos + 5 + len0) len 0 in
     let check1 = check_xinu s (pos + 5 + len1) len 0 in
     let check2 = check_xinu s (pos + 5 + len2) len 0 in
-    
+
     lprintf "    xinu: %d\n" xtype;
     lprintf "      0 : opcode = %x len = %d [%d]\n" msg_type0 len0
       check0;
@@ -542,12 +540,11 @@ let parse_head c s pos =
       check1;
     lprintf "      2 : opcode = %x len = %d [%d]\n" msg_type2 len2
       check2;
-  end;  
-  
+  end;
+
 (*  if c.c_npackets = 388 then 100, 1000 else  *)
-    TcpMessages.get_xinu s pos xtype 
-    
-    
+    TcpMessages.get_xinu s pos xtype
+
 let parse c s =
   let module T = TcpMessages in
   match int_of_char s.[0] with
@@ -555,24 +552,24 @@ let parse c s =
   | 0x52 -> T.DirectPacket, T.PongReq
   | 0x4b ->
 (*          lprintf "We have got a real packet\n"; *)
-      let msg_type, size = parse_head c s 0 in              
-      
-      c.c_ciphers.in_xinu <- Int64.logxor c.c_ciphers.in_xinu  
+      let msg_type, size = parse_head c s 0 in
+
+      c.c_ciphers.in_xinu <- Int64.logxor c.c_ciphers.in_xinu
         (Int64.logand
-          (Int64.lognot (Int64.of_int (size + msg_type))) 
+          (Int64.lognot (Int64.of_int (size + msg_type)))
         int64_ffffffff);
-      
+
       let msg_flags = (msg_type land 0xff00) lsr 8 in
       let msg_type = msg_type land 0xff in
-      
+
       let pos, size, addr = match msg_flags with
-        | 0x80 -> 
+        | 0x80 ->
             let source_ip = LittleEndian.get_ip s 5 in
             let source_port = BigEndian.get_int16  s 9 in
             let dest_ip = LittleEndian.get_ip s 11 in
             let dest_port = BigEndian.get_int16 s 15 in
             let hops = BigEndian.get_int8 s 17 in
-            
+
             let addr = {
                 T.unicast_source_ip = source_ip;
                 T.unicast_source_port = source_port;
@@ -580,40 +577,40 @@ let parse c s =
                 T.unicast_dest_port = dest_port;
                 T.unicast_hops = hops;
               } in
-            
+
             5 + 13, size - 13, T.UnicastPacket addr
-        | 0xC0 -> 
+        | 0xC0 ->
             let source_ip = LittleEndian.get_ip s 5 in
             let source_port = BigEndian.get_int16  s 9 in
             let unknown = BigEndian.get_int16 s 11 in
             let hops = BigEndian.get_int8 s 13 in
-            
+
             let addr = {
                 T.broadcast_source_ip = source_ip;
                 T.broadcast_source_port = source_port;
                 T.broadcast_unknown = unknown;
                 T.broadcast_hops = hops;
               } in
-            
+
             5 + 9, size - 9, T.BroadcastPacket addr
-        | 0 -> 
+        | 0 ->
             5, size, T.DirectPacket
-        | _ -> 
-            lprintf "   MESSAGE HAS UNKNOWN FLAG %x\n" msg_flags; 
+        | _ ->
+            lprintf "   MESSAGE HAS UNKNOWN FLAG %x\n" msg_flags;
             5, size, T.DirectPacket
       in
       let m = String.sub s pos size in
-      addr, 
+      addr,
       (try T.parse_packet msg_type m with e ->
             lprintf "Exception in parse_packet\n"; raise e)
   | n ->
       lprintf "Packet not understood: %d\n" n;
       dump s;
       T.DirectPacket, T.UnknownMessageReq (n, s)
-      
-let packet_size c s pos len = 
+
+let packet_size c s pos len =
   if len > 0 then begin
-      
+
       match int_of_char s.[pos] with
         0x50 -> Some 1
       | 0x52 -> Some 1
@@ -622,17 +619,17 @@ let packet_size c s pos len =
           if len > 4 then
 (*                dump_sub s b.pos b.len; *)
             let msg_type, size = parse_head c s pos in
-                        
+
             Some (size + 5)
           else None
-      
-      | n -> 
+
+      | n ->
           lprintf "Packet not understood: %d\n" n;
           raise Exit
-    end else None            
+    end else None
       *)
 
-let rec parse_packets c = 
+let rec parse_packets c =
   let pos = c.c_pos in
   let s = c.c_buf in
   let len = String.length s - pos in
@@ -662,13 +659,13 @@ let rec parse_packets c =
       c.c_pos <- 0;
       c.c_buf <- ""
     end
-    
-let parse_netname c = 
+
+let parse_netname c =
   let start_pos = c.c_pos in
   let s = c.c_buf in
   let len = String.length s in
   let rec iter pos =
-    if pos < len then 
+    if pos < len then
       if s.[pos] = '\000' then begin
           let netname = String.sub s start_pos (pos-start_pos) in
 (*          lprintf "netname: [%s]\n" (String.escaped netname);*)
@@ -679,19 +676,19 @@ let parse_netname c =
         iter (pos+1)
   in
   iter start_pos
-  
-let received ip port time s = 
+
+let received ip port time s =
 (*  lprintf "Received %s:%d at %d size %d\n"
     (Ip.to_string ip) port time (String.length s); *)
   let key = (ip, port) in
-  let c = try 
+  let c = try
       Hashtbl.find connections key
-    with _ -> 
+    with _ ->
         let ciphers = {
             in_cipher = create_cipher ();
             out_cipher = create_cipher ();
             in_xinu = Int64.of_int 0x51;
-            out_xinu = Int64.of_int 0x51;         
+            out_xinu = Int64.of_int 0x51;
           } in
         let c = {
             c_ip = ip;
@@ -725,7 +722,7 @@ let read_trace () =
     let len = pos + nread in
     total := !total ++ Int64.of_int nread;
     iter_log 0 len
-  
+
   and iter_log pos len =
     if len > 13 then
       let size = get_int s (pos + 10) in
@@ -739,9 +736,9 @@ let read_trace () =
         iter_log (pos + item_len) (len - item_len)
       else iter_read pos len
     else iter_read pos len
-      
+
   and iter_read pos len =
-    if pos = 0 then iter len 
+    if pos = 0 then iter len
     else
       begin
         String.blit s pos s 0 len;

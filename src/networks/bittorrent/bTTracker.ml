@@ -62,7 +62,7 @@ torrents/: for BitTorrent
 let lprintf_nl () =
   lprintf "%s[bTTrack] "
     (log_time ()); lprintf_nl2
-      
+
 open Http_server
 
 type tracker_peer = {
@@ -188,7 +188,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
           {
             peer_id = peer_id;
             peer_ip = peer_ip;
-            peer_port = peer_port;            
+            peer_port = peer_port;
             peer_key = peer_key;
             peer_active = last_time ();
           } in
@@ -371,7 +371,7 @@ let http_handler t r =
         with e -> ())
 
     | "scrape" ->
-        let files_tracked = ref [] in 
+        let files_tracked = ref [] in
         let log_tracked_files = ref "" in
         (* build the answer *)
         Hashtbl.iter (fun info_hash tracker ->
@@ -385,7 +385,7 @@ let http_handler t r =
                      ];
                  ]) :: !files_tracked;
             if !verbose_msg_servers then begin
-                let next_file = (Printf.sprintf "[BT]: f: %s d: %d c: %d i: %d\n" 
+                let next_file = (Printf.sprintf "[BT]: f: %s d: %d c: %d i: %d\n"
                   (Sha1.to_hexa info_hash) tracker.tracker_downloaded tracker.tracker_complete tracker.tracker_incomplete) in
                 log_tracked_files := !log_tracked_files ^ next_file
               end
@@ -447,7 +447,7 @@ in sub-directories in former versions. *)
       match e with
         Not_found ->
           r.reply_head <- "404 Not Found"
-      | _ -> 
+      | _ ->
           let message =
             Dictionary [
               String "failure reason", String (Printexc2.to_string e);
@@ -486,7 +486,7 @@ let udp_handler sock event =
   match event with
     UdpSocket.READ_DONE ->
 (*      lprintf "G2: udp read_packets...\n"; *)
-      UdpSocket.read_packets sock (fun p -> 
+      UdpSocket.read_packets sock (fun p ->
           try
 (*            lprintf "G2: udp one packet...\n"; *)
             let pbuf = p.UdpSocket.udp_content in
@@ -503,7 +503,7 @@ let udp_handler sock event =
 (*            BTProtocol.udp_client_handler ip port buf *)
           with e ->
               lprintf "Error %s in udp_handler\n"
-                (Printexc2.to_string e); 
+                (Printexc2.to_string e);
       ) ;
   | _ -> ()
 
@@ -615,116 +615,116 @@ let _ =
 UDP tracker protocol
 
 Structures
-Before announcing or scraping, you have to obtain a connection ID. 
+Before announcing or scraping, you have to obtain a connection ID.
 
-Choose a (random) transaction ID. 
-Fill the connect input structure. 
-Send the packet. 
-connect input Offset Size Name Value  
-0 64-bit integer connection_id 0x41727101980  
-8 32-bit integer action 0  
-12 32-bit integer transaction_id  
-16  
+Choose a (random) transaction ID.
+Fill the connect input structure.
+Send the packet.
+connect input Offset Size Name Value
+0 64-bit integer connection_id 0x41727101980
+8 32-bit integer action 0
+12 32-bit integer transaction_id
+16
 
-Receive the packet. 
-Check whether the packet is at least 16 bytes. 
-Check whether the transaction ID is equal to the one you chose. 
-Check whether the action is connect. 
-Store the connection ID for future use. 
-connect output Offset Size Name Value  
-0 32-bit integer action 0  
-4 32-bit integer transaction_id  
-8 64-bit integer connection_id  
-16  
+Receive the packet.
+Check whether the packet is at least 16 bytes.
+Check whether the transaction ID is equal to the one you chose.
+Check whether the action is connect.
+Store the connection ID for future use.
+connect output Offset Size Name Value
+0 32-bit integer action 0
+4 32-bit integer transaction_id
+8 64-bit integer connection_id
+16
 
-Choose a (random) transaction ID. 
-Fill the announce input structure. 
-Send the packet. 
-announce input Offset Size Name Value  
-0 64-bit integer connection_id  
-8 32-bit integer action 1  
-12 32-bit integer transaction_id  
-16 20-byte string info_hash  
-36 20-byte string peer_id  
-56 64-bit integer downloaded  
-64 64-bit integer left  
-72 64-bit integer uploaded  
-80 32-bit integer event  
-84 32-bit integer IP address 0  
-88 32-bit integer key  
-92 32-bit integer num_want -1  
-96 16-bit integer port  
-98  
+Choose a (random) transaction ID.
+Fill the announce input structure.
+Send the packet.
+announce input Offset Size Name Value
+0 64-bit integer connection_id
+8 32-bit integer action 1
+12 32-bit integer transaction_id
+16 20-byte string info_hash
+36 20-byte string peer_id
+56 64-bit integer downloaded
+64 64-bit integer left
+72 64-bit integer uploaded
+80 32-bit integer event
+84 32-bit integer IP address 0
+88 32-bit integer key
+92 32-bit integer num_want -1
+96 16-bit integer port
+98
 
-Receive the packet. 
-Check whether the packet is at least 20 bytes. 
-Check whether the transaction ID is equal to the one you chose. 
-Check whether the action is announce. 
-Do not announce again until interval seconds have passed or an event has happened. 
-announce output Offset Size Name Value  
-0 32-bit integer action 1  
-4 32-bit integer transaction_id  
-8 32-bit integer interval  
-12 32-bit integer leechers  
-16 32-bit integer seeders  
-20 + 6 * n 32-bit integer IP address  
-24 + 6 * n 16-bit integer TCP port  
-20 + 6 * N  
+Receive the packet.
+Check whether the packet is at least 20 bytes.
+Check whether the transaction ID is equal to the one you chose.
+Check whether the action is announce.
+Do not announce again until interval seconds have passed or an event has happened.
+announce output Offset Size Name Value
+0 32-bit integer action 1
+4 32-bit integer transaction_id
+8 32-bit integer interval
+12 32-bit integer leechers
+16 32-bit integer seeders
+20 + 6 * n 32-bit integer IP address
+24 + 6 * n 16-bit integer TCP port
+20 + 6 * N
 
-Up to about 74 torrents can be scraped at once. A full scrape can't be done with this protocol. 
+Up to about 74 torrents can be scraped at once. A full scrape can't be done with this protocol.
 
-Choose a (random) transaction ID. 
-Fill the scrape input structure. 
-Send the packet. 
-scrape input Offset Size Name Value  
-0 64-bit integer connection_id  
-8 32-bit integer action 2  
-12 32-bit integer transaction_id  
-16 + 20 * n 20-byte string info_hash  
-16 + 20 * N  
+Choose a (random) transaction ID.
+Fill the scrape input structure.
+Send the packet.
+scrape input Offset Size Name Value
+0 64-bit integer connection_id
+8 32-bit integer action 2
+12 32-bit integer transaction_id
+16 + 20 * n 20-byte string info_hash
+16 + 20 * N
 
-Receive the packet. 
-Check whether the packet is at least 8 bytes. 
-Check whether the transaction ID is equal to the one you chose. 
-Check whether the action is scrape. 
-scrape output Offset Size Name Value  
-0 32-bit integer action 2  
-4 32-bit integer transaction_id  
-8 + 12 * n 32-bit integer seeders  
-12 + 12 * n 32-bit integer completed  
-16 + 12 * n 32-bit integer leechers  
-8 + 12 * N  
+Receive the packet.
+Check whether the packet is at least 8 bytes.
+Check whether the transaction ID is equal to the one you chose.
+Check whether the action is scrape.
+scrape output Offset Size Name Value
+0 32-bit integer action 2
+4 32-bit integer transaction_id
+8 + 12 * n 32-bit integer seeders
+12 + 12 * n 32-bit integer completed
+16 + 12 * n 32-bit integer leechers
+8 + 12 * N
 
-If the tracker encounters an error, it might send an error packet. 
+If the tracker encounters an error, it might send an error packet.
 
-Receive the packet. 
-Check whether the packet is at least 8 bytes. 
-Check whether the transaction ID is equal to the one you chose. 
-error output Offset Size Name Value  
-0 32-bit integer action 3  
-4 32-bit integer transaction_id  
-8 string message  
+Receive the packet.
+Check whether the packet is at least 8 bytes.
+Check whether the transaction ID is equal to the one you chose.
+error output Offset Size Name Value
+0 32-bit integer action 3
+4 32-bit integer transaction_id
+8 string message
 
-If the tracker requires authentication, an authentication structure has to be appended to every packet you send to the tracker. The hash is the first 8 bytes of sha1(input + username + sha1(password)). authenticate input Offset Size Name  
-0 8-byte zero-padded string username  
-8 8-byte string hash  
-16  
+If the tracker requires authentication, an authentication structure has to be appended to every packet you send to the tracker. The hash is the first 8 bytes of sha1(input + username + sha1(password)). authenticate input Offset Size Name
+0 8-byte zero-padded string username
+8 8-byte string hash
+16
 
 
 
 --------------------------------------------------------------------------------
 
 Actions
-0: connect 
-1: announce 
-2: scrape 
-3: error 
+0: connect
+1: announce
+2: scrape
+3: error
 
 --------------------------------------------------------------------------------
 
 Events
-0: none 
-1: completed 
-2: started 
-3: stopped 
+0: none
+1: completed
+2: started
+3: stopped
 *)

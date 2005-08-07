@@ -48,12 +48,12 @@ open FileTPClients
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
-  lprintf "%s[FTP] "
+  lprintf "%s[HTTP] "
     (log_time ()); lprintf_nl2
 
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
-  lprintf "%s[FTP] "
+  lprintf "%s[HTTP] "
     (log_time ()); lprintf
 
 (*************************************************************************)

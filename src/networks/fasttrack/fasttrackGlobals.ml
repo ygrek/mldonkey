@@ -37,7 +37,7 @@ open CommonServer
 open CommonResult
 open CommonFile
 open CommonGlobals
-open CommonDownloads  
+open CommonDownloads
 open CommonNetwork
 
 open FasttrackNetwork
@@ -47,35 +47,34 @@ open FasttrackOptions
 let search_num = ref 0
 
 let should_update_shared_files = ref false
-  
-  
-let network = new_network "FT" "Fasttrack"  
-         [ 
-    NetworkHasSupernodes; 
+
+let network = new_network "FT" "Fasttrack"
+         [
+    NetworkHasSupernodes;
     NetworkHasRooms;
     NetworkHasChat;
     NetworkHasSearch;
   ]
 
 let connection_manager = network.network_connection_manager
-  
-let (server_ops : server CommonServer.server_ops) = 
+
+let (server_ops : server CommonServer.server_ops) =
   CommonServer.new_server_ops network
 
-let (room_ops : server CommonRoom.room_ops) = 
+let (room_ops : server CommonRoom.room_ops) =
   CommonRoom.new_room_ops network
-  
-let (user_ops : user CommonUser.user_ops) = 
+
+let (user_ops : user CommonUser.user_ops) =
   CommonUser.new_user_ops network
-  
-let (file_ops : file CommonFile.file_ops) = 
+
+let (file_ops : file CommonFile.file_ops) =
   CommonFile.new_file_ops network
-  
-let (client_ops : client CommonClient.client_ops) = 
+
+let (client_ops : client CommonClient.client_ops) =
   CommonClient.new_client_ops network
 
 let as_client c = as_client c.client_client
-let as_file file = as_file file.file_file        
+let as_file file = as_file file.file_file
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
@@ -88,16 +87,16 @@ let file_num file =
 let file_must_update file =
   file_must_update (as_file file)
 let server_num s =
-  server_num (as_server s.server_server)      
+  server_num (as_server s.server_server)
 let server_state s =
   server_state (as_server s.server_server)
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
 let client_type c = client_type (as_client c)
 let set_client_state client state =
-  CommonClient.set_client_state (as_client client) state  
+  CommonClient.set_client_state (as_client client) state
 let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client) 
+  CommonClient.set_client_disconnected (as_client client)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -106,10 +105,10 @@ let set_client_disconnected client =
 (*************************************************************************)
 
 let nservers = ref 0
-let ready _ = false      
+let ready _ = false
 let hosts_counter = ref 0
 let old_client_name = ref ""
-let ft_client_name = ref ""  
+let ft_client_name = ref ""
 let file_chunk_size = 307200
 
 (*************************************************************************)
@@ -121,7 +120,7 @@ let file_chunk_size = 307200
 let current_files = ref ([] : FasttrackTypes.file list)
 let listen_sock = ref (None : TcpServerSocket.t option)
 let udp_sock = ref (None: UdpSocket.t option)
-let result_sources = Hashtbl.create 1011  
+let result_sources = Hashtbl.create 1011
 (* let hosts_by_key = Hashtbl.create 103 *)
 let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
 let files_by_uid = Hashtbl.create 13
@@ -131,23 +130,22 @@ let results_by_uid = Hashtbl.create 127
 let connected_servers = ref ([] : server list)
 
   (*
-let (workflow : host Queue.t) = 
+let (workflow : host Queue.t) =
   Queues.workflow (fun time -> time + 120 > last_time ())
   *)
 
 (* From the main workflow, hosts are moved to these workflows when they
 are ready to be connected. *)
 let (ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
-  
+
 (* peers are only tested when no ultrapeers are available... *)
 let (peers_waiting_queue : host Queue.t) = Queues.workflow ready
-  
+
 (* These are the peers that we should try to contact by UDP *)
 let (waiting_udp_queue : host Queue.t) = Queues.workflow ready
-  
+
 (* These are the peers that have replied to our UDP requests *)
 let (active_udp_queue : host Queue.t) = Queues.fifo ()
-  
 
 (*************************************************************************)
 (*                                                                       *)
@@ -155,14 +153,13 @@ let (active_udp_queue : host Queue.t) = Queues.fifo ()
 (*                                                                       *)
 (*************************************************************************)
 
-    
 module H = CommonHosts.Make(struct
       include FasttrackTypes
       type ip = Ip.addr
 
-      let requests = 
-        [ 
-          Tcp_Connect, 
+      let requests =
+        [
+          Tcp_Connect,
           (600, (fun kind ->
                 [ match kind with
                   | Ultrapeer -> ultrapeers_waiting_queue
@@ -175,7 +172,7 @@ module H = CommonHosts.Make(struct
             ))]
 
       let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
-        
+
       let max_ultrapeers = max_known_ultrapeers
       let max_peers = max_known_peers
     end)
@@ -195,13 +192,13 @@ let new_server ip port =
           server_nfiles = Int64.zero;
           server_nusers = Int64.zero;
           server_nkb = 0;
-          
+
           server_need_qrt = true;
           server_ping_last = Md4.random ();
           server_nfiles_last = zero;
           server_nkb_last = 0;
           server_vendor = "";
-          
+
           server_connected = zero;
           server_query_key = ();
           server_searches = Fifo.create ();
@@ -217,7 +214,7 @@ let new_server ip port =
       s
 
 let add_source r (user : user) =
-  let ss = 
+  let ss =
     try
       Hashtbl.find result_sources r.stored_result_num
     with _ ->
@@ -228,15 +225,15 @@ let add_source r (user : user) =
   if not (List.mem_assq user !ss) then begin
       ss := (user, last_time ()) :: !ss
     end
-    
+
 let new_result file_name file_size tags hashes _ =
-  
+
   match hashes with
   | [ hash ] ->
-      let r = 
+      let r =
         try
           Hashtbl.find results_by_uid hash
-        with _ -> 
+        with _ ->
             let r = { dummy_result with
                 result_names = [file_name];
                 result_size = file_size;
@@ -250,10 +247,10 @@ let new_result file_name file_size tags hashes _ =
       in
       r
   | _ -> assert false
-      
+
 let min_range_size = megabyte
-      
-let new_file file_temporary file_name file_size file_hash = 
+
+let new_file file_temporary file_name file_size file_hash =
   let file_temp = Filename.concat !!temp_directory file_temporary in
 (*      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in *)
   let t = Unix32.create_rw file_temp in
@@ -284,17 +281,17 @@ let new_file file_temporary file_name file_size file_hash =
       impl_file_downloaded = Int64.zero;
       impl_file_val = file;
       impl_file_ops = file_ops;
-      impl_file_age = last_time ();          
+      impl_file_age = last_time ();
       impl_file_best_name = file_name;
     } and search = {
       search_search = FileUidSearch (file, file_hash);
       search_uid = !search_num;
       search_hosts = Intset.empty;
-    } 
+    }
   in
   incr search_num;
   let kernel = Int64Swarmer.create_swarmer file_temp file_size min_range_size in
-  let swarmer = Int64Swarmer.create kernel (as_file file) 
+  let swarmer = Int64Swarmer.create kernel (as_file file)
       file_chunk_size in
   file.file_swarmer <- Some swarmer;
   Hashtbl.add searches_by_uid search.search_uid search;
@@ -304,14 +301,14 @@ let new_file file_temporary file_name file_size file_hash =
       file_must_update file;
   );
   (*
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
-      
+  Int64Swarmer.set_writer swarmer (fun offset s pos len ->
+
       (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
       AnyEndian.dump_sub s pos len;
 *)
-      
-      if !!CommonOptions.buffer_writes then 
+
+      if !!CommonOptions.buffer_writes then
         Unix32.buffered_write_copy t offset s pos len
       else
         Unix32.write  t offset s pos len
@@ -322,14 +319,14 @@ let new_file file_temporary file_name file_size file_hash =
   file
 
 exception FileFound of file
-  
+
 let new_file file_id file_name file_size file_uids =
   let file = ref None in
   List.iter (fun uid ->
       match Uid.to_uid uid with
         Md5Ext file_hash ->
           file := Some (try
-              Hashtbl.find files_by_uid file_hash 
+              Hashtbl.find files_by_uid file_hash
             with _ ->
                 let file = new_file file_id file_name file_size file_hash in
                 Hashtbl.add files_by_uid file_hash file;
@@ -339,7 +336,7 @@ let new_file file_id file_name file_size file_uids =
   match !file with
     None -> assert false
   | Some file -> file
-              
+
 let new_user kind =
   try
     let s = Hashtbl.find users_by_uid kind in
@@ -364,23 +361,23 @@ let new_user kind =
       user_add user_impl;
       Hashtbl.add users_by_uid kind user;
       user
-  
+
 let new_client kind =
   try
-    Hashtbl.find clients_by_uid kind 
+    Hashtbl.find clients_by_uid kind
   with _ ->
       let user = new_user kind in
       let rec c = {
           client_client = impl;
           client_sock = NoConnection;
-(*          client_name = name; 
+(*          client_name = name;
           client_kind = None; *)
           client_requests = [];
-(* 
-client_pos = Int32.zero; 
+(*
+client_pos = Int32.zero;
 client_error = false;
   *)
-  
+
           client_all_files = None;
           client_user = user;
           client_connection_control = new_connection_control (());
@@ -399,7 +396,7 @@ client_error = false;
       new_client impl;
       Hashtbl.add clients_by_uid kind c;
       c
-    
+
 let add_download file c () =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
@@ -430,8 +427,8 @@ let add_download file c () =
           c.client_in_queues <- file :: c.client_in_queues
         end;
     end
-    
-let rec find_download file list = 
+
+let rec find_download file list =
   match list with
     [] -> raise Not_found
   | d :: tail ->
@@ -447,15 +444,14 @@ let remove_download file list =
           iter file tail (d :: rev)
   in
   iter file list []
-  
-  
-let remove_file file = 
+
+let remove_file file =
   List.iter (fun uid ->
       match Uid.to_uid uid with
         Md5Ext hash ->  Hashtbl.remove files_by_uid hash
       | _ -> ()
   ) file.file_uids;
-  current_files := List2.removeq file !current_files  
+  current_files := List2.removeq file !current_files
 
 let client_ip sock =
   CommonOptions.client_ip
@@ -468,35 +464,34 @@ let free_ciphers s =
       cipher_free ciphers.in_cipher;
       cipher_free ciphers.out_cipher;
       s.server_ciphers <- None
-  
+
 let disconnect_from_server nservers s reason =
   match s.server_sock with
   | Connection sock ->
       let h = s.server_host in
-      (match server_state s with 
+      (match server_state s with
           Connected _ ->
             let connection_time = Int64.to_int (
                 (int64_time ()) -- s.server_connected) in
-              if !verbose then lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds [%s]\n" 
+              if !verbose then lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds [%s]\n"
               (Ip.string_of_addr h.host_addr) h.host_port
-              connection_time 
+              connection_time
             (string_of_reason reason)
             ;
         | _ -> ()
       );
       (try close sock reason with _ -> ());
       s.server_sock <- NoConnection;
-      free_ciphers s;            
+      free_ciphers s;
       set_server_state s (NotConnected (reason, -1));
       s.server_need_qrt <- true;
       decr nservers;
       if List.memq s !connected_servers then
         connected_servers := List2.removeq s !connected_servers
   | _ -> ()
-  
-  
-let client_name () = 
-  
+
+let client_name () =
+
   let name = !!global_login in
   if name != !old_client_name then  begin
       let len = String.length name in
@@ -505,5 +500,3 @@ let client_name () =
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name
-  
-  

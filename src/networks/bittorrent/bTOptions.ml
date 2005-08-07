@@ -30,7 +30,7 @@ let client_port = define_option bittorrent_section ["client_port"]
     int_option 6882
 
 (* Generate client_uid *)
-let generate_client_uid = 
+let generate_client_uid =
   let client_uid_from_version = "-ML" ^ Autoconf.current_version ^ "-" in
   let client_uid_random_tail = String.create (20 - (String.length client_uid_from_version)) in
   let sl_client_uid_random_tail = String.length client_uid_random_tail in
@@ -44,12 +44,12 @@ let client_uid = define_option bittorrent_section ["client_uid"]
     "The UID of this client" Sha1.option (Sha1.direct_of_string generate_client_uid)
 
 (* Check if the uid is in sync with Autoconf.current_version *)
-let check_client_uid () = 
-  let s = Sha1.direct_to_string !!client_uid in 
+let check_client_uid () =
+  let s = Sha1.direct_to_string !!client_uid in
   if Autoconf.current_version != String.sub s 3 ((
-    try 
-      String.index_from s 1 s.[0] 
-    with 
+    try
+      String.index_from s 1 s.[0]
+    with
       Not_found -> 3
     ) - 3) then
     client_uid =:= Sha1.direct_of_string generate_client_uid
@@ -104,6 +104,6 @@ let cookies = define_option bittorrent_section ["cookies"]
     (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
 
 let referers = define_option bittorrent_section ["referers"]
-    "Referer sent with http request to get .torrent file" 
+    "Referer sent with http request to get .torrent file"
     (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
 

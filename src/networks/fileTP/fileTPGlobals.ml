@@ -102,7 +102,7 @@ let find_proto (name : string) =
 let min_range_size = megabyte
 
 let set_file_size file size =
-  lprintf "set_file_size\n";
+  lprintf "set_file_size %s : %s\n" (Unix32.filename (file_fd file)) (Int64.to_string size);
   if file_size file = zero && size <> zero then begin
       lprintf "Setting SWARMER\n";
       let file_chunk_size =

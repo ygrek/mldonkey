@@ -54,7 +54,7 @@ let _b x = _b "BTInteractive" x
 let lprintf_nl () =
   lprintf "%s[BT] "
       (log_time ()); lprintf_nl2
-      
+
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
   lprintf "%s[BT] "
@@ -454,7 +454,7 @@ for parsing the response*)
         File.to_string filename
       with e -> lprintf_nl () "Empty reply from tracker"; ""
     in
-    let v = 
+    let v =
        match tracker_reply with
        | "" ->
         if !verbose_connect then
@@ -675,7 +675,7 @@ let op_client_info c =
     P.client_software = c.client_software;
 (* TODO: switch it
     P.client_release = c.client_release;
- *)    
+ *)
     P.client_release = "";
     P.client_emulemod = "";
     P.client_downloaded = c.client_downloaded;
@@ -779,7 +779,7 @@ let commands =
         else
           Printf.bprintf buf ".torrent file generated\n";
       ""
-      with Not_found -> 
+      with Not_found ->
           if o.conn_output = HTML then
             (* TODO: really htmlize it *)
             Printf.bprintf buf "Not enough parameters"

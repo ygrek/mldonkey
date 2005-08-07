@@ -496,7 +496,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     set_client_state (c) (Connected (-1));
     if not init_sent then
       begin
-        c.client_incoming<-true;
+        c.client_incoming <- true;
         send_init !!client_uid file_id sock;
       end;
     connection_ok c.client_connection_control;
@@ -511,12 +511,9 @@ let rec client_parse_header counter cc init_sent gconn sock
       in common swarmer -> compare : partition -> partition -> bool
     *)
 
-(*    send_client c Unchoke;  *)
-
     set_rtimeout sock !!client_timeout;
-(*Once parse succesfully we define the function
-    client_to_client to be the function used when a message
-    is read*)
+    (* Once parsed succesfully we define the function client_to_client
+       to be the function used when a message is read *)
     gconn.gconn_handler <- Reader (fun gconn sock ->
         bt_handler TcpMessages.parsing (client_to_client c) c sock
     );
@@ -576,12 +573,12 @@ and update_client_bitmap c =
 *)
 and get_from_client sock (c: client) =
   let file = c.client_file in
-(*Check if there's not enough requests in the 'pipeline'
-    and if a request can be send (not choked and file is downloading) *)
+  (* Check if there's not enough requests in the 'pipeline'
+     and if a request can be send (not choked and file is downloading) *)
   if List.length c.client_ranges_sent < max_range_requests &&
     file_state file = FileDownloading && (c.client_choked == false) then
-(*num is the number of the piece, x and y are the position
-of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
+  (* num is the number of the piece, x and y are the position
+     of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 
     let up = match c.client_uploader with
         None -> assert false
@@ -749,8 +746,8 @@ and client_to_client c sock msg =
                   [] -> lprintf_nl () "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
                     let (x,y) = Int64Swarmer.range_range r in
-                    lprintf_nl () "Current range %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
-                      position len
+                    lprintf_nl () "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
+                      c.client_software position len
                       p1 p2 x y
               );
 
@@ -845,6 +842,7 @@ and client_to_client c sock msg =
 
               let verified = Int64Swarmer.verified_bitmap swarmer in
               let npieces = Int64Swarmer.partition_size swarmer in
+              (* parse the pieces to see if the client is interesting *)
               for i = 0 to npieces -1  do
                 (* lprintf "bitmap: %c, verified: %c" bitmap.[i] verified.[i]; *)
                 if bitmap.[i] = '1' && verified.[i] < '2' then
@@ -882,6 +880,7 @@ and client_to_client c sock msg =
               let n = Int64.to_int n in
               let verified = Int64Swarmer.verified_bitmap swarmer in
               (* lprintf_nl "verified: %c;" verified.[n]; *)
+              (* if the peer has a chunk we don't, tell him we're interested and update his bitmap *)
               if verified.[n] < '2' then begin
                   c.client_interesting <- true;
                   send_interested c;
@@ -967,8 +966,7 @@ and client_to_client c sock msg =
                   [] ->
                       CommonUploads.ready_for_upload (as_client c);
                   | _ -> ());
-                c.client_upload_requests <-
-                  c.client_upload_requests @ [n,pos,len];
+                c.client_upload_requests <- c.client_upload_requests @ [n,pos,len];
                 let file = c.client_file in
                 match file.file_shared with
                     None -> ()
@@ -1158,7 +1156,7 @@ let listen () =
       ) in
     listen_sock := Some s;
     ()
-  with e -> 
+  with e ->
       if !verbose_connect then
         lprintf_nl () "Exception %s while init bittorrent server"
           (Printexc2.to_string e)
@@ -1243,7 +1241,7 @@ let get_sources_from_tracker file =
         File.to_string filename
       with e -> lprintf_nl () "Empty reply from tracker"; ""
     in
-    let v = 
+    let v =
        match tracker_reply with
        | "" ->
         if !verbose_connect then

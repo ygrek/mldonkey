@@ -144,7 +144,7 @@ anymore. *)
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
-                  lprintf_nl "[cInt]Exception %s while trying to share commited file"
+                  lprintf_nl "[cInt] Exception %s while trying to share commited file"
                     (Printexc2.to_string e);
             end;
 
@@ -163,10 +163,10 @@ anymore. *)
                   files =:= List2.removeq file !!files;
 
                 with e ->
-                    lprintf_nl "[cInt]Exception %s in file_commit secondaries" (Printexc2.to_string e);
+                    lprintf_nl "[cInt] Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
           with e ->
-              lprintf_nl "[cInt]Exception in file_commit: %s" (Printexc2.to_string e))
+              lprintf_nl "[cInt] Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
 let file_cancel file =
@@ -182,7 +182,7 @@ let file_cancel file =
             impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             files =:= List2.removeq file !!files;
           with e ->
-              lprintf_nl "[cInt]Exception %s in file_cancel" (Printexc2.to_string e);
+              lprintf_nl "[cInt] Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
       (try
           let fd = file_fd file in
@@ -193,7 +193,7 @@ let file_cancel file =
             (Printexc2.to_string e); );
       Unix32.destroy (file_fd file);
   with e ->
-      lprintf_nl "[cInt]Exception in file_cancel: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let time_to_string time =
   let days = time / 60 / 60 / 24 in
@@ -263,7 +263,7 @@ let file_completed (file : file) =
         ignore (CommonShared.new_shared "completed" 0 (
             file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
-              lprintf_nl "[cInt]Exception %s in sendmail" (Printexc2.to_string e);
+              lprintf_nl "[cInt] Exception %s in sendmail" (Printexc2.to_string e);
               );
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
@@ -279,7 +279,7 @@ let file_completed (file : file) =
           end
       end
   with e ->
-      lprintf_nl "[cInt]Exception in file_completed: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in file_completed: %s" (Printexc2.to_string e)
 
 let file_add impl state =
   try
@@ -301,7 +301,7 @@ let file_add impl state =
         update_file_state impl state
       end
   with e ->
-      lprintf_nl "[cInt]Exception in file_add: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in file_add: %s" (Printexc2.to_string e)
 
 let server_remove server =
   try
@@ -313,7 +313,7 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      lprintf_nl "[cInt]Exception in server_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in server_remove: %s" (Printexc2.to_string e)
 
 let server_add impl =
   let server = as_server impl in
@@ -352,7 +352,7 @@ let friend_remove c =
       end
 
   with e ->
-      lprintf_nl "[cInt]Exception in friend_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in friend_remove: %s" (Printexc2.to_string e)
 
 let contact_add c =
   let impl = as_client_impl c in
@@ -373,7 +373,7 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
       end
   with e ->
-      lprintf_nl "[cInt]Exception in contact_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in contact_remove: %s" (Printexc2.to_string e)
 
 
 let time_of_sec sec =

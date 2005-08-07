@@ -32,7 +32,7 @@ open CommonHosts
 
 
 (* any = 0 *)
-let name_of_tag = 
+let name_of_tag =
   [
     Field_UNKNOWN "any", 0;
     Field_UNKNOWN "year", 1;
@@ -59,33 +59,33 @@ let name_of_tag =
     Field_UNKNOWN "49", 49;
     Field_UNKNOWN "53", 53;
   ]
-  
+
 type cipher
 
 type ciphers = {
     in_cipher : cipher;
     out_cipher : cipher;
-    
+
     mutable in_xinu : int64;
     mutable out_xinu : int64;
   }
 
 type query_key = unit
 
-type query_operator = 
+type query_operator =
 | Equals
 | Approx
 | AtMost
 | AtLeast
 | Substring
-  
+
 type query_term = query_operator * tag
-  
+
 type search_extension =  string * query_term list
 type search_uid = int
 type file_uid = Md5Ext.t
 type file_uri = string
-  
+
 external create_cipher : unit -> cipher = "ml_create_cipher"
 external apply_cipher : cipher -> string -> int -> int -> unit
   = "ml_apply_cipher"
@@ -95,7 +95,7 @@ external get_cipher_from_packet : string -> int -> cipher -> unit
   = "ml_cipher_packet_get"
 external xor_ciphers : cipher -> cipher -> unit = "ml_xor_ciphers"
 external xor_ciphers2 : cipher -> cipher -> unit = "ml_xor_ciphers2"
-  
+
 external cipher_packet_set : cipher -> string -> int -> unit
   = "ml_cipher_packet_set"
 external cipher_packet_set_xored : cipher -> string -> int -> cipher -> unit
@@ -109,19 +109,18 @@ let port = 1214
 let config_file = "fasttrack.ini"
 let options_prefix = "FT-"
 let max_known_peers_default = 20
-  
+
 (* Useless *)
 let redirectors =   []
 let has_accept = false
 let accept_header = ""
-  
+
 let accept_ed2kuid = false
 let accept_bitprint = false
 let accept_md5ext = true
-  
 
   let max_queued_ranges = 1
-    
+
 (* This is the typical reply of a busy FT client.
 ascii:[
 HTTP/1.0 503 Service Unavailable
@@ -134,4 +133,3 @@ X-Kazaa-SupernodeIP: 80.57.???.???:1070
 
 let value_to_index _ = ()
 let index_to_value _ = []
-  

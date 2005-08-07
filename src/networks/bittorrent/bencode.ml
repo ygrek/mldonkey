@@ -57,7 +57,7 @@ open Printf2
  }
  ;
   }
-  
+
 *)
 type value =
   String of string
@@ -91,23 +91,23 @@ let decode s =
 	let end_pos = iter_i s (pos+1) len in
 	(Int (Int64.of_string (String.sub s (pos+1) (end_pos-pos-1)))),
 	  (end_pos+1)
-   | 'l' -> 
+   | 'l' ->
         let rec iter s pos len list =
 	  if pos = len then assert false;
           match s.[pos] with
             | 'e' -> List (List.rev list), (pos+1)
-	    | _ -> 
+	    | _ ->
 	       let v, pos = decode s pos len in
-	       iter s pos len (v :: list)	  
+	       iter s pos len (v :: list)
 	in
 	iter s (pos+1) len []
-   | 'd' -> 
+   | 'd' ->
 
         let rec iter s pos len list =
 	  if pos = len then assert false;
           match s.[pos] with
             | 'e' -> Dictionary (List.rev list), (pos+1)
-	    | _ -> 
+	    | _ ->
 	       let key, pos = decode s pos len in
 	       let v, pos = decode s pos len in
 	       iter s pos len ((key,v) :: list)
@@ -117,7 +117,7 @@ let decode s =
   in
   let (v,pos) = decode s 0 len in
   v
-  
+
 let encode v =
   let buf = Buffer.create 100 in
   let rec encode v =
@@ -140,7 +140,7 @@ let print b =
   let buf = Buffer.create 100 in
   let rec print v =
     match v with
-    | String s -> 
+    | String s ->
        if String.length s > 200 then
           Printf.bprintf buf " \"%s...\"" (String.escaped (String.sub s 0 200))
        else

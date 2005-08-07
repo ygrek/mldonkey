@@ -1107,7 +1107,7 @@ let verify_chunk t i =
               end else begin
 
                 if !verbose_swarming then
-                    lprintf_nl () "VERIFICATION OF BLOCK %d OF %s FAILED"
+                    lprintf_nl () "Block %d of %s is corrupted !!"
                         i (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
 
@@ -1115,7 +1115,7 @@ let verify_chunk t i =
                       s.s_verified_bitmap.[i] = '2'
                   ) t.t_t2s_blocks.(i) then begin
 
-                    lprintf_nl () "Verification of complete block %d of %s FAILED, redownloading it."
+                    lprintf_nl () "Complete block %d of %s is corrupted (wrong hash), block is being resetted."
                             i (file_best_name t.t_file);
 
                     t.t_converted_verified_bitmap.[i] <- '0';
@@ -1172,7 +1172,7 @@ let verify_chunk t i =
 
               end else begin
 
-                lprintf_nl () "VERIFICATION OF BLOCKS OF %s FAILED\n"
+                lprintf_nl () "Verification of blocks for file %s FAILED\n"
                     (file_best_name t.t_file);
 
                   for i = 0 to nblocks - 1 do
@@ -1576,17 +1576,15 @@ let chunks_to_string s chunks =
           apply_intervals s (fun i block_begin block_end chunk_begin chunk_end -> st.[i] <- '1') chunks;
           st
         end
-
-    | AvailableCharBitmap st -> st
-
-    | AvailableBoolBitmap bitmap ->
-        begin
-          let st = String.create (Array.length bitmap) in
-          for i = 0 to Array.length bitmap - 1 do
-            st.[i] <- (if bitmap.(i) then '1' else '0')
-          done;
-          st
-        end
+  | AvailableCharBitmap st -> st
+  | AvailableBoolBitmap bitmap ->
+      begin
+        let st = String.create (Array.length bitmap) in
+        for i = 0 to Array.length bitmap - 1 do
+          st.[i] <- (if bitmap.(i) then '1' else '0')
+        done;
+        st
+      end
 
 (*************************************************************************)
 (*                                                                       *)
