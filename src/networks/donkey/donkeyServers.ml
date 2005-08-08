@@ -451,6 +451,7 @@ and remove clients whose server is deconnected. *)
 let connect_server s =
   if !!enable_servers && can_open_connection connection_manager
     && (not !!connect_only_preferred_server || s.server_preferred)
+    && not (Ip_set.ip_blocked s.server_ip)
   then
     match s.server_sock with
     | NoConnection ->

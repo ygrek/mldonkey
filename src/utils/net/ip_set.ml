@@ -253,6 +253,11 @@ let print_list buf bl =
 
 let bl = ref BL_Empty
 
+let ip_blocked ip =
+  match match_ip !bl ip with
+    None -> false
+  | Some br -> true
+
 (*
 open Benchmark
 

@@ -10,6 +10,11 @@ ChangeLog
 
 2005/08/08: spiralvoice
 
+4285: IPBlock: Server support
+* display in vm/vma if a server has a blocked IP
+* prevent connections to a IP blocked server,
+  in EDK case this resulted in a LowID connection 
+
 4284: Remove whitespaces / Some logging changes
 
 2005/08/07: spiralvoice

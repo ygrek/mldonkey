@@ -24,7 +24,9 @@ open CommonNetwork
 open Options
 open CommonUser
 open CommonTypes
-  
+
+module G = GuiTypes
+
 type 'a server_impl = {
     mutable impl_server_update : int;
     mutable impl_server_state : CommonTypes.host_state;
@@ -50,16 +52,15 @@ and 'a server_ops = {
     mutable op_server_rename : ('a -> string -> unit);
   }
 
-let ni n m = 
-  let s = Printf.sprintf "Server.%s not implemented by %s" 
+let ni n m =
+  let s = Printf.sprintf "Server.%s not implemented by %s"
       m n.network_name in
-  lprintf_nl "%s" s; 
+  lprintf_nl "%s" s;
   s
-  
+
 let fni n m =  failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
-  
-  
+
 let as_server  (server : 'a server_impl) =
   let (server : server) = Obj.magic server in
   server
@@ -68,8 +69,7 @@ let as_server_impl  (server : server) =
   let (server : 'a server_impl) = Obj.magic server in
   server
 
-    
-let  dummy_server_impl = {
+let dummy_server_impl = {
     impl_server_update = 1;
     impl_server_state = NewHost;
     impl_server_num = 0;
@@ -84,19 +84,19 @@ let dummy_server = as_server dummy_server_impl
 let server_num s =
   let s = as_server_impl s in
   s.impl_server_num
-  
+
 module H = Weak2.Make(struct
       type t = server
       let hash s = Hashtbl.hash (server_num s)
-      
-      let equal x y = 
+
+      let equal x y =
         (server_num x) = (server_num y)
     end)
 
 let server_counter = ref 0
 let servers_by_num = H.create 1027
-  
-let _ = 
+
+let _ =
   Heap.add_memstat "CommonServer" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) servers_by_num;
@@ -109,7 +109,7 @@ let server_must_update s =
   if impl.impl_server_update <> 0 then
     CommonEvent.add_event (Server_info_event s);
   impl.impl_server_update <- 0
-  
+
 let server_must_update_state s =
   let impl = as_server_impl s in
   if impl.impl_server_update > 0 then
@@ -119,8 +119,6 @@ let server_must_update_state s =
 (*      lprintf "server_must_update YES\n";  *)
     end
 
-
-    
 let server_update_num impl =
   let server = as_server impl in
   incr server_counter;
@@ -186,14 +184,13 @@ let new_server_ops network =
   servers_ops := (ss, { ss with op_server_network = s.op_server_network })
   :: ! servers_ops;
   s
-  
 
 let check_server_implementations () =
   lprintf_nl "\n----- Methods not implemented for CommonServer ----\n";
   List.iter (fun (c, cc) ->
       let n = c.op_server_network.network_name in
-      lprintf_nl "\n  Network %s\n" n; 
-      if c.op_server_remove == cc.op_server_remove then 
+      lprintf_nl "\n  Network %s\n" n;
+      if c.op_server_remove == cc.op_server_remove then
         lprintf_nl "op_server_remove";
       if c.op_server_to_option == cc.op_server_to_option then
         lprintf_nl "op_server_to_option";
@@ -220,18 +217,22 @@ let check_server_implementations () =
   ) !servers_ops;
   lprint_newline ()
 
-let server_find (num : int) = 
+let server_find (num : int) =
   H.find servers_by_num  (as_server { dummy_server_impl with
       impl_server_num = num })
-  
+
+let server_blocked s =
+  let info = server_info s in
+    Ip_set.ip_blocked (Ip.ip_of_addr info.G.server_addr)
+
 let server_connect s =
+  if not (server_blocked s) then
   let server = as_server_impl s in
   server.impl_server_ops.op_server_connect server.impl_server_val
-  
+
 let server_disconnect s =
   let server = as_server_impl s in
   server.impl_server_ops.op_server_disconnect server.impl_server_val
-
 
 let server_state c =
   let impl = as_server_impl c in
@@ -240,7 +241,7 @@ let server_state c =
 let server_num c =
   let impl = as_server_impl c in
   impl.impl_server_num
-  
+
 let set_server_state c state =
   let impl = as_server_impl c in
   if impl.impl_server_state <> state then begin
@@ -248,7 +249,7 @@ let set_server_state c state =
       server_must_update_state c
     end
 
-let server_sort () = 
+let server_sort () =
   let list = ref [] in
   H.iter (fun s ->
       let impl = as_server_impl s in
@@ -256,20 +257,19 @@ let server_sort () =
         RemovedHost -> ()
       | _ ->
           list := s :: !list;
-          impl.impl_server_sort <- 
+          impl.impl_server_sort <-
             (try impl.impl_server_ops.op_server_sort impl.impl_server_val
             with _ -> 0);
   ) servers_by_num;
-  Sort.list (fun s1 s2 -> 
+  Sort.list (fun s1 s2 ->
       (as_server_impl s1).impl_server_sort >= (as_server_impl s2).impl_server_sort
   ) !list
 
 let server_iter f =
   H.iter f servers_by_num
-  
-  
-let com_servers_by_num = servers_by_num  
-  
+
+let com_servers_by_num = servers_by_num
+
 let server_new_user server user =
   user_must_update user;
   CommonEvent.add_event (Server_new_user_event (server, user))
@@ -279,15 +279,14 @@ let servers_get_all () =
   H.iter (fun c ->
       list := (server_num c) :: !list) servers_by_num;
   !list
-  
+
 let servers_by_num = ()
-  
-    
-(*  
+
+(*
 type server_info = {
     server_num : int;
     server_network : int;
-    
+
     mutable server_ip : Ip.t;
     mutable server_port : int;
     mutable server_score : int;
@@ -298,41 +297,41 @@ type server_info = {
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users : int list option;
-  } 
+  }
     *)
 
-module G = GuiTypes
 
 let server_banner s o =
   let buf = o.conn_buf in
   let info = server_info s in
-  Printf.bprintf buf "%s" 
+  Printf.bprintf buf "%s"
       info.G.server_banner
 
 let server_print_html_header buf ext =
-    html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [ 
-		( "1", "srh", "Server number", "#" ) ; 
-		( "0", "srh", "Connect|Disconnect", "C/D" ) ; 
-		( "0", "srh", "Remove", "Rem" ) ; 
-    ( "0", "srh", "Preferred", "P" ) ; 
-		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ; 
-		( "0", "srh", "Network name", "Network" ) ; 
-		( "0", "srh", "Connection status", "Status" ) ; 
-		( "0", "srh br", "IP address", "IP address" ) ; 
-		( "1", "srh ar", "Number of connected users", "Users" ) ; 
-		( "1", "srh ar br", "Number of files indexed on server", "Files" ) ; 
-		( "0", "srh", "Server name", "Name" ) ; 
-		( "0", "srh", "Server details", "Details" ) ]  
-  
+    html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [
+		( "1", "srh", "Server number", "#" ) ;
+		( "0", "srh", "Connect|Disconnect", "C/D" ) ;
+		( "0", "srh", "Remove", "Rem" ) ;
+    ( "0", "srh", "Preferred", "P" ) ;
+		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
+		( "0", "srh", "Network name", "Network" ) ;
+		( "0", "srh", "Connection status", "Status" ) ;
+		( "0", "srh br", "IP address", "IP address" ) ;
+		( "1", "srh ar", "Number of connected users", "Users" ) ;
+		( "1", "srh ar br", "Number of files indexed on server", "Files" ) ;
+		( "0", "srh", "Server name", "Name" ) ;
+		( "0", "srh", "Server details", "Details" ) ]
+
 let server_print s o =
   let impl = as_server_impl s in
   let n = impl.impl_server_ops.op_server_network in
   try
-    let info = 
-      try server_info s with e -> 
+    let info =
+      try server_info s with e ->
           lprintf "Exception %s in server_info (%s)\n"
             (Printexc2.to_string e) n.network_name;
           raise e in
+
     let buf = o.conn_buf in
 	
 	if use_html_mods o then begin
@@ -356,14 +355,16 @@ let server_print s o =
 	  (
         Printf.sprintf "%s"
         (match impl.impl_server_state with
-        Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\" 
+        Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\"
 						onMouseOver=\\\"mOvr(this);\\\"
 						onMouseOut=\\\"mOut(this);\\\"
 						onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
 	  )
 	  snum
-      (
+      (if server_blocked s then
+        Printf.sprintf "\\<TD class=\\\"srb\\\"----\\</TD\\>"
+       else
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
@@ -433,10 +434,12 @@ let server_print s o =
          end
        else "\\>"
       )
-      
       n.network_name
-   (string_of_connection_state impl.impl_server_state)
-      (Ip.string_of_addr info.G.server_addr) 
+      (if server_blocked s then
+	"IP blocked"
+      else
+	(string_of_connection_state impl.impl_server_state))
+      (Ip.string_of_addr info.G.server_addr)
       (Printf.sprintf "%s%s"
        (string_of_int info.G.server_port)
        (if info.G.server_realport <> 0 then
@@ -449,11 +452,11 @@ let server_print s o =
 	end
    else
 	begin
-          
+
         Printf.bprintf buf "[%-10s%5d] %15s:%-10s %s\n%45sUsers:%-8Ld Files:%-8Ld State:%s\n"
           (n.network_name)
           (server_num s)
-          (Ip.string_of_addr info.G.server_addr) 
+          (Ip.string_of_addr info.G.server_addr)
           (Printf.sprintf "%s%s"
 	   (string_of_int info.G.server_port)
            (if info.G.server_realport <> 0 then
@@ -461,25 +464,12 @@ let server_print s o =
           (info.G.server_name) ("")
           (info.G.server_nusers)
           (info.G.server_nfiles)
-          (string_of_connection_state impl.impl_server_state);
-
-(*
-  List.iter (fun t ->
-      Printf.bprintf buf "%-3s "
-        (match t.tag_value with
-          String s -> s
-            | Uint32 i -> Int32.to_string i
-        | Fint32 i -> Int32.to_string i
-        | _ -> "???"
-      )
-) info.G.server_tags;
-
-        Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
-          (string_of_connection_state impl.impl_server_state); 
-        Buffer.add_char buf '\n'*)
+          (if server_blocked s then
+	    "IP blocked"
+          else
+	    (string_of_connection_state impl.impl_server_state));
       end;
-    
-  with e -> 
+
+  with e ->
       lprintf "Exception %s in CommonServer.server_print\n"
         (Printexc2.to_string e)
-      
