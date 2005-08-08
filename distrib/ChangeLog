@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/08: spiralvoice
+
+4284: Remove whitespaces / Some logging changes
+
 2005/08/07: spiralvoice
 
 4279: MinGW: HDD statistics support
@@ -347,5 +351,7 @@ from rev293:
 * Patch from beedauchon fixes transparency issues with
 graphical stats.
 ---------------------------------------------------------------------
-Split Changelog in two parts, all stuff older than 2.5.30.15 is now
-in docs/ChangeLog.old
+
+Split Changelog in two parts, all stuff older than 2.5.30.15 is now in docs/ChangeLog.old:
+
+http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/docs/ChangeLog.old?rev=HEAD&content-type=text/vnd.viewcvs-markup

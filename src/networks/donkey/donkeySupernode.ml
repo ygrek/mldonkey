@@ -22,7 +22,7 @@ Supernode behavior for mldonkey...
 
 A supernode acts as a server, but:
 - it doesnot index its clients (since only mldonkey clients)
-- it browses and index overnet+edonkey clients, without staying 
+- it browses and index overnet+edonkey clients, without staying
     connected. It specialized in clients whose MD4 are closed to
     its MD4.
 - mldonkey clients connect to 16 supernodes (the space of MD4 is
@@ -47,7 +47,7 @@ open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
 open DonkeyProtoCom
-open DonkeyTypes  
+open DonkeyTypes
 open DonkeyOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
@@ -55,13 +55,13 @@ open DonkeyGlobals
 type protocol =
 
 (* Basic protocol between mldonkey clients *)
-    Connect of 
+    Connect of
           (Ip.t * int * Md4.t)      (* client identification *)
         * int                       (* protocol version *)
         * int                       (* supernodes needed (bitfield) *)
         * int                       (* supernode activity *)
         * int * int * int * int * int (* which NetworkInfo we need *)
-  | NetworkInfo of 
+  | NetworkInfo of
           bool                      (* accept as client *)
 	* (Ip.t * int * Md4.t) list (* browsable peers with MD4 for supernode *)
 	* (Ip.t * int) list         (* browsable peers for supernode *)
@@ -70,9 +70,9 @@ type protocol =
         * (Ip.t * int * Md4.t) list (* supernodes *)
 
 (* Localization of downloaded files *)
-  | RegisterDownloads of 
+  | RegisterDownloads of
           (Md4.t * int32) list      (* hash and size of downloads *)
-  | KnownSources of 
+  | KnownSources of
           Md4.t                     (* Md4 of file *)
         * (Ip.t * int) list         (* sources *)
 
@@ -122,10 +122,10 @@ let supernode_browse_handler node msg sock =
       node.node_last_browse <- last_time ();
       close sock Closed_by_user
 
-  | M.ConnectReplyReq t ->      
-      printf_string "******* [BROWSE CCONN OK] ********"; 
+  | M.ConnectReplyReq t ->
+      printf_string "******* [BROWSE CCONN OK] ********";
       node.node_md4 <- t.M.Connect.md4;
-      
+
   | _ -> (* Don't care about other messages *)
       ()
 
@@ -133,7 +133,7 @@ let supernode_browse_client node =
   let token =
     add_pending_connection connection_manager (fun token ->
         try
-          let sock = TcpBufferedSocket.connect token "supernode browse client" 
+          let sock = TcpBufferedSocket.connect token "supernode browse client"
               (Ip.to_inet_addr node.node_ip)  node.node_port (fun _ _ -> ()) in
           TcpBufferedSocket.set_read_controler sock download_control;
           TcpBufferedSocket.set_write_controler sock upload_control;
@@ -143,10 +143,10 @@ let supernode_browse_client node =
               close s Closed_for_timeout
           );
           let emule_proto = emule_proto () in
-          set_reader sock (DonkeyProtoCom.cut_messages 
+          set_reader sock (DonkeyProtoCom.cut_messages
               (DonkeyProtoClient.parse (emule_proto))
             (supernode_browse_handler node));
-          let server_ip, server_port =         
+          let server_ip, server_port =
             try
               let s = DonkeyGlobals.last_connected_server () in
               s.server_ip, s.server_port
@@ -169,42 +169,42 @@ let supernode_browse_client node =
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t)
         with _ -> ()
-    )          
+    )
   in
   ()
-  
-(*  
+
+(*
 let client_connection_handler t event =
   printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      
+
       if can_open_connection () then
         begin
           try
             let c = ref None in
-            let sock = 
-              TcpBufferedSocket.create "donkey client connection" s 
-                (client_handler2 c) 
+            let sock =
+              TcpBufferedSocket.create "donkey client connection" s
+                (client_handler2 c)
 (*client_msg_to_string*)
             in
             init_connection sock;
-            
+
             (try
-                set_reader sock 
+                set_reader sock
                   (DonkeyProtoCom.client_handler2 c read_first_message
                     (client_to_client []));
-              
+
               with e -> lprintf "Exception %s in init_connection\n"
                     (Printexc2.to_string e));
           with e ->
               lprintf "Exception %s in client_connection_handler\n"
                 (Printexc2.to_string e);
               Unix.close s
-        end      
+        end
       else begin
           Unix.close s
         end;
-  | _ -> 
-      ()      
+  | _ ->
+      ()
 *)

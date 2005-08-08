@@ -1386,7 +1386,9 @@ let connect token name host port handler =
             (Unix.string_of_inet_addr host) port;
         close t Closed_connect_failed;
         raise e
-  with e ->
+  with
+    Unix.Unix_error (Unix.ENETUNREACH,_,_) as e -> raise e
+  | e ->
       lprintf "EXCEPTION %s  before connect to host %s:%d\n"
           (Printexc2.to_string e) (Unix.string_of_inet_addr host) port;
       raise e
@@ -1800,7 +1802,7 @@ let join_stats titles values =
             old_value := value
           with _ ->
               Hashtbl.add net_stats title (ref value);
-              if !verbose_bandwidth>0 then begin
+              if !verbose_bandwidth > 0 then begin
                   lprintf "[BWS] INIT %s: %Ld\n"
                     title value
               end;

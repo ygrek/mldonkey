@@ -44,7 +44,7 @@ If the chunk is broken =>
    all (remaining) contributors become suspicious "number of contributors/2"
 
 From that, we see than it's acceptable to sometimes mix reliable contributors
-with others and still detect suspects (but the chunk may be unvalidated, 
+with others and still detect suspects (but the chunk may be unvalidated,
 resulting in a poor use of reliable contributors).
 
 Neutrals can be mixed with suspicious, but should be accounted for when
@@ -87,7 +87,7 @@ contrib    n   5       1        4
 with several past contributors kinds, take the max of levels.
 
 Legacy blocks (containing legacy data at the beginning of the session)
-should be handled as if it was downloaded by another virtual neutral 
+should be handled as if it was downloaded by another virtual neutral
 contributor.
 
 From several choices, prefer the one of lowest level.
@@ -152,7 +152,7 @@ let print_reliability ip =
     | Reliability_reliable -> "reliable"
     | Reliability_suspicious 0 -> "has sent corrupted data"
     | Reliability_suspicious s -> Printf.sprintf "suspicious of level %d" s)
-  
+
 let bprint_reliability buf ip =
   Printf.bprintf buf "%s is %s\n" (Ip.to_string ip)
   (match ip_reliability ip with
@@ -171,7 +171,7 @@ let set_ip_reliability ip reliability =
 
 (*
 let valid_block_detected b =
-  List.iter (fun ip -> 
+  List.iter (fun ip ->
     set_ip_reliability ip Reliability_reliable;
     print_reliability ip
   ) b.block_contributors
@@ -179,11 +179,11 @@ let valid_block_detected b =
 let corrupted_block_detected b =
   let r, n, s, l = block_reliability b in
   let n = if b.block_legacy then n + 1 else n in
-  let r, contributors = if n + s > 0 then 
+  let r, contributors = if n + s > 0 then
     0, List.filter (fun ip -> ip_reliability ip <> Reliability_reliable) b.block_contributors
   else r, b.block_contributors in
   let max_neighbors = (r + n + s) / 2 in
-	  List.iter (fun ip -> 
+	  List.iter (fun ip ->
             set_ip_reliability ip (Reliability_suspicious max_neighbors);
 	    print_reliability ip;
 	    if max_neighbors = 0 then
@@ -220,7 +220,6 @@ let _ =
       ), ":\t\t\tdisplay the reliability of sources";
     ]
 
-  
 open Md4
 (* TODO: add timers to remove old entries *)
 
@@ -240,14 +239,13 @@ let register_client_hash ip hash =
     Hashtbl.add client_hashes ip hash;
     true
 
-  
 module Marshal = struct
 
     let to_string v _ =
       let v = Marshal.to_string v [] in
 (* The header depends on Ocaml version. Remove it. *)
-      let v = String.sub v (Marshal.header_size) 
+      let v = String.sub v (Marshal.header_size)
         (String.length v - Marshal.header_size) in
       v
 
-  end  
+  end

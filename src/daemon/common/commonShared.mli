@@ -42,7 +42,6 @@ val new_shared_ops : CommonTypes.network -> 'a shared_ops
 val dummy_shared : int shared_impl
 val shared_find : int -> CommonTypes.shared
 val shared_iter : (CommonTypes.shared -> unit) -> unit
-val local_dirname : string
 val can_share : string -> bool
 val shared_add_directory : CommonTypes.shared_directory -> unit
 val shared_check_files : unit -> unit

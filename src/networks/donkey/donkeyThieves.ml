@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(* 
+(*
    Detect clients switching to another client_hash, already is use by
    someone else (almost certainly a theft).
 *)
@@ -99,7 +99,7 @@ let register_client_hash ip hash =
 	    by_hash := new_record;
 	    true
 	| _, _, _ ->
-	    (* it switched to a hash that's used somewhere else, 
+	    (* it switched to a hash that's used somewhere else,
 	       that's certainly a theft. *)
 	    if !verbose then
 	      lprintf "That hash was already used somewhere else, that's certainly a theft!\n";
@@ -125,11 +125,11 @@ module Marshal = struct
     let to_string v _ =
       let v = Marshal.to_string v [] in
 (* The header depends on Ocaml version. Remove it. *)
-      let v = String.sub v (Marshal.header_size) 
+      let v = String.sub v (Marshal.header_size)
         (String.length v - Marshal.header_size) in
       v
 
-  end  
+  end
 
 (* test code *)
 (*
@@ -162,7 +162,7 @@ let testcode () =
   lprintf "Third peer takes a hash that *was* first's hash, ok (?)...\n";
   assert(register_client_hash peer3 (Md4.of_string "11111111111111111111111111111111"));
   dump ();
-    
+
   exit 2
 
 let _ =

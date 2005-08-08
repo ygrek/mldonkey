@@ -42,7 +42,7 @@ let local_search search =
   (*
   if !!local_index_find_cmd <> "" then
     try
-      let (t_in, t_out) = exec_command !!local_index_find_cmd [||] 
+      let (t_in, t_out) = exec_command !!local_index_find_cmd [||]
           (fun sock ev -> ()) in
       let lines = ref [] in
       set_reader t_in (fun t_in nread ->
@@ -58,9 +58,9 @@ let local_search search =
               if line = "end result" then
                 let l = List.rev !lines in
                 lines := [];
-                
+
                 try
-                  let r = { 
+                  let r = {
                       result_names = [];
                       result_md4 = Md4.null;
                       result_size = Int32.zero;
@@ -77,13 +77,13 @@ let local_search search =
                       | "size" -> r.result_size <- Int32.of_string value
                       | "format" -> r.result_format <- value
                       | "type" -> r.result_type <- value
-                      | "string_tag" -> 
+                      | "string_tag" ->
                           let name, v = String2.cut_at value ':' in
                           r.result_tags <- {
                             tag_name = name;
                             tag_value = String v;
                           } :: r.result_tags
-                      | "int_tag" -> 
+                      | "int_tag" ->
                           let name, v = String2.cut_at value ':' in
                           r.result_tags <- {
                             tag_name = name;
@@ -97,15 +97,15 @@ let local_search search =
                     failwith "Not enough information in result";
                   let doc = DonkeyIndexer.index_result r in
                   add_to_search search r doc
-                
-                with e -> 
-                    lprintf "result discarded for exn %s" 
-`                      (Printexc2.to_string e); lprint_newline ()
+
+                with e ->
+                    lprintf "result discarded for exn %s"
+                      (Printexc2.to_string e); lprint_newline ()
               else begin
                   try
                     let pos = String.index line ':' in
                     let name = String.sub line 0 pos in
-                    let value = String.sub line (pos+1) 
+                    let value = String.sub line (pos+1)
                       (String.length line - pos - 1)
                     in
                     lines := (name, value) :: !lines
@@ -147,7 +147,7 @@ TcpBufferedSocket.write_string t_out (Buffer.contents buf)
           (Printexc2.to_string e)
 
 *)
-  
+
 let send_search search query =
   List.iter (fun s ->
       do_if_connected s.server_sock (fun sock ->
@@ -158,9 +158,8 @@ let send_search search query =
       )
   ) (connected_servers());
   DonkeyUdp.make_xs search;
-  local_search search        
+  local_search search
 
-  
 let send_subscribe search query =
   xs_last_search := search.search_num;
   let module M = DonkeyProtoServer in
@@ -177,13 +176,13 @@ let send_subscribe search query =
       )
   ) (connected_servers());
   DonkeyUdp.make_xs search;
-  local_search search        
+  local_search search
 
 let new_search search =
   search.search_waiting <- search.search_waiting +
   List.length (connected_servers());
   search
-            
+
 let _ =
   network.op_network_search <- (fun ss buf ->
       let search = new_search ss in

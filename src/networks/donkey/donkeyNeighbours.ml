@@ -33,14 +33,14 @@ open CommonGlobals
 open CommonFile
 open CommonClient
 open CommonComplexOptions
-open CommonOptions  
+open CommonOptions
 open CommonResult
 open CommonTypes
 
 open GuiTypes
-open GuiProto  
+open GuiProto
 
-open DonkeyTypes  
+open DonkeyTypes
 open DonkeyMftp
 open DonkeyProtoCom
 open DonkeySources
@@ -53,8 +53,18 @@ type proposal =
 | History
 | SizeLRU
 | ExtLRU
-  
-(* This means that we have just received the fact that this client 
+
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf
+
+(* This means that we have just received the fact that this client
 has this file. *)
 
 type file_info = {
@@ -62,13 +72,13 @@ type file_info = {
     fi_ext : string;
     mutable fi_time : int;
   }
-  
+
 type neighbour = {
     mutable nb_files : (int * file_info) list;
     mutable nb_sort : int;
     mutable nb_client : client;
   }
-  
+
 let neighbours = Hashtbl.create 131
 
 let file_info file time =
@@ -79,13 +89,13 @@ let file_info file time =
     fi_ext = String.lowercase (
       Filename2.last_extension (file_best_name file));
   }
-  
-exception Continue  
-  
+
+exception Continue
+
 let ngood_propositions = Array.create 4 zero
 let nbad_propositions = Array.create 4 zero
-  
-let incr_propositions kind result = 
+
+let incr_propositions kind result =
   let propositions = match result with
       File_not_found -> nbad_propositions
     | File_found -> ngood_propositions
@@ -100,7 +110,7 @@ let incr_propositions kind result =
   propositions.(kind) <- propositions.(kind) ++ one
 
 let propositions = Fifo.create ()
-  
+
 let rec compute_stats () =
   if not (Fifo.empty propositions) then
     let (s, file, kind, time) = Fifo.head propositions in
@@ -110,7 +120,7 @@ let rec compute_stats () =
       | File_new_source ->
           if time + 1800 < last_time () then begin
               if !verbose_hidden_errors then
-                lprintf "DonkeyNeighbours: WARNING, source was not tested\n";
+                lprintf_nl () "WARNING, source was not tested";
               raise Continue
             end
       | File_expected  ->
@@ -120,7 +130,7 @@ let rec compute_stats () =
             end
       | File_possible ->
           if !verbose_hidden_errors then
-            lprintf "DonkeyNeighbours: WARNING, source was unknown\n";
+            lprintf_nl () "WARNING, source was unknown";
           if time + 1800 < last_time () then raise Continue
       | File_not_found ->
           incr_propositions kind File_not_found;
@@ -132,17 +142,17 @@ let rec compute_stats () =
           raise Continue
       | File_unknown -> assert false
     with
-    | Not_found -> 
+    | Not_found ->
 (* For some reason, the request was forgotten. Forget it... *)
         if !verbose_hidden_errors then
-          lprintf "DonkeyNeighbours: ERROR, request was forgotten\n";
+          lprintf_nl () "ERROR, request was forgotten";
         let _ = Fifo.take propositions in
         compute_stats ()
-    | Continue ->         
+    | Continue ->
         let _ = Fifo.take propositions in
         compute_stats ()
-          
-let propose_source file c kind = 
+
+let propose_source file c kind =
   try
     List.iter (fun r ->
         if r.request_file == file.file_sources then raise Exit
@@ -153,25 +163,25 @@ let propose_source file c kind =
         let s = DonkeySources.find_source_by_uid c.client_kind in
         DonkeySources.set_request_result s file.file_sources File_new_source;
         Fifo.put propositions (s, file, kind, last_time ())
-    | _ -> 
+    | _ ->
         if !verbose_hidden_errors then
-          lprintf "DonkeyNeighbours: ERROR, proposed client is indirect\n";
+          lprintf_nl () "ERROR, proposed client is indirect";
         raise Exit
-        
-  with Exit -> 
+
+  with Exit ->
 (* This client might already have queried this source *)
       ()
-  
-let new_neighbour c file = 
-  compute_stats ();  
+
+let new_neighbour c file =
+  compute_stats ();
   match c.client_kind with
     Indirect_address _ -> ()
   | _ ->
-      
+
       let client_num = client_num c in
       let file_num = file_num file in
       let time = last_time () in
-      
+
       try
         let nb = Hashtbl.find neighbours client_num in
         try
@@ -186,8 +196,8 @@ let new_neighbour c file =
             nb_sort = min_int;
             nb_client = c;
           }
-      
-(* 
+
+(*
   We should try to sort files by "proximity", and then try to move sources
 from one to another, maybe depending on the popularity of the file.
 Before adding a client as a source for a file, we should check that
@@ -198,10 +208,9 @@ Currently, the function does:
 * Propose the 5 best History sources to all current files
 * For every file, propose 5 best LRU sources by extension, and 5 best LRU
     sources by size
-  
   *)
 
-let recover_downloads current_files = 
+let recover_downloads current_files =
 
 (* Global LRU *)
   let list = ref [] in
@@ -219,7 +228,7 @@ let recover_downloads current_files =
         let s2 = nb2.nb_sort in
         if s1 > s2 then -1 else
         if s2 > s1 then 1 else 0) !list in
-  
+
   let keep_glru,_ = List2.cut 333 glru in
   let best_glru,_ = List2.cut 5 glru in
 (* For each file, propose the 5 first elements of the GLRU as a potential
@@ -241,7 +250,7 @@ source. *)
         let s2 = nb2.nb_sort in
         if s1 > s2 then -1 else
         if s2 > s1 then 1 else 0) !list in
-  
+
   let keep_history,_ = List2.cut 333 history in
   let best_history,_ = List2.cut 5 history in
 (* For each file, propose the 5 first elements of the GLRU as a potential
@@ -262,23 +271,23 @@ source. *)
                 [] -> assert false
               | nb2 :: _ ->
                   if nb2 != nb then list := nb :: !list
-            with Not_found -> 
+            with Not_found ->
                 sizes_list := (fi.fi_size, ref [nb]) :: !sizes_list
           );
-          
+
           (try
               let list = List.assq fi.fi_ext !extensions_list in
               match !list with
                 [] -> assert false
               | nb2 :: _ ->
                   if nb2 != nb then list := nb :: !list
-            with Not_found -> 
+            with Not_found ->
                 extensions_list := (fi.fi_ext, ref [nb]) :: !extensions_list
           )
-      
+
       ) nb.nb_files
   ) neighbours;
-  
+
   List.iter (fun (ext, list) ->
       List.iter (fun nb ->
           nb.nb_sort <- min_int;
@@ -292,10 +301,9 @@ source. *)
           let s2 = nb2.nb_sort in
           if s1 > s2 then -1 else
           if s2 > s1 then 1 else 0) !list
-  
-  
+
   ) !extensions_list;
-  
+
   List.iter (fun (size, list) ->
       List.iter (fun nb ->
           nb.nb_sort <- min_int;
@@ -310,28 +318,26 @@ source. *)
           if s1 > s2 then -1 else
           if s2 > s1 then 1 else 0) !list
   ) !sizes_list;
-  
-  
+
   List.iter (fun file ->
       let fi_size = int_of_float (log (
             Int64.to_float (file_size file ++ one))) in
       let fi_ext = String.lowercase (
           Filename2.last_extension (file_best_name file)) in
-      
+
       (try
           let list = List.assoc fi_size !sizes_list in
           let best_slru, _ = List2.cut 5 !list in
           List.iter (fun nb ->
               propose_source file nb.nb_client SizeLRU) best_slru
         with _ -> ());
-      
+
       (try
           let list = List.assoc fi_ext !extensions_list in
           let best_slru, _ = List2.cut 5 !list in
           List.iter (fun nb ->
               propose_source file nb.nb_client ExtLRU) best_slru
         with _ -> ());
-  
   ) current_files;
 
 
@@ -341,7 +347,7 @@ source. *)
       list_list := !list :: !list_list) !extensions_list;
   List.iter (fun (_, list) ->
       list_list := !list :: !list_list) !sizes_list;
-  
+
   let rec iter rem todo_list done_list keep =
     if rem = 0 then keep else
     match todo_list with
@@ -361,36 +367,34 @@ source. *)
 i.e. the table can only retain at most 1 MB of data after every call
   to this function. *)
   Hashtbl.clear neighbours;
-  
+
   List.iter (fun list ->
       List.iter (fun nb ->
           let cnum = client_num nb.nb_client in
           if not (Hashtbl.mem neighbours cnum) then
             Hashtbl.add neighbours cnum nb
-      ) list) 
+      ) list)
   [keep_glru; keep_history; keep_slru]
 
-        
-  
 open LittleEndian
-  
-let _ = 
-  CommonWeb.add_redirector_info "DKNB" (fun buf -> 
+
+let _ =
+  CommonWeb.add_redirector_info "DKNB" (fun buf ->
       compute_stats ();
       let len = Array.length ngood_propositions in
       buf_int buf len;
-      if !verbose_redirector then lprintf "DonkeyNeighbours stats:\n";
+      if !verbose_redirector then lprintf_n () "Stats:";
       for i = 0 to len - 1 do
-        if !verbose_redirector then lprintf "   Good[%d] = %Ld\n" i ngood_propositions.(i);
-        if !verbose_redirector then lprintf "   Bad[%d] = %Ld\n" i nbad_propositions.(i);
+        if !verbose_redirector then lprintf_nl2 "   Good[%d] = %Ld\n" i ngood_propositions.(i);
+        if !verbose_redirector then lprintf_nl2 "   Bad[%d] = %Ld\n" i nbad_propositions.(i);
         buf_int64 buf ngood_propositions.(i);
         buf_int64 buf nbad_propositions.(i)
       done;
       let len = Fifo.length propositions in
-      if !verbose_redirector then lprintf "   Waiting propositions: %d\n" len;
+      if !verbose_redirector then lprintf_nl2 "   Waiting propositions: %d\n" len;
       buf_int buf len;
       let len = ref 0 in
       Hashtbl.iter (fun _ _ -> incr len) neighbours;
-      if !verbose_redirector then lprintf "   Total neighbours: %d\n" !len;
+      if !verbose_redirector then lprintf_nl2 "   Total neighbours: %d\n" !len;
       buf_int buf !len
   )

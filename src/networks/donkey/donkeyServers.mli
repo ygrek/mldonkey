@@ -22,12 +22,11 @@ val check_server_connections : unit -> unit
 val connect_server : DonkeyTypes.server -> unit
 val disconnect_server : DonkeyTypes.server -> BasicSocket.close_reason -> unit
 val remove_old_servers : unit -> unit
-  
-val update_master_servers : unit-> unit  
+
+val update_master_servers : unit-> unit
 val walker_timer : unit -> unit
 val udp_walker_timer : unit -> unit
-  
+
 val query_locations_timer : unit -> unit
 val add_query_location : DonkeyTypes.file -> DonkeyTypes.server -> unit
 val udp_query_sources : unit -> unit
-  

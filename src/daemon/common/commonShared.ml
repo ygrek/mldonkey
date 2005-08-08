@@ -218,8 +218,6 @@ let shared_find num =
 let shared_iter f =
   H.iter f shareds_by_num
 
-let local_dirname = Sys.getcwd ()
-  
 (* Prevent sharing of temp directory to avoid sending incomplete files *)
 let can_share dirname =
   Filename2.normalize dirname <> Filename2.normalize 

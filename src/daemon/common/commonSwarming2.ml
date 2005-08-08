@@ -1115,6 +1115,7 @@ let verify_chunk t i =
                       s.s_verified_bitmap.[i] = '2'
                   ) t.t_t2s_blocks.(i) then begin
 
+		    if !verbose_hidden_errors then
                     lprintf_nl () "Complete block %d of %s is corrupted (wrong hash), block is being resetted."
                             i (file_best_name t.t_file);
 
@@ -2340,10 +2341,8 @@ let received (up : uploader) (file_begin : Int64.t)
                       string_len < string_length then begin
                         if !verbose_hidden_errors then
                         begin
-                        lprintf_nl () "BAD WRITE";
-                        lprintf_nl () "   for range %Ld-%Ld (string_pos %d)"
+                        lprintf_nl () "BAD WRITE for range %Ld-%Ld (string_pos %d)"
                           r.range_begin r.range_end string_pos;
-
                         lprintf_nl () "  received: file_pos:%Ld string:%d %d"
                           file_begin string_begin string_len;
                         lprintf_nl () "  ranges:";
@@ -2863,10 +2862,7 @@ it is verified as soon as possible. *)
               if p = present then begin
                   lprintf_nl () "ERROR: both appear to be the same!";
                 end;
-
-
-
-(*          exit 2 *)
+	      if !exit_on_error then exit 2
             end
 
         with e -> ());

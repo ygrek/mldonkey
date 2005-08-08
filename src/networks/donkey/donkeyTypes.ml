@@ -22,28 +22,28 @@ open Md4
 open CommonDownloads
 open CommonTypes
   (*
-  
+
 module MyList = struct
-    type 'a mylist = 
+    type 'a mylist =
       Nil
     | Cons of int * 'a * 'a mylist
 
-    type ('a,'b) assoc = 
-      { 
+    type ('a,'b) assoc =
+      {
         v1 : 'a;
         mutable v2 : 'b;
       }
-      
+
     let nil = Nil
-    let length list = 
+    let length list =
       match list with Nil -> 0 | Cons (len,_,_) -> len
-      
+
     let add v list = Cons (1+ length list, v, list)
     let head list =
       match list with
         Nil -> raise Not_found
       | Cons (_,v,_) -> v
-          
+
     let tail list =
       match list with
         Nil -> raise Not_found
@@ -64,7 +64,7 @@ module MyList = struct
     let assoc x y = { v1 = x; v2 = y; }
     let assoc_get x = x.v2
     let assoc_set x y = x.v2 <- y
-      
+
     let rec find_assoc v list =
       match list with
         Nil -> raise Not_found
@@ -76,7 +76,7 @@ module MyList = struct
         Nil -> raise Not_found
       | Cons (_,vv,tail) ->
           if vv.v1 == v then vv else find_assq v tail
-          
+
     let rec mem_assoc v list =
       match list with
         Nil -> raise Not_found
@@ -88,7 +88,7 @@ module MyList = struct
         Nil -> raise Not_found
       | Cons (_,vv,tail) ->
           vv.v1 == v || mem_assq v tail
-          
+
   end
 
 open MyList
@@ -101,7 +101,7 @@ type client_tag_name =
 | CT_CLIENT_VERSION
 | CT_CLIENT_EXTENDED
 | CT_CLIENT_UDPPORT
-  
+
 type server_tag_name =
 | ST_SERVER_NAME
 | ST_SERVER_DESCRIPTION
@@ -110,7 +110,7 @@ type server_tag_name =
 | ST_SERVER_PING
 | ST_SERVER_PROF
 | ST_SERVER_HISTORY
-  
+
 type file_tag_name =
 | FT_FILE_FILENAME
 | FT_FILE_SIZE
@@ -125,7 +125,7 @@ type file_tag_name =
 | FT_FILE_DISKNAME
 | FT_FILE_PRIORITY
 | FT_FILE_STATUS
-    *)  
+    *)
 
 type emule_proto = {
     mutable emule_comments : int;
@@ -157,7 +157,7 @@ type emule_tag_name =
 | ET_MOD_TAROD
 | ET_TAROD_VERSION
 | ET_MOD_PLUS
-(*  
+(*
 type pref_tag_name =
 | PT_PREF_NAME
 | PT_PREF_PORT
@@ -168,9 +168,9 @@ type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
 }
-  
+
 type client_score =
-  Client_not_connected 
+  Client_not_connected
 | Client_has_file
 | Client_has_priority_file
 | Client_has_chunk
@@ -183,7 +183,7 @@ type reliability =
 | Reliability_reliable
 | Reliability_suspicious of int
 
-type brand = 
+type brand =
   Brand_unknown
 | Brand_edonkey
 | Brand_cdonkey
@@ -199,9 +199,9 @@ type brand =
 | Brand_lphant
 | Brand_emuleplus
 | Brand_hydranode
-  
+
 let brand_count = 15
-  
+
 type brand_mod =
   Brand_mod_unknown
 | Brand_mod_extasy
@@ -319,37 +319,37 @@ type brand_mod =
 
 let brand_mod_count = 113
 
-type source_uid = 
+type source_uid =
   Direct_address of Ip.t * int
 | Indirect_address of Ip.t * int * int64
 | Invalid_address of string * string
 
 let id_of_ip ip = Ip.to_int64 (Ip.rev ip)
 let ip_of_id id = Ip.rev (Ip.of_int64 id)
-  
+
 module DonkeySources = CommonSources.Make(struct
-      
+
       open Options
 
       type source_brand = bool
       let value_to_source_brand = value_to_bool
       let source_brand_to_value = bool_to_value
       let dummy_source_brand = false
-        
+
       type t = source_uid
       type source_uid = t
 
       let module_name = "DonkeySources"
-        
+
       let direct_source s =
         match s with Direct_address _ -> true | _ -> false
 
       let indirect_source s =
         match s with Indirect_address _ -> true | _ -> false
-      
+
       let dummy_source_uid = Direct_address (Ip.null, 0)
-            
-      let value_to_source_uid v = 
+
+      let value_to_source_uid v =
         match v with
           List [ip;port] | SmallList [ip;port] ->
             let ip = Ip.of_string (value_to_string ip) in
@@ -361,22 +361,22 @@ module DonkeySources = CommonSources.Make(struct
             let id = try id_of_ip (Ip.of_string (value_to_string id))
               with _ -> value_to_int64 id in
             Indirect_address (ip, port, id)
-        | _ -> 
+        | _ ->
             failwith "bad client address"
-      
-      let source_uid_to_value s = 
+
+      let source_uid_to_value s =
         match s with
-          Direct_address (ip, port) -> 
+          Direct_address (ip, port) ->
             SmallList [string_to_value (Ip.to_string ip); int_to_value port]
-        | Indirect_address (ip, port, id) -> 
+        | Indirect_address (ip, port, id) ->
             SmallList [
-              string_to_value (Ip.to_string ip); 
+              string_to_value (Ip.to_string ip);
               int_to_value port;
               int64_to_value id;
             ]
         | Invalid_address _ -> failwith "Invalid address"
     end)
-  
+
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
@@ -403,14 +403,14 @@ type server = (*[]*){
     mutable server_last_message : int; (* used only by mldonkey server *)
 
     mutable server_id_requests : file option Fifo.t;
-    
+
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
     mutable server_sent_all_queries : bool;
     mutable server_has_zlib : bool;
-    
+
     mutable server_flags : int;
-  } 
+  }
 
 
 and user = {
@@ -445,24 +445,24 @@ and result = {
     mutable result_index : Store.index;
   }
 *)
-  
+
 and search_event =
 (*  Result of result *)
 | Waiting of int
 
-and file_change_kind = 
+and file_change_kind =
   NoFileChange
 | FileAvailabilityChange
 | FileInfoChange
 
-and client_change_kind = 
+and client_change_kind =
   NoClientChange
 | ClientStateChange
 | ClientFriendChange
 | ClientInfoChange
 | ClientFilesChange
 
-and server_change_kind = 
+and server_change_kind =
   NoServerChange
 | ServerStateChange
 | ServerUsersChange
@@ -489,7 +489,7 @@ and source = {
     mutable source_sock : tcp_connection;
   }
 *)
-  
+
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : source_uid;
@@ -498,7 +498,7 @@ and client = {
 (*    mutable client_chunks : availability; *)
 (*     mutable client_sock : tcp_connection; *)
     mutable client_ip : Ip.t;
-    mutable client_download : (file * Int64Swarmer.uploader) option; 
+    mutable client_download : (file * Int64Swarmer.uploader) option;
 (*    mutable client_block : Int64Swarmer.block option; *)
 (*    mutable client_zones : (int64 * int64 * Int64Swarmer.range) list; *)
 (*    mutable client_connection_control : connection_control; *)
@@ -537,20 +537,20 @@ and client = {
     mutable client_comp : compressed_parts option;
     mutable client_connection_time : int;
   }
-  
+
 and compressed_parts = {
     comp_md4 : Md4.t;
-    comp_pos : int64; 
+    comp_pos : int64;
     comp_total : int;
     mutable comp_len : int;
     mutable comp_blocs : string list;
   }
 
-and slot_status = 
+and slot_status =
   SlotNotAsked
 | SlotAsked
 | SlotReceived
-  
+
 and upload_info = {
     mutable up_file : file;
     mutable up_pos : int64;
@@ -560,15 +560,15 @@ and upload_info = {
   }
 
 (*
-  
-and chunk = 
+
+and chunk =
   PresentTemp
 | AbsentTemp
 | PartialTemp of block
 | PresentVerified
 | AbsentVerified
 | PartialVerified of block
-  
+
 and block = {
     mutable block_present: bool;
     block_begin : int64;
@@ -580,7 +580,7 @@ and block = {
     mutable block_pos : int;
     block_file : file;
   }
-  
+
 and zone = {
     mutable zone_begin : int64;
     mutable zone_end : int64;
@@ -596,7 +596,7 @@ and file_request = {
     mutable  request_result : request_result;
   }
 
-and request_result = 
+and request_result =
 | File_possible   (* we asked, but didn't know *)
 | File_not_found  (* we asked, the file is not there *)
 | File_expected   (* we asked, because it was announced *)
@@ -605,21 +605,21 @@ and request_result =
 | File_chunk      (* the file has chunks we want *)
 | File_upload     (* we uploaded from this client *)
 *)
-  
-and client_kind = 
+
+and client_kind =
   SourceClient of client
-| SourceLastConnection of 
+| SourceLastConnection of
   int *
   int * (* last connection attempt *)
   int   (* booked client num *)
-  
+
 and file = {
     file_file : file CommonFile.file_impl;
     file_md4 : Md4.t;
 (*    file_exists : bool; *)
-    
+
     mutable file_swarmer : Int64Swarmer.t option;
-    
+
     mutable file_nchunks : int;
     mutable file_diskname : string;
 (*    mutable file_chunks : chunk array; *)
@@ -629,7 +629,7 @@ and file = {
 (*    mutable file_absent_chunks : (int64 * int64) list; *)
     mutable file_filenames : (string * GuiTypes.ips_list) list;
 (*    mutable file_nsources : int; *)
-    mutable file_computed_md4s : Md4.t array; 
+    mutable file_computed_md4s : Md4.t array;
     mutable file_format : format;
 (*    mutable file_available_chunks : int array; *)
     mutable file_shared : file CommonShared.shared_impl option;
@@ -650,26 +650,25 @@ and file_to_share = {
     mutable shared_fd : Unix32.t;
     shared_shared : file_to_share CommonShared.shared_impl;
   }
-  
+
 module UdpClientMap = Map.Make(struct
       type t = source_uid
       let compare = compare
     end)
-  
+
 type udp_client = {
     udp_client_ip : Ip.t;
     udp_client_port : int;
     udp_client_can_receive : bool;
     mutable udp_client_last_conn : int;
   }
-  
+
 and file_group = {
     mutable group : udp_client UdpClientMap.t;
   }
 
-
 type old_result = result
-    
+
 exception NoSpecifiedFile
 exception Already_done
 
@@ -680,74 +679,73 @@ type shared_file_info = {
     sh_size : int64;
   }
 
-  
 open CommonFile
 open CommonClient
 open CommonServer
-open CommonResult 
-        
+open CommonResult
+
 let set_client_state c s =
   let cc = as_client c.client_client in
   set_client_state cc s
-        
+
 let set_client_disconnected c =
   let cc = as_client c.client_client in
   set_client_disconnected cc
-   
+
 let set_server_state s state =
   let ss = as_server s.server_server in
   if server_state ss <> state then begin
       set_server_state ss state;
     end
-  
+
 let file_state file =
   CommonFile.file_state (as_file file.file_file)
-  
+
 let file_last_seen file = file.file_file.impl_file_last_seen
-  
+
 let file_must_update file =
   file_must_update (as_file file.file_file)
-    
+
 let client_state client =
   CommonClient.client_state (as_client client.client_client)
-    
+
 let client_new_file client r =
   client_new_file (as_client client.client_client) ""
   r
-    
+
 let server_state server =
   CommonServer.server_state (as_server server.server_server)
 
-(*    
-module SourcesQueueCreate = Queues.Make (struct  
+(*
+module SourcesQueueCreate = Queues.Make (struct
 
       type t = source
       let compare s1 s2 = compare s1.source_addr s2.source_addr
     end)
-  
+
   (*
-    let lifo = lifo 
+    let lifo = lifo
     let fifo = fifo
-    
+
     module SourcesSet = Set.Make (
         struct
           type t = int * source
-          let compare (t1,s1) (t2,s2) = 
+          let compare (t1,s1) (t2,s2) =
             if s1.source_addr = s2.source_addr then begin
-                0 end else              
+                0 end else
             let x = compare t1 t2 in
             if x = 0 then compare s1.source_addr s2.source_addr else x
         end
       )
 
-    let oldest_first () = 
+    let oldest_first () =
       let t = ref SourcesSet.empty in
       of_impl {
         head = (fun _ -> try SourcesSet.min_elt !t with _ -> raise Fifo.Empty);
         put = (fun x ->  t := SourcesSet.add x !t);
         length = (fun _ -> SourcesSet.cardinal !t);
         take = (fun _ ->
-            try 
+            try
               let x = SourcesSet.min_elt !t in
               t := SourcesSet.remove x !t;
               x
@@ -757,7 +755,7 @@ module SourcesQueueCreate = Queues.Make (struct
         put_back = (fun e -> t := SourcesSet.add e !t);
       }
 
-    let oldest_last () = 
+    let oldest_last () =
       let t = ref SourcesSet.empty in
       of_impl {
         head = (fun _ ->
@@ -825,7 +823,7 @@ type brand_stat = {
   mutable brand_download : Int64.t;
   mutable brand_upload : Int64.t;
 }
-  
+
 type brand_mod_stat = {
   mutable brand_mod_seen : int;
   mutable brand_mod_banned : int;
@@ -853,7 +851,7 @@ let dummy_mod_stats =
   }
 
   (*
-let string_of_file_tag_name name = 
+let string_of_file_tag_name name =
   match name with
   | FT_FILE_SIZE -> "size"
   | FT_FILE_FILENAME -> "filename"
@@ -878,7 +876,7 @@ let string_of_server_tag_name name =
   | ST_SERVER_PING -> "ping"
   | ST_SERVER_PROF -> "prof"
   | ST_SERVER_HISTORY -> "history"
-    
+
 let string_of_client_tag_name name =
   match name with
   | CT_CLIENT_NAME -> "name"
@@ -902,20 +900,20 @@ let string_of_emule_tag_name name =
   | ET_MOD_TAROD -> "mod_tarod"
   | ET_TAROD_VERSION -> "tarod_version"
   | ET_MOD_PLUS -> "mod_plus"
-    
+
 let string_of_pref_tag_name name =
   match name with
   | PT_PREF_NAME -> ""
   | PT_PREF_PORT -> ""
   | PT_PREF_VERSION -> ""
   | PT_PREF_TEMP -> ""
-        *)
+ *)
   (*
 let dummy_source = {
 (*    source_num = 0; *)
     source_addr = (Ip.null, 0);
     source_files = [];
-              
+
     source_last_score = 0;
     source_last_age = 0;
     source_client_num = 0;
@@ -936,7 +934,7 @@ let dummy_emule_proto = {
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;
-    
+
     emule_compression = 0; (* 1 *)
     emule_sourceexchange = 0; (* 3 *)
     emule_multipacket = 0; (* 1 *)
@@ -945,5 +943,5 @@ let dummy_emule_proto = {
     emule_udpver = 0; (* 4 *)
   }
 
-let emule_proto () = 
+let emule_proto () =
   { dummy_emule_proto with emule_version = 0 }

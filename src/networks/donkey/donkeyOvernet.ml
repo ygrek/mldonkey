@@ -1013,7 +1013,7 @@ let udp_client_handler t p =
       ) !overnet_searches;
 
   | OvernetUnknown (opcode, s) ->
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf_nl () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
           lprintf_nl () "\tCode: %d" opcode; dump s;
