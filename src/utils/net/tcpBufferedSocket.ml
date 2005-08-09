@@ -1449,7 +1449,7 @@ let internal_buf = Buffer.create 17000
 
 let simple_send_buf buf sock =
   let s = Buffer.contents buf in
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 228;
   let len = String.length s in
   buf_int buf len;
@@ -1457,7 +1457,8 @@ let simple_send_buf buf sock =
   write sock s 0 len
 
 let value_send sock m =
-  Buffer.clear internal_buf;
+  (* Buffer.clear internal_buf; *)
+  Buffer.reset internal_buf;
   Buffer.add_string internal_buf (Marshal.to_string m []);
   simple_send_buf internal_buf sock
 

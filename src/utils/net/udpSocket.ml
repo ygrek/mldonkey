@@ -197,7 +197,7 @@ let write t ping s ip port =
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
     | Some (ip, port) -> 
-	Buffer.clear buf;
+	Buffer.reset buf;
 	buf_int8 buf 0;
 	buf_int8 buf 0;
 	buf_int8 buf 0;

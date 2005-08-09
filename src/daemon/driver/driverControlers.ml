@@ -338,7 +338,7 @@ let check_calendar () =
           eval (ref true) command calendar_options;
           lprintf_nl () "Calendar execute: %s" command;
           lprintf_nl () "%s" (Buffer.contents calendar_options.conn_buf);
-          Buffer.clear calendar_options.conn_buf;
+          Buffer.reset calendar_options.conn_buf;
         end
   ) !!calendar
 
@@ -458,7 +458,7 @@ let user_reader o telnet sock nread  =
                 Buffer.add_char telnet.telnet_buffer c;
                 telnet.telnet_wait <- 1
             | _ ->
-                Buffer.clear telnet.telnet_buffer
+                Buffer.reset telnet.telnet_buffer
           );
           iter ()
         end else
@@ -475,17 +475,17 @@ let user_reader o telnet sock nread  =
           if len = 2 then
             match cmd with
               "\251\031" ->
-                Buffer.clear telnet.telnet_buffer
+                Buffer.reset telnet.telnet_buffer
             | "\250\031" ->
                 telnet.telnet_wait <- 4
             | _ ->
                 (*
                 lprintf "telnet server: Unknown control sequence %s\n"
                   (String.escaped cmd);                *)
-                Buffer.clear telnet.telnet_buffer
+                Buffer.reset telnet.telnet_buffer
           else
           let s = String.sub cmd 0 2 in
-          Buffer.clear telnet.telnet_buffer;
+          Buffer.reset telnet.telnet_buffer;
           match s with
           | "\250\031" ->
               let dx = BigEndian.get_int16 cmd 2 in
@@ -508,11 +508,11 @@ let user_reader o telnet sock nread  =
       else begin
 (* evaluate the command *)
           let cmd = Buffer.contents telnet.telnet_buffer in
-          Buffer.clear telnet.telnet_buffer;
+          Buffer.reset telnet.telnet_buffer;
           if cmd <> "" then begin
               before_telnet_output o sock;
               let buf = o.conn_buf in
-              Buffer.clear buf;
+              Buffer.reset buf; 
               if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
               eval telnet.telnet_auth cmd o;
               Buffer.add_char buf '\n';
@@ -652,7 +652,7 @@ let chat_handler t event =
                    (* we must eval the string as a command *)
                       (
                             let buf = o.conn_buf in
-                            Buffer.clear buf;
+                            Buffer.reset buf;
                        let auth = ref true in
                        eval auth s o;
                        CommonChat.send_text !!CommonOptions.chat_console_id None
@@ -842,7 +842,7 @@ let http_error_no_gd img_type =
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 
 let html_open_page buf t r open_body =
-  Buffer.clear buf;
+  Buffer.reset buf;
   http_add_html_header r;
 
   if not !!html_mods then
@@ -880,7 +880,7 @@ let html_close_page buf close_body =
   Buffer.add_string buf "</html>\n"
 
 let clear_page buf =
-  Buffer.clear buf;
+  Buffer.reset buf;
   http_file_type := UNK
 
 let http_handler o t r =

@@ -42,7 +42,7 @@ let buf = Buffer.create 1000
       
 let gui_send writer sock t = 
   try
-    Buffer.clear buf;
+    Buffer.reset buf;
     buf_int buf 0;
     writer buf t;
     let s = Buffer.contents buf in

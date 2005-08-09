@@ -8,6 +8,11 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/09: spiralvoice
+
+4268: Web/Gui: free core's buffer allocated by vd # and gui
+      by bogeyman
+
 2005/08/08: spiralvoice
 
 4285: IPBlock: Server support

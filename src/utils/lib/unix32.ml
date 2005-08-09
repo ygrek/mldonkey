@@ -1022,7 +1022,7 @@ let buffer = Buffer.create 65000
 let flush_buffer t offset =
   if verbose then lprintf "flush_buffer\n";
   let s = Buffer.contents buffer in
-  Buffer.clear buffer;
+  Buffer.reset buffer;
   let len = String.length s in
   try
     if verbose then lprintf "seek64 %Ld\n" offset;
@@ -1054,7 +1054,7 @@ let flush_fd t =
     match t.buffers with
       [] -> ()
     | (s, pos_s, len_s, offset, len) :: tail ->
-        Buffer.clear buffer;
+        Buffer.reset buffer;
         Buffer.add_substring buffer s pos_s len_s;
         t.buffers <- tail;
         iter_in offset len

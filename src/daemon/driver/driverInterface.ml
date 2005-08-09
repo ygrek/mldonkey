@@ -578,7 +578,7 @@ let gui_reader (gui: gui_record) t _ =
           | P.Command cmd ->
               let o = gui.gui_conn in
               let buf = o.conn_buf in
-              Buffer.clear buf;
+              Buffer.reset buf; 
               Buffer.add_string buf "\n----------------------------------\n";
               Printf.bprintf buf "Eval command: %s\n\n" cmd;
               DriverControlers.eval (ref true) cmd o;
