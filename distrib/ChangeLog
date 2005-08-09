@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/09: spiralvoice
 
+4287: Better clear Fifo buffers, by bogeyman
 4268: Web/Gui: free core's buffer allocated by vd # and gui
       by bogeyman
 

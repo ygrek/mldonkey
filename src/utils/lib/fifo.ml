@@ -23,7 +23,7 @@ exception Empty;;
 type 'a t = { mutable inlist : 'a list; mutable outlist : 'a list };;
 
 let create () = {inlist = []; outlist = []};;
-let put t e = 
+let put t e =
   t.inlist <- e :: t.inlist
 
 let rec take t =
@@ -35,7 +35,7 @@ let rec take t =
       match t.outlist with
         e :: queue -> t.outlist <- queue; e
       | [] -> raise Empty
-let clear t = 
+let clear t =
   t.inlist <- [];
   t.outlist <- []
 
@@ -55,22 +55,21 @@ let to_list t =
   t.outlist <- t.outlist @ (List.rev t.inlist);
   t.inlist <- [];
   t.outlist
-  
+
 let length t = List.length t.inlist + List.length t.outlist
 let put_back t l = t.outlist <- l@t.outlist
-  
+
     *)
 
 exception Empty;;
 
-type 'a t = { 
+type 'a t = {
     mutable empty : bool;
     mutable inpos : int;
     mutable outpos : int;
     mutable array : 'a array;
     mutable size : int; (* bit Mask *)
   }
-  
 
 let create () = {
     empty = true;
@@ -81,8 +80,8 @@ let create () = {
   }
 
 let iter f t =
-  if not t.empty then 
-    if t.inpos > t.outpos then 
+  if not t.empty then
+    if t.inpos > t.outpos then
       for i = t.outpos to t.inpos - 1 do
         f t.array.(i)
       done
@@ -92,13 +91,13 @@ let iter f t =
         done;
         for i = 0 to t.inpos - 1 do
           f t.array.(i)
-        done        
+        done
       end
 
 let mem t v =
   try
-    if not t.empty then 
-      if t.inpos > t.outpos then 
+    if not t.empty then
+      if t.inpos > t.outpos then
         for i = t.outpos to t.inpos - 1 do
           if t.array.(i) = v then raise Exit;
         done
@@ -108,11 +107,11 @@ let mem t v =
           done;
           for i = 0 to t.inpos - 1 do
             if t.array.(i) = v then raise Exit
-          done        
+          done
         end;
       false
   with _ -> true
-  
+
 let realloc t =
   let len = Array.length t.array in
   let tab = Array.create (2*len) t.array.(0) in
@@ -123,8 +122,26 @@ let realloc t =
   t.outpos <- 0;
   t.inpos <- len;
   t.size <- t.size * 2 + 1
-  
-let put t e = 
+
+let shrink t =
+  if t.size > 3 then begin
+    let len = Array.length t.array in
+    let tab = Array.create (len/2) t.array.(0) in
+    if t.outpos < t.inpos then begin
+      Array.blit t.array t.outpos tab 0 (t.inpos - t.outpos);
+      t.inpos <- t.inpos - t.outpos;
+    end else begin
+      let ol = len - t.outpos in
+      Array.blit t.array t.outpos tab 0 ol;
+      Array.blit t.array 0 tab ol t.inpos;
+      t.inpos <- ol + t.inpos;
+    end;
+    t.array <- tab;
+    t.outpos <- 0;
+    t.size <- (t.size - 1) / 2 ;
+  end
+
+let put t e =
 (*  lprintf "FIFO PUT"; lprint_newline (); *)
   if t.inpos = t.outpos && not t.empty then realloc t;
   t.array.(t.inpos) <- e;
@@ -135,25 +152,36 @@ lprintf "FIFO NOT EMPTY %s" (string_of_bool t.empty); lprint_newline ();
 *)
   ()
 
-let take t =
-(*  lprintf "FIFO TAKE"; lprint_newline (); *)
-  if t.empty then raise Empty;
-  let e = t.array.(t.outpos) in
-  t.outpos <- (t.outpos + 1) land t.size;
-  t.empty <- (t.outpos = t.inpos);
-  e
-  
-let clear t = 
+let clear t =
 (*  lprintf "FIFO CLEAR"; lprint_newline (); *)
+  let tab = Array.create 4 t.array.(0) in
+  t.array <- tab;
+  t.size <- 3;
   t.empty <- true;
   t.inpos <- 0;
   t.outpos <- 0
+
+let length t =
+(*  lprintf "FIFO LEN"; lprint_newline (); *)
+  if t.empty then 0 else
+  if t.inpos > t.outpos then t.inpos - t.outpos else
+  let s = Array.length t.array in
+  s + t.inpos - t.outpos
+
+let take t =
+(*  lprintf "FIFO TAKE"; lprint_newline (); *)
+  if t.empty then raise Empty;
+  if (length t) < ((t.size + 1) / 4) then shrink t;
+  let e = t.array.(t.outpos) in
+  t.outpos <- (t.outpos + 1) land t.size;
+  if t.outpos = t.inpos then clear t;
+  e
 
 let head t =
   if t.empty then raise Empty;
   t.array.(t.outpos)
 
-let empty t = 
+let empty t =
 (*  lprintf "FIFO EMPTY %s" (string_of_bool t.empty); lprint_newline (); *)
   t.empty
 
@@ -187,21 +215,13 @@ let to_array t =
   Array.blit t.array 0 tab (s - t.outpos) t.inpos;
   tab
 
-let length t = 
-(*  lprintf "FIFO LEN"; lprint_newline (); *)
-  if t.empty then 0 else
-  if t.inpos > t.outpos then t.inpos - t.outpos else
-  let s = Array.length t.array in
-  s + t.inpos - t.outpos 
-  
-let put_back_ele t e = 
+let put_back_ele t e =
   if t.inpos = t.outpos && not t.empty then realloc t;
   t.outpos <- (t.outpos - 1) land t.size;
   t.array.(t.outpos) <- e;
   t.empty <- false
-  
-  
-let rec put_back t list = 
+
+let rec put_back t list =
   match list with
     [] -> ()
   | ele :: tail ->
@@ -218,7 +238,7 @@ let reformat t =
       t.inpos <- len;
       t.outpos <- 0;
     end
-    
+
 let remove t e =
   if not t.empty then begin
       if t.outpos >= t.inpos then reformat t;
@@ -228,7 +248,7 @@ let remove t e =
         if i >= t.inpos then
           (if i > j then begin
                 t.inpos <- j;
-                t.empty <- (t.inpos = t.outpos);
+                if t.inpos = t.outpos then clear t;
               end)
         else
         let ee = t.array.(i) in
@@ -246,7 +266,7 @@ let remove t e =
     end
 
 (* TEST SUITE
-  
+
 let t = Fifo.create ();;
 
 for i = 0 to 100 do
