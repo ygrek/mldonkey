@@ -682,6 +682,8 @@ let update_client_from_tags c tags =
 	        let brand = 
 		  identify_client_compat_brand num c.client_brand
 		in c.client_brand <- brand;
+		if brand = Brand_unknown then
+		  lprintf_nl () "Brand_unknown %s" (full_client_identifier c);
               c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
       | Field_UNKNOWN "mod_version" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
@@ -706,6 +708,8 @@ let update_emule_proto_from_tags c tags =
 	    let brand =
 	      identify_client_compat_brand i c.client_brand
 	    in c.client_brand <- brand;
+	    if brand = Brand_unknown then
+	      lprintf_nl () "Brand_unknown %s" (full_client_identifier c);
 	    c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
       | Field_UNKNOWN "compression" ->
           for_int_tag tag (fun i ->

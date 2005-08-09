@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/09: spiralvoice
 
+4291: EDK: Better logging for unknown compatibleclient values
 4290: BT: Some small fixes for messages interested and cancel
       by beedauchon
 4289: LOG: Improve verbosity "hid"
