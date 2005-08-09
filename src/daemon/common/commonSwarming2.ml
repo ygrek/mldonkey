@@ -2341,8 +2341,8 @@ let received (up : uploader) (file_begin : Int64.t)
                       string_len < string_length then begin
                         if !verbose_hidden_errors then
                         begin
-                        lprintf_nl () "BAD WRITE for range %Ld-%Ld (string_pos %d)"
-                          r.range_begin r.range_end string_pos;
+                        lprintf_nl () "BAD WRITE in %s for range %Ld-%Ld (string_pos %d)"
+                          (file_best_name t.t_file) r.range_begin r.range_end string_pos;
                         lprintf_nl () "  received: file_pos:%Ld string:%d %d"
                           file_begin string_begin string_len;
                         lprintf_nl () "  ranges:";
@@ -2829,6 +2829,7 @@ it is verified as soon as possible. *)
       in
       if !verbose then lprintf_nl () "Downloaded after present %Ld" (downloaded t);
 
+(*
       if !verbose then lprintf_nl () "Loading absent...";
       (try
           set_absent t
@@ -2839,6 +2840,7 @@ it is verified as soon as possible. *)
               (Printexc2.to_string e);
       );
       if !verbose then lprintf_nl () "Downloaded after absent %Ld" (downloaded t);
+*)
       (try
           let d = get_value "file_downloaded" value_to_int64 in
 

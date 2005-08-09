@@ -601,6 +601,7 @@ let connect name host port handler =
       t
     with 
       Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
+    | Unix.Unix_error (Unix.ENETUNREACH,_,_) as e -> raise e
     | e -> 
         lprintf "For host %s port %d\n"
 	  (Unix.string_of_inet_addr host) port;

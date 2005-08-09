@@ -335,7 +335,7 @@ let remember_shared_info file new_name =
           Unix32.mtime disk_name
         with _ ->
             if !verbose_hidden_errors then
-              lprintf_nl () "Trying mtime on new name %s, disk_name %s"
+              lprintf_nl () "Share: Trying mtime on new name %s, disk_name %s, too much files in shared_files_new.ini"
 	        new_name (file_disk_name file);
             Unix32.mtime new_name
       in

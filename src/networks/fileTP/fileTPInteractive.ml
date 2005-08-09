@@ -474,9 +474,4 @@ let _ =
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_forget_search <- (fun s -> ());
   (* and Network.recover_temp *)
-  network.op_network_recover_temp <-
-    (fun _ ->
-     if !verbose_hidden_errors then
-       lprintf_nl "[FILETP]: recover_temp is not implemented for FileTP.";
-    );
-
+  network.op_network_recover_temp <- (fun s -> ())

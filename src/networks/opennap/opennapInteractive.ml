@@ -262,11 +262,7 @@ let _ =
   network.op_network_parse_url <- (fun _ -> false);
   network.op_network_load_complex_options <- (fun _ -> ());
 
-  network.op_network_recover_temp <-
-   (fun _ ->
-    if !verbose_hidden_errors then
-       lprintf "recover_temp is not implemented for Opennap.\n";
-   );
+  network.op_network_recover_temp <- (fun s -> ());
 
   network.op_network_add_server <- (fun ip port ->
       as_server (new_server (Ip.ip_of_addr ip) port).server_server

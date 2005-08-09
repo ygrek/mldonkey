@@ -164,11 +164,7 @@ let _ =
   *)
   network.op_network_enable <- enable;
   network.network_config_file <- [gnutella_ini];
-  network.op_network_recover_temp <-
-   (fun _ ->
-    if !verbose_hidden_errors then
-       lprintf "recover_temp is not implemented for Gnutella.\n";
-   );
+  network.op_network_recover_temp <- (fun s -> ());
 
   network.op_network_info <- (fun n ->
       { 

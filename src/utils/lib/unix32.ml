@@ -43,10 +43,7 @@ let rw_flag =  [Unix.O_CREAT; Unix.O_RDWR]
 let really_write fd s pos len =
   try
     Unix2.really_write fd s pos len
-  with e ->
-      lprintf "Exception in really_write: pos=%d len=%d, string length=%d\n"
-        pos len (String.length s);
-      raise e
+  with e -> raise e
 
 module FDCache = struct
     
@@ -105,7 +102,7 @@ module FDCache = struct
       let fd =
         match t.fd with
           None ->
-            if !cache_size >= !max_cache_size then  close_one ();
+            if !cache_size >= !max_cache_size then close_one ();
             let fd =
               if writable then begin
                 try
@@ -186,7 +183,14 @@ module FDCache = struct
       let fd = local_force_fd file true in
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
-      really_write fd string string_pos len
+      begin
+        try
+	  really_write fd string string_pos len
+	with e ->
+	    lprintf_nl "[Unix32] Exception %s in write: file %s file_pos=%Ld len=%d string_pos=%d, string length=%d"
+	      (Printexc2.to_string e) file.filename file_pos len string_pos (String.length string);
+	    raise e
+      end
 
     let copy_chunk t1 t2 pos1 pos2 len64 =
       check_destroyed t1;

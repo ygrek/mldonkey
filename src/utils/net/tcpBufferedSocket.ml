@@ -1381,6 +1381,7 @@ let connect token name host port handler =
         forecast_download t 0;  (* The TCP ACK packet *)
         forecast_upload t 0;    (* The TCP ACK packet *)
         t
+    | Unix.Unix_error (Unix.ENETUNREACH,_,_) as e -> raise e
     | e ->
         lprintf "For host %s:%d   "
             (Unix.string_of_inet_addr host) port;

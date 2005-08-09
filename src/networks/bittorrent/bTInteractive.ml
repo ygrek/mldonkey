@@ -920,11 +920,7 @@ let _ =
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_search <- (fun ss buf -> ());
   (* and Network.recover_temp *)
-  network.op_network_recover_temp <-
-    (fun _ ->
-     if !verbose_hidden_errors then
-       lprintf_nl () "recover_temp is not implemented for Bittorrent.";
-    );
+  network.op_network_recover_temp <- (fun s -> ());
 
   client_ops.op_client_info <- op_client_info;
   client_ops.op_client_connect <- op_client_connect;

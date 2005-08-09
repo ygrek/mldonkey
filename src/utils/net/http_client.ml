@@ -390,7 +390,7 @@ let wget r f =
       try
         (f filename : unit);
         Sys.remove filename
-      with  e ->  lprintf_nl ()
+      with e ->  lprintf_nl ()
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
           Sys.remove filename;
@@ -402,6 +402,7 @@ let whead r f =
   
   get_page r
     (fun maxlen headers ->
+     if !verbose then
       lprintf_nl () "headers...";
       (try f headers with _ -> ());
       fun sock nread -> 
