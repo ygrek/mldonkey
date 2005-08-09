@@ -860,19 +860,19 @@ and client_to_client c sock msg =
                       (AvailableCharBitmap bitmap));
               c.client_registered_bitfield <- true;
               c.client_bitmap <- Some bitmap;
-              send_interested c;
+              (* send interested if we are *)
+              if c.client_interesting then
+                send_interested c;
               if !verbose_msg_clients then
                 lprintf_nl () "New BitField Registered";
 (*        for i = 1 to max_range_requests - List.length c.client_ranges do
           (try get_from_client sock c with _ -> ())
         done*)
         end;
-        (*a bitfield must only be sent after the handshake and before everything else: NOT here
-          if c.client_incoming then send_bitfield c;
-        *)
+        (* Note: a bitfield must only be sent after the handshake and before everything else: NOT here *)
 
     | Have n ->
-(*A client can send a "Have" without sending a Bitfield*)
+        (* A client can send a "Have" without sending a Bitfield *)
         begin
           match c.client_file.file_swarmer with
             None -> ()
@@ -985,9 +985,16 @@ and client_to_client c sock msg =
           end;
 
     | Ping -> ()
-        (*We don't 'generate' a Ping message on a Ping.*)
+        (* We don't 'generate' a Ping message on a Ping. *)
 
-    | Cancel _ -> ()
+    | Cancel (n, pos, len) ->
+        (* if we receive a cancel message from a peer, remove request *)
+        if client_has_a_slot (as_client c) then
+          c.client_upload_requests <- List2.remove_first (n, pos, len) c.client_upload_requests
+        else
+          if !verbose_msg_clients then
+            lprintf_nl () "Error: received cancel request but client has no slot"
+
   with e ->
       lprintf_nl () "Error %s while handling MESSAGE: %s" (Printexc2.to_string e) (TcpMessages.to_string msg)
 
@@ -1422,7 +1429,7 @@ let rec iter_upload sock c =
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
          (* update upload rate from len bytes *)
-          Rate.update c.client_upload_rate  (float_of_int len);
+          Rate.update c.client_upload_rate  (float_of_int (len / 2));
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
           let _ =
             (* update stats *)
