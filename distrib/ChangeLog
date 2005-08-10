@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/11: spiralvoice (version 2.6.2 = tag release-2-6-2)
+
+4296: BT: Fix options parsing
+
 2005/08/09: spiralvoice (version 2.6.1 = tag release-2-6-1)
 
 4291: EDK: Better logging for unknown compatibleclient values

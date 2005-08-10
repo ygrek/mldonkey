@@ -131,7 +131,7 @@ let value_to_file file_size file_state assocs =
 
         let file_name = get_value "file_name" value_to_string in
         let file_name_utf8 = Charset.to_utf8 file_name in
-        let file_comment = get_value "file_comment" value_to_string in
+        let file_comment = try get_value "file_comment" value_to_string with Not_found -> "" in
         let file_id =
           try
             Sha1.of_string (get_value "file_id" value_to_string)
@@ -146,11 +146,11 @@ let value_to_file file_size file_state assocs =
               (from_value Sha1.option))
         in
         let file_size = get_value "file_size" value_to_int64 in
-        let file_created_by = get_value "file_created_by" value_to_string in
-        let file_creation_date = get_value "file_creation_date" value_to_int64 in
-        let file_modified_by = get_value "file_modified_by" value_to_string in
-        let file_encoding = get_value "file_encoding" value_to_string in
-        let file_is_private = get_value "file_is_private" value_to_int64 in
+        let file_created_by = try get_value "file_created_by" value_to_string with Not_found -> "" in
+        let file_creation_date = try get_value "file_creation_date" value_to_int64 with Not_found -> Int64.zero in
+        let file_modified_by = try get_value "file_modified_by" value_to_string with Not_found -> "" in
+        let file_encoding = try get_value "file_encoding" value_to_string with Not_found -> "" in
+        let file_is_private = try get_value "file_is_private" value_to_int64 with Not_found -> Int64.zero in
         let file_files =
           try
             let file_files = (get_value "file_files"
@@ -215,6 +215,7 @@ let value_to_file file_size file_state assocs =
         Int64Swarmer.value_to_swarmer swarmer assocs;
   );
 
+(*
   (try
       ignore
         (get_value  "file_sources" (
@@ -223,7 +224,7 @@ let value_to_file file_size file_state assocs =
         lprintf_nl () "Exception %s while loading sources"
           (Printexc2.to_string e);
   );
-
+*)
   as_file file
 
 let file_to_value file =
