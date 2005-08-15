@@ -763,9 +763,14 @@ let commands =
           fname :: [comm] -> filename := fname; comment := comm
         | [fname] -> filename := fname
         | _ -> raise Not_found);
-        let announce = Printf.sprintf "http://%s:%d/"
-          (Ip.to_string (CommonOptions.client_ip None))
-          !!BTTracker.tracker_port in
+        let announce = 
+          if !!BTTracker.default_tracker = "" then
+            Printf.sprintf "http://%s:%d/announce"
+              (Ip.to_string (CommonOptions.client_ip None))
+              !!BTTracker.tracker_port 
+          else
+            !!BTTracker.default_tracker
+        in
 
         let basename = Filename.basename !filename in
         let torrent = Filename.concat seeded_directory

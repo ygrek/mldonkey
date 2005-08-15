@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/15: spiralvoice
 
+4311: BT: create_torrent: default_tracker and default_comment
 4309: GUI: send ed2k/bt network u/d totals
 4308: Gnutella/G2: Fix commit if no TigerTree is available
 4305: buildinfo: Print some system internals

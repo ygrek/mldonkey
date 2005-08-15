@@ -114,6 +114,15 @@ let tracker_use_key = define_option bittorrent_section ["tracker_use_key"]
   "The tracker will check the client key to update ip if changed"
     bool_option true
 
+let default_tracker = define_option bittorrent_section ["default_tracker"]
+    "Let you define a default tracker for creating torrents (leave empty for mlnet tracker)"
+    string_option ""
+
+let default_comment = define_option bittorrent_section ["default_comment"]
+    "Let you define a default comment for creating torrents"
+    string_option ""
+
+
 let int64_of_string v =
   try
     Int64.of_string v
