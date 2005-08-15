@@ -42,6 +42,10 @@ open CommonOptions
 open CommonGlobals
   
 module P = GuiProto
+let lprintf_nl () =
+  lprintf "%s[dIface] "
+    (log_time ()); lprintf_nl2
+
 
 let binary_gui_send gui t =
   match gui.gui_sock with
@@ -159,6 +163,14 @@ let update_room_info room =
       impl.impl_room_update <- !gui_counter
     end
   
+let update_network_info n =
+  let update = 0 in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update n.network_num (gui.gui_events.gui_networks)
+      );
+    end
+  
 let update_result_info r =
   let r = IndexedResults.get_result r in
 (*  let update = r.result_update in
@@ -222,6 +234,9 @@ let send_event gui ev =
   | Console_message_event msg ->
       gui_send gui (P.Console msg)
 
+  | Network_info_event n ->
+      gui_send gui (P.Network_info (network_info n))
+
   | _ ->  lprintf "Event not treated\n"
     
 let send_update_file gui file_num update =
@@ -241,6 +256,11 @@ let send_update_user gui user_num update =
   let user = user_find user_num in
   let user_info = P.User_info (user_info user) in
   gui_send gui user_info
+  
+let send_update_network gui network_num update =
+  let network = network_find_by_num network_num in
+  let network_info = P.Network_info (network_info network) in
+  gui_send gui network_info
   
 let send_update_client gui client_num update =
   let client = client_find client_num in
@@ -325,6 +345,7 @@ let connecting_writer gui _ =
         (gui.gui_events.gui_rooms, send_update_room);
         (gui.gui_events.gui_results, send_update_result);
         (gui.gui_events.gui_shared_files, send_update_shared);      
+        (gui.gui_events.gui_networks, send_update_network);      
       ]
 
                     
@@ -386,6 +407,7 @@ let gui_initialize gui =
       gui.gui_users <- create_events ();
       gui.gui_results <- create_events ();
       gui.gui_shared_files <- create_events ();
+      gui.gui_networks <- create_events ();
     
     
     end else begin
@@ -514,8 +536,7 @@ let gui_reader (gui: gui_record) t _ =
           (to_gui_last_opcode + 1) version;
         gui.gui_proto_from_gui_version <- Array.create 
           (from_gui_last_opcode + 1) version;
-        lprintf "Using protocol %d for communications with the GUI\n" 
-          version    
+        lprintf_nl () "GUI protocol %d" version    
     
     | P.GuiExtensions list ->
         List.iter (fun (ext, bool) ->
@@ -1070,6 +1091,7 @@ let gui_events () =
       gui_users = create_events ();
       gui_results = create_events ();
       gui_shared_files = create_events ();
+      gui_networks = create_events ();
     
   }
   
@@ -1112,7 +1134,7 @@ let gui_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf "GUI: Connection from %s\n" (Ip.to_string from_ip);
+      lprintf_nl () "GUI connection from %s" (Ip.to_string from_ip);
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1141,7 +1163,7 @@ let gui_handler t event =
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf "Connection from IP %s not allowed\n"
+          lprintf_nl () "GUI connection from %s rejected (see allowed_ips setting)"
             (Ip.to_string from_ip);
           Unix.close s
         end
@@ -1243,6 +1265,9 @@ let rec update_events list =
           | User_info_event u ->
               update_user_info u
           
+          | Network_info_event n ->
+              update_network_info n;
+
           | Client_new_file_event (c,_,r) ->
               update_client_info c;
               update_result_info r;

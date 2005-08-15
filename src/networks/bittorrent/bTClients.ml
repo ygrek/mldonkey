@@ -767,6 +767,7 @@ and client_to_client c sock msg =
             (* update the stats *)
             let len64 = Int64.of_int len in
             count_download c file len64;
+            network_must_update network;
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
                   [] -> lprintf_nl () "EMPTY Ranges !!!"
@@ -1447,6 +1448,7 @@ let rec iter_upload sock c =
           (* update stats *)
           let uploaded = Int64.of_int len in
           count_upload c file uploaded;
+          network_must_update network;
           iter_upload sock c
         end else
         begin

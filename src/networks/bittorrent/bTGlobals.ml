@@ -118,6 +118,9 @@ let files_by_uid = Hashtbl.create 13
 let max_range_len = Int64.of_int (1 lsl 14)
 let max_request_len = Int64.of_int (1 lsl 16)
 
+let bt_download_counter = ref Int64.zero
+let bt_upload_counter = ref Int64.zero
+
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
   lprintf "%s[BT] "

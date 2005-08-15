@@ -143,8 +143,8 @@ let _ =
         network_netflags = network.network_flags;
         network_netname = network.network_name;
         network_enabled = network.op_network_is_enabled ();
-        network_uploaded = Int64.zero;
-        network_downloaded = Int64.zero;
+        network_uploaded = !bt_upload_counter;
+        network_downloaded = !bt_download_counter;
         network_connected = 0;
       });
   CommonInteractive.register_gui_options_panel "BitTorrent"

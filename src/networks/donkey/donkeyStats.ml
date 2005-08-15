@@ -518,6 +518,7 @@ let count_download c f v =
   download_counter := Int64.add !download_counter v;
   c.client_downloaded <- Int64.add c.client_downloaded v;
   stats_all.brand_download <- Int64.add stats_all.brand_download v;
+  donkey_download_counter := Int64.add !donkey_download_counter v;
   if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_download <- Int64.add mod_stats_all.brand_mod_download v;
   (match c.client_brand with
       Brand_unknown -> ()
@@ -540,6 +541,7 @@ let count_upload c f v =
   upload_counter := Int64.add !upload_counter v;
   c.client_uploaded <- Int64.add c.client_uploaded v;
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
+  donkey_upload_counter := Int64.add !donkey_upload_counter v;
   if !!emule_mods_count && c.client_mod_brand <> Brand_mod_unknown then mod_stats_all.brand_mod_upload <- Int64.add mod_stats_all.brand_mod_upload v;
   (match c.client_brand with
       Brand_unknown -> ()

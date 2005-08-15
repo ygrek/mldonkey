@@ -595,8 +595,11 @@ let telnet_handler t event =
             "\n$bWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
-      else
+      else begin
+        lprintf_nl () "Telnet connection from %s rejected (see allowed_ips setting)"
+          (Ip.to_string from_ip);
         Unix.close s
+      end
 
   | _ -> ()
 

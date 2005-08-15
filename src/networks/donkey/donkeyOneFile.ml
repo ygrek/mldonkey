@@ -430,6 +430,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
           set_client_state c (Connected_downloading (file_num file));
           let len64 = Int64.of_int bloc_len in
           count_download c file len64;
+          network_must_update network;
 
 (* TODO: verify the received data has been requested *)
           

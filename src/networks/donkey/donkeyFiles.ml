@@ -29,6 +29,7 @@ open CommonFile
 open CommonUser
 open CommonSearch
 open CommonTypes
+open CommonInteractive
 open Options
 open BasicSocket
 open TcpBufferedSocket
@@ -106,6 +107,7 @@ module NewUpload = struct
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c file uploaded;
+        network_must_update network;
         (match file.file_shared with None -> ()
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);

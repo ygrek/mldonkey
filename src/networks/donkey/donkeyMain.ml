@@ -355,8 +355,8 @@ let _ =
         network_netname = network.network_name;
         network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
-        network_uploaded = Int64.zero;
-        network_downloaded = Int64.zero;
+        network_uploaded = !donkey_upload_counter;
+        network_downloaded = !donkey_download_counter;
         network_connected = List.length (connected_servers ());
       });
   CommonInteractive.register_gui_options_panel "eDonkey" 

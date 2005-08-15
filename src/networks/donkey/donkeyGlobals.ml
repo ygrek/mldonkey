@@ -122,6 +122,9 @@ let tag_file   = 202
 
 let page_size = Int64.of_int 4096
 
+let donkey_download_counter = ref Int64.zero
+let donkey_upload_counter = ref Int64.zero
+
 let client_to_client_tags = ref ([] : tag list)
 let client_to_server_tags = ref ([] : tag list)
 let emule_info =

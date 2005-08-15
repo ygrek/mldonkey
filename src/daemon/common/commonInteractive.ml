@@ -432,6 +432,10 @@ let start_search user query buf =
   end;
   s
 
+
+let network_must_update n =
+   CommonEvent.add_event (Network_info_event n)
+
 let network_display_stats buf o =
   networks_iter_all (fun r ->
     try

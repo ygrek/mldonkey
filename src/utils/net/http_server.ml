@@ -822,8 +822,11 @@ let handler config t event =
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> TcpBufferedSocket.close sock Closed_for_overflow;
 	       lprintf_nl () "BUFFER OVERFLOW" );  ()
-      else
+      else begin
+         lprintf_nl () "HTTP connection from %s rejected (see allowed_ips setting)"
+          (Ip.to_string from_ip);
         Unix.close s
+      end
   | _ -> ()
 
 let create config =

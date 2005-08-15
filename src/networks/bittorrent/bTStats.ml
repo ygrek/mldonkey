@@ -121,6 +121,7 @@ let count_download c f v =
   download_counter := Int64.add !download_counter v;
   c.client_downloaded <- Int64.add c.client_downloaded v;
   stats_all.brand_download <- Int64.add stats_all.brand_download v;
+  bt_download_counter := Int64.add !bt_download_counter v;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->
@@ -133,6 +134,7 @@ let count_upload c f v =
   upload_counter := Int64.add !upload_counter v;
   c.client_uploaded <- Int64.add c.client_uploaded v;
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
+  bt_upload_counter := Int64.add !bt_upload_counter v;
   (match c.client_brand with
       Brand_unknown -> ()
     | b ->

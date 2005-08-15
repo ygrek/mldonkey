@@ -728,6 +728,7 @@ sending it twice. *)
     mutable gui_rooms : numevents;
     mutable gui_results : numevents;
     mutable gui_shared_files : numevents;
+    mutable gui_networks : numevents;
   
   }
   
@@ -745,6 +746,7 @@ and event =
 | Room_info_event of room
 | Result_info_event of result
 | Shared_info_event of shared
+| Network_info_event of network
 
 | Client_new_file_event of client * string * result
 | File_add_source_event of file * client
