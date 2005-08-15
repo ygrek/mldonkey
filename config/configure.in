@@ -455,6 +455,7 @@ echo "ocamlc version is $OCAMLVERSION"
     REBUILD_OCAML=no
   case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    3.08.3*) ;;
     3.08.2*)
         if test "$system" = "rhapsody"; then
             case "$OCAMLVERSION" in
