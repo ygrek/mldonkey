@@ -10,8 +10,9 @@ ChangeLog
 
 2005/08/15: spiralvoice
 
-4311: BT: create_torrent: default_tracker and default_comment
-4309: GUI: send ed2k/bt network u/d totals
+4312: BT: Prevent connection with ourself (by beedauchon)
+4311: BT: create_torrent: default_tracker and default_comment (by beedauchon)
+4309: GUI: send ed2k/bt network u/d totals (by z)
 4308: Gnutella/G2: Fix commit if no TigerTree is available
 4305: buildinfo: Print some system internals
 4304: EDK: Fix disconnect state with verbosity = "hid"

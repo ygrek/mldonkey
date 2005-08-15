@@ -714,6 +714,8 @@ and client_to_client c sock msg =
     end;
 
   let file = c.client_file in
+
+(* Sending the "Have" message was moved to bTGlobals so this is useless *)
 (*  if c.client_blocks_sent != file.file_blocks_downloaded then begin
       let rec iter list =
         match list with
@@ -763,6 +765,7 @@ and client_to_client c sock msg =
             (*Update rate and amount of data received from client*)
             c.client_downloaded <- c.client_downloaded ++
               (new_downloaded -- old_downloaded);
+            (* use len here with max_dr quickfix *)
             Rate.update c.client_downloaded_rate  (float_of_int len);
             (* update the stats *)
             let len64 = Int64.of_int len in
@@ -792,7 +795,7 @@ and client_to_client c sock msg =
               c.client_ranges_sent <- tail;
         end;
         get_from_client sock c;
-        if (List.length !current_uploaders < (!!max_uploaders_per_torrent-1)) &&
+        if (List.length !current_uploaders < (!!max_bt_uploaders-1)) &&
           (List.mem c (!current_uploaders)) == false && c.client_interested then
           begin
             (*we are probably an optimistic uploaders for this client
@@ -801,6 +804,9 @@ and client_to_client c sock msg =
             current_uploaders := c::(!current_uploaders);
             c.client_sent_choke <- false;
             set_client_has_a_slot (as_client c) true;
+            Rate.update_no_change c.client_downloaded_rate;
+            Rate.update_no_change c.client_upload_rate;
+            c.client_last_optimist <- last_time();
             client_enter_upload_queue (as_client c);
             send_client c Unchoke;
           end;
@@ -809,14 +815,39 @@ and client_to_client c sock msg =
         check_if_interesting file c
 
     | PeerID p ->
-      c.client_brand <- (parse_brand p);
-      c.client_software <- (parse_software p);
+      (* Disconnect if that is ourselves. *)
+      if not (c.client_uid = !!client_uid) then
+        begin
+          c.client_brand <- (parse_brand p);
+          c.client_software <- (parse_software p);
 (* TODO : enable it
       c.client_release <- (parse_release p c.client_brand);
  *)
-      c.client_uid <- Sha1.direct_of_string p;
-      (* Disconnect if that is ourselves. *)
-      if c.client_uid = !!client_uid then disconnect_client c Closed_by_user
+          c.client_uid <- Sha1.direct_of_string p;
+
+          if (List.length !current_uploaders < (!!max_bt_uploaders-1)) &&
+            (List.mem c (!current_uploaders)) == false then
+            begin
+            (*we are probably an optimistic uploader for this client
+              don't miss the opportunity if we can *)
+              current_uploaders := c::(!current_uploaders);
+              c.client_sent_choke <- false;
+              set_client_has_a_slot (as_client c) true;
+              Rate.update_no_change c.client_downloaded_rate;
+              Rate.update_no_change c.client_upload_rate;
+              c.client_last_optimist <- last_time();
+              client_enter_upload_queue (as_client c);
+              send_client c Unchoke;
+            end
+          else
+            begin
+              send_client c Choke;
+              c.client_sent_choke <- true;
+            end
+        end
+      else
+        disconnect_client c Closed_by_user
+
 
     | BitField p ->
         (*A bitfield is a summary of what a client have*)
@@ -1429,7 +1460,8 @@ let rec iter_upload sock c =
           CommonUploads.consume_bandwidth len;
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
-         (* update upload rate from len bytes *)
+          (* update upload rate from len bytes *)
+          (* will be reverted to len instead of len / 2 when rate bug will be fixed *)
           Rate.update c.client_upload_rate  (float_of_int (len / 2));
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
           let _ =
