@@ -102,9 +102,9 @@ if test ! -z "$SCM_VERSION"; then
 else
   echo ""
 fi
-REQUIRED_OCAML=3.08.3
+REQUIRED_OCAML=3.08.4
 DOWNLOAD_OCAML_MAJOR=3.08
-DOWNLOAD_OCAML=3.08.3
+DOWNLOAD_OCAML=3.08.4
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -283,6 +283,7 @@ else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    3.08.3*) ;;
     3.08.2*)
         if test "$system" = "rhapsody"; then
             case "$OCAMLVERSION" in
