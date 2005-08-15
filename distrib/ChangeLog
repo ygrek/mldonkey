@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/15: spiralvoice
 
+4317: Updated ./configure for compiling lablgtk2 with --enable-batch
 4316: Updated ./distrib/Install.txt for Ocaml 3.08.4 and new GUI options
 4292: html_mods: Match styles default frameHeight with the common default
 4314: Allow compiling with Ocaml 3.08.4

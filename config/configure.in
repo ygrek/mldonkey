@@ -928,7 +928,7 @@ else
           echo $PATH
 
           if test "$GUI" = "newgui2"; then
-            $GNU_MAKE configure --with-rsvg
+            ./configure --prefix=$LOCAL_DIR
             $GNU_MAKE world
             $GNU_MAKE install
           else
