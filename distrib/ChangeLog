@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/15: spiralvoice
 
+4305: buildinfo: Print some system internals
 4304: EDK: Fix disconnect state with verbosity = "hid"
 4297: Create ini file backups on shutdown
 Note: file_sources.ini is never saved, it makes no sense to keep this file.

@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64ops
 open Printf2
 open Options
 open CommonOptions
@@ -69,13 +68,40 @@ module ShortLazy : sig
 (*                                                                       *)
 (*************************************************************************)
 
+(* ripped from gui_misc *)
+
+let ko = 1024.0
+let mo = ko *. ko
+let go = mo *. ko
+let tob = go *. ko
+
+let size_of_int64 size =
+  if !!html_mods_human_readable then
+    let f = Int64.to_float size in
+  if f > tob then
+      Printf.sprintf "%.2fT" (f /. tob)
+  else
+     if f > go then
+      Printf.sprintf "%.2fG" (f /. go)
+     else
+      if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
+      else
+     if f > ko then
+       Printf.sprintf "%.1fk" (f /. ko)
+     else
+       Int64.to_string size
+  else
+    Int64.to_string size
+
 let networks_string = ref ""
 
 let patches_string = ref ""
 
 let version () =
-  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"
-    Autoconf.current_version !networks_string
+  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s) %s"
+    Autoconf.current_version !networks_string (string_of_float 2.)
+
 
 let buildinfo () =
   (
@@ -123,7 +149,23 @@ let buildinfo () =
           ^ " " ^ Autoconf.sha1_version
       ^ "\nLanguage: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
-  )
+      ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length
+      ^ " - word_size: " ^ string_of_int Sys.word_size
+      ^ " - max_array_length: " ^ string_of_int Sys.max_array_length
+      ^ "\n max file descriptors: " ^ string_of_int (Unix2.c_getdtablesize ())
+      ^ " - max useable file size: " ^ 
+	    (match Unix2.c_sizeofoff_t () with
+	     | 4 -> "2GB"
+
+	     |  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" ((Unix2.c_sizeofoff_t () *8)-1)
+
+(*
+	     | _ -> Printf.sprintf "%s"
+	       ((*size_of_int64*)(string_of_float(((2. ** (float_of_int((Unix2.c_sizeofoff_t () * 8)-1))) -. 1.)/. 8.)))
+*)
+
+	     ))
+
 
 (* Should we try to find another port when we cannot bind to the one set
 in an option, and then change the option accordingly. ?> *)
@@ -586,31 +628,6 @@ let html_mods_cntr () =
 let html_mods_cntr_init () =
   html_mods_counter := true
 
-(* ripped from gui_misc *)
-
-let ko = 1024.0
-let mo = ko *. ko
-let go = mo *. ko
-let tob = go *. ko
-
-let size_of_int64 size =
-  if !!html_mods_human_readable then
-    let f = Int64.to_float size in
-  if f > tob then
-      Printf.sprintf "%.2fT" (f /. tob)
-  else
-     if f > go then
-      Printf.sprintf "%.2fG" (f /. go)
-     else
-      if f > mo then
-      Printf.sprintf "%.1fM" (f /. mo)
-      else
-     if f > ko then
-       Printf.sprintf "%.1fk" (f /. ko)
-     else
-       Int64.to_string size
-  else
-    Int64.to_string size
 
 let debug_clients = ref Intset.empty
 
@@ -831,7 +848,7 @@ let for_int64_tag tag f =
 let for_two_int16_tag tag f =
   match tag.tag_value with
     Uint64 i | Fint64 i ->
-      let i1 = Int64.to_int (right64 i 16) in
+      let i1 = Int64.to_int (Int64ops.right64 i 16) in
       let i0 = Int64.to_int i in
       let i0 = i0 land 0xffff in
       let i1 = i1 land 0xffff in
