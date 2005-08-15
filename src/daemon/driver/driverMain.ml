@@ -74,6 +74,9 @@ let hourly_timer timer =
   incr CommonWeb.hours;
   CommonWeb.load_web_infos ();
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
+  if !!backup_options_delay <> 0
+     && !CommonWeb.hours mod !!backup_options_delay = 0 then
+       CommonComplexOptions.backup_options ();
   DriverControlers.check_calendar ();
   CommonWeb.connect_redirector ();
   CommonFile.propose_filenames ()
@@ -657,7 +660,7 @@ for config files at the end. *)
       Sys.remove security_space_filename;
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
-
+      CommonComplexOptions.backup_options ();
       lprintf_nl (_b "Core stopped")
     );
 

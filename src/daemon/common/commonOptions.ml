@@ -1064,6 +1064,19 @@ let emule_mods_showall = define_option current_section ["emule_mods_showall"]
     "show all eMule mods in statistics"
     bool_option false
 
+let backup_options_delay = define_option current_section ["backup_options_delay"]
+    "How often (in hours) should a backup of the ini files be written into old_config.
+  A value of zero means that a backup is written only when the core shuts down."
+    int_option 0
+
+let backup_options_generations = define_option current_section ["backup_options_generations"]
+    "Define the total number of options archives in old_config."
+    int_option 10
+
+let backup_options_format = define_option current_section ["backup_options_format"]
+    "Define the format of the archive, zip or tar.gz are valid."
+    string_option "tar.gz"
+
   (*
 let password = define_option current_section ["password"]
   "The password to access your client from the GUI (setting it disables

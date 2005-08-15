@@ -1356,9 +1356,15 @@ let _ =
         match args with
 	  ["options"] -> DriverInteractive.save_config (); _s "options saved"
 	| ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
+	| ["backup"] -> CommonComplexOptions.backup_options (); _s "backup saved"
+	| ["all"] ->
+	       DriverInteractive.save_config ();
+	       CommonComplexOptions.save_sources ();
+	       CommonComplexOptions.backup_options ();
+	        _s "options, sources and backup saved"
 	| _ -> DriverInteractive.save_config ();
 	       CommonComplexOptions.save_sources (); _s "options and sources saved"
-        ), "<options|sources|(empty for all)>:\t\tsave options and/or sources";
+        ), "<options|sources|backup (empty for options + sources)>:\t\tsave options and/or sources or backup";
 
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1672,6 +1678,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option max_client_name_len;
 			strings_of_option emule_mods_count;
 			strings_of_option emule_mods_showall;
+			strings_of_option backup_options_format;
+			strings_of_option backup_options_delay;
+			strings_of_option backup_options_generations;
 			strings_of_option chat_app_port;
 			strings_of_option chat_app_host;
 			strings_of_option chat_console_id;

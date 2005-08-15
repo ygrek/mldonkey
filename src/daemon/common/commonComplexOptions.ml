@@ -935,3 +935,124 @@ let save () =
 let save_sources () =
   networks_iter (fun n -> network_save_sources n);
   lprintf_nl () "Sources correctly saved"
+
+open Zip
+
+let backup_zip archive files =
+  begin
+    let oc = Zip.open_out archive in
+    try
+        List.iter (fun file ->
+	  begin
+	    try
+              let s = Unix.stat file in
+		Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.Unix.st_mtime file
+	    with e ->
+	      failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
+	  end
+        ) files;
+      Zip.close_out oc
+    with e ->
+	Zip.close_out oc;
+	failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
+  end
+
+open Tar
+
+let backup_tar archive files =
+  let failed_files = ref "" in
+  let otar = Tar.open_out ~compress:`Gzip archive in
+    List.iter (fun arg ->
+    begin
+      try
+	let ic = Pervasives.open_in_bin arg in
+	let stat = Unix.stat arg in
+	let size = stat.Unix.st_size in
+	if size > Sys.max_string_length then
+	  begin
+	    Tar.close_out otar;
+	    failwith (Printf.sprintf "Tar: file %s too big" arg)
+	  end;
+	let header = 
+	  { Tar.t_name = arg;
+	    t_mode = 0o644;
+            t_uid = stat.Unix.st_uid;
+            t_gid = stat.Unix.st_gid;
+            t_size = 0;
+            t_mtime = Int32.of_float stat.Unix.st_mtime;
+            t_chksum = 0;
+            t_typeflag = REGULAR;
+            t_linkname = "";
+	    t_format = POSIX_FORMAT;
+            t_uname = "";
+            t_gname = "";
+            t_devmajor = 0;
+            t_devminor = 0;
+            t_prefix = "";
+            t_gnu = None;}
+	in
+	let s = String.create size in
+	  Pervasives.really_input ic s 0 size;
+	  Pervasives.close_in ic;
+	  Tar.output otar header s
+	with e ->
+	  let error = (Printexc2.to_string e) in
+	    if error =
+	      "Gzip.Error(\"error during compression\")"
+	      && Autoconf.system = "windows"
+	      && arg = "fasttrack.ini" then
+              (* for whatever reason this error is raised on Windows,
+                 but fasttrack.ini is stored correctly *)
+	      if !verbose_hidden_errors then
+	        lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
+	    else
+	      begin
+		if !failed_files = "" then
+	          failed_files := arg
+		else
+    		  failed_files := Printf.sprintf "%s  %s" !failed_files arg;
+		  lprintf_nl () "Tar: error %s in %s" error arg
+              end
+    end
+    ) files;
+    Tar.close_out otar;
+    if !failed_files <> "" then
+      failwith (Printf.sprintf "Tar: error backing up %s" !failed_files)
+
+let backup_options () =
+  let counter = ref 1 in
+  let backup_prefix = "backup-" in
+  let old_backups = List.rev (List.sort (fun o -> compare o)
+    (List.filter (fun o -> (
+	String.lowercase (Filename2.extension o) = ".tar.gz"
+	|| String.lowercase (Filename2.extension o) = ".zip")
+	  && String.sub o 0 (String.length backup_prefix) = backup_prefix)
+    (Unix2.list_directory "old_config")))
+  in
+  List.iter (fun s ->
+    incr counter;
+    if !counter > !!backup_options_generations then
+        Sys.remove (Filename.concat "old_config" s)
+    ) old_backups;
+  let format =
+    begin
+      match !!backup_options_format with
+        "zip" -> ".zip"
+      | _ -> ".tar.gz"
+    end
+  in
+  begin
+    try
+    let archive = Filename.concat "old_config" (backup_prefix ^ Date.reverse (Unix.time ()) ^ format) in
+      let files = List.sort (fun o -> compare o) (List.filter (fun o ->
+	  String.lowercase (Filename2.last_extension o) = ".ini"
+	  && o <> "file_sources.ini") 
+	    (Unix2.list_directory file_basedir)) in
+      begin
+        match (Filename2.last_extension archive) with
+          ".zip" -> backup_zip archive files
+        | _ -> backup_tar archive files
+      end
+    with e -> lprintf_nl () "Exception %s while options backup" (Printexc2.to_string e); raise e
+  end;
+  lprintf_nl () "Options backup as %s correctly saved" format

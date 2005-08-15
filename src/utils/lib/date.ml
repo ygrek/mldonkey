@@ -11,6 +11,7 @@ type date_format =
 | Space
 | Colon
 | Dot
+| Minus
 | Zone
   
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
@@ -30,12 +31,13 @@ let string_of_date formats tm =
       | Day -> Printf.sprintf "%s%02d" s tm.Unix.tm_mday
       | WeekDay  -> Printf.sprintf "%s%s" s (!day tm.Unix.tm_wday)
       | Month -> Printf.sprintf "%s%s" s (!month tm.Unix.tm_mon)
-      | MonthNumber -> Printf.sprintf "%s%d" s (tm.Unix.tm_mon)
+      | MonthNumber -> Printf.sprintf "%s%02d" s (tm.Unix.tm_mon+1)
       | Year -> Printf.sprintf "%s%04d" s (1900+tm.Unix.tm_year)
       | Comma -> s ^ ","
       | Space -> s ^ " "
       | Colon -> s ^ ":"
       | Dot -> s ^ "."
+      | Minus -> s ^ "-"
       | Zone -> s ^ "-0000" (* BUG: RFC 2822: Though "-0000" also indicates Universal Time, it is
          used to indicate that the time was generated on a system that may be
 	    in a local time zone other than Universal Time and therefore
@@ -54,6 +56,10 @@ let to_full_string date =
 
 let simple date = 
   string_of_date [Hour;Colon;Minute;Colon;Second;Space; Space; WeekDay]
+    (Unix.localtime date)
+
+let reverse date = 
+  string_of_date [Year;MonthNumber;Day;Minus;Hour;Minute;Second]
     (Unix.localtime date)
   
 let mail_string date =

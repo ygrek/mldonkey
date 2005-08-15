@@ -8,6 +8,26 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/15: spiralvoice
+
+4297: Create ini file backups on shutdown
+Note: file_sources.ini is never saved, it makes no sense to keep this file.
+
+New options:
+
+* backup_options_format, default "tar.gz", "zip" can also be used
+
+* backup_options_delay, default 0
+How often (in hours) should a backup of the ini files be written into old_config.
+A value of zero means that a backup is written only when the core shuts down.
+
+* backup_options_generations, default 10
+Define the total number of options archives in old_config.
+
+Command save got two new parameters:
+* "save all" saves options, sources and creates a ini file backup
+* "save backup" speaks for itself;-)
+
 2005/08/11: spiralvoice (version 2.6.2 = tag release-2-6-2)
 
 4296: BT: Fix options parsing

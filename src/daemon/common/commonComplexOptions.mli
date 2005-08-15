@@ -20,6 +20,7 @@
 val load : unit -> unit
 val save : unit -> unit
 val save_sources : unit -> unit
+val backup_options : unit -> unit
   
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
@@ -43,5 +44,3 @@ val incoming_directories : unit -> CommonTypes.shared_directory
 val sharing_only_directory : CommonTypes.sharing_strategy
 
 val swarmers_section : Options.options_section
-  
-  
