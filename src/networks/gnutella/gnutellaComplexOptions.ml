@@ -150,7 +150,7 @@ let value_to_file file_size file_state assocs =
         Int64Swarmer.value_to_swarmer swarmer assocs;
         Int64Swarmer.set_verifier swarmer (
           match file.file_ttr with
-            None -> VerificationNotAvailable
+            None -> ForceVerification
           | Some ttr ->
               lprintf "[TTR] set_verifier\n";
               Verification (Array.map (fun ttr -> TigerTree ttr) ttr))

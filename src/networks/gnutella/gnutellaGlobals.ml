@@ -321,7 +321,7 @@ let new_file file_temporary file_name file_size file_uids =
   let kernel = Int64Swarmer.create_swarmer file_temp file_size 
       (Int64.of_int (256 * 1024))  in
   let swarmer = Int64Swarmer.create kernel (as_file file) megabyte in
-  Int64Swarmer.set_verifier swarmer VerificationNotAvailable;
+  Int64Swarmer.set_verifier swarmer ForceVerification;
   
 (* TODO: we could generalize this approach to any UID that is computed
   on the complete file (md5, sha1,...) *)
