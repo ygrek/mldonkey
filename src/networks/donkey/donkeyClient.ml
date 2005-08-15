@@ -2159,7 +2159,10 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                       
                 with
 		  Unix.Unix_error (Unix.ENETUNREACH,_,_) ->
-		    lprintf_nl () "Network unreachable for IP %s:%d" (Ip.to_string ip) port
+		    lprintf_nl () "Network unreachable for IP %s:%d"
+		      (Ip.to_string ip) port;
+                    set_client_disconnected c (Closed_connect_failed);
+                    DonkeySources.source_disconnected c.client_source
 		| e -> 
                     lprintf_nl () "Exception %s in client connection to IP %s:%d"
                       (Printexc2.to_string e) (Ip.to_string ip) port;
