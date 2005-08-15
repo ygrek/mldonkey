@@ -7,7 +7,7 @@ Compile mldonkey without GUI support
 You have to have zlib, zlib-dev and m4 packages installed.
 For gd-made statistics libgd2-dev should be installed.
 
-Mldonkey/> ./configure --disable-gui
+Mldonkey/> ./configure
 Mldonkey/> make
 
 There is no additional 'make install' command. Copy the file 'mlnet'
@@ -47,7 +47,7 @@ Compiling mldonkey with mldonkey_gui support:
 -------------------
 
 You have now two options to compile mldonkey:
-- Individually install Objective-Caml 3.08.3 and LablGTK 1.2.7 or LablGTK-2.4.0.
+- Individually install Objective-Caml 3.08.4, LablGTK 1.2.7 and/or LablGTK-2.4.0.
   Then, you can compile mldonkey. The instructions are given below at '1)'.
 - If you want to install ocaml and lablgtk only to compile mldonkey. You must
   have a good internet access (you want mldonkey after all :). You must have
@@ -65,15 +65,15 @@ is compiled.
 ------------------------------------------------------------------------
 1) Installing required tools: Objective-Caml 3.08.3 and LablGTK
 
- 1.1) Objective-Caml 3.08.3 (from http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.08.4 (from http://pauillac.inria.fr/caml)
 
-    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.3.tar.gz
-    ~/tmp> tar zxf ocaml-3.08.3.tar.gz
-    ~/tmp> cd ocaml-3.08.3
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.4.tar.gz
+    ~/tmp> tar zxf ocaml-3.08.4.tar.gz
+    ~/tmp> cd ocaml-3.08.4
 
-    ~/tmp/ocaml-3.08.0> ./configure
-    ~/tmp/ocaml-3.08.0> make world.opt
-    ~/tmp/ocaml-3.08.0> make install
+    ~/tmp/ocaml-3.08.4> ./configure
+    ~/tmp/ocaml-3.08.4> make world.opt
+    ~/tmp/ocaml-3.08.4> make install
 
  1.2.1) LablGTK 1.2.7 for GTK1
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
@@ -98,9 +98,9 @@ is compiled.
 
 2) Compiling mldonkey with GUI:
 
-    To build GTK1 newgui: ./configure
-    To build GTK1 oldgui: ./configure --disable-newgui
-    To build GTK2 GUI:    ./configure --enable-gtk2
+    To build GTK1 newgui: ./configure --enable-gui=newgui1
+    To build GTK1 oldgui: ./configure --enable-gui=oldgui
+    To build GTK2 GUI:    ./configure --enable-gui[=newgui2]
     lablgtk-1.2.7 and lablgtk-2.4.0 can both be installed at the same time.
 
     ~/tmp/mldonkey> make
@@ -109,49 +109,12 @@ is compiled.
   and 'mlgui' (the interface) No 'make install' is provided. 
 
   You can disable all other p2p networks using the --disable-multinet option
-   with ./configure. Only edonkey support will then be compiled.
+   with ./configure. Only edonkey support (including Overnet/Kademlia)
+   will then be compiled.
 
 ------------------------------------------------------------------------
 
-Using mldonkey:
----------------
-
-mldonkey binaries are normally distributed with only the content of the
-mldonkey/distrib/ directory. Consequently, all documentation files on how to
-use mldonkey are stored in this directory. You will also find default 
-configuration files in this directory, and in particular, a list of servers
-for edonkey in the servers.ini file.
-
- See the distrib/Readme.txt and distrib/FAQ.html files for more information
-on how to use mldonkey.
-
- Note that you should execute mldonkey in the distrib/ directory, where a
-list of servers is present with other files. It will create other
-configuration files in this directory. mldonkey_gui has its own configuration
-file in the user directory (~/.mldonkey_gui.ini). I would advise you to move
-mldonkey, mldonkey_gui, mldonkey_gui2 and mlchat to distrib/, then move this
-directory where you want to put your downloads, and then remove mldonkey 
-sources.
-
-You must NOT run mldonkey as root (or you should use the run_as_user
-option to change the user after the port has been bound).
-
 NOTES:
 ------
-2002/12/18: To compile on MinGW
- * configure: --enable-batch will not work, you must download and install ocaml
-    yourself
- * if ocamlopt/gcc fails to generate mldonkey.exe, add '-verbose -S'
-     to the LIBS_opt in the Makefile. Use 'make &> log' to keep the
-     commands, edit the 'log' file and remove all the commands except
-     the 2 last 'as' and 'gcc' lines. Then use 'sh ./log' to rerun
-     these commands, that should work this way :)
- * For a flawless compile these variables should be set
-   (OCAMLDIR means the root directory of the Ocaml binaries):
-   SET CAMLLIB=OCAMLDIR/lib
-   SET CAMLP4LIB=OCAMLDIR/lib/camlp4
-   SET OCAMLLIB=OCAMLDIR/lib
-   SET OCAMLRUNPARAM="l=256M"
- * On the MLDonkeyworld forum is a great thread with information about
-   how to compile MLDonkey with MinGW:
-   http://mldonkey.berlios.de/modules.php?name=Forums&file=viewtopic&t=1363
+To compile on MinGW read this guide:
+http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
