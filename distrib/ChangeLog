@@ -15,7 +15,7 @@ ChangeLog
 4292: html_mods: Match styles default frameHeight with the common default
 4314: Allow compiling with Ocaml 3.08.4
       Compiling with 3.08.3 still works
-4312: BT: Prevent connection with ourself (by beedauchon)
+4312: BT: Allow seeding (by beedauchon)
 4311: BT: create_torrent: default_tracker and default_comment (by beedauchon)
 4309: GUI: send ed2k/bt network u/d totals (by z)
 4308: Gnutella/G2: Fix commit if no TigerTree is available
