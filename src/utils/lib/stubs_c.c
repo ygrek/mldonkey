@@ -1090,8 +1090,8 @@ copy_statfs (struct statfs *buf)
   v = copy_string (buf->f_basetype); caml_modify (&Field (bufv, 9), v);
   v = copy_int64 (buf->f_frsize); caml_modify (&Field (bufv, 10), v);
 #else
-#if (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-#  if defined(__OpenBSD__) || defined(__NetBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#  if defined(__OpenBSD__) || defined(__NetBSD__) || (defined(__FreeBSD__) && __FreeBSD_version < 502000)
 #    include <sys/syslimits.h>
      v = copy_int64 (NAME_MAX); caml_modify (&Field (bufv, 8), v);
 #  else
@@ -1101,12 +1101,12 @@ copy_statfs (struct statfs *buf)
 #    else
        v = copy_int64 (buf->f_namemax); caml_modify (&Field (bufv, 8), v);
 #    endif /* (__APPLE__) */
-#  endif /* (__OpenBSD__) || defined(__NetBSD__) */
+#  endif /* (__OpenBSD__) || defined(__NetBSD__) || (defined(__FreeBSD__) && __FreeBSD_version < 502000) */
   v = copy_string (buf->f_fstypename); caml_modify (&Field (bufv, 9), v);
 #else
   v = copy_int64 (buf->f_namelen); caml_modify (&Field (bufv, 8), v);
   v = copy_string ("-1"); caml_modify (&Field (bufv, 9), v);
-#endif /* (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
+#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
   caml_modify (&Field (bufv, 7), Val_unit);
   v = copy_int64 (-1); caml_modify (&Field (bufv, 10), v);
 #endif /*  ((defined (sun) || defined (__sun__))) */
