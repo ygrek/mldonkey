@@ -119,7 +119,7 @@ let rec compute_stats () =
       match r with
       | File_new_source ->
           if time + 1800 < last_time () then begin
-              if !verbose_hidden_errors then
+              if !verbose then
                 lprintf_nl () "WARNING, source was not tested";
               raise Continue
             end
@@ -129,7 +129,7 @@ let rec compute_stats () =
               raise Continue
             end
       | File_possible ->
-          if !verbose_hidden_errors then
+          if !verbose then
             lprintf_nl () "WARNING, source was unknown";
           if time + 1800 < last_time () then raise Continue
       | File_not_found ->
@@ -144,7 +144,7 @@ let rec compute_stats () =
     with
     | Not_found ->
 (* For some reason, the request was forgotten. Forget it... *)
-        if !verbose_hidden_errors then
+        if !verbose then
           lprintf_nl () "ERROR, request was forgotten";
         let _ = Fifo.take propositions in
         compute_stats ()
@@ -164,7 +164,7 @@ let propose_source file c kind =
         DonkeySources.set_request_result s file.file_sources File_new_source;
         Fifo.put propositions (s, file, kind, last_time ())
     | _ ->
-        if !verbose_hidden_errors then
+        if !verbose then
           lprintf_nl () "ERROR, proposed client is indirect";
         raise Exit
 
