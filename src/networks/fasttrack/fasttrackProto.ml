@@ -141,6 +141,10 @@ let tag_of_tag tag s =
   | Field_Length
   | Field_Bitrate
   | Field_Format
+  | Field_Filerating
+  | Field_Lastseencomplete
+  | Field_Mediacodec
+  | Field_Medialength
   | Field_UNKNOWN _ ->
       string_tag tag s
 
@@ -1945,6 +1949,10 @@ let translate_query q =
           | Field_Completesources
           | Field_Length
           | Field_Availability
+	  | Field_Filerating
+	  | Field_Lastseencomplete
+	  | Field_Mediacodec
+	  | Field_Medialength
           | Field_Size -> ()
         end
     | QHasMinVal (field, value) ->

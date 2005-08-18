@@ -994,7 +994,10 @@ let old_print_search buf o results =
       ( "1", "1", "srh ar", "Availability", "A" ) ;
       ( "1", "1", "srh ar", "Complete Sources", "C" ) ;
       ( "3", "0", "srh", "Hash (click for lookup)", "Hash check" ) ;
-      ( "1", "0", "srh", "Tags", "Tags (mouseover)" ) ] ;
+      ( "1", "1", "srh ar", "Length", "Len" ) ;
+      ( "1", "1", "srh ar", "Codec", "Code" ) ;
+      ( "1", "1", "srh ar", "Bitrate", "Rate" ) ;
+      ( "1", "0", "srh", "Tags (mouseover)", "Tags" ) ] ;
   end;
   (try
       List.iter (fun (rs,r,avail) ->
@@ -1104,14 +1107,24 @@ let old_print_search buf o results =
                 else
 		  !hash
 	      in
+	      let clength = ref "" in
+	      let ccodec = ref "" in
+	      let cmediacodec = ref "" in
+	      let cbitrate = ref "" in
               let cavail = ref (string_of_int avail) in
               let csource = ref "" in
+	      let cformat = ref "" in
               List.iter (fun t ->
                   (match t.tag_name with
                     | Field_UNKNOWN "urn"
                     | Field_UNKNOWN "FTH"  -> hash := get_tag_value t
                     | Field_Availability -> cavail := get_tag_value t
                     | Field_Completesources -> csource := get_tag_value t
+                    | Field_Length -> clength := get_tag_value t
+                    | Field_Codec -> ccodec := get_tag_value t
+                    | Field_Mediacodec -> cmediacodec := get_tag_value t
+                    | Field_Bitrate -> cbitrate := get_tag_value t
+                    | Field_Format -> cformat := get_tag_value t
                     | _ -> ())) r.result_tags;
 
               if use_html_mods o then
@@ -1120,13 +1133,27 @@ let old_print_search buf o results =
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck.php?hash=%s\\\"\\>DF\\</a\\>\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>BI\\</a\\>\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>"
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>
+			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>"
                   (size_of_int64 r.result_size)
 		  !cavail
                   !csource
 		  real_hash
 		  real_hash
 		  real_hash
+		  !clength
+		  (if !ccodec = "" then
+		     begin
+		       if !cmediacodec = "" then
+		         !cformat 
+		       else
+		         !cmediacodec
+		     end
+		   else
+		     !ccodec)
+		  !cbitrate
               else	Printf.bprintf  buf "          %10s %10s "
                   (Int64.to_string r.result_size)
                 (string_of_uids r.result_uids);
@@ -1137,6 +1164,11 @@ let old_print_search buf o results =
                       (match t.tag_name with
                         | Field_Completesources
                         | Field_Availability
+                        | Field_Length
+                        | Field_Codec
+                        | Field_Mediacodec
+                        | Field_Format
+                        | Field_Bitrate
 (* TODO : "urn" shouldn't be some kind of Field_Uid of Gnutella ? *)
                         | Field_UNKNOWN "urn"
 (* TODO : "FTH" shouldn't be some kind of Field_Uid of Fasttrack ? *)

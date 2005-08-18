@@ -256,7 +256,11 @@ type field =
 | Field_Completesources (* "completesources" *)
 | Field_Filename (* "filename" *)
 | Field_Size
-| Field_Uid  
+| Field_Uid
+| Field_Filerating
+| Field_Lastseencomplete
+| Field_Mediacodec
+| Field_Medialength
 | Field_UNKNOWN of string
   
 type tag = {

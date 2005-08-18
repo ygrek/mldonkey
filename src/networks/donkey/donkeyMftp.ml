@@ -204,20 +204,22 @@ let rec find_tag v tags =
     when tag_name = v -> tag_value
   | _ :: tags -> find_tag v tags
 
-
-
-
-
-
 let file_common_tags = [
     "\001", Field_Filename;
     "\002", Field_Size;
     "\003", Field_Type;
     "\004", Field_Format;
-
+    "\005", Field_Lastseencomplete;
     "\021", Field_Availability;
     "\048", Field_Completesources;
-    
+    "\208", Field_Artist;
+    "\209", Field_Album;
+    "\210", Field_Title;
+    "\211", Field_Medialength;
+    "\212", Field_Bitrate;
+    "\213", Field_Mediacodec;
+    "\247", Field_Filerating;
+
     "Artist", Field_Artist;
     "Album", Field_Album;
     "Title", Field_Title;

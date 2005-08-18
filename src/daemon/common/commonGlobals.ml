@@ -420,8 +420,8 @@ let addr_of_string s =
 let addr_is_ip addr = addr.addr_name = ""
     *)
 
-let  upload_counter = ref Int64.zero
-let  download_counter = ref Int64.zero
+let upload_counter = ref Int64.zero
+let download_counter = ref Int64.zero
 let nshared_files = ref 0
 let nshared_bytes = ref Int64.zero
 let shared_counter = ref Int64.zero
@@ -441,6 +441,10 @@ let string_of_field t =
   | Field_Uid -> "uid"
   | Field_Bitrate -> "bitrate"
   | Field_Codec -> "codec"
+  | Field_Filerating -> "rating"
+  | Field_Lastseencomplete -> "lastcompl"
+  | Field_Medialength -> "mlen"
+  | Field_Mediacodec -> "mediacodec"
   | Field_UNKNOWN s -> s
 
 let field_of_string t =
@@ -458,6 +462,10 @@ let field_of_string t =
   | "uid" -> Field_Uid
   | "bitrate" -> Field_Bitrate
   | "codec" -> Field_Codec
+  | "rating" -> Field_Filerating
+  | "lastcompl" -> Field_Lastseencomplete 
+  | "mlen" -> Field_Medialength
+  | "mediacodec" -> Field_Mediacodec
   | _ -> Field_UNKNOWN t
 
 let escaped_string_of_field tag =
