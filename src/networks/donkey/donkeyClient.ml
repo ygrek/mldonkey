@@ -629,7 +629,8 @@ let identify_client_compat_brand num old_brand =
     | 1 -> Brand_cdonkey
     | 2 -> Brand_lmule
     | 3 -> Brand_amule
-    | 4 -> Brand_shareaza
+    | 4
+    | 40 -> Brand_shareaza
     | 5 -> Brand_emuleplus
     | 6 -> Brand_hydranode
     | 10 -> Brand_mldonkey3

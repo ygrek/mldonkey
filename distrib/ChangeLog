@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/18: spiralvoice
 
+4322: EDK: compatibleclient 40 -> Shareaza
 4320: Fix compile on FreeBSD < 5.3
 
 2005/08/15: spiralvoice
