@@ -99,8 +99,8 @@ let networks_string = ref ""
 let patches_string = ref ""
 
 let version () =
-  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s) %s"
-    Autoconf.current_version !networks_string (string_of_float 2.)
+  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"
+    Autoconf.current_version !networks_string
 
 
 let buildinfo () =
