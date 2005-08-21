@@ -29,7 +29,7 @@ case $host in
 esac
 
 case "`uname -s`" in
-  *win32* | *WIN32* | MINGW* | CYGWIN* ) 
+  *win32* | *WIN32* | MINGW* | CYGWIN* )
      SYSTEM="windows"
      ;;
   *Linux*)
@@ -53,12 +53,12 @@ case "`uname -s`" in
 esac
 
 if test -d .svn; then
-  AC_MSG_NOTICE(checking SVN revision) 
+  AC_MSG_NOTICE(checking SVN revision)
   SUB_VERSION3="SVN"
   SCM_VERSION=`svnversion -n .`
 fi
 if test -f ./CVS/Entries ; then
-  AC_MSG_NOTICE(checking CVS checkout date) 
+  AC_MSG_NOTICE(checking CVS checkout date)
   AC_CHECK_PROG(STAT, stat, stat)
   if test "$ac_cv_prog_STAT" = "stat"; then
     AC_CHECK_PROG(SED, sed, sed)
@@ -226,6 +226,19 @@ OCAML_PATH=
 AC_CHECK_PROG(GNU_MAKE, gmake, gmake)
 AC_CHECK_PROG(GNU_MAKE, make, make)
 
+if test "x$GNU_MAKE" != "x"; then
+    AC_MSG_CHECKING( [if $GNU_MAKE is GNU make] )
+    $GNU_MAKE --version > /dev/null 2>&1
+    if test "$?" != "0"; then
+        AC_MSG_RESULT([no])
+	AC_MSG_ERROR(GNU make not found)
+    else
+        AC_MSG_RESULT([yes])
+    fi
+else
+    AC_MSG_ERROR(GNU make not found)
+fi
+
 cd ..
 SOURCE_DIR=`pwd`
 cd config
@@ -276,7 +289,7 @@ esac
 
 
 BUILD_OCAML=no
-if test -z "$ac_cv_prog_OCAMLC"; then 
+if test -z "$ac_cv_prog_OCAMLC"; then
    BUILD_OCAML=yes
 else
   echo "Testing ocaml version"
@@ -335,27 +348,27 @@ fi
 AC_CHECK_PROG(RPMBUILD,rpmbuild,rpmbuild)
 AC_CHECK_PROG(RPMBUILD,rpm,rpm)
 AC_CHECK_PROG(WGET, wget, wget)
-if test -z "$ac_cv_prog_WGET"; then 
+if test -z "$ac_cv_prog_WGET"; then
   $CC -o wget wget.c || echo "Cannot compile wget.c"
-  AC_PATH_PROG(WGET, wget,,$SOURCE_DIR/config)  
+  AC_PATH_PROG(WGET, wget,,$SOURCE_DIR/config)
   ac_cv_prog_WGET="$ac_cv_path_WGET"
 fi
 WGET="$ac_cv_prog_WGET"
 
 if test "$BUILD_OCAML" = "yes"; then
 
-  echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2; 
+  echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2;
   if test "$WGET" = ""; then
     echo "********          wget is missing          *********" 1>&2;
     echo "********       cannot download Ocaml       *********" 1>&2;
     exit 1
   fi
-  echo "*******  Check http://caml.inria.fr/  ********" 1>&2; 
+  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
   echo "Do you want this script to try to download and install ocaml"
   echo "LOCALLY in mldonkey directory ?"
   if test "$BATCH" = "no"; then read i; else i=yes; fi
   case "$i" in
-   y* | Y*) 
+   y* | Y*)
       cd $PATCH_DIR
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
@@ -471,8 +484,8 @@ echo "ocamlc version is $OCAMLVERSION"
         ;;
   esac
     if test "$REBUILD_OCAML" = "yes"; then
-      echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2; 
-      echo "*******  Check http://caml.inria.fr/  ********" 1>&2; 
+      echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
+      echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
       exit 1;
     fi
 
@@ -488,9 +501,9 @@ else
   echo "ocamlopt version is $OCAMLOPTVERSION"
 
   test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
-    echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2; 
-    echo "*******  Check http://caml.inria.fr/  ********" 1>&2; 
-    exit 1; } 
+    echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2;
+    echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
+    exit 1; }
 
 fi
 
@@ -567,7 +580,7 @@ fi
 AC_CHECK_HEADERS(byteswap.h,,)
 AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h,[SHA1_VERSION=sha1new; break],[SHA1_VERSION=sha1old])
 if test "$SHA1_VERSION" = "sha1old"; then
-    AC_MSG_CHECKING(trying to guess endianess) 
+    AC_MSG_CHECKING(trying to guess endianess)
     $CC -o endian endian.c
     BYTE_ORDER="`./endian | grep BYTE_ORDER | cut -c24-40`"
     if test "$BYTE_ORDER" = "" ; then
@@ -606,7 +619,7 @@ fi
 # http://public.activestate.com/gsar/APC/perl-5.8.x/Configure
 GLIBC_VERSION=""
 case $host in
-        *linux*)   
+        *linux*)
            AC_CHECK_HEADERS(linux/limits.h,, [
              OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
@@ -655,7 +668,7 @@ if test "$FORCE_MINGW" = "yes"; then
     OS_FILES=mingw
 fi
 
-AC_MSG_CHECKING(Additionnal includes) 
+AC_MSG_CHECKING(Additionnal includes)
 AC_MSG_RESULT($CONFIG_INCLUDES)
 
 OCAMLLIB=`$OCAMLC -where`
@@ -909,7 +922,7 @@ else
        echo "LOCALLY in mldonkey directory ?"
        if test "$BATCH" = "no"; then read i; else i=yes; fi
        case "$i" in
-        y* | Y*) 
+        y* | Y*)
 
          cd $PATCH_DIR
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
@@ -935,7 +948,7 @@ else
           else
             $GNU_MAKE configure
             $GNU_MAKE
-            $GNU_MAKE opt  
+            $GNU_MAKE opt
             $GNU_MAKE install
           fi
 
@@ -1008,7 +1021,7 @@ if test "$IM" = "yes"; then
 fi
 
 if test "$PTHREAD_LIBS" = "no"; then
- PTHREAD_LIBS="" 
+ PTHREAD_LIBS=""
  echo "Dont use threads"
 else
   ACX_PTHREAD
@@ -1060,7 +1073,7 @@ AC_CHECK_PROG(COMPRESS, gzip, gzip)
 
 if test "$ac_cv_prog_COMPRESS" = "bzip2"; then
    COMPRESS_EXT=bz2
-else 
+else
    COMPRESS_EXT=gz
 fi
 
@@ -1146,7 +1159,7 @@ ARCH=$arch
 case "$OCAMLVERSION" in
   3.06* | 3.07* | 3.08* ) TYPE_FORMAT="";;
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format4  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
-esac		    
+esac
 
 if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
