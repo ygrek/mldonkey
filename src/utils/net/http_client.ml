@@ -48,6 +48,8 @@ type request = {
     req_url : url;
     req_request : http_request;
     req_referer : Url.url option;
+    req_retry : int;
+    req_max_retry : int;
   }
 
 type content_handler = 
@@ -66,6 +68,8 @@ let basic_request = {
     req_headers = [];
     req_user_agent = "Wget 1.4";
     req_accept = "*/*";
+    req_retry = 0;
+    req_max_retry = 0;
   }
       
 let make_full_request r =
@@ -194,28 +198,12 @@ let http_reply_handler nr headers_handler sock nread =
   nr := true;
   read_header (parse_header headers_handler) sock nread
   
-let get_page r content_handler f =
+let rec get_page r content_handler f =
   let error = ref false in
   let rec get_url level r =
   try
     let url = r.req_url in
-(*
-    let args = ref [] in
-    let headers = ref [] in
-    let ispost = ref false in
-    let timeout = ref 300.0 in
-    let proxy = ref None in
-    List.iter (function
-      | Args l -> args := l@ !args
-      | Headers l -> headers := l @ !headers;
-      | Post -> ispost := true
-      | Proxy (h,p) -> proxy := Some (h,p)
-    ) get_args;
-    let args = !args in
-    let headers = !headers in
-    let ispost = !ispost in
-    let proxy = !proxy in
-*)    
+    let level = r.req_retry in
     let request = make_full_request r in
     
     
@@ -303,7 +291,8 @@ let get_page r content_handler f =
 
     | 301 | 302 | 304 ->
         if !verbose then lprintf_nl () "%d: Redirect" ans_code;
-        if level < 10 then
+	let retrynum = r.req_retry in
+        if retrynum < r.req_max_retry then
           begin
             try
               let url = ref "" in
@@ -322,8 +311,11 @@ let get_page r content_handler f =
                     old_url.Url.server old_url.Url.port !url
               in
               if !verbose then lprintf_nl () "Redirected to %s" url;
-              let r = { r with req_url = Url.of_string url } in
-              get_url (level+1) r
+              let r = { r with
+			req_url = Url.of_string url;
+			req_retry = retrynum+1 }
+	      in
+	      get_page r content_handler f
             
             with e ->
                 lprintf_nl () "error understanding redirect response %d" ans_code;
@@ -332,7 +324,7 @@ let get_page r content_handler f =
                 
           end
         else 
-          lprintf_nl () "more than 10 redirections, aborting.";
+          lprintf_nl () "more than %d redirections, aborting." r.req_max_retry;
           raise Not_found
           
     | 404 ->
@@ -340,12 +332,29 @@ let get_page r content_handler f =
         close sock (Closed_for_error "bad reply");
         raise Not_found
 
+    | 502 | 503 | 504 ->
+        if !verbose then lprintf_nl () "%d: Unavailable" ans_code;
+	let retrynum = r.req_retry in
+        if retrynum < r.req_max_retry then
+          begin
+            if !verbose then
+              print_headers ();
+	    let seconds = (retrynum+1)*10 in
+              lprintf_nl () "retry %d/%d in %d seconds for %s"
+	        (retrynum+1) r.req_max_retry seconds (Url.to_string_no_args r.req_url);
+	    let r = { r with req_retry = retrynum+1 } in
+	      add_timer (float(seconds)) (fun t -> get_page r content_handler f)
+	  end
+        else 
+          lprintf_nl () "more than %d retries, aborting." r.req_max_retry;
+          raise Not_found
+          
     | _ ->
         lprintf_nl () "%d: bad reply for: %s"
           ans_code (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
         raise Not_found
-  in 
+  in
   get_url 0 r;
   if !error = true then begin
       lprintf_nl () "failed!";
@@ -396,7 +405,7 @@ let wget r f =
           Sys.remove filename;
           raise Not_found
   )
-  with e -> lprintf_nl () "error in wget"; raise Not_found
+  with e -> lprintf_nl () "Exception %s in wget" (Printexc2.to_string e); raise Not_found
 
 let whead r f = 
   

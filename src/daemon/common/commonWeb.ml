@@ -52,6 +52,7 @@ let mldonkey_wget url f =
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent =
       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+      H.req_max_retry = 20;
     } in
 
   H.wget r f

@@ -40,6 +40,8 @@ type request = {
     req_url : Url.url;
     req_request : http_request;
     req_referer : Url.url option;
+    req_retry : int;
+    req_max_retry : int;
   }
 
 type content_handler = 
