@@ -27,12 +27,12 @@ let to_string name =
     let buf_size = String.length buf in
     let to_read = min (buf_size - nb_read) 8192 in
     let tmp = input chan buf nb_read to_read in
-    if tmp = 0 then 
+    if tmp = 0 then
       String.sub buf 0 nb_read
-    else 
+    else
     let nb_read = nb_read + tmp in
     let buf =
-      if nb_read = buf_size then 
+      if nb_read = buf_size then
         String2.resize buf (2 * buf_size)
       else buf
     in
@@ -72,33 +72,31 @@ let to_copy in_name out_name =
     End_of_file -> ()
 
 let from_string name s =
-  let oc = open_out name in
+  let oc = open_out_bin name in
   output_string oc s;
   close_out oc
-  
+
 let iter f name =
-  let ic = open_in name in
+  let ic = open_in_bin name in
   try
     while true do
       let line = input_line ic in
       f line
     done
-  with 
+  with
     End_of_file -> close_in ic
   | e -> close_in ic; raise e
-  
-    
+
 let from_value name s =
-  let oc = open_out name in
+  let oc = open_out_bin name in
   output_value oc s;
   close_out oc
-  
+
 let to_value name =
-  let ic = open_in name in
+  let ic = open_in_bin name in
   try
     let v = input_value ic in
     close_in ic;
     v
-  with 
+  with
   | e -> close_in ic; raise e
-      
