@@ -550,14 +550,16 @@ let buf_file proto buf f =
     if proto > 30 then
       buf_list buf buf_uid f.file_uids
       
-let buf_addr buf addr =
-  match addr with
+let buf_addr proto buf addr =
+  (match addr with
     Ip.AddrIp ip ->
       buf_int8 buf 0;
       buf_ip buf ip
   | Ip.AddrName s ->
       buf_int8 buf 1;
-      buf_string buf s
+      buf_string buf s);
+  if proto > 33 then
+    buf_bool buf (Ip_set.ip_blocked (Ip.ip_of_addr addr))
   
 let buf_server proto buf s =
   buf_int buf s.server_num;
@@ -565,7 +567,7 @@ let buf_server proto buf s =
   if proto < 2 then 
     buf_ip buf (Ip.ip_of_addr s.server_addr)
   else
-    buf_addr buf s.server_addr;    
+    buf_addr proto buf s.server_addr;    
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
   buf_list buf buf_tag s.server_tags;

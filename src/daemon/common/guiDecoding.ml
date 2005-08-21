@@ -598,7 +598,8 @@ let get_host_state proto s pos =
   | _ -> assert false
 
 
-let get_addr s pos =
+let get_addr proto s pos =
+  let addr, pos =
   match get_uint8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
@@ -607,6 +608,12 @@ let get_addr s pos =
       let name,pos = get_string s (pos+1) in
       Ip.addr_of_string name, pos
   | _ -> assert false
+  in
+  let blocked, pos = 
+    if proto > 33 then get_bool s pos, pos+1 
+    else false, pos 
+  in
+    addr, pos
 
 let get_server proto s pos =
   let num = get_int s pos in
@@ -614,7 +621,7 @@ let get_server proto s pos =
   let addr, pos = if proto < 2 then
       Ip.addr_of_ip (get_ip s (pos+8)), pos+12
     else 
-      get_addr s (pos+8)      
+      get_addr proto s (pos+8)      
   in
   let port = get_int16 s pos in
   let score = get_int s (pos+2) in

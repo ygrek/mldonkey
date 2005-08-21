@@ -21,6 +21,7 @@ exception FromGuiMessageNotImplemented
 
 val to_gui : int array -> int -> string -> GuiProto.to_gui
 val from_gui : int array -> int -> string -> GuiProto.from_gui
+val get_string : string -> int -> string * int
   
 val gui_cut_messages : (int -> string -> unit) -> TcpBufferedSocket.t -> 'a -> unit
   

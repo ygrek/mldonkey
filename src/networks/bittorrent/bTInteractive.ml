@@ -751,6 +751,25 @@ let op_client_dprint_html c o file str =
 let op_network_connected _ = true
 
 
+let get_default_tracker () = 
+  if !!BTTracker.default_tracker = "" then
+     Printf.sprintf "http://%s:%d/announce"
+      (Ip.to_string (CommonOptions.client_ip None))
+      !!BTTracker.tracker_port 
+   else
+     !!BTTracker.default_tracker
+
+let compute_torrent filename announce comment = 
+  let announce = if announce = "" then get_default_tracker () else announce in
+  if !verbose_torrent then lprintf_nl () "compute_torrent: [%s] [%s] [%s]"
+   filename announce comment;
+  let basename = Filename.basename filename in
+  let torrent = Filename.concat seeded_directory
+    (Printf.sprintf "%s.torrent" basename) in
+  let is_private = 0 in
+  BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename;
+  try_share_file torrent
+
 let commands =
 
     [
@@ -763,21 +782,9 @@ let commands =
           fname :: [comm] -> filename := fname; comment := comm
         | [fname] -> filename := fname
         | _ -> raise Not_found);
-        let announce = 
-          if !!BTTracker.default_tracker = "" then
-            Printf.sprintf "http://%s:%d/announce"
-              (Ip.to_string (CommonOptions.client_ip None))
-              !!BTTracker.tracker_port 
-          else
-            !!BTTracker.default_tracker
-        in
 
-        let basename = Filename.basename !filename in
-        let torrent = Filename.concat seeded_directory
-          (Printf.sprintf "%s.torrent" basename) in
-        let is_private = 0 in
-        BTTorrent.generate_torrent announce torrent !comment (Int64.of_int is_private) !filename;
-        try_share_file torrent;
+        compute_torrent !filename "" !comment;
+
         if o.conn_output = HTML then
           (* TODO: really htmlize it *)
           Printf.bprintf buf ".torrent file generated"
@@ -886,6 +893,7 @@ let commands =
   ]
 
 open LittleEndian
+open GuiDecoding
 
 let op_gui_message s =
   match get_int16 s 0 with
@@ -894,6 +902,13 @@ let op_gui_message s =
       if !verbose_torrent then lprintf_nl () "received torrent from gui...";
       let _ = load_torrent_string text in
       ()
+  | 1 -> (* 34+ *)
+      let n = get_int s 2 in
+      let a, pos = get_string s 6 in
+      let c, pos = get_string s pos in
+      let sf = CommonShared.shared_find n in
+      let f = shared_fullname sf in
+      compute_torrent f a c;
   | opcode -> failwith (Printf.sprintf "[BT] Unknown message opcode %d" opcode)
 
 let _ =

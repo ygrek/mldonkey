@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/21: spiralvoice
 
+4333: send ip blocked addr state to gui, compute_torrent from gui (by z)
 4332: Let configure fail if GNU make is not installed
 
 2005/08/18: spiralvoice
