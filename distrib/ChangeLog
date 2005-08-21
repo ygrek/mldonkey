@@ -10,6 +10,8 @@ ChangeLog
 
 2005/08/21: spiralvoice
 
+4319: Fix compile if libbz2 is not available,
+      new configure option: --disable-bzip2
 4334: BT/FileTP: Some progress on cancel bug
 4333: send ip blocked addr state to gui, compute_torrent from gui (by z)
 4332: Let configure fail if GNU make is not installed
