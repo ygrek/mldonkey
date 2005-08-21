@@ -56,7 +56,7 @@ type content_handler =
   int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
 let lprintf_nl () =
-  lprintf "%s[HTTPcl]: "
+  lprintf "%s[HTTPcl] "
       (log_time ()); lprintf_nl2
 
 let basic_request = {

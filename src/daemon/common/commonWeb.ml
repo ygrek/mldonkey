@@ -58,7 +58,7 @@ let mldonkey_wget url f =
   H.wget r f
 
 let load_url kind url =
-  lprintf_nl "CommonWeb: Loading %s" url;
+  lprintf_nl "[cWeb] Loading %s" url;
   let f =
     try
       (List.assoc kind !file_kinds) url
@@ -73,7 +73,7 @@ let load_file kind file =
   try
     (List.assoc kind !file_kinds) file file
   with e ->
-      lprintf_nl "Exception %s while loading kind %s"
+      lprintf_nl "[cWeb] Exception %s while loading kind %s"
         (Printexc2.to_string e)
       kind
 
@@ -185,7 +185,7 @@ let connect_redirector () =
             UdpSocket.write propagation_socket false s (Ip.from_name name) port;
 
           with e ->
-              lprintf_nl "Exception %s in udp_sendonly" (Printexc2.to_string e);
+              lprintf_nl "[cWeb] Exception %s in udp_sendonly" (Printexc2.to_string e);
         end
     end
 
@@ -204,7 +204,7 @@ support the charge, at least, currently. *)
       let packet = gen_redirector_packet () in
       Ip.async_ip name (fun ip ->
           try
-            if !verbose_redirector then lprintf_nl "connecting to redirector";
+            if !verbose_redirector then lprintf_nl "[cWeb] connecting to redirector";
             let token = create_token unlimited_connection_manager in
             let sock = TcpBufferedSocket.connect token "connect redirector"
                 (Ip.to_inet_addr ip) port            
@@ -217,7 +217,7 @@ support the charge, at least, currently. *)
             TcpBufferedSocket.set_rtimeout sock 30.;
             let to_read = ref [] in
             set_reader sock (cut_messages (fun opcode s ->
-                  if !verbose_redirector then lprintf_nl "redirector info received";
+                  if !verbose_redirector then lprintf_nl "[cWeb] redirector info received";
                   let module L = LittleEndian in
 
                   let motd_html_s, pos = L.get_string16 s 2 in
@@ -273,7 +273,7 @@ support the charge, at least, currently. *)
                   let ip = L.get_ip s pos in
                   last_high_id := ip;
 
-                  lprintf_nl "Redirector info loaded (IP set to %s)"
+                  lprintf_nl "[cWeb] Redirector info loaded (IP set to %s)"
                     (Ip.to_string ip);
                   TcpBufferedSocket.set_lifetime sock 30.;
 
@@ -281,7 +281,7 @@ support the charge, at least, currently. *)
             write_string sock packet
 
           with e -> 
-              lprintf_nl "Exception %s while connecting redirector"
+              lprintf_nl "[cWeb] Exception %s while connecting redirector"
                 (Printexc2.to_string e)
       )
     end;
@@ -298,7 +298,7 @@ support the charge, at least, currently. *)
         | "kad" -> if !!enable_kademlia then load_url kind url
         | "ocl" -> if !!enable_overnet then load_url kind url
         | "server.met" -> if !!enable_donkey then load_url kind url
-        | _ -> lprintf_nl "unparsed kind to refresh: %s" kind; load_url kind url
+        | _ -> lprintf_nl "[cWeb] unparsed kind to refresh: %s" kind; load_url kind url
             ) !!CommonOptions.web_infos
 
 type rss_feed = {

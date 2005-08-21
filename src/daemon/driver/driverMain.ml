@@ -541,7 +541,7 @@ or getting a binary compiled with glibc %s.\n\n")
       let oc = open_out "mlnet.pid" in
       output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
       close_out oc;
-      CommonGlobals.do_at_exit (fun _ -> Sys.remove "mlnet.pid" );
+      CommonGlobals.do_at_exit (fun _ -> try Sys.remove "mlnet.pid" with _ -> ());
       if !verbose then lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
     );
 
@@ -589,26 +589,26 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGCHLD"));
+      (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGCHLD, doing nothing"));
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ ->
-	 lprintf_nl "SIGHUP";
+	 lprintf_nl "Received SIGHUP, closing all files/sockets";
          BasicSocket.close_all ();
 	 Unix32.close_all ()
          ));
 
   if Autoconf.system <> "windows" then
     MlUnix.set_signal  Sys.sigpipe
-      (Sys.Signal_handle (fun _ -> lprintf_nl "SIGPIPE"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGPIPE, doing nothing"));
 
   MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> lprintf_nl "SIGINT";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGINT, stopping MLDonkey...";
         CommonGlobals.exit_properly 0));
 
   MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> lprintf_nl "SIGTERM";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping MLDonkey...";
         CommonGlobals.exit_properly 0));
 
   if !verbose then lprintf_nl (_b "Activated system signal handling");

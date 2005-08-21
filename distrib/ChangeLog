@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/21: spiralvoice
 
+4336: Improve some log file messages
 4321: BT: fixed "make_torrent produce corrupted files on Windows" (by beedauchon)
 4335: Buildinfo: Fix bug if Bzip2 version string is empty (by beedauchon)
 4329: HTTPClient: Implement retries for failed requests
