@@ -8,7 +8,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
-2005/08/21: spiralvoice
+2005/08/21: spiralvoice (version 2.6.3 = tag release-2-6-3)
 
 4254: Patch reverted, did not work
       "html_mods: Table data is incorrectly centered"
