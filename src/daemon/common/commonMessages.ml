@@ -130,7 +130,7 @@ table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left
 table.sources {border: 1; border: @C27@ solid 1px; border-collapse: collapse; }
 table.main { margin-right: auto; margin-left: auto; }
 div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,
-div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { }
+div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: @C27@ solid 1px; border-bottom: @C27@ solid 1px;
 border-left: @C27@ solid 1px; border-top: @C27@ solid 0px; padding-left: 3px; padding-right: 3px; }
 td.act { font-size: 10px; font-weight: 700; }
@@ -345,7 +345,7 @@ let download_html_css_mods0 = define_option message_section ["download_html_css_
 body{ background-color:@C4@;color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
 td,pre { color: @C26@; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px; }
 table.downloaders { margin-right: auto; margin-left: auto; border: 1; border: @C27@ solid 1px; }
-div.main {  }
+div.main { text-align: center; }
 table.main { margin-right: auto; margin-left: auto; }
 td.loaded{ padding-top: 0px; padding-bottom: 0px; background-color:@C24@; font-size:1px; line-height: 2px; }
 td.remain{ padding-top: 0px; padding-bottom: 0px; background-color:@C25@; font-size:1px; line-height: 2px; }
