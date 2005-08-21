@@ -332,6 +332,7 @@ let op_file_check file =
       Int64Swarmer.verify_all_chunks swarmer true
 
 let op_file_cancel file =
+  file.file_swarmer <- None;
   BTClients.file_stop file;
   remove_file file;
   BTClients.disconnect_clients file;
