@@ -608,18 +608,20 @@ fi
 if test "$ICONV" = "yes"; then
   AM_ICONV
   if test "$am_cv_func_iconv" != "yes"; then
-    echo "iconv() is missing, did you install the libraries and the developer packages for libiconv?"
-    exit 1
+    AC_MSG_FAILURE([iconv() is missing, did you install the libraries and the developer packages for libiconv?])
   fi
   LIBS="$LIBS $LIBICONV"
-  AC_CHECK_FUNCS([locale_charset])
+  AC_CHECK_FUNCS([locale_charset],,
+  AC_TRY_LINK([#include <langinfo.h>],
+  [char* cs = nl_langinfo(CODESET);],
+  AC_MSG_NOTICE(found nl_langinfo(CODESET)),
+  [AC_MSG_FAILURE(Your iconv implementation is incomplete)]))
+  AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
   AC_CHECK_HEADERS([locale.h])
-  AC_CHECK_LIB(charset,locale_charset)
 else
   AC_DEFINE(DISABLE_ICONV, 1, [Define to 1 if you want to replace iconv and related with stubs.])
 fi
-
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
@@ -634,7 +636,7 @@ case $host in
              CPPFLAGS=$OLD_CPPFLAGS]
            )
 	   AC_CHECK_HEADERS(gnu/libc-version.h,,)
-           AC_MSG_CHECKING(Checking for GNU C Library version) 
+           AC_MSG_CHECKING(for GNU C Library version)
 
 cat >try.c <<'EOCP'
 /* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
@@ -996,7 +998,7 @@ fi
 
 if test "$IM" = "yes"; then
   CRYPTOKIT=no
-  AC_MSG_CHECKING(Checking for CryptoKit)
+  AC_MSG_CHECKING(for CryptoKit)
   if test -f $OCAMLLIB/cryptokit.$OCAMLLIB_EXT; then
     CRYPTOKIT=yes
     AC_MSG_RESULT(yes)
