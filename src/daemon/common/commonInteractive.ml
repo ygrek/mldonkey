@@ -195,19 +195,6 @@ let file_cancel file =
   with e ->
       lprintf_nl "[cInt] Exception in file_cancel: %s" (Printexc2.to_string e)
 
-let time_to_string time =
-  let days = time / 60 / 60 / 24 in
-  let rest = time - days * 60 * 60 * 24 in
-  let hours = rest / 60 / 60 in
-  let rest = rest - hours * 60 * 60 in
-  let minutes = rest / 60 in
-  let seconds = rest - minutes * 60 in
-    if days > 0
-    then Printf.sprintf " %dd " days
-    else if hours > 0
-    then Printf.sprintf " %dh %dm " hours minutes
-    else Printf.sprintf " %dm " minutes
-
 let mail_for_completed_file file =
   if !!mail <> "" then
     let module M = Mailer in
@@ -218,7 +205,7 @@ let mail_for_completed_file file =
       (file_best_name file)
       (file_size file)
       (string_of_uids info.G.file_uids)
-      (let age = (BasicSocket.last_time ()) - info.G.file_age in time_to_string age)
+      (let age = (BasicSocket.last_time ()) - info.G.file_age in Date.time_to_string_long age)
     in
 
     let line3 = if (file_comment file) <> "" then

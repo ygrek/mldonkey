@@ -453,14 +453,6 @@ let rec find_max_overloaded q managers =
 
        let print buf output_type =
         let timer = Unix.localtime (float_of_int(last_time ()) +. 1000000000.) in
-        let time_to_string time =
-          let h0 = string_of_int(time.Unix.tm_hour ) in
-          let m0 = string_of_int(time.Unix.tm_min ) in
-          let s0 = string_of_int(time.Unix.tm_sec ) in
-          (if String.length h0 = 2 then h0 else "0"^h0)
-            ^":"^ (if String.length m0 = 2 then m0 else "0"^m0)
-            ^":"^ (if String.length s0 = 2 then s0 else "0"^s0)
-        in
         let pos_to_string v =
           (if v > 0 then string_of_int(v) else "-")
         in
@@ -475,7 +467,7 @@ let rec find_max_overloaded q managers =
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
               ("", "srh", "Statistics on sources ");
-              ("", "srh", "@ " ^(time_to_string timer));
+              ("", "srh", "@ " ^(Date.time_to_string_short timer));
               ("", "srh", "File sources per manager queue"); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
 

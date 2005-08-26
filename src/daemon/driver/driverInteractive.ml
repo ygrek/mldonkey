@@ -656,13 +656,13 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 
 
           (if !!html_mods_vd_age then
-			ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in time_to_string age)
+			ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in Date.time_to_string_long age)
 		   else "");
 
           (if !!html_mods_vd_last then
 			ctd file.file_num (if file.file_last_seen > 0
              then let last = (BasicSocket.last_time ()) - file.file_last_seen in
-                time_to_string last
+                Date.time_to_string_long last
              else "-"
           	)
 			else ""
@@ -678,7 +678,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           );
 
           (ctd file.file_num (if (file.file_download_rate < 10.24 || stalled file) then "-"
-				else time_to_string (calc_file_eta file)) );
+				else Date.time_to_string_long (calc_file_eta file)) );
 
           (if !!html_mods_vd_prio then
 	      (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\"

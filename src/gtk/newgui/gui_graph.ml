@@ -100,19 +100,6 @@ let set_uploads_pixmap_headers w h col1 col2 =
   uploads_pixmap_headers :=
     Some (Array.concat [header;color_none;color1;color2])
 
-let time_to_string time =
-  let days = time / 60 / 60 / 24 in
-  let rest = time - days * 60 * 60 * 24 in
-  let hours = rest / 60 / 60 in
-  let rest = rest - hours * 60 * 60 in
-  let minutes = rest / 60 in
-  let seconds = rest - minutes * 60 in
-    if days > 0
-    then Printf.sprintf " %dd " days
-    else if hours > 0
-    then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
-    else Printf.sprintf " %d:%02d " minutes seconds
-
 let string_to_time s =
   let l = String.length s in
   try
@@ -272,7 +259,7 @@ let draw_downloads_graph _ =
       grid_pixmap#line
         ~x:0 ~y:(!height - a - 1) ~x:!width ~y:(!height - a - 1);
       grid_pixmap#string
-        (time_to_string (a * !download_timeout / 1000))
+        (Date.time_to_string_long (a * !download_timeout / 1000))
          ~font:!font ~x:(a + 2) ~y:(!height - 2);
       if a > 0 then
         grid_pixmap#string
@@ -364,7 +351,7 @@ let draw_uploads_graph _ =
       grid_pixmap#line
         ~x:0 ~y:(!height - a - 1) ~x:!width ~y:(!height - a - 1);
       grid_pixmap#string
-        (time_to_string (a * !upload_timeout / 1000))
+        (Date.time_to_string_long (a * !upload_timeout / 1000))
         ~font:!font ~x:(a + 2) ~y:(!height - 2);
       if a > 0 then
         grid_pixmap#string

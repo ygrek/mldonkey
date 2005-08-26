@@ -161,19 +161,6 @@ let string_of_format format =
 	tag.M.tracknum tag.M.title
   | _ -> (gettext M.unknown)
 
-let time_to_string time =
-  let days = time / 60 / 60 / 24 in
-  let rest = time - days * 60 * 60 * 24 in
-  let hours = rest / 60 / 60 in
-  let rest = rest - hours * 60 * 60 in
-  let minutes = rest / 60 in
-  let seconds = rest - minutes * 60 in
-    if days > 0
-    then Printf.sprintf " %dd " days
-    else if hours > 0
-    then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
-    else Printf.sprintf " %d:%02d " minutes seconds
-
 let max_eta = 1000.0 *. 60.0 *. 60.0 *. 24.0
     
 let calc_file_eta f =
@@ -316,18 +303,18 @@ class box columns sel_mode () =
       | Col_file_network -> Gui_global.network_name f.file_network
       |	Col_file_age ->
           let age = (BasicSocket.last_time ()) - f.file_age in
-          time_to_string age
+          Date.time_to_string_long age
       |	Col_file_last_seen ->
           if f.file_last_seen > 0
           then let last = (BasicSocket.last_time ())
               - f.file_last_seen in
-            time_to_string last
+            Date.time_to_string_long last
           else Printf.sprintf "---"
       | Col_file_eta ->
           let eta = calc_file_eta f in
           if eta >= 1000 * 60 * 60 * 24 then
             Printf.sprintf "---"
-          else time_to_string eta
+          else Date.time_to_string_long eta
       |	Col_file_priority ->
           Printf.sprintf "%3d" f.file_priority
     

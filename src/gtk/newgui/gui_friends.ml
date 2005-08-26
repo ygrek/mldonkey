@@ -299,7 +299,7 @@ class box columns friend_tab =
             Known_location _ -> M.fT_tx_direct
           | _ -> "")
       | Col_client_rating -> string_of_int f.gclient_rating
-      | Col_client_connect_time -> Gui_graph.time_to_string (f.gclient_connect_time)
+      | Col_client_connect_time -> Date.time_to_string_long (f.gclient_connect_time)
       | Col_client_software -> f.gclient_software
       | Col_client_release -> f.gclient_release
       | Col_client_emulemod -> f.gclient_emulemod

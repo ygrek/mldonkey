@@ -69,3 +69,22 @@ let mail_string date =
 let hour_in_secs = 3600
 let day_in_secs = 24 * hour_in_secs
 let year_in_secs = 365 * day_in_secs
+
+let time_to_string_short time =
+  Printf.sprintf "%02d:%02d:%02d"
+    time.Unix.tm_hour
+    time.Unix.tm_min
+    time.Unix.tm_sec
+
+let time_to_string_long time =
+  let days = time / 60 / 60 / 24 in
+  let rest = time - days * 60 * 60 * 24 in
+  let hours = rest / 60 / 60 in
+  let rest = rest - hours * 60 * 60 in
+  let minutes = rest / 60 in
+  let seconds = rest - minutes * 60 in
+    if days > 0
+    then Printf.sprintf " %dd " days
+    else if hours > 0
+    then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
+    else Printf.sprintf " %d:%02d " minutes seconds
