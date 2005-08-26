@@ -64,9 +64,9 @@ let rec safe_mkdir dir =
     begin try
       let dir = opendir dir in () 
       with
-        Unix.Unix_error (EACCES, _, _) -> failwith (Printf.sprintf "access denied for directory %s" dir)
-      | Unix.Unix_error (ENOENT, _, _) -> failwith (Printf.sprintf "directory %s not found, orphaned link?" dir)
-      | e -> failwith (Printf.sprintf "error %s for directory %s" (Printexc2.to_string e) dir)
+        Unix.Unix_error (EACCES, _, _) -> lprintf "access denied for directory %s" dir; exit 73
+      | Unix.Unix_error (ENOENT, _, _) -> lprintf "directory %s not found, orphaned link?" dir; exit 73
+      | e -> lprintf "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
     end
   else begin
       let predir = Filename.dirname dir in
@@ -157,6 +157,6 @@ let can_write_to_directory dirname =
     (try Sys.remove temp_file with _ -> ())
   with
     Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.EACCES) ->
-      failwith (Printf.sprintf "can not create files in directory %s, check rights..." dirname)
-  | Sys_error s -> failwith (Printf.sprintf "%s for directory %s" s dirname)
-  | e -> failwith (Printf.sprintf "%s for directory %s" (Printexc2.to_string e) dirname)
+      lprintf "can not create files in directory %s, check rights..." dirname; exit 73
+  | Sys_error s -> lprintf "%s for directory %s" s dirname; exit 73
+  | e -> lprintf "%s for directory %s" (Printexc2.to_string e) dirname; exit 73

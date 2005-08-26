@@ -293,7 +293,7 @@ let load_config () =
 (*      Options.load downloads_expert_ini;       *)
     with e ->
         lprintf_nl "Exception %s during options load" (Printexc2.to_string e);
-        exit 2;
+        exit 70;
         ());
 
   (* Here, we try to update options when a new version of mldonkey is
@@ -372,7 +372,7 @@ let load_config () =
       "-daemon", Arg.Unit (fun _ ->
           (* Removed due to savannah bug #11514 . *)
           lprintf_nl "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...";
-          exit 0), _s " : this argument was removed, core will exit";
+          exit 64), _s " : this argument was removed, core will exit";
       "-find_port", Arg.Set find_other_port,
       _s " : find another port when one is already used";
     ] @
@@ -428,7 +428,7 @@ let _ =
     begin
       lprintf_nl (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.");
       lprintf_nl (_b "MLdonkey can not work with such a system date, exiting...");
-      CommonGlobals.exit_properly 0
+      CommonGlobals.exit_properly 71
     end;
 
   (
@@ -570,7 +570,7 @@ or getting a binary compiled with glibc %s.\n\n")
       with e ->
           lprintf_nl (_b "Exception %s trying to set user_uid [%s]")
           (Printexc2.to_string e) !!run_as_user;
-          exit 2
+          exit 67
     end;
 
   if !!run_as_useruid <> 0 then begin
@@ -580,7 +580,7 @@ or getting a binary compiled with glibc %s.\n\n")
       with e ->
           lprintf_nl (_b "Exception %s trying to set user_uid [%d]")
           (Printexc2.to_string e) !!run_as_useruid;
-          exit 2
+          exit 67
     end;
 
   if !!create_mlsubmit then save_mlsubmit_reg ();
@@ -643,7 +643,7 @@ for config files at the end. *)
         lprintf_nl (_b "Cannot create Security space file:");
         lprintf_nl (_b " not enough space on device or bad permissions");
         lprintf_nl (_b "Exiting...");
-        exit 2;
+        exit 73;
   end;
   CommonGlobals.do_at_exit (fun _ ->
       (* If we have an error with too many file-descriptors,

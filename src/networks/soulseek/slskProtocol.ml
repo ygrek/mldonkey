@@ -444,7 +444,7 @@ module S2C = struct
         
         let write buf t =
           lprintf  "******* JoinRoomReply not implemented *****\n"; 
-          exit 1
+          exit 70
       
       end
     

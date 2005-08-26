@@ -210,7 +210,7 @@ and parse_once_value i = parser
     begin
       try Hashtbl.find once_values i with Not_found ->
           lprintf "Error in saved file: @%Ld@ not defined\n" i;
-          exit 2
+          exit 70
     end
 |  [< 'Kwd "="; v = parse_option >] ->
     begin
@@ -253,7 +253,7 @@ let really_load filename sections =
       Printf.eprintf "An error may have occurred during previous configuration save.\n";
       Printf.eprintf "Please, check your configurations files, and rename/remove this file\n";
       Printf.eprintf "before restarting\n";
-      exit 1
+      exit 70
     end
   else
     let ic = open_in filename in
@@ -267,7 +267,7 @@ let really_load filename sections =
             e ->
             Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
                 filename (Stream.count s) (Printexc2.to_string e);
-              exit 2
+              exit 70
         in
         Hashtbl.clear once_values;
         let affect_option o =
@@ -296,7 +296,7 @@ let really_load filename sections =
               lprintf "\n";
               lprintf "  in %s\n" filename;
               lprintf "Aborting\n.";
-              exit 2
+              exit 70
       in
       
 (* The options are affected by sections, from the first defined one to
