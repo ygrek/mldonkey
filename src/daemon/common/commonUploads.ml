@@ -882,7 +882,8 @@ let rec give_a_slot c =
 and find_pending_slot () =
   try
     let rec iter () =
-      let _, c = Intmap.top !pending_slots_map in
+      let c = Intmap.nth !pending_slots_map 
+	(Random.int (Intmap.length !pending_slots_map)) in
       give_a_slot c
     in
     iter ()
