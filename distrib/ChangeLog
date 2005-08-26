@@ -10,6 +10,7 @@ ChangeLog
 
 2005/08/26: spiralvoice
 
+4359: Upload: Give upload slot truely randomly
 4347: Improve exit codes, codes were inspired by sysexits.h
 4345: Code clean: Optimize redundant time_to_string functions
 4357: Rename ed2k_hash to mld_hash
