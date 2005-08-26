@@ -530,10 +530,10 @@ OBSERVER_SRCS = \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
   tools/observer.ml
 
-ED2K_HASH_SRCS = \
+MLD_HASH_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS) \
-  tools/ed2k_hash.ml
+  tools/mld_hash.ml
 
 OCAMLPP_SRCS = \
   tools/ocamlpp.ml4
@@ -1554,7 +1554,7 @@ EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
 EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
-EXPAND(ED2K_HASH,ed2k_hash)
+EXPAND(MLD_HASH,mld_hash)
 EXPAND(OCAMLPP,ocamlpp)
 EXPAND(MAKE_TORRENT,make_torrent)
 EXPAND(SUBCONV,subconv)
@@ -1668,8 +1668,8 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe
-	rm -f svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
-	rm -f svg_converter.exe ed2k_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe
+	rm -f svg_converter mld_hash make_torrent copysources get_range subconv dp500
+	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -1764,9 +1764,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: svg_converter ed2k_hash make_torrent copysources get_range subconv dp500
-utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
-utils.static: svg_converter ed2k_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
+utils: svg_converter mld_hash make_torrent copysources get_range subconv dp500
+utils.byte: mld_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
+utils.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
 
 #######################################################################
 
@@ -1837,20 +1837,20 @@ release.mlnet.distri: mlnet mlnet.static
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
-release.utils.shared: ed2k_hash make_torrent
+release.utils.shared: mld_hash make_torrent
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
-	cp -f ed2k_hash $(DISDIR)/ed2k_hash && strip  $(DISDIR)/ed2k_hash
+	cp -f mld_hash $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
 	cp -f make_torrent $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
 
-release.utils.static: ed2k_hash.static make_torrent.static
+release.utils.static: mld_hash.static make_torrent.static
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
-	cp -f ed2k_hash.static $(DISDIR)/ed2k_hash && strip  $(DISDIR)/ed2k_hash
+	cp -f mld_hash.static $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
 	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)

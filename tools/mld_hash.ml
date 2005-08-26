@@ -23,8 +23,8 @@ open LittleEndian
 open Unix
 open Printf2
 
-let _s x = _s "Ed2k_hash" x
-let _b x = _b "Ed2k_hash" x  
+let _s x = _s "Mld_hash" x
+let _b x = _b "Mld_hash" x  
 
 let zero = Int64.zero
 let one = Int64.one
