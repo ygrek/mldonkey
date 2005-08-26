@@ -11,6 +11,7 @@ ChangeLog
 2005/08/26: spiralvoice
 
 4357: Rename ed2k_hash to mld_hash
+4344: Improve ./configure checks (bzlib.h, iconv on Windows)
 
 2005/08/21: spiralvoice (version 2.6.3 = tag release-2-6-3)
 
