@@ -844,6 +844,8 @@ static void * hasher_thread(void * arg)
 {
   struct timeval now;
   struct timespec timeout;
+
+#if !defined(PTW32_STATIC_LIB)	
   sigset_t mask;
 
   /* Block all signals so that we don't try to execute a Caml signal handler */
@@ -851,6 +853,7 @@ static void * hasher_thread(void * arg)
   pthread_sigmask(SIG_BLOCK, &mask, NULL);
   
   nice(19);
+#endif
   
   pthread_mutex_lock(&mutex);
 
@@ -1135,3 +1138,27 @@ statfs_statfs (value pathv)
 #endif
 }
 #endif /* defined(__MINGW32__) */
+
+
+value
+external_start (void) 
+{
+
+#if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
+	pthread_win32_process_attach_np();
+#endif
+	return Val_unit;
+
+}
+
+value
+external_exit (void) 
+{
+
+#if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
+	pthread_win32_process_detach_np();
+#endif
+
+	return Val_unit;
+}
+

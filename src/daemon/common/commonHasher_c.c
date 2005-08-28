@@ -304,6 +304,8 @@ static void * hasher_thread(void * arg)
 {
   struct timeval now;
   struct timespec timeout;
+
+#if !defined(PTW32_STATIC_LIB) 
   sigset_t mask;
 
   /* Block all signals so that we don't try to execute a Caml signal handler */
@@ -311,6 +313,7 @@ static void * hasher_thread(void * arg)
   pthread_sigmask(SIG_BLOCK, &mask, NULL);
   
   nice(19);
+#endif
   
   pthread_mutex_lock(&mutex);
   
@@ -352,7 +355,8 @@ static void * hasher_thread(void * arg)
 
 value ml_job_start(value job_v, value fd_v)
 {
-  job_fd = Int_val(fd_v);
+  // job_fd = Int_val(fd_v);
+	job_fd = Fd_val(fd_v);
   job_begin_pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
   job_len = Int64_val(Field(job_v, JOB_LEN));
   job_method = Field(job_v, JOB_METHOD);

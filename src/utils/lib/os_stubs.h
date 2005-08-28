@@ -3,6 +3,11 @@
 
 #if defined(__MINGW32__)
 
+#if !defined(PTW32_STATIC_LIB)
+#define PTW32_STATIC_LIB
+#endif
+
+
 #define FD_SETSIZE 256
 
 #include <winsock.h>
@@ -22,6 +27,8 @@ typedef HANDLE OS_FD;
 typedef SOCKET OS_SOCKET;
 typedef unsigned int uint;
 extern void win32_maperr(unsigned long errcode);
+
+
 
 #else
 

@@ -645,6 +645,7 @@ for config files at the end. *)
         lprintf_nl (_b "Exiting...");
         exit 73;
   end;
+  Unix32.external_start ();
   CommonGlobals.do_at_exit (fun _ ->
       (* If we have an error with too many file-descriptors,
          just close all of them *)
@@ -661,6 +662,7 @@ for config files at the end. *)
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
       CommonComplexOptions.backup_options ();
+      Unix32.external_exit ();
       lprintf_nl (_b "Core stopped")
     );
 

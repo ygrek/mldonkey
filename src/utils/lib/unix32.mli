@@ -19,6 +19,9 @@
 
 type t
 
+val external_start : unit -> unit
+val external_exit : unit -> unit
+
 val create_dir_mask : string ref
 val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)

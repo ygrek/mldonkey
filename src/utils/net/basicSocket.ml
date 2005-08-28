@@ -362,7 +362,7 @@ let rec iter_task old_tasks time =
   | t :: old_tail ->
 (*      lprintf "NEXT TASK\n"; *)
       if t.closed then begin
-          remove_fd_from_event_set t;
+          if t.fd <> dummy_fd then remove_fd_from_event_set t;
           iter_task old_tail time
        end else
         begin
