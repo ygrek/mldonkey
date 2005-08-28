@@ -17,7 +17,6 @@ AC_MSG_NOTICE(Building on $host)
 
 OS_FILES=unix
 OS_FILES2=unix
-
 case $host in
   *mingw*)
     OS_FILES=mingw
@@ -27,6 +26,10 @@ case $host in
     ;;
   *cygwin*)
     OS_FILES2=cygwin
+    ;;
+  *freebsd*)
+    CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+    LDFLAGS="${LDFLAGS} -L/usr/local/lib"
     ;;
 esac
 
@@ -1098,15 +1101,45 @@ GD_PNG=no
 if test "$GD" != "no"; then
   GD=no
   LIBGD=no
-  AC_CHECK_LIB(gd, gdImageCreate , [LIBGD=yes])
+  SAVE_LIBS=$LIBS
+
+  AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
+  if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
+    GDLIBS=`$GDLIBCONFIG --libs`
+    LIBS="$LIBS -lgd $GDLIBS"
+  fi
+
+  AC_MSG_CHECKING(for gdImageCreate in -lgd)
+  AC_TRY_LINK([#include <gd.h>],
+  [gdImageCreate (0,0);],
+  [LIBGD=yes], [LIBGD=no])
+  AC_MSG_RESULT($LIBGD)
+
+  if test "$LIBGD" = "no"; then
+    AC_MSG_CHECKING(trying another method)
+    AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
+  fi
+
   if test "$LIBGD" = "yes"; then
+
     LIBPNG=no
     AC_CHECK_LIB(png, png_create_read_struct , [LIBPNG=yes])
-    LIBGD_PNG=no
-    AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes])
+
     if test "$LIBPNG" = "no"; then
       AC_MSG_NOTICE(png support not available)
     else
+      LIBGD_PNG=no
+      AC_MSG_CHECKING(for gdImagePng in -lgd)
+      AC_TRY_LINK([#include <gd.h>],
+      [gdImagePng (0,0);],
+      [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      AC_MSG_RESULT($LIBGD_PNG)
+
+      if test "$LIBGD_PNG" = "no"; then
+        AC_MSG_CHECKING(trying another method)
+        AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      fi
+
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
         HAS_GD_PNG=true
@@ -1119,13 +1152,25 @@ if test "$GD" != "no"; then
         AC_MSG_NOTICE(png support not available in libgd)
       fi
     fi
+
     LIBJPEG=no
     AC_CHECK_LIB(jpeg, jpeg_CreateCompress, [LIBJPEG=yes])
-    LIBGD_JPG=no
-    AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes])
+
     if test "$LIBJPEG" = "no"; then
       AC_MSG_NOTICE(jpeg support not available)
     else
+      LIBGD_JPG=no
+      AC_MSG_CHECKING(for gdImageJpeg in -lgd)
+      AC_TRY_LINK([#include <gd.h>],
+      [gdImageJpeg (0,0,0);],
+      [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      AC_MSG_RESULT($LIBGD_JPG)
+
+      if test "$LIBGD_JPG" = "no"; then
+        AC_MSG_CHECKING(trying another method)
+        AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      fi
+
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
   	HAS_GD_JPG=true
@@ -1140,6 +1185,7 @@ if test "$GD" != "no"; then
   else
     AC_MSG_NOTICE(libgd not available)
   fi
+  LIBS=$SAVE_LIBS
 fi
 AC_MSG_CHECKING(support for graphical statistics)
 if test "$GD" != "no"; then

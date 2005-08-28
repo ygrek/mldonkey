@@ -15,8 +15,9 @@ files > 2GB, threads and libgd generated statistics.
 Here you will find compilation instructions:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
-4342: Large_file support for mld_hash and MinGW MLDonkey core
-4358: Add thread support for MinGW
+4342: Large_file support for mld_hash and MinGW MLDonkey core (by zet)
+4358: Add thread support for MinGW (by zet)
+4362: configure.in support for libgd on MinGW/FreeBSD
 
 2005/08/26: spiralvoice
 
