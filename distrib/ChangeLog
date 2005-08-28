@@ -10,6 +10,8 @@ ChangeLog
 
 2005/08/28: spiralvoice
 
+4361: New command: uptime
+
 Lots of improvements for MinGW, this platform now supports
 files > 2GB, threads and libgd generated statistics.
 Here you will find compilation instructions:

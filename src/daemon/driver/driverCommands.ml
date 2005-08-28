@@ -377,6 +377,23 @@ let _ =
         ""
     ), ":\t\t\t\tprint mldonkey version";
 
+    "uptime", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        let uptime = log_time () ^ "- up" ^
+	  Date.time_to_string_long (last_time () - start_time) in
+        if o.conn_output = HTML then
+          begin
+            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "versionTable" "results" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [ ("", "srh", uptime); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+          end
+        else
+            Printf.bprintf buf "%s" uptime;
+        ""
+    ), ":\t\t\t\tcore uptime";
+
     "buildinfo", Arg_none (fun o ->
         let buf = o.conn_buf in
         let buildinfo = CommonGlobals.buildinfo () in
