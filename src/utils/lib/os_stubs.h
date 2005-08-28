@@ -52,6 +52,14 @@ typedef int OS_SOCKET;
 #endif
 
 #include <sys/types.h>
+
+// off_t is long on mingw, long long everywhere else
+#ifdef _OFF64_T_
+typedef off64_t OFF_T;
+#else
+typedef off_t OFF_T;
+#endif
+
 #include <sys/time.h>
 
 #ifdef HAS_SYS_SELECT_H
@@ -88,14 +96,9 @@ static int seek_command_table[] = {
   SEEK_SET, SEEK_CUR, SEEK_END
 };
 
-#if !defined(__MINGW32__)
-extern int64 os_lseek(OS_FD fd, off_t pos, int dir);
-extern void os_ftruncate(OS_FD fd, off_t len);
-#else
-extern int64 os_lseek(OS_FD fd, int64 pos, int dir);
-extern void os_ftruncate(OS_FD fd, int64 len);
-#endif
-extern int os_read(OS_FD fd, char *buf, int len);
+extern OFF_T os_lseek(OS_FD fd, OFF_T pos, int dir);
+extern void os_ftruncate(OS_FD fd, OFF_T len);
+extern ssize_t os_read(OS_FD fd, char *buf, size_t len);
 extern int os_getdtablesize();
 extern int64 os_getfdsize(OS_FD fd);
 extern int64 os_getfilesize(char *path);

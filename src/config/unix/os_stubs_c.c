@@ -44,25 +44,25 @@
 #include "../../../config/config.h"
 #include "../../utils/lib/os_stubs.h"
 
-int64 os_lseek(OS_FD fd, off_t pos, int dir)
+OFF_T os_lseek(OS_FD fd, OFF_T pos, int dir)
 {
-  off_t result =  lseek(fd, pos, dir);
+  OFF_T result =  lseek(fd, pos, dir);
 
   if(result < 0) unix_error(errno, "os_lseek", Nothing);
 
   return result;
 }
 
-int os_read(OS_FD fd, char *buf, int len)
+ssize_t os_read(OS_FD fd, char *buf, size_t len)
 {
-  int result = read(fd, buf, len);
+  ssize_t result = read(fd, buf, len);
 
   if(result < 0) unix_error(errno, "os_read", Nothing);
 
   return result;
 }
  
-void os_ftruncate(OS_FD fd, off_t len)
+void os_ftruncate(OS_FD fd, OFF_T len)
 {
   int64 cursize;
   if(!fd) failwith("ftruncate32: file is closed");
@@ -70,7 +70,7 @@ void os_ftruncate(OS_FD fd, off_t len)
   cursize = os_getfdsize(fd);
   if(cursize < len){
     int zero = 0;
-    off_t result = lseek(fd, len-1, SEEK_SET);
+    OFF_T result = lseek(fd, len-1, SEEK_SET);
     if(result < 0) unix_error(errno, "os_ftruncate", Nothing);
 
     write(fd, &zero, 1);

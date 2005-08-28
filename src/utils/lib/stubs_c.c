@@ -126,8 +126,7 @@ value try_poll(value fdlist, value timeout) /* ML */
 /*        printf("SETTING %d TO %d\n", fd, nfds); */
         pfds[nfds] = v;
         nfds++;
-      } else
-        ;
+      } // else ;
     }
   }
 /*  printf("POLL: %d/%d\n", nfds, ufds_size); */
@@ -351,7 +350,7 @@ value ml_setsock_iptos_throughput(value sock_v)
 
 value ml_sizeofoff_t(value unit)
 {
-  return Val_int(sizeof(off_t));
+  return Val_int(sizeof(OFF_T));
 }
 
 /*******************************************************************
@@ -395,7 +394,7 @@ value ml_getfdsize64(value fd_v)
 #define ZEROS_LEN 1024
 value mld_ftruncate_64(value fd_v, value len_v)
 {
-  off_t len = Int64_val(len_v);
+  OFF_T len = Int64_val(len_v);
   OS_FD fd = Fd_val(fd_v);  
 
   os_ftruncate(fd, len);
@@ -500,17 +499,17 @@ unsigned char hash_buffer[HASH_BUFFER_LEN];
 value HASH_NAME##_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v) \
 { \
   OS_FD fd = Fd_val(fd_v); \
-  off_t pos = Int64_val(pos_v); \
-  off_t len = Int64_val(len_v); \
+  OFF_T pos = Int64_val(pos_v); \
+  OFF_T len = Int64_val(len_v); \
   unsigned char *digest = String_val(digest_v); \
   HASH_CONTEXT context; \
-  int nread; \
+  ssize_t nread; \
  \
   HASH_INIT (&context); \
   os_lseek(fd, pos, SEEK_SET); \
  \
   while (len!=0){ \
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
+    size_t max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
  \
     nread = os_read (fd, hash_buffer, max_nread); \
  \
@@ -552,7 +551,7 @@ value HASH_NAME##_unsafe_file (value digest_v, value filename_v, value file_size
   unsigned char *digest = String_val(digest_v); \
   FILE *file; \
   HASH_CONTEXT context; \
-  int len; \
+  size_t len; \
  \
   if ((file = fopen (filename, "rb")) == NULL) \
     raise_not_found(); \
@@ -586,19 +585,19 @@ ML_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 *******************************************************************/
 #include "tiger.h"
 
-static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
+static void tiger_tree_fd(OS_FD fd, size_t len, size_t pos, size_t block_size, char *digest)
 {
   static char tiger_buffer[BLOCK_SIZE+1];
   if(block_size == BLOCK_SIZE){
-    int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
+    size_t length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
     char *s = tiger_buffer+1;
-    int toread = length;
+    size_t toread = length;
     char *curs = s;
       while (toread!=0){
       int max_nread = toread;
 /* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
 
-      int nread = os_read (fd, curs, max_nread);
+      ssize_t nread = os_read (fd, curs, max_nread);
 
         if(nread <= 0) {
         unix_error(errno, "tiger_safe_fd: Read", Nothing);
@@ -624,8 +623,8 @@ static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *dige
 value tigertree_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   OS_FD fd = Fd_val(fd_v);
-  off_t pos = Int64_val(pos_v);
-  off_t len = Int64_val(len_v);
+  OFF_T pos = Int64_val(pos_v);
+  OFF_T len = Int64_val(len_v);
   unsigned char *digest = String_val(digest_v);
 /*  int nread; */
 
@@ -676,7 +675,7 @@ value ml_setlcnumeric(value no)
 
 // #include "socketaddr.h"
 #ifndef _WIN32
-#include <sys/types.h>
+// #include <sys/types.h>
 #include <netdb.h>
 #endif
 

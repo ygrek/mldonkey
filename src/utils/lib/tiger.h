@@ -20,7 +20,6 @@
 #ifndef _TIGER_H
 #define _TIGER_H
 
-
 typedef unsigned long long int word64;
 typedef unsigned long word32;
 typedef unsigned char byte;
@@ -31,6 +30,6 @@ typedef unsigned char byte;
 #define TREE_DEPTH 10
 
 
-void tiger_hash(char prefix, char *s, int len, unsigned char *digest);
-int tiger_block_size(int len);
+void tiger_hash(char prefix, char *s, long len, unsigned char *digest);
+long tiger_block_size(long len);
 #endif

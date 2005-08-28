@@ -8,6 +8,15 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/28: spiralvoice
+
+Lots of improvements for MinGW, this platform now supports
+files > 2GB, threads and libgd generated statistics.
+Here you will find compilation instructions:
+http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
+
+4342: Large_file support for mld_hash and MinGW MLDonkey core
+
 2005/08/26: spiralvoice
 
 4360: Configure: Test for nl_langinfo(CODESET)

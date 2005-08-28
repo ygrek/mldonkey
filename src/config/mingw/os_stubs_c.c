@@ -20,7 +20,7 @@
 extern void enter_blocking_section(); 
 extern void leave_blocking_section();
 
-extern int os_read(OS_FD fd, char *buf, int len)
+extern ssize_t os_read(OS_FD fd, char *buf, size_t len)
 {
   DWORD numread;
   BOOL ret;
@@ -37,7 +37,7 @@ extern int os_read(OS_FD fd, char *buf, int len)
   return numread;
 }
 
-void os_ftruncate(OS_FD fd, int64 size)
+void os_ftruncate(OS_FD fd, OFF_T size)
 {
   uint curpos;
   long ofs_low = (long) size;
@@ -90,7 +90,7 @@ int64 os_getfilesize(char *path)
   }
 }
 
-int64 os_lseek(OS_FD fd, int64 ofs, int cmd)
+OFF_T os_lseek(OS_FD fd, OFF_T ofs, int cmd)
 {
   long ret;
   long ofs_low = ofs;
@@ -105,7 +105,7 @@ int64 os_lseek(OS_FD fd, int64 ofs, int cmd)
       uerror("os_lseek", Nothing);
     }
   }
-  return ((int64) ofs_high << 32 | ret);
+  return ((OFF_T) ofs_high << 32 | ret);
 }
 
 #include <winsock2.h>

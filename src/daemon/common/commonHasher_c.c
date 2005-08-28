@@ -50,17 +50,17 @@ static unsigned char local_hash_buffer[HASH_BUFFER_LEN];
 
 
 #define COMPLETE_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
-static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, off_t pos, long len, \
+static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, OFF_T pos, OFF_T len, \
   unsigned char *digest) \
 { \
   HASH_CONTEXT context; \
-  int nread; \
+  ssize_t nread; \
  \
   HASH_INIT (&context); \
   os_lseek(fd, pos, SEEK_SET); \
  \
   while (len!=0){ \
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
+    size_t max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
  \
     nread = os_read (fd, local_hash_buffer, max_nread); \
  \
@@ -83,22 +83,22 @@ COMPLETE_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
 COMPLETE_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
 COMPLETE_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 
-static void tiger_tree_fd(OS_FD fd, long len, off_t pos, 
-  int block_size, char *digest)
+static void tiger_tree_fd(OS_FD fd, size_t len, OFF_T pos, 
+  size_t block_size, char *digest)
 {
   static char tiger_buffer[BLOCK_SIZE+1];
 
   if(block_size == BLOCK_SIZE){
-    int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
+    size_t length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
     char *s = tiger_buffer+1;
-    int toread = length;
+    size_t toread = length;
     char *curs = s;
 
       while (toread>0){
-      int max_nread = toread;
+      size_t max_nread = toread;
 /* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
 
-      int nread = os_read (fd, curs, max_nread);
+      ssize_t nread = os_read (fd, curs, max_nread);
 
         if(nread <= 0) {
         unix_error(errno, "tiger_safe_fd: Read", Nothing);
@@ -126,8 +126,8 @@ static void tiger_tree_fd(OS_FD fd, long len, off_t pos,
 
 #define MAX_CHUNK_SIZE 1000000
 static OS_FD job_fd;
-static off_t job_pos;
-static long job_len;
+static OFF_T job_pos;
+static OFF_T job_len;
 static value job_finished = 1;
 
 
@@ -140,8 +140,8 @@ computations of MAX_CHUNK_SIZE(1 Mo) bytes hashes.
 #define PARTIAL_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
 value HASH_NAME##_step(value job_v) \
 { \
-  int nread; \
-  int ndone = 0; \
+  ssize_t nread; \
+  size_t ndone = 0; \
   static int timer = 0; \
   static  HASH_CONTEXT context; \
   if(job_v == Val_unit) { \
@@ -150,7 +150,7 @@ value HASH_NAME##_step(value job_v) \
   } \
   if(--timer > 0) return Val_false; \
   while (job_len>0 && ndone< MAX_CHUNK_SIZE){ \
-    int max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN; \
+    size_t max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN; \
      \
     nread = os_read (job_fd, local_hash_buffer, max_nread); \
      \
@@ -275,7 +275,7 @@ static int volatile  job_done = 1;
 /* We use these variables for thread communication */
 static char volatile job_result[64];
 static OS_FD volatile  job_fd = 0;
-static off_t volatile job_begin_pos = 0;
+static OFF_T volatile job_begin_pos = 0;
 static long volatile job_len = 0;
 static int volatile job_method = 0;
 
@@ -336,7 +336,7 @@ static void * hasher_thread(void * arg)
             sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
           else 
             if( job_method == METHOD_TIGER){
-              int bsize = tiger_block_size(job_len);
+              long bsize = tiger_block_size(job_len);
               tiger_tree_fd(job_fd, job_len, 0, bsize, job_result);
             } else {
               printf("commonHasher_c.c: method sha1 not implemented\n");
