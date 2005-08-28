@@ -58,7 +58,7 @@ void os_ftruncate(OS_FD fd, OFF_T size)
 
 int os_getdtablesize()
 {
-  return 256;
+  return 32767;
 }
 
 int64 os_getfdsize(OS_FD fd)

@@ -272,9 +272,8 @@ value ml_getdtablesize(value unit)
       
 #else
 
-      printf("Your shell allows %d file descriptors, but select only allows %d file descriptors\n", dtablesize, maxselectfds);
       maxfd = maxselectfds;
-      printf("Limit has been set to %d\n", maxfd);
+		  // printf("[Info] File descriptor limit: MIN(process: %d, select(): %d) = %d\n", dtablesize, maxselectfds, maxfd);
 
 #endif
   }

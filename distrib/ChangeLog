@@ -18,6 +18,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4342: Large_file support for mld_hash and MinGW MLDonkey core (by zet)
 4358: Add thread support for MinGW (by zet)
 4362: configure.in support for libgd on MinGW/FreeBSD
+4349: increase filedescriptor limit for mingw (by zet)
 
 2005/08/26: spiralvoice
 

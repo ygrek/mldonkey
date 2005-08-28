@@ -8,7 +8,7 @@
 #endif
 
 
-#define FD_SETSIZE 256
+#define FD_SETSIZE 1024
 
 #include <winsock.h>
 
