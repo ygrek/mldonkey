@@ -1729,9 +1729,9 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
 style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
 \\<option value=\\\"0\\\"\\>style/theme\n";
 
-            Array.iteri (fun i h ->
-                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i (fst h);
-            ) !html_mods_styles;
+            Array.iteri (fun i style ->
+                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i style.style_name
+	    ) CommonMessages.styles;
 
             if Sys.file_exists html_themes_dir then
               let list = Unix2.list_directory html_themes_dir in
@@ -2825,7 +2825,7 @@ let _ =
           begin
             html_mods =:= true;
             html_mods_style =:= 0;
-            commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+            commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).frame_height;
             use_html_frames =:= true;
             CommonMessages.colour_changer() ;
           end;
@@ -2837,9 +2837,9 @@ let _ =
     "html_mods_style", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
-            Array.iteri (fun i h ->
-                Printf.bprintf buf "%d: %s\n" i (fst h);
-            ) !html_mods_styles;
+            Array.iteri (fun i style ->
+                Printf.bprintf buf "%d: %s\n" i style.style_name;
+            ) CommonMessages.styles;
             ""
           end
         else begin
@@ -2848,16 +2848,11 @@ let _ =
             html_mods_theme =:= "";
             let num = int_of_string (List.hd args) in
 
-            if num >= 0 && num < (Array.length !html_mods_styles) then begin
-                html_mods_style =:= num;
-                commands_frame_height =:= (snd !html_mods_styles.(num));
-                CommonMessages.colour_changer ();
-              end
-            else begin
-                html_mods_style =:= 0;
-                commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
-                CommonMessages.colour_changer ();
-              end;
+	    html_mods_style =:=
+	      if num >= 0 && num < Array.length CommonMessages.styles then
+                num else 0;
+            commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).frame_height;
+            CommonMessages.colour_changer ();
             "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
           end
 

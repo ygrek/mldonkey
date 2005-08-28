@@ -879,11 +879,6 @@ let for_string_tag tag f =
   | Pair _ -> ()
   | Uint16 _ | Uint8 _ -> ()
 
-(* Name,FrameHeight *)
-let html_mods_styles = ref
-  [| ("Green",46) ; ("Tang",46); ("L.Blue",46);
-   ("L.Purple",46); ("Monochrome",46); ("Corona",46); ("Coronax",46); ("Construction",46); |]
-
 let partial_chunk c =
   match c with
     '0' | '1' -> true

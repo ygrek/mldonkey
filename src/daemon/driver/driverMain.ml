@@ -302,8 +302,8 @@ let load_config () =
 
   CommonMessages.load_message_file ();
   if !!html_mods then begin
-      if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
-        commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+      if !!html_mods_style > 0 && !!html_mods_style < Array.length CommonMessages.styles then
+        commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).CommonMessages.frame_height;
       CommonMessages.colour_changer ();
     end;
   networks_iter_all (fun r ->
