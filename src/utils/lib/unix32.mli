@@ -19,7 +19,7 @@
 
 type t
 
-val external_start : unit -> unit
+val external_start : string -> unit
 val external_exit : unit -> unit
 
 val create_dir_mask : string ref

@@ -645,7 +645,7 @@ for config files at the end. *)
         lprintf_nl (_b "Exiting...");
         exit 73;
   end;
-  Unix32.external_start ();
+  Unix32.external_start (CommonGlobals.version());
   CommonGlobals.do_at_exit (fun _ ->
       (* If we have an error with too many file-descriptors,
          just close all of them *)

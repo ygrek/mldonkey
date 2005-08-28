@@ -1139,9 +1139,27 @@ statfs_statfs (value pathv)
 #endif /* defined(__MINGW32__) */
 
 
+#if defined(__MINGW32__)
+static HWND myHWND = NULL;
+#endif
+
 value
-external_start (void) 
+external_start (value version)
 {
+
+// Disable close button on console
+#if defined(__MINGW32__)
+  char *buf = "[MLDonkey TitleSearch]\0"; // if multiple instances
+  char *title = String_val (version);
+  SetConsoleTitle((LPCTSTR)buf);
+  myHWND = FindWindowEx(NULL, NULL, NULL, (LPCTSTR)buf);
+  SetConsoleTitle((LPCTSTR)title);
+
+  if (myHWND != NULL) {
+    HMENU hmenu = GetSystemMenu(myHWND, FALSE);
+    DeleteMenu(hmenu, SC_CLOSE, MF_BYCOMMAND);
+  }
+#endif
 
 #if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
 	pthread_win32_process_attach_np();
@@ -1153,6 +1171,13 @@ external_start (void)
 value
 external_exit (void) 
 {
+// Revert console system menu
+#if defined(__MINGW32__)
+  if (myHWND != NULL) {
+    HMENU hmenu = GetSystemMenu(myHWND, TRUE);
+    DrawMenuBar(myHWND);
+  }
+#endif
 
 #if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
 	pthread_win32_process_detach_np();
@@ -1160,4 +1185,3 @@ external_exit (void)
 
 	return Val_unit;
 }
-
