@@ -1005,6 +1005,7 @@ let backup_tar archive files =
                  but fasttrack.ini is stored correctly *)
 	      if !verbose_hidden_errors then
 	        lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
+	      else ()
 	    else
 	      begin
 		if !failed_files = "" then

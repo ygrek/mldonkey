@@ -1135,7 +1135,7 @@ let rec parse magic s =
         else
           failwith "No Zlib to uncompress packet"
     | _ ->
-        failwith (Printf.sprintf "Unkown opcode %d from server\n" opcode)
+        failwith (Printf.sprintf "Unknown opcode %d from server\n" opcode)
   with
     e ->
       if !CommonOptions.verbose_unknown_messages then begin
