@@ -10,7 +10,7 @@ ChangeLog
 
 2005/08/29: spiralvoice
 
-4368: Use sparse files on MinGW/NTFS
+4368: Use sparse files on MinGW/NTFS (by zet)
 
 2005/08/28: spiralvoice
 
