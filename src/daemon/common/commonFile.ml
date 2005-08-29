@@ -897,7 +897,7 @@ let file_verify file key begin_pos end_pos =
     result
   with
     | Not_found -> raise Not_found
-    | _ -> if !verbose_md4 then lprintf_nl () "Checksum computed: chunk MISSING";
+    | e -> lprintf_nl () "Checksum computation failed: Exception: %s" (Printexc2.to_string e);
     false
 
 let file_mtime file = Unix32.mtime64 (file_fd file)

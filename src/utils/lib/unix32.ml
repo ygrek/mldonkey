@@ -435,9 +435,11 @@ module MultiFile = struct
       let fd = FDCache.local_force_fd file_out true in
       try 
         let v = f fd zero in
+        FDCache.close file_out;
         Sys.remove temp_file;
         v
       with e -> 
+          FDCache.close file_out;
           Sys.remove temp_file;
           raise e
 
