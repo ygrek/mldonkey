@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/08/29: spiralvoice
+
+4368: Use sparse files on MinGW/NTFS
+
 2005/08/28: spiralvoice
 
 4366: HTML: more maintainable html_mods styles (by pango)
