@@ -726,7 +726,7 @@ let new_print_stats buf o =
       Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
       html_mods_table_one_row buf "csTable" "cs" [
         ("", "srh",
-          Printf.sprintf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
+          Printf.sprintf "eDonkey - Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
             days hours mins session_time); ];
       Buffer.add_string buf "\\</div\\>\n";
 
@@ -825,7 +825,7 @@ let new_print_stats buf o =
       Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
       html_mods_table_one_row buf "csTable" "cs" [
         ("", "srh",
-          Printf.sprintf "Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
+          Printf.sprintf "eDonkey - Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
             gdays ghours gmins (guptime() + uptime)); ];
       Buffer.add_string buf "\\</div\\>\n";
 
@@ -908,7 +908,7 @@ let new_print_stats buf o =
     end
   else
     begin
-      Printf.bprintf buf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+      Printf.bprintf buf "eDonkey - Session Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
         days hours mins session_time;
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
@@ -953,7 +953,7 @@ let new_print_stats buf o =
       let ghours = grem / one_hour in
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
-      Printf.bprintf buf "\nTotal Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+      Printf.bprintf buf "\neDonkey - Total Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
         gdays ghours gmins (guptime() + uptime);
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
@@ -1015,7 +1015,7 @@ let new_print_mod_stats buf o =
       Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
       html_mods_table_one_row buf "csTable" "cs" [
         ("", "srh",
-          Printf.sprintf "Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
+          Printf.sprintf "eMule Mods - Session Uptime: %d days, %02dh:%02dm (= %d seconds)"
             days hours mins session_time); ];
       Buffer.add_string buf "\\</div\\>\n";
       stats_html_header buf;
@@ -1132,7 +1132,7 @@ let new_print_mod_stats buf o =
       Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>\n";
       html_mods_table_one_row buf "csTable" "cs" [
         ("", "srh",
-          Printf.sprintf "Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
+          Printf.sprintf "eMule Mods - Total Uptime: %d days, %02dh:%02dm (= %d seconds)"
             gdays ghours gmins (guptime() + uptime)); ];
       Buffer.add_string buf "\\</div\\>\n";
 
@@ -1215,7 +1215,7 @@ let new_print_mod_stats buf o =
     end
   else
     begin
-      Printf.bprintf buf "Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
+      Printf.bprintf buf "eMule Mods - Uptime: %d days, %02dh:%02dm (= %d seconds)\n"
         days hours mins session_time;
       Printf.bprintf buf "         MOD| seen      |  Downloads       |  Uploads         |  Banned\n";
       Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";

@@ -587,6 +587,9 @@ onClick=\"mSub('output','cs')\">eDonkey Table</TD>
 <TD class=\"bu bbig\" title=\"eMule MODs statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','csm')\">eMule MODs</TD>
+<TD class=\"bu bbig\" title=\"Bittorrent statistics\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','csbt')\">Bittorrent Table</TD>
 <TD class=\"bu bbig\" title=\"Overnet statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"showTab(4);mSub('fstatus','ov_view_stats_cmds');mSub('output','ov_stats')\">Overnet</TD>
