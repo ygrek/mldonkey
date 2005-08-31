@@ -820,7 +820,18 @@ module SharedDirectoryOption = struct
   
 let shared_directories = 
   define_option CommonOptions.path_section ["shared_directories" ] 
-  "Directories where files will be shared"
+  "                Incoming and shared directories.
+   At least two entries have to be present here, one with strategy
+   incoming_files and one with strategy incoming_directories.
+   Both entries can point to the same directory.
+   If one of the two strategies is missing, MLDonkey will create a default
+   directory with its entry here.
+   Finished BT multifile downloads are committed to the first directory
+   with strategy incoming_directories. Other downloads are committed
+   to the first directory with the strategy incoming_files.
+   If more than one directory has one of the incoming_* strategies
+   it will be ignored on commit, but they are shared nonetheless.
+   Other strategies can be found in searches.ini, section customized_sharing."
     (list_option SharedDirectoryOption.t) 
   [
     {
