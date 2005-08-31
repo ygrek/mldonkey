@@ -396,7 +396,7 @@ let _ =
 
     "buildinfo", Arg_none (fun o ->
         let buf = o.conn_buf in
-        let buildinfo = CommonGlobals.buildinfo () in
+        let buildinfo = CommonComplexOptions.buildinfo () in
         if o.conn_output = HTML then
           begin
             Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";

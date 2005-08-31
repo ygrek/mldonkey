@@ -82,3 +82,5 @@ let do_draw_tag title gdown gup =
   disable_gfx_support ();
   show_nogd_debug_msg ()
 )
+
+let png_version_num () = ""
