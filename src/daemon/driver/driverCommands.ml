@@ -588,7 +588,7 @@ formID.msgText.value=\\\"\\\";
               _s "User added"
         else
           _s "Only 'admin' is allowed to do that"
-    ), "<user> <passwd> :\t\tadd a new mldonkey user";
+    ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
 
     "remove_user", Arg_one (fun user o ->
         if o.conn_user == default_user then

@@ -14,6 +14,7 @@ ChangeLog
 4381: better differentiation of eDonkey and BT Stats Table (by schlumpf)
 4380: some info for SCM Version (CVS co Date/ SVN revision) (by schlumpf)
 4379: Fix compile error when libgd is not present
+4378: Longhelp: Better description for add_user
 
 2005/08/29: spiralvoice
 
