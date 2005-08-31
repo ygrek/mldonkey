@@ -1105,8 +1105,9 @@ if test "$GD" != "no"; then
 
   AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
   if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
-    GDLIBS=`$GDLIBCONFIG --libs`
-    LIBS="$LIBS -lgd $GDLIBS"
+    GDLIBCONFIG=`$GDLIBCONFIG --libs`
+    GDLIBS="$LIBS -lgd $GDLIBCONFIG"
+    LIBS=$GDLIBS
   fi
 
   AC_MSG_CHECKING(for gdImageCreate in -lgd)
@@ -1114,9 +1115,10 @@ if test "$GD" != "no"; then
   [gdImageCreate (0,0);],
   [LIBGD=yes], [LIBGD=no])
   AC_MSG_RESULT($LIBGD)
+  LIBS=$SAVE_LIBS
 
   if test "$LIBGD" = "no"; then
-    AC_MSG_CHECKING(trying another method)
+    AC_MSG_NOTICE(not found, trying another method)
     AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
   fi
 
@@ -1129,14 +1131,16 @@ if test "$GD" != "no"; then
       AC_MSG_NOTICE(png support not available)
     else
       LIBGD_PNG=no
+      LIBS=$GDLIBS
       AC_MSG_CHECKING(for gdImagePng in -lgd)
       AC_TRY_LINK([#include <gd.h>],
       [gdImagePng (0,0);],
       [LIBGD_PNG=yes], [LIBGD_PNG=no])
       AC_MSG_RESULT($LIBGD_PNG)
+      LIBS=$SAVE_LIBS
 
       if test "$LIBGD_PNG" = "no"; then
-        AC_MSG_CHECKING(trying another method)
+        AC_MSG_NOTICE(not found, trying another method)
         AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
       fi
 
@@ -1160,14 +1164,16 @@ if test "$GD" != "no"; then
       AC_MSG_NOTICE(jpeg support not available)
     else
       LIBGD_JPG=no
+      LIBS=$GDLIBS
       AC_MSG_CHECKING(for gdImageJpeg in -lgd)
       AC_TRY_LINK([#include <gd.h>],
       [gdImageJpeg (0,0,0);],
       [LIBGD_JPG=yes], [LIBGD_JPG=no])
       AC_MSG_RESULT($LIBGD_JPG)
+      LIBS=$SAVE_LIBS
 
       if test "$LIBGD_JPG" = "no"; then
-        AC_MSG_CHECKING(trying another method)
+        AC_MSG_NOTICE(not found, trying another method)
         AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
       fi
 
