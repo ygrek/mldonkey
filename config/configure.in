@@ -59,8 +59,13 @@ esac
 
 if test -d .svn; then
   AC_MSG_NOTICE(checking SVN revision)
-  SUB_VERSION3="SVN"
-  SCM_VERSION=`svnversion -n .`
+  AC_CHECK_PROG(SVNVERSION,svnversion,svnversion)
+  if test "$ac_cv_prog_SVNVERSION" = "svnversion"; then
+    SUB_VERSION3="SVN"
+    SCM_VERSION=`svnversion -n .`
+  else AC_MSG_NOTICE(cannot checking SVN revision... no SVNVERSION)
+       SCM_VERSION="cannot find out SVN revision (no SVNVERSION)"  
+  fi     
 fi
 if test -f ./CVS/Entries ; then
   AC_MSG_NOTICE(checking CVS checkout date)
@@ -90,9 +95,15 @@ if test -f ./CVS/Entries ; then
 	  fi
 	fi
       fi
+      else AC_MSG_NOTICE(cannot checking CVS checkout date... no CUT)
+      SCM_VERSION="cannot find out SCM Version (no CUT)"
     fi
+    else AC_MSG_NOTICE(cannot checking CVS checkout date... no SED)
+    SCM_VERSION="cannot find out SCM Version (no SED)"
   fi
-fi
+  else AC_MSG_NOTICE(cannot checking CVS checkout date... no STAT)
+  SCM_VERSION="cannot find out SCM Version (no STAT)"
+  fi
 fi
 MLDONKEY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$SUB_VERSION
 if test -f ./subrelease; then

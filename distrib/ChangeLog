@@ -12,6 +12,7 @@ ChangeLog
 
 4382: Solve libgd configure in mandrake 10.0
 4381: better differentiation of eDonkey and BT Stats Table (by schlumpf)
+4380: some info for SCM Version (CVS co Date/ SVN revision) (by schlumpf)
 
 2005/08/29: spiralvoice
 
