@@ -35,6 +35,8 @@ val reachable : t -> bool
 val resolve_one : t -> string
 val matches : t -> t list -> bool
 val compare : t -> t -> int
+val succ : t -> t
+val pred : t -> t
   
 val localhost : t
 val to_sockaddr : t -> int -> Unix.sockaddr

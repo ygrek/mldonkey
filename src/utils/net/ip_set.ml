@@ -42,14 +42,19 @@ and ins bl br =
 	  fixup (BL_Range (red, (ins left br), br2, right))
 	else if Ip.compare br.blocking_begin br2.blocking_end > 0 then
 	  fixup (BL_Range (red, left, br2, (ins right br)))
-	else (* ok, comments aren't preserved. Beat me. *)
-             (* left and right aren't simplified either *)
-	  let newr = {
+(* optimizer requires that ranges are sorted in increasing starting
+   addresses *)
+	else if Ip.compare br.blocking_begin br2.blocking_begin < 0 then 
+	  fixup (BL_Range (red, (ins left br), br2, right))
+	else
+(* Be lazy. The optimizer will deal with it. *)
+	  fixup (BL_Range (red, left, br2, (ins right br)))
+(*	  let newr = {
 	    blocking_description = br.blocking_description;
 	    blocking_begin = ip_mini br.blocking_begin br2.blocking_begin;
 	    blocking_end = ip_maxi br.blocking_end br2.blocking_end;
-	    blocking_hits = 0 } in
-	  BL_Range (red, left, newr, right)
+	    blocking_hits = br.blocking_hits + br2.blocking_hits } in
+	  BL_Range (red, left, newr, right) *)
 
 and fixup bl =
   match bl with
@@ -84,6 +89,53 @@ let match_ip bl ip =
 	br.blocking_hits <- br.blocking_hits + 1
     | None -> ());
   m
+
+let rec bl_fold_left f acc bl =
+  match bl with
+      BL_Empty -> acc
+    | BL_Range (_, left, br, right) ->
+	bl_fold_left f (f br (bl_fold_left f acc left)) right
+
+let bl_optimize bl =
+  let compact br (new_bl, pending_br) =
+    match pending_br with
+(* first range *)
+	None -> (new_bl, Some br)
+      | Some pbr ->
+(* next range doesn't merge with pending one, commit pending range and
+   go on with the next one *)
+	  if Ip.compare br.blocking_begin (Ip.succ pbr.blocking_end) > 0 then
+	    (add_range new_bl pbr, Some br)
+	  else 
+	    let hits_sum = br.blocking_hits + pbr.blocking_hits in
+(* next range merge with pending one, does it extend it ? *)
+	    if Ip.compare br.blocking_end pbr.blocking_end > 0 then
+	    (new_bl, Some { pbr with blocking_end = br.blocking_end;
+			    blocking_hits = hits_sum })
+	  else 
+(* no, it doesn't *)
+	    (new_bl, Some { pbr with blocking_hits = hits_sum })
+  in
+
+(* start with no current range *)
+  let new_bl, pending_br = bl_fold_left compact (bl_empty, None) bl in
+(* finally, add the pending range *)
+  match pending_br with
+      None -> new_bl
+    | Some pbr -> add_range new_bl pbr
+
+let bl_length bl =
+  bl_fold_left (fun br acc -> acc+1) 0 bl
+
+let bl_optimizedp bl =
+  let last_ip = ref None in
+  let check br () =
+    (match !last_ip with
+	Some ip ->
+	  assert(Ip.compare br.blocking_begin ip > 0)
+      | None -> ());
+    last_ip := Some (Ip.succ br.blocking_end)
+  in bl_fold_left check () bl
 
 let load_merge bl filename remove =
   lprintf_nl () "creating block table from %s" filename;
@@ -132,8 +184,17 @@ let load_merge bl filename remove =
     if !error then lprint_newline ();
     close_in cin;
     if remove then (try Sys.remove filename with _ -> ());
-    lprintf_nl () "%d ranges loaded" !nranges;
-    !bl
+    let optimized_bl = bl_optimize !bl in
+    lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
+(*    bl_optimizedp optimized_bl;
+    for i=0 to 999999 do
+      let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
+      match match_ip !bl random_ip, match_ip optimized_bl random_ip with
+	  None, None 
+	| Some _, Some _ -> ()
+	| _ -> assert false
+    done; *)
+    optimized_bl
 
 let load filename =
    lprintf_nl () "loading %s" filename;

@@ -115,6 +115,30 @@ let compare ((a4,a3,a2,a1) as a) ((b4,b3,b2,b1) as b) =
   if c2 <> 0 then c2 else
   compare a1 b1
 
+let succ (a4,a3,a2,a1) =
+  if a1 < 255 then
+    (a4,a3,a2,a1+1)
+  else if a2 < 255 then
+    (a4,a3,a2+1,0)
+  else if a3 < 255 then
+    (a4,a3+1,0,0)
+  else if a4 < 255 then
+    (a4+1,0,0,0)
+  else
+    (0,0,0,0) (* or exception ? *)
+
+let pred (a4,a3,a2,a1) =
+  if a1 > 0 then
+    (a4,a3,a2,a1-1)
+  else if a2 > 0 then
+    (a4,a3,a2-1,255)
+  else if a3 > 0 then
+    (a4,a3-1,255,255)
+  else if a4 > 0 then
+    (a4-1,255,255,255)
+  else
+    (255,255,255,255) (* or exception ? *)
+
 let localhost = of_string "127.0.0.1"
 
 let to_sockaddr ip port =
