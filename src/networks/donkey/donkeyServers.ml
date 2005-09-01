@@ -521,9 +521,11 @@ let rec connect_one_server restart =
             if !servers_list = [] then begin
               if !print_empty_list then begin
                 print_empty_list := false;
-                lprintf_nl () "Looks like you have no servers in your servers.ini";
-                lprintf_nl () "You should either use the one provided with mldonkey";
-                lprintf_nl () "or import one from the WEB";
+                lprintf_nl () "There are no ED2K-servers in your servers.ini.";
+                lprintf_nl () "Please import servers from a server.met file.";
+                lprintf_nl () "Let MLDonkey use a file configured in web_infos";
+                lprintf_nl () "or enter this link into MLDonkey:";
+		lprintf_nl () "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
               end;
 
               raise Not_found;

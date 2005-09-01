@@ -678,15 +678,17 @@ let force_client_ip = define_option current_section ["force_client_ip"]
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
 
-let web_infos = define_option current_section
-    ["web_infos"] "A list of lines to download on the WEB: each line has
+let web_infos = define_option current_section ["web_infos"]
+    "A list of lines to download on the WEB: each line has
     the format: (kind, period, url), where kind is either
-    'server.met' for a server.met file containing ed2k server, or
+    'server.met' for a server.met file (also in gz/bz2/zip format)
+                 containing ed2k server, or
     'comments.met' for a file of comments, or
     'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or
     'ocl' for file in the ocl format containing overnet peers, or
     'contact.dat' for an contact.dat file containing overnet peers,
     and period is the period between updates (in hours),
+    a period of zero means the file is only loaded once on startup,
     and url is the url of the file to download.
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
@@ -702,8 +704,8 @@ let web_infos = define_option current_section
   [
     ("guarding.p2p", 96,
       "http://www.bluetack.co.uk/config/antip2p.txt");
-    ("server.met", 24,
-      "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+    ("server.met", 0,
+      "http://www.gruk.org/server.met.gz");
     ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
   ]
@@ -1292,7 +1294,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 4
+    int_option 5
 
 
 (*************************************************************************)
@@ -1711,5 +1713,17 @@ let rec update_options () =
             "http://www.overnet.org/download/contact.dat");
         ];
       update 4
+
+  | 4 ->
+      web_infos_remove
+        [
+          ("server.met", 24,
+            "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+        ];
+      web_infos =:= !!web_infos @ [
+          ("server.met", 0,
+            "http://www.gruk.org/server.met.gz");
+        ];
+      update 5
 
   | _ -> ()

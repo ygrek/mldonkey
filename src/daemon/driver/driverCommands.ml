@@ -295,7 +295,7 @@ let _ =
         let v = (kind, 1, url) in
         if not (List.mem v !!web_infos) then
           web_infos =:=  v :: !!web_infos;
-        CommonWeb.load_url kind url;
+        CommonWeb.load_url true kind url;
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
@@ -2653,7 +2653,7 @@ let _ =
                 H.req_proxy = !CommonOptions.http_proxy;
                 H.req_request = H.HEAD;
                 H.req_user_agent =
-                       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+                       Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
             } in
             H.whead r
                 (fun headers ->

@@ -315,7 +315,7 @@ module Make(Proto: sig
       (log_time ())
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf_nl2
 
-    let lprintf () =
+    let lprintf_n () =
       lprintf "[%s] "
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf
 
@@ -1605,7 +1605,7 @@ let _ =
         in
         List.iter (fun url ->
             Printf.bprintf o.conn_buf "Loading %s\n" url;
-            CommonWeb.load_url web_info url) urls;
+            CommonWeb.load_url true web_info url) urls;
         "web boot started"
     ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
 
@@ -1812,31 +1812,26 @@ let _ =
                 let port = String2.replace port '"' "" in
                 Ip.async_ip name (fun ip ->
                     let port = int_of_string port in
-                    if !verbose_overnet then begin
-                        lprintf_nl () "Adding %s peer %s:%d" command_prefix_to_net name port;
-                      end;
+                    if !verbose_overnet then
+                      lprintf_nl () "Adding %s peer %s:%d" command_prefix_to_net name port;
                     bootstrap ip port)
-            | _ ->
-                lprintf_nl () "BAD LINE ocl: %s" s;
-          with _ ->
-              begin
-                lprintf_nl () "DNS failed";
-              end
+            | _ -> lprintf_nl () "BAD LINE ocl: %s" s;
+          with _ -> lprintf_nl () "DNS failed";
       ) lines
   );
 
-  (* Add this kind of web_info only for overnet (Edonkey
-     Kademlia has web_info = "kad"). *)
-  if web_info = "contact.dat" then begin
-    if !!enable_overnet && !!overnet_update_nodes then
-      CommonWeb.add_web_kind "contact.dat" (fun _ filename ->
-          if !verbose_overnet then
-            lprintf_nl () "LOADED contact.dat";
+  (* Add this kind of web_info only for overnet *)
+  if Proto.redirector_section = "DKKO" then
+      CommonWeb.add_web_kind "contact.dat" (fun url filename ->
+        if !!enable_overnet && !!overnet_update_nodes then
           let n = load_contact_dat filename in
-          if !verbose_overnet then
-            lprintf_nl () "%d PEERS ADDED" n;
+            lprintf_nl () "contact.dat loaded from %s, added %d peers" url n;
+	else
+	  if not !!enable_overnet then
+	    lprintf_nl () "Overnet module is disabled, ignoring..."
+	  else
+	    lprintf_nl () "Overnet_update_nodes is disabled, ignoring..."
         );
-    end;
 
 (*************************************************************
 

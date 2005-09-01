@@ -77,7 +77,7 @@ let connect () =
               H.req_url = Url.of_string url;
               H.req_proxy = !CommonOptions.http_proxy;
               H.req_user_agent = 
-              Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+              Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
             } in
           if !verbose then
             lprintf "Connecting G2 redirector\n";

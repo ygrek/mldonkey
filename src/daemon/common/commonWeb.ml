@@ -51,23 +51,28 @@ let mldonkey_wget url f =
       H.req_url = Url.of_string url;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent =
-      Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+      Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
       H.req_max_retry = 20;
     } in
 
   H.wget r f
 
-let load_url kind url =
-  lprintf_nl "[cWeb] Loading %s" url;
+let load_url can_fail kind url =
   let f =
     try
       (List.assoc kind !file_kinds) url
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in
   try
+    lprintf_nl "[cWeb] %s loading from %s" kind url;
     mldonkey_wget url f
-  with e -> failwith (Printf.sprintf "Exception %s while loading %s"
+  with e ->
+    if can_fail then
+      failwith (Printf.sprintf "Exception %s while loading %s"
           (Printexc2.to_string e) url)
+    else
+      lprintf_nl "[cWeb] Exception %s while loading %s"
+          (Printexc2.to_string e) url
 
 let load_file kind file =
   try
@@ -195,7 +200,7 @@ let connect_redirector () =
 (*                                                                       *)
 (*************************************************************************)
 
-let load_web_infos () =
+let load_web_infos core_start =
 (* Try to connect the redirector to get interesting information, since we
 are not allowed to use savannah anymore. The redirector should be able to
 support the charge, at least, currently. *)
@@ -233,7 +238,7 @@ support the charge, at least, currently. *)
                       let servers_met_file = Filename.temp_file "servers" ".met" in
                       File.from_string servers_met_file servers_met_s;
                       if !!enable_donkey then
-                      load_file "servers.met" servers_met_file;
+                      load_file "server.met" servers_met_file;
 
                       let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
                       File.from_string peers_ocl_file peers_ocl_s;
@@ -287,19 +292,19 @@ support the charge, at least, currently. *)
     end;
 
   if !!network_update_url <> "" then begin
-    load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
-    load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
+    load_url true "motd.html" (Filename.concat !!network_update_url "motd.html");
+    load_url true "motd.conf" (Filename.concat !!network_update_url "motd.conf");
   end;
   List.iter (fun (kind, period, url) ->
-      if !hours mod period = 0 then
-        match kind with
-        | "contact.dat" -> if !!enable_overnet then load_url kind url
-        | "guarding.p2p" -> load_url kind url
-        | "kad" -> if !!enable_kademlia then load_url kind url
-        | "ocl" -> if !!enable_overnet then load_url kind url
-        | "server.met" -> if !!enable_donkey then load_url kind url
-        | _ -> lprintf_nl "[cWeb] unparsed kind to refresh: %s" kind; load_url kind url
-            ) !!CommonOptions.web_infos
+    if (core_start && period = 0) || !hours mod period = 0 then
+      begin
+        try
+          load_url false kind url
+	with e ->
+            lprintf_nl "[cWeb] %s while loading %s"
+	      (Printexc2.to_string e) url
+      end
+  ) !!CommonOptions.web_infos
 
 type rss_feed = {
     mutable rss_date : int;

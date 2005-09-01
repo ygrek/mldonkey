@@ -24,9 +24,9 @@ val query_download : string list -> int32 -> Md4.t -> int option
   -> string option -> (int32 * int32) list option -> unit
 (*val save_file: Md4.t -> string -> unit *)
 val forget_search : int -> unit
-val load_server_met : string -> unit
-  
-  
+val load_server_met : string -> int
+val unpack_server_met : string -> string -> string
+val download_server_met : string -> unit
 val reconnect_all : DonkeyTypes.file -> unit
   
 val import_config : string -> unit

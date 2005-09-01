@@ -16,6 +16,22 @@ ChangeLog
 4379: Fix compile error when libgd is not present
 4378: Longhelp: Better description for add_user
 4377: Better description for shared_directories in downloads.ini
+4356: EDK: Improved server.met handling / fix contact.dat loading
+
+* Changed user agent from "MLdonkey" to "MLDonkey", solves problem
+  when downloading files from www.gruk.org and www.srv1000.com
+* MLDonkey new recognizes links like ed2k://|serverlist|http://server/file.ext|/
+* "servers" command now takes URLs
+* if period in web_infos is zero the file is only loaded during core start
+  (as requested by the owner of www.gruk.org)
+* in all places where a filename or URL for a server.met can be used this
+  file can also be compressed with gz/bz2/zip
+* automatically replace old default server.met in web_infos
+        ("server.met", 24, 
+            "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+  with fake servers free list from gruk.org:
+        ("server.met", 0, "http://www.gruk.org/server.met.gz");
+* fixed bug which prevented loading Overnet contact.dat file in web_infos
 
 2005/08/29: spiralvoice
 

@@ -72,7 +72,7 @@ let minute_timer () =
 
 let hourly_timer timer =
   incr CommonWeb.hours;
-  CommonWeb.load_web_infos ();
+  CommonWeb.load_web_infos false;
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
   if !!backup_options_delay <> 0
      && !CommonWeb.hours mod !!backup_options_delay = 0 then
@@ -521,7 +521,7 @@ or getting a binary compiled with glibc %s.\n\n")
   Options.prune_file downloads_ini;
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
-  add_timer 10. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
+  add_timer 10. (fun _ -> try CommonWeb.load_web_infos true with _ -> ());
   lprintf_nl (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;

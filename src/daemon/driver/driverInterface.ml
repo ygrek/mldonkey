@@ -754,7 +754,7 @@ search.op_search_end_reply_handlers;
                     H.req_proxy = !CommonOptions.http_proxy;
                     H.req_request = H.HEAD;
                     H.req_user_agent = 
-                       Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+                       Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
                 } in
                 H.whead r 
                   (fun headers ->

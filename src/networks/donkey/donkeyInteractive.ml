@@ -54,9 +54,15 @@ open CommonGlobals
 open CommonOptions
 open DonkeyStats
 
+(* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
   lprintf "%s[EDK] "
     (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf
 
 let result_name r =
   match r.result_names with
@@ -115,6 +121,74 @@ let load_server_met filename =
       filename;
       0
   else 0
+
+let unpack_server_met filename url =
+  let ext = String.lowercase (Filename2.extension filename) in
+    let last_ext = String.lowercase (Filename2.last_extension filename) in
+    let real_ext = if last_ext = ".zip" then
+      last_ext
+    else
+      ext
+    in
+    match real_ext with
+      ".zip" ->
+	begin try
+	  let ic = Zip.open_in filename in
+	    try
+	      let file = Zip.find_entry ic "server.met" in
+	        Zip.close_in ic;
+		lprintf_nl () "server.met found in %s" url;
+		let s = Misc.archive_extract filename "zip" in
+		  file.Zip.filename
+	      with e ->
+		Zip.close_in ic;
+		lprintf_nl () "Exception %s while extracting server.met from %s"
+		  (Printexc2.to_string e) url;
+		raise Not_found
+	    with e ->
+	      lprintf_nl () "Exception %s while opening %s"
+		(Printexc2.to_string e) url;
+	      raise Not_found
+	end
+    | ".met.gz" | ".met.bz2" | ".gz" | ".bz2" ->
+	begin
+	  let filetype =
+	    if ext = ".bz2" || ext = ".met.bz2" then
+	      "bz2"
+	    else
+	      "gz"
+	    in try
+	      let s = Misc.archive_extract filename filetype in
+	        s
+	    with e ->
+	      lprintf_nl () "Exception %s while extracting from %s"
+		(Printexc2.to_string e) url;
+	      raise Not_found
+	end
+(* if file is not a supported archive type try loading servers from that file anyway *)
+    | _ -> filename
+
+let download_server_met url =
+  let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+  let module H = Http_client in
+    let r = {
+      H.basic_request with
+      H.req_url = Url.of_string url;
+      H.req_proxy = !CommonOptions.http_proxy;
+      H.req_user_agent =
+	Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+      H.req_max_retry = 10;
+    } in
+    H.wget r (fun filename ->
+      try
+        let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+        let s = unpack_server_met filename url in
+	  let n = load_server_met s in
+	    if s <> filename then Sys.remove s;
+            lprintf_nl () "server.met loaded from %s, %d servers found, %d new ones inserted"
+	      url n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+      with e -> ()
+    )
 
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
 
@@ -435,6 +509,7 @@ let recover_md4s md4 =
 *)
 
 
+
 let parse_donkey_url url =
   match String2.split (String.escaped url) '|' with
 (* TODO RESULT *)
@@ -452,6 +527,11 @@ let parse_donkey_url url =
       let ip = Ip.of_string ip in
       let s = force_add_server ip (int_of_string port) in
       server_connect (as_server s.server_server);
+      true
+  | "ed2k://" :: "serverlist" :: url :: _
+  | "serverlist" :: url :: _ ->
+      if !!update_server_list_server_met then
+        ignore (download_server_met url);
       true
   | "ed2k://" :: "friend" :: ip :: port :: _
   | "friend" :: ip :: port :: _ ->
@@ -509,7 +589,6 @@ let commands = [
 
     ), ":\t\t\t\t\tview upload credits";
 
-
     "comments", Arg_one (fun filename o ->
         let buf = o.conn_buf in
 (* TODO        DonkeyIndexer.load_comments filename;
@@ -551,17 +630,27 @@ let commands = [
     ), ":\t\t\tload history.dat file";
 
     "servers", Arg_one (fun filename o ->
-	let nservers = List.length (Hashtbl2.to_list servers_by_key) in
         let buf = o.conn_buf in
-        try
-          let n = load_server_met filename in
-          Printf.sprintf "%d servers found, %d new ones inserted"
-	    n
-	    ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
-        with e ->
-            Printf.sprintf "error %s while loading file" (Printexc2.to_string e)
-    ), "<filename> :\t\t\tadd the servers from a server.met file";
-
+	if !!update_server_list_server_met then
+	  begin
+	    let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+	    if (String2.starts_with filename "http") then
+	      begin
+	        ignore (download_server_met filename);
+	        Printf.sprintf "download of %s started, check log for results" filename
+	      end
+	    else
+	      if Sys.file_exists filename then begin
+                let n = load_server_met filename in
+                  Printf.sprintf "%d servers found, %d new ones inserted"
+		    n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+	        end
+	      else
+	        Printf.sprintf "%s does not exist, ignoring..." filename
+	  end
+	else
+	  Printf.sprintf "ED2K_update_server_list_met is disabled, ignoring..."
+    ), "<filename|URL> :\t\t\tadd the servers from a server.met file or URL";
 
     "id", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -648,15 +737,6 @@ let commands = [
         donkey_port =:= int_of_string arg;
         "new port will change at next restart"),
     "<port> :\t\t\t\tchange connection port";
-
-    "add_url", Arg_two (fun kind url o ->
-        let buf = o.conn_buf in
-        let v = (kind, 1, url) in
-        if not (List.mem v !!web_infos) then
-          web_infos =:=  v :: !!web_infos;
-        CommonWeb.load_url kind url;
-        "url added to web_infos. downloading now"
-    ), "<kind> <url> :\t\t\tload this file from the web. Kind is either server.met (if the downloaded file is a server.met)";
 
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1567,15 +1647,27 @@ let _ =
   )
 
 let _ =
-  CommonWeb.add_web_kind "server.met" (fun _ filename ->
-      lprintf_nl () "server.met loaded";
-      let n = load_server_met filename in
-      lprintf_nl () "%d servers added" n;
-  );
-  CommonWeb.add_web_kind "servers.met" (fun _ filename ->
-      lprintf_nl () "servers.met loaded";
-      let n = load_server_met filename in
-      lprintf_nl () "%d servers added" n;
+  CommonWeb.add_web_kind "server.met" (fun url filename ->
+    if !!enable_donkey && !!update_server_list_server_met then
+      begin
+        lprintf_n () "server.met loaded from %s" url;
+	begin
+	  try
+	    let s = unpack_server_met filename url in
+	      let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+    	        let n = load_server_met s in
+    	          if s <> filename then Sys.remove s;
+	          lprintf ", %d servers found, %d new ones inserted"
+		    n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+           with _ -> ()
+	end;
+        lprint_newline ()
+      end
+    else
+      if not !!enable_donkey then
+        lprintf_nl () "eDonkey module is disabled, ignoring..."
+      else
+        lprintf_nl () "ED2K_update_server_list_met is disabled, ignoring..."
   );
   CommonWeb.add_web_kind "comments.met" (fun _ filename ->
 (* TODO      DonkeyIndexer.load_comments filename; *)

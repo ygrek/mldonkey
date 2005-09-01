@@ -576,7 +576,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
 <TD class=\"bu bbig\" title=\"Open Serverlist\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://ed2k.2x4u.de/list.html'\">Serverlist</TD>
+onClick=\"top.output.location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
 <DIV ID=\"tab4\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
