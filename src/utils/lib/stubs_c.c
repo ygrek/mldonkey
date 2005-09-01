@@ -1157,7 +1157,13 @@ external_start (value version)
 
   if (myHWND != NULL) {
     HMENU hmenu = GetSystemMenu(myHWND, FALSE);
-    DeleteMenu(hmenu, SC_CLOSE, MF_BYCOMMAND);
+    MENUITEMINFO CloseItem;
+    CloseItem.cbSize = sizeof(MENUITEMINFO);
+    CloseItem.fMask = MIIM_ID;
+    CloseItem.wID = SC_MINIMIZE+1;
+    EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+    SetMenuItemInfo(hmenu, SC_CLOSE, FALSE, &CloseItem);
+    DrawMenuBar(myHWND);
   }
 #endif
 
@@ -1174,7 +1180,13 @@ external_exit (void)
 // Revert console system menu
 #if defined(__MINGW32__)
   if (myHWND != NULL) {
-    HMENU hmenu = GetSystemMenu(myHWND, TRUE);
+    HMENU hmenu = GetSystemMenu(myHWND, FALSE);
+    MENUITEMINFO CloseItem;
+    CloseItem.cbSize = sizeof(MENUITEMINFO);
+    CloseItem.fMask = MIIM_ID;
+    CloseItem.wID = SC_CLOSE;
+    SetMenuItemInfo(hmenu, SC_MINIMIZE+1, FALSE, &CloseItem);
+    EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | MF_ENABLED);
     DrawMenuBar(myHWND);
   }
 #endif
