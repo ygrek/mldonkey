@@ -185,6 +185,9 @@ let connection_next_try cc =
 let connection_can_try cc =
   connection_next_try cc < last_time ()
 
+let connection_was_tried cc =
+  cc.control_last_try > 0
+
 let print_control c =
   lprintf_nl "Connection Control: ok = %d seconds ago, state = %d, last tried = %d seconds ago, delay = %d, next in %d seconds"
     (last_time () - c.control_last_ok) c.control_state (last_time () - c.control_last_try) c.control_min_reask (connection_next_try c - last_time ())

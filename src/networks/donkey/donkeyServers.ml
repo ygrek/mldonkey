@@ -589,45 +589,43 @@ position to the min_left_servers position.
   let to_remove = ref [] in
   let to_keep = ref [] in
   Hashtbl.iter (fun _ s ->
-      if not s.server_preferred &&
-        (is_black_address s.server_ip s.server_port || s.server_port = 4662)
-        then
-          to_remove := s :: !to_remove
-      else
-        to_keep :=
-          (connection_last_conn s.server_connection_control, s) :: !to_keep
+      if connection_was_tried s.server_connection_control then
+        if not s.server_preferred &&
+          (is_black_address s.server_ip s.server_port || s.server_port = 4662)
+          then
+            to_remove := s :: !to_remove
+          else
+            to_keep :=
+              (connection_last_conn s.server_connection_control, s) :: !to_keep
   ) servers_by_key;
   let t2 = Unix.gettimeofday () in
   if !verbose then lprintf_nl () "Delay to detect black-listed servers: %2.2f" (t2 -. t1);
 
   if List.length !to_keep > !!min_left_servers then begin
-  let array = Array.of_list !to_keep in
-  Array.sort (fun (ls1,_) (ls2,_) ->
-      if ls1 = ls2 then 0 else if ls1 > ls2 then -1 else 1
-  ) array;
+    let array = Array.of_list !to_keep in
+    Array.sort (fun (ls1,_) (ls2,_) ->
+      compare ls2 ls1
+    ) array;
 
-  if !verbose then
-    for i = 0 to Array.length array - 1 do
+    if !verbose then
+      Array.iteri (fun i (ls, s) ->
+        lprintf_nl () "server %d last_conn %d" (server_num s) ls) array;
+
+    let min_last_conn =  last_time () - !!max_server_age * Date.day_in_secs in
+
+    for i = Array.length array - 1 downto !!min_left_servers do
       let ls, s = array.(i) in
-      lprintf_nl () "server %d last_conn %d" (server_num s) ls;
-
-    done;
-
-  let min_last_conn =  last_time () - !!max_server_age * Date.day_in_secs in
-
-  for i = Array.length array - 1 downto !!min_left_servers do
-    let ls, s = array.(i) in
         if ls < min_last_conn && s.server_sock = NoConnection
           && not s.server_preferred then begin
-        if !verbose then begin
+          if !verbose then
             lprintf_nl () "Server too old: %s:%d"
               (Ip.to_string s.server_ip) s.server_port;
 
-          end;
-        to_remove := s :: !to_remove
-      end
-  done;
+          to_remove := s :: !to_remove
+        end
+    done
   end;
+
   let t3 = Unix.gettimeofday () in
   if !verbose then lprintf_nl () "Delay to detect old servers: %2.2f" (t3 -. t2);
 
@@ -637,7 +635,7 @@ position to the min_left_servers position.
 
   let t4 = Unix.gettimeofday () in
   if !verbose then lprintf_nl () "Delay to finally remove servers: %2.2f" (t4 -. t3);
-  if (List.length !to_remove) > 0 || !verbose then
+  if !to_remove <> [] || !verbose then
     lprintf_nl () "Removed %d old edonkey servers." (List.length !to_remove)
 
 

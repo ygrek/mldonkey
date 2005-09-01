@@ -10,6 +10,7 @@ ChangeLog
 
 2005/09/01: spiralvoice
 
+4385: EDK: Preserve untested servers (by pango)
 4351: optimize ip blocking lists (by pango)
 4376: EDK: Re-enable result_done (already downloaded) in search results (by zet)
 4126: Improved log_file handling
