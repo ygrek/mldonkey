@@ -42,3 +42,4 @@ val gstats_by_brand : DonkeyTypes.brand_stat array Options.option_record
 val gstats_by_brand_mod : DonkeyTypes.brand_mod_stat array Options.option_record
 val guptime : unit -> int
   
+val result_of_file : Md4.t -> CommonTypes.tag list -> CommonResult.StoredResult.stored_result option

@@ -953,45 +953,6 @@ let string_of_client c =
   )
 
 
-
-let check_result r tags =
-  if r.result_names = [] || r.result_size = Int64.zero then begin
-      if !verbose then begin
-          lprintf_n () "BAD RESULT:";
-          List.iter (fun tag ->
-              lprintf "[%s] = [%s]" (string_of_field tag.tag_name)
-                (string_of_tag_value tag.tag_value);
-              lprint_newline ();
-          ) tags;
-        end;
-      false
-    end
-  else true
-
-let result_of_file md4 tags =
-  let rec r = {  dummy_result with
-      result_uids = [Uid.create (Ed2k md4)];
-    } in
-  List.iter (fun tag ->
-      match tag with
-        { tag_name = Field_Filename; tag_value = String s } ->
-          r.result_names <- s :: r.result_names
-      | { tag_name = Field_Size; tag_value = Uint64 v } ->
-          r.result_size <- v;
-      | { tag_name = Field_Format; tag_value = String s } ->
-          r.result_tags <- tag :: r.result_tags;
-          r.result_format <- s
-      | { tag_name = Field_Type; tag_value = String s } ->
-          r.result_tags <- tag :: r.result_tags;
-          r.result_type <- s
-      | _ ->
-          r.result_tags <- tag :: r.result_tags
-  ) tags;
-  if check_result r tags then
-    let rs = update_result_num r in
-    Some rs
-  else None
-
 (*************************************************************
 
 Define a function to be called when the "mem_stats" command

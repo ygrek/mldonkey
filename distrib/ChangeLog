@@ -10,6 +10,7 @@ ChangeLog
 
 2005/09/01: spiralvoice
 
+4376: EDK: Re-enable result_done (already downloaded) in search results (by zet)
 4126: Improved log_file handling
 
 * there is now a default log_file: mlnet.log, old downloads.ini is *not* updated
