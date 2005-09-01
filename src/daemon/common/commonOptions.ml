@@ -1314,12 +1314,15 @@ let log_size =
   define_expert_option current_section ["log_size"]
     "size of log in number of records" int_option 300
 
+let log_file_size = define_expert_option current_section ["log_file_size"]
+   "Maximum size of log_file in MB" int_option 2
+
 let log_file = define_expert_option current_section ["log_file"]
   "The file in which you want mldonkey to log its debug messages. If you
   set this option, mldonkey will log this info in the file until you use the
 'close_log' command. The log file may become very large. You can
     also enable logging in a file after startup using the 'log_file' command."
-  string_option ""
+  string_option "mlnet.log"
 
 let verbosity = define_expert_option current_section ["verbosity"]
   "A space-separated list of keywords. Each keyword triggers
@@ -1435,16 +1438,23 @@ let _ =
   option_hook log_file (fun _ ->
       if !!log_file <> "" then
         try
-          let oc = open_out !!log_file in
+	  if Sys.file_exists !!log_file then
+	    if (Unix32.getsize !!log_file false)
+	     > (Int64ops.megabytes !!log_file_size) then begin
+	      Sys.remove !!log_file;
+              lprintf_nl "Logfile %s resetted, bigger than %d MB" !!log_file !!log_file_size
+	    end;
+          let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
           lprintf_to_file := true;
           if Autoconf.system = "windows" then lprintf "%s" win_message;
-          lprintf_nl "Logging in %s" !!log_file;
+          lprintf_nl "Logging in %s" ( Filename.concat file_basedir !!log_file);
           log_to_file oc;
+	  lprintf_nl "Started logging..."
         with e ->
             lprintf_nl "Exception %s while opening log file: %s"
               (Printexc2.to_string e) !!log_file
       else
-      if !lprintf_to_file then begin
+        if !lprintf_to_file then begin
           lprintf_to_file := false;
           close_log ()
         end

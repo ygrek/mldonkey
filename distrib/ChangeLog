@@ -10,6 +10,16 @@ ChangeLog
 
 2005/09/01: spiralvoice
 
+4126: Improved log_file handling
+
+* there is now a default log_file: mlnet.log, old downloads.ini is *not* updated
+* its default log_file_size is 2MB, this is checked only on core start,
+  if log_file is bigger it will be resetted
+* logging will always be appended to log_file
+* new command "clear_log" to reset log_file while the core is working
+* new command "open_log" to reopen log after close_log
+* removed command "log_file", same can be achieved through "set log_file <file>"
+
 4384: HTML: Add "Import Serverlist" in servers, clean third button row (by schlumpf)
 4365: Disable console "X" close button on MinGW, second version (by CML)
 4382: Solve libgd configure in mandrake 10.0
@@ -65,7 +75,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4345: Code clean: Optimize redundant time_to_string functions
 4357: Rename ed2k_hash to mld_hash
 4344: Improve ./configure checks (bzlib.h, iconv on Windows)
-
+---------------------------------------------------------------------
 2005/08/21: spiralvoice (version 2.6.3 = tag release-2-6-3)
 
 4254: Patch reverted, did not work

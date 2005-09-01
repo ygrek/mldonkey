@@ -253,44 +253,17 @@ let load_config () =
   let exists_users_ini =
     Sys.file_exists (options_file_name users_ini)
   in
-  if not exists_downloads_ini then
+  if not exists_users_ini && exists_downloads_ini then
     begin
-      let oc = open_out (options_file_name downloads_ini) in
-      close_out oc;
-      if not exists_users_ini then
-        begin
-          let oc = open_out (options_file_name users_ini) in
-          close_out oc;
-        end;
-    end
-  else
-    if not exists_users_ini then
-      begin
-        lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini.";
-        ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
-      end;
+      lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini.";
+      ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
+    end;
 
-(*
-  let exists_expert_ini = Sys.file_exists
-      (options_file_name downloads_expert_ini) in
-  if not exists_expert_ini then begin
-      if exists_downloads_ini then begin
-          lprintf "Using old config file\n";
-          (try Unix2.copy "downloads.ini" "downloads_expert.ini" with _ -> ());
-          (try Unix2.copy "downloads.ini" "donkey.ini" with _ -> ());
-          (try Unix2.copy "downloads.ini" "donkey_expert.ini" with _ -> ());
+  let ini_files_exist = Sys.file_exists (options_file_name downloads_ini) in
 
-          end else begin
-
-          lprintf "No config file found. Generating one.\n";
-          let oc = open_out (options_file_name downloads_expert_ini) in
-          close_out oc;
-        end
-    end; *)
   (try
       Options.load downloads_ini;
       Options.load users_ini;
-(*      Options.load downloads_expert_ini;       *)
     with e ->
         lprintf_nl "Exception %s during options load" (Printexc2.to_string e);
         exit 70;
@@ -383,32 +356,9 @@ let load_config () =
 (*      Files.dump_file file; exit 0 *)
   ) "";
 
+  if not ini_files_exist && not !keep_console_output then log_file =:= "mlnet.log";
 
-(**** CREATE DIRS   ****)
-
-  (*
-  Unix2.safe_mkdir !!incoming_directory;
-
-  File.from_string (Filename.concat !!incoming_directory "Readme.txt")
-  "This directory contains the files downloaded, after commit.
-The 'incoming/files/' folder contains simple files.
-The 'incoming/directories/' folder contains whole directories (probably
-   downloaded with Bittorrent).
-
-If you want to share files, you should:
-  - Put simple files or directories where all files should be shared separately
-   in the 'incoming/files/' folder, or better, in the shared/ folder.
-   is for downloaded files. Files to be shared should be
-   put in the 'shared/' directory instead.
-  - Put directories that should be shared as one file in the
-   'incoming/directories/' folder. Currently, such directories can only be
-   shared on the Bittorrent network, by providing the corresponding
-   .torrent in the 'torrents/seeded/' folder.
-";
-
-  Unix2.safe_mkdir (Filename.concat !!incoming_directory "files");
-  Unix2.safe_mkdir (Filename.concat !!incoming_directory "directories");
-*)
+  (**** CREATE DIRS   ****)
 
   List.iter (fun s ->
       Unix2.safe_mkdir s.shdir_dirname;
@@ -533,7 +483,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf_nl (_b "If you connect from a remote machine adjust allowed_ips");
-  if Autoconf.system = "windows" then lprintf (_b "%s") win_message;
+  if Autoconf.system = "windows" && not !keep_console_output then lprintf (_b "%s") win_message;
 
   if Autoconf.system <> "windows" then
     (* Doesn't work on windows with mingw, because getpid always returns 948 *)
@@ -666,26 +616,11 @@ for config files at the end. *)
       lprintf_nl (_b "Core stopped")
     );
 
-  if not !keep_console_output then begin
-      lprintf_nl (_b "Disabling output to console, to enable: stdout true");
-
-      if !!log_file <> "" then begin
-          (*
-          try
-            Printf.printf "+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX+\n";
-            let oc = open_out !!log_file in
-            lprintf "Logging in %s\n" !!log_file;
-
-            (* Don't close stdout !!!
-            (match !lprintf_output with
-               None -> () | Some oc -> close_out oc);
-*)
-            log_to_file oc;
-            lprintf "Start log in %s\n" !!log_file;
-          with e ->
-              lprintf "Exception %s while opening log file: %s\n"
-(Printexc2.to_string e) !!log_file *)
-          ()
-        end else
-              close_log ()
-    end
+  if not !keep_console_output then
+    if !!log_file = "" then 
+      begin
+        lprintf_nl (_b "Option log_file is empty, disable logging completely...");
+        lprintf_nl (_b "Disabling output to console, to enable: stdout true");
+	log_to_file stdout;
+        close_log ()
+      end

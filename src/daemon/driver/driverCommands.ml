@@ -49,6 +49,10 @@ open DriverInteractive
 open Gettext
 open Autoconf
 
+let lprintf_nl () =
+  lprintf "%s"
+    (log_time ()); lprintf_nl2
+
 let _s x = _s "DriverCommands" x
 let _b x = _b "DriverCommands" x
 
@@ -1629,6 +1633,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option auto_commit;
 			strings_of_option create_dir_mask;
 			strings_of_option log_file;
+			strings_of_option log_file_size;
 			strings_of_option log_size;
                       ]
                   | 6 ->
@@ -2760,6 +2765,23 @@ let _ =
         let buf = o.conn_buf in
         let b = bool_of_string arg in
         set_logging b;
+	if b then
+	  begin
+	    lprintf_nl () "Enable logging to stdout...";
+	    log_to_file stdout;
+	    lprintf_nl () "Logging to stdout..."
+	  end
+	else
+	  begin
+	    lprintf_nl () "Disable logging to stdout...";
+	    close_log ();
+	    if !!log_file <> "" then
+	      begin
+                let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
+                  log_to_file oc;
+                  lprintf_nl () "Reopened %s" !!log_file
+	      end
+	  end;
         Printf.sprintf (_b "log to stdout %s")
         (if b then _s "enabled" else _s "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
@@ -2801,17 +2823,35 @@ let _ =
         "The two files are now merged"
     ), " <num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
 
-    "log_file", Arg_one (fun arg o ->
-        let oc = open_out arg in
-        log_to_file oc;
-        _s "log started"
-    ), "<file> :\t\t\tstart logging in file <file>";
+    "open_log", Arg_none (fun o ->
+        if !!log_file <> "" then
+	  begin
+	    let log = !!log_file in
+	      CommonOptions.log_file =:= log;
+            Printf.sprintf "opened logfile %s" !!log_file
+	  end
+	else
+          Printf.sprintf "works only if log_file is set"
+    ), ":\t\t\t\tenable logging to file";
 
     "close_log", Arg_none (fun o ->
+	lprintf_nl () "Stopped logging...";
         close_log ();
         _s "log stopped"
     ), ":\t\t\t\tclose logging to file";
 
+     "clear_log", Arg_none (fun o ->
+        if !!log_file <> "" then
+          begin
+            close_log ();
+            let oc = open_out_gen [Open_creat; Open_wronly; Open_trunc] 0o644 !!log_file in
+              log_to_file oc;
+              lprintf_nl () "Cleared %s" !!log_file;
+              Printf.sprintf "Logfile %s cleared" !!log_file
+          end
+        else
+          Printf.sprintf "works only if log_file is set"
+     ), ":\t\t\t\tclear log_file";
 
     "html_mods", Arg_none (fun o ->
         let buf = o.conn_buf in
