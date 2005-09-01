@@ -321,6 +321,17 @@ function dllink() {
 	}
 }
 
+function servers() {
+	var l = prompt( \"enter link to server.met for import\", \"\" );
+	if( l != null ) {
+		var f = document.forms[\"cmdFormular\"];
+		var t = f.elements[\"q\"].value;
+		f.elements[\"q\"].value = \"servers \" + l;
+		f.submit();
+		f.elements[\"q\"].value = t;
+	}
+}
+
 //-->
   "
 
@@ -468,15 +479,15 @@ onclick=\"showTab(2);mSub('fstatus','view_custom_queries');mSub('output','custom
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Servers Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onclick=\"showTab(3);mSub('output','vm');\">Servers</TD></TR></TBODY></TABLE></TD>
+onclick=\"showTab(3);mSub('fstatus','bw_stats');mSub('output','vm');\">Servers</TD></TR></TBODY></TABLE></TD>
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Statistics Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onclick=\"showTab(4);mSub('output','stats');\">Statistics</TD></TR></TBODY></TABLE></TD>
+onclick=\"showTab(4);mSub('fstatus','bw_stats');mSub('output','stats');\">Statistics</TD></TR></TBODY></TABLE></TD>
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Options Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onclick=\"showTab(5);mSub('output','voo+1');\">Options</TD></TR></TBODY></TABLE></TD>
+onclick=\"showTab(5);mSub('fstatus','version');mSub('output','voo+1');\">Options</TD></TR></TBODY></TABLE></TD>
 <TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR><TD class=\"bu bbigm\" title=\"Help+Miscellaneous Tab\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
@@ -503,16 +514,16 @@ onclick=\"dllink();\">DL</TD></TR></TBODY></TABLE></TD>
 <TBODY><TR>
 <TD class=\"bu bbig\" title=\"Current downloads\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vd')\">Downloads</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','vd')\">Downloads</TD>
 <TD class=\"bu bbig\" title=\"Current downloaders\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','downloaders')\">Downloaders</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','downloaders')\">Downloaders</TD>
 <TD class=\"bu bbig\" title=\"Upload statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','upstats')\">Uploads</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','upstats')\">Uploads</TD>
 <TD class=\"bu bbig\" title=\"Uploaders\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','uploaders')\">Uploaders</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','uploaders')\">Uploaders</TD>
 <TD class=\"bu bbig\" title=\"Commit downloaded files to incoming directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','commit')\">Commit</TD>
@@ -521,10 +532,10 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','reshare')\">Reshare</TD>
 <TD class=\"bu bbig\" title=\"List contents of the temp directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','scan_temp')\">Scan temp</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','scan_temp')\">Scan temp</TD>
 <TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','bw_stats')\">Bandwidth stats</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','gdstats')\">Bandwidth stats</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab2\" style=\"display: none\">
@@ -535,28 +546,28 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','xs');mSub('output','vr');\">Extend search</TD>
 <TD class=\"bu bbig\" title=\"View search results\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vr')\">Search results</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','vr')\">Search results</TD>
 <TD class=\"bu bbig\" title=\"View searches\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vs')\">View searches</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','vs')\">View searches</TD>
 <TD class=\"bu bbig\" title=\"Complex search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','custom=Complex+Search')\">Complex search</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','custom=Complex+Search')\">Complex search</TD>
 <TD class=\"bu bbig\" title=\"MP3 search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','custom=MP3+Search')\">MP3 search</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','custom=MP3+Search')\">MP3 search</TD>
 <TD class=\"bu bbig\" title=\"Movie search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','custom=Movie+Search')\">Movie search</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','custom=Movie+Search')\">Movie search</TD>
 <TD class=\"bu bbig\" title=\"Album search\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','custom=Album+Search')\">Album search</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','custom=Album+Search')\">Album search</TD>
 <TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
 <TD class=\"bu bbig\" title=\"View RSS feeds\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','rss')\">RSS</TD>
+onClick=\"mSub('fstatus','view_custom_queries');mSub('output','rss')\">RSS</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab3\" style=\"display: none\">
@@ -564,50 +575,54 @@ onClick=\"mSub('output','rss')\">RSS</TD>
 <TBODY><TR>
 <TD class=\"bu bbig\" title=\"List connected servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vm')\">Connected servers</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','vm')\">Connected servers</TD>
 <TD class=\"bu bbig\" title=\"List all servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vma')\">All servers</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','vma')\">All servers</TD>
 <TD class=\"bu bbig\" title=\"Connect to more servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','c')\">Connect to more servers</TD>
 <TD class=\"bu bbig\" title=\"Remove old servers\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
+<TD class=\"bu bbig\" title=\"Import Serverlist\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"servers();\">Import Server.met</TD>
 <TD class=\"bu bbig\" title=\"Open Serverlist\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
+onClick=\"mSub('fstatus','bw_stats');top.output.location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
+
 <DIV ID=\"tab4\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
 <TD class=\"bu bbig\" title=\"eDonkey statistics in a table\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','cs')\">eDonkey Table</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','cs')\">eDonkey Table</TD>
 <TD class=\"bu bbig\" title=\"eMule MODs statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','csm')\">eMule MODs</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','csm')\">eMule MODs</TD>
 <TD class=\"bu bbig\" title=\"Bittorrent statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','csbt')\">Bittorrent Table</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','csbt')\">Bittorrent Table</TD>
 <TD class=\"bu bbig\" title=\"Overnet statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"showTab(4);mSub('fstatus','ov_view_stats_cmds');mSub('output','ov_stats')\">Overnet</TD>
+onClick=\"mSub('fstatus','ov_view_stats_cmds');mSub('output','ov_stats')\">Overnet</TD>
 <TD class=\"bu bbig\" title=\"Kademlia statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"showTab(4);mSub('fstatus','kad_view_stats_cmds');mSub('output','kad_stats')\">Kademlia</TD>
+onClick=\"mSub('fstatus','kad_view_stats_cmds');mSub('output','kad_stats')\">Kademlia</TD>
 <TD class=\"bu bbig\" title=\"Gnutella statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','gstats')\">Gnutella</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','gstats')\">Gnutella</TD>
 <TD class=\"bu bbig\" title=\"Gnutella2 statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','g2stats')\">Gnutella2</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','g2stats')\">Gnutella2</TD>
 <TD class=\"bu bbig\" title=\"Memory statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','mem_stats 0')\">Memory</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','mem_stats 0')\">Memory</TD>
 <TD class=\"bu bbig\" title=\"Sources statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','sources')\">Sources</TD>
+onClick=\"mSub('fstatus','bw_stats');mSub('output','sources')\">Sources</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab5\" style=\"display: none\">
@@ -615,31 +630,31 @@ onClick=\"mSub('output','sources')\">Sources</TD>
 <TBODY><TR>
 <TD class=\"bu bbig\" title=\"Settings\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','voo+1')\">Settings</TD>
+onClick=\"mSub('fstatus','version');mSub('output','voo+1')\">Settings</TD>
 <TD class=\"bu bbig\" title=\"View/edit shared directories\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','shares')\">Shares</TD>
+onClick=\"mSub('fstatus','version');mSub('output','shares')\">Shares</TD>
 <TD class=\"bu bbig\" title=\"Friends\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','friends')\">Friends</TD>
+onClick=\"mSub('fstatus','version');mSub('output','friends')\">Friends</TD>
 <TD class=\"bu bbig\" title=\"View/send messages (20 second refresh)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','message')\">Messages</TD>
+onClick=\"mSub('fstatus','version');mSub('output','message')\">Messages</TD>
 <TD class=\"bu bbig\" title=\"IP blocking statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','block_list')\">IP blocking</TD>
+onClick=\"mSub('fstatus','version');mSub('output','block_list')\">IP blocking</TD>
 <TD class=\"bu bbig\" title=\"Recover files from temp directory\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','recover_temp');mSub('output','scan_temp');\">Recover temp</TD>
 <TD class=\"bu bbig\" title=\"Close all files (use to free space on disk after remove)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','close_fds')\">Close files</TD>
+onClick=\"mSub('fstatus','version');mSub('fstatus','close_fds')\">Close files</TD>
 <TD class=\"bu bbig\" title=\"View all clients\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vc+all')\">View clients</TD>
+onClick=\"mSub('fstatus','version');mSub('output','vc+all')\">View clients</TD>
 <TD class=\"bu bbig\" title=\"View web infos\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','vwi')\">View web infos</TD>
+onClick=\"mSub('fstatus','version');mSub('output','vwi')\">View web infos</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab6\" style=\"display: none\">

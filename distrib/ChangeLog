@@ -10,6 +10,7 @@ ChangeLog
 
 2005/09/01: spiralvoice
 
+4384: HTML: Add "Import Serverlist" in servers, clean third button row (by schlumpf)
 4365: Disable console "X" close button on MinGW, second version (by CML)
 4382: Solve libgd configure in mandrake 10.0
 4381: better differentiation of eDonkey and BT Stats Table (by schlumpf)
