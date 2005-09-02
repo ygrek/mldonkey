@@ -147,9 +147,9 @@ module FDCache = struct
       Unix2.rename t.filename (Filename.concat f file);
       destroy t
 
-    let ftruncate64 t len =
+    let ftruncate64 t len sparse =
       check_destroyed t;
-      Unix2.c_ftruncate64 (local_force_fd t true) len
+      Unix2.c_ftruncate64 (local_force_fd t true) len sparse
 
     let getsize64 t writable =
       check_destroyed t;
@@ -221,7 +221,7 @@ module type File =   sig
       (Unix.file_descr -> int64 -> 'a) -> 'a
     val close : t -> unit
     val rename : t -> string -> unit
-    val ftruncate64 : t -> int64 -> unit
+    val ftruncate64 : t -> int64 -> bool -> unit
     val getsize64 : t -> bool -> int64
     val mtime64 : t -> float
     val exists : t -> bool
@@ -266,7 +266,7 @@ let zero_chunk_fd () =
     Some fd -> fd
   | None ->
       let fd = FDCache.create zero_chunk_name in
-      FDCache.ftruncate64 fd zero_chunk_len;
+      FDCache.ftruncate64 fd zero_chunk_len false;
       zero_chunk_fd_option := Some fd;
       fd
 
@@ -453,7 +453,7 @@ module MultiFile = struct
       close t;
       List.iter (fun file -> FDCache.multi_rename file.fd f file.filename) t.files
 
-    let ftruncate64 t size =
+    let ftruncate64 t size sparse =
       t.size <- size
 
     let getsize64 t = t.size
@@ -782,7 +782,7 @@ module SparseFile = struct
       ) t.files
 *)
 
-    let ftruncate64 t size =
+    let ftruncate64 t size sparse =
       t.size <- size
 
     let getsize64 t writable = t.size
@@ -971,11 +971,11 @@ let create_sparsefile filename =
   create filename (fun f ->
       SparseFile (SparseFile.create f))
 
-let ftruncate64 t len =
+let ftruncate64 t len sparse =
   match t.file_kind with
-  | DiskFile t -> DiskFile.ftruncate64 t len
-  | MultiFile t -> MultiFile.ftruncate64 t len
-  | SparseFile t -> SparseFile.ftruncate64 t len
+  | DiskFile t -> DiskFile.ftruncate64 t len sparse
+  | MultiFile t -> MultiFile.ftruncate64 t len sparse
+  | SparseFile t -> SparseFile.ftruncate64 t len sparse
   | Destroyed -> failwith "Unix32.ftruncate64 on destroyed FD"
       
 let mtime64 t =
@@ -1389,8 +1389,8 @@ overlaps different parts, but these parts are on the same physical file. *)
       
       iter t.file_parts
     
-    let ftruncate64 t len = 
-      ftruncate64 t.file len
+    let ftruncate64 t len sparse = 
+      ftruncate64 t.file len sparse
     
     let maxint64 = megabytes 1000000
     

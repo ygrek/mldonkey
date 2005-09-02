@@ -391,12 +391,13 @@ value ml_getfdsize64(value fd_v)
 *******************************************************************/
 
 #define ZEROS_LEN 1024
-value mld_ftruncate_64(value fd_v, value len_v)
+value mld_ftruncate_64(value fd_v, value len_v, value sparse)
 {
   OFF_T len = Int64_val(len_v);
   OS_FD fd = Fd_val(fd_v);  
+	 int use_sparse = Bool_val(sparse);
 
-  os_ftruncate(fd, len);
+  os_ftruncate(fd, len, use_sparse);
     
   return Val_unit;
 }

@@ -3351,7 +3351,7 @@ module Check = struct
                     file_nchunks = nchunks;
                   }
                 in
-                Unix32.ftruncate64 file.file_fd file_size;
+                Unix32.ftruncate64 file.file_fd file_size !!create_file_sparse;
                 let swarmer = S.create kernel file block_size in
                 S.set_checksums (Some swarmer) (Array.create nchunks (Ed2k Md4.null));
                 swarmer)

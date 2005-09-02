@@ -62,7 +62,9 @@ ssize_t os_read(OS_FD fd, char *buf, size_t len)
   return result;
 }
  
-void os_ftruncate(OS_FD fd, OFF_T len)
+
+// TODO: write whole file if sparse disabled
+void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
 {
   int64 cursize;
   if(!fd) failwith("ftruncate32: file is closed");

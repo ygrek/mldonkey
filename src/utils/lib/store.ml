@@ -50,11 +50,6 @@ let attrib = 1 lsl 30
 
 (**************** UNIX I/O FUNCTIONS *******************)  
   
-external ftruncate64 : Unix.file_descr -> int64 -> unit = 
-  "mld_ftruncate_64"
-external seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
-  "unix_lseek_64"
-
 let rec iter_write fd s pos len =
   let nwrite = Unix.write fd s pos len in
   if nwrite < len then
@@ -65,7 +60,7 @@ let really_write fd pos s =
   if verbose then begin
       lprintf_nl "write %d %d" pos len;
     end;
-  ignore (seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
+  ignore (Unix2.c_seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
   iter_write fd s 0 len
 
 let rec iter_read fd s pos len =
@@ -77,7 +72,7 @@ let really_read fd pos s len =
   if verbose then begin
       lprintf_nl "read %d %d" pos len;
     end;
-  ignore (seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
+  ignore (Unix2.c_seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
   iter_read fd s 0 len
 
 (********************* FILE FUNCTIONS *****************)
@@ -103,7 +98,7 @@ let file_store file str =
   let len_all_pos = Array.length file.file_all_pos in
   if pos >= len_all_pos then begin
       let new_size = (len_all_pos + 10) * 2 in
-      ftruncate64 file.file_fd (Int64.of_int (new_size * file.file_entry_size));
+      Unix2.c_ftruncate64 file.file_fd (Int64.of_int (new_size * file.file_entry_size)) false;
       let new_tab = Array.create new_size 0 in
       let new_weak = Weak.create new_size in
       (try Array.blit file.file_all_pos 0 new_tab 0 pos

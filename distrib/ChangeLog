@@ -8,6 +8,11 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/09/03: spiralvoice
+
+4368: new option: create_file_sparse true|false, this works only for
+      files on NTFS drives in MinGW compiled MLDonkey
+
 2005/09/01: spiralvoice
 
 4385: EDK: Preserve untested servers (by pango)

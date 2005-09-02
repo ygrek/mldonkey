@@ -29,7 +29,7 @@ val close : t -> unit
 (* val seek64 : t -> int64 -> Unix.seek_command -> int64  *)
 val getsize : string -> bool -> int64
 val getsize64 : t -> bool -> int64
-val ftruncate64 : t -> int64 -> unit
+val ftruncate64 : t -> int64 -> bool -> unit
 
 val close_all : unit -> unit
 

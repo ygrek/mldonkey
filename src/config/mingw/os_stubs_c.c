@@ -39,18 +39,20 @@ extern ssize_t os_read(OS_FD fd, char *buf, size_t len)
 
 #include <winioctl.h>
 
-void os_ftruncate(OS_FD fd, OFF_T size)
+void os_ftruncate(OS_FD fd, OFF_T size, /* bool */ int sparse)
 {
   uint curpos;
   long ofs_low = (long) size;
   long ofs_high = (long) (size >> 32);
 
+  if (sparse) {
 	DWORD dw;
 	BOOL bRet = DeviceIoControl(fd, FSCTL_SET_SPARSE, NULL, 0, NULL, 0, &dw, NULL);
 	if (!bRet) {
 		// No sparse files for you, sucker...
 		// DWORD err = GetLastError();
 	}
+  }
   curpos = SetFilePointer (fd, 0, NULL, FILE_CURRENT);
   if (curpos == 0xFFFFFFFF
       || SetFilePointer (fd, ofs_low, &ofs_high, FILE_BEGIN) == 0xFFFFFFFF

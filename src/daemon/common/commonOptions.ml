@@ -939,6 +939,10 @@ let create_dir_mask = define_option current_section ["create_dir_mask"]
     "New directories in incoming_directories are created with these rights"
     string_option "755"
 
+let create_file_sparse = define_option current_section ["create_file_sparse"]
+    "Create new files as sparse, only valid on MinGW for files on NTFS drives"
+    bool_option true
+
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
