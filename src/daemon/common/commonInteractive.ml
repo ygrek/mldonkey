@@ -221,9 +221,16 @@ let mail_for_completed_file file =
         Printf.sprintf "mldonkey, file received";
     in
 
-    let line4 = if !!url_in_mail <> "" then
-        Printf.sprintf "\r\n<%s/%s>\r\n" !!url_in_mail (Url.encode (file_best_name file))
+    let incoming =
+      if Unix2.is_directory (file_disk_name file) then
+        incoming_directories ()
       else
+        incoming_files ()
+    in
+
+    let line4 = if !!url_in_mail <> "" then
+      Printf.sprintf "\r\n<%s/%s/%s>\r\n" !!url_in_mail incoming.shdir_dirname (Url.encode (file_best_name file))
+    else
         Printf.sprintf "";
     in
 
