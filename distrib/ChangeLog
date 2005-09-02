@@ -10,6 +10,8 @@ ChangeLog
 
 2005/09/03: spiralvoice
 
+4247: memstats: BT/FT/GNUT/G2: initial memstats, ALL: show nr of old_files,
+      BT: nr of torrent files
 4390: Mail: Print incoming path if !!url_in_mail is used
 4389: BT: Fix core exit if dirs of a shared multifile torrent are not writable
 4368: new option: create_file_sparse true|false, this works only for

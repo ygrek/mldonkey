@@ -174,4 +174,8 @@ let gui_gnutella_options_panel =
     
     "          Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 
   ]
-  
+
+let old_files =
+  define_option gnutella_section ["old_files"]
+    "" (list_option (tuple2_option (string_option, int64_option))) []
+

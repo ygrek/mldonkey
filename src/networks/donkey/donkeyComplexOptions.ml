@@ -571,10 +571,6 @@ module UidOption = struct
     
   end
 
-let old_files = 
-  define_option donkey_section ["old_files"] 
-  "The files that were downloaded" (list_option Md4.option) []
-
 let brotherhood = 
   define_option donkey_section ["brotherhood"] 
     "The links between files being downloaded" (list_option 

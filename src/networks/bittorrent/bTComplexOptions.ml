@@ -271,10 +271,6 @@ send us more clients.
       lprintf_nl () "exception %s in file_to_value"
         (Printexc2.to_string e); raise e
 
-let old_files =
-  define_option bittorrent_section ["old_files"]
-    "" (list_option (tuple2_option (string_option, int64_option))) []
-
 
 let save_config () =
   Options.save_with_help bittorrent_ini

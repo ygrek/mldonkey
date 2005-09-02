@@ -576,4 +576,19 @@ let local_login () =
   let name = !!global_login in
   let len = String.length name in
   if len < 32 then name else  String.sub name 0 32
-    
+
+(*************************************************************
+
+Define a function to be called when the "mem_stats" command
+  is used to display information on structure footprint.
+
+**************************************************************)
+
+let _ =
+(*  let network_info = CommonNetwork.network_info network in *)
+  let name = network.network_name ^ "Globals" in
+  Heap.add_memstat name (fun level buf ->
+        Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files
+  )
+);
+

@@ -205,10 +205,6 @@ let file_to_value file =
   | Some swarmer ->
       Int64Swarmer.swarmer_to_value swarmer assocs
       
-let old_files = 
-  define_option gnutella_section ["old_files"]
-    "" (list_option (tuple2_option (string_option, int64_option))) []
-    
 
   (*
 let save_config () =

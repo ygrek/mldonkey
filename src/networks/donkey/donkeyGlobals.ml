@@ -962,6 +962,7 @@ Define a function to be called when the "mem_stats" command
 
 let _ =
   Heap.add_memstat "DonkeyGlobals" (fun level buf ->
+      Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files);
       Printf.bprintf buf "Current files: %d\n" (List.length !current_files);
       let list = H.to_list clients_by_kind in
       Printf.bprintf buf  "Clients_by_kind: %d\n" (List.length list);

@@ -500,3 +500,12 @@ let client_name () =
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name
+
+(*************************************************************
+ Define a function to be called when the "mem_stats" command
+   is used to display information on structure footprint.
+**************************************************************)
+
+let _ =
+  Heap.add_memstat "FasttrackGlobals" (fun level buf ->
+     Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files))

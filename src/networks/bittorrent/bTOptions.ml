@@ -107,3 +107,6 @@ let referers = define_option bittorrent_section ["referers"]
     "Referer sent with http request to get .torrent file"
     (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
 
+let old_files =
+  define_option bittorrent_section ["old_files"]
+    "" (list_option (tuple2_option (string_option, int64_option))) []

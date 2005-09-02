@@ -966,3 +966,23 @@ let downloads_directory = Filename.concat torrents_directory "downloads"
 let tracked_directory = Filename.concat torrents_directory "tracked"
 let seeded_directory = Filename.concat torrents_directory "seeded"
 let old_directory = Filename.concat torrents_directory "old"
+
+(*************************************************************
+
+Define a function to be called when the "mem_stats" command
+  is used to display information on structure footprint.
+
+**************************************************************)
+
+let _ =
+  Heap.add_memstat "BittorrentGlobals" (fun level buf ->
+     Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files);
+     let downloads = ref 0 in
+     let tracked = ref 0 in
+     let seeded = ref 0 in
+     Unix2.iter_directory (fun file -> incr downloads ) downloads_directory;
+     Unix2.iter_directory (fun file -> incr tracked ) tracked_directory;
+     Unix2.iter_directory (fun file -> incr seeded ) seeded_directory;
+     Printf.bprintf buf "Files in downloads directory: %d\n" ! downloads;
+     Printf.bprintf buf "Files in tracked directory: %d\n" ! tracked;
+     Printf.bprintf buf "Files in seeded directory: %d\n" ! seeded;)

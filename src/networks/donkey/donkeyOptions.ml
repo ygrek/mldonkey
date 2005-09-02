@@ -331,3 +331,7 @@ let gui_donkey_options_panel =
     "Prevent Re-download of Downloaded Files", shortname keep_downloaded_in_old_files, "B";
     "Dynamic Slot Allocation", shortname dynamic_slots, "B";
   ]
+
+let old_files =
+  define_option donkey_section ["old_files"]
+    "The files that were downloaded" (list_option Md4.option) []
