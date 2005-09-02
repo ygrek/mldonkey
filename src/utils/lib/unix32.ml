@@ -329,7 +329,6 @@ module MultiFile = struct
 
     let create dirname files =
       Unix2.safe_mkdir dirname;
-      Unix2.can_write_to_directory dirname;
       let rec iter files pos files2 =
         match files with
           [] ->
@@ -350,7 +349,6 @@ module MultiFile = struct
         | (filename, size) :: tail ->
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
-	    Unix2.can_write_to_directory (Filename.dirname temp_filename);
             let fd = FDCache.create temp_filename in
             let _ = FDCache.local_force_fd fd true in
             iter tail (pos ++ size)
