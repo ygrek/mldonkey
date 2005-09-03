@@ -8,7 +8,7 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
-2005/09/04: spiralvoice
+2005/09/04: spiralvoice (version 2.6.4 = tag release-2-6-4)
 
 4392: Print "Core started" on stdout even if logging is enabled
       Fixes problems when MLDonkey is spawned by a GUI
