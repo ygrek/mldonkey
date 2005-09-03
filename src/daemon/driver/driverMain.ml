@@ -567,10 +567,6 @@ or getting a binary compiled with glibc %s.\n\n")
 
 let _ =
   let security_space_filename = "config_files_space.tmp" in
-
-  lprintf_nl (_b "Core started");
-  core_included := true;
-
   begin
 (* Create a 'config_files_security_space' megabytes file to protect some space
 for config files at the end. *)
@@ -596,6 +592,18 @@ for config files at the end. *)
         exit 73;
   end;
   Unix32.external_start (CommonGlobals.version());
+
+(* When a core is spawned from a gui, the only way to know the startup has
+succeeded is the string token "Core started". *)
+  if not !keep_console_output then
+    begin
+      Pervasives.output_string Pervasives.stdout (Printf.sprintf "%sCore started\n" (log_time ()));
+      Pervasives.flush Pervasives.stdout;
+    end;
+
+  lprintf_nl (_b "Core started");
+  core_included := true;
+
   CommonGlobals.do_at_exit (fun _ ->
       (* If we have an error with too many file-descriptors,
          just close all of them *)

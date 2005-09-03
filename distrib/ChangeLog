@@ -8,6 +8,11 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/09/04: spiralvoice
+
+4392: Print "Core started" on stdout even if logging is enabled
+      Fixes problems when MLDonkey is spawned by a GUI
+
 2005/09/03: spiralvoice
 
 4247: memstats: BT/FT/GNUT/G2: initial memstats, ALL: show nr of old_files,
