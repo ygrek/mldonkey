@@ -12,6 +12,32 @@ let lprintf_n () =
   lprintf "%s[IPblock] "
   (log_time ()); lprintf
 
+module H = Weak2.Make(struct
+	type t = string
+	let hash s = Hashtbl.hash s
+	let equal x y = x = y
+      end)
+
+let descriptions = H.create 13
+
+let shared_description s =
+  (* Currently trims strings left and right;
+     feel free to add other heuristics: convert to lowercase,
+     remove punctuation, remove duplicate spaces,... *)
+  let canonize s =
+    let len = String.length s in
+    let b = ref 0 in
+    let e = ref len in
+    while (!b < !e && s.[!b] = ' ') do incr b done;
+    if !b < !e then
+      while (s.[!e - 1] = ' ') do decr e done;
+    if !b = 0 && !e = len then s
+    else String.sub s !b (!e - !b)
+    in
+  H.merge descriptions (canonize s)
+
+let unknown_description = shared_description "Unknown";
+
 (* range name, ip min, ip max (inclusive) *)
 type blocking_range = {
   blocking_description: string;
@@ -19,6 +45,8 @@ type blocking_range = {
   blocking_end: Ip.t;
   mutable blocking_hits: int
 }
+
+let store_blocking_descriptions = ref true
 
 (* Red-Black tree *)
 type blocking_list =
@@ -154,7 +182,10 @@ let load_merge bl filename remove =
 	try
 	  if Str.string_match ipfilter_regexp line 0 then begin
 	    let br = {
-	      blocking_description = Str.matched_group 3 line;
+	      blocking_description = if !store_blocking_descriptions then 
+		shared_description (Str.matched_group 3 line) 
+	      else 
+		unknown_description;
 	      blocking_begin = Ip.of_string (Str.matched_group 1 line);
 	      blocking_end = Ip.of_string (Str.matched_group 2 line);
 	      blocking_hits = 0 } in
@@ -163,7 +194,10 @@ let load_merge bl filename remove =
 	  end else 
 	    if Str.string_match guardian_regexp line 0 then begin
 	      let br = {
-	        blocking_description = Str.matched_group 1 line;
+	        blocking_description = if !store_blocking_descriptions then 
+		  shared_description (Str.matched_group 1 line) 
+		else 
+		  unknown_description;
 	        blocking_begin = Ip.of_string (Str.matched_group 2 line);
 	        blocking_end = Ip.of_string (Str.matched_group 3 line);
 	        blocking_hits = 0 } in
@@ -267,27 +301,27 @@ let of_list l =
 	  let range = match Ip.to_ints h with
 (* only the most standard usages of the old syntax are supported *)
 	      255, 255, 255, 255 -> 
-		{ blocking_description = "";
+		{ blocking_description = unknown_description;
 		  blocking_begin = Ip.of_ints (0, 0, 0, 0);
 		  blocking_end = Ip.of_ints (255, 255, 255, 255);
 		  blocking_hits = 0 }
 	    | a, 255, 255, 255 -> 
-		{ blocking_description = "";
+		{ blocking_description = unknown_description;
 		  blocking_begin = Ip.of_ints (a, 0, 0, 0);
 		  blocking_end = Ip.of_ints (a, 255, 255, 255);
 		  blocking_hits = 0 }
 	    | a, b, 255, 255 -> 
-		{ blocking_description = "";
+		{ blocking_description = unknown_description;
 		  blocking_begin = Ip.of_ints (a, b, 0, 0);
 		  blocking_end = Ip.of_ints (a, b, 255,255);
 		  blocking_hits = 0 }
 	    | a, b, c, 255 -> 
-		{ blocking_description = "";
+		{ blocking_description = unknown_description;
 		  blocking_begin = Ip.of_ints (a, b, c, 0);
 		  blocking_end = Ip.of_ints (a, b, c, 255);
 		  blocking_hits = 0 }
 	    | _ -> 
-		{ blocking_description = "";
+		{ blocking_description = unknown_description;
 		  blocking_begin = h;
 		  blocking_end = h;
 		  blocking_hits = 0 } in

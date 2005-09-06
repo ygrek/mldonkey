@@ -12,7 +12,8 @@ ChangeLog
 
 4268: Web/Gui: free core's buffer allocated by vd # and gui
       (by bogeyman)
-
+4393: Lower ip blocking memory usage (by pango)
+      new option ip_blocking_descriptions true|false
 ---------------------------------------------------------------------
 2005/09/04: spiralvoice (version 2.6.4 = tag release-2-6-4)
 
