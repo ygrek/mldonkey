@@ -534,7 +534,7 @@ let cut_messages parse f sock nread =
 let buf = Buffer.create 30000
       
 let send_message sock pkt = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   Buffer.add_char buf 'Y';  
   Buffer.add_char buf 'M';  
   Buffer.add_char buf 'S';  
@@ -547,14 +547,14 @@ let send_message sock pkt =
   buf_int32 buf pkt.id;
   Buffer.add_string buf pkt.payload;
   let s = Buffer.contents buf in
-  Buffer.clear buf;
+  Buffer.reset buf;
   lprintf "SENDING MESSAGE:"; lprint_newline ();
   dump s; lprint_newline ();
   write_string sock s;
   ()
   
 let yahoo_send_message sock pkt = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   List.iter (fun (key, data) ->
       Printf.bprintf buf "%d" key;
       buf_int8 buf 0xc0;

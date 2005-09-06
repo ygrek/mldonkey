@@ -291,7 +291,7 @@ module TcpMessages = struct
     let buf = Buffer.create 100
 
     let write msg =
-      Buffer.clear buf;
+      Buffer.reset buf;
       begin
         buf_int buf 0;
         match msg with

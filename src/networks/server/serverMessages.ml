@@ -962,7 +962,7 @@ type group_sock = TcpBufferedSocket.t
 let buf = TcpBufferedSocket.internal_buf
 
 let group_msg_to_string msg =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 227;
   buf_int buf 0;
   write buf msg;

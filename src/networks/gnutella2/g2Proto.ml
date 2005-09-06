@@ -262,7 +262,7 @@ module Print = struct
     
     let buf = Buffer.create 100
     let print_payload msg = 
-      Buffer.clear buf;
+      Buffer.reset buf;
       let name = 
         let module Buffer = Buffer2 in
         match msg with 
@@ -417,7 +417,7 @@ let buf_uid buf s = match Uid.to_uid s with
       
 let g2_encode_payload msg = 
   let module M = G2_LittleEndian in
-  Buffer.clear buf;
+  Buffer.reset buf;
   let name = 
     match msg with 
     | TO md4 -> buf_md4 buf md4; "TO"

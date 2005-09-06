@@ -141,12 +141,12 @@ let gen_redirector_packet () =
   let infos =
     List.map (fun (n,f) ->
         n,
-        ( Buffer.clear buf;
+        ( Buffer.reset buf;
           f buf;
           Buffer.contents buf)
     ) !redirector_infos in
 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 212; (* udp_magic *)
   buf_int8 buf 2;   (* type of data sent *)
   let ip = client_ip None in

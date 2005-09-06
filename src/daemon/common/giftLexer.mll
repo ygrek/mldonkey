@@ -9,7 +9,7 @@
   let buf = Buffer.create 100
     
   let init_string () =
-    Buffer.clear buf
+    Buffer.reset buf
   let add_char c = 
     Buffer.add_char buf c
     

@@ -1058,7 +1058,7 @@ let soulseek_handler parse f sock nread =
 let buf = Buffer.create 1000
       
 let server_msg_to_string t = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf 0;
   C2S.write buf t;
   let s = Buffer.contents buf in
@@ -1067,7 +1067,7 @@ let server_msg_to_string t =
   s 
       
 let client_msg_to_string t = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf 0;
   C2C.write buf t;
   let s = Buffer.contents buf in
@@ -1103,7 +1103,7 @@ let client_send sock t =
 
   
 let init_peer_connection sock login token =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf 0;
   buf_int8 buf 1;
   buf_string buf login;
@@ -1121,7 +1121,7 @@ let init_peer_connection sock login token =
     end
 
 let init_result_connection sock token =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf 0;
   buf_int8 buf 0;
   buf_int buf token;
@@ -1137,7 +1137,7 @@ let init_result_connection sock token =
     end
     
 let init_download_connection sock file login req pos =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf 0;
   buf_int8 buf 1;
   buf_string buf login;
@@ -1154,7 +1154,7 @@ let init_download_connection sock file login req pos =
   
   if !verbose_msg_clients then dump s;  
   
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int buf req;
   buf_int64_32 buf pos;
   buf_int buf 0;

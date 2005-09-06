@@ -176,7 +176,7 @@ let cprintf kont fmt =
   let rec doprn i =
     if i >= len then begin
       let res = Buffer.contents dest in
-      Buffer.clear dest;  (* just in case kprintf is partially applied *)
+      Buffer.reset dest;  (* just in case kprintf is partially applied *)
       Obj.magic (kont res)
     end else
     match String.unsafe_get fmt i with

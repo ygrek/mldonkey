@@ -47,7 +47,7 @@ let lprintf_n () =
 let buf = TcpBufferedSocket.internal_buf
 
 let client_msg_to_string emule_version msg =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 0;
   buf_int buf 0;
   let magic = DonkeyProtoClient.write emule_version buf msg in
@@ -58,7 +58,7 @@ let client_msg_to_string emule_version msg =
   s
 
 let server_msg_to_string msg =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoServer.write buf msg;
@@ -178,7 +178,7 @@ let udp_send t ip port msg =
     end;
 
   try
-    Buffer.clear buf;
+    Buffer.reset buf;
     DonkeyProtoUdp.write buf msg;
     let s = Buffer.contents buf in
     UdpSocket.write t false s ip port
@@ -338,7 +338,7 @@ let server_send_share compressed sock msg =
     !!client_buffer_size - 100
       - TcpBufferedSocket.remaining_to_write sock
   in
-  Buffer.clear buf;
+  Buffer.reset buf;
   let s =
       buf_int buf 0;
       let nfiles, prev_len =
@@ -351,7 +351,7 @@ let server_send_share compressed sock msg =
       let s = String.sub s 0 prev_len in
       if !verbose_share then
          lprintf_nl () "Sending %d share(s) to server : " nfiles;
-      Buffer.clear buf;
+      Buffer.reset buf;
       let s_c =
         if compressed && Autoconf.has_zlib then
           Autoconf.zlib__compress_string s
@@ -388,7 +388,7 @@ let server_send_share compressed sock msg =
 let client_send_files sock msg =
   let max_len = !!client_buffer_size - 100 -
     TcpBufferedSocket.remaining_to_write sock in
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int8 buf 227;
   buf_int buf 0;
   buf_int8 buf 75; (* ViewFilesReply *)

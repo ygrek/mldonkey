@@ -565,7 +565,7 @@ let server_msg_to_string pkt =
       lprintf "SENDING :\n";
       print pkt;
     end; 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_md4 buf pkt.pkt_uid;
   buf_int8 buf (match pkt.pkt_type with
     | PING -> 0

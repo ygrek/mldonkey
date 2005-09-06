@@ -81,7 +81,7 @@ let save_comments () =
   let oc = open_out comment_filename in
   let buf = Buffer.create 256 in
   Hashtbl.iter (fun md4 comment ->
-      Buffer.clear buf;
+      Buffer.reset buf;
       buf_md4 buf md4;
       buf_string buf comment;
       output_request oc (Buffer.contents buf);

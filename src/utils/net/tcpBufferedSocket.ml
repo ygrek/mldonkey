@@ -1460,7 +1460,7 @@ let simple_send_buf buf sock =
   write sock s 0 len
 
 let value_send sock m =
-  (* Buffer.clear internal_buf; *)
+  (* Buffer.reset internal_buf; *)
   Buffer.reset internal_buf;
   Buffer.add_string internal_buf (Marshal.to_string m []);
   simple_send_buf internal_buf sock

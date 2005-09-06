@@ -82,7 +82,7 @@ let translate s =
       | SPACE -> iter can_space can_space list
       | tok -> 
           let s = Buffer.contents buf in
-          Buffer.clear buf;
+          Buffer.reset buf;
           if String.length s = 0 then
             iter false false (tok :: list)
           else

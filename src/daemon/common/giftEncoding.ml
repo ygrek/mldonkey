@@ -160,7 +160,7 @@ let translate gui t =
       
 let gui_send gui sock t = 
   try
-    Buffer.clear buf;
+    Buffer.reset buf;
     encode buf (translate gui t);
     let s = Buffer.contents buf in
     lprintf "Sending to GIFT GUI: \n%s\n" s;

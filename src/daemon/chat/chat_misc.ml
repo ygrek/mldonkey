@@ -49,19 +49,19 @@ let buf_get_line buf =
     let n = String.index s '\n' in
     let s1 = String.sub s 0 n in
     let s2 = String.sub s n ((String.length s) - n) in
-    Buffer.clear buf;
+    Buffer.reset buf;
     Buffer.add_string buf s2;
     match s1 with
       "" -> raise End_of_file
     | _ -> s1
   with
     Not_found ->
-      Buffer.clear buf;
+      Buffer.reset buf;
       s
 
 let buf_input buf str pos len =
   let s = Buffer.contents buf in
-  Buffer.clear buf;
+  Buffer.reset buf;
   let s1 = 
     try String.sub s 0 len
     with _ -> raise End_of_file

@@ -857,7 +857,7 @@ let buf = Buffer.create 100
 let server_send debug sock m =
 (*  lprintf "SENDING"; lprint_newline ();
   print m; *)
-  Buffer.clear buf;
+  Buffer.reset buf;
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
@@ -869,7 +869,7 @@ let server_send debug sock m =
 let debug_server_send sock m =
   lprintf "SENDING"; lprint_newline ();
   print m; 
-  Buffer.clear buf;
+  Buffer.reset buf;
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in

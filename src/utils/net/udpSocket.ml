@@ -451,7 +451,7 @@ let use_remaining_bytes bc n =
 let set_socks_proxy t ss =
   try
 
-    Buffer.clear buf;
+    Buffer.reset buf;
     let s = read_buf in
 
     t.socks_proxy <- Some ss;
@@ -468,7 +468,7 @@ let set_socks_proxy t ss =
 
     let send_and_wait () =
       let s = Buffer.contents buf in
-      Buffer.clear buf;
+      Buffer.reset buf;
       assert (local_sendto fd s 0 (String.length s) [] proxy_addr > 0);
       
       match Unix.select [fd] [] [] 30. with

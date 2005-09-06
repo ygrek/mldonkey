@@ -1632,14 +1632,14 @@ let _ =
             List.iter (fun s ->
                 keywords := !keywords @ [("", "dl-1", s);]
             ) listtmp;
-            Buffer.clear buftmp;
+            Buffer.reset buftmp;
             PublishedFiles.print buftmp;
             let listtmp = String2.split (Buffer.contents buftmp) '\n' in
             let files = ref [] in
             List.iter (fun s ->
                 files := !files @ [("", "dl-1", s);]
               ) listtmp;
-            Buffer.clear buftmp;
+            Buffer.reset buftmp;
             html_mods_table_one_col buf "ovstoreTable" "results" ([
               ("", "srh", Printf.sprintf "%s store" command_prefix_to_net);
               ] @ !keywords @ !files);
@@ -1693,7 +1693,7 @@ let _ =
             List.iter (fun s ->
                 buckets := !buckets @ [("", "dl-1", s);]
             ) listtmp;
-            Buffer.clear buf;
+            Buffer.reset buf;
             html_mods_table_one_col buf "ovbucketsTable" "results" ([
               ("", "srh",
                 Printf.sprintf "Number of used buckets %d with %d peers (prebucket: %d peers)"
@@ -1715,7 +1715,7 @@ let _ =
             List.iter (fun s ->
                 boots := !boots @ [("", "dl-1", s);]
             ) listtmp;
-            Buffer.clear buf;
+            Buffer.reset buf;
             html_mods_table_one_col buf "ovbucketsTable" "results" ([
               ("", "srh",
                 Printf.sprintf "Boot peers: %d\n" (LimitedList.length !!boot_peers));

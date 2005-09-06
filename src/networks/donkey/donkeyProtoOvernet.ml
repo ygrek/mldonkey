@@ -411,7 +411,7 @@ module Proto = struct
 
     let udp_send sock ip port ping msg =
       try
-        Buffer.clear udp_buf;
+        Buffer.reset udp_buf;
         buf_int8 udp_buf 227;
         write udp_buf msg;
         let s = Buffer.contents udp_buf in

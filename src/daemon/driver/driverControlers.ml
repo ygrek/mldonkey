@@ -390,7 +390,7 @@ let user_reader o telnet sock nread  =
         if cmd <> "" then begin
             before_telnet_output o sock;
             let buf = o.conn_buf in
-            Buffer.clear buf;
+            Buffer.reset buf;
             if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
             eval telnet.telnet_auth cmd o;
             Buffer.add_char buf '\n';

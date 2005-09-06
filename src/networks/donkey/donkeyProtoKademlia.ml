@@ -416,7 +416,7 @@ module P = struct
 
     let udp_send sock ip port ping msg =
       try
-        Buffer.clear udp_buf;
+        Buffer.reset udp_buf;
         write udp_buf msg;
         let s = Buffer.contents udp_buf in
 

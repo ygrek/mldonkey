@@ -655,7 +655,7 @@ let print t =
 let buf = Buffer.create 1000
       
 let server_msg_to_string t = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int16 buf 0;
   write buf t;
   let s = Buffer.contents buf in
@@ -715,7 +715,7 @@ let print p =
 let buf = Buffer.create 1000
       
 let server_msg_to_string pkt = 
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_md4 buf pkt.pkt_uid;
   buf_int8 buf (match pkt.pkt_type with
       PING -> 0

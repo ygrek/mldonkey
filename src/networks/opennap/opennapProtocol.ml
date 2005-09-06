@@ -1106,7 +1106,7 @@ section 4.1 for more detailed information).
 open LittleEndian
 
 let server_msg_to_string msg =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int16 buf 0;
   write buf msg;
   let s = Buffer.contents buf in
@@ -1119,7 +1119,7 @@ let server_send sock m =
   write_string sock (server_msg_to_string m)
 
 let server_msg_to_string msg =
-  Buffer.clear buf;
+  Buffer.reset buf;
   buf_int16 buf 0;
   write buf msg;
   let s = Buffer.contents buf in
