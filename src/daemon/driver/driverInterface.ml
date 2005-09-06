@@ -665,7 +665,7 @@ let gui_reader (gui: gui_record) t _ =
                     network_extend_search r s e)
           
           | P.KillServer -> 
-              exit_properly 0
+              CommonInteractive.clean_exit 0
           
           | P.Search_query s ->
               

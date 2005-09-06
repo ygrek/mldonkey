@@ -287,7 +287,7 @@ let _ =
     "kill", Arg_none (fun o ->
         if o.conn_user == default_user then
 	  begin
-            CommonGlobals.exit_properly 0;
+            CommonInteractive.clean_exit 0;
 	    _s "exit"
 	  end
         else

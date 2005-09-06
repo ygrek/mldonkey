@@ -14,6 +14,7 @@ ChangeLog
       (by bogeyman)
 4393: Lower ip blocking memory usage (by pango)
       new option ip_blocking_descriptions true|false
+4401: BT: Send 'stopped' event to all trackers when exiting (by zet)
 ---------------------------------------------------------------------
 2005/09/04: spiralvoice (version 2.6.4 = tag release-2-6-4)
 

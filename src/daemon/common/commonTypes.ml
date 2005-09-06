@@ -491,6 +491,7 @@ type network = {
     
     mutable op_network_download : (result_info -> file);
     mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
+    mutable op_network_clean_exit : (unit -> bool);
   }
 
 and   ui_user = {

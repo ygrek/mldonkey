@@ -369,6 +369,22 @@ let contact_remove c =
   with e ->
       lprintf_nl "[cInt] Exception in contact_remove: %s" (Printexc2.to_string e)
 
+let exit_counter = ref 0
+let exit_timer = ref false
+
+let rec clean_exit n =
+  let can_exit = networks_for_all (fun n -> network_clean_exit n) in
+  if can_exit || (!exit_counter > 3) then 
+    exit_properly n
+  else 
+    if not !exit_timer then begin
+      exit_timer := true;
+      add_timer 1. (fun _ ->
+        incr exit_counter;
+        exit_timer := false;
+        clean_exit n;
+      );
+    end
 
 let time_of_sec sec =
   let hours = sec / 60 / 60 in

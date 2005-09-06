@@ -99,6 +99,8 @@ let check_network_implementations () =
         lprintf_nl "op_network_display_stats";
       if c.op_network_info == cc.op_network_info then 
         lprintf_nl "op_network_info";
+      if c.op_network_clean_exit == cc.op_network_clean_exit then 
+        lprintf_nl "op_network_clean_exit";
   ) !networks_ops;
   lprint_newline ()
   
@@ -115,6 +117,7 @@ let network_add_server n s = n.op_network_add_server s
 let network_server_of_option n s = n.op_network_server_of_option s
 let network_file_of_option n f = n.op_network_file_of_option f 
 let network_client_of_option n f = n.op_network_client_of_option f
+let network_clean_exit n = try n.op_network_clean_exit () with _ -> true
 
   
 let networks_iter f =
@@ -159,6 +162,17 @@ let networks_iter_all_until_true f =
           lprintf_nl "Exception %s in Network.iter for %s"
             (Printexc2.to_string e) r.network_name;
           false
+  ) !networks
+
+let networks_for_all f =
+  List.for_all (fun r ->
+      try
+        if network_is_enabled r then f r else true
+      with
+      | IgnoreNetwork -> true
+      | e ->
+          lprintf_nl "Exception %s in Network.for_all for %s"
+            (Printexc2.to_string e) r.network_name; true
   ) !networks
 
 let network_find_by_name name =
@@ -245,6 +259,7 @@ let new_network shortname name flags =
       op_network_gui_message = (fun _ -> ni_ok name "gui_message");
       op_network_download = (fun _ -> raise IgnoreNetwork);
       op_network_display_stats = (fun _ _ -> ni_ok name "display_stats");
+      op_network_clean_exit = (fun _ -> true);
     }
   in
   let rr = (Obj.magic r: network) in

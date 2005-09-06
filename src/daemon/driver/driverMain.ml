@@ -555,11 +555,11 @@ or getting a binary compiled with glibc %s.\n\n")
 
   MlUnix.set_signal  Sys.sigint
     (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGINT, stopping MLDonkey...";
-        CommonGlobals.exit_properly 0));
+        CommonInteractive.clean_exit 0));
 
   MlUnix.set_signal  Sys.sigterm
     (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping MLDonkey...";
-        CommonGlobals.exit_properly 0));
+        CommonInteractive.clean_exit 0));
 
   if !verbose then lprintf_nl (_b "Activated system signal handling");
 

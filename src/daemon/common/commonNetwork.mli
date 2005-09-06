@@ -10,6 +10,7 @@ val new_network :
     string ->  string ->   CommonTypes.network_flag list -> CommonTypes.network
 
 val check_network_implementations : unit -> unit
+val network_clean_exit : CommonTypes.network -> bool
 val network_connected_servers :
   CommonTypes.network -> CommonTypes.server list
 val network_is_enabled : CommonTypes.network -> bool
@@ -38,6 +39,7 @@ val networks_iter : (CommonTypes.network -> unit) -> unit
 val networks_iter_until_true : (CommonTypes.network -> bool) -> bool
 val networks_iter_all : (CommonTypes.network -> unit) -> unit
 val networks_iter_all_until_true : (CommonTypes.network -> bool) -> bool
+val networks_for_all : (CommonTypes.network -> bool) -> bool
 val network_find_by_name : string -> CommonTypes.network
 val network_find_by_num : int -> CommonTypes.network
 val network_commands : (string * string * CommonTypes.arg_kind * string) list ref

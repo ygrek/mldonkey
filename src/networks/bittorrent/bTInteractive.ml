@@ -942,6 +942,10 @@ let _ =
   network.op_network_search <- (fun ss buf -> ());
   (* and Network.recover_temp *)
   network.op_network_recover_temp <- (fun s -> ());
+  network.op_network_clean_exit <- (fun s ->
+    List.iter (fun file -> BTClients.file_stop file) !current_files;
+    List.for_all (fun file -> not file.file_tracker_connected) !current_files;
+  );
 
   client_ops.op_client_info <- op_client_info;
   client_ops.op_client_connect <- op_client_connect;
