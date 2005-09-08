@@ -179,8 +179,7 @@ let connect_trackers file event f =
                   H.basic_request with
                   H.req_url = Url.of_string ~args: args url;
                   H.req_proxy = !CommonOptions.http_proxy;
-                  H.req_user_agent =
-                    Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+                  H.req_user_agent = get_user_agent ();
                 } in
 
               if !verbose_msg_servers then

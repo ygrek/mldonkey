@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/09/08: spiralvoice
+
+4402: BT: BT-user_agent option
+
 2005/09/06: spiralvoice
 
 4268: Web/Gui: free core's buffer allocated by vd # and gui

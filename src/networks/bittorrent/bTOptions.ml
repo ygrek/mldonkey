@@ -107,6 +107,15 @@ let referers = define_option bittorrent_section ["referers"]
     "Referer sent with http request to get .torrent file"
     (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
 
+let user_agent = define_option bittorrent_section ["user_agent"]
+    "User agent string (default = \"default\")"
+    string_option "default"
+
 let old_files =
   define_option bittorrent_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
+
+let get_user_agent () = 
+  if !!user_agent = "default" then
+     Printf.sprintf "MLDonkey/%s" Autoconf.current_version
+  else !!user_agent
