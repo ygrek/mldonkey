@@ -10,6 +10,7 @@ ChangeLog
 
 2005/09/08: spiralvoice
 
+4397: Buildinfo: Run-time check for Windows OS version / Unix uname (zet)
 4403: html_mods: mem_stats in a single readable table (zet)
 4402: BT: BT-user_agent option (zet)
 

@@ -110,6 +110,7 @@ extern int os_getdtablesize();
 extern int64 os_getfdsize(OS_FD fd);
 extern int64 os_getfilesize(char *path);
 extern void os_set_nonblock(OS_SOCKET fd);
+extern void os_uname(char buf[]);
 
 
 #define HASH_BUFFER_LEN 131072

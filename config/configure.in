@@ -544,6 +544,7 @@ AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
 
 # various header files
+AC_CHECK_HEADERS([sys/utsname.h])
 AC_CHECK_HEADERS(arpa/inet.h,,)
 AC_CHECK_HEADERS([sys/types.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
 [#ifdef HAVE_SYS_TYPES_H
@@ -1348,10 +1349,8 @@ AC_SUBST(HAS_BZIP2)
 AC_SUBST(COMMONSWARMING)
 
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
-OCAML_VERSION="`$OCAMLC -version`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
-AC_SUBST(OCAML_VERSION)
 AC_SUBST(CONFIGURE_ARGUMENTS)
 AC_SUBST(CONFIGURE_RUN)
 

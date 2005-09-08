@@ -125,3 +125,17 @@ int glibc_version(void)
   raise_constant(*(value *)caml_named_value("not supported"));
 #endif
 }
+
+#ifdef HAVE_SYS_UTSNAME_H
+#include <sys/utsname.h>
+void os_uname(char buf[]) {
+	struct utsname uts;
+  uname(&uts);
+	sprintf(buf, "%s %s %s %s %s\0", 
+   uts.sysname, uts.nodename, uts.release, uts.version, uts.machine);
+}
+#else
+void os_uname(char buf[]) {
+// Do nothing to buf
+}
+#endif

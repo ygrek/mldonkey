@@ -147,3 +147,178 @@ void gettimeofday(struct timeval* p, void* tz /* IGNORED */){
    return;
 }
 
+
+// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/sysinfo/base/getting_the_system_version.asp
+#define BUFSIZE 80
+
+void os_uname(char buf[])
+{
+   OSVERSIONINFOEX osvi;
+   BOOL bOsVersionInfoEx;
+
+   // Try calling GetVersionEx using the OSVERSIONINFOEX structure.
+   // If that fails, try using the OSVERSIONINFO structure.
+
+   ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+   osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+
+   if( !(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *) &osvi)) )
+   {
+      osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
+      if (! GetVersionEx ( (OSVERSIONINFO *) &osvi) ) 
+         return;
+   }
+
+   switch (osvi.dwPlatformId)
+   {
+      // Test for the Windows NT product family.
+      case VER_PLATFORM_WIN32_NT:
+
+      // Test for the specific product.
+      if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 2 )
+         strcat(buf, "Microsoft Windows Server 2003, \0");
+
+      if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 1 )
+         strcat(buf, "Microsoft Windows XP \0");
+
+      if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0 )
+         strcat(buf, "Microsoft Windows 2000 \0");
+
+      if ( osvi.dwMajorVersion <= 4 )
+         strcat(buf, "Microsoft Windows NT \0");
+
+      // Test for specific product on Windows NT 4.0 SP6 and later.
+      if( bOsVersionInfoEx )
+      {
+         // Test for the workstation type.
+         if ( osvi.wProductType == VER_NT_WORKSTATION )
+         {
+            if( osvi.dwMajorVersion == 4 )
+               strcat(buf, "Workstation 4.0 \0" );
+            else if( osvi.wSuiteMask & VER_SUITE_PERSONAL )
+               strcat(buf, "Home Edition \0" );
+            else strcat(buf, "Professional \0" );
+         }
+            
+         // Test for the server type.
+         else if ( osvi.wProductType == VER_NT_SERVER || 
+                   osvi.wProductType == VER_NT_DOMAIN_CONTROLLER )
+         {
+            if(osvi.dwMajorVersion==5 && osvi.dwMinorVersion==2)
+            {
+               if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
+                  strcat(buf, "Datacenter Edition \0" );
+               else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                  strcat(buf, "Enterprise Edition \0" );
+               else if ( osvi.wSuiteMask == VER_SUITE_BLADE )
+                  strcat(buf, "Web Edition \0" );
+               else strcat(buf, "Standard Edition \0" );
+            }
+            else if(osvi.dwMajorVersion==5 && osvi.dwMinorVersion==0)
+            {
+               if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
+                  strcat(buf, "Datacenter Server \0" );
+               else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                  strcat(buf, "Advanced Server \0" );
+               else strcat(buf, "Server \0" );
+            }
+            else  // Windows NT 4.0 
+            {
+               if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                  strcat(buf, "Server 4.0, Enterprise Edition \0" );
+               else strcat(buf, "Server 4.0 \0" );
+            }
+         }
+      }
+      // Test for specific product on Windows NT 4.0 SP5 and earlier
+      else  
+      {
+         HKEY hKey;
+         char szProductType[BUFSIZE];
+         DWORD dwBufLen=BUFSIZE;
+         LONG lRet;
+
+         lRet = RegOpenKeyEx( HKEY_LOCAL_MACHINE,
+            "SYSTEM\\CurrentControlSet\\Control\\ProductOptions",
+            0, KEY_QUERY_VALUE, &hKey );
+         if( lRet != ERROR_SUCCESS )
+            return;
+
+         lRet = RegQueryValueEx( hKey, "ProductType", NULL, NULL,
+            (LPBYTE) szProductType, &dwBufLen);
+         if( (lRet != ERROR_SUCCESS) || (dwBufLen > BUFSIZE) )
+            return;
+
+         RegCloseKey( hKey );
+
+         if ( lstrcmpi( "WINNT", szProductType) == 0 )
+            strcat(buf, "Workstation \0" );
+         if ( lstrcmpi( "LANMANNT", szProductType) == 0 )
+            strcat(buf, "Server \0" );
+         if ( lstrcmpi( "SERVERNT", szProductType) == 0 )
+            strcat(buf, "Advanced Server \0" );
+         printf( "%d.%d ", osvi.dwMajorVersion, osvi.dwMinorVersion );
+      }
+
+      // Display service pack (if any) and build number.
+			char tbuf[4096];
+      if( osvi.dwMajorVersion == 4 && 
+          lstrcmpi( osvi.szCSDVersion, "Service Pack 6" ) == 0 )
+      { 
+         HKEY hKey;
+         LONG lRet;
+
+         // Test for SP6 versus SP6a.
+         lRet = RegOpenKeyEx( HKEY_LOCAL_MACHINE, 
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Hotfix\\Q246009",
+            0, KEY_QUERY_VALUE, &hKey );
+         if( lRet == ERROR_SUCCESS )
+								 
+            sprintf(tbuf, "Service Pack 6a (Build %d)\0", osvi.dwBuildNumber & 0xFFFF );         
+         else // Windows NT 4.0 prior to SP6a
+         {
+            sprintf(tbuf, "%s (Build %d)\0",
+               osvi.szCSDVersion,
+               osvi.dwBuildNumber & 0xFFFF);
+         }
+         RegCloseKey( hKey );
+      }
+      else // not Windows NT 4.0 
+      {
+         sprintf(tbuf, "%s (Build %d)\0", osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF);
+      }
+
+      strcat(buf, tbuf);
+      break;
+
+      // Test for the Windows Me/98/95.
+      case VER_PLATFORM_WIN32_WINDOWS:
+
+      if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 0)
+      {
+          strcat (buf, "Microsoft Windows 95 ");
+          if (osvi.szCSDVersion[1]=='C' || osvi.szCSDVersion[1]=='B')
+             strcat(buf, "OSR2 \0" );
+      } 
+
+      if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 10)
+      {
+          strcat(buf, "Microsoft Windows 98 ");
+          if ( osvi.szCSDVersion[1] == 'A' )
+             strcat(buf, "SE \0" );
+      } 
+
+      if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 90)
+      {
+          strcat(buf, "Microsoft Windows Millennium Edition\0");
+      } 
+      break;
+
+      case VER_PLATFORM_WIN32s:
+
+      strcat(buf, "Microsoft Win32s\0");
+      break;
+   }
+   return; 
+}
+

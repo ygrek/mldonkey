@@ -1198,3 +1198,11 @@ external_exit (void)
 
 	return Val_unit;
 }
+
+value
+ml_uname(void) {
+	char buf[4096];
+	buf[0] = '\0';
+	os_uname(buf);
+	return caml_copy_string(buf);
+}

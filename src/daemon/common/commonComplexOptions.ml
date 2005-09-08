@@ -1074,7 +1074,9 @@ let buildinfo () =
     "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
       ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
       ^ "\nNetworks: " ^ !networks_string
-      ^ "\nOcaml version: " ^ Autoconf.ocaml_version
+      ^ "\nOcaml version: " ^ Sys.ocaml_version
+      ^ (let uname = Unix32.uname () in
+          if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
       ^ "\nBuild on: " ^ Autoconf.build_system
           ^ (if Autoconf.glibc_version <> "" then " with glibc " ^ Autoconf.glibc_version else "")
 	  ^ (let real_glibc_version = MlUnix.glibc_version_num () in

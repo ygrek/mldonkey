@@ -111,10 +111,10 @@ let _ =
   if (String2.starts_with (Filename.basename Sys.argv.(0))  "mlnet")
     then if Sys.file_exists "mlnet.pid"
       then begin
-        lprintf_nl "\n\n\nPID file mlnet.pid exists in %s"
+        lprintf_nl "PID file %s/mlnet.pid exists."
         file_basedir;
         lprintf_nl "This means another MLDonkey process could still be working";
-        lprintf_nl "with this directory. Please shut it down before starting";
+        lprintf_nl "in this directory. Please shut it down before starting";
         lprintf_nl "a new instance here. If you are sure no other process uses";
         lprintf_nl "this directory delete mlnet.pid and restart the core.";
         exit 2

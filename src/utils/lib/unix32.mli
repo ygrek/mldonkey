@@ -21,6 +21,7 @@ type t
 
 val external_start : string -> unit
 val external_exit : unit -> unit
+val uname : unit -> string
 
 val create_dir_mask : string ref
 val close : t -> unit
