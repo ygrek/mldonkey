@@ -48,3 +48,14 @@ val log_to_file : out_channel -> unit
 val log_to_buffer : Buffer.t -> unit
 val set_logging : bool -> unit
 val close_log : unit -> unit
+
+val html_mods_commands : Buffer.t -> string -> string -> (string * string * string * string) list -> unit
+val html_mods_table_header : Buffer.t -> string -> string -> (string * string * string * string) list -> unit
+val html_mods_table_header_colspan : Buffer.t -> string -> string -> (string * string * string * string * string) list -> unit
+val html_mods_table_no_header : Buffer.t -> string -> string -> (string * string * string) list -> unit
+val html_mods_table_one_row : Buffer.t -> string -> string -> (string * string * string) list -> unit
+val html_mods_table_one_col : Buffer.t -> string -> string -> (string * string * string) list -> unit
+val html_mods_td : Buffer.t -> (string * string * string) list -> unit
+val html_mods_cntr_init : unit -> unit
+val html_mods_cntr : unit -> int
+

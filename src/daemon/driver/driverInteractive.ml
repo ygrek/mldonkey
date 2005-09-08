@@ -19,6 +19,7 @@
 
 open Md4
 
+open Printf2
 open CommonClient
 open CommonNetwork
 open CommonResult

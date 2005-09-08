@@ -10,15 +10,15 @@ ChangeLog
 
 2005/09/08: spiralvoice
 
-4402: BT: BT-user_agent option
+4403: html_mods: mem_stats in a single readable table (zet)
+4402: BT: BT-user_agent option (zet)
 
 2005/09/06: spiralvoice
 
-4268: Web/Gui: free core's buffer allocated by vd # and gui
-      (by bogeyman)
-4393: Lower ip blocking memory usage (by pango)
+4268: Web/Gui: free core's buffer allocated by vd # and gui (bogeyman)
+4393: Lower ip blocking memory usage (pango)
       new option ip_blocking_descriptions true|false
-4401: BT: Send 'stopped' event to all trackers when exiting (by zet)
+4401: BT: Send 'stopped' event to all trackers when exiting (zet)
 ---------------------------------------------------------------------
 2005/09/04: spiralvoice (version 2.6.4 = tag release-2-6-4)
 
@@ -36,9 +36,9 @@ ChangeLog
 
 2005/09/01: spiralvoice
 
-4385: EDK: Preserve untested servers (by pango)
-4351: optimize ip blocking lists (by pango)
-4376: EDK: Re-enable result_done (already downloaded) in search results (by zet)
+4385: EDK: Preserve untested servers (pango)
+4351: optimize ip blocking lists (pango)
+4376: EDK: Re-enable result_done (already downloaded) in search results (zet)
 4126: Improved log_file handling
 
 * there is now a default log_file: mlnet.log, old downloads.ini is *not* updated
@@ -49,11 +49,11 @@ ChangeLog
 * new command "open_log" to reopen log after close_log
 * removed command "log_file", same can be achieved through "set log_file <file>"
 
-4384: HTML: Add "Import Serverlist" in servers, clean third button row (by schlumpf)
-4365: Disable console "X" close button on MinGW, second version (by CML)
+4384: HTML: Add "Import Serverlist" in servers, clean third button row (schlumpf)
+4365: Disable console "X" close button on MinGW, second version (CML)
 4382: Solve libgd configure in mandrake 10.0
-4381: better differentiation of eDonkey and BT Stats Table (by schlumpf)
-4380: some info for SCM Version (CVS co Date/ SVN revision) (by schlumpf)
+4381: better differentiation of eDonkey and BT Stats Table (schlumpf)
+4380: some info for SCM Version (CVS co Date/ SVN revision) (schlumpf)
 4379: Fix compile error when libgd is not present
 4378: Longhelp: Better description for add_user
 4377: Better description for shared_directories in downloads.ini
@@ -76,12 +76,12 @@ ChangeLog
 
 2005/08/29: spiralvoice
 
-4368: Use sparse files on MinGW/NTFS (by zet)
-4370: BT/Win32: fix multifile hashing (by Amorphous)
+4368: Use sparse files on MinGW/NTFS (zet)
+4370: BT/Win32: fix multifile hashing (Amorphous)
 
 2005/08/28: spiralvoice
 
-4366: HTML: more maintainable html_mods styles (by pango)
+4366: HTML: more maintainable html_mods styles (pango)
 4367: Improve logging
 4361: New command: uptime
 
@@ -90,16 +90,16 @@ files > 2GB, threads and libgd generated statistics.
 Here you will find compilation instructions:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
-4342: Large_file support for mld_hash and MinGW MLDonkey core (by zet)
-4358: Add thread support for MinGW (by zet)
+4342: Large_file support for mld_hash and MinGW MLDonkey core (zet)
+4358: Add thread support for MinGW (zet)
 4362: configure.in support for libgd on MinGW/FreeBSD
-4349: increase filedescriptor limit for mingw (by zet)
-4365: Disable console "X" close button on MinGW (by zet)
+4349: increase filedescriptor limit for mingw (zet)
+4365: Disable console "X" close button on MinGW (zet)
 
 2005/08/26: spiralvoice
 
 4360: Configure: Test for nl_langinfo(CODESET)
-4359: Upload: Give upload slot truely randomly (by pango)
+4359: Upload: Give upload slot truely randomly (pango)
 4347: Improve exit codes, codes were inspired by sysexits.h
 4345: Code clean: Optimize redundant time_to_string functions
 4357: Rename ed2k_hash to mld_hash
@@ -110,13 +110,13 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4254: Patch reverted, did not work
       "html_mods: Table data is incorrectly centered"
 4336: Improve some log file messages
-4321: BT: fixed "make_torrent produce corrupted files on Windows" (by beedauchon)
-4335: Buildinfo: Fix bug if Bzip2 version string is empty (by beedauchon)
+4321: BT: fixed "make_torrent produce corrupted files on Windows" (beedauchon)
+4335: Buildinfo: Fix bug if Bzip2 version string is empty (beedauchon)
 4329: HTTPClient: Implement retries for failed requests
 4319: Fix compile if libbz2 is not available,
       new configure option: --disable-bzip2
-4334: BT/FileTP: Some progress on cancel bug (by kempston)
-4333: send ip blocked addr state to gui, compute_torrent from gui (by z)
+4334: BT/FileTP: Some progress on cancel bug (kempston)
+4333: send ip blocked addr state to gui, compute_torrent from gui (zet)
 4332: Let configure fail if GNU make is not installed
 
 2005/08/18: spiralvoice
@@ -133,9 +133,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4292: html_mods: Match styles default frameHeight with the common default
 4314: Allow compiling with Ocaml 3.08.4
       Compiling with 3.08.3 still works
-4312: BT: Allow seeding (by beedauchon)
-4311: BT: create_torrent: default_tracker and default_comment (by beedauchon)
-4309: GUI: send ed2k/bt network u/d totals (by z)
+4312: BT: Allow seeding (beedauchon)
+4311: BT: create_torrent: default_tracker and default_comment (beedauchon)
+4309: GUI: send ed2k/bt network u/d totals (zet)
 4308: Gnutella/G2: Fix commit if no TigerTree is available
 4305: buildinfo: Print some system internals
 4304: EDK: Fix disconnect state with verbosity = "hid"
@@ -164,12 +164,10 @@ Command save got two new parameters:
 2005/08/09: spiralvoice (version 2.6.1 = tag release-2-6-1)
 
 4291: EDK: Better logging for unknown compatibleclient values
-4290: BT: Some small fixes for messages interested and cancel
-      by beedauchon
+4290: BT: Some small fixes for messages interested and cancel (beedauchon)
 4289: LOG: Improve verbosity "hid"
-4287: Better clear Fifo buffers, by bogeyman
-4268: Web/Gui: free core's buffer allocated by vd # and gui
-      by bogeyman
+4287: Better clear Fifo buffers (bogeyman)
+4268: Web/Gui: free core's buffer allocated by vd # and gui (bogeyman)
 
 2005/08/08: spiralvoice
 
@@ -233,9 +231,9 @@ Usage instructions:
 
 2005/08/01: spiralvoice
 
-4261: HTML: Add DL button - opens dialog for entering links (by omgwtf2)
+4261: HTML: Add DL button - opens dialog for entering links (omgwtf2)
 4260: IPblock: Enable IP blocking for Overnet and HTTP server
-      (=BT Tracker) (by beedauchon)
+      (=BT Tracker) (beedauchon)
 4257: Kick uploaders which send no data for more than 1 minute
 4256: Print message if glibc version mismatch
       updates for buildinfo (version of libbz2, libz, libpng)
@@ -244,20 +242,18 @@ Usage instructions:
 
 4255: HTML: updates for cs command
 4254: html_mods: Table data is incorrectly centered
-4253: HTML: New style Construction (by omgwtf2)
-4251: few html fixes (reverted) (by beedauchon)
+4253: HTML: New style Construction (omgwtf2)
+4251: few html fixes (reverted) (beedauchon)
 
 2005/07/28: spiralvoice
 
 4250: Remove whitespaces from commonUploads.ml
-4249: HTML: Links to fake check services in search results
-      (by bogeyman)
+4249: HTML: Links to fake check services in search results (bogeyman)
 
 2005/07/27: spiralvoice
 
-4194: FileTP : Add support for "referer",
-      error messages cleanup (by beedauchon)
-4245: BT: Remove whitespace (by beedauchon)
+4194: FileTP : Add support for "referer", error messages cleanup (beedauchon)
+4245: BT: Remove whitespace (beedauchon)
 4244: Change web_infos period to hours (this is a bugfix,
       no need to change ini files)
       new option: enable_mlnet_redirector
@@ -265,7 +261,7 @@ Usage instructions:
 2005/07/26: spiralvoice
 
 4243: FileTP: Clean lots of whitespaces
-4031: HTML: relative refs in HTML output (by beedauchon)
+4031: HTML: relative refs in HTML output (beedauchon)
 4191: Access to disk data (free space, max file name length)
       This is first step implmenting this, checkout the
       disk command for debugging.
@@ -300,7 +296,7 @@ Options like "--disable-newgui" or "--enable-gtk2" were removed.
 
 4193: CommonGraphics : some whitespace cleanups
 4190: Gdstats: Fix tag.png/jpg link output
-4188: Overnet: Dont put our own ID in the buckets (by Bogeyman)
+4188: Overnet: Dont put our own ID in the buckets (bogeyman)
 ---------------------------------------------------------------------
 2005/07/19: spiralvoice (version 2.6.0 = tag release-2-6-0)
 
@@ -311,7 +307,7 @@ Options like "--disable-newgui" or "--enable-gtk2" were removed.
 
 2005/07/18: spiralvoice
 
-4183: HTML: Overnet/Kademlia stats improvements (by beedauchon)
+4183: HTML: Overnet/Kademlia stats improvements (beedauchon)
 4118: Solve memory leak in Overnet/Kademlia
 4182: Get CVS date in configure for OpenBSD
 4175: HTML: Add Multiline File Information in download table
@@ -332,29 +328,28 @@ Options like "--disable-newgui" or "--enable-gtk2" were removed.
 2005/07/14: spiralvoice
 
 4173: Clear whitespace from code
-4168: HTML: Graphical chunk display in vd <num> (by beedauchon)
-4167: Gdstats: Fix corrupted pics output/improved output (by beedauchon)
+4168: HTML: Graphical chunk display in vd <num> (beedauchon)
+4167: Gdstats: Fix corrupted pics output/improved output (beedauchon)
 
 2005/07/13: spiralvoice
 
 Remove obsolete ./src/gtk/gui2 directory
 4165: Clean log file
 4164: Gnutella/G2: Update Webcache URLs
-4160: resize properly the names in the gtk2 gui (by su_blanc)
-4158: EDK: Parse and display version numbers, also in GTK2 GUI (by su_blanc)
-4114: EDK: new command "reset_stats" (by Knocker)
+4160: resize properly the names in the gtk2 gui (su_blanc)
+4158: EDK: Parse and display version numbers, also in GTK2 GUI (su_blanc)
+4114: EDK: new command "reset_stats" (Knocker)
 
 2005/07/10: spiralvoice
 
-4159: Removed whitespaces (by beedauchon)
-4156: tray icon in x11 for GTK2 GUI (by su_blanc)
+4159: Removed whitespaces (beedauchon)
+4156: tray icon in x11 for GTK2 GUI (su_blanc)
 4157: fix mlnet.pid checking at start up for GUI
 
 2005/07/07: spiralvoice
 
 4153: More infos for mem_stats
-4146: Use lprintf_nl instead of "lprint_newline ()" or "\n"
-      (by beedauchon)
+4146: Use lprintf_nl instead of "lprint_newline ()" or "\n" (beedauchon)
 
 2005/07/06: spiralvoice
 
@@ -393,17 +388,16 @@ patch posted in bug 13619:
 
 2005/06/23: spiralvoice
 
-4122: EDK: "server <met>" command now responds with a clearer answer
-      (by Knocker)
+4122: EDK: "server <met>" command now responds with a clearer answer (Knocker)
 4121: EDK: Dont remove prefered server if server_users < min_users_on_server
-      (by Knocker)
-4120: EDK: send emule_version to servers (by Knocker)
+      (Knocker)
+4120: EDK: send emule_version to servers (Knocker)
 4083: new build target: release.mlnet.distri
       it contains both the dynamic and the static linked core
 
 2005/06/22: spiralvoice
 
-4115: sort output of "links" in alphabetically order (by Knocker)
+4115: sort output of "links" in alphabetically order (Knocker)
 
 2005/06/20: spiralvoice
 
@@ -428,7 +422,7 @@ patch posted in bug 13619:
 
 4067: BT: Fix multifile commit
       (updated to create dirs with rights 777)
-4063: HTML: Some improvements (all by beedauchon)
+4063: HTML: Some improvements (beedauchon)
 
 2005/05/30: spiralvoice
 

@@ -120,7 +120,7 @@ tr.dl-2, td.dl-2 { background: @color_dl2_back@; }
 .mOvr3, tr.mOvr3 {background: @color_mOver3_back@; cursor: pointer; }
 table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
 table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
-table.shares, table.vc, table.results, table.networkInfo {
+table.shares, table.vc, table.results, table.networkInfo, table.memstats {
  margin-right: auto;
  margin-left: auto;
  border: 1;
@@ -130,7 +130,7 @@ table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left
 table.sources {border: 1; border: @color_general_border@ solid 1px; border-collapse: collapse; }
 table.main { margin-right: auto; margin-left: auto; }
 div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,
-div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { text-align: center; }
+div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results, div.memstats { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: @color_general_border@ solid 1px; border-bottom: @color_general_border@ solid 1px;
 border-left: @color_general_border@ solid 1px; border-top: @color_general_border@ solid 0px; padding-left: 3px; padding-right: 3px; }
 td.act { font-size: 10px; font-weight: 700; }

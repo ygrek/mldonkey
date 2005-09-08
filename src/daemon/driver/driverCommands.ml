@@ -2969,8 +2969,7 @@ let _ =
 
     "mem_stats", Arg_one (fun level o ->
         let buf = o.conn_buf in
-        Heap.print_memstats (int_of_string level) buf
-          (if o.conn_output = HTML then true else false);
+        Heap.print_memstats (int_of_string level) buf (use_html_mods o);
         ""
     ), ":\t\t\t\tprint memory stats";
 
