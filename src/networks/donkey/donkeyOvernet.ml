@@ -753,6 +753,8 @@ restart. *)
         end
         else if !n_used_buckets < 128 && bucket <> 128 then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
+            incr pre_connected_peers;
+            Hashtbl.add known_peers key p;
 
             while !n_used_buckets < 128 &&
               Fifo.length prebuckets.(!n_used_buckets)
