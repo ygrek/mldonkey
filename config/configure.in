@@ -27,7 +27,7 @@ case $host in
   *cygwin*)
     OS_FILES2=cygwin
     ;;
-  *freebsd*)
+  *freebsd*|*openbsd*)
     CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
     LDFLAGS="${LDFLAGS} -L/usr/local/lib"
     ;;

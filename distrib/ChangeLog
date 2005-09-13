@@ -8,6 +8,10 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/09/13: spiralvoice
+
+4408: OpenBSD: configure.in fix to find libbz2 and others in /usr/local
+
 2005/09/08: spiralvoice
 
 4397: Buildinfo: Run-time check for Windows OS version / Unix uname (zet)
