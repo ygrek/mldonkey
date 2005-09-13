@@ -1598,7 +1598,7 @@ let filesystem dir =
     | 0x9fa2L -> "USBDEVICE_SUPER_MAGIC"
     | 0xa501FCF5L -> "VXFS_SUPER_MAGIC"
     | 0x012FF7B4L -> "XENIX_SUPER_MAGIC"
-    | 0x58465342L -> "XFS_SUPER_MAGIC"
+    | 0x58465342L -> "xfs" (* XFS_SUPER_MAGIC *)
     | 0x012FD16DL -> "_XIAFS_SUPER_MAGIC"
     | 5L -> "iso9660" (* Cygwin *)
     | 6L -> "fat" (* Cygwin *)
