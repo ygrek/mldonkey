@@ -18,3 +18,5 @@
 *)
 
 let bz2_extract filename = failwith "bz2 not supported"
+
+let bzlib_version_num () = ""

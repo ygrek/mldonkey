@@ -101,8 +101,6 @@ val flush: out_channel -> unit
            channel.  This can be useful if e.g. the underlying file channel
            is a network socket on which more data is to be sent. *)
 
-val bzlib_version_num : unit -> string
-
 (*** Error reporting *)
 
 exception Error of string

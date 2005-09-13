@@ -1099,7 +1099,7 @@ let buildinfo () =
 	           (* catch the exception in the case Bzip2.bzlib_version_num returns an empty string *)
 	           try
 	             List.hd(String2.split_simplify
-		   (Bzip2.bzlib_version_num ()) ',') 
+		   (Misc2.bzlib_version_num ()) ',') 
 		   with e -> ""
 		 in
 	         Printf.sprintf " bzip2%s" (if s <> "" then "-" ^ s else "")

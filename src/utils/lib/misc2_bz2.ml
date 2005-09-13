@@ -43,3 +43,10 @@ let bz2_extract filename =
 	    file_out
     with e -> (try Sys.remove !file with _ -> ()); raise e
   end
+
+let bzlib_version_num () =
+  begin
+    try
+      let s = Printf.sprintf "%s" (Bzlib.bzlib_version ()) in s
+    with e -> ""
+  end
