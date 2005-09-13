@@ -1148,15 +1148,28 @@ let udp_client_handler t p =
   
   | OvernetPeerNotFound peer ->
       begin
-        if !verbose_overnet && debug_client other_ip then
+        if !verbose_overnet || debug_client other_ip then
           lprintf_nl () "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
             (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip)
         peer.peer_port peer.peer_kind;
         let key = (peer.peer_ip, peer.peer_port) in
         if Hashtbl.mem known_peers key
         then begin
-            Hashtbl.remove known_peers key;
-          end
+(* remove it from the prebuckets and known_peers only *)
+          try
+            for i = 0 to !n_used_buckets do
+              let b = prebuckets.(i) in
+              for j = 1 to Fifo.length b do
+                let p = Fifo.take b in
+                if p.peer_ip = peer.peer_ip && 
+                    p.peer_port = peer.peer_port then begin
+                  decr pre_connected_peers;
+                  Hashtbl.remove known_peers key;
+                end else Fifo.put b p
+              done;
+            done;
+          with Exit -> ();
+        end;
       end
 
    | OvernetUnknown21 peer ->
