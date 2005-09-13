@@ -10,6 +10,7 @@ ChangeLog
 
 2005/09/13: spiralvoice
 
+4406: Improved Unicode filename support (CML)
 4412: OV: Handle OvernetPeerNotFound correctly (bogeyman)
 4411: OV/KAD: Some peers are not added to known_peers (bogeyman)
 4410: Shorter filesystem name for XFS

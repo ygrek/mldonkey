@@ -1877,7 +1877,7 @@ let _ =
                    var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
-                   parent.fstatus.location.href='submit?q=share+' + outstr;
+                   parent.fstatus.location.href='submit?q=share+' + encodeURI(outstr);
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add Share\\</a\\>
 \\</td\\>
@@ -1921,7 +1921,7 @@ let _ =
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
 		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
-		dir
+		(Url.encode dir)
 		shared_dir.shdir_priority
 		dir
 		shared_dir.shdir_strategy
@@ -2100,7 +2100,7 @@ let _ =
                 incr counter;
 
                 let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/"
-                    (Filename.basename impl.impl_shared_codedname)
+                    (Url.encode (Filename.basename impl.impl_shared_codedname))
                   (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
 
@@ -2157,7 +2157,7 @@ let _ =
         List.iter (fun impl ->
           if (impl.impl_shared_id <> Md4.null) then
            Printf.bprintf buf "ed2k://|file|%s|%s|%s|/\n"
-              (Filename.basename impl.impl_shared_codedname)
+              (Url.encode (Filename.basename impl.impl_shared_codedname))
               (Int64.to_string impl.impl_shared_size)
               (Md4.to_string impl.impl_shared_id);
         ) list;

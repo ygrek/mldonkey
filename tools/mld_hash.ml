@@ -183,7 +183,7 @@ let ed2k_hash_filename filename partial =
   let file_size = Unix32.getsize64 fd false in
   let md4 = ed2k_hash_file fd file_size partial in
   lprintf "ed2k://|file|%s|%Ld|%s|/\n" 
-    (Filename.basename filename)
+    (Url.encode (Filename.basename filename))
     file_size
     (Md4.to_string md4)
 
@@ -317,7 +317,7 @@ let check_external_functions size =
         lprintf "Computing ed2k hash\n";
         let md4 = ed2k_hash_file file file_size partial in
         lprintf "ed2k://|file|%s|%Ld|%s|\n" 
-          filename
+          (Url.encode filename)
           file_size
           (Md4.to_string md4);
         

@@ -607,7 +607,7 @@ let copy_ed2k_links sel () =
               Ed2k md4 ->
                 begin
                   let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
-                             (Filename.basename s.shared_filename)
+                             (Url.encode (Filename.basename s.shared_filename))
                              s.shared_size
                              (Md4.to_string md4)
                   in

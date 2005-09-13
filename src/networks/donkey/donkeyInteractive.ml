@@ -511,7 +511,7 @@ let recover_md4s md4 =
 
 
 let parse_donkey_url url =
-  match String2.split (String.escaped url) '|' with
+  match String2.split ((*String.escaped*) url) '|' with
 (* TODO RESULT *)
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
@@ -1211,7 +1211,7 @@ let _ =
       html_mods_td buf [
         ("ed2k link", "sr br", "ed2k link");
         ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>"
-            (file_best_name file)
+            (Url.encode (file_best_name file))
           (Int64.to_string (file_size file))
           (Md4.to_string file.file_md4)
           (file_best_name file)
@@ -1399,7 +1399,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
   );
   file_ops.op_file_comment <- (fun file ->
       Printf.sprintf "ed2k://|file|%s|%Ld|%s|"
-        (file_best_name file)
+        (Url.encode (file_best_name file))
       (file_size file)
       (Md4.to_string file.file_md4)
   );

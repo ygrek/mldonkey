@@ -921,7 +921,7 @@ value ml_has_pthread(value unit)
 #if defined(__MINGW32__)
 /* taken from www.greatchief.plus.com/gpc/os-hacks.h */
 #define _fullpath(res,path,size) \
-  (GetFullPathName ((path), (size), (res), NULL) ? (res) : NULL)
+  (GetFullPathNameW ((path), (size), (res), NULL) ? (res) : NULL)
 
 #define realpath(path,resolved_path) _fullpath(resolved_path, path, MAX_PATH)
 
@@ -944,13 +944,15 @@ struct statfs {
    long    f_spare[6]; /* spare for later */
 };
 
-static int statfs (const char *path, struct statfs *buf)
+static int statfs (const unsigned char *path, struct statfs *buf)
   {
     HINSTANCE h;
     FARPROC f;
     int retval = 0;
-    char tmp [MAX_PATH], resolved_path [MAX_PATH];
-    realpath(path, resolved_path);
+    WCHAR tmp [MAX_PATH], resolved_path [MAX_PATH];
+    WCHAR * wpath=utf8_to_utf16(path);
+    realpath(wpath, resolved_path);
+    free(wpath);
     if (!resolved_path)
       retval = - 1;
     else
@@ -958,7 +960,7 @@ static int statfs (const char *path, struct statfs *buf)
         /* check whether GetDiskFreeSpaceExA is supported */
         h = LoadLibraryA ("kernel32.dll");
         if (h)
-          f = GetProcAddress (h, "GetDiskFreeSpaceExA");
+          f = GetProcAddress (h, "GetDiskFreeSpaceExW");
         else
           f = NULL;
         if (f)
@@ -981,7 +983,7 @@ static int statfs (const char *path, struct statfs *buf)
           {
             DWORD sectors_per_cluster, bytes_per_sector;
             if (h) FreeLibrary (h);
-            if (!GetDiskFreeSpaceA (resolved_path, &sectors_per_cluster,
+            if (!GetDiskFreeSpaceW (resolved_path, &sectors_per_cluster,
                    &bytes_per_sector, &buf -> f_bavail, &buf -> f_blocks))
               {
                 errno = ENOENT;
@@ -999,11 +1001,11 @@ static int statfs (const char *path, struct statfs *buf)
       }
 
     /* get the FS volume information */
-    if (strspn (":", resolved_path) > 0) resolved_path [3] = '\0'; /* we want only the root */    
-    if (GetVolumeInformation (resolved_path, NULL, 0, &buf -> f_fsid, &buf -> f_namelen, NULL, tmp, MAX_PATH))
+    if (wcsspn (L":", resolved_path) > 0) resolved_path [3] = '\0'; /* we want only the root */    
+    if (GetVolumeInformationW (resolved_path, NULL, 0, &buf -> f_fsid, &buf -> f_namelen, NULL, tmp, MAX_PATH))
     /* http://msdn.microsoft.com/library/default.asp?url=/library/en-us/fileio/fs/getvolumeinformation.asp */
      {
-     	if (strcasecmp ("NTFS", tmp) == 0)
+     	if (_wcsicmp (L"NTFS", tmp) == 0)
      	 {
      	   buf -> f_type = NTFS_SUPER_MAGIC;
      	 }
@@ -1044,7 +1046,7 @@ statfs_statfs (value pathv)
 {
   CAMLparam1 (pathv);
   CAMLlocal1 (bufv);
-  const char *path = String_val (pathv);
+  const unsigned char *path = String_val (pathv);
   struct statfs buf;
   if (statfs (path, &buf) == -1)
     raise_constant(*(value *)caml_named_value("error"));
