@@ -289,7 +289,6 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonChunks.ml \
   $(COMMON)/commonSwarming.ml \
-  $(COMMON)/commonSwarming1.ml \
   $(COMMON)/commonSwarming2.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
@@ -1690,7 +1689,6 @@ releaseclean: clean moreclean
 	rm -rf config/autom4te.cache/
 	rm -f packages/rpm/*.spec
 	rm -f packages/windows/mlnet.nsi
-	rm -f src/daemon/common/commonDownloads.ml
 	rm -f src/daemon/common/commonGraphics.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new

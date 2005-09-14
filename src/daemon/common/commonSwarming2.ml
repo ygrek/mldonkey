@@ -3144,7 +3144,7 @@ let _ =
 
 let _ =
   BasicSocket.add_infinite_timer 300. duplicate_chunks;
-  Heap.add_memstat "CommonSwarming2" (fun level buf ->
+  Heap.add_memstat "CommonSwarming" (fun level buf ->
       let counter = ref 0 in
       let nchunks = ref 0 in
       let nblocks = ref 0 in

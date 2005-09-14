@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/14: spiralvoice
 
+4420: Remove obsoleted commonSwarming1 code
 4418: Re-activate sources_per_chunk option (pango)
 4417: BT: Improve BT upload speed (pango)
 4374: fix "max_hard_download_rate has to be doubled" (pango)

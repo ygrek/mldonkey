@@ -222,11 +222,6 @@ ifelse(AC_ACVERSION, [2.13], [],
 
 IM=yes
 
-SWARMING1=no
-AC_ARG_ENABLE(swarming1, [  --enable-swarming1      depricated (don't use it)], [SWARMING1="$enableval"])
-
-
-
 AC_CHECK_PROG(CC,gcc3,"gcc3",cc)
 AC_PROG_CC
 AC_EXEEXT
@@ -1251,15 +1246,6 @@ AC_CHECK_FILE(../src/cluster/clusterMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/cluster"
 
 AC_CHECK_FILE(../src/networks/fasttrack/fasttrackSupernode.ml,SUPERNODES="yes", )
 
-
-
-if test "$SWARMING1" = "yes"; then
-    COMMONSWARMING=CommonSwarming1
-else
-    COMMONSWARMING=CommonSwarming2
-fi
-
-
 AC_SUBST(LIBS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
@@ -1346,8 +1332,6 @@ AC_SUBST(ZLIB__COMPRESS_STRING)
 AC_SUBST(ZLIB__GZIP_STRING)
 AC_SUBST(HAS_BZIP2)
 
-AC_SUBST(COMMONSWARMING)
-
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
@@ -1356,11 +1340,10 @@ AC_SUBST(CONFIGURE_RUN)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
-SWARMING=../src/daemon/common/commonDownloads.ml
 AC_OUTPUT(\
   Makefile.config \
   mldonkey.rc \
-  $AUTOCONF.new $GTK_AUTOCONF.new $SWARMING \
+  $AUTOCONF.new $GTK_AUTOCONF.new \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
    ../packages/windows/mlnet.nsi)
