@@ -8,6 +8,11 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
+2005/09/14: spiralvoice
+
+4374: fix "max_hard_download_rate has to be doubled"
+      This patch changes internal code, no option has to be changed
+
 2005/09/13: spiralvoice
 
 4406: Improved Unicode filename support (CML)

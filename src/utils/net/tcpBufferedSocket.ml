@@ -1689,7 +1689,6 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                     let nconnections = maxi bc.nconnections 1 in
                     let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
                     let can_read = maxi !ip_packet_size (can_read * t.read_power) in
-                    let old_nread = t.nread in
                     (try
 (*                    lprintf "allow to read %d\n" can_read; *)
                         can_read_handler t t.sock_in can_read
@@ -1698,8 +1697,6 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                             (Printexc2.to_string e)
                           t.name (sock_num t.sock_in) *) ()
                     );
-                    bc.remaining_bytes <- bc.remaining_bytes -
-                    t.nread + old_nread;
                     bc.nconnections <- bc.nconnections - t.read_power
                   else
                   if !verbose_bandwidth > 2 then begin
