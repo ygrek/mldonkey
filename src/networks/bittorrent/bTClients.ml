@@ -1452,7 +1452,6 @@ let rec iter_upload sock c =
           c.client_allowed_to_write <- c.client_allowed_to_write -- len;
           count_upload c file len;
           let len = Int64.to_int len in
-          CommonUploads.consume_bandwidth len;
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
           (* update upload rate from len bytes *)
@@ -1493,9 +1492,14 @@ let client_can_upload c allowed =
       match c.client_upload_requests with
         [] -> ()
       | _ :: tail ->
-          CommonUploads.consume_bandwidth allowed;
-          c.client_allowed_to_write <-
-            c.client_allowed_to_write ++ (Int64.of_int allowed);
+	  let new_allowed_to_write =
+	    c.client_allowed_to_write ++ (Int64.of_int allowed) in
+	    if allowed > 0 && CommonUploads.can_write_len sock
+			      (Int64.to_int new_allowed_to_write)
+	    then begin
+	      CommonUploads.consume_bandwidth allowed;
+	      c.client_allowed_to_write <- new_allowed_to_write;
+	    end;
           iter_upload sock c
   )
 
