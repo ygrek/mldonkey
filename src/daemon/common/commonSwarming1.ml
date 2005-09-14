@@ -1138,8 +1138,6 @@ let print_uploaders t =
 (*                                                                       *)
 (*************************************************************************)
 
-let max_clients_per_block = 3
-
 let permute_and_return up n =
   let b = up.up_complete_blocks.(n) in
   if debug_all then lprintf "permute_and_return %d <> %d" n b;
@@ -1370,8 +1368,7 @@ better work at the beginning if the first incomplete blocks are offered
 (************* Fall back on linear download if nothing worked *)
             
             in
-            iter_max_uploaders 1;
-            iter_max_uploaders max_clients_per_block;
+            iter_max_uploaders !!sources_per_chunk;
             iter_max_uploaders max_int;
             raise Not_found
           with 
@@ -1523,15 +1520,11 @@ we thus might put a lot of clients on the same range !
         | Some rr -> iter limit rr          
       in
       try
-(* first try to find ranges with 0 uploaders *)
-        iter 1 r
-      with Not_found ->
-          try
 (* try normal ranges *)
-            iter max_clients_per_block r
-          with Not_found ->
+        iter !!sources_per_chunk r
+      with Not_found ->
 (* force maximal uploading otherwise to finish it *)
-              iter max_int r 
+          iter max_int r 
 
 (*************************************************************************)
 (*                                                                       *)

@@ -857,6 +857,11 @@ let max_concurrent_downloads = define_option current_section
   "The maximal number of files in Downloading state (other ones are Queued)"
     int_option 60
 
+let sources_per_chunk =
+  define_expert_option current_section ["sources_per_chunk"]
+    "How many sources to use to download each chunk"
+    int_option 3
+
   (*
 let delete_original = define_option current_section ["delete_original"]
   "Should MLdonkey delete the file downloaded when splitting has been succesful"

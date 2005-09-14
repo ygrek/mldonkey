@@ -295,11 +295,6 @@ let overnet_port =
     3: based on separate file queues (2.02-10)
     " int_option 3 *)
 
-let sources_per_chunk =
-  define_expert_option donkey_section ["sources_per_chunk"]
-    "How many sources to use to download each chunk"
-    int_option 3
-
 (* This option is used to avoid the delay when connecting to a server before
 sending the list of shared files, which is only sent to master servers. *)
 let immediate_master =
