@@ -598,7 +598,7 @@ let clean_tracker_timer () =
           if peer.peer_active < time_threshold then
             old_peers := peer :: !old_peers
           else
-          if Ip.valid peer.peer_ip && ip_reachable peer.peer_ip then
+          if Ip.usable peer.peer_ip then
             list := peer :: !list)
       tracker.tracker_table;
       List.iter (fun p ->

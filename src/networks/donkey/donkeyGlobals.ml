@@ -442,7 +442,7 @@ let low_id ip =
 let is_black_address ip port =
   !!black_list && not (low_id ip) && (
 (* lprintf "is black ="; *)
-    not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
+    not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) ||
     (match Ip_set.match_ip !Ip_set.bl ip with
         None -> false

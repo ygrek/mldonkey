@@ -96,6 +96,9 @@ let local_ip ip =
 let reachable ip =
   !allow_local_network || not (local_ip ip)
 
+let usable ip =
+  reachable ip && valid ip
+
 let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with
     [] -> false

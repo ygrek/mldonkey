@@ -94,7 +94,7 @@ let add_source file ip port serverIP serverPort =
                   end
                 else
                   (* direct adsdess *)
-                  if Ip.valid ip && ip_reachable ip then
+                  if Ip.usable ip then
                     if not ( is_black_address ip port ) then
                         if not ( Hashtbl.mem banned_ips ip) then
                             Direct_address ( ip, port )
@@ -764,7 +764,7 @@ let rec query_id ip port id =
 
 (* TODO: check if we are connected to this server. If yes, issue a 
   query_id instead of a UDP packet *)
-  if ip_reachable client_ip then
+  if Ip.reachable client_ip then
     let module Q = DonkeyProtoUdp.QueryCallUdp in
 (*    lprintf "Ask connection from indirect client\n"; *)
 
@@ -1932,12 +1932,12 @@ let read_first_message overnet m sock =
             | None ->
                 Invalid_address (!name, Md4.to_string t.CR.md4)
             | Some (ip,port) ->
-                if Ip.valid ip && Ip.reachable ip then
+                if Ip.usable ip then
                     Indirect_address (ip, port, id_of_ip t.CR.ip)
                 else
                     Invalid_address (!name, Md4.to_string t.CR.md4)
         else
-        if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
+        if Ip.usable t.CR.ip then
             Direct_address (t.CR.ip, t.CR.port)
         else
             Invalid_address  (!name, Md4.to_string t.CR.md4)
@@ -2334,7 +2334,7 @@ let _ =
         | Invalid_address _ -> ()
         | Indirect_address (ip, port, id) ->
 
-       if low_id ip && ip_reachable ip then
+       if low_id ip && Ip.reachable ip then
               query_id ip port id; 
 
                   

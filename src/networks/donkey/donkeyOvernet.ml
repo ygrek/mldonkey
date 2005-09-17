@@ -423,6 +423,9 @@ let overnet_options_version =
 let connected_peers = ref 0
 let pre_connected_peers = ref 0
 
+let is_overnet_ip ip =
+  Ip.usable ip && Ip.of_string "1.0.0.0" <> ip
+
 module LimitedList = struct
 
     type key = Ip.t * int
@@ -443,7 +446,7 @@ module LimitedList = struct
 
     let add t key =
       let (ip, port) = key in
-      if Ip.valid ip && ip <> Ip.localhost && Ip.reachable ip &&
+      if ip <> Ip.localhost && is_overnet_ip ip &&
         not (Hashtbl.mem t.objects_table key) then
         begin
           Hashtbl.add t.objects_table key key;
@@ -707,13 +710,13 @@ let udp_send p msg =
   udp_send_direct p.peer_ip p.peer_port msg
 
 let bootstrap ip port =
-  if !!overnet_update_nodes && Ip.valid ip && Ip.reachable ip &&
+  if !!overnet_update_nodes && is_overnet_ip ip &&
      port <> 0 && not (Hashtbl.mem known_peers (ip,port)) then
        LimitedList.add unknown_peers (ip,port)
 
 let new_peer p =
   let ip = p.peer_ip in
-  if Ip.valid ip && ip <> Ip.localhost && Ip.reachable ip &&
+  if ip <> Ip.localhost && is_overnet_ip ip &&
     p.peer_port <> 0 then
     let key = (p.peer_ip, p.peer_port) in
     try
@@ -926,10 +929,10 @@ let udp_client_handler t p =
         let p = new_peer p in
           udp_send p (OvernetConnectReply (get_any_peers 20))
       in
-	if Ip.valid p.peer_ip && ip_reachable p.peer_ip && p.peer_port <> 0 then
+	if is_overnet_ip p.peer_ip && p.peer_port <> 0 then
 	  send p
 	else
-	  if Ip.valid other_ip && ip_reachable other_ip && other_port <> 0 then
+	  if is_overnet_ip other_ip && other_port <> 0 then
 	    begin
 	      if !verbose_overnet then
 	        lprintf_nl () "Connect: convert address %s:%d to %s:%d"
@@ -970,10 +973,10 @@ let udp_client_handler t p =
         let p = new_peer p in
 	  udp_send p (OvernetPublicized (Some (my_peer ())))
       in
-	if Ip.valid p.peer_ip && ip_reachable p.peer_ip && p.peer_port <> 0 then
+	if is_overnet_ip p.peer_ip && p.peer_port <> 0 then
 	  send p
 	else
-	  if Ip.valid other_ip && ip_reachable other_ip && other_port <> 0 then
+	  if is_overnet_ip other_ip && other_port <> 0 then
 	    begin
 	      if !verbose_overnet then
 	        lprintf_nl () "Publicize: convert address %s:%d to %s:%d"
@@ -1081,7 +1084,7 @@ let udp_client_handler t p =
                   List.iter (fun p ->
                       let ip = p.peer_ip in
                       let port = p.peer_tcpport in
-                      if Ip.valid ip && ip_reachable ip && port <> 0 then
+                      if is_overnet_ip ip && port <> 0 then
                         let s = DonkeySources.find_source_by_uid
                             (Direct_address (ip, port))  in
                         incr source_hits;

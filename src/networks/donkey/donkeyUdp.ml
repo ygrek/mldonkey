@@ -204,7 +204,7 @@ end removed by savannah patch #3616
 
 let add_user_friend s u =
   let kind  =
-    if Ip.valid u.user_ip && ip_reachable u.user_ip then
+    if Ip.usable u.user_ip then
       Direct_address (u.user_ip, u.user_port)
     else
         begin

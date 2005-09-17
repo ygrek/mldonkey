@@ -353,7 +353,7 @@ let client_to_server s t sock =
          connect. *)
       if !verbose then lprintf_nl () "QueryIDReplyReq: received";
       let module Q = M.QueryIDReply in
-      if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
+      if Ip.usable t.Q.ip then begin
         try
           match Fifo.take s.server_id_requests with
               None -> raise Not_found

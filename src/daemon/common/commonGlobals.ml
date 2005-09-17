@@ -844,9 +844,6 @@ module CanBeCompressed = struct
   end
     *)
 
-let ip_reachable ip =
-  !!allow_local_network || Ip.reachable ip
-
 let do_if_connected tcp_connection f =
   match tcp_connection with
     Connection sock -> f sock
