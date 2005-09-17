@@ -132,6 +132,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
 
     let multiple_getsources = 1
     let multiple_replies = 2
+    let getsources2 = 32
 
     type t = {
         challenge  : int64;
@@ -265,8 +266,7 @@ module QueryServersReplyUdp = DonkeyProtoServer.QueryServersReply
 module QueryLocationUdp = struct
   open DonkeyProtoServer.QueryLocation
 
-    type file = DonkeyProtoServer.QueryLocation.t
-    type t = file list
+    type t = Md4.t list
 
   let parse len s =
     let rec iter pos list =
@@ -283,6 +283,30 @@ module QueryLocationUdp = struct
 
   let write buf t =
     List.iter (fun md4 -> buf_md4 buf md4) t
+end
+
+module QueryLocationUdpReq2 = struct
+
+  type t = (Md4.t * Int64.t) list
+
+  (* We never parse this anyway, it is outgoing only *)
+  let parse len s =
+    let rec iter pos list =
+      if pos < len then
+  iter (pos+20) ( (get_md4 s pos, get_uint64_32 s (pos+16)) :: list)
+      else
+  List.rev list
+    in
+    iter 1 []
+
+  let bprint b t =
+    Printf.bprintf b "UDP QUERY LOCATIONS2: ";
+    List.iter (fun (md4,size) -> Printf.bprintf b "%s|%Ld " (Md4.to_string md4) size) t;
+    Printf.bprintf b "\n"
+
+  let write buf t =
+    List.iter (fun (md4,size) -> buf_md4 buf md4; buf_int64_32 buf size) t
+
 end
 
 module QueryLocationReplyUdp = struct
@@ -362,6 +386,7 @@ type t =
 | PingServerUdpReq of PingServerUdp.t
 | PingServerReplyUdpReq of PingServerReplyUdp.t
 
+| QueryLocationUdpReq2 of QueryLocationUdpReq2.t
 | QueryLocationUdpReq of QueryLocationUdp.t
 | QueryLocationReplyUdpReq of QueryLocationReplyUdp.t
 
@@ -424,6 +449,7 @@ let print t =
     | QueryUdpReq t -> QueryUdp.bprint b t
     | QueryMultipleUdpReq t -> QueryUdp.bprint b t
     | QueryReplyUdpReq t -> QueryReplyUdp.bprint b t
+    | QueryLocationUdpReq2 t -> QueryLocationUdpReq2.bprint b t
     | QueryLocationUdpReq t -> QueryLocationUdp.bprint b t
     | QueryLocationReplyUdpReq t
     | FileGroupInfoUdpReq t -> QueryLocationReplyUdp.bprint b t
@@ -510,6 +536,9 @@ let write buf t =
       | QueryLocationUdpReq t ->
           buf_int8 buf 154;
           QueryLocationUdp.write buf t
+      | QueryLocationUdpReq2 t ->
+          buf_int8 buf 148;
+          QueryLocationUdpReq2.write buf t
       | QueryLocationReplyUdpReq t ->
           buf_int8 buf 155;
           QueryLocationReplyUdp.write buf t

@@ -1034,3 +1034,6 @@ let server_accept_multiple_getsources s =
 let server_send_multiple_replies s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
 
+let server_send_getsources2 s =
+  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.getsources2) <> 0
+

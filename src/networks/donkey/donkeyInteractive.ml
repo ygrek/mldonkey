@@ -53,6 +53,7 @@ open DonkeyClient
 open CommonGlobals
 open CommonOptions
 open DonkeyStats
+open DonkeyUdp
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
@@ -266,7 +267,7 @@ let really_query_download filenames size md4 location old_file absents =
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq [file.file_md4])
+          udp_server_send_query_location s [(file.file_md4,(file_size file))]
       ) servers
     with _ -> ());
 

@@ -42,6 +42,7 @@ open DonkeyTypes
 open DonkeyOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
+open DonkeyUdp
 
 
 module Udp = DonkeyProtoUdp
@@ -126,10 +127,14 @@ let query_locations_timer () =
               List.iter (
                 fun file ->
                   if !verbose_location then
-                    lprintf_nl () "TCP: Query Location of %s"
-                      (file_best_name file);
+                    lprintf_nl () "TCP: Query Location of %s [%s] [%Ld]"
+                      (file_best_name file) (Md4.to_string file.file_md4) (file_size file);
                   let module M = DonkeyProtoServer in
-                  server_send sock ( M.QueryLocationReq file.file_md4  )
+                  let module E = M.QueryLocation in
+                  server_send sock ( M.QueryLocationReq {
+                     E.md4 = file.file_md4;
+                    E.size = file_size file;
+                  });
               ) (get_query_files server files_queries_per_minute);
           )
         end
@@ -184,12 +189,12 @@ let udp_query_sources () =
     (* query "new servers" ie servers which understand multiple filerequests *)
     List.iter (
       fun s ->
-        let md4s = List.map (
+        let l = List.map (
           fun file ->
-            file.file_md4;
+            (file.file_md4,(file_size file));
         ) (get_query_files s udp_requests_new)
         in
-        udp_server_send s (Udp.QueryLocationUdpReq md4s);
+        udp_server_send_query_location s l;
         s.server_next_udp <- last_time () + udp_requests_wait;
     ) !new_servers;
 

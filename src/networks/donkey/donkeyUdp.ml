@@ -46,6 +46,12 @@ open DonkeyStats
 
 module Udp = DonkeyProtoUdp
 
+let udp_server_send_query_location s l =
+  if server_send_getsources2 s then
+    udp_server_send s (Udp.QueryLocationUdpReq2 l)
+  else
+    udp_server_send s (Udp.QueryLocationUdpReq (List.map (fun (md4,_) -> md4) l))
+
 let search_handler s t =
   let waiting = s.search_waiting - 1 in
   s.search_waiting <- waiting;
@@ -263,7 +269,8 @@ let udp_client_handler t p =
          | None -> ());
       (match t.M.flags with
            Some x -> s.server_flags <- x
-         | None -> ())
+         | None -> ());
+      server_must_update s
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()
 

@@ -803,19 +803,26 @@ module QueryUsersReply = struct (* request 67 *)
   end
 
 module QueryLocation  = struct
-    type t = Md4.t
+    type t = {
+        md4: Md4.t;
+        size: Int64.t;
+    }
 
     let parse len s =
-      get_md4 s 1
+      let m = get_md4 s 1 in
+      { 
+        md4 = m;
+        size = Int64.zero;
+      }
 
     let print t =
-      lprintf_nl "QUERY LOCATION OF %s" (Md4.to_string t)
+      lprintf_nl "QUERY LOCATION OF %s [%Ld]" (Md4.to_string t.md4) t.size
 
     let bprint oc t =
-      Printf.bprintf oc "QUERY LOCATION OF %s\n" (Md4.to_string t)
+      Printf.bprintf oc "QUERY LOCATION OF %s [%Ld]\n" (Md4.to_string t.md4) t.size
 
     let write buf t =
-      buf_md4 buf t
+      buf_md4 buf t.md4; buf_int64_32 buf t.size 
   end
 
 module QueryLocationReply  = struct

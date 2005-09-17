@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/17: spiralvoice
 
+4425: EDK: Support server extended getsources2 opcode (zet)
 4429: Better error message if MLDonkey lacks network support
       for a file in files.ini
 4427: BT: 10 retries / follow 10 redirections in 
