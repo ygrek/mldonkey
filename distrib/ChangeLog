@@ -11,6 +11,11 @@ ChangeLog
 To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be patched with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
+2005/09/17: spiralvoice
+
+4423: OV/KAD: Save only active peers to config files/ save max 200 peers
+      (bogeyman)
+
 2005/09/14: spiralvoice
 
 4420: Remove obsoleted commonSwarming1 code

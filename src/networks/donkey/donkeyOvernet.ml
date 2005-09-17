@@ -332,6 +332,7 @@ let min_peers_before_connect = 5
 let max_searches_for_publish = 5
 let max_search_queries = 64
 let max_search_requests = 20
+let max_boot_peers = 200
 
 let is_enabled = ref false
 
@@ -452,6 +453,15 @@ module LimitedList = struct
             Hashtbl.remove t.objects_table key
         end
 
+    let get t =
+      let key = Fifo.take t.objects_fifo in
+      Hashtbl.remove t.objects_table key;
+      key
+
+    let clear t =
+      Fifo.clear t.objects_fifo;
+      Hashtbl.clear t.objects_table
+
     let to_list t =
       Fifo.to_list t.objects_fifo
 
@@ -493,9 +503,10 @@ module LimitedList = struct
 let boot_peers = define_option servers_section
     [Proto.options_section_name; "boot_peers"]
     "List of IP addresses to use to boot Kademlia networks"
-    LimitedList.option (LimitedList.create 2000)
+    LimitedList.option (LimitedList.create max_boot_peers)
 
-let boot_peers_copy = ref []
+(* peers we may ping *)
+let unknown_peers = LimitedList.create 2000
 
 (* the total number of buckets used. We must fill a bucket before using the
 next one. When a bucket is full, and we want to add a new peer, we must
@@ -696,15 +707,9 @@ let udp_send p msg =
   udp_send_direct p.peer_ip p.peer_port msg
 
 let bootstrap ip port =
-  if !!overnet_update_nodes && Ip.valid ip && Ip.reachable ip && port <> 0 then begin
-      LimitedList.add !!boot_peers (ip,port);
-      boot_peers_copy := (ip,port) :: !boot_peers_copy;
-(* Limit boot_peers_copy, if needed by the timer it will be set to
-   LimitedList.to_list !!boot_peers there *)
-      if (List.length !boot_peers_copy) > (2 * LimitedList.length !!boot_peers)
-      then
-        boot_peers_copy := (ip,port) :: [];
-    end
+  if !!overnet_update_nodes && Ip.valid ip && Ip.reachable ip &&
+     port <> 0 && not (Hashtbl.mem known_peers (ip,port)) then
+       LimitedList.add unknown_peers (ip,port)
 
 let new_peer p =
   let ip = p.peer_ip in
@@ -1266,6 +1271,28 @@ let update_buckets () =
       end
   done;
 
+(* boot_peers will be saved, so we choose max_boot_peers good peers
+from the active buckets and prebuckets *)
+  LimitedList.clear !!boot_peers;
+  let n = ref 0 in
+  try
+    let addtol p =
+      if p.peer_last_recv <> 0 then begin
+        LimitedList.add !!boot_peers (p.peer_ip, p.peer_port);
+        incr n;
+        if !n = max_boot_peers then raise Exit
+      end
+    in
+
+    for i = 0 to !n_used_buckets do
+      Fifo.iter addtol buckets.(i)
+    done;
+
+    for i = 0 to !n_used_buckets do
+      Fifo.iter addtol prebuckets.(i)
+    done;
+  with Exit -> ();
+
   ()
 
 let enable () =
@@ -1277,6 +1304,11 @@ let enable () =
           (!!overnet_port) (Proto.udp_handler udp_client_handler)) in
       udp_sock := Some sock;
       UdpSocket.set_write_controler sock udp_write_controler;
+
+(* copy all boot_peers to unknown_peers *)
+      LimitedList.iter (fun (ip, port) ->
+          LimitedList.add unknown_peers (ip, port)
+          ) !!boot_peers;
 
       add_session_timer enabler 1. (fun _ ->
           if !!enable_overnet then
@@ -1294,20 +1326,13 @@ let enable () =
 
 (* ping unknown peers *)
             begin
-              match !boot_peers_copy with
-                [] ->
-                  boot_peers_copy := LimitedList.to_list !!boot_peers
-              | _ ->
+              try
                   if !connected_peers < 100 then
                     for i = 1 to 5 do
-                      match !boot_peers_copy with
-                        [] -> ()
-                      | (ip, port) :: tail ->
-                          boot_peers_copy := tail;
-                          udp_send_ping ip port (OvernetConnect my_peer);
-                          ()
-
+                      let (ip, port) = LimitedList.get unknown_peers in
+                      udp_send_ping ip port (OvernetConnect my_peer);
                     done
+              with _ -> ()
             end;
       );
 
@@ -1860,8 +1885,9 @@ Define a function to be called when the "mem_stats" command
     (fun level buf ->
       Printf.bprintf buf "%s statistics:\n"
       (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia");
-      Printf.bprintf buf "  boot_peers: %d\n" (LimitedList.length !!boot_peers);
+      Printf.bprintf buf "  unknown_peers: %d\n" (LimitedList.length unknown_peers);
       update_buckets ();
+      Printf.bprintf buf "  boot_peers: %d\n" (LimitedList.length !!boot_peers);
       Printf.bprintf buf "  %d buckets with %d peers and %d prebucket peers\n"
             !n_used_buckets !connected_peers !pre_connected_peers;
 
