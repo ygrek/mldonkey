@@ -8,12 +8,15 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
-To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be patched with this patch:
+To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/17: spiralvoice
 
-4427: BT: 10 retries / follow 10 redirections in dllink http://server/file.torrent
+4429: Better error message if MLDonkey lacks network support
+      for a file in files.ini
+4427: BT: 10 retries / follow 10 redirections in 
+      dllink http://server/file.torrent
 4423: OV/KAD: Save only active peers to config files/ save max 200 peers
       (bogeyman)
 
@@ -76,7 +79,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 * new command "open_log" to reopen log after close_log
 * removed command "log_file", same can be achieved through "set log_file <file>"
 
-4384: HTML: Add "Import Serverlist" in servers, clean third button row (schlumpf)
+4384: HTML: Add "Import Serverlist" in servers,clean third button row (schlumpf)
 4365: Disable console "X" close button on MinGW, second version (CML)
 4382: Solve libgd configure in mandrake 10.0
 4381: better differentiation of eDonkey and BT Stats Table (schlumpf)
@@ -95,8 +98,8 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 * in all places where a filename or URL for a server.met can be used this
   file can also be compressed with gz/bz2/zip
 * automatically replace old default server.met in web_infos
-        ("server.met", 24, 
-            "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+("server.met", 24, 
+"http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
   with fake servers free list from gruk.org:
         ("server.met", 0, "http://www.gruk.org/server.met.gz");
 * fixed bug which prevented loading Overnet contact.dat file in web_infos
@@ -240,8 +243,9 @@ Usage instructions:
 4269: IPBlock: Several fixes, better zip file support
 4264: Fasttrack: Force commit of all complete files
 
-4258: BT: Statistics, recognize more clients, min_interval, torrents/old and more...
-      This patch was done by Beedauchon, it incorporates weeks of work from him. 
+4258: BT: Statistics, recognize more clients, min_interval,
+      torrents/old and more...
+      This patch was done by Beedauchon, it incorporates weeks of work from him.
 * move .torrent to torrents/old if the file is not shared anymore
 * new command rm_old_torrents: delete all files in torrents/old
 * eDonkey like statistics for BT clients (csbt command)

@@ -68,7 +68,16 @@ module FileOption = struct
           let get_value name conv = conv (List.assoc name assocs) in
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
-          let network = network_find_by_name network in
+          let network = 
+            try network_find_by_name network with e ->
+                lprintf_nl ()
+		  "Error %s for network %s while parsing file %s"
+		    (Printexc2.to_string e)
+		    network
+		    (get_value "file_filename" value_to_string);
+		lprintf_nl () "This core is lacking support for network %s, exiting" network;
+                exit_properly 70
+          in
           let file_state = 
             try
               get_value "file_state" value_to_state 
