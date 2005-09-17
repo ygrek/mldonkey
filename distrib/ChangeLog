@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/17: spiralvoice
 
+4427: BT: 10 retries / follow 10 redirections in dllink http://server/file.torrent
 4423: OV/KAD: Save only active peers to config files/ save max 200 peers
       (bogeyman)
 

@@ -607,7 +607,7 @@ let op_network_parse_url url =
             H.basic_request with
             H.req_url = u;
             H.req_proxy = !CommonOptions.http_proxy;
-            H.req_user_agent = Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+            H.req_user_agent = get_user_agent ();
             H.req_referer = (
               let referers = !!BTOptions.referers in
               let (rule_search,rule_value) =
@@ -616,7 +616,7 @@ let op_network_parse_url url =
                     ) referers )
                 with Not_found -> ("",real_url) in
               Some (Url.of_string rule_value) );
-            H.req_headers = try
+            H.req_headers = (try
               let cookies = List.assoc u.Url.server !!BTOptions.cookies in
               [ ( "Cookie", List.fold_left (fun res (key, value) ->
                       if res = "" then
@@ -625,7 +625,8 @@ let op_network_parse_url url =
                         res ^ "; " ^ key ^ "=" ^ value
                   ) "" cookies
                 ) ]
-            with Not_found -> [];
+            with Not_found -> []);
+	    H.req_max_retry = 10;
           } in
 
         let file_diskname = Filename.basename u.Url.short_file in

@@ -2658,6 +2658,7 @@ let _ =
                 H.req_url =  u;
                 H.req_proxy = !CommonOptions.http_proxy;
                 H.req_request = H.HEAD;
+		H.req_max_retry = 10;
                 H.req_user_agent =
                        Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
             } in
