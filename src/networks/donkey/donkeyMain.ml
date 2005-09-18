@@ -172,7 +172,7 @@ let enable () =
     let enabler = ref true in
     is_enabled := true;
     network.op_network_disable <- disable enabler;
-    
+    client_public_key := Unix32.load_key (!!client_private_key);
     if not !!enable_donkey then enable_donkey =:= true;
     
     try

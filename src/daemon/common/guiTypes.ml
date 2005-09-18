@@ -212,6 +212,7 @@ type client_info = {
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
     mutable client_upload : string option;
+    mutable client_sui_verified : bool option;
 (*  mutable client_sock_addr : string;  *)
   }
 

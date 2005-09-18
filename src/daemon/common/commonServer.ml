@@ -48,6 +48,7 @@ and 'a server_ops = {
     mutable op_server_query_users : ('a -> unit);
     mutable op_server_find_user : ('a -> string -> unit);
     mutable op_server_cid : ('a -> Ip.t);
+    mutable op_server_low_id : ('a -> bool);
     mutable op_server_set_preferred : ('a -> bool -> unit);
     mutable op_server_rename : ('a -> string -> unit);
   }
@@ -154,6 +155,10 @@ let server_cid s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_cid s.impl_server_val
 
+let server_low_id s =
+  let s = as_server_impl s in
+  s.impl_server_ops.op_server_low_id s.impl_server_val
+
 let server_set_preferred s b =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_set_preferred s.impl_server_val b
@@ -177,6 +182,7 @@ let new_server_ops network =
       op_server_query_users = (fun _ -> ni_ok network "query_users");
       op_server_users = (fun _ -> fni network "users");
       op_server_cid = (fun _ -> fni network "cid");
+      op_server_low_id = (fun _ -> fni network "low_id");
       op_server_set_preferred = (fun _ _ -> fni network "server_set_preferred");
       op_server_rename = (fun _ _ -> fni network "server_rename");
     } in
@@ -210,6 +216,8 @@ let check_server_implementations () =
         lprintf_nl "op_server_users";
       if c.op_server_cid == cc.op_server_cid then
         lprintf_nl "op_server_cid";
+      if c.op_server_low_id == cc.op_server_low_id then
+        lprintf_nl "op_server_low_id";
       if c.op_server_rename == cc.op_server_rename then
         lprintf_nl "op_server_rename";
       if c.op_server_set_preferred == cc.op_server_set_preferred then
@@ -401,17 +409,12 @@ let server_print s o =
       )
       (if n.network_name = "Donkey" then
          begin
-           let donkey_low_id ip =
-             match Ip.to_ints ip with
-             | _, _, _, 0 -> true
-             | _ -> false
-           in
            match impl.impl_server_state with
            | Connected _ ->
                begin
                  let cid = (server_cid s) in
                  let (label,shortlabel,our_ip) =
-                   if not (donkey_low_id cid) then
+                   if not (server_low_id s) then
                      ("HighID","Hi",
                       (if !!set_client_ip <> cid then
                          Printf.sprintf "(clientIP: %s)"

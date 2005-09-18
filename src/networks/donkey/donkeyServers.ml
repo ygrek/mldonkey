@@ -322,9 +322,7 @@ let client_to_server s t sock =
       (* nice and ugly, but it doesn't require any new fields *)
       set_server_state s (Connected
           ( match s.server_cid with
-              Some t -> (match Ip.to_ints t with
-                          | _, _, _, 0 -> (-1)
-                          | _ -> (-2))
+              Some t -> if low_id t then (-1) else (-2) 
               | _ -> (-1)
           )
         );

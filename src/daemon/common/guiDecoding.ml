@@ -94,6 +94,9 @@ let get_array f s pos =
   Array.of_list list, pos
 
 let get_bool s pos = (get_uint8 s pos) = 1
+let get_bool_option s pos = 
+  let i = get_uint8 s pos in
+  if i = 2 then None else Some (i = 1)
 
 let get_float s pos = 
   let s, pos = get_string s pos in
@@ -698,6 +701,7 @@ let get_client proto s pos =
       client_downloaded = zero;
       client_uploaded = zero;
       client_upload = None;
+      client_sui_verified = None;
 (*      client_sock_addr = ""; *)
     }, pos+8
   else
@@ -732,6 +736,11 @@ let get_client proto s pos =
      if proto >= 33 then
        get_string s pos
        else "", pos
+   in 
+   let verified =
+     if proto >= 35 then
+       get_bool_option s pos
+       else None
    in  {
     client_num = num;
     client_network = net;
@@ -750,6 +759,7 @@ let get_client proto s pos =
     client_downloaded = downloaded;
     client_uploaded = uploaded;
     client_upload = upload;
+    client_sui_verified = verified;
 (*    client_sock_addr = sock_addr; *)
   }, pos
 

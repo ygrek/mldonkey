@@ -143,7 +143,7 @@ let list_options_html o list =
               \\</td\\>
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 			  \\</tr\\>\\</form\\>
-              " o.option_default
+              " (shorten o.option_default 40)
         end;
 
 
@@ -2192,6 +2192,7 @@ let _ =
                   ( "0", "srh", "Network", "Network" ) ;
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
+                  ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ;
                   ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
@@ -2224,6 +2225,10 @@ let _ =
 
                           client_print_html c o;
                           html_mods_td buf ([
+                            ("", "sr", (match i.client_sui_verified with
+                              | None -> "N"
+                               | Some b -> if b then "P" else "F"
+                            )); 
                             ("", "sr", (string_of_kind i.client_kind));
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             ("", "sr", i.client_software);
@@ -2440,6 +2445,7 @@ let _ =
               ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ;
               ( "1", "srh ar", "Connected time (minutes)", "CT" ) ;
               ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
+              ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
               ( "0", "srh", "IP address", "IP address" ) ;
               ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
               ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;

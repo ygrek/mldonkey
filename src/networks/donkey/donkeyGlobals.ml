@@ -565,6 +565,10 @@ let dummy_client =
       client_emule_proto = emule_proto ();
       client_comp = None;
       client_connection_time = 0;
+      client_req_challenge = Int64.zero;
+      client_sent_challenge = Int64.zero;
+      client_public_key = None;
+      client_sui_verified = None;
       } and
     client_impl = {
       dummy_client_impl with
@@ -621,6 +625,10 @@ let create_client key =
       client_emule_proto = emule_proto ();
       client_comp = None;
       client_connection_time = 0;
+      client_req_challenge = Int64.zero;
+      client_sent_challenge = Int64.zero;
+      client_public_key = None;
+      client_sui_verified = None;
       } and
     client_impl = {
       dummy_client_impl with
@@ -1027,6 +1035,13 @@ let clean_join_queue_tables () =
       if time + half_hour > current_time then
         Hashtbl.add join_queue_by_id key e
   ) list
+
+let client_public_key = ref ""
+
+let _ =
+  option_hook client_private_key (fun _ ->
+    client_public_key := Unix32.load_key (!!client_private_key);
+  )
 
 let server_accept_multiple_getsources s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_getsources) <> 0

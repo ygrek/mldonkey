@@ -23,6 +23,12 @@ val external_start : string -> unit
 val external_exit : unit -> unit
 val uname : unit -> string
 
+(* CryptoPP *)
+val create_key : unit -> string
+val load_key : string -> string
+val create_signature : string -> int -> int64 -> int -> int64 -> string
+val verify_signature : string -> int -> string -> int -> int64 -> int -> int64 -> bool
+
 val create_dir_mask : string ref
 val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)

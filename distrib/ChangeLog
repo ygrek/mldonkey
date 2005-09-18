@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
+2005/09/18: spiralvoice
+
+4419: EDK: Support secure user identification (crypto5, by zet)
+
 2005/09/17: spiralvoice
 
 4424: OV: discard peers with ip 1.0.0.0 and random port

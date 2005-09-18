@@ -47,7 +47,7 @@ let mldonkey_emule_proto = {
     emule_version = (int_of_string (emule_version "10" Autoconf.major_version Autoconf.minor_version Autoconf.sub_version "0"));
       (* first parameter means compatibleclient, MLDonkeys value is 10 *)
     emule_release = "";
-    emule_secident = 0;
+    emule_secident = 3; (* Emule uses v1 if advertising both, v2 if only advertising 2 *)
     emule_noviewshared = 0;
     emule_supportpreview = 0;
     emule_compression = if Autoconf.has_zlib then 1 else 0; (* 1 *)
@@ -887,6 +887,80 @@ module EmuleRequestSources = struct
             
   end
       
+
+let buf_estring buf s =
+  let len = String.length s in
+  buf_int8 buf len;
+  Buffer.add_string buf s
+
+module EmuleSignatureReq = struct
+
+    type t = {
+        signature : string; 
+        ip_type : int; 
+      }
+    
+    let print t =
+      lprintf_nl "EmuleSignatureReq [type %d] [sig(%d): %s]" t.ip_type (String.length t.signature) (String.escaped t.signature)
+
+    let parse len s =
+      let mlen = get_uint8 s 1 in
+      let slen = String.length s in
+      let signature = String.sub s 2 mlen in
+      let ip_type = if mlen = (slen-2) then 0 else get_uint8 s (2 + mlen) in
+      {
+        signature = signature;
+        ip_type = ip_type;
+      }
+
+    let write buf t =
+      buf_estring buf t.signature;
+      if (t.ip_type <> 0) then 
+           buf_int8 buf t.ip_type;
+
+  end
+
+
+module EmulePublicKeyReq = struct
+
+    type t = string
+
+    let print t =
+      lprintf_nl "EmulePublicKeyReq [key(%d): %s]" (String.length t) (String.escaped t)
+
+    let parse len s =
+      let len = get_uint8 s 1 in
+      String.sub s 2 len 
+    
+    let write buf t =
+      buf_estring buf t
+
+  end
+
+module EmuleSecIdentStateReq = struct
+
+    type t = {
+        state : int; 
+        challenge : int64; 
+      }
+
+    let print t = 
+      lprintf_nl "EmuleSecIdentStateReq [state: %d] [challenge: %Ld]" t.state t.challenge
+
+    let parse len s = 
+      let state = get_uint8 s 1 in
+      let challenge = get_uint64_32 s 2 in
+      {
+        state = state;
+        challenge = challenge;
+      }
+
+    let write buf t = 
+      buf_int8 buf t.state;
+      buf_int64_32 buf t.challenge
+            
+  end
+      
 module EmuleRequestSourcesReply = struct 
     
     type source = {
@@ -1018,9 +1092,9 @@ type t =
 | EmuleRequestSourcesReq of EmuleRequestSources.t
 | EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
 | EmuleFileDescReq of string
-| EmulePublicKeyReq of string
-| EmuleSignatureReq of string
-| EmuleSecIdentStateReq  of int * int64
+| EmulePublicKeyReq of EmulePublicKeyReq.t
+| EmuleSignatureReq of EmuleSignatureReq.t 
+| EmuleSecIdentStateReq  of EmuleSecIdentStateReq.t
 | EmuleMultiPacketReq of Md4.t * t list
 | EmuleMultiPacketAnswerReq of Md4.t * t list
 | EmuleCompressedPart of Md4.t * int64 * int64 * string
@@ -1081,12 +1155,12 @@ let rec print t =
             lprintf "  ";
             print t
         ) list
-    | EmuleSecIdentStateReq (int, int64) ->
-        lprintf_nl "EmuleSecIdentState for %d, %Ld" int int64
-    | EmuleSignatureReq s -> 
-        lprintf_nl "EmuleSignature %s" (String.escaped s)
-    | EmulePublicKeyReq s ->
-        lprintf_nl "EmulePublicKey %s" (String.escaped s)
+    | EmuleSecIdentStateReq t ->
+        EmuleSecIdentStateReq.print t
+    | EmuleSignatureReq t -> 
+        EmuleSignatureReq.print t 
+    | EmulePublicKeyReq t ->
+        EmulePublicKeyReq.print t
 
     | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
         lprintf_nl "EmuleCompressedPart for %s %Ld %Ld len %d"
@@ -1148,19 +1222,13 @@ let rec parse_emule_packet emule opcode len s =
         EmuleCompressedPart (md4, statpos, newsize, bloc)
     
     | 0x85 (* 133 *) -> 
-        let len = get_uint8 s 1 in
-        let key = String.sub s 2 len in
-        EmulePublicKeyReq key
+        EmulePublicKeyReq(EmulePublicKeyReq.parse len s)
     
     | 0x86 (* 134 *) -> 
-        let len = get_uint8 s 1 in
-        let signature = String.sub s 2 len in
-        EmuleSignatureReq  signature
+        EmuleSignatureReq(EmuleSignatureReq.parse len s)
     
     | 0x87 (* 135 *) -> 
-        let state = get_uint8 s 1 in
-        let challenge = get_uint64_32 s 2 in
-        EmuleSecIdentStateReq (state, challenge)
+        EmuleSecIdentStateReq (EmuleSecIdentStateReq.parse len s)
 
 (*     | 0x90 (* 144 *) -> RequestPreview *)
 (*    | 0x91 (* 145 *) -> PreviewAnswer *)
@@ -1495,20 +1563,17 @@ let write emule buf t =
         ) list
         
         
-    | EmuleSecIdentStateReq (state,challenge) ->
+    | EmuleSecIdentStateReq t ->
         buf_int8 buf 0x87;
-        buf_int8 buf state;
-        buf_int64_32 buf challenge
+        EmuleSecIdentStateReq.write buf t
         
-    | EmuleSignatureReq s -> 
+    | EmuleSignatureReq t ->  
         buf_int8 buf 0x86;
-        buf_int8 buf (String.length s);
-        Buffer.add_string buf s
+        EmuleSignatureReq.write buf t
        
-    | EmulePublicKeyReq s ->
+    | EmulePublicKeyReq t ->
         buf_int8 buf 0x85;
-        buf_int8 buf (String.length s);
-        Buffer.add_string buf s
+        EmulePublicKeyReq.write buf t
         
     | UnknownReq (opcode, s) ->
         Buffer.add_string buf s

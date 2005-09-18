@@ -683,6 +683,7 @@ let op_client_info c =
     P.client_downloaded = c.client_downloaded;
     P.client_uploaded = c.client_uploaded;
     P.client_upload = Some (c.client_file.file_name);
+    P.client_sui_verified = None;
 (*          P.client_sock_addr = (Ip.to_string ip); *)
   }
 
@@ -744,6 +745,7 @@ let op_client_dprint_html c o file str =
         ("", "sr ar", Printf.sprintf "%d"
             (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
         ("", "sr", "D");
+        ("", "sr", "N");
         ("", "sr", (Ip.to_string (fst c.client_host)));
         ("", "sr ar", (size_of_int64 c.client_uploaded));
         ("", "sr ar", (size_of_int64 c.client_downloaded));

@@ -536,6 +536,10 @@ and client = {
     client_emule_proto : emule_proto;
     mutable client_comp : compressed_parts option;
     mutable client_connection_time : int;
+    mutable client_sent_challenge : Int64.t;
+    mutable client_req_challenge : Int64.t;
+    mutable client_public_key : string option;
+    mutable client_sui_verified : bool option;
   }
 
 and compressed_parts = {

@@ -908,7 +908,11 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
         ""
     ), ":\t\t\tremove servers that have not been connected for several days";
 
-
+    "reset_md4", Arg_none (fun _ ->
+        set_simple_option donkey_ini "client_md4" (Md4.to_string (mldonkey_md4 (Md4.random ())));
+        set_simple_option donkey_ini "client_private_key" (Unix32.create_key ());
+        "reset client_md4/client_private_key"
+    ), ":\t\t\t\t\treset client_md4/client_private_key to random values";
 
     "bp", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -1101,6 +1105,7 @@ let _ =
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)
           | None -> None);
+        P.client_sui_verified = c.client_sui_verified;
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -1118,6 +1123,11 @@ let disconnect_server s r =
       s.server_sock <- NoConnection
   | Connection sock ->
       TcpBufferedSocket.shutdown sock r
+
+let ip_of_server_cid s =
+  match s.server_cid with
+    None -> Ip.null
+  | Some ip -> ip
 
 let _ =
   server_ops.op_server_remove <- (fun s ->
@@ -1143,13 +1153,15 @@ let _ =
   );
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
-  server_ops.op_server_cid <- (fun s ->
-      match s.server_cid with
-        None -> Ip.null
-      | Some ip -> ip);
+
+  server_ops.op_server_cid <- (fun s -> ip_of_server_cid s);
+
+  server_ops.op_server_low_id <- (fun s -> low_id (ip_of_server_cid s));
+
   server_ops.op_server_set_preferred <- (fun s b ->
     s.server_preferred <- b;
     server_must_update s);
+
   server_ops.op_server_rename <- (fun s name ->
     s.server_name <- name;
     server_must_update s);
@@ -1275,6 +1287,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
         @ [
           ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ;
           ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
+          ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
           ( "0", "srh br", "IP address", "IP address" ) ;
           ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
           ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
@@ -1339,6 +1352,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             ("", "sr", (match c.client_kind with
                   | Direct_address (ip,port) -> Printf.sprintf "D"
                   | _ -> Printf.sprintf "I"
+                ));
+            ("", "sr", (match c.client_sui_verified with
+                  | None -> "N"
+                  | Some b -> if b then "P" else "F"
                 ));
             ("", "sr br", match c.client_kind with
                 Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
@@ -1600,6 +1617,10 @@ lprint_newline ();
                             | Direct_address (ip,port) -> Printf.sprintf "D"
                             | _ -> Printf.sprintf "I"
                           ));
+                      ("", "sr", (match c.client_sui_verified with
+                        | None -> "N"
+                        | Some b -> if b then "P" else "F"
+                      )); 
                       ("", "sr", match c.client_kind with
                           Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
                         |  _ -> (string_of_client_addr c));

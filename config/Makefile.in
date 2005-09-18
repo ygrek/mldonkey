@@ -229,6 +229,7 @@ LIB_SRCS=   \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/$(SHA1_VERSION)_c.c \
   $(LIB)/tiger.c \
+  $(LIB)/CryptoPP.cc \
   $(LIB)/stubs_c.c  $(LIB)/queues.ml \
   $(LIB)/charsetstubs.c $(LIB)/charset.ml
 
@@ -1382,7 +1383,7 @@ $1_ML4 := $(filter %.ml4, $($1_SRCS))
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
 $1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
 $1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
-$1_C := $(filter %.c, $($1_SRCS)) 
+$1_C := $(filter %.c %.cc, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
@@ -1508,7 +1509,7 @@ $1_ML4 := $(filter %.ml4, $($1_SRCS))
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
 $1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
 $1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
-$1_C := $(filter %.c, $($1_SRCS)) 
+$1_C := $(filter %.c %.cc, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
@@ -1519,13 +1520,13 @@ $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
 	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
 $2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
+	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
 ]])
 
 EXPAND(mldonkey,mldonkey,NO,mldonkey)

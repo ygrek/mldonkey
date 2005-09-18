@@ -959,6 +959,105 @@ let finish_client_handshake c sock =
   c.client_checked <- true;
   is_banned c sock
 
+
+(* reverse ip bytes? *)
+let int64_of_rip ip =
+  Ip.to_int64 (Ip.rev ip)
+
+let get_high_id_int64 () = 
+  let result = ref Int64.zero in
+  List.iter (fun s ->
+    if !result = Int64.zero then
+      (match s.server_cid with
+        None -> ()
+      | Some i -> if not (low_id i) then 
+                    result := int64_of_rip i;
+    )
+  ) (connected_servers());
+  !result
+
+(* If we know our own IP (donkey high id), use type 20 and our ip
+   If we do not know our IP (could be NAT'd), use type 10 and their ip *)
+let get_ip_and_type sock =
+  let ip = ref (get_high_id_int64 ()) in
+  let ip_type = ref (if !ip == Int64.zero then 0 else 20) in
+  
+  if (!ip_type == 0) then begin
+    match sock with 
+    Connection s ->
+            ip_type := 10; 
+            ip := int64_of_rip (peer_ip s);
+    | _ -> ()
+  end;
+  (!ip,!ip_type)
+
+let has_pubkey c =
+  match c.client_public_key with
+   None -> false
+   |  _ -> true
+
+let get_pubkey c =
+  match c.client_public_key with
+   None -> ""
+   | Some s -> s
+
+let send_signature c = 
+  if has_pubkey c then 
+  begin
+
+    let ip = ref Int64.zero in
+    let ip_type = ref 0 in
+    (* check low id? *)
+    if (c.client_emule_proto.emule_secident == 2) then begin (* Use v1 as default, except if only v2 is supported (same as emule) *)
+      let (x,y) = get_ip_and_type c.client_source.DonkeySources.source_sock in
+      ip := x;
+      ip_type := y;
+    end;
+
+    let pubkey = get_pubkey c in
+    let signature = Unix32.create_signature pubkey (String.length pubkey) c.client_req_challenge !ip_type !ip in
+    
+    if !verbose_msg_clients then begin
+      lprintf_nl () "%s [send_signature] [sigLen: %d] [keyLen: %d] [reqChall: %Ld] [ipType: %d] [ip: %Ld]" (full_client_identifier c) (String.length signature) (String.length pubkey) c.client_req_challenge !ip_type !ip;
+    end;
+  
+    let module M = DonkeyProtoClient in
+    let module E = M.EmuleSignatureReq in
+    client_send c (M.EmuleSignatureReq {
+           E.signature = signature;
+           E.ip_type = !ip_type;
+    });
+  end
+    else
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [send_signature] Can't send without a key" (full_client_identifier c)
+      end
+
+let verify_ident c =
+  let challenge = Random.int64 (Int64.of_int32 Int32.max_int) in
+  let state, state_string = if has_pubkey c then (1,"SIGNEEDED") else (2,"KEYANDSIGNEEDED") in
+  c.client_sent_challenge <- challenge;
+
+  if !verbose_msg_clients then begin
+    lprintf_nl () "%s [verify_ident] [state: %d (%s)] [sentChall: %Ld]" (full_client_identifier c) state state_string challenge;
+  end;
+
+  let module M = DonkeyProtoClient in
+  let module E = M.EmuleSecIdentStateReq in
+  client_send c (M.EmuleSecIdentStateReq {
+          E.state = state;
+          E.challenge = challenge;
+   })
+
+let send_public_key c =
+    
+  if !verbose_msg_clients then begin
+    lprintf_nl () "%s [send_public_key] [keyLen: %d]" (full_client_identifier c) (String.length !client_public_key);
+  end;
+
+  let module M = DonkeyProtoClient in
+  client_send c (M.EmulePublicKeyReq !client_public_key)
+
 let get_server_ip_port () =
   match !DonkeyGlobals.master_server with
     | None ->
@@ -970,6 +1069,18 @@ let get_server_ip_port () =
            | Some p -> (*lprintf "%d\n" p;*) p
        in
          s.server_ip, port
+
+let process_mule_info c t =
+  update_emule_proto_from_tags c t;
+  if (c.client_md4 <> Md4.null) 
+      && (c.client_sent_challenge == Int64.zero) 
+      && (c.client_emule_proto.emule_secident > 0) 
+  then begin
+    if !verbose_msg_clients then begin
+      lprintf_nl () "%s [process_mule_info] [verify_ident]" (full_client_identifier c);
+    end;
+    verify_ident c
+  end
 
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
@@ -1067,7 +1178,7 @@ let client_to_client for_files c t sock =
       c.client_ip <- peer_ip sock;
 (*      lprintf "Emule Extended Protocol asked\n";  *)
       let module CI = M.EmuleClientInfo in
-      update_emule_proto_from_tags c t.CI.tags;
+      process_mule_info c t.CI.tags;
       if !!emule_mods_count then
         identify_client_mod_brand c t.CI.tags;
       
@@ -1084,7 +1195,7 @@ let client_to_client for_files c t sock =
       
       let module CI = M.EmuleClientInfo in
       
-      update_emule_proto_from_tags c t.CI.tags;
+      process_mule_info c t.CI.tags;
       
       if !verbose_msg_clienttags then
           lprintf_nl () "Message from client[%d] %s %s  tags: %s"
@@ -1591,6 +1702,104 @@ is checked for the file.
               (Printexc.to_string e)
       end;
 
+  | M.EmuleSignatureReq t ->
+      let module Q = M.EmuleSignatureReq in
+      begin
+
+      if !verbose_msg_clients then begin
+        let lipType,lipTypeString = 
+          (match t.Q.ip_type with
+           10 -> (10, "IpLocal")
+          | 20 -> (20, "IpRemote")
+          | e -> (e, "Unknown")) in
+        let lkeyString = if (has_pubkey c) then "" else "[NO KEY!!]" in
+        lprintf_nl () "%s [ESigReq] [sentChall: %Ld] [ipType: %d (%s)] %s" (full_client_identifier c) c.client_sent_challenge lipType lipTypeString lkeyString;
+      end;
+
+      let ip_type = ref 0 in
+      let id = ref Int64.zero in
+    
+      if (c.client_emule_proto.emule_secident > 1 && t.Q.ip_type <> 0) then 
+      begin
+        ip_type := t.Q.ip_type;
+        if (!ip_type == 20) (* || isLowid *) then
+            id := int64_of_rip (peer_ip sock)
+        else 
+          begin
+            id := get_high_id_int64 ();  
+            if (!id == Int64.zero) then begin
+                id := int64_of_rip (my_ip sock);
+                if !verbose_msg_clients then begin
+                  lprintf_nl () "%s [ESigReq] Warning: Local IP unknown (signature might fail)" (full_client_identifier c);
+                end;
+            end;
+          end;
+      end;
+
+      let pubKey = get_pubkey c in
+      
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [ESigReq] [verify_signature] [keyLen: %d] [sigLen: %d] [sentChall: %Ld] [ipType %d] [ip: %Ld]" (full_client_identifier c) (String.length pubKey) (String.length t.Q.signature) c.client_sent_challenge !ip_type !id;
+      end;
+
+      let verified = Unix32.verify_signature pubKey (String.length pubKey) t.Q.signature (String.length t.Q.signature) c.client_sent_challenge !ip_type !id in
+      c.client_sui_verified <- Some verified;
+      c.client_sent_challenge <- Int64.zero;
+
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [ESigReq] [verify_signature: %s]" (full_client_identifier c) (if verified then "passed" else "failed");
+      end;
+
+      end
+
+  | M.EmulePublicKeyReq t ->
+      let module Q = M.EmulePublicKeyReq in
+      begin
+        (match c.client_public_key with 
+        Some s -> if s <> t then 
+                  begin
+                   if !verbose_msg_clients then begin
+                     lprintf_nl () "%s [EPubKeyReq] [Key is different!]" (full_client_identifier c);
+                   end;
+                   c.client_public_key <- None; 
+                  end 
+                    else 
+                      if !verbose_msg_clients then begin
+                        lprintf_nl () "%s [EPubKeyReq] [Key matches]" (full_client_identifier c);
+                      end;
+        | _ -> 
+          c.client_public_key <- Some t;
+          if !verbose_msg_clients then begin
+            lprintf_nl () "%s [EPubKeyReq] [New Key] [keyLen: %d] [reqChall: %Ld]" (full_client_identifier c) (String.length t) c.client_req_challenge;
+          end;
+  
+          if (c.client_req_challenge <> Int64.zero) then send_signature c;
+        );
+      end
+
+  | M.EmuleSecIdentStateReq t ->
+      let module Q = M.EmuleSecIdentStateReq in
+      begin
+
+        if !verbose_msg_clients then begin
+          let lstate,lstateString = 
+            (match t.Q.state with 
+              1 -> (1,"SIGNNEEDED") 
+            | 2 -> (2,"KEYANDSIGNNEEDED") 
+            | e -> (e,"UNKNOWN")) in
+          lprintf_nl () "%s [ESecIdentStateReq] [type: %d (%s)] [reqChall: %Ld] [sendChall: %Ld] [hasKey: %s]" 
+            (full_client_identifier c) lstate lstateString t.Q.challenge c.client_sent_challenge (if has_pubkey c then "true" else "false");
+        end;
+
+        c.client_req_challenge <- t.Q.challenge;
+        if (not (has_pubkey c)) && (c.client_sent_challenge = Int64.zero) 
+          then verify_ident c;
+        if (t.Q.state == 2)
+          then send_public_key c;
+        if (has_pubkey c)
+          then send_signature c;
+
+      end
 
   | M.EmuleRequestSourcesReplyReq t ->
 (*      lprintf "Emule sent sources\n";  *)

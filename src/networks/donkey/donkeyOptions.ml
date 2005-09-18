@@ -164,6 +164,9 @@ let mldonkey_md4 md4 =
 let client_md4 = define_option donkey_section ["client_md4"]
     "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
 
+let client_private_key = define_option donkey_section ["client_private_key"]
+    "The RSA private key of this client" string_option (Unix32.create_key ())
+
 let _ =
   option_hook client_md4 (fun _ ->
       let m = mldonkey_md4 !!client_md4 in

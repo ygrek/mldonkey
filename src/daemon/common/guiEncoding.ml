@@ -227,6 +227,12 @@ let buf_client_type buf t =
 let buf_bool buf b =
   buf_int8 buf (if b then 1 else 0)
       
+let buf_bool_option buf b =
+  buf_int8 buf
+  (match b with
+  | None -> 2
+  | Some b -> if b then 1 else 0)
+      
 let buf_result proto buf r =
   buf_int buf r.result_num;
   buf_int buf 0;
@@ -606,6 +612,9 @@ let buf_client proto buf c =
       end;
       if proto >= 33 then begin
         buf_string buf c.client_release
+      end;
+      if proto >= 35 then begin
+        buf_bool_option buf c.client_sui_verified
       end;
     end
     

@@ -129,6 +129,7 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
+        P.client_sui_verified = None;
 (*		P.client_sock_addr = (; *)
       }
   );
@@ -179,6 +180,7 @@ let _ =
           ("", "sr ar", Printf.sprintf "%d"
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
           ("", "sr", "D");
+          ("", "sr", "N");
           ("", "sr", (string_of_client_addr c));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
