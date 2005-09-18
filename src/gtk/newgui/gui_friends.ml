@@ -435,6 +435,7 @@ class box_friends box_files friend_tab =
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
         client_upload = c.gclient_upload;
+	client_sui_verified = None;
 (*        client_sock_addr = c.gclient_sock_addr;*)
       }
     
@@ -641,6 +642,7 @@ class box_list friend_tab =
         client_downloaded = c.gclient_downloaded;
         client_uploaded = c.gclient_uploaded;
         client_upload = c.gclient_upload;
+	client_sui_verified = None;
 (*        client_sock_addr = string_of_kind c.gclient_kind; *)
       }
 
