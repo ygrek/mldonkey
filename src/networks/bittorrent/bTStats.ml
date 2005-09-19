@@ -89,8 +89,6 @@ let stats_by_brand = Array.init brand_count (fun _ ->
 let count_seen c =
   stats_all.brand_seen <- stats_all.brand_seen + 1;
   (match c.client_brand with
-      Brand_unknown -> () (* be careful, raising an exception here will
-abort all other operations after that point for this client...*)
     | b ->
       stats_by_brand.(brand_to_int b).brand_seen <-
         stats_by_brand.(brand_to_int b).brand_seen + 1;
@@ -100,7 +98,6 @@ abort all other operations after that point for this client...*)
 let count_banned c =
   stats_all.brand_banned <- stats_all.brand_banned + 1;
   (match c.client_brand with
-      Brand_unknown -> ()
     | b ->
       stats_by_brand.(brand_to_int b).brand_banned <-
         stats_by_brand.(brand_to_int b).brand_banned + 1;
@@ -110,7 +107,6 @@ let count_banned c =
 let count_filerequest c =
   stats_all.brand_filerequest <- stats_all.brand_filerequest + 1;
   (match c.client_brand with
-      Brand_unknown -> ()
     | b ->
       stats_by_brand.(brand_to_int b).brand_filerequest <-
         stats_by_brand.(brand_to_int b).brand_filerequest + 1;
@@ -123,7 +119,6 @@ let count_download c f v =
   stats_all.brand_download <- Int64.add stats_all.brand_download v;
   bt_download_counter := Int64.add !bt_download_counter v;
   (match c.client_brand with
-      Brand_unknown -> ()
     | b ->
       stats_by_brand.(brand_to_int b).brand_download <-
         Int64.add stats_by_brand.(brand_to_int b).brand_download v;
@@ -136,7 +131,6 @@ let count_upload c f v =
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
   bt_upload_counter := Int64.add !bt_upload_counter v;
   (match c.client_brand with
-      Brand_unknown -> ()
     | b ->
       stats_by_brand.(brand_to_int b).brand_upload <-
         Int64.add stats_by_brand.(brand_to_int b).brand_upload v;
@@ -169,7 +163,7 @@ let print_stats buf =
     Printf.bprintf buf "You haven't connected to any client yet\n"
   else begin
     Printf.bprintf buf "\n     Successful Connections: %18d\n" stats_all.brand_seen;
-    for i=1 to brand_count-1 do
+    for i=0 to brand_count-1 do
       Printf.bprintf buf "%27s: %18d (%5.1f %%)\n"
 	(brand_to_string (brand_of_int i))
 	stats_by_brand.(i).brand_seen
@@ -181,7 +175,7 @@ let print_stats buf =
     Printf.bprintf buf "You weren't asked for any file yet\n"
   else begin
     Printf.bprintf buf "\nTotal filerequests received: %18d\n" stats_all.brand_filerequest;
-    for i=1 to brand_count-1 do
+    for i=0 to brand_count-1 do
       Printf.bprintf buf "%27s: %18d (%5.1f %%)\n"
 	(brand_to_string (brand_of_int i))
 	stats_by_brand.(i).brand_filerequest
@@ -195,7 +189,7 @@ let print_stats buf =
       Printf.bprintf buf "\n            Total downloads: %18s (%5.1f KB/s)\n"
       (Int64.to_string stats_all.brand_download)
       ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0);
-    for i=1 to brand_count-1 do
+    for i=0 to brand_count-1 do
       Printf.bprintf buf "%27s: %18s (%5.1f %%)\n"
         (brand_to_string (brand_of_int i))
         (Int64.to_string stats_by_brand.(i).brand_download)
@@ -209,7 +203,7 @@ let print_stats buf =
       Printf.bprintf buf "\n              Total uploads: %18s (%5.1f KB/s)\n"
       (Int64.to_string stats_all.brand_upload)
       ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0);
-    for i=1 to brand_count-1 do
+    for i=0 to brand_count-1 do
       Printf.bprintf buf "%27s: %18s (%5.1f %%)\n"
         (brand_to_string (brand_of_int i))
         (Int64.to_string stats_by_brand.(i).brand_upload)
@@ -221,7 +215,7 @@ let print_stats buf =
     Printf.bprintf buf "You didn't ban any client yet\n"
   else begin
       Printf.bprintf buf "\n                 Total bans: %18d\n" stats_all.brand_banned;
-    for i=1 to brand_count-1 do
+    for i=0 to brand_count-1 do
       Printf.bprintf buf "%27s: %18d (%5.1f %%)\n"
         (brand_to_string (brand_of_int i))
         stats_by_brand.(i).brand_banned
@@ -314,7 +308,7 @@ let new_print_stats buf o =
       let counter = ref 0 in
       let showTotal = ref false in
 
-      for i=1 to brand_count do
+      for i=0 to brand_count do
         if i=brand_count then showTotal := true;
         if !showTotal || ( stats_by_brand.(i).brand_seen > 0 ) then begin
           incr counter;
@@ -406,7 +400,7 @@ let new_print_stats buf o =
       stats_html_header buf;
 
       showTotal := false;
-      for i=1 to brand_count do
+      for i=0 to brand_count do
        if i=brand_count then showTotal := true;
        if !showTotal || ( !!gstats_by_brand.(i).brand_seen > 0 ) then begin
           incr counter;
@@ -481,7 +475,7 @@ let new_print_stats buf o =
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
 
-      for i=1 to brand_count-1 do
+      for i=0 to brand_count-1 do
         if stats_by_brand.(i).brand_seen > 0 then (* dont print server stats *)
           let brandstr = brand_to_string (brand_of_int i) in
 
@@ -522,7 +516,7 @@ let new_print_stats buf o =
       Printf.bprintf buf "Client Brand|    seen      |     Downloads      |      Uploads       |   Banned   |  Requests\n";
       Printf.bprintf buf "------------+--------------+--------------------+--------------------+------------+--------------\n";
 
-      for i=1 to brand_count-1 do
+      for i=0 to brand_count-1 do
         if !!gstats_by_brand.(i).brand_seen > 0 then (* dont print server stats *)
           let brandstr = brand_to_string (brand_of_int i) in
 
