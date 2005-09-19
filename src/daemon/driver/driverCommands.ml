@@ -1296,6 +1296,8 @@ let _ =
              "top.output.location.href='http://www.filedonkey.com/'", "FileDonkey");
             ("bu bbig", "Visit Bitzi",
              "top.output.location.href='http://www.fileheaven.org/'", "Bitzi");
+            ("bu bbig", "Visit eMugle",
+             "top.output.location.href='http://www.emugle.com/'", "eMugle");
           ]);
         ""
     ), ":\t\t\tview custom queries";
