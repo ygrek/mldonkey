@@ -1523,7 +1523,7 @@ $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
-	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
+	$(OCAMLC) -cc $(CXX) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
 $2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
 	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
