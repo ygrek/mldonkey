@@ -1616,3 +1616,11 @@ let filesystem dir =
 	     Printf.sprintf "unknown (%Ld)" s.f_type
     with e -> "not supported"
   end
+
+let _ =
+  Heap.add_memstat "Unix32" (fun level buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) table;
+      Printf.bprintf buf "  table: %d\n" !counter;
+      Printf.bprintf buf "  modified_files: %d\n" (List.length !modified_files);
+  )

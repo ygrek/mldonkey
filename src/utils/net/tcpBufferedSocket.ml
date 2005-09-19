@@ -1565,7 +1565,7 @@ let deflate_timer _ =
   to_deflate := [];
   to_deflate_len := 0
 
-let to_deflate conn =
+let _to_deflate conn =
   if not (List.memq conn !to_deflate) then
     to_deflate := conn :: !to_deflate;
   if !to_deflate_len > 1000000 then
@@ -1605,7 +1605,7 @@ let write t s pos len =
   | Some (_,_, _,wbuf) ->
 
       to_deflate_len := !to_deflate_len + len;
-      to_deflate t;
+      _to_deflate t;
       buf_add t wbuf s pos len
 
 (*************************************************************************)
@@ -1845,6 +1845,11 @@ let _ =
   Heap.add_memstat "tcpBufferedSocket" (fun level buf ->
       Printf.bprintf buf "  %d latencies\n" (Hashtbl.length latencies);
       Printf.bprintf buf "  %d entries in net_stats\n" (Hashtbl.length net_stats);
+      Printf.bprintf buf "  String.length big_buffer: %d\n" (String.length big_buffer);
+      Printf.bprintf buf "  connection_managers: %d\n" (List.length !connection_managers);
+      Printf.bprintf buf "  read_bandwidth_controlers: %d\n" (List.length !read_bandwidth_controlers);
+      Printf.bprintf buf "  write_bandwidth_controlers: %d\n" (List.length !write_bandwidth_controlers);
+      Printf.bprintf buf "  to_deflate: %d\n" (List.length !to_deflate);
   );
   add_infinite_timer 1.0 proc_net_timer
 

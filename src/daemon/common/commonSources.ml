@@ -2155,6 +2155,10 @@ connected if needed *)
             let nsources = ref 0 in
             HS.iter (fun _ -> incr nsources) sources_by_uid;
             Printf.bprintf buf "Sources by UID table: %d entries\n" !nsources;
+            
+            nsources := 0;
+            H.iter (fun _ -> incr nsources) sources_by_num;
+            Printf.bprintf buf "Sources by NUM table: %d entries\n" !nsources;
 
             let nconnected = ref 0 in
             Fifo.iter (fun (_,s) ->

@@ -629,6 +629,9 @@ let current_time () = !current_time
 
 let _ =
   Heap.add_memstat "BasicSocket" (fun level buf ->
+      Printf.bprintf buf "  before_select_hooks: %d\n" (List.length !before_select_hooks);
+      Printf.bprintf buf "  after_select_hooks: %d\n" (List.length !after_select_hooks);
+      Printf.bprintf buf "  bandwidth_second_timers: %d\n" (List.length !bandwidth_second_timers);
       Printf.bprintf buf "  %d timers\n" (List.length !timers);
       Printf.bprintf buf "  %d fd_tasks:\n" (List.length !fd_tasks);
       if level > 0 then

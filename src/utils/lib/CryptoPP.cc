@@ -9512,7 +9512,7 @@ inline void PokeUInt32(void* p, uint32_t nVal)
 #define PRIVKEYSIZE 384
 
 static Signer* s_signer = NULL;   
-static byte m_publicKey[MAXPUBKEYSIZE];
+static byte m_publicKey[MAXPUBKEYSIZE+1];
 static unsigned long m_publicKeyLen = 0;
 
 void crypto_exit () {

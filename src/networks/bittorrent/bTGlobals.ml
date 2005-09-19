@@ -985,4 +985,7 @@ let _ =
      Unix2.iter_directory (fun file -> incr seeded ) seeded_directory;
      Printf.bprintf buf "Files in downloads directory: %d\n" ! downloads;
      Printf.bprintf buf "Files in tracked directory: %d\n" ! tracked;
-     Printf.bprintf buf "Files in seeded directory: %d\n" ! seeded;)
+     Printf.bprintf buf "Files in seeded directory: %d\n" ! seeded;
+     Printf.bprintf buf "files_by_uid: %d\n" (Hashtbl.length files_by_uid);
+     Printf.bprintf buf "ft_by_num: %d\n" (Hashtbl.length ft_by_num);
+  )

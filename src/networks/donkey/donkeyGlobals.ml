@@ -684,7 +684,7 @@ let local_mem_stats level buf =
   let unconnected_unknown_clients = ref 0 in
   let uninteresting_clients = ref 0 in
   let aliased_clients = ref 0 in
-  let connected_clients = ref 0 in
+  let myconnected_clients = ref 0 in
   let closed_connections = ref 0 in
   let unlocated_client = ref 0 in
   let bad_numbered_clients = ref 0 in
@@ -717,7 +717,7 @@ end;
           (try
               Hashtbl.find connected_clients_by_num num
             with _ ->
-                incr connected_clients;
+                incr myconnected_clients;
                 waiting_msgs := !waiting_msgs + nmsgs;
                 buffers := !buffers + buf_len;
 (*
@@ -747,13 +747,57 @@ end;
   Printf.bprintf buf "   Read Buffers: %d\n" !buffers;
   Printf.bprintf buf "   Write Messages: %d\n" !waiting_msgs;
   Printf.bprintf buf "   Uninteresting clients: %d\n" !uninteresting_clients;
-  Printf.bprintf buf "   Connected clients: %d\n" !connected_clients;
+  Printf.bprintf buf "   Connected clients: %d\n" !myconnected_clients;
   Printf.bprintf buf "   Aliased clients: %d\n" !aliased_clients;
   Printf.bprintf buf "   Closed clients: %d\n" !closed_connections;
   Printf.bprintf buf "   Unlocated clients: %d\n" !unlocated_client;
   Printf.bprintf buf "   Bad numbered clients: %d\n" !bad_numbered_clients;
   Printf.bprintf buf "   Dead clients: %d\n" !dead_clients;
   Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
+
+  Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files);
+  Printf.bprintf buf "Current files: %d\n" (List.length !current_files);
+
+  let counter = ref 0 in
+  UdpClientWHashtbl.iter (fun _ -> incr counter) udp_clients;
+  Printf.bprintf buf "  udp_clients: %d\n" !counter;
+
+  Printf.bprintf buf "  client_to_client_tags: %d\n" (List.length !client_to_client_tags);
+  Printf.bprintf buf "  client_to_server_tags: %d\n" (List.length !client_to_server_tags);
+  Printf.bprintf buf "  overnet_connectreply_tags: %d\n" (List.length !overnet_connectreply_tags);
+  Printf.bprintf buf "  overnet_connect_tags: %d\n" (List.length !overnet_connect_tags);
+  Printf.bprintf buf "  clients_root: %d\n" (List.length !clients_root);
+  Printf.bprintf buf "  servers_list: %d\n" (List.length !servers_list);
+  Printf.bprintf buf "  current_files: %d\n" (List.length !current_files);
+  Printf.bprintf buf "  xs_servers_list: %d\n" (List.length !xs_servers_list);
+  Printf.bprintf buf "  connected_server_list: %d\n" (List.length !connected_server_list);
+  Printf.bprintf buf "  udp_servers_list: %d\n" (List.length !udp_servers_list);
+  Printf.bprintf buf "  interesting_clients: %d\n" (List.length !interesting_clients);
+  Printf.bprintf buf "  shared_files: %d\n" (List.length !shared_files);
+  Printf.bprintf buf "  new_hsared_files: %d\n" (List.length !new_shared_files);
+  Printf.bprintf buf "  file_md4s_to_register: %d\n" (List.length !file_md4s_to_register);
+
+  Printf.bprintf buf "  servers_by_key: %d\n" (Hashtbl.length servers_by_key);
+  Printf.bprintf buf "  banned_ips: %d\n" (Hashtbl.length banned_ips);
+  Printf.bprintf buf "  old_requests: %d\n" (Hashtbl.length old_requests);
+  Printf.bprintf buf "  connected_clients: %d\n" (Hashtbl.length connected_clients);
+  Printf.bprintf buf "  files_by_md4: %d\n" (Hashtbl.length files_by_md4);
+  Printf.bprintf buf "  shared_files_info: %d\n" (Hashtbl.length shared_files_info);
+  Printf.bprintf buf "  file_groups: %d\n" (Hashtbl.length file_groups);
+  Printf.bprintf buf "  udp_servers_replies: %d\n" (Hashtbl.length udp_servers_replies);
+  Printf.bprintf buf "  join_queue_by_md4: %d\n" (Hashtbl.length join_queue_by_md4);
+  Printf.bprintf buf "  join_queue_by_id: %d\n" (Hashtbl.length join_queue_by_id);
+
+  let list = H.to_list clients_by_kind in
+  if level > 0 then begin
+    List.iter (fun c ->
+      Printf.bprintf buf "[%d ok: %s rating: %d]\n"
+        (client_num c)
+        (string_of_date (c.client_source.DonkeySources.source_age))
+(* TODO: add connection state *)
+        c.client_rating;
+    ) list;
+  end;
   ()
 
 let remove_client c =
@@ -969,22 +1013,6 @@ Define a function to be called when the "mem_stats" command
 **************************************************************)
 
 let _ =
-  Heap.add_memstat "DonkeyGlobals" (fun level buf ->
-      Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files);
-      Printf.bprintf buf "Current files: %d\n" (List.length !current_files);
-      let list = H.to_list clients_by_kind in
-      Printf.bprintf buf  "Clients_by_kind: %d\n" (List.length list);
-      if level > 0 then
-        List.iter (fun c ->
-            Printf.bprintf buf "[%d ok: %s rating: %d]\n"
-              (client_num c)
-            (string_of_date (c.client_source.DonkeySources.source_age))
-(* TODO: add connection state *)
-            c.client_rating
-            ;
-        ) list;
-  );
-
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
 
 (*************************************************************

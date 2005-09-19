@@ -196,6 +196,13 @@ let escape_char c = (List.assq c !network_escape_chars) ()
 let network_commands = ref ([] : (string * string * CommonTypes.arg_kind * string) list)
 
 let commands_by_kind = Hashtbl.create 11
+
+let _ =
+     Heap.add_memstat "CommonNetwork" (fun level buf ->
+      Printf.bprintf buf "  networks_by_name: %d\n" (Hashtbl.length networks_by_name);
+      Printf.bprintf buf "  networks_by_num: %d\n" (Hashtbl.length networks_by_num);
+      Printf.bprintf buf "  commands_by_kind: %d\n" (Hashtbl.length commands_by_kind);
+     )
   
 let register_commands list = 
   List.iter (fun (s, n, f, h) ->

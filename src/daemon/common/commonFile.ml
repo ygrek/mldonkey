@@ -844,6 +844,7 @@ let _ =
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;
+      Printf.bprintf buf "  files_ops: %d\n" (List.length !files_ops);
   )
 
 

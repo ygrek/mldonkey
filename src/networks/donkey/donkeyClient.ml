@@ -1745,6 +1745,7 @@ is checked for the file.
       let verified = Unix32.verify_signature pubKey (String.length pubKey) t.Q.signature (String.length t.Q.signature) c.client_sent_challenge !ip_type !id in
       c.client_sui_verified <- Some verified;
       c.client_sent_challenge <- Int64.zero;
+      client_must_update c;
 
       if !verbose_msg_clients then begin
         lprintf_nl () "%s [ESigReq] [verify_signature: %s]" (full_client_identifier c) (if verified then "passed" else "failed");

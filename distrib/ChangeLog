@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
+2005/09/19: spiralvoice
+
+4432: Add more info to mem_stats (zet)
+
 2005/09/18: spiralvoice
 
 4431: Newgui: Compile fix

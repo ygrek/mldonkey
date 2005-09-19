@@ -374,3 +374,11 @@ let _ =
   latency1 10 check_ips ips;
   exit 0
 *)
+let _ =
+  Heap.add_memstat "Ip_set" (fun level buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) descriptions;
+      Printf.bprintf buf "  descriptions: %d\n" !counter;
+      Printf.bprintf buf "  ranges: %d\n" (bl_length !bl);  
+  )
+

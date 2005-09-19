@@ -356,6 +356,7 @@ let _ =
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) shareds_by_num;
       Printf.bprintf buf "  shared: %d\n" !counter;
+      Printf.bprintf buf "  dirnames: %d\n" (Hashtbl.length dirnames);
   )
   
 let com_shareds_by_num = shareds_by_num

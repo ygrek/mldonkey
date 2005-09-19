@@ -1897,6 +1897,7 @@ Define a function to be called when the "mem_stats" command
       Printf.bprintf buf "  Search hits: %d\n" !search_hits;
       Printf.bprintf buf "  Source hits: %d\n" !source_hits;
       Printf.bprintf buf "  Hashtbl.lenght known_peers: %d\n" (Hashtbl.length known_peers);
+      Printf.bprintf buf "  to_ping: %d\n" (List.length !to_ping);
       let n_search_known_peers = ref 0 in
       let n_search_waiting_peers = ref 0 in
       let n_search_asked_peers = ref 0 in

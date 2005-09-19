@@ -93,6 +93,12 @@ module Make(M: sig
 
     let hosts_by_key = Hashtbl.create 103
 
+    let _ =
+     Heap.add_memstat "CommonHosts" (fun level buf ->
+      Printf.bprintf buf "  hosts_by_key: %d\n" (Hashtbl.length hosts_by_key);
+     )
+
+
     let indexservers_counter = ref 0
     let ultrapeers_counter = ref 0
     let peers_counter = ref 0

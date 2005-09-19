@@ -260,7 +260,7 @@ let async_ip name f =
 
 (* We check for names every 1/10 second. Too long ? *)
 let _ =
-  Heap.add_memstat "IP" (fun level buf ->
+  Heap.add_memstat "Ip" (fun level buf ->
       Printf.bprintf buf "  %d IPs in ip_cache\n" (Hashtbl.length ip_cache);
       Printf.bprintf buf "  %d entries in hostname_table\n" (Hashtbl.length hostname_table);
       Printf.bprintf buf "  %d entries in ip_fifo\n" (Fifo.length ip_fifo);

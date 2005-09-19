@@ -472,6 +472,11 @@ let tcp_handler t sock event =
 let read_bandwidth_controlers = ref []
 let write_bandwidth_controlers = ref []
   
+let _ =
+  Heap.add_memstat "tcpClientSocket" (fun level buf ->
+      Printf.bprintf buf "  read_bandwidth_controlers: %d\n" (List.length !read_bandwidth_controlers);
+      Printf.bprintf buf "  write_bandwidth_controlers: %d\n" (List.length !write_bandwidth_controlers);
+  )
       
 let create_read_bandwidth_controler rate = 
   let bc = {
