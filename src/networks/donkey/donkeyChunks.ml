@@ -322,7 +322,10 @@ We should extend this mechanism between networks:
   *)
 *)
 
-let duplicate_chunks () = ()
+let duplicate_chunks () = (
+  (* Or file_md4s_to_register never gets reseted while duplicate_chunks is not implemented *)
+  file_md4s_to_register := [];
+)
   
   (*
   List.iter (fun file ->

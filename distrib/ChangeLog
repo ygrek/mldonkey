@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/19: spiralvoice
 
+4436: EDK: Solve memleak in donkeyChunks (file_md4s_to_register) (bogeyman)
 4434: Added button to eMugle in Search (wingmaster)
 4432: Add more info to mem_stats (zet)
 
