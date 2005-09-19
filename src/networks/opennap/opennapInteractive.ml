@@ -253,6 +253,7 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
+	P.client_sui_verified = None;
 (*        P.client_sock_addr = ""; *)
       }
   );
