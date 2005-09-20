@@ -288,7 +288,8 @@ let allowed_ips = define_option current_section ["allowed_ips"]
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
 for internal command set: list separated by spaces
 example for internal command: set allowed_ips \"127.0.0.1 192.168.1.2\"
-or for editing the ini-file: allowed_ips = [ \"127.0.0.1\"; \"192.168.1.2\";]
+or for editing the ini-file: list separated by semi-colon
+example for ini-file: allowed_ips = [ \"127.0.0.1\"; \"192.168.1.2\";]
 wildcard=255 ie: use 192.168.0.255 for 192.168.0.*"
     ip_list_option [Ip.localhost]
 
