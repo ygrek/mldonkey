@@ -51,6 +51,7 @@ let _s x = _s "DriverMain" x
 let _b x = _b "DriverMain" x
 
 let keep_console_output = ref false
+let pid = ref ""
 
 let do_daily () =
   incr CommonWeb.days
@@ -348,6 +349,9 @@ let load_config () =
           exit 64), _s " : this argument was removed, core will exit";
       "-find_port", Arg.Set find_other_port,
       _s " : find another port when one is already used";
+      "-pid", Arg.String (fun s -> pid := s;
+      ),
+       _s ": directory for pid file (works only on non-Windows platforms)";
     ] @
       !more_args
       @
@@ -485,16 +489,6 @@ or getting a binary compiled with glibc %s.\n\n")
   lprintf_nl (_b "If you connect from a remote machine adjust allowed_ips");
   if Autoconf.system = "windows" && not !keep_console_output then lprintf (_b "%s") win_message;
 
-  if Autoconf.system <> "windows" then
-    (* Doesn't work on windows with mingw, because getpid always returns 948 *)
-    (
-      let oc = open_out "mlnet.pid" in
-      output_string oc ( Printf.sprintf "%s\n" ( string_of_int ( Unix.getpid () ) ) );
-      close_out oc;
-      CommonGlobals.do_at_exit (fun _ -> try Sys.remove "mlnet.pid" with _ -> ());
-      if !verbose then lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
-    );
-
   add_init_hook (fun _ ->
       if not !gui_included && ( !!start_gui || !!ask_for_gui ) then
       (try
@@ -593,8 +587,28 @@ for config files at the end. *)
   end;
   Unix32.external_start (CommonGlobals.version());
 
+(* Doesn't work on windows with mingw, because getpid always returns 948 *)
+  (
+    let pid_filename =
+      Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0))
+    in
+    let pid_file, s =
+      if Autoconf.system = "windows" then
+        pid_filename, "mlnet"
+      else
+        Filename.concat !pid pid_filename,
+	Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
+    in
+    let oc = open_out pid_file in
+    output_string oc s;
+    close_out oc;
+    CommonGlobals.do_at_exit (fun _ -> try Sys.remove pid_file with _ -> ());
+    if !verbose && Autoconf.system <> "windows" then
+      lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
+  );
+
 (* When a core is spawned from a gui, the only way to know the startup has
-succeeded is the string token "Core started". *)
+   succeeded is the string token "Core started". *)
   if not !keep_console_output then
     begin
       Pervasives.output_string Pervasives.stdout (Printf.sprintf "%sCore started\n" (log_time ()));

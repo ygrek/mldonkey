@@ -108,11 +108,18 @@ let _ =
   Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
 
-  if (String2.starts_with (Filename.basename Sys.argv.(0))  "mlnet")
-    then if Sys.file_exists "mlnet.pid"
+  if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
+    then
+      let pid_filename =
+        Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0)) in
+      if Sys.file_exists pid_filename || Sys.file_exists "config_files_space.tmp"
       then begin
-        lprintf_nl "PID file %s/mlnet.pid exists."
-        file_basedir;
+        if Sys.file_exists pid_filename then
+          lprintf_nl "PID file %s exists."
+	    (Filename.concat file_basedir pid_filename)
+	else
+	  if Sys.file_exists "config_files_space.tmp" then
+            lprintf_nl "%s/config_files_space.tmp exists." file_basedir;
         lprintf_nl "This means another MLDonkey process could still be working";
         lprintf_nl "in this directory. Please shut it down before starting";
         lprintf_nl "a new instance here. If you are sure no other process uses";
