@@ -13,6 +13,8 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/21: spiralvoice
 
+4453: Telnet: Print reject message for connecting client
+      if it is not allowed to connect
 4455: Improve make distclean
 4449: New parameter for pid file: -pid <dir>, small improvements for pid files
 4451: Correct the help of allowed_ips (gildor)
