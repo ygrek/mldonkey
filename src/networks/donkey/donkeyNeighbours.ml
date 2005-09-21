@@ -123,11 +123,12 @@ let rec compute_stats () =
                 lprintf_nl () "WARNING, source was not tested";
               raise Continue
             end
+      (* expected not used anymore
       | File_expected  ->
           if time + 1800 < last_time () then begin
               incr_propositions kind File_not_found;
               raise Continue
-            end
+            end *)
       | File_possible ->
           if !verbose then
             lprintf_nl () "WARNING, source was unknown";
@@ -140,7 +141,6 @@ let rec compute_stats () =
       | File_upload ->
           incr_propositions kind File_found;
           raise Continue
-      | File_unknown -> assert false
     with
     | Not_found ->
 (* For some reason, the request was forgotten. Forget it... *)

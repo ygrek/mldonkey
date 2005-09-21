@@ -13,6 +13,8 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/09/21: spiralvoice
 
+4454: commonSources: add sources from resumed files
+      (outside_queue sources) back to the queues (zet)
 4453: Telnet: Print reject message for connecting client
       if it is not allowed to connect,
       prepend "dllink" for all commands starting with "http://"

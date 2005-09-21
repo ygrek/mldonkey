@@ -106,9 +106,8 @@ let add_source file ip port serverIP serverPort =
                     raise Not_found
             in
             let s = DonkeySources.find_source_by_uid uid in
-            DonkeySources.set_request_result s file.file_sources File_new_source
+            DonkeySources.set_request_result s file.file_sources File_new_source;
         with Not_found -> ()
-
 
 let is_banned c sock = 
   c.client_banned <- Hashtbl.mem banned_ips (fst (peer_addr sock))
@@ -1226,7 +1225,7 @@ let client_to_client for_files c t sock =
                     Reliability_reliable | Reliability_neutral -> true
                   | Reliability_suspicious _ -> false) &&
                 List.exists (fun r ->
-                    r.DonkeySources.request_score > expected_score
+                    r.DonkeySources.request_score >= CommonSources.possible_score
                 ) s.DonkeySources.source_files then
                 sources := {
                   E.src_ip = ip;

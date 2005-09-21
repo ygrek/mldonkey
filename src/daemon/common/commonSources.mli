@@ -32,12 +32,11 @@ open CommonTypes
 type request_result = 
 | File_possible   (* we asked, but didn't know *)
 | File_not_found  (* we asked, the file is not there *)
-| File_expected   (* we asked, because it was announced *)
 | File_new_source (* we never asked, but we should *)
 | File_found      (* the file was found *)
 | File_chunk      (* the file has chunks we want *)
 | File_upload     (* we uploaded from this client *)
-| File_unknown    (* We don't know anything *)
+(* | File_unknown     We don't know anything *)
 
   (*
 val initial_new_source_score : int
@@ -48,7 +47,7 @@ val found_score : int
 val chunk_score : int
 val upload_score   : int
 *)
-val expected_score : int
+val possible_score : int
   
 module Make(M: 
 

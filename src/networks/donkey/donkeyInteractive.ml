@@ -1293,9 +1293,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
           ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
           ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ;
           ( "1", "srh ar br", "Source score", "Scr" ) ;
-          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ;
-          ( "1", "srh ar", "Last try (minutes)", "LT" ) ;
-          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ;
+          ( "1", "srh ar br", "Last ok", "LO" ) ;
+          ( "1", "srh ar", "Request score", "RS" ) ;
+          ( "1", "srh ar", "Request queue (see sources command)", "RQ" ) ;
+          ( "1", "srh ar br", "Request time (last connect) (# minutes ago)", "RT" ) ;
           ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ;
           ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ;
           ( "1", "srh ar", "Requests sent", "RS" ) ;
@@ -1331,6 +1332,17 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
     onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
             (client_num c) (client_num c);
 
+          let req_queue, req_score, req_min = 
+              try 
+                let r = DonkeySources.find_request s file.file_sources in
+                let q = r.DonkeySources.request_queue in
+                let s = r.DonkeySources.request_score in
+                let t = r.DonkeySources.request_time in
+                (Printf.sprintf "%d" q,
+                 Printf.sprintf "%d" s,
+                 if t = 0 then "N" else Printf.sprintf "%d" ((last_time() - t) / 60))
+              with _ -> ("?","?","?") in
+
           html_mods_td buf ([
             ("", "sr", (match c.client_download with
                   None -> Printf.sprintf ""
@@ -1364,9 +1376,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
             ("", "sr ar br", Printf.sprintf "%d" c.client_source.DonkeySources.source_score);
-            ("", "sr ar", (string_of_date (c.client_source.DonkeySources.source_age)));
-            ("", "sr ar", ("-"));
-            ("", "sr ar br", "-");
+            ("", "sr ar br", (string_of_date (c.client_source.DonkeySources.source_age)));
+            ("", "sr ar", req_score);
+            ("", "sr ar", req_queue);
+            ("", "sr ar br", req_min);
             ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
             ("", "sr ar br", (if c.client_banned then "T" else "F"));
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);

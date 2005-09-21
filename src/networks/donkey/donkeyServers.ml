@@ -127,8 +127,8 @@ let query_locations_timer () =
               List.iter (
                 fun file ->
                   if !verbose_location then
-                    lprintf_nl () "TCP: Query Location of %s [%s] [%Ld]"
-                      (file_best_name file) (Md4.to_string file.file_md4) (file_size file);
+                    lprintf_nl () "TCP: Query Location of %s [%s] [%Ld] [%s]"
+                      (file_best_name file) (Md4.to_string file.file_md4) (file_size file) (Ip.to_string (peer_ip sock));
                   let module M = DonkeyProtoServer in
                   let module E = M.QueryLocation in
                   server_send sock ( M.QueryLocationReq {

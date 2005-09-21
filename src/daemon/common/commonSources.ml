@@ -70,21 +70,20 @@ failure, we should not only change the request_time but also the
 type request_result =
 | File_possible   (* we asked, but didn't know *)
 | File_not_found  (* we asked, the file is not there *)
-| File_expected   (* we asked, because it was announced *)
+(* | File_expected    we asked, because it was announced *)
 | File_new_source (* we never asked, but we should *)
 | File_found      (* the file was found *)
 | File_chunk      (* the file has chunks we want *)
 | File_upload     (* we uploaded from this client *)
-| File_unknown    (* We don't know anything *)
+(* | File_unknown     We don't know anything *)
 
-let initial_new_source_score = 10 (* before the first request *)
-let new_source_score = 1 (* after the first request *)
 let not_found_score = -5
 let possible_score = -3
-let expected_score = 0
+let new_source_score = 1 (* after the first request *)
 let found_score = 3
 let chunk_score = 5
 let upload_score = 7
+let initial_new_source_score = 10 (* before the first request *)
 
 let outside_queue = -1
 let new_sources_queue = 0
@@ -342,19 +341,21 @@ let rec find_throttled_queue queue =
   else
       find_throttled_queue (queue + 1)
 
+let get_throttle_delay m q throttled =
+  if throttled then
+    (max 0    
+        (queue_period.(q) 
+          - (file_priority (m.manager_file ())) 
+          + Queue.length m.manager_sources.(connected_sources_queue))
+    )
+    else 0
+  
 (*
  * determine the number of (throttled) ready sources for a manager queue
  *)
 let count_file_ready_sources m q throttled =
   let ready_count = ref 0 in
-  let throttle_delay =
-      if throttled then
-        (max 0    (queue_period.(q) -
-          (file_priority (m.manager_file ())) +
-            Queue.length m.manager_sources.(connected_sources_queue)))
-      else
-        0
-  in
+  let throttle_delay = get_throttle_delay m q throttled in
   Queue.iter
     (fun ( time, s ) ->
       if time + !!min_reask_delay + throttle_delay < last_time () then
@@ -456,42 +457,52 @@ let rec find_max_overloaded q managers =
         let pos_to_string v =
           (if v > 0 then string_of_int(v) else "-")
         in
-        let html_tr_one () = Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>" in
-        let html_tr_two () = Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>" in
+
+        html_mods_cntr_init();
+        let mycntr = ref 1 in
+
+        let html_tr () = begin
+              mycntr := html_mods_cntr();
+              Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (!mycntr) 
+            end 
+        in
+        let html_tr_same () = Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (!mycntr) in
 
         (* Header *)
         if output_type = HTML then
           begin
+
+            let header = Printf.sprintf "File sources per manager queue (%d)" (List.length !file_sources_managers) in
+
             Printf.bprintf buf "\\<div class=results\\>";
             html_mods_table_header buf "sourcesTable" "sources" [];
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
               ("", "srh", "Statistics on sources ");
               ("", "srh", "@ " ^(Date.time_to_string_short timer));
-              ("", "srh", "File sources per manager queue"); ];
+              ("", "srh", header); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
 
             html_mods_table_header buf "sourcesTable" "sources" [
-              ( "0", "srh", "Filename", "Name" );
-              ( "0", "srh", "New sources", "New" );
-              ( "0", "srh", "Good sources", "Good" );
-              ( "0", "srh", "Ready sources", "Ready" );
-              ( "0", "srh", "Waiting sources", "Wait" );
-              ( "0", "srh", "Old sources 1", "Old1" );
-              ( "0", "srh", "Old sources 2", "Old2" );
-              ( "0", "srh", "Old sources 3", "Old3" );
-              ( "0", "srh", "Number of retries", "N..try" );
-              ( "0", "srh", "Connected sources", "Conn..ed" );
-              ( "0", "srh", "Connecting sources", "Conn..ing" );
-              ( "0", "srh", "Busy sources", "Busy" );
-              ( "0", "srh", "Total sources", "Total" ) ];
+              ( "0", "srh br", "New sources", Printf.sprintf "New(%d)" new_sources_queue );
+              ( "0", "srh br", "Good sources", Printf.sprintf "Good(%d)" good_sources_queue );
+              ( "0", "srh br", "Ready saved sources", Printf.sprintf "Ready(%d)" ready_saved_sources_queue);
+              ( "0", "srh br", "Waiting saved sources", Printf.sprintf "Wait(%d)" waiting_saved_sources_queue);
+              ( "0", "srh br", "Old sources 1", Printf.sprintf "Old1(%d)" old_sources1_queue );
+              ( "0", "srh br", "Old sources 2", Printf.sprintf "Old2(%d)" old_sources2_queue );
+              ( "0", "srh br", "Old sources 3", Printf.sprintf "Old3(%d)" old_sources3_queue );
+              ( "0", "srh br", "Do not try sources", Printf.sprintf "nTry(%d)" do_not_try_queue );
+              ( "0", "srh br", "Connected sources", Printf.sprintf "Conn(%d)" connected_sources_queue );
+              ( "0", "srh br", "Connecting sources", Printf.sprintf "Cing(%d)" connecting_sources_queue );
+              ( "0", "srh br", "Busy sources", Printf.sprintf "Busy(%d)" busy_sources_queue );
+              ( "0", "srh br", "Total sources", "All" );
+              ( "0", "srh br", "Filename", "Name" ); ];
           end
         else
           begin
             Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
-
-            Printf.bprintf buf "File sources per manager queue:\n";
-            Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
+            Printf.bprintf buf "File sources per manager queue(%d):\n" (List.length !file_sources_managers);
+            Printf.bprintf buf "new  good redy wait old1 old2 old3 ntry conn cing busy all\n";
                         (* "9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999"
                            11*5 chars
                            one row each: all,indirect,ready*)
@@ -534,7 +545,7 @@ let rec find_max_overloaded q managers =
                   let q = m.manager_sources.(i) in
                   if output_type = HTML then
                       slist := !slist @ [
-                        ("", "sr", (pos_to_string (Queue.length q))); ]
+                        ("", "sr ar br", (pos_to_string (Queue.length q))); ]
                   else
                       Printf.bprintf buf "%4d " (Queue.length q);
 
@@ -561,13 +572,13 @@ let rec find_max_overloaded q managers =
                   if output_type = HTML then
                     begin
                       sreadylist := !sreadylist @ [
-                        ("", "sr", (pos_to_string (Queue.length q))); ] ;
+                        ("", "sr ar br", (pos_to_string (Queue.length q))); ] ;
                       streadylist := !streadylist @ [
-                        ("", "sr", (pos_to_string (count_file_ready_sources m i true))); ] ;
+                        ("", "sr ar br", (pos_to_string (count_file_ready_sources m i true))); ] ;
                       sindirectlist := !sindirectlist @ [
-                        ("", "sr", (pos_to_string !nindirect)); ] ;
+                        ("", "sr ar br", (pos_to_string !nindirect)); ] ;
                       sinvalidlist := !sinvalidlist @ [
-                        ("", "sr", (pos_to_string !ninvalid)); ] ;
+                        ("", "sr ar br", (pos_to_string !ninvalid)); ] ;
                     end
                   else
                     begin
@@ -590,54 +601,61 @@ let rec find_max_overloaded q managers =
 
                 if output_type = HTML then
                   begin
-                    html_tr_one ();
-                    html_mods_td buf ([
-                      ("Filename", "sr", (shorten name !!max_name_len)); ]
-                    @ !slist @
-                    [ ("", "sr", Printf.sprintf "%d" m.manager_all_sources); ]);
+                    html_tr ();
+                    html_mods_td buf (
+                      !slist  
+                      @ [ ("", "sr ar br", Printf.sprintf "%d" m.manager_all_sources); ]
+                      @ [ ("Filename", "sr", (shorten name !!max_name_len)); ] );
+
                     Printf.bprintf buf "\\</tr\\>\n";
 
-                    html_tr_two ();
-                    html_mods_td buf ([
-                      ("", "sr", ((Printf.sprintf "ready with %d active"
-                        m.manager_active_sources) ^ (
-                        if file_state (m.manager_file ()) = FileDownloading && need_new_sources m then
+                    html_tr_same ();
+                    html_mods_td buf (
+                      !sreadylist
+                      @ [ ("", "sr ar br", Printf.sprintf "%d" !anready); ]
+                      @ [ ("", "sr", ((Printf.sprintf "ready with %d active" m.manager_active_sources) 
+                          ^ (if file_state (m.manager_file ()) = FileDownloading 
+                                && need_new_sources m then
                           begin
                             incr naneed;
                             " and needs sources"
                           end
-                        else
-                          ""
-                        ))); ]
-                      @ !sreadylist @
-                    [ ("", "sr", Printf.sprintf "%d" !anready); ]);
+                            else "")  
+                          )); 
+                        ] 
+                    );
                     Printf.bprintf buf "\\</tr\\>\n";
 
-                    html_tr_two ();
-                    html_mods_td buf ([
-                      ("", "sr", "throttled ready"); ]
-                    @ !streadylist @
-                    [ ("", "sr", Printf.sprintf "%d" !antready); ]);
+                    html_tr_same ();
+
+                    html_mods_td buf (
+                      !streadylist 
+                      @ [ ("", "sr ar br", Printf.sprintf "%d" !antready); ]
+                      @ [("", "sr", "throttled ready"); ]
+                    );
+
                     Printf.bprintf buf "\\</tr\\>\n";
 
                     (if !anindirect <> 0 then
                       begin
-                        html_tr_two ();
-                        html_mods_td buf ([
-                          ("", "sr", "indirect"); ]
-                        @ !sindirectlist @
-                        [ ("", "sr", Printf.sprintf "%d" !anindirect); ]);
+                        html_tr_same ();
+                        html_mods_td buf (
+                          !sindirectlist 
+                          @ [ ("", "sr ar br", Printf.sprintf "%d" !anindirect); ]
+                          @ [ ("", "sr", "indirect"); ]
+                        );
                         Printf.bprintf buf "\\</tr\\>\n";
                       end
                     );
 
                     (if !aninvalid <> 0 then
                       begin
-                        html_tr_two ();
-                        html_mods_td buf ([
-                          ("", "sr", "invalid"); ]
-                        @ !sinvalidlist @
-                        [ ("", "sr", Printf.sprintf "%d" !aninvalid); ]);
+                        html_tr_same ();
+                        html_mods_td buf (
+                          !sinvalidlist 
+                          @ [ ("", "sr ar br", Printf.sprintf "%d" !aninvalid); ]
+                          @ [ ("", "sr", "invalid"); ]
+                        );
                         Printf.bprintf buf "\\</tr\\>\n";
                       end
                     );
@@ -669,14 +687,14 @@ let rec find_max_overloaded q managers =
 
                 if output_type = HTML then
                   begin
-                    html_tr_one ();
-                    html_mods_td buf
-                      [
-                        ("", "sr", name);
-                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
-                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
-                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
-                        ("", "sr", ""); ("", "sr", ""); ("", "sr", "");
+                    html_tr ();
+
+                    html_mods_td buf [
+                        ("", "sr ar br", "-"); ("", "sr ar br", ""); ("", "sr ar br", "");
+                        ("", "sr ar br", ""); ("", "sr ar br", ""); ("", "sr ar br", "");
+                        ("", "sr ar br", ""); ("", "sr ar br", ""); ("", "sr ar br", "");
+                        ("", "sr ar br", ""); ("", "sr ar br", ""); ("", "sr ar br", "");
+                        ("", "sr br", (shorten name !!max_name_len));
                       ];
                     Printf.bprintf buf "\\</tr\\>\n";
                   end
@@ -693,7 +711,6 @@ let rec find_max_overloaded q managers =
             Printf.bprintf buf "\\</table\\>\\</div\\>\n";
 
             html_mods_table_header buf "sourcesTable" "sources" [
-              ( "0", "srh", "Type", "Type" );
               ( "0", "srh", "New sources", "New" );
               ( "0", "srh", "Good sources", "Good" );
               ( "0", "srh", "Ready sources", "Ready" );
@@ -701,14 +718,16 @@ let rec find_max_overloaded q managers =
               ( "0", "srh", "Old sources 1", "Old1" );
               ( "0", "srh", "Old sources 2", "Old2" );
               ( "0", "srh", "Old sources 3", "Old3" );
-              ( "0", "srh", "Number of retries", "N..try" );
-              ( "0", "srh", "Connected sources", "Conn..ed" );
-              ( "0", "srh", "Connecting sources", "Conn..ing" );
+              ( "0", "srh", "Do not try", "nTry" );
+              ( "0", "srh", "Connected sources", "Conn" );
+              ( "0", "srh", "Connecting sources", "Cing" );
               ( "0", "srh", "Busy sources", "Busy" );
-              ( "0", "srh", "Total sources", "Total" ) ];
+              ( "0", "srh", "Total sources", "All" );
+              ( "0", "srh", "Type", "Type" ); ];
+
           end
         else
-          Printf.bprintf buf "new  good rdy  wait old1 old2 old3 ntry conn cing busy all\n";
+          Printf.bprintf buf "new  good redy wait old1 old2 old3 ntry conn cing busy all\n";
 
         let slist = ref [] in
         let sreadylist = ref [] in
@@ -730,21 +749,21 @@ let rec find_max_overloaded q managers =
           if output_type = HTML then
             begin
               slist := !slist @ [
-                ("", "sr", (pos_to_string nsources_per_queue.(i))); ] ;
+                ("", "sr ar", (pos_to_string nsources_per_queue.(i))); ] ;
               sreadylist := !sreadylist @ [
-                ("", "sr", (pos_to_string nready_per_queue.(i))); ] ;
+                ("", "sr ar", (pos_to_string nready_per_queue.(i))); ] ;
               anready := !anready + nready_per_queue.(i);
               streadylist := !streadylist @ [
-                ("", "sr", (pos_to_string (count_ready_sources i true))); ] ;
+                ("", "sr ar", (pos_to_string (count_ready_sources i true))); ] ;
               antready := !antready + (count_ready_sources i true);
               sindirectlist := !sindirectlist @ [
-                ("", "sr", (pos_to_string nindirect_per_queue.(i))); ] ;
+                ("", "sr ar", (pos_to_string nindirect_per_queue.(i))); ] ;
               anindirect := !anindirect + nindirect_per_queue.(i);
               sinvalidlist := !sinvalidlist @ [
-                ("", "sr", (pos_to_string ninvalid_per_queue.(i))); ] ;
+                ("", "sr ar", (pos_to_string ninvalid_per_queue.(i))); ] ;
               aninvalid := !aninvalid + ninvalid_per_queue.(i);
               speriodlist := !speriodlist @ [
-                ("", "sr", (pos_to_string queue_period.(i))); ] ;
+                ("", "sr ar", (pos_to_string queue_period.(i))); ] ;
             end
           else
             begin
@@ -760,65 +779,80 @@ let rec find_max_overloaded q managers =
               speriod := Printf.sprintf "%s%4d " !speriod queue_period.(i);
             end;
         done; (* end Queues *)
+
         let nsources = ref 0 in
-        HS.iter (fun _ -> incr nsources) sources_by_uid;
+        let nroq = ref 0 in
+        HS.iter (fun s ->
+          incr nsources;
+          List.iter (fun r ->
+            if r.request_queue = outside_queue then
+              incr nroq;
+          ) s.source_files;
+        ) sources_by_uid;
+
         if output_type = HTML then
           begin
-            html_tr_one ();
-            html_mods_td buf ([
-              ("", "sr", Printf.sprintf "all source managers (%d by UID)" !nsources); ]
-            @ !slist @
-            [ ("", "sr", Printf.sprintf "%d" !nall); ]);
+            html_tr();
+            html_mods_td buf (
+              !slist 
+              @ [ ("", "sr ar", Printf.sprintf "%d" !nall); ]
+              @ [("", "sr", Printf.sprintf "all source managers (%d by UID) (%d ROQ)" !nsources !nroq);]
+            );
             Printf.bprintf buf "\\</tr\\>\n";
 
-            html_tr_two ();
-            html_mods_td buf ([
-              ("", "sr", Printf.sprintf "ready with %d active and %i need sources" !naact !naneed); ]
-            @ !sreadylist @
-            [ ("", "sr", Printf.sprintf "%d" !anready); ]);
+            html_tr ();
+            html_mods_td buf (
+              !sreadylist
+              @ [ ("", "sr ar", Printf.sprintf "%d" !anready); ]
+              @ [ ("", "sr", Printf.sprintf "ready with %d active and %i need sources" !naact !naneed); ]
+            );
             Printf.bprintf buf "\\</tr\\>\n";
 
-            html_tr_two ();
-            html_mods_td buf ([
-              ("", "sr", "throttled ready"); ]
-            @ !streadylist @
-            [ ("", "sr", Printf.sprintf "%d" !antready); ]);
+            html_tr();
+            html_mods_td buf (
+              !streadylist
+              @ [ ("", "sr ar", Printf.sprintf "%d" !antready); ]
+              @ [ ("", "sr", "throttled ready"); ]
+            );
             Printf.bprintf buf "\\</tr\\>\n";
 
             (if !anindirect <> 0 then
               begin
-                html_tr_two ();
-                html_mods_td buf ([
-                  ("", "sr", "indirect"); ]
-                @ !sindirectlist @
-                [ ("", "sr", Printf.sprintf "%d" !anindirect); ]);
+                html_tr ();
+                html_mods_td buf (
+                  !sindirectlist
+                  @ [ ("", "sr ar", Printf.sprintf "%d" !anindirect); ]
+                  @ [ ("", "sr", "indirect"); ]
+                );
                 Printf.bprintf buf "\\</tr\\>\n";
               end
             );
 
             (if !aninvalid <> 0 then
               begin
-                html_tr_two ();
-                html_mods_td buf ([
-                  ("", "sr", "invalid"); ]
-                @ !sinvalidlist @
-                [ ("", "sr", Printf.sprintf "%d" !aninvalid); ]);
+                html_tr ();
+                html_mods_td buf (
+                  !sinvalidlist
+                  @ [ ("", "sr ar", Printf.sprintf "%d" !aninvalid); ]
+                  @ [ ("", "sr", "invalid"); ]
+                );
                 Printf.bprintf buf "\\</tr\\>\n";
               end
             );
 
-            html_tr_two ();
-            html_mods_td buf ([
-              ("", "sr", "period"); ]
-            @ !speriodlist @
-            [ ("", "sr", "") ]);
+            html_tr ();
+            html_mods_td buf (
+              !speriodlist 
+              @ [ ("", "sr", "") ]
+              @ [("", "sr", "period"); ]
+            );
             Printf.bprintf buf "\\</tr\\>\n";
 
             Printf.bprintf buf "\\</table\\>\\</div\\>\n";
           end
         else
           begin
-            Printf.bprintf buf "%4d all source managers  %d by UID\n" !nall !nsources;
+            Printf.bprintf buf "%4d all source managers (%d by UID) (%d ROQ)\n" !nall !nsources !nroq;
             Printf.bprintf buf "%s%4d     ready  %d active  %i need sources\n" !sready !anready !naact !naneed;
             Printf.bprintf buf "%s%4d     throttled ready\n" !stready !antready;
             if !anindirect <> 0 then
@@ -898,8 +932,7 @@ let rec find_max_overloaded q managers =
                         else
                           good_sources_queue
                     else
-                      if r.request_score = found_score then
-                        (* found but, but obviously no chunk! *)
+                      if r.request_score >= new_source_score then 
                         old_sources1_queue
                       else
                         old_sources2_queue
@@ -925,7 +958,6 @@ let rec find_max_overloaded q managers =
               m.manager_active_sources <- m.manager_active_sources + 1;
             m.manager_all_sources <- m.manager_all_sources + 1;
             r.request_queue <- queue
-
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1254,6 +1286,8 @@ let rec find_max_overloaded q managers =
                 source_num = n;
                 source_files = [];
               }  in
+
+            
             HS.add sources_by_uid s;
             H.add sources_by_num s;
             s
@@ -1285,7 +1319,6 @@ let rec find_max_overloaded q managers =
       let find_request s file =
         iter_has_request s.source_files file
 
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         find_request_result                           *)
@@ -1295,13 +1328,11 @@ let rec find_max_overloaded q managers =
       let find_request_result s file =
         let r = find_request s file in
         let score =  r.request_score in
-        if score = initial_new_source_score then File_new_source else
-        if score = not_found_score then File_not_found else
-        if score < not_found_score then File_possible else
-        if score <= new_source_score then File_expected else
+        if score <= not_found_score then File_not_found else
+        if score <= possible_score then File_possible else
         if score <= found_score then File_found else
         if score <= chunk_score then File_chunk else
-        if score <= upload_score then File_upload else
+        if score <= initial_new_source_score then File_new_source else
           assert false
 
 (*************************************************************************)
@@ -1349,14 +1380,21 @@ let rec find_max_overloaded q managers =
       let rec set_request_score s file score =
         try
           let r = find_request s file in
-          if not (
+          if (not (
 (* If a request has been done in the last half-hour, and the source is
-  announced as new, just forget it. *)
+  announced as new, just forget it.  : why half-hour? - trying min_reask_delay *)
               score = initial_new_source_score &&
-              r.request_time + 1800 > last_time ()
-            ) then
+              r.request_time + !!min_reask_delay > last_time ()
+            )) 
+(* If a file has been paused, and resumed, it is flagged outside_queue / not_found_score in 
+  clean_sources, but really should be re-added to the queues as soon as possible (while retaining 
+  its request_time) or it is skipped for far too long (if it is even found again) - reschedule 
+  now puts new_source_score in old1 *)
+            || (score = initial_new_source_score 
+                && r.request_queue = outside_queue) then
             let score =
-              if score = initial_new_source_score then new_source_score
+              if score = initial_new_source_score 
+                then new_source_score
               else score
             in
             if r.request_queue < connected_sources_queue then
@@ -1394,8 +1432,7 @@ we will probably query for the other file almost immediatly. *)
           | File_chunk -> chunk_score
           | File_upload -> upload_score
           | File_new_source -> initial_new_source_score
-          | File_possible -> possible_score + 1
-          | _ -> assert false)
+          | File_possible -> possible_score + 1)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1636,16 +1673,8 @@ we will probably query for the other file almost immediatly. *)
               let q = m.manager_sources.(queue) in
               if Queue.length q > 0 then
                 let (request_time, s) = Queue.head q in
-                (* TODO: merge this with throttle_delay from count_file_read_sources *)
-                let throttle_delay =
-                  if queue_period.(queue) > 0 && nsource > 1 then
-                      (max 0 (queue_period.(queue) -
-                        file_priority (m.manager_file ()) +
-                          Queue.length m.manager_sources.(connected_sources_queue) )
-                      )
-                  else
-                      0
-                in
+                let throttled = queue_period.(queue) > 0 && nsource > 1 in
+                let throttle_delay = get_throttle_delay m queue throttled in
                 if request_time + !!min_reask_delay + throttle_delay < last_time () then
                   begin
                     if !verbose_sources > 1 then
@@ -1778,21 +1807,15 @@ we will probably query for the other file almost immediatly. *)
                       let f = m.manager_file () in
                       if file_state f = FileDownloading then
                         begin
-                          let q = m.manager_sources.(do_not_try_queue) in
+                          let remove_old q t = begin
                           if Queue.length q > 0 then
                             let (request_time, s) = Queue.head q in
-                            if request_time + 14400  < last_time () then
+                              if request_time + t  < last_time () then
                               remove_from_queue s (find_request s m);
-                          let q = m.manager_sources.(old_sources3_queue) in
-                          if Queue.length q > 0 then
-                            let (request_time, s) = Queue.head q in
-                            if request_time + 2400 < last_time () then
-                              remove_from_queue s (find_request s m);
-                          let q = m.manager_sources.(old_sources2_queue) in
-                          if Queue.length q > 0 then
-                            let (request_time, s) = Queue.head q in
-                              if request_time + 1200 < last_time () then
-                                remove_from_queue s (find_request s m)
+                          end in
+                          remove_old m.manager_sources.(do_not_try_queue) 14400;
+                          remove_old m.manager_sources.(old_sources3_queue) 2400;
+                          remove_old m.manager_sources.(old_sources2_queue) 1200;
                         end
                     ) !file_sources_managers;
                   (* more power to the "runaway" (most overloaded) file, pick extra sources *)
@@ -1899,6 +1922,25 @@ we will probably query for the other file almost immediatly. *)
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         clean_sources helper                          *)
+(*                                                                       *)
+(*************************************************************************)
+let put_all_outside_queue m q queue =
+  let _, s = Queue.take q in
+  m.manager_all_sources <- m.manager_all_sources - 1;
+  if active_queue queue then
+    m.manager_active_sources <- m.manager_active_sources - 1;
+  List.iter
+    (fun r ->
+      if r.request_file == m then
+      begin
+        r.request_queue <- outside_queue;
+        set_score_part r not_found_score
+      end
+  ) s.source_files
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         clean_sources                                 *)
 (*                                                                       *)
 (*************************************************************************)
@@ -1918,32 +1960,17 @@ we will probably query for the other file almost immediatly. *)
                         && queue <> good_sources_queue
                       then
                       begin
-                        let _, s = Queue.take q in
-                        m.manager_all_sources <- m.manager_all_sources - 1;
-                        if active_queue queue then
-                          m.manager_active_sources <- m.manager_active_sources - 1;
-                        List.iter
-                          (fun r ->
-                            if r.request_file == m then
-                              begin
-                                r.request_queue <- outside_queue;
-                                set_score_part r not_found_score
-                              end
-                          ) s.source_files;
+                        put_all_outside_queue m q queue;
                         iter (nsources-1) q queue
                       end
                     else
-                      if queue = old_sources1_queue then
-                        iter nsources m.manager_sources.(do_not_try_queue) (do_not_try_queue)
-                      else
-                        if queue = do_not_try_queue then
-                          iter nsources m.manager_sources.(new_sources_queue) (new_sources_queue)
-                        else
-                          if queue = new_sources_queue then
-                            iter nsources m.manager_sources.(waiting_saved_sources_queue) (waiting_saved_sources_queue)
-                          else
-                            if queue > good_sources_queue then
-                              iter nsources m.manager_sources.(queue-1) (queue-1)
+                      let do_iter q = iter nsources m.manager_sources.(q) q in
+  
+                      if queue = old_sources1_queue then do_iter do_not_try_queue else
+                      if queue = do_not_try_queue then do_iter new_sources_queue else
+                      if queue = new_sources_queue then do_iter waiting_saved_sources_queue else
+                      if queue > good_sources_queue then do_iter (queue-1)
+
                 in
                 iter (nsources - max_sources_per_file) (m.manager_sources.(old_sources3_queue)) old_sources3_queue
 
@@ -1951,18 +1978,7 @@ we will probably query for the other file almost immediatly. *)
                 let rec iter q queue =
                   if Queue.length q > 0 then
                     begin
-                      let _, s = Queue.take q in
-                      m.manager_all_sources <- m.manager_all_sources - 1;
-                      if active_queue queue then
-                        m.manager_active_sources <- m.manager_active_sources - 1;
-                      List.iter
-                        (fun r ->
-                          if r.request_file == m then
-                            begin
-                              r.request_queue <- outside_queue;
-                              set_score_part r not_found_score
-                            end
-                        ) s.source_files;
+                      put_all_outside_queue m q queue;
                       iter q queue
                     end
                   else
@@ -2071,7 +2087,7 @@ connected if needed *)
           in
           iter max_sources false;
           if !verbose_sources > 1 then
-            lprintf "   done\n";
+            lprintf "   done connect_sources\n";
         with Exit -> ()
 
 
@@ -2145,7 +2161,7 @@ connected if needed *)
                 done
             ) !file_sources_managers;
 
-            Printf.bprintf buf  "\nFor all managers:\n";
+            Printf.bprintf buf  "\nFor all managers (%d):\n" (List.length !file_sources_managers);
             for i = 0 to nqueues - 1 do
               Printf.bprintf buf "   Queue[%s]: %d entries (%d ready)\n"
                 queue_name.(i) nsources_per_queue.(i) nready_per_queue.(i);
