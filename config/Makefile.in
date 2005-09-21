@@ -1684,11 +1684,12 @@ releaseclean: clean moreclean
 	rm -rf patches/build
 	rm -f config/Makefile.config
 	rm -f config/mldonkey.rc
-	rm -f config/config.cache config/config.log config/config.status
+	rm -f config/config.cache config/config.log config/config.status config/trying
 	rm -f config/config.h
 	rm -f config/confdefs.h
 	rm -rf config/autom4te.cache/
 	rm -f packages/rpm/*.spec
+	rm -f packages/rpm/Makefile
 	rm -f packages/windows/mlnet.nsi
 	rm -f src/daemon/common/commonGraphics.ml
 	rm -f src/utils/lib/autoconf.ml
@@ -1719,7 +1720,6 @@ distclean: releaseclean
 maintainerclean: distclean
 	echo rm -f $(GUI_CODE)/gui.ml $(GUI_CODE)/gui_zog.ml
 	rm -f config/configure
-	rm -f packages/rpm/Makefile
 	rm -f Makefile
 
 LOCAL=patches/build
