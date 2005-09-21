@@ -40,6 +40,11 @@ let lprintf_nl () =
   lprintf "%s[dCon] "
     (log_time ()); lprintf_nl2
 
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf
+
 let rec dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
       if escaped then
@@ -95,7 +100,8 @@ let eval auth cmd o =
   let buf = o.conn_buf in
   let cmd = Url.decode cmd in
   let cmd =
-    if String2.check_prefix cmd "ed2k://" then "dllink " ^ cmd
+    if String2.check_prefix cmd "ed2k://" ||
+       String2.check_prefix cmd "http://" then "dllink " ^ cmd
     else if String2.check_prefix cmd "fha://" then "ovlink " ^ cmd
     else cmd in
   let l = String2.tokens cmd in
@@ -439,7 +445,7 @@ type telnet_conn = {
 
 let iac_will_naws = "\255\253\031"
 
-let user_reader o telnet sock nread  =
+let user_reader o telnet sock nread =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -561,7 +567,6 @@ let telnet_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip !!allowed_ips then
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token
           "telnet connection"
@@ -581,6 +586,7 @@ let telnet_handler t event =
             conn_width = 80;
             conn_height = 0;
           } in
+      if Ip.matches from_ip !!allowed_ips then begin
         TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
@@ -590,16 +596,24 @@ let telnet_handler t event =
         TcpBufferedSocket.write_string sock iac_will_naws;
 
         before_telnet_output o sock;
-        TcpBufferedSocket.write_string sock (text_of_html !!motd_html);
+        TcpBufferedSocket.write_string sock
+	   (Printf.sprintf "Welcome to MLDonkey %s" Autoconf.current_version);
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
             "\n$bWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
+	end
       else begin
-        lprintf_nl () "Telnet connection from %s rejected (see allowed_ips setting)"
-          (Ip.to_string from_ip);
-        Unix.close s
+        before_telnet_output o sock;
+	let reject_message =
+	  Printf.sprintf "Telnet connection from %s rejected (see allowed_ips setting)\n"
+	    (Ip.to_string from_ip)
+	in
+	TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
+	shutdown sock Closed_connect_failed;
+	lprintf_n () "%s" reject_message;
+	Unix.close s
       end
 
   | _ -> ()

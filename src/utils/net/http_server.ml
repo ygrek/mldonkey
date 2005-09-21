@@ -810,7 +810,7 @@ let handler config t event =
         (match Ip_set.match_ip !Ip_set.bl from_ip with
            None -> true
          | Some br ->
-             lprintf "[HTTPSRV]:  %s:%d blocked: %s\n"
+             lprintf "[HTTPSRV] %s:%d blocked: %s\n"
                (Ip.to_string from_ip) from_port br.blocking_description;
              false) then
         let token = create_token unlimited_connection_manager in
