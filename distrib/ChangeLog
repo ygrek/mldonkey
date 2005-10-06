@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
+2005/10/06: spiralvoice
+
+4450: Remove swarmer data when cancelling download
+
 2005/09/21: spiralvoice
 
 4454: commonSources: add sources from resumed files
