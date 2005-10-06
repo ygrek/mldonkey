@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/10/06: spiralvoice
 
+4457: BeOS: Compile patch for CryptoPP (Michael Lotz)
 4460: Added search for .torrents via IsoHunt (WingMaster)
 4456: Fix shrink effect in vd for Opera
 

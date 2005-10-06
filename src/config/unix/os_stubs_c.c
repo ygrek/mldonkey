@@ -37,7 +37,7 @@
 #include <string.h>
 #endif
 
-#if !defined(__MINGW32__)
+#if !defined(__MINGW32__) && !defined(__BEOS__)
 #include <sys/mman.h>
 #endif
 

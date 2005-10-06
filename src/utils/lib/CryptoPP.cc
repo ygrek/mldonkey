@@ -297,7 +297,7 @@ bool HashTransformation::TruncatedVerify(const byte *digestIn, unsigned int dige
 void HashTransformation::ThrowIfInvalidTruncatedSize(unsigned int size) const
 {
 	if (size > DigestSize())
-		throw InvalidArgument("HashTransformation: can't truncate a " + IntToString(DigestSize()) + " byte digest to " + IntToString(size) + " bytes");
+		throw InvalidArgument("HashTransformation: can't truncate a " + IntToString(DigestSize(), 10) + " byte digest to " + IntToString(size, 10) + " bytes");
 }
 
 unsigned int BufferedTransformation::GetMaxWaitObjectCount() const

@@ -284,7 +284,7 @@ NAMESPACE_END
 #define CRYPTOPP_WIN32_AVAILABLE
 #endif
 
-#if defined(__unix__) || defined(__MACH__) || defined(__NetBSD__)
+#if defined(__unix__) || defined(__MACH__) || defined(__NetBSD__) || defined(__BEOS__)
 #define CRYPTOPP_UNIX_AVAILABLE
 #endif
 
@@ -3773,7 +3773,7 @@ public:
 class CRYPTOPP_DLL InvalidKeyLength : public InvalidArgument
 {
 public:
-	explicit InvalidKeyLength(const std::string &algorithm, unsigned int length) : InvalidArgument(algorithm + ": " + IntToString(length) + " is not a valid key length") {}
+	explicit InvalidKeyLength(const std::string &algorithm, unsigned int length) : InvalidArgument(algorithm + ": " + IntToString(length, 10) + " is not a valid key length") {}
 };
 
 //! _
