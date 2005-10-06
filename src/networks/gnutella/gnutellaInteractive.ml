@@ -272,8 +272,14 @@ module P = GuiTypes
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->
+      Int64Swarmer.remove_swarmer file.file_swarmer;
+      file.file_swarmer <- None;
       remove_file file;
       GnutellaProto.cancel_recover_files file
+  );
+  file_ops.op_file_commit <- (fun file new_name ->
+      Int64Swarmer.remove_swarmer file.file_swarmer;
+      file.file_swarmer <- None;
   );
   file_ops.op_file_info <- (fun file ->
       {

@@ -68,6 +68,7 @@ module P = GuiTypes
 
 let _ =
   file_ops.op_file_cancel <- (fun file ->
+      Int64Swarmer.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
       remove_file file;
   );

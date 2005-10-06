@@ -100,6 +100,7 @@ module type Maker = functor (M : CommonEnv) -> sig
   and block
   
   val create_swarmer : string -> int64 -> int64 -> swarmer
+  val remove_swarmer : t option -> unit
   val create : swarmer -> M.CommonTypes.file -> int64 -> t
     
   val set_verifier : t -> verification -> unit

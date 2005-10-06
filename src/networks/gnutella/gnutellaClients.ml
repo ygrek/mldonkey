@@ -90,8 +90,8 @@ let clean_sources () =
 let download_finished file = 
   if List.memq file !current_files then begin
       file_completed (as_file file);
+      Int64Swarmer.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
-      
 (* TODO: maybe this remove file may have a bad effect on sharing *)
       GnutellaGlobals.remove_file file;
       old_files =:= (file.file_name, file_size file) :: !!old_files;

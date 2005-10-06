@@ -3006,6 +3006,19 @@ let has_secondaries t =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         Remove swarmer                                *)
+(*                                                                       *)
+(*************************************************************************)
+
+let remove_swarmer file_swarmer =
+  match file_swarmer with 
+    None -> () 
+  | Some sw -> if not (has_secondaries sw)
+                then HS.remove swarmers_by_name sw.t_s
+                else lprintf_nl () "Tried to remove swarmer with secondaries"
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         subfiles                                      *)
 (*                                                                       *)
 (*************************************************************************)

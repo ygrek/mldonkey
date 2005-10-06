@@ -337,6 +337,7 @@ let download_finished file =
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
+        Int64Swarmer.remove_swarmer file.file_swarmer;
         file.file_swarmer <- None;
         (* At this point, the file state is FileDownloaded. We should not remove
            the file, because we continue to upload. *)

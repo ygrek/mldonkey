@@ -135,6 +135,7 @@ let unshare_file file =
 let declare_completed_file file = 
   DonkeyShare.remember_shared_info file (file_disk_name file);
   file_completed (as_file file);
+  Int64Swarmer.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   
   

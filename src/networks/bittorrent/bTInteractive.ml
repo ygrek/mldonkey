@@ -88,6 +88,8 @@ let op_file_debug file =
   Buffer.contents buf
 
 let op_file_commit file new_name =
+  Int64Swarmer.remove_swarmer file.file_swarmer;
+  file.file_swarmer <- None;
   if file_state file <> FileShared then
     begin
       if not (List.mem (file.file_name, file_size file) !!old_files) then
@@ -332,11 +334,12 @@ let op_file_check file =
       Int64Swarmer.verify_all_chunks swarmer true
 
 let op_file_cancel file =
+  Int64Swarmer.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   BTClients.file_stop file;
   remove_file file;
   BTClients.disconnect_clients file;
-  Sys.remove file.file_torrent_diskname
+  if Sys.file_exists file.file_torrent_diskname then Sys.remove file.file_torrent_diskname
 
 let op_ft_cancel ft =
   Hashtbl.remove ft_by_num ft.ft_id

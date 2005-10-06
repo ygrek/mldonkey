@@ -943,6 +943,8 @@ DonkeySources.recompute_ready_sources ()        *)
 
   file_ops.op_file_commit <- (fun file new_name ->
 
+      Int64Swarmer.remove_swarmer file.file_swarmer;
+      file.file_swarmer <- None;
 (*      DonkeyStats.save_download_history file; *)
 
       if !!keep_downloaded_in_old_files
@@ -1418,6 +1420,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
   );
   file_ops.op_file_cancel <- (fun file ->
+      Int64Swarmer.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
