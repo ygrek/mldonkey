@@ -130,6 +130,14 @@ let op_file_print_html file buf =
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
+    ("Search for other possible Torrent Files", "sr br", "Torrent Srch");
+    ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://isohunt.com/%s\\\"\\>IsoHunt\\</a\\>"
+         (file.file_name)
+      )
+ ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
     ("Tracker(s)", "sr br", "Tracker(s)");
     ("", "sr",
       (let tracker_string = ref "" in
