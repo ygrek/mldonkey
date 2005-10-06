@@ -54,6 +54,9 @@ let is_directory filename =
 let is_link filename =
   try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
 
+let chmod f o = 
+  try Unix.chmod f o with e -> lprintf "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
+
 let rec safe_mkdir dir =  
   if Sys.file_exists dir then begin
       if not (is_directory dir) then 

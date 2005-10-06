@@ -238,10 +238,7 @@ while (my $uri = shift @ARGV) {
     "admin" ""
   in
   File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
-  try
-  Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
-  with
-  e -> ()
+  Unix2.chmod (Filename.concat file_basedir "mldonkey_submit") 0o755
 
 let load_config () =
 

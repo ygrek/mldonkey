@@ -149,7 +149,7 @@ module FDCache = struct
       close t;
       (let d = (Filename.dirname (Filename.concat f file)) in
         Unix2.safe_mkdir d;
-	Unix.chmod d (Misc.int_of_octal_string !create_dir_mask);
+  Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
 	Unix2.can_write_to_directory d);
       Unix2.rename t.filename (Filename.concat f file);
       destroy t

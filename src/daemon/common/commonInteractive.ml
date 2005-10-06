@@ -126,7 +126,7 @@ let file_commit file =
         (try
             set_file_disk_name file new_name;
             if Unix2.is_directory new_name then
-              Unix.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
+              Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in
             Unix32.destroy (file_fd file);
             if !verbose_files then lprintf_nl "[cInt] file_commit: destroyed";

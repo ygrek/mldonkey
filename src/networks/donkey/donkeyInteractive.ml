@@ -219,7 +219,7 @@ let really_query_download filenames size md4 location old_file absents =
               lprintf_nl () "Renaming edonkey temp-file from %s to %s"
                   filename file_diskname;
               Unix2.rename filename file_diskname;
-              Unix.chmod file_diskname 0o644;
+              Unix2.chmod file_diskname 0o644;
               with e ->
                 lprintf_nl () "Could not rename %s to %s: exception %s"
                   filename file_diskname (Printexc2.to_string e);
