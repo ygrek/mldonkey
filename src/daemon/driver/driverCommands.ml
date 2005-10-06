@@ -679,6 +679,22 @@ formID.msgText.value=\\\"\\\";
           _s "Only 'admin' is allowed to do that"
     ), ":\t\t\t\t\tprint users";
 
+    "whoami", Arg_none (fun o ->
+        let buf = o.conn_buf in
+	let whoami = o.conn_user.ui_user_name in
+        if o.conn_output = HTML then
+          begin
+            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "versionTable" "results" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [ ("", "srh", whoami); ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+          end
+        else
+            Printf.bprintf buf "%s" whoami;
+        ""
+    ), ":\t\t\t\tPrint logged-in user name";
+
     "calendar_add", Arg_two (fun hour action o ->
         calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
         :: !!calendar;
