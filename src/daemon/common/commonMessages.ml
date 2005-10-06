@@ -377,7 +377,7 @@ td.big { border-top: @color_general_border@ solid 1px; border-left: @color_gener
 td.pr { border-right: @color_general_border@ solid 1px; }
 .bigbutton { color: @color_general_text@; font-family: Verdana, serif; font-size: 10px; background: @color_background@; border: @color_background@ solid 1px; cursor: pointer; }
 .headbutton {
- width: 100%; font-family: Verdana, serif; font-size: 10px; border: @color_table_header_background@ solid 1px; background: @color_table_header_background@;
+ font-family: Verdana, serif; font-size: 10px; border: @color_table_header_background@ solid 1px; background: @color_table_header_background@;
  padding-left: 5px; padding-right: 5px; cursor: pointer; }
 tr.dl-1 { background: @color_dl1_back@; }
 tr.dl-2 { background: @color_dl2_back@; }
