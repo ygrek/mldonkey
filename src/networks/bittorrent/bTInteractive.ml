@@ -245,7 +245,17 @@ let op_file_print_html file buf =
           html_mods_td buf [
            ("Tracker key", "sr br", "Tracker key");
            ("", "sr", Printf.sprintf "%s" t.tracker_key) ]
-        end
+        end;
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+        html_mods_td buf [
+           ("Files:", "sr br", "Files:");
+           ("", "sr", "") ];
+      List.iter (fun (filename, size) ->
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf [
+           ("", "sr br", "");
+           ("", "sr", (Printf.sprintf "%s (%Ld bytes)" filename size)) ])
+      file.file_files
 
 let op_file_print_sources_html file buf =
 
