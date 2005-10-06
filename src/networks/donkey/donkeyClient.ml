@@ -190,7 +190,7 @@ let _ =
   let client_enter_upload_queue c =
     do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
         set_rtimeout sock !!upload_timeout;
-	c.client_connect_time <- last_time ();
+        c.client_connect_time <- last_time ();
         client_send c (
           let module M = DonkeyProtoClient in
           let module Q = M.AvailableSlot in
@@ -400,8 +400,7 @@ let find_sources_in_groups c md4 =
           match c.client_kind with 
             Indirect_address _ | Invalid_address _ -> ()
           | Direct_address (ip, port) ->
-(* send this client as a source for the file to
-		     all mldonkey clients in the group. add client to group *)
+(* send this client as a source for the file to all mldonkey clients in the group. add client to group *)
               
               UdpClientMap.iter (fun _ uc ->
                   if uc.udp_client_can_receive then begin
@@ -622,7 +621,24 @@ let identify_client_mod_brand c tags =
    end
   end
 
-let identify_client_compat_brand num old_brand =
+let update_emule_release c =
+  let client_version = c.client_emule_proto.emule_version land 0x00ffffff in
+  let brand = c.client_brand in
+
+  let maj = (client_version lsr 17) land 0x7f in
+  let min =  (client_version lsr 10) land 0x7f in
+  let up = (client_version lsr 7) land 0x07 in
+
+  c.client_emule_proto.emule_release <- (
+    if maj = 0 && min = 0 && up = 0 then 
+      "" 
+    else if brand = Brand_newemule || brand = Brand_emuleplus then
+      Printf.sprintf "%d.%d%c" maj min (Char.chr ((int_of_char 'a') + up))
+    else 
+      Printf.sprintf "%d.%d.%d" maj min up 
+  )
+
+let parse_compatible_client num old_brand =
     match num with
       0 -> old_brand
     | 1 -> Brand_cdonkey
@@ -636,29 +652,15 @@ let identify_client_compat_brand num old_brand =
     | 20 -> Brand_lphant
     | _ -> lprintf_nl () "unknown compatibleclient %d (please report to dev team)" num; Brand_unknown
 
-let identify_emule_release num brand =
-     let s = Misc.dec2bin num 32 in
-     let block2 = (String.sub s 8 7) in
-     let block3 = (String.sub s 15 7) in
-     let block4 = (String.sub s 22 3) in
-     let rel = Printf.sprintf "%s.%s%s"
-        (string_of_int(Misc.bin2dec (int_of_string block2)))
-        (string_of_int(Misc.bin2dec (int_of_string block3)))
-        (if brand = Brand_newemule || brand = Brand_emuleplus then
-	   begin
-	     match Misc.bin2dec (int_of_string block4) with
-	       0 -> "a"
-	     | 1 -> "b"
-	     | 2 -> "c"
-	     | 3 -> "d"
-	     | 4 -> "e"
-	     | 5 -> "f"
-	     | 6 -> "g"
-	     | _ -> ""
-	   end
-	 else ("." ^ (string_of_int(Misc.bin2dec (int_of_string block4)))))
-     in 
-     if rel = "0.0.0" then "" else rel
+let parse_mod_version s c =
+  let rec iter i len =
+    if i < len then
+      let sub = fst mod_array.(i) in
+      if (String2.subcontains s sub) then
+         c.client_mod_brand <- snd mod_array.(i)
+      else iter (i+1) len
+  in
+   iter 0 (Array.length mod_array)
 
 let update_client_from_tags c tags =
   List.iter (fun tag ->
@@ -668,80 +670,69 @@ let update_client_from_tags c tags =
       | Field_UNKNOWN "emule_udpports" -> 
           for_two_int16_tag tag (fun ed2k_port kad_port ->
 (* Kademlia: we should use this client to bootstrap Kademlia *)
-              if kad_port <> 0 && !!enable_kademlia then
-                DonkeyProtoKademlia.Kademlia.bootstrap 
-                  c.client_ip kad_port)
+            if kad_port <> 0 && !!enable_kademlia then
+              DonkeyProtoKademlia.Kademlia.bootstrap 
+                c.client_ip kad_port
+          )
       | Field_UNKNOWN "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
-              DonkeyProtoClient.update_emule_proto_from_miscoptions1
-              c.client_emule_proto i)
+            DonkeyProtoClient.update_emule_proto_from_miscoptions1
+            c.client_emule_proto i
+          )
       | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_version <- i;
-	      let num = (int_of_string("0b" ^ String.sub (Misc.dec2bin i 32) 0 8)) in
-	        let brand = 
-		  identify_client_compat_brand num c.client_brand
-		in c.client_brand <- brand;
-		if brand = Brand_unknown then
-		  lprintf_nl () "Brand_unknown %s" (full_client_identifier c);
-              c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
+            c.client_emule_proto.emule_version <- i;
+            let compatibleclient = (i lsr 24) in
+            c.client_brand <- parse_compatible_client compatibleclient c.client_brand;
+            update_emule_release c;
+              
+            if c.client_brand = Brand_unknown then
+              lprintf_nl () "[emule_version] Brand_unknown %s" (full_client_identifier c);
+          )
       | Field_UNKNOWN "mod_version" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
-            begin
-            let rec iter i len =
-              if i < len then
-                let sub = fst mod_array.(i) in
-                  if (String2.subcontains s sub) then
-                    c.client_mod_brand <- snd mod_array.(i)
-                  else iter (i+1) len
-            in
-              iter 0 (Array.length mod_array)
-           end
+          parse_mod_version s c
       | _ -> ()
+
   ) tags
     
 let update_emule_proto_from_tags c tags =
   List.iter (fun tag ->
       match tag.tag_name with
         Field_UNKNOWN "compatibleclient" ->
-	  for_int_tag tag (fun i ->
-	    let brand =
-	      identify_client_compat_brand i c.client_brand
-	    in c.client_brand <- brand;
-	    if brand = Brand_unknown then
-	      lprintf_nl () "Brand_unknown %s" (full_client_identifier c);
-	    c.client_emule_proto.emule_release <- (identify_emule_release i c.client_brand))
+          for_int_tag tag (fun i ->
+            c.client_brand <- parse_compatible_client i c.client_brand;
+            if c.client_brand = Brand_unknown then
+              lprintf_nl () "[compatibleclient] Brand_unknown %s" (full_client_identifier c);
+          )
       | Field_UNKNOWN "compression" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_compression <- i)
+            c.client_emule_proto.emule_compression <- i
+          )
       | Field_UNKNOWN "udpver" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_udpver <- i)
+            c.client_emule_proto.emule_udpver <- i
+          )
       | Field_UNKNOWN "udpport" -> ()
       | Field_UNKNOWN "sourceexchange" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_sourceexchange <- i) 
+            c.client_emule_proto.emule_sourceexchange <- i
+          ) 
       | Field_UNKNOWN "comments" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_comments <- i)
+            c.client_emule_proto.emule_comments <- i
+          )
       | Field_UNKNOWN "extendedrequest" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_extendedrequest <- i)
+            c.client_emule_proto.emule_extendedrequest <- i
+          )
       | Field_UNKNOWN "features" ->
           for_int_tag tag (fun i ->
-              c.client_emule_proto.emule_secident <- i land 0x3)
+            c.client_emule_proto.emule_secident <- i land 0x3
+          )
       | Field_UNKNOWN "mod_version" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
-            begin
-            let rec iter i len =
-              if i < len then
-                let sub = fst mod_array.(i) in
-                  if (String2.subcontains s sub) then
-                    c.client_mod_brand <- snd mod_array.(i)
-                  else iter (i+1) len
-            in
-              iter 0 (Array.length mod_array)
-           end
+          parse_mod_version s c;
       | _ -> 
           if !verbose_msg_clients then
             lprintf_nl () "Unknown Emule tag: [%s]" (escaped_string_of_field tag)
@@ -803,8 +794,8 @@ let hash x = hash_param 10 100 x
 
 let shared_of_file file =
   match file.file_shared with
-    | None	-> None
-    | Some sh	-> Some (as_shared sh)
+    | None  -> None
+    | Some sh -> Some (as_shared sh)
 
 let query_view_files c =
   if client_browsed_tag land client_type c <> 0 then begin
@@ -1044,12 +1035,11 @@ let verify_ident c =
   let module M = DonkeyProtoClient in
   let module E = M.EmuleSecIdentStateReq in
   client_send c (M.EmuleSecIdentStateReq {
-          E.state = state;
-          E.challenge = challenge;
-   })
+    E.state = state;
+    E.challenge = challenge;
+  })
 
 let send_public_key c =
-    
   if !verbose_msg_clients then begin
     lprintf_nl () "%s [send_public_key] [keyLen: %d]" (full_client_identifier c) (String.length !client_public_key);
   end;
@@ -1071,7 +1061,9 @@ let get_server_ip_port () =
 
 let process_mule_info c t =
   update_emule_proto_from_tags c t;
-  if (c.client_md4 <> Md4.null) 
+  update_emule_release c;
+  if !!enable_sui
+      && (c.client_md4 <> Md4.null) 
       && (c.client_sent_challenge == Int64.zero) 
       && (c.client_emule_proto.emule_secident > 0) 
   then begin
@@ -1081,25 +1073,51 @@ let process_mule_info c t =
     verify_ident c
   end
 
+
+let incr_activity_successful_connections c =
+  if DonkeySources.source_brand c.client_source then
+    !activity.activity_client_overnet_successful_connections <-
+      !activity.activity_client_overnet_successful_connections +1 
+  else
+    !activity.activity_client_edonkey_successful_connections <-
+      !activity.activity_client_edonkey_successful_connections +1
+
+let incr_activity_indirect_connections c =
+  if DonkeySources.source_brand c.client_source then
+    !activity.activity_client_overnet_indirect_connections <-
+      !activity.activity_client_overnet_indirect_connections +1 
+  else
+    !activity.activity_client_edonkey_indirect_connections <-
+      !activity.activity_client_edonkey_indirect_connections +1
+
+let incr_activity_connections c = 
+  if DonkeySources.source_brand c.client_source then
+    !activity.activity_client_overnet_connections <-
+      !activity.activity_client_overnet_connections +1 
+  else
+    !activity.activity_client_edonkey_connections <-
+      !activity.activity_client_edonkey_connections +1
+
+let check_stolen_hash c sock md4 =
+  if not (register_client_hash (peer_ip sock) md4) then
+    if !!ban_identity_thieves then
+      ban_client c sock "is probably using stolen client hashes"
+
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf_n () "Message from %s" (string_of_client c);
+      lprintf_nl () "Message from %s" (string_of_client c);
       M.print t;
-      lprint_newline ()
     end;
   
   match t with
     M.ConnectReplyReq t ->
-      printf_string "******* [CCONN OK] ********"; 
-      
-      if DonkeySources.source_brand c.client_source then
-        !activity.activity_client_overnet_successful_connections <-
-          !activity.activity_client_overnet_successful_connections +1 
-      else
-        !activity.activity_client_edonkey_successful_connections <-
-          !activity.activity_client_edonkey_successful_connections +1 ;
+      if !verbose_msg_clients then begin
+        lprintf_nl () "[HELLOANSWER] %s" (full_client_identifier c); 
+      end;
+    
+      incr_activity_successful_connections c;
       
       init_client_after_first_message sock c;
       
@@ -1115,33 +1133,27 @@ let client_to_client for_files c t sock =
       
       if (is_black_address t.CR.ip t.CR.port) then raise Exit;
       
-      if not (register_client_hash (peer_ip sock) t.CR.md4) then
-        if !!ban_identity_thieves then
-          ban_client c sock "is probably using stolen client hashes";
+      check_stolen_hash c sock t.CR.md4; 
 
       c.client_tags <- t.CR.tags;
+
       List.iter (fun tag ->
           match tag with
             { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
               set_client_name c s t.CR.md4
           | _ -> ()
       ) c.client_tags;
+
       identify_client_brand c;
       update_client_from_tags c t.CR.tags;
       fight_disguised_mods c;
+      update_emule_release c;
       Hashtbl.add connected_clients t.CR.md4 c;
+
 (*      connection_ok c.client_connection_control; *)
-      if !verbose_msg_clienttags then begin
-        M.ConnectReply.print t;
-	let s1 = c.client_emule_proto.emule_release in
-	let s2 = gbrand_mod_to_string c.client_mod_brand in
-	  if s1 <> "" then
-	    lprintf_nl () "  [%s%s %s]"
-	      (gbrand_to_string c.client_brand)
-	      (if s2 <> "" then Printf.sprintf "(%s)" s2 else "")
-	      s1
-	  else
-	    lprint_newline ()
+
+      if c.client_debug || !verbose_msg_clients || !verbose_msg_clienttags then begin  
+        M.Connect.print t;
       end;
 
       begin
@@ -1150,9 +1162,7 @@ let client_to_client for_files c t sock =
         | _ -> ()
       end;
       
-      if not (register_client_hash (peer_ip sock) t.CR.md4) then
-        if !!ban_identity_thieves then
-          ban_client c sock "is probably using stolen client hashes";
+      check_stolen_hash c sock t.CR.md4;
 
       finish_client_handshake c sock;
       (* We initiated the connection so we know which files to ask *)
@@ -1347,7 +1357,7 @@ end; *)
                   raise Exit;
           end;
 
-(*	  set_rtimeout sock !!upload_timeout; *)
+(*    set_rtimeout sock !!upload_timeout; *)
           set_lifetime sock one_day;
           add_pending_slot c
         
@@ -1571,7 +1581,7 @@ is checked for the file.
           assert (pos = comp.comp_len);
             let s = Autoconf.zlib__uncompress_string2 s in
             if !verbose then
-	      lprintf_nl () "Decompressed: %d/%d" (String.length s) comp.comp_len;
+        lprintf_nl () "Decompressed: %d/%d" (String.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
               comp.comp_pos s 0 (String.length s);
@@ -1650,7 +1660,7 @@ is checked for the file.
                 M.SayReq "[AUTOMATED WARNING] Please, update your MLdonkey client to at least version 2.5-16v!");
         end;
       
-      begin try 	
+      begin try   
           count_filerequest c;
           let file = find_file md4 in
           (match file.file_shared with
@@ -1678,8 +1688,8 @@ is checked for the file.
               | Some (chunks, _) ->
                   received_client_bitmap c file chunks
           end;
-	  if file_state file = FileDownloading then
-	    DonkeySources.query_files c.client_source
+    if file_state file = FileDownloading then
+      DonkeySources.query_files c.client_source
         
         with Not_found -> 
             if !verbose_unexpected_messages then
@@ -1692,15 +1702,16 @@ is checked for the file.
             Hashtbl.iter (fun md4 _ ->
                 lprintf_nl () "    %s" (Md4.to_string md4)
                 ) files_by_md4;
-	   end
+     end
         | e -> 
             lprintf_nl () "Exception %s in QueryFileReq"
               (Printexc.to_string e)
       end;
 
   | M.EmuleSignatureReq t ->
-      let module Q = M.EmuleSignatureReq in
+      if !!enable_sui then 
       begin
+      let module Q = M.EmuleSignatureReq in
 
       if !verbose_msg_clients then begin
         let lipType,lipTypeString = 
@@ -1747,11 +1758,15 @@ is checked for the file.
         lprintf_nl () "%s [ESigReq] [verify_signature: %s]" (full_client_identifier c) (if verified then "passed" else "failed");
       end;
 
+      end else
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [ESigReq] [DISABLED]" (full_client_identifier c) ;
       end
 
   | M.EmulePublicKeyReq t ->
-      let module Q = M.EmulePublicKeyReq in
+      if !!enable_sui then 
       begin
+      let module Q = M.EmulePublicKeyReq in
         (match c.client_public_key with 
         Some s -> if s <> t then 
                   begin
@@ -1773,10 +1788,15 @@ is checked for the file.
           if (c.client_req_challenge <> Int64.zero) then send_signature c;
         );
       end
+       else
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [EPubKeyReq] [DISABLED]" (full_client_identifier c) ;
+      end
 
   | M.EmuleSecIdentStateReq t ->
-      let module Q = M.EmuleSecIdentStateReq in
+      if !!enable_sui then 
       begin
+      let module Q = M.EmuleSecIdentStateReq in
 
         if !verbose_msg_clients then begin
           let lstate,lstateString = 
@@ -1796,6 +1816,9 @@ is checked for the file.
         if (has_pubkey c)
           then send_signature c;
 
+      end else
+      if !verbose_msg_clients then begin
+        lprintf_nl () "%s [ESecIdentStateReq] [DISABLED]" (full_client_identifier c) ;
       end
 
   | M.EmuleRequestSourcesReplyReq t ->
@@ -2014,9 +2037,8 @@ end else *)
         
   | _ -> 
       if !verbose_unknown_messages then begin
-          lprintf_nl () "Unused Client Message:";
+          lprintf_nl () "Unused client message %s:" (full_client_identifier c);
           M.print t;
-          lprint_newline ()
         end
       
 let client_handler c sock event = 
@@ -2105,15 +2127,16 @@ let read_first_message overnet m sock =
   let module M = DonkeyProtoClient in
     
   if !verbose_msg_clients then begin
-      lprintf_n () "Message from incoming client";
+      lprintf_nl () "Message from incoming client";
       M.print m;
-      lprint_newline ()
     end;
 
   match m with
   
   | M.ConnectReq t ->
-      printf_string "******* [PCONN OK] ********";
+      if !verbose_msg_clients then begin
+        lprintf_nl () "[HELLO] %s" (Ip.to_string (peer_ip sock));
+      end;
       
       let module CR = M.Connect in
       
@@ -2152,10 +2175,8 @@ let read_first_message overnet m sock =
       let c = new_client kind in
       
       if c.client_debug || !verbose_msg_clients || !verbose_msg_clienttags then begin  
-          lprintf_n () "First Message: ";
-          M.print m;
-	  lprint_newline ()
-        end;
+        M.print m;
+      end;
       
       Hashtbl.add connected_clients t.CR.md4 c;
 
@@ -2164,6 +2185,7 @@ let read_first_message overnet m sock =
       identify_client_brand c;
       update_client_from_tags c t.CR.tags;
       fight_disguised_mods c;
+      update_emule_release c;
       begin
         match c.client_source.DonkeySources.source_sock with
         | NoConnection -> 
@@ -2185,9 +2207,7 @@ let read_first_message overnet m sock =
             raise Not_found
       end;
 
-      if !!ban_identity_thieves && 
-        not (register_client_hash (peer_ip sock) t.CR.md4) then
-        ban_client c sock "is probably using stolen client hashes";
+      check_stolen_hash c sock t.CR.md4;
       
       if !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
@@ -2224,7 +2244,7 @@ let read_first_message overnet m sock =
             C.tags = !overnet_connectreply_tags;
             C.server_info = Some (!overnet_server_ip, !overnet_server_port);
             C.left_bytes = left_bytes;
-            C.version = -1;
+            C.hash_len = 16;
           }
         else
           begin
@@ -2235,27 +2255,20 @@ let read_first_message overnet m sock =
               C.tags = !client_to_client_tags;
               C.server_info = Some (get_server_ip_port ());
               C.left_bytes = left_bytes; 
-              C.version = -1;
+              C.hash_len = 16;
             }
           end;
       );
       
-      if DonkeySources.source_brand c.client_source then
-        !activity.activity_client_overnet_indirect_connections <-
-          !activity.activity_client_overnet_indirect_connections +1 
-      else
-        !activity.activity_client_edonkey_indirect_connections <-
-          !activity.activity_client_edonkey_indirect_connections +1 ;
+      incr_activity_indirect_connections c;
       
-      if not (register_client_hash (peer_ip sock) t.CR.md4) then
-        (if !!ban_identity_thieves then
-            ban_client c sock "is probably using stolen client hashes");
+      check_stolen_hash c sock t.CR.md4;
       
       finish_client_handshake c sock;
       Some c
       
   | M.NewUserIDReq _ ->
-      lprintf_n () "NewUserIDReq: "; M.print m; lprint_newline ();
+      lprintf_nl () "NewUserIDReq: "; M.print m; 
       None
   
   | _ -> 
@@ -2297,12 +2310,7 @@ let reconnect_client c =
                           (client_handler c) (*client_msg_to_string*) in
                       
                       
-                      if DonkeySources.source_brand c.client_source then
-                        !activity.activity_client_overnet_connections <-
-                          !activity.activity_client_overnet_connections +1 
-                      else
-                        !activity.activity_client_edonkey_connections <-
-                          !activity.activity_client_edonkey_connections +1 ;
+                      incr_activity_connections c;
                                             
                       init_connection sock ip;
                       init_client sock c;
@@ -2347,7 +2355,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                             C.ip = client_ip None;
                             C.port = !!overnet_port;
                             C.tags = !overnet_connect_tags;
-                            C.version = 16;
+                            C.hash_len = 16;
                             C.server_info = Some (!overnet_server_ip, 
                               !overnet_server_port);
                             C.left_bytes = left_bytes;
@@ -2358,19 +2366,19 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                             C.ip = send_this_id;
                             C.port = !!donkey_port;
                             C.tags = !client_to_client_tags;
-                            C.version = 16;
+                            C.hash_len = 16;
                             C.server_info = Some (get_server_ip_port ());
                             C.left_bytes = left_bytes;
                           }
                       )
                       
                 with
-		  Unix.Unix_error (Unix.ENETUNREACH,_,_) ->
-		    lprintf_nl () "Network unreachable for IP %s:%d"
-		      (Ip.to_string ip) port;
+      Unix.Unix_error (Unix.ENETUNREACH,_,_) ->
+        lprintf_nl () "Network unreachable for IP %s:%d"
+          (Ip.to_string ip) port;
                     set_client_disconnected c (Closed_connect_failed);
                     DonkeySources.source_disconnected c.client_source
-		| e -> 
+    | e -> 
                     lprintf_nl () "Exception %s in client connection to IP %s:%d"
                       (Printexc2.to_string e) (Ip.to_string ip) port;
 (*                    connection_failed c.client_connection_control; *)
@@ -2391,7 +2399,7 @@ let query_locations_reply s t =
     
     if !verbose_location then
         lprintf_nl () "Received %d sources from server %s:%s for %s"
-	   nlocs (Ip.to_string s.server_ip) (string_of_int s.server_port) (file_best_name file);
+     nlocs (Ip.to_string s.server_ip) (string_of_int s.server_port) (file_best_name file);
     
     s.server_score <- s.server_score + 3;
 
@@ -2525,10 +2533,9 @@ let _ =
         ignore (DonkeySources.add_request c.client_source 
             file.file_sources (last_time ()))        
       with e -> 
-	if !verbose then
-          lprintf_nl () "query_source: exception %s"
-            (Printexc2.to_string e)
-  );
+        if !verbose then
+          lprintf_nl () "query_source: exception %s" (Printexc2.to_string e)
+        );
   
   DonkeySources.functions.DonkeySources.function_connect <-
     (fun s_uid ->
@@ -2542,13 +2549,11 @@ let _ =
 
        if low_id ip && Ip.reachable ip then
               query_id ip port id; 
-
                   
       with e -> 
-	if !verbose then begin
-          lprintf_nl () "connect_source: exception %s"
-            (Printexc2.to_string e);
-	end
+       if !verbose then begin
+         lprintf_nl () "connect_source: exception %s" (Printexc2.to_string e);
+       end
   );
   
   
@@ -2580,10 +2585,9 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
       
       with e -> 
-	if !verbose then begin
-          lprintf_nl () "add_location: exception %s"
-            (Printexc2.to_string e);
-	end
+        if !verbose then begin
+          lprintf_nl () "add_location: exception %s" (Printexc2.to_string e);
+        end
   );
   
   DonkeySources.functions.DonkeySources.function_remove_location <- (fun
@@ -2595,8 +2599,7 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
         
       with e -> 
-	if !verbose then begin
-          lprintf_nl () "remove_location: exception %s"
-    	     (Printexc2.to_string e);
-	end
+        if !verbose then begin
+          lprintf_nl () "remove_location: exception %s" (Printexc2.to_string e);
+        end
   )

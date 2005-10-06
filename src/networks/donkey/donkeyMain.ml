@@ -123,26 +123,33 @@ let disable enabler () =
 let reset_tags () =
   let module D = DonkeyProtoClient in
   let m = D.mldonkey_emule_proto in
+
+  let secident = if !!enable_sui then 3 else 0 in
+    m.emule_secident <- secident;
+    m.emule_features <- secident;
+
   let emule_miscoptions1 = D.emule_miscoptions1 m in
   client_to_client_tags :=
   [
     string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "port") !!donkey_port;
     int_tag (Field_UNKNOWN "version") protocol_version;
     int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "emule_version") m.emule_version;
     int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
-    int_tag (Field_UNKNOWN "port") !!donkey_port;
   ];
+
+  let extended = ref 0x04 in (* support of auxport *)
+    extended := !extended lor 0x01; (* support of compression *)
+
   client_to_server_tags :=
   [
     string_tag (Field_UNKNOWN "name") (local_login ());
     int_tag (Field_UNKNOWN "version") protocol_version;
     int_tag (Field_UNKNOWN "port") !!donkey_port;
+    int_tag (Field_UNKNOWN "extended") !extended;
   ];
-  let extended = ref 0x04 in (* support of auxport *)
-    extended := !extended lor 0x01; (* support of compression *)
-    client_to_server_tags := (int_tag
-      (Field_UNKNOWN "extended") !extended)::!client_to_server_tags;
+
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
     int_tag (Field_UNKNOWN "compression") 
       (if !!emule_compression then m.emule_compression else 0);
@@ -150,7 +157,7 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "udpport") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "sourceexchange") m.emule_sourceexchange;
     int_tag (Field_UNKNOWN "comments") m.emule_comments;
-    int_tag (Field_UNKNOWN "compatibleclient") 10; 
+    int_tag (Field_UNKNOWN "compatibleclient") !DonkeyProtoClient.compatibleclient; 
     int_tag (Field_UNKNOWN "extendedrequest") m.emule_extendedrequest;
     int_tag (Field_UNKNOWN "features") m.emule_features;
     
@@ -283,6 +290,7 @@ be useful when users want to share files that they had already previously
       
       Options.option_hook global_login reset_tags;
       Options.option_hook login reset_tags;
+      Options.option_hook enable_sui reset_tags;
 
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 

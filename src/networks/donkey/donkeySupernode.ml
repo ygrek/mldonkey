@@ -63,10 +63,10 @@ type protocol =
         * int * int * int * int * int (* which NetworkInfo we need *)
   | NetworkInfo of
           bool                      (* accept as client *)
-	* (Ip.t * int * Md4.t) list (* browsable peers with MD4 for supernode *)
-	* (Ip.t * int) list         (* browsable peers for supernode *)
-	* (Ip.t * int) list         (* servers *)
-	* (Ip.t * int) list         (* overnet peers *)
+  * (Ip.t * int * Md4.t) list (* browsable peers with MD4 for supernode *)
+  * (Ip.t * int) list         (* browsable peers for supernode *)
+  * (Ip.t * int) list         (* servers *)
+  * (Ip.t * int) list         (* overnet peers *)
         * (Ip.t * int * Md4.t) list (* supernodes *)
 
 (* Localization of downloaded files *)
@@ -104,7 +104,7 @@ let supernode_browse_handler node msg sock =
 
       begin
         try
-	  node.node_files <- t;
+    node.node_files <- t;
           let list = ref [] in
           List.iter (fun f ->
               match result_of_file f.f_md4 f.f_tags with
@@ -113,7 +113,7 @@ let supernode_browse_handler node msg sock =
 (*
                   let r = DonkeyIndexer.index_result_no_filter r in
 *)
-		  ()
+      ()
           ) t;
         with e ->
             lprintf "Exception in ViewFilesReply %s\n"
@@ -156,11 +156,11 @@ let supernode_browse_client node =
             let module M = DonkeyProtoClient in
             let module C = M.Connect in
             M.ConnectReq {
+              C.hash_len = 16;
               C.md4 = !!client_md4;
               C.ip = client_ip None;
               C.port = !!donkey_port;
               C.tags = !client_to_client_tags;
-              C.version = 16;
               C.server_info = Some (server_ip, server_port);
               C.left_bytes = left_bytes;
             });

@@ -167,6 +167,9 @@ let client_md4 = define_option donkey_section ["client_md4"]
 let client_private_key = define_option donkey_section ["client_private_key"]
     "The RSA private key of this client" string_option (Unix32.create_key ())
 
+let enable_sui = define_option donkey_section ["enable_sui"]
+    "Enable secure user identification support" bool_option true
+
 let _ =
   option_hook client_md4 (fun _ ->
       let m = mldonkey_md4 !!client_md4 in
@@ -239,9 +242,10 @@ let servers_walking_period = define_expert_option donkey_section ["servers_walki
 
 let _ =
   option_hook servers_walking_period (fun _ ->
-    if !!servers_walking_period > 0 &&
-      !!servers_walking_period < 4 then
-	servers_walking_period =:= 4)
+    if !!servers_walking_period > 0 
+      && !!servers_walking_period < 4 then
+        servers_walking_period =:= 4
+  )
 
 let keep_cancelled_in_old_files = define_expert_option donkey_section
     ["keep_cancelled_in_old_files"]

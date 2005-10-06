@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open Int64ops
 open AnyEndian
 open Printf2
@@ -25,27 +26,26 @@ open CommonTypes
 open LittleEndian
 open CommonGlobals
 
+open DonkeyOptions
 open DonkeyTypes
 open DonkeyMftp
 
-let emule_version b1 b2 b3 b4 b5 =
-  let s = Printf.sprintf "%s"
-    (string_of_int(int_of_string("0b" ^
-    (Misc.dec2bin (int_of_string b1) 8) ^
-    (Misc.dec2bin (int_of_string b2) 7) ^
-    (Misc.dec2bin (int_of_string b3) 7) ^
-    (Misc.dec2bin (int_of_string b4) 3) ^
-    (Misc.dec2bin (int_of_string b5) 7))))
-  in s
+let compatibleclient = ref 10
+
+let get_emule_version () =
+    (!compatibleclient lsl 24) lor
+    (int_of_string(Autoconf.major_version) lsl 17) lor
+    (int_of_string(Autoconf.minor_version) lsl 10) lor
+    (int_of_string(Autoconf.sub_version) lsl 7)
 
 (* TODO : update this
 I downgraded some of those to get better results :
 We don't use emule udp extension, client_md4 in sourceexchange or complete sources in
 file request *)
-let mldonkey_emule_proto = {
+let mldonkey_emule_proto = 
+  {
     emule_comments = 1;
-    emule_version = (int_of_string (emule_version "10" Autoconf.major_version Autoconf.minor_version Autoconf.sub_version "0"));
-      (* first parameter means compatibleclient, MLDonkeys value is 10 *)
+    emule_version = get_emule_version (); 
     emule_release = "";
     emule_secident = 3; (* Emule uses v1 if advertising both, v2 if only advertising 2 *)
     emule_noviewshared = 0;
@@ -54,7 +54,7 @@ let mldonkey_emule_proto = {
     emule_sourceexchange = 2; (* 2 : +client_md4 3 : +IdHybrid (emule Kademlia?)*)
     emule_multipacket = 0; (* 1 *)
     emule_extendedrequest = 1; (* 1: +file_status 2: +ncomplete_sources*)
-    emule_features = 0; (* 3 *)
+    emule_features = 3; (* 3 *)
     emule_udpver = 0; (* 4 *)
   }
 
@@ -104,23 +104,30 @@ dec: [
 (0)(0)(0)(0)(0)(0)
 ]
   *)
+let rec lbprint_tags buf tags =
+  match tags with
+  [] -> Printf.bprintf buf ""
+  | tag :: tags ->
+   Printf.bprintf buf " (%s)=(%s)" (escaped_string_of_field tag)
+   (string_of_tag_value tag.tag_value);
+    lbprint_tags buf tags
 
 module Connect  = struct
     type t = {
+        hash_len : int;
         md4 : Md4.t;
-        version : int;
         ip: Ip.t;
         port: int;
         tags : tag list;
         server_info : (Ip.t * int) option;
-        left_bytes: string;
+        left_bytes : string;
       }
 
     let names_of_tag =
       [
         "\001", Field_UNKNOWN "name";
-        "\017", Field_UNKNOWN "version";
         "\015", Field_UNKNOWN "port";
+        "\017", Field_UNKNOWN "version";
         "\031", Field_UNKNOWN "udpport";
         "\060", Field_UNKNOWN "downloadtime";
         "\061", Field_UNKNOWN "incompleteparts";
@@ -128,23 +135,22 @@ module Connect  = struct
         "\249", Field_UNKNOWN "emule_udpports";
         "\250", Field_UNKNOWN "emule_miscoptions1";
         "\251", Field_UNKNOWN "emule_version";
+        "\252", Field_UNKNOWN "buddy_ip";
+        "\253", Field_UNKNOWN "buddy_udp";
+        "\254", Field_UNKNOWN "emule_miscoptions2";
       ]
 
-    let parse len s =
-      let version = get_uint8 s 1 in
-      let md4 = get_md4 s 2 in
-      let ip = get_ip s 18 in
-      let port = get_port s 22 in
-(*      lprintf "port: %d" port; lprint_newline (); *)
-      let tags, pos = get_tags s 24 names_of_tag in
-      let len = String.length s in
-      let server_info =
-        Some (get_ip s pos, get_port s (pos+4))
-      in
+    let parse reply len s =
+      let hash_len, pos = if not reply then get_uint8 s 1, 2 else -1, 1 in
+      let md4 = get_md4 s pos in
+      let ip = get_ip s (pos+16) in
+      let port = get_port s (pos+20) in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
+      let server_info = Some (get_ip s pos, get_port s (pos+4)) in
       let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
       {
+        hash_len = hash_len;
         md4 = md4;
-        version = version;
         ip = ip;
         port = port;
         tags = tags;
@@ -152,25 +158,27 @@ module Connect  = struct
         left_bytes = left_bytes;
       }
 
-    let print t =
-      lprintf "Connect (version %d) from [%s:%d] MD4: %s"
-        t.version
-        (Ip.to_string t.ip)
-	t.port
-        (Md4.to_string t.md4);
-      (match t.server_info with
-          None -> lprint_newline ()
-        | Some (ip, port) ->
-            lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
-      lprintf "tags: ";
-      print_tags t.tags;
-      if String.length t.left_bytes <> 0 then begin
-        lprintf "  left bytes = ";
-        String.iter (fun c -> lprintf "(%d)" (int_of_char c))
-        t.left_bytes  end
 
-    let write buf t =
-      buf_int8 buf t.version;
+    let print t =
+      let b1 = Buffer.create 50 in
+      let b2 = Buffer.create 5 in
+      lbprint_tags b1 t.tags;
+      String.iter (fun c -> Printf.bprintf b2 "(%d)" (int_of_char c)) t.left_bytes;
+      lprintf_nl "Connect [hl: %d] [md4: %s] [ip: %s:%d] [server: %s] [left: %s] [tags:%s]" 
+        t.hash_len
+        (Md4.to_string t.md4)
+        (Ip.to_string t.ip) t.port
+        (match t.server_info with
+          None -> "None"  
+        | Some (ip, port) -> Printf.sprintf "%s:%d" (Ip.to_string ip) port)
+        (if String.length t.left_bytes <> 0 then (Buffer.contents b2) else "None")
+        (Buffer.contents b1)
+
+
+    let write reply buf t =
+      if not reply then
+        buf_int8 buf 16;
+
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
       buf_port buf t.port;
@@ -183,82 +191,8 @@ module Connect  = struct
         | Some (ip, port) ->
             buf_ip buf ip;
             buf_port buf port;
-      end;
-      Buffer.add_string buf t.left_bytes
+      end
 
-  end
-
-module ConnectReply  = struct
-    open Connect
-    type t = Connect.t
-
-    let parse len s =
-      let version = get_uint8 s 1 in
-      let md4 = get_md4 s 2 in
-      let ip = get_ip s 18 in
-      let port = get_port s 22 in
-      let tags, pos = get_tags s 24 names_of_tag in
-      let len = String.length s in
-      let server_info =
-        Some (get_ip s pos, get_port s (pos+4))
-      in
-      let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
-      {
-        md4 = md4;
-        version = version;
-        ip = ip;
-        port = port;
-        tags = tags;
-        server_info = server_info;
-        left_bytes = left_bytes;
-      }
-
-    let parse len s =
-      let md4 = get_md4 s 1 in
-      let ip = get_ip s 17 in
-      let port = get_port s 21 in
-      let tags, pos = get_tags s 23 names_of_tag in
-      let server_info =  Some (get_ip s pos, get_port s (pos+4)) in
-      let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
-      {
-        md4 = md4;
-        ip = ip;
-        port = port;
-        tags = tags;
-        server_info = server_info;
-        left_bytes = left_bytes;
-        version = -1;
-      }
-
-    let print t =
-      lprintf "Connect reply from [%s:%d] MD4: %s"
-        (Ip.to_string t.ip)
-	t.port
-        (Md4.to_string t.md4);
-      (match t.server_info with
-          None -> lprint_newline ()
-        | Some (ip, port) ->
-            lprintf_nl " on server: %s:%d" (Ip.to_string ip) port);
-      lprintf "tags: ";
-      print_tags t.tags;
-      if String.length t.left_bytes <> 0 then begin
-        lprintf "  left bytes = ";
-        String.iter (fun c -> lprintf "(%d)" (int_of_char c))
-        t.left_bytes  end
-
-    let write buf t =
-      buf_md4 buf t.md4;
-      buf_ip buf t.ip;
-      buf_port buf t.port;
-      buf_tags buf t.tags names_of_tag;
-      begin
-        match t.server_info with
-          None -> ()
-        | Some (ip, port) ->
-            buf_ip buf ip;
-            buf_port buf port;
-      end;
-      Buffer.add_string buf t.left_bytes
   end
 
 module Say = struct
@@ -269,7 +203,7 @@ module Say = struct
       s
 
     let print t =
-      lprintf "SAY %s" t
+      lprintf_nl "SAY %s" t
 
     let write buf t =
       buf_string buf t
@@ -282,11 +216,12 @@ module OneMd4 = functor(M: sig val m : string end) -> (struct
       get_md4 s 1
 
     let print t =
-          lprintf "%s OF %s" M.m (Md4.to_string t)
+          lprintf_nl "OneMd4: %s OF %s" M.m (Md4.to_string t)
 
     let write buf t =
       buf_md4 buf t
-      end)
+      
+  end)
 
 module JoinQueue = struct
     type t = Md4.t option
@@ -297,10 +232,9 @@ module JoinQueue = struct
       else None
 
     let print t =
-      lprintf "JOIN QUEUE";
-      (match t with None -> () | Some md4 ->
-            lprintf " OF %s" (Md4.to_string md4));
-      lprint_newline ()
+      lprintf_nl "JOIN QUEUE %s"
+      (match t with None -> "" | Some md4 ->
+            Printf.sprintf "OF %s" (Md4.to_string md4))
 
     let write emule buf t =
       if extendedrequest emule > 0 then
@@ -387,7 +321,7 @@ module QueryFile  = struct
         emule_extension = emule_extension }
 
     let print t =
-      lprintf "QUERY FILE OF %s" (Md4.to_string t.md4);
+      lprintf_nl "QUERY FILE OF %s" (Md4.to_string t.md4);
       match t.emule_extension with
         None -> ()
       | Some (bitmap, ncompletesources) ->
@@ -498,8 +432,7 @@ module QueryFileReply  = struct
       }
 
     let print t =
-      lprintf_nl "QUERY FILE REPLY OF %s" (Md4.to_string t.md4);
-      lprintf_nl "  name = \"%s\"" t.name
+      lprintf_nl "QUERY FILE REPLY OF %s : \"%s\"" (Md4.to_string t.md4) t.name
 
     let write buf t =
       buf_md4 buf t.md4;
@@ -527,7 +460,7 @@ module Bloc  = struct
       }
 
     let print t =
-      lprintf "BLOC OF %s len %Ld [%Ld - %Ld] " (Md4.to_string t.md4)
+      lprintf_nl "BLOC OF %s len %Ld [%Ld - %Ld] " (Md4.to_string t.md4)
       (t.end_pos -- t.start_pos)
       t.start_pos
         t.end_pos
@@ -562,7 +495,7 @@ module QueryBloc  = struct
       }
 
     let print t =
-      lprintf "QUERY BLOCS OF %s [%s - %s] [%s - %s] [%s - %s]"
+      lprintf_nl "QUERY BLOCS OF %s [%s - %s] [%s - %s] [%s - %s]"
       (Md4.to_string t.md4)
       (Int64.to_string t.start_pos1) (Int64.to_string t.end_pos1)
       (Int64.to_string t.start_pos2) (Int64.to_string t.end_pos2)
@@ -811,12 +744,9 @@ module EmuleClientInfo = struct
       }
 
     let print m t =
-      lprintf_nl "%s:" m;
-      lprintf_nl "  version: %d" t.version;
-      lprintf_nl "  protversion: %d" t.version;
-      lprintf "  tags: ";
-      print_tags t.tags;
-      lprint_newline ()
+      let b1 = Buffer.create 50 in
+      lbprint_tags b1 t.tags;
+      lprintf_nl "%s: [version: %d] [protversion: %d] [tags:%s]" m t.version t.protversion (Buffer.contents b1)
 
     let write buf t =
       buf_int8 buf t.version;
@@ -831,7 +761,7 @@ module EmuleQueueRanking = struct
 
     let parse len s = get_int16 s 1
     let print t =
-      lprintf_nl "QUEUE RANKING: %d" t
+      lprintf_nl "EmuleQueueRanking: %d" t
 
     let string_null10 = String.make 10 (char_of_int 0)
 
@@ -847,7 +777,7 @@ module QueueRank = struct
 
     let parse len s = get_int s 1
     let print t =
-      lprintf_nl "QUEUE RANK: %d" t
+      lprintf_nl "QueueRank: %d" t
 
     let write buf t =
       buf_int buf t
@@ -862,7 +792,7 @@ module EmuleRequestSources = struct
       get_md4 s 1
 
     let print t =
-      lprintf_nl "EMULE REQUEST SOURCES: %s" (Md4.to_string t)
+      lprintf_nl "EmuleRequestSources: %s" (Md4.to_string t)
 
     let write buf t =
       buf_md4 buf t
@@ -1011,13 +941,14 @@ module EmuleRequestSourcesReply = struct
         ncount (Md4.to_string t.md4);
        for i = 0 to ncount - 1 do
         let s = t.sources.(i) in
-          if Ip.valid s.src_ip then
-            lprintf_nl "  %s:%d" (Ip.to_string s.src_ip) s.src_port
+          lprintf_nl "%s %s"
+          (if Ip.valid s.src_ip then
+              Printf.sprintf "%s:%d" (Ip.to_string s.src_ip) s.src_port
           else
-            lprintf_nl "  Indirect from %s:%d"
-              (Ip.to_string s.src_server_ip) s.src_server_port;
-          if s.src_md4 != Md4.null then
-            lprintf_nl "   Md4: %s" (Md4.to_string s.src_md4)
+              Printf.sprintf  "%s:%d (Indirect)" (Ip.to_string s.src_server_ip) s.src_server_port)
+          (if s.src_md4 != Md4.null then
+              Printf.sprintf "MD4: %s" (Md4.to_string s.src_md4)
+          else "")
       done
 
     let write e buf t =
@@ -1041,7 +972,7 @@ module EmuleRequestSourcesReply = struct
 
 type t =
 | ConnectReq of Connect.t
-| ConnectReplyReq of ConnectReply.t
+| ConnectReplyReq of Connect.t
 | QueryFileReq of QueryFile.t
 | QueryFileReplyReq of QueryFileReply.t
 | BlocReq of Bloc.t
@@ -1083,7 +1014,7 @@ let rec print t =
   begin
     match t with
     | ConnectReq t -> Connect.print t
-    | ConnectReplyReq t -> ConnectReply.print t
+    | ConnectReplyReq t -> Connect.print t
     | QueryFileReq t -> QueryFile.print t
     | QueryFileReplyReq t -> QueryFileReply.print t
     | BlocReq t -> Bloc.print t
@@ -1109,9 +1040,9 @@ let rec print t =
         QueueRank.print t
 
     | EmuleClientInfoReq t ->
-        EmuleClientInfo.print "EMULE CLIENT INFO"  t
+        EmuleClientInfo.print "EmuleClientInfo"  t
     | EmuleClientInfoReplyReq t ->
-        EmuleClientInfo.print "EMULE CLIENT INFO REPLY" t
+        EmuleClientInfo.print "EmuleClientInfoReply" t
     | EmuleQueueRankingReq t ->
         EmuleQueueRanking.print t
     | EmuleRequestSourcesReq t ->
@@ -1148,7 +1079,7 @@ let rec print t =
 
     | UnknownReq (opcode, s) ->
         let len = String.length s in
-        lprintf_nl "UnknownReq: magic %d, opcode %d\n   len %d" opcode
+        lprintf_nl "UnknownReq: magic (%d), opcode (%d) len (%d)" opcode 
         (int_of_char s.[0])
         (String.length s);
         lprintf "ascii: [";
@@ -1160,14 +1091,14 @@ let rec print t =
           else
             lprintf "(%d)" n
         done;
-        lprintf_nl "]";
+        lprintf "]\n";
         lprintf "dec: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
           lprintf "(%d)" n
         done;
-        lprintf_nl "]"
+        lprintf "]\n"
   end
 
 let rec parse_emule_packet emule opcode len s =
@@ -1182,8 +1113,9 @@ let rec parse_emule_packet emule opcode len s =
     | 0x60 (* 96 *) -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
 
     | 0x61 (* 97 *) ->
-        let (comment,_) = get_string s 1 in
-        EmuleFileDescReq comment
+        let rating = get_uint8 s 1 in
+        let (comment,_) = get_string32 s 2 in
+        EmuleFileDescReq (Printf.sprintf "(%d) %s" rating comment)
 
     | 0x81 (* 129 *) -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
     | 0x82 (* 130 *) ->
@@ -1243,6 +1175,10 @@ let rec parse_emule_packet emule opcode len s =
         EmuleMultiPacketReq (md4, iter 17)
 
     | 0x93 (* 147 *) ->
+        if String.length s < 16 then begin
+          lprintf_nl "EmuleMultiPacketAnswer: incomplete request";
+          raise Not_found
+        end;
         let md4 = get_md4 s 1 in
 
 (*        Printf.printf "MULTI EMULE VERSION %d"
@@ -1296,14 +1232,14 @@ and parse emule_version magic s =
       227 ->
         begin
           match opcode with
-          | 1 -> ConnectReq (Connect.parse len s)
+          | 1 -> ConnectReq (Connect.parse false len s)
           | 70 -> BlocReq (Bloc.parse len s)
           | 71 -> QueryBlocReq (QueryBloc.parse len s)
           | 72 -> NoSuchFileReq (NoSuchFile.parse len s)
           | 73 -> EndOfDownloadReq (EndOfDownload.parse len s)
           | 74 -> ViewFilesReq (ViewFiles.parse len s)
           | 75 -> ViewFilesReplyReq (ViewFilesReply.parse len s)
-          | 76 -> ConnectReplyReq (ConnectReply.parse len s)
+          | 76 -> ConnectReplyReq (Connect.parse true len s)
           | 77 -> NewUserIDReq (NewUserID.parse len s)
           | 78 -> SayReq (Say.parse len s)
           | 79 -> QueryChunksReq (QueryChunks.parse len s)
@@ -1360,9 +1296,9 @@ and parse emule_version magic s =
       if !CommonOptions.verbose_unknown_messages then begin
           lprintf_nl "Unknown message From client: %s (magic %d)"
               (Printexc2.to_string e) magic;
-	      	     let tmp_file = Filename.temp_file "comp" "pak" in
-	     File.from_string tmp_file s;
-	     lprintf_nl "Saved unknown packet %s" tmp_file;
+               let tmp_file = Filename.temp_file "comp" "pak" in
+       File.from_string tmp_file s;
+       lprintf_nl "Saved unknown packet %s" tmp_file;
 
           dump s;
           lprint_newline ();
@@ -1391,10 +1327,10 @@ let write emule buf t =
     match t with
     | ConnectReq t ->
         buf_int8 buf 1;
-        Connect.write buf t
+        Connect.write false buf t
     | ConnectReplyReq t ->
         buf_int8 buf 76;
-        ConnectReply.write buf t
+        Connect.write true buf t
     | QueryFileReq t ->
         buf_int8 buf 88;
         QueryFile.write emule buf t

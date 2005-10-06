@@ -951,7 +951,7 @@ let rec find_max_overloaded q managers =
             in
             let m = r.request_file in
             if !verbose_sources > 1 then
-              lprintf "Put source %d in queue %s\n"
+              lprintf_nl "[cSrc] Put source %d in queue %s"
                 s.source_num queue_name.(queue);
             Queue.put m.manager_sources.(queue) (r.request_time, s);
             if active_queue queue then
@@ -1018,7 +1018,7 @@ let rec find_max_overloaded q managers =
       let remove_from_queue s r =
         if r.request_queue <> outside_queue then begin
             if !verbose_sources > 1 then
-              lprintf " ** Remove source %d from queue %s\n" s.source_num
+              lprintf_nl "[cSrc] Remove source %d from queue %s" s.source_num
                 queue_name.(r.request_queue);
 
             let m = r.request_file in
@@ -1071,7 +1071,7 @@ let rec find_max_overloaded q managers =
             (try
                functions.function_query s.source_uid r.request_file.manager_uid
              with e ->
-               lprintf "Exception %s in functions.function_query\n" (Printexc2.to_string e)
+               lprintf_nl "[cSrc] Exception %s in functions.function_query" (Printexc2.to_string e)
             )
           end
 
@@ -1170,7 +1170,7 @@ let rec find_max_overloaded q managers =
 
       let connect_source s =
         if !verbose_sources > 1 then
-          lprintf "CommonSources.connect_source\n";
+          lprintf_nl "[cSrc] connect_source";
         s.source_score <- s.source_score + 1;
         functions.function_connect s.source_uid
 
@@ -1210,7 +1210,7 @@ let rec find_max_overloaded q managers =
             SourcesQueueCreate.oldest_first ();
           |] in
         if Array.length queues <> Array.length queue_name then begin
-            lprintf "Falal error in CommonSources.create_queues\n";
+            lprintf_nl "[cSrc] Fatal error in CommonSources.create_queues";
             exit 2;
           end;
         queues
@@ -1278,7 +1278,7 @@ let rec find_max_overloaded q managers =
 
         with _ ->
             if !verbose_sources > 1 then
-              lprintf "Creating new source\n";
+              lprintf_nl "[cSrc] Creating new source";
             let n = CommonClient.book_client_num () in
             let s = { dummy_source with
                 source_uid = uid;
@@ -1531,13 +1531,13 @@ we will probably query for the other file almost immediatly. *)
 
       let add_saved_source_request s uid score time =
         if !verbose_sources > 1 then
-          lprintf "  Request %s %d %d\n" uid score time;
+          lprintf_nl "[cSrc] Request %s %d %d" uid score time;
         let file =
           try
             functions.function_string_to_manager uid
           with e ->
               if !verbose then begin
-                  lprintf "CommonSources: add_saved_source_request -> %s not found\n" uid;
+                  lprintf_nl "[cSrc] CommonSources: add_saved_source_request -> %s not found" uid;
                 end;
               raise e
         in
@@ -1545,7 +1545,7 @@ we will probably query for the other file almost immediatly. *)
         set_score_part r score;
         reschedule_source_for_file true s r;
         if !verbose_sources > 1 then
-          lprintf "Put saved source %d in queue %s\n" s.source_num
+          lprintf_nl "[cSrc] Put saved source %d in queue %s" s.source_num
             queue_name.(r.request_queue)
 
 (*************************************************************************)
@@ -1571,7 +1571,7 @@ we will probably query for the other file almost immediatly. *)
               M.dummy_source_brand in
 
         if !verbose_sources > 1 then
-          lprintf "New source from value\n";
+          lprintf_nl "[cSrc] New source from value";
         let s = find_source_by_uid addr in
         s.source_score <- score;
         s.source_age <- last_conn;
@@ -1599,7 +1599,7 @@ we will probably query for the other file almost immediatly. *)
 
                 with e ->
                     if !verbose_sources > 1 then begin
-                        lprintf "CommonSources.value_to_source: exception %s in iter request\n"
+                        lprintf_nl "[cSrc] CommonSources.value_to_source: exception %s in iter request"
                           (Printexc2.to_string e);
                       end
               )
@@ -1614,7 +1614,7 @@ we will probably query for the other file almost immediatly. *)
 
                 with e ->
                     if !verbose_sources > 1 then begin
-                        lprintf "CommonSources.value_to_source: exception %s in iter request\n"
+                        lprintf_nl "[cSrc] CommonSources.value_to_source: exception %s in iter request"
                           (Printexc2.to_string e);
                       end
               )
@@ -1646,10 +1646,10 @@ we will probably query for the other file almost immediatly. *)
           try
             last_refill := last_time ();
             if !verbose_sources > 0 then begin
-                lprintf "CommonSources.refill_sources BEFORE:\n";
+                lprintf_nl "[cSrc] CommonSources.refill_sources BEFORE:";
                 let buf = Buffer.create 100 in
                 print buf TEXT;
-                lprintf "%s\n\n" (Buffer.contents buf);
+                lprintf "%s\n" (Buffer.contents buf);
               end;
 
           (*
@@ -1678,7 +1678,7 @@ we will probably query for the other file almost immediatly. *)
                 if request_time + !!min_reask_delay + throttle_delay < last_time () then
                   begin
                     if !verbose_sources > 1 then
-                      lprintf "Sources: take source from Queue[%s] for %s\n"
+                      lprintf_nl "[cSrc] Sources: take source from Queue[%s] for %s"
                         queue_name.(queue)
                           (file_best_name (m.manager_file ()));
                     (* put in the connecting queue*)
@@ -1700,7 +1700,7 @@ we will probably query for the other file almost immediatly. *)
                 else
                   begin
                     if !verbose_sources > 1 then
-                      lprintf "Source of queue %s is not ready for %s\n"
+                      lprintf_nl "[cSrc] Source of queue %s is not ready for %s"
                         queue_name.(queue) (file_best_name (m.manager_file ()));
                     (* too early to take sources in this queue try again in the _next_ queue*)
                     if queue_period.(queue) = 0 then
@@ -1726,7 +1726,7 @@ we will probably query for the other file almost immediatly. *)
               else
                 begin
                   if !verbose_sources > 1 then
-                    lprintf "Queue %s is empty for %s\n"
+                    lprintf_nl "[cSrc] Queue %s is empty for %s"
                       queue_name.(queue) (file_best_name (m.manager_file ()));
                   (* no sources in this queue try again in the _next_ queue *)
                   let to_take =
@@ -1910,13 +1910,13 @@ we will probably query for the other file almost immediatly. *)
               ) [ good_sources_queue; old_sources1_queue; old_sources2_queue; old_sources3_queue ];
 
             if !verbose_sources > 0 then begin
-                lprintf "CommonSources.refill_sources AFTER:\n";
+                lprintf_nl "[cSrc] CommonSources.refill_sources AFTER:";
                 let buf = Buffer.create 100 in
                 print buf TEXT;
-                lprintf "%s\n\n" (Buffer.contents buf);
+                lprintf "%s\n" (Buffer.contents buf);
               end;
           with e ->
-              lprintf "Exception %s in refill_sources\n"
+              lprintf_nl "[cSrc] Exception %s in refill_sources"
                 (Printexc2.to_string e)
 
 
@@ -1997,11 +1997,11 @@ let put_all_outside_queue m q queue =
       let connect_sources connection_manager =
 
         if !verbose_sources > 1 then
-          lprintf "connect_sources\n";
+          lprintf_nl "[cSrc] connect_sources";
 (* After 2 minutes, consider that connections attempted should be revoked. *)
 
         if !verbose_sources > 1 then
-          lprintf "   revoke connecting sources...\n";
+          lprintf_nl "[cSrc]   revoke connecting sources...";
         let rec iter () =
           if not (Fifo.empty connecting_sources) then
             let (time, s) = Fifo.head connecting_sources in
@@ -2021,7 +2021,7 @@ let put_all_outside_queue m q queue =
 The probability is very high they won't be able to connect to us. *)
 
         if !verbose_sources > 1 then
-          lprintf "   connect indirect sources...\n";
+          lprintf_nl "[cSrc]   connect indirect sources...";
         let (first_sources, last_sources) =
           List2.cut !!max_connections_per_second !next_indirect_sources in
         next_indirect_sources := last_sources;
@@ -2031,7 +2031,7 @@ The probability is very high they won't be able to connect to us. *)
 (* Second, for every file being downloaded, query sources that are already
 connected if needed *)
         if !verbose_sources > 1 then
-          lprintf "   query connected sources...\n";
+          lprintf_nl "[cSrc]   query connected sources...";
         List.iter (fun m ->
             match file_state (m.manager_file ()) with
               FileDownloading ->
@@ -2061,12 +2061,12 @@ connected if needed *)
         ) !file_sources_managers;
 
         if !verbose_sources > 1 then
-          lprintf "   connect to sources...\n";
+          lprintf_nl "[cSrc]   connect to sources...";
 (* Finally, connect to available sources *)
         try
           let max_sources = functions.function_max_connections_per_second () in
           if !verbose_sources > 1 then
-            lprintf "max_sources: %d\n" max_sources;
+            lprintf_nl "[cSrc] max_sources: %d" max_sources;
           let rec iter nsources refilled =
             if nsources > 0 && can_open_connection connection_manager then
               if Fifo.length next_direct_sources > 0 then
@@ -2075,7 +2075,7 @@ connected if needed *)
                 let nsources = match s.source_sock with
                     NoConnection ->
                       if !verbose_sources > 1 then
-                        lprintf "not connected\n"; nsources
+                        lprintf_nl "[cSrc] not connected"; nsources
                   | _ -> nsources-1
                 in
                 iter nsources refilled
@@ -2087,7 +2087,7 @@ connected if needed *)
           in
           iter max_sources false;
           if !verbose_sources > 1 then
-            lprintf "   done connect_sources\n";
+            lprintf_nl "[cSrc]   done connect_sources";
         with Exit -> ()
 
 
