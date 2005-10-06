@@ -47,7 +47,7 @@ open DonkeyStats
 
 let verbose_upload = false
       
-let msg_block_size_int = 10000
+let msg_block_size_int = 10240
 let msg_block_size = Int64.of_int msg_block_size_int
 let upload_buffer = String.create msg_block_size_int
 let max_msg_size = 15000
@@ -78,7 +78,6 @@ module NewUpload = struct
     let rec send_small_block c sock file begin_pos len_int = 
 (*      lprintf "send_small_block %d\n" len_int; *)
 (*      let len_int = Int32.to_int len in *)
-      CommonUploads.consume_bandwidth len_int;
       try
         if !verbose then begin
             lprintf "send_small_block(%s-%s) %Ld %d\n"
@@ -107,6 +106,7 @@ module NewUpload = struct
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c file uploaded;
+	CommonUploads.consume_bandwidth len_int;
         network_must_update network;
         (match file.file_shared with None -> ()
           | Some impl ->
@@ -125,7 +125,7 @@ module NewUpload = struct
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)
-      if per_client > 0 && CommonUploads.remaining_bandwidth () > 0 then
+      if per_client > 0 && CommonUploads.can_write_len sock max_msg_size then
         match c.client_upload with
         | Some ({ up_chunks = _ :: chunks } as up)  ->
             if up.up_file.file_shared = None then begin
@@ -163,8 +163,7 @@ module NewUpload = struct
                 up.up_pos <- Int64.add up.up_pos 
                   (Int64.of_int msg_block_size_int);
                 let per_client = per_client-msg_block_size_int in
-                if can_write_len sock max_msg_size then
-                  send_client_block c sock per_client
+                send_client_block c sock per_client
               end
         | _ -> ()
     
@@ -173,14 +172,9 @@ module NewUpload = struct
       do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
 (*    lprintf "upload_to_client %d connected\n"  (maxi max_msg_size size); *)
           
-(* changed in 2.5.27: mini instead of maxi *)
           let size = mini max_msg_size size in
-          if CommonUploads.can_write_len sock size then 
-            begin
-(*              lprintf "can_write_len %d\n"  (maxi max_msg_size size); *)
-              send_client_block c sock size;
-            end;
-          (match c.client_upload with
+          send_client_block c sock size;
+           (match c.client_upload with
               None -> ()
             | Some up ->
                 if !CommonUploads.has_upload = 0 then

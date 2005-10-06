@@ -1445,7 +1445,7 @@ let rec iter_upload sock c =
           c.client_upload_requests <- tail;
           iter_upload sock c
         end else
-      if c.client_allowed_to_write >= len then begin
+      if c.client_allowed_to_write >= 0L then begin
           c.client_upload_requests <- tail;
 
           let file = c.client_file in

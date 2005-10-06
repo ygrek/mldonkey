@@ -738,112 +738,72 @@ let upload_clients = (Fifo.create () : client Fifo.t)
 let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
 (* let (pending_slots_fifo : int Fifo.t)  = Fifo.create () *)
 
-let remaining_bandwidth = ref 0
-let total_bandwidth = ref 0
-let complete_bandwidth = ref 0
-let counter = ref 1
-let sent_bytes = Array.create 10 0
+let packet_size = 10240
+
+let streaming_amount = packet_size * 2
+let streaming_left = ref streaming_amount
+let streaming_time = (ref None : float option ref)
+
 let has_upload = ref 0
 let upload_credit = ref 0
 
 
 let can_write_len sock len =
   let bool1 = can_write_len sock len in
-  let upload_rate =
-        (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
-    * 1024 in
-  let bool2 =
-    (
-(*      lprintf "upload_rate %d -> %d\n" upload_rate
-        (upload_rate * (Fifo.length upload_clients)); *)
-(* changed 2.5.24
-Don't put in a socket more than 10 seconds of upload.
-  *)
-    not_buffer_more sock (upload_rate * 10  (* * (Fifo.length upload_clients) *) ))
-  in
+(* changed 2.5.24: Don't put in a socket more than 10 seconds of upload. *)
+(* ...since the socket shares available bandwidth with others, 
+   that test has no physical meaning. Should it simply be removed ? *)
+  let bool2 = not_buffer_more sock (int_of_float !CommonGlobals.payload_bandwidth * 10) in
 (*  lprintf "can_write_len %b %b\n" bool1 bool2; *)
   let b = bool1 && bool2 in
 (*  if not b then
-lprintf "bool1 %b len %d bool2 %b upload %d\n" bool1 len bool2 upload_rate;
-  *)
+      lprintf "bool1 %b len %d bool2 %b upload %d\n" 
+        bool1 len bool2 upload_rate; *)
   b
 
-let upload_to_one_client () =
-(*  lprintf "upload_to_one_client %d %d\n" (Fifo.length upload_clients)
-  !remaining_bandwidth;
-Fifo.iter (fun c -> lprintf "   client %d\n" (client_num c))
-upload_clients; *)
-  if !remaining_bandwidth < 10000 then begin
-      let c = Fifo.take upload_clients in
-      client_can_upload c  !remaining_bandwidth
-    end else
-  let per_client =
-    let len = Fifo.length upload_clients in
-    if len * 10000 < !remaining_bandwidth then
-(* Each client in the Fifo can receive 10000 bytes.
-Divide the bandwidth between the clients
-*)
-      (!remaining_bandwidth / 10000 / len) * 10000
-    else mini 10000 !remaining_bandwidth in
-  let c = Fifo.take upload_clients in
-  client_can_upload c per_client
-
-let rec fifo_uploads n =
-  if n>0 && !remaining_bandwidth > 0 then
-    begin
-      upload_to_one_client ();
-      fifo_uploads (n-1)
-    end
-
-let rec next_uploads () =
-(*  lprintf "next_uploads %d\n" !remaining_bandwidth; *)
-  let old_remaining_bandwidth = !remaining_bandwidth in
-  let len = Fifo.length upload_clients in
-  fifo_uploads len;
-  if !remaining_bandwidth < old_remaining_bandwidth then
-    next_uploads ()
-
 let next_uploads () =
-  sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
+
+  let rec next_uploads_aux () =
+    let rec next_uploads_round n =
+      let upload_to_one_client max_amount =
+        let c = Fifo.take upload_clients in
+        client_can_upload c max_amount
+(* it's up to client_can_upload to put the client back into the Fifo *)
+      in
+
+(*  lprintf "next_uploads %d %d\n" 
+      (Fifo.length upload_clients) !streaming_left;
+    Fifo.iter (fun c -> 
+      lprintf "   client %d\n" (client_num c)
+    ) upload_clients; *)
+      if n>0 && 
+        not (Fifo.empty upload_clients) && 
+        !streaming_left > 0 then begin
+          upload_to_one_client packet_size;
+          next_uploads_round (n-1)
+      end in
+
+(* stop if no uploader could take anything during the last round *)
+    let old_streaming_left = !streaming_left in
+    next_uploads_round (Fifo.length upload_clients);
+    if !streaming_left < old_streaming_left then
+      next_uploads_aux () in
+
   (*
   if !verbose_upload then begin
-      lprintf "Left %d\n" !remaining_bandwidth;
+      lprintf "streaming_left %d\n" !streaming_left;
     end; *)
-  complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
-  incr counter;
-  if !counter = 11 then begin
-      counter := 1;
-      total_bandwidth :=
-      (if !!max_hard_upload_rate = 0 then 10000 * 1024
-        else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
-      complete_bandwidth := !total_bandwidth;
-(*      lprintf "Init to %d\n" !total_bandwidth;  *)
-      remaining_bandwidth := 0
-    end;
-
-  let last_sec = ref 0 in
-  for i = 0 to 9 do
-    last_sec := !last_sec + sent_bytes.(i)
-  done;
-
-(*  if !verbose_upload then begin
-      lprintf "last sec: %d/%d (left %d)\n" !last_sec !total_bandwidth
-        (!total_bandwidth - !last_sec);
- (*
-      for i = 0 to 9 do
-        lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
-      done; *)
-
-    end; *)
-  remaining_bandwidth := mini (mini (mini
-        (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000)
-      !total_bandwidth) !complete_bandwidth)
-  (!total_bandwidth - !last_sec);
-  complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
-(*  lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth;  *)
-  sent_bytes.(!counter-1) <- !remaining_bandwidth;
-  if !remaining_bandwidth > 0 then
-    next_uploads ()
+  (* buffer empties with time... *)
+  let new_streaming_time = BasicSocket.current_time () in
+  let deltat = (match !streaming_time with
+    | None -> 0.
+    | Some t -> new_streaming_time -. t) in
+  streaming_left := !streaming_left + 
+    (int_of_float (!CommonGlobals.payload_bandwidth *. deltat));
+  if !streaming_left > streaming_amount then
+    streaming_left := streaming_amount;
+  streaming_time := Some new_streaming_time;
+  next_uploads_aux ()
 
 let reset_upload_timer () = ()
 
@@ -949,8 +909,12 @@ let dynamic_refill_upload_slots () =
 
   let slot_bw = 3072 in
   let min_upload_slots = 3 in
-(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
   let estimated_capacity = detected_uplink_capacity () in
+  let estimated_capacity = if !!max_hard_upload_rate = 0 then
+    estimated_capacity
+  else 
+    (* max_hard_upload_rate lowered manually,... *)
+    mini estimated_capacity (!!max_hard_upload_rate * 1024) in
   if !verbose_upload then
     lprintf_nl "[cUp] usage: %d(%d) capacity: %d"
       (short_delay_upload_usage ())
@@ -1008,9 +972,7 @@ let refill_upload_slots () =
     end
 
 let consume_bandwidth len =
-  remaining_bandwidth := !remaining_bandwidth - len
-
-let remaining_bandwidth () = !remaining_bandwidth
+  streaming_left := !streaming_left - len
 
 (**********************************************************************
 

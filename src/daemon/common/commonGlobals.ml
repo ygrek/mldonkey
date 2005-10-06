@@ -213,11 +213,18 @@ let download_control = TcpBufferedSocket.create_read_bandwidth_controler
   "Download"
     (!!max_hard_download_rate * 1024)
 
+let payload_bandwidth = ref 0.
 
 let _ =
   option_hook max_hard_upload_rate (fun _ ->
       TcpBufferedSocket.change_rate upload_control
-        (!!max_hard_upload_rate * 1024));
+        (!!max_hard_upload_rate * 1024);
+      payload_bandwidth :=
+	float_of_int (if !!max_hard_upload_rate = 0 then 
+	   10000 * 1024
+         else 
+	   maxi (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
+  );
   option_hook max_hard_download_rate (fun _ ->
       let rate = !!max_hard_download_rate in
       TcpBufferedSocket.change_rate download_control

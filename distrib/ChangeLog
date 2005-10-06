@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/10/06: spiralvoice
 
+4337: improved upload scheduler (pango)
 4494: fix infinite loop when create_dir_mask on fat32 (zet)
 4495: BT: include Wiki link to report unknown clients (bogeyman)
 4493: BT: Correctly parse .torrent files with an empty directory (zet)
