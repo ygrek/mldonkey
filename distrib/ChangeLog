@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/10/06: spiralvoice
 
+4493: BT: Correctly parse .torrent files with an empty directory (zet)
 4487: BT/HTML: Display files inside a multifile torrent (bogeyman, jave)
 4458: EDK: add enable_sui toggle option (enabled by default) (zet)
 4491: Compilation fix for NetBSD>=2.99 (Thomas Klausner)

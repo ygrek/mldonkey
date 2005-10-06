@@ -357,13 +357,18 @@ module MultiFile = struct
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
             let fd = FDCache.create temp_filename in
-            let _ = FDCache.local_force_fd fd true in
+            let cur_len = ref Int64.zero in
+            if not (Unix2.is_directory temp_filename) then
+            begin
+              ignore(FDCache.local_force_fd fd true);
+              cur_len := FDCache.getsize64 fd true;
+            end;
             iter tail (pos ++ size)
             ({
                 filename = filename;
                 pos = pos;
                 len = size;
-                current_len = FDCache.getsize64 fd true;
+                current_len = !cur_len;
                 fd = fd;
                 tail = [];
               } :: files2)
