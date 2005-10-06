@@ -1068,7 +1068,7 @@ statfs_statfs (value pathv)
 
 #ifdef HAVE_STATS
 static value
-#if ((defined (sun) || defined (__sun__)))
+#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000))
 copy_statfs (struct statvfs *buf)
 #else
 copy_statfs (struct statfs *buf)
@@ -1125,7 +1125,7 @@ statfs_statfs (value pathv)
   CAMLparam1 (pathv);
   CAMLlocal1 (bufv);
   const char *path = String_val (pathv);
-#if ((defined (sun) || defined (__sun__)))
+#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000))
   struct statvfs buf;
   if (statvfs (path, &buf) == -1)
 #else
