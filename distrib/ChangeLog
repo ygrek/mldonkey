@@ -18,7 +18,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 4473: New command: whoami
 4457: BeOS: Compile patch for CryptoPP (Michael Lotz)
 4460: Added search for .torrents via IsoHunt (WingMaster)
-4456: Fix shrink effect in vd for Opera
+4456: Fix shrink effect in vd for Opera (Luar Roji)
 
 4452: Clean configure.in, check for c++ compiler
 * zlib is not optional anymore
