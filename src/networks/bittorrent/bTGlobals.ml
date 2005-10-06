@@ -575,7 +575,7 @@ let parse_software s =
   let rec try_styles i =
     if i > 17 then
       begin
-        lprintf_nl () "Unknown BT client found please report the next line to the dev team :\nBTUC:\"%s\"" (String.escaped s);
+        lprintf_nl () "Unknown BT client found please report the next line via http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=UnknownBtClients%s :\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
         "UNKNOWN"
       end
     else begin
