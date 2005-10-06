@@ -29,13 +29,14 @@ open Unix
 let bin_dir = Filename.dirname Sys.argv.(0)
 
 let hidden_dir_prefix =
-  if Autoconf.system = "windows" then "" else "."
+  if Autoconf.windows then "" else "."
 
 let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
 
 let home_dir =
   match Autoconf.system with
-  | "windows" -> "."
+  | "cygwin"
+  | "mingw" -> "."
   | _ -> Filename.concat (try Sys.getenv "HOME" with _ -> ".") config_dir_basename
 
 let installer_ini = create_options_file (Filename.concat home_dir
@@ -85,7 +86,7 @@ let file_basedir =
   if Sys.file_exists (Filename.concat (Sys.getcwd ()) "downloads.ini") then
     "."
   else
-    if Autoconf.system = "windows" && file_basedir_pre <> home_dir then
+    if Autoconf.windows && file_basedir_pre <> home_dir then
       match String2.split file_basedir_pre ':' with
       | drive :: directory :: _ ->
           Unix.chdir (drive ^ ":\\");
@@ -1469,7 +1470,7 @@ let _ =
 	    end;
           let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
           lprintf_to_file := true;
-          if Autoconf.system = "windows" then lprintf "%s" win_message;
+          if Autoconf.system = "cygwin" then lprintf "%s" win_message;
           lprintf_nl "Logging in %s" ( Filename.concat file_basedir !!log_file);
           log_to_file oc;
 	  lprintf_nl "Started logging..."

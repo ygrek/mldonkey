@@ -14,6 +14,12 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 2005/10/06: spiralvoice
 
 4452: Clean configure.in, check for c++ compiler
+* zlib is not optional anymore
+* remove old code (Cryptokit, Broosnet etc.)
+* distinguish between Cygwin and MinGW
+* print start warning message only for Cygwin
+* remove whitespaces
+
 4450: Remove swarmer data when cancelling download (kempston, zet)
 
 2005/09/21: spiralvoice

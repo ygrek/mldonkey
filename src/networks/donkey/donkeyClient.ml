@@ -1569,15 +1569,12 @@ is checked for the file.
           in
           let pos = iter comp.comp_blocs in
           assert (pos = comp.comp_len);
-          if Autoconf.has_zlib then
             let s = Autoconf.zlib__uncompress_string2 s in
             if !verbose then
 	      lprintf_nl () "Decompressed: %d/%d" (String.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
-              comp.comp_pos s 0 (String.length s)
-          else
-            lprintf_nl () "ERROR: No Zlib to uncompress packet";
+              comp.comp_pos s 0 (String.length s);
           
           c.client_comp <- None;
         end else

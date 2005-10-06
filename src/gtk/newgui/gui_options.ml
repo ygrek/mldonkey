@@ -234,22 +234,22 @@ let color_network_disabled =  define_option mldonkey_gui_section ["colors"; "net
 
 let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
     ( M.h_font_list) string_option
-     ( if Autoconf.system = "windows" then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
+     ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
     ( M.h_font_main_tab) string_option
-     ( if Autoconf.system = "windows" then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
+     ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]
     ( M.h_font_networks) string_option
-     ( if Autoconf.system = "windows" then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
+     ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_graphic =  define_option mldonkey_gui_section ["fonts"; "graphic"]
     ( M.h_font_graphic)  string_option
-     ( if Autoconf.system = "windows" then "-unknown-Tahoma-normal-r-normal-*-*-80-*-*-p-*-iso8859-1"
+     ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-80-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 (*

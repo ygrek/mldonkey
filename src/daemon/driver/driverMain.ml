@@ -487,7 +487,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf_nl (_b "If you connect from a remote machine adjust allowed_ips");
-  if Autoconf.system = "windows" && not !keep_console_output then lprintf (_b "%s") win_message;
+  if Autoconf.system = "cygwin" && not !keep_console_output then lprintf (_b "%s") win_message;
 
   add_init_hook (fun _ ->
       if not !gui_included && ( !!start_gui || !!ask_for_gui ) then
@@ -531,11 +531,11 @@ or getting a binary compiled with glibc %s.\n\n")
   DriverInteractive.initialization_completed := true;
   DriverInteractive.save_config ();
 
-  if Autoconf.system <> "windows" then
+  if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigchld
       (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGCHLD, doing nothing"));
 
-  if Autoconf.system <> "windows" then
+  if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ ->
 	 lprintf_nl "Received SIGHUP, closing all files/sockets";
@@ -543,7 +543,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	 Unix32.close_all ()
          ));
 
-  if Autoconf.system <> "windows" then
+  if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigpipe
       (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGPIPE, doing nothing"));
 

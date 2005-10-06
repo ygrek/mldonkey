@@ -140,7 +140,6 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "port") !!donkey_port;
   ];
   let extended = ref 0x04 in (* support of auxport *)
-  if Autoconf.has_zlib then
     extended := !extended lor 0x01; (* support of compression *)
     client_to_server_tags := (int_tag
       (Field_UNKNOWN "extended") !extended)::!client_to_server_tags;

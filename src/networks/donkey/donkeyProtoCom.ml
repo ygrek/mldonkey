@@ -353,7 +353,7 @@ let server_send_share compressed sock msg =
          lprintf_nl () "Sending %d share(s) to server : " nfiles;
       Buffer.reset buf;
       let s_c =
-        if compressed && Autoconf.has_zlib then
+        if compressed then
           Autoconf.zlib__compress_string s
         else
           s

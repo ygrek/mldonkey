@@ -1452,10 +1452,7 @@ let send_qrt_sequence s update_table =
   let table = !cached_qrt_table in
   
   let compressor, table =
-    if Autoconf.has_zlib then
       1, Autoconf.zlib__compress_string table
-    else
-      0, table 
   in
   
   server_send_qrt_patch s {

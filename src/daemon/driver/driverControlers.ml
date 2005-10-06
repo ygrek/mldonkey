@@ -802,7 +802,7 @@ let http_add_gen_header r =
   add_reply_header r "Connection" "close"
 
 let add_gzip_headers r =
-  if Autoconf.has_zlib && !!html_use_gzip then begin
+  if !!html_use_gzip then begin
     add_reply_header r "Content-Encoding" "gzip";
     add_reply_header r "Vary" "Accept-Encoding";
   end
@@ -1432,7 +1432,7 @@ let http_handler o t r =
     | BIN -> Buffer.contents buf
     | UNK -> "Unknown type for content :" ^ (Buffer.contents buf)
   in
-  r.reply_content <- if Autoconf.has_zlib && !!html_use_gzip then Autoconf.zlib__gzip_string s else s
+  r.reply_content <- if !!html_use_gzip then Autoconf.zlib__gzip_string s else s
 
 let http_options = {
     conn_buf = Buffer.create 10000;

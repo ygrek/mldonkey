@@ -53,7 +53,7 @@ let check_forbidden_chars (uc : Charset.uchar) =
   | 60  (* '<'  *)
   | 62  (* '>'  *)
   | 124 (* '|'  *)
-  | 37  (* '%'  *) when Autoconf.system = "windows" -> 95 (* '_' *)
+  | 37  (* '%'  *) when Autoconf.windows -> 95 (* '_' *)
   | _ -> uc
 
 let canonize_basename name =

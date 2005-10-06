@@ -7,7 +7,7 @@ let _b x = _b "Gui_starter" x
 
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 let config_dir_basename =
-  if Autoconf.system = "windows" then "mldonkey" else ".mldonkey"
+  if Autoconf.windows then "mldonkey" else ".mldonkey"
 let config_dir = Filename.concat home_dir config_dir_basename
   
 let _ = 

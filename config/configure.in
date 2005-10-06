@@ -17,45 +17,63 @@ AC_MSG_NOTICE(Building on $host)
 
 OS_FILES=unix
 OS_FILES2=unix
+SYSTEM=unknown
 case $host in
   *mingw*)
+    SYSTEM=mingw
     OS_FILES=mingw
     OS_FILES2=mingw
     PTHREAD_LIBS="-lpthreadGC2 -lwsock32"
     PTHREAD_CFLAGS="-DPTW32_STATIC_LIB"
     ;;
   *cygwin*)
+    SYSTEM=cygwin
     OS_FILES2=cygwin
     ;;
-  *freebsd*|*openbsd*)
+  *freebsd*)
+    SYSTEM=freebsd
     CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
     LDFLAGS="${LDFLAGS} -L/usr/local/lib"
     ;;
+  *openbsd*)
+    SYSTEM=openbsd
+    CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+    LDFLAGS="${LDFLAGS} -L/usr/local/lib"
+    ;;
+  *netbsd*)
+    SYSTEM=netbsd
+    ;;
+  *linux*)
+    SYSTEM=linux
+    ;;
+  *solaris*)
+    SYSTEM=solaris
+    ;;
+  *morphos*|*amigaos*)
+    SYSTEM=morphos
+    ;;
+  *aix*)
+    SYSTEM=aix
+    ;;
+  *beos*)
+    SYSTEM=beos
+    ;;
+  *osf*)
+    SYSTEM=osf
+    ;;
+  *irix*)
+    SYSTEM=irix
+    ;;
+  *hppa*|*hpux*)
+    SYSTEM=hpux
+    ;;
+  *darwin*|*rhapsody*|*macosx*)
+    SYSTEM=macosx
+    ;;
 esac
-
-case "`uname -s`" in
-  *win32* | *WIN32* | MINGW* | CYGWIN* )
-     SYSTEM="windows"
-     ;;
-  *Linux*)
-     SYSTEM="linux"
-     ;;
-  *FreeBSD*)
-     SYSTEM="freebsd"
-     ;;
-  *OpenBSD*)
-     SYSTEM="openbsd"
-     ;;
-  *SunOS*)
-     SYSTEM="solaris"
-     ;;
-  *Darwin*)
-     SYSTEM="darwin"
-     ;;
-  *)
-     SYSTEM=""
-     ;;
-esac
+if test "x$SYSTEM" = "xunknown"; then
+  AC_MSG_FAILURE([Unknown build system, please notify MLdonkey developer team])
+fi
 
 if test -d .svn; then
   AC_MSG_NOTICE(checking SVN revision)
@@ -67,6 +85,7 @@ if test -d .svn; then
        SCM_VERSION="cannot find out SVN revision (no SVNVERSION)"  
   fi     
 fi
+
 if test -f ./CVS/Entries ; then
   AC_MSG_NOTICE(checking CVS checkout date)
   AC_CHECK_PROG(STAT, stat, stat)
@@ -85,24 +104,27 @@ if test -f ./CVS/Entries ; then
 	      SCM_VERSION=`$STAT -f %a ./CVS/Entries | $GREP -v Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\1-\2-\4 \3/'`
 	    fi
 	  else
-	    if [ test "$SYSTEM" = "windows"]; then
+	    if [ test "$SYSTEM" = "mingw"] || [ test "$SYSTEM" = "cygwin"]; then
 	      AC_CHECK_PROG(GREP, grep, grep)
 	      if test "$ac_cv_prog_GREP" = "grep"; then
 	        SCM_VERSION=`$STAT ./CVS/Entries  | $GREP Modify | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\) \(.*\)/\5-\2-\3 \4/'`
+	      fi
+	    else
+	      SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
 	    fi
-	  else
-	    SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
 	  fi
 	fi
+      else
+        AC_MSG_NOTICE(cannot checking CVS checkout date... no CUT)
+        SCM_VERSION="cannot find out SCM Version (no CUT)"
       fi
-      else AC_MSG_NOTICE(cannot checking CVS checkout date... no CUT)
-      SCM_VERSION="cannot find out SCM Version (no CUT)"
+    else
+      AC_MSG_NOTICE(cannot checking CVS checkout date... no SED)
+      SCM_VERSION="cannot find out SCM Version (no SED)"
     fi
-    else AC_MSG_NOTICE(cannot checking CVS checkout date... no SED)
-    SCM_VERSION="cannot find out SCM Version (no SED)"
-  fi
-  else AC_MSG_NOTICE(cannot checking CVS checkout date... no STAT)
-  SCM_VERSION="cannot find out SCM Version (no STAT)"
+  else
+    AC_MSG_NOTICE(cannot checking CVS checkout date... no STAT)
+    SCM_VERSION="cannot find out SCM Version (no STAT)"
   fi
 fi
 MLDONKEY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$SUB_VERSION
@@ -138,7 +160,6 @@ DONKEY=yes
 BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
-BROOSNET=yes
 MULTINET=yes
 AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
 if test ! "$MULTINET" = "yes"; then
@@ -152,7 +173,6 @@ if test ! "$MULTINET" = "yes"; then
   FILETP=no
   BITTORRENT=no
   RELEASENAME="$RELEASENAME-nomultinet"
-  BROOSNET=no
 fi
 AC_ARG_ENABLE(donkey,        [  --disable-donkey        allows you to remove support for eDonkey], [DONKEY="$enableval"])
 AC_ARG_ENABLE(bittorrent,    [  --disable-bittorrent    allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
@@ -226,8 +246,19 @@ AC_CHECK_PROG(CC,gcc3,"gcc3",cc)
 AC_PROG_CC
 AC_EXEEXT
 AC_PROG_CPP
+AC_PROG_CXX
+
+AC_CHECK_PROG(NEWCXX, [$CXX], [$CXX], [no])
+if test x"$NEWCXX" = x"no"
+then
+  AC_MSG_ERROR("No valid c++ compiler found")
+else
+  CXX=$NEWCXX
+fi
+
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"
+    CPP="$CPP -mno-cygwin"
 fi
 AC_PROG_RANLIB
 
@@ -564,17 +595,9 @@ AC_CHECK_HEADERS([sys/param.h sys/mount.h],,,
 #endif
 ])
 
-ZLIB=no
-AC_CHECK_LIB(z,inflate,[AC_CHECK_HEADERS(zlib.h,[ZLIB=yes],)])
-if test "$ZLIB" = "yes"; then
-  AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
-  HAS_ZLIB=true
-  ZLIB__UNCOMPRESS_STRING2="Zlib.uncompress_string2 s"
-  ZLIB__COMPRESS_STRING="Zlib.compress_string s"
-  ZLIB__GZIP_STRING="Zlib.gzip_string s"
-else
-  echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
-fi
+AC_CHECK_LIB(z,inflate,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and zlib-developer packages?])])
+AC_CHECK_HEADERS(zlib.h,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and zlib-developer packages?])])
+AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
 
 BZIP2=no
 HAS_BZIP2=false
@@ -703,15 +726,10 @@ if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
 fi
 AC_MSG_NOTICE(checking for activated networks)
   if test "$DONKEY" = "yes"; then
-    if test "$ZLIB" = "yes"; then
-       AC_CHECK_FILE(../src/networks/donkey,DONKEY=yes, [
-         DONKEY=no
-         BAD_TARGETS="$BAD_TARGETS donkey"
-       ])
-    else
-       DONKEY=no
-       BAD_TARGETS="$BAD_TARGETS donkey(no Zlib)"
-    fi
+    AC_CHECK_FILE(../src/networks/donkey,DONKEY=yes, [
+      DONKEY=no
+      BAD_TARGETS="$BAD_TARGETS donkey"
+    ])
   else
     DONKEY=no
     BAD_TARGETS="$BAD_TARGETS donkey"
@@ -736,30 +754,20 @@ AC_MSG_NOTICE(checking for activated networks)
 #  fi
 
   if test "$GNUTELLA" = "yes"; then
-    if test "$ZLIB" = "yes"; then
        AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA=yes, [
          GNUTELLA=no
          BAD_TARGETS="$BAD_TARGETS gnutella"
        ])
-    else
-       GNUTELLA=no
-       BAD_TARGETS="$BAD_TARGETS gnutella(no Zlib)"
-    fi
   else
     GNUTELLA=no
     BAD_TARGETS="$BAD_TARGETS gnutella"
   fi
 
   if test "$GNUTELLA2" = "yes"; then
-    if test "$ZLIB" = "yes"; then
        AC_CHECK_FILE(../src/networks/gnutella2,GNUTELLA2=yes, [
          GNUTELLA2=no
          BAD_TARGETS="$BAD_TARGETS gnutella2"
        ])
-    else
-       GNUTELLA2=no
-       BAD_TARGETS="$BAD_TARGETS gnutella2(no Zlib)"
-    fi
   else
     GNUTELLA2=no
     BAD_TARGETS="$BAD_TARGETS gnutella2"
@@ -784,15 +792,10 @@ AC_MSG_NOTICE(checking for activated networks)
   fi
 
   if test "$SOULSEEK" = "yes"; then
-    if test "$ZLIB" = "yes"; then
        AC_CHECK_FILE(../src/networks/soulseek,SOULSEEK=yes, [
          SOULSEEK=no
          BAD_TARGETS="$BAD_TARGETS soulseek"
        ])
-    else
-       SOULSEEK=no
-       BAD_TARGETS="$BAD_TARGETS soulseek(no Zlib)"
-    fi
   else
     SOULSEEK=no
     BAD_TARGETS="$BAD_TARGETS soulseek"
@@ -814,12 +817,6 @@ AC_MSG_NOTICE(checking for activated networks)
     ])
   else
     BAD_TARGETS="$BAD_TARGETS FastTrack(devel)"
-  fi
-
-  if test "$BROOSNET" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/bittorrent/bTBroosnet.ml,BROOSNET=yes, [
-      BROOSNET=no
-    ])
   fi
 
 if test "$DONKEY" = "yes" ; then
@@ -847,9 +844,6 @@ if test ! "$GUI" = "no"; then
   echo "Checking the libraries required to build the GTK GUI."
   echo "---------------------------------------------------------"
   if test "$GUI" = "newgui2"; then
-    AC_MSG_CHECKING(for Zlib)
-    if test "$ZLIB" = "yes"; then
-      AC_MSG_RESULT(yes)
       REQUIRED_GTK=2.4.0
       PKG_GTK=gtk+-2.0
       AC_MSG_CHECKING(for GTK+ - version >= $REQUIRED_GTK)
@@ -871,10 +865,6 @@ if test ! "$GUI" = "no"; then
         GTK_CONFIG=no
         AC_MSG_RESULT(no)
       fi
-    else
-      GTK_CONFIG=no
-      AC_MSG_RESULT(no)
-    fi
   else
     if test "$OS_FILES2" = "mingw"; then
       REQUIRED_GTK=1.3.0
@@ -1007,40 +997,6 @@ else
    IM=no
 fi
 
-
-if test "$IM" = "yes"; then
-  CRYPTOKIT=no
-  AC_MSG_CHECKING(for CryptoKit)
-  if test -f $OCAMLLIB/cryptokit.$OCAMLLIB_EXT; then
-    CRYPTOKIT=yes
-    AC_MSG_RESULT(yes)
-  else
-    AC_MSG_RESULT(no)
-  fi
-
-  if test "$CRYPTOKIT" = "yes"; then
-    YAXPO=no
-    AC_MSG_CHECKING(Checking for Yaxpo)
-    if test -f $OCAMLLIB/yaxpo.$OCAMLLIB_EXT; then
-      YAXPO=yes
-      AC_MSG_RESULT(yes)
-    else
-      AC_MSG_RESULT(no)
-    fi
-  fi
-
-  if test "$YAXPO" = "yes"; then
-    JABBR=no
-    AC_MSG_CHECKING(Checking for Jabbr)
-    if test -f $OCAMLLIB/jabbr.$OCAMLLIB_EXT; then
-      JABBR=yes
-      AC_MSG_RESULT(yes)
-    else
-      AC_MSG_RESULT(no)
-    fi
-  fi
-fi
-
 if test "$USE_PTHREAD" = "no"; then
  PTHREAD_LIBS=""
  echo "Dont use threads"
@@ -1125,7 +1081,7 @@ if test "$GD" != "no"; then
   LIBS=$SAVE_LIBS
 
   if test "$LIBGD" = "no"; then
-    AC_MSG_NOTICE(not found, trying another method)
+    AC_MSG_NOTICE([not found, trying another method])
     AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
   fi
 
@@ -1147,7 +1103,7 @@ if test "$GD" != "no"; then
       LIBS=$SAVE_LIBS
 
       if test "$LIBGD_PNG" = "no"; then
-        AC_MSG_NOTICE(not found, trying another method)
+        AC_MSG_NOTICE([not found, trying another method])
         AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
       fi
 
@@ -1180,7 +1136,7 @@ if test "$GD" != "no"; then
       LIBS=$SAVE_LIBS
 
       if test "$LIBGD_JPG" = "no"; then
-        AC_MSG_NOTICE(not found, trying another method)
+        AC_MSG_NOTICE([not found, trying another method])
         AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
       fi
 
@@ -1237,21 +1193,13 @@ fi
 
 TMK=no
 
-AC_CHECK_FILE(../src/pic/picMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/pic", )
-AC_CHECK_FILE(../src/spider/ecrawler/spiderMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/ecrawler src/spider/analyser1", )
-AC_CHECK_FILE(../src/spider/disasm/mldisasm.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/disasm src/spider/tmk", )
-AC_CHECK_FILE(../src/spider/tmk/tmkSimple.ml,TMK=yes, )
-AC_CHECK_FILE(../src/btview/btviewMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/btview", )
-AC_CHECK_FILE(../src/cluster/clusterMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/cluster", )
-
-AC_CHECK_FILE(../src/networks/fasttrack/fasttrackSupernode.ml,SUPERNODES="yes", )
-
 AC_SUBST(LIBS)
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CC)
 AC_SUBST(CPP)
+AC_SUBST(CXX)
 AC_SUBST(CONFIG_INCLUDES)
 
 AC_SUBST(EXTRA_DIRS)
@@ -1275,7 +1223,6 @@ AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
-AC_SUBST(ZLIB)
 AC_SUBST(BZIP2)
 AC_SUBST(GD)
 AC_SUBST(GD_JPG)
@@ -1294,11 +1241,6 @@ AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
-AC_SUBST(BROOSNET)
-
-AC_SUBST(JABBR)
-
-AC_SUBST(SUPERNODES)
 
 AC_SUBST(GUI)
 AC_SUBST(REQUIRED_OCAML)
@@ -1326,10 +1268,6 @@ AC_SUBST(GTKLFLAGS)
 AC_SUBST(HAS_GD)
 AC_SUBST(HAS_GD_PNG)
 AC_SUBST(HAS_GD_JPG)
-AC_SUBST(HAS_ZLIB)
-AC_SUBST(ZLIB__UNCOMPRESS_STRING2)
-AC_SUBST(ZLIB__COMPRESS_STRING)
-AC_SUBST(ZLIB__GZIP_STRING)
 AC_SUBST(HAS_BZIP2)
 
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"

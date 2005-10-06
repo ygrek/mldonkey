@@ -1132,15 +1132,10 @@ let rec parse magic s =
               raise Not_found
         end
     | 0xD4 -> (* 212 *)
-
-(*        lprintf "Compressed Message...\n"; *)
-
-        if Autoconf.has_zlib then
           let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
           parse 227 s
-        else
-          failwith "No Zlib to uncompress packet"
+
     | _ ->
         failwith (Printf.sprintf "Unknown opcode %d from server\n" opcode)
   with

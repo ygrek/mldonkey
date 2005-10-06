@@ -1019,8 +1019,7 @@ let backup_tar archive files =
 	  let error = (Printexc2.to_string e) in
 	    if error =
 	      "Gzip.Error(\"error during compression\")"
-	      && Autoconf.system = "windows"
-	      && arg = "fasttrack.ini" then
+	      && Autoconf.windows && arg = "fasttrack.ini" then
               (* for whatever reason this error is raised on Windows,
                  but fasttrack.ini is stored correctly *)
 	      if !verbose_hidden_errors then
@@ -1092,16 +1091,12 @@ let buildinfo () =
 	       if real_glibc_version <> Autoconf.glibc_version
 	         && real_glibc_version <> "" then
 		   Printf.sprintf " (DANGER: glibc %s present on system)" real_glibc_version else "")
-      ^ (if Autoconf.configure_arguments <> "" then "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
+      ^ (if Autoconf.configure_arguments <> "" then
+           "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
       ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
       ^ "\nFeatures:"
           ^ (if BasicSocket.has_threads () then " threads" else " no-threads")
-          ^ (if Autoconf.has_zlib then
-	       begin
-	         let s = Zlib.zlib_version_num () in
-	           Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")
-	       end
-	     else " no-zlib")
+          ^ (let s = Zlib.zlib_version_num () in Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else ""))
           ^ (if Autoconf.has_bzip2 then
 	       begin
 	         let s =

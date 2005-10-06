@@ -146,10 +146,8 @@ ifeq ("$(BZIP2)", "yes")
   CDK_SRCS +=  $(CDK)/bzlib.ml $(CDK)/bzip2.ml
 endif
 
-ifeq ("$(ZLIB)", "yes")
-  LIBS_flags += -cclib -lz
-  CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.ml
-endif
+LIBS_flags += -cclib -lz
+CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.ml
 
 ifeq ("$(GD)", "yes")
   LIBS_flags += -cclib -lgd -cclib -lfreetype -cclib -lm
@@ -164,24 +162,11 @@ ifeq ("$(GD)", "yes")
   CDK_SRCS +=  $(CDK)/gd.ml $(CDK)/gdstubs.c
 endif
 
-ifeq ("$(SUPERNODES)", "yes")
-  FASTTRACK_SUPERNODE=$(SRC_FASTTRACK)/fasttrackSupernode.ml
-else
-
-endif
-
-ifeq ("$(BROOSNET)", "yes")
-  BROOSNET = \
-       $(SRC_BITTORRENT)/bTBrooseTypes.ml \
-       $(SRC_BITTORRENT)/bTProtoBroosnet.ml \
-       $(SRC_BITTORRENT)/bTBroosnet.ml
-endif
-
 CDK_SRCS += $(LIB)/autoconf.ml
 
 
 CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
-   $(CDK)/heap.ml $(CDK)/dprintf.ml \
+  $(CDK)/heap.ml $(CDK)/dprintf.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
   $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
@@ -452,7 +437,6 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackClients.mlt \
   $(SRC_FASTTRACK)/fasttrackHandler.ml \
   $(SRC_FASTTRACK)/fasttrackServers.ml \
-  $(FASTTRACK_SUPERNODE) \
   $(SRC_FASTTRACK)/fasttrackPandora.ml \
   $(SRC_FASTTRACK)/fasttrackInteractive.mlt \
   $(SRC_FASTTRACK)/fasttrackMain.mlt
@@ -472,7 +456,6 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTShare.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
-  $(BROOSNET) \
   $(SRC_BITTORRENT)/bTMain.ml
   
 OPENFT_SRCS= \
@@ -1684,7 +1667,7 @@ releaseclean: clean moreclean
 	rm -rf patches/build
 	rm -f config/Makefile.config
 	rm -f config/mldonkey.rc
-	rm -f config/config.cache config/config.log config/config.status config/trying
+	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h
 	rm -f config/confdefs.h
 	rm -rf config/autom4te.cache/

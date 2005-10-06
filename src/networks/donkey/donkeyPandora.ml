@@ -186,11 +186,8 @@ let client_parse c opcode s =
                 in
                 let pos = iter comp.comp_blocs in
                 assert (pos = comp.comp_len);
-                if Autoconf.has_zlib then
                   let s = Autoconf.zlib__uncompress_string2 s in
                   lprintf "Decompressed: %d/%d\n" (String.length s) comp.comp_len;
-                else
-                  lprintf "No Zlib to uncompress packet";
                   
                 c.client_comp <- None;
               end else
