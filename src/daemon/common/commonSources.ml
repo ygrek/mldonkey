@@ -2171,10 +2171,26 @@ connected if needed *)
             let nsources = ref 0 in
             HS.iter (fun _ -> incr nsources) sources_by_uid;
             Printf.bprintf buf "Sources by UID table: %d entries\n" !nsources;
+            Printf.bprintf buf "Sources by UID table stats: %d %d %d %d %d %d\n" 
+               ((fun (n,_,_,_,_,_) -> n)(HS.stats sources_by_uid))
+               ((fun (_,n,_,_,_,_) -> n)(HS.stats sources_by_uid))
+               ((fun (_,_,n,_,_,_) -> n)(HS.stats sources_by_uid))
+               ((fun (_,_,_,n,_,_) -> n)(HS.stats sources_by_uid))
+               ((fun (_,_,_,_,n,_) -> n)(HS.stats sources_by_uid))
+               ((fun (_,_,_,_,_,n) -> n)(HS.stats sources_by_uid))
+               ;
             
             nsources := 0;
             H.iter (fun _ -> incr nsources) sources_by_num;
             Printf.bprintf buf "Sources by NUM table: %d entries\n" !nsources;
+            Printf.bprintf buf "Sources by NUM table stats: %d %d %d %d %d %d\n" 
+               ((fun (n,_,_,_,_,_) -> n)(H.stats sources_by_num))
+               ((fun (_,n,_,_,_,_) -> n)(H.stats sources_by_num))
+               ((fun (_,_,n,_,_,_) -> n)(H.stats sources_by_num))
+               ((fun (_,_,_,n,_,_) -> n)(H.stats sources_by_num))
+               ((fun (_,_,_,_,n,_) -> n)(H.stats sources_by_num))
+               ((fun (_,_,_,_,_,n) -> n)(H.stats sources_by_num))
+               ;
 
             let nconnected = ref 0 in
             Fifo.iter (fun (_,s) ->

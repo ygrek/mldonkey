@@ -136,10 +136,10 @@ search for files and search for sources. *)
 | OvernetUnknown21 of peer
 
 let print_peer buf p =
-  Printf.bprintf buf "   { md4 = %s ip = %s port = %d %s kind = %d}\n"
+  Printf.bprintf buf "   { md4 = %s ip = %s port = %d %s kind = %d l_send = %d l_recv = %d}\n"
     (Md4.to_string p.peer_md4) (Ip.to_string p.peer_ip) p.peer_port
     (if p.peer_tcpport <> 0 then Printf.sprintf "tcp = %d" p.peer_tcpport
-    else "") p.peer_kind
+    else "") p.peer_kind p.peer_last_send p.peer_last_recv
 
 let message_to_string t =
   let buf = Buffer.create 100 in
@@ -1530,6 +1530,42 @@ let _ =
     (List.map (fun (command, args, help) ->
         command_prefix ^ command, args, help)
     [
+    "dump_bucket", Arg_one (fun i o ->
+         let i = int_of_string i in
+         let i = min i !n_used_buckets in
+         let buf = o.conn_buf in
+         update_buckets ();
+
+         Printf.bprintf buf "Peers of bucket number %d\n" i;
+         let b = buckets.(i) in
+         for i = 1 to Fifo.length b do
+           let p = Fifo.take b in
+           print_peer buf p;
+           Fifo.put b p;
+         done;
+
+         Printf.bprintf buf "Peers of prebucket number %d\n" i;
+         let pb = prebuckets.(i) in
+         for i = 1 to Fifo.length pb do
+           let p = Fifo.take pb in
+           print_peer buf p;
+           Fifo.put pb p;
+         done;
+         ""
+    ), ("<bucket_nr> :\t\t\tdumps a bucket");
+
+    "dump_known_peers", Arg_none (fun o ->
+         let buf = o.conn_buf in
+
+         Printf.bprintf buf "Peers of known_peers:\n";
+         Hashtbl.iter (fun key p ->
+           let (ip,port) = key in
+           Printf.bprintf buf "%s:%d:" (Ip.to_string ip) port;
+           print_peer buf p;
+         ) known_peers;
+         ""
+    ), (":\t\t\tdumps known_peers");
+
     "boot", Arg_two (fun ip port o ->
         let ip = Ip.from_name ip in
         let port = int_of_string port in
