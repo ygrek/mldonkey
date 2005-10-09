@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
 http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
+2005/10/09: spiralvoice
+
+4496: Nicer summary of configure command
+
 2005/10/06: spiralvoice
 
 4337: improved upload scheduler (pango)
