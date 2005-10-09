@@ -466,13 +466,17 @@ value ml_image_set_transparent(value gdw, value c) {
   return Val_unit;
 }
 
+#ifdef HAVE_PNGVERSION
+#include <png.h>
+#endif
+
 int ml_image_pngversion(void)
 {
   CAMLparam0 ();
   CAMLlocal1 (v);
 #ifdef HAVE_PNGVERSION
-  void* w = png_access_version_number();
-  v = copy_int32 ((int32)w);
+  #include <png.h>
+  v = copy_int32 ((int32)png_access_version_number());
   CAMLreturn (v);
 #else
   raise_constant(*(value *)caml_named_value("gd type not supported"));

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "md4.h"
+#include <memory.h>
 
 /* Constants for MD4Transform routine.
  */
@@ -34,10 +35,8 @@
 #define S34 15
 
 static void MD4Transform PROTO_LIST ((UINT4 [4], unsigned char [64]));
-static void Encode PROTO_LIST
-  ((unsigned char *, UINT4 *, unsigned int));
-static void Decode PROTO_LIST
-  ((UINT4 *, unsigned char *, unsigned int));
+static void Encode PROTO_LIST ((unsigned char *, UINT4 *, unsigned int));
+static void Decode PROTO_LIST ((UINT4 *, unsigned char *, unsigned int));
 
 
 static unsigned char PADDING[64] = {
@@ -111,8 +110,7 @@ unsigned int inputLen;                     /* length of input block */
   /* Transform as many times as possible.
    */
   if (inputLen >= partLen) {
-    memcpy
-      ((POINTER)&context->buffer[index], (POINTER)input, partLen);
+    memcpy ((POINTER)&context->buffer[index], (POINTER)input, partLen);
     MD4Transform (context->state, context->buffer);
 
     for (i = partLen; i + 63 < inputLen; i += 64)
@@ -124,9 +122,7 @@ unsigned int inputLen;                     /* length of input block */
     i = 0;
 
   /* Buffer remaining input */
-  memcpy
-    ((POINTER)&context->buffer[index], (POINTER)&input[i],
-     inputLen-i);
+  memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i], inputLen-i);
 }
 
 /* MD4 finalization. Ends an MD4 message-digest operation, writing the

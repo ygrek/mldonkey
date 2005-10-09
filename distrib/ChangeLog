@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/10/09: spiralvoice
 
+4477: prevented some compiler warnings (Schlumpf)
 4496: Nicer summary of configure command
 
 2005/10/06: spiralvoice

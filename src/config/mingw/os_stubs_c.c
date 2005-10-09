@@ -11,10 +11,6 @@
 #include <signals.h>
 #endif
 
-#ifndef INVALID_SET_FILE_POINTER
-#define INVALID_SET_FILE_POINTER (-1)
-#endif
-
 #define UNIX_BUFFER_SIZE 16384
 
 extern void enter_blocking_section(); 
@@ -41,7 +37,7 @@ extern ssize_t os_read(OS_FD fd, char *buf, size_t len)
 
 void os_ftruncate(OS_FD fd, OFF_T size, /* bool */ int sparse)
 {
-  uint curpos;
+  DWORD curpos;
   long ofs_low = (long) size;
   long ofs_high = (long) (size >> 32);
 
@@ -97,18 +93,19 @@ int64 os_getfilesize(char *path)
 	win32_maperr(err);
 	uerror("os_getfilesize", Nothing);
     }
+    return 0;
   }
 }
 
 OFF_T os_lseek(OS_FD fd, OFF_T ofs, int cmd)
 {
-  long ret;
+  DWORD ret;
   long ofs_low = ofs;
   long ofs_high = (long) (ofs >> 32);
   long err;
 
   ret = SetFilePointer(fd, ofs_low, &ofs_high, cmd);
-  if (ret == INVALID_SET_FILE_POINTER) {
+  if ((unsigned long)ret == INVALID_SET_FILE_POINTER) {
     err = GetLastError();
     if (err != NO_ERROR) {
       win32_maperr(err);
@@ -155,6 +152,7 @@ void os_uname(char buf[])
 {
    OSVERSIONINFOEX osvi;
    BOOL bOsVersionInfoEx;
+   char binull='\0';
 
    // Try calling GetVersionEx using the OSVERSIONINFOEX structure.
    // If that fails, try using the OSVERSIONINFO structure.
@@ -257,13 +255,12 @@ void os_uname(char buf[])
             strcat(buf, "Server \0" );
          if ( lstrcmpi( "SERVERNT", szProductType) == 0 )
             strcat(buf, "Advanced Server \0" );
-         printf( "%d.%d ", osvi.dwMajorVersion, osvi.dwMinorVersion );
+         printf( "%d.%d", (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion );
       }
 
       // Display service pack (if any) and build number.
 			char tbuf[4096];
-      if( osvi.dwMajorVersion == 4 && 
-          lstrcmpi( osvi.szCSDVersion, "Service Pack 6" ) == 0 )
+      if( osvi.dwMajorVersion == 4 && lstrcmpi( osvi.szCSDVersion, "Service Pack 6" ) == 0 )
       { 
          HKEY hKey;
          LONG lRet;
@@ -274,18 +271,16 @@ void os_uname(char buf[])
             0, KEY_QUERY_VALUE, &hKey );
          if( lRet == ERROR_SUCCESS )
 								 
-            sprintf(tbuf, "Service Pack 6a (Build %d)\0", osvi.dwBuildNumber & 0xFFFF );         
+            sprintf(tbuf, "Service Pack 6a (Build %lu)%c", osvi.dwBuildNumber & 0xFFFF, binull );
          else // Windows NT 4.0 prior to SP6a
          {
-            sprintf(tbuf, "%s (Build %d)\0",
-               osvi.szCSDVersion,
-               osvi.dwBuildNumber & 0xFFFF);
+            sprintf(tbuf, "%s (Build %lu)%c",osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, binull);
          }
          RegCloseKey( hKey );
       }
       else // not Windows NT 4.0 
       {
-         sprintf(tbuf, "%s (Build %d)\0", osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF);
+         sprintf(tbuf, "%s (Build %lu)%c", osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, binull);
       }
 
       strcat(buf, tbuf);
