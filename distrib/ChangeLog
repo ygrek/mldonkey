@@ -13,6 +13,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/10: spiralvoice
 
+4504: Clean http_server.ml logging
 4502: Remove obsolete Weak2 sourcecode (bogeyman)
 4503: OV: fill buckets only with peers we send to and heard of (bogeyman)
 4499: Check for stalled pid file and remove it if MLDonkey is not running

@@ -23,8 +23,8 @@ open TcpBufferedSocket
 
 let verbose = ref false
 
-let lprintf_nl () =
-  lprintf "%s[HTTPsv]: "
+let lprintf_http_nl () =
+  lprintf "%s[HTTPsv] "
   (log_time ()); lprintf_nl2
 
 let html_escaped s =
@@ -226,7 +226,7 @@ let split_head s =
 
 let parse_head sock s =
   let h = split_head s in
-(*  List.iter (fun s -> lprintf_nl () "LINE: [%s]" (escaped s)) h; *)
+(*  List.iter (fun s -> lprintf_http_nl () "LINE: [%s]" (escaped s)) h; *)
   match h with
     [] -> failwith "Http_server: Empty head"
   | ans :: headers ->
@@ -263,10 +263,9 @@ let parse_head sock s =
                 { options with no_cache = true }
               | _ -> options
             with e ->
-                if !debug then begin
-                    lprintf_nl () "Exception %s in header %s"
+                if !debug then
+                    lprintf_http_nl () "Exception %s in header %s"
                       (Printexc2.to_string e) name;
-                  end;
                 options
 
         ) default_options headers in
@@ -359,9 +358,8 @@ let complete_multipart_data request ic tail =
                 }
             |  _ ->
                 let tmpfile = Filename.temp_file "http_" "" in
-                if !debug then begin
-                    lprintf_nl () "WARNING: saving to file %s" tmpfile;
-                  end;
+                if !debug then
+                    lprintf_http_nl () "WARNING: saving to file %s" tmpfile;
                 let oc = open_out tmpfile in
                 let rec iter n empty_line =
                   if n > !upload_limit then
@@ -402,14 +400,14 @@ let complete_multipart_data request ic tail =
           end
       | (name, (_,value, args)) :: lines ->
           if !debug then begin
-              lprintf_nl () "ILL FORMED LINE: [%s]" name;
+              lprintf_http_nl () "ILL FORMED LINE: [%s]" name;
               List.iter (fun (name, v) ->
                   lprintf " (%s,%s)" name v) args;
               lprint_newline ();
             end;
           raise Exit
       | [] ->
-          if !debug then lprintf_nl () "NO LINES";
+          if !debug then lprintf_http_nl () "NO LINES";
           raise Exit
     in
     if !end_boundary_found then field :: previous else
@@ -421,7 +419,7 @@ let complete_multipart_data request ic tail =
 
 let parse_post_args f len req b =
 (* parse post args *)
-  lprintf_nl () "CALL HANDLER";
+  lprintf_http_nl () "CALL HANDLER";
   let s = String.sub b.rbuf b.rpos len in
   Select.buf_used b len;
   let args = Url.cut_args s in
@@ -430,12 +428,12 @@ let parse_post_args f len req b =
   f b req
 
 let check_len f len b pos2 =
-  lprintf_nl () "check_len: len %d rlen %d" len b.rlen;
+  lprintf_http_nl () "check_len: len %d rlen %d" len b.rlen;
   if b.rlen >= len then f b
 
 let complete_post_request ( f : handler ) buf request =
   let len = request.options.content_length in
-  lprintf_nl () "check_len: len %d rlen %d" len buf.rlen;
+  lprintf_http_nl () "check_len: len %d rlen %d" len buf.rlen;
   if buf.rlen >= len then
     parse_post_args f len request buf
   else
@@ -650,7 +648,7 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      lprintf_nl () "No such file: %s (%s)" file (Printexc2.to_string e);
+      lprintf_http_nl () "No such file: %s (%s)" file (Printexc2.to_string e);
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown
 *)
@@ -791,7 +789,7 @@ let request_handler config sock nread =
   try
     iter new_pos
   with e ->
-      lprintf_nl () "Exception %s in request_handler"
+      lprintf_http_nl () "Exception %s in request_handler"
         (Printexc2.to_string e);
       close sock (Closed_for_exception e)
 
@@ -810,7 +808,7 @@ let handler config t event =
         (match Ip_set.match_ip !Ip_set.bl from_ip with
            None -> true
          | Some br ->
-             lprintf "[HTTPSRV] %s:%d blocked: %s\n"
+             lprintf_http_nl () "%s:%d blocked: %s\n"
                (Ip.to_string from_ip) from_port br.blocking_description;
              false) then
         let token = create_token unlimited_connection_manager in
@@ -821,9 +819,9 @@ let handler config t event =
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> TcpBufferedSocket.close sock Closed_for_overflow;
-	       lprintf_nl () "BUFFER OVERFLOW" );  ()
+	       lprintf_http_nl () "BUFFER OVERFLOW" );  ()
       else begin
-         lprintf_nl () "HTTP connection from %s rejected (see allowed_ips setting)"
+         lprintf_http_nl () "connection from %s rejected (see allowed_ips setting)"
           (Ip.to_string from_ip);
         Unix.close s
       end
@@ -881,7 +879,7 @@ let parse_range range =
     x, Some y, Some z
   with
   | e ->
-      lprintf_nl () "Exception %s for range [%s]"
+      lprintf_http_nl () "Exception %s for range [%s]"
         (Printexc2.to_string e) range;
       raise e
 
@@ -899,7 +897,7 @@ open Int64ops
 (*  Range: bytes=31371876- *)
 let request_range r =
   List.iter (fun (h, v1) ->
-      lprintf_nl () "HEADER [%s] = [%s]" h v1
+      lprintf_http_nl () "HEADER [%s] = [%s]" h v1
   ) r.headers;
   let range = List.assoc "Range" r.headers in
   match parse_range range with
