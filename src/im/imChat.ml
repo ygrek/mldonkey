@@ -61,7 +61,7 @@ let dummy_chat_impl = {
   
 let dummy_chat = as_chat dummy_chat_impl  
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = chat
       let hash chat = Hashtbl.hash (chat_num chat)
       

@@ -105,7 +105,7 @@ let dummy_client_impl = {
 
 let dummy_client = as_client dummy_client_impl
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = client
       let hash c = Hashtbl.hash (client_num c)
 

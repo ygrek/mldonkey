@@ -60,7 +60,7 @@ let as_shared_impl  (shared : shared) =
 
 let shared_num s = (as_shared_impl s).impl_shared_num
   
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = shared
       let hash file = Hashtbl.hash (shared_num file)
       

@@ -180,7 +180,7 @@ and uploader = {
 (*                                                                       *)
 (*************************************************************************)
 
-module HS = Weak2.Make(struct
+module HS = Weak.Make(struct
       type t = swarmer
       let hash file = Hashtbl.hash file.s_filename
 
@@ -189,7 +189,7 @@ module HS = Weak2.Make(struct
 
 let swarmers_by_name = HS.create 31
 
-module HU = Weak2.Make(struct
+module HU = Weak.Make(struct
       type t = uploader
       let hash u = Hashtbl.hash (client_num u.up_client)
 

@@ -12,7 +12,7 @@ let lprintf_n () =
   lprintf "%s[IPblock] "
   (log_time ()); lprintf
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
 	type t = string
 	let hash s = Hashtbl.hash s
 	let equal x y = x = y

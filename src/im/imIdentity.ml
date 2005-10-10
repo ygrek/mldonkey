@@ -69,7 +69,7 @@ let dummy_identity_impl = {
   
 let dummy_identity = as_identity dummy_identity_impl  
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = identity
       let hash identity = Hashtbl.hash (identity_num identity)
       

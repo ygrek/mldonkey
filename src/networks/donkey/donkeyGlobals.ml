@@ -166,7 +166,7 @@ let new_shared = ref false
 (*                                                                       *)
 (*************************************************************************)
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = client
       let hash c = Hashtbl.hash c.client_kind
 
@@ -210,7 +210,7 @@ let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
 
 let file_md4s_to_register = ref ([] : file list)
 
-module UdpClientWHashtbl = Weak2.Make(struct
+module UdpClientWHashtbl = Weak.Make(struct
       type t = udp_client
       let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
 
@@ -788,15 +788,15 @@ end;
   Printf.bprintf buf "  join_queue_by_md4: %d\n" (Hashtbl.length join_queue_by_md4);
   Printf.bprintf buf "  join_queue_by_id: %d\n" (Hashtbl.length join_queue_by_id);
 
-  let list = H.to_list clients_by_kind in
+(*  let list = H.to_list clients_by_kind in *)
   if level > 0 then begin
-    List.iter (fun c ->
+    H.iter (fun c ->
       Printf.bprintf buf "[%d ok: %s rating: %d]\n"
         (client_num c)
         (string_of_date (c.client_source.DonkeySources.source_age))
 (* TODO: add connection state *)
         c.client_rating;
-    ) list;
+    ) clients_by_kind;
   end;
   ()
 

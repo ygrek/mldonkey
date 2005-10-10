@@ -13,6 +13,7 @@ http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
 
 2005/10/10: spiralvoice
 
+4502: Remove obsolete Weak2 sourcecode (bogeyman)
 4503: OV: fill buckets only with peers we send to and heard of (bogeyman)
 4499: Check for stalled pid file and remove it if MLDonkey is not running
       (does not work on MinGW due to missing Unix.kill) (pango, spiralvoice)

@@ -89,7 +89,7 @@ let dummy_account_impl = {
   
 let dummy_account = as_account dummy_account_impl  
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = account
       let hash account = Hashtbl.hash (account_num account)
       

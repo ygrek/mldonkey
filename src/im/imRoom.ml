@@ -65,7 +65,7 @@ let dummy_room_impl = {
   
 let dummy_room = as_room dummy_room_impl  
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = room
       let hash room = Hashtbl.hash (room_num room)
       

@@ -570,7 +570,7 @@ let dummy_bar =
    pixbuf = GdkPixbuf.create ~width:1 ~height:1 ();
   }
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
   type t = avail_bar
   let hash s = Hashtbl.hash s.finder
             

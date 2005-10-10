@@ -936,7 +936,7 @@ type file = {
     mutable buffers : (string * int * int * int64 * int64) list;
   }
   
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type old_t = file
       type t = old_t
       let hash t = Hashtbl.hash t.filename

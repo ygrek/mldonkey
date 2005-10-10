@@ -58,7 +58,7 @@ let dummy_user_impl = {
 
   
 let dummy_user  = as_user dummy_user_impl
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = user
       let hash x = Hashtbl.hash (user_num x)
       

@@ -86,7 +86,7 @@ let server_num s =
   let s = as_server_impl s in
   s.impl_server_num
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = server
       let hash s = Hashtbl.hash (server_num s)
 

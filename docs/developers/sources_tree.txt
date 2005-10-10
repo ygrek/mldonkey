@@ -264,7 +264,6 @@ Full Tree:
 ./utils/cdk/string2.ml
 ./utils/cdk/sysenv.ml
 ./utils/cdk/unix2.ml
-./utils/cdk/weak2.ml
 ./utils/cdk/xml.ml
 ./utils/cdk/zlib.ml
 ./utils/cdk/xmllex.ml

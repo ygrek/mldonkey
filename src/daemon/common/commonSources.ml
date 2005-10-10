@@ -237,14 +237,14 @@ module Make(M:
 (*                                                                       *)
 (*************************************************************************)
 
-      module HS = Weak2.Make(struct
+      module HS = Weak.Make(struct
             type t = source
             let hash s = Hashtbl.hash s.source_uid
 
             let equal x y = x.source_uid = y.source_uid
           end)
 
-      module H = Weak2.Make(struct
+      module H = Weak.Make(struct
             type t = source
             let hash s = Hashtbl.hash s.source_num
 

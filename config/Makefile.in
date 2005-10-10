@@ -170,7 +170,7 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
   $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
-  $(CDK)/file.ml $(CDK)/unix2.ml $(CDK)/weak2.ml \
+  $(CDK)/file.ml $(CDK)/unix2.ml \
   $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml \
   $(LIB)/longarray.ml \
   \

@@ -141,7 +141,7 @@ let dummy_file = as_file dummy_file_impl
 (*                                                                       *)
 (*************************************************************************)
 
-module H = Weak2.Make(struct
+module H = Weak.Make(struct
       type t = file
       let hash file = Hashtbl.hash (file_num file)
       

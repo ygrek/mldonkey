@@ -58,14 +58,14 @@ let dummy_protocol_impl = {
   
 let dummy_protocol = as_protocol dummy_protocol_impl  
 
-module Hnum = Weak2.Make(struct
+module Hnum = Weak.Make(struct
       type t = protocol
       let hash protocol = Hashtbl.hash (protocol_num protocol)
       
       let equal x y  = (protocol_num x) = (protocol_num y)
     end)
 
-module Hname = Weak2.Make(struct
+module Hname = Weak.Make(struct
       type t = protocol
       let hash protocol = Hashtbl.hash (protocol_name protocol)
       
