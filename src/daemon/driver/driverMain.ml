@@ -584,15 +584,11 @@ for config files at the end. *)
   end;
   Unix32.external_start (CommonGlobals.version());
 
-(* Doesn't work on windows with mingw, because getpid always returns 948 *)
   (
     let pid_filename =
       Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0))
     in
     let pid_file, s =
-      if Autoconf.system = "windows" then
-        pid_filename, "mlnet"
-      else
         Filename.concat !pid pid_filename,
 	Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
     in
@@ -600,7 +596,7 @@ for config files at the end. *)
     output_string oc s;
     close_out oc;
     CommonGlobals.do_at_exit (fun _ -> try Sys.remove pid_file with _ -> ());
-    if !verbose && Autoconf.system <> "windows" then
+    if !verbose then
       lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
   );
 

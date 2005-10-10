@@ -94,6 +94,12 @@ let file_basedir =
       | _ -> lprintf "Please provide an absolute path in MLDONKEY_DIR like d:\\mldonkey, exiting...\n"; exit 2
     else file_basedir_pre
 
+let exit_message file = Printf.sprintf
+"\nThis means another MLDonkey process could still be working
+in this directory. Please shut it down before starting
+a new instance here. If you are sure no other process uses
+this directory delete %s and restart the core.\n" file
+
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   lprintf_nl "Language %s, locale %s"
@@ -113,18 +119,43 @@ let _ =
     then
       let pid_filename =
         Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0)) in
-      if Sys.file_exists pid_filename || Sys.file_exists "config_files_space.tmp"
+      let config_space = "config_files_space.tmp" in
+      if Sys.file_exists pid_filename || Sys.file_exists config_space
       then begin
         if Sys.file_exists pid_filename then
           lprintf_nl "PID file %s exists."
 	    (Filename.concat file_basedir pid_filename)
 	else
-	  if Sys.file_exists "config_files_space.tmp" then
-            lprintf_nl "%s/config_files_space.tmp exists." file_basedir;
-        lprintf_nl "This means another MLDonkey process could still be working";
-        lprintf_nl "in this directory. Please shut it down before starting";
-        lprintf_nl "a new instance here. If you are sure no other process uses";
-        lprintf_nl "this directory delete mlnet.pid and restart the core.";
+	  if Sys.file_exists config_space then begin
+            lprintf_nl "%s exists." (Filename.concat file_basedir config_space);
+	    lprintf "%s" (exit_message config_space);
+	    exit 2
+	    end;
+        let pid =
+          try
+            let pid_ci = open_in pid_filename in
+            let pid = int_of_string (input_line pid_ci) in
+            close_in pid_ci;
+            pid
+          with _ ->
+            lprintf_nl "But it couldn't be read to check if the process still exists.";
+            lprintf_nl "To avoid doing any harm, MLDonkey will now stop.";
+            exit 2
+        in
+          try
+            Unix.kill pid 0;
+	    lprintf "%s" (exit_message pid_filename);
+            exit 2
+          with
+            (* stalled pid file, disregard it *)
+            | Unix.Unix_error (Unix.ESRCH, _, _) ->
+	       (lprintf_nl "Removing stalled file %s " pid_filename;
+	       try Sys.remove pid_filename with _ -> ())
+	    | e -> 
+	      lprintf "%s" (exit_message pid_filename);
+	      if Autoconf.system = "mingw" then lprintf_nl
+	        "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
+	      lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
         exit 2
       end;
 
