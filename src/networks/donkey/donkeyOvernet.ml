@@ -1261,7 +1261,8 @@ let update_buckets () =
           for j = 1 to Fifo.length pb do
 
             let p = Fifo.take pb in
-            if p.peer_last_recv > overtime then begin
+            if p.peer_last_recv > overtime &&
+               p.peer_last_recv >= p.peer_last_send then begin
                 Fifo.put b p;
                 incr connected_peers;
 		decr pre_connected_peers;
