@@ -8,8 +8,8 @@ http://savannah.nongnu.org/patch/?group=mldonkey
 ChangeLog
 =========
 
-To compile MLDonkey on MinGW Ocaml 3.08.4 needs to be compiled with this patch:
-http://pauillac.inria.fr/bin/caml-bugs/incoming?id=3789;page=1;user=guest
+To compile MLDonkey on MinGW follow this guide:
+http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/10: spiralvoice
 
