@@ -39,7 +39,7 @@ type buf = {
 type t = {
     mutable sock : BasicSocket.t;
     mutable rbuf : buf;
-    mutable wfifo : string Fifo2.t;
+    mutable wfifo : string Fifo.t;
     mutable wlen : int;
     mutable wfbuf : buf;
     mutable event_handler : handler;
@@ -555,7 +555,7 @@ let create name fd handler =
       write_power = 1;
       read_power = 1;
       wlen = 0;
-      wfifo = Fifo2.create ();
+      wfifo = Fifo.create ();
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
@@ -585,7 +585,7 @@ let create_blocking name fd handler =
       write_power = 1;
       read_power = 1;
       wlen = 0;
-      wfifo = Fifo2.create ();
+      wfifo = Fifo.create ();
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;

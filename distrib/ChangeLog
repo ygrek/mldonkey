@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/11: spiralvoice
+
+4506: replace obsolete longarry and fifo2 code (bogeyman)
+
 2005/10/10: spiralvoice
 
 4504: Clean http_server.ml logging

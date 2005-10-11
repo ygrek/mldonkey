@@ -120,16 +120,16 @@ let vl = ref ""
 let hl = ref ""
 
 let graph_length g =
-  if (Fifo2.length g) < (xgdivisions()) then
-    ((Fifo2.length g) - 1)
+  if (Fifo.length g) < (xgdivisions()) then
+    ((Fifo.length g) - 1)
   else
     (xgdivisions())
 
 let datas_length g =
-  ((Fifo2.length g))
+  ((Fifo.length g))
 
 let l_max g =
-  (List.fold_left max 0 (Fifo2.to_list g))
+  (List.fold_left max 0 (Fifo.to_list g))
 
 let datas = Array.create history_size 0
 
@@ -180,8 +180,8 @@ let draw_arrow mypic gcolor =
   mypic#fill ~x:(my_x + 1) ~y:(my_y) gcolor
 
 let draw_tag mypic title gdown gup gcolor  =
-  let my_sum gl = List.fold_left (+) 0 (Fifo2.to_list gl) in
-  let meanx gl = ((float_of_int (my_sum gl)) /. (float_of_int ((Fifo2.length gl) - 1))) in
+  let my_sum gl = List.fold_left (+) 0 (Fifo.to_list gl) in
+  let meanx gl = ((float_of_int (my_sum gl)) /. (float_of_int ((Fifo.length gl) - 1))) in
   let down_bw = (string_of_float (float_of_int(int_of_float((meanx gdown) /. 1024. *. 100.)) /. 100.)) in
   let up_bw = (string_of_float (float_of_int(int_of_float((meanx gup) /. 1024. *. 100.)) /. 100.)) in
   let bw_d = "Dl: " ^ down_bw ^ "KB/s "
@@ -242,7 +242,7 @@ let draw_h_legend mypic g legend_text gcolor my_time =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
   let my_y = (ybb()) in
-  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (x_fdivisions())) *. (float_of_int my_x2))) in
   (* and vtext n = (string_of_int (int_of_float((float_of_int(n))*. vx ))) in *)
   let basetime = Unix.gettimeofday () in
@@ -266,7 +266,7 @@ let draw_load mypic g my_color shadow_color =
   let my_x2 = (xbs()) in
   let my_y = (ybb()) in
   let my_y2 = (ybs()) in
-  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y - (int_of_float(float_of_int(datas g n) *. (vdt_m g))))
   and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. (vdt_m g)))) in
@@ -301,7 +301,7 @@ let draw_stack_download mypic g my_color shadow_color =
   let my_x2 = (xbs()) in
   let my_y = (ybb() - (ybs() / 2)) in
   let my_y2 = (ybs() / 2) in
-  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y - (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
   and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
@@ -336,7 +336,7 @@ let draw_stack_upload mypic g my_color shadow_color =
   let my_x2 = (xbs()) in
   let my_y = (ybb() - (ybs() / 2)) in
   let my_y2 = (ybs() / 2) in
-  let datas g n = List.nth (List.rev (Fifo2.to_list g)) n in
+  let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y + (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
   and y_c2 n = (my_y + (int_of_float(float_of_int(datas g (n+1)) *. (vdt_stack g)))) in
@@ -372,8 +372,8 @@ let draw_mean_line mypic g my_color gcolor =
   and my_x2 = (xbs())
   and my_y = (ybb())
   and my_y2 = (ybs()) in
-  let my_sum gl = List.fold_left (+) 0 (Fifo2.to_list gl) in
-  let meanx() = ((float_of_int (my_sum g)) /. (float_of_int ((Fifo2.length g)))) in
+  let my_sum gl = List.fold_left (+) 0 (Fifo.to_list gl) in
+  let meanx() = ((float_of_int (my_sum g)) /. (float_of_int ((Fifo.length g)))) in
   let ypos = (my_y - (int_of_float((meanx()) *. (vdt_m g)))) in
   let vtext = (string_of_float (float_of_int(int_of_float(meanx() /. 1024. *. 100.)) /. 100.)) in
   mypic#line ~x1:xbl ~y1:(ypos - 1) ~x2:(xbl + my_x2 / 10) ~y2:(ypos - 1) my_color;
