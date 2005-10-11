@@ -288,14 +288,18 @@ let client_to_server s t sock =
 
   | M.MessageReq msg ->
       if !last_message_sender <> server_num s then begin
-          let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n"
+          let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------"
               s.server_name (Ip.to_string s.server_ip) s.server_port in
-          CommonEvent.add_event (Console_message_event server_header);
+          CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" server_header));
+          if !CommonOptions.verbose_msg_servers then
+	    lprintf_nl () "%s" server_header;
           last_message_sender := server_num s
         end;
       s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
-      let msg = Printf.sprintf "| %s\n" msg in
-      CommonEvent.add_event (Console_message_event msg)
+      let msg = Printf.sprintf "| %s" msg in
+      CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" msg));
+      if !CommonOptions.verbose_msg_servers then
+        lprintf_nl () "%s" msg
 
   | M.ServerListReq l ->
       if !verbose then lprintf_nl () "donkeyServers: Received serverlist";

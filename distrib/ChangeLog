@@ -13,6 +13,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/11: spiralvoice
 
+4507: EDK: Print server banners into logfile (pango)
 4500: BT: Fix multifile download with zero-byte files (thanks to jave)
 4506: replace obsolete longarry and fifo2 code (bogeyman)
 
