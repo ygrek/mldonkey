@@ -481,10 +481,14 @@ module MultiFile = struct
         Unix2.remove_all_directory t.dirname
 
     let file_write file in_file_pos s in_string_pos len =
-      let len64 = Int64.of_int len in
-      let in_file_len = in_file_pos ++ len64 in
-      FDCache.write file.fd in_file_pos s in_string_pos len;
-      file.current_len <- max file.current_len in_file_len
+      (* prevent write to zero-byte files so BT downloads finish *)
+      if len <> 0 then
+        begin
+          let len64 = Int64.of_int len in
+          let in_file_len = in_file_pos ++ len64 in
+          FDCache.write file.fd in_file_pos s in_string_pos len;
+          file.current_len <- max file.current_len in_file_len
+	end
 
     let file_read file in_file_pos s in_string_pos len =
       let len64 = Int64.of_int len in
