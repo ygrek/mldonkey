@@ -1040,16 +1040,17 @@ if test "$GD" != "no"; then
         AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
       fi
 
+      AC_MSG_CHECKING(for png support in libgd)
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
         HAS_GD_PNG=true
 	GD_PNG=yes
+        AC_MSG_RESULT(yes)
 	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
-        AC_MSG_NOTICE(using png support in libgd)
       else
         HAS_GD_PNG=false
-        AC_MSG_NOTICE(png support not available in libgd)
+        AC_MSG_RESULT(no)
       fi
     fi
 
@@ -1073,15 +1074,16 @@ if test "$GD" != "no"; then
         AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
       fi
 
+      AC_MSG_CHECKING(for jpeg support in libgd)
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
   	HAS_GD_JPG=true
 	GD_JPG=yes
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
-        AC_MSG_NOTICE(using jpeg support in libgd)
+        AC_MSG_RESULT(yes)
       else
   	HAS_GD_JPG=false
-        AC_MSG_NOTICE(jpeg support not available in libgd)
+        AC_MSG_RESULT(no)
       fi
     fi
   else
@@ -1220,7 +1222,7 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 
 cd ..
 
-echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
+echo -e "\nBuilding dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo -e -n "\nConfiguring MLDonkey" $MLDONKEY_VERSION
@@ -1358,3 +1360,7 @@ if test "$LABLGTK_CONFIG" = "yes"; then
 fi
 
 echo -e "\nNow execute '$GNU_MAKE' to start compiling with Ocaml $OCAMLVERSION. Good luck!"
+echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet.static"
+echo      "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
+echo      "To clean the build directory execute: $GNU_MAKE maintainerclean"
+echo -e "\nCompiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
