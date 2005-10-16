@@ -52,7 +52,7 @@ let choose_next_uploaders files fun_comp =
     (*constructs a list of i items max with all
       orl items +  some l items *)
     let orig_num = List.length orl in
-    if orig_num < i && i>0 then
+    if orig_num < i && i > 0 then
       let keep,rest = cut (i - orig_num) l in
       orl@keep,rest
     else
@@ -107,8 +107,14 @@ let choose_best_downloaders files =
   (*sort: left to download, then priority*)
   let files = List.stable_sort
     (fun a b -> compare
-          ((file_size a)--(match a.file_swarmer with None -> Int64.of_int 0 | Some swarmer -> CommonDownloads.Int64Swarmer.downloaded swarmer))
-          ((file_size b)--(match b.file_swarmer with None -> Int64.of_int 0 | Some swarmer -> CommonDownloads.Int64Swarmer.downloaded swarmer))
+          ((file_size a) -- (match a.file_swarmer with 
+                             | None -> Int64.zero 
+                             | Some swarmer -> 
+                             	 CommonDownloads.Int64Swarmer.downloaded swarmer))
+          ((file_size b) -- (match b.file_swarmer with 
+          			         | None -> Int64.zero 
+          			         | Some swarmer -> 
+          			         	 CommonDownloads.Int64Swarmer.downloaded swarmer))
         ) files in
   let files = List.stable_sort
        (fun a b -> compare
@@ -163,5 +169,3 @@ let choose_uploaders files =
         end
     else next_uploaders
   end
-
-

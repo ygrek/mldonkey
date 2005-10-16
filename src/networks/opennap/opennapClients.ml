@@ -145,7 +145,7 @@ let read_stream c file sock b =
       Unix2.really_write fd b.buf b.pos b.len;
     end; *)
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
-    c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
+    c.client_pos <- c.client_pos ++ (Int64.of_int b.len);
 (*
       lprintf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 lprint_newline ();
@@ -153,7 +153,7 @@ lprint_newline ();
     TcpBufferedSocket.buf_used b b.len;
 (*    if c.client_pos > file_downloaded file then begin
         add_file_downloaded file.file_file
-        (Int64.sub c.client_pos (file_downloaded file))
+        (c.client_pos -- (file_downloaded file))
       end; *)
     if file_downloaded file = file_size file then
       

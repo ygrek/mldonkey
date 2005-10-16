@@ -28,10 +28,8 @@ open CommonTypes
 open CommonGlobals
 open CommonOptions
   
-let const_int32_255 = Int64.of_int 255
 let output_int32_8 oc i =
-  output_char oc (char_of_int (Int64.to_int (
-        Int64.logand i const_int32_255)))
+  output_char oc (char_of_int (Int64.to_int (Int64.logand i 255L)))
 
 let output_int32_32 oc i =
   output_int32_8 oc i;

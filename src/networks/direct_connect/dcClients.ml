@@ -176,7 +176,7 @@ let client_reader c t sock =
                   lprint_newline ();
                   server_send !verbose_msg_clients sock (GetReq {
                       Get.name = filename;
-                      Get.pos = Int64.add (file_downloaded file) Int64.one;
+                      Get.pos = Int64.succ (file_downloaded file);
                     });
                   c.client_download <- DcDownload file;
                   c.client_pos <- (file_downloaded file);
@@ -247,10 +247,10 @@ let client_reader c t sock =
             lprintf "Wants to upload [%s]\n" filename;
             let sh = CommonUploads.find_by_name filename in
             
-            c.client_pos <- Int64.sub t.Get.pos Int64.one;
+            c.client_pos <- Int64.pred t.Get.pos;
             lprintf "from pos %Ld\n" c.client_pos;
             let info = IndexedSharedFiles.get_result sh.shared_info in  
-            let rem = Int64.sub info.shared_size c.client_pos in
+            let rem = info.shared_size -- c.client_pos in
             lprintf "remaining %Ld\n" rem;
             server_send !verbose_msg_clients sock (FileLengthReq rem);
             c.client_download <- DcUpload sh
@@ -284,7 +284,7 @@ let client_reader c t sock =
                   lprintf "Sending %d" send_len; lprint_newline ();
                   TcpBufferedSocket.write sock list pos send_len;
                   lprintf "sent"; lprint_newline ();
-                  c.client_pos <- Int64.add c.client_pos (Int64.of_int send_len);
+                  c.client_pos <- c.client_pos ++ (Int64.of_int send_len);
                   
                   if pos + len = slen then begin
 (* Normally, the client should close the connection after the download,
@@ -303,13 +303,13 @@ close it after a long timeout. *)
               let pos = c.client_pos in
               if pos < slen then
                 let rlen = 
-                  let rem = Int64.sub slen  pos in
+                  let rem = slen -- pos in
                   if rem > Int64.of_int can then can else Int64.to_int rem
                 in
                 let upload_buffer = String.create rlen in
                 Unix32.read sh.shared_fd pos upload_buffer 0 rlen;
                 TcpBufferedSocket.write sock upload_buffer 0 rlen;
-                c.client_pos <- Int64.add c.client_pos (Int64.of_int rlen);
+                c.client_pos <- c.client_pos ++ (Int64.of_int rlen);
                 if c.client_pos = slen then begin
 (* Normally, the client should close the connection after the download,
 but since we don't want a buggy client to keep this connection, just
@@ -359,7 +359,7 @@ let client_downloaded c sock nread =
           Unix2.really_write fd b.buf b.pos b.len;
         end; *)
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
-        c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
+        c.client_pos <- c.client_pos ++ (Int64.of_int b.len);
 (*
       lprintf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 lprint_newline ();
@@ -367,7 +367,7 @@ lprint_newline ();
         buf_used b b.len;
         if c.client_pos > (file_downloaded file) then begin
             add_file_downloaded (as_file file.file_file)
-            (Int64.sub c.client_pos (file_downloaded file));
+            (c.client_pos -- (file_downloaded file));
           end;
         if (file_downloaded file) = (file_size file) then begin
             close sock Closed_by_user;
@@ -380,7 +380,7 @@ lprint_newline ();
         let len = b.len in
         Buffer.add_substring buf b.buf b.pos b.len;
         buf_used b b.len;
-        c.client_receiving <- Int64.sub c.client_receiving (Int64.of_int len);
+        c.client_receiving <- c.client_receiving -- (Int64.of_int len);
         lprintf "Received %d of List\n" len; 
         close sock Closed_by_user; 
         if c.client_receiving = Int64.zero then begin

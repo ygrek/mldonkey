@@ -120,7 +120,7 @@ let tag_client = 200
 let tag_server = 201
 let tag_file   = 202
 
-let page_size = Int64.of_int 4096
+let page_size = 4096L
 
 let donkey_download_counter = ref Int64.zero
 let donkey_upload_counter = ref Int64.zero
@@ -143,7 +143,7 @@ let nservers = ref 0
 let xs_last_search = ref (-1)
 
 let zone_size = Int64.of_int (180 * 1024)
-let block_size = Int64.of_int 9728000
+let block_size = 9728000L
 
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
 
@@ -347,8 +347,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
       if file_size <> zero && writable then (* do not truncate if not writable *)
         Unix32.ftruncate64 t file_size !!create_file_sparse;
 
-      let nchunks = Int64.to_int (Int64.div
-            (Int64.sub file_size Int64.one) block_size) + 1 in
+      let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
       let md4s = if file_size <= block_size then
           [md4]
         else [] in

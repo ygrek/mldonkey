@@ -458,13 +458,13 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
 	let qnum = ref 0 in
 
 	List.iter (fun file ->
-	 tsize := Int64.add !tsize file.file_size;
-     tdl := Int64.add !tdl file.file_downloaded;
+	 tsize := !tsize ++ file.file_size;
+     tdl := !tdl ++ file.file_downloaded;
 	 trate := !trate +. file.file_download_rate;
 
 	 if file.file_state = FileQueued then begin
-		qsize := Int64.add !qsize file.file_size;
-		qdl := Int64.add !qdl file.file_downloaded;
+		qsize := !qsize ++ file.file_size;
+		qdl := !qdl ++ file.file_downloaded;
 		incr qnum;
 	 end;
 
@@ -535,7 +535,7 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 \\<td title=\\\"Cancel\\\" class=\\\"dlheader brs\\\"\\>C\\</td\\>"
 (if !qnum > 0 then begin
 	Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
-	(List.length guifiles - !qnum) (size_of_int64 (Int64.sub !tdl !qdl)) (size_of_int64 (Int64.sub !tsize !qsize))
+	(List.length guifiles - !qnum) (size_of_int64 (!tdl -- !qdl)) (size_of_int64 (!tsize -- !qsize))
 	!qnum (size_of_int64 !qdl) (size_of_int64 !qsize);
 end
 else "")

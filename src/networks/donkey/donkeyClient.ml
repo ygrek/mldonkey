@@ -19,6 +19,7 @@
 (* The function handling the cooperation between two clients. Most used 
 functions are defined in downloadOneFile.ml *)
 
+open Int64ops
 open Printf2
 open Md4
 open Ip_set
@@ -443,8 +444,8 @@ let client_wants_file c md4 =
   
 let new_chunk up begin_pos end_pos =
   if begin_pos <> end_pos then
-    let len_requested = Int64.to_int (Int64.sub end_pos begin_pos) in
-    let len = Int64.to_int (Int64.sub end_pos begin_pos) in
+    let len_requested = Int64.to_int (end_pos -- begin_pos) in
+    let len = Int64.to_int (end_pos -- begin_pos) in
     let pair = (begin_pos, end_pos) in
     (match up.up_chunks with
         [] ->
@@ -1610,7 +1611,7 @@ is checked for the file.
       
       let begin_pos = t.Q.start_pos in
       let end_pos = t.Q.end_pos in
-      let len = Int64.sub end_pos begin_pos in
+      let len = end_pos -- begin_pos in
       if Int64.to_int len <> t.Q.bloc_len then begin
           lprintf_nl () "%d: inconsistent packet sizes" (client_num c);
           raise Not_found
@@ -1734,7 +1735,7 @@ is checked for the file.
         else 
           begin
             id := get_high_id_int64 ();  
-            if (!id == Int64.zero) then begin
+            if !id = Int64.zero then begin
                 id := int64_of_rip (my_ip sock);
                 if !verbose_msg_clients then begin
                   lprintf_nl () "%s [ESigReq] Warning: Local IP unknown (signature might fail)" (full_client_identifier c);
@@ -1866,7 +1867,7 @@ end else *)
       end
   
   | M.SayReq s when (!is_not_spam) s ->
-(* A VOIR : historique à gérer *)
+(* FIXME: add logging *)
 (*      !say_hook c s *)
       private_message_from (as_client c)  s;
       
@@ -1970,15 +1971,12 @@ end else *)
         
         if !!dynamic_upload_lifetime
             && c.client_uploaded > c.client_downloaded
-            && c.client_uploaded > Int64.mul (Int64.of_int !!dynamic_upload_threshold) zone_size
+            && c.client_uploaded > Int64.of_int !!dynamic_upload_threshold ** zone_size
         then
           client_upload_lifetime :=
           Int64.to_int 
-            (Int64.div
-              (Int64.mul 
-                (Int64.of_int !client_upload_lifetime)
-              c.client_downloaded)
-            c.client_uploaded);
+            (Int64.of_int !client_upload_lifetime 
+              ** c.client_downloaded // c.client_uploaded);
         if last_time() > c.client_connect_time + 
             !client_upload_lifetime + 5 * prio then
           begin

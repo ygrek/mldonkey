@@ -22,25 +22,22 @@
 open Autoconf
 open Int64ops
   
-let const_int32_255 = Int32.of_int 255
-let const_int64_255 = Int64.of_int 255
-
 let buf_int8 buf i =
-  Buffer.add_char buf (char_of_int (i land 255))
+  Buffer.add_char buf (char_of_int (i land 0xff))
 
     
 let buf_int16 buf i =
-  Buffer.add_char buf (char_of_int ((i land 65535) lsr 8));
-  Buffer.add_char buf (char_of_int (i land 255))
+  Buffer.add_char buf (char_of_int ((i land 0xffff) lsr 8));
+  Buffer.add_char buf (char_of_int (i land 0xff))
     
 let buf_int24 buf i =
-  Buffer.add_char buf (char_of_int ((i lsr 16) land 255));
-  Buffer.add_char buf (char_of_int ((i lsr 8) land 255));
-  Buffer.add_char buf (char_of_int (i land 255))
+  Buffer.add_char buf (char_of_int ((i lsr 16) land 0xff));
+  Buffer.add_char buf (char_of_int ((i lsr 8) land 0xff));
+  Buffer.add_char buf (char_of_int (i land 0xff))
   
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
-        Int32.logand i const_int32_255)))
+        Int32.logand i 0xffl)))
 
   (*
 let buf_int32 oc i =
@@ -51,8 +48,8 @@ let buf_int32 oc i =
     *)
 
 let str_int16 s pos i =
-  s.[pos+1] <- char_of_int (i land 255);
-  s.[pos] <- char_of_int ((i lsr 8) land 255)
+  s.[pos+1] <- char_of_int (i land 0xff);
+  s.[pos] <- char_of_int ((i lsr 8) land 0xff)
 
 let get_int16 s pos =
   check_string s (pos+1);  
@@ -61,9 +58,9 @@ let get_int16 s pos =
   c1 + c2 lsl 8
 
 let str_int24 s pos i =
-  s.[pos+2] <- char_of_int (i land 255);
-  s.[pos+1] <- char_of_int ((i lsr 8) land 255);
-  s.[pos] <- char_of_int ((i lsr 16) land 255)
+  s.[pos+2] <- char_of_int (i land 0xff);
+  s.[pos+1] <- char_of_int ((i lsr 8) land 0xff);
+  s.[pos] <- char_of_int ((i lsr 16) land 0xff)
 
 let get_int24 s pos =
   check_string s (pos+1);  
@@ -80,10 +77,10 @@ let buf_int buf i =
   buf_int8 buf i
 
 let str_int s pos i =
-  s.[pos+3] <- char_of_int (i land 255);
-  s.[pos+2] <- char_of_int ((i lsr 8) land 255);
-  s.[pos+1] <- char_of_int ((i lsr 16) land 255);
-  s.[pos] <- char_of_int ((i lsr 24) land 255)
+  s.[pos+3] <- char_of_int (i land 0xff);
+  s.[pos+2] <- char_of_int ((i lsr 8) land 0xff);
+  s.[pos+1] <- char_of_int ((i lsr 16) land 0xff);
+  s.[pos] <- char_of_int ((i lsr 24) land 0xff)
 
 (*      
 let get_int32_8 s pos =
@@ -112,7 +109,7 @@ let get_int s pos =
   
 let buf_int64_8 buf i =
   Buffer.add_char buf (char_of_int (Int64.to_int (
-        Int64.logand i const_int64_255)))
+        Int64.logand i 0xffL)))
 
 let get_uint64_32 s pos =
   let c4 = get_int8 s pos in

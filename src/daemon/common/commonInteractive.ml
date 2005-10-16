@@ -576,7 +576,7 @@ let send_custom_query user buf query args =
           if maxsize = "" then raise Not_found;
           let maxsize = Int64.of_string maxsize in
           let unit = Int64.of_string unit in
-          QHasMaxVal (Field_Size, Int64.mul maxsize unit)
+          QHasMaxVal (Field_Size, maxsize ** unit)
 
       | Q_FORMAT _ ->
           let format = get_arg "format" in

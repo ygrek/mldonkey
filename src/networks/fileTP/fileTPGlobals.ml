@@ -107,7 +107,7 @@ let set_file_size file size =
       lprintf "Setting SWARMER\n";
       let file_chunk_size =
         max megabyte (
-          size // (max (Int64.of_int 5) (size // (megabytes 5)))
+          size // (max 5L (size // (megabytes 5)))
         )
       in
       file.file_file.impl_file_size <- size;

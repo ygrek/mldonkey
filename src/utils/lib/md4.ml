@@ -387,8 +387,9 @@ module Make(M: sig
     
     
     let up s = int_of_char s.[0]
-    let up2 s = (int_of_char s.[0])*256+(int_of_char s.[1])
-    let up3 s = (int_of_char s.[0])*65536+(int_of_char s.[1])*256+(int_of_char s.[2])
+    let up2 s = ((int_of_char s.[0]) lsl 8) lor (int_of_char s.[1])
+    let up3 s = ((int_of_char s.[0]) lsl 16) lor 
+                ((int_of_char s.[1]) lsl 8) lor (int_of_char s.[2])
   
     let enabled = true
   end

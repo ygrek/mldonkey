@@ -256,7 +256,7 @@ let new_file file_temporary file_name file_size file_hash =
   let t = Unix32.create_rw file_temp in
   let file_chunk_size =
     max megabyte (
-      file_size // (max (Int64.of_int 5) (file_size // (megabytes 5)))
+      file_size // (max 5L (file_size // (megabytes 5)))
     )
   in
   let keywords = CommonUploads.words_of_filename file_name in

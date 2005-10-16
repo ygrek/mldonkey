@@ -904,9 +904,9 @@ let request_range r =
     x, None, _ -> x, None
   | x, Some y, Some z ->
       if y = z then (* some vendor bug *)
-        x -- Int64.one, Some y
+        Int64.pred x, Some y
       else
-        x, Some (y ++ Int64.one)
+        x, Some (Int64.succ y)
   | x, Some y, None ->
-      x, Some (y ++ Int64.one)
+      x, Some (Int64.succ y)
 

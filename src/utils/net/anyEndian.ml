@@ -42,7 +42,7 @@ let get_uint8 s pos =
   (*
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
-        and32 i const_int32_255)))
+        and32 i 0xffl)))
       
 let get_int32_8 s pos =
   check_string s pos;
@@ -51,7 +51,7 @@ let get_int32_8 s pos =
 
 let buf_int64_8 buf i =
   Buffer.add_char buf (char_of_int (Int64.to_int (
-        Int64.logand i const_int64_255)))
+        Int64.logand i 0xffL)))
   
 let get_int64_8 s pos =
   check_string s pos;

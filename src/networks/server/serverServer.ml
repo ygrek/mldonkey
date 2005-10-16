@@ -35,7 +35,7 @@ open ServerMessages
 
 module M = ServerMessages
   
-let null_ip = Ip.of_int32 (Int32.of_int 0)
+let null_ip = Ip.null
 
 exception CantConnect
 exception NoSocket

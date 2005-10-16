@@ -911,7 +911,7 @@ let delete_original = define_option current_section ["delete_original"]
 let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
 should be interpreted as downloaded during a recovery"
-    int64_option (Int64.of_int 16)
+    int64_option 16L
 
 let file_completed_cmd = define_option current_section
     ["file_completed_cmd"] "A command that is called when a file is completely

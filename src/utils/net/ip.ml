@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 type t =  int * int * int * int
 
@@ -49,19 +50,17 @@ let to_fixed_string ((a4, a3, a2, a1) as t)=
       Printf.sprintf "%03d.%03d.%03d.%03d" a4 a3 a2 a1
 
 let to_int64  ((a4, a3, a2, a1) as t) =
-  let small = a1 + 256 * (a2 + 256 * a3) in
-  Int64.add (Int64.of_int small) (Int64.shift_left (Int64.of_int a4) 24)
-
-let const_int32_255 = Int64.of_int 255
+  let small = a1 lor (a2 lsl 8) lor (a3 lsl 16) in
+  (Int64.of_int small) ++ (Int64.shift_left (Int64.of_int a4) 24)
 
 let of_int64 i =
-  let a4 = Int64.to_int (Int64.logand (Int64.shift_right i 24) const_int32_255)
+  let a4 = Int64.to_int (Int64.logand (Int64.shift_right i 24) 0xffL)
   in
-  let a3 = Int64.to_int (Int64.logand (Int64.shift_right i 16) const_int32_255)
+  let a3 = Int64.to_int (Int64.logand (Int64.shift_right i 16) 0xffL)
   in
-  let a2 = Int64.to_int (Int64.logand (Int64.shift_right i 8) const_int32_255)
+  let a2 = Int64.to_int (Int64.logand (Int64.shift_right i 8) 0xffL)
   in
-  let a1 = Int64.to_int (Int64.logand i const_int32_255)
+  let a1 = Int64.to_int (Int64.logand i 0xffL)
   in
   (a4, a3, a2, a1)
 

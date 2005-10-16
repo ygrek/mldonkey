@@ -161,7 +161,7 @@ let update_labels () =
 (*************************************************************************)
 
 let clear () =
-  update_sharedfiles 0 (Int64.of_int 0);
+  update_sharedfiles 0 Int64.zero;
   update_downloadedfiles ();
   update_servers ();
   update_updown 0 0
@@ -213,7 +213,7 @@ let status_box () =
 
 
 let _ =
-  update_sharedfiles 0 (Int64.of_int 0);
+  update_sharedfiles 0 Int64.zero;
   update_downloadedfiles ();
   update_servers ();
   update_updown 0 0;

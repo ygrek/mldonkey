@@ -553,12 +553,11 @@ let write t s pos1 len =
 (*          if t.monitored then begin
               lprintf "write: direct written %d\n" nw;
 end; *)
-          tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+          tcp_uploaded_bytes := !tcp_uploaded_bytes ++ (Int64.of_int nw);
           (match t.write_control with
               None -> ()
             | Some bc ->
-                bc.moved_bytes <-
-                  Int64.add bc.moved_bytes (Int64.of_int nw));
+                bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nw));
           if t.nwrite = 0 then begin
 (*              if t.connecting then
                 lprintf "WRITE BEFORE CONNECTION.......\n";
@@ -698,11 +697,10 @@ let can_read_handler t sock max_len =
     end;
 *)
 
-    tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
+    tcp_downloaded_bytes := !tcp_downloaded_bytes ++ (Int64.of_int nread);
     (match t.read_control with
         None -> () | Some bc ->
-          bc.moved_bytes <-
-          Int64.add bc.moved_bytes (Int64.of_int nread));
+          bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nread));
 
     t.nread <- t.nread + nread;
     if nread > 0 then begin
@@ -755,12 +753,11 @@ let can_write_handler t sock max_len =
 
 (*            if t.monitored then
 (lprintf "written %d\n" nw; ); *)
-        tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+        tcp_uploaded_bytes := !tcp_uploaded_bytes ++ (Int64.of_int nw);
         (match t.write_control with
             None -> ()
           | Some bc ->
-              bc.moved_bytes <-
-                    Int64.add bc.moved_bytes (Int64.of_int nw));
+              bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nw));
             if t.nwrite = 0 then begin
 (*                lprintf "add_connect_latency at %f\n" (current_time ()); *)
                 add_connect_latency t.host t.connect_time;
@@ -960,9 +957,9 @@ let compute_lost_byte bc =
   if bc.total_bytes = 0 then -1 else
   let sum = ref Int64.zero in
   for i = 0 to 3600-1 do
-    sum := Int64.add !sum (Int64.of_int bc.lost_bytes.(i));
+    sum := !sum ++ (Int64.of_int bc.lost_bytes.(i));
   done;
-  Int64.to_int (Int64.div !sum (Int64.of_int 3600))
+  Int64.to_int (!sum // 3600L)
 
 let moved_bytes bc = bc.moved_bytes
 

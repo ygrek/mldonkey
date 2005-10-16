@@ -209,11 +209,11 @@ let set_gnutella_sock sock info ghandler =
 
     
 let bloom_hash_magic = Int32.of_string  "0x4F1BBCDC"
-let bloom_hash_magic_int64 =  Int64ops.int64_of_uint32 bloom_hash_magic
+let bloom_hash_magic_int64 =  int64_of_uint32 bloom_hash_magic
 
 let bloom_hash_fast x bits =
-  let xx = Int64ops.int64_of_uint32 x in
-  let prod = Int64.mul xx bloom_hash_magic_int64 in
+  let xx = int64_of_uint32 x in
+  let prod = xx ** bloom_hash_magic_int64 in
   let ret = Int64.shift_left prod  32 in     (* prod << 32 *)
   Int64.shift_right_logical ret (32 + (32 - bits))   (* ret >>> (32 + (32 - bits))  *)
 

@@ -45,10 +45,10 @@ open DonkeyGlobals
 
   (*
 let chunk_pos i =
-  Int64.mul (Int64.of_int i)  block_size
+  (Int64.of_int i) ** block_size
 
 let chunk_end file i =
-  let pos = Int64.mul (Int64.of_int (i+1))  block_size in
+  let pos = (Int64.of_int (i+1)) ** block_size in
   if pos > file_size file then 
     file_size file else pos
 
@@ -57,7 +57,7 @@ let verify_chunk file i =
   let file_md4s = Array.of_list file.file_md4s in
   let begin_pos = chunk_pos i in
   let end_pos = chunk_end file i in
-  let len = Int64.sub end_pos begin_pos in
+  let len = end_pos -- begin_pos in
   let md4 = file_md4s.(i) in
   if !verbose then begin
       lprintf "verify_chunk %s[%d] %Ld[%Ld]\n"
@@ -169,12 +169,11 @@ let chunk_compute_missing file i =
   match file.file_chunks.(i) with
       PresentTemp | PresentVerified -> Int64.zero
     | AbsentTemp | AbsentVerified -> 
-        Int64.sub (chunk_end file i) (chunk_pos i)
+        (chunk_end file i) -- (chunk_pos i)
     | PartialTemp b | PartialVerified b ->
 	let absent = ref Int64.zero in
         List.iter (fun z ->
-	  absent := Int64.add !absent (
-            Int64.sub z.zone_end z.zone_begin)
+	  absent := !absent ++ (z.zone_end -- z.zone_begin)
 	) b.block_zones; 
 	!absent
 
@@ -183,9 +182,9 @@ let compute_size file =
     
     let absents = ref Int64.zero in
     for i = 0 to file.file_nchunks - 1 do
-      absents := Int64.add !absents (chunk_compute_missing file i)
+      absents := !absents ++ (chunk_compute_missing file i)
     done;
-    let current = Int64.sub (file_size file) !absents in
+    let current = (file_size file) -- !absents in
     file.file_file.impl_file_downloaded <- current;
     if file_downloaded file > file_size file then begin
         lprintf "******* downloaded %Ld > %Ld size after compute_size ***** for %s\n"
@@ -220,7 +219,7 @@ let verify_chunks file =
                   PartialTemp bloc -> PartialVerified bloc
                 | PresentTemp ->
                     file.file_file.impl_file_downloaded <- 
-                      Int64.sub (file_downloaded file) block_size;
+                      (file_downloaded file) -- block_size;
                     
                     if file_downloaded file > file_size file then begin
                         lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s\n"
@@ -274,9 +273,9 @@ let register_md4s md4s file_num file_size =
   for i = 0 to Array.length md4s - 1 do
     let md4 = md4s.(i) in
     let chunk_pos = block_size *.. i in
-    let chunk_end = Int64.add chunk_pos block_size in
+    let chunk_end = chunk_pos ++ block_size in
     let chunk_size = if chunk_end > file_size then
-        Int64.sub file_size chunk_pos else block_size in
+        file_size -- chunk_pos else block_size in
     register_md4 i md4 chunk_pos chunk_size file_num;
   done
   
@@ -347,9 +346,9 @@ let duplicate_chunks () = (
           for i = 0 to Array.length file.file_md4s - 1 do
             let chunk_pos = block_size *.. i in
             let md4 = file.file_md4s.(i) in
-            let chunk_end = Int64.add chunk_pos block_size in
+            let chunk_end = chunk_pos ++ block_size in
             let chunk_size = if chunk_end > file_size then
-                Int64.sub file_size chunk_pos else block_size in
+                file_size -- chunk_pos else block_size in
             
             (try
                 if bitmap.[i] < '3' then

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open AnyEndian
 open LittleEndian
 open Printf2
@@ -114,28 +115,28 @@ let count_filerequest c =
 	!!gstats_by_brand.(brand_to_int b).brand_filerequest + 1)
 
 let count_download c f v =
-  download_counter := Int64.add !download_counter v;
-  c.client_downloaded <- Int64.add c.client_downloaded v;
-  stats_all.brand_download <- Int64.add stats_all.brand_download v;
-  bt_download_counter := Int64.add !bt_download_counter v;
+  download_counter := !download_counter ++ v;
+  c.client_downloaded <- c.client_downloaded ++ v;
+  stats_all.brand_download <- stats_all.brand_download ++ v;
+  bt_download_counter := !bt_download_counter ++ v;
   (match c.client_brand with
     | b ->
       stats_by_brand.(brand_to_int b).brand_download <-
-        Int64.add stats_by_brand.(brand_to_int b).brand_download v;
+        stats_by_brand.(brand_to_int b).brand_download ++ v;
       !!gstats_by_brand.(brand_to_int b).brand_download <-
-        Int64.add !!gstats_by_brand.(brand_to_int b).brand_download v)
+        !!gstats_by_brand.(brand_to_int b).brand_download ++ v)
 
 let count_upload c f v =
-  upload_counter := Int64.add !upload_counter v;
-  c.client_uploaded <- Int64.add c.client_uploaded v;
-  stats_all.brand_upload <- Int64.add stats_all.brand_upload v;
-  bt_upload_counter := Int64.add !bt_upload_counter v;
+  upload_counter := !upload_counter ++ v;
+  c.client_uploaded <- c.client_uploaded ++ v;
+  stats_all.brand_upload <- stats_all.brand_upload ++ v;
+  bt_upload_counter := !bt_upload_counter ++ v;
   (match c.client_brand with
     | b ->
       stats_by_brand.(brand_to_int b).brand_upload <-
-        Int64.add stats_by_brand.(brand_to_int b).brand_upload v;
+        stats_by_brand.(brand_to_int b).brand_upload ++ v;
       !!gstats_by_brand.(brand_to_int b).brand_upload <-
-        Int64.add !!gstats_by_brand.(brand_to_int b).brand_upload v)
+        !!gstats_by_brand.(brand_to_int b).brand_upload ++ v)
 
 let percent_of_ints x y =
   if y <> 0 then 100. *. (float_of_int x /. float_of_int y)
@@ -272,8 +273,8 @@ let new_print_stats buf o =
   for i=0 to brand_count-1 do
       sstats_all.brand_seen <- sstats_all.brand_seen + stats_by_brand.(i).brand_seen;
       sstats_all.brand_filerequest <- sstats_all.brand_filerequest + stats_by_brand.(i).brand_filerequest;
-      sstats_all.brand_download <- Int64.add sstats_all.brand_download stats_by_brand.(i).brand_download ;
-      sstats_all.brand_upload <- Int64.add sstats_all.brand_upload stats_by_brand.(i).brand_upload;
+      sstats_all.brand_download <- sstats_all.brand_download ++ stats_by_brand.(i).brand_download ;
+      sstats_all.brand_upload <- sstats_all.brand_upload ++ stats_by_brand.(i).brand_upload;
       sstats_all.brand_banned <- sstats_all.brand_banned + stats_by_brand.(i).brand_banned;
   done;
 
@@ -290,8 +291,8 @@ let new_print_stats buf o =
   for i=0 to brand_count-1 do
     gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen;
     gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest;
-    gstats_all.brand_download <- Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download ;
-    gstats_all.brand_upload <- Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload;
+    gstats_all.brand_download <- gstats_all.brand_download ++ !!gstats_by_brand.(i).brand_download ;
+    gstats_all.brand_upload <- gstats_all.brand_upload ++ !!gstats_by_brand.(i).brand_upload;
     gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned;
   done;
 
@@ -584,7 +585,7 @@ let save_download_history file =
   let m = ref 0 in
   while !size <> Int64.zero do
     incr m;
-    size := !size // (Int64.of_int 10)
+    size := !size // 10L
   done;
 (* SENT: 1 byte *)
   buf_int8 buf !m;

@@ -1943,9 +1943,9 @@ let _ =
 		shared_dir.shdir_priority
 		dir
 		shared_dir.shdir_strategy
-		(if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+		(if (Unix32.diskused dir) = -1L then "---"
 		   else (size_of_int64 (Unix32.diskused dir)))
-		(if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+		(if (Unix32.diskfree dir) = -1L then "---"
 		   else (size_of_int64 (Unix32.diskfree dir)))
 		(if (Unix32.percentfree dir) = (-1) then "---"
 		   else string_of_int(Unix32.percentfree dir))
@@ -1969,9 +1969,9 @@ let _ =
 		0
 		dir
 		"temp_directory"
-	      (if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+	      (if (Unix32.diskused dir) = -1L then "---"
 		else (size_of_int64 (Unix32.diskused dir)))
-	      (if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+	      (if (Unix32.diskfree dir) = -1L then "---"
 		else (size_of_int64 (Unix32.diskfree dir)))
 	      (if (Unix32.percentfree dir) = (-1) then "---"
 		else string_of_int(Unix32.percentfree dir))
@@ -1993,9 +1993,9 @@ let _ =
 		0
 		dir
 		"core_directory"
-	      (if (Unix32.diskused dir) = Int64.of_int (-1) then "---"
+	      (if (Unix32.diskused dir) = -1L then "---"
 		else (size_of_int64 (Unix32.diskused dir)))
-	      (if (Unix32.diskfree dir) = Int64.of_int (-1) then "---"
+	      (if (Unix32.diskfree dir) = -1L then "---"
 		else (size_of_int64 (Unix32.diskfree dir)))
 	      (if (Unix32.percentfree dir) = (-1) then "---"
 		else string_of_int(Unix32.percentfree dir))
@@ -2563,8 +2563,8 @@ let _ =
               let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
               let list = Sort.list
                 ( fun f1 f2 ->
-                  Int64.sub f2.file_size f2.file_downloaded <=
-                  Int64.sub f1.file_size f1.file_downloaded
+                  f2.file_size -- f2.file_downloaded <=
+                  f1.file_size -- f1.file_downloaded
                 ) list in
               simple_print_file_list false buf list o;
               if !!done_files <> [] then

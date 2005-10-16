@@ -11,6 +11,11 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/16: spiralvoice
+
+4519: Int64ops cleanup (pango)
+
+---------------------------------------------------------------------
 2005/10/11: spiralvoice (version 2.6.5 = tag release-2-6-5)
 
 4508: Configure: Print some important build targets

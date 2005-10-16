@@ -17,10 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-let ( *.. ) x y = Int64.mul x (Int64.of_int y)
-let ( ** ) x y = Int64.mul x y
 let ( ++ ) x y = Int64.add x y
 let ( -- ) x y = Int64.sub x y
+let ( ** ) x y = Int64.mul x y
+let ( // ) x y = Int64.div x y
+let ( *.. ) x y = Int64.mul x (Int64.of_int y)
+
 let left64 x y = Int64.shift_left x y
 let right64 x y = Int64.shift_right_logical x y
 let or64 x y = Int64.logor x y
@@ -28,13 +30,8 @@ let and64 x y = Int64.logand x y
 
 let zero = Int64.zero
 let one = Int64.one
-let ( // ) x y = Int64.div x y
-
   
-let const_int32_255 = Int32.of_int 255
-let const_int64_255 = Int64.of_int 255
-
-let bits32_64 = Int64.of_string "0xffffffff"
+let bits32_64 = 0xffffffffL
   
 let int64_of_uint32 v =
   and64 (Int64.of_int32 v) bits32_64
@@ -42,7 +39,7 @@ let int64_of_uint32 v =
 let int32_of_int64 v = Int64.to_int32
   
 let megabyte = Int64.of_int (1024 * 1024)
-let kilobyte = Int64.of_int 1024
+let kilobyte = 1024L
 let kilobytes256 = Int64.of_int (256 * 1024)
 let kilobytes x = kilobyte *.. x
 let megabytes x = megabyte *.. x

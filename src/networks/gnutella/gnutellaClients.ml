@@ -360,15 +360,15 @@ and client_parse_header c gconn sock (first_line, headers) =
               String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
           in
           if slash_pos = star_pos - 1 then 
-            x,y ++ Int64.one (* "bytes x-y/*" *)
+            x, Int64.succ y (* "bytes x-y/*" *)
           else
           let z = Int64.of_string (
               String.sub range (slash_pos+1) (len - slash_pos -1) )
           in
           if y = z then 
             failwith "Cannot parse range"
-(* x -- Int64.one, size *)
-          else x,y ++ Int64.one
+(* Int64.pred x, size *)
+          else x, Int64.succ y
         with 
         | e ->
             lprintf "[GDO] Exception %s for range [%s]\n" 
@@ -562,7 +562,7 @@ end;
                           end;
                         d.download_ranges <- d.download_ranges @ 
                           [RANGEReq (x,y,r)];
-                        Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
+                        Printf.sprintf "%Ld-%Ld" x (Int64.pred y)
                       with Not_found ->
                           if !verbose_swarming then 
                             lprintf "Could not find range in current block\n";
@@ -842,11 +842,11 @@ let read_request url headers gconn sock =
         x, None, _ -> x, size
       | x, Some y, Some z ->
           if y = z then (* some vendor bug *)
-            x -- Int64.one, y
+            Int64.pred x, y
           else
-            x, y ++ Int64.one
+            x, Int64.succ y
       | x, Some y, None ->
-          x, y ++ Int64.one
+          x, Int64.succ y
     with _ -> false,  (Int64.zero, size)
   
   in
@@ -869,7 +869,7 @@ let read_request url headers gconn sock =
           ("Accept-Ranges", "bytes") ::
           ("Content-range", 
             Printf.sprintf "bytes %Ld-%Ld/%Ld"
-              chunk_pos (chunk_end -- Int64.one) size) ::
+              chunk_pos (Int64.pred chunk_end) size) ::
           headers
         end else headers in
     let headers =

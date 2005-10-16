@@ -79,10 +79,10 @@ let sort_file_queue c =
               let v = file_priority f2 - file_priority f1 in
               if v <> 0 then v else
               let s1 = if (file_size f1) > Int64.zero then
-                  Int64.to_int (Int64.div (Int64.mul (file_downloaded f1) (Int64.of_int 100)) (file_size f1))
+                  Int64.to_int ((file_downloaded f1) ** 100L // (file_size f1))
                 else 0 in
               let s2 = if (file_size f2) > Int64.zero then
-                  Int64.to_int (Int64.div (Int64.mul (file_downloaded f2) (Int64.of_int 100)) (file_size f2))
+                  Int64.to_int ((file_downloaded f2) ** 100L // (file_size f2))
                 else 0 in
               s2 - s1
           ) c.client_file_queue;

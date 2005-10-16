@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open BasicSocket
 open AnyEndian
@@ -223,7 +224,7 @@ let write t ping s ip port =
                     lprintf "Exception in sendto %s:%d\n" (Ip.to_string ip) port;
                     raise e
                     in
-              udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+              udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
               ()
 (*
 lprintf "UDP sent [%s]" (String.escaped
@@ -276,7 +277,7 @@ let rec iter_write_no_bc t sock =
   let len = String.length p.udp_content in
   begin try
       ignore (local_sendto (fd sock) p);
-      udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+      udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
     with
       Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
     | e ->
@@ -310,9 +311,9 @@ let rec iter_write t sock bc =
         
 
         ignore (local_sendto (fd sock) p);
-        udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
-        bc.remaining_bytes <- bc.remaining_bytes - (len + !
-          TcpBufferedSocket.ip_packet_size) ;
+        udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
+        bc.remaining_bytes <- bc.remaining_bytes - (len +
+          !TcpBufferedSocket.ip_packet_size) ;
       with
         Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
       | e ->
@@ -341,7 +342,7 @@ let udp_handler t sock event =
 	  String.sub read_buf 10 (len-10), 
 	  Unix.ADDR_INET(Ip.to_inet_addr (get_ip read_buf 4), get_int16 read_buf 8)
       in
-      udp_downloaded_bytes := Int64.add !udp_downloaded_bytes (Int64.of_int len);
+      udp_downloaded_bytes := !udp_downloaded_bytes ++ (Int64.of_int len);
       t.rlist <- {
         udp_content = s;
         udp_ping = false;

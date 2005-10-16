@@ -142,7 +142,7 @@ let int_of_string v =
 
 let void_message = Bencode.encode (
     Dictionary [
-      String "interval", Int (Int64.of_int 600);
+      String "interval", Int 600L;
       String "peers", List []
     ])
 
@@ -260,8 +260,8 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
 
           let message =
             Dictionary [
-              String "interval", Int (Int64.of_int 600);
-              String "min interval", Int (Int64.of_int 600);
+              String "interval", Int 600L;
+              String "min interval", Int 600L;
               String "peers", List
                 (List.map (fun p ->
                     if no_peer_id = 1 then

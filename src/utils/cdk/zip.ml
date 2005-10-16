@@ -149,7 +149,7 @@ let read_ecd filename ic =
   let cd_offset = read4_int ic in
   let comment_len = read2 ic in
   let comment = readstring ic comment_len in
-  assert (magic = Int32.of_int 0x06054b50);
+  assert (magic = 0x06054b50l);
   if disk_no <> 0 || cd_disk_no <> 0 then
     raise (Error(filename, "", "multi-disk ZIP files not supported"));
   (cd_entries, cd_offset, comment)
@@ -181,7 +181,7 @@ let read_cd filename ic cd_entries cd_offset =
       let name = readstring ic name_len in
       let extra = readstring ic extra_len in
       let comment = readstring ic comment_len in
-      if magic <> Int32.of_int 0x02014b50 then
+      if magic <> 0x02014b50l then
         raise (Error(filename, name,
                      "wrong file header in central directory"));
       if flags land 1 <> 0 then
@@ -248,7 +248,7 @@ let goto_entry ifile e =
     let uncompr_size = read4_int ic in
     let filename_len = read2 ic in
     let extra_len = read2 ic in
-    if magic <> Int32.of_int 0x04034b50 then
+    if magic <> 0x04034b50l then
        raise (Error(ifile.if_filename, e.filename, "wrong local file header"));
     (* Could validate information read against directory entry, but
        what the heck *)
@@ -366,7 +366,7 @@ let open_out ?(comment = "") filename =
 (* Close a ZIP file for writing.  Add central directory. *)
 
 let write_directory_entry oc e =
-  write4 oc (Int32.of_int 0x02014b50);  (* signature *)
+  write4 oc (0x02014b50l);  (* signature *)
   let version = match e.methd with Stored -> 10 | Deflated -> 20 in
   write2 oc version;                    (* version made by *)
   write2 oc version;                    (* version needed to extract *)
@@ -397,7 +397,7 @@ let close_out ofile =
   let num_entries = List.length ofile.of_entries in
   if num_entries >= 0x10000 then
     raise(Error(ofile.of_filename, "", "too many entries"));
-  write4 oc (Int32.of_int 0x06054b50);  (* signature *)
+  write4 oc (0x06054b50l);  (* signature *)
   write2 oc 0;                          (* disk number *)
   write2 oc 0;                          (* number of disk with central dir *)
   write2 oc num_entries;                (* # entries in this disk *)
@@ -421,7 +421,7 @@ let add_entry_header ofile extra comment level mtime filename =
     raise(Error(ofile.of_filename, filename, "comment too long"));
   let oc = ofile.of_channel in
   let pos = pos_out oc in
-  write4 oc (Int32.of_int 0x04034b50);  (* signature *)
+  write4 oc (0x04034b50l);  (* signature *)
   let version = if level = 0 then 10 else 20 in
   write2 oc version;                    (* version needed to extract *)
   write2 oc 8;                          (* flags *)
@@ -451,7 +451,7 @@ let add_entry_header ofile extra comment level mtime filename =
 
 let add_data_descriptor ofile crc compr_size uncompr_size entry =
   let oc = ofile.of_channel in
-  write4 oc (Int32.of_int 0x08074b50);  (* signature *)
+  write4 oc (0x08074b50l);  (* signature *)
   write4 oc crc;                        (* CRC *)
   write4_int oc compr_size;             (* compressed size *)
   write4_int oc uncompr_size;           (* uncompressed size *)

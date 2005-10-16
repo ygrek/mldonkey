@@ -45,8 +45,8 @@ open FasttrackGlobals
 (*                                                                       *)
 (*************************************************************************)
 
-let int64_3 = Int64.of_int 3
-let int64_ffffffff = Int64.of_string "0xffffffff"
+let int64_3 = 3L
+let int64_ffffffff = 0xffffffffL
 let default_bandwidth = 0x68
 
 external fst_hash_checksum : string -> int = "fst_hash_checksum_ml"
@@ -1005,8 +1005,8 @@ dec: [(63)]
             let shared_size, pos = get_dynint m pos in
             let shared_tags, pos = get_tags m pos in
 
-            let computed_checksum = Int64.of_int
-                (fst_hash_checksum shared_hash) in
+            let computed_checksum = 
+              Int64.of_int (fst_hash_checksum shared_hash) in
             if computed_checksum <> shared_checksum then begin
                 lprintf "Bad COMPUTED checksum for hash\n";
               end;
@@ -1073,8 +1073,8 @@ dec: [(63)]
                 let result_checksum, pos = get_dynint m (pos+20) in
                 let result_size, pos = get_dynint m pos in
 
-                let computed_checksum = Int64.of_int
-                    (fst_hash_checksum result_hash) in
+                let computed_checksum = 
+                  Int64.of_int (fst_hash_checksum result_hash) in
                 if computed_checksum <> result_checksum then begin
                     lprintf "Bad COMPUTED checksum for hash\n";
                   end;
@@ -1257,8 +1257,8 @@ dec: [(63)]
             let shared_size, pos = get_dynint m pos in
             let shared_tags, pos = get_tags m pos in
 
-            let computed_checksum = Int64.of_int
-                (fst_hash_checksum shared_hash) in
+            let computed_checksum = 
+              Int64.of_int (fst_hash_checksum shared_hash) in
             if computed_checksum <> shared_checksum then begin
                 lprintf "Bad COMPUTED checksum for hash\n";
               end;
@@ -1892,7 +1892,7 @@ let resend_udp_packets _ = ()
 let check_primitives () =
   (try
       let cipher = create_cipher () in
-      set_cipher cipher (Int32.of_int 123456789) 0x29;
+      set_cipher cipher 123456789l 0x29;
       init_cipher cipher;
       let s = String.create 12 in
       cipher_packet_set cipher s 0;

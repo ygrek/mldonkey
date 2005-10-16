@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Int64ops
 open Printf2
 
 (*
@@ -76,21 +76,19 @@ let input_int8 ic =
 let input_int16 ic =
   let i0 = input_int8  ic in
   let i1 = input_int8 ic in
-  i0 + 256 * i1
+  i0 lor (i1 lsl 8)
 
-let int32_65536 = Int64.of_int 65536
-  
 let input_int32 ic =
   let i0 = input_int16 ic in
   let i1 = input_int16 ic in
   let i0 = Int64.of_int i0 in
   let i1 = Int64.of_int i1 in
-  Int64.add i0 (Int64.mul i1 int32_65536)
+  Int64.add i0 (Int64.shift_left i1 16)
   
 let input_int ic =
   let i0 = input_int16 ic in
   let i1 = input_int16 ic in
-  i0 + i1 * 65536
+  i0 lor (i1 lsl 16)
 
 let input_string4 ic =
   let s = String.create 4 in
@@ -180,13 +178,12 @@ let load file =
               print_int32 "dwWidth" dwWidth;
               print_int32 "dwHeight" dwHeight;
 *)
-              seek_in ic ((Int64.to_int pos) + main_header_len +20);
+              seek_in ic ((Int64.to_int pos) + main_header_len + 20);
               let s = input_string4 ic in
 (*              print_string4 "LIST:" s; *)
 
-              let pos_in = Int64.add pos (Int64.of_int (
-                    main_header_len +24)) in
-              let last_pos = Int64.add pos_in size2 in
+              let pos_in = pos ++ (Int64.of_int (main_header_len + 24)) in
+              let last_pos = pos_in ++ size2 in
                   iter_list pos_in last_pos
               
           | "movi" ->
@@ -195,9 +192,9 @@ let load file =
           | "strl" ->
               lprintf_nl "STREAM DESCRIPTION";
               
-              let offset = Int64.of_int 4  in
-              let pos0 = Int64.add pos offset in
-              let end_pos0 = Int64.add pos size2 in
+              let offset = 4L  in
+              let pos0 = pos ++ offset in
+              let end_pos0 = pos ++ size2 in
               iter_list pos0 end_pos0
 
           | "strh" ->
@@ -245,11 +242,11 @@ let load file =
           | _ -> ()
         end;
         
-        iter_list (Int64.add pos (Int64.add size2 (Int64.of_int 8))) end_pos
+        iter_list (pos ++ size2 ++ 8L) end_pos
     end 
     
   in
-  let pos0 = Int64.of_int 16 in
-  iter_list pos0 (Int64.add pos0 size);
+  let pos0 = 16L in
+  iter_list pos0 (pos0 ++ size);
   close_in ic;
 

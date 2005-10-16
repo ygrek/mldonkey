@@ -103,15 +103,15 @@ let get_int8 s pos =
 let get_int16 s pos =
   let c1 = int_of_char s.[pos] in
   let c2 = int_of_char s.[pos+1] in
-  c1 + c2 * 256
+  c1 lor (c2 lsl 8)
 
 let buf_int8 buf i =
-  Buffer.add_char buf (char_of_int (i land 255))
+  Buffer.add_char buf (char_of_int (i land 0xff))
   
 let buf_int16 buf i =
-  let i = i land 65535 in
-  Buffer.add_char buf (char_of_int (i mod 256));
-  Buffer.add_char buf (char_of_int (i / 256))
+  let i = i land 0xffff in
+  Buffer.add_char buf (char_of_int (i land 0xff));
+  Buffer.add_char buf (char_of_int (i lsr 8))
   
 let dump s =
   let len = String.length s in

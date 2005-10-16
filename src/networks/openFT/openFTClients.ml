@@ -206,7 +206,7 @@ let client_reader c sock nread =
           Unix2.really_write fd b.buf b.pos b.len;
         end;
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
-        c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
+        c.client_pos <- c.client_pos ++ (Int64.of_int b.len);
 (*
       lprintf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
 lprint_newline ();

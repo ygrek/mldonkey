@@ -233,8 +233,8 @@ let parse (s_out : string) (s_in : string) =
       let ciphers = {
           in_cipher = create_cipher ();
           out_cipher = create_cipher ();
-          in_xinu = Int64.of_int 0x51;
-          out_xinu = Int64.of_int 0x51;
+          in_xinu = 0x51L;
+          out_xinu = 0x51L;
         } in
       begin
         try
@@ -687,8 +687,8 @@ let received ip port time s =
         let ciphers = {
             in_cipher = create_cipher ();
             out_cipher = create_cipher ();
-            in_xinu = Int64.of_int 0x51;
-            out_xinu = Int64.of_int 0x51;
+            in_xinu = 0x51L;
+            out_xinu = 0x51L;
           } in
         let c = {
             c_ip = ip;

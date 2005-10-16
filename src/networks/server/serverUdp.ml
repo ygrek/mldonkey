@@ -465,7 +465,7 @@ let get_info_servers () =
   let module M = DonkeyProtoServer in 
     Random.self_init();
     List.iter (fun s ->
-		 server_udp_send s (M.PingServerUdpReq (Int32.of_int(Random.int(3000))));
+		 server_udp_send s (M.PingServerUdpReq (Int32.of_int (Random.int 3000)));
                  server_udp_send s (M.ServerDescUdpReq {
 				      M.ServerDescUdp.ip = (Ip.of_string "21.42.0.1");
 				    })

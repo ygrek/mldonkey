@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open BasicSocket
 open Printf2
 open CommonGlobals
@@ -274,7 +275,7 @@ let custom_query buf query =
           " label (if default = "" then "" else
             try
               let size = Int64.of_string default in
-              let size = Int64.div size (Int64.of_int 1048576) in
+              let size = size // 1048576L in
               Int64.to_string size
             with _ -> "")
       
@@ -298,7 +299,7 @@ let custom_query buf query =
           " label (if default = "" then "" else
             try
               let size = Int64.of_string default in
-              let size = Int64.div size (Int64.of_int 1048576) in
+              let size = size // 1048576L in
               Int64.to_string size
             with _ -> "")
       

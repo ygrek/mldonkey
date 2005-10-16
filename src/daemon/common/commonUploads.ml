@@ -52,7 +52,7 @@ Default would be: share all files greater than 1 MB in incoming/ on Edonkey.
 
 *******************************************************************)
 
-let ed2k_block_size = Int64.of_int 9728000
+let ed2k_block_size = 9728000L
 let tiger_block_size = Int64.of_int (1024 * 1024)
 
 type shared_file = {
@@ -502,7 +502,7 @@ computation ??? *)
           try
             let fd = Unix32.create_rw info.shared_fullname in
             let file_size = Unix32.getsize64 fd false in
-            let len64 = min (Int64.of_int 307200) file_size in
+            let len64 = min 307200L file_size in
             let len = Int64.to_int len64 in
             let s = String.create len in
             Unix32.read fd zero s 0 len;
@@ -704,7 +704,7 @@ let add_shared full_name codedname size =
 
       SharedFilesIndex.add sh.shared_info;
       add_shared_file shared_tree sh (String2.split codedname '/');
-      shared_counter := Int64.add !shared_counter size;
+      shared_counter := !shared_counter ++ size;
 (*      lprintf "Total shared : %Ld\n" !shared_counter; *)
       sh
 
@@ -1053,10 +1053,8 @@ let _ =
       let total_uploaded = ref Int64.zero in
       S.shared_iter (fun s ->
           let i = S.as_shared_impl s in
-          total_uploaded :=
-          Int64.add !total_uploaded i.S.impl_shared_uploaded;
-          total_shared :=
-          Int64.add !total_shared i.S.impl_shared_size
+          total_uploaded := !total_uploaded ++ i.S.impl_shared_uploaded;
+          total_shared := !total_shared ++ i.S.impl_shared_size
       );
       buf_int64 buf !total_shared;
       buf_int64 buf !total_uploaded;

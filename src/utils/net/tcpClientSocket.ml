@@ -264,12 +264,11 @@ let write t s pos1 len =
 (*          if t.monitored then begin
               lprintf "write: direct written %d" nw; lprint_newline (); 
 end; *)
-          tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+          tcp_uploaded_bytes := !tcp_uploaded_bytes ++ (Int64.of_int nw);
           (match t.write_control with
               None -> ()
             | Some bc ->
-                bc.moved_bytes <-
-                Int64.add bc.moved_bytes (Int64.of_int nw));
+                bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nw));
           t.nwrite <- t.nwrite + nw;
           if nw = 0 then (close t "closed on write"; pos2) else
             pos1 + nw
@@ -349,11 +348,10 @@ let can_read_handler t sock max_len =
           raise e
     
     in
-    tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
+    tcp_downloaded_bytes := !tcp_downloaded_bytes ++ (Int64.of_int nread);
     (match t.read_control with
         None -> () | Some bc ->
-          bc.moved_bytes <-
-          Int64.add bc.moved_bytes (Int64.of_int nread));        
+          bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nread));        
     
     t.nread <- t.nread + nread;
     if nread = 0 then begin
@@ -391,12 +389,11 @@ let can_write_handler t sock max_len =
 
 (*            if t.monitored then
 (lprintf "written %d" nw; lprint_newline ()); *)
-        tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
+        tcp_uploaded_bytes := !tcp_uploaded_bytes ++ (Int64.of_int nw);
         (match t.write_control with
             None -> ()
           | Some bc ->
-              bc.moved_bytes <-
-              Int64.add bc.moved_bytes (Int64.of_int nw));        
+              bc.moved_bytes <- bc.moved_bytes ++ (Int64.of_int nw));        
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;

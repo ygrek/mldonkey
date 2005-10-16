@@ -38,7 +38,7 @@ open ServerSubscriptions
 
 module M = DonkeyProtoServer
   
-let null_ip = Ip.of_int32 (Int32.of_int 0)
+let null_ip = Ip.null
 
 (*  
       let id = 

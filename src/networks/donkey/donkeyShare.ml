@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open CommonGlobals
 open Printf2
 open Md4
@@ -221,10 +222,10 @@ let check_shared_files () =
                 raise Not_found;
               end;
             computation := true;
-            let end_pos = Int64.add sh.shared_pos block_size in
+            let end_pos = sh.shared_pos ++ block_size in
             let end_pos = if end_pos > sh.shared_size then sh.shared_size
               else end_pos in
-            let len = Int64.sub end_pos sh.shared_pos in
+            let len = end_pos -- sh.shared_pos in
 (*          lprintf "compute next md4"; lprint_newline (); *)
 
             M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len

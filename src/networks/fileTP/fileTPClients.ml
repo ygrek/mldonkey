@@ -50,14 +50,13 @@ let max_range_size = Int64.of_int (256 * 1024)
   *)
 let range_size file =  min_range_size
   (*
-  let range =  file_size file // (Int64.of_int 10) in
+  let range =  file_size file // 10L in
   max (min range max_range_size) min_range_size
 *)
 let max_queued_ranges = 1
 
 let nranges file =
-  Int64.to_int (Int64.div (file_size file)
-    min_range_size) + 5
+  Int64.to_int ((file_size file) // min_range_size) + 5
 
 let disconnect_client c r =
   match c.client_sock with
@@ -332,8 +331,7 @@ let ask_for_files () = (* called every minute *)
   ()
 
 let nranges file =
-  Int64.to_int (Int64.div (file_size file)
-    min_range_size) + 5
+  Int64.to_int ((file_size file) // min_range_size) + 5
 
 let manage_hosts () =
   List.iter (fun file ->

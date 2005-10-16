@@ -52,13 +52,12 @@ open CommonTypes
 
 module Make(M: CommonEnv) = struct
 
+	open Int64ops
     open M
     open CommonFile
     open CommonTypes
     open CommonClient
 
-
-let ( ** ) x y = Int64.mul x (Int64.of_int y)
 
 (* Worst scenario?: 1 GB splitted in small ranges of 64 KB = 16 000 ranges.
   In eDonkey, ranges are 180 kB long.
@@ -604,7 +603,7 @@ the t_s2t_blocks and t_t2s_blocks fields. *)
       let chunk_size = t.t_block_size in
       for i = 0 to nblocks - 1 do
         let block_begin = compute_block_begin s i in
-        let chunk = Int64.to_int (Int64.div block_begin chunk_size) in
+        let chunk = Int64.to_int (block_begin // chunk_size) in
         t.t_s2t_blocks.(i) <- chunk;
         t.t_t2s_blocks.(chunk) <- i :: t.t_t2s_blocks.(chunk)
       done
@@ -640,8 +639,7 @@ let create ss file chunk_size =
 
   let size = file_size file in
   let nchunks =
-    1 + Int64.to_int (
-      Int64.div (Int64.sub size Int64.one) chunk_size) in
+    1 + Int64.to_int (Int64.pred size // chunk_size) in
 
   let rec t = {
 
@@ -1097,8 +1095,8 @@ let verify_chunk t i =
 
         begin try
             let s = t.t_s in
-            let block_begin = t.t_block_size ** i in
-            let block_end = block_begin ++  t.t_block_size in
+            let block_begin = t.t_block_size *.. i in
+            let block_end = block_begin ++ t.t_block_size in
             let block_end = min block_end s.s_size in
             if verify t chunks i block_begin block_end then begin
                 set_verified_chunk t i;
@@ -1191,8 +1189,8 @@ let verify_chunk t i =
                                   EmptyBlock -> set_bitmap_0 s i
                                 | PartialBlock _ ->  set_bitmap_1 s i
                                 | CompleteBlock ->
-                                    let block_begin = t.t_block_size ** i in
-                                    let block_end = block_begin ++  t.t_block_size in
+                                    let block_begin = t.t_block_size *.. i in
+                                    let block_end = block_begin ++ t.t_block_size in
                                     let block_end = min block_end s.s_size in
                                     let block_begin = compute_block_begin s i in
                                     let block_end = compute_block_end s i in
@@ -2422,7 +2420,7 @@ let present_chunks s =
       lprintf_nl () "iter_block_in %d bb: %s cb:%s"
         i
         (Int64.to_string block_begin)
-      (Int64.to_string chunk_begin)
+        (Int64.to_string chunk_begin)
       ;
 
     if i = nblocks then
@@ -2479,8 +2477,8 @@ let present_chunks s =
       lprintf_nl () "iter_range_in %d bn: %s cb:%s ce: %s"
         i
         (Int64.to_string block_end)
-      (Int64.to_string chunk_begin)
-      (Int64.to_string chunk_end) ;
+        (Int64.to_string chunk_begin)
+        (Int64.to_string chunk_end) ;
 
     if r.range_current_begin < r.range_end then
       let list = (chunk_begin, r.range_current_begin) :: list in
@@ -3249,7 +3247,7 @@ module Check = struct
     let ndownloaders = 10
     let seed = 4475
     let file = "test_download.tmp"
-    let range_size = Int64.of_int 150
+    let range_size = 150L
     let block_sizes = [| 1000; 400; 299 |]
     let block_sizes = Array.map Int64.of_int block_sizes
 
@@ -3345,8 +3343,7 @@ module Check = struct
                 lprintf_nl () "Creating swarmer %d" i;
 
                 let block_size = block_sizes.(i) in
-                let nchunks = Int64.to_int (Int64.div
-                      (Int64.sub file_size Int64.one) block_size) + 1 in
+                let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
 
                 let file = {
                     file_fd = Unix32.create_diskfile temp_filename Unix32.rw_flag 0o666;

@@ -86,7 +86,7 @@ let lprintf_nl () =
 let shared_calculate_total_bytes () =
   nshared_bytes := Int64.zero;
   H.iter (fun s ->
-    nshared_bytes := (Int64.add !nshared_bytes (as_shared_impl s).impl_shared_size)
+    nshared_bytes := !nshared_bytes ++ (as_shared_impl s).impl_shared_size
   ) shareds_by_num
     
 let shared_must_update shared =

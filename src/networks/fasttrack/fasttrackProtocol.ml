@@ -86,8 +86,8 @@ let len4 = Int64.of_int (128*128*128)
 let len3 = Int64.of_int (128*128)
 let len2 = Int64.of_int (128)
 
-let int64_7f = Int64.of_int 0x7f
-let int64_80 = Int64.of_int 0x80
+let int64_7f = 0x7fL
+let int64_80 = 0x80L
 
 (* TODO: check this implementation of buf_dynint, supposed to
   be better... *)

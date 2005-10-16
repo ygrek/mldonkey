@@ -25,11 +25,12 @@ module G = Gui_global
 
 open GuiProto
 
-let ko = Int64.of_int 1024
+let ko = 1024L
+let mo = ko ** ko
   
 let unit_of_string s =
   match String.lowercase s with
-    "mo" -> Int64.mul ko ko
+    "mo" -> mo
   | "ko" -> ko
   | _ -> Int64.one
 
@@ -136,8 +137,7 @@ let rec rec_description_of_query q =
   | Q_MP3_BITRATE _ -> []
 
 
-
-(** Retourne quelques mots pour résumer une requete *)
+(** Summarize a request in a few words *)
 let description_of_query q =
   match rec_description_of_query q with 
     [] -> "stupid query"

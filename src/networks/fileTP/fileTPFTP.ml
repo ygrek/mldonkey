@@ -210,7 +210,7 @@ let ftp_send_range_request c (x,y) sock d =
                     [a0;a1;a2;a3;p0;p1] ->
                       let ip = Ip.of_string
                           (Printf.sprintf "%d.%d.%d.%d" a0 a1 a2 a3) in
-                      let port = p0 * 256 + p1 in
+                      let port = (p0 lsl 8) lor p1 in
                       set_rtimeout sock 3600.;
                       download_on_port c d (x,y) ip port
                   | _ ->

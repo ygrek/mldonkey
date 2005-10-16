@@ -22,15 +22,6 @@ open LittleEndian
 open Unix
 open Printf2
 
-
-let zero = Int64.zero
-let one = Int64.one
-let (++) = Int64.add
-let (--) = Int64.sub
-let ( ** ) x y = Int64.mul x (Int64.of_int y)
-let ( // ) x y = Int64.div x y
-
-
 open BTTypes
 
 let announce = ref ""
@@ -167,7 +158,7 @@ let _ =
           end;
 
         let chunk_size = torrent.torrent_piece_size in
-        let npieces = 1+ Int64.to_int ((length -- one) // chunk_size) in
+        let npieces = 1 + Int64.to_int ((length -- one) // chunk_size) in
 
         if Array.length torrent.torrent_pieces <> npieces then begin
             Printf.printf "ERROR: computed npieces %d <> torrent npieces %d\n"

@@ -22,11 +22,9 @@
 open Int64ops
 open Printf2
 
-let (++) = Int64.add
-let (--) = Int64.sub
-let chunk_min_size = ref (Int64.of_int 65000)
+let chunk_min_size = ref 65000L
 
-let max_buffered = ref (Int64.of_int (1024*1024))
+let max_buffered = ref (Int64.of_int (1024 * 1024))
 
 let create_dir_mask = ref "755"
 let verbose = false
@@ -265,7 +263,7 @@ module DiskFile = struct
     let destroy = FDCache.destroy
   end
 
-let zero_chunk_len = Int64.of_int 65536
+let zero_chunk_len = 65536L
 let zero_chunk_name = "zero_chunk"
 let zero_chunk_fd_option = ref None
 let zero_chunk_fd () =
@@ -639,9 +637,9 @@ module SparseFile = struct
       iter t 0 (Array.length t.chunks)
 
     let _ =
-      let one = Int64.of_int 1 in
-      let two = Int64.of_int 2 in
-      let three = Int64.of_int 3 in
+      let one = 1L in
+      let two = 2L in
+      let three = 3L in
       for i = 0 to 3 do
         let chunks = Array.init i (fun i ->
               let name = string_of_int i in
@@ -1473,20 +1471,15 @@ let _ = Callback.register_exception "error" Error
 
 external statfs : string -> statfs = "statfs_statfs"
 
-let ( ** ) x y = Int64.mul x y
-let ( ++ ) x y = Int64.add x y
-let ( -- ) x y = Int64.sub x y
-let ( // ) x y = Int64.div x y
-
 let bsize dir =
   begin
     try
   let s = statfs dir in
-    if s.f_frsize = Int64.zero || s.f_frsize = Int64.of_int (-1) then
+    if s.f_frsize = Int64.zero || s.f_frsize = -1L then
       s.f_bsize
     else
       s.f_frsize
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let blocks dir =
@@ -1494,7 +1487,7 @@ let blocks dir =
     try
   let s = statfs dir in
     s.f_blocks
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let bfree dir =
@@ -1502,7 +1495,7 @@ let bfree dir =
     try
   let s = statfs dir in
     s.f_bfree
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let bavail dir =
@@ -1510,7 +1503,7 @@ let bavail dir =
     try
   let s = statfs dir in
     s.f_bavail
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let fnamelen dir =
@@ -1518,7 +1511,7 @@ let fnamelen dir =
     try
   let s = statfs dir in
     s.f_fnamelen
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let disktotal dir =
@@ -1527,7 +1520,7 @@ let disktotal dir =
     try
   let s = statfs dir in
     ((bsize dir) ** s.f_blocks)
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let diskfree dir =
@@ -1536,7 +1529,7 @@ let diskfree dir =
     try
   let s = statfs dir in
     ((bsize dir) ** s.f_bavail)
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let diskused dir =
@@ -1545,19 +1538,19 @@ let diskused dir =
     try
   let s = statfs dir in
     ((bsize dir) ** (s.f_blocks -- s.f_bavail))
-    with e -> Int64.of_int (-1)
+    with e -> -1L
   end
 
 let percentused dir =
 (* percentage of used disk space *)
-  if (diskfree dir) = Int64.of_int (-1) then
+  if (diskfree dir) = -1L then
     (-1)
   else
     Int64.to_int (100L -- ((diskfree dir) ** 100L // (disktotal dir)))
 
 let percentfree dir =
 (* percentage of free disk space *)
-  if (diskfree dir) = Int64.of_int (-1) then
+  if (diskfree dir) = -1L then
     (-1)
   else
     Int64.to_int ((diskfree dir) ** 100L // (disktotal dir))

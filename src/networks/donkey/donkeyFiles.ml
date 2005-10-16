@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Printf2
 open Md4
 
@@ -92,7 +93,7 @@ module NewUpload = struct
             M.BlocReq {  
               B.md4 = file.file_md4;
               B.start_pos = begin_pos;
-              B.end_pos = Int64.add begin_pos (Int64.of_int len_int);
+              B.end_pos = begin_pos ++ (Int64.of_int len_int);
               B.bloc_str = "";
               B.bloc_begin = 0;
               B.bloc_len = 0; 
@@ -112,7 +113,7 @@ module NewUpload = struct
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);
               impl.impl_shared_uploaded <- 
-                Int64.add impl.impl_shared_uploaded uploaded);
+                impl.impl_shared_uploaded ++ uploaded);
         if c.client_connected then
           printf_string "U[OUT]"
         else
@@ -132,7 +133,7 @@ module NewUpload = struct
 (* Is there a message to warn that a file is not shared anymore ? *)
                 c.client_upload <- None;
               end else
-            let max_len = Int64.sub up.up_end_chunk up.up_pos in
+            let max_len = up.up_end_chunk -- up.up_pos in
             let max_len = Int64.to_int max_len in
             let msg_block_size_int = mini msg_block_size_int per_client in
             if max_len <= msg_block_size_int then
@@ -160,8 +161,7 @@ module NewUpload = struct
               begin
                 send_small_block c sock up.up_file up.up_pos 
                   msg_block_size_int;
-                up.up_pos <- Int64.add up.up_pos 
-                  (Int64.of_int msg_block_size_int);
+                up.up_pos <- up.up_pos ++ (Int64.of_int msg_block_size_int);
                 let per_client = per_client-msg_block_size_int in
                 send_client_block c sock per_client
               end

@@ -67,7 +67,7 @@ let http_send_range_request c range sock d =
   let referer = d.download_referer in
   
   let (x,y) = range in
-  let range = Printf.sprintf "%Ld-%Ld" x (y -- (Int64.one)) in
+  let range = Printf.sprintf "%Ld-%Ld" x (Int64.pred y) in
 
   let buf = Buffer.create 100 in
 
@@ -208,13 +208,13 @@ let rec client_parse_header c gconn sock header =
               String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
           in
           if slash_pos = star_pos - 1 then
-            x,y ++ Int64.one (* "bytes x-y/*" *)
+            x, Int64.succ y (* "bytes x-y/*" *)
           else
           let z = Int64.of_string (
               String.sub range (slash_pos+1) (len - slash_pos -1) )
           in
-          if y = z then x -- Int64.one, size else
-            x,y ++ Int64.one
+          if y = z then Int64.pred x, size else
+            x, Int64.succ y
         with
         | e ->
             lprintf_nl () "Exception %s for range [%s]"

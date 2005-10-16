@@ -26,14 +26,7 @@ open Printf2
 let _s x = _s "Mld_hash" x
 let _b x = _b "Mld_hash" x  
 
-let zero = Int64.zero
-let one = Int64.one
-let (++) = Int64.add
-let (--) = Int64.sub
-let ( ** ) x y = Int64.mul x (Int64.of_int y)
-let ( // ) x y = Int64.div x (Int64.of_int y)
-  
-let block_size = Int64.of_int 9728000
+let block_size = 9728000L
 
 let tiger_block_size = Int64.of_int (1024 * 1024)
 
@@ -92,8 +85,7 @@ let bitprint_file fd file_size partial =
   let tiger = TigerTree.digest_subfile fd zero file_size in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger);
   let file_size = Unix32.getsize64 fd false in
-  let nchunks = Int64.to_int (Int64.div 
-        (Int64.sub file_size Int64.one) tiger_block_size) + 1 in
+  let nchunks = Int64.to_int (Int64.pred file_size // tiger_block_size) + 1 in
   let chunks = 
     let chunks = Array.create nchunks tiger in
     for i = 0 to nchunks - 1 do
@@ -131,8 +123,7 @@ let bitprint_filename filename partial =
 (*************************************************************************)
 
 let ed2k_hash_file fd file_size partial =
-  let nchunks = Int64.to_int (Int64.div 
-        (Int64.sub file_size Int64.one) block_size) + 1 in
+  let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
   let md4 = if nchunks = 1 then
       Md4.digest_subfile fd zero file_size        
     else
@@ -160,8 +151,7 @@ let ed2k_hash_file fd file_size partial =
 let sha1_hash_filename block_size filename =
   let fd = Unix32.create_rw filename in
   let file_size = Unix32.getsize64 fd false in
-  let nchunks = Int64.to_int (Int64.div 
-        (Int64.sub file_size Int64.one) block_size) + 1 in
+  let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
   for i = 0 to nchunks - 1 do
     let begin_pos = block_size ** i  in
     let end_pos = begin_pos ++ block_size in
@@ -196,7 +186,7 @@ let ed2k_hash_filename filename partial =
 let sig2dat_hash_filename filename partial =
   let fd = Unix32.create_rw filename in
   let file_size = Unix32.getsize64 fd false in
-  let len64 = min (Int64.of_int 307200) file_size in
+  let len64 = min 307200L file_size in
   let len = Int64.to_int len64 in
   let s = String.create len in
   Unix32.read fd zero s 0 len;
@@ -275,7 +265,7 @@ let check_external_functions size =
   
   
   let test_string_len64 = Int64.of_int test_string_len in
-  let file_size = (Int64.of_int size) ** 1024 in
+  let file_size = (Int64.of_int size) ** 1024L in
   let rec iter pos waves =
     if pos < file_size then
       let end_pos = min file_size (pos ++ test_string_len64) in
@@ -340,7 +330,7 @@ let check_external_functions size =
             (Printexc2.to_string e) name size)
   file_types
 
-let max_diff_size = Int64.of_int 30000000
+let max_diff_size = 30000000L
   
 let diff_chunk args =
   let filename1 = args.(0) in

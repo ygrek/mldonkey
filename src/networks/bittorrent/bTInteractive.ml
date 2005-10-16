@@ -731,7 +731,9 @@ let op_client_dprint c o file =
     (Int64.to_string c.client_downloaded)
   (Int64.to_string c.client_uploaded)
   (if c.client_downloaded > c.client_uploaded then "-" else "+")
-  (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+  (if c.client_uploaded > Int64.zero then 
+     Int64.to_float (c.client_downloaded // c.client_uploaded) 
+   else 1.)
   ("BT");
   (Printf.bprintf buf (_b "%18sFile  : %s\n") "" info.GuiTypes.file_name)
 

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Options
 open Queues
 open Printf2
@@ -141,7 +142,7 @@ let server_parse_cipher s gconn sock =
 
 let client_cipher_seed () =
  (* Int32.of_int (Random.int max_int) *)
- Int32.of_string "0x0fACB1238"
+ 0x0fACB1238l
 
 let connection_header_hook = ref None
 
@@ -204,8 +205,8 @@ let connect_server h =
               s.server_ciphers <- Some {
                 in_cipher = in_cipher;
                 out_cipher = out_cipher;
-                in_xinu = Int64.of_int 0x51;
-                out_xinu = Int64.of_int 0x51;
+                in_xinu = 0x51L;
+                out_xinu = 0x51L;
               };
               set_cipher out_cipher (client_cipher_seed ()) 0x29;
 
@@ -352,8 +353,7 @@ let _ =
   )
 
 let nranges file =
-  Int64.to_int (Int64.div (file_size file)
-    min_range_size) + 5
+  Int64.to_int ((file_size file) // min_range_size) + 5
 
 let manage_hosts () =
   H.manage_hosts ();

@@ -55,7 +55,7 @@ let log = ref {
 
 
 
-let tmp = ref { ip = Ip.of_int32 (Int32.of_int 0);
+let tmp = ref { ip = Ip.null;
                 md4 = Md4.null;
                 time = 0.;
                 req = [];

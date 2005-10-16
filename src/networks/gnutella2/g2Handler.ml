@@ -135,7 +135,7 @@ let g2_packet_handler s sock gconn p =
         g2_payload = QKA; 
         g2_children = [
           {
-            g2_payload = QKA_QK (Int32.of_int 123456);
+            g2_payload = QKA_QK 123456l;
             g2_children = [];
           };
           {

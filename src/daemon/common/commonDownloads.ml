@@ -18,6 +18,7 @@
 *)
 
 open Printf2
+open Int64ops
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
@@ -93,14 +94,14 @@ module Make(M: sig
         Unix32.write (file_fd file) d.download_pos b.buf b.pos b.len;
 (*        end; *)
 (*      lprintf "DIFF %d/%d\n" nread b.len; *)
-        d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
+        d.download_pos <- d.download_pos ++ (Int64.of_int b.len);
 (*
       lprintf "NEW SOURCE POS %s\n" (Int64.to_string c.client_pos);
   *)
         buf_used b b.len;
         if d.download_pos > file_downloaded file then 
           add_file_downloaded file
-          (Int64.sub d.download_pos (file_downloaded file));
+          (d.download_pos -- (file_downloaded file));
         if file_downloaded file = file_size file then
           file_complete d
     
