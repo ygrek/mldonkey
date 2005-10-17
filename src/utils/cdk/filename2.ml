@@ -149,6 +149,14 @@ let escaped filename =
     | _ -> ()
   done;
   s
+
+let temp_directory () =
+  match Sys.os_type with
+    "Unix" | "Cygwin" ->
+      (try Sys.getenv "TMPDIR" with Not_found -> "/tmp")
+  | "Win32" ->
+      (try Sys.getenv "TEMP" with Not_found -> ".")
+  | _ -> "."
   
 let _ = (* some assertions on these functions *)
   assert (basename "c:\\Program Files\\Toto history.exe" = "Toto history.exe");

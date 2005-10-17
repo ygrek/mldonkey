@@ -116,6 +116,22 @@ let _ =
   Unix.chdir file_basedir;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
+    && not Autoconf.windows && not (Sys.file_exists "/dev/urandom") then begin
+      lprintf_nl "/dev/urandom does not exist, please create it, exiting...";
+      lprintf_nl "If you are using a chroot environment, create it inside the chroot.";
+      exit 2
+    end;  
+
+  if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
+    && not Autoconf.windows && not (Sys.file_exists "/dev/null") then begin
+      lprintf_nl "/dev/null does not exist, please create it, exiting...";
+      lprintf_nl "If you are using a chroot environment, create it inside the chroot.";
+      exit 2
+    end;  
+
+  Unix2.can_write_to_directory (Filename2.temp_directory ());
+
+  if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
     then
       let pid_filename =
         Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0)) in

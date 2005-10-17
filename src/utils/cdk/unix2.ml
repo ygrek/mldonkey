@@ -55,7 +55,7 @@ let is_link filename =
   try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
 
 let chmod f o = 
-  try Unix.chmod f o with e -> lprintf "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
+  try Unix.chmod f o with e -> lprintf_nl "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
 
 let rec safe_mkdir dir =  
   if Sys.file_exists dir then begin
@@ -67,9 +67,9 @@ let rec safe_mkdir dir =
     begin try
       let dir = opendir dir in () 
       with
-        Unix.Unix_error (EACCES, _, _) -> lprintf "access denied for directory %s" dir; exit 73
-      | Unix.Unix_error (ENOENT, _, _) -> lprintf "directory %s not found, orphaned link?" dir; exit 73
-      | e -> lprintf "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
+        Unix.Unix_error (EACCES, _, _) -> lprintf_nl "access denied for directory %s" dir; exit 73
+      | Unix.Unix_error (ENOENT, _, _) -> lprintf_nl "directory %s not found, orphaned link?" dir; exit 73
+      | e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
     end
   else begin
       let predir = Filename.dirname dir in
@@ -113,7 +113,7 @@ let rename oldname newname =
   try Unix.rename oldname newname with
     Unix_error(EXDEV,_,_) as e ->
 (* renaming is not enough, we must COPY *)
-      lprintf "COPY %s TO %s\n" oldname newname; 
+      lprintf_nl "COPY %s TO %s" oldname newname; 
       let copied = ref false in
       try
         copy oldname newname; 
@@ -151,7 +151,7 @@ let random () =
   done;
   s
 
-let can_write_to_directory dirname =
+let rec can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
   try
     (let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 temp_file in
@@ -160,6 +160,9 @@ let can_write_to_directory dirname =
     (try Sys.remove temp_file with _ -> ())
   with
     Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.EACCES) ->
-      lprintf "can not create files in directory %s, check rights..." dirname; exit 73
-  | Sys_error s -> lprintf "%s for directory %s" s dirname; exit 73
-  | e -> lprintf "%s for directory %s" (Printexc2.to_string e) dirname; exit 73
+      lprintf_nl "can not create files in directory %s, check rights..." dirname; exit 73
+  | Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.ENOENT) ->
+      (try safe_mkdir dirname; can_write_to_directory dirname with _ ->
+        lprintf_nl "%s does not exist and can not be created, exiting..." dirname; exit 73)
+  | Sys_error s -> lprintf_nl "%s for directory %s" s dirname; exit 73
+  | e -> lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; exit 73
