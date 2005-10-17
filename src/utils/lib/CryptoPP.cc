@@ -9259,9 +9259,9 @@ void NonblockingRng::GenerateBlock(byte *output, unsigned int size)
 #else
 	if ((unsigned int)read(m_fd, output, size) != size) {
 		// Kernel 2.6.10 has non-concurrent access to /dev/urandom, retry at least once
-		printf("Shamelessly retrying a random generation attempt\n");
+		// printf("Shamelessly retrying a random generation attempt\n");
 		if ((unsigned int)read(m_fd, output, size) != size) {
-			printf("Error reading /dev/urandom! (kernel 2.6.10?)\n");
+			// printf("Error reading /dev/urandom! (kernel 2.6.10?)\n");
 			throw OS_RNG_Err("read /dev/urandom");
 		}
 	}
