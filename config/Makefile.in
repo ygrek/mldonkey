@@ -1580,7 +1580,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
 
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	$(OCAMLMKTOP) -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
+	$(OCAMLMKTOP) -cc $(CXX) -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
 
 
 
