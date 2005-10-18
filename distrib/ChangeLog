@@ -13,6 +13,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/18: spiralvoice
 
+4531: Compile fix for GTK1 oldgui
 4530: Compile fix for mldonkeytop (pango)
 4525: Always use svg_converter.byte (gildor)
 4524: Fix building mld_hash (gildor)

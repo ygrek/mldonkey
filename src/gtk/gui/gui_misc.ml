@@ -26,7 +26,7 @@ module G = Gui_global
 open GuiProto
 
 let ko = 1024L
-let mo = ko ** ko
+let mo = Int64.mul ko ko
   
 let unit_of_string s =
   match String.lowercase s with

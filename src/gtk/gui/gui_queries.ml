@@ -283,14 +283,14 @@ let rec entry_of_form qf =
       let size = 
         try 
           Int64.to_string
-            ((Int64.of_string we#text) ** (Gui_misc.unit_of_string we2#text))
+            (Int64.mul (Int64.of_string we#text) (Gui_misc.unit_of_string we2#text))
         with _ -> ""
       in
       Q_MINSIZE ("", size)
   | QF_MAXSIZE (we,we2) -> 
       let size = 
         try Int64.to_string
-            ((Int64.of_string we#text) ** (Gui_misc.unit_of_string we2#text))
+            (Int64.mul (Int64.of_string we#text) (Gui_misc.unit_of_string we2#text))
         with _ -> ""
       in
       Q_MAXSIZE ("", size)
