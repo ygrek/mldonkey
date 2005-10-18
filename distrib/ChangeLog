@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/18: spiralvoice
+
+4523: Fix building ofsvg_converter.byte (gildor)
+
 2005/10/17: spiralvoice
 
 4520: Check for /dev/urandom, /dev/null and $TEMP

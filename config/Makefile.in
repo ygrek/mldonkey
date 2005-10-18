@@ -811,7 +811,7 @@ ifneq ("$(GUI)" , "no")
   endif
 
 SVG_CONVERTER_SRCS = \
-  $(CDK_SRCS) tools/svg_converter.ml
+  $(CDK_SRCS) $(LIB_SRCS) tools/svg_converter.ml
 
 CURSES_LIBS_byte=-cclib -lncurses
 CURSES_LIBS_opt=-cclib -lncurses
