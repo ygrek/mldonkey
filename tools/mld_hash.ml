@@ -288,7 +288,7 @@ let check_external_functions size =
       try
         lprintf "Creating file %s\n" filename;
         let file = f filename file_size in
-        Unix32.ftruncate64 file file_size;
+        Unix32.ftruncate64 file file_size false;
 
 (*
             lprintf "Computing ed2k hash of zeroed file\n";
