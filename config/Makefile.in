@@ -1650,7 +1650,7 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe
-	rm -f svg_converter.byte mld_hash make_torrent copysources get_range subconv dp500
+	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv dp500
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \

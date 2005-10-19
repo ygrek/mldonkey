@@ -27,6 +27,12 @@ let _s x = _s "Mld_hash" x
 let _b x = _b "Mld_hash" x  
 
 let block_size = 9728000L
+let zero = Int64.zero
+let one = Int64.one
+let (++) = Int64.add
+let (--) = Int64.sub
+let ( ** ) x y = Int64.mul x y
+let ( // ) x y = Int64.div x y
 
 let tiger_block_size = Int64.of_int (1024 * 1024)
 
@@ -89,7 +95,7 @@ let bitprint_file fd file_size partial =
   let chunks = 
     let chunks = Array.create nchunks tiger in
     for i = 0 to nchunks - 1 do
-      let begin_pos = tiger_block_size ** i  in
+      let begin_pos = tiger_block_size ** (Int64.of_int i) in
       let end_pos = begin_pos ++ tiger_block_size in
       let end_pos = min end_pos file_size in
       let len = end_pos -- begin_pos in
@@ -129,7 +135,7 @@ let ed2k_hash_file fd file_size partial =
     else
     let chunks = String.create (nchunks*16) in
     for i = 0 to nchunks - 1 do
-      let begin_pos = block_size ** i  in
+      let begin_pos = block_size ** (Int64.of_int i) in
       let end_pos = begin_pos ++ block_size in
       let end_pos = min end_pos file_size in
       let len = end_pos -- begin_pos in
@@ -153,7 +159,7 @@ let sha1_hash_filename block_size filename =
   let file_size = Unix32.getsize64 fd false in
   let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
   for i = 0 to nchunks - 1 do
-    let begin_pos = block_size ** i  in
+    let begin_pos = block_size ** (Int64.of_int i) in
     let end_pos = begin_pos ++ block_size in
     let end_pos = min end_pos file_size in
     let len = end_pos -- begin_pos in
@@ -224,7 +230,7 @@ let check_external_functions size =
   let create_multifile filename size =    
     let rec iter pos size list =
       if size <> zero then
-        let new_size = (size // 2) ++ one in
+        let new_size = (size // (Int64.of_int 2)) ++ one in
         let filename = Printf.sprintf "%d-%Ld" pos new_size in
         iter (pos+1) (size -- new_size) 
         ((filename, new_size) :: list)
