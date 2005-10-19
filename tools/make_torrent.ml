@@ -28,6 +28,12 @@ let announce = ref ""
 let torrent_filename = ref ""
 let torrent_comment = ref ""
 let torrent_private = ref 0
+let zero = Int64.zero
+let one = Int64.one
+let (++) = Int64.add
+let (--) = Int64.sub
+let ( ** ) x y = Int64.mul x y
+let ( // ) x y = Int64.div x y
 
 let check_tracker () =
   if !announce = "" then begin
@@ -168,7 +174,7 @@ let _ =
           end;
 
         for i = 0 to npieces - 1 do
-          let begin_pos = chunk_size ** i in
+          let begin_pos = chunk_size ** (Int64.of_int i) in
 
           let end_pos = begin_pos ++ chunk_size in
           let end_pos = 
