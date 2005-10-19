@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/19
+4535: OV/KAD: Yet another improved logging (bogeyman)
 4533: Yet another compile patch for mld_hash,
       remove svg_converter with make clean
 4534: Compile fix for make_torrent

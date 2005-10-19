@@ -918,7 +918,7 @@ let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
   if !verbose_overnet then
-    lprintf_nl () "UDP FROM %s:%d:\n  %s"
+    lprintf_nl () "UDP FROM %s:%d type %s"
       (Ip.to_string other_ip) other_port
       (message_to_string t);
   match t with
