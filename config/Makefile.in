@@ -1644,9 +1644,12 @@ zogml:
 
 #######################################################################
 
+TAGS:
+	otags -r .
+	etags -a `find . -name "*.[chs]" -o -name "*.cc"`
 
 clean: 
-	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
+	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ TAGS *.o core *.static *.a
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe
@@ -1703,6 +1706,8 @@ maintainerclean: distclean
 	echo rm -f $(GUI_CODE)/gui.ml $(GUI_CODE)/gui_zog.ml
 	rm -f config/configure
 	rm -f Makefile
+
+.PHONY: TAGS clean tmpclean moreclean releaseclean distclean maintainerclean
 
 LOCAL=patches/build
 
