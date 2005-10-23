@@ -91,14 +91,14 @@ val bad_fd : t
   
 val destroyed : t -> bool
 
-val bsize : string -> int64
-val blocks : string -> int64
-val bfree : string -> int64
-val bavail : string -> int64
-val fnamelen : string -> int64
-val disktotal : string -> int64
-val diskfree : string -> int64
-val diskused : string -> int64
-val percentused : string -> int
-val percentfree : string -> int
+val bsize : string -> int64 option
+val blocks : string -> int64 option
+val bfree : string -> int64 option
+val bavail : string -> int64 option
+val fnamelen : string -> int64 option
+val disktotal : string -> int64 option
+val diskfree : string -> int64 option
+val diskused : string -> int64 option
+val percentused : string -> int option
+val percentfree : string -> int option
 val filesystem : string -> string

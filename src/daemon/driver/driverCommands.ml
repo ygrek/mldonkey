@@ -1867,18 +1867,27 @@ let _ =
 
      "disk", Arg_one (fun arg o ->
          let buf = o.conn_buf in
+	 let print_i64o = function
+	   | None -> "Unknown"
+	   | Some v -> Printf.sprintf "%Ld" v in
          Printf.bprintf buf "working on dir %s\n" arg;
-         Printf.bprintf buf "bsize %Ld\n" (Unix32.bsize arg);
-         Printf.bprintf buf "blocks %Ld\n" (Unix32.blocks arg);
-         Printf.bprintf buf "bfree %Ld\n" (Unix32.bfree arg);
-         Printf.bprintf buf "bavail %Ld\n" (Unix32.bavail arg);
-         Printf.bprintf buf "fnamelen %Ld\n" (Unix32.fnamelen arg);
+         Printf.bprintf buf "bsize %s\n" (print_i64o (Unix32.bsize arg));
+         Printf.bprintf buf "blocks %s\n" (print_i64o (Unix32.blocks arg));
+         Printf.bprintf buf "bfree %s\n" (print_i64o (Unix32.bfree arg));
+         Printf.bprintf buf "bavail %s\n" (print_i64o (Unix32.bavail arg));
+         Printf.bprintf buf "fnamelen %s\n" (print_i64o (Unix32.fnamelen arg));
          Printf.bprintf buf "filesystem %s\n" (Unix32.filesystem arg);
-         Printf.bprintf buf "disktotal %Ld - %s\n" (Unix32.disktotal arg) (size_of_int64 (Unix32.disktotal arg));
-         Printf.bprintf buf "diskfree %Ld - %s\n" (Unix32.diskfree arg) (size_of_int64 (Unix32.diskfree arg));
-         Printf.bprintf buf "diskused %Ld - %s\n" (Unix32.diskused arg) (size_of_int64 (Unix32.diskused arg));
-         Printf.bprintf buf "percentused %d\n" (Unix32.percentused arg);
-         Printf.bprintf buf "percentfree %d\n" (Unix32.percentfree arg);
+	 let print_i64o_amount = function 
+	   | None -> "Unknown"
+	   | Some v -> Printf.sprintf "%Ld - %s" v (size_of_int64 v) in
+         Printf.bprintf buf "disktotal %s\n" (print_i64o_amount (Unix32.disktotal arg));
+         Printf.bprintf buf "diskfree %s\n" (print_i64o_amount (Unix32.diskfree arg));
+         Printf.bprintf buf "diskused %s\n" (print_i64o_amount (Unix32.diskused arg));
+	 let print_percento = function
+	   | None -> "Unknown"
+	   | Some p -> Printf.sprintf "%d%%" p in
+         Printf.bprintf buf "percentused %s\n" (print_percento (Unix32.percentused arg));
+         Printf.bprintf buf "percentfree %s\n" (print_percento (Unix32.percentfree arg));
          _s ""
      ), "debug command (example: disk .)";
 
@@ -1943,13 +1952,16 @@ let _ =
 		shared_dir.shdir_priority
 		dir
 		shared_dir.shdir_strategy
-		(if (Unix32.diskused dir) = -1L then "---"
-		   else (size_of_int64 (Unix32.diskused dir)))
-		(if (Unix32.diskfree dir) = -1L then "---"
-		   else (size_of_int64 (Unix32.diskfree dir)))
-		(if (Unix32.percentfree dir) = (-1) then "---"
-		   else string_of_int(Unix32.percentfree dir))
-		    (Unix32.filesystem dir);
+		(match Unix32.diskused dir with
+		| None -> "---"
+		| Some du -> size_of_int64 du)
+		(match Unix32.diskfree dir with
+		| None -> "---"
+		| Some df -> size_of_int64 df)
+		(match Unix32.percentfree dir with
+		| None -> "---"
+		| Some p -> Printf.sprintf "%d%%" p)
+	        (Unix32.filesystem dir);
             )
             !!shared_directories;
   
@@ -1969,12 +1981,15 @@ let _ =
 		0
 		dir
 		"temp_directory"
-	      (if (Unix32.diskused dir) = -1L then "---"
-		else (size_of_int64 (Unix32.diskused dir)))
-	      (if (Unix32.diskfree dir) = -1L then "---"
-		else (size_of_int64 (Unix32.diskfree dir)))
-	      (if (Unix32.percentfree dir) = (-1) then "---"
-		else string_of_int(Unix32.percentfree dir))
+	      (match Unix32.diskused dir with
+	      | None -> "---"
+	      | Some du -> size_of_int64 du)
+	      (match Unix32.diskfree dir with
+	      | None -> "---"
+	      | Some df -> size_of_int64 df)
+	      (match Unix32.percentfree dir with
+	      | None -> "---"
+	      | Some p -> Printf.sprintf "%d%%" p)
 	      (Unix32.filesystem dir);
 
 	    let dir = Sys.getcwd () in
@@ -1993,12 +2008,15 @@ let _ =
 		0
 		dir
 		"core_directory"
-	      (if (Unix32.diskused dir) = -1L then "---"
-		else (size_of_int64 (Unix32.diskused dir)))
-	      (if (Unix32.diskfree dir) = -1L then "---"
-		else (size_of_int64 (Unix32.diskfree dir)))
-	      (if (Unix32.percentfree dir) = (-1) then "---"
-		else string_of_int(Unix32.percentfree dir))
+	      (match Unix32.diskused dir with
+	      | None -> "---"
+	      | Some du -> size_of_int64 du)
+	      (match Unix32.diskfree dir with
+	      | None -> "---"
+	      | Some df -> size_of_int64 df)
+	      (match Unix32.percentfree dir with
+	      | None -> "---"
+	      | Some p -> Printf.sprintf "%d%%" p)
 	      (Unix32.filesystem dir);
 
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";

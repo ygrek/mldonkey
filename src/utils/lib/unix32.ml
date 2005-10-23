@@ -1471,94 +1471,91 @@ let _ = Callback.register_exception "error" Error
 
 external statfs : string -> statfs = "statfs_statfs"
 
-let bsize dir =
-  begin
-    try
-  let s = statfs dir in
-    if s.f_frsize = Int64.zero || s.f_frsize = -1L then
-      s.f_bsize
+let _bsize sf =
+  try
+    if sf.f_frsize = Int64.zero || sf.f_frsize = -1L then
+      Some sf.f_bsize
     else
-      s.f_frsize
-    with e -> -1L
-  end
+      Some sf.f_frsize
+  with e -> None
+
+
+let bsize dir =
+  try
+    _bsize (statfs dir)
+  with e -> None
 
 let blocks dir =
-  begin
-    try
-  let s = statfs dir in
-    s.f_blocks
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    Some s.f_blocks
+  with e -> None
 
 let bfree dir =
-  begin
-    try
-  let s = statfs dir in
-    s.f_bfree
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    Some s.f_bfree
+  with e -> None
 
 let bavail dir =
-  begin
-    try
-  let s = statfs dir in
-    s.f_bavail
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    Some s.f_bavail
+  with e -> None
 
 let fnamelen dir =
-  begin
-    try
-  let s = statfs dir in
-    s.f_fnamelen
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    Some s.f_fnamelen
+  with e -> None
 
 let disktotal dir =
 (* total disk space in bytes *)
-  begin
-    try
-  let s = statfs dir in
-    ((bsize dir) ** s.f_blocks)
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    match _bsize s with
+    | Some bsize ->
+	Some (bsize ** s.f_blocks)
+    | None -> None
+  with e -> None
 
 let diskfree dir =
 (* free disk space in bytes *)
-  begin
-    try
-  let s = statfs dir in
-    ((bsize dir) ** s.f_bavail)
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    match _bsize s with
+    | Some bsize ->
+	Some (bsize ** s.f_bavail)
+    | None -> None
+  with e -> None
 
 let diskused dir =
 (* used disk space in bytes *)
-  begin
-    try
-  let s = statfs dir in
-    ((bsize dir) ** (s.f_blocks -- s.f_bavail))
-    with e -> -1L
-  end
+  try
+    let s = statfs dir in
+    match _bsize s with
+    | Some bsize ->
+	Some (bsize ** (s.f_blocks -- s.f_bavail))
+    | None -> None
+  with e -> None
 
 let percentused dir =
 (* percentage of used disk space *)
-  if (diskfree dir) = -1L then
-    (-1)
-  else
-    Int64.to_int (100L -- ((diskfree dir) ** 100L // (disktotal dir)))
+  match diskfree dir, disktotal dir with
+  | Some dfree, Some dtotal ->
+      Some (Int64.to_int (100L -- (dfree ** 100L // dtotal)))
+  | _ -> None
 
 let percentfree dir =
 (* percentage of free disk space *)
-  if (diskfree dir) = -1L then
-    (-1)
-  else
-    Int64.to_int ((diskfree dir) ** 100L // (disktotal dir))
+  match diskfree dir, disktotal dir with
+  | Some dfree, Some dtotal ->
+      Some (Int64.to_int (dfree ** 100L // dtotal))
+  | _ -> None
 
 let filesystem dir =
-  begin
-    try
-  let s = statfs dir in
+  try
+    let s = statfs dir in
     match s.f_type with
 (* values copied from statfs(2) manpage *)
     | 0xadf5L -> "ADFS_SUPER_MAGIC"
@@ -1616,8 +1613,7 @@ let filesystem dir =
 	     s.f_basetype
 	   else
 	     Printf.sprintf "unknown (%Ld)" s.f_type
-    with e -> "not supported"
-  end
+  with e -> "not supported"
 
 let _ =
   Heap.add_memstat "Unix32" (fun level buf ->
