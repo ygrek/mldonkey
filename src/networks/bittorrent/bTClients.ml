@@ -180,6 +180,8 @@ let connect_trackers file event f =
                   H.req_url = Url.of_string ~args: args url;
                   H.req_proxy = !CommonOptions.http_proxy;
                   H.req_user_agent = get_user_agent ();
+                  (* #4541 [egs]  supports redirect *)
+                  H.req_max_retry = !!max_tracker_redirect;
                 } in
 
               if !verbose_msg_servers then

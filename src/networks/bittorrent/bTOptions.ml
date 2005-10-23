@@ -66,6 +66,15 @@ let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_thres
     "Ask the tracker for new sources only if you have fewer than that number of sources"
     int_option 20
 
+   (** #4541 [egs]
+     *       Some tracker implements load balancing
+     * and failover using redirect
+    **)
+let max_tracker_redirect = define_option bittorrent_section ["max_tracker_redirect"]
+    "Maximum number of HTTP redirects before reaching the tracker - maximum 10, 0 to disable"
+    int_option 1
+
+
 let send_key = define_option bittorrent_section ["send_key"]
     "Send client key to trackers"
     bool_option true
@@ -85,10 +94,6 @@ let numwant = define_option bittorrent_section ["numwant"]
     "Number of peers to request from tracker (Negative # = let tracker decide)"
     int_option (-1)
 
-let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_reask_interval"]
-    "Minimum time in seconds to wait between asking the tracker for sources"
-    int_option 300
-
 let _ =
   begin
     option_hook max_uploaders_per_torrent
@@ -96,8 +101,16 @@ let _ =
         if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5);
     option_hook max_bt_uploaders
       (fun _ ->
-        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5)
+        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5);
+    option_hook max_tracker_redirect   (** #4541 [egs] **)
+      (fun _ ->
+        if !!max_tracker_redirect < 0 then max_tracker_redirect =:= 0
+        else if !!max_tracker_redirect > 10 then max_tracker_redirect =:= 10) ;
   end
+
+let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_reask_interval"]
+    "Minimum time in seconds to wait between asking the tracker for sources"
+    int_option 300
 
 let cookies = define_option bittorrent_section ["cookies"]
     "Cookies send with http request to get .torrent file"
