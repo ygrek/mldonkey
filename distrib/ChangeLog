@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/24
+4547: Fix dupe sending of motd/nets in gui_initialize (zet)
+
 2005/10/23
 4545: make TAGS, creates files for source code navigation in Emacs (pango)
 4544: Change internal code for statfs function (pango)

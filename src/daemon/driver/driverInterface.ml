@@ -389,10 +389,6 @@ let gui_initialize gui =
       gui_send gui (Network_info (network_info n)));
   gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
   
-  networks_iter_all (fun n ->
-      gui_send gui (Network_info (network_info n)));
-  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
-  
   
   if gui.gui_poll then begin
       
