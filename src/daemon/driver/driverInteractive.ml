@@ -379,11 +379,9 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |]
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a target=_blank href=http://donkeyfakes.gambri.net/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]"
+          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> %s]"
               file.file_num
               file.file_num
-              (Int64.to_string file.file_size)
-            (Md4.to_string file.file_md4)
             (net_name file)
           );
 
@@ -1132,7 +1130,6 @@ let old_print_search buf o results =
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://donkeyfakes.gambri.net/fakecheck.php?hash=%s\\\"\\>DF\\</a\\>\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>BI\\</a\\>\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
@@ -1141,7 +1138,6 @@ let old_print_search buf o results =
                   (size_of_int64 r.result_size)
 		  !cavail
                   !csource
-		  real_hash
 		  real_hash
 		  real_hash
 		  !clength

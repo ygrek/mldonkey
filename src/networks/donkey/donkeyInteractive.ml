@@ -1211,8 +1211,8 @@ let _ =
       tr ();
       html_mods_td buf [
         ("Fake check links", "sr br", "Fakecheck");
-        ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://donkeyfakes.gambri.net/fakecheck.php\\?hash=%s\\\"\\>[Donkey-Fakes]\\</a\\> \\<a target=\\\"_blank\\\" href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>[Bitzi-Bitpedia]\\</a\\> \\<a target=\\\"_blank\\\" href=\\\"http://www.filedonkey.com/url/%s\\\"\\>[FileDonkey]\\</a\\>"
-            (Md4.to_string file.file_md4) (Md4.to_string file.file_md4) (Md4.to_string file.file_md4)
+        ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>[Bitzi-Bitpedia]\\</a\\> \\<a target=\\\"_blank\\\" href=\\\"http://www.filedonkey.com/url/%s\\\"\\>[FileDonkey]\\</a\\>"
+            (Md4.to_string file.file_md4) (Md4.to_string file.file_md4)
         ) ];
 
       tr ();
