@@ -353,14 +353,25 @@ let get_throttle_delay m q throttled =
 (*
  * determine the number of (throttled) ready sources for a manager queue
  *)
+
+(* I know it's evil to break out of an X.iter using an exception...
+   But that function really needs to be fast.
+   Also, this works because Queues are based on Sets, and that Set.iter
+   gives elements in increasing keys order *)
+exception BreakOutOfLoop
+
 let count_file_ready_sources m q throttled =
   let ready_count = ref 0 in
   let throttle_delay = get_throttle_delay m q throttled in
-  Queue.iter
-    (fun ( time, s ) ->
-      if time + !!min_reask_delay + throttle_delay < last_time () then
+  let ready_threshold = last_time () - !!min_reask_delay - throttle_delay in
+  (try
+    Queue.iter
+      (fun ( time, s ) ->
+        if time >= ready_threshold then
+	  raise BreakOutOfLoop;
         incr ready_count
-    ) m.manager_sources.( q );
+      ) m.manager_sources.( q )
+  with BreakOutOfLoop -> ());
   !ready_count
 
 (*
@@ -378,16 +389,18 @@ let count_ready_sources queue throttled =
 
 
 let rec find_max_overloaded q managers =
-  let remaining_managers =
-    List.filter
-      (fun m ->
-        count_file_ready_sources (List.hd managers) q true < count_file_ready_sources m q true
-      ) managers
-  in
-  if remaining_managers != [] then
-    find_max_overloaded q remaining_managers
-  else
-    managers
+  let current_max = ref (-1) in
+  let remaining_managers = ref [] in
+  List.iter
+    (fun m ->
+       let ready_sources = count_file_ready_sources m q true in
+       if ready_sources > !current_max then begin
+	 current_max := ready_sources;
+	 remaining_managers := [m]
+       end else if ready_sources = !current_max then
+	 remaining_managers := m :: !remaining_managers
+      ) managers;
+  !remaining_managers
 
 
 (*************************************************************************)
@@ -421,9 +434,10 @@ let rec find_max_overloaded q managers =
         let ready_count = ref 0 in
         for i = good_sources_queue to old_sources1_queue do
           let lookin = file.manager_sources.( i ) in
+	  let ready_threshold = last_time () - !!min_reask_delay in
           Queue.iter
             (fun (time, s) ->
-              if time + !!min_reask_delay < last_time () then
+              if time < ready_threshold then
                 incr ready_count
             ) lookin
         done;
@@ -553,6 +567,7 @@ let rec find_max_overloaded q managers =
                   let nindirect = ref 0 in
                   let ninvalid = ref 0 in
                   let nsources = ref 0 in
+		  let ready_threshold = last_time () - !!min_reask_delay in
                   (* Sources *)
                   Queue.iter (fun (time, s) ->
                     incr nsources;
@@ -560,7 +575,7 @@ let rec find_max_overloaded q managers =
                       incr nindirect
                     else if not (M.direct_source s.source_uid) then
                            incr ninvalid;
-                    if time + !!min_reask_delay < last_time () then
+                    if time < ready_threshold then
                       incr nready
                     else if i = new_sources_queue then
                       begin
@@ -2146,9 +2161,10 @@ connected if needed *)
                   let q = m.manager_sources.(i) in
                   let nready = ref 0 in
                   let nsources = ref 0 in
+		  let ready_threshold = last_time () - !!min_reask_delay in
                   Queue.iter (fun (time, s) ->
                       incr nsources;
-                      if time + !!min_reask_delay < last_time () then
+                      if time < ready_threshold then
                         incr nready
                       else
                       if i = new_sources_queue then begin
