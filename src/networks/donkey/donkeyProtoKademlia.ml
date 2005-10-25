@@ -232,9 +232,10 @@ module P = struct
         peer_ip = ip;
         peer_port = udp_port;
         peer_tcpport = tcp_port;
-        peer_kind = kind;
-        peer_last_recv = 0;
+        peer_kind = 3;
         peer_last_send = 0;
+        peer_expire = 0;
+        peer_created = last_time ();
       }, pos + 25
 
     let get_peers_from_results ip port answers =
@@ -257,7 +258,7 @@ module P = struct
                   )
               | Field_UNKNOWN "sourcetype" ->
                   for_int_tag tag (fun kind ->
-                      peer_kind := kind)
+                      peer_kind := 3)
               | _ ->
                 if !verbose_unknown_messages then
                   lprintf_nl () "Unused source tag [%s]"
@@ -268,9 +269,10 @@ module P = struct
             peer_port = !peer_udpport;
             peer_tcpport = !peer_tcpport;
             peer_md4 = r_md4;
-            peer_last_recv = 0;
             peer_last_send = 0;
-            peer_kind = !peer_kind;
+            peer_expire = 0;
+            peer_kind = 3;
+            peer_created = last_time ();
           }
       ) answers
 

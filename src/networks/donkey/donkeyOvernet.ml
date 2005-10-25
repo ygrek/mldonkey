@@ -50,8 +50,9 @@ type peer =
     mutable peer_port : int;
     mutable peer_tcpport : int;
     mutable peer_kind : int;
-    mutable peer_last_recv : int;
+    mutable peer_expire : int;
     mutable peer_last_send : int;
+    peer_created : int;
   }
 
 type search_kind =
@@ -136,10 +137,14 @@ search for files and search for sources. *)
 | OvernetUnknown21 of peer
 
 let print_peer buf p =
-  Printf.bprintf buf "   { md4 = %s ip = %s port = %d %s kind = %d l_send = %d l_recv = %d}\n"
+  let hours = (last_time () - p.peer_created) / 3600 in
+  let mins = (last_time () - p.peer_created) / 60 in
+  Printf.bprintf buf "   { md4 = %s ip = %s port = %d %s kind = %d l_send = %d expire = %d created = %d h = %d mins = %d %s}\n"
     (Md4.to_string p.peer_md4) (Ip.to_string p.peer_ip) p.peer_port
     (if p.peer_tcpport <> 0 then Printf.sprintf "tcp = %d" p.peer_tcpport
-    else "") p.peer_kind p.peer_last_send p.peer_last_recv
+    else "") p.peer_kind p.peer_last_send p.peer_expire p.peer_created
+    hours mins (if p.peer_expire > last_time () && p.peer_last_send <> 0 then "OK " else "")
+    
 
 let message_to_string t =
   let buf = Buffer.create 100 in
@@ -274,12 +279,12 @@ type overnet_search = {
     search_md4 : Md4.t;
     mutable search_kind : search_for;
 
-    search_known_peers : (Ip.t * int, peer) Hashtbl.t;
     search_waiting_peers : peer Fifo.t array;
     search_asked_peers : peer Fifo.t array;
     search_ok_peers : peer Fifo.t array;
 
     mutable search_queries : int;
+    (* TODO: search_requests is not used ? *)
     mutable search_requests : int;
     mutable search_start : int;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
@@ -326,10 +331,7 @@ module Make(Proto: sig
 *********************************************************************)
 
 let max_peers_per_bucket = 20
-let max_peers_per_prebucket = 100
-let min_peers_per_block = 16 (* was 2 *)
-let min_peers_before_connect = 5
-let max_searches_for_publish = 5
+let max_peers_per_prebucket = 40
 let max_search_queries = 64
 let max_search_requests = 20
 let max_boot_peers = 200
@@ -419,6 +421,18 @@ let overnet_options_version =
 
 
 *********************************************************************)
+
+let dummy_peer =
+  {
+    peer_md4 = Md4.null;
+    peer_ip = Ip.null;
+    peer_port = 0;
+    peer_tcpport = 0;
+    peer_kind = 0;
+    peer_expire = 0;
+    peer_last_send = 0;
+    peer_created = last_time ();
+  }
 
 let connected_peers = ref 0
 let pre_connected_peers = ref 0
@@ -529,8 +543,15 @@ are peers that we are not sure of. *)
 let buckets = Array.init 129 (fun _ -> Fifo.create ())
 let prebuckets = Array.init 129 (fun _ -> Fifo.create ())
 
-let known_peers = Hashtbl.create 127
 let to_ping = ref []
+module KnownPeers = Weak.Make(struct
+      type t = peer
+      let hash c = Hashtbl.hash (c.peer_ip, c.peer_port)
+      let equal x y = x.peer_port = y.peer_port
+          && x.peer_ip = y.peer_ip
+  end)
+
+let known_peers = KnownPeers.create 1023
 
 (*
 We keep the data in buckets depending on the number of bits they have
@@ -693,6 +714,31 @@ module PublishedFiles = Publish(struct
 let debug_client ip = false
 (*  Ip.matches ip !!overnet_debug_clients *)
 
+let checking_kind p =
+(* according to eMule 0.46c *)
+  if (last_time () - p.peer_last_send) < 10 ||
+     p.peer_kind = 4 then () else begin
+    p.peer_kind <- p.peer_kind + 1;
+    p.peer_expire <- last_time () + 120;
+  end;
+  ()
+  
+let new_peer_message p =
+(*  lprintf () "*** Updating time for %s:%d\n" (Ip.to_string p.peer_ip) p.peer_port; *)
+  let calc_peer_kind p =
+    (* according to eMule 0.46c *)
+    let hours = (last_time () - p.peer_created) / 3600 in
+    let lt = last_time () in
+    match hours with
+      0 -> (2, lt + 3600)  (* new kind 2, 1h timeout to ping *) 
+    | 1 -> (1, lt + 5400)  (* kind 1, 1 1/2h timeout *)
+    | _ -> (0, lt + 7200)  (* kind 0, 2h timeout *)
+  in
+  let (new_kind,new_expire) = calc_peer_kind p in
+  p.peer_kind <- new_kind;
+  p.peer_expire <- new_expire;
+  ()
+
 let udp_send_direct ip port msg =
   match !udp_sock with
     None -> ()
@@ -711,20 +757,24 @@ let udp_send p msg =
 
 let bootstrap ip port =
   if !!overnet_update_nodes && is_overnet_ip ip &&
-     port <> 0 && not (Hashtbl.mem known_peers (ip,port)) then
+     port <> 0 && not (KnownPeers.mem known_peers { dummy_peer with peer_port = port ; peer_ip = ip } ) then
        LimitedList.add unknown_peers (ip,port)
 
 let new_peer p =
   let ip = p.peer_ip in
-  if ip <> Ip.localhost && is_overnet_ip ip &&
-    p.peer_port <> 0 then
-    let key = (p.peer_ip, p.peer_port) in
+  let port = p.peer_port in
+ 
+  if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
+
+
     try
-      let pp = Hashtbl.find known_peers key in
-      if pp.peer_last_recv < p.peer_last_recv then
-        pp.peer_last_recv <- p.peer_last_recv;
+      let pp = KnownPeers.find known_peers p in
+      (* TODO: check for changes in ip:port? Or Hash? *)
       pp
     with _ ->
+
+(* Add the peer to the table of known peers *)
+        KnownPeers.add known_peers p;
 
         let bucket = bucket_number p.peer_md4 in
 (* First, enter the peer in the boot_peers to be able to use at next
@@ -741,20 +791,10 @@ restart. *)
               let l = last_time () - 1800 in
               let pp = Fifo.take prebuckets.(bucket) in
               Fifo.put prebuckets.(bucket)
-(* If we heard of the head of the bucket in the last 30 minutes, we should
-  keep it. *)
-                (if pp.peer_last_recv > l then pp else p);
-              if pp.peer_last_recv <= l then
-              begin
-(* Add the peer to the table of known peers *)
-                Hashtbl.add known_peers key p;
-(* And remove pp *)
-                let ppkey = (pp.peer_ip, pp.peer_port) in
-                Hashtbl.remove known_peers ppkey
-              end
+(* If the head of the bucket is not dead we should keep it *)
+                (if pp.peer_kind < 4 || pp.peer_expire > last_time () then pp else p);
 	    end  
             else begin
-               Hashtbl.add known_peers key p;
                Fifo.put prebuckets.(bucket) p;
                incr pre_connected_peers
             end
@@ -762,7 +802,6 @@ restart. *)
         else if !n_used_buckets < 128 && bucket <> 128 then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
             incr pre_connected_peers;
-            Hashtbl.add known_peers key p;
 
             while !n_used_buckets < 128 &&
               Fifo.length prebuckets.(!n_used_buckets)
@@ -770,10 +809,10 @@ restart. *)
               let b = prebuckets.(!n_used_buckets) in
               incr n_used_buckets;
               for i = 1 to Fifo.length b do
-                let p = Fifo.take b in
+                let pp = Fifo.take b in
                 let bucket = bucket_number p.peer_md4 in
                 Fifo.put (if bucket >= !n_used_buckets then
-                    prebuckets.(!n_used_buckets) else b) p
+                    prebuckets.(!n_used_buckets) else b) pp
               done
             done
         end;
@@ -792,7 +831,11 @@ let get_closest_peers md4 nb =
       if n > 0 then
         let p = Fifo.take fifo in
         Fifo.put fifo p;
-        if p.peer_last_recv <> 0 then begin
+        (* kind < 4 so we do not send too much requests and avoid dead contacts not 
+           yet removed because of timeouts *)
+        (* TODO: Keep order? Then we need a in_use flag? *)
+        if p.peer_kind < 4 && p.peer_expire > last_time () && 
+           p.peer_last_send <> 0 then begin
             if !verbose_overnet then begin
             lprintf_nl () "Adding good search peer %s:%d"
               (Ip.to_string p.peer_ip) p.peer_port;
@@ -804,7 +847,7 @@ let get_closest_peers md4 nb =
     in
     iter (min !nb (Fifo.length fifo))
   in
-  add_list  bucket;
+  add_list bucket;
 
   if !nb > 0 then begin
 
@@ -834,8 +877,9 @@ let my_peer () =
     peer_port = !!overnet_port;
     peer_kind = 0;
     peer_tcpport = !!overnet_tcpport;
-    peer_last_recv = 0;
     peer_last_send = 0;
+    peer_expire = 0;
+    peer_created = 0;
   }
 
 let get_any_peers  nb =
@@ -846,6 +890,7 @@ let get_any_peers  nb =
     let fifo = buckets.(bucket) in
     let rec iter n =
       if n > 0 then
+      (* TODO: keep order *)
         let p = Fifo.take fifo in
         Fifo.put fifo p;
         decr nb;
@@ -864,20 +909,26 @@ let get_any_peers  nb =
   !list
 
 let add_search_peer s p =
-  if p.peer_ip <> client_ip None then
-  let key = (p.peer_ip, p.peer_port) in
-  if not (Hashtbl.mem s.search_known_peers key) then begin
-      Hashtbl.add s.search_known_peers key p;
-      let nbits = common_bits p.peer_md4 s.search_md4 in
-      Fifo.put s.search_waiting_peers.(nbits) p;
+  if p.peer_ip <> Ip.localhost && is_overnet_ip p.peer_ip && 
+     p.peer_port <> 0 then begin
+    let nbits = common_bits p.peer_md4 s.search_md4 in
+    begin
+      try
+        Fifo.iter (fun pp ->
+          if pp.peer_ip = p.peer_ip && 
+             pp.peer_port = p.peer_port then
+            raise Exit
+        ) s.search_waiting_peers.(nbits);
+        Fifo.put s.search_waiting_peers.(nbits) p;
+      with Exit -> ()
     end
+  end
 
 let create_search kind md4 =
   if !verbose_overnet then lprintf_nl () "create_search";
   let s = {
       search_md4 = md4;
       search_kind = kind;
-      search_known_peers = Hashtbl.create 127;
       search_queries = 0;
       search_requests = 0;
       search_waiting_peers = Array.init 129 (fun _ -> Fifo.create ());
@@ -909,11 +960,6 @@ let port_of_udp_packet p =
     Unix.ADDR_INET (inet, port) -> port
   | _ -> assert false
 
-
-let new_peer_message p =
-(*  lprintf () "*** Updating time for %s:%d\n" (Ip.to_string p.peer_ip) p.peer_port; *)
-  p.peer_last_recv <- last_time ()
-
 let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
@@ -921,33 +967,28 @@ let udp_client_handler t p =
     lprintf_nl () "UDP FROM %s:%d type %s"
       (Ip.to_string other_ip) other_port
       (message_to_string t);
+  (* Emule uses other_ip:other_port, so do we *)
+  (* Update known_peers by other_port:other_ip *)
+  let sender = { dummy_peer with peer_port = other_port ; peer_ip = other_ip } in
+  begin
+    try
+      let sender = KnownPeers.find known_peers sender in
+      (* TODO: check for changes in ip:port? Or Hash? *)
+      new_peer_message sender;
+    with _ -> ();
+  end;
   match t with
 
   | OvernetConnect p ->
-      let rec send p =
-        new_peer_message p;
-        let p = new_peer p in
-          udp_send p (OvernetConnectReply (get_any_peers 20))
-      in
-	if is_overnet_ip p.peer_ip && p.peer_port <> 0 then
-	  send p
-	else
-	  if is_overnet_ip other_ip && other_port <> 0 then
-	    begin
-	      if !verbose_overnet then
-	        lprintf_nl () "Connect: convert address %s:%d to %s:%d"
-		  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
-	      p.peer_ip <- other_ip;
-	      p.peer_port <- other_port;
-	      send p
-	    end
-	  else
-	    begin
-	      if !verbose_overnet then
-	        lprintf_nl () "Connect: invalid IP %s:%d received from %s:%d"
+      if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
+        udp_send sender (OvernetConnectReply (get_any_peers 20))
+       else
+	 begin
+	   if !verbose_overnet then
+	     lprintf_nl () "Connect: invalid IP %s:%d received from %s:%d"
 	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
-	      failwith "Message not understood"
-	    end
+	     failwith "Message not understood"
+	 end
 
   | OvernetConnectReply ps ->
       UdpSocket.declare_pong other_ip;
@@ -955,10 +996,6 @@ let udp_client_handler t p =
         match list with
           [] -> ()
         | [p] ->
-            new_peer_message p;
-            if other_port <> p.peer_port || other_ip <> p.peer_ip then
-              if !verbose_overnet then
-              lprintf_nl () "Bad IP or port";
             let p = new_peer p in
             ()
         | p :: tail ->
@@ -968,25 +1005,9 @@ let udp_client_handler t p =
       iter ps;
 
   | OvernetPublicize p ->
-      let rec send p =
-        new_peer_message p;
-        let p = new_peer p in
-	  udp_send p (OvernetPublicized (Some (my_peer ())))
-      in
-	if is_overnet_ip p.peer_ip && p.peer_port <> 0 then
-	  send p
-	else
-	  if is_overnet_ip other_ip && other_port <> 0 then
-	    begin
-	      if !verbose_overnet then
-	        lprintf_nl () "Publicize: convert address %s:%d to %s:%d"
-		  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
-	      p.peer_ip <- other_ip;
-	      p.peer_port <- other_port;
-	      send p
-	    end
-	  else
-	    begin
+      if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
+        udp_send sender (OvernetPublicized (Some (my_peer ())))
+       else begin
 	      if !verbose_overnet then
 	        lprintf_nl () "Publicize: invalid IP %s:%d received from %s:%d"
 	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
@@ -997,14 +1018,11 @@ let udp_client_handler t p =
       ()
 
   | OvernetPublicized (Some p) ->
-      new_peer_message p;
-      let p = new_peer p in
       ()
 
   | OvernetSearch (nresults, md4, from_who) ->
-
       let peers = get_closest_peers md4 nresults in
-      udp_send_direct other_ip other_port (OvernetSearchReply (md4,peers))
+      udp_send sender (OvernetSearchReply (md4,peers))
 
   | OvernetSearchReply (md4, peers) ->
 
@@ -1012,13 +1030,8 @@ let udp_client_handler t p =
       List.iter (fun s ->
           if s.search_md4 = md4 then begin
               List.iter (add_search_peer s) peers;
-              try
-                let p = Hashtbl.find s.search_known_peers
-                    (other_ip, other_port) in
-                new_peer_message p;
-                let nbits = common_bits p.peer_md4 s.search_md4 in
-                Fifo.put s.search_ok_peers.(nbits) p;
-              with _ -> ()
+                let nbits = common_bits sender.peer_md4 s.search_md4 in
+                Fifo.put s.search_ok_peers.(nbits) sender;
             end
       ) !overnet_searches;
 
@@ -1033,14 +1046,6 @@ let udp_client_handler t p =
       List.iter (fun s ->
           if s.search_md4 = md4 then begin
               s.search_nresults <- s.search_nresults + 1;
-
-              begin
-                try
-                  let p = Hashtbl.find s.search_known_peers
-                      (other_ip, other_port) in
-                  new_peer_message p;
-                with _ -> ()
-              end;
 
               match s.search_kind with
                 FileSearch file -> ()
@@ -1070,14 +1075,6 @@ let udp_client_handler t p =
       List.iter (fun s ->
           if s.search_md4 = md4 then begin
               s.search_nresults <- s.search_nresults + 1;
-
-              begin
-                try
-                  let p = Hashtbl.find s.search_known_peers
-                      (other_ip, other_port) in
-                  new_peer_message p;
-                with _ -> ()
-              end;
 
               match s.search_kind with
                 FileSearch file ->
@@ -1118,14 +1115,14 @@ let udp_client_handler t p =
             let _, list = List2.cut min list in
             let list, _ = List2.cut (max - min) list in
             if list <> [] then
-              udp_send_direct other_ip other_port
+              udp_send sender
                 (OvernetSearchSourcesResults (md4, list))
         | Search_for_keyword _ ->
             let list = PublishedKeywords.get md4 in
             let _, list = List2.cut min list in
             let list, _ = List2.cut (max - min) list in
             if list <> [] then
-              udp_send_direct other_ip other_port
+              udp_send sender
                 (OvernetSearchFilesResults (md4, list))
         | _ -> ()
       end
@@ -1143,8 +1140,8 @@ let udp_client_handler t p =
        if !verbose_overnet && debug_client other_ip then   
          lprintf_nl () "GET MY IP (port=%d)\n" other_port;   
  (* FIXME : should be able to flush the UDP buffer*)   
-       udp_send_direct other_ip other_port (OvernetGetMyIPResult other_ip);   
-       udp_send_direct other_ip other_port OvernetGetMyIPDone   
+       udp_send sender (OvernetGetMyIPResult other_ip);   
+       udp_send sender OvernetGetMyIPDone   
     
    | OvernetGetMyIPResult(ip) ->   
        if !verbose_overnet && debug_client other_ip then   
@@ -1160,8 +1157,8 @@ let udp_client_handler t p =
           lprintf_nl () "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
             (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip)
         peer.peer_port peer.peer_kind;
-        let key = (peer.peer_ip, peer.peer_port) in
-        if Hashtbl.mem known_peers key
+        let dp = { dummy_peer with peer_port = peer.peer_port ; peer_ip = peer.peer_ip } in
+        if KnownPeers.mem known_peers dp
         then begin
 (* remove it from the prebuckets and known_peers only *)
           try
@@ -1172,7 +1169,6 @@ let udp_client_handler t p =
                 if p.peer_ip = peer.peer_ip && 
                     p.peer_port = peer.peer_port then begin
                   decr pre_connected_peers;
-                  Hashtbl.remove known_peers key;
                 end else Fifo.put b p
               done;
             done;
@@ -1200,11 +1196,12 @@ let query_next_peers () =
         if  nbits >= 0 then
           let len = Fifo.length s.search_waiting_peers.(nbits) in
           if len > 0 then
-            let p = Fifo.take  s.search_waiting_peers.(nbits) in
+            let p = Fifo.take s.search_waiting_peers.(nbits) in
 
+            checking_kind p;
             udp_send p (OvernetSearch (nresults, s.search_md4, Some p.peer_md4));
             s.search_queries <- s.search_queries + 1;
-            Fifo.put  s.search_asked_peers.(nbits) p;
+            Fifo.put s.search_asked_peers.(nbits) p;
 
             (if todo > 1 then iter nbits (todo - 1))
           else
@@ -1229,49 +1226,50 @@ let check_current_downloads () =
 
 let update_buckets () =
 
-(* 1. Clean the buckets from too old peers ( last contact > 1 hour ) *)
-
-  let overtime = last_time () - 3600 in
+(* 1. Clean the buckets from too old peers ( by kind and expire ) *)
 
   for i = 0 to !n_used_buckets do
 
     let b = buckets.(i) in
     for j = 1 to Fifo.length b do
       let p = Fifo.take b in
-      if p.peer_last_recv > overtime then Fifo.put b p else
+      (* bad peers have kind = 4 and did not respond within peer_expire *)
+      if not (p.peer_kind = 4 && p.peer_expire <= last_time ()) then
+        Fifo.put b p 
+      else
       begin
-        (* remove the peer also from known_peers *)
-        let key = (p.peer_ip, p.peer_port) in
-	Hashtbl.remove known_peers key;
-        decr connected_peers
-      end
+        decr connected_peers;
+        if !verbose_overnet then lprintf_nl () "update_bucket1: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
+      end;
     done
 
   done;
 
 (* 2. Complete buckets with new peers from the prebuckets with
-( last_contact < 1 hour ) *)
+( p.peer_kind < 3 ) *)
 
-  for i = 0 to !n_used_buckets - 1 do
+  for i = 0 to !n_used_buckets do
     let b = buckets.(i) in
     if Fifo.length b < max_peers_per_bucket then begin
 
-        try
           let pb = prebuckets.(i) in
           for j = 1 to Fifo.length pb do
 
+            (* to keep fifo in order travel all peers *)
             let p = Fifo.take pb in
-            if p.peer_last_recv > overtime &&
-               p.peer_last_recv >= p.peer_last_send then begin
+            (* good peers goto buckets *)
+            if p.peer_kind < 3 && Fifo.length b < max_peers_per_bucket then begin
                 Fifo.put b p;
                 incr connected_peers;
 		decr pre_connected_peers;
-                if Fifo.length b = max_peers_per_bucket then raise Exit
-              end else Fifo.put pb p
-
+            (* bad peers are removed *)    
+            end else if p.peer_kind = 4 && p.peer_expire <= last_time () then begin
+              decr pre_connected_peers;
+              if !verbose_overnet then lprintf_nl () "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
+            end else
+            (* the rest returns in prebuckets *)
+            Fifo.put pb p
           done
-        with Exit -> ()
-
       end
   done;
 
@@ -1281,7 +1279,7 @@ from the active buckets and prebuckets *)
   let n = ref 0 in
   try
     let addtol p =
-      if p.peer_last_recv <> 0 then begin
+      if p.peer_kind < 3 then begin
         LimitedList.add !!boot_peers (p.peer_ip, p.peer_port);
         incr n;
         if !n = max_boot_peers then raise Exit
@@ -1298,6 +1296,38 @@ from the active buckets and prebuckets *)
   with Exit -> ();
 
   ()
+
+let compute_to_ping () =
+(* compute which peers to ping in the next minute *)
+          to_ping := [];
+          let n_to_ping = ref 0 in
+
+          let ping_peers b =
+            Fifo.iter (fun p ->
+                if (p.peer_expire <= last_time () && p.peer_kind < 4) ||
+                    p.peer_last_send = 0 then begin
+                    to_ping := p :: !to_ping;
+                    incr n_to_ping;
+                    if !n_to_ping = 60 then raise Exit
+                  end
+            ) b
+          in
+          begin
+            try
+              for i = !n_used_buckets downto 8 do
+                ping_peers buckets.(i);
+                ping_peers prebuckets.(i);
+              done;
+              for i = min !n_used_buckets 7 downto 0 do
+                ping_peers buckets.(i);
+              done;
+              for i = min !n_used_buckets 7 downto 0 do
+                ping_peers prebuckets.(i);
+              done;
+            with Exit -> ()
+          end;
+          ()
+
 
 let enable () =
   if !!enable_overnet && not !is_enabled then begin
@@ -1319,20 +1349,32 @@ let enable () =
             let my_peer = my_peer () in
 
 (* ping old peers regularly *)
-            begin
-              match !to_ping with
-                [] -> ()
-              | p :: tail ->
+            let process_to_ping () =
+              begin
+                match !to_ping with
+                  [] -> compute_to_ping ();
+                | p :: tail ->
+                  (* do not hammer a peer, we could have send already a search reqeust 
+                     since to_ping is rebuild at least every 60 seconds *)
+                  if (last_time () - p.peer_last_send) > 60 then begin
+                    checking_kind p;
+                    udp_send p (OvernetPublicize my_peer);
+                  end;
                   to_ping := tail;
-                  p.peer_last_send <- last_time ();
-                  udp_send p (OvernetPublicize my_peer);
-            end;
-
-(* ping unknown peers *)
+              end;
+            in
+            process_to_ping ();
+(* Send OvernetConnects and ping more peers *)
+(* TODO: How does eMule it? are 50 ok? *)
             begin
               try
-                  if !connected_peers < 100 then
-                    for i = 1 to 5 do
+                 if !connected_peers < 50 then
+                   for i = 1 to 3 do
+                     process_to_ping ();
+                   done;
+                 (* Do not send too much OvernetConnect, there is no use *)
+                 if (!connected_peers + !pre_connected_peers) < 30 then
+                    for i = 1 to 2 do
                       let (ip, port) = LimitedList.get unknown_peers in
                       udp_send_ping ip port (OvernetConnect my_peer);
                     done
@@ -1359,10 +1401,10 @@ let enable () =
                   in
 (* If we use fewer than 5 buckets, we shouldn't wait for 5 buckets in the
   search to start asking for results... *)
-                  let min_bucket = mini !n_used_buckets 5 in
+(* TODO: what the heck we use !n_used_buckets? we ask every search_ok_peers *)
                   for i = 1 to nrequests do
                     try
-                      for j = 128 downto min_bucket do
+                      for j = 128 downto 0 do
                         if Fifo.length s.search_ok_peers.(j) > 0 then
                           let p = Fifo.take s.search_ok_peers.(j) in
                           udp_send p (
@@ -1386,43 +1428,13 @@ let enable () =
 
           update_buckets ();
 
-(* compute which peers to ping in the next minute *)
-          to_ping := [];
-          let n_to_ping = ref 0 in
-
-          let ping_peers b =
-            let overtime = last_time () - 1800 in
-            Fifo.iter (fun p ->
-                if p.peer_last_recv < overtime &&
-                  p.peer_last_send < overtime then begin
-                    to_ping := p :: !to_ping;
-                    incr n_to_ping;
-                    if !n_to_ping = 60 then raise Exit
-                  end
-            ) b
-          in
-
-          begin
-            try
-              for i = !n_used_buckets downto 8 do
-                ping_peers buckets.(i);
-                ping_peers prebuckets.(i);
-              done;
-              for i = min !n_used_buckets 7 downto 0 do
-                ping_peers buckets.(i);
-              done;
-              for i = min !n_used_buckets 7 downto 0 do
-                ping_peers prebuckets.(i);
-              done;
-            with Exit -> ()
-          end;
+          compute_to_ping ();
 
 (* reset the Hashtbls and Fifos for searches that are older than 5 minutes *)
           let l = last_time () - 300 in
 	  List.iter ( fun s ->
 	     if s.search_requests < max_search_requests &&
 	     s.search_start > l then begin
-               Hashtbl.clear s.search_known_peers;
 	       Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
 	       Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
 	       Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
@@ -1452,11 +1464,6 @@ let enable () =
 
 (* every 15min for light operations *)
       add_session_timer enabler 900. (fun _ ->
-          if !!enable_overnet then begin
-              check_current_downloads ();
-            end
-      );
-      add_timer 30. (fun _ ->
           if !!enable_overnet then begin
               check_current_downloads ();
             end
@@ -1559,9 +1566,8 @@ let _ =
          let buf = o.conn_buf in
 
          Printf.bprintf buf "Peers of known_peers:\n";
-         Hashtbl.iter (fun key p ->
-           let (ip,port) = key in
-           Printf.bprintf buf "%s:%d:" (Ip.to_string ip) port;
+         KnownPeers.iter (fun p ->
+           Printf.bprintf buf "%s:%d:" (Ip.to_string p.peer_ip) p.peer_port;
            print_peer buf p;
          ) known_peers;
          ""
@@ -1753,7 +1759,7 @@ let _ =
         with _ ->
             lprintf_nl () "Unable to send UDP message"; "Unable to send UDP message"
     ), ":\t\t\t\tsend UDP message (<ip> <port> <msg in hex>)";
-
+    
     "buckets", Arg_none (fun o ->
         let buf = o.conn_buf in
         update_buckets ();
@@ -1761,17 +1767,21 @@ let _ =
           Printf.bprintf buf "Number of used buckets %d with %d peers (prebucket: %d peers)\n"
             !n_used_buckets !connected_peers !pre_connected_peers;
         for i = 0 to !n_used_buckets do
-          if Fifo.length buckets.(i) > 0 ||
-            Fifo.length prebuckets.(i) > 0 then
-              Printf.bprintf buf "   bucket[%d] : %d peers (prebucket %d)\n"
-                i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
+          Printf.bprintf buf "   bucket[%d] : %d peers (prebucket %d)\n"
+            i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
         done;
         if o.conn_output = HTML then
           begin
             let listtmp = String2.split (Buffer.contents buf) '\n' in
             let buckets = ref [] in
+            let i = ref 0 in
             List.iter (fun s ->
-                buckets := !buckets @ [("", "dl-1", s);]
+                if !i <> !n_used_buckets + 1 then begin
+                  buckets := !buckets @ [("", "dl-1", (Printf.sprintf "\\<a href=\\\"submit\\?q=%sdump_bucket\\+%d\\\" target=output\\>[Dump]\\</a\\>%s" command_prefix !i s) );];
+                  end else begin
+                  buckets := !buckets @ [("", "dl-1", (Printf.sprintf "\\<a href=\\\"submit\\?q=%sbuckets\\\" target=output\\>[Refresh]\\</a\\>" command_prefix) );] 
+                end;
+                incr i;
             ) listtmp;
             Buffer.reset buf;
             html_mods_table_one_col buf "ovbucketsTable" "results" ([
@@ -1829,7 +1839,6 @@ let forget_search ss =
     match s.search_kind with
       KeywordSearch sss when ss == sss ->
         begin
-          Hashtbl.clear s.search_known_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
@@ -1864,7 +1873,6 @@ let cancel_recover_file file =
     match s.search_kind with
       FileSearch f when f == file ->
         begin
-          Hashtbl.clear s.search_known_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
           Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
@@ -1933,9 +1941,17 @@ Define a function to be called when the "mem_stats" command
 
       Printf.bprintf buf "  Search hits: %d\n" !search_hits;
       Printf.bprintf buf "  Source hits: %d\n" !source_hits;
-      Printf.bprintf buf "  Hashtbl.lenght known_peers: %d\n" (Hashtbl.length known_peers);
+      Printf.bprintf buf "  known_peers stats: %d %d %d %d %d %d\n"
+        ((fun (n,_,_,_,_,_) -> n)(KnownPeers.stats known_peers))
+        ((fun (_,n,_,_,_,_) -> n)(KnownPeers.stats known_peers))
+        ((fun (_,_,n,_,_,_) -> n)(KnownPeers.stats known_peers))
+        ((fun (_,_,_,n,_,_) -> n)(KnownPeers.stats known_peers))
+        ((fun (_,_,_,_,n,_) -> n)(KnownPeers.stats known_peers))
+        ((fun (_,_,_,_,_,n) -> n)(KnownPeers.stats known_peers))
+      ;
+
+      
       Printf.bprintf buf "  to_ping: %d\n" (List.length !to_ping);
-      let n_search_known_peers = ref 0 in
       let n_search_waiting_peers = ref 0 in
       let n_search_asked_peers = ref 0 in
       let n_search_ok_peers = ref 0 in
@@ -1943,8 +1959,6 @@ Define a function to be called when the "mem_stats" command
       let n_overnet_searches = ref 0 in
       List.iter ( fun s ->
               for i = 128 downto 0 do
-               n_search_known_peers :=
-                 !n_search_known_peers + (Hashtbl.length s.search_known_peers);
                n_search_waiting_peers :=
                  !n_search_waiting_peers + (Fifo.length s.search_waiting_peers.(i));
                n_search_asked_peers :=
@@ -1956,7 +1970,6 @@ Define a function to be called when the "mem_stats" command
               done;
              incr n_overnet_searches
       ) !overnet_searches;
-      Printf.bprintf buf "  n_search_known_peers: %d\n" !n_search_known_peers;
       Printf.bprintf buf "  n_search_waiting_peers: %d\n" !n_search_waiting_peers;
       Printf.bprintf buf "  n_search_asked_peers: %d\n" !n_search_asked_peers;
       Printf.bprintf buf "  n_search_ok_peers: %d\n" !n_search_ok_peers;

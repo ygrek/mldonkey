@@ -57,9 +57,10 @@ module Proto = struct
         peer_ip = ip;
         peer_port = port;
         peer_tcpport = 0;
-        peer_kind = kind;
-        peer_last_recv = 0;
+        peer_kind = 3;
         peer_last_send = 0;
+        peer_expire = 0;
+        peer_created = last_time ();
       }, pos + 23
 
     let write buf t =
@@ -224,9 +225,10 @@ module Proto = struct
           peer_port = !peer_udpport;
           peer_tcpport = !peer_tcpport;
           peer_md4 = r_md4;
-          peer_last_recv = 0;
           peer_last_send = 0;
-          peer_kind = !peer_kind;
+          peer_expire = 0;
+          peer_kind = 3;
+          peer_created = last_time ();
         }
 
     let parse ip port opcode s =
@@ -241,10 +243,11 @@ module Proto = struct
               peer_md4 = md4;
               peer_ip = ip;
               peer_port = port;
-              peer_kind = kind;
+              peer_kind = 3;
               peer_tcpport = 0;
-              peer_last_recv = 0;
               peer_last_send = 0;
+              peer_expire = 0;
+              peer_created = last_time ();
             }
         | 11 ->
             let peers, pos = get_list16 get_peer s 0 in
@@ -258,10 +261,11 @@ module Proto = struct
               peer_md4 = md4;
               peer_ip = ip;
               peer_port = port;
-              peer_kind = kind;
+              peer_kind = 3;
               peer_tcpport = 0;
-              peer_last_recv = 0;
               peer_last_send = 0;
+              peer_expire = 0;
+              peer_created = last_time ();
             }
         | 13 ->
             OvernetPublicized None

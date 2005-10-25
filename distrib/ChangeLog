@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/25
+4551: OV/KAD: use kind like eMule does +misc bugfixes (bogeyman)
+      "do not wonder, if you get less peers left ;o)", also reduces traffic
 4550: Create bitprint for large files (zet)
 4549: html_mods: relevant_queues option (zet)
       This patch creates a relevant_queues option which specifies a list of
