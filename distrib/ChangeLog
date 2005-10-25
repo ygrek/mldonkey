@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/25
+4550: Create bitprint for large files (zet)
 4549: html_mods: relevant_queues option (zet)
       This patch creates a relevant_queues option which specifies a list of
       queue #'s that should be displayed in the vd # sources table.

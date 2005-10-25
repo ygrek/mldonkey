@@ -31,5 +31,5 @@ typedef unsigned char byte;
 
 
 void tiger_hash(char prefix, char *s, long len, unsigned char *digest);
-long tiger_block_size(long len);
+unsigned long tiger_block_size(unsigned long len);
 #endif

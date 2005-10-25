@@ -827,9 +827,9 @@ void tiger_tree_string(char *s, size_t len, size_t pos, size_t block_size, char 
 #include "caml/fail.h"
 #include "caml/alloc.h"
 
-long tiger_block_size(long len)
+unsigned long tiger_block_size(unsigned long len)
 {
-  long block_size = BLOCK_SIZE;
+  unsigned long block_size = BLOCK_SIZE;
   while(block_size < len) block_size *= 2;
   return block_size;
 }
