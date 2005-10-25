@@ -11,7 +11,7 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
-2005/10/25
+2005/10/25: version 2.6.6 = tag release-2-6-6
 4551: OV/KAD: use kind like eMule does +misc bugfixes (bogeyman)
       "do not wonder, if you get less peers left ;o)", also reduces traffic
 4550: Create bitprint for large files (zet)
