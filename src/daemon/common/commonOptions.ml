@@ -770,24 +770,24 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
     "URLs of RSS feeds"
     (list_option Url.option) []
 
+let ip_blocking_descriptions =
+  define_expert_option current_section ["ip_blocking_descriptions"] "Keep IP blocking ranges descriptions in memory" bool_option true
+
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
     "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format
   Zip files must contain either a file named guarding.p2p or guarding_full.p2p."
     string_option ""
 
-let ip_blocking_descriptions =
-  define_expert_option current_section ["ip_blocking_descriptions"] "Keep IP blocking ranges descriptions in memory" bool_option true
-
 let _ =
+  option_hook ip_blocking_descriptions (fun _ ->
+    Ip_set.store_blocking_descriptions := !!ip_blocking_descriptions
+  );
   option_hook ip_blocking (fun _ ->
     try
       Ip_set.bl := if !!ip_blocking <> "" then
       	             Ip_set.load !!ip_blocking
         	   else Ip_set.bl_empty
     with _ -> ()
-  );
-  option_hook ip_blocking_descriptions (fun _ ->
-    Ip_set.store_blocking_descriptions := !!ip_blocking_descriptions
   )
 
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]

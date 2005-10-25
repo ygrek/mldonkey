@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/25
+4548: IPBlock: really don't load descriptions on core restart,
+      if set to false (bogeyman)
+
 2005/10/24
 4547: Fix dupe sending of motd/nets in gui_initialize (zet)
 
