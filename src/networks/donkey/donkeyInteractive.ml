@@ -1268,14 +1268,21 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
   );
   file_ops.op_file_print_sources_html <- (fun file buf ->
 
-   if List.length (file_ops.op_file_all_sources file) > 0 then begin
+    let sources_list = ref [] in
+    DonkeySources.iter_relevant_sources (fun s ->
+      let s_uid = s.DonkeySources.source_uid in
+      let c = new_client s_uid in
+      sources_list := (s,c) :: !sources_list
+    ) file.file_sources;
+
+    if List.length !sources_list > 0 then 
+    begin
 
       let chunks =
       (match file.file_swarmer with
        None -> "" | Some swarmer ->
        Int64Swarmer.verified_bitmap swarmer)
       in
-
 
       html_mods_table_header buf "sourcesTable" "sources al" ([
           ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ;
@@ -1314,24 +1321,16 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                   chunks );!fc ))) ]);
 
 
-      let counter = ref 0 in
-      DonkeySources.iter_all_sources (fun s ->
-          let s_uid = s.DonkeySources.source_uid in
-          let c = new_client s_uid in
-          let c1 = (as_client c) in
-          incr counter;
-
+      html_mods_cntr_init();
+      List.iter (fun (s,c) ->
+        let ac = as_client c in
         try
-          let i = (client_info (as_client c)) in
+          let i = client_info ac in
 
+          Printf.bprintf buf "\\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" class=\\\"dl-%d\\\"\\>"
+            (html_mods_cntr());
 
-          Printf.bprintf buf "\\<tr onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
-           (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
-
-
-          Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-    onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+          Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\" onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
             (client_num c) (client_num c);
 
           let req_queue, req_score, req_min = 
@@ -1347,7 +1346,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
           html_mods_td buf ([
             ("", "sr", (match c.client_download with
-                  None -> Printf.sprintf ""
+                  None -> ""
                 | Some _ -> Printf.sprintf "%s" (
                       let qfiles = c.client_file_queue in
                       let (qfile, qchunks,_) =  List.hd qfiles in
@@ -1358,14 +1357,15 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
             ("", "sr", c.client_emule_proto.emule_release);
+
             ] @
             (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
             @ [
-              ("", "sr", (if DonkeySources.source_brand c.client_source
-                  then "T" else "F"));
+
+            ("", "sr", (if DonkeySources.source_brand c.client_source then "T" else "F"));
             ("", "sr", (match c.client_kind with
-                  | Direct_address (ip,port) -> Printf.sprintf "D"
-                  | _ -> Printf.sprintf "I"
+                  | Direct_address (ip,port) -> "D"
+                  | _ -> "I"
                 ));
             ("", "sr", (match c.client_sui_verified with
                   | None -> "N"
@@ -1382,7 +1382,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             ("", "sr ar", req_score);
             ("", "sr ar", req_queue);
             ("", "sr ar br", req_min);
-            ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
+            ("", "sr ar", (if client_has_a_slot ac then "T" else "F"));
             ("", "sr ar br", (if c.client_banned then "T" else "F"));
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
@@ -1412,7 +1412,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
            Printf.bprintf buf "\\</tr\\>";
         with _ -> ()
 
-      ) file.file_sources;
+      ) (List.sort (fun (s1,c1) (s2,c2) -> compare (client_num c1) (client_num c2)) !sources_list);
+
 
     Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
 

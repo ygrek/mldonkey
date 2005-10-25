@@ -12,6 +12,11 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/25
+4549: html_mods: relevant_queues option (zet)
+      This patch creates a relevant_queues option which specifies a list of
+      queue #'s that should be displayed in the vd # sources table.
+      See sources command for the list of queues.
+      By default all queues except the DoNotTry queue(7) are displayed.
 4548: IPBlock: really don't load descriptions on core restart,
       if set to false (bogeyman)
 

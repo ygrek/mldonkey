@@ -235,6 +235,8 @@ let empty_password user =
 
 let ip_list_option = list_option Ip.option
 
+let int_list_option = list_option int_option
+
 let allow_browse_share_option = define_option_class "Integer"
     (fun v ->
       match v with
@@ -260,6 +262,16 @@ let _ =
   (fun s ->
       let list = String2.tokens s in
       List.map (fun ip -> Ip.of_string ip) list
+  );
+  Options.set_string_wrappers int_list_option
+    (fun list ->
+      List.fold_left (fun s i ->
+          Printf.sprintf "%s %s" (string_of_int i) s
+      ) "" (List.rev list)
+  )
+  (fun s ->
+      let list = String2.tokens s in
+      List.map (fun i -> int_of_string i) list
   )
 
 let is_not_spam = ref (fun _ -> true)
@@ -1306,6 +1318,10 @@ let create_mlsubmit =
 let minor_heap_size = define_expert_option current_section
     ["minor_heap_size"] "Size of the minor heap in kB"
     int_option 32
+
+let relevant_queues = define_expert_option current_section ["relevant_queues"]
+    "The source queues to display in source lists (see 'sources' command)"
+    int_list_option [0;1;2;3;4;5;6;8;9;10]
 
 let min_reask_delay = define_expert_option current_section ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)"

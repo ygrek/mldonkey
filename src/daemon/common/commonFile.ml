@@ -557,7 +557,6 @@ let file_print file o =
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
   let srcs = file_all_sources file in
-  let active_srcs = file_active_sources file in
 
   if use_html_mods o then begin
 

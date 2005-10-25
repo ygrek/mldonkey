@@ -1005,7 +1005,17 @@ let rec find_max_overloaded q managers =
           Queue.iter (fun (_,s) -> f s)  q
         done
 
-
+(*************************************************************************)
+(*                                                                       *)
+(*                         iter_relevant_sources                         *)
+(*                                                                       *)
+(*************************************************************************)
+      let iter_relevant_sources f m =
+        List.iter (fun i ->
+          if i < nqueues then
+            let q = m.manager_sources.(i) in
+            Queue.iter (fun (_,s) -> f s)  q
+        ) !!relevant_queues
 
 (*************************************************************************)
 (*                                                                       *)

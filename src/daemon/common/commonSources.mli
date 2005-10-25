@@ -178,6 +178,7 @@ module Make(M:
       val iter_all_sources : (source -> unit) -> file_sources_manager -> unit
       val iter_active_sources : (source -> unit) -> file_sources_manager -> unit
       val iter_qualified_sources : (source -> unit) -> file_sources_manager -> unit
+			val iter_relevant_sources : (source -> unit) -> file_sources_manager -> unit
 
       val set_brothers : file_sources_manager list -> unit
       val get_brothers : file_sources_manager -> string list      
