@@ -992,7 +992,7 @@ let old_print_search buf o results =
       ( "1", "1", "srh ar", "Size", "Size" ) ;
       ( "1", "1", "srh ar", "Availability", "A" ) ;
       ( "1", "1", "srh ar", "Complete Sources", "C" ) ;
-      ( "3", "0", "srh", "Hash (click for lookup)", "Hash check" ) ;
+      ( "2", "0", "srh", "Hash (click for lookup)", "Hash check" ) ;
       ( "1", "1", "srh ar", "Length", "Len" ) ;
       ( "1", "1", "srh ar", "Codec", "Code" ) ;
       ( "1", "1", "srh ar", "Bitrate", "Rate" ) ;
