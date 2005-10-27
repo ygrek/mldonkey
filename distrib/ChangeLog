@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/27
+4559: mingw compilation of Crypto.cpp (su_blanc)
 4553: HP-UX: If /dev/urandom is not present print info where to get it
 4554: HP-UX: Compile fix for statvfs (disk usage statistics) (Inkus)
 4555: EDK: Send emule_version on server login to prevent

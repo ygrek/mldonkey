@@ -1500,13 +1500,13 @@ $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
-	$(OCAMLC) -cc $(CXX) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
+	$(OCAMLC) -cc "$(CXX)" -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
 $2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
-	$(OCAMLOPT) -cc $(CXX) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
+	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
 ]])
 
 EXPAND(mldonkey,mldonkey,NO,mldonkey)
@@ -1578,7 +1578,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
 
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	$(OCAMLMKTOP) -cc $(CXX) -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
+	$(OCAMLMKTOP) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
 
 
 
