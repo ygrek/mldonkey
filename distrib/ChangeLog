@@ -16,7 +16,8 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4554: HP-UX: Compile fix for statvfs (disk usage statistics) (Inkus)
 4555: EDK: Send emule_version on server login to prevent
       "Your client is too old" message (Knocker)
----------------------------------------------------------------------
+4556: Fix linking mlnet to X and GTK libs when using --enable-gui (su_blanc)
+-------------------------------------------------------------------------------
 2005/10/25: version 2.6.6 = tag release-2-6-6
 4551: OV/KAD: use kind like eMule does +misc bugfixes (bogeyman)
       "do not wonder, if you get less peers left ;o)", also reduces traffic
@@ -59,7 +60,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/16
 4519: Int64ops cleanup (pango)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/10/11: version 2.6.5 = tag release-2-6-5
 4508: Configure: Print some important build targets
 4507: EDK: Print server banners into logfile (pango)
@@ -158,7 +159,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4393: Lower ip blocking memory usage (pango)
       new option ip_blocking_descriptions true|false
 4401: BT: Send 'stopped' event to all trackers when exiting (zet)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/09/04: version 2.6.4 = tag release-2-6-4
 4392: Print "Core started" on stdout even if logging is enabled
       Fixes problems when MLDonkey is spawned by a GUI
@@ -237,7 +238,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4345: Code clean: Optimize redundant time_to_string functions
 4357: Rename ed2k_hash to mld_hash
 4344: Improve ./configure checks (bzlib.h, iconv on Windows)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/08/21: version 2.6.3 = tag release-2-6-3
 4254: Patch reverted, did not work
       "html_mods: Table data is incorrectly centered"
@@ -286,10 +287,10 @@ Define the total number of options archives in old_config.
 Command save got two new parameters:
 * "save all" saves options, sources and creates a ini file backup
 * "save backup" speaks for itself;-)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/08/11: version 2.6.2 = tag release-2-6-2
 4296: BT: Fix options parsing
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/08/09: version 2.6.1 = tag release-2-6-1
 4291: EDK: Better logging for unknown compatibleclient values
 4290: BT: Some small fixes for messages interested and cancel (beedauchon)
@@ -411,7 +412,7 @@ Options like "--disable-newgui" or "--enable-gtk2" were removed.
 4193: CommonGraphics : some whitespace cleanups
 4190: Gdstats: Fix tag.png/jpg link output
 4188: Overnet: Dont put our own ID in the buckets (bogeyman)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/07/19: version 2.6.0 = tag release-2-6-0
 4175: New option html_mods_use_js_tooltips, default true
       (4175_5.patch)
@@ -461,7 +462,7 @@ Remove obsolete ./src/gtk/gui2 directory
 2005/07/06
 4118: Improve Overnet/Kademlia logging and mem_stats output
       (overnet_log,patch)
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/07/05: version 2.5.30.17 = tag release-2-5-30-17
 4142: Remove unneeded code
 4141: Cleaned logging
@@ -511,7 +512,7 @@ patch posted in bug 13619:
 4089: gdstats: Update second graph correctly
 4085: change download priority to keep started download rolling
 4071: Code cleanup: Replace lprintf_newline with "\n"
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/06/06: version 2.5.30.16 = tag release-2-5-30-16
 4070: Exit core on startup if a port is already used
 4079: mlnet server id fix
@@ -580,7 +581,7 @@ Only these sets are used:
 * Patch from beedauchon adds html support to the command ov/kad_stats.
 * Patch from beedauchon adds some fixes to the html output 
   of the networks command.
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/05/02: version 2.5.30.15 = tag release-2-5-30-15
 This version shares the same code as Amorphous revision 304.
 
@@ -592,7 +593,7 @@ This version shares the same code as Amorphous revision 304.
 3974: HTML: RSS support (from beedauchon)
 3975: EDK: Fix for sending shares to server
 3976: Remove obsolete Ares code
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 2005/05/01
 3956: Set utf-8 character encoding in notification mails
 3952: Print glibc version in buildinfo
@@ -602,7 +603,7 @@ from rev290:
 from rev293:
 * Patch from beedauchon fixes transparency issues with
 graphical stats.
----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 Split Changelog in two parts, all stuff older than 2.5.30.15 is now in docs/ChangeLog.old:
 
