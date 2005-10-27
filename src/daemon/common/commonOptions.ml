@@ -100,6 +100,10 @@ in this directory. Please shut it down before starting
 a new instance here. If you are sure no other process uses
 this directory delete %s and restart the core.\n" file
 
+let exit_message_dev file = Printf.sprintf
+"\n/dev/%s does not exist, please create it, exiting...
+If you are using a chroot environment, create it inside the chroot.\n" file
+
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   lprintf_nl "Language %s, locale %s"
@@ -117,15 +121,15 @@ let _ =
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
     && not Autoconf.windows && not (Sys.file_exists "/dev/urandom") then begin
-      lprintf_nl "/dev/urandom does not exist, please create it, exiting...";
-      lprintf_nl "If you are using a chroot environment, create it inside the chroot.";
+      lprintf "%s" (exit_message_dev "urandom");
+      if Autoconf.system = "hpux" then
+        lprintf_nl "For HP-UX get urandom support from http://www.josvisser.nl/hpux11-random";
       exit 2
     end;  
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
     && not Autoconf.windows && not (Sys.file_exists "/dev/null") then begin
-      lprintf_nl "/dev/null does not exist, please create it, exiting...";
-      lprintf_nl "If you are using a chroot environment, create it inside the chroot.";
+      lprintf "%s" (exit_message_dev "null");
       exit 2
     end;  
 

@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/27
+4553: HP-UX: If /dev/urandom is not present print info where to get it
+
+---------------------------------------------------------------------
 2005/10/25: version 2.6.6 = tag release-2-6-6
 4551: OV/KAD: use kind like eMule does +misc bugfixes (bogeyman)
       "do not wonder, if you get less peers left ;o)", also reduces traffic
