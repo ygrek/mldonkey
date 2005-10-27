@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/27
+4562: BasicSocket.ml fix, fix select when fd_tasks is empty
+      close all fd on exit (su_blanc)
 4561: Options.ml4 proper old directory (su_blanc)
 4560: mingw : proper detection of gToolbox.mli (su_blanc)
 4559: mingw compilation of Crypto.cpp (su_blanc)

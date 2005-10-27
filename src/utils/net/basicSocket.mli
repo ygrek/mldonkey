@@ -96,7 +96,8 @@ external use_poll : bool -> unit = "ml_use_poll"
   
 val prevent_close : t -> unit
 val close_all : unit -> unit
-  
+val really_close_all : unit -> unit
+
 val start_time : int
   
 external setsock_iptos_throughput: Unix.file_descr -> int = "ml_setsock_iptos_throughput"
