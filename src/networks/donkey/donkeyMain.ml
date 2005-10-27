@@ -148,6 +148,7 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "version") protocol_version;
     int_tag (Field_UNKNOWN "port") !!donkey_port;
     int_tag (Field_UNKNOWN "extended") !extended;
+    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
   ];
 
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
