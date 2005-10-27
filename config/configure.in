@@ -958,13 +958,9 @@ if test "$LABLGTK_CONFIG" = "no"; then
   GUI="no"
 else
   MORE_TARGETS="$MORE_TARGETS $GUIS"
-  GTK=gtk
   AC_MSG_CHECKING(GToolbox.popup_menu args)
-  if test "$OS_FILES" = "mingw"; then
-    GTOOLBOX="`$OCAMLC -where`\labl$GTK\gToolbox.mli"
-  else
-    GTOOLBOX="`$OCAMLC -where`/labl$GTK/gToolbox.mli"
-  fi
+  OCAML_LIB_DIR="`$OCAMLC -where`"
+  GTOOLBOX="$OCAML_LIB_DIR/$LABLGTK_NAME/gToolbox.mli"
   grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
   if test "$GTOOLBOX_ARGS" = "new"; then
     GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
