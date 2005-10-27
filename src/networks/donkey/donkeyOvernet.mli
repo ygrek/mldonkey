@@ -27,9 +27,8 @@ type peer =
     mutable peer_port : int; 
     mutable peer_tcpport : int;
     mutable peer_kind : int;
-    mutable peer_expire : int;
+    mutable peer_last_recv : int;
     mutable peer_last_send : int;
-    peer_created : int;
   }
 
 type search_kind = 
