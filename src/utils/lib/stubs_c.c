@@ -1068,7 +1068,7 @@ statfs_statfs (value pathv)
 
 #ifdef HAVE_STATS
 static value
-#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000))
+#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000)) || defined (__hpux__)
 copy_statfs (struct statvfs *buf)
 #else
 copy_statfs (struct statfs *buf)
@@ -1088,7 +1088,7 @@ copy_statfs (struct statfs *buf)
   v = copy_int64 (buf->f_bavail); caml_modify (&Field (bufv, 4), v);
   v = copy_int64 (buf->f_files); caml_modify (&Field (bufv, 5), v);
   v = copy_int64 (buf->f_ffree); caml_modify (&Field (bufv, 6), v);
-#if ((defined (sun) || defined (__sun__)))
+#if ((defined (sun) || defined (__sun__))) || defined (__hpux__)
   v = copy_int64 (-1); caml_modify (&Field (bufv, 7), v);
   v = copy_int64 (buf->f_namemax); caml_modify (&Field (bufv, 8), v);
   v = copy_string (buf->f_basetype); caml_modify (&Field (bufv, 9), v);
@@ -1113,7 +1113,7 @@ copy_statfs (struct statfs *buf)
 #endif /* defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) */
   caml_modify (&Field (bufv, 7), Val_unit);
   v = copy_int64 (-1); caml_modify (&Field (bufv, 10), v);
-#endif /*  ((defined (sun) || defined (__sun__))) */
+#endif /*  ((defined (sun) || defined (__sun__))) || defined (__hpux__) */
   CAMLreturn (bufv);
 }
 #endif
@@ -1125,7 +1125,7 @@ statfs_statfs (value pathv)
   CAMLparam1 (pathv);
   CAMLlocal1 (bufv);
   const char *path = String_val (pathv);
-#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000))
+#if ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000)) || defined (__hpux__)
   struct statvfs buf;
   if (statvfs (path, &buf) == -1)
 #else
