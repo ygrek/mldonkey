@@ -821,7 +821,7 @@ let save opfile =
     let basename = Filename.basename filename in
     let old_config = Filename.concat dirname "old_config" in
     if not (Sys.file_exists old_config) then Unix.mkdir old_config 0o755;
-    let old_file = Filename.concat old_config filename in
+    let old_file = Filename.concat old_config basename in
     let old_old_file = filename ^ ".old" in
     if not (Sys.file_exists old_file) && (Sys.file_exists old_old_file) then
       Sys.rename old_old_file old_file;
