@@ -536,7 +536,7 @@ or getting a binary compiled with glibc %s.\n\n")
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ ->
 	 lprintf_nl "Received SIGHUP, closing all files/sockets";
-         BasicSocket.really_close_all ();
+         BasicSocket.close_all ();
 	 Unix32.close_all ()
          ));
 
@@ -615,7 +615,7 @@ for config files at the end. *)
       (* If we have an error with too many file-descriptors,
          just close all of them *)
       (try
-         BasicSocket.really_close_all ();
+         BasicSocket.close_all ();
        with e ->
            lprintf_nl "Exception %s in do_at_exit while closing sockets."
              (Printexc2.to_string e);

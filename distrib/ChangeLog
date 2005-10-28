@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/28
+4562: removed patch, breaks GUI connect after SIGTERM
+
 2005/10/27
 4551: remove patch, breaks Overnet
 4562: BasicSocket.ml fix, fix select when fd_tasks is empty

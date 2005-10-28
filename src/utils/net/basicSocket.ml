@@ -550,7 +550,7 @@ timeout := 5.;
 *)
       exec_hooks !before_select_hooks;
 (*      lprintf "Tasks %d\n" (List.length !fd_tasks); *)
-      if !fd_tasks <> [] then select !fd_tasks !timeout;
+      select !fd_tasks !timeout;
     with
     | e ->
         lprintf_nl "Exception %s in Select.loop" (Printexc2.to_string e);
@@ -602,10 +602,6 @@ let close_all () =
         close s Closed_by_user
   ) !fd_tasks
 
-let really_close_all () =
-  List.iter (fun s ->
-    close s Closed_by_user
-  ) !fd_tasks
 
 let last_time () = !last_time
 let start_time = last_time ()
