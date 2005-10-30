@@ -1051,16 +1051,7 @@ let _ =
               dlkbs ulkbs (CommonGlobals.version ())
           end
         else
-          Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s | Uploaded: %s"
-            (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
-          !udp_download_rate
-            !control_download_rate
-            (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0)
-          !udp_upload_rate
-            !control_upload_rate
-            !nshared_files
-            (size_of_int64 !nshared_bytes)
-            (size_of_int64 !upload_counter);
+          DriverInteractive.print_bw_stats buf;
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
 
@@ -2567,30 +2558,17 @@ let _ =
           | ["queued"] ->
               let list = List2.tail_map file_info !!files in
               let list = List.filter ( fun f -> f.file_state = FileQueued ) list in
-              let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
-              simple_print_file_list false buf list o;
+              DriverInteractive.display_active_file_list buf o list;
               ""
           | ["paused"] ->
               let list = List2.tail_map file_info !!files in
               let list = List.filter ( fun f -> f.file_state = FilePaused ) list in
-              let list = Sort.list (fun f1 f2 -> f1.file_name >= f2.file_name) list in
-              simple_print_file_list false buf list o;
+              DriverInteractive.display_active_file_list buf o list;
               ""
           | ["downloading"] ->
               let list = List2.tail_map file_info !!files in
               let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
-              let list = Sort.list
-                ( fun f1 f2 ->
-                  f2.file_size -- f2.file_downloaded <=
-                  f1.file_size -- f1.file_downloaded
-                ) list in
-              simple_print_file_list false buf list o;
-              if !!done_files <> [] then
-                begin
-                  simple_print_file_list true buf
-                    (List2.tail_map file_info !!done_files) o;
-                  Printf.bprintf buf "Use 'commit' to move downloaded files to the incoming directory"
-                end;
+              DriverInteractive.display_file_list buf o list;
               ""
           | [arg] ->
             let num = int_of_string arg in
@@ -2624,7 +2602,8 @@ let _ =
             !!done_files;
             ""
         | _ ->
-            DriverInteractive.display_file_list buf o;
+            let list = List2.tail_map file_info !!files in
+            DriverInteractive.display_file_list buf o list;
             ""
     ), "<num> :\t\t\t\t$bview file info$n";
 

@@ -1253,7 +1253,8 @@ let http_handler o t r =
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
 
-            DriverInteractive.display_file_list b o;
+            let list = (List2.tail_map file_info !!files) in
+            DriverInteractive.display_file_list b o list;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 

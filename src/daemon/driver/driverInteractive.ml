@@ -893,12 +893,8 @@ let simple_print_file_list finished buf files format =
           |]
       ) files)
 
-let display_file_list buf o =
-  display_vd := true;
-  if not (use_html_mods o) then
-(*    Printf.bprintf buf "Downloaded %d/%d files\n" (List.length !!done_files)
-    (List.length !!files); *)
-    Printf.bprintf buf "\nDown: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
+let print_bw_stats buf =
+  Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s | Uploaded: %s"
        (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
          !udp_download_rate
          !control_download_rate
@@ -906,18 +902,25 @@ let display_file_list buf o =
          !udp_upload_rate
          !control_upload_rate
          !nshared_files
-         (size_of_int64 !upload_counter);
+  (size_of_int64 !nshared_bytes)
+  (size_of_int64 !upload_counter)
 
+let display_active_file_list buf o list =
+  display_vd := true;
+
+  if not (use_html_mods o) then begin
+(*    Printf.bprintf buf "Downloaded %d/%d files\n" (List.length !!done_files)
+    (List.length !!files); *)
+    print_bw_stats buf;
     Printf.bprintf buf "\n";
+  end;
 
   if o.conn_output <> HTML && !!improved_telnet then
   begin
-    let list = List2.tail_map file_info !!files in
     let list = Sort.list (fun f1 f2 -> percent f1 >= percent f2) list in
     simple_print_file_list false buf list o
   end
   else
-  let list = List2.tail_map file_info !!files in
   let list =
     try
       let sorter =
@@ -947,8 +950,8 @@ let display_file_list buf o =
   in
   simple_print_file_list false buf list o
 
-let display_file_list buf o =
-  display_file_list buf o;
+let display_file_list buf o l =
+  display_active_file_list buf o l;
   if not (use_html_mods o) then
     Printf.bprintf buf "%0sDownloaded %d files\n" (if !!term_ansi then "$n" else "") (List.length !!done_files);
   if !!done_files <> [] then begin
