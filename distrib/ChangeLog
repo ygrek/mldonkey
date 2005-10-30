@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/30
+4576: BT: remove sources when file is cancelled,
+      mem_stats: Garbage collector info (zet)
+-------------------------------------------------------------------------------
 2005/10/28: version 2.6.7 = tag release-2-6-7
 4562: removed patch, breaks GUI connect after SIGTERM
 

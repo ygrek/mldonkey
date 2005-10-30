@@ -351,12 +351,17 @@ let op_file_check file =
   | Some swarmer ->
       Int64Swarmer.verify_all_chunks swarmer true
 
+let remove_all_clients file =
+  Hashtbl.clear file.file_clients; 
+  file.file_clients_num <- 0
+
 let op_file_cancel file =
   Int64Swarmer.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   BTClients.file_stop file;
   remove_file file;
   BTClients.disconnect_clients file;
+  remove_all_clients file;
   if Sys.file_exists file.file_torrent_diskname then Sys.remove file.file_torrent_diskname
 
 let op_ft_cancel ft =
@@ -578,7 +583,8 @@ let share_files _ =
           if !verbose_share then lprintf_nl () "Removing torrent share for %s" file.file_torrent_diskname;
           BTClients.file_stop file;
           remove_file file;
-          BTClients.disconnect_clients file
+          BTClients.disconnect_clients file;
+          remove_all_clients file;
         end
   ) shared_files_copy
 

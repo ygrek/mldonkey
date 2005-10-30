@@ -841,7 +841,13 @@ let check_file_implementations () =
 let _ =
   Heap.add_memstat "CommonFile" (fun level buf ->
       let counter = ref 0 in
-      H.iter (fun _ -> incr counter) files_by_num;
+      H.iter (fun f -> incr counter;
+       if level > 0 then
+         Printf.bprintf buf "%d sources: %s: %s \n" 
+          (List.length (file_all_sources f)) 
+          (file_network f).network_name
+          (file_best_name f);
+      ) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;
       Printf.bprintf buf "  files_ops: %d\n" (List.length !files_ops);
   )

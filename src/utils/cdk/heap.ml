@@ -7,6 +7,29 @@ let memstat_functions = ref []
 
 let add_memstat m f = memstat_functions := (m,f) :: !memstat_functions
 
+let _ = 
+  add_memstat "Gc" (fun level buf ->
+    let stat = Gc.stat () in
+    let ab = (stat.Gc.minor_words +. stat.Gc.major_words -. stat.Gc.promoted_words) 
+      *. float_of_int (Sys.word_size / 8) in
+    Printf.bprintf buf "minor_words: %.0f\n" stat.Gc.minor_words;
+    Printf.bprintf buf "promoted_words: %.0f\n" stat.Gc.promoted_words;
+    Printf.bprintf buf "major_words: %.0f\n" stat.Gc.major_words;
+    Printf.bprintf buf "minor_collections: %d\n" stat.Gc.minor_collections;
+    Printf.bprintf buf "major_collections: %d\n" stat.Gc.major_collections;
+    Printf.bprintf buf "heap_words: %d\n" stat.Gc.heap_words;
+    Printf.bprintf buf "heap_chunks: %d\n" stat.Gc.heap_chunks;
+    Printf.bprintf buf "live_words: %d\n" stat.Gc.live_words;
+    Printf.bprintf buf "live_blocks: %d\n" stat.Gc.live_blocks;
+    Printf.bprintf buf "free_words: %d\n" stat.Gc.free_words;
+    Printf.bprintf buf "free_blocks: %d\n" stat.Gc.free_blocks;
+    Printf.bprintf buf "largest_free: %d\n" stat.Gc.largest_free;
+    Printf.bprintf buf "fragments: %d\n" stat.Gc.fragments;
+    Printf.bprintf buf "compactions: %d\n" stat.Gc.compactions;
+    Printf.bprintf buf "top_heap_words: %d\n" stat.Gc.top_heap_words;
+    Printf.bprintf buf "allocated_bytes: %.0f\n" ab;
+  )
+
 let print_memstats (level : int) buf use_html_mods =
   let level = if level < 0 then begin
         Gc.compact (); -level
