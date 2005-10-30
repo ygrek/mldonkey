@@ -2,6 +2,7 @@ config.h
 config.cache
 install-sh
 config.status
+configure
 Makefile.config
 *.cm?
 config.log

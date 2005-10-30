@@ -3,3 +3,4 @@ giftParser.mli
 giftParser.ml
 giftLexer.ml
 commonDownloads.ml
+commonGraphics.ml

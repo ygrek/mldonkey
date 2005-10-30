@@ -6,3 +6,4 @@ fasttrackInteractive.ml
 fasttrackTypes.ml
 fasttrackClients.ml
 fasttrackComplexOptions.ml
+fasttrackFunctions.ml
