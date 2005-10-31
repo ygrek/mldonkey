@@ -12,6 +12,19 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/31
+4558: Overnet: several patches (includes and fixes patch #4551) (bogeyman)
+* better detection of dead peers
+* so we can ping less often
+* and can be sure these peers are alive
+* use ip:port from received pakets instead from the peer info
+* use a weak Hashtbl for known_peers and remove search_known_peers
+* we are removing all dead peers, in buckets and prebuckets,
+  (do not wonder, if you get less peers left ;o)
+* do not send useless "Connect" pakets, Fillbucket really works
+* every 30m file searchs were created twice.
+There are really less peers than without this patch, maybe i'll have to tweak
+how we fill buckets. But for now this works and produce less traffic.
+
 4581: Fix upload rate for high volume connections (> 1.5Mbit/sec) (pango)
 4584: HEAP: use GC.quick_stats for mem_stats level=0 (bogeyman)
 
