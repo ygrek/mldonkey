@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/10/31
+4584: HEAP: use GC.quick_stats for mem_stats level=0 (bogeyman)
+
 2005/10/30
 4580: Update .cvsignore files (pango)
 4564: HTML: fix vd p/d/queued output (zet)

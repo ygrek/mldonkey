@@ -9,7 +9,7 @@ let add_memstat m f = memstat_functions := (m,f) :: !memstat_functions
 
 let _ = 
   add_memstat "Gc" (fun level buf ->
-    let stat = Gc.stat () in
+    let stat = if level > 0 then Gc.stat () else Gc.quick_stat () in
     let ab = (stat.Gc.minor_words +. stat.Gc.major_words -. stat.Gc.promoted_words) 
       *. float_of_int (Sys.word_size / 8) in
     Printf.bprintf buf "minor_words: %.0f\n" stat.Gc.minor_words;
@@ -19,12 +19,18 @@ let _ =
     Printf.bprintf buf "major_collections: %d\n" stat.Gc.major_collections;
     Printf.bprintf buf "heap_words: %d\n" stat.Gc.heap_words;
     Printf.bprintf buf "heap_chunks: %d\n" stat.Gc.heap_chunks;
-    Printf.bprintf buf "live_words: %d\n" stat.Gc.live_words;
-    Printf.bprintf buf "live_blocks: %d\n" stat.Gc.live_blocks;
-    Printf.bprintf buf "free_words: %d\n" stat.Gc.free_words;
-    Printf.bprintf buf "free_blocks: %d\n" stat.Gc.free_blocks;
-    Printf.bprintf buf "largest_free: %d\n" stat.Gc.largest_free;
-    Printf.bprintf buf "fragments: %d\n" stat.Gc.fragments;
+    if stat.Gc.live_words > 0 then
+      Printf.bprintf buf "live_words: %d\n" stat.Gc.live_words;
+    if stat.Gc.live_blocks > 0 then
+      Printf.bprintf buf "live_blocks: %d\n" stat.Gc.live_blocks;
+    if stat.Gc.free_words > 0 then
+      Printf.bprintf buf "free_words: %d\n" stat.Gc.free_words;
+    if stat.Gc.free_blocks > 0 then
+      Printf.bprintf buf "free_blocks: %d\n" stat.Gc.free_blocks;
+    if stat.Gc.largest_free > 0 then
+      Printf.bprintf buf "largest_free: %d\n" stat.Gc.largest_free;
+    if stat.Gc.fragments > 0 then
+      Printf.bprintf buf "fragments: %d\n" stat.Gc.fragments;
     Printf.bprintf buf "compactions: %d\n" stat.Gc.compactions;
     Printf.bprintf buf "top_heap_words: %d\n" stat.Gc.top_heap_words;
     Printf.bprintf buf "allocated_bytes: %.0f\n" ab;
