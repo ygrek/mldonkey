@@ -6,14 +6,15 @@ open GuiTypes2
 module M = GuiMessages
 module A = GuiArt
 
-let message_file_name = try
-    Sys.getenv "MLDONKEY_GUI_MESSAGES"
+let message_file_name =
+  try
+    Sys.getenv "MLGUI_STRINGS"
   with _ -> 
-      let filename = 
-        Filename.concat CommonOptions.home_dir "gtk2gui_messages.ini"
-      in
-      Unix2.safe_mkdir (Filename.dirname filename);
-      filename
+     let filename = 
+       Filename.concat M.lang_dir "mlgui_strings"
+     in
+     Unix2.safe_mkdir (Filename.dirname filename);
+     filename
 
 let _s x = GuiUtf8.simple_utf8_of (_s "GuiStarter" x)
 let _b x = _b "GuiStarter" x  

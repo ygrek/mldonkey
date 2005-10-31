@@ -22,6 +22,7 @@
 open Gettext
 open Options
 open CommonGlobals
+open GraphTypes
 
 module U = GuiUtf8
 
@@ -40,10 +41,10 @@ let define_expert_option a b ?desc c d e =
 module M = GuiMessages
 module C = GuiColumns
 
-let _ = Unix2.safe_mkdir CommonOptions.home_dir
-  
-let gui_ini = create_options_file 
-    (Filename.concat CommonOptions.home_dir "mlgui.ini")
+let _ = Unix2.safe_mkdir GuiMessages.gui_config_dir
+
+let gui_ini = create_options_file
+    (Filename.concat GuiMessages.gui_config_dir "mlgui.ini")
 
 
 
@@ -71,6 +72,38 @@ let tbstyle_to_value (st:Gtk.Tags.toolbar_style) =
 let (tbstyle_option : Gtk.Tags.toolbar_style option_class) = 
     define_option_class "Toolbar" 
     value_to_tbstyle tbstyle_to_value
+
+let graphtime_to_string gt =
+  match gt with
+      GraphHour -> "hour"
+    | GraphHalfDay -> "half_day"
+    | GraphDay -> "day"
+    | GraphWeek -> "week"
+    | GraphMonth -> "month"
+    | GraphYear -> "year"
+    | _ -> "quarter"
+
+let string_to_graphtime s =
+  match s with
+      "hour" -> GraphHour
+    | "half_day" -> GraphHalfDay
+    | "day" -> GraphDay
+    | "week" -> GraphWeek
+    | "month" -> GraphMonth
+    | "year" -> GraphYear
+    | _ -> GraphQuarter
+
+let value_to_graphtime v =
+  match v with
+      StringValue s -> string_to_graphtime s
+    | _ -> GraphQuarter
+
+let graphtime_to_value (gt : graph_time) =
+  StringValue (graphtime_to_string gt)
+
+let (graphtime_option : graph_time option_class) =
+    define_option_class "GraphTime" 
+    value_to_graphtime graphtime_to_value
 
 let time_option =
     define_option_class "Time"
@@ -112,6 +145,26 @@ let gtk_advanced_options = define_option current_section
 
 
 let current_section = mlgui_section
+
+(* {Connection} *)
+
+let gtk_connection_http_proxy_server = define_option current_section
+    ["gtk_connection_http_proxy_server"]
+    ~desc:"HTTP proxy server"
+    "Direct HTTP queries to HTTP proxy"
+    string_option ""
+
+let gtk_connection_http_proxy_port = define_option current_section
+    ["gtk_connection_http_proxy_port"]
+    ~desc:"HTTP proxy server port"
+    "Port of HTTP proxy"
+    int_option 8080
+
+let gtk_connection_http_use_proxy = define_option current_section
+    ["gtk_connection_http_use_proxy"]
+    ~desc:"Enable Proxy server"
+    "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
+    bool_option false
 
 (* {Client} *)
 
@@ -246,33 +299,43 @@ let gtk_font_networks = define_option current_section
     font_option "sans 16"
 
 
-(* TODO : Graph options! *)
-
 (* {2 Graph Options} *)
-(*
-let gtk_graph_time_range =  define_option current_section 
-    ["gtk_graph_time_range"]
-    ~desc:"Time range"
-    "Set the time range for both the uploads and downloads graphs"
-    time_option 21600
+
+let gtk_graph_time_downloads =  define_option current_section
+    ["gtk_graph_time_downloads"]
+    ~desc:"Time range to view the global downloads"
+    "Set the time range for the downloads graph"
+    graphtime_option GraphQuarter
+
+let gtk_graph_time_uploads =  define_option current_section
+    ["gtk_graph_time_uploads"]
+    ~desc:"Time range to view the global uploads"
+    "Set the time range for the uploads graph"
+    graphtime_option GraphQuarter
+
+let gtk_graph_time_file =  define_option current_section
+    ["gtk_graph_time_file"]
+    ~desc:"Time range to view one-file downloads and uploads"
+    "Set the time range to display the uploads and downloads of one file in the graph tab"
+    graphtime_option GraphQuarter
 
 let gtk_graph_font = define_option current_section
     ["gtk_graph_font"]
     ~desc:"Font"
     "Set the font to display texts in both the uploads and downloads graphs" 
-    font_option "sans 8"
+    font_option "sans 7"
 
 let gtk_graph_background =  define_option current_section 
     ["gtk_graph_background"]
     ~desc:"Background color"
     "Set the background color for both the uploads and downloads graphs" 
-    color_option "#454b55"
+    color_option "#000000"
 
 let gtk_graph_grid =  define_option current_section 
     ["gtk_graph_grid"]
     ~desc:"Grid color"
     "Set the color of the grid for both the uploads and downloads graphs" 
-    color_option "#fffcc6"
+    color_option "#484848"
 
 let gtk_graph_download = define_option current_section 
     ["gtk_graph_download"]
@@ -286,21 +349,14 @@ let gtk_graph_upload = define_option current_section
     "Set the foreground color of the upload rate"
     color_option "#6eec8b"
 
-let gtk_graph_download_av = define_option current_section 
-    ["gtk_graph_download_av"]
-    ~desc:"Average downloads color"
-    "Set the foreground color of the average download rate" 
-    color_option "#2d62c1"
-
-let gtk_graph_upload_av = define_option current_section 
-    ["gtk_graph_upload_av"]
-    ~desc:"Average uploads color"
-    "Set the foreground color of the average upload rate"
-    color_option "#61b722"
-*)
-
 
 (* {Misc} *)
+
+let gtk_misc_display_razorback_stats = define_option current_section
+    ["gtk_misc_display_razorback_stats"]
+    ~desc:"Display razorback statistics"
+    "Check to display file information from http://stats.razorback2.com in the downloads page"
+    bool_option true
 
 let gtk_misc_relative_availability = define_option current_section 
     ["gtk_misc_relative_availability"]
@@ -311,7 +367,7 @@ let gtk_misc_relative_availability = define_option current_section
 let gtk_misc_files_auto_expand_depth = define_option current_section 
     ["gtk_misc_files_auto_expand_depth"]
     ~desc:"Files auto-expand depth"
-    "The depth to which the directories of a friend are automatically expanded" 
+    "The depth to which the directories of a friend are automatically expanded"
     int_option 3
 
 let gtk_misc_use_availability_height = define_option current_section 
@@ -665,6 +721,12 @@ let gtk_verbose_console = define_expert_option current_section
     ["gtk_verbose_console"]
     ~desc:"verbose console"
     "Debug module GuiConsole"
+    bool_option false
+
+let gtk_verbose_graphbase = define_expert_option current_section
+    ["gtk_verbose_graphbase"]
+    ~desc:"verbose graphbase"
+    "Debug module GuiGraphBase"
     bool_option false
 
 let gtk_verbose_graph = define_expert_option current_section

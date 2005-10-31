@@ -22,6 +22,7 @@
 open GuiTypes2
 open GuiTypes
 open CommonTypes
+open GraphTypes
 
 open GuiTools
 open GuiColumns
@@ -84,10 +85,136 @@ let dummy_source =
      source_upload_rate = 0.;
      source_download_rate = 0.;
      source_upload = None;
-     source_has_upload = false;
+     source_has_upload = source_only;
      source_availability = [];
      source_files_requested = [];
   }
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         is_file                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let is_file key = not (String.contains key ':')
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         is_source                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let is_source key = (snd (String2.cut_at key ':') <> "")
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         file_num                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let file_num key =
+  if is_file key || is_source key
+  then begin
+    let t = fst (String2.cut_at key ':') in
+    int_of_string t
+  end else raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         source_num                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let source_num key =
+  if is_source key
+  then begin
+    let t = snd (String2.cut_at key ':') in
+    int_of_string t
+  end else raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         file_of_key                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let file_of_key key =
+  try
+    let num = file_num key in
+    Hashtbl.find G.files num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         source_of_key                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let source_of_key key =
+  try
+    let num = source_num key in
+    Hashtbl.find G.sources num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_files                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_files keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      if (is_file k) then
+        let f = file_of_key k in
+        if not (List.memq f !l) then
+          l := f :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_sources                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_sources keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = source_of_key k in
+      if not (List.memq s !l)
+        then l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         file_key                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let file_key file_num =
+  Printf.sprintf "%d" file_num
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         source_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let source_key file_num source_num =
+  Printf.sprintf "%d:%d" file_num source_num
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         dummy_source_key                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let dummy_source_key file_num =
+  source_key file_num dummy_source.source_num
 
 (*************************************************************************)
 (*                                                                       *)
@@ -98,8 +225,8 @@ let dummy_source =
 let get_key =
   (fun i ->
      match i with
-         File f -> File_num f.file_num
-       | Source (s, file_num) -> Source_num (s.source_num, file_num)
+         File f -> (Printf.sprintf "%d" f.g_file_num)
+       | Source (s, file_num) -> (Printf.sprintf "%d:%d" file_num s.source_num)
   )
 
 module Downloads = GuiTemplates.Gview(struct
@@ -107,7 +234,6 @@ module Downloads = GuiTemplates.Gview(struct
   module Column = GuiColumns.File
 
   type item = item_info
-  type key  = item_index
 
   let columns = O.downloads_columns
   let get_key = get_key
@@ -151,32 +277,31 @@ class g_download () =
       match i with
           File f ->
             begin
-              store#set ~row ~column:download_network (Mi.network_name f.file_network);
-              store#set ~row ~column:download_network_pixb (Mi.network_pixb f.file_network ~size:A.SMALL ());
-              store#set ~row ~column:download_name (U.utf8_of f.file_name);
-              store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.file_name ~size:A.SMALL);
-              store#set ~row ~column:download_uid (Mi.uid_list_to_string f.file_uids);
-              store#set ~row ~column:download_size (Mi.size_of_int64 f.file_size);
-              store#set ~row ~column:download_downloaded (Mi.size_of_int64 f.file_downloaded);
-              store#set ~row ~column:download_percent (Mi.get_percent_of f.file_downloaded f.file_size);
-              store#set ~row ~column:download_sources (Printf.sprintf "(%d / %d)" f.file_active_sources f.file_all_sources);
-              store#set ~row ~column:download_state (Mi.string_of_file_state f.file_state f.file_download_rate);
-              let availability = Mi.main_availability_of f.file_network f.file_availability in
-              store#set ~row ~column:download_availability (Mi.string_of_availability availability f.file_chunks);
-              store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks true);
-              store#set ~row ~column:download_download_rate (Mi.rate_to_string f.file_download_rate);
-              store#set ~row ~column:download_format (Mi.format_to_string f.file_format);
-              store#set ~row ~column:download_age (Mi.time_to_string f.file_age);
-              store#set ~row ~column:download_last_seen (Mi.time_to_string f.file_last_seen);
-              store#set ~row ~column:download_eta_inst (Mi.calc_eta_inst f.file_size f.file_downloaded f.file_download_rate);
-              store#set ~row ~column:download_eta_average (Mi.calc_eta_average f.file_size f.file_downloaded f.file_age);
-              store#set ~row ~column:download_priority (Mi.priority_to_string f.file_priority);
-              store#set ~row ~column:download_comment (U.utf8_of f.file_comment)
+              store#set ~row ~column:download_network (Mi.network_name f.g_file_network);
+              store#set ~row ~column:download_network_pixb (Mi.network_pixb f.g_file_network ~size:A.SMALL ());
+              store#set ~row ~column:download_name (U.utf8_of f.g_file_name);
+              store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.g_file_name ~size:A.SMALL);
+              store#set ~row ~column:download_uid (Mi.uid_list_to_string f.g_file_uids);
+              store#set ~row ~column:download_size (Mi.size_of_int64 f.g_file_size);
+              store#set ~row ~column:download_downloaded (Mi.size_of_int64 f.g_file_downloaded);
+              store#set ~row ~column:download_percent (Mi.get_percent_of f.g_file_downloaded f.g_file_size);
+              store#set ~row ~column:download_sources (Printf.sprintf "(%d / %d)" f.g_file_active_sources f.g_file_all_sources);
+              store#set ~row ~column:download_state (Mi.string_of_file_state f.g_file_state f.g_file_download_rate);
+              let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
+              store#set ~row ~column:download_availability (Mi.string_of_availability availability f.g_file_chunks);
+              store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks true);
+              store#set ~row ~column:download_download_rate (Mi.rate_to_string f.g_file_download_rate);
+              store#set ~row ~column:download_format (Mi.format_to_string f.g_file_format);
+              store#set ~row ~column:download_age (Mi.time_to_string f.g_file_age);
+              store#set ~row ~column:download_last_seen (Mi.time_to_string f.g_file_last_seen);
+              store#set ~row ~column:download_eta_inst (Mi.calc_eta_inst f.g_file_size f.g_file_downloaded f.g_file_download_rate);
+              store#set ~row ~column:download_eta_average (Mi.calc_eta_average f.g_file_size f.g_file_downloaded f.g_file_age);
+              store#set ~row ~column:download_priority (Mi.priority_to_string f.g_file_priority);
+              store#set ~row ~column:download_comment (U.utf8_of f.g_file_comment)
             end
         | Source (s, file_num) ->
             try
-              let (_, i) = self#find_item (File_num file_num) in
-              let f = match i with File f -> f | _ -> raise Exit in
+              let f = Hashtbl.find G.files file_num in
               if s.source_num = (-1)
                 then begin
                   store#set ~row ~column:download_name s.source_name;
@@ -194,8 +319,8 @@ class g_download () =
                   store#set ~row ~column:download_downloaded (Mi.size_of_int64 s.source_downloaded);
                   store#set ~row ~column:download_percent s.source_software;
                   store#set ~row ~column:download_state (Mi.string_of_state s.source_state file_num);
-                  store#set ~row ~column:download_availability (Mi.string_of_availability availability f.file_chunks);
-                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks false);
+                  store#set ~row ~column:download_availability (Mi.string_of_availability availability f.g_file_chunks);
+                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks false);
                   store#set ~row ~column:download_download_rate (Mi.rate_to_string s.source_download_rate);
                 end
             with _ -> ()
@@ -210,68 +335,67 @@ class g_download () =
       match (i, i_new) with
           (File f, File f_new) ->
             begin
-              if f.file_comment <> f_new.file_comment
+              if f.g_file_comment <> f_new.g_file_comment
                 then begin
-                  store#set ~row ~column:download_comment (U.utf8_of f_new.file_comment)
+                  store#set ~row ~column:download_comment (U.utf8_of f_new.g_file_comment)
                 end;
-              if f.file_name <> f_new.file_name
+              if f.g_file_name <> f_new.g_file_name
                 then begin
-                  store#set ~row ~column:download_name (U.utf8_of f_new.file_name);
-                  if (Mi.extension_of f.file_name) <> (Mi.extension_of f_new.file_name)
+                  store#set ~row ~column:download_name (U.utf8_of f_new.g_file_name);
+                  if (Mi.extension_of f.g_file_name) <> (Mi.extension_of f_new.g_file_name)
                     then begin
-                      store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f_new.file_name ~size:A.SMALL);
+                      store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f_new.g_file_name ~size:A.SMALL);
                     end
                 end;
-              if f.file_uids <> f_new.file_uids
+              if f.g_file_uids <> f_new.g_file_uids
                 then begin
-                  store#set ~row ~column:download_uid (Mi.uid_list_to_string f.file_uids);
+                  store#set ~row ~column:download_uid (Mi.uid_list_to_string f.g_file_uids);
                 end;
-              if (f.file_size, f.file_downloaded, f.file_download_rate, f.file_age) <>
-                 (f_new.file_size, f_new.file_downloaded, f_new.file_download_rate, f_new.file_age)
+              if (f.g_file_size, f.g_file_downloaded, f.g_file_download_rate, f.g_file_age) <>
+                 (f_new.g_file_size, f_new.g_file_downloaded, f_new.g_file_download_rate, f_new.g_file_age)
                 then begin
-                  store#set ~row ~column:download_downloaded (Mi.size_of_int64 f_new.file_downloaded);
-                  store#set ~row ~column:download_percent (Mi.get_percent_of f_new.file_downloaded f_new.file_size);
-                  store#set ~row ~column:download_size (Mi.size_of_int64 f_new.file_size);
-                  store#set ~row ~column:download_age (Mi.time_to_string f_new.file_age);
-                  store#set ~row ~column:download_download_rate (Mi.rate_to_string f_new.file_download_rate);
-                  store#set ~row ~column:download_eta_inst (Mi.calc_eta_inst f_new.file_size f_new.file_downloaded
-                                                                             f_new.file_download_rate);
-                  store#set ~row ~column:download_eta_average (Mi.calc_eta_average f_new.file_size
-                                                                                   f_new.file_downloaded f_new.file_age);
+                  store#set ~row ~column:download_downloaded (Mi.size_of_int64 f_new.g_file_downloaded);
+                  store#set ~row ~column:download_percent (Mi.get_percent_of f_new.g_file_downloaded f_new.g_file_size);
+                  store#set ~row ~column:download_size (Mi.size_of_int64 f_new.g_file_size);
+                  store#set ~row ~column:download_age (Mi.time_to_string f_new.g_file_age);
+                  store#set ~row ~column:download_download_rate (Mi.rate_to_string f_new.g_file_download_rate);
+                  store#set ~row ~column:download_eta_inst (Mi.calc_eta_inst f_new.g_file_size f_new.g_file_downloaded
+                                                                             f_new.g_file_download_rate);
+                  store#set ~row ~column:download_eta_average (Mi.calc_eta_average f_new.g_file_size
+                                                                                   f_new.g_file_downloaded f_new.g_file_age);
                 end;
-              if (f.file_state, f.file_download_rate) <> (f_new.file_state, f_new.file_download_rate)
+              if (f.g_file_state, f.g_file_download_rate) <> (f_new.g_file_state, f_new.g_file_download_rate)
                 then begin
-                  store#set ~row ~column:download_state (Mi.string_of_file_state f_new.file_state f_new.file_download_rate);
+                  store#set ~row ~column:download_state (Mi.string_of_file_state f_new.g_file_state f_new.g_file_download_rate);
                 end;
-              let availability = Mi.main_availability_of f.file_network f.file_availability in
-              let availability_new = Mi.main_availability_of f_new.file_network f_new.file_availability in
-              if (availability, f.file_chunks) <> (availability_new, f_new.file_chunks)
+              let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
+              let availability_new = Mi.main_availability_of f_new.g_file_network f_new.g_file_availability in
+              if (availability, f.g_file_chunks) <> (availability_new, f_new.g_file_chunks)
                 then begin
-                  store#set ~row ~column:download_availability (Mi.string_of_availability availability_new f_new.file_chunks);
-                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability_new f_new.file_chunks true);
+                  store#set ~row ~column:download_availability (Mi.string_of_availability availability_new f_new.g_file_chunks);
+                  store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability_new f_new.g_file_chunks true);
                 end;
-              if f.file_format <> f_new.file_format
+              if f.g_file_format <> f_new.g_file_format
                 then begin
-                  store#set ~row ~column:download_format (Mi.format_to_string f_new.file_format);
+                  store#set ~row ~column:download_format (Mi.format_to_string f_new.g_file_format);
                 end;
-              if f.file_last_seen <> f_new.file_last_seen
+              if f.g_file_last_seen <> f_new.g_file_last_seen
                 then begin
-                  store#set ~row ~column:download_last_seen (Mi.time_to_string f_new.file_last_seen);
+                  store#set ~row ~column:download_last_seen (Mi.time_to_string f_new.g_file_last_seen);
                 end;
-              if f.file_priority <> f_new.file_priority
+              if f.g_file_priority <> f_new.g_file_priority
                 then begin
-                  store#set ~row ~column:download_priority (Mi.priority_to_string f_new.file_priority);
+                  store#set ~row ~column:download_priority (Mi.priority_to_string f_new.g_file_priority);
                 end;
-              if (f.file_active_sources, f.file_all_sources) <> (f_new.file_active_sources, f_new.file_all_sources)
+              if (f.g_file_active_sources, f.g_file_all_sources) <> (f_new.g_file_active_sources, f_new.g_file_all_sources)
                 then begin
-                  store#set ~row ~column:download_sources (Printf.sprintf "(%d / %d)" f_new.file_active_sources f_new.file_all_sources);
+                  store#set ~row ~column:download_sources (Printf.sprintf "(%d / %d)" f_new.g_file_active_sources f_new.g_file_all_sources);
                 end
             end
 
         | (Source (s, file_num), Source (s_new, file_num_new)) when file_num = file_num_new ->
            (try
-              let (_, i) = self#find_item (File_num file_num) in
-              let f = match i with File f -> f | _ -> raise Exit in
+              let f = Hashtbl.find G.files file_num in
               if s.source_num <> (-1)
                 then begin
                   if s.source_name <> s_new.source_name
@@ -306,8 +430,8 @@ class g_download () =
                   in
                   if availability <> new_availability
                     then begin
-                      store#set ~row ~column:download_availability (Mi.string_of_availability new_availability f.file_chunks);
-                      store#set ~row ~column:download_availability_pixb (Mi.availability_bar new_availability f.file_chunks false)
+                      store#set ~row ~column:download_availability (Mi.string_of_availability new_availability f.g_file_chunks);
+                      store#set ~row ~column:download_availability_pixb (Mi.availability_bar new_availability f.g_file_chunks false)
                     end;
                   if s_new.source_download_rate <> s.source_download_rate
                     then begin
@@ -337,48 +461,43 @@ class g_download () =
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
               col#set_cell_data_func renderer
-               (fun model row ->
-                  match !view_context with
-                      Some context when col#width > 0 ->
-                        begin
-                          let width =
-                            if !!O.gtk_look_use_icons
-                              then (col#width - 4 - !!O.gtk_look_lists_icon_size) - 4 * !G.char_width
-                              else col#width - 4 * !G.char_width
-                          in
-                          let name = model#get ~row ~column:download_name in
-                          let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
-                          renderer#set_properties [ `TEXT s ];
-                          let item = self#get_item row in
-                          begin
-                            match item with
-                                File f ->
-                                  renderer#set_properties [ `EDITABLE true ];
-                                  ignore (renderer#connect#edited ~callback:
-                                    (fun path name ->
-                                       try
-                                         let iter = self#get_iter path in
-                                         let item = self#get_item iter in
-                                         match item with
-                                             File ff ->
-                                               let child_row = self#convert_iter_to_child_iter iter in
-                                               store#set ~row:child_row ~column:download_name ff.file_name;
-                                               (match ff.file_state with
-                                                   FileDownloaded  -> GuiCom.send (SaveFile (ff.file_num, name))
-                                                 | _  ->  GuiCom.send (RenameFile (ff.file_num, name)))
-                                           | _ -> ()
-
-                                       with _ -> ()
+                (fun model row ->
+                   match !view_context with
+                       Some context when col#width > 0 ->
+                         begin
+                           let width =
+                             if !!O.gtk_look_use_icons
+                               then (col#width - 4 - !!O.gtk_look_lists_icon_size) - 4 * !G.char_width
+                               else col#width - 4 * !G.char_width
+                           in
+                           let name = model#get ~row ~column:download_name in
+                           let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
+                           renderer#set_properties [ `TEXT s ];
+                           let key = self#find_model_key row in
+                           if (is_file key) then begin
+                             renderer#set_properties [ `EDITABLE true ];
+                             ignore (renderer#connect#edited ~callback:
+                               (fun path name ->
+                                  try
+                                    let iter = self#get_iter path in
+                                    let k = self#find_model_key iter in
+                                    if (is_file k) then begin
+                                      let file = file_of_key k in
+                                      (match file.g_file_state with
+                                           FileDownloaded  -> GuiCom.send (SaveFile (file.g_file_num, name))
+                                         | _  ->  GuiCom.send (RenameFile (file.g_file_num, name)));
+                                      let store_iter = self#convert_iter_to_child_iter iter in
+                                      store#set ~row:store_iter ~column:download_name file.g_file_name
+                                    end
+                                  with _ -> ()
                                   ))
 
-                              | _ -> renderer#set_properties [ `EDITABLE false ]
-
-                          end
-                        end
+                             end else renderer#set_properties [ `EDITABLE false ]
+                         end
 
                       | _ -> renderer#set_properties [ `TEXT "" ]
-              )
-           end
+                )
+            end
 
         | Col_file_size ->
             begin
@@ -529,74 +648,76 @@ class g_download () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c i1 i2 =
-      match (i1, i2) with
-          (File f1, File f2) ->
-             begin
+    method sort_items c k1 k2 =
+      match (is_file k1, is_file k2) with
+          (true, true) ->
+             begin try
+               let f1 = file_of_key k1 in
+               let f2 = file_of_key k2 in
                match c with
-                   Col_file_name -> compare (String.lowercase f1.file_name) (String.lowercase f2.file_name)
-                 | Col_file_size -> compare f1.file_size f2.file_size
-                 | Col_file_downloaded -> compare f1.file_downloaded f2.file_downloaded
-                 | Col_file_percent -> compare (float_of_string (Mi.get_percent_of f1.file_downloaded f1.file_size))
-                                               (float_of_string (Mi.get_percent_of f2.file_downloaded f2.file_size))
-                 | Col_file_rate -> compare f1.file_download_rate f2.file_download_rate
-                 | Col_file_state -> compare (Mi.string_of_file_state f1.file_state f1.file_download_rate)
-                                             (Mi.string_of_file_state f2.file_state f2.file_download_rate)
+                   Col_file_name -> compare (String.lowercase f1.g_file_name) (String.lowercase f2.g_file_name)
+                 | Col_file_size -> compare f1.g_file_size f2.g_file_size
+                 | Col_file_downloaded -> compare f1.g_file_downloaded f2.g_file_downloaded
+                 | Col_file_percent -> compare (float_of_string (Mi.get_percent_of f1.g_file_downloaded f1.g_file_size))
+                                               (float_of_string (Mi.get_percent_of f2.g_file_downloaded f2.g_file_size))
+                 | Col_file_rate -> compare f1.g_file_download_rate f2.g_file_download_rate
+                 | Col_file_state -> compare (Mi.string_of_file_state f1.g_file_state f1.g_file_download_rate)
+                                             (Mi.string_of_file_state f2.g_file_state f2.g_file_download_rate)
                  | Col_file_availability ->
                      begin
-                       let av1 = Mi.main_availability_of f1.file_network f1.file_availability in
-                       let av2 = Mi.main_availability_of f2.file_network f2.file_availability in
+                       let av1 = Mi.main_availability_of f1.g_file_network f1.g_file_availability in
+                       let av2 = Mi.main_availability_of f2.g_file_network f2.g_file_availability in
                        if !!O.gtk_look_graphical_availability
                          then begin
-                           Mi.sort_availability_bar (av1, f1.file_chunks) (av2, f2.file_chunks) true
+                           Mi.sort_availability_bar (av1, f1.g_file_chunks) (av2, f2.g_file_chunks) true
                          end else begin
-                           let s1 = Mi.string_of_availability av1 f1.file_chunks in
-                           let s2 = Mi.string_of_availability av2 f2.file_chunks in
+                           let s1 = Mi.string_of_availability av1 f1.g_file_chunks in
+                           let s2 = Mi.string_of_availability av2 f2.g_file_chunks in
                            compare (float_of_string s1) (float_of_string s2)
                          end
                      end
-                 | Col_file_uid -> compare (Mi.uid_list_to_string f1.file_uids) (Mi.uid_list_to_string f2.file_uids)
-                 | Col_file_format -> compare f1.file_format f2.file_format
-                 | Col_file_network -> compare f1.file_network f2.file_network
-                 | Col_file_age -> compare f1.file_age f2.file_age
-                 | Col_file_last_seen -> compare f1.file_last_seen f2.file_last_seen
-                 | Col_file_eta -> compare (Mi.calc_eta_inst f1.file_size f1.file_downloaded f1.file_download_rate)
-                                           (Mi.calc_eta_inst f2.file_size f2.file_downloaded f2.file_download_rate)
-                 | Col_file_priority -> compare f1.file_priority f2.file_priority
-                 | Col_file_comment -> compare f1.file_comment f2.file_comment
+                 | Col_file_uid -> compare (Mi.uid_list_to_string f1.g_file_uids) (Mi.uid_list_to_string f2.g_file_uids)
+                 | Col_file_format -> compare f1.g_file_format f2.g_file_format
+                 | Col_file_network -> compare f1.g_file_network f2.g_file_network
+                 | Col_file_age -> compare f1.g_file_age f2.g_file_age
+                 | Col_file_last_seen -> compare f1.g_file_last_seen f2.g_file_last_seen
+                 | Col_file_eta -> compare (Mi.calc_eta_inst f1.g_file_size f1.g_file_downloaded f1.g_file_download_rate)
+                                           (Mi.calc_eta_inst f2.g_file_size f2.g_file_downloaded f2.g_file_download_rate)
+                 | Col_file_priority -> compare f1.g_file_priority f2.g_file_priority
+                 | Col_file_comment -> compare f1.g_file_comment f2.g_file_comment
                  | Col_file_sources ->
                      begin
-                       let i = compare f1.file_active_sources f2.file_active_sources in
+                       let i = compare f1.g_file_active_sources f2.g_file_active_sources in
                        if i = 0
-                         then compare f1.file_all_sources f2.file_all_sources
+                         then compare f1.g_file_all_sources f2.g_file_all_sources
                          else i
                      end
-             end
+             with _ -> 0 end
 
-        | (Source (s1, file_num_a), Source (s2, file_num_b)) when file_num_a = file_num_b ->
-             begin
+        | (false, false) when (try file_num k1 = file_num k2 with _ -> false) ->
+             begin try
+               let s1 = source_of_key k1 in
+               let s2 = source_of_key k2 in
+               let file_num = file_num k1 in
                match c with
                    Col_file_name -> compare (String.lowercase s1.source_name)
                                             (String.lowercase s2.source_name)
                  | Col_file_downloaded -> compare s1.source_downloaded s2.source_downloaded
                  | Col_file_percent -> compare s1.source_software s2.source_software
-                 | Col_file_state -> compare (Mi.string_of_state s1.source_state file_num_a)
-                                             (Mi.string_of_state s2.source_state file_num_a)
+                 | Col_file_state -> compare (Mi.string_of_state s1.source_state file_num)
+                                             (Mi.string_of_state s2.source_state file_num)
                  | Col_file_availability ->
                      begin
                        try
-                         let (_, i1) = self#find_item (File_num file_num_a) in
-                         let (_ ,i2) = self#find_item (File_num file_num_b) in
-                         let f1 = match i1 with File f -> f | _ -> raise Exit in
-                         let f2 = match i2 with File f -> f | _ -> raise Exit in
-                         let av_s1 = try List.assoc file_num_a s1.source_availability with _ -> "" in
-                         let av_s2 = try List.assoc file_num_a s2.source_availability with _ -> "" in
+                         let f = Hashtbl.find G.files file_num in
+                         let av_s1 = try List.assoc file_num s1.source_availability with _ -> "" in
+                         let av_s2 = try List.assoc file_num s2.source_availability with _ -> "" in
                          if !!O.gtk_look_graphical_availability
                            then begin
-                             Mi.sort_availability_bar (av_s1, f1.file_chunks) (av_s2, f2.file_chunks) false
+                             Mi.sort_availability_bar (av_s1, f.g_file_chunks) (av_s2, f.g_file_chunks) false
                            end else begin
-                             let av1 = Mi.string_of_availability av_s1 f1.file_chunks in
-                             let av2 = Mi.string_of_availability av_s2 f2.file_chunks in
+                             let av1 = Mi.string_of_availability av_s1 f.g_file_chunks in
+                             let av2 = Mi.string_of_availability av_s2 f.g_file_chunks in
                              compare (float_of_string av1) (float_of_string av2)
                            end
                        with _ -> 0
@@ -604,7 +725,7 @@ class g_download () =
                  | Col_file_network -> compare s1.source_network s2.source_network
                  | Col_file_rate -> compare s1.source_download_rate s2.source_download_rate
                  | _ -> 0
-             end
+             with _ -> 0 end
 
         | _ -> 0
 
@@ -615,20 +736,18 @@ class g_download () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun i ->
+      List.iter (fun k ->
         try
-          let (row, i_) = self#find_item (get_key i) in 
-          match i with
-              File f ->
-                 begin
-                   store#set ~row ~column:download_network_pixb (Mi.network_pixb f.file_network ~size:A.SMALL ());
-                   store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.file_name ~size:A.SMALL);
-                 end
-            | Source (s, file_num) ->
-                begin
-                  store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
-                  store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
-                end
+          let row = self#find_row k in
+          if (is_file k) then begin
+            let f = file_of_key k in
+            store#set ~row ~column:download_network_pixb (Mi.network_pixb f.g_file_network ~size:A.SMALL ());
+            store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.g_file_name ~size:A.SMALL);
+          end else begin
+            let s = source_of_key k in
+            store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
+            store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+          end
         with _ -> ()
       ) (self#all_items ())
 
@@ -639,29 +758,24 @@ class g_download () =
 (*************************************************************************)
 
     method force_update_avail_bars () =
-      List.iter (fun i ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item (get_key i) in
+          let row = self#find_row k in
           if !!O.gtk_look_graphical_availability
-            then match i with
-                     File f ->
-                       begin
-                         let availability = Mi.main_availability_of f.file_network f.file_availability in
-                         store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks true);
-                       end
-                   | Source (s, file_num) ->
-                       begin
-                         let (_, i') = self#find_item (File_num file_num) in
-                         let f = match i' with File f -> f | _ -> raise Exit in
-                         let availability =
-                           try
-                             List.assoc file_num s.source_availability
-                           with _ -> ""
-                         in
-                         store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.file_chunks false);
-                       end
-
-            else store#set ~row ~column:download_availability_pixb None
+            then if (is_file k) then begin
+               let f = file_of_key k in
+               let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
+               store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks true);
+            end else begin
+               let f = file_of_key k in
+               let s = source_of_key k in
+               let availability =
+                 try
+                   List.assoc (file_num k) s.source_availability
+                 with _ -> ""
+               in
+               store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks false);
+            end else store#set ~row ~column:download_availability_pixb None
         with _ -> ()
       ) (self#all_items ())
 
@@ -684,65 +798,73 @@ let on_entry_return entry =
           entry#set_text ""
         end
 
-let preview f () = GuiCom.send (Preview f.file_num)
+let preview k () = try GuiCom.send (Preview (file_num k)) with _ -> ()
 
-let show_details item () = GuiInfoWindow.window item ()
+let show_details k () =
+  try
+    let item =
+      if is_file k
+      then File (file_of_key k)
+      else Source ((source_of_key k), file_num k)
+    in GuiInfoWindow.window item ()
+  with _ -> ()
 
 let pause_resume sel () =
-  List.iter (fun item ->
-    match item with
-        File f ->
-           GuiCom.send (SwitchDownload (f.file_num,
-              match f.file_state with
-                FilePaused | FileAborted _ -> true
-              | _ -> false
-           ))
-      | _ -> ()
+  List.iter (fun k ->
+    if is_file k
+    then try
+      let f = file_of_key k in
+      let state =
+        match f.g_file_state with
+            FilePaused | FileAborted _ -> true
+          | _ -> false
+      in
+      GuiCom.send (SwitchDownload (f.g_file_num, state))
+    with _ -> ()
   ) sel
 
 let retry_connect sel () =
-  List.iter (fun item ->
-    match item with
-        File f ->
-           GuiCom.send (ConnectAll f.file_num)
-      | _ -> ()
+  List.iter (fun k ->
+    if is_file k
+    then try
+      GuiCom.send (ConnectAll (file_num k))
+    with _ -> ()
   ) sel
 
 let cancel sel () =
   let warning_message = !M.dT_lb_ask_cancel_download_files in
   let l = ref [] in
-  List.iter (fun item ->
-    match item with
-        File f ->
-          l := f.file_name :: !l
-      | _ -> ()
+  List.iter (fun k ->
+    if is_file k
+    then try
+      let f = file_of_key k in
+      l := f.g_file_name :: !l
+    with _ -> ()
   ) sel;
   let on_ok () =
-    List.iter (fun item ->
-      match item with
-          File f ->
-            (* Printf.printf "ASK to Cancel file : %d\n" f.file_num;
-            flush stdout; *)
-            GuiCom.send (RemoveDownload_query f.file_num)
-        | _ -> ()
+    List.iter (fun k ->
+    if is_file k
+    then try
+      GuiCom.send (RemoveDownload_query (file_num k))
+    with _ -> ()
     ) sel
   in
   GuiTools.warning_box ~warning_message ~text:!l ~on_ok ()
 
 let verify_chunks sel () =
-  List.iter (fun item ->
-    match item with
-        File f ->
-           GuiCom.send (VerifyAllChunks f.file_num)
-      | _ -> ()
+  List.iter (fun k ->
+    if is_file k
+    then try
+      GuiCom.send (VerifyAllChunks (file_num k))
+    with _ -> ()
   ) sel
 
 let set_priority sel prio () =
-  List.iter (fun item ->
-    match item with
-        File f ->
-           GuiCom.send (SetFilePriority (f.file_num, prio))
-      | _ -> ()
+  List.iter (fun k ->
+    if is_file k
+    then try
+      GuiCom.send (SetFilePriority (file_num k, prio))
+    with _ -> ()
   ) sel
 
 let preference label v box_type opt_list =
@@ -766,7 +888,7 @@ let preference label v box_type opt_list =
   }
 
 let edit_mp3_tags f () =
-  match f.file_format with
+  match f.g_file_format with
       MP3 (tag,_) ->
         begin
           let module C = ConfigWindow in
@@ -787,7 +909,7 @@ let edit_mp3_tags f () =
             tag.P.comment <- comment.C.pref_new_value;
             tag.P.tracknum <- int_of_float (C.safe_int tracknum.C.pref_new_value);
             tag.P.genre <- Mp3_misc.genre_of_string genre.C.pref_new_value;
-            GuiCom.send (ModifyMp3Tags (f.file_num, tag))
+            GuiCom.send (ModifyMp3Tags (f.g_file_num, tag))
           in
           C.simple_panel
               ~prefs:[title;artist;album;year;comment;tracknum;genre]
@@ -795,42 +917,32 @@ let edit_mp3_tags f () =
               ~icon:(A.get_icon ~icon:M.icon_menu_search_mp3 ~size:A.SMALL ())
               ~on_ok ()
         end
-
     | _ -> ()
 
+
+let get_format sel () =
+  List.iter (fun k ->
+    if is_file k then try
+      GuiCom.send (QueryFormat (file_num k))
+    with _ -> ()
+  ) sel
+
 let save_all () =
-  List.iter (fun i ->
-    match i with
-        File f ->
-          (match f.file_state with
-              FileDownloaded -> 
-                GuiCom.send (SaveFile (f.file_num, f.file_name))
-            | _ -> ())
-
-      | _ -> ()
-
+  List.iter (fun k ->
+    if is_file k
+    then try
+      let f = file_of_key k in
+      match f.g_file_state with
+          FileDownloaded -> GuiCom.send (SaveFile (f.g_file_num, f.g_file_name))
+        | _ -> ()
+    with _ -> ()
   ) (downloadstore#all_items ())
 
-(*
-let save_as f () =
-  let file_opt = GToolbox.input_string ~title:(!M.dT_wt_save_as)
-    ~text:(U.utf8_of f.file_name)
-    (!M.dT_lb_save_as)
-  in
-  match file_opt with
-    None -> ()
-  | Some name -> 
-      match f.file_state with
-           FileDownloaded  -> GuiCom.send (SaveFile (f.file_num, name))
-        | _  ->  GuiCom.send (RenameFile (f.file_num, name))
-*)
-
 let add_to_friends sel () =
-  List.iter (fun item ->
-    match item with
-        Source (s, _) ->
-           GuiCom.send (AddClientFriend s.source_num)
-      | _ -> ()
+  List.iter (fun k ->
+    if is_source k then try
+      GuiCom.send (AddClientFriend (source_num k))
+    with _ -> ()
   ) sel
 
 let browse_files = add_to_friends
@@ -849,13 +961,12 @@ let ask_for_sources () =
       GuiCom.send (InterestedInSources true)
     end
 
-let get_format sel () =
-  List.iter (fun item ->
-    match item with
-        File f ->
-           GuiCom.send (QueryFormat f.file_num)
-      | _ -> ()
-  ) sel
+let update_downloading_files () =
+  let keys = downloadstore#all_items () in
+  let files = keys_to_files keys in
+  List.iter (fun f ->
+    GuiCom.send (GetFile_info f.g_file_num)
+  ) files
 
 (*************************************************************************)
 (*                                                                       *)
@@ -866,12 +977,12 @@ let get_format sel () =
 let download_menu sel =
     match sel with
         [] -> []
-      | (File f) :: tail ->
+      | k :: tail when (is_file k) ->
           (if tail = []
              then
                [
-                `I ((!M.dT_me_show_file_details), show_details (File f)) ;
-                `I ((!M.dT_me_preview), preview f) ;
+                `I ((!M.dT_me_show_file_details), show_details k) ;
+                `I ((!M.dT_me_preview), preview k) ;
                 `S ;
                ]
              else  [])
@@ -890,13 +1001,14 @@ let download_menu sel =
                      ]) ::
                 `S ::
                 `I ((!M.dT_me_get_format), get_format sel) ::
-             (match (f.file_state, f.file_format) with
+             (try let f = file_of_key k in
+              match (f.g_file_state, f.g_file_format) with
                   (FileDownloaded, MP3 _) ->
                [
                 `I ((!M.dT_me_edit_mp3), edit_mp3_tags f)
                ]
                 | _ ->
-               [])
+               [] with _ -> [])
              @
                 `I ((!M.dT_me_save_all), save_all) :: [] (*
                 (if tail = [] then
@@ -905,14 +1017,14 @@ let download_menu sel =
                ]
             else  []) *)
 
-      | (Source (s, file_num)) :: tail ->
-          if s.source_num = (-1)
+      | k :: tail when (is_source k) ->
+          if (source_num k) = (-1)
             then []
             else
               (if tail = []
                  then
                    [
-                    `I ((!M.dT_me_show_source_details), show_details (Source (s, file_num))) ;
+                    `I ((!M.dT_me_show_source_details), show_details k) ;
                    ]
                  else  [])
               @
@@ -920,6 +1032,7 @@ let download_menu sel =
                     `I (!M.dT_me_browse_files, browse_files sel);
                     `I (!M.dT_me_add_to_friends, add_to_friends sel)
                    ]
+      | _ -> []
 
 (*************************************************************************)
 (*                                                                       *)
@@ -927,12 +1040,20 @@ let download_menu sel =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_download i = 
-  match i with
-      File f -> not (List.memq f.file_network !G.networks_filtered)
-    | Source (s, _) -> not (List.memq s.source_network !G.networks_filtered)(*  &&
-                       s.source_state <> NewHost &&
-                       (s.source_name <> "" && s.source_software <> "unk") *)
+let filter_download k = 
+  if is_file k
+  then begin
+    try
+      let f = file_of_key k in
+      not (List.memq f.g_file_network !G.networks_filtered)
+    with _ -> true
+  end else begin
+    try
+      let s = source_of_key k in
+      not (List.memq s.source_network !G.networks_filtered)
+(*    && s.source_state <> NewHost && (s.source_name <> "" && s.source_software <> "unk") *)
+    with _ -> true
+  end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -953,29 +1074,28 @@ let clean_avail_bars () =
   if !!O.gtk_look_graphical_availability
     then begin
       let list = ref [] in
-      List.iter (fun i ->
-        match i with
-            File f ->
-              begin
-                let availability = Mi.main_availability_of f.file_network f.file_availability in
-                let key = (availability, f.file_chunks, true) in
-                if not (List.mem key !list)
-                  then begin list := key :: !list end;
-                match f.file_sources with
-                    None -> ()
-                  | Some sources ->
-                      List.iter (fun source_num ->
-                        let s = Hashtbl.find G.sources source_num in
-                        List.iter (fun (_, avail) ->
-                          let key = (avail, f.file_chunks, false) in
-                          if not (List.mem key !list)
-                            then list := key :: !list
-                        ) s.source_availability;
-                      ) sources
-              end
-
-          | _ -> ()
-
+      List.iter (fun k ->
+        if is_file k
+          then begin
+            try
+              let f = file_of_key k in
+              let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
+              let key = (availability, f.g_file_chunks, true) in
+              if not (List.mem key !list)
+                then begin list := key :: !list end;
+              match f.g_file_sources with
+                  None -> ()
+                | Some sources ->
+                    List.iter (fun source_num ->
+                      let s = Hashtbl.find G.sources source_num in
+                      List.iter (fun (_, avail) ->
+                        let key = (avail, f.g_file_chunks, false) in
+                        if not (List.mem key !list)
+                          then list := key :: !list
+                      ) s.source_availability;
+                    ) sources
+           with _ -> ()
+          end
       ) (downloadstore#all_items ());
       A.clean_avail_bars !list
     end
@@ -1007,51 +1127,88 @@ let reset_downloads_filter () =
 (*                                                                       *)
 (*************************************************************************)
 
+let all_files_razorback2_stats () =
+  let l = List.filter (fun k -> is_file k) (downloadstore#all_items ()) in
+  List.iter (fun k ->
+    try
+      let file = file_of_key k in
+      GuiHtml.get_razorback2_stats file
+    with _ -> ()
+  ) l
+
+let hashtbl_update f f_new =
+  f.g_file_comment <- f_new.g_file_comment;
+  f.g_file_name <- f_new.g_file_name;
+  f.g_file_names <- f_new.g_file_names;
+  f.g_file_size <- f_new.g_file_size;
+  f.g_file_downloaded <- f_new.g_file_downloaded;
+  f.g_file_active_sources <- f_new.g_file_active_sources;
+  f.g_file_all_sources <- f_new.g_file_all_sources;
+  f.g_file_state <- f_new.g_file_state;
+  f.g_file_chunks <- f_new.g_file_chunks;
+  f.g_file_availability <- f_new.g_file_availability;
+  f.g_file_sources <- f_new.g_file_sources;
+  f.g_file_download_rate <- f_new.g_file_download_rate;
+  f.g_file_format <- f_new.g_file_format;
+  f.g_file_chunks_age <- f_new.g_file_chunks_age;
+  f.g_file_age <- f_new.g_file_age;
+  f.g_file_last_seen <- f_new.g_file_last_seen;
+  f.g_file_priority <- f_new.g_file_priority;
+  f.g_file_uids <- f_new.g_file_uids
+
 let remove_dummy_source file_num =
-  downloadstore#remove_item (Source (dummy_source, file_num))
+  downloadstore#remove_item (dummy_source_key file_num)
 
 let add_dummy_source parent file_num =
   try
-    let _ = downloadstore#find_item (Source_num ((-1), file_num)) in
+    let _ = downloadstore#find_row (dummy_source_key file_num) in
     ()
   with _ ->
     ignore (downloadstore#add_item (Source (dummy_source, file_num)) ~parent ())
 
 let h_cancelled file_num =
   try
-    let (_, i) = downloadstore#find_item (File_num file_num) in
-    match i with
-        File f ->
-          begin
-            downloadstore#remove_item (File f);
-            decr G.ndownloads;
-            (if f.file_state = FileDownloaded
-               then decr G.ndownloaded);
-            GuiStatusBar.update_downloadedfiles ()
-          end
-      | _ -> ()
+    let fi = Hashtbl.find G.files file_num in
+    downloadstore#remove_item (file_key file_num);
+    Hashtbl.remove G.files file_num;
+    decr G.ndownloads;
+    (if fi.g_file_state = FileDownloaded
+       then decr G.ndownloaded);
+    GuiStatusBar.update_downloadedfiles ();
+    let file_uid = Mi.to_uid_type fi.g_file_uids in
+    GuiGraphBase.cancel_file file_uid;
+    Hashtbl.remove G.file_by_uid file_uid;
   with _ -> ()
 
 let h_paused f =
+  let file_uid = Mi.to_uid_type f.g_file_uids in
   try
-    let (row, i) = downloadstore#find_item (File_num f.file_num) in
-    match i with
-        File fi ->
-          begin
-            (if f.file_state = FileDownloaded && f.file_state <> fi.file_state
-               then incr G.ndownloaded);
-            let f_new = {f with file_sources = fi.file_sources} in
-            downloadstore#update_item row (File fi) (File f_new)
-          end
-        | _ -> ()
+    let fi = Hashtbl.find G.files f.g_file_num in
+    let row = downloadstore#find_row (file_key f.g_file_num) in
+    (if f.g_file_state = FileDownloaded && f.g_file_state <> fi.g_file_state
+       then incr G.ndownloaded);
+    let f_new = {f with g_file_sources = fi.g_file_sources} in
+    downloadstore#update_item row (File fi) (File f_new);
+    hashtbl_update fi f_new;
+    let rate = int_of_float f.g_file_download_rate in
+    GuiGraphBase.save_record rate (GraphFile (file_uid, GraphDownloads));
+    if f.g_file_name <> fi.g_file_name
+      then Hashtbl.replace G.file_by_uid (file_uid) (U.utf8_of f.g_file_name);
   with _ ->
     begin
       let parent = downloadstore#add_item (File f) () in
       incr G.ndownloads;
-      (if f.file_state = FileDownloaded
+      (if f.g_file_state = FileDownloaded
          then incr G.ndownloaded);
       GuiStatusBar.update_downloadedfiles ();
-      add_dummy_source parent f.file_num
+      add_dummy_source parent f.g_file_num;
+      Hashtbl.add G.files f.g_file_num f;
+      GuiGraphBase.add_file file_uid;
+      Hashtbl.add G.file_by_uid file_uid (U.utf8_of f.g_file_name);
+      if !!O.gtk_misc_display_razorback_stats
+        then begin
+          try GuiHtml.get_razorback2_stats f with _ -> ()
+        end
     end
 
 let h_downloading = h_paused
@@ -1062,32 +1219,33 @@ let h_removed = h_cancelled
 
 
 let file_info f =
-  match f.file_state with
+  match f.g_file_state with
       FileNew -> assert false
     | FileCancelled -> 
-        h_cancelled f.file_num
+        h_cancelled f.g_file_num
     | FileDownloaded ->
         h_downloaded f
     | FileShared ->
-        h_removed f.file_num
+        h_removed f.g_file_num
     | FilePaused | FileQueued | FileAborted _ -> 
         h_paused f
     | FileDownloading ->
         h_downloading f
 
-let file_downloaded (num, downloaded, rate, last_seen) =
+let file_downloaded (file_num, downloaded, rate, last_seen) =
   try
-    let (row, i) = downloadstore#find_item (File_num num) in
-    match i with
-        File f ->
-          begin
-            let f_new = {f with file_downloaded = downloaded;
-                                file_download_rate = rate;
-                                file_last_seen = last_seen}
-            in
-            downloadstore#update_item row (File f) (File f_new)
-          end
-      | _ -> ()
+    let f = Hashtbl.find G.files file_num in
+    let row = downloadstore#find_row (file_key file_num) in
+    let f_new = {f with g_file_downloaded = downloaded;
+                        g_file_download_rate = rate;
+                        g_file_last_seen = last_seen}
+    in
+    downloadstore#update_item row (File f) (File f_new);
+    f.g_file_downloaded <- f_new.g_file_downloaded;
+    f.g_file_download_rate <- f_new.g_file_download_rate;
+    f.g_file_last_seen <- f_new.g_file_last_seen;
+    let rate = int_of_float f.g_file_download_rate in
+    GuiGraphBase.save_record rate (GraphFile ((Mi.to_uid_type f.g_file_uids), GraphDownloads));
   with _ -> ()
 
 (* File_add_source and File_update_availability could be merged now that we use
@@ -1095,64 +1253,53 @@ let file_downloaded (num, downloaded, rate, last_seen) =
  *)
 let h_add_source s file_num =
   try
-    let (row, i) = downloadstore#find_item (File_num file_num) in
-    match i with
-        File f ->
+    let f = Hashtbl.find G.files file_num in
+    let parent = downloadstore#find_row (file_key file_num) in
+    match f.g_file_sources with
+        None ->
           begin
-            match f.file_sources with
-                None ->
-                  begin
-                    f.file_sources <- Some [s.source_num];
-                    ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
-                    remove_dummy_source file_num
-                  end
-              | Some sources ->
-                  begin
-                    if List.mem s.source_num sources
-                      then raise Exit
-                      else begin
-                        f.file_sources <- Some (s.source_num :: sources);
-                        ignore (downloadstore#add_item (Source (s, file_num)) ~parent:row ());
-                      end
-                  end
+            f.g_file_sources <- Some [s.source_num];
+            ignore (downloadstore#add_item (Source (s, file_num)) ~parent ());
+            remove_dummy_source file_num
           end
-      | _ -> ()
+      | Some sources ->
+          begin
+            if List.mem s.source_num sources
+              then raise Exit
+              else begin
+                f.g_file_sources <- Some (s.source_num :: sources);
+                ignore (downloadstore#add_item (Source (s, file_num)) ~parent ());
+              end
+          end
   with _ -> ()
 
 let h_remove_source s file_num =
   try
-    let (row, i) = downloadstore#find_item (File_num file_num) in
-    match i with
-        File f ->
-          begin
-            let _ =
-              match f.file_sources with
-                  None -> add_dummy_source row file_num
-                | Some sources ->
-                    begin
-                      f.file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
-                    end
-            in
-            (match f.file_sources with
-                Some [] ->
-                  begin
-                    f.file_sources <- None;
-                    add_dummy_source row file_num;
-                  end
-              | _ -> ());
-            downloadstore#remove_item (Source (s, file_num));
-          end
-      | _ -> ()
+    let f = Hashtbl.find G.files file_num in
+    let parent = downloadstore#find_row (file_key file_num) in
+    let _ =
+      match f.g_file_sources with
+          None -> add_dummy_source parent file_num
+        | Some sources ->
+            begin
+              f.g_file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
+            end
+    in
+    (match f.g_file_sources with
+         Some [] ->
+           begin
+             f.g_file_sources <- None;
+             add_dummy_source parent file_num;
+           end
+       | _ -> ());
+    downloadstore#remove_item (source_key file_num s.source_num);
   with _ -> ()
 
-let h_update_source s_new =
+let h_update_source s s_new =
   List.iter (fun file_num ->
     try
-      let (row, i) = downloadstore#find_item (Source_num (s_new.source_num, file_num)) in
-      match i with
-          Source (s, num) ->
-            downloadstore#update_item row (Source (s, num)) (Source (s_new, num))
-        | _ -> ()
+      let row = downloadstore#find_row (source_key file_num s_new.source_num) in
+      downloadstore#update_item row (Source (s, file_num)) (Source (s_new, file_num))
     with _ -> ()
   ) s_new.source_files_requested;
   match s_new.source_state with
@@ -1161,13 +1308,10 @@ let h_update_source s_new =
           then downloaders := s_new.source_num :: !downloaders
     | _ -> ()
 
-let h_update_source_availability s_new file_num =
+let h_update_source_availability s s_new file_num =
    try
-     let (row, i) = downloadstore#find_item (Source_num (s_new.source_num, file_num)) in
-     match i with
-         Source (s, num) ->
-           downloadstore#update_item row (Source (s, num)) (Source (s_new, num))
-       | _ -> ()
+     let row = downloadstore#find_row (source_key file_num s_new.source_num) in
+     downloadstore#update_item row (Source (s, file_num)) (Source (s_new, file_num))
    with _ -> ()
 
 let clean_sources_table s_old =
@@ -1184,6 +1328,8 @@ let clean_sources_table s_old =
 open GMain
 
 let downloads_box gui =
+  update_downloaders ();
+  update_downloading_files ();
   let vbox = GPack.vbox ~homogeneous:false ~border_width:6 () in
   ignore (vbox#connect#destroy ~callback:
     (fun _ ->
@@ -1210,17 +1356,71 @@ let downloads_box gui =
     Downloads.treeview ~mode:`MULTIPLE
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
-  let on_expand_item path (i : GuiTypes2.item_info) =
+  if !!O.gtk_misc_display_razorback_stats
+    then begin
+      let hbox_razorback_stats =
+        GPack.hbox ~homogeneous:false ~border_width:6
+          ~spacing:12
+          ~packing:(vbox#pack ~expand:false ~fill:true) ()
+      in
+      let razorback_history =
+        GMisc.image ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
+      in
+      let vbox_razorback_stats =
+        GPack.vbox ~homogeneous:false ~border_width:6
+          ~spacing:12
+          ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
+      in
+      let label_rating =
+        GMisc.label ~xalign:0. ~yalign:0.
+        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+      in
+      let label_availability =
+        GMisc.label ~xalign:0. ~yalign:0.
+        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+      in
+      let label_completed =
+        GMisc.label ~xalign:0. ~yalign:0.
+        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+      in
+      let on_select_files keys =
+        match keys with
+            [] -> ()
+          | k :: _ when (is_file k) ->
+              begin
+                try
+                  let file = file_of_key k in
+                  match file.g_file_razorback_stats with
+                      None -> ()
+                    | Some stats ->
+                        begin
+                          try
+                            let filename = stats.razorback_file_history in
+                            Printf2.lprintf_nl2 "image: %s" filename;
+                            let pixb = GdkPixbuf.from_file filename in
+                            razorback_history#set_pixbuf pixb;
+                            label_rating#set_label (Printf.sprintf "Rating: %s" stats.razorback_file_rating);
+                            label_availability#set_label (Printf.sprintf "Available: %d" stats.razorback_file_avalaibility);
+                            label_completed#set_label (Printf.sprintf "Completed: %d" stats.razorback_file_completed);
+                          with _ -> GuiHtml.get_razorback2_stats file
+                        end
+                with _ -> ()
+              end
+          | _ -> ()
+      in
+      downloadview#set_on_select on_select_files
+    end;
+  let on_expand_item path k =
     ask_for_sources ();
     false
   in
-  let on_expanded_item path (i : GuiTypes2.item_info) =
+  let on_expanded_item path k =
     expanded_rows := List.length downloadview#expanded_paths;
-    ( if !!verbose then lprintf' "rows expanded %d\n" !expanded_rows)
+    (if !!verbose then lprintf' "rows expanded %d\n" !expanded_rows)
   in
-  let on_collapsed_item path (i : GuiTypes2.item_info) =
+  let on_collapsed_item path k =
     expanded_rows := List.length downloadview#expanded_paths;
-    ( if !!verbose then lprintf' "rows expanded %d\n" !expanded_rows)
+    (if !!verbose then lprintf' "rows expanded %d\n" !expanded_rows)
   in
   view_context := Some downloadview#view#misc#pango_context;
   downloadview#set_model downloadstore#gmodel;
@@ -1233,6 +1433,7 @@ let downloads_box gui =
     (fun _ ->
       ( if !!verbose then lprintf' "Update downloaders\n");
       update_downloaders ();
+      update_downloading_files ();
       true);
   ignore (entry#event#connect#key_press ~callback:
     (fun ev ->
@@ -1247,6 +1448,8 @@ let _ =
   ignore (Timeout.add ~ms:1800000 ~callback:
     (fun _ ->
       clean_avail_bars ();
+      if !!O.gtk_misc_display_razorback_stats
+        then all_files_razorback2_stats ();
       true
   ));
   ignore (Timeout.add ~ms:30000 ~callback:

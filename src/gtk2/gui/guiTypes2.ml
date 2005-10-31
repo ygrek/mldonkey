@@ -180,6 +180,10 @@ and g_file_tree_item =
   GTreeDirectory of g_file_tree
 | GTreeFile of  res_info
 
+type source_slot = int
+let source_only = 0
+let source_has_slot = 1
+let source_has_upload = 3
 
 type source_info =
    {
@@ -202,14 +206,48 @@ type source_info =
     mutable source_upload_rate : float;
     mutable source_download_rate : float;
     mutable source_upload : string option;
-    mutable source_has_upload : bool;
+    mutable source_has_upload : source_slot;
     mutable source_availability : (int * string) list;     (* file_num, availability *)
     mutable source_files_requested : int list;             (* file_num *)
   }
 
+type razorback_stats =
+  {
+   mutable razorback_file_history      : string;
+   mutable razorback_file_rating       : string;
+   mutable razorback_file_avalaibility : int;
+   mutable razorback_file_completed    : int;
+  }
+
+type g_file_info = {
+    g_file_num : int;
+    g_file_network : int;
+
+    mutable g_file_comment : string;
+    mutable g_file_name : string;
+    mutable g_file_names : (string * ips_list) list;
+    mutable g_file_size : int64;
+    mutable g_file_downloaded : int64;
+    mutable g_file_active_sources : int;
+    mutable g_file_all_sources : int;
+    mutable g_file_state : file_state;
+    mutable g_file_chunks : string;
+    mutable g_file_availability : (int * string) list;
+    mutable g_file_sources : int list option;
+    mutable g_file_download_rate : float;
+    mutable g_file_format : format;
+    mutable g_file_chunks_age : int array;
+    mutable g_file_age : int;
+    mutable g_file_last_seen : int;
+    mutable g_file_priority : int;
+    mutable g_file_uids : Uid.t list;
+
+    mutable g_file_razorback_stats : razorback_stats option;
+  }
+
 type item_info =
-  File of file_info
-| Source of (source_info * int)   (* source_info, file_num*)
+  File of g_file_info
+| Source of (source_info * int)   (* source_info, file_num *)
 
 type item_index =
   File_num of int                 (* file_num *)
@@ -237,3 +275,15 @@ type query_form =
 | QF_COMBO of string ref
   
 | QF_HIDDEN of query_form list
+
+type shared_file =
+  {
+    g_shared_num : int;
+    g_shared_network : int;
+    mutable g_shared_filename : string;
+    mutable g_shared_size : int64;
+    mutable g_shared_uploaded : int64;
+    mutable g_shared_requests : int;
+    mutable g_shared_uids : Uid.t list;
+    mutable g_shared_last_seen : float;
+  }

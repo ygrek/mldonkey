@@ -61,7 +61,8 @@ let opt_type_to_pref_type o =
       | "Filename" -> BFilename
       | "Path" -> BPath
       | "Password" -> BPassword
-      | "Time" -> BTime
+      | "GraphTime" -> BCombo
+      | "Time" -> BInt
       | "Color" -> BColor
       | "Font" -> BFont
       | "Int" -> BInt
@@ -185,6 +186,7 @@ let ed2k_server_reg = Str.regexp_case_fold ".*files_queries.*\\|.*connections_de
 let nap_server_reg = Str.regexp_case_fold ".*napigator.*\\|.*server.*"
 let slsk_client_reg = Str.regexp_case_fold ".*client_.*\\|.*login.*\\|.*password.*"
 let slsk_sources_reg = Str.regexp_case_fold ".*token.*\\|.*clients.*\\|.*cache_.*"
+let mlgui_connection_reg = Str.regexp_case_fold ".*gtk_connection.*"
 let mlgui_client_reg = Str.regexp_case_fold ".*gtk_client_.*"
 let mlgui_look_reg = Str.regexp_case_fold ".*gtk_look_.*"
 let mlgui_color_reg = Str.regexp_case_fold ".*gtk_color_.*"
@@ -207,9 +209,10 @@ let groups_reg =
         [(Some display_reg, Some Display_conf); (Some look_reg, Some Look);
          (None, Some General_)];
    (Some Interfaces, Some Mlgui),
-        [(Some mlgui_client_reg, Some Client); (Some mlgui_look_reg, Some Look);
-         (Some mlgui_color_reg, Some Colors); (Some mlgui_font_reg, Some Fonts);
-         (Some mlgui_graph_reg, Some Graph); (None, Some Others)];
+        [(Some mlgui_connection_reg, Some Proxy); (Some mlgui_client_reg, Some Client);
+         (Some mlgui_look_reg, Some Look); (Some mlgui_color_reg, Some Colors);
+         (Some mlgui_font_reg, Some Fonts);(Some mlgui_graph_reg, Some Graph);
+         (None, Some Others)];
    (Some Tools, Some Startup),
         [(Some gui_reg, Some Gui); (None, Some User)];
    (Some Tools, Some Mail),
@@ -321,6 +324,15 @@ match p.pref_subsection with
           | "gtk_client_lang" ->
               (p.pref_option_list <- U.languages;
                BCombo)
+          | "gtk_graph_time_downloads" ->
+              (p.pref_option_list <- ["quarter"; "hour"; "half_day"; "day"; "week"; "month"; "year"];
+               p.pref_type)
+          | "gtk_graph_time_uploads" ->
+              (p.pref_option_list <- ["quarter"; "hour"; "half_day"; "day"; "week"; "month"; "year"];
+               p.pref_type)
+          | "gtk_graph_time_file" ->
+              (p.pref_option_list <- ["quarter"; "hour"; "half_day"; "day"; "week"; "month"; "year"];
+               p.pref_type)
           | _ -> p.pref_type
       end
   | _ -> p.pref_type
@@ -381,6 +393,9 @@ let update_preferences list pv =
             let _ =
               match o.M.option_name with
                   "client_name" -> G.client_name := o.M.option_value
+                | "max_hard_download_rate" -> G.max_hard_download_rate := int_of_float (safe_int o.M.option_value)
+                | "max_hard_upload_rate" -> G.max_hard_upload_rate := int_of_float (safe_int o.M.option_value)
+                | "update_gui_delay" -> G.update_gui_delay := int_of_float (1000. *. safe_float o.M.option_value)
                 | _ -> ()
             in
             try

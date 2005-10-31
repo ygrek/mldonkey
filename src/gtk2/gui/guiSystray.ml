@@ -1,4 +1,5 @@
 open GuiTypes2
+open Printf2
 
 type f = {mutable f : button_types -> unit}
 
@@ -22,12 +23,12 @@ let callback = {f = (fun ev ->
              match ev with
                DOUBLE_CLICKED ->
                begin
-                   Printf.printf "tray double clicked\n";
+                   lprintf "tray double clicked\n";
                    flush stdout;
                  end
              | RBUTTON_CLICKED ->
                  begin
-                   Printf.printf "tray right clicked\n";
+                   lprintf "tray right clicked\n";
                    flush stdout;
                  end
              | _ -> ()

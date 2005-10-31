@@ -42,19 +42,66 @@ let (<:>) = GuiTools.(<:>)
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         user_num                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let user_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         user_of_key                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let user_of_key key =
+  try
+    let num = user_num key in
+    Hashtbl.find G.users num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_users                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_users keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = user_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         user_key                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let user_key user_num =
+  Printf.sprintf "%d" user_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         message to the core                           *)
 (*                                                                       *)
 (*************************************************************************)
-    
+
 let add_to_friends sel ()  =
+  let l = keys_to_users sel in
   List.iter (fun u ->
     GuiCom.send (AddUserFriend u.user_num)
-  ) sel
+  ) l
 
 let browse_files sel () =
+  let l = keys_to_users sel in
   List.iter (fun u ->
     GuiCom.send (BrowseUser u.user_num)
-  ) sel
+  ) l
 
 
 (*************************************************************************)
@@ -63,7 +110,7 @@ let browse_files sel () =
 (*                                                                       *)
 (*************************************************************************)
 
-let user_menu (sel : user_info list) =
+let user_menu sel =
   match sel with
       [] -> []
     | _ ->
@@ -71,6 +118,16 @@ let user_menu (sel : user_info list) =
            `I (!M.rT_me_add_to_friends, add_to_friends sel) ;
            `I (!M.rT_me_browse_files, browse_files sel) ;
           ]
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         hashtbl_users_update                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let hashtbl_users_update u u_new =
+  u.user_tags <- u_new.user_tags
+
 
 module UserList(R:
 
@@ -104,16 +161,14 @@ module UserList(R:
       module Column = GuiColumns.User
 
       type item = user_info
-      type key = int
 
       let columns = R.columns
-      let get_key = (fun u -> u.user_num)
+      let get_key = (fun u -> user_key u.user_num)
       let module_name = R.module_name
     end)
 
     class g_user () =
       let user_cols     = new GTree.column_list in
-      let user_num      = user_cols#add Gobject.Data.int in
       let user_name     = user_cols#add Gobject.Data.string in
       let user_md4      = user_cols#add Gobject.Data.string in
       let user_ip_port  = user_cols#add Gobject.Data.string in
@@ -129,7 +184,6 @@ module UserList(R:
 (*************************************************************************)
 
         method from_item row (u : user_info) =
-          store#set ~row ~column:user_num u.user_num;
           store#set ~row ~column:user_name (U.utf8_of u.user_name);
           store#set ~row ~column:user_ip_port (Mi.ip_to_string u.user_ip u.user_port);
           store#set ~row ~column:user_md4 (Md4.to_string u.user_md4);
@@ -200,12 +254,16 @@ module UserList(R:
 (*                                                                       *)
 (*************************************************************************)
 
-        method sort_items c u1 u2 =
-          match c with
+        method sort_items c k1 k2 =
+          try
+            let u1 = user_of_key k1 in
+            let u2 = user_of_key k2 in
+            match c with
               Col_user_name -> compare (String.lowercase u1.user_name) (String.lowercase u2.user_name)
             | Col_user_addr -> compare u1.user_ip u2.user_ip
             | Col_user_tags -> compare u1.user_tags u2.user_tags
             | Col_user_md4 -> compare u1.user_md4 u2.user_md4
+          with _ -> 0
 
       end
 

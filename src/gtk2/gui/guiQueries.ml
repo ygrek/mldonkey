@@ -369,10 +369,14 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
   qr.g_query_label <- Some label;
   qr.g_query_waiting_label <- Some query_status;
   let on_closure () =
+    let results = GuiResults.keys_to_results (qr.g_query_result#all_items ()) in
+    List.iter (fun r ->
+      Hashtbl.remove G.results r.res_num;
+    ) results;
     close_query qr.g_query_num true;
     qr.g_query_result#clear ();
     main_evbox#destroy ();
-    Hashtbl.remove qresults qr.g_query_num
+    Hashtbl.remove qresults qr.g_query_num;
   in
   GuiTools.add_key ~key:GdkKeysyms._w ~target:main_evbox ~f:on_closure ~mods:[`CONTROL] ();
   ignore (evbox#event#connect#button_press ~callback:
@@ -919,7 +923,6 @@ let h_search_result query_num result_num =
     try
       let r = Hashtbl.find G.results result_num in
       ignore (qr.g_query_result#add_item r);
-      Hashtbl.remove G.results result_num; (* remove the result from G.users once it is stored *)
       let text = Printf.sprintf "%s (%d)" qr.g_query_desc qr.g_query_result#nitems in
       match qr.g_query_label with
           None -> ()

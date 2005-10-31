@@ -144,10 +144,10 @@ let display_console gui () =
 (*                                                                       *)
 (*************************************************************************)
 
-(* TODO *)
-
 let display_graph gui () =
   clean gui.vbox;
+  let graph = GuiGraph.graph_box gui in
+  gui.vbox#add graph;
   gui.current_page <- 8
 
 (*************************************************************************)
@@ -217,6 +217,12 @@ and fill_tool_bar gui =
       ~icon:(A.get_icon ~icon:M.icon_menu_console ~size:A.LARGE ())
       ~f:(display_console gui) ()
   in
+  let bGraph = gui.wtool#add_toggle_button
+      ~style:!!O.gtk_look_toolbars_style
+      ~markup:!M.mW_lb_graph
+      ~icon:(A.get_icon ~icon:M.icon_menu_graph ~size:A.LARGE ())
+      ~f:(display_graph gui) ()
+  in
 (*
  * TODO : make a Graph tab + some stats
  *
@@ -250,9 +256,7 @@ and fill_tool_bar gui =
       | 5 -> bRooms#set_active true
       | 6 -> bUploads#set_active true
       | 7 -> bConsole#set_active true
-(*
       | 8 -> bGraph#set_active true
-*)
       | _ -> bDownloads#set_active true
   );
   gui.update_current_page <- (fun _ ->
@@ -264,9 +268,7 @@ and fill_tool_bar gui =
       | 5 -> display_rooms gui ()
       | 6 -> display_uploads gui ()
       | 7 -> display_console gui ()
-(*
       | 8 -> display_graph gui ()
-*)
       | _ -> display_downloads gui ()
   )
 
@@ -342,4 +344,4 @@ let window () =
   vbox#pack ~expand:false ~fill:true statusbar;
 
   gui
-      
+

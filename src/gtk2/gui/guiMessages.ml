@@ -23,7 +23,79 @@ open Printf2
 open Options
 open Gettext
 
-let filename = Filename.concat CommonOptions.home_dir "mlnet_strings"
+let bin_dir = Filename.dirname Sys.argv.(0)
+
+let hidden_dir_prefix =
+  if Autoconf.system = "windows" then "" else "."
+
+let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
+
+let home_dir =
+  match Autoconf.system with
+  | "windows" -> if (Filename.basename bin_dir) = "bin" then Filename.dirname bin_dir else "."
+  | _ -> Filename.concat (try Sys.getenv "HOME" with _ -> ".") config_dir_basename
+
+let file_basedir_pre =
+  try
+    let s = Sys.getenv "MLDONKEY_DIR" in
+    if s = "" then home_dir else Filename2.normalize s
+  with _ -> home_dir
+
+let file_basedir =
+(* Creating dirs does work differently on Windows than Unix.
+   Dirs like c:\b are split down by unix2.safe_mkdir to "c".
+   This function splits the directory name into the drive name
+   and chdir to it before creating directories.
+   Non-absolute paths in $MLDONKEY_DIR do not work as well *)
+  if Sys.file_exists (Filename.concat (Sys.getcwd ()) "mlgui.ini") then
+    "."
+  else
+    if Autoconf.system = "windows" && file_basedir_pre <> home_dir then
+      match String2.split file_basedir_pre ':' with
+      | drive :: directory :: _ ->
+          Unix.chdir (drive ^ ":\\");
+          directory
+      | _ -> lprintf "Please provide an absolute path in MLDONKEY_DIR like d:\\mldonkey, exiting...\n"; exit 2
+    else file_basedir_pre
+
+let _ =
+  if not !CommonGlobals.core_included
+    then begin
+      (try
+         Unix2.safe_mkdir file_basedir
+       with e ->
+         lprintf_nl "Exception (%s) trying to create dir %s"
+           (Printexc2.to_string e) file_basedir;
+         exit 2);
+      Unix2.can_write_to_directory file_basedir;
+      Unix.chdir file_basedir;
+      lprintf_nl "Starting MLGui %s ... " Autoconf.current_version;
+      lprintf_nl "MLGui is working in %s" (Sys.getcwd ())
+    end
+
+
+let dirname_concat dir =
+  match Autoconf.system with
+      "windows" -> Filename.concat file_basedir dir
+    | _ -> file_basedir
+
+let lang_dir = dirname_concat "lang"
+let gui_config_dir = dirname_concat "interface"
+let log_dir = dirname_concat "logs"
+
+let _ =
+  if not !CommonGlobals.core_included
+  then begin
+    let filename =
+      try
+        Sys.getenv "MLGUI_STRINGS"
+      with _ ->
+        Filename.concat lang_dir "mlgui_strings"
+    in
+    Unix2.safe_mkdir (Filename.dirname filename);
+    Unix2.can_write_to_directory (Filename.dirname filename);
+    set_strings_file filename
+  end
 
 let _s x = (* lprintf "searching string %s\n" x; *) GuiUtf8.simple_utf8_of (_s "GuiMessages" x)
 
@@ -269,6 +341,18 @@ let cT_lb_clear_console  = ref ""
 let cT_lb_command  = ref ""
 
 (* Graph *)
+
+let gT_lb_time_range = ref ""
+let gT_lb_quarter = ref ""
+let gT_lb_hour = ref ""
+let gT_lb_halfday = ref ""
+let gT_lb_day = ref ""
+let gT_lb_week = ref ""
+let gT_lb_month = ref ""
+let gT_lb_year = ref ""
+let gT_lb_global_downloads = ref ""
+let gT_lb_global_uploads = ref ""
+let gT_lb_file_down_up = ref ""
 
 (* file Window *)
 
@@ -715,6 +799,18 @@ let load_messages () =
 
 (* Graph *)
 
+  gT_lb_time_range := _s_ "Time range";
+  gT_lb_quarter := _s "Quarter";
+  gT_lb_hour := _s "Hour";
+  gT_lb_halfday := _s "Half day";
+  gT_lb_day := _s "Day";
+  gT_lb_week := _s "Week";
+  gT_lb_month := _s "Month";
+  gT_lb_year := _s "Year";
+  gT_lb_global_downloads := _s "Global Downloads";
+  gT_lb_global_uploads := _s "Global Uploads";
+  gT_lb_file_down_up := _s "Files Uploads and Downloads";
+
 (* file Window *)
 
   fW_wt_show_file_details  :=  _s "File details";
@@ -969,8 +1065,9 @@ let load_messages () =
 
 (* Messages and string constants. *)
 
-let chat_config_file = 
-  Filename.concat CommonOptions.home_dir "chat.ini"
+let _ = Unix2.safe_mkdir gui_config_dir
+
+let chat_config_file = Filename.concat gui_config_dir "chat.ini"
 
 (* {2 Command line messages} *)
 

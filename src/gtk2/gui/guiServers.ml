@@ -75,6 +75,51 @@ let (view_context : GPango.context option ref) = ref None
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         server_num                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let server_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         server_of_key                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let server_of_key key =
+  try
+    let num = server_num key in
+    Hashtbl.find G.servers num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_servers                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_servers keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = server_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         server_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let server_key server_num =
+  Printf.sprintf "%d" server_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         Templates                                     *)
 (*                                                                       *)
 (*************************************************************************)
@@ -95,10 +140,9 @@ module Servers = GuiTemplates.Gview(struct
   module Column = GuiColumns.Server
 
   type item = server_info
-  type key = int
 
   let columns = O.servers_columns
-  let get_key = (fun s -> s.server_num)
+  let get_key = (fun s -> server_key s.server_num)
   let module_name = "Servers"
 
 end)
@@ -232,8 +276,9 @@ class g_server () =
                           (fun path name ->
                              try
                                let iter = self#get_iter path in
-                               let s = self#get_item iter in
-                               GuiCom.send (ServerRename (s.server_num, name));
+                               let k = self#find_model_key iter in
+                               let s = server_of_key k in
+                               GuiCom.send (ServerRename (server_num k, name));
                                let row = self#convert_iter_to_child_iter iter in
                                store#set ~row ~column:server_name s.server_name
                              with _ -> ()
@@ -308,8 +353,9 @@ class g_server () =
              (fun path ->
                 try
                   let iter = self#get_iter path in
-                  let s = self#get_item iter in
-                  GuiCom.send (ServerSetPreferred (s.server_num, not s.server_preferred));
+                  let k = self#find_key iter in
+                  let s = server_of_key k in
+                  GuiCom.send (ServerSetPreferred (server_num k, not s.server_preferred));
                   let row = self#convert_iter_to_child_iter iter in
                   store#set ~row ~column:server_preferred s.server_preferred
                 with _ -> ()
@@ -322,8 +368,11 @@ class g_server () =
 (*                                                                       *)
 (*************************************************************************)
 
-  method sort_items c s1 s2 =
-    match c with
+  method sort_items c k1 k2 =
+    try
+      let s1 = server_of_key k1 in
+      let s2 = server_of_key k2 in
+      match c with
         Col_server_address ->
           begin
             let i = compare s1.server_addr s2.server_addr in
@@ -343,6 +392,7 @@ class g_server () =
                                    (String.lowercase s2.server_name)
       | Col_server_tags -> compare s1.server_tags s2.server_tags
       | Col_server_preferred -> compare s1.server_preferred s2.server_preferred
+  with _ -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -351,9 +401,10 @@ class g_server () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun s ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item s.server_num in 
+          let row = self#find_row k in
+          let s = server_of_key k in
           store#set ~row ~column:server_network_pixb (Mi.network_pixb s.server_network ~size:A.SMALL ());
           store#set ~row ~column:server_state_pixb   (Mi.server_state_of_server s.server_network s.server_state ~size:A.SMALL)
         with _ -> ()
@@ -409,24 +460,28 @@ let update_users_label () =
 (*************************************************************************)
 
 let remove sel () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     GuiCom.send (RemoveServer_query s.server_num)
-  ) sel
+  ) l
 
 let connect_to sel () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     GuiCom.send (ConnectServer s.server_num)
-  ) sel
+  ) l
 
 let disconnect sel () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     GuiCom.send (DisconnectServer s.server_num)
-  ) sel
+  ) l
 
 let view_users sel () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     GuiCom.send (ViewUsers s.server_num)
-  ) sel
+  ) l
 
 let add_new_server entry_addr entry_port () =
   try
@@ -443,6 +498,7 @@ let remove_old_servers () =
   GuiCom.send CleanOldServers
 
 let clear_users sel () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     match s.server_users with
         None -> ()
@@ -451,10 +507,9 @@ let clear_users sel () =
             List.iter (fun user_num ->
               Hashtbl.remove G.users user_num
             ) l;
-            let (row, s) = serverstore#find_item s.server_num in
-            serverstore#update_item row s {s with server_users = None}
+            s.server_users <- None
           end
-  ) sel;
+  ) l;
   userstore#clear (); (* if we call clear_users there is a good chance that some users are currently displaied *)
   update_users_label ()
 
@@ -462,9 +517,10 @@ let get_user_info user_num =
   GuiCom.send (GetUser_info user_num)
 
 let server_set_preferred sel b () =
+  let l = keys_to_servers sel in
   List.iter (fun s ->
     GuiCom.send (ServerSetPreferred (s.server_num, b))
-  ) sel
+  ) l
 
 let server_rename s name () =
   GuiCom.send (ServerRename (s.server_num, name))
@@ -475,7 +531,7 @@ let server_rename s name () =
 (*                                                                       *)
 (*************************************************************************)
 
-let server_menu (sel : server_info list) =
+let server_menu sel =
   let l =
     match sel with
         [] -> []
@@ -501,27 +557,29 @@ let server_menu (sel : server_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_select_server (sel : server_info list) =
+let on_select_server sel =
   userstore#clear ();
   update_users_label ();
   match sel with
       [] -> ()
-    | s :: tail ->
+    | k :: tail ->
         begin
-          match s.server_users with
-              None -> (if !!verbose then lprintf' "No user for server %s\n" s.server_name)
-
-            | Some l ->
-                begin
-                  List.iter (fun user_num ->
-                    try
-                      (if !!verbose then lprintf' "Add user %d to list of server %s\n" user_num s.server_name);
-                      let u = Hashtbl.find G.users user_num in
-                      ignore (userstore#add_item u)
-                    with _ -> get_user_info user_num
-                  ) l;
-                  update_users_label ()
-                end
+          try
+            let s = server_of_key k in
+            match s.server_users with
+                None -> (if !!verbose then lprintf' "No user for server %s\n" s.server_name)
+              | Some l ->
+                  begin
+                    List.iter (fun user_num ->
+                      try
+                        (if !!verbose then lprintf' "Add user %d to list of server %s\n" user_num s.server_name);
+                        let u = Hashtbl.find G.users user_num in
+                        ignore (userstore#add_item u)
+                      with _ -> get_user_info user_num
+                    ) l;
+                    update_users_label ()
+                  end
+          with _ -> ()
         end
 
 (*************************************************************************)
@@ -532,12 +590,15 @@ let on_select_server (sel : server_info list) =
 
 let filter_disconnected_servers = ref false
 
-let filter_server s = not (
-  (!filter_disconnected_servers && (match s.server_state with
-        NotConnected _ 
-      | NewHost -> true | _ -> false)) ||
-  List.memq s.server_network !G.networks_filtered
-  )
+let filter_server k =
+  try
+    let s = server_of_key k in
+    not ((!filter_disconnected_servers &&
+           (match s.server_state with
+                NotConnected _ 
+              | NewHost -> true | _ -> false)) ||
+         List.memq s.server_network !G.networks_filtered)
+  with _ -> true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -568,9 +629,24 @@ let clear () =
 (*                                                                       *)
 (*************************************************************************)
 
+let hashtbl_server_update s s_new =
+  s.server_addr <- s_new.server_addr;
+  s.server_port <- s_new.server_port;
+  s.server_realport <- s_new.server_realport;
+  s.server_score <- s_new.server_score;
+  s.server_tags <- s_new.server_tags;
+  s.server_nusers <- s_new.server_nusers;
+  s.server_nfiles <- s_new.server_nfiles;
+  s.server_state <- s_new.server_state;
+  s.server_name <- s_new.server_name;
+  s.server_description <- s_new.server_description;
+  s.server_users <- s_new.server_users;
+  s.server_banner <- s_new.server_banner;
+  s.server_preferred <- s_new.server_preferred
+
 let remove_server server_num =
   try
-    let (_, s) = serverstore#find_item server_num in
+    let s = Hashtbl.find G.servers server_num in
     let _ =
       match s.server_users with
           None -> ()
@@ -579,14 +655,16 @@ let remove_server server_num =
               Hashtbl.remove G.users user_num
             ) l
     in
-    serverstore#remove_item s;
+    Hashtbl.remove G.servers server_num;
+    serverstore#remove_item (server_key server_num);
     decr G.nservers;
     update_servers_labels ()
   with _ -> ()
 
 let update_server serv =
   try
-    let (row, s) = serverstore#find_item serv.server_num in
+    let s = Hashtbl.find G.servers serv.server_num in
+    let row = serverstore#find_row (server_key serv.server_num) in
     let s_new = {serv with server_users = s.server_users} in
     let _ =
       match Mi.is_connected s_new.server_state, Mi.is_connected s.server_state with
@@ -595,6 +673,7 @@ let update_server serv =
         | _ -> ()
     in
     serverstore#update_item row s s_new;
+    hashtbl_server_update s s_new;
     update_servers_labels ()
   with Not_found ->
     begin
@@ -604,6 +683,7 @@ let update_server serv =
           incr G.nconnected_servers
         end;
       incr G.nservers;
+      Hashtbl.add G.servers serv.server_num serv;
       update_servers_labels ()
     end
 
@@ -615,11 +695,12 @@ let server_info s =
     | _  ->
         update_server s
 
-let h_server_update_state num state =
+let h_server_update_state server_num state =
   try
-    let (row, s) = serverstore#find_item num in
+    let s = Hashtbl.find G.servers server_num in
+    let row = serverstore#find_row (server_key server_num) in
     if state = RemovedHost
-      then remove_server s.server_num
+      then remove_server server_num
       else begin
         let s_new = {s with server_state = state} in
         let _ =
@@ -629,54 +710,59 @@ let h_server_update_state num state =
             | _ -> ()
         in
         serverstore#update_item row s s_new;
+        s.server_state <- s_new.server_state;
         update_servers_labels ()
       end
 
-  with Not_found -> GuiCom.send (GetServer_info num)
-    
-let h_server_busy num nusers nfiles =
+  with Not_found -> GuiCom.send (GetServer_info server_num)
+
+let h_server_busy server_num nusers nfiles =
   try
-    let (row, s) = serverstore#find_item num in
+    let s = Hashtbl.find G.servers server_num in
+    let row = serverstore#find_row (server_key server_num) in
     let s_new = {s with server_nusers = nusers;
                         server_nfiles = nfiles}
     in
-    serverstore#update_item row s s_new
+    serverstore#update_item row s s_new;
+    s.server_nusers <- s_new.server_nusers;
+    s.server_nfiles <- s_new.server_nfiles
+  with Not_found -> GuiCom.send (GetServer_info server_num)
 
-  with Not_found -> GuiCom.send (GetServer_info num)
-
-let h_server_update_users num user =
+let h_server_update_users server_num user =
   try
-    let (row, s) = serverstore#find_item num in
+    let s = Hashtbl.find G.servers server_num in
+    let row = serverstore#find_row (server_key server_num) in
     match s.server_users with
         None ->
           begin
-            let s_new = {s with server_users = Some [user]} in
-            serverstore#update_item row s s_new
+            s.server_users <- Some [user]
           end
       | Some list ->
           if not (List.mem user list)
             then begin
-              let s_new = {s with server_users = Some (user :: list)} in
-              serverstore#update_item row s s_new
+              s.server_users <- Some (user :: list)
             end
 
   with Not_found ->
-    if num <> 0
+    if server_num <> 0
       then begin
-        Hashtbl.remove G.users num;       (* Anyway remove the user. Will be sent back by the core *)
-        GuiCom.send (GetServer_info num);
-        GuiCom.send (GetServer_users num)
+        Hashtbl.remove G.users user;       (* Anyway remove the user. Will be sent back by the core *)
+        GuiCom.send (GetServer_info server_num);
+        GuiCom.send (GetServer_users server_num)
       end
 
 let clean_servers_table servers =
   let l = serverstore#all_items () in
   (if !!verbose then lprintf' "Cleaning servers\n   servers table : %d\n   new servers   : %d\n"
      (List.length l) (List.length servers));
-  List.iter (fun s ->                                              (* the core sends more servers than what the GUI displays.
+  List.iter (fun k ->                                              (* the core sends more servers than what the GUI displays.
                                                                     * better to do it this way.
                                                                     *)
-    if not (List.mem s.server_num servers)
-      then remove_server s.server_num
+    try
+      let s = server_of_key k in
+      if not (List.mem s.server_num servers)
+        then remove_server s.server_num
+    with _ -> ()
   ) l;
   if !!verbose
     then begin
@@ -690,13 +776,16 @@ let clean_servers_table servers =
 (*                                                                       *)
 (*************************************************************************)
 
-let clean_servers num net_enabled =
+let clean_servers net_num net_enabled =
   if not net_enabled
     then begin
       let l = serverstore#all_items () in
-      List.iter (fun s ->
-        if s.server_network = num
-          then remove_server s.server_num
+      List.iter (fun k ->
+        try
+          let s = server_of_key k in
+          if s.server_network = net_num
+            then remove_server s.server_num
+        with _ -> ()
       ) l
     end
 

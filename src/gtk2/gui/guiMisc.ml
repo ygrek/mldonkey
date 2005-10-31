@@ -60,12 +60,11 @@ let save_gui_options gui =
 (*                      To pretty-print a file size                               *)
 (*                                                                                *)
 (**********************************************************************************)
-let ko = 1024l
-let mo = Int32.mul ko ko
+let ko = Int32.of_int 1024
   
 let unit_of_string s =
   match String.lowercase s with
-    "mo" -> mo
+    "mo" -> Int32.mul ko ko
   | "ko" -> ko
   | _ -> Int32.one
 
@@ -503,7 +502,7 @@ let is_connected state =
 (*************************************************************************)
 
 let uploader_state_to_string state has_upload =
-  if has_upload
+  if has_upload = source_has_upload
     then begin
       match state with
           Connected_downloading _  -> !M.dT_tx_updown
@@ -1269,27 +1268,27 @@ let list_files tree =
 let client_to_source c =
   let s =
     {
-     source_num = c.client_num;
-     source_network = c.client_network;
+     source_num             = c.client_num;
+     source_network         = c.client_network;
 
-     source_kind = c.client_kind;
-     source_state = c.client_state;
-     source_type = c.client_type;
-     source_tags = c.client_tags;
-     source_name = U.utf8_of c.client_name;
-     source_files = None;
-     source_rating = c.client_rating;
-     source_chat_port = c.client_chat_port;
-     source_connect_time = BasicSocket.last_time () - c.client_connect_time;
-     source_last_seen = BasicSocket.current_time ();
-     source_software = concat_strings c.client_software (concat_strings c.client_emulemod c.client_release);
-     source_downloaded = c.client_downloaded;
-     source_uploaded = c.client_uploaded;
-     source_upload_rate = 0.;
-     source_download_rate = 0.;
-     source_upload = c.client_upload;
-     source_has_upload = false;
-     source_availability = [];
+     source_kind            = c.client_kind;
+     source_state           = c.client_state;
+     source_type            = c.client_type;
+     source_tags            = c.client_tags;
+     source_name            = U.utf8_of c.client_name;
+     source_files           = None;
+     source_rating          = c.client_rating;
+     source_chat_port       = c.client_chat_port;
+     source_connect_time    = BasicSocket.last_time () - c.client_connect_time;
+     source_last_seen       = BasicSocket.current_time ();
+     source_software        = concat_strings c.client_software (concat_strings c.client_emulemod c.client_release);
+     source_downloaded      = c.client_downloaded;
+     source_uploaded        = c.client_uploaded;
+     source_upload_rate     = 0.;
+     source_download_rate   = 0.;
+     source_upload          = c.client_upload;
+     source_has_upload      = source_only;
+     source_availability    = [];
      source_files_requested = [];
     }
   in
@@ -1305,3 +1304,65 @@ let uid_list_to_string l =
   match l with
       [] -> ""
     | uid :: _ -> U.simple_utf8_of (Uid.to_string uid)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        to_uid_type                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let to_uid_type l =
+  match l with
+      [] -> NoUid
+    | uid :: _ -> Uid.to_uid uid
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        shared_info_to_shared_file                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let shared_info_to_shared_file si =
+  {
+    g_shared_num       = si.shared_num;
+    g_shared_network   = si.shared_network;
+    g_shared_filename  = si.shared_filename;
+    g_shared_size      = si.shared_size;
+    g_shared_uploaded  = si.shared_uploaded;
+    g_shared_requests  = si.shared_requests;
+    g_shared_uids      = si.shared_uids;
+    g_shared_last_seen = BasicSocket.current_time ();
+  }
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        file_info_to_g_file_info                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let file_info_to_g_file_info f =
+  {
+    g_file_num             = f.file_num;
+    g_file_network         = f.file_network;
+
+    g_file_comment         = f.file_comment;
+    g_file_name            = f.file_name;
+    g_file_names           = f.file_names;
+    g_file_size            = f.file_size;
+    g_file_downloaded      = f.file_downloaded;
+    g_file_active_sources  = f.file_active_sources;
+    g_file_all_sources     = f.file_all_sources;
+    g_file_state           = f.file_state;
+    g_file_chunks          = f.file_chunks;
+    g_file_availability    = f.file_availability;
+    g_file_sources         = f.file_sources;
+    g_file_download_rate   = f.file_download_rate;
+    g_file_format          = f.file_format;
+    g_file_chunks_age      = f.file_chunks_age;
+    g_file_age             = (BasicSocket.last_time () - f.file_age);
+    g_file_last_seen       = (BasicSocket.last_time () - f.file_last_seen);
+    g_file_priority        = f.file_priority;
+    g_file_uids            = f.file_uids;
+
+    g_file_razorback_stats = None;
+  }

@@ -22,6 +22,7 @@
 open GuiTypes2
 open GuiTypes
 open CommonTypes
+open GraphTypes
 
 open GuiTools
 open GuiGlobal
@@ -55,8 +56,98 @@ let (upload_label : GMisc.label option ref) = ref None
 let (uploader_label : GMisc.label option ref) = ref None
 let nuploading = ref 0
 let show_pending = ref false
-let uploaders_timerID = ref (GMain.Timeout.add ~ms:2000 ~callback:(fun _ -> true))
 let (view_context : GPango.context option ref) = ref None
+let uploaders_n_pendings = ref []
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         shared_file_num                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let shared_file_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         shared_file_of_key                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+let shared_file_of_key key =
+  try
+    let num = shared_file_num key in
+    Hashtbl.find G.shared_files num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_shared_files                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_shared_files keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = shared_file_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         shared_file_key                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let shared_file_key shared_file_num =
+  Printf.sprintf "%d" shared_file_num
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         uploader_num                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uploader_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         uploader_of_key                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uploader_of_key key =
+  try
+    let num = uploader_num key in
+    Hashtbl.find G.sources num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_uploaders                             *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_uploaders keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = uploader_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         uploader_key                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uploader_key uploader_num =
+  Printf.sprintf "%d" uploader_num
 
 (*************************************************************************)
 (*                                                                       *)
@@ -68,11 +159,10 @@ module Uploads = GuiTemplates.Gview(struct
 
   module Column = GuiColumns.Shared_files_up
 
-  type item = shared_info
-  type key = int
+  type item = shared_file
 
   let columns = O.shared_files_up_columns
-  let get_key = (fun si -> si.shared_num)
+  let get_key = (fun si -> (shared_file_key si.g_shared_num))
   let module_name = "Uploads"
 
 end)
@@ -97,15 +187,15 @@ class g_shared () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method from_item row (si : shared_info) =
-      store#set ~row ~column:shared_network_str (Mi.network_name si.shared_network);
-      store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.shared_network ~size:A.SMALL ());
-      store#set ~row ~column:shared_name (U.utf8_of si.shared_filename);
-      store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.shared_filename ~size:A.SMALL);
-      store#set ~row ~column:shared_size_str (Mi.size_of_int64 si.shared_size);
-      store#set ~row ~column:shared_uploaded_str (Mi.size_of_int64 si.shared_uploaded);
-      store#set ~row ~column:shared_requests si.shared_requests;
-      store#set ~row ~column:shared_uid (Mi.uid_list_to_string si.shared_uids)
+    method from_item row (si : shared_file) =
+      store#set ~row ~column:shared_network_str (Mi.network_name si.g_shared_network);
+      store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.g_shared_network ~size:A.SMALL ());
+      store#set ~row ~column:shared_name (U.utf8_of si.g_shared_filename);
+      store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.g_shared_filename ~size:A.SMALL);
+      store#set ~row ~column:shared_size_str (Mi.size_of_int64 si.g_shared_size);
+      store#set ~row ~column:shared_uploaded_str (Mi.size_of_int64 si.g_shared_uploaded);
+      store#set ~row ~column:shared_requests si.g_shared_requests;
+      store#set ~row ~column:shared_uid (Mi.uid_list_to_string si.g_shared_uids)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -113,30 +203,30 @@ class g_shared () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method from_new_item (row : Gtk.tree_iter) (si : shared_info) (si_new : shared_info) =
-      if si.shared_filename <> si_new.shared_filename
+    method from_new_item (row : Gtk.tree_iter) (si : shared_file) (si_new : shared_file) =
+      if si.g_shared_filename <> si_new.g_shared_filename
         then begin
-          store#set ~row ~column:shared_name (U.utf8_of si_new.shared_filename);
-          if (Mi.extension_of si.shared_filename) <> (Mi.extension_of si_new.shared_filename)
+          store#set ~row ~column:shared_name (U.utf8_of si_new.g_shared_filename);
+          if (Mi.extension_of si.g_shared_filename) <> (Mi.extension_of si_new.g_shared_filename)
             then begin
-              store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si_new.shared_filename ~size:A.SMALL);
+              store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si_new.g_shared_filename ~size:A.SMALL);
             end
         end;
-      if si.shared_size <> si_new.shared_size
+      if si.g_shared_size <> si_new.g_shared_size
         then begin
-          store#set ~row ~column:shared_size_str (Mi.size_of_int64 si_new.shared_size);
+          store#set ~row ~column:shared_size_str (Mi.size_of_int64 si_new.g_shared_size);
         end;
-      if si.shared_uploaded <> si_new.shared_uploaded
+      if si.g_shared_uploaded <> si_new.g_shared_uploaded
         then begin
-          store#set ~row ~column:shared_uploaded_str (Mi.size_of_int64 si_new.shared_uploaded);
+          store#set ~row ~column:shared_uploaded_str (Mi.size_of_int64 si_new.g_shared_uploaded);
         end;
-      if si.shared_requests <> si_new.shared_requests
+      if si.g_shared_requests <> si_new.g_shared_requests
         then begin
-          store#set ~row ~column:shared_requests si_new.shared_requests;
+          store#set ~row ~column:shared_requests si_new.g_shared_requests;
         end;
-      if si.shared_uids <> si_new.shared_uids
+      if si.g_shared_uids <> si_new.g_shared_uids
         then begin
-          store#set ~row ~column:shared_uid (Mi.uid_list_to_string si_new.shared_uids)
+          store#set ~row ~column:shared_uid (Mi.uid_list_to_string si_new.g_shared_uids)
         end
 
 (*************************************************************************)
@@ -223,14 +313,18 @@ class g_shared () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c si1 si2 =
-      match c with
-          Col_shared_file -> compare si1.shared_filename si2.shared_filename
-        | Col_shared_network -> compare si1.shared_network si2.shared_network
-        | Col_shared_upsize -> compare si1.shared_uploaded si2.shared_uploaded
-        | Col_shared_requests -> compare si1.shared_requests si2.shared_requests
-        | Col_shared_size -> compare si1.shared_size si2.shared_size
-        | Col_shared_uid -> compare (Mi.uid_list_to_string si1.shared_uids) (Mi.uid_list_to_string si2.shared_uids)
+    method sort_items c k1 k2 =
+      try
+        let si1 = shared_file_of_key k1 in
+        let si2 = shared_file_of_key k2 in
+        match c with
+          Col_shared_file -> compare si1.g_shared_filename si2.g_shared_filename
+        | Col_shared_network -> compare si1.g_shared_network si2.g_shared_network
+        | Col_shared_upsize -> compare si1.g_shared_uploaded si2.g_shared_uploaded
+        | Col_shared_requests -> compare si1.g_shared_requests si2.g_shared_requests
+        | Col_shared_size -> compare si1.g_shared_size si2.g_shared_size
+        | Col_shared_uid -> compare (Mi.uid_list_to_string si1.g_shared_uids) (Mi.uid_list_to_string si2.g_shared_uids)
+      with _ -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -239,11 +333,12 @@ class g_shared () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun si ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item si.shared_num in 
-          store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.shared_network ~size:A.SMALL ());
-          store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.shared_filename ~size:A.SMALL);
+          let si = shared_file_of_key k in
+          let row = self#find_row k in
+          store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.g_shared_network ~size:A.SMALL ());
+          store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.g_shared_filename ~size:A.SMALL);
         with _ -> ()
       ) (self#all_items ())
 
@@ -254,10 +349,9 @@ module Uploaders = GuiTemplates.Gview(struct
   module Column = GuiColumns.Client
 
   type item = source_info
-  type key = int
 
   let columns = O.uploaders_columns
-  let get_key = (fun s -> s.source_num)
+  let get_key = (fun s -> (uploader_key s.source_num))
   let module_name = "Uploaders"
 
 end)
@@ -507,8 +601,11 @@ class g_uploader () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c s1 s2 =
-      match c with
+    method sort_items c k1 k2 =
+      try
+        let s1 = uploader_of_key k1 in
+        let s2 = uploader_of_key k2 in
+        match c with
           Col_client_name -> compare (String.lowercase s1.source_name) (String.lowercase s2.source_name)
         | Col_client_state -> compare s1.source_state s2.source_state
         | Col_client_kind -> compare s1.source_kind s2.source_kind
@@ -522,6 +619,7 @@ class g_uploader () =
         | Col_client_download_rate -> compare s1.source_download_rate s2.source_download_rate
         | Col_client_upload_rate -> compare s2.source_upload_rate s2.source_upload_rate
         | Col_client_upload -> compare s1.source_upload s2.source_upload
+      with _ -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -530,9 +628,10 @@ class g_uploader () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun s ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item s.source_num in 
+          let s = uploader_of_key k in
+          let row = self#find_row k in
           store#set ~row ~column:uploader_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
           store#set ~row ~column:uploader_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
         with _ -> ()
@@ -600,15 +699,16 @@ let update_uploaders_label () =
 
 let copy_ed2k_links sel () = 
   let buf = Buffer.create 100 in
-  List.iter (fun s ->
-    match s.shared_uids with
+  let l = keys_to_shared_files sel in
+  List.iter (fun si ->
+    match si.g_shared_uids with
         uid :: _ -> (
           match (Uid.to_uid uid) with
               Ed2k md4 ->
                 begin
                   let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
-                             (Url.encode (Filename.basename s.shared_filename))
-                             s.shared_size
+                             (Url.encode (Filename.basename si.g_shared_filename))
+                             si.g_shared_size
                              (Md4.to_string md4)
                   in
                   Printf.bprintf buf "%s\n" link;
@@ -616,7 +716,7 @@ let copy_ed2k_links sel () =
             | _ -> ())
 
       | _ -> ()
-  ) sel;
+  ) l;
   let link = Buffer.contents buf in
   GuiConsole.insert link;
   GMain.clipboard#clear ();
@@ -631,7 +731,7 @@ let refresh_uploadstats () =
 (*                                                                       *)
 (*************************************************************************)
 
-let upload_menu (sel : shared_info list) =
+let upload_menu sel =
   match sel with
       [] -> []
     | _ ->
@@ -644,8 +744,11 @@ let upload_menu (sel : shared_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_upload (si : shared_info) =
-  not (List.memq si.shared_network !G.networks_filtered)
+let filter_upload k =
+  try
+    let si = shared_file_of_key k in
+    not (List.memq si.g_shared_network !G.networks_filtered)
+  with _ -> true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -672,32 +775,69 @@ let uploads_clear () =
 (*                                                                       *)
 (*************************************************************************)
 
-let add_upload s =
-  ignore (uploadstore#add_item s);
-  update_uploads_label ()
+let hashtbl_update_shared_files si si_new =
+  si.g_shared_filename <- si_new.g_shared_filename;
+  si.g_shared_size <- si_new.g_shared_size;
+  si.g_shared_uploaded <- si_new.g_shared_uploaded;
+  si.g_shared_requests <- si_new.g_shared_requests;
+  si.g_shared_uids <- si_new.g_shared_uids;
+  si.g_shared_last_seen <- si_new.g_shared_last_seen
 
-let remove_upload s =
-  uploadstore#remove_item s;
-  update_uploads_label ()
+let add_upload si =
+  ignore (uploadstore#add_item si);
+  Hashtbl.add G.shared_files si.g_shared_num si;
+  update_uploads_label ();
+  let si_uid = Mi.to_uid_type si.g_shared_uids in
+  GuiGraphBase.add_file si_uid;
+  Hashtbl.add G.file_by_uid si_uid (U.utf8_of si.g_shared_filename)
 
-let h_shared_file_info s_new =
+let remove_upload si =
+  uploadstore#remove_item (shared_file_key si.g_shared_num);
+  Hashtbl.remove G.shared_files si.g_shared_num;
+  update_uploads_label ();
+  let si_uid = Mi.to_uid_type si.g_shared_uids in
+  GuiGraphBase.cancel_file si_uid;
+  Hashtbl.remove G.file_by_uid si_uid
+
+let h_shared_file_info si_new =
   try
-    let (row ,s) = uploadstore#find_item s_new.shared_num in
-    uploadstore#update_item row s s_new
-  with Not_found -> add_upload s_new
+    let si = Hashtbl.find G.shared_files si_new.g_shared_num in
+    let rate = (Int64.to_float si_new.g_shared_uploaded -. Int64.to_float si.g_shared_uploaded) /.
+               (si_new.g_shared_last_seen -. si.g_shared_last_seen)
+    in
+    let row = uploadstore#find_row (shared_file_key si_new.g_shared_num) in
+    uploadstore#update_item row si si_new;
+    hashtbl_update_shared_files si si_new;
+    let rate = int_of_float rate in
+    GuiGraphBase.save_record rate (GraphFile ((Mi.to_uid_type si.g_shared_uids), GraphUploads));
+  with Not_found -> add_upload si_new
 
 let h_shared_file_upload shared_num upsize requests =
   try
-    let (row, s) = uploadstore#find_item shared_num in
-    let s_new = {s with shared_uploaded = upsize; shared_requests = requests} in
-    uploadstore#update_item row s s_new
+    let si = Hashtbl.find G.shared_files shared_num in
+    let row = uploadstore#find_row (shared_file_key shared_num) in
+    let si_new = {si with
+                  g_shared_uploaded = upsize;
+                  g_shared_requests = requests;
+                  g_shared_last_seen = BasicSocket.current_time ()
+    } in
+    let rate = (Int64.to_float si_new.g_shared_uploaded -. Int64.to_float si.g_shared_uploaded) /.
+               (si_new.g_shared_last_seen -. si.g_shared_last_seen)
+    in
+    let rate = int_of_float rate in
+    uploadstore#update_item row si si_new;
+    si.g_shared_size <- si_new.g_shared_size;
+    si.g_shared_uploaded <- si_new.g_shared_uploaded;
+    si.g_shared_requests <- si_new.g_shared_requests;
+    si.g_shared_last_seen <- si_new.g_shared_last_seen;
+    GuiGraphBase.save_record rate (GraphFile ((Mi.to_uid_type si.g_shared_uids), GraphUploads))
   with Not_found ->
     (if !!verbose then lprintf' "Shared file %d not found\n" shared_num)
 
 let h_shared_file_unshared shared_num =
   try
-    let (row, s) = uploadstore#find_item shared_num in
-    remove_upload s
+    let si = Hashtbl.find G.shared_files shared_num in
+    remove_upload si
   with Not_found ->
     (if !!verbose then lprintf' "Shared file %d not found" shared_num)
 
@@ -730,20 +870,25 @@ let reset_uploads_filter () =
 (*************************************************************************)
 
 let add_to_friends sel () =
+  let l = keys_to_uploaders sel in
   List.iter (fun s ->
     GuiCom.send (AddClientFriend s.source_num)
-  ) sel
+  ) l
 
 let browse_files = add_to_friends
 
-let show_details s () =
-  let item = Source (s, 0) in
-  GuiInfoWindow.window item ()
+let show_details k () =
+  try
+    let s = uploader_of_key k in
+    let item = Source (s, 0) in
+    GuiInfoWindow.window item ()
+  with _ -> ()
 
-let update_all uploaders =
+let update_all keys =
+  let l = keys_to_uploaders keys in
   List.iter (fun s ->
     GuiCom.send (GetClient_info s.source_num)
-  ) uploaders;
+  ) l;
   GuiCom.send GetUploaders;
   GuiCom.send GetPending
 
@@ -753,14 +898,14 @@ let update_all uploaders =
 (*                                                                       *)
 (*************************************************************************)
 
-let uploader_menu (sel : source_info list) =
+let uploader_menu sel =
   match sel with
       [] -> []
-    | s :: tail ->
+    | k :: tail ->
           (if tail = []
              then
                [
-                `I ((!M.dT_me_show_source_details), show_details s) ;
+                `I ((!M.dT_me_show_source_details), show_details k) ;
                ]
              else  [])
              @
@@ -775,9 +920,12 @@ let uploader_menu (sel : source_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_uploader (s : source_info) =  not (
-  (not !show_pending && not s.source_has_upload) ||
-  List.memq s.source_network !G.networks_filtered)
+let filter_uploader k =
+  try
+    let s = uploader_of_key k in
+    not ((not !show_pending && (s.source_has_upload <> source_has_upload)) ||
+          List.memq s.source_network !G.networks_filtered)
+  with _ -> true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -805,74 +953,64 @@ let uploaders_clear () =
 (*                                                                       *)
 (*************************************************************************)
 
-let remove_uploader uploader_num =
-  try
-    let (_, s) = uploaderstore#find_item uploader_num in
-    uploaderstore#remove_item s;
-    (if s.source_has_upload then decr nuploading);
-    s.source_has_upload <- false;
-    update_uploaders_label ()
-  with _ -> ()
+let remove_uploader s =
+  uploaderstore#remove_item (uploader_key s.source_num);
+  (if s.source_has_upload = source_has_upload then decr nuploading);
+  s.source_has_upload <- source_only
 
-let update_uploader s_new =
-  try
-    let (row, s) = uploaderstore#find_item s_new.source_num in
-    if s_new.source_has_upload && not s.source_has_upload
-      then begin
-        incr nuploading
-      end else if (not s_new.source_has_upload) && s.source_has_upload
-        then begin 
-          decr nuploading
+let update_uploaders () =
+  let keys = uploaderstore#all_items () in
+  let all_uploaders = keys_to_uploaders keys in
+  List.iter (fun s ->
+    if not (List.mem_assoc s.source_num !uploaders_n_pendings)
+      then remove_uploader s
+  ) all_uploaders;
+  List.iter (fun (num, has_upload) ->
+    try
+      let s = Hashtbl.find G.sources num in
+      let s_new = {s with source_has_upload = has_upload} in
+      try
+        let row = uploaderstore#find_row (uploader_key num) in
+        uploaderstore#update_item row s s_new;
+        begin
+          if s_new.source_has_upload = source_has_upload && s.source_has_upload <> source_has_upload
+            then incr nuploading
+            else if s_new.source_has_upload <> source_has_upload && s.source_has_upload = source_has_upload
+              then decr nuploading
         end;
-    uploaderstore#update_item row s s_new;
-    update_uploaders_label ()
-  with _ -> 
-    begin
-      ignore (uploaderstore#add_item s_new);
-      (if s_new.source_has_upload then incr nuploading);
-      update_uploaders_label ()
-    end
+        s.source_has_upload <- s_new.source_has_upload
+      with _ ->
+        begin
+          s.source_has_upload <- s_new.source_has_upload;
+          ignore (uploaderstore#add_item s);
+          (if s.source_has_upload = source_has_upload then incr nuploading)
+        end
+    with _ ->
+      begin
+        GuiCom.send (GetClient_info num)
+      end
+  ) !uploaders_n_pendings;
+  uploaders_n_pendings := [];
+  update_uploaders_label ()
 
-let h_update_uploader s_new =
+let h_update_uploader s s_new =
   try
-    let (row, s) = uploaderstore#find_item s_new.source_num in
+    let row = uploaderstore#find_row (uploader_key s_new.source_num) in
     uploaderstore#update_item row s s_new
   with _ -> ()
 
 let h_update_uploaders uploaders =
-  let all_uploaders = List.filter (fun s -> s.source_has_upload) (uploaderstore#all_items ()) in
-  List.iter (fun s ->
-    if not (List.mem s.source_num uploaders)
-      then remove_uploader s.source_num;
-  ) all_uploaders;
   List.iter (fun uploader_num ->
-    try
-      let s = Hashtbl.find G.sources uploader_num in
-      let s_new = {s with source_has_upload = true} in
-      update_uploader s_new;
-      s.source_has_upload <- true
-    with Not_found ->
-      GuiCom.send (GetClient_info uploader_num)
+    uploaders_n_pendings := (uploader_num, source_has_upload) :: !uploaders_n_pendings
   ) uploaders
 
 let h_update_pending_slots pending_slots =
-  let all_pendings = List.filter (fun s -> not s.source_has_upload) (uploaderstore#all_items ()) in
-  List.iter (fun s ->
-    if not (List.mem s.source_num pending_slots)
-      then remove_uploader s.source_num
-  ) all_pendings;
   List.iter (fun uploader_num ->
-    try
-      let s = Hashtbl.find G.sources uploader_num in
-      let s_new = {s with source_has_upload = false} in
-      update_uploader s_new;
-      s.source_has_upload <- false
-    with Not_found ->
-      GuiCom.send (GetClient_info uploader_num)
+    uploaders_n_pendings := (uploader_num, source_has_slot) :: !uploaders_n_pendings
   ) pending_slots
 
 let clean_uploaders_table uploader =
-  remove_uploader uploader.source_num
+  remove_uploader uploader
 
 (*************************************************************************)
 (*                                                                       *)
@@ -923,7 +1061,6 @@ let uploads_box gui =
       view_context := None;
       upload_label := None;
       uploader_label := None;
-      Timeout.remove (!uploaders_timerID);
   ));
   let vbox_uploads =
     GPack.vbox ~homogeneous:false
@@ -994,12 +1131,17 @@ let uploads_box gui =
   uploader_label := Some uploaders_label;
   update_uploads_label ();
   update_uploaders_label ();
-  
-  uploaders_timerID := (Timeout.add ~ms:6000 ~callback:
-    (fun _ -> 
+  vpaned_uploads#coerce
+
+
+
+let _ =
+  ignore (Timeout.add ~ms:6000 ~callback:
+    (fun _ ->
+       update_uploaders ();
        update_all (uploaderstore#all_items ());
        refresh_uploadstats ();
        true
-  ));
+  ))
 
-  vpaned_uploads#coerce
+

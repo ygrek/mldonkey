@@ -432,36 +432,37 @@ let color_of_name name =
 *)
 
 let fit_string_to_pixels s ~context ~pixels =
-  let us = U.utf8_of s in
-  let pango_layout = Pango.Layout.create context#as_context in
-  Pango.Layout.set_text pango_layout us;
-  let us' =
-    if fst (Pango.Layout.get_pixel_size pango_layout) <= pixels
-    then us
+  if s = ""
+    then s
     else begin
-      let len = Glib.Utf8.length us in
-      let uca = Glib.Utf8.to_unistring us in
-      let uca_ext = Array.sub uca (len - 7) 7 in
-      let ext = "..." ^ (Glib.Utf8.from_unistring uca_ext) in
-      let rec adjust_string n len =
-        if n = len
-          then us
-          else begin
-            let ustr = (Glib.Utf8.from_unistring (Array.sub uca 0 n)) ^ ext in
-            Pango.Layout.set_text pango_layout ustr;
-            let ustr_pixels = fst (Pango.Layout.get_pixel_size pango_layout) in
-            (* Printf.printf "width %d - Pango.Layout.get_pixel_size %d Pango.Layout.get_text %s\n" 
-               pixels s_width (Pango.Layout.get_text pango_layout);
-            flush stdout; *)
-            if ustr_pixels < pixels
-              then adjust_string (n + 1) len
-              else ustr
-          end
-      in
-      adjust_string 0 len
+      let us = U.utf8_of s in
+      let pango_layout = Pango.Layout.create context#as_context in
+      Pango.Layout.set_text pango_layout us;
+      let us' =
+        if fst (Pango.Layout.get_pixel_size pango_layout) <= pixels
+        then us
+        else begin
+          let len = Glib.Utf8.length us in
+          let uca = Glib.Utf8.to_unistring us in
+          let ext_len = min 7 (len - 1) in
+          let uca_ext = Array.sub uca (len - ext_len) ext_len in
+          let ext = "..." ^ (Glib.Utf8.from_unistring uca_ext) in
+          let rec adjust_string n len =
+            if n = len
+              then us
+              else begin
+                let ustr = (Glib.Utf8.from_unistring (Array.sub uca 0 n)) ^ ext in
+                Pango.Layout.set_text pango_layout ustr;
+                let ustr_pixels = fst (Pango.Layout.get_pixel_size pango_layout) in
+                if ustr_pixels < pixels
+                  then adjust_string (n + 1) len
+                  else ustr
+              end
+          in
+          adjust_string 0 len
+        end
+      in us'
     end
-  in us'
-
 
 
 let warning_box

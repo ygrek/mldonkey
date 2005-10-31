@@ -53,6 +53,16 @@ let lprintf' fmt =
 let (dialogs : (int * GuiTemplates.chat_buffer) list ref) = ref []
 let source_has_file = ref []
 
+module H = Weak.Make(struct
+      type t = g_file_tree
+
+      let hash ft = Hashtbl.hash ft.g_file_tree_num
+      let equal x y  = x.g_file_tree_num = y.g_file_tree_num
+
+    end)
+
+let ft_by_num = H.create 107
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Global variables                              *)
@@ -74,6 +84,104 @@ let folder_closed () =
     then Some (A.get_icon ~icon:M.icon_stock_directory ~size:A.SMALL ())
     else None
 
+let dummy_ft =
+  {
+   g_file_tree_num  = 0;
+   g_file_tree_name = "";
+   g_file_tree_list = [];
+   g_file_tree_pixb = None;
+  }
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         friend_num                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let friend_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         friend_of_key                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let friend_of_key key =
+  try
+    let num = friend_num key in
+    Hashtbl.find G.sources num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_friends                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_friends keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = friend_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         friend_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let friend_key friend_num =
+  Printf.sprintf "%d" friend_num
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         folder_num                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let folder_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         folder_of_key                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let folder_of_key key =
+  try
+    let num = folder_num key in
+    H.find ft_by_num {dummy_ft with g_file_tree_num = num}
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_folders                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_folders keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = friend_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         folder_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let folder_key ft_num =
+  Printf.sprintf "%d" ft_num
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Templates                                     *)
@@ -85,10 +193,9 @@ module Friends = GuiTemplates.Gview(struct
   module Column = GuiColumns.Friend
 
   type item = source_info
-  type key = int
 
   let columns = O.friends_columns
-  let get_key = (fun s -> s.source_num)
+  let get_key = (fun s -> friend_key s.source_num)
   let module_name = "Friends"
 
 end)
@@ -206,10 +313,14 @@ class g_friend () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c s1 s2 =
-      match c with
+    method sort_items c k1 k2 =
+      try
+        let s1 = friend_of_key k1 in
+        let s2 = friend_of_key k2 in
+        match c with
           Col_friend_network -> compare s1.source_network s2.source_network
         | Col_friend_name -> compare s1.source_name s2.source_name
+      with _  -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -218,9 +329,10 @@ class g_friend () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun s ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item s.source_num in 
+          let s = friend_of_key k in
+          let row = self#find_row k in
           store#set ~row ~column:friend_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
           store#set ~row ~column:friend_type_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
           store#set ~row ~column:friend_state_pixb (Mi.client_state_to_icon false ~size:A.SMALL);
@@ -264,10 +376,9 @@ module FriendFolders = GuiTemplates.Gview(struct
   module Column = GuiColumns.Directory
 
   type item = g_file_tree
-  type key = int
 
   let columns = O.friends_dirs_columns
-  let get_key = (fun ft -> ft.g_file_tree_num)
+  let get_key = (fun ft -> folder_key ft.g_file_tree_num)
   let module_name = "FriendFolders"
 
 end)
@@ -326,8 +437,7 @@ class g_folder () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items _ ft1 ft2 =
-      compare ft1.g_file_tree_name ft2.g_file_tree_name
+    method sort_items _ k1 k2 = 0
 
   end
 
@@ -412,18 +522,22 @@ let add_chat (notebook : GPack.notebook) (s : source_info) (chat : GuiTemplates.
 (*                                                                       *)
 (*************************************************************************)
 
-let remove sel () = 
-  List.iter (fun s ->
-    GuiCom.send (RemoveFriend s.source_num);
-    (* there is a #bug here or is it volontary ? The core doesn't send back the updated client_type !!! *)
-    GuiCom.send (GuiProto.GetClient_info s.source_num)
+let remove sel () =
+  List.iter (fun k ->
+    try
+      GuiCom.send (RemoveFriend (friend_num k));
+      (* there is a #bug here or is it volontary ? The core doesn't send back the updated client_type !!! *)
+      GuiCom.send (GuiProto.GetClient_info (friend_num k))
+    with _ -> ()
   ) sel
 
 let remove_all_friends () = 
   GuiCom.send RemoveAllFriends;
   (* there is a #bug here or is it volontary ? The core doesn't send back the updated client_type !!! *)
-  List.iter (fun s ->
-    GuiCom.send (GuiProto.GetClient_info s.source_num)
+  List.iter (fun k ->
+    try
+      GuiCom.send (GuiProto.GetClient_info (friend_num k))
+    with _ -> ()
   ) (friendstore#all_items ())
 
 
@@ -435,29 +549,35 @@ let find_friend () =
 let on_entry_return num s =
   GuiCom.send (MessageToClient (num, s))
 
-let download_selected_dir (sel : g_file_tree list) () =
+let download_selected_dir sel () =
   match sel with
       [] -> ()
-    | ft :: tail ->
+    | k :: tail ->
         begin
-          let files = Mi.list_files ft in
-          let len = List.length files in
-          match (GToolbox.question_box
-              (!M.qT_wt_download_selected_dir)
-              [ !M.pW_lb_ok ; !M.pW_lb_cancel]
-              (U.utf8_of (Printf.sprintf !M.qT_lb_confirm_download_dir 
-                 len ft.g_file_tree_name))) 
-          with
-            1 ->
-              List.iter (fun r -> 
-                GuiCom.send (Download_query ([r.res_name], r.res_num, false))
-              ) files
-          | _ -> ()
+          try
+            let ft = folder_of_key k in
+            let files = Mi.list_files ft in
+            let len = List.length files in
+            match (GToolbox.question_box
+                    (!M.qT_wt_download_selected_dir)
+                    [ !M.pW_lb_ok ; !M.pW_lb_cancel]
+                    (U.utf8_of (Printf.sprintf !M.qT_lb_confirm_download_dir 
+                    len ft.g_file_tree_name))) 
+            with
+              1 ->
+                List.iter (fun r -> 
+                  GuiCom.send (Download_query ([r.res_name], r.res_num, false))
+                ) files
+            | _ -> ()
+          with _ -> ()
         end
 
-let show_details s () =
-  let item = Source (s, 0) in
-  GuiInfoWindow.window item ()
+let show_details k () =
+  try
+    let s = friend_of_key k in
+    let item = Source (s, 0) in
+    GuiInfoWindow.window item ()
+  with _ -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -465,17 +585,17 @@ let show_details s () =
 (*                                                                       *)
 (*************************************************************************)
 
-let friend_menu (sel : source_info list) =
+let friend_menu sel =
   [
    `I (!M.fT_me_find_friend, find_friend) ;
    `I (!M.fT_me_remove_all_friends, remove_all_friends)
   ] @
   (match sel with
       [] -> []
-    | s :: tail ->
+    | k :: tail ->
                [
                 `S;
-                `I ((!M.dT_me_show_source_details), show_details s) ;
+                `I ((!M.dT_me_show_source_details), show_details k) ;
                 `I (!M.fT_me_remove, remove sel) ;
                ])
 
@@ -488,6 +608,7 @@ let friend_menu (sel : source_info list) =
 let rec insert_dir ft id ?parent () =
   ft.g_file_tree_num <- !id;
   let parent = folderstore#add_item ft ?parent () in
+  H.add ft_by_num ft;
   incr id;
   match ft.g_file_tree_list with
       [] -> ()
@@ -498,20 +619,26 @@ let rec insert_dir ft id ?parent () =
             | GTreeDirectory d -> insert_dir d id ~parent ()
         ) ft.g_file_tree_list
 
-let on_select_friend (sel : source_info list) =
+let on_select_friend sel =
+  H.clear ft_by_num;
   resultstore#clear ();
   folderstore#clear ();
   update_results_label ();
   match sel with
       [] -> ()
-    | s :: tail ->
-        match s.source_files with
-            None -> (GuiCom.send (GetClient_files s.source_num))
-          | Some ft ->
-            begin
-              let id = ref 1 in
-              insert_dir ft id ()
-            end
+    | k :: tail ->
+        begin
+          try
+            let s = friend_of_key k in
+            match s.source_files with
+                None -> (GuiCom.send (GetClient_files s.source_num))
+              | Some ft ->
+                  begin
+                    let id = ref 1 in
+                    insert_dir ft id ()
+                  end
+          with _ -> ()
+        end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -519,16 +646,19 @@ let on_select_friend (sel : source_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_double_click_friend (s : source_info) =
-  match !wnote_chat with
-      Some w when not (List.mem_assoc s.source_num !dialogs) ->
-        begin
-          let buffer = GuiTemplates.chat_buffer ~on_entry:(on_entry_return s.source_num) () in
-          let chat = GuiTemplates.chat_view ~buffer  ~my_name:!G.client_name () in
-          dialogs := (s.source_num, buffer) :: !dialogs;
-          add_chat w s chat
-        end
-    | _ -> ()
+let on_double_click_friend k =
+  try
+    let s = friend_of_key k in
+    match !wnote_chat with
+        Some w when not (List.mem_assoc s.source_num !dialogs) ->
+          begin
+            let buffer = GuiTemplates.chat_buffer ~on_entry:(on_entry_return s.source_num) () in
+            let chat = GuiTemplates.chat_view ~buffer  ~my_name:!G.client_name () in
+            dialogs := (s.source_num, buffer) :: !dialogs;
+            add_chat w s chat
+          end
+      | _ -> ()
+  with _ -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -536,9 +666,11 @@ let on_double_click_friend (s : source_info) =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_friend s = not (
-  List.memq s.source_network !G.networks_filtered
-  )
+let filter_friend k =
+  try
+    let s = friend_of_key k in
+    not (List.memq s.source_network !G.networks_filtered)
+  with _ -> true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -546,7 +678,7 @@ let filter_friend s = not (
 (*                                                                       *)
 (*************************************************************************)
 
-let folder_menu (sel : g_file_tree list) =
+let folder_menu sel =
   match sel with
       [] -> []
     | _ ->
@@ -560,19 +692,22 @@ let folder_menu (sel : g_file_tree list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_select_folder (sel : g_file_tree list) =
+let on_select_folder sel =
   resultstore#clear ();
   update_results_label ();
   match sel with
       [] -> ()
-    | ft :: tail ->
+    | k :: tail ->
         begin
-          List.iter (fun tree_item ->
-            match tree_item with
-                GTreeFile r -> ignore (resultstore#add_item r)
-              | _ -> ()
-          ) ft.g_file_tree_list;
-          update_results_label ()
+          try
+            let ft = folder_of_key k in
+            List.iter (fun tree_item ->
+              match tree_item with
+                  GTreeFile r -> ignore (resultstore#add_item r)
+                | _ -> ()
+            ) ft.g_file_tree_list;
+            update_results_label ()
+          with _ -> ()
         end
 
 (*************************************************************************)
@@ -581,10 +716,14 @@ let on_select_folder (sel : g_file_tree list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_expanded_folder path (ft : g_file_tree) =
-  let (row, _) = folderstore#find_item ft.g_file_tree_num in
-  let ft_new = {ft with g_file_tree_pixb = folder_opened ()} in
-  folderstore#update_item row ft ft_new
+let on_expanded_folder path k =
+  try
+    let row = folderstore#find_row k in
+    let ft = folder_of_key k in
+    let ft_new = {ft with g_file_tree_pixb = folder_opened ()} in
+    folderstore#update_item row ft ft_new;
+    ft.g_file_tree_pixb <- ft_new.g_file_tree_pixb
+  with _ -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -592,10 +731,14 @@ let on_expanded_folder path (ft : g_file_tree) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_collapsed_folder path (ft : g_file_tree) =
-  let (row, _) = folderstore#find_item ft.g_file_tree_num in
-  let ft_new = {ft with g_file_tree_pixb = folder_closed ()} in
-  folderstore#update_item row ft ft_new
+let on_collapsed_folder path k =
+  try
+    let row = folderstore#find_row k in
+    let ft = folder_of_key k in
+    let ft_new = {ft with g_file_tree_pixb = folder_closed ()} in
+    folderstore#update_item row ft ft_new;
+    ft.g_file_tree_pixb <- ft_new.g_file_tree_pixb
+  with _ -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -629,6 +772,7 @@ let clear () =
   in
   dialogs := [];
   source_has_file := [];
+  H.clear ft_by_num;
   resultstore#clear ();
   folderstore#clear ();
   friendstore#clear ();
@@ -642,14 +786,14 @@ let clear () =
 (*************************************************************************)
 
 let remove_friend s =
-  friendstore#remove_item s;
+  friendstore#remove_item (friend_key s.source_num);
   update_friends_label ();
   if List.mem_assoc s.source_num !source_has_file
     then source_has_file := List.remove_assoc s.source_num !source_has_file
 
-let h_update_friend s_new =
+let h_update_friend s s_new =
   try
-    let (row, s) = friendstore#find_item s_new.source_num in
+    let row = friendstore#find_row (friend_key s_new.source_num) in
     if client_browsed_tag land s_new.source_type = 0
       then remove_friend s
       else friendstore#update_item row s s_new
@@ -664,18 +808,19 @@ let add_friend_files (source_num , dirname, result_num) =
   try
     let r = Hashtbl.find G.results result_num in
     try
-      let (_, s_new) = friendstore#find_item source_num in
+      let s = Hashtbl.find G.sources source_num  in
       let tree =
-        match s_new.source_files with
+        match s.source_files with
             None -> {g_file_tree_num = 0; g_file_tree_list = []; g_file_tree_name = ""; g_file_tree_pixb = folder_closed ()}
-          | Some tree -> { tree with g_file_tree_list = tree.g_file_tree_list }
+          | Some tree -> {tree with g_file_tree_list = tree.g_file_tree_list }
       in
       Mi.add_file tree dirname r;
-      s_new.source_files <- Some tree;
+      let s_new = {s with source_files = Some tree} in
       Hashtbl.remove G.results result_num;
       (if not (List.mem_assoc source_num !source_has_file)
          then source_has_file := (source_num, false) :: !source_has_file);
-      h_update_friend s_new;
+      h_update_friend s s_new;
+      s.source_files <- s_new.source_files;
       if not (List.assoc source_num !source_has_file)
         then begin
           source_has_file := List.remove_assoc source_num !source_has_file;

@@ -25,7 +25,7 @@ open ImEvent
 open ImTypes
 open ImIdentity
 open ImChat
-open ImRoom  
+open ImRoom
 open GuiColumns
 
 module U = GuiUtf8
@@ -37,6 +37,14 @@ let verbose = !!O.gtk_verbose_im
 
 let lprintf' fmt =
   Printf2.lprintf ("GuiImAccounts: " ^^ fmt)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global tables                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let (act_by_num : (int, account) Hashtbl.t) = Hashtbl.create 13
 
 (*************************************************************************)
 (*                                                                       *)
@@ -71,6 +79,51 @@ let string_of_status status =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         act_num                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let act_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         act_of_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let act_of_key key =
+  try
+    let num = act_num key in
+    Hashtbl.find act_by_num num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_acts                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_acts keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = act_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         act_key                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let act_key act_num =
+  Printf.sprintf "%d" act_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         Templates                                     *)
 (*                                                                       *)
 (*************************************************************************)
@@ -80,10 +133,9 @@ module Accounts = GuiTemplates.Gview(struct
   module Column = GuiColumns.IMAccount
 
   type item = account
-  type key = int
 
   let columns = O.account_columns
-  let get_key = (fun ac -> account_num ac)
+  let get_key = (fun ac -> act_key (account_num ac))
   let module_name = "IM Accounts"
 
 end)
@@ -167,11 +219,15 @@ class g_account () =
 (*                                                                       *)
 (*************************************************************************)
 
-  method sort_items c ac1 ac2 =
-    match c with
+  method sort_items c k1 k2 =
+    try
+      let ac1 = act_of_key k1 in
+      let ac2 = act_of_key k2 in
+      match c with
         Col_account_name -> compare (account_name ac1) (account_name ac2)
       | Col_account_status -> compare (account_status ac1) (account_status ac2)
       | Col_account_protocol -> compare (account_protocol ac1) (account_protocol ac2)
+    with _ -> 0
 
   end
 
@@ -263,16 +319,18 @@ let input_account account =
 (*************************************************************************)
 
 let settings sel () =
+  let l = keys_to_acts sel in
   List.iter (fun account ->
      input_account account
-  ) sel
+  ) l
 
 let connect sel () =
+  let l = keys_to_acts sel in
   List.iter (fun account ->
     match account_status account with
         Status_offline -> account_login account
       | _ -> account_logout account
-  ) sel
+  ) l
 
 let remove sel () = ()
 
@@ -292,10 +350,10 @@ let ask_for_room account =
 (*                                                                       *)
 (*************************************************************************)
 
-let account_menu (sel : account list) =
+let account_menu sel =
   match sel with
       [] -> []
-    | account :: tail ->
+    | k :: tail ->
         begin
           let basic_menu = 
             [
@@ -304,20 +362,23 @@ let account_menu (sel : account list) =
               `I (!M.iM_me_remove, remove sel) ;
             ]
           in
-          if tail = [] && account_has_rooms account then
-            (`I (!M.iM_me_join_room, (fun _ -> ask_for_room account)))::
-            (let prefered_rooms = account_prefered_rooms account in
-             if prefered_rooms = []
-               then []
-               else
-                 [ `M (!M.iM_me_prefered_rooms,
-                      List.map (fun name ->
-                          `I ((U.utf8_of name), (fun _ -> 
-                                account_join_room account name))  
-                      ) prefered_rooms)]
-              ) @basic_menu
-            else basic_menu
-        end
+          try
+            let account = act_of_key k in
+            if tail = [] && account_has_rooms account then
+              (`I (!M.iM_me_join_room, (fun _ -> ask_for_room account)))::
+              (let prefered_rooms = account_prefered_rooms account in
+               if prefered_rooms = []
+                 then []
+                 else
+                   [ `M (!M.iM_me_prefered_rooms,
+                        List.map (fun name ->
+                            `I ((U.utf8_of name), (fun _ -> 
+                                  account_join_room account name))
+                        ) prefered_rooms)]
+                ) @basic_menu
+              else basic_menu
+            with _ -> basic_menu
+          end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -328,7 +389,8 @@ let account_menu (sel : account list) =
 let h_update_account account =
   lprintf' "h_update_account %d\n" (account_num account);
   try
-    let (row, ac) = accountstore#find_item (account_num account) in
+    let ac = act_of_key (act_key (account_num account)) in
+    let row = accountstore#find_row (act_key (account_num account)) in
     lprintf' "Updating Account %d\n" (account_num account);
     accountstore#update_item row ac account;
     lprintf' "Updated Account %d\n" (account_num account)

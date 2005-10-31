@@ -42,19 +42,66 @@ let (<:>) = GuiTools.(<:>)
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         result_num                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let result_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         result_of_key                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let result_of_key key =
+  try
+    let num = result_num key in
+    Hashtbl.find G.results num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_results                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_results keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = result_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         result_key                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
+let result_key result_num =
+  Printf.sprintf "%d" result_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         message to the core                           *)
 (*                                                                       *)
 (*************************************************************************)
 
 let download sel () =
+  let l = keys_to_results sel in
   List.iter (fun r -> 
     GuiCom.send (Download_query ([r.res_name], r.res_num, false))
-  ) sel
+  ) l
 
 let force_download sel () =
+  let l = keys_to_results sel in
   List.iter (fun r -> 
     GuiCom.send (Download_query ([r.res_name], r.res_num, true))
-  ) sel
+  ) l
 
 (*************************************************************************)
 (*                                                                       *)
@@ -62,7 +109,7 @@ let force_download sel () =
 (*                                                                       *)
 (*************************************************************************)
 
-let result_menu (sel : res_info list) =
+let result_menu sel =
   match sel with
       [] -> []
     | _ ->
@@ -77,9 +124,11 @@ let result_menu (sel : res_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_result (r : res_info) =
-  not (List.memq r.res_network !G.networks_filtered)
-
+let filter_result k =
+  try
+    let r = result_of_key k in
+    not (List.memq r.res_network !G.networks_filtered)
+  with _ -> true
 
 
 module ResultList(Res:
@@ -114,10 +163,9 @@ module ResultList(Res:
     module Column = GuiColumns.Result
 
     type item = res_info
-    type key = int
 
     let columns = Res.columns
-    let get_key = (fun r -> r.res_num)
+    let get_key = (fun r -> result_key r.res_num)
     let module_name = Res.module_name
 
   end)
@@ -322,8 +370,11 @@ module ResultList(Res:
 (*                                                                       *)
 (*************************************************************************)
 
-      method sort_items c r1 r2 =
-        match c with
+      method sort_items c k1 k2 =
+        try
+          let r1 = result_of_key k1 in
+          let r2 = result_of_key k2 in
+          match c with
             Col_result_name -> compare (String.lowercase r1.res_name) (String.lowercase r2.res_name)
           | Col_result_uid -> compare r1.res_uid r2.res_uid
           | Col_result_size -> compare r1.res_size r2.res_size
@@ -337,7 +388,7 @@ module ResultList(Res:
           | Col_result_comment -> compare r1.res_comment r2.res_comment
           | Col_result_network -> compare r1.res_network r2.res_network
           | Col_result_completesources -> compare r1.res_completesources r2.res_completesources
-
+        with _ -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -346,9 +397,10 @@ module ResultList(Res:
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun r ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item r.res_num in
+          let r = result_of_key k in
+          let row = self#find_row k in
           r.res_network_pixb <- Mi.network_pixb r.res_num ~size:A.SMALL ();
           r.res_name_pixb <- Mi.file_type_of_name r.res_name ~size:A.SMALL;
           store#set ~row ~column:result_network_pixb r.res_network_pixb;

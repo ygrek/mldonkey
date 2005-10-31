@@ -28,6 +28,8 @@
 (*************************************************************************)
 (*************************************************************************)
 
+type key = string
+
 module Gview :
   functor
     (V : sig
@@ -44,7 +46,6 @@ module Gview :
              end
 
            type item
-           type key
 
            val columns     : (Column.column * float) list Options.option_record
            val get_key     : item -> key
@@ -58,7 +59,7 @@ module Gview :
           inherit GTree.model
           method content : GTree.view_column -> V.Column.column -> unit
           method expanded_paths : int array list
-          method get_item : Gtk.tree_iter -> V.item
+          method find_model_key : Gtk.tree_iter -> key
           method sort : V.Column.column -> Gtk.Tags.sort_type option -> unit
           method set_view : g_view -> unit
           method unset_view : g_view -> unit
@@ -79,18 +80,19 @@ module Gview :
           method virtual from_item : Gtk.tree_iter -> V.item -> unit
           method virtual from_new_item : Gtk.tree_iter -> V.item -> V.item -> unit
           method virtual content : GTree.view_column -> V.Column.column -> unit
-          method virtual sort_items : V.Column.column -> V.item -> V.item -> int
+          method virtual sort_items : V.Column.column -> key -> key -> int
           method add_item : V.item -> Gtk.tree_iter
-          method all_items : unit -> V.item list
+          method all_items : unit -> key list
           method clear : unit -> unit
           method expanded_paths : int array list
-          method find_item : V.key -> (Gtk.tree_iter * V.item)
-          method get_item : Gtk.tree_iter -> V.item
+          method find_key : Gtk.tree_iter -> key
+          method find_model_key : Gtk.tree_iter -> key
+          method find_row : key -> Gtk.tree_iter
           method gmodel : g_model
           method nitems : int
           method refresh_filter : unit -> unit
-          method remove_item : V.item -> unit
-          method set_filter : (V.item -> bool) -> unit
+          method remove_item : key -> unit
+          method set_filter : (key -> bool) -> unit
           method set_view : g_view -> unit
           method sort : V.Column.column -> Gtk.Tags.sort_type option -> unit
           method unset_view : g_view -> unit
@@ -104,18 +106,19 @@ module Gview :
           method virtual from_item : Gtk.tree_iter -> V.item -> unit
           method virtual from_new_item : Gtk.tree_iter -> V.item -> V.item -> unit
           method virtual content : GTree.view_column -> V.Column.column -> unit
-          method virtual sort_items : V.Column.column -> V.item -> V.item -> int
+          method virtual sort_items : V.Column.column -> key -> key -> int
           method add_item : V.item -> ?parent:Gtk.tree_iter -> unit -> Gtk.tree_iter
-          method all_items : unit -> V.item list
+          method all_items : unit -> key list
           method clear : unit -> unit
           method expanded_paths : int array list
-          method find_item : V.key -> (Gtk.tree_iter * V.item)
-          method get_item : Gtk.tree_iter -> V.item
+          method find_key : Gtk.tree_iter -> key
+          method find_model_key : Gtk.tree_iter -> key
+          method find_row : key -> Gtk.tree_iter
           method gmodel : g_model
           method nitems : int
           method refresh_filter : unit -> unit
-          method remove_item : V.item -> unit
-          method set_filter : (V.item -> bool) -> unit
+          method remove_item : key -> unit
+          method set_filter : (key -> bool) -> unit
           method set_view : g_view -> unit
           method sort : V.Column.column -> Gtk.Tags.sort_type option -> unit
           method unset_view : g_view -> unit
@@ -128,14 +131,14 @@ module Gview :
           method expanded_paths : int array list
           method gview : g_view
           method id : int
-          method set_menu : (V.item list -> GToolbox.menu_entry list) -> unit
+          method set_menu : (key list -> GToolbox.menu_entry list) -> unit
           method set_model : g_model -> unit
-          method set_on_collapse : (Gtk.tree_path -> V.item -> bool) -> unit
-          method set_on_collapsed : (Gtk.tree_path -> V.item -> unit) -> unit
-          method set_on_double_click : (V.item -> unit) -> unit
-          method set_on_expand : (Gtk.tree_path -> V.item -> bool) -> unit
-          method set_on_expanded : (Gtk.tree_path -> V.item -> unit) -> unit
-          method set_on_select : (V.item list -> unit) -> unit
+          method set_on_collapse : (Gtk.tree_path -> key -> bool) -> unit
+          method set_on_collapsed : (Gtk.tree_path -> key -> unit) -> unit
+          method set_on_double_click : (key -> unit) -> unit
+          method set_on_expand : (Gtk.tree_path -> key -> bool) -> unit
+          method set_on_expanded : (Gtk.tree_path -> key -> unit) -> unit
+          method set_on_select : (key list -> unit) -> unit
           method set_selection_mode : Gtk.Tags.selection_mode -> unit
           method unset_model : unit -> unit
           method view : GTree.view

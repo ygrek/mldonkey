@@ -39,6 +39,59 @@ let lprintf' fmt =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         Global tables                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let (id_by_num : (int, identity) Hashtbl.t) = Hashtbl.create 13
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         id_num                                        *)
+(*                                                                       *)
+(*************************************************************************)
+
+let id_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         id_of_key                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let id_of_key key =
+  try
+    let num = id_num key in
+    Hashtbl.find id_by_num num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_ids                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_ids keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = id_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         id_key                                        *)
+(*                                                                       *)
+(*************************************************************************)
+
+let id_key id_num =
+  Printf.sprintf "%d" id_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         Templates                                     *)
 (*                                                                       *)
 (*************************************************************************)
@@ -48,10 +101,9 @@ module Identities = GuiTemplates.Gview(struct
   module Column = GuiColumns.IMIdentities
 
   type item = identity
-  type key = int
 
   let columns = O.identities_columns
-  let get_key = (fun c -> identity_num c)
+  let get_key = (fun c -> id_key (identity_num c))
   let module_name = "IM Identities"
 
 end)
@@ -98,8 +150,12 @@ class g_identity () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c id1 id2 =
-      compare (String.lowercase (identity_name id1)) (String.lowercase (identity_name id2))
+    method sort_items c k1 k2 =
+      try
+        let id1 = id_of_key k1 in
+        let id2 = id_of_key k2 in
+        compare (String.lowercase (identity_name id1)) (String.lowercase (identity_name id2))
+      with _ -> 0
 
   end
 
@@ -140,8 +196,11 @@ let on_entry_return room s =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_double_click_identity id =
-  identity_open_chat id
+let on_double_click_identity k =
+  try
+    let id = id_of_key k in
+    identity_open_chat id
+  with _ -> ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -192,16 +251,19 @@ let room_window room =
 
 let update_identity id_new idstore =
   try
-    let (row, id) = idstore#find_item (identity_num id_new) in
-    idstore#update_item row id id_new
-  with _ -> 
-    ignore (idstore#add_item id_new)
+    let id = Hashtbl.find id_by_num (identity_num id_new) in
+    let row = idstore#find_row (id_key (identity_num id_new)) in
+    idstore#update_item row id id_new;
+    Hashtbl.replace id_by_num (identity_num id_new) id_new
+  with _ ->
+    begin
+      ignore (idstore#add_item id_new);
+      Hashtbl.add id_by_num (identity_num id_new) id_new
+    end
 
-let remove_identity id idstore = 
-  try
-    let (_, id) = idstore#find_item (identity_num id) in
-    idstore#remove_item id
-  with _ -> ()
+let remove_identity id idstore =
+  idstore#remove_item (id_key (identity_num id));
+  Hashtbl.remove id_by_num (identity_num id)
 
 let h_join_room room (note : GPack.notebook) =
   try
@@ -225,7 +287,8 @@ let h_leave_room room =
     ro.buffer#clear ();
     ro.store#clear ();
     ro.box#destroy ();
-    Hashtbl.remove rooms (room_num room)
+    Hashtbl.remove rooms (room_num room);
+    Hashtbl.clear id_by_num
   with _ -> ()
 
 let h_room_event room event =

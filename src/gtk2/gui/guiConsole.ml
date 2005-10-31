@@ -92,8 +92,6 @@ let _ =
   ignore (text_buffer#connect#changed ~callback:
     (fun _ ->
        let nlines = text_buffer#line_count in
-       (* Printf.printf "Buffer modified %d\n" nlines;
-       flush stdout; *)
        if nlines > 1000
          then begin
            let stop = text_buffer#get_iter `END in

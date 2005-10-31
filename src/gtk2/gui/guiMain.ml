@@ -20,6 +20,7 @@
 open Options
 open GuiTypes2
 open CommonTypes
+open GraphTypes
 
 open GMain
 open GtkBase
@@ -47,7 +48,7 @@ let lprintf' fmt =
 
 let chmod_config () =
   let base_config = 
-    (Filename.concat CommonOptions.home_dir "mlgui.ini")
+    (Filename.concat M.gui_config_dir "mlgui.ini")
   in
   let save_config =
     base_config ^ ".old"
@@ -80,13 +81,12 @@ open GuiProto
 
 let value_reader gui t =
   try
-    
+
      begin
         if !!verbose then lprintf' "MESSAGE RECEIVED: %s\n" 
           (string_of_to_gui t);
       end;
-    
-    
+
     match t with
 
       (* The first message received from the core *)
@@ -134,6 +134,8 @@ let value_reader gui t =
         begin
           GuiStatusBar.update_updown s.tcp_upload_rate s.tcp_download_rate;
           GuiStatusBar.update_sharedfiles s.nshared_files s.upload_counter;
+          GuiGraphBase.save_record s.tcp_download_rate GraphDownloads;
+          GuiGraphBase.save_record s.tcp_upload_rate GraphUploads;
           if !G.is_docked
             then begin
               let up = float_of_int s.tcp_upload_rate /. 1024. in
@@ -167,8 +169,8 @@ let value_reader gui t =
                 else s.source_files_requested
             in
             let s_new = {s with source_files_requested = files_requested} in
-            GuiDownloads.h_add_source s_new file_num;
-            Hashtbl.replace G.sources source_num s_new
+            GuiDownloads.h_add_source s_new file_num;(* seen *)
+            s.source_files_requested <- s_new.source_files_requested;(* seen *)
           with _ -> 
             GuiCom.send (GuiProto.GetClient_info source_num)
         end
@@ -179,8 +181,8 @@ let value_reader gui t =
             let s = Hashtbl.find G.sources source_num in
             let files_requested = List.filter (fun num -> num <> file_num) s.source_files_requested in
             let s_new = {s with source_files_requested = files_requested} in
-            GuiDownloads.h_remove_source s_new file_num;
-            Hashtbl.replace G.sources source_num s_new
+            GuiDownloads.h_remove_source s_new file_num;(* seen *)
+            s.source_files_requested <- s_new.source_files_requested;(* seen *)
           with _ -> 
             GuiCom.send (GuiProto.GetClient_info source_num)
         end
@@ -200,8 +202,8 @@ let value_reader gui t =
                 {s with source_availability = (file_num, avail) :: avails}
               with _ -> {s with source_availability = (file_num, avail) :: s.source_availability}
             in
-            GuiDownloads.h_update_source_availability s_new file_num;
-            Hashtbl.replace G.sources source_num s_new
+            GuiDownloads.h_update_source_availability s s_new file_num;(* seen *)
+            s.source_availability <- s_new.source_availability(* seen *)
           with _ -> 
             GuiCom.send (GuiProto.GetClient_info source_num)
         end
@@ -214,10 +216,8 @@ let value_reader gui t =
                gui.init.downloads <- false
              end
           );
-          GuiDownloads.file_info
-            {f with file_age = (BasicSocket.last_time () - f.file_age);
-                    file_last_seen = (BasicSocket.last_time () - f.file_last_seen);
-            }
+          let file = Mi.file_info_to_g_file_info f in
+          GuiDownloads.file_info file
         end
 
     | Server_info s ->
@@ -269,10 +269,10 @@ let value_reader gui t =
           GuiServers.h_server_update_users user.user_server user.user_num;
           GuiRooms.update_user_info user
         end
-    
+
     | Room_add_user (num, user_num) ->
         GuiRooms.add_room_user num user_num
-    
+
     | Room_remove_user (num, user_num) ->
         GuiRooms.remove_room_user num user_num
 
@@ -317,10 +317,10 @@ let value_reader gui t =
           try
             let s = Hashtbl.find G.sources source_num in
             let s_new = {s with source_state = state} in
-            GuiDownloads.h_update_source s_new ;
-            GuiUploads.h_update_uploader s_new;
-            GuiFriends.h_update_friend s_new;
-            Hashtbl.replace G.sources s.source_num s_new
+            GuiDownloads.h_update_source s s_new;(* seen *)
+            GuiUploads.h_update_uploader s s_new;(* seen *)
+            GuiFriends.h_update_friend s s_new;(* seen *)
+            s.source_state <- state(* seen *)
           with _ ->
             begin
               GuiCom.send (GuiProto.GetClient_info source_num)
@@ -332,10 +332,10 @@ let value_reader gui t =
           try
             let s = Hashtbl.find G.sources source_num in
             let s_new = {s with source_type = friend_kind} in
-            GuiDownloads.h_update_source s_new ;
-            GuiUploads.h_update_uploader s_new;
-            GuiFriends.h_update_friend s_new;
-            Hashtbl.replace G.sources s.source_num s_new
+            GuiDownloads.h_update_source s s_new;(* seen *)
+            GuiUploads.h_update_uploader s s_new;(* seen *)
+            GuiFriends.h_update_friend s s_new;(* seen *)
+            s.source_type <- friend_kind;(* seen *)
           with _ ->
             begin
               GuiCom.send (GuiProto.GetClient_info source_num)
@@ -346,7 +346,7 @@ let value_reader gui t =
         GuiResults.result_info r
 
     | Client_file (source_num , dirname, file_num) ->
-        GuiFriends.add_friend_files (source_num , dirname, file_num)
+        GuiFriends.add_friend_files (source_num , dirname, file_num)(* seen *)
 
     | Client_info client ->
         begin
@@ -357,9 +357,9 @@ let value_reader gui t =
              end
           );
           let source = Mi.client_to_source client in
-          let s_new =
-            try
-              let s = Hashtbl.find G.sources source.source_num in
+          try
+            let s = Hashtbl.find G.sources source.source_num in
+            let s_new =
               { source with
                 source_files = s.source_files;
                 source_has_upload = s.source_has_upload;
@@ -368,12 +368,16 @@ let value_reader gui t =
                 source_upload_rate = Mi.source_upload_rate source s;
                 source_download_rate = Mi.source_download_rate source s;
               }
-            with _ -> source
-          in
-          GuiDownloads.h_update_source s_new;
-          GuiUploads.h_update_uploader s_new;
-          GuiFriends.h_update_friend s_new;
-          Hashtbl.replace G.sources s_new.source_num s_new
+            in
+            GuiDownloads.h_update_source s s_new;(* seen *)
+            GuiUploads.h_update_uploader s s_new;(* seen *)
+            GuiFriends.h_update_friend s s_new;(* seen *)
+            G.hashtbl_update_sources s s_new;(* seen *)
+          with _ ->
+            begin
+              GuiFriends.h_update_friend source source;(* seen *)
+              Hashtbl.add G.sources source.source_num source(* seen *)
+            end
         end
 
     | Room_message (_, PrivateMessage(num, mes) )
@@ -398,17 +402,6 @@ let value_reader gui t =
 
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
 
-    | Shared_file_info s ->
-        begin
-          (if gui.init.uploads
-             then begin
-               gui.set_splash_screen M.icon_menu_uploads (Mi.remove_ !M.mW_lb_uploads);
-               gui.init.uploads <- false
-             end
-          );
-          GuiUploads. h_shared_file_info s
-        end
-
     | CleanTables (clients, servers) ->
         begin
           let all_sources = Hashtbl2.to_list G.sources in
@@ -429,6 +422,17 @@ let value_reader gui t =
               lprintf' "   ----------------------------\n   sources table : %d\n" (List.length l)
             end;
           GuiServers.clean_servers_table servers;
+        end
+
+    | Shared_file_info s ->
+        begin
+          (if gui.init.uploads
+             then begin
+               gui.set_splash_screen M.icon_menu_uploads (Mi.remove_ !M.mW_lb_uploads);
+               gui.init.uploads <- false
+             end
+          );
+          GuiUploads.h_shared_file_info (Mi.shared_info_to_shared_file s)
         end
 
     | Shared_file_upload (num, size, requests) ->
@@ -781,7 +785,7 @@ let splash_screen_window gui =
            true
       );
       GMain.main ();
-      
+
   );
   window#show ()
 
@@ -803,7 +807,7 @@ let main () =
   G.get_metrics_from_gtk_font_list ();
 
   let quit () = 
-    chmod_config (); 
+    chmod_config ();
     (if !G.is_docked then G.tray.destroy_tray ());
     CommonGlobals.exit_properly 0
   in
@@ -813,38 +817,37 @@ let main () =
 
   ignore (w#event#connect#delete ~callback:
     (fun _ ->
-       w#misc#hide ();
-       let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.MEDIUM () in
-       G.tray.create_tray icon "MLDonkey";
-       true
+       if Autoconf.system = "windows"
+         then begin
+           w#misc#hide ();
+           let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.MEDIUM () in
+           G.tray.create_tray icon "MLDonkey";
+         end else begin
+           quit ()
+         end;
+         true
   ));
 
   let main_menu = core_menu gui quit in
   GuiStatusBar.menuitem#set_submenu (main_menu);
 
   G.console_message := (fun s -> GuiConsole.insert s);
-  G.get_files := (fun list ->
-    let l = ref [] in
-    List.iter (fun file_num ->
-      try
-        let (_, i) = GuiDownloads.downloadstore#find_item (File_num file_num) in
-        match i with
-            File f -> l := f :: !l
-          | _ -> ()
-      with _ -> ()
-    ) list;
-    !l
-  );
-
+  if Autoconf.system <> "windows"
+    then begin
+      let icon = A.get_icon ~icon:M.icon_type_source_normal ~size:A.MEDIUM () in
+      G.tray.create_tray icon "MLDonkey";
+    end;
+  let win_hidden = ref false in
   !G.set_systray_callback (fun ev ->
     match ev with
         DOUBLE_CLICKED ->
-           begin
+          if Autoconf.system = "windows"
+            then begin
              (if !!verbose then lprintf' "tray double clicked\n");
              G.tray.destroy_tray ();
              w#misc#show ();
              w#maximize ();
-           end
+            end
       | RBUTTON_CLICKED ->
            begin
              (if !!verbose then lprintf' "tray right clicked\n");
@@ -858,7 +861,19 @@ let main () =
                      win#show ()
                    end
            end
-      | _ -> ()
+      | LBUTTON_CLICKED ->
+          if Autoconf.system <> "windows"
+            then begin
+             (if !!verbose then lprintf' "tray left clicked\n");
+             if !win_hidden
+               then begin
+                 w#misc#show ();
+                 win_hidden := false
+               end else begin
+                 w#misc#hide ();
+                 win_hidden := true
+               end
+           end
   );
 
   CommonGlobals.do_at_exit (fun _ ->

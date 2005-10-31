@@ -105,7 +105,7 @@ let insert_data (table : GPack.table) data top =
 
 let item_name_to_string item =
   match item with
-      File f -> f.file_name
+      File f -> f.g_file_name
     | Source (s, files) -> s.source_name
 
 (*************************************************************************)
@@ -116,7 +116,7 @@ let item_name_to_string item =
 
 let pixbuf_of_item item =
   match item with
-      File f -> Mi.file_type_of_name f.file_name ~size:A.LARGE
+      File f -> Mi.file_type_of_name f.g_file_name ~size:A.LARGE
     | Source (s, files) -> Mi.source_type_to_icon s.source_type ~size:A.LARGE
 
 (*************************************************************************)
@@ -140,16 +140,16 @@ let format_to_string (table : GPack.table) format =
 let item_info_of_item (table : GPack.table) item =
   match item with
       File f ->
-        let avail = Mi.main_availability_of f.file_network f.file_availability in
+        let avail = Mi.main_availability_of f.g_file_network f.g_file_availability in
         [
-         [!M.fW_lb_file_format; format_to_string table f.file_format];
-         [!M.fW_lb_file_hash;   Mi.uid_list_to_string f.file_uids];
-         [!M.fW_lb_file_size;   Mi.size_of_int64 f.file_size;
-          !M.fW_lb_file_state;  Mi.string_of_file_state f.file_state f.file_download_rate];
-         [!M.fW_lb_file_chunks; Mi.chunks_to_string f.file_chunks;
-          !M.fW_lb_file_avail;  Mi.string_of_availability avail f.file_chunks];
-         [!M.fW_lb_file_age;    Mi.time_to_string f.file_age;
-          !M.fW_lb_file_prio;   Mi.priority_to_string f.file_priority]
+         [!M.fW_lb_file_format; format_to_string table f.g_file_format];
+         [!M.fW_lb_file_hash;   Mi.uid_list_to_string f.g_file_uids];
+         [!M.fW_lb_file_size;   Mi.size_of_int64 f.g_file_size;
+          !M.fW_lb_file_state;  Mi.string_of_file_state f.g_file_state f.g_file_download_rate];
+         [!M.fW_lb_file_chunks; Mi.chunks_to_string f.g_file_chunks;
+          !M.fW_lb_file_avail;  Mi.string_of_availability avail f.g_file_chunks];
+         [!M.fW_lb_file_age;    Mi.time_to_string f.g_file_age;
+          !M.fW_lb_file_prio;   Mi.priority_to_string f.g_file_priority]
         ]
 
     | Source (s, files) ->
@@ -170,13 +170,13 @@ let transfer_info_of_item item (table : GPack.table) =
   match item with
       File f ->
         [
-         [!M.fW_lb_file_sources;         Mi.sources_to_string f.file_sources;
-          !M.fW_lb_file_rate;            Mi.average_rate f.file_downloaded f.file_age];
-         [!M.fW_lb_file_dled;            Mi.size_of_int64 f.file_downloaded;
-          !M.fW_lb_file_complete_chunks; Mi.completed_chunks_to_string f.file_chunks];
-         [!M.fW_lb_last_seen;            Mi.time_to_string f.file_last_seen;
-          !M.fW_lb_file_eta;            (Mi.calc_eta_inst f.file_size f.file_downloaded f.file_download_rate) ^ " / " ^
-                                        (Mi.calc_eta_average f.file_size f.file_downloaded f.file_age)]
+         [!M.fW_lb_file_sources;         Mi.sources_to_string f.g_file_sources;
+          !M.fW_lb_file_rate;            Mi.average_rate f.g_file_downloaded f.g_file_age];
+         [!M.fW_lb_file_dled;            Mi.size_of_int64 f.g_file_downloaded;
+          !M.fW_lb_file_complete_chunks; Mi.completed_chunks_to_string f.g_file_chunks];
+         [!M.fW_lb_last_seen;            Mi.time_to_string f.g_file_last_seen;
+          !M.fW_lb_file_eta;            (Mi.calc_eta_inst f.g_file_size f.g_file_downloaded f.g_file_download_rate) ^ " / " ^
+                                        (Mi.calc_eta_average f.g_file_size f.g_file_downloaded f.g_file_age)]
         ]
 
     | Source (s, files) ->
@@ -278,7 +278,7 @@ let add_avail_info (table : GPack.table) f top =
   let height = 16 in
   List.iter (fun (net_num, avail) ->
     let net_pixb = Mi.network_pixb net_num ~size:A.SMALL () in
-    let avail_bar = Mi.availability_bar avail f.file_chunks true in
+    let avail_bar = Mi.availability_bar avail f.g_file_chunks true in
     let _ =
       match (net_pixb, avail_bar) with
           (Some pb, Some pixb) ->
@@ -306,7 +306,7 @@ let add_avail_info (table : GPack.table) f top =
       | _ -> ()
     in
     incr top
-  ) f.file_availability;
+  ) f.g_file_availability;
   (!top + 1)
 
 (*************************************************************************)
@@ -322,7 +322,7 @@ let sort_function column (model : #GTree.model) it_a it_b =
 
 let add_file_names (table : GPack.table) f top =
   let height = !wheight * 1 / 4 in
-  let file_name = U.utf8_of f.file_name in
+  let file_name = U.utf8_of f.g_file_name in
   let cols = new GTree.column_list in
   let file_names = cols#add Gobject.Data.string in
   let file_count = cols#add Gobject.Data.int in
@@ -338,7 +338,7 @@ let add_file_names (table : GPack.table) f top =
     liststore#set ~row ~column:file_names_pixb pixb;
     liststore#set ~row ~column:file_names s;
     liststore#set ~row ~column:file_count ips.nips;
-  ) f.file_names;
+  ) f.g_file_names;
   let col_name =
     let col =  GTree.view_column ~title:!M.fW_lb_file_names_col () in
     col#set_resizable true;
@@ -389,9 +389,9 @@ let add_file_names (table : GPack.table) f top =
   ignore (button#connect#clicked ~callback:
     (fun _ ->
       if entry#text <> "" then
-        match f.file_state with
- 	    FileDownloaded  -> GuiCom.send (GuiProto.SaveFile (f.file_num, entry#text))
-          | _  ->  GuiCom.send (GuiProto.RenameFile (f.file_num, entry#text))
+        match f.g_file_state with
+ 	    FileDownloaded  -> GuiCom.send (GuiProto.SaveFile (f.g_file_num, entry#text))
+          | _  ->  GuiCom.send (GuiProto.RenameFile (f.g_file_num, entry#text))
   ));
   ignore (view#selection#connect#after#changed ~callback:
     (fun _ ->
@@ -427,10 +427,10 @@ let add_files_requested (table : GPack.table) s top =
       [] -> insert_data table [] top
     | files ->
         begin
-          let file_list = !G.get_files files in
+          let file_list = G.get_files files in
           let l = ref [] in
           List.iter (fun f ->
-            l := [GuiTools.fit_string_to_pixels (U.utf8_of f.file_name) ~context ~pixels] :: !l
+            l := [GuiTools.fit_string_to_pixels (U.utf8_of f.g_file_name) ~context ~pixels] :: !l
           ) file_list;
           insert_data table !l top
         end

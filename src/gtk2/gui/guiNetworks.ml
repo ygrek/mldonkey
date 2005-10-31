@@ -50,18 +50,6 @@ let enable_network (num, b) =
   (if !!verbose then lprintf' "Enable network %d %b\n" num b);
   GuiCom.send (EnableNetwork (num, b))
 
-let update_networks () = ()
-(*
-TODO :
-  the core should update the values ... but it doesn't
-    Hashtbl.iter (fun num n ->
-      (* Printf.printf "Update network %d %b\n" num n.net_enabled;
-      flush stdout; *)
-      if n.net_enabled
-        then GuiCom.send (GetNetworkInfo num)
-  ) G.networks
-*)
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         Global tables                                 *)
@@ -334,12 +322,4 @@ let networks_box gui =
          n := 0;
        end
   ) net_list;
-  (*
-  networks_timerID := Timeout.add ~ms:6000 ~callback:
-    (fun _ ->
-      (* Printf.printf "Update networks\n";
-      flush stdout; *)
-      update_networks ();
-      true);
-*)
   vbox#coerce

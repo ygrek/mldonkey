@@ -116,6 +116,7 @@ let verbose_chat = O.gtk_verbose_chat
  *)
 
 
+type key = string
 
 module Gview(V:
 
@@ -144,7 +145,7 @@ module Gview(V:
       open Column
       
       type item
-      type key
+      (* type key *)
 
       val columns              : (column * float) list Options.option_record
       val get_key              : item -> key
@@ -171,7 +172,7 @@ class type g_model =
     inherit GTree.model
     method content : GTree.view_column -> column -> unit
     method expanded_paths : int array list
-    method get_item : Gtk.tree_iter -> item
+    method find_model_key : Gtk.tree_iter -> key
     method set_view : g_view -> unit
     method sort : column -> Gtk.Tags.sort_type option -> unit
     method unset_view : g_view -> unit
@@ -185,14 +186,12 @@ object
     method unset_model : unit -> unit
   end
 
-
 type item_tree =
   {
-    parent : int array;      (* for compare_array and partition in g_tree *)
-    level : int;             (* should speed up sort / avoid rebuilding an int array *)
-    iter : Gtk.tree_iter;    (* a pointer to a row *)
-    mutable tree_item : item;
-    mutable removed : bool;  (* to manage easily the stamp *)
+            parent  : int array;      (* for compare_array and partition in g_tree *)
+            level   : int;            (* should speed up sort / avoid rebuilding an int array *)
+            iter    : Gtk.tree_iter;  (* a pointer to a row *)
+    mutable removed : bool;           (* to manage easily the stamp *)
   }
 
 let parent_from_indices indices = Array.sub indices 0 (Array.length indices - 1)
@@ -209,8 +208,8 @@ let rec partition list res =
       [] -> res
     | _ ->
         begin
-          let it_p = List.hd list in
-          let (l', l'') = List.partition (fun it -> it.parent = it_p.parent) list in
+          let it_p = snd (List.hd list) in
+          let (l', l'') = List.partition (fun (k, it) -> it.parent = it_p.parent) list in
           partition l'' (l' :: res)
         end
 
@@ -232,67 +231,10 @@ let compare_array a1 a2 =
   in
   iter 0
 
-(*
-type item =
-  {
-    value : string;
-    level : int array;
-  };;
-
-let items = [
-  {value = "p1"; level = [|0|]};
-  {value = "p2"; level = [|2|]};
-  {value = "c21"; level = [|2;1|]};
-  {value = "p3"; level = [|1|]};
-  {value = "c22"; level = [|2;2|]};
-  {value = "c23"; level = [|2;0|]};
-  {value = "c11"; level = [|0;0|]};
-  {value = "c12"; level = [|0;3|]};
-  {value = "c13"; level = [|0;2|]};
-  {value = "c14"; level = [|0;1|]};
-  {value = "c31"; level = [|1;1|]};
-  {value = "c31"; level = [|1;0|]};
-  {value = "c111"; level = [|0;3;0|]};
-  {value = "c112"; level = [|0;2;0|]};
-];;
-
-let compare_array a1 a2 =
-  let len1 = Array.length a1 in
-  let len2 = Array.length a2 in
-  let len = min len1 len2 in
-  let rec iter n =
-    if n = len
-      (* a1 a2 have a common node in the tree!
-       * put the one with a lower height in the tree first.
-       *)
-      then compare len1 len2
-      else if a1.(n) > a2.(n)
-        then 1
-        else if a1.(n) < a2.(n)
-          then (-1)
-          else iter (n + 1)
-  in
-  iter 0;;
-
-let parent a = Array.sub a 0 (Array.length a - 1);;
-
-let l = List.sort (fun it1 it2 -> compare_array it1.level it2.level) items;;
-
-let rec partition list res =
-  let it_p = List.hd list in
-  let (l', l'') = List.partition (fun it -> parent it.level = parent it_p.level) list in
-  match l'' with
-      [] -> l' :: res
-    | _ -> partition l'' (l' :: res);;
-
-let pl = partition items [];;
-
-*)
-
 class virtual g_list (cols : GTree.column_list) =
 (* one uses a Hashtbl because, the GTree.model is very bad for random access. *)
   let (table : (key, item_tree) Hashtbl.t) = Hashtbl.create 217 in
-  let key_col = cols#add Gobject.Data.caml in
+  let key_col = cols#add Gobject.Data.string in
 (*
  * A bool GTree.column. If the value is true the row will be displayed.
  * As g_list inherit from GTree.model_filter, it is initialized once the object has
@@ -330,7 +272,7 @@ class virtual g_list (cols : GTree.column_list) =
 (* for public use *)
     val store = store
 (* allows to change, whenever necessary, the filter function of our g_list *)
-    val mutable filter_func = (fun _ -> true)
+    val mutable filter_func = (fun (key : key)  -> true)
 (* the list of #g_view that currently use the g_list *)
     val mutable gviews = ([] : g_view list)
 (*
@@ -342,7 +284,7 @@ class virtual g_list (cols : GTree.column_list) =
  * connection/disconnection scheme proceeds.
  *)
     val mutable stamp = ([] : item_tree list)
-    val mutable timerID = GMain.Timeout.add ~ms:6000 ~callback:(fun _ -> true)
+    val mutable timerID = GMain.Timeout.add ~ms:60000 ~callback:(fun _ -> true)
 (* the number of rows. Includes filtered rows. *)
     val mutable nitems = 0
 
@@ -359,27 +301,28 @@ class virtual g_list (cols : GTree.column_list) =
  *)
     method virtual content : GTree.view_column -> column -> unit
 (* defines how the data will be sorted on the #g_view request. *)
-    method virtual sort_items : column -> item -> item -> int
+    method virtual sort_items : column -> key -> key -> int
 
 (* the public method to add an item *)
     method add_item i =
       let key = get_key i in
       let row = store#append () in
-      store#set ~row ~column:filter_col (filter_func i);
+      store#set ~row ~column:filter_col (filter_func key);
       store#set ~row ~column:key_col key;
       self#from_item row i;
       let indices = GTree.Path.get_indices (store#get_path row) in
       let level = level_from_indices indices in
 (*      (if !!verbose_view then lprintf_g_list "in add_item new path %s\n" (GTree.Path.to_string (store#get_path row))); *)
-      Hashtbl.add table key {tree_item = i; parent = [||]; level = level.(0); iter = row; removed = false};
+      Hashtbl.add table key {parent = [||]; level = level.(0); iter = row; removed = false};
       nitems <- nitems + 1;
       row
 
 (* the public method to retrieve all items stored in the g_list *)
     method all_items () =
       let l = ref [] in
-      Hashtbl.iter (fun _ it ->
-        l := it.tree_item :: !l
+      Hashtbl.iter (fun key it ->
+        if not it.removed
+          then l := key :: !l
       ) table;
       !l
 
@@ -391,11 +334,32 @@ class virtual g_list (cols : GTree.column_list) =
 
     method expanded_paths = []
 
-(* the public method to retrieve an item by its [key] *)
-    method find_item key =
+    method private filter_removed key =
       try
         let it = Hashtbl.find table key in
-        (it.iter, it.tree_item)
+        it.removed
+      with _ -> false
+
+    method find_key row =
+      try
+        let key = store#get ~row ~column:key_col in
+        let it = Hashtbl.find table key in
+        if not it.removed
+          then key else raise Exit
+      with _ -> raise Not_found
+
+    method find_model_key row =
+      try
+        let store_row = self#convert_iter_to_child_iter row in
+        self#find_key store_row
+      with _ -> raise Not_found
+
+(* the public method to retrieve an item by its [key] *)
+    method find_row key =
+      try
+        let it = Hashtbl.find table key in
+        if not it.removed
+          then it.iter else raise Exit
       with _ -> raise Not_found
 
 (* the connection/disconnection scheme between the #g_list and a #g_view *)
@@ -408,19 +372,14 @@ class virtual g_list (cols : GTree.column_list) =
           List.iter (fun v -> v#unset_model ()) gl;
           (* proceed ... *)
           List.iter (fun it ->
-            Hashtbl.remove table (get_key it.tree_item);
-            if store#iter_is_valid it.iter then ignore (store#remove it.iter);
+            try
+              ignore (store#remove it.iter);
+            with _ -> ()
           ) stamp;
           stamp <- [];
           (* reconnect to all the #g_view *)
           List.iter (fun v -> v#set_model self#gmodel) gl
         end
-
-    method get_item row =
-      try
-        let key = self#get ~row ~column:key_col in
-        snd (self#find_item key)
-      with _ -> raise Not_found
 
 (* the g_model interface to connect to a #g_view *)
     method gmodel = (self :> g_model)
@@ -434,30 +393,31 @@ class virtual g_list (cols : GTree.column_list) =
       (* disconnect from all the #g_view *)
       List.iter (fun v -> v#unset_model ()) gl;
       (* proceed ... *)
-      Hashtbl.iter (fun _ it ->
-        store#set ~row:it.iter ~column:filter_col (filter_func it.tree_item);
+      Hashtbl.iter (fun key it ->
+        store#set ~row:it.iter ~column:filter_col (filter_func key);
       ) table;
       (* reconnect to all the #g_view *)
       List.iter (fun v -> v#set_model self#gmodel) gl
 
 (* the public method to remove an item from the g_list *)
-    method remove_item i =
+    method remove_item key =
       try
-        let key = get_key i in
         let it = Hashtbl.find table key in
         if not it.removed
           then begin
             match gviews with
                 [] ->     (* no #g_view connected, nothing to be disconnected from *)
                   begin
-                    Hashtbl.remove table key;
                     ignore (store#remove it.iter);
+                    Hashtbl.remove table key;
                     nitems <- nitems - 1
                   end
               | _ ->
                   begin
                     it.removed <- true;
                     stamp <- it :: stamp;
+                    store#set ~row:it.iter ~column:filter_col (filter_func key);
+                    Hashtbl.remove table key;
                     nitems <- nitems - 1
                   end
           end
@@ -465,7 +425,7 @@ class virtual g_list (cols : GTree.column_list) =
 
 (* the public method to set the filter function *)
     method set_filter f =
-      filter_func <- f;
+      filter_func <- (fun key -> not (self#filter_removed key) && f key);
       self#refresh_filter ()
 
 (* the public method to connect a #g_view. *)
@@ -473,7 +433,7 @@ class virtual g_list (cols : GTree.column_list) =
       if not (List.memq view gviews)
         then begin
           (if gviews = []
-             then timerID <- GMain.Timeout.add ~ms:700 ~callback:
+             then timerID <- GMain.Timeout.add ~ms:60000 ~callback:
                                (fun _ ->
                                   self#flush_stamp ();
                                   true)
@@ -485,20 +445,21 @@ class virtual g_list (cols : GTree.column_list) =
  * fast that even the filtered items are sorted :-)
  *)
     method private sort' c n =
-      let items = ref [] in
-      Hashtbl.iter (fun _ it ->
-        items := it :: !items;
+      let l = ref [] in
+      Hashtbl.iter (fun key it ->
+        if not it.removed
+          then l := (key, it) :: !l;
       ) table;
       let l' =
-        List.sort (fun it1 it2 ->
-          let comp' =  self#sort_items c it1.tree_item it2.tree_item in
+        List.sort (fun (key1, it1) (key2, it2) ->
+          let comp' =  self#sort_items c key1 key2 in
           if comp' = 0
             then compare it1.level it2.level
             else comp'
-        ) !items
+        ) !l
       in
-      let len = max 0 (List.length !items - 1) in
-      List.iter (fun it ->
+      let len = max 0 (List.length !l - 1) in
+      List.iter (fun (_, it) ->
         let pos = store#get_iter (path_from_indices [|len|]) in
         ignore (store#move_after ~iter:it.iter ~pos)
       ) (if n < 0 then l' else List.rev l')
@@ -513,16 +474,17 @@ class virtual g_list (cols : GTree.column_list) =
         match order_opt with
           None ->
             begin
-              let items = ref [] in
+              let l = ref [] in
               Hashtbl.iter (fun _ it ->
-                items := it :: !items
+                if not it.removed
+                  then l := it :: !l;
               ) table;
-              let l = List.sort (fun it1 it2 -> (-1) * (compare it1.level it2.level)) !items in
-              let len = max 0 (List.length !items - 1) in
+              let l' = List.sort (fun it1 it2 -> (-1) * (compare it1.level it2.level)) !l in
+              let len = max 0 (List.length !l - 1) in
               List.iter (fun it ->
                 let pos = store#get_iter (path_from_indices [|len|]) in
                 ignore (store#move_after ~iter:it.iter ~pos)
-              ) l
+              ) l'
             end
         | Some `ASCENDING -> self#sort' c (-1)
         | Some `DESCENDING -> self#sort' c 1
@@ -534,10 +496,8 @@ class virtual g_list (cols : GTree.column_list) =
 (* the public method to update an item in the g_list *)
     method update_item row i i_new =
       try
-        let it = Hashtbl.find table (get_key i) in
-        store#set ~row ~column:filter_col (filter_func i_new);
-        self#from_new_item row i i_new;
-        it.tree_item <- i_new
+        store#set ~row ~column:filter_col (filter_func (get_key i_new));
+        self#from_new_item row i i_new
       with _ -> ()
 
 
@@ -556,7 +516,7 @@ class virtual g_list (cols : GTree.column_list) =
 class virtual g_tree (cols : GTree.column_list) =
 (* one uses a Hashtbl because, the GTree.model is very bad for random access. *)
   let (table : (key, item_tree) Hashtbl.t) = Hashtbl.create 217 in
-  let key_col = cols#add Gobject.Data.caml in
+  let key_col = cols#add Gobject.Data.string in
 (*
  * A bool GTree.column. If the value is true the row will be displayed.
  * As g_tree inherits from GTree.model_filter, it is initialized once the object has
@@ -595,7 +555,7 @@ class virtual g_tree (cols : GTree.column_list) =
     val store = store
 
 (* allows to change, whenever necessary, the filter function of the g_tree *)
-    val mutable filter_func = (fun _ -> true)
+    val mutable filter_func = (fun (key : key) -> true)
 
 (* the list of #g_view that currently use the g_tree *)
     val mutable gviews = ([] : g_view list)
@@ -628,27 +588,28 @@ class virtual g_tree (cols : GTree.column_list) =
  *)
     method virtual content : GTree.view_column -> column -> unit
 (* defines how the data will be sorted on the #g_view request. *)
-    method virtual sort_items : column -> item -> item -> int
+    method virtual sort_items : column -> key -> key -> int
 
 (* the public method to add an item *)
     method add_item i ?(parent : Gtk.tree_iter option) () =
       let key = get_key i in
       let row = store#append ?parent () in
-      store#set ~row ~column:filter_col (filter_func i);
+      store#set ~row ~column:filter_col (filter_func key);
       store#set ~row ~column:key_col key;
       self#from_item row i;
       let indices = GTree.Path.get_indices (store#get_path row) in
       let level = level_from_indices indices in
       let parent = parent_from_indices indices in
-      Hashtbl.add table key {tree_item = i; parent = parent; level = level.(0); iter = row; removed = false};
+      Hashtbl.add table key {parent = parent; level = level.(0); iter = row; removed = false};
       nitems <- nitems + 1;
       row
 
 (* the public method to retrieve all items stored in the g_tree *)
     method all_items () =
       let l = ref [] in
-      Hashtbl.iter (fun _ it ->
-        l := it.tree_item :: !l;
+      Hashtbl.iter (fun key it ->
+        if not it.removed
+          then l := key :: !l;
       )table;
       !l
 
@@ -674,11 +635,35 @@ class virtual g_tree (cols : GTree.column_list) =
       expanded_rows <- !l';
       !l
 
-(* the public method to retrieve an item by its [key] *)
-    method find_item key =
+    method private filter_removed key =
       try
         let it = Hashtbl.find table key in
-        (it.iter, it.tree_item)
+        it.removed
+      with _ -> false
+
+    method find_key row =
+      if store#iter_is_valid row
+        then begin
+          try
+            let key = store#get ~row ~column:key_col in
+            let it = Hashtbl.find table key in
+            if not it.removed
+              then key else raise Exit
+          with _ -> raise Not_found
+        end else raise Not_found
+
+    method find_model_key row =
+      try
+        let store_row = self#convert_iter_to_child_iter row in
+        self#find_key store_row
+      with _ -> raise Not_found
+
+(* the public method to retrieve an item by its [key] *)
+    method find_row key =
+      try
+        let it = Hashtbl.find table key in
+        if not it.removed && store#iter_is_valid it.iter
+          then it.iter else raise Exit
       with _ -> raise Not_found
 
 (* the connection/disconnection scheme between the g_tree and a #g_view *)
@@ -692,22 +677,14 @@ class virtual g_tree (cols : GTree.column_list) =
           List.iter (fun v -> v#unset_model ()) gl;
           (* proceed ... *)
           List.iter (fun it ->
-            (if store#iter_is_valid it.iter then ignore (store#remove it.iter));
-            Hashtbl.remove table (get_key it.tree_item)
+            try
+              ignore (store#remove it.iter)
+            with _ -> ()
           ) stamp;
           stamp <- [];
           (* reconnect to all the #g_view *)
           List.iter (fun v -> v#set_model self#gmodel) gl
         end
-
-(* Becarefull !!! get_item uses Gtk.tree_iter related to the model_filter.
- * They are quite different from the store Gtk.tree_iter. Don't forget to convert them before...
- *)
-    method get_item row =
-      try
-        let key = self#get ~row ~column:key_col in
-        snd (self#find_item key)
-      with _ -> raise Not_found
 
 (* the g_model interface to connect to a #g_view *)
     method gmodel = (self :> g_model)
@@ -721,8 +698,8 @@ class virtual g_tree (cols : GTree.column_list) =
       (* disconnect from all the #g_view *)
       List.iter (fun v -> v#unset_model ()) gl;
       (* proceed ... *)
-      Hashtbl.iter (fun _ it ->
-        store#set ~row:it.iter ~column:filter_col (filter_func it.tree_item);
+      Hashtbl.iter (fun key it ->
+        store#set ~row:it.iter ~column:filter_col (filter_func key);
       ) table;
       (* reconnect to all the #g_view *)
       List.iter (fun v -> v#set_model self#gmodel) gl
@@ -730,9 +707,8 @@ class virtual g_tree (cols : GTree.column_list) =
 (* the public method to remove an item from the g_tree.
  * removes the children when a parent is removed.
  *)
-    method remove_item i =
+    method remove_item key =
       try
-        let key = get_key i in
         let it = Hashtbl.find table key in
         if not it.removed
           then begin
@@ -749,8 +725,7 @@ class virtual g_tree (cols : GTree.column_list) =
                             let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
                             let child_row = store#get_iter child_path in
                             let key = store#get ~row:child_row ~column:key_col in
-                            let it_child = Hashtbl.find table key in
-                            self#remove_item it_child.tree_item;
+                            self#remove_item key;
                           with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
                         done
                       end;
@@ -770,13 +745,15 @@ class virtual g_tree (cols : GTree.column_list) =
                             let child_path = GTree.Path.from_string (Printf.sprintf "%s:%d" path_str i) in
                             let child_row = store#get_iter child_path in
                             let key = store#get ~row:child_row ~column:key_col in
-                            let it_child = Hashtbl.find table key in
-                            self#remove_item it_child.tree_item;
+                            self#remove_item key;
                           with _ -> (if !!verbose_view then lprintf_g_tree "failed to find child\n");
                         done
                       end;
                     (* order is parent->children *)
                     stamp <- it :: stamp;
+                    if store#iter_is_valid it.iter then begin
+                      store#set ~row:it.iter ~column:filter_col (filter_func key) end;
+                    Hashtbl.remove table key;
                     nitems <- nitems - 1
                   end
           end
@@ -785,7 +762,7 @@ class virtual g_tree (cols : GTree.column_list) =
 
 (* the public method to set the filter function *)
     method set_filter f =
-      filter_func <- f;
+      filter_func <- (fun key -> not (self#filter_removed key) && f key);
       self#refresh_filter ()
 
 (* the public method to connect a #g_view. *)
@@ -793,7 +770,7 @@ class virtual g_tree (cols : GTree.column_list) =
       if not (List.memq view gviews)
         then begin
           (if gviews = []
-             then timerID <- GMain.Timeout.add ~ms:800 ~callback:
+             then timerID <- GMain.Timeout.add ~ms:60000 ~callback:
                                (fun _ ->
                                   self#flush_stamp ();
                                   true)
@@ -801,18 +778,18 @@ class virtual g_tree (cols : GTree.column_list) =
           gviews <- view :: gviews
 	end
 
-    method private sort' c n items =
-      let pl = partition items [] in
+    method private sort' c n (l : (key * item_tree) list)=
+      let pl = partition l [] in
       List.iter (fun l ->
         let l' =
-          List.sort (fun it1 it2 ->
-            let comp' =  self#sort_items c it1.tree_item it2.tree_item in
+          List.sort (fun (key1, it1) (key2, it2) ->
+            let comp' =  self#sort_items c key1 key2 in
             if comp' = 0
               then compare_array it1.parent it2.parent
               else comp'
           ) l
         in
-        List.iter (fun it ->
+        List.iter (fun (_, it) ->
           let current_path = store#get_path it.iter in
           let new_indices = GTree.Path.get_indices current_path in
           let index = Array.length new_indices - 1 in
@@ -834,14 +811,14 @@ class virtual g_tree (cols : GTree.column_list) =
         ) expanded_rows
       in
       let store_paths = [||] :: store_paths in
-      let items = ref [] in
-      Hashtbl.iter (fun _ it ->
+      let l = ref [] in
+      Hashtbl.iter (fun key it ->
         let current_path = store#get_path it.iter in
         let current_indices = GTree.Path.get_indices current_path in
         let current_parent = parent_from_indices current_indices in
-        if List.mem current_parent store_paths
+        if List.mem current_parent store_paths && not it.removed
           then begin
-            items := it :: !items;
+            l := (key, it) :: !l;
           end
       ) table;
       (* proceed ... *)
@@ -850,23 +827,23 @@ class virtual g_tree (cols : GTree.column_list) =
           None ->
             begin
               (* make sure !items are sorted parent(1)->children(1)->...->parent(n)->children(n) !!! *)
-              let l =
-                List.sort (fun it1 it2 ->
+              let l' =
+                List.sort (fun (_, it1) (_, it2) ->
                   (-1) * (compare_array (Array.append it1.parent [|it1.level|])
                                         (Array.append it2.parent [|it2.level|]))
-                ) !items
+                ) !l
               in
-              List.iter (fun it ->
+              List.iter (fun (_, it) ->
                 let current_path = store#get_path it.iter in
                 let new_indices = GTree.Path.get_indices current_path in
                 let index = Array.length new_indices - 1 in
                 new_indices.(index) <- 0;
                 let pos = store#get_iter (path_from_indices new_indices) in
                 ignore (store#move_before ~iter:it.iter ~pos)
-              ) l
+              ) l'
             end
-        | Some `ASCENDING -> self#sort' c (-1) !items
-        | Some `DESCENDING -> self#sort' c 1 !items
+        | Some `ASCENDING -> self#sort' c (-1) !l
+        | Some `DESCENDING -> self#sort' c 1 !l
             
       in
       (* reconnect all the #g_view *)
@@ -890,9 +867,8 @@ class virtual g_tree (cols : GTree.column_list) =
     method update_item row i i_new =
       try
         let it = Hashtbl.find table (get_key i) in
-        store#set ~row ~column:filter_col (filter_func i_new);
-        self#from_new_item row i i_new;
-        it.tree_item <- i_new
+        store#set ~row ~column:filter_col (filter_func (get_key i_new));
+        self#from_new_item row i i_new
       with _ -> ()
 
     initializer
@@ -1142,8 +1118,8 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                         * that shall be the GTree.model interface of the current
                         * #g_model connected to us.
                         *)
-                       let i = m#get_item row in
-                       list := i :: !list
+                       let key = m#find_model_key row in
+                       list := key :: !list
                      with _ -> (if !!verbose_view then lprintf_g_view "in connect_events selection_changed no item found\n")
                    ) path_selected;
                    on_select !list
@@ -1157,8 +1133,8 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
              | Some m ->
                  try
                    let row = view#model#get_iter path in
-                   let i = m#get_item row in
-                   on_double_click i
+                   let key = m#find_model_key row in
+                   on_double_click key
                  with _ -> (if !!verbose_view then lprintf_g_view "in connect_events row_activated no item found\n")
       ));
       (* connect the test_expand_row signal *)
@@ -1168,8 +1144,8 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                None -> true
              | Some m ->
                  try
-                   let i = m#get_item row in
-                   on_expand path i
+                   let key = m#find_model_key row in
+                   on_expand path key
                  with _ ->
                    (if !!verbose_view then lprintf_g_view "in connect_events test_expand_row no item found\n");
                    true
@@ -1181,8 +1157,8 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                None -> true
              | Some m ->
                  try
-                   let i = m#get_item row in
-                   on_collapse path i
+                   let key = m#find_model_key row in
+                   on_collapse path key
                  with _ ->
                    (if !!verbose_view then lprintf_g_view "in connect_events test_collapse_row no item found\n");
                    true
@@ -1194,11 +1170,11 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                None -> ()
              | Some m ->
                  try
-                   let i = m#get_item row in
+                   let key = m#find_model_key row in
                    let indices = GTree.Path.get_indices path in
                    (if not (List.mem indices expanded_paths)
                       then expanded_paths <- indices :: expanded_paths);
-                   on_expanded path i
+                   on_expanded path key
                  with _ -> (if !!verbose_view then lprintf_g_view "in connect_events row_expanded no item found\n")
       ));
       (* connect the row_collapsed signal *)
@@ -1208,11 +1184,11 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                None -> ()
              | Some m ->
                  try
-                   let i = m#get_item row in
+                   let key = m#find_model_key row in
                    let indices = GTree.Path.get_indices path in
                    (if (List.mem indices expanded_paths)
                       then expanded_paths <- List.filter (fun a -> indices <> a) expanded_paths);
-                   on_collapsed path i
+                   on_collapsed path key
                  with _ -> (if !!verbose_view then lprintf_g_view "in connect_events row_collapsed no item found\n")
       ));
       (* save automatically the column widths on a size change *)
@@ -1316,8 +1292,8 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                    * that shall be the GTree.model interface of the current
                    * #g_model connected to us.
                    *)
-                  let i = m#get_item row in
-                  list := i :: !list
+                  let key = m#find_model_key row in
+                  list := key :: !list
                 with _ -> (if !!verbose_view then lprintf_g_view "in contextual_menu no item found\n")
               ) path_selected;
               menu !list

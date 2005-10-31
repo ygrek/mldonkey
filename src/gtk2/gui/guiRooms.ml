@@ -47,6 +47,51 @@ let lprintf' fmt =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         room_num                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let room_num key =
+  try int_of_string key with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         room_of_key                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let room_of_key key =
+  try
+    let num = room_num key in
+    Hashtbl.find G.rooms num
+  with _ -> raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         keys_to_rooms                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let keys_to_rooms keys =
+  let l = ref [] in
+  List.iter (fun k ->
+    try
+      let s = room_of_key k in
+      l := s :: !l
+    with _ -> ()) keys;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         room_key                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let room_key room_num =
+  Printf.sprintf "%d" room_num
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         Global tables                                 *)
 (*                                                                       *)
 (*************************************************************************)
@@ -89,10 +134,9 @@ module Rooms = GuiTemplates.Gview(struct
   module Column = GuiColumns.Room
 
   type item = room_info
-  type key = int
 
   let columns = O.rooms_columns
-  let get_key = (fun r -> r.room_num)
+  let get_key = (fun r -> room_key r.room_num)
   let module_name = "Rooms"
 
 end)
@@ -209,12 +253,16 @@ class g_room () =
 (*                                                                       *)
 (*************************************************************************)
 
-    method sort_items c ro1 ro2 =
-      match c with
+    method sort_items c k1 k2 =
+      try
+        let ro1 = room_of_key k1 in
+        let ro2 = room_of_key k2 in
+        match c with
           Col_room_name -> compare (String.lowercase ro1.room_name) (String.lowercase ro2.room_name)
         | Col_room_nusers -> compare ro1.room_nusers ro2.room_nusers
         | Col_room_state -> compare ro1.room_state ro2.room_state
         | Col_room_network -> compare ro1.room_network ro2.room_network
+      with _ -> 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -223,9 +271,10 @@ class g_room () =
 (*************************************************************************)
 
     method force_update_icons () =
-      List.iter (fun ro ->
+      List.iter (fun k ->
         try
-          let (row, _) = self#find_item ro.room_num in 
+          let row = self#find_row k in
+          let ro = room_of_key k in
           store#set ~row ~column:room_network_pixb (Mi.network_pixb ro.room_network ~size:A.SMALL ());
           store#set ~row ~column:room_name_pixb (Mi.room_state_to_icon ro.room_state ~size:A.SMALL);
         with _ -> ()
@@ -279,11 +328,12 @@ let update_users_label () =
 (*************************************************************************)
 
 let close_open_room sel () =
+  let l = keys_to_rooms sel in
   List.iter (fun ro ->
     match ro.room_state with
         RoomOpened -> GuiCom.send (SetRoomState (ro.room_num, RoomClosed))
       | _ -> GuiCom.send (SetRoomState (ro.room_num, RoomOpened))
-  ) sel
+  ) l
 
 let on_entry_return num s =
   GuiCom.send (SendMessage (num, PublicMessage (0, s)))
@@ -297,7 +347,7 @@ let get_user_info user_num =
 (*                                                                       *)
 (*************************************************************************)
 
-let room_menu (sel : room_info list) =
+let room_menu sel =
   match sel with
       [] -> []
     | _ ->
@@ -311,7 +361,7 @@ let room_menu (sel : room_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_select_room (sel : room_info list) =
+let on_select_room sel =
   try
     userstore#clear ();
     update_users_label ();
@@ -323,28 +373,29 @@ let on_select_room (sel : room_info list) =
     in
     match sel with
         [] -> (if !!verbose then lprintf' "No room selected\n")
-      | ro :: tail ->
+      | k :: tail ->
           begin
-            current_room := Some ro.room_num;
-            match ro.room_state with
-                RoomOpened  ->
-                  begin
-                    List.iter (fun user_num ->
+            try
+              let ro = room_of_key k in
+              current_room := Some ro.room_num;
+              match ro.room_state with
+                  RoomOpened  ->
+                    begin
+                      List.iter (fun user_num ->
+                        try
+                          let u = Hashtbl.find G.users user_num in
+                          ignore (userstore#add_item u);
+                        with _ -> get_user_info user_num
+                      ) ro.room_users;
+                      update_users_label ();
                       try
-                        let u = Hashtbl.find G.users user_num in
-                        ignore (userstore#add_item u);
-                      with _ -> get_user_info user_num
-                    ) ro.room_users;
-                    update_users_label ();
-                    try
-                      let chat_buf = List.assoc ro.room_num !dialogs in
-                      box#set_buffer chat_buf
-                    with _ -> (if !!verbose then lprintf' "No chat dialog availabale\n")
-                  end
-              | _  -> (if !!verbose then lprintf' "room_users empty\n")
-
+                        let chat_buf = List.assoc ro.room_num !dialogs in
+                        box#set_buffer chat_buf
+                      with _ -> (if !!verbose then lprintf' "No chat dialog availabale\n")
+                    end
+                | _  -> (if !!verbose then lprintf' "room_users empty\n")
+            with _ -> ()
           end
-
   with _ -> (if !!verbose then lprintf' "No chat_box found\n")
 
 (*************************************************************************)
@@ -353,8 +404,8 @@ let on_select_room (sel : room_info list) =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_double_click_room (ro : room_info) =
-  close_open_room [ro] ()
+let on_double_click_room k =
+  close_open_room [k] ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -362,8 +413,11 @@ let on_double_click_room (ro : room_info) =
 (*                                                                       *)
 (*************************************************************************)
 
-let filter_room (ro : room_info) =
-  not (List.memq ro.room_network !G.networks_filtered)
+let filter_room k =
+  try
+    let ro = room_of_key k in
+    not (List.memq ro.room_network !G.networks_filtered)
+  with _ -> true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -403,6 +457,12 @@ let clear () =
 (*                                                                       *)
 (*************************************************************************)
 
+let hashtbl_rooms_update ro ro_new =
+  ro.room_state <- ro_new.room_state;
+  ro.room_users <- ro_new.room_users;
+  ro.room_messages <- ro_new.room_messages;
+  ro.room_nusers <- ro_new.room_nusers
+
 let add_chat_to_room ro =
   match ro.room_state with
       RoomOpened ->
@@ -440,18 +500,21 @@ let add_room ro =
       (if !!verbose then lprintf' "Adding room %s num: %d\n" ro.room_name ro.room_num);
       add_chat_to_room ro;
       ignore (roomstore#add_item ro);
+      Hashtbl.add G.rooms ro.room_num ro;
       update_rooms_label ()
     end
 
 let room_info r =
   try
     (if !!verbose then lprintf' "Room_info of %s\n" r.room_name);
-    let (row, ro) = roomstore#find_item r.room_num in
+    let ro = Hashtbl.find G.rooms r.room_num in
+    let row = roomstore#find_row (room_key r.room_num) in
     (* no need to keep ro.room_messages, it is stored in dialogs *)
     let ro_new = {r with room_users = ro.room_users} in
     (if ro_new.room_state <> ro.room_state
       then add_chat_to_room ro_new);
-    roomstore#update_item row ro ro_new
+    roomstore#update_item row ro ro_new;
+    hashtbl_rooms_update ro ro_new
   with _ -> add_room r
 
 let find_user_name user_num =
@@ -495,7 +558,8 @@ let add_room_message room_num msg =
 let remove_room_user room_num user_num =
   (if !!verbose then lprintf' "Removing user to room %d\n" room_num);
   try
-    let (row, ro) = roomstore#find_item room_num in
+    let ro = Hashtbl.find G.rooms room_num in
+    let row = roomstore#find_row (room_key room_num) in
     (if List.mem user_num ro.room_users
       then ro.room_users <- List.filter (fun n -> n <> user_num) ro.room_users);
     let _ =
@@ -504,7 +568,7 @@ let remove_room_user room_num user_num =
              begin
                try
                  let u = Hashtbl.find G.users user_num in
-                 userstore#remove_item u;
+                 userstore#remove_item (GuiUsers.user_key user_num);
                  update_users_label ();
                with _ -> ()
              end
@@ -520,7 +584,8 @@ let remove_room_user room_num user_num =
 let add_room_user room_num user_num =
   (if !!verbose then lprintf' "Adding user to room %d\n" room_num);
   try
-    let (row, ro) = roomstore#find_item room_num in
+    let ro = Hashtbl.find G.rooms room_num in
+    let row = roomstore#find_row (room_key room_num) in
     (if not (List.mem user_num ro.room_users)
       then ro.room_users <- user_num :: ro.room_users);
     match (!current_room, ro.room_state) with
@@ -545,12 +610,14 @@ let update_user_info u_new =
       Some room_num ->
          begin
            try
-             let (_, ro) = roomstore#find_item room_num in
+             let ro = Hashtbl.find G.rooms room_num in
              if List.mem u_new.user_num ro.room_users
                then begin
                  try
-                   let (row, u) = userstore#find_item u_new.user_num in
-                   userstore#update_item row u u_new
+                   let u = Hashtbl.find G.users u_new.user_num in
+                   let row = userstore#find_row (GuiUsers.user_key u_new.user_num) in
+                   userstore#update_item row u u_new;
+                   GuiUsers.hashtbl_users_update u u_new
                  with _ -> ()
                end
            with _ -> ()
