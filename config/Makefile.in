@@ -1141,10 +1141,10 @@ $(ALL_ICONS_SRCS): $(ALL_ICONS)
 ifeq ("$(GUI)", "newgui2")
   GUI_BASE_SRCS= \
     $(SRC_GUI)/guiUtf8.ml      $(SRC_GUI)/guiMessages.ml \
-    $(SRC_GUI)/guiColumns.ml   $(SRC_GUI)/guiOptions.ml \
-    $(SRC_GUI)/guiArt.ml       $(SRC_GUI)/guiTools.ml \
-    $(SRC_GUI)/guiTypes2.ml    $(SRC_GUI)/guiTemplates.ml \
-    $(SRC_GUI)/configWindow.ml
+    $(SRC_GUI)/guiColumns.ml   $(SRC_GUI)/graphTypes.ml \
+    $(SRC_GUI)/guiOptions.ml   $(SRC_GUI)/guiArt.ml \
+    $(SRC_GUI)/guiTools.ml     $(SRC_GUI)/guiTypes2.ml \
+    $(SRC_GUI)/guiTemplates.ml $(SRC_GUI)/configWindow.ml
 else
   GUI_BASE_SRCS= \
     $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
@@ -1153,6 +1153,9 @@ else
 endif
 
 GTK2GUI_SRCS=  \
+  $(SRC_GUI)/guiNetHtmlScanner.mll \
+  $(SRC_GUI)/guiNetHtml.ml \
+  $(SRC_GUI)/guiHtml.ml \
   $(SRC_GUI)/guiGlobal.ml \
   $(SRC_GUI)/guiMisc.ml \
   $(SRC_GUI)/guiCom.ml \
@@ -1160,6 +1163,8 @@ GTK2GUI_SRCS=  \
   $(SRC_GUI)/guiUsers.ml \
   $(SRC_GUI)/guiResults.ml \
   $(SRC_GUI)/guiInfoWindow.ml \
+  $(SRC_GUI)/guiGraphBase.ml \
+  $(SRC_GUI)/guiGraph.ml \
   $(SRC_GUI)/guiDownloads.ml \
   $(SRC_GUI)/guiServers.ml \
   $(SRC_GUI)/guiQueries.ml \

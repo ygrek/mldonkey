@@ -15,13 +15,16 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4583: GTK2 mlgui improvement (su_blanc)
 Lablgtk-2.6.0 is needed for GTK2 mlgui because it fixes a mem leak with GdkPixbuf.
 added:
-* razorback stats: click on a file in the downloads tab to display the stats (at startup wait for few seconds, the time to download the png files...).
+* razorback stats: click on a file in the downloads tab to display the stats
+  (at startup wait for few seconds, the time to download the png files...).
 * proxy options for mlgui
-* a graph tab: global downloads, global uploads and a view per file (downloads and uploads).
+* a graph tab: global downloads, global uploads and a view per file
+  (downloads and uploads).
 modified:
 * fix Tray icon as per task #4694
 * reduce mem use
-* configuration files locations: mlgui and mlim do not rely anymore on CommonOptions. Should not change anything for the users as we check the $HOME variable.
+* configuration files locations: mlgui and mlim do not rely anymore on CommonOptions.
+  Should not change anything for the users as we check the $HOME variable.
 
 4558: Overnet: several patches (includes and fixes patch #4551) (bogeyman)
 * better detection of dead peers

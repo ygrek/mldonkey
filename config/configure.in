@@ -811,7 +811,7 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          REQUIRED_LABLGTK=2.4.0
+          REQUIRED_LABLGTK=2.6.0
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
