@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/10/31
+4581: Fix upload rate for high volume connections (> 1.5Mbit/sec) (pango)
 4584: HEAP: use GC.quick_stats for mem_stats level=0 (bogeyman)
 
 2005/10/30

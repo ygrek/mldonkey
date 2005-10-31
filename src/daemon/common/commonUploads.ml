@@ -740,8 +740,10 @@ let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
 
 let packet_size = 10240
 
-let streaming_amount = packet_size * 2
-let streaming_left = ref streaming_amount
+(* two seconds max of streaming ahead *)
+let streaming_amount () = 
+  int_of_float (!CommonGlobals.payload_bandwidth *. 2.0)
+let streaming_left = ref (streaming_amount ())
 let streaming_time = (ref None : float option ref)
 
 let has_upload = ref 0
@@ -800,8 +802,7 @@ let next_uploads () =
     | Some t -> new_streaming_time -. t) in
   streaming_left := !streaming_left + 
     (int_of_float (!CommonGlobals.payload_bandwidth *. deltat));
-  if !streaming_left > streaming_amount then
-    streaming_left := streaming_amount;
+  streaming_left := min !streaming_left (streaming_amount ());
   streaming_time := Some new_streaming_time;
   next_uploads_aux ()
 
