@@ -1426,17 +1426,7 @@ let enable () =
 
           compute_to_ping ();
 
-(* reset the Hashtbls and Fifos for searches that are older than 5 minutes *)
           let l = last_time () - 300 in
-	  List.iter ( fun s ->
-	     if s.search_requests < max_search_requests &&
-	     s.search_start > l then begin
-	       Array.iter (fun a -> Fifo.clear a) s.search_waiting_peers;
-	       Array.iter (fun a -> Fifo.clear a) s.search_asked_peers;
-	       Array.iter (fun a -> Fifo.clear a) s.search_ok_peers;
-	       Hashtbl.clear s.search_results;
-	     end
-	  ) !overnet_searches;
 (* remove searches that are older than 5 minutes *)
           overnet_searches := List.filter (fun s ->
               s.search_requests < max_search_requests &&
