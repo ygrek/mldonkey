@@ -12,7 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/05
-4589: CryptoPP doesn't like -fomit-frame-pointer, so remove it (pango)
+4589: CryptoPP doesn't like -fomit-frame-pointer, so remove it (przemoc)
 4597: OV/KAD: fix a search reset bug (bogeyman)
 4585: Change ED2K_max_sources_per_file from 20000 to 5000
 4579: Slackware package (tgz) - basic mlnet support (ratmmmam)

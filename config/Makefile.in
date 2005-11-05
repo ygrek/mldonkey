@@ -101,6 +101,9 @@ INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS)
 
+# CryptoPP doesn't like -fomit-frame-pointer
+CXXFLAGS:=$(CXXFLAGS) -fno-omit-frame-pointer
+
 # use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
 
@@ -2032,7 +2035,7 @@ rpm: sourcedist
 	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
 
 .cc.o :
-	$(CXX) $(CXX_FLAGS) -o $*.o $(CFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -o $*.o -c $<
 
 .cmo.byte:
 	$(OCAMLC) -o $*.byte $(LIBS) $<
