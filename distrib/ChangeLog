@@ -12,13 +12,14 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/05
+4589: CryptoPP doesn't like -fomit-frame-pointer, so remove it (pango)
 4597: OV/KAD: fix a search reset bug (bogeyman)
 4585: Change ED2K_max_sources_per_file from 20000 to 5000
 4579: Slackware package (tgz) - basic mlnet support (ratmmmam)
 
 2005/10/31
 4583: GTK2 mlgui improvement (su_blanc)
-Lablgtk-2.6.0 is needed for GTK2 mlgui because it fixes a mem leak with GdkPixbuf.
+Lablgtk-2.6.0 is needed for GTK2 mlgui, it fixes a mem leak with GdkPixbuf.
 added:
 * razorback stats: click on a file in the downloads tab to display the stats
   (at startup wait for few seconds, the time to download the png files...).
@@ -28,7 +29,7 @@ added:
 modified:
 * fix Tray icon as per task #4694
 * reduce mem use
-* configuration files locations: mlgui and mlim do not rely anymore on CommonOptions.
+* configuration files locations: mlgui and mlim do not need CommonOptions.
   Should not change anything for the users as we check the $HOME variable.
 
 4558: Overnet: several patches (includes and fixes patch #4551) (bogeyman)
