@@ -279,7 +279,6 @@ let save_config () =
 let config_files_loaded = ref false
 
 let load _ =
-  lprintf_nl () "Loading stats";
   (try
       Options.load bt_stats_ini;
     with Sys_error _ -> ());
@@ -332,4 +331,5 @@ let _ =
   (* Shut up message "Network.save/load_complex_options not implemented by BitTorrent" *)
   network.op_network_load_complex_options <- load;
   network.op_network_save_complex_options <- save;
+  network.op_network_update_options <- (fun _ -> ());
   network.op_network_save_sources <- (fun _ -> ())

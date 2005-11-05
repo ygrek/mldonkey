@@ -62,8 +62,10 @@ let max_shared_files = define_option opennap_section ["max_shared_files"]
   "The maximal number of files to share on a server"
     int_option 400
   
-      
-  
+let options_version = define_expert_option opennap_section ["options_version"]
+    "(internal option)"
+    int_option 0
+
 let shortname o =
   Printf.sprintf "OpenNap-%s" (shortname o)
     

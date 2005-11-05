@@ -86,7 +86,10 @@ let client_speed = define_option directconnect_section
 let client_keyinfo = define_option directconnect_section
     ["client_keyinfo"] "The key info sent in the handshake message"
     string_option "Pk=mldc"
-  
+
+let options_version = define_option directconnect_section ["options_version"]
+    "(internal option)"
+    int_option 0
 
 let shortname o =
   Printf.sprintf "DC-%s" (shortname o)
@@ -109,7 +112,3 @@ let gui_dc_options_panel =
     ("Client Speed", shortname client_speed, "T");
     ("Shared Offset", shortname shared_offset, "T");
   ]
-
-let client_options_version = define_option directconnect_section
-    ["client_options_version"] "To automatically update your options"
-    int_option 0

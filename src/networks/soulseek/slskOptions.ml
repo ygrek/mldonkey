@@ -72,9 +72,11 @@ let verbose_servers =
 let next_token = 
   define_option soulseek_section ["next_token"]
     "the last token used for a query is saved here" int_option 1
-  
-        
-  
+
+let options_version = define_option soulseek_section ["options_version"]
+    "(internal option)"
+    int_option 0
+
 let shortname o =
   Printf.sprintf "SLSK-%s" (shortname o)
     

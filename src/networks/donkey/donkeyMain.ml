@@ -342,6 +342,22 @@ be useful when users want to share files that they had already previously
       lprintf_nl () "Error: Exception %s during startup"
         (Printexc2.to_string e)
 
+
+let rec update_options () =
+  let update v =
+      lprintf_nl () "Updating options to version %i" v;
+      options_version =:= v;
+      update_options ()
+  in
+
+  match !!options_version with
+    0 ->
+      if !!max_sources_per_file = 20000 then
+        max_sources_per_file =:= 5000;
+      update 1
+  | _ -> ()
+
+
 let _ =
 
 (* TODO INDEX  DonkeyIndexer.init (); *)
@@ -354,6 +370,7 @@ let _ =
 );
   *)
   network.op_network_enable <- enable;
+  network.op_network_update_options <- update_options;
 (*  network.network_config_file <- []; *)
   network.op_network_info <- (fun n ->
       { 

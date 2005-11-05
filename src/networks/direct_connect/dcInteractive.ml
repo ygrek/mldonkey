@@ -388,6 +388,7 @@ let _ =
 let _ =
   network.op_network_save_complex_options <- (fun _ -> ());
   network.op_network_save_sources <- (fun _ -> ());
+  network.op_network_update_options <- (fun _ -> ());
   network.op_network_add_server <- (fun ip port ->
       as_server (new_server ip port).server_server
   )

@@ -56,6 +56,10 @@ let range_arg = define_option fileTP_section ["range_arg"]
   "The argument to !!get_range to get a range"
     string_option "range"
 
+let options_version = define_option fileTP_section ["options_version"]
+    "(internal option)"
+    int_option 0
+
   (*
 let verbose_clients =
   define_option fileTP_section ["verbose_clients"]

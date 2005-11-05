@@ -446,6 +446,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	  end);
   if not !found then lprintf (_b "none");
   lprint_newline ();
+  networks_iter_all (fun n -> network_update_options n);
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
 

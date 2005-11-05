@@ -124,6 +124,10 @@ let user_agent = define_option bittorrent_section ["user_agent"]
     "User agent string (default = \"default\")"
     string_option "default"
 
+let options_version = define_option bittorrent_section ["options_version"]
+    "(internal option)"
+    int_option 0
+
 let old_files =
   define_option bittorrent_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []

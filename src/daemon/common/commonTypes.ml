@@ -461,6 +461,7 @@ type network = {
     mutable op_network_save_sources : (unit -> unit);
     mutable op_network_load_complex_options : (unit -> unit);
     mutable op_network_enable : (unit -> unit);
+    mutable op_network_update_options : (unit -> unit);
     mutable op_network_disable : (unit -> unit);
     
     mutable op_network_server_of_option : 

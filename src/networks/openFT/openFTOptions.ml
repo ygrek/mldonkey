@@ -42,6 +42,9 @@ let max_known_peers = define_option openft_ini ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
 
+let options_version = define_option openft_ini ["options_version"]
+    "(internal option)"
+    int_option 0
     
 let server_connection_timeout = 
   define_option openft_ini ["server_connection_timeout"] 

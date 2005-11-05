@@ -157,6 +157,10 @@ let incoming_data_log = define_option gnutella_section
     ["incoming_data_log"]
     "(only for development tests)"
     string_option ""
+
+let options_version = define_option gnutella_section ["options_version"]
+    "(internal option)"
+    int_option 0
   
 let gui_gnutella_options_panel = 
   (*

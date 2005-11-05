@@ -408,11 +408,6 @@ let gui_overnet_options_panel =
     "Search Max Hits", shortname overnet_max_search_hits, "T";
   ]
 
-let overnet_options_version =
-  define_option overnet_section [Proto.options_section_name; "options_version"]
-    "(internal)"
-    int_option 0
-
 
 (********************************************************************
 

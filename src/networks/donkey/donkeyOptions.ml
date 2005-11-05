@@ -148,7 +148,7 @@ let propagate_sources = define_expert_option donkey_section ["propagate_sources"
 
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"
-    int_option 20000
+    int_option 5000
 
 open Md4
 
@@ -311,6 +311,10 @@ let immediate_master =
 let become_master_delay =
   define_expert_option donkey_section ["become_master_delay"]
     "(only for development tests)" int_option 120
+
+let options_version = define_expert_option donkey_section ["options_version"]
+    "(internal option)"
+    int_option 0
 
 let gui_donkey_options_panel =
   [

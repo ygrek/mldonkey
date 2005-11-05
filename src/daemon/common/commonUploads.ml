@@ -217,6 +217,7 @@ let network = CommonNetwork.new_network "GS" "Global Shares"
 let _ =
   network.op_network_connected <- (fun _ -> false);
   network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
+  network.op_network_update_options <- (fun _ -> raise IgnoreNetwork);
   network.op_network_info <- (fun _ -> raise Not_found);
   network.op_network_info <- (fun n ->
       {

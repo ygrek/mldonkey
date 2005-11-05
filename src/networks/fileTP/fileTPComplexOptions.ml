@@ -160,4 +160,5 @@ let _ =
   (* Shut up message "Network.save/load_complex_options not implemented by FileTP" *)
   network.op_network_load_complex_options <- (fun _ -> ());
   network.op_network_save_complex_options <- (fun _ -> ());
+  network.op_network_update_options <- (fun _ -> ());
   network.op_network_save_sources <- (fun _ -> ())

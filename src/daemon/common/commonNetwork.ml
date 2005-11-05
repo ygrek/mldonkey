@@ -67,6 +67,8 @@ let check_network_implementations () =
         lprintf_nl "op_network_load_complex_options";
       if c.op_network_enable == cc.op_network_enable then 
         lprintf_nl "op_network_enable";
+      if c.op_network_update_options == cc.op_network_update_options then 
+        lprintf_nl "op_network_update_options";
       if c.op_network_add_server == cc.op_network_add_server then 
         lprintf_nl "op_network_add_server";
       if c.op_network_server_of_option == cc.op_network_server_of_option then 
@@ -103,13 +105,14 @@ let check_network_implementations () =
         lprintf_nl "op_network_clean_exit";
   ) !networks_ops;
   lprint_newline ()
-  
+
 let network_connected_servers n = n.op_network_connected_servers ()
 let network_is_enabled n = n.op_network_is_enabled ()
 let network_save_complex_options n = n.op_network_save_complex_options ()
 let network_save_sources n = n.op_network_save_sources ()
 let network_load_complex_options n = n.op_network_load_complex_options ()
-let network_enable n =  n.op_network_enable ()
+let network_enable n = n.op_network_enable ()
+let network_update_options n = n.op_network_update_options ()
 let network_disable n = n.op_network_disable () 
 let network_share n s = n.op_network_share s
 let network_recover_temp n = n.op_network_recover_temp ()
@@ -119,7 +122,6 @@ let network_file_of_option n f = n.op_network_file_of_option f
 let network_client_of_option n f = n.op_network_client_of_option f
 let network_clean_exit n = try n.op_network_clean_exit () with _ -> true
 
-  
 let networks_iter f =
   List.iter (fun r ->
       try
@@ -246,6 +248,7 @@ let new_network shortname name flags =
       op_network_save_sources =  (fun _ -> ni_ok name "save_sources");
       op_network_load_complex_options =  (fun _ -> ni_ok name "load_complex_options");
       op_network_enable =  (fun _ -> ni_ok name "enable");
+      op_network_update_options = (fun _ -> ni_ok name "update_options");
       op_network_disable =  (fun _ -> ni_ok name "disable");
       op_network_server_of_option =  (fun _ -> fni name "op_network_server_of_option");
       op_network_file_of_option =  (fun _ _ -> fni name "op_network_file_of_option");
