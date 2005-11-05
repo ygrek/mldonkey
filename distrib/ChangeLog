@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/05
+4579: Slackware package (tgz) - basic mlnet support (ratmmmam)
+
 2005/10/31
 4583: GTK2 mlgui improvement (su_blanc)
 Lablgtk-2.6.0 is needed for GTK2 mlgui because it fixes a mem leak with GdkPixbuf.

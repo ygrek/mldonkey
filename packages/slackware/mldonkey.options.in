@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# mldonkey.options (MLDonkey - Slackware build script options file).
+# author: Herbert Alexander Faleiros <herbert@faleiros.eti.br>
+#
+
+# Software name.
+NAME=mldonkey
+
+# Software version.
+VERSION=@MAJOR_VERSION@.@MINOR_VERSION@.@SUB_VERSION@
+
+# Package revision.
+BUILD=1
+
+# Processor architecture.
+ARCH=i486
+
+# Target arch, i486 for 32 bits x86.
+TARGET=i486-slackware-linux
+
+# gcc/g++ flags (Slackware defaults).
+CPUOPT="-O2 -march=$ARCH -mcpu=i686"
+
+# Number of jobs.
+NUMJOBS=-j4
+
+# Source code file name.
+SRC=$NAME-$VERSION.tar.bz2
+
+# Where's the source code?
+HOST=http://savannah.nongnu.org/download/$NAME
+
+# Temporary directory.
+TMP=/tmp
+
+# Pre-installation.
+PKG=$TMP/package-$NAME
+
+# Package file name.
+TGZ=$NAME-$VERSION-$ARCH-$BUILD.tgz
+
+# Documentation directory.
+DOCS=$PKG/usr/doc/$NAME-$VERSION
+
+# slack-desc, doinst.sh.
+INSTALL=$PKG/install
+
+# Build a static binary? (set to "static" here)
+STATIC=
+
+# Installation directory.
+PREFIX=/usr
+
+# Configure options.
+CONFIGURE="--prefix=$PREFIX --disable-gui --build=$TARGET"

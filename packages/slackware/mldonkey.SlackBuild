@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# mldonkey.SlackBuild (Slackware - MLDonkey build script).
+# author: Herbert Alexander Faleiros <herbert@faleiros.eti.br>
+#
+
+# Current directory.
+CWD=`pwd`
+
+# Load options file (mldonkey.options).
+. $CWD/mldonkey.options
+
+# Remove old revisions (directories/files).
+rm -rf $PKG $NAME-$VERSION
+
+# Create pre-installation directory, docs...
+mkdir -p $PKG $INSTALL $DOCS $PKG/usr/bin
+
+# Check source code archive presence.
+test -f $SRC || wget $HOST/$SRC
+
+# Unpack source code.
+tar -xjvf $SRC
+
+# Source code directory.
+cd $NAME-$VERSION
+
+# Configuration directory.
+cd config
+
+# Add DESTDIR support.
+patch -p0 -i $CWD/Makefile.in.patch
+
+# Pre-configure program.
+autoconf
+
+# Return to main directory.
+cd ..
+
+# Prepare program for compilation.
+echo yes | CFLAGS=$CPUOPT ./configure $CONFIGURE
+
+# Compile source code.
+make $NUMJOBS $STATIC
+
+# Pre-installation.
+make install DESTDIR=$PKG
+
+# Check for mlnet binary.
+test -f $PKG/usr/bin/mlnet || exit 1
+
+# Strip mlnet.
+strip --strip-unneeded $PKG/usr/bin/mlnet
+
+# Copy slack-desc.
+cp $CWD/slack-desc $INSTALL
+
+# Copy documentation.
+(cd distrib && cp [A-Z]* $DOCS)
+
+# Pre-installation directory.
+cd $PKG
+
+# Owner directory/files.
+chown 0.0 . -R
+
+# FHS/Slackware compatibility - correct owners/group.
+chown 0.bin usr/bin -R
+
+# Security check.
+for i in a-st go-w; do
+  chmod $i . -R
+done
+
+# Create a Slackware package.
+makepkg -l y -c n $TGZ
+
+# Hashes (sha1 and md5).
+for HASH in sha1 md5; do
+  ${HASH}sum $TGZ > $TGZ.$HASH
+done
+
+# Upgrade or install package.
+#upgradepkg $TGZ || installpkg $TGZ
+
+# Move package and hashes to current directory.
+mv $TGZ* $CWD
+
+# Cleanness.
+rm -rf $PKG $CWD/$NAME-$VERSION
