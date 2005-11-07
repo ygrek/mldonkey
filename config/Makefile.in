@@ -278,7 +278,8 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonSwarming2.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
-  $(COMMON)/commonSources.ml
+  $(COMMON)/commonSources.ml \
+  $(COMMON)/commonStats.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 

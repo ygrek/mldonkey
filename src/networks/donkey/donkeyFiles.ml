@@ -106,9 +106,8 @@ module NewUpload = struct
         DonkeyProtoCom.new_string msg upload_buffer;
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
-        count_upload c file uploaded;
+        count_upload c uploaded;
 	CommonUploads.consume_bandwidth len_int;
-        network_must_update network;
         (match file.file_shared with None -> ()
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);

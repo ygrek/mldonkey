@@ -117,7 +117,7 @@ let op_file_commit file new_name =
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
-    end	
+    end 
 
 let op_file_print_html file buf =
 
@@ -304,7 +304,7 @@ let op_file_print_sources_html file buf =
           html_mods_td buf [
             ("", "sr br ar", Printf.sprintf "%d" (client_num c));
             ("", "sr br", (Sha1.to_string c.client_uid));
-            ("", "sr br", c.client_software);
+            ("", "sr br", Printf.sprintf "%s %s" (brand_to_string c.client_brand) c.client_release);
             ("", "sr", (Ip.to_string (fst c.client_host)));
             ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
             ("", "sr ar", (size_of_int64 c.client_uploaded));
@@ -653,7 +653,7 @@ let op_network_parse_url url =
                   ) "" cookies
                 ) ]
             with Not_found -> []);
-	    H.req_max_retry = 10;
+      H.req_max_retry = 10;
           } in
 
         let file_diskname = Filename.basename u.Url.short_file in
@@ -701,11 +701,8 @@ let op_client_info c =
     P.client_rating = 0;
     P.client_chat_port = 0 ;
     P.client_connect_time = BasicSocket.last_time ();
-    P.client_software = c.client_software;
-(* TODO: switch it
+    P.client_software = (brand_to_string c.client_brand);
     P.client_release = c.client_release;
- *)
-    P.client_release = "";
     P.client_emulemod = "";
     P.client_downloaded = c.client_downloaded;
     P.client_uploaded = c.client_uploaded;
@@ -749,7 +746,7 @@ let op_client_dprint_html c o file str =
   let cc = as_client c in
   let cinfo = client_info cc in
   Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
-	onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
+  onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
 
   let show_emulemods_column = ref false in
   if Autoconf.donkey = "yes" then begin
@@ -762,11 +759,8 @@ let op_client_dprint_html c o file str =
         ((string_of_connection_state (client_state cc)), "sr",
           (short_string_of_connection_state (client_state cc)));
         ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
-        ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
-(* TODO : switch it
-        ("", "sr", cinfo.GuiTypes.client_release); (* cinfo.GuiTypes.client_release *)
- *)
-        ("", "sr", ""); (* cinfo.GuiTypes.client_release *)
+        ("", "sr", (brand_to_string c.client_brand)); (* cinfo.GuiTypes.client_software *)
+        ("", "sr", c.client_release); 
       ] @
         (if !show_emulemods_column then [("", "sr", "")] else [])
       @ [

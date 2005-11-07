@@ -358,6 +358,22 @@ let html_mods_td buf l =
      c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
     ) l
 
+
+let html_mods_big_header_start buf c l =
+  Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table class=main border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>" c;
+  Printf.bprintf buf "\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>";
+  Printf.bprintf buf "\\<td width=100%%\\>\\</td\\>";
+  let len = List.length l in
+  let cnt = ref 0 in
+  List.iter (fun s ->
+    incr cnt;
+    Printf.bprintf buf "\\<td nowrap class=\\\"fbig%s\\\"\\>%s\\</td\\>" (if !cnt = len then " pr" else "") s;
+  ) l;
+  Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>"
+
+let html_mods_big_header_end buf =
+  Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>"
+
 let html_mods_counter = ref true
 
 let html_mods_cntr () =

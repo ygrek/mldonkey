@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/07
+4586: cleanup brand stats code (bt/edonkey) (zet)
+      updated to coalesce bt software parsing and add some more ids
+
 2005/11/05
 4589: CryptoPP doesn't like -fomit-frame-pointer, so remove it (przemoc)
 4597: OV/KAD: fix a search reset bug (bogeyman)

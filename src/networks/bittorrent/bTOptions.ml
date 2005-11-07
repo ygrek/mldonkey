@@ -30,6 +30,9 @@ let client_port = define_option bittorrent_section ["client_port"]
     int_option 6882
 
 (* Generate client_uid *)
+(* current_version could be "2.6.6.CVS" (why send the dots?)
+   perhaps of use: Autoconf.major_version Autoconf.minor_version Autoconf.sub_version 
+*)
 let generate_client_uid =
   let client_uid_from_version = "-ML" ^ Autoconf.current_version ^ "-" in
   let client_uid_random_tail = String.create (20 - (String.length client_uid_from_version)) in

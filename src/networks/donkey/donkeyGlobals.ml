@@ -545,7 +545,7 @@ let dummy_client =
 (*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
-      client_mod_brand = Brand_mod_unknown;
+      client_brand_mod = Brand_mod_unknown;
       client_checked = false;
       client_connected = false;
       client_downloaded = Int64.zero;
@@ -605,7 +605,7 @@ let create_client key =
 (*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
-      client_mod_brand = Brand_mod_unknown;
+      client_brand_mod = Brand_mod_unknown;
       client_checked = false;
       client_connected = false;
       client_downloaded = Int64.zero;
@@ -661,6 +661,16 @@ let set_client_type c t=
 
 let friend_add c =
   friend_add (as_client c)
+
+let string_of_client c =
+  Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
+  c.client_name (brand_to_string c.client_brand)
+  (match c.client_kind with
+      Indirect_address _ | Invalid_address _ -> ""
+    | Direct_address (ip,port) ->
+        Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
+  )
+
 
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
@@ -860,148 +870,6 @@ let left_bytes = "MLDK"
 let overnet_server_ip = ref Ip.null
 let overnet_server_port = ref 0
 
-let brand_to_string b =
-  match b with
-    Brand_unknown -> "unknown"
-  | Brand_edonkey -> "eDonkey"
-  | Brand_cdonkey -> "cDonkey"
-  | Brand_mldonkey1 -> "old mldonkey"
-  | Brand_mldonkey2 -> "new mldonkey"
-  | Brand_mldonkey3 -> "trusted mld"
-  | Brand_overnet -> "Overnet"
-  | Brand_newemule -> "eMule"
-  | Brand_lmule -> "xMule"
-  | Brand_shareaza -> "shareaza"
-  | Brand_server -> "server"
-  | Brand_amule -> "aMule"
-  | Brand_lphant -> "lPhant"
-  | Brand_emuleplus -> "ePlus"
-  | Brand_hydranode -> "Hydra"
-
-let brand_mod_to_string b =
-  match b with
-    Brand_mod_unknown -> "unknown"
-  | Brand_mod_extasy -> "Extasy"
-  | Brand_mod_hunter -> "Hunter"
-  | Brand_mod_sivka -> "Sivka"
-  | Brand_mod_ice -> "IcE"
-  | Brand_mod_plus -> "Plus"
-  | Brand_mod_lsd -> "LSD"
-  | Brand_mod_maella -> "Maella"
-  | Brand_mod_pille -> "Pille"
-  | Brand_mod_morphkad -> "MorphKad"
-  | Brand_mod_efmod -> "eF-MOD"
-  | Brand_mod_xtreme -> "Xtreme"
-  | Brand_mod_bionic -> "Bionic"
-  | Brand_mod_pawcio -> "Pawcio"
-  | Brand_mod_zzul -> "ZZUL"
-  | Brand_mod_blackhand -> "Black Hand"
-  | Brand_mod_lovelace -> "lovelace"
-  | Brand_mod_morphnext -> "MorphNext"
-  | Brand_mod_fincan -> "fincan"
-  | Brand_mod_ewombat -> "eWombat"
-  | Brand_mod_morph -> "Morph"
-  | Brand_mod_mortillo -> "MorTillo"
-  | Brand_mod_lh -> "LionHeart"
-  | Brand_mod_emulespana -> "emulEspa\241a"
-  | Brand_mod_blackrat -> "BlackRat"
-  | Brand_mod_enkeydev -> "enkeyDev"
-  | Brand_mod_gnaddelwarz -> "Gnaddelwarz"
-  | Brand_mod_phoenixkad -> "pHoeniX-KAD"
-  | Brand_mod_koizo -> "koizo"
-  | Brand_mod_ed2kfiles -> "ed2kFiles"
-  | Brand_mod_athlazan -> "Athlazan"
-  | Brand_mod_cryptum -> "Cryptum"
-  | Brand_mod_lamerzchoice -> "LamerzChoice"
-  | Brand_mod_notdead -> "NotDead"
-  | Brand_mod_peace -> "peace"
-  | Brand_mod_goldicryptum -> "GoldiCryptum"
-  | Brand_mod_eastshare -> "EastShare"
-  | Brand_mod_mfck -> "[MFCK]"
-  | Brand_mod_echanblard -> "eChanblard"
-  | Brand_mod_sp4rk -> "Sp4rK"
-  | Brand_mod_powermule -> "PowerMule"
-  | Brand_mod_bloodymad -> "bloodymad"
-  | Brand_mod_roman2k -> "Roman2K"
-  | Brand_mod_gammaoh -> "GaMMaOH"
-  | Brand_mod_elfenwombat -> "ElfenWombat"
-  | Brand_mod_o2 -> "O2"
-  | Brand_mod_dm -> "DM"
-  | Brand_mod_sfiom -> "SF-IOM"
-  | Brand_mod_magic_elseve -> "Magic-Elseve"
-  | Brand_mod_schlumpmule -> "SchlumpMule"
-  | Brand_mod_lc -> "LC"
-  | Brand_mod_noamson -> "NoamSon"
-  | Brand_mod_stormit -> "Stormit"
-  | Brand_mod_omax -> "OMaX"
-  | Brand_mod_mison -> "Mison"
-  | Brand_mod_phoenix -> "Phoenix"
-  | Brand_mod_spiders -> "Spiders"
-  | Brand_mod_iberica -> "Ib\233rica"
-  | Brand_mod_mortimer -> "Mortimer"
-  | Brand_mod_stonehenge -> "Stonehenge"
-  | Brand_mod_xlillo -> "Xlillo"
-  | Brand_mod_imperator -> "ImperatoR"
-  | Brand_mod_raziboom -> "Raziboom"
-  | Brand_mod_khaos -> "Khaos"
-  | Brand_mod_hardmule -> "Hardmule"
-  | Brand_mod_sc -> "SC"
-  | Brand_mod_cy4n1d -> "Cy4n1d"
-  | Brand_mod_dmx -> "DMX"
-  | Brand_mod_ketamine -> "Ketamine"
-  | Brand_mod_blackmule -> "Blackmule"
-  | Brand_mod_morphxt -> "MorphXT"
-  | Brand_mod_ngdonkey -> "ngdonkey"
-  | Brand_mod_cyrex -> "Cyrex"
-  | Brand_mod_hawkstar -> "Hawkstar"
-  | Brand_mod_neomule -> "Neo Mule"
-  | Brand_mod_aldo -> "aldo"
-  | Brand_mod_emulede -> "emule.de"
-  | Brand_mod_zx -> "zx"
-  | Brand_mod_ibericaxt -> "ib\233ricaxt"
-  | Brand_mod_candymule -> "candy-mule"
-  | Brand_mod_ackronic -> "ackronic"
-  | Brand_mod_rappis -> "rappis"
-  | Brand_mod_overdose -> "overdose"
-  | Brand_mod_hebmule -> "hebmule"
-  | Brand_mod_senfei -> "senfei"
-  | Brand_mod_spoofmod -> "spoofmod"
-  | Brand_mod_fusspilz -> "fusspilz"
-  | Brand_mod_rocket -> "rocket"
-  | Brand_mod_warezfaw -> "warezfaw"
-  | Brand_mod_emusicmule -> "emusicmule"
-  | Brand_mod_aideadsl -> "aideadsl"
-  | Brand_mod_epo -> "epo"
-  | Brand_mod_kalitsch -> "kalitsch"
-  | Brand_mod_raynz -> "raynz"
-  | Brand_mod_serverclient -> "serverclient"
-  | Brand_mod_bl4ckbird -> "bl4ckbird"
-  | Brand_mod_bl4ckf0x -> "bl4ckf0x"
-  | Brand_mod_rt -> "rt"
-  | Brand_mod_airionix -> "air-ionix"
-  | Brand_mod_ionix -> "ionix"
-  | Brand_mod_tornado -> "tornado"
-  | Brand_mod_antifaker -> "anti-faker"
-  | Brand_mod_netf -> "netf"
-  | Brand_mod_nextemf -> "nextemf"
-  | Brand_mod_proemule -> "proemule"
-  | Brand_mod_szemule -> "szemule"
-  | Brand_mod_darkmule -> "darkmule"
-  | Brand_mod_miragemod -> "miragemod"
-  | Brand_mod_nextevolution -> "nextevolution"
-  | Brand_mod_pootzgrila -> "pootzgrila"
-  | Brand_mod_freeangel -> "freeangel"
-  | Brand_mod_enos -> "enos"
-  | Brand_mod_webys -> "webys"
-
-let string_of_client c =
-  Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
-  c.client_name (brand_to_string c.client_brand)
-  (match c.client_kind with
-      Indirect_address _ | Invalid_address _ -> ""
-    | Direct_address (ip,port) ->
-        Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
-  )
 
 
 (*************************************************************

@@ -461,8 +461,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
 (*            List.iter Int64Swarmer.alloc_range c.client_ranges; *)
           let new_downloaded = 
             Int64Swarmer.downloaded swarmer in
-          count_download c file (new_downloaded -- old_downloaded);
-          network_must_update network;
+          count_download c (new_downloaded -- old_downloaded);
 (*
           if not (List.mem c.client_ip bb.block_contributors) then
             bb.block_contributors <- c.client_ip :: 

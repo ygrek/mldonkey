@@ -37,8 +37,8 @@ val file_to_value :  DonkeyTypes.file -> (string * Options.option_value) list
 
 val load_sources : unit -> unit
 
-val gstats_by_brand : DonkeyTypes.brand_stat array Options.option_record
-val gstats_by_brand_mod : DonkeyTypes.brand_mod_stat array Options.option_record
+val gstats_array : CommonTypes.brand_stat array Options.option_record
+val gstats_mod_array : CommonTypes.brand_stat array Options.option_record
 val guptime : unit -> int
 
 val result_of_file : Md4.t -> CommonTypes.tag list -> CommonResult.StoredResult.stored_result option

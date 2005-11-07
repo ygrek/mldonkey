@@ -849,3 +849,20 @@ let  string_of_kind kind =
     | Known_location (ip,port) -> Ip.to_string ip
     | _ -> "firewalled"
   with _ -> ""
+
+type brand_stat = {
+  mutable brand_seen : int;
+  mutable brand_banned : int;
+  mutable brand_filerequest : int;
+  mutable brand_download : Int64.t;
+  mutable brand_upload : Int64.t;
+}
+
+let dummy_stats =
+  {
+    brand_seen = 0;
+    brand_banned = 0;
+    brand_filerequest = 0;
+    brand_download = 0L;
+    brand_upload = 0L;
+  }

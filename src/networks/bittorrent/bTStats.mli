@@ -23,10 +23,9 @@ open BTTypes
 val count_seen : BTTypes.client -> unit
 val count_banned : BTTypes.client -> unit
 val count_filerequest : BTTypes.client -> unit
-val count_download : BTTypes.client -> BTTypes.file -> Int64.t -> unit
-val count_upload : BTTypes.client -> BTTypes.file -> Int64.t -> unit
+val count_download : BTTypes.client -> Int64.t -> unit
+val count_upload : BTTypes.client -> Int64.t -> unit
 
-val gbrand_to_string : brand -> string
-val print_stats : Buffer.t -> unit
+val print_stats : ui_conn -> CommonStats.style -> unit
 
 (*val save_download_history : BTTypes.file -> unit*)

@@ -23,11 +23,9 @@ open DonkeyTypes
 val count_seen : DonkeyTypes.client -> unit
 val count_banned : DonkeyTypes.client -> unit
 val count_filerequest : DonkeyTypes.client -> unit
-val count_download : DonkeyTypes.client -> DonkeyTypes.file -> Int64.t -> unit
-val count_upload : DonkeyTypes.client -> DonkeyTypes.file -> Int64.t -> unit
+val count_download : DonkeyTypes.client -> Int64.t -> unit
+val count_upload : DonkeyTypes.client -> Int64.t -> unit
 
-val gbrand_to_string : brand -> string
-val gbrand_mod_to_string : brand_mod -> string
-val print_stats : Buffer.t -> unit
+val print_stats : ui_conn -> CommonStats.style -> bool -> unit
 
 (*val save_download_history : DonkeyTypes.file -> unit*)

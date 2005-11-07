@@ -21,6 +21,7 @@ open Queues
 open Md4
 open CommonDownloads
 open CommonTypes
+open CommonStats
   (*
 
 module MyList = struct
@@ -200,7 +201,25 @@ type brand =
 | Brand_emuleplus
 | Brand_hydranode
 
-let brand_count = 15
+let brand_list = [
+   ( Brand_unknown   , "unknown"      , "unk" ) ;
+   ( Brand_edonkey   , "eDonkey"      , "eDK" ) ;
+   ( Brand_cdonkey   , "cDonkey"      , "cDK" ) ;
+   ( Brand_mldonkey1 , "old mldonkey" , "oML" ) ;
+   ( Brand_mldonkey2 , "new mldonkey" , "nML" ) ;
+   ( Brand_mldonkey3 , "trusted mld"  , "tML" ) ;
+   ( Brand_overnet   , "Overnet"      , "OVR" ) ;
+   ( Brand_newemule  , "eMule"        , "eMU" ) ;
+   ( Brand_lmule     , "xMule"        , "xMU" ) ;
+   ( Brand_shareaza  , "shareaza"     , "sZA" ) ;
+   ( Brand_server    , "server"       , "SER" ) ;
+   ( Brand_amule     , "aMule"        , "aMU" ) ;
+   ( Brand_lphant    , "lPhant"       , "lPH" ) ;
+   ( Brand_emuleplus , "ePlus"        , "eM+" ) ;
+   ( Brand_hydranode , "Hydra"        , "Hyd" ) ;
+  ]
+
+let brand_count = List.length brand_list
 
 type brand_mod =
   Brand_mod_unknown
@@ -317,7 +336,141 @@ type brand_mod =
 | Brand_mod_enos
 | Brand_mod_webys
 
-let brand_mod_count = 113
+let brand_mod_list = [
+   ( Brand_mod_unknown       , "unknown"       , ""     ) ;
+   ( Brand_mod_extasy        , "Extasy"        , "ext"  ) ;
+   ( Brand_mod_hunter        , "Hunter"        , "hun"  ) ;
+   ( Brand_mod_sivka         , "Sivka"         , "siv"  ) ;
+   ( Brand_mod_ice           , "IcE"           , "ice"  ) ;
+   ( Brand_mod_plus          , "Plus"          , "plu"  ) ;
+   ( Brand_mod_lsd           , "LSD"           , "lsd"  ) ;
+   ( Brand_mod_maella        , "Maella"        , "mae"  ) ;
+   ( Brand_mod_pille         , "Pille"         , "pil"  ) ;
+   ( Brand_mod_morphkad      , "MorphKad"      , "mo1"  ) ;
+   ( Brand_mod_efmod         , "eF-MOD"        , "efm"  ) ;
+   ( Brand_mod_xtreme        , "Xtreme"        , "xtr"  ) ;
+   ( Brand_mod_bionic        , "Bionic"        , "bio"  ) ;
+   ( Brand_mod_pawcio        , "Pawcio"        , "paw"  ) ;
+   ( Brand_mod_zzul          , "ZZUL"          , "zzu"  ) ;
+   ( Brand_mod_blackhand     , "Black Hand"    , "bla"  ) ;
+   ( Brand_mod_lovelace      , "lovelace"      , "lov"  ) ;
+   ( Brand_mod_morphnext     , "MorphNext"     , "mo2"  ) ;
+   ( Brand_mod_fincan        , "fincan"        , "fin"  ) ;
+   ( Brand_mod_ewombat       , "eWombat"       , "ewo"  ) ;
+   ( Brand_mod_morph         , "Morph"         , "mo3"  ) ;
+   ( Brand_mod_mortillo      , "MorTillo"      , "mot"  ) ;
+   ( Brand_mod_lh            , "LionHeart"     , "lh"   ) ;
+   ( Brand_mod_emulespana    , "emulEspa\241a" , "esp"  ) ;
+   ( Brand_mod_blackrat      , "BlackRat"      , "blr"  ) ;
+   ( Brand_mod_enkeydev      , "enkeyDev"      , "ekd"  ) ;
+   ( Brand_mod_gnaddelwarz   , "Gnaddelwarz"   , "gna"  ) ;
+   ( Brand_mod_phoenixkad    , "pHoeniX-KAD"   , "pkd"  ) ;
+   ( Brand_mod_koizo         , "koizo"         , "koi"  ) ;
+   ( Brand_mod_ed2kfiles     , "ed2kFiles"     , "edf"  ) ;
+   ( Brand_mod_athlazan      , "Athlazan"      , "ath"  ) ;
+   ( Brand_mod_cryptum       , "Cryptum"       , "cry"  ) ;
+   ( Brand_mod_lamerzchoice  , "LamerzChoice"  , "lam"  ) ;
+   ( Brand_mod_notdead       , "NotDead"       , "nod"  ) ;
+   ( Brand_mod_peace         , "peace"         , "pea"  ) ;
+   ( Brand_mod_goldicryptum  , "GoldiCryptum"  , "gcr"  ) ;
+   ( Brand_mod_eastshare     , "EastShare"     , "eas"  ) ;
+   ( Brand_mod_mfck          , "[MFCK]"        , "mfc"  ) ;
+   ( Brand_mod_echanblard    , "eChanblard"    , "ech"  ) ;
+   ( Brand_mod_sp4rk         , "Sp4rK"         , "sp4"  ) ;
+   ( Brand_mod_powermule     , "PowerMule"     , "pow"  ) ;
+   ( Brand_mod_bloodymad     , "bloodymad"     , "blo"  ) ;
+   ( Brand_mod_roman2k       , "Roman2K"       , "rom"  ) ;
+   ( Brand_mod_gammaoh       , "GaMMaOH"       , "gam"  ) ;
+   ( Brand_mod_elfenwombat   , "ElfenWombat"   , "elf"  ) ;
+   ( Brand_mod_o2            , "O2"            , "o2"   ) ;
+   ( Brand_mod_dm            , "DM"            , "DM"   ) ;
+   ( Brand_mod_sfiom         , "SF-IOM"        , "SFI"  ) ;
+   ( Brand_mod_magic_elseve  , "Magic-Elseve"  , "MEl"  ) ;
+   ( Brand_mod_schlumpmule   , "SchlumpMule"   , "sch"  ) ;
+   ( Brand_mod_lc            , "LC"            , "LC"   ) ;
+   ( Brand_mod_noamson       , "NoamSon"       , "NoS"  ) ;
+   ( Brand_mod_stormit       , "Stormit"       , "Sto"  ) ;
+   ( Brand_mod_omax          , "OMaX"          , "OMX"  ) ;
+   ( Brand_mod_mison         , "Mison"         , "Mis"  ) ;
+   ( Brand_mod_phoenix       , "Phoenix"       , "pPho" ) ;
+   ( Brand_mod_spiders       , "Spiders"       , "spi"  ) ;
+   ( Brand_mod_iberica       , "Ib\233rica"    , "Ib"   ) ;
+   ( Brand_mod_mortimer      , "Mortimer"      , "mor"  ) ;
+   ( Brand_mod_stonehenge    , "Stonehenge"    , "sto"  ) ;
+   ( Brand_mod_xlillo        , "Xlillo"        , "Xli"  ) ;
+   ( Brand_mod_imperator     , "ImperatoR"     , "Imp"  ) ;
+   ( Brand_mod_raziboom      , "Raziboom"      , "Raz"  ) ;
+   ( Brand_mod_khaos         , "Khaos"         , "Kha"  ) ;
+   ( Brand_mod_hardmule      , "Hardmule"      , "Har"  ) ;
+   ( Brand_mod_sc            , "SC"            , "SC"   ) ;
+   ( Brand_mod_cy4n1d        , "Cy4n1d"        , "Cy4"  ) ;
+   ( Brand_mod_dmx           , "DMX"           , "DMX"  ) ;
+   ( Brand_mod_ketamine      , "Ketamine"      , "Ket"  ) ;
+   ( Brand_mod_blackmule     , "Blackmule"     , "blm"  ) ;
+   ( Brand_mod_morphxt       , "MorphXT"       , "Mxt"  ) ;
+   ( Brand_mod_ngdonkey      , "ngdonkey"      , "ngd"  ) ;
+   ( Brand_mod_cyrex         , "Cyrex"         , "haw"  ) ;
+   ( Brand_mod_hawkstar      , "Hawkstar"      , "neo"  ) ;
+   ( Brand_mod_neomule       , "Neo Mule"      , "cyr"  ) ;
+   ( Brand_mod_aldo          , "aldo"          , "ald"  ) ;
+   ( Brand_mod_emulede       , "emule.de"      , "ede"  ) ;
+   ( Brand_mod_zx            , "zx"            , "zx"   ) ;
+   ( Brand_mod_ibericaxt     , "ib\233ricaxt"  , "iBx"  ) ;
+   ( Brand_mod_candymule     , "candy-mule"    , "can"  ) ;
+   ( Brand_mod_ackronic      , "ackronic"      , "ack"  ) ;
+   ( Brand_mod_rappis        , "rappis"        , "rap"  ) ;
+   ( Brand_mod_overdose      , "overdose"      , "ove"  ) ;
+   ( Brand_mod_hebmule       , "hebmule"       , "heb"  ) ;
+   ( Brand_mod_senfei        , "senfei"        , "sen"  ) ;
+   ( Brand_mod_spoofmod      , "spoofmod"      , "spo"  ) ;
+   ( Brand_mod_fusspilz      , "fusspilz"      , "fus"  ) ;
+   ( Brand_mod_rocket        , "rocket"        , "roc"  ) ;
+   ( Brand_mod_warezfaw      , "warezfaw"      , "war"  ) ;
+   ( Brand_mod_emusicmule    , "emusicmule"    , "emm"  ) ;
+   ( Brand_mod_aideadsl      , "aideadsl"      , "aid"  ) ;
+   ( Brand_mod_epo           , "epo"           , "epo"  ) ;
+   ( Brand_mod_kalitsch      , "kalitsch"      , "kal"  ) ;
+   ( Brand_mod_raynz         , "raynz"         , "ray"  ) ;
+   ( Brand_mod_serverclient  , "serverclient"  , "sc"   ) ;
+   ( Brand_mod_bl4ckbird     , "bl4ckbird"     , "b4b"  ) ;
+   ( Brand_mod_bl4ckf0x      , "bl4ckf0x"      , "b4f"  ) ;
+   ( Brand_mod_rt            , "rt"            , "rt"   ) ;
+   ( Brand_mod_airionix      , "air-ionix"     , "aio"  ) ;
+   ( Brand_mod_ionix         , "ionix"         , "ion"  ) ;
+   ( Brand_mod_tornado       , "tornado"       , "tor"  ) ;
+   ( Brand_mod_antifaker     , "anti-faker"    , "anf"  ) ;
+   ( Brand_mod_netf          , "netf"          , "nef"  ) ;
+   ( Brand_mod_nextemf       , "nextemf"       , "nxf"  ) ;
+   ( Brand_mod_proemule      , "proemule"      , "pem"  ) ;
+   ( Brand_mod_szemule       , "szemule"       , "sze"  ) ;
+   ( Brand_mod_darkmule      , "darkmule"      , "dar"  ) ;
+   ( Brand_mod_miragemod     , "miragemod"     , "mir"  ) ;
+   ( Brand_mod_nextevolution , "nextevolution" , "nxe"  ) ;
+   ( Brand_mod_pootzgrila    , "pootzgrila"    , "poo"  ) ;
+   ( Brand_mod_freeangel     , "freeangel"     , "fre"  ) ;
+   ( Brand_mod_enos          , "enos"          , "eno"  ) ;
+   ( Brand_mod_webys         , "webys"         , "wys"  ) ;
+  ]
+
+let brand_mod_count = List.length brand_mod_list
+
+let brand_to_string brand =
+  find_brand_to_string brand brand_list false
+
+let brand_to_string_short brand =
+  find_brand_to_string brand brand_list true
+
+let brand_mod_to_string brand =
+  find_brand_to_string brand brand_mod_list false
+
+let brand_mod_to_string_short brand =
+  find_brand_to_string brand brand_mod_list true
+
+let brand_to_int brand =
+  find_int_of_brand brand brand_list
+
+let brand_mod_to_int brand =
+  find_int_of_brand brand brand_mod_list
 
 type source_uid =
   Direct_address of Ip.t * int
@@ -521,7 +674,7 @@ and client = {
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
-    mutable client_mod_brand : brand_mod;
+    mutable client_brand_mod : brand_mod;
     mutable client_banned : bool;
     mutable client_score : int;
     mutable client_next_queue : int;
@@ -819,40 +972,6 @@ module SourcesQueueCreate = Queues.Make (struct
   end
 *)
   *)
-
-type brand_stat = {
-  mutable brand_seen : int;
-  mutable brand_banned : int;
-  mutable brand_filerequest : int;
-  mutable brand_download : Int64.t;
-  mutable brand_upload : Int64.t;
-}
-
-type brand_mod_stat = {
-  mutable brand_mod_seen : int;
-  mutable brand_mod_banned : int;
-  mutable brand_mod_filerequest : int;
-  mutable brand_mod_download : Int64.t;
-  mutable brand_mod_upload : Int64.t;
-}
-
-let dummy_stats =
-  {
-    brand_seen = 0;
-    brand_banned = 0;
-    brand_filerequest = 0;
-    brand_download = Int64.zero;
-    brand_upload = Int64.zero
-  }
-
-let dummy_mod_stats =
-  {
-    brand_mod_seen = 0;
-    brand_mod_banned = 0;
-    brand_mod_filerequest = 0;
-    brand_mod_download = Int64.zero;
-    brand_mod_upload = Int64.zero
-  }
 
   (*
 let string_of_file_tag_name name =

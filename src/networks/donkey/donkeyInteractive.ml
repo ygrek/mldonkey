@@ -1097,9 +1097,9 @@ let _ =
         P.client_rating = c.client_rating;
         P.client_chat_port = 0 ;
         P.client_connect_time = c.client_connect_time;
-        P.client_software = gbrand_to_string c.client_brand;
+        P.client_software = brand_to_string_short c.client_brand;
         P.client_release = c.client_emule_proto.emule_release;
-        P.client_emulemod = gbrand_mod_to_string c.client_mod_brand;
+        P.client_emulemod = brand_mod_to_string_short c.client_brand_mod;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
 (*        P.client_source.source_sock_addr =    (); *)
@@ -1317,7 +1317,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                 (Array.init (String.length chunks)
                 (fun i -> ((int_of_char chunks.[i])-48)))) ) ;
           ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc)
+                (let fc = ref 0 in (String.iter (fun s -> if s = '3' then incr fc)
                   chunks );!fc ))) ]);
 
 
@@ -1355,11 +1355,11 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
             ((string_of_connection_state (client_state c)), "sr",
               (short_string_of_connection_state (client_state c)) );
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
-            (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+            (brand_to_string c.client_brand, "sr", brand_to_string_short c.client_brand);
             ("", "sr", c.client_emule_proto.emule_release);
 
             ] @
-            (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+            (if !!emule_mods_count then [(brand_mod_to_string c.client_brand_mod, "sr", brand_mod_to_string_short c.client_brand_mod)] else [])
             @ [
 
             ("", "sr", (if DonkeySources.source_brand c.client_source then "T" else "F"));
@@ -1578,12 +1578,12 @@ lprint_newline ();
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks,_) =  List.hd qfiles in
                 if (qfile == (as_file_impl file).impl_file_val) then begin
-	          Printf.bprintf buf "[Donkey%6d] Name  : %-27s IP   : %-20s"
-	            (client_num c)
-	            (shorten c.client_name 20)
-	            (match c.client_kind with
-	                Direct_address (ip,port) -> (Ip.to_string ip)
-	                |  _ -> (string_of_client_addr c));
+            Printf.bprintf buf "[Donkey%6d] Name  : %-27s IP   : %-20s"
+              (client_num c)
+              (shorten c.client_name 20)
+              (match c.client_kind with
+                  Direct_address (ip,port) -> (Ip.to_string ip)
+                  |  _ -> (string_of_client_addr c));
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_downloaded)
                     (Int64.to_string c.client_uploaded)
@@ -1614,18 +1614,18 @@ lprint_newline ();
                     let i = (client_info (as_client c)) in
 
                     Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
-			class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
-			onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+      class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
+      onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
                       str (client_num c) (client_num c);
 
                     html_mods_td buf ([
                       (string_of_connection_state (client_state c), "sr",
                         short_string_of_connection_state (client_state c));
                       (Md4.to_string c.client_md4, "sr", client_short_name c.client_name);
-                      ("", "sr", gbrand_to_string c.client_brand);
+                      ("", "sr", brand_to_string_short c.client_brand);
                       ("", "sr", c.client_emule_proto.emule_release);
                       ] @
-                      (if !!emule_mods_count then [("", "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+                      (if !!emule_mods_count then [("", "sr", brand_mod_to_string_short c.client_brand_mod)] else [])
                       @ [
                         ("", "sr", (if DonkeySources.source_brand c.client_source
                                then "T" else "F"));

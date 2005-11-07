@@ -56,7 +56,7 @@ open DonkeyThieves
 module Udp = DonkeyProtoUdp
 
 let full_client_identifier c =
-    Printf.sprintf "%s (%s) '%s'" (Ip.to_string c.client_ip) (gbrand_to_string c.client_brand) c.client_name
+    Printf.sprintf "%s (%s) '%s'" (Ip.to_string c.client_ip) (brand_to_string_short c.client_brand) c.client_name
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
@@ -598,8 +598,8 @@ let string_of_tags_list tags =
   ) tags;
   !s 
 
-let identify_client_mod_brand c tags =
-  if c.client_mod_brand = Brand_mod_unknown then begin
+let identify_client_brand_mod c tags =
+  if c.client_brand_mod = Brand_mod_unknown then begin
       List.iter (fun tag ->
         let s = to_lowercase (string_of_tag_value tag.tag_value) in 
           match tag.tag_name with
@@ -609,7 +609,7 @@ let identify_client_mod_brand c tags =
                 if i < len then
                  let sub = fst mod_array.(i) in
                      if  (String2.subcontains s sub) then
-                        c.client_mod_brand <- snd mod_array.(i)
+                        c.client_brand_mod <- snd mod_array.(i)
                      else iter (i+1) len
                in
                iter 0 (Array.length mod_array)
@@ -618,7 +618,7 @@ let identify_client_mod_brand c tags =
 
    ) tags;
    if String2.subcontains c.client_name "@PowerMule" then begin
-     c.client_mod_brand <- Brand_mod_powermule
+     c.client_brand_mod <- Brand_mod_powermule
    end
   end
 
@@ -658,7 +658,7 @@ let parse_mod_version s c =
     if i < len then
       let sub = fst mod_array.(i) in
       if (String2.subcontains s sub) then
-         c.client_mod_brand <- snd mod_array.(i)
+         c.client_brand_mod <- snd mod_array.(i)
       else iter (i+1) len
   in
    iter 0 (Array.length mod_array)
@@ -741,14 +741,14 @@ let update_emule_proto_from_tags c tags =
 
 let fight_disguised_mods c =
    if (c.client_brand = Brand_mldonkey2 || c.client_brand = Brand_mldonkey3)
-     && (c.client_mod_brand = Brand_mod_morphxt || c.client_mod_brand = Brand_mod_ionix) then
+     && (c.client_brand_mod = Brand_mod_morphxt || c.client_brand_mod = Brand_mod_ionix) then
        c.client_brand <- Brand_newemule;
    if c.client_emule_proto.emule_release <> "" && c.client_brand = Brand_mldonkey2 then
       c.client_brand <- Brand_newemule;
-   if c.client_brand = Brand_edonkey && c.client_mod_brand = Brand_mod_plus then
+   if c.client_brand = Brand_edonkey && c.client_brand_mod = Brand_mod_plus then
       c.client_brand <- Brand_emuleplus;
-   if c.client_brand = Brand_emuleplus && c.client_mod_brand = Brand_mod_plus then
-      c.client_mod_brand <- Brand_mod_unknown
+   if c.client_brand = Brand_emuleplus && c.client_brand_mod = Brand_mod_plus then
+      c.client_brand_mod <- Brand_mod_unknown
 
 let rec query_id ip port id =
   let client_ip = client_ip None in
@@ -1190,7 +1190,7 @@ let client_to_client for_files c t sock =
       let module CI = M.EmuleClientInfo in
       process_mule_info c t.CI.tags;
       if !!emule_mods_count then
-        identify_client_mod_brand c t.CI.tags;
+        identify_client_brand_mod c t.CI.tags;
       
       (* TODO : remove this comment 
           ERR! i think the peer support eep if it send an emule client info

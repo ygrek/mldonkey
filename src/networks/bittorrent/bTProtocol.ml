@@ -467,7 +467,7 @@ let bt_handler parse_fun handler c sock =
           begin
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
             lprintf_nl "BT: Unknown message from %s:%d dropped!! peerid:%b data_len:%i msg_len:%i software: %s"
-                (Ip.to_string ip) port c.client_received_peer_id b.len msg_len c.client_software;
+                (Ip.to_string ip) port c.client_received_peer_id b.len msg_len (brand_to_string c.client_brand);
             dump (String.sub b.buf b.pos (min b.len 30));
             buf_used b b.len;
             close sock Closed_by_user;
@@ -478,7 +478,7 @@ let bt_handler parse_fun handler c sock =
           begin
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
             lprintf_nl "btprotocol.bt_handler: closed connection from %s:%d because of too much data!! data_len:%i msg_len:%i software: %s"
-                (Ip.to_string ip) port b.len msg_len c.client_software;
+                (Ip.to_string ip) port b.len msg_len (brand_to_string c.client_brand);
             dump (String.sub b.buf b.pos (min b.len 30));
             buf_used b b.len;
             close sock Closed_by_user

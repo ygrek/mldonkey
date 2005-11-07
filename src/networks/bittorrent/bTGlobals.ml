@@ -262,7 +262,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
                           if (bitmap.[num] <> '1') then
                             send_client c (Have (Int64.of_int num));
                           check_if_interesting file c
-                    end				
+                    end       
               ) file.file_clients
 
           );
@@ -343,175 +343,193 @@ let check_all s c l =
   let ch = char_of_int c in
   List.for_all (fun i -> s.[i] = ch) l
 
-(* Old decoding routines *)
-
 (* from azureus/gpl *)
 let decode_az_style s =
   if check_all s 45 [0;7] then begin
     let s_id = (String.sub s 1 2) in
-    let result = ref
-    (match s_id with
-      | "AR" -> "Arctic"
-      | "AZ" -> "Azureus"
-      | "BB" -> "BitBuddy"
-      | "BC" -> "BitComet"
-      | "BS" -> "BTSlave"
-      | "BX" -> "Bittorrent X"
-      | "CT" -> "CTorrent"
-      | "LT" -> "libTorrent"
-      | "MT" -> "MoonlightTorrent"
-      | "SB" -> "Swiftbit"
-      | "SN" -> "ShareNET"
-      | "SS" -> "SwarmScope"
-      | "TN" -> "Torrent.NET"
-      | "TS" -> "TorrentStorm"
-      | "XT" -> "XanTorrent"
-      | "ZT" -> "ZipTorrent"
-      | "bk" -> "BitKitten (libtorrent)"
-      | _ -> "")
+    let brand = 
+     match s_id with
+      | "AR" -> Brand_arctic
+      | "AZ" -> Brand_azureus
+      | "BB" -> Brand_bitbuddy
+      | "BC" -> Brand_bitcomet
+      | "BS" -> Brand_btslave
+      | "BX" -> Brand_bittorrentx
+      | "CT" -> Brand_ctorrent
+      | "LT" -> Brand_libtorrent
+      | "MT" -> Brand_moonlighttorrent
+      | "SB" -> Brand_swiftbit
+      | "SN" -> Brand_sharenet
+      | "SS" -> Brand_swarmscope
+      | "SZ" -> Brand_shareaza
+      | "TN" -> Brand_torrentdotnet
+      | "TS" -> Brand_torrentstorm
+      | "XT" -> Brand_xantorrent
+      | "ZT" -> Brand_ziptorrent
+      | "bk" -> Brand_bitkitten
+      | "lt" -> Brand_libtorrent
+      | "MP" -> Brand_moopolice
+      | "UT" -> Brand_utorrent
+      | _ -> Brand_unknown
     in
-    (if (s_id = "BC") then
-      result := !result ^ " " ^ (String.sub s 4 1) ^ "." ^ (String.sub s 5 2)
-    else
-    if not (!result = "") then
-      result := !result ^ " " ^ (dot_string (String.sub s 3 4)));
-    !result;
-  end else ""
+    if brand = Brand_unknown then None else
+      let version = 
+        if brand = Brand_bitcomet then (String.sub s 4 1) ^ "." ^ (String.sub s 5 2) 
+        else (dot_string (String.sub s 3 4)) 
+      in
+      Some (brand, version)
+  end else
+  None
 
 let decode_tornado_style s =
-  let result = ref "" in
   if check_all s 45 [4;5] then begin
-    let check_id s =
+    let check_brand s =
      match s with
-     | "T" -> "BitTornado"
-     | "A" -> "ABC"
-     | _ -> ""
+     | "T" -> Brand_bittornado
+     | "S" -> Brand_shadow
+     | "A" -> Brand_abc
+     | "U" -> Brand_upnp
+     | _ -> Brand_unknown
     in
-    if check_all s 45 [6;7;8] then
-      let t = ref (check_id (String.sub s 0 1)) in
-      if not (!t = "") then
-        result := !t ^ " " ^ dot_string_h (String.sub s 1 3);
-    else if s.[6] = (char_of_int 48) then
-      let t = ref (check_id (String.sub s 0 1)) in
-      if not (!t = "") then
-        result := !t ^ " LM " ^ dot_string_h (String.sub s 1 3);
-  end;
-  !result
+    let bv = ref None in
+
+    if check_all s 45 [6;7;8] then begin
+      let brand = check_brand (String.sub s 0 1) in
+      if not (brand = Brand_unknown) then
+        bv := Some (brand, (dot_string_h (String.sub s 1 3)));
+    end
+    else if s.[6] = (char_of_int 48) then begin
+      let brand = check_brand (String.sub s 0 1) in
+      if not (brand = Brand_unknown) then
+        bv := Some (brand, ("LM " ^ dot_string_h (String.sub s 1 3)));
+    end;
+
+    !bv
+  end else
+  None
 
 let decode_mainline_style s =
   if check_all s 45 [2;4;6;7] then begin
     let s_id = String.sub s 0 1 in
-    let result = ref
-     (match s_id with
-     | "M" -> "Mainline"
-     | _ -> "")
+    let brand =
+      match s_id with
+     | "M" -> Brand_mainline
+     | _ -> Brand_unknown
     in
-    if !result != "" then
-      result := !result ^ " " ^ dot_string_of_list s [1;3;5];
-    !result
-  end else ""
+    if brand = Brand_unknown then None
+    else Some (brand, (dot_string_of_list s [1;3;5]))
+  end else
+  None
 
 let decode_simple_style s =
   let simple_list = ref
-    [ (0, "martini", "Martini Man");
-      (0, "oernu", "BTugaXP");
-      (0, "BTDWV-", "Deadman Walking");
-      (0, "PRC.P---", "BitTorrent Plus! II");
-      (0, "P87.P---", "BitTorrent Plus!");
-      (0, "S587Plus", "BitTorrent Plus!");
-      (5, "Azureus", "Azureus 2.0.3.2");
-      (0, "-G3", "G3 Torrent");
-      (4, "btfans", "SimpleBT");
-      (0, "btuga", "BTugaXP");
-      (0, "DansClient", "XanTorrent");
-      (0, "Deadman Walking-", "Deadman");
-      (0, "a00---0", "Swarmy");
-      (0, "a02---0", "Swarmy");
-      (0, "T00---0", "Teeweety") ]
+    [ (0, "martini", Brand_martiniman, "");
+      (0, "oernu", Brand_btugaxp, "");
+      (0, "BTDWV-", Brand_deadmanwalking, "");
+      (0, "PRC.P---", Brand_btplus, "II");
+      (0, "P87.P---", Brand_btplus, "");
+      (0, "S587Plus", Brand_btplus, "");
+      (5, "Azureus", Brand_azureus, "2.0.3.2");
+      (0, "-G3", Brand_g3torrent, "");
+      (4, "btfans", Brand_simplebt, "");
+      (0, "btuga", Brand_btugaxp, "");
+      (0, "DansClient", Brand_xantorrent, "");
+      (0, "Deadman Walking-", Brand_deadmanwalking, "");
+      (0, "a00---0", Brand_swarmy, "");
+      (0, "a02---0", Brand_swarmy, "");
+      (0, "T00---0", Brand_teeweety, "") ]
   in
   let len = List.length !simple_list in
   let rec check pos =
-    if pos >= len then ""
+    if pos >= len then None
     else
-      let (x,y,z) = List.nth !simple_list pos in
-      if (String.sub s x (String.length y)) = y then z
+      let (x,y,z,v) = List.nth !simple_list pos in
+      if (String.sub s x (String.length y)) = y then Some (z,v)
         else check (pos+1);
   in
   check 0
 
 let decode_mburst s =
   if "Mbrst" = String.sub s 0 5 then
-     "Burst! " ^ (dot_string_of_list s [5;7;9])
-  else ""
+     Some (Brand_burst, (dot_string_of_list s [5;7;9]))
+  else None
 
 let decode_plus s =
   if "Plus" = String.sub s 0 4 then
-     "Plus " ^ (dot_string_of_list s [4;5;6])
-  else ""
+     Some (Brand_plus, (dot_string_of_list s [4;5;6]))
+  else None
+
+let decode_opera s =
+  if "OP" = String.sub s 0 2 then
+     Some (Brand_opera, (dot_string_of_list s [2;3;4;5]))
+  else None
 
 let decode_bow s =
   if "BOW" = String.sub s 0 3 then
-    "BitsOnWheels " ^ (String.sub s 4 3)
-  else ""
+    Some (Brand_bitsonwheels, (String.sub s 4 3))
+  else None
 
 let decode_exeem s =
   if "eX" = String.sub s 0 2 then
-    "eXeem [" ^ (String.sub s 2 18) ^ "]"
-  else ""
+    Some (Brand_exeem, (String.sub s 2 18))
+  else None
 
 let decode_turbo s =
   if "turbobt" = String.sub s 0 7 then
-    "TurboBT " ^ String.sub s 7 5
-  else ""
+    Some (Brand_turbobt, (String.sub s 7 5))
+  else None
 
 let decode_xbt s =
   if "XBT" = String.sub s 0 3 then
-    "XBT " ^ (dot_string (String.sub s 3 3))
-  else ""
+    Some (Brand_xbt, (dot_string (String.sub s 3 3)))
+  else None
 
 let decode_shadow s =
-  if "S" = String.sub s 0 1 then
-    let result = ref "" in
+  if "S" = String.sub s 0 1 then begin
+    let bv = ref None in
     if check_all s 45 [6;7;8] then begin
       let i1 = int_of_string ("0x" ^ String.sub s 1 1) in
       let i2 = int_of_string ("0x" ^ String.sub s 2 1) in
       let i3 = int_of_string ("0x" ^ String.sub s 3 1) in
-      result := Printf.sprintf "Shad0w %d.%d.%d" i1 i2 i3
+      bv := Some (Brand_shadow, (Printf.sprintf "%d.%d.%d" i1 i2 i3))
     end;
 
     if s.[8] = (char_of_int 0) then begin
       let i1 = int_of_char s.[1] in
       let i2 = int_of_char s.[2] in
       let i3 = int_of_char s.[3] in
-      result := Printf.sprintf "Shad0w %d.%d.%d" i1 i2 i3
+      bv := Some (Brand_shadow, (Printf.sprintf "%d.%d.%d" i1 i2 i3))
     end;
-
-    !result;
-  else ""
+    !bv
+  end else
+  None
 
 let decode_bitspirit s =
-  let result = ref "" in
   if "BS" = String.sub s 2 2 then begin
-    if s.[1] = (char_of_int 0) then result := "BitSpirit v1";
-    if s.[1] = (char_of_int 2) then result := "BitSpirit v2";
-  end;
-  !result
+    let bv = ref None in
+    if s.[1] = (char_of_int 0) then bv := Some (Brand_bitspirit, "v1");
+    if s.[1] = (char_of_int 2) then bv := Some (Brand_bitspirit, "v2");
+    !bv
+  end else
+  None
 
 let decode_upnp s =
   if "U" = String.sub s 0 1 && s.[8] = '-' then
-    "UPnP " ^ (dot_string (String.sub s 1 3))
-  else ""
+    Some (Brand_upnp, (dot_string (String.sub s 1 3)))
+  else None
 
 let decode_old_bitcomet s =
   if "exbc" = String.sub s 0 4 then
-    let bit_sub = if "LORD" = String.sub s 6 4 then
-      "Lord" else "Comet" in
-    Printf.sprintf "Bit%s %d.%d%d"
-      (bit_sub)
+    let brand = if "LORD" = String.sub s 6 4 then
+      Brand_bitlord else Brand_bitcomet 
+    in
+    let version = Printf.sprintf "%d.%d%d" 
       (int_of_char s.[4])
       ((int_of_char s.[5]) / 10)
       ((int_of_char s.[5]) mod 10)
-  else ""
+    in
+    Some (brand, version)
+  else None
 
 let decode_shareaza s =
   let rec not_zeros pos =
@@ -525,7 +543,7 @@ let decode_shareaza s =
       let i3 = (int_of_char s.[(15 - (pos mod 16))]) in
       if not (i1 = (i2 lxor i3)) then false else weird_crap (pos+1)
   in
-  if (not_zeros 0) && (weird_crap 16) then "Shareaza" else ""
+  if (not_zeros 0) && (weird_crap 16) then Some (Brand_shareaza, "") else None
 
 let decode_non_zero s =
   let max_pos = ((String.length s) - 1) in
@@ -535,348 +553,80 @@ let decode_non_zero s =
       if not (s.[pos] = zero) then pos else
         find_non_zero (pos+1)
   in
-  let result = ref "" in
+  let bv = ref None in
   (match find_non_zero 0 with
      8 -> (if "UDP0" = String.sub s 16 4 then
-            result := "BitComet UDP";
+            bv := Some (Brand_bitcomet, "UDP");
           if "HTTPBT" = String.sub s 14 6 then
-            result := "BitComet HTTP";)
+            bv := Some (Brand_bitcomet, "HTTP"));
   |  9 -> if check_all s 3 [9;10;11] then
-      result := "Snark";
+      bv := Some (Brand_snark, "");
   | 12 -> if check_all s 97 [12;13] then
-        result := "Experimental 3.2.1b2"
+        bv := Some (Brand_experimental, "3.2.1b2")
       else begin
         if check_all s 0 [12;13] then
-          result := "Experimental 3.1"
+          bv := Some (Brand_experimental, "3.1")
         else
-          result := "Mainline"
+          bv := Some (Brand_mainline, "")
       end;
   | _ -> ()
   );
-  !result
+  !bv
 
 (* format is : "-ML" ^ version ( of unknown length) ^ "-" ^ random bytes ( of unknown length) *)
 let decode_mldonkey_style s =
   if check_all s 45 [0] then begin
     let s_id = String.sub s 1 2 in
-    let result = ref
-     (match s_id with
-     | "ML" -> "MLDonkey"
-     | _ -> "")
+    let brand =
+     match s_id with
+     | "ML" -> Brand_mldonkey
+     | _ -> Brand_unknown
     in
-    if !result != "" then
-      result := !result ^ " " ^ String.sub s 3 ((
-        try String.index_from s 1 s.[0] with Not_found -> 3) - 3);
-    !result
-  end else ""
-
-let parse_software s =
-  try
-  let rec try_styles i =
-    if i > 17 then
-      begin
-        lprintf_nl () "Unknown BT client found please report the next line via http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=UnknownBtClients%s :\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
-        "UNKNOWN"
-      end
-    else begin
-    let res = ref
-      (match i with
-         | 0 -> decode_az_style s
-         | 1 -> decode_tornado_style s
-         | 2 -> decode_mainline_style s
-         | 3 -> decode_simple_style s
-         | 4 -> decode_mburst s
-         | 5 -> decode_turbo s
-         | 6 -> decode_plus s
-         | 7 -> decode_xbt s
-         | 8 -> decode_bow s
-         | 9 -> decode_exeem s
-         | 10 -> decode_shadow s
-         | 11 -> decode_bitspirit s
-         | 12 -> decode_upnp s
-         | 13 -> decode_old_bitcomet s
-         | 14 -> decode_shareaza s
-         | 15 -> decode_non_zero s
-         | 16 -> decode_mldonkey_style s
-         | 17 -> if (Sha1.null) = (Sha1.direct_of_string s) then
-                     "NULL" else ""
-         | _ -> "ERROR"
-       )
-    in
-    if !res = "" then try_styles (i+1) else !res;
-  end
-  in
-  try_styles 0
-  with _ -> "ERROR"
-
-(* new decoding routines *)
-
-let brand_to_int b =
-  match b with
-    Brand_unknown -> 0
-  | Brand_abc -> 1
-  | Brand_arctic -> 2
-  | Brand_azureus -> 3
-  | Brand_bitbuddy -> 4
-  | Brand_bitcomet -> 5
-  | Brand_bitkitten -> 6
-  | Brand_bitlord -> 7
-  | Brand_bitsonwheels -> 8
-  | Brand_bitspirit -> 9
-  | Brand_bittornado -> 10
-  | Brand_bittorrentx -> 11
-  | Brand_btplus -> 12
-  | Brand_btslave -> 13
-  | Brand_btugaxp -> 14
-  | Brand_burst -> 15
-  | Brand_ctorrent -> 16
-  | Brand_deadmanwalking -> 17
-  | Brand_exeem -> 18
-  | Brand_experimental -> 19
-  | Brand_g3torrent -> 20
-  | Brand_libtorrent -> 21
-  | Brand_mainline -> 22
-  | Brand_martiniman -> 23
-  | Brand_mldonkey -> 24
-  | Brand_moonlighttorrent -> 25
-  | Brand_plus -> 26
-  | Brand_shadow -> 27
-  | Brand_sharenet -> 28
-  | Brand_shareaza -> 29
-  | Brand_simplebt -> 30
-  | Brand_snark -> 31
-  | Brand_swarmscope -> 32
-  | Brand_swarmy -> 33
-  | Brand_swiftbit -> 34
-  | Brand_teeweety -> 35
-  | Brand_torrentdotnet -> 36
-  | Brand_torrentstorm -> 37
-  | Brand_turbobt -> 38
-  | Brand_upnp -> 39
-  | Brand_xantorrent -> 40
-  | Brand_xbt -> 41
-  | Brand_ziptorrent -> 42
-
-
-let brand_of_int b =
-  match b with
-    0 -> Brand_unknown
-  | 1 -> Brand_abc
-  | 2 -> Brand_arctic
-  | 3 -> Brand_azureus
-  | 4 -> Brand_bitbuddy
-  | 5 -> Brand_bitcomet
-  | 6 -> Brand_bitkitten
-  | 7 -> Brand_bitlord
-  | 8 -> Brand_bitsonwheels
-  | 9 -> Brand_bitspirit
-  | 10 -> Brand_bittornado
-  | 11 -> Brand_bittorrentx
-  | 12 -> Brand_btplus
-  | 13 -> Brand_btslave
-  | 14 -> Brand_btugaxp
-  | 15 -> Brand_burst
-  | 16 -> Brand_ctorrent
-  | 17 -> Brand_deadmanwalking
-  | 18 -> Brand_exeem
-  | 19 -> Brand_experimental
-  | 20 -> Brand_g3torrent
-  | 21 -> Brand_libtorrent
-  | 22 -> Brand_mainline
-  | 23 -> Brand_martiniman
-  | 24 -> Brand_mldonkey
-  | 25 -> Brand_moonlighttorrent
-  | 26 -> Brand_plus
-  | 27 -> Brand_shadow
-  | 28 -> Brand_sharenet
-  | 29 -> Brand_shareaza
-  | 30 -> Brand_simplebt
-  | 31 -> Brand_snark
-  | 32 -> Brand_swarmscope
-  | 33 -> Brand_swarmy
-  | 34 -> Brand_swiftbit
-  | 35 -> Brand_teeweety
-  | 36 -> Brand_torrentdotnet
-  | 37 -> Brand_torrentstorm
-  | 38 -> Brand_turbobt
-  | 39 -> Brand_upnp
-  | 40 -> Brand_xantorrent
-  | 41 -> Brand_xbt
-  | 42 -> Brand_ziptorrent
-  | _ -> raise Not_found
-
-let brand_to_string b =
-  match b with
-    Brand_unknown -> "unknown"
-  | Brand_abc -> "ABC"
-  | Brand_arctic -> "Arctic"
-  | Brand_azureus -> "Azureus"
-  | Brand_bitbuddy -> "Bitbuddy"
-  | Brand_bitcomet -> "BitComet"
-  | Brand_bitkitten -> "BitKitten (libTorrent)"
-  | Brand_bitlord -> "BitLord"
-  | Brand_bitsonwheels -> "BitsOnWheels"
-  | Brand_bitspirit -> "BitSpirit"
-  | Brand_bittornado -> "BitTornado"
-  | Brand_bittorrentx -> "BitTorrent X"
-  | Brand_btplus -> "BitTorrent Plus!"
-  | Brand_btslave -> "BTSlave"
-  | Brand_btugaxp -> "BTugaXP"
-  | Brand_burst -> "Burst !"
-  | Brand_ctorrent -> "CTorrent"
-  | Brand_deadmanwalking -> "Deadman Walking"
-  | Brand_exeem -> "eXeem"
-  | Brand_experimental -> "Experimental"
-  | Brand_g3torrent -> "G3 Torrent"
-  | Brand_libtorrent -> "libTorrent"
-  | Brand_mainline -> "Mainline"
-  | Brand_martiniman -> "Martini Man"
-  | Brand_mldonkey -> "MLdonkey"
-  | Brand_moonlighttorrent -> "MoonlightTorrent"
-  | Brand_plus -> "Plus"
-  | Brand_shadow -> "Shad0w"
-  | Brand_sharenet -> "Sharenet"
-  | Brand_shareaza -> "Shareaza"
-  | Brand_simplebt -> "SimpleBT"
-  | Brand_snark -> "Snark"
-  | Brand_swarmscope -> "SwarmScope"
-  | Brand_swarmy -> "Swarmy"
-  | Brand_swiftbit -> "SwiftBit"
-  | Brand_teeweety -> "Teeweety"
-  | Brand_torrentdotnet -> "Torrent.NET"
-  | Brand_torrentstorm -> "TorrentStorm"
-  | Brand_turbobt -> "TurboBT"
-  | Brand_upnp -> "UPNP"
-  | Brand_xantorrent -> "XanTorrent"
-  | Brand_xbt -> "XBT"
-  | Brand_ziptorrent -> "ZipTorrent"
-
-let parse_brand s =
-  try
-  let the_answer s =
-  (* azureus *)
-  if check_all s 45 [0;7] then begin
-      let s_id = (String.sub s 1 2) in
-      let result = ref
-      (match s_id with
-        | "AR" -> Brand_arctic
-        | "AZ" -> Brand_azureus
-        | "BB" -> Brand_bitbuddy
-        | "BC" -> Brand_bitcomet
-        | "BS" -> Brand_btslave
-        | "BX" -> Brand_bittorrentx
-        | "CT" -> Brand_ctorrent
-        | "LT" -> Brand_libtorrent
-        | "MT" -> Brand_moonlighttorrent
-        | "SB" -> Brand_swiftbit
-        | "SN" -> Brand_sharenet
-        | "SS" -> Brand_swarmscope
-        | "TN" -> Brand_torrentdotnet
-        | "TS" -> Brand_torrentstorm
-        | "XT" -> Brand_xantorrent
-        | "ZT" -> Brand_ziptorrent
-        | "bk" -> Brand_bitkitten
-        | _ -> Brand_unknown)
+    if brand = Brand_unknown then None else
+      let len = 
+        (try String.index_from s 3 s.[0]
+        with _ -> 8) - 3
       in
-      !result;
-    end
-  else
-  (* mainline *)
-  if check_all s 45 [2;4;6;7] then begin
-      let s_id = String.sub s 0 1 in
-      let result = ref
-       (match s_id with
-       | "M" -> Brand_mainline
-       | _ -> Brand_unknown)
-      in
-(*       if !result != "" then
-        result := !result ^ " " ^ dot_string_of_list s [1;3;5];
- *)
-      !result;
-    end
-  else
-  (* simple style *)
-  let simple_list = ref
-    [
-      (5, "Azureus", Brand_azureus);
-      (0, "A", Brand_abc);
-      (14, "HTTPBT", Brand_bitcomet);
-      (16, "UDP0", Brand_bitcomet);
-      (6, "LORD", Brand_bitlord);
-      (0, "exbc", Brand_bitcomet);
-      (0, "BOW", Brand_bitsonwheels);
-      (0, "BS", Brand_bitspirit);
-      (0, "T03", Brand_bittornado);
-      (0, "Plus", Brand_btplus);
-      (0, "PRC.P---", Brand_btplus);
-      (0, "P87.P---", Brand_btplus);
-      (0, "S587Plus", Brand_btplus);
-      (0, "oernu", Brand_btugaxp);
-      (0, "btuga", Brand_btugaxp);
-      (4, "btuga", Brand_btugaxp);
-      (0, "BTDWV-", Brand_deadmanwalking);
-      (0, "Deadman Walking-", Brand_deadmanwalking);
-      (0, "eX", Brand_exeem);
-      (0, "-G3", Brand_g3torrent);
-      (0, "martini", Brand_martiniman);
-      (0, "Mbrst", Brand_burst);
-      (0, "S", Brand_shadow);
-      (4, "btfans", Brand_simplebt);
-      (0, "a00---0", Brand_swarmy);
-      (0, "a02---0", Brand_swarmy);
-      (0, "turbobt", Brand_turbobt);
-      (0, "T00---0", Brand_teeweety);
-      (0, "U", Brand_upnp);
-      (0, "DansClient", Brand_xantorrent);
-      (0, "XBT", Brand_xbt);
-    ]
+      let version = String.sub s 3 len in
+    Some (brand, version)
+  end else None
+
+let decoder_list = [
+    decode_az_style;
+    decode_tornado_style;
+    decode_mainline_style;
+    decode_simple_style;
+    decode_mburst;
+    decode_turbo;
+    decode_plus;
+    decode_xbt;
+    decode_bow;
+    decode_exeem;
+    decode_shadow;
+    decode_bitspirit;
+    decode_upnp;
+    decode_old_bitcomet;
+    decode_shareaza;
+    decode_non_zero;
+    decode_mldonkey_style;
+    decode_opera;
+  ]
+
+let parse_software s = 
+  let default = (Brand_unknown, "") in
+  let rec iter l =
+    match l with
+      [] -> lprintf_nl () "Unknown BT client software version, report the next line to http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
+            default
+      | d :: t -> match (d s) with 
+                  | None -> iter t
+                  | Some bv -> bv
   in
-  let len = List.length !simple_list in
-  let rec check pos =
-    if pos >= len then Brand_unknown
-    else
-      let (x,y,z) = List.nth !simple_list pos in
-      if (String.sub s x (String.length y)) = y then z
-        else check (pos+1);
-  in
-  if (check 0) != Brand_unknown then
-    check 0
-  else
-  (* shareaza *)
-  let rec not_zeros pos =
-    if pos > 15 then true else
-      if s.[pos] = (char_of_int 0) then false else not_zeros (pos+1)
-  in
-  let rec weird_crap pos =
-    if pos > 19 then true else
-      let i1 = (int_of_char s.[pos]) in
-      let i2 = (int_of_char s.[(pos mod 16)]) in
-      let i3 = (int_of_char s.[(15 - (pos mod 16))]) in
-      if not (i1 = (i2 lxor i3)) then false else weird_crap (pos+1)
-  in
-  if (not_zeros 0) && (weird_crap 16) then Brand_shareaza
-  else
-  if check_all s 3 [9;10;11] then Brand_snark
-  else
-  (* mldonkey style *)
-  if check_all s 45 [0] then begin
-      let s_id = String.sub s 1 2 in
-      let result = ref
-       (match s_id with
-       | "ML" -> Brand_mldonkey
-       | _ -> Brand_unknown)
-      in
-(*      if !result != "" then
-        result := !result ^ " " ^ String.sub s 3 ((
-          try String.index_from s 1 s.[0] with Not_found -> 3) - 3);
-*)
-      !result;
-    end
-  else
-    Brand_unknown
-  in
-  the_answer s
-  with _ -> Brand_unknown
+  if Sha1.direct_of_string s = Sha1.null then
+    default
+  else 
+    try iter decoder_list
+    with _ -> default
 
 let new_client file peer_id kind =
   try
@@ -884,6 +634,7 @@ let new_client file peer_id kind =
     c.client_host <- kind;
     c
   with _ ->
+      let brand, release = parse_software (Sha1.direct_to_string peer_id) in
       let rec c = {
           client_client = impl;
           client_sock = NoConnection;
@@ -901,10 +652,8 @@ let new_client file peer_id kind =
           client_range_waiting = None;
           client_block = None;
           client_uid = peer_id;
-          client_brand = if peer_id != Sha1.null then
-              (parse_brand (Sha1.direct_to_string peer_id))
-            else Brand_unknown;
-          client_release = "";
+          client_brand = brand;
+          client_release = release;
           client_bitmap = None;
           client_allowed_to_write = zero;
           client_uploaded = zero;
@@ -922,9 +671,6 @@ let new_client file peer_id kind =
           client_incoming = false;
           client_registered_bitfield = false;
           client_last_optimist = 0;
-          client_software = if peer_id != Sha1.null then
-              (parse_software (Sha1.direct_to_string peer_id))
-            else "NOT_RECEIVED";
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

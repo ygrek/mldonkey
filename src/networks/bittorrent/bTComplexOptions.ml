@@ -293,20 +293,20 @@ let new_stats_array () =
   )
 
 
-let gstats_by_brand = define_option bt_stats_section ["stats"] ""
+let gstats_array = define_option bt_stats_section ["stats"] ""
     (array_option StatsOption.t) (new_stats_array ())
 
 
 let _ =
-  option_hook gstats_by_brand (fun _ ->
-      let old_stats = !!gstats_by_brand in
+  option_hook gstats_array (fun _ ->
+      let old_stats = !!gstats_array in
       let old_len = Array.length old_stats in
       if old_len <> brand_count then
         let t = new_stats_array () in
         for i = 0 to old_len - 1 do
           t.(i) <- old_stats.(i)
         done;
-        gstats_by_brand =:= t
+        gstats_array =:= t
   )
 
 let diff_time = ref 0

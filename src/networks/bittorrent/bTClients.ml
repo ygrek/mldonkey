@@ -751,7 +751,7 @@ and client_to_client c sock msg =
                 | (p1,p2,r) :: _ ->
                     let (x,y) = Int64Swarmer.range_range r in
                     lprintf_nl () "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
-                      c.client_software position len
+                      (brand_to_string c.client_brand) position len
                       p1 p2 x y
               );
 
@@ -765,10 +765,9 @@ and client_to_client c sock msg =
               Int64Swarmer.downloaded swarmer in
 
             (*Update rate and amount of data received from client*)
-            count_download c file (new_downloaded -- old_downloaded);
+            count_download c (new_downloaded -- old_downloaded);
             (* use len here with max_dr quickfix *)
             Rate.update c.client_downloaded_rate  (float_of_int len);
-            network_must_update network;
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
                   [] -> lprintf_nl () "EMPTY Ranges !!!"
@@ -816,8 +815,9 @@ and client_to_client c sock msg =
       (* Disconnect if that is ourselves. *)
       if not (c.client_uid = !!client_uid) then
         begin
-          c.client_brand <- (parse_brand p);
-          c.client_software <- (parse_software p);
+          let brand, release = parse_software p in
+          c.client_brand <- brand;
+          c.client_release <- release;
 (* TODO : enable it
       c.client_release <- (parse_release p c.client_brand);
  *)
@@ -959,7 +959,7 @@ and client_to_client c sock msg =
                    didn't send a client bitmap after the handshake. *)
                 let (ip,port) = c.client_host in
                   if !verbose_msg_clients then lprintf_nl () "%s:%d with software %s : Choke send, but no client bitmap"
-                    (Ip.to_string ip) port (c.client_software)
+                    (Ip.to_string ip) port (brand_to_string c.client_brand)
             | Some up ->
                 Int64Swarmer.clear_uploader_ranges up
           end;
@@ -1453,7 +1453,7 @@ let rec iter_upload sock c =
           let file = c.client_file in
           let offset = pos ++ file.file_piece_size *.. num in
           c.client_allowed_to_write <- c.client_allowed_to_write -- len;
-          count_upload c file len;
+          count_upload c len;
           let len = Int64.to_int len in
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
@@ -1473,7 +1473,6 @@ let rec iter_upload sock c =
           in
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
-          network_must_update network;
           iter_upload sock c
         end else
         begin
