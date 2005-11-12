@@ -345,6 +345,7 @@ let _ =
                   onMouseOut=\\\"mOut(this);\\\"\\>"
                     (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
                     client_print c o;
+                    if use_html_mods o then
                     html_mods_td buf ([
                      ("", "sr", i.client_software);
                      ("", "sr", i.client_release);

@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/12
+4607: remove html output from telnet 'vc all' (zet)
+
 2005/11/09
 4558: further Overnet patches, query_next_peers3.patch (bogeyman)
 
