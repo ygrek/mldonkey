@@ -900,7 +900,7 @@ let client_id c =
 let save_join_queue c =
   if c.client_file_queue <> [] then
     let files = List.map (fun (file, chunks, _) ->
-          file, Array.copy chunks
+          file, Bitv.copy chunks
       ) c.client_file_queue in
     begin
       if c.client_debug then

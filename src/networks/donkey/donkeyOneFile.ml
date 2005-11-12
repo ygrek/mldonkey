@@ -221,13 +221,13 @@ let add_client_chunks c file client_chunks =
             if f != file then iter tail
             else begin
                 Int64Swarmer.update_uploader up
-                (AvailableBoolBitmap client_chunks);
-                Array.blit client_chunks 0 chunks 0 (Array.length chunks)
+                (AvailableBitv client_chunks);
+                Bitv.blit client_chunks 0 chunks 0 (Bitv.length chunks)
               end
             
         | [] ->
             let up = Int64Swarmer.register_uploader swarmer (as_client c) 
-              (AvailableBoolBitmap client_chunks) in
+              (AvailableBitv client_chunks) in
             c.client_file_queue <-  c.client_file_queue @
               [file, client_chunks, up]
       in
@@ -442,7 +442,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
             with
             | e ->
                 let m =
-(*		      Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e)  *)
+(*          Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e)  *)
                   (match e with 
                       Unix.Unix_error (Unix.ENOSPC, _, _) -> " (Disk full?)"
                     | _ -> "") in
@@ -487,7 +487,7 @@ let search_found filter search md4 tags =
         { tag_name = Field_Filename; tag_value = String s } -> file_name := s
       | { tag_name = Field_Size; tag_value = Uint64 v } -> file_size := v
       | { tag_name = Field_Availability;
-	  tag_value = (Uint64 v| Fint64 v) } ->
+    tag_value = (Uint64 v| Fint64 v) } ->
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags
   ) tags;

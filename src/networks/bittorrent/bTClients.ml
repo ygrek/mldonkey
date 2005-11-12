@@ -264,7 +264,7 @@ let disconnect_client c reason =
           let file = c.client_file in
           (try if c.client_good then count_seen c with _ -> ());
           (* this is not useful already done in the match
-          (try close sock reason with _ -> ());	  *)
+          (try close sock reason with _ -> ());   *)
 (*---------not needed ?? VvvvvV---------------
           c.client_ranges <- [];
           c.client_block <- None;
@@ -289,7 +289,7 @@ let disconnect_client c reason =
                      (Useful for availability)
                   *)
                   Int64Swarmer.unregister_uploader up
-(*	      c.client_registered_bitfield <- false;
+(*        c.client_registered_bitfield <- false;
           for i = 0 to String.length c.client_bitmap - 1 do
             c.client_bitmap.[0] <- '0';
           done*)
@@ -304,7 +304,7 @@ let disconnect_client c reason =
               remove_client c;
               recompute_uploaders ();
             end
-          else	
+          else  
             remove_client c;
         with _ -> ()
   end
@@ -538,9 +538,12 @@ let rec client_parse_header counter cc init_sent gconn sock
 *)
 and update_client_bitmap c =
   let file = c.client_file in
+  
   let swarmer = match file.file_swarmer with
       None -> assert false
-    | Some swarmer -> swarmer in
+    | Some swarmer -> swarmer 
+  in
+  
   let up =
     match c.client_uploader with
       None ->
@@ -555,18 +558,19 @@ and update_client_bitmap c =
   let bitmap = match c.client_bitmap with
       None ->
         let len = Int64Swarmer.partition_size swarmer in
-        let bitmap = String.make (len*8) '0' in
+        let bitmap = Bitv.create len false in
         c.client_bitmap <- Some bitmap;
         bitmap
     | Some bitmap -> bitmap
   in
 
-  if c.client_new_chunks <> [] then
+  if c.client_new_chunks <> [] then begin
     let chunks = c.client_new_chunks in
     c.client_new_chunks <- [];
     let file = c.client_file in
-    List.iter (fun n -> bitmap.[n] <- '1') chunks;
-    Int64Swarmer.update_uploader up (AvailableCharBitmap bitmap)
+    List.iter (fun n -> Bitv.set bitmap n true) chunks;
+    Int64Swarmer.update_uploader up (AvailableBitv bitmap);
+  end
 
 
 (** In this function we decide which piece we must request from client.
@@ -597,8 +601,8 @@ and get_from_client sock (c: client) =
           lprintf_n () "Current download:\n  Current chunks: ";
           (try
           List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks
-	  with _ -> lprintf "No Chunks");
-	  lprint_newline ();
+    with _ -> lprintf "No Chunks");
+    lprint_newline ();
           lprintf_n () "Current ranges: ";
           List.iter (fun (p1,p2, r) ->
               let (x,y) = Int64Swarmer.range_range r
@@ -607,12 +611,12 @@ and get_from_client sock (c: client) =
           (match c.client_range_waiting with
               None -> ()
             | Some (x,y,r) -> lprintf "Waiting %Ld-%Ld" x y);
-	  lprint_newline ();
+    lprint_newline ();
           lprintf_n () "Current block: ";
           (match c.client_block with
               None -> lprintf "none"
             | Some b -> Int64Swarmer.print_block b);
-	  lprint_newline ();
+    lprint_newline ();
           lprintf_nl () "Finding Range:";
         end;
       try
@@ -630,7 +634,7 @@ and get_from_client sock (c: client) =
               let b = Int64Swarmer.find_block up in
               if !verbose_swarming then begin
                   lprintf_n () "Block Found: "; Int64Swarmer.print_block b;
-		  lprint_newline ()
+      lprint_newline ()
                 end;
               c.client_block <- Some b;
              (*We put the found block in client_block to
@@ -641,7 +645,7 @@ and get_from_client sock (c: client) =
           | Some b ->
               if !verbose_swarming then begin
                   lprintf_n () "Current Block: "; Int64Swarmer.print_block b;
-		  lprint_newline ()
+      lprint_newline ()
                 end;
               try
                 (*Given a block find a range inside*)
@@ -854,50 +858,41 @@ and client_to_client c sock msg =
             None -> ()
           | Some swarmer ->
               c.client_new_chunks <- [];
-              let len = String.length p in
-              let bitmap = String.make (len*8) '0' in
-              for i = 0 to len - 1 do
-                for j = 0 to 7 do
-                  if (int_of_char p.[i]) land bits.(j) <> 0 then
-                    begin
-                      c.client_new_chunks <- i*8+j :: c.client_new_chunks;
-                      bitmap.[i*8+j] <- '1';
-                    end
-                  else
-                    bitmap.[i*8+j] <- '0';
-                done;
-              done;
-
-              update_client_bitmap c;
-
-              let verified = Int64Swarmer.verified_bitmap swarmer in
+              
               let npieces = Int64Swarmer.partition_size swarmer in
-              (* parse the pieces to see if the client is interesting *)
-              for i = 0 to npieces -1  do
-                (* lprintf "bitmap: %c, verified: %c" bitmap.[i] verified.[i]; *)
-                if bitmap.[i] = '1' && verified.[i] < '2' then
-                  c.client_interesting <- true;
-              done;
+              let nbits = String.length p * 8 in
 
-              if !verbose_msg_clients then
-                lprintf_nl () "BitField translated";
-              if !verbose_msg_clients then
-                lprintf_nl () "Old BitField Unregistered";
-              (match c.client_uploader with
-                  None -> assert false
-                | Some up ->
-                    Int64Swarmer.update_uploader up
-                      (AvailableCharBitmap bitmap));
-              c.client_registered_bitfield <- true;
-              c.client_bitmap <- Some bitmap;
-              (* send interested if we are *)
-              if c.client_interesting then
-                send_interested c;
-              if !verbose_msg_clients then
-                lprintf_nl () "New BitField Registered";
-(*        for i = 1 to max_range_requests - List.length c.client_ranges do
-          (try get_from_client sock c with _ -> ())
-        done*)
+              if nbits < npieces then begin
+                lprintf_nl () "Error: expected bitfield of atleast %d but got %d" npieces nbits;
+                disconnect_client c (Closed_for_error "Wrong bitfield length")
+              end else begin
+
+                let is_set s n = (Char.code s.[n lsr 3]) land (1 lsl (n land 7)) <> 0 in
+                let verified = Int64Swarmer.verified_bitmap swarmer in
+
+                for i = 0 to npieces - 1 do
+                  if is_set p i then begin
+                    c.client_new_chunks <- i :: c.client_new_chunks;
+                    if verified.[i] < '2' then
+                      c.client_interesting <- true;
+                  end 
+                done;
+
+                update_client_bitmap c;
+                c.client_registered_bitfield <- true;
+
+                if c.client_interesting then
+                  send_interested c;
+
+                if !verbose_msg_clients then
+                  lprintf_nl () "New BitField Registered";
+
+                (*  for i = 1 to max_range_requests - List.length c.client_ranges do
+                      (try get_from_client sock c with _ -> ())
+                    done
+                *)
+
+            end;
         end;
         (* Note: a bitfield must only be sent after the handshake and before everything else: NOT here *)
 
@@ -939,8 +934,8 @@ and client_to_client c sock msg =
                       end
                   end
           | None, Some _ -> lprintf_nl () "no bitmap but client_uploader";
-	  | Some _ , None ->lprintf_nl () "bitmap but no client_uploader";
-	  | None, None -> lprintf_nl () "no bitmap no client_uploader";
+    | Some _ , None ->lprintf_nl () "bitmap but no client_uploader";
+    | None, None -> lprintf_nl () "no bitmap no client_uploader";
         end
 *)
         end
@@ -1295,7 +1290,7 @@ let get_sources_from_tracker file =
             match (key, value) with
             | String "failure reason", String failure ->
                 (* On failure, remove the faulty tracker from file.file_trackers list *)
-		remove_tracker t.tracker_url file;
+    remove_tracker t.tracker_url file;
                 lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s removed for failure"
                   t.tracker_url file.file_name failure t.tracker_url
             | String "warning message", String warning ->
@@ -1494,14 +1489,14 @@ let client_can_upload c allowed =
       match c.client_upload_requests with
         [] -> ()
       | _ :: tail ->
-	  let new_allowed_to_write =
-	    c.client_allowed_to_write ++ (Int64.of_int allowed) in
-	    if allowed > 0 && CommonUploads.can_write_len sock
-			      (Int64.to_int new_allowed_to_write)
-	    then begin
-	      CommonUploads.consume_bandwidth allowed;
-	      c.client_allowed_to_write <- new_allowed_to_write;
-	    end;
+    let new_allowed_to_write =
+      c.client_allowed_to_write ++ (Int64.of_int allowed) in
+      if allowed > 0 && CommonUploads.can_write_len sock
+            (Int64.to_int new_allowed_to_write)
+      then begin
+        CommonUploads.consume_bandwidth allowed;
+        c.client_allowed_to_write <- new_allowed_to_write;
+      end;
           iter_upload sock c
   )
 

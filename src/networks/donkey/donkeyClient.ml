@@ -872,7 +872,7 @@ let is_useful_client file chunks =
       let bitmap = Int64Swarmer.verified_bitmap swarmer in
       let rec iter bitmap chunks i len =
         if i = len then false else
-        if chunks.(i) && bitmap.[i] < '2' then true else
+        if Bitv.get chunks i && bitmap.[i] < '2' then true else
           iter bitmap chunks (i+1) len
       in
       iter bitmap chunks 0 (String.length bitmap)
@@ -890,20 +890,23 @@ let received_client_bitmap c file chunks =
     end;
   
   let chunks = 
-    if file_size file <= block_size then  [| true |]
+    if file_size file <= block_size then Bitv.create 1 true
     else
-    if chunks = [||] then
-      Array.create file.file_nchunks true
+      if Bitv.length chunks = 0 then
+        Bitv.create file.file_nchunks true
     else
-    if Array.length chunks <> file.file_nchunks then begin
-        lprintf_nl () "BAD BAD BAD: number of chunks is different %d/%d for %s:%Ld on peer" (Array.length chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+    if Bitv.length chunks <> file.file_nchunks then begin
+        lprintf_nl () "BAD: number of chunks is different %d/%d for %s:%Ld on peer" 
+          (Bitv.length chunks) 
+          file.file_nchunks 
+          (Md4.to_string file.file_md4) 
+          (file_size file);
         lprintf_nl () "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]"
           c.client_name
           (Md4.to_string c.client_md4)
-        (string_of_bool (DonkeySources.source_brand c.client_source))
-        (brand_to_string c.client_brand)
-        ;
-        Array.create file.file_nchunks false
+          (string_of_bool (DonkeySources.source_brand c.client_source))
+          (brand_to_string c.client_brand);
+        Bitv.create file.file_nchunks false
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -1324,7 +1327,7 @@ end; *)
                           v
                     in
                     List.iter (fun (file, chunks) ->
-                        let chunks = Array.copy chunks in
+                        let chunks = Bitv.copy chunks in
                         DonkeyOneFile.add_client_chunks c file chunks) files;
 (*                DonkeyOneFile.restart_download c *)
                   with _ -> 
@@ -1446,7 +1449,7 @@ other one for unlimited sockets.  *)
           end;
           
           if file_size file <= block_size then begin
-              client_is_useful c file [|true|]
+              client_is_useful c file (Bitv.create 1 true)
             end else begin
               
               if file.file_computed_md4s = [||] then begin
@@ -1927,10 +1930,10 @@ end else *)
                     (* file was found, if we have no swarmer, we have
                        the file complete and share it! it's save to
                        asume that we have all chunks! *)
-                    Array.create file.file_nchunks true
+                    Bitv.create file.file_nchunks true
               | Some swarmer ->
                   let bitmap = Int64Swarmer.verified_bitmap swarmer in
-                  Array.init (String.length bitmap) 
+                  Bitv.init (String.length bitmap) 
                       (fun i -> bitmap.[i] = '3')
                   (* This is not very smart, as we might get banned for this request.
                      TODO We should probably check if we don't know already this source...
@@ -2503,7 +2506,7 @@ let _ =
             | Some swarmer ->
                 let bitmap = Int64Swarmer.verified_bitmap swarmer in
                 let chunks = 
-                  Array.init (String.length bitmap) 
+                  Bitv.init (String.length bitmap) 
                   (fun i -> bitmap.[i] = '3')
                 in
                 let ncompletesources = if extendedrequest > 1 then
@@ -2519,12 +2522,8 @@ let _ =
 (* TODO build the extension if needed *)
             M.QueryFile.emule_extension = emule_extension;
           });
-        let know_file_chunks = ref false in
-            List.iter (fun (f,_,_) ->
-              if f == file then know_file_chunks := true
-              ) c.client_file_queue;
-            
-            if not !know_file_chunks then
+            let know_file_chunks = List.exists (fun (f,_,_) -> f == file) c.client_file_queue in
+            if not know_file_chunks then
               DonkeyProtoCom.client_send c (
                 let module M = DonkeyProtoClient in
                   M.QueryChunksReq file.file_md4);

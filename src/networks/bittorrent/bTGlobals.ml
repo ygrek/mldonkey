@@ -259,7 +259,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
                       match c.client_bitmap with
                         None -> ()
                       | Some bitmap ->
-                          if (bitmap.[num] <> '1') then
+                          if not (Bitv.get bitmap num) then
                             send_client c (Have (Int64.of_int num));
                           check_if_interesting file c
                     end       

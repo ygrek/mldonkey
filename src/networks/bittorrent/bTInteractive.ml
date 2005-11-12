@@ -332,7 +332,7 @@ let op_file_print_sources_html file buf =
                 (match c.client_bitmap with
                     None -> ()
                   | Some bitmap ->
-                      String.iter (fun s -> if s = '1' then incr fc) bitmap );
+                      Bitv.iter (fun s -> if s then incr fc) bitmap);
                 (Printf.sprintf "%d" !fc) ) ) ];
 
           Printf.bprintf buf "\\</tr\\>";

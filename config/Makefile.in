@@ -203,6 +203,7 @@ MP3TAG_SRCS=     $(MP3)/mp3_info.ml  $(MP3)/mp3_genres.ml \
 LIB_SRCS=   \
   src/config/$(OS_FILES)/mlUnix.ml \
   src/config/$(OS_FILES)/os_stubs_c.c \
+	$(LIB)/bitv.ml \
   $(LIB)/intmap.ml $(LIB)/stringMap.ml \
   $(LIB)/int64ops.ml $(LIB)/options.ml4 $(LIB)/numset.ml  \
   $(LIB)/intset.ml \

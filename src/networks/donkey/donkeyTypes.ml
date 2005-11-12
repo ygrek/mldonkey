@@ -622,8 +622,6 @@ and server_change_kind =
 | ServerInfoChange
 | ServerBusyChange
 
-and availability = bool array
-
   (*
 and source = {
 (*    source_num : int; *)
@@ -657,7 +655,7 @@ and client = {
 (*    mutable client_connection_control : connection_control; *)
     mutable client_file_queue : (
       file * (* has displayed when connected *)
-      availability *
+      Bitv.t *
       Int64Swarmer.uploader
       ) list;
     mutable client_next_view_files :  int;

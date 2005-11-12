@@ -80,10 +80,10 @@ exception VerifierNotReady
 
 type chunks =
   AvailableRanges of (int64 * int64) list
-(* A bitmap is encoded with '0' for empty, '1' for present *)
+(* A bitmap is encoded with '0' for empty, '1' for present '2' complete '3' verified *)
 | AvailableCharBitmap of string 
-(* A bitmap encoded as an array of boolean *)
-| AvailableBoolBitmap of bool array
+(* A bitmap encoded as a bit vector *)
+| AvailableBitv of Bitv.t
 
 type verification =
   NoVerification
@@ -136,7 +136,7 @@ module type Maker = functor (M : CommonEnv) -> sig
   val present_chunks : t -> (int64 * int64) list
   val partition_size : t -> int
   val compute_bitmap : t -> unit
-  val is_interesting : uploader -> bool	
+  val is_interesting : uploader -> bool 
   val print_uploader : uploader -> unit
 
 (* In these two function, the 'bool' is if verification should take place

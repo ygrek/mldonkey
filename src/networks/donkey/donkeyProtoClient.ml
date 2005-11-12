@@ -260,15 +260,15 @@ remove the need for QueryChunks. *)
 let get_bitmap s pos =
   let nchunks = get_int16 s pos in
   let chunks, pos =
-    if nchunks = 0 then [||], pos+2 else
+    if nchunks = 0 then (Bitv.create 0 false), pos+2 else
     let pos = pos + 2 in
-    let chunks = Array.create nchunks false  in
+    let chunks = (Bitv.create nchunks false) in
     for i = 0 to (nchunks-1) / 8 do
       let m = get_uint8 s (pos + i) in
       for j = 0 to 7 do
         let n = i * 8 + j in
         if n < nchunks then
-          chunks.(n) <- (m land (1 lsl j)) <> 0;
+          Bitv.set chunks n ((m land (1 lsl j)) <> 0);
       done;
     done;
     let pos = pos + (nchunks-1)/8 + 1 in
@@ -277,12 +277,10 @@ let get_bitmap s pos =
   chunks, pos
 
 let print_bitmap chunks =
-  lprint_string "\n   ";
-  Array.iter (fun b ->
-      if b then lprintf "1" else lprintf "0") chunks
+  lprintf "\n%s\n" (Bitv.to_string chunks)
 
 let write_bitmap buf chunks =
-  let nchunks = Array.length chunks in
+  let nchunks = Bitv.length chunks in
   buf_int16 buf nchunks;
   if nchunks > 0 then
   for i = 0 to (nchunks-1) / 8 do
@@ -290,7 +288,7 @@ let write_bitmap buf chunks =
     for j = 0 to 7 do
       let n = i * 8 + j in
       if n < nchunks then
-        if chunks.(n) then
+        if (Bitv.get chunks n) then
           m :=  !m lor (1 lsl j);
     done;
     buf_int8 buf !m
@@ -299,7 +297,7 @@ let write_bitmap buf chunks =
 module QueryFile  = struct
     type t = {
         md4 : Md4.t;
-        emule_extension : (bool array * int) option;
+        emule_extension : (Bitv.t * int) option;
       }
 
     let parse emule len s =
@@ -353,7 +351,7 @@ module QueryChunksReply = struct (* Request 80 *)
 
     type t = {
         md4 : Md4.t;
-        chunks: bool array;
+        chunks: Bitv.t;
       }
 
     let parse len s =
@@ -367,14 +365,12 @@ module QueryChunksReply = struct (* Request 80 *)
     let print t =
       lprintf_nl "CHUNKS for %s" (Md4.to_string t.md4);
       lprint_string "   ";
-      Array.iter (fun b ->
-          if b then lprintf "1" else lprintf "0") t.chunks;
-      lprint_newline ()
+      lprintf_nl "%s\n" (Bitv.to_string t.chunks)
 
     let write buf t =
       buf_md4 buf t.md4;
       write_bitmap buf t.chunks;
-      if t.chunks = [||] then buf_int8 buf 0
+      if Bitv.length t.chunks = 0 then buf_int8 buf 0
   end
 (*
 dec: [(96)(215)(1)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)]
@@ -1271,7 +1267,7 @@ and parse emule_version magic s =
 
           let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
-	  begin try
+    begin try
             parse_emule_packet emule_version opcode (String.length s) s
           with
           | e ->
@@ -1285,7 +1281,7 @@ and parse emule_version magic s =
                   lprint_newline ();
                 end;
               UnknownReq (magic,s)
-	  end
+    end
 
     | _ ->
         if !CommonOptions.verbose_unknown_messages then

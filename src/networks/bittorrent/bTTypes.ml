@@ -176,7 +176,7 @@ type client = {
     mutable client_brand : brand;
     mutable client_release : string;
 
-    mutable client_bitmap : string option;
+    mutable client_bitmap : Bitv.t option;
     mutable client_new_chunks : int list;
 
     mutable client_upload_requests : (int * int64 * int64) list;

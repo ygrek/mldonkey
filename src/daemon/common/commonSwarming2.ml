@@ -52,7 +52,7 @@ open CommonTypes
 
 module Make(M: CommonEnv) = struct
 
-	open Int64ops
+  open Int64ops
     open M
     open CommonFile
     open CommonTypes
@@ -235,9 +235,8 @@ let print_uploader up =
   lprint_newline ();
   lprintf_n () "  interesting partial_blocks: %d\n     " up.up_npartial;
   Array.iter (fun (i, begin_pos, end_pos) ->
-      lprintf " %d[%s...%s] " i
-        (Int64.to_string begin_pos)
-      (Int64.to_string end_pos)) up.up_partial_blocks;
+      lprintf " %d[%Ld...%Ld] " i begin_pos end_pos
+  ) up.up_partial_blocks;
   lprint_newline ()
 
 (*************************************************************************)
@@ -749,12 +748,8 @@ let apply_intervals s f chunks =
                 let current_end =  min block_end chunk_end in
 
                 if debug_all then
-                  lprintf_nl () "Apply: %d %s-%s %s-%s"
-                    i
-                    (Int64.to_string block_begin)
-                  (Int64.to_string block_end)
-                  (Int64.to_string chunk_begin)
-                  (Int64.to_string current_end);
+                  lprintf_nl () "Apply: %d %Ld-%Ld %Ld-%Ld"
+                    i block_begin block_end chunk_begin current_end;
 
                 f i block_begin block_end chunk_begin current_end;
 
@@ -777,10 +772,8 @@ let print_s str s =
   lprintf_nl () "Ranges after %s:" str;
 
   let rec iter r =
-    lprintf_n () " %s(%s)-%s(%d)"
-      (Int64.to_string r.range_begin)
-    (Int64.to_string r.range_current_begin)
-    (Int64.to_string r.range_end) r.range_nuploading;
+    lprintf_n () " %Ld(%Ld)-%Ld(%d)"
+      r.range_begin r.range_current_begin r.range_end r.range_nuploading;
     match r.range_next with
       None -> lprint_newline()
     | Some r -> iter r
@@ -801,9 +794,8 @@ let print_s str s =
 
       match b with
         PartialBlock b ->
-          lprintf " [%s .. %s] --> "
-            (Int64.to_string b.block_begin)
-          (Int64.to_string b.block_end);
+          lprintf " [%Ld .. %Ld] --> "
+            b.block_begin b.block_end;
           iter b.block_ranges
       | EmptyBlock -> lprintf_nl2 "_"
       | CompleteBlock -> lprintf_nl2 "C"
@@ -840,10 +832,8 @@ let iter_block_ranges f b =
 (*************************************************************************)
 
 let print_block b =
-  lprintf_n () "Block %d: %s-%s"
-    b.block_num
-    (Int64.to_string b.block_begin)
-  (Int64.to_string b.block_end);
+  lprintf_n () "Block %d: %Ld-%Ld"
+    b.block_num b.block_begin b.block_end;
   lprint_newline ();
   lprintf_nl () "  ranges:";
   let rec iter_range r =
@@ -1113,7 +1103,7 @@ let verify_chunk t i =
                       s.s_verified_bitmap.[i] = '2'
                   ) t.t_t2s_blocks.(i) then begin
 
-		    if !verbose_hidden_errors then
+        if !verbose_hidden_errors then
                     lprintf_nl () "Complete block %d of %s is corrupted (wrong hash), block is being resetted."
                             i (file_best_name t.t_file);
 
@@ -1576,14 +1566,7 @@ let chunks_to_string s chunks =
           st
         end
   | AvailableCharBitmap st -> st
-  | AvailableBoolBitmap bitmap ->
-      begin
-        let st = String.create (Array.length bitmap) in
-        for i = 0 to Array.length bitmap - 1 do
-          st.[i] <- (if bitmap.(i) then '1' else '0')
-        done;
-        st
-      end
+  | AvailableBitv b -> Bitv.to_string b
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1628,9 +1611,9 @@ let update_uploader_chunks up chunks =
                   complete_blocks := i :: !complete_blocks
               ) t.t_t2s_blocks.(i)
           done;
-      | AvailableBoolBitmap bitmap ->
-          for i = 0 to Array.length bitmap - 1 do
-            if bitmap.(i) then
+      | AvailableBitv bitmap ->
+          for i = 0 to Bitv.length bitmap - 1 do
+            if Bitv.get bitmap i then
               List.iter (fun i ->
                   s.s_availability.(i) <- s.s_availability.(i) + 1;
                   complete_blocks := i :: !complete_blocks
@@ -2299,9 +2282,7 @@ let received (up : uploader) (file_begin : Int64.t)
     let file_end = file_begin ++ (Int64.of_int string_len) in
 
     if !verbose_swarming then
-      lprintf_nl () "received on %s-%s"
-        (Int64.to_string file_begin)
-      (Int64.to_string file_end);
+      lprintf_nl () "received on %Ld-%Ld" file_begin file_end;
 
 (* TODO: check that everything we received has been required *)
     let t = up.up_t in
@@ -2400,9 +2381,8 @@ let present_chunks s =
 
   let rec iter_block_out i block_begin list =
     if debug_present_chunks then
-      lprintf_nl () "iter_block_out %d bb: %s"
-        i
-        (Int64.to_string block_begin);
+      lprintf_nl () "iter_block_out %d bb: %Ld"
+        i block_begin;
 
     if i = nblocks then List.rev list else
     let block_end = compute_block_end s i in
@@ -2417,10 +2397,8 @@ let present_chunks s =
 
   and iter_block_in i block_begin chunk_begin list =
     if debug_present_chunks then
-      lprintf_nl () "iter_block_in %d bb: %s cb:%s"
-        i
-        (Int64.to_string block_begin)
-        (Int64.to_string chunk_begin)
+      lprintf_nl () "iter_block_in %d bb: %Ld cb:%Ld"
+        i block_begin chunk_begin
       ;
 
     if i = nblocks then
@@ -2439,11 +2417,8 @@ let present_chunks s =
 
   and iter_range_out i block_end block_begin r list =
     if debug_present_chunks then
-      lprintf_nl () "iter_range_out %d nb: %s bb:%s"
-        i
-        (Int64.to_string block_end)
-      (Int64.to_string block_begin)
-      ;
+      lprintf_nl () "iter_range_out %d nb: %Ld bb:%Ld"
+        i block_end block_begin;
 
     if r.range_begin > block_begin then
       iter_range_in i block_end block_begin r.range_begin r list
@@ -2474,11 +2449,8 @@ let present_chunks s =
 
   and iter_range_in i block_end chunk_begin chunk_end r list =
     if debug_present_chunks then
-      lprintf_nl () "iter_range_in %d bn: %s cb:%s ce: %s"
-        i
-        (Int64.to_string block_end)
-        (Int64.to_string chunk_begin)
-        (Int64.to_string chunk_end) ;
+      lprintf_nl () "iter_range_in %d bn: %Ld cb:%Ld ce: %Ld"
+        i block_end chunk_begin chunk_end;
 
     if r.range_current_begin < r.range_end then
       let list = (chunk_begin, r.range_current_begin) :: list in
@@ -2855,7 +2827,7 @@ it is verified as soon as possible. *)
               if p = present then begin
                   lprintf_nl () "ERROR: both appear to be the same!";
                 end;
-	      if !exit_on_error then exit 2
+        if !exit_on_error then exit 2
             end
 
         with e -> ());
@@ -3195,7 +3167,7 @@ let _ =
             (8 + match up.up_chunks with
               AvailableRanges list -> List.length list * (12 + 12 + 12 + 12)
             | AvailableCharBitmap s -> 8 + String.length s
-            | AvailableBoolBitmap a -> 4 * 4 * Array.length a
+            | AvailableBitv b -> let ws = Sys.word_size in (ws/8) + ((ws / 8) * (Bitv.length b / (ws - 2))) 
           ) ;
           incr counter;
       ) uploaders_by_num;

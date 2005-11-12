@@ -133,39 +133,39 @@ let unpack_server_met filename url =
     in
     match real_ext with
       ".zip" ->
-	begin try
-	  let ic = Zip.open_in filename in
-	    try
-	      let file = Zip.find_entry ic "server.met" in
-	        Zip.close_in ic;
-		lprintf_nl () "server.met found in %s" url;
-		let s = Misc.archive_extract filename "zip" in
-		  file.Zip.filename
-	      with e ->
-		Zip.close_in ic;
-		lprintf_nl () "Exception %s while extracting server.met from %s"
-		  (Printexc2.to_string e) url;
-		raise Not_found
-	    with e ->
-	      lprintf_nl () "Exception %s while opening %s"
-		(Printexc2.to_string e) url;
-	      raise Not_found
-	end
+  begin try
+    let ic = Zip.open_in filename in
+      try
+        let file = Zip.find_entry ic "server.met" in
+          Zip.close_in ic;
+    lprintf_nl () "server.met found in %s" url;
+    let s = Misc.archive_extract filename "zip" in
+      file.Zip.filename
+        with e ->
+    Zip.close_in ic;
+    lprintf_nl () "Exception %s while extracting server.met from %s"
+      (Printexc2.to_string e) url;
+    raise Not_found
+      with e ->
+        lprintf_nl () "Exception %s while opening %s"
+    (Printexc2.to_string e) url;
+        raise Not_found
+  end
     | ".met.gz" | ".met.bz2" | ".gz" | ".bz2" ->
-	begin
-	  let filetype =
-	    if ext = ".bz2" || ext = ".met.bz2" then
-	      "bz2"
-	    else
-	      "gz"
-	    in try
-	      let s = Misc.archive_extract filename filetype in
-	        s
-	    with e ->
-	      lprintf_nl () "Exception %s while extracting from %s"
-		(Printexc2.to_string e) url;
-	      raise Not_found
-	end
+  begin
+    let filetype =
+      if ext = ".bz2" || ext = ".met.bz2" then
+        "bz2"
+      else
+        "gz"
+      in try
+        let s = Misc.archive_extract filename filetype in
+          s
+      with e ->
+        lprintf_nl () "Exception %s while extracting from %s"
+    (Printexc2.to_string e) url;
+        raise Not_found
+  end
 (* if file is not a supported archive type try loading servers from that file anyway *)
     | _ -> filename
 
@@ -177,17 +177,17 @@ let download_server_met url =
       H.req_url = Url.of_string url;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent =
-	Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+  Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
       H.req_max_retry = 10;
     } in
     H.wget r (fun filename ->
       try
         let nservers = List.length (Hashtbl2.to_list servers_by_key) in
         let s = unpack_server_met filename url in
-	  let n = load_server_met s in
-	    if s <> filename then Sys.remove s;
+    let n = load_server_met s in
+      if s <> filename then Sys.remove s;
             lprintf_nl () "server.met loaded from %s, %d servers found, %d new ones inserted"
-	      url n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+        url n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
       with e -> ()
     )
 
@@ -632,25 +632,25 @@ let commands = [
 
     "servers", Arg_one (fun filename o ->
         let buf = o.conn_buf in
-	if !!update_server_list_server_met then
-	  begin
-	    let nservers = List.length (Hashtbl2.to_list servers_by_key) in
-	    if (String2.starts_with filename "http") then
-	      begin
-	        ignore (download_server_met filename);
-	        Printf.sprintf "download of %s started, check log for results" filename
-	      end
-	    else
-	      if Sys.file_exists filename then begin
+  if !!update_server_list_server_met then
+    begin
+      let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+      if (String2.starts_with filename "http") then
+        begin
+          ignore (download_server_met filename);
+          Printf.sprintf "download of %s started, check log for results" filename
+        end
+      else
+        if Sys.file_exists filename then begin
                 let n = load_server_met filename in
                   Printf.sprintf "%d servers found, %d new ones inserted"
-		    n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
-	        end
-	      else
-	        Printf.sprintf "%s does not exist, ignoring..." filename
-	  end
-	else
-	  Printf.sprintf "ED2K_update_server_list_met is disabled, ignoring..."
+        n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+          end
+        else
+          Printf.sprintf "%s does not exist, ignoring..." filename
+    end
+  else
+    Printf.sprintf "ED2K_update_server_list_met is disabled, ignoring..."
     ), "<filename|URL> :\t\t\tadd the servers from a server.met file or URL";
 
     "id", Arg_none (fun o ->
@@ -766,7 +766,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
             ( "0", "srh", "MD4 (link=ed2k)", "MD4 (link=ed2k)" ); ];
 
 
-		end;
+    end;
 
         List.iter (fun filename ->
             incr counter;
@@ -794,11 +794,11 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
               try
                 let file = find_file md4 in
                 if use_html_mods o then
-				  let fnum = (file_num file) in
+          let fnum = (file_num file) in
                   Printf.bprintf buf "
-				\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>
-				\\<form name=\\\"renameForm%d\\\" id=\\\"renameForm%d\\\" action=\\\"javascript:submitRenameForm(%d);\\\"\\>
-				\\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
+        \\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>
+        \\<form name=\\\"renameForm%d\\\" id=\\\"renameForm%d\\\" action=\\\"javascript:submitRenameForm(%d);\\\"\\>
+        \\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>
                 \\<td class=\\\"sr \\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>\\</tr\\>"
                     !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file)) filename
@@ -1397,10 +1397,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                   let _, qchunks,_ = List.find (fun (qfile, _,_) ->
                         qfile == file) qfiles in
                   let tc = ref 0 in
+                  let arr = Array.init (Bitv.length qchunks) 
+                              (fun i -> if Bitv.get qchunks i then begin incr tc; 2 end else 0) in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>"
-                    (CommonFile.colored_chunks (Array.init (Array.length qchunks)
-                      (fun i -> (if qchunks.(i) then 2 else 0)) ))
-                  (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
+                    (CommonFile.colored_chunks arr) !tc;
                 with Not_found -> (
                       Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>"
                     );
@@ -1690,16 +1690,16 @@ let _ =
     if !!enable_donkey && !!update_server_list_server_met then
       begin
         lprintf_n () "server.met loaded from %s" url;
-	begin
-	  try
-	    let s = unpack_server_met filename url in
-	      let nservers = List.length (Hashtbl2.to_list servers_by_key) in
-    	        let n = load_server_met s in
-    	          if s <> filename then Sys.remove s;
-	          lprintf ", %d servers found, %d new ones inserted"
-		    n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
+  begin
+    try
+      let s = unpack_server_met filename url in
+        let nservers = List.length (Hashtbl2.to_list servers_by_key) in
+              let n = load_server_met s in
+                if s <> filename then Sys.remove s;
+            lprintf ", %d servers found, %d new ones inserted"
+        n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
            with _ -> ()
-	end;
+  end;
         lprint_newline ()
       end
     else
