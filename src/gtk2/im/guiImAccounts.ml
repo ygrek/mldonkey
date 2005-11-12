@@ -392,11 +392,11 @@ let h_update_account account =
     let ac = act_of_key (act_key (account_num account)) in
     let row = accountstore#find_row (act_key (account_num account)) in
     lprintf' "Updating Account %d\n" (account_num account);
-    accountstore#update_item row ac account;
+    Gaux.may ~f:(fun r -> accountstore#update_item r ac account) row;
     lprintf' "Updated Account %d\n" (account_num account)
   with _ ->
     lprintf' "Adding Account %d\n" (account_num account);
-    ignore (accountstore#add_item account);
+    accountstore#add_item account ();
     lprintf' "Added Account %d\n" (account_num account)
 
 (*************************************************************************)

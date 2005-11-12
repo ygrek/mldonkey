@@ -249,15 +249,15 @@ let room_window room =
 (*                                                                       *)
 (*************************************************************************)
 
-let update_identity id_new idstore =
+let update_identity id_new (idstore : g_identity) =
   try
     let id = Hashtbl.find id_by_num (identity_num id_new) in
     let row = idstore#find_row (id_key (identity_num id_new)) in
-    idstore#update_item row id id_new;
+    Gaux.may ~f:(fun r -> idstore#update_item r id id_new) row;
     Hashtbl.replace id_by_num (identity_num id_new) id_new
   with _ ->
     begin
-      ignore (idstore#add_item id_new);
+      idstore#add_item id_new ();
       Hashtbl.add id_by_num (identity_num id_new) id_new
     end
 
@@ -303,7 +303,7 @@ let h_room_event room event =
 
       | Room_user_join (_, identity) ->
           update_identity identity ro.store
-      
+
       | Room_user_leave (_, identity) ->
           remove_identity identity ro.store
 

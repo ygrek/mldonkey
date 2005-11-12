@@ -42,6 +42,92 @@ let (<:>) = GuiTools.(<:>)
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         compute_result_info                           *)
+(*                                                                       *)
+(*************************************************************************)
+
+let compute_result_info r =
+  try
+    let res = Hashtbl.find G.results r.result_num in
+    let name = Mi.result_first_name r.result_names in
+    res.res_name <- name;
+    res.res_uid <- Mi.uid_list_to_string r.result_uids;
+    res.res_size <- r.result_size;
+    res.res_format <- U.simple_utf8_of r.result_format;
+    res.res_type <- U.simple_utf8_of r.result_type;
+    res.res_duration <- Mi.duration_of_tags r.result_tags;
+    res.res_codec <- Mi.codec_of_tags r.result_tags;
+    res.res_bitrate <- Mi.bitrate_of_tags r.result_tags;
+    res.res_availability <- Mi.availability_of_tags r.result_tags;
+    res.res_completesources <- Mi.completesources_of_tags r.result_tags;
+    res.res_tags <- Mi.tags_to_string r.result_tags;
+    res.res_comment <- U.utf8_of r.result_comment;
+    res.res_color <- Mi.color_of_result (Mi.availability_of_tags r.result_tags) r.result_done;
+    res.res_network_pixb <- Mi.network_pixb res.res_network ~size:A.SMALL ();
+    res.res_name_pixb <- Mi.file_type_of_name name ~size:A.SMALL;
+    res.res_computed <- true
+  with _ -> ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         compute_result_info_while_idle                *)
+(*                                                                       *)
+(*************************************************************************)
+
+let (result_queue : result_info Queue.t) = Queue.create ()
+
+let compute_result_info_while_idle () =
+  ignore (Glib.Idle.add (fun _ ->
+    try
+      let r = Queue.take result_queue in
+      compute_result_info r;
+      true
+    with Queue.Empty -> false
+  ))
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         message from the core                         *)
+(*                                                                       *)
+(*************************************************************************)
+
+let result_info (r : result_info) =
+  try
+    let res = Hashtbl.find G.results r.result_num in
+    ()
+  with _ ->
+    begin
+      let net_num = Mi.neworknum_from_uids r.result_uids in
+      let is_empty = Queue.is_empty result_queue in
+      let res =
+        {
+         res_num             = r.result_num;
+         res_network         = net_num;
+         res_computed        = false;
+         res_name            = "";
+         res_uid             = "";
+         res_size            = Int64.zero;
+         res_format          = "";
+         res_type            = "";
+         res_duration        = "";
+         res_codec           = "";
+         res_bitrate         = 0;
+         res_availability    = 0;
+         res_completesources = 0;
+         res_tags            = "";
+         res_comment         = "";
+         res_color           = "";
+         res_network_pixb    = None;
+         res_name_pixb       = None;
+        }
+      in
+      Hashtbl.add G.results res.res_num res;
+      Queue.add r result_queue;
+      if is_empty then compute_result_info_while_idle ()
+    end
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         result_num                                    *)
 (*                                                                       *)
 (*************************************************************************)
@@ -130,7 +216,6 @@ let filter_result k =
     not (List.memq r.res_network !G.networks_filtered)
   with _ -> true
 
-
 module ResultList(Res:
 
 (*************************************************************************)
@@ -192,6 +277,38 @@ module ResultList(Res:
 
       inherit R.g_list result_cols
 
+
+        val res_queue = Queue.create ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         from_item                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+      method add_result_while_idle () =
+        ignore (Glib.Idle.add (fun _ ->
+          try
+            let (r, _) = Queue.peek res_queue in
+            if r.res_computed
+              then begin
+                let (res, f) = Queue.take res_queue in
+                self#add_item res ?f ();
+                true
+              end else true
+          with Queue.Empty -> false))
+
+
+
+      method add (r : res_info) ?f () =
+        if r.res_computed
+          then self#add_item r ?f ()
+          else begin
+            let is_empty = Queue.is_empty res_queue in
+            Queue.add (r, f) res_queue;
+            if is_empty then self#add_result_while_idle ()
+          end
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         from_item                                     *)
@@ -232,6 +349,7 @@ module ResultList(Res:
 (*************************************************************************)
 
       method content (col : GTree.view_column) c =
+        let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
         match c with
             Col_result_name ->
               begin
@@ -241,11 +359,19 @@ module ResultList(Res:
                     col#pack ~expand:false renderer;
                     col#add_attribute renderer "pixbuf" result_name_pixb
                   end;
-                let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
-                col#pack ~expand:false renderer;
-                col#set_cell_data_func renderer
-                  (fun model row ->
-                     match !Res.view_context with
+                if autosize
+                  then begin
+                    let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
+                    col#pack ~expand:false renderer;
+                    col#add_attribute renderer "text" result_name;
+                    col#add_attribute renderer "foreground" result_color;
+                    col#pack ~expand:false renderer;
+                  end else begin
+                    let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
+                    col#pack ~expand:false renderer;
+                    col#set_cell_data_func renderer
+                      (fun model row ->
+                       match !Res.view_context with
                          Some context when col#width > 0 ->
                            begin
                              let width =
@@ -257,9 +383,10 @@ module ResultList(Res:
                              let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
                              renderer#set_properties [ `TEXT s ]
                            end
-                  | _ -> renderer#set_properties [ `TEXT "" ]
-                );
-                col#add_attribute renderer "foreground" result_color
+                       | _ -> renderer#set_properties [ `TEXT "" ]
+                      );
+                    col#add_attribute renderer "foreground" result_color;
+                  end
               end
 
           | Col_result_uid ->
@@ -397,14 +524,17 @@ module ResultList(Res:
 (*************************************************************************)
 
     method force_update_icons () =
+      let f r row =
+        r.res_network_pixb <- Mi.network_pixb r.res_num ~size:A.SMALL ();
+        r.res_name_pixb <- Mi.file_type_of_name r.res_name ~size:A.SMALL;
+        store#set ~row ~column:result_network_pixb r.res_network_pixb;
+        store#set ~row ~column:result_name_pixb r.res_name_pixb;
+      in
       List.iter (fun k ->
         try
           let r = result_of_key k in
           let row = self#find_row k in
-          r.res_network_pixb <- Mi.network_pixb r.res_num ~size:A.SMALL ();
-          r.res_name_pixb <- Mi.file_type_of_name r.res_name ~size:A.SMALL;
-          store#set ~row ~column:result_network_pixb r.res_network_pixb;
-          store#set ~row ~column:result_name_pixb r.res_name_pixb;
+          Gaux.may ~f:(f r) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -419,43 +549,4 @@ module ResultList(Res:
     let treeview = R.treeview
 
   end)
-
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         message from the core                         *)
-(*                                                                       *)
-(*************************************************************************)
-
-let result_info (r : result_info) =
-  try
-    let res = Hashtbl.find G.results r.result_num in
-    ()
-  with _ ->
-    begin
-      let name = Mi.result_first_name r.result_names in
-      let net_num =  Mi.neworknum_from_uids r.result_uids in
-      let res =
-        {
-         res_num = r.result_num;    
-         res_network = net_num;
-         res_network_pixb = Mi.network_pixb net_num ~size:A.SMALL ();
-         res_name = name;
-         res_name_pixb = Mi.file_type_of_name name ~size:A.SMALL;
-         res_uid = Mi.uid_list_to_string r.result_uids;
-         res_size = r.result_size;
-         res_format = U.simple_utf8_of r.result_format;
-         res_type = U.simple_utf8_of r.result_type;
-         res_duration = Mi.duration_of_tags r.result_tags;
-         res_codec = Mi.codec_of_tags r.result_tags;
-         res_bitrate = Mi.bitrate_of_tags r.result_tags;
-         res_availability = Mi.availability_of_tags r.result_tags;
-         res_completesources = Mi.completesources_of_tags r.result_tags;
-         res_tags = Mi.tags_to_string r.result_tags;
-         res_comment = U.utf8_of r.result_comment;
-         res_color = Mi.color_of_result (Mi.availability_of_tags r.result_tags) r.result_done;
-        }
-      in
-      Hashtbl.add G.results res.res_num res
-    end
 

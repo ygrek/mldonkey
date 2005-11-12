@@ -247,7 +247,7 @@ val utf8_of : string -> string
    the string [s], instead of using the default codeset list.
 *)
 
-val private_utf8_of : string ->  codeset list -> string
+val private_utf8_of : string -> codeset list -> string
 
 (**
    [all_regions] returns the list of regions, as predefined codesets, that
@@ -257,6 +257,7 @@ val private_utf8_of : string ->  codeset list -> string
 
 val all_regions : region list
 
+val default_codeset_list : unit -> string list
 
 (** Options *)
 

@@ -208,14 +208,17 @@ module UserList(R:
 (*************************************************************************)
 
         method content (col : GTree.view_column) c =
+          let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
           match c with
               Col_user_name ->
                 begin
                   let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
                   col#pack renderer;
-                  col#set_cell_data_func renderer
-                    (fun model row ->
-                       match !R.view_context with
+                  if autosize
+                    then col#add_attribute renderer "text" user_name
+                    else col#set_cell_data_func renderer
+                      (fun model row ->
+                         match !R.view_context with
                            Some context when col#width > 0 ->
                              begin
                                let width = col#width - 4 * !G.char_width in
@@ -223,8 +226,8 @@ module UserList(R:
                                let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
                                renderer#set_properties [ `TEXT s ]
                              end
-                    | _ -> renderer#set_properties [ `TEXT "" ]
-                  )
+                         | _ -> renderer#set_properties [ `TEXT "" ]
+                      )
                 end
 
             | Col_user_addr ->

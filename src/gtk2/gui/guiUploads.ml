@@ -236,6 +236,7 @@ class g_shared () =
 (*************************************************************************)
 
     method content (col : GTree.view_column) c =
+      let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
       match c with
           Col_shared_file ->
             begin
@@ -247,9 +248,11 @@ class g_shared () =
                 end;
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
-              col#set_cell_data_func renderer
-                (fun model row ->
-                   match !view_context with
+              if autosize
+                then col#add_attribute renderer "text" shared_name
+                else col#set_cell_data_func renderer
+                  (fun model row ->
+                     match !view_context with
                        Some context when col#width > 0 ->
                          begin
                            let width =
@@ -262,7 +265,7 @@ class g_shared () =
                            renderer#set_properties [ `TEXT s ]
                          end
                      | _ -> renderer#set_properties [ `TEXT "" ]
-              )
+                  )
             end
 
         | Col_shared_upsize ->
@@ -333,12 +336,15 @@ class g_shared () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        let si = shared_file_of_key k in
+        store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.g_shared_network ~size:A.SMALL ());
+        store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.g_shared_filename ~size:A.SMALL);
+      in
       List.iter (fun k ->
         try
-          let si = shared_file_of_key k in
           let row = self#find_row k in
-          store#set ~row ~column:shared_network_pixb (Mi.network_pixb si.g_shared_network ~size:A.SMALL ());
-          store#set ~row ~column:shared_name_pixb (Mi.file_type_of_name si.g_shared_filename ~size:A.SMALL);
+          Gaux.may ~f:(f k) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -464,6 +470,7 @@ class g_uploader () =
 (*************************************************************************)
 
     method content (col : GTree.view_column) c =
+      let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
       match c with
           Col_client_name ->
             begin
@@ -475,9 +482,11 @@ class g_uploader () =
                 end;
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
-              col#set_cell_data_func renderer
-                (fun model row ->
-                   match !view_context with
+              if autosize
+                then col#add_attribute renderer "text" uploader_name
+                else col#set_cell_data_func renderer
+                  (fun model row ->
+                     match !view_context with
                        Some context when col#width > 0 ->
                          begin
                            let width =
@@ -490,7 +499,7 @@ class g_uploader () =
                            renderer#set_properties [ `TEXT s ]
                          end
                      | _ -> renderer#set_properties [ `TEXT "" ]
-              )
+                  )
             end
 
         | Col_client_state ->
@@ -567,10 +576,12 @@ class g_uploader () =
             begin
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack renderer;
-              col#set_cell_data_func renderer
-                (fun model row ->
-                   let upload = model#get ~row ~column:uploader_upload in
-                   match (!view_context, upload) with
+              if autosize
+                then col#add_attribute renderer "text" uploader_upload
+                else col#set_cell_data_func renderer
+                  (fun model row ->
+                     let upload = model#get ~row ~column:uploader_upload in
+                     match (!view_context, upload) with
                        (Some context, Some file_name) when col#width > 0 ->
                          begin
                            let width = col#width - 4 * !G.char_width in
@@ -578,7 +589,7 @@ class g_uploader () =
                            renderer#set_properties [ `TEXT s ]
                          end
                      | _ -> renderer#set_properties [ `TEXT "" ]
-              )
+                  )
             end
 
         | Col_client_network ->
@@ -628,12 +639,15 @@ class g_uploader () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        let s = uploader_of_key k in
+        store#set ~row ~column:uploader_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
+        store#set ~row ~column:uploader_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+      in
       List.iter (fun k ->
         try
-          let s = uploader_of_key k in
           let row = self#find_row k in
-          store#set ~row ~column:uploader_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
-          store#set ~row ~column:uploader_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+          Gaux.may ~f:(f k) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -784,9 +798,8 @@ let hashtbl_update_shared_files si si_new =
   si.g_shared_last_seen <- si_new.g_shared_last_seen
 
 let add_upload si =
-  ignore (uploadstore#add_item si);
+  uploadstore#add_item si ~f:update_uploads_label ();
   Hashtbl.add G.shared_files si.g_shared_num si;
-  update_uploads_label ();
   let si_uid = Mi.to_uid_type si.g_shared_uids in
   GuiGraphBase.add_file si_uid;
   Hashtbl.add G.file_by_uid si_uid (U.utf8_of si.g_shared_filename)
@@ -806,7 +819,7 @@ let h_shared_file_info si_new =
                (si_new.g_shared_last_seen -. si.g_shared_last_seen)
     in
     let row = uploadstore#find_row (shared_file_key si_new.g_shared_num) in
-    uploadstore#update_item row si si_new;
+    Gaux.may ~f:(fun r -> uploadstore#update_item r si si_new) row;
     hashtbl_update_shared_files si si_new;
     let rate = int_of_float rate in
     GuiGraphBase.save_record rate (GraphFile ((Mi.to_uid_type si.g_shared_uids), GraphUploads));
@@ -825,7 +838,7 @@ let h_shared_file_upload shared_num upsize requests =
                (si_new.g_shared_last_seen -. si.g_shared_last_seen)
     in
     let rate = int_of_float rate in
-    uploadstore#update_item row si si_new;
+    Gaux.may ~f:(fun r -> uploadstore#update_item r si si_new) row;
     si.g_shared_size <- si_new.g_shared_size;
     si.g_shared_uploaded <- si_new.g_shared_uploaded;
     si.g_shared_requests <- si_new.g_shared_requests;
@@ -956,7 +969,8 @@ let uploaders_clear () =
 let remove_uploader s =
   uploaderstore#remove_item (uploader_key s.source_num);
   (if s.source_has_upload = source_has_upload then decr nuploading);
-  s.source_has_upload <- source_only
+  s.source_has_upload <- source_only;
+  update_uploaders_label ()
 
 let update_uploaders () =
   let keys = uploaderstore#all_items () in
@@ -971,7 +985,7 @@ let update_uploaders () =
       let s_new = {s with source_has_upload = has_upload} in
       try
         let row = uploaderstore#find_row (uploader_key num) in
-        uploaderstore#update_item row s s_new;
+        Gaux.may ~f:(fun r -> uploaderstore#update_item r s s_new) row;
         begin
           if s_new.source_has_upload = source_has_upload && s.source_has_upload <> source_has_upload
             then incr nuploading
@@ -982,7 +996,7 @@ let update_uploaders () =
       with _ ->
         begin
           s.source_has_upload <- s_new.source_has_upload;
-          ignore (uploaderstore#add_item s);
+          uploaderstore#add_item s ~f:update_uploaders_label ();
           (if s.source_has_upload = source_has_upload then incr nuploading)
         end
     with _ ->
@@ -990,13 +1004,12 @@ let update_uploaders () =
         GuiCom.send (GetClient_info num)
       end
   ) !uploaders_n_pendings;
-  uploaders_n_pendings := [];
-  update_uploaders_label ()
+  uploaders_n_pendings := []
 
 let h_update_uploader s s_new =
   try
     let row = uploaderstore#find_row (uploader_key s_new.source_num) in
-    uploaderstore#update_item row s s_new
+    Gaux.may ~f:(fun r -> uploaderstore#update_item r s s_new) row
   with _ -> ()
 
 let h_update_uploaders uploaders =

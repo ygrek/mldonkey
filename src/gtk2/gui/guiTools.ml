@@ -432,10 +432,10 @@ let color_of_name name =
 *)
 
 let fit_string_to_pixels s ~context ~pixels =
-  if s = ""
-    then s
+  let us = U.utf8_of s in
+  if us = ""
+    then us
     else begin
-      let us = U.utf8_of s in
       let pango_layout = Pango.Layout.create context#as_context in
       Pango.Layout.set_text pango_layout us;
       let us' =

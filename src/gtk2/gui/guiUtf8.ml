@@ -813,6 +813,8 @@ let all_regions =
    WesternEuropean;
   ]
 
+let default_codeset_list () = !enc_list
+
 (* names are utf8 encoded! *)
 
 open Options

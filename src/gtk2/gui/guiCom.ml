@@ -56,13 +56,14 @@ let (!!) = Options.(!!)
 
 let connection = ref None
 
-let disconnect gui reason = 
+let disconnect gui reason =
   match !connection with
     None -> ()
   | Some sock ->
+      when_disconnected gui;
       TcpBufferedSocket.close sock reason;
-      connection := None;
-      when_disconnected gui
+      connection := None
+
 
 let send t =
   match !connection with

@@ -188,7 +188,10 @@ let console_box gui =
   in
   ignore (entry#event#connect#key_press ~callback:
     (fun ev ->
-       GdkEvent.Key.keyval ev = GdkKeysyms._Return &&
+      (GdkEvent.Key.keyval ev = GdkKeysyms._Return ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._KP_Enter ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._ISO_Enter ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._3270_Enter) &&
       (on_entry_return entry ();
        true
       )

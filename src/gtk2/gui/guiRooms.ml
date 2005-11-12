@@ -190,6 +190,7 @@ class g_room () =
 (*************************************************************************)
 
     method content col c =
+      let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
       match c with
           Col_room_name ->
             begin
@@ -201,9 +202,11 @@ class g_room () =
                 end;
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
-              col#set_cell_data_func renderer
-                (fun model row ->
-                   match !view_context with
+              if autosize
+                then col#add_attribute renderer "text" room_name
+                else col#set_cell_data_func renderer
+                  (fun model row ->
+                     match !view_context with
                        Some context when col#width > 0 ->
                          begin
                            let width =
@@ -215,8 +218,8 @@ class g_room () =
                            let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
                            renderer#set_properties [ `TEXT s ]
                          end
-                  | _ -> renderer#set_properties [ `TEXT "" ]
-                )
+                     | _ -> renderer#set_properties [ `TEXT "" ]
+                  )
             end
 
         | Col_room_nusers ->
@@ -271,12 +274,15 @@ class g_room () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        let ro = room_of_key k in
+        store#set ~row ~column:room_network_pixb (Mi.network_pixb ro.room_network ~size:A.SMALL ());
+        store#set ~row ~column:room_name_pixb (Mi.room_state_to_icon ro.room_state ~size:A.SMALL);
+      in
       List.iter (fun k ->
         try
           let row = self#find_row k in
-          let ro = room_of_key k in
-          store#set ~row ~column:room_network_pixb (Mi.network_pixb ro.room_network ~size:A.SMALL ());
-          store#set ~row ~column:room_name_pixb (Mi.room_state_to_icon ro.room_state ~size:A.SMALL);
+          Gaux.may ~f:(f k) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -384,10 +390,9 @@ let on_select_room sel =
                       List.iter (fun user_num ->
                         try
                           let u = Hashtbl.find G.users user_num in
-                          ignore (userstore#add_item u);
+                          userstore#add_item u ~f:update_users_label ();
                         with _ -> get_user_info user_num
                       ) ro.room_users;
-                      update_users_label ();
                       try
                         let chat_buf = List.assoc ro.room_num !dialogs in
                         box#set_buffer chat_buf
@@ -499,9 +504,8 @@ let add_room ro =
     then begin
       (if !!verbose then lprintf' "Adding room %s num: %d\n" ro.room_name ro.room_num);
       add_chat_to_room ro;
-      ignore (roomstore#add_item ro);
-      Hashtbl.add G.rooms ro.room_num ro;
-      update_rooms_label ()
+      roomstore#add_item ro ~f:update_rooms_label ();
+      Hashtbl.add G.rooms ro.room_num ro
     end
 
 let room_info r =
@@ -513,7 +517,7 @@ let room_info r =
     let ro_new = {r with room_users = ro.room_users} in
     (if ro_new.room_state <> ro.room_state
       then add_chat_to_room ro_new);
-    roomstore#update_item row ro ro_new;
+    Gaux.may ~f:(fun r -> roomstore#update_item r ro ro_new) row;
     hashtbl_rooms_update ro ro_new
   with _ -> add_room r
 
@@ -593,8 +597,7 @@ let add_room_user room_num user_num =
            begin
              try
                let u = Hashtbl.find G.users user_num in
-               ignore (userstore#add_item u);
-               update_users_label ()
+               userstore#add_item u ~f:update_users_label ()
              with _ -> ()
            end
       | _ -> ()
@@ -616,7 +619,7 @@ let update_user_info u_new =
                  try
                    let u = Hashtbl.find G.users u_new.user_num in
                    let row = userstore#find_row (GuiUsers.user_key u_new.user_num) in
-                   userstore#update_item row u u_new;
+                   Gaux.may ~f:(fun r -> userstore#update_item r u u_new) row;
                    GuiUsers.hashtbl_users_update u u_new
                  with _ -> ()
                end

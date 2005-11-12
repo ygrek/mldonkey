@@ -807,8 +807,6 @@ let main () =
   G.get_metrics_from_gtk_font_list ();
 
   let quit () = 
-    chmod_config ();
-    (if !G.is_docked then G.tray.destroy_tray ());
     CommonGlobals.exit_properly 0
   in
   chmod_config ();
@@ -877,8 +875,11 @@ let main () =
   );
 
   CommonGlobals.do_at_exit (fun _ ->
-      GuiMisc.save_gui_options gui;
-      GuiCom.disconnect gui BasicSocket.Closed_by_user);  
+    chmod_config ();
+    GuiMisc.save_gui_options gui;
+    GuiCom.disconnect gui BasicSocket.Closed_by_user;
+    if !G.is_docked then G.tray.destroy_tray ()
+  );
 
 
   (************ Some hooks ***************)

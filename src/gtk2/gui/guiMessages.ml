@@ -312,6 +312,9 @@ let qT_lb_size  = ref ""
 let qT_lb_year = ref ""
 let qT_lb_genre = ref ""
 let qT_lb_comment = ref ""
+let qT_lb_advanced_search = ref ""
+let qT_lb_network = ref ""
+let qT_lb_min_availability = ref ""
 
 (* Rooms Tab *)
 
@@ -551,6 +554,7 @@ let iM_lb_accounts = ref ""
 (* Common Menus labels *)
 
 let mAutosize  = ref ""
+let mAutosize_all = ref ""
 let mSort  = ref ""
 let mRemove_column  = ref ""
 let mAdd_column_after  = ref ""
@@ -741,7 +745,7 @@ let load_messages () =
   qT_tx_image  :=  _s "Image";
   qT_tx_documentation  :=  _s "Documentation";
   qT_tx_collection  :=  _s "Collection";
-  qT_lb_keywords  :=  _s "Keywords";
+
   qT_lb_media  :=  _s "Media";
   qT_lb_format  :=  _s "Format";
   qT_lb_min_size  :=  _s "Min size";
@@ -769,6 +773,10 @@ let load_messages () =
   qT_lb_year := _s "Year";
   qT_lb_genre := _s "Genre";
   qT_lb_comment := _s "Comment";
+  qT_lb_advanced_search := _s "Advanced search";
+  qT_lb_network := _s_ "Network";
+  qT_lb_keywords  := _s_ "Keywords";
+  qT_lb_min_availability := _s_ "Min Availability";
 
 (* Rooms Tab *)
 
@@ -1008,6 +1016,7 @@ let load_messages () =
 (* Common Menus labels *)
 
   mAutosize  :=  _s "Autosize";
+  mAutosize_all  :=  _s "Autosize All Columns";
   mSort  :=  _s "Sort";
   mRemove_column  :=  _s "Remove Column";
   mAdd_column_after  :=  _s "Add Column After";

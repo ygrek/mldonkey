@@ -68,11 +68,14 @@ end)
 
 type g_query =
   {
-    g_query_num : int;
-    g_query_desc : string;
-    g_query_result : QueriesResults.g_result;
-    mutable g_query_waiting : int option;
-    mutable g_query_label : GMisc.label option;
+    g_query_num                   : int;
+    g_query_max_hits              : int;
+    g_query_min_availability      : int;
+    g_query_desc                  : string;
+    g_query_result                : QueriesResults.g_result;
+    mutable g_query_nresults      : int;
+    mutable g_query_waiting       : int option;
+    mutable g_query_label         : GMisc.label option;
     mutable g_query_waiting_label : GMisc.label option;
   }
 
@@ -84,33 +87,27 @@ type g_query =
 
 let (qresults : (int, g_query) Hashtbl.t) = Hashtbl.create 13
 
-let (query_entries : (int * CommonTypes.query_entry) list ref) = ref []
-
 let string_to_label_list =
   [
-   ("Complex Search", !M.qT_lb_complex_searches );
-   ("MP3 Search", !M.qT_lb_mp3_searches );
-   ("Movie Search", !M.qT_lb_movie_searches );
-   ("Album Search", !M.qT_lb_album_searches );
-   ("And Not", !M.qT_lb_and_not );
+
    ("Audio", !M.qT_tx_audio );
    ("Video", !M.qT_tx_video );
    ("Program", !M.qT_tx_program );
    ("Image", !M.qT_tx_image );
    ("Documentation", !M.qT_tx_documentation );
    ("Collection", !M.qT_tx_collection );
-   ("Keywords", !M.qT_lb_keywords );
+
    ("Media", !M.qT_lb_media );
    ("Format", !M.qT_lb_format );
    ("Min size", !M.qT_lb_min_size );
    ("Max size", !M.qT_lb_max_size );
    ("Min Bitrate", !M.qT_lb_min_bitrate );
+
    ("Title", !M.qT_lb_title );
-   ("Number of results", !M.qT_lb_number_of_results );
-   ("Sort by", !M.qT_lb_sort_by );
    ("Album", !M.qT_lb_album );
-   ("Fields", !M.qT_lb_fields );
    ("Artist", !M.qT_lb_artist );
+
+   ("Fields", !M.qT_lb_fields );
    ("Track/Title", !M.qT_lb_track_title );
    ("Track", !M.qT_lb_track );
    ("Rest", !M.qT_lb_rest );
@@ -138,16 +135,10 @@ let (wnote_results : GPack.notebook option ref) = ref None
 let (current_form : GuiTypes2.query_form option ref) = ref None
 
 let current_net = ref 0
-let current_max_hits = ref 500
-let show_hidden_fields = ref false
+let current_max_hits = ref 300
+let current_min_availability = ref 1
+let advanced_search = ref false
 let current_query_entry = ref 0
-
-let query_cols = new GTree.column_list
-let query_num = query_cols#add Gobject.Data.int
-let query_text = query_cols#add Gobject.Data.string
-let query_icon = query_cols#add Gobject.Data.gobject_option
-let query_store = GTree.list_store query_cols
-let query_model = GTree.model_sort query_store
 
 let net_cols = new GTree.column_list
 let net_num = net_cols#add Gobject.Data.int
@@ -162,12 +153,6 @@ let history_store = GTree.list_store history_cols
 let history_model = GTree.model_sort history_store
 
 let _ =
-  query_model#set_default_sort_func
-    (fun model iter_a iter_b ->
-       let a = model#get ~row:iter_a ~column:query_text in
-       let b = model#get ~row:iter_b ~column:query_text in
-       compare a b
-  );
   net_model#set_default_sort_func
     (fun model iter_a iter_b ->
        let a = model#get ~row:iter_a ~column:net_text in
@@ -243,18 +228,6 @@ let query_icon_of_string s =
             then Some (A.get_icon ~icon:M.icon_menu_search_mp3 ~size:A.SMALL ())
             else Some (A.get_icon ~icon:M.icon_menu_search_complex ~size:A.SMALL ())
     end else None
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         build_query_type_menu                         *)
-(*                                                                       *)
-(*************************************************************************)
-
-let build_query_type_menu s num =
-  let row = query_store#append () in
-  query_store#set ~row ~column:query_num num;
-  query_store#set ~row ~column:query_text (string_to_label s);
-  query_store#set ~row ~column:query_icon (query_icon_of_string s)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -354,8 +327,7 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
     ~icon:(A.get_icon ~icon:M.icon_stock_stop ~size:A.SMALL ())
     ~f:(fun _ -> close_query qr.g_query_num false) ()
   );
-
-  let text = Printf.sprintf "%s (%d)" qr.g_query_desc qr.g_query_result#nitems in
+  let text = Printf.sprintf "%s (%d / %d)" qr.g_query_desc qr.g_query_result#nitems qr.g_query_nresults in
   let hbox =
     GPack.hbox ~homogeneous:false ~spacing:3 () in
   let label =
@@ -436,9 +408,9 @@ let rec entry_of_form qf =
         with _ -> ""
       in
       Q_MAXSIZE ("", size)
-      
+
   | QF_COMBO s -> Q_COMBO ("", label_to_string !s, [])
-      
+
   | QF_FORMAT we -> Q_FORMAT ("", we#text)
   | QF_MEDIA we -> Q_MEDIA ("", label_to_string we#text)
   | QF_MP3_BITRATE  we -> Q_MP3_BITRATE ("", we#text)
@@ -447,7 +419,7 @@ let rec entry_of_form qf =
   | QF_MP3_ARTIST we
   | QF_MP3_TITLE we
   | QF_MP3_ALBUM we -> (fill_queries_history we#text; entry_leaf qf we)
-  
+
   | QF_HIDDEN l ->
       Q_HIDDEN (List.map entry_of_form l)
 
@@ -465,6 +437,9 @@ let submit_search (s : CommonTypes.query_entry GuiTypes.search_request) =
   let qr =
     {
       g_query_num = s.GuiTypes.search_num;
+      g_query_max_hits = s.GuiTypes.search_max_hits;
+      g_query_min_availability = !current_min_availability;
+      g_query_nresults = 0;
       g_query_desc = desc;
       g_query_result = result;
       g_query_waiting = None;
@@ -501,11 +476,11 @@ let submit ?(local=RemoteSearch) () =
 (*************************************************************************)
 
 let attach (table : GPack.table) top l =
-  List.iter (fun (w, left, right) ->
+  List.iter (fun (w, left, right, expand) ->
     table#attach ~left ~top
       ~xpadding:0 ~ypadding:0
       ~right ~bottom:(top + 1)
-      ~expand:`X ~fill:`X
+      ~expand ~fill:`X
       w
   ) l;
   (top +1)
@@ -633,32 +608,32 @@ let rec form_of_entry (table : GPack.table) qe top =
 
   | Q_OR le ->
       let sep = make_separator ~text:!M.qT_lb_or () in
-      top := attach table !top [(sep#coerce,0,3)];
+      top := attach table !top [(sep#coerce, 0, 3,`X)];
       let l = List.map (fun qe -> form_of_entry table qe top) le in
       QF_OR l
 
   | Q_ANDNOT (qe1, qe2) ->
       let sep1 = make_separator () in
-      top := attach table !top [(sep1#coerce,0,3)];
+      top := attach table !top [(sep1#coerce, 0, 3,`X)];
       let form1 = form_of_entry table qe1 top in
       let sep2 = make_separator ~text:!M.qT_lb_and_not () in
-      top := attach table !top [(sep2#coerce,0,3)];
+      top := attach table !top [(sep2#coerce, 0, 3,`X)];
       let form2 = form_of_entry table qe2 top in
       QF_ANDNOT (form1, form2)
 
   | Q_MODULE (s, qe) ->
       let sep = make_separator () in
-      top := attach table !top [(sep,0,3)];
+      top := attach table !top [(sep, 0, 3, `X)];
       let markup = GuiTools.create_bold_markup (string_to_label s) in
       let label = GMisc.label ~markup ~xalign:0. ~yalign:0.5 () in
-      top := attach table !top [(label#coerce,0,3)];
+      top := attach table !top [(label#coerce, 0, 3, `X)];
       let form = form_of_entry table qe top in
       QF_MODULE form
 
   | Q_FORMAT (s, v) ->
       let args = ["avi";"mpg";"ogm";"qt";"mov"; "mp3"; "ogg"; "pcm"; "wav"] in
       let (label, combo) = combo_entry_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (combo#coerce,1,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (combo#coerce, 1, 3, `X)];
       QF_FORMAT combo#entry
 
   | Q_MEDIA (s, v) ->
@@ -673,30 +648,30 @@ let rec form_of_entry (table : GPack.table) qe top =
         ]
       in
       let (label, combo) = combo_entry_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (combo#coerce,1,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (combo#coerce, 1, 3, `X)];
       QF_MEDIA combo#entry
 
   | Q_COMBO (s, v, args) ->
       let (label, combo, return) = combo_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (combo#coerce,1,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (combo#coerce, 1, 3, `X)];
       QF_COMBO return
 
   | Q_MP3_BITRATE (s, v) ->
       let args = ["64"; "96"; "128"; "160"; "192"] in
       let (label, combo) = combo_entry_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (combo#coerce,1,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (combo#coerce, 1, 3, `X)];
       QF_MP3_BITRATE combo#entry
 
   | Q_MINSIZE (s, v) ->
       let args = ["" ; "Go"; "Mo"; "ko"] in
       let (label, entry, combo) = double_combo_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (entry#coerce,1,2); (combo#coerce,2,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (entry#coerce, 1, 2, `X); (combo#coerce, 2, 3, `X)];
       QF_MINSIZE (entry, combo#entry)
 
   | Q_MAXSIZE (s, v) ->
       let args = ["" ; "Go"; "Mo"; "ko"] in
       let (label, entry, combo) = double_combo_from_value s v args in
-      top := attach table !top [(label#coerce,0,1); (entry#coerce,1,2); (combo#coerce,2,3)];
+      top := attach table !top [(label#coerce, 0, 1, `NONE); (entry#coerce, 1, 2, `X); (combo#coerce, 2, 3, `X)];
       QF_MAXSIZE (entry, combo#entry)
 
   | Q_KEYWORDS (s, v)
@@ -714,11 +689,11 @@ let rec form_of_entry (table : GPack.table) qe top =
            (submit ();
             true)
       ));
-      top := attach table !top [(wl#coerce,0,1); (entry#coerce,1,3)];
+      top := attach table !top [(wl#coerce, 0, 1, `NONE); (entry#coerce, 1, 3, `X)];
       form_leaf qe entry
 
   | Q_HIDDEN le ->
-      if !show_hidden_fields
+      if !advanced_search
         then begin
           let l = List.map (fun qe -> form_of_entry table qe top) le in
           QF_HIDDEN  l
@@ -748,7 +723,7 @@ let renderer_pack_combobox (combobox : GEdit.combo_box)
       match combobox#active_iter with
           Some row -> 
             begin
-	      let num = combobox#model#get ~row ~column:col_num in
+              let num = combobox#model#get ~row ~column:col_num in
               f num
             end
         | _ -> ()
@@ -769,15 +744,27 @@ let on_net_select net_num =
 (*                                                                       *)
 (*************************************************************************)
 
-let on_query_select (table : GPack.table) qe_num =
+let on_advanced_search_select (table : GPack.table) keyword =
   try
-    let qe = List.assoc qe_num !query_entries in
     List.iter (fun w -> w#destroy ()) table#children;
+    let (qe : CommonTypes.query_entry) =
+      Q_HIDDEN [
+        Q_MODULE ("Simple Options",
+          Q_AND [
+            Q_MINSIZE ("Min Size", "");
+            Q_MAXSIZE ("Max Size", "");
+            Q_MEDIA   ("Media", "");
+            Q_FORMAT  ("Format", "")]);
+        Q_MODULE ("Mp3 Options",
+          Q_AND [
+            Q_MP3_ARTIST  ("Artist", "");
+            Q_MP3_ALBUM   ("Album", "");
+            Q_MP3_TITLE   ("Title", "");
+            Q_MP3_BITRATE ("Min Bitrate", "")])]
+    in
     let top = ref 0 in
     let form = form_of_entry table qe top in
-    current_form := Some form;
-    current_query_entry := qe_num
-
+    current_form := Some (QF_AND [QF_KEYWORDS keyword; form]);
   with _ -> ()
 
 (*************************************************************************)
@@ -791,34 +778,20 @@ let build_query_box () =
     GBin.scrolled_window ~hpolicy:`NEVER ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT ()
   in
-  let table = GPack.table ~columns:2 ~homogeneous:false
+  let table = GPack.table ~columns:3 ~homogeneous:false
     ~row_spacings:6 ~col_spacings:6 ~border_width:6
     ~packing:scroll_table_box#add_with_viewport ()
   in
-
-  let local_search = GButton.button () in
+  let markup = GuiTools.create_default_bold_markup !M.qT_lb_keywords in
+  let keyword_label = GMisc.label ~markup ~xalign:0. ~yalign:0.5 () in
+  let keyword = GEdit.entry ~editable:true ~has_frame:true ~width:90 () in
+  let c = GEdit.entry_completion ~model:history_model ~entry:keyword () in
+  c#set_text_column history_text;
   let submit_search = GButton.button () in
-  let subscribe_search = GButton.button () in
-  let customed_editor = GButton.button () in
-  List.iter (fun (button, markup, icon) ->
-    let hbox =
-      GPack.hbox ~homogeneous:false ~spacing:6
-        ~packing:button#add ()
-    in
-    let pixbuf = A.get_icon ~icon ~size:A.SMALL () in
-    ignore (GMisc.image ~pixbuf ~xalign:0. ~yalign:0.5
-      ~packing:(hbox#pack ~expand:false ~fill:true) ());
-    ignore (GMisc.label ~markup ~use_underline:true
-      ~mnemonic_widget:button#coerce ~xalign:0. ~yalign:0.5
-      ~packing:(hbox#pack ~expand:false ~fill:true) ())
-  ) [
-     local_search, !M.qT_lb_local_search, M.icon_stock_local_search;
-     submit_search, !M.qT_lb_submit_search, M.icon_stock_submit_search;
-     subscribe_search, !M.qT_lb_subscribe_search, M.icon_stock_subscribe_search;
-     customed_editor, !M.qT_lb_customed_search_editor, M.icon_menu_search_complex;
-    ];
-
-  let query_combo = GEdit.combo_box ~model:query_model () in
+  let pixbuf = A.get_icon ~icon:M.icon_stock_submit_search ~size:A.SMALL () in
+  ignore (GMisc.image ~pixbuf ~xalign:0.5 ~yalign:0.5
+    ~packing:submit_search#add ());
+  let net_label = GMisc.label ~markup:!M.qT_lb_network ~xalign:0. ~yalign:0.5 () in
   let net_combo = GEdit.combo_box ~model:net_model () in
   let range = GData.adjustment ~lower:0. ~upper:(float_of_int max_int) ~step_incr:10. () in
   let markup = GuiTools.create_markup !M.qT_lb_max_hits in
@@ -828,61 +801,69 @@ let build_query_box () =
       ~numeric:true ~snap_to_ticks:true ~update_policy:`IF_VALID
       ~value:(float_of_int !current_max_hits) ~wrap:true ()
   in
-  let show_fields =
-    GButton.check_button ~active:!show_hidden_fields
-      ~label:!M.qT_lb_extended_fields ()
+  let range = GData.adjustment ~lower:0. ~upper:(float_of_int max_int) ~step_incr:1. () in
+  let markup = GuiTools.create_markup !M.qT_lb_min_availability in
+  let min_avail_label = GMisc.label ~markup ~xalign:0. ~yalign:0.5 () in
+  let min_avail_entry =
+    GEdit.spin_button ~adjustment:range ~rate:1. ~digits:0
+      ~numeric:true ~snap_to_ticks:true ~update_policy:`IF_VALID
+      ~value:(float_of_int !current_min_availability) ~wrap:true ()
+  in
+  let show_advanced_search =
+    GButton.check_button ~active:!advanced_search
+      ~label:!M.qT_lb_advanced_search()
   in
   let fields_table =
     GPack.table ~columns:3 ~homogeneous:false
       ~row_spacings:3 ~col_spacings:2 ()
   in
-  List.iter (fun (w, left, right, top) ->
+  List.iter (fun (w, left, right, top, expand) ->
     table#attach ~left ~top
       ~xpadding:0 ~ypadding:0
       ~right ~bottom:(top + 1)
-      ~expand:`X ~fill:`X
+      ~expand ~fill:`X
       w
   ) [
-     local_search#coerce    , 0, 2, 0;
-     submit_search#coerce   , 0, 2, 1;
-     subscribe_search#coerce, 0, 2, 2;
-     customed_editor#coerce , 0, 2, 3;
-     query_combo#coerce     , 0, 2, 4;
-     net_combo#coerce       , 0, 2, 5;
-     max_hits_label#coerce  , 0, 1, 6;
-     max_hits_entry#coerce  , 1, 2, 6;
-     show_fields#coerce     , 0, 2, 7;
-     fields_table#coerce    , 0, 2, 8;
+     keyword_label#coerce        , 0, 1, 0, `NONE;
+     keyword#coerce              , 1, 2, 0, `X;
+     submit_search#coerce        , 2, 3, 0, `NONE;
+     net_label#coerce            , 0, 1, 1, `NONE;
+     net_combo#coerce            , 1, 3, 1, `X;
+     max_hits_label#coerce       , 0, 1, 2, `NONE;
+     max_hits_entry#coerce       , 1, 3, 2, `X;
+     min_avail_label#coerce      , 0, 1, 3, `NONE;
+     min_avail_entry#coerce      , 1, 3, 3, `X;
+     show_advanced_search#coerce , 0, 3, 4, `NONE;
+     fields_table#coerce         , 0, 3, 5, `X;
     ];
 
-  renderer_pack_combobox query_combo (query_icon, query_text, query_num)
-    (on_query_select fields_table);
   renderer_pack_combobox net_combo (net_icon, net_text, net_num)
     (on_net_select);
-
-  ignore (local_search#connect#clicked ~callback:
-    (fun _ ->
-       submit ~local:LocalSearch ()
+  ignore (keyword#event#connect#key_press ~callback:
+    (fun ev ->
+       (GdkEvent.Key.keyval ev = GdkKeysyms._Return ||
+        GdkEvent.Key.keyval ev = GdkKeysyms._KP_Enter ||
+        GdkEvent.Key.keyval ev = GdkKeysyms._ISO_Enter ||
+        GdkEvent.Key.keyval ev = GdkKeysyms._3270_Enter) &&
+       (submit (); true)
   ));
-  ignore (submit_search#connect#clicked ~callback:
-    (fun _ ->
-       submit ()
-  ));
-  ignore (subscribe_search#connect#clicked ~callback:
-    (fun _ ->
-       submit ~local:SubscribeSearch ()
-  ));
+  ignore (submit_search#connect#clicked
+     submit
+  );
   ignore (max_hits_entry#connect#value_changed ~callback:
     (fun _ ->
        current_max_hits := max_hits_entry#value_as_int
   ));
-  ignore (show_fields#connect#toggled ~callback:
+  ignore (min_avail_entry#connect#value_changed ~callback:
     (fun _ ->
-       show_hidden_fields := show_fields#active;
-       on_query_select fields_table !current_query_entry
+       current_min_availability := min_avail_entry#value_as_int
   ));
-
-  query_combo#set_active 0;
+  ignore (show_advanced_search#connect#toggled ~callback:
+    (fun _ ->
+       advanced_search := show_advanced_search#active;
+       on_advanced_search_select fields_table keyword
+  ));
+  on_advanced_search_select fields_table keyword;
   net_combo#set_active 0;
   scroll_table_box#coerce
 
@@ -894,7 +875,8 @@ let build_query_box () =
 
 let clear () =
   Hashtbl.iter (fun _ qr ->
-    qr.g_query_result#clear ()
+    qr.g_query_result#clear ();
+    close_query qr.g_query_num true;
   ) qresults;
   let _ =
     match !wnote_results with
@@ -903,11 +885,8 @@ let clear () =
   in
   view_context := None;
   Hashtbl.clear qresults;
-  query_entries := [];
-  query_store#clear ();
   net_store#clear ();
   current_form := None;
-  current_query_entry := 0;
   current_net := 0
 
 
@@ -922,15 +901,31 @@ let h_search_result query_num result_num =
     let qr = Hashtbl.find qresults query_num in
     try
       let r = Hashtbl.find G.results result_num in
-      ignore (qr.g_query_result#add_item r);
-      let text = Printf.sprintf "%s (%d)" qr.g_query_desc qr.g_query_result#nitems in
-      match qr.g_query_label with
-          None -> ()
-        | Some label -> label#set_text text
+      if qr.g_query_nresults < qr.g_query_max_hits
+        then if r.res_availability >= qr.g_query_min_availability
+            then begin
+              qr.g_query_nresults <- qr.g_query_nresults + 1;
+              let f () =
+                let text = Printf.sprintf "%s (%d / %d)" qr.g_query_desc qr.g_query_result#nitems qr.g_query_nresults in
+                match qr.g_query_label with
+                  None -> ()
+                | Some label -> label#set_text text
+              in
+              qr.g_query_result#add r ~f ();
+            end else begin
+              Hashtbl.remove G.results result_num;  (* remove the result if the query does'nt exist *)
+            end
+        else begin
+          Hashtbl.remove G.results result_num;  (* remove the result if we exceeded the number of results *)
+          close_query query_num false;          (* stop the query if we exceeded the number of results *)
+        end
     with Not_found -> (if !!verbose then lprintf' "result doesn't exist for query %d %s\n" query_num qr.g_query_desc)
   with Not_found ->
-    (Hashtbl.remove G.results result_num;  (* remove the result if the query does'nt exist *)
-     if !!verbose then lprintf' "query %d doesn't exist\n" query_num)
+    begin
+      Hashtbl.remove G.results result_num;  (* remove the result if the query does'nt exist *)
+      close_query query_num true;           (* close the query if it does'nt exist *)
+      if !!verbose then lprintf' "query %d doesn't exist\n" query_num
+    end
 
 let h_search_waiting query_num waiting =
   try
@@ -945,7 +940,8 @@ let h_search_waiting query_num waiting =
           end
   with _ -> ()
 
-let h_define_searches (l : (string * CommonTypes.query_entry) list) =
+let h_define_searches (l : (string * CommonTypes.query_entry) list) = ()
+(*
   query_store#clear ();
   query_entries := [];
   let n = ref 0 in
@@ -954,6 +950,7 @@ let h_define_searches (l : (string * CommonTypes.query_entry) list) =
     query_entries := (!n, qe) :: !query_entries;
     build_query_type_menu s !n;
   ) l
+*)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1011,8 +1008,6 @@ let queries_box gui =
        List.iter (fun child -> child#destroy ()) note#children; (* there is a bug here ?
                                                                  * the notebook pages have to be killed explicitly.
                                                                  * otherwise the #g_view are not killed ?!!!
-                                                                 * consequently the timer of the #g_model (results) are
-                                                                 * not killed.
                                                                  *)
        Hashtbl.iter (fun _ qr ->
          qr.g_query_label <- None;

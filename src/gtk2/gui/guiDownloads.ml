@@ -449,6 +449,7 @@ class g_download () =
 (*************************************************************************)
 
     method content (col : GTree.view_column) c =
+      let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
       match c with
           Col_file_name ->
             begin
@@ -460,9 +461,11 @@ class g_download () =
                 end;
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
-              col#set_cell_data_func renderer
-                (fun model row ->
-                   match !view_context with
+              if autosize
+                then col#add_attribute renderer "text" download_name
+                else col#set_cell_data_func renderer
+                  (fun model row ->
+                     match !view_context with
                        Some context when col#width > 0 ->
                          begin
                            let width =
@@ -473,30 +476,36 @@ class g_download () =
                            let name = model#get ~row ~column:download_name in
                            let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
                            renderer#set_properties [ `TEXT s ];
-                           let key = self#find_model_key row in
-                           if (is_file key) then begin
-                             renderer#set_properties [ `EDITABLE true ];
-                             ignore (renderer#connect#edited ~callback:
-                               (fun path name ->
-                                  try
-                                    let iter = self#get_iter path in
-                                    let k = self#find_model_key iter in
-                                    if (is_file k) then begin
-                                      let file = file_of_key k in
-                                      (match file.g_file_state with
+                           try
+                             let key = self#find_model_key row in
+                             if (is_file key) then begin
+                               renderer#set_properties [ `EDITABLE true ];
+                               ignore (renderer#connect#edited ~callback:
+                                 (fun path name ->
+                                    try
+                                      let iter = self#get_iter path in
+                                      let k = self#find_model_key iter in
+                                      if (is_file k) then begin
+                                        let file = file_of_key k in
+                                        (match file.g_file_state with
                                            FileDownloaded  -> GuiCom.send (SaveFile (file.g_file_num, name))
                                          | _  ->  GuiCom.send (RenameFile (file.g_file_num, name)));
-                                      let store_iter = self#convert_iter_to_child_iter iter in
-                                      store#set ~row:store_iter ~column:download_name file.g_file_name
-                                    end
-                                  with _ -> ()
-                                  ))
-
-                             end else renderer#set_properties [ `EDITABLE false ]
+                                        let store_iter = self#convert_iter_to_child_iter iter in
+                                        store#set ~row:store_iter ~column:download_name file.g_file_name
+                                      end
+                                    with _ -> ()
+                               ))
+                             end else begin
+                               renderer#set_properties [ `EDITABLE false ]
+                             end
+                           with _ ->
+                             begin
+                               renderer#set_properties [ `EDITABLE false ]
+                             end
                          end
 
                       | _ -> renderer#set_properties [ `TEXT "" ]
-                )
+                  )
             end
 
         | Col_file_size ->
@@ -736,18 +745,21 @@ class g_download () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        if (is_file k) then begin
+          let f = file_of_key k in
+          store#set ~row ~column:download_network_pixb (Mi.network_pixb f.g_file_network ~size:A.SMALL ());
+          store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.g_file_name ~size:A.SMALL);
+        end else begin
+          let s = source_of_key k in
+          store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
+          store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+        end
+      in
       List.iter (fun k ->
         try
           let row = self#find_row k in
-          if (is_file k) then begin
-            let f = file_of_key k in
-            store#set ~row ~column:download_network_pixb (Mi.network_pixb f.g_file_network ~size:A.SMALL ());
-            store#set ~row ~column:download_name_pixb (Mi.file_type_of_name f.g_file_name ~size:A.SMALL);
-          end else begin
-            let s = source_of_key k in
-            store#set ~row ~column:download_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
-            store#set ~row ~column:download_name_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
-          end
+          f k row
         with _ -> ()
       ) (self#all_items ())
 
@@ -758,24 +770,27 @@ class g_download () =
 (*************************************************************************)
 
     method force_update_avail_bars () =
+      let f k row =
+        if !!O.gtk_look_graphical_availability
+          then if (is_file k) then begin
+             let f = file_of_key k in
+             let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
+             store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks true);
+          end else begin
+             let f = file_of_key k in
+             let s = source_of_key k in
+             let availability =
+               try
+                 List.assoc (file_num k) s.source_availability
+               with _ -> ""
+             in
+             store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks false);
+          end else store#set ~row ~column:download_availability_pixb None
+      in
       List.iter (fun k ->
         try
           let row = self#find_row k in
-          if !!O.gtk_look_graphical_availability
-            then if (is_file k) then begin
-               let f = file_of_key k in
-               let availability = Mi.main_availability_of f.g_file_network f.g_file_availability in
-               store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks true);
-            end else begin
-               let f = file_of_key k in
-               let s = source_of_key k in
-               let availability =
-                 try
-                   List.assoc (file_num k) s.source_availability
-                 with _ -> ""
-               in
-               store#set ~row ~column:download_availability_pixb (Mi.availability_bar availability f.g_file_chunks false);
-            end else store#set ~row ~column:download_availability_pixb None
+          f k row
         with _ -> ()
       ) (self#all_items ())
 
@@ -1159,12 +1174,14 @@ let hashtbl_update f f_new =
 let remove_dummy_source file_num =
   downloadstore#remove_item (dummy_source_key file_num)
 
-let add_dummy_source parent file_num =
+let add_dummy_source file_num =
   try
-    let _ = downloadstore#find_row (dummy_source_key file_num) in
-    ()
-  with _ ->
-    ignore (downloadstore#add_item (Source (dummy_source, file_num)) ~parent ())
+    let parent = downloadstore#find_row (file_key file_num) in
+    try
+      let _ = downloadstore#find_row (dummy_source_key file_num) in ()
+    with _ ->
+       downloadstore#add_item (Source (dummy_source, file_num)) ~parent ();
+  with _ -> ()
 
 let h_cancelled file_num =
   try
@@ -1196,19 +1213,19 @@ let h_paused f =
       then Hashtbl.replace G.file_by_uid (file_uid) (U.utf8_of f.g_file_name);
   with _ ->
     begin
-      let parent = downloadstore#add_item (File f) () in
+      downloadstore#add_item (File f) ();
       incr G.ndownloads;
       (if f.g_file_state = FileDownloaded
          then incr G.ndownloaded);
       GuiStatusBar.update_downloadedfiles ();
-      add_dummy_source parent f.g_file_num;
       Hashtbl.add G.files f.g_file_num f;
       GuiGraphBase.add_file file_uid;
       Hashtbl.add G.file_by_uid file_uid (U.utf8_of f.g_file_name);
       if !!O.gtk_misc_display_razorback_stats
         then begin
           try GuiHtml.get_razorback2_stats f with _ -> ()
-        end
+        end;
+      add_dummy_source f.g_file_num;
     end
 
 let h_downloading = h_paused
@@ -1259,7 +1276,7 @@ let h_add_source s file_num =
         None ->
           begin
             f.g_file_sources <- Some [s.source_num];
-            ignore (downloadstore#add_item (Source (s, file_num)) ~parent ());
+            downloadstore#add_item (Source (s, file_num)) ~parent ();
             remove_dummy_source file_num
           end
       | Some sources ->
@@ -1268,7 +1285,7 @@ let h_add_source s file_num =
               then raise Exit
               else begin
                 f.g_file_sources <- Some (s.source_num :: sources);
-                ignore (downloadstore#add_item (Source (s, file_num)) ~parent ());
+                downloadstore#add_item (Source (s, file_num)) ~parent ();
               end
           end
   with _ -> ()
@@ -1276,22 +1293,21 @@ let h_add_source s file_num =
 let h_remove_source s file_num =
   try
     let f = Hashtbl.find G.files file_num in
-    let parent = downloadstore#find_row (file_key file_num) in
     let _ =
       match f.g_file_sources with
-          None -> add_dummy_source parent file_num
-        | Some sources ->
-            begin
-              f.g_file_sources <- Some (List.filter (fun num -> num <> s.source_num) sources)
-            end
+            None -> add_dummy_source file_num
+          | Some sources ->
+              begin
+                let l = List.filter (fun num -> num <> s.source_num) sources in
+                match l with
+                    [] ->
+                      begin
+                        add_dummy_source file_num;
+                        f.g_file_sources <- None
+                      end
+                  | _ -> f.g_file_sources <- Some l
+              end
     in
-    (match f.g_file_sources with
-         Some [] ->
-           begin
-             f.g_file_sources <- None;
-             add_dummy_source parent file_num;
-           end
-       | _ -> ());
     downloadstore#remove_item (source_key file_num s.source_num);
   with _ -> ()
 
@@ -1437,7 +1453,10 @@ let downloads_box gui =
       true);
   ignore (entry#event#connect#key_press ~callback:
     (fun ev ->
-       GdkEvent.Key.keyval ev = GdkKeysyms._Return &&
+      (GdkEvent.Key.keyval ev = GdkKeysyms._Return ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._KP_Enter ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._ISO_Enter ||
+       GdkEvent.Key.keyval ev = GdkKeysyms._3270_Enter) &&
       (on_entry_return entry;
        true
       )

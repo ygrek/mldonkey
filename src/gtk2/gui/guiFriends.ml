@@ -259,6 +259,7 @@ class g_friend () =
 (*************************************************************************)
 
     method content (col : GTree.view_column) c =
+      let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
       match c with
           Col_friend_name ->
             begin
@@ -273,9 +274,12 @@ class g_friend () =
                 end;
               let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
               col#pack ~expand:false renderer;
-              col#set_cell_data_func renderer
-               (fun model row ->
-                  match !view_context with
+              col#add_attribute renderer "foreground" friend_color;
+              if autosize
+                then col#add_attribute renderer "text" friend_name
+                else col#set_cell_data_func renderer
+                 (fun model row ->
+                    match !view_context with
                       Some context when col#width > 0 ->
                         begin
                           let width =
@@ -287,9 +291,8 @@ class g_friend () =
                           let s = GuiTools.fit_string_to_pixels name ~context ~pixels:width in
                           renderer#set_properties [ `TEXT s ]
                         end
-                      | _ -> renderer#set_properties [ `TEXT "" ]
-              );
-              col#add_attribute renderer "foreground" friend_color;
+                    | _ -> renderer#set_properties [ `TEXT "" ]
+                 )
             end
 
         | Col_friend_network ->
@@ -329,35 +332,38 @@ class g_friend () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        let s = friend_of_key k in
+        store#set ~row ~column:friend_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
+        store#set ~row ~column:friend_type_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
+        store#set ~row ~column:friend_state_pixb (Mi.client_state_to_icon false ~size:A.SMALL);
+        let rec iter items =
+          match items with
+              [] -> ()
+            | (GTreeDirectory tree) :: tail ->
+                 begin
+                   tree.g_file_tree_pixb <- folder_closed ();
+                   iter tail
+                 end
+            | (GTreeFile r) :: tail ->
+                begin
+                  r.res_network_pixb <- Mi.network_pixb r.res_num ~size:A.SMALL ();
+                  r.res_name_pixb <- Mi.file_type_of_name r.res_name ~size:A.SMALL;
+                  iter tail
+                end
+        in
+        match s.source_files with
+            None -> ()
+          | Some ft ->
+              begin
+                ft.g_file_tree_pixb <- folder_closed ();
+                iter ft.g_file_tree_list
+              end
+      in
       List.iter (fun k ->
         try
-          let s = friend_of_key k in
           let row = self#find_row k in
-          store#set ~row ~column:friend_network_pixb (Mi.network_pixb s.source_network ~size:A.SMALL ());
-          store#set ~row ~column:friend_type_pixb (Mi.source_type_to_icon s.source_type ~size:A.SMALL);
-          store#set ~row ~column:friend_state_pixb (Mi.client_state_to_icon false ~size:A.SMALL);
-          let rec iter items =
-            match items with
-                [] -> ()
-              | (GTreeDirectory tree) :: tail ->
-                   begin
-                     tree.g_file_tree_pixb <- folder_closed ();
-                     iter tail
-                   end
-              | (GTreeFile r) :: tail ->
-                  begin
-                    r.res_network_pixb <- Mi.network_pixb r.res_num ~size:A.SMALL ();
-                    r.res_name_pixb <- Mi.file_type_of_name r.res_name ~size:A.SMALL;
-                    iter tail
-                  end
-          in
-          match s.source_files with
-              None -> ()
-            | Some ft ->
-                begin
-                  ft.g_file_tree_pixb <- folder_closed ();
-                  iter ft.g_file_tree_list
-                end
+          Gaux.may ~f:(f k) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -607,7 +613,7 @@ let friend_menu sel =
 
 let rec insert_dir ft id ?parent () =
   ft.g_file_tree_num <- !id;
-  let parent = folderstore#add_item ft ?parent () in
+  folderstore#add_item ft ?parent ();
   H.add ft_by_num ft;
   incr id;
   match ft.g_file_tree_list with
@@ -616,7 +622,11 @@ let rec insert_dir ft id ?parent () =
         List.iter (fun tree_item ->
           match tree_item with
               GTreeFile _ -> ()
-            | GTreeDirectory d -> insert_dir d id ~parent ()
+            | GTreeDirectory d ->
+                try
+                  let parent = folderstore#find_row (folder_key ft.g_file_tree_num) in
+                  insert_dir d id ~parent ()
+                with _ -> ()
         ) ft.g_file_tree_list
 
 let on_select_friend sel =
@@ -703,10 +713,9 @@ let on_select_folder sel =
             let ft = folder_of_key k in
             List.iter (fun tree_item ->
               match tree_item with
-                  GTreeFile r -> ignore (resultstore#add_item r)
+                  GTreeFile r -> resultstore#add r ~f:update_results_label ()
                 | _ -> ()
-            ) ft.g_file_tree_list;
-            update_results_label ()
+            ) ft.g_file_tree_list
           with _ -> ()
         end
 
@@ -787,6 +796,16 @@ let clear () =
 
 let remove_friend s =
   friendstore#remove_item (friend_key s.source_num);
+  let _ =
+    match s.source_files with
+        None -> ()
+      | Some ft ->
+          List.iter (fun tree_item ->
+            match tree_item with
+                GTreeFile r -> Hashtbl.remove G.results r.res_num
+              | _ -> ()
+          ) ft.g_file_tree_list
+  in
   update_friends_label ();
   if List.mem_assoc s.source_num !source_has_file
     then source_has_file := List.remove_assoc s.source_num !source_has_file
@@ -796,12 +815,11 @@ let h_update_friend s s_new =
     let row = friendstore#find_row (friend_key s_new.source_num) in
     if client_browsed_tag land s_new.source_type = 0
       then remove_friend s
-      else friendstore#update_item row s s_new
+      else Gaux.may ~f:(fun r -> friendstore#update_item r s s_new) row
  with _ ->
     if client_browsed_tag land s_new.source_type <> 0
       then begin
-        ignore (friendstore#add_item s_new);
-        update_friends_label ()
+        friendstore#add_item s_new ~f:update_friends_label ()
       end
 
 let add_friend_files (source_num , dirname, result_num) =
@@ -816,7 +834,6 @@ let add_friend_files (source_num , dirname, result_num) =
       in
       Mi.add_file tree dirname r;
       let s_new = {s with source_files = Some tree} in
-      Hashtbl.remove G.results result_num;
       (if not (List.mem_assoc source_num !source_has_file)
          then source_has_file := (source_num, false) :: !source_has_file);
       h_update_friend s s_new;

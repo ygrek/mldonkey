@@ -354,55 +354,65 @@ let (avail_bars : ((string * string * bool), GdkPixbuf.pixbuf) Hashtbl.t) = Hash
 (* make a simple function to give a 3D effect *)
 let highlight range i =
   if i < 8
-    then 256 * (2 * i * range / 16)
-    else 256 * (range - (i * range / 2 / 16))
+    then (2 * i * range / 16)
+    else (range - (i * range / 2 / 16))
 
 (* define the colors we will use to display the availability *)
-let color_red = GDraw.pixmap ~width:1 ~height:16
-                  ~colormap:(Gdk.Color.get_system_colormap ()) ()
+let color_red = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
     let r = highlight 255 i in
-    color_red#set_foreground (`RGB (r, 0, 0));
-    color_red#point ~x:0 ~y:i
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x%02X0000ff" r in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_red ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
-    
-let color_green = GDraw.pixmap ~width:1 ~height:16
-                    ~colormap:(Gdk.Color.get_system_colormap ()) ()
+
+let color_green = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
-    let g = highlight 255 i in
-    color_green#set_foreground (`RGB (0, g, 0));
-    color_green#point ~x:0 ~y:i
+    let r = highlight 255 i in
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x00%02X00ff" r in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_green ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
-    
-let color_black = GDraw.pixmap ~width:1 ~height:16
-                    ~colormap:(Gdk.Color.get_system_colormap ()) ()
+
+let color_black = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
     let r = highlight 128 i in
-    color_black#set_foreground (`RGB (r, r, r));
-    color_black#point ~x:0 ~y:i
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x%02X%02X%02Xff" r r r in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_black ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
-    
-let color_orange = GDraw.pixmap ~width:1 ~height:16
-                     ~colormap:(Gdk.Color.get_system_colormap ()) ()
+
+let color_orange = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
     let r = highlight 255 i in
     let g = 178 * r / 255 in
-    color_orange#set_foreground (`RGB (r, g, 0));
-    color_orange#point ~x:0 ~y:i
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x%02X%02X00ff" r g in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_orange ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
-let color_yellow = GDraw.pixmap ~width:1 ~height:16
-                     ~colormap:(Gdk.Color.get_system_colormap ()) ()
+let color_yellow = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
-    let r = highlight 255 i in
+     let r = highlight 255 i in
     let g = 255 * r / 255 in
-    color_yellow#set_foreground (`RGB (r, g, 0));
-    color_yellow#point ~x:0 ~y:i
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x%02X%02X00ff" r g in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_yellow ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
 let color_blue_relative = ref [||]
@@ -410,27 +420,30 @@ let color_blue_relative = ref [||]
 let create_color_blue_relative () =
   color_blue_relative := [||];
   for i = 0 to (!!O.gtk_misc_availability_max - 1) do
-    let pixmap = GDraw.pixmap ~width:1 ~height:16
-                   ~colormap:(Gdk.Color.get_system_colormap ()) () in
+    let pixbuf = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false () in
     let col_step = i * 255 / (!!O.gtk_misc_availability_max - 1) in
+    let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
     for j = 0 to 15 do
       let b = highlight 255 j in
       let g = highlight col_step j in
-      pixmap#set_foreground (`RGB (0, g, b));
-      pixmap#point ~x:0 ~y:j
+      let s =  Printf.sprintf "0x00%02X%02Xff" g b in
+      GdkPixbuf.fill pixb (Int32.of_string s);
+      GdkPixbuf.copy_area ~dest:pixbuf ~dest_x:0 ~dest_y:j ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
     done;
-    color_blue_relative := Array.append !color_blue_relative [|pixmap|]
+    color_blue_relative := Array.append !color_blue_relative [|pixbuf|]
   done
 
 let _ = create_color_blue_relative ()
 
-let color_grey = GDraw.pixmap ~width:1 ~height:16
-                   ~colormap:(Gdk.Color.get_system_colormap ()) ()
+let color_grey = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
 let _ =
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
   for i = 0 to 15 do
     let r = highlight 255 i in
-    color_grey#set_foreground (`RGB (r, r, r));
-    color_grey#point ~x:0 ~y:i
+(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
+    let s =  Printf.sprintf "0x%02X%02X%02Xff" r r r in
+    GdkPixbuf.fill pixb (Int32.of_string s);
+    GdkPixbuf.copy_area ~dest:color_grey ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
 let normalize_availability avail =
@@ -439,8 +452,10 @@ let normalize_availability avail =
     if !!O.gtk_misc_use_availability_height
       then if (int_of_char avail.[i]) > !!O.gtk_misc_availability_max
         then avail.[i] <- (char_of_int !!O.gtk_misc_availability_max)
+        else ()
       else if (int_of_char avail.[i]) > 1
         then avail.[i] <- (char_of_int 1)
+        else ()
   done
 
 let get_availability_of availability chunks is_file =
@@ -460,71 +475,42 @@ let get_availability_of availability chunks is_file =
   with _ ->
     begin
       (if !!verbose then lprintf' "Creating new availability bar\n");
-      let pixmap = GDraw.pixmap ~width:nchunks ~height
-        ~colormap:(Gdk.Color.get_system_colormap ()) ()
-      in
+      let dest = GdkPixbuf.create ~width:nchunks ~height ~has_alpha:false () in
       (try
         for i = 0 to (nchunks - 1) do
           if is_file
             then if chunks.[i] >= '2'
-              then pixmap#put_pixmap
-                     ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                     color_green#pixmap
+              then GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
               else begin
                 let h = int_of_char (avail.[i]) in
                 if h = 0
                   then if chunks.[i] = '0'
-                    then pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_red#pixmap
-                    else pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_orange#pixmap
+                    then GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
+                    else GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_orange
                   else if chunks.[i] = '0'
                     then begin
                       let color_blue = !color_blue_relative.(!!O.gtk_misc_availability_max - h) in
-                      pixmap#put_pixmap
-                        ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                        color_blue#pixmap
-                    end else pixmap#put_pixmap
-                               ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                               color_yellow#pixmap
+                      GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_blue
+                    end else GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
               end
             else if int_of_char avail.[i] >= 49
               then if chunks.[i] >= '2'
-                then pixmap#put_pixmap
-                         ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                         color_black#pixmap
+                then GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_black
                 else if chunks.[i] = '0'
-                  then pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_green#pixmap
-                  else pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_yellow#pixmap
-              else pixmap#put_pixmap
-                       ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                       color_red#pixmap
-
+                  then GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
+                  else GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
+              else GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
           done;
 
       with _ ->
         begin
           (if !!verbose then lprintf' "Exception in creating avail_bar avail: %s chunks: %s file: %b\n" avail chunks is_file);
-          for i = 0 to nchunks do
-            pixmap#put_pixmap
-              ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-              color_grey#pixmap
+          for i = 0 to (nchunks - 1) do
+            GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_grey
           done
         end);
-    let pb = GdkPixbuf.create ~width:nchunks ~height ~has_alpha:false () in
-    GdkPixbuf.get_from_drawable 
-       ~dest:pb ~dest_x:0 ~dest_y:0 
-       ~width:nchunks ~height ~src_x:0 ~src_y:0
-       ~colormap:(Gdk.Color.get_system_colormap ()) 
-       pixmap#pixmap;
-    Hashtbl.add avail_bars key pb;
-    pb
+    Hashtbl.add avail_bars key dest;
+    dest
   end
 
 

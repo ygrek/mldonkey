@@ -14,6 +14,19 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 2005/11/12
 4607: remove html output from telnet 'vc all' (zet)
 4613: Optimizing Set.cardinal to reduce CPU usage (pango)
+4614: Gtk2 mlgui improvements (su_blanc)
+* fix bug : close all current searches when one quits mlgui
+    otherwise the core continues to search
+      to test:
+        * open mlgui
+        * make a search request
+        * close the gui
+        * in HTML interface, check "View searches" tab.
+* lower CPU usage by delaying heavy computations (use Glib.Idle)
+* rework the search tab, just make it more simple,
+  limit results to max hits, added min availability criterium
+* added Autosize columns. Should fix bug #14868
+* change pixmap for availability bars in pixbuf. should fix bug #14865
 
 2005/11/09
 4558: further Overnet patches, query_next_peers3.patch (bogeyman)

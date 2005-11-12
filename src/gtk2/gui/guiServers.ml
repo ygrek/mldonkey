@@ -248,6 +248,7 @@ class g_server () =
 (*************************************************************************)
 
   method content col c =
+    let autosize = match col#sizing with `AUTOSIZE -> true | _ -> false in
     match c with
       Col_server_name ->
          begin
@@ -259,9 +260,11 @@ class g_server () =
              end;
            let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
            col#pack ~expand:false renderer;
-           col#set_cell_data_func renderer
-             (fun model row ->
-                match !view_context with
+           if autosize
+             then col#add_attribute renderer "text" server_name
+             else col#set_cell_data_func renderer
+               (fun model row ->
+                  match !view_context with
                     Some context when col#width > 0 ->
                       begin
                         let width =
@@ -285,7 +288,7 @@ class g_server () =
                         ));
                       end
                   | _ -> renderer#set_properties [ `TEXT "" ]
-           )
+             )
          end
 
     | Col_server_address ->
@@ -401,12 +404,15 @@ class g_server () =
 (*************************************************************************)
 
     method force_update_icons () =
+      let f k row =
+        let s = server_of_key k in
+        store#set ~row ~column:server_network_pixb (Mi.network_pixb s.server_network ~size:A.SMALL ());
+        store#set ~row ~column:server_state_pixb   (Mi.server_state_of_server s.server_network s.server_state ~size:A.SMALL)
+      in
       List.iter (fun k ->
         try
           let row = self#find_row k in
-          let s = server_of_key k in
-          store#set ~row ~column:server_network_pixb (Mi.network_pixb s.server_network ~size:A.SMALL ());
-          store#set ~row ~column:server_state_pixb   (Mi.server_state_of_server s.server_network s.server_state ~size:A.SMALL)
+          Gaux.may ~f:(f k ) row
         with _ -> ()
       ) (self#all_items ())
 
@@ -574,10 +580,9 @@ let on_select_server sel =
                       try
                         (if !!verbose then lprintf' "Add user %d to list of server %s\n" user_num s.server_name);
                         let u = Hashtbl.find G.users user_num in
-                        ignore (userstore#add_item u)
+                        userstore#add_item u ~f:update_users_label ()
                       with _ -> get_user_info user_num
-                    ) l;
-                    update_users_label ()
+                    ) l
                   end
           with _ -> ()
         end
@@ -672,19 +677,18 @@ let update_server serv =
         | false, true -> decr G.nconnected_servers
         | _ -> ()
     in
-    serverstore#update_item row s s_new;
+    Gaux.may ~f:(fun r -> serverstore#update_item r s s_new) row;
     hashtbl_server_update s s_new;
     update_servers_labels ()
   with Not_found ->
     begin
-      ignore (serverstore#add_item serv);
+      serverstore#add_item serv ~f:update_servers_labels ();
       if Mi.is_connected serv.server_state
         then begin
           incr G.nconnected_servers
         end;
       incr G.nservers;
-      Hashtbl.add G.servers serv.server_num serv;
-      update_servers_labels ()
+      Hashtbl.add G.servers serv.server_num serv
     end
 
 
@@ -709,9 +713,8 @@ let h_server_update_state server_num state =
             | false, true -> decr G.nconnected_servers
             | _ -> ()
         in
-        serverstore#update_item row s s_new;
-        s.server_state <- s_new.server_state;
-        update_servers_labels ()
+        Gaux.may ~f:(fun r -> serverstore#update_item r s s_new) row;
+        s.server_state <- s_new.server_state
       end
 
   with Not_found -> GuiCom.send (GetServer_info server_num)
@@ -723,7 +726,7 @@ let h_server_busy server_num nusers nfiles =
     let s_new = {s with server_nusers = nusers;
                         server_nfiles = nfiles}
     in
-    serverstore#update_item row s s_new;
+    Gaux.may ~f:(fun r -> serverstore#update_item r s s_new) row;
     s.server_nusers <- s_new.server_nusers;
     s.server_nfiles <- s_new.server_nfiles
   with Not_found -> GuiCom.send (GetServer_info server_num)

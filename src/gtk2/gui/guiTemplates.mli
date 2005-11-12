@@ -81,13 +81,13 @@ module Gview :
           method virtual from_new_item : Gtk.tree_iter -> V.item -> V.item -> unit
           method virtual content : GTree.view_column -> V.Column.column -> unit
           method virtual sort_items : V.Column.column -> key -> key -> int
-          method add_item : V.item -> Gtk.tree_iter
+          method add_item : V.item -> ?f:(unit -> unit) -> unit -> unit
           method all_items : unit -> key list
           method clear : unit -> unit
           method expanded_paths : int array list
           method find_key : Gtk.tree_iter -> key
           method find_model_key : Gtk.tree_iter -> key
-          method find_row : key -> Gtk.tree_iter
+          method find_row : key -> Gtk.tree_iter option
           method gmodel : g_model
           method nitems : int
           method refresh_filter : unit -> unit
@@ -107,7 +107,7 @@ module Gview :
           method virtual from_new_item : Gtk.tree_iter -> V.item -> V.item -> unit
           method virtual content : GTree.view_column -> V.Column.column -> unit
           method virtual sort_items : V.Column.column -> key -> key -> int
-          method add_item : V.item -> ?parent:Gtk.tree_iter -> unit -> Gtk.tree_iter
+          method add_item : V.item -> ?parent:Gtk.tree_iter -> unit -> unit
           method all_items : unit -> key list
           method clear : unit -> unit
           method expanded_paths : int array list

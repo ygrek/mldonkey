@@ -363,7 +363,7 @@ let create_search query_entry max_hits net search_type =
   in
   s
 
-let rec rec_description_of_query q = 
+let rec rec_description_of_query q =
   match q with
   | Q_HIDDEN l
   | Q_AND l
@@ -371,7 +371,7 @@ let rec rec_description_of_query q =
 
   | Q_ANDNOT (q1, q2) -> rec_description_of_query q1
   | Q_MODULE (_,q) -> rec_description_of_query q
-	
+
   | Q_KEYWORDS (_,s) -> [s]
   | Q_MINSIZE _ 
   | Q_MAXSIZE _ -> []
@@ -382,7 +382,7 @@ let rec rec_description_of_query q =
   | Q_MP3_ALBUM (_,s) -> [s]
 
   | Q_COMBO _ -> []
-      
+
   | Q_MP3_BITRATE _ -> []
 
 (* Return few words for a given query *)
