@@ -540,6 +540,7 @@ fi
 
 if test "$PROFILE" = "yes"; then
    OCAMLOPT="$OCAMLOPT -p"
+   CFLAGS="$CFLAGS -pg"
 fi
 if test "$FORCE_MINGW" = "yes"; then
     OCAMLC="$OCAMLC -ccopt -mno-cygwin"

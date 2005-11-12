@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/12
+4615: Add -g to CFLAGS when --enable-profile (pango)
 4605: replace string/bool bit arrays with bit vectors (zet)
 4607: remove html output from telnet 'vc all' (zet)
 4613: Optimizing Set.cardinal to reduce CPU usage (pango)
