@@ -520,6 +520,16 @@ let get_file proto s pos =
     else
       get_list get_uid s pos
   in
+  let sub_files, pos =
+    if proto > 35 then
+      get_list (fun s pos ->
+          let name, pos = get_string s pos in
+          let size, pos = get_int64 s pos, pos+8 in
+          (name, size), pos
+      ) s pos
+    else [], pos
+  in
+
   (*
   assert (num = file_info_test.file_num);
   assert (net = file_info_test.file_network);
@@ -564,6 +574,7 @@ let get_file proto s pos =
     file_last_seen = last_seen;
     file_priority = priority;
     file_uids = uids;
+    file_sub_files = sub_files;
   }, pos
 
 let get_host_state proto s pos =

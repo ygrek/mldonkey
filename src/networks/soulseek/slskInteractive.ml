@@ -218,6 +218,7 @@ let _ =
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file.file_file);
         P.file_uids = [];
+        P.file_sub_files = [];
       }    
   );
   (*

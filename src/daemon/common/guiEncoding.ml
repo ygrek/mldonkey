@@ -554,7 +554,12 @@ let buf_file proto buf f =
     if proto > 21 then
       buf_string buf f.file_comment;
     if proto > 30 then
-      buf_list buf buf_uid f.file_uids
+      buf_list buf buf_uid f.file_uids;
+    if proto > 35 then
+      buf_list buf (fun buf (name, size) ->
+          buf_string buf name;
+          buf_int64 buf size
+      ) f.file_sub_files
       
 let buf_addr proto buf addr =
   (match addr with

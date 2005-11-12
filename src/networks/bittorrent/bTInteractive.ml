@@ -406,6 +406,7 @@ let op_file_info file =
     P.file_last_seen = BasicSocket.last_time ();
     P.file_priority = file_priority (as_file file);
     P.file_uids = [Uid.create (BTUrl file.file_id)];
+    P.file_sub_files = file.file_files;
   }
 
 let op_ft_info ft =
@@ -436,6 +437,7 @@ let op_ft_info ft =
     P.file_last_seen = BasicSocket.last_time ();
     P.file_priority = 0;
     P.file_uids = [];
+    P.file_sub_files = [];
   }
 
 

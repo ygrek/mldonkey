@@ -129,6 +129,7 @@ let _ =
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
+        P.file_sub_files = [];
       }    
   )
   

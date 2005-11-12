@@ -1030,6 +1030,7 @@ let _ =
             P.file_age = file_age file;
             P.file_last_seen = file.file_file.impl_file_last_seen;
             P.file_uids = [Uid.create (Ed2k file.file_md4)];
+            P.file_sub_files = [];
           } in
         v
       with e ->
