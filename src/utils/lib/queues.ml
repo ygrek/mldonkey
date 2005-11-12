@@ -89,7 +89,7 @@ module Make(M: sig
       val compare : t -> t -> int
     end) = struct
     
-    module InsidesSet = Set.Make (
+    module InsidesSet = Set2.Make (
         struct
           type t = int * M.t
           let compare (t1,s1) (t2,s2) = 
@@ -142,7 +142,7 @@ module Make(M: sig
 
       (*
     let max_first compare =
-      let module InsideSet = Set.Make(struct
+      let module InsideSet = Set2.Make(struct
             type t = source
             let compare = compare
           end) in
@@ -161,7 +161,7 @@ module Make(M: sig
         }
 
     let min_first compare =
-      let module InsideSet = Set.Make(struct
+      let module InsideSet = Set2.Make(struct
             type t = source
             let compare = compare
           end) in

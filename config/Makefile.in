@@ -215,7 +215,7 @@ LIB_SRCS=   \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/$(SHA1_VERSION)_c.c \
   $(LIB)/tiger.c \
   $(LIB)/CryptoPP.cc \
-  $(LIB)/stubs_c.c  $(LIB)/queues.ml \
+  $(LIB)/stubs_c.c  $(LIB)/set2.ml $(LIB)/queues.ml \
   $(LIB)/charsetstubs.c $(LIB)/charset.ml
 
 NET_SRCS = \
