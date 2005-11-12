@@ -401,19 +401,26 @@ let _ =
 
     "buildinfo", Arg_none (fun o ->
         let buf = o.conn_buf in
+        let runinfo = CommonComplexOptions.runinfo () in
         let buildinfo = CommonComplexOptions.buildinfo () in
         if o.conn_output = HTML then
           begin
             Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
             html_mods_table_header buf "versionTable" "results" [];
-            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [ ("", "srh", "Buildinfo"); ];
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
             html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" buildinfo); ];
+            Printf.bprintf buf "\\</tr\\>\\<tr\\>";
+            html_mods_td buf [ ("", "srh", "Runinfo"); ];            
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+            html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" runinfo); ];            
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
           end
         else
-            Printf.bprintf buf "%s" buildinfo;
+            Printf.bprintf buf "Buildinfo:\n%s\nRuninfo:\n%s" buildinfo runinfo;
         ""
-    ), ":\t\t\t\tprint mldonkey core build information";
+    ), ":\t\t\t\tprint mldonkey core build and runtime information";
 
     "activity", Arg_one (fun arg o ->
         let arg = int_of_string arg in

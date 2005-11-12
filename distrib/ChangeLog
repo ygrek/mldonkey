@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/12
+4587: Buildinfo: Split build-time and run-time information (schlumpf)
 4350: Code cleanup : web interface chunks display (pango)
       (web_chunks_using_tables_v2.patch)
 4616: Change allow_browse_share, so only friends can see file lists (pango)

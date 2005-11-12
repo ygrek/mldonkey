@@ -1076,21 +1076,22 @@ let backup_options () =
     with e -> lprintf_nl () "Exception %s while options backup" (Printexc2.to_string e); raise e
   end;
   lprintf_nl () "Options backup as %s correctly saved" format
-
+             
 let buildinfo () =
   (
-    "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
+        "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
       ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
       ^ "\nNetworks: " ^ !networks_string
       ^ "\nOcaml version: " ^ Sys.ocaml_version
-      ^ (let uname = Unix32.uname () in
-          if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
       ^ "\nBuild on: " ^ Autoconf.build_system
-          ^ (if Autoconf.glibc_version <> "" then " with glibc " ^ Autoconf.glibc_version else "")
-	  ^ (let real_glibc_version = MlUnix.glibc_version_num () in
-	       if real_glibc_version <> Autoconf.glibc_version
-	         && real_glibc_version <> "" then
-		   Printf.sprintf " (DANGER: glibc %s present on system)" real_glibc_version else "")
+      ^ (if Autoconf.glibc_version = "" then "" 
+          else
+            let real_glibc_version = MlUnix.glibc_version_num () in
+            if real_glibc_version = "" || real_glibc_version = Autoconf.glibc_version 
+              then " with glibc " ^ Autoconf.glibc_version
+            else 
+              Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
+              real_glibc_version Autoconf.glibc_version)  
       ^ (if Autoconf.configure_arguments <> "" then
            "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
       ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
@@ -1124,6 +1125,22 @@ let buildinfo () =
           ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
           ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
           ^ " " ^ Autoconf.sha1_version
+  )
+  
+let runinfo () =
+  (
+        "Enabled Networks: " 
+      ^   (if Autoconf.donkey = "yes" && !!enable_donkey then " Donkey" else "")
+      ^   (if Autoconf.donkey = "yes" && !!enable_overnet then " Overnet" else "")
+      ^   (if Autoconf.donkey = "yes" && !!enable_kademlia then " Kademlia" else "")             
+      ^   (if Autoconf.bittorrent = "yes" && !!enable_bittorrent then " BitTorrent" else "")
+      ^   (if Autoconf.fasttrack = "yes" && !!enable_fasttrack then " Fasttrack" else "")
+      ^   (if Autoconf.gnutella = "yes" && !!enable_gnutella then " Gnutella" else "")
+      ^   (if Autoconf.gnutella2 = "yes" && !!enable_gnutella2 then " G2" else "")
+      ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
+      ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
+      ^ (let uname = Unix32.uname () in
+          if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
       ^ "\nLanguage: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
       ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length
@@ -1141,4 +1158,6 @@ let buildinfo () =
 	       ((*size_of_int64*)(string_of_float(((2. ** (float_of_int((Unix2.c_sizeofoff_t () * 8)-1))) -. 1.)/. 8.)))
 *)
 
-	     ))
+	     )
+  )    
+  
