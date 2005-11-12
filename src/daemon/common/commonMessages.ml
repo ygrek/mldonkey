@@ -138,10 +138,10 @@ td.br {border-right: @color_general_border@ dotted 1px;}
 td.ar {text-align: right;}
 td.al {text-align: left;}
 td.ac {text-align: center;}
-.chunk0 { left:0px; top:0px; height:12px; background: @color_chunk0@}
-.chunk1 { left:0px; top:0px; height:12px; background: @color_chunk1@}
-.chunk2 { left:0px; top:0px; height:12px; background: @color_chunk2@}
-.chunk3 { left:0px; top:0px; height:12px; background: @color_chunk3@}
+td.chunk0 { height:12px; background: @color_chunk0@}
+td.chunk1 { height:12px; background: @color_chunk1@}
+td.chunk2 { height:12px; background: @color_chunk2@}
+td.chunk3 { height:12px; background: @color_chunk3@}
 "
 
 let html_js_mods0 = define_option message_section ["html_js_mods0"]

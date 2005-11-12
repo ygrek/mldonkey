@@ -475,81 +475,67 @@ let file_downloaders file o cnt =
 
 (* Use span for Opera DOM compatibility *)
 let colored_chunks chunks =
-  let ostr = ref "" in
-  let previous = ref 0 in
-  let runlength = ref 0 in
-
-  let missing = ref 0 in
-  let partial = ref 0 in
-  let complete = ref 0 in
-  let verified = ref 0 in
-
-  let chunks_length=Array.length chunks in
-  let rl_divider=
-    if chunks_length > !!html_vd_chunk_graph_max_width then
-       (float_of_int !!html_vd_chunk_graph_max_width) /. (float_of_int chunks_length)
-    else
-      1.
-  in
-
-  let resize n = (int_of_float (floor ((float_of_int n) *. rl_divider))) in
-  let nextbit b =
-    if b = !previous then
-      incr runlength
-    else begin
-      if !runlength > 0 then begin
-        match !!html_vd_chunk_graph_style with
-        | 0 ->
-          let rl_resized = resize !runlength in
-          (* Show only "visible" chunks *)
-          if rl_resized > 0 then
-            ostr := !ostr ^ Printf.sprintf 
-            "\\<span class=\\\"chunk%d\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>" !previous rl_resized
-        | 1 | 2 ->
-          (match !previous with
-          | 0 -> missing := !missing + !runlength
-          | 1 -> partial := !partial + !runlength
-          | 2 -> complete := !complete + !runlength
-          | 3 -> verified := !verified + !runlength
-          | _ -> ())
-        | _ -> ();
-      end;
-      previous := b;
-      runlength := 1
+  let chunks_length = Array.length chunks in
+  let graph_width = min !!html_vd_chunk_graph_max_width (8 * chunks_length) in
+  let ostr = Buffer.create 100 in
+  Printf.bprintf ostr "\\<table cellspacing=0 cellpadding=0 width=\\\"%dpx\\\"\\>\\<tr\\>" graph_width;
+  let current_output_bit = ref 0 in
+  let display_bar color length =
+    let resize n = (n * graph_width) / chunks_length in
+    if length > 0 then begin
+      let new_output_bit = !current_output_bit + length in
+      let rl_resized = (resize new_output_bit) - (resize !current_output_bit) in
+      (* Show only "visible" chunks *)
+      if rl_resized > 0 then
+	Printf.bprintf ostr
+	  "\\<td class=\\\"chunk%d\\\" style=\\\"width:%dpx\\\"\\>\\</td\\>" color rl_resized;
+      current_output_bit := new_output_bit
     end in
-  Array.iter (fun b -> nextbit b) chunks;
-  nextbit 99;
-  (match !!html_vd_chunk_graph_style with
-  | 1 ->
-    ostr := !ostr 
-    ^ Printf.sprintf "
-\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>"
-  (resize !missing) (resize !partial) (resize !complete) (resize !verified)
-  | 2 ->
-    ostr := !ostr 
-    ^ Printf.sprintf "
-\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>
-\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\&nbsp;\\</span\\>"
-  (resize !verified) (resize !complete) (resize !partial) (resize !missing)
-  | _ -> ());
 
-(*
-  ostr := !ostr 
-  ^ Printf.sprintf 
-  "\\<span class=\\\"chunk0\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !missing)
-  ^ Printf.sprintf 
-  "\\<span class=\\\"chunk1\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !partial)
-  ^ Printf.sprintf 
-  "\\<span class=\\\"chunk2\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !complete)
-  ^ Printf.sprintf 
-  "\\<span class=\\\"chunk3\\\" style=\\\"width:%dpx\\\"\\>\\</span\\>" (resize !verified);
-*)
-  !ostr
+  (match !!html_vd_chunk_graph_style with
+     | 0 ->
+	 let previous = ref 0 in
+	 let runlength = ref 0 in
+
+	 Array.iter (fun b ->
+	   if b = !previous then
+	     incr runlength
+	   else begin
+	     display_bar !previous !runlength;
+	     previous := b;
+	     runlength := 1
+	   end
+	 ) chunks;
+	 display_bar !previous !runlength
+     | _ ->
+	 let missing = ref 0 in
+	 let partial = ref 0 in
+	 let complete = ref 0 in
+	 let verified = ref 0 in
+
+	 Array.iter (fun b -> 
+	   match b with
+             | 0 -> incr missing
+             | 1 -> incr partial
+             | 2 -> incr complete
+             | 3 -> incr verified
+             | _ -> ()
+	 ) chunks;
+	 match !!html_vd_chunk_graph_style with
+	   | 1 ->
+	       display_bar 0 !missing;
+	       display_bar 1 !partial;
+	       display_bar 2 !complete;
+	       display_bar 3 !verified
+	   | 2 ->
+	       display_bar 3 !verified;
+	       display_bar 2 !complete;
+	       display_bar 1 !partial;
+	       display_bar 0 !missing
+	   | _ -> ()
+  );
+  Buffer.add_string ostr "\\</tr\\>\\</table\\>";
+  Buffer.contents ostr
 
 let file_print file o =
   let impl = as_file_impl file in

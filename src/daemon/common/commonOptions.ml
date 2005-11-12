@@ -693,7 +693,7 @@ let html_vd_chunk_graph_style = define_expert_option current_section
     ["html_vd_chunk_graph_style"] "Change style of chunk graph" int_option 0
 
 let html_vd_chunk_graph_max_width = define_expert_option current_section
-    ["html_vd_chunk_graph_max_width"] "Change max width of chunk graph" int_option 880
+    ["html_vd_chunk_graph_max_width"] "Change max width of chunk graph" int_option 200
 
 let html_mods_show_pending = define_expert_option current_section
     ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
