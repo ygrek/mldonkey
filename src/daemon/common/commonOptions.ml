@@ -1066,7 +1066,7 @@ ones in allowed_commands"
     bool_option false
 
 let allow_browse_share = define_option current_section ["allow_browse_share"]
-  "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 2
+  "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 1
 
 let messages_filter = define_option current_section ["messages_filter"]
     "Regexp of messages to filter out, example: string1\\|string2\\|string3" string_option "Your client is connecting too fast"
