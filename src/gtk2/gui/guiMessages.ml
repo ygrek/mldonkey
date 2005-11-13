@@ -235,6 +235,7 @@ let dT_me_save_as  = ref ""
 let dT_me_save  = ref ""
 let dT_me_browse_files  = ref ""
 let dT_me_add_to_friends  = ref ""
+let dT_me_razorback2_stats = ref ""
 let dT_lb_link  = ref ""
 let dT_me_show_file_details  = ref ""
 let dT_me_show_source_details  = ref ""
@@ -701,6 +702,7 @@ let load_messages () =
   dT_me_show_file_details  :=  _s "Show file details";
   dT_me_show_source_details  :=  _s "Show source details";
   dT_wt_show_source_details  :=  _s "Source details";
+  dT_me_razorback2_stats := _s "Get Razorback Stats";
 
 (* Friends Tab *)
 

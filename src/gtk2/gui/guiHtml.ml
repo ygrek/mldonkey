@@ -130,7 +130,8 @@ let parse_razorback_stats stats md4 referer dl =
                       try
                         (try Sys.remove filename with _ -> lprintf_nl2 "cannot remove file %s" filename);
                         File.from_string filename ___s;
-                        stats.razorback_file_history <- filename
+                        stats.razorback_file_history <- filename;
+                        stats.razorback_file_last_time <- BasicSocket.current_time ();
                       with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> lprintf_nl2 "progress: %d / %d" n m)
                   end
               ) sl;
@@ -191,20 +192,35 @@ let parse_razorback_stats stats md4 referer dl =
   in
   iter dl
 
-let get_razorback2_stats file =
+let get_razorback2_stats file = ()
+(*
   try
     let md4 = uids_to_md4 file.g_file_uids in
-    let stats = {
-      razorback_file_history      = "";
-      razorback_file_rating       = "";
-      razorback_file_avalaibility = 0;
-      razorback_file_completed    = 0;
-    } in
-    file.g_file_razorback_stats <- Some stats;
-    let referer = "http://stats.razorback2.com/" in
-    let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
-    get url (parse_razorback_stats stats md4 referer)
+    let stats =
+       match file.g_file_razorback_stats with
+         None ->
+           begin
+             let s ={
+               razorback_file_history      = "";
+               razorback_file_rating       = "";
+               razorback_file_avalaibility = 0;
+               razorback_file_completed    = 0;
+               razorback_file_last_time    = 0.;
+             } in
+             file.g_file_razorback_stats <- Some s;
+             s
+           end
+      | Some s -> s
+    in
+    let last_time = BasicSocket.current_time () -. stats.razorback_file_last_time in
+    if last_time > 3600000. (* 60 min *)
+      then begin
+        let referer = "http://stats.razorback2.com/" in
+        let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
+        get url (parse_razorback_stats stats md4 referer)
+      end
   with _ -> ()
+*)
 
 (*
 Element: !

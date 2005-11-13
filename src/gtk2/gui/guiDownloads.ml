@@ -983,6 +983,13 @@ let update_downloading_files () =
     GuiCom.send (GetFile_info f.g_file_num)
   ) files
 
+
+let razorback2_stats k () =
+  try
+    let file = file_of_key k in
+    GuiHtml.get_razorback2_stats file
+  with _ -> ()
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Download Menu                                 *)
@@ -998,6 +1005,7 @@ let download_menu sel =
                [
                 `I ((!M.dT_me_show_file_details), show_details k) ;
                 `I ((!M.dT_me_preview), preview k) ;
+                `I ((!M.dT_me_razorback2_stats), razorback2_stats k);
                 `S ;
                ]
              else  [])
@@ -1142,15 +1150,6 @@ let reset_downloads_filter () =
 (*                                                                       *)
 (*************************************************************************)
 
-let all_files_razorback2_stats () =
-  let l = List.filter (fun k -> is_file k) (downloadstore#all_items ()) in
-  List.iter (fun k ->
-    try
-      let file = file_of_key k in
-      GuiHtml.get_razorback2_stats file
-    with _ -> ()
-  ) l
-
 let hashtbl_update f f_new =
   f.g_file_comment <- f_new.g_file_comment;
   f.g_file_name <- f_new.g_file_name;
@@ -1221,10 +1220,6 @@ let h_paused f =
       Hashtbl.add G.files f.g_file_num f;
       GuiGraphBase.add_file file_uid;
       Hashtbl.add G.file_by_uid file_uid (U.utf8_of f.g_file_name);
-      if !!O.gtk_misc_display_razorback_stats
-        then begin
-          try GuiHtml.get_razorback2_stats f with _ -> ()
-        end;
       add_dummy_source f.g_file_num;
     end
 
@@ -1372,60 +1367,61 @@ let downloads_box gui =
     Downloads.treeview ~mode:`MULTIPLE
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
-  if !!O.gtk_misc_display_razorback_stats
-    then begin
-      let hbox_razorback_stats =
-        GPack.hbox ~homogeneous:false ~border_width:6
-          ~spacing:12
-          ~packing:(vbox#pack ~expand:false ~fill:true) ()
-      in
-      let razorback_history =
-        GMisc.image ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
-      in
-      let vbox_razorback_stats =
-        GPack.vbox ~homogeneous:false ~border_width:6
-          ~spacing:12
-          ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
-      in
-      let label_rating =
-        GMisc.label ~xalign:0. ~yalign:0.
-        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-      in
-      let label_availability =
-        GMisc.label ~xalign:0. ~yalign:0.
-        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-      in
-      let label_completed =
-        GMisc.label ~xalign:0. ~yalign:0.
-        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-      in
-      let on_select_files keys =
-        match keys with
-            [] -> ()
-          | k :: _ when (is_file k) ->
-              begin
-                try
-                  let file = file_of_key k in
-                  match file.g_file_razorback_stats with
-                      None -> ()
-                    | Some stats ->
-                        begin
-                          try
-                            let filename = stats.razorback_file_history in
-                            Printf2.lprintf_nl2 "image: %s" filename;
-                            let pixb = GdkPixbuf.from_file filename in
-                            razorback_history#set_pixbuf pixb;
-                            label_rating#set_label (Printf.sprintf "Rating: %s" stats.razorback_file_rating);
-                            label_availability#set_label (Printf.sprintf "Available: %d" stats.razorback_file_avalaibility);
-                            label_completed#set_label (Printf.sprintf "Completed: %d" stats.razorback_file_completed);
-                          with _ -> GuiHtml.get_razorback2_stats file
-                        end
-                with _ -> ()
-              end
-          | _ -> ()
-      in
-      downloadview#set_on_select on_select_files
-    end;
+  let hbox_razorback_stats =
+    GPack.hbox ~homogeneous:false ~border_width:6
+      ~spacing:12
+      ~packing:(vbox#pack ~expand:false ~fill:true) ()
+  in
+  let razorback_history =
+    GMisc.image ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
+  in
+  let vbox_razorback_stats =
+    GPack.vbox ~homogeneous:false ~border_width:6
+      ~spacing:12
+      ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
+  in
+  let label_rating =
+    GMisc.label ~xalign:0. ~yalign:0.
+      ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+  in
+  let label_availability =
+    GMisc.label ~xalign:0. ~yalign:0.
+      ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+  in
+  let label_completed =
+    GMisc.label ~xalign:0. ~yalign:0.
+      ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+  in
+  let on_select_files keys =
+    match keys with
+      k :: _ when (is_file k) ->
+        begin
+          try
+            let file = file_of_key k in
+            match file.g_file_razorback_stats with
+              None ->
+                begin
+                  let pixb = A.get_icon ~icon:M.icon_mime_unknown ~size:A.LARGE () in
+                  razorback_history#set_pixbuf pixb;
+                  label_rating#set_label "Razorback Stats not available"
+                end
+            | Some stats ->
+                begin
+                  try
+                    let filename = stats.razorback_file_history in
+                    Printf2.lprintf_nl2 "image: %s" filename;
+                    let pixb = GdkPixbuf.from_file filename in
+                    razorback_history#set_pixbuf pixb;
+                    label_rating#set_label (Printf.sprintf "Rating: %s" stats.razorback_file_rating);
+                    label_availability#set_label (Printf.sprintf "Available: %d" stats.razorback_file_avalaibility);
+                    label_completed#set_label (Printf.sprintf "Completed: %d" stats.razorback_file_completed);
+                    GuiHtml.get_razorback2_stats file
+                  with _ -> ()
+                end
+          with _ -> ()
+        end
+    | _ -> ()
+  in
   let on_expand_item path k =
     ask_for_sources ();
     false
@@ -1444,6 +1440,7 @@ let downloads_box gui =
   downloadview#set_on_expand on_expand_item;
   downloadview#set_on_expanded on_expanded_item;
   downloadview#set_on_collapsed on_collapsed_item;
+  downloadview#set_on_select on_select_files;
   update_downloaders ();
   downloaders_timerID := Timeout.add ~ms:6000 ~callback:
     (fun _ ->
@@ -1467,8 +1464,6 @@ let _ =
   ignore (Timeout.add ~ms:1800000 ~callback:
     (fun _ ->
       clean_avail_bars ();
-      if !!O.gtk_misc_display_razorback_stats
-        then all_files_razorback2_stats ();
       true
   ));
   ignore (Timeout.add ~ms:30000 ~callback:

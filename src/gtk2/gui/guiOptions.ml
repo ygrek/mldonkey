@@ -352,12 +352,6 @@ let gtk_graph_upload = define_option current_section
 
 (* {Misc} *)
 
-let gtk_misc_display_razorback_stats = define_option current_section
-    ["gtk_misc_display_razorback_stats"]
-    ~desc:"Display razorback statistics"
-    "Check to display file information from http://stats.razorback2.com in the downloads page"
-    bool_option true
-
 let gtk_misc_relative_availability = define_option current_section 
     ["gtk_misc_relative_availability"]
     ~desc:"Use relative % availability"
