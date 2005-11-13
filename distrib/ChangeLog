@@ -12,8 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/13
-4583: disable stats.razorback2.com usage until better patch is (su_blanc)
-      coded to avoid overloading the server (disable_razorback_stats.diff)
+4583: Change stats.razorback2.com usage to on-demand (su_blanc)
+      to avoid overloading the server (disable_razorback_stats.diff)
 4619: Remove duplicate Gc.compact () from EDK mem_stats (pango)
 
 2005/11/12
