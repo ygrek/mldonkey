@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/13
+4619: Remove duplicate Gc.compact () from EDK mem_stats (pango)
+
 2005/11/12
 4617: GUI: send bt subfiles over gui prot (zet)
 4587: Buildinfo: Split build-time and run-time information (schlumpf)

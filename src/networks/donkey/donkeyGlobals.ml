@@ -688,7 +688,6 @@ let find_client_by_name name =
   with ClientFound c -> c
 
 let local_mem_stats level buf =
-  Gc.compact ();
   let client_counter = ref 0 in
   let unconnected_unknown_clients = ref 0 in
   let uninteresting_clients = ref 0 in
