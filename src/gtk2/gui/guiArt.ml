@@ -358,58 +358,53 @@ let highlight range i =
     else (range - (i * range / 2 / 16))
 
 (* define the colors we will use to display the availability *)
-let color_red = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_red = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
     let r = highlight 255 i in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x%02X0000ff" r in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_red ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
-let color_green = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_green = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
     let r = highlight 255 i in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x00%02X00ff" r in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_green ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
-let color_black = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_black = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
     let r = highlight 128 i in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x%02X%02X%02Xff" r r r in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_black ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
-let color_orange = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_orange = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
     let r = highlight 255 i in
     let g = 178 * r / 255 in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x%02X%02X00ff" r g in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_orange ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
   done
 
-let color_yellow = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_yellow = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
      let r = highlight 255 i in
     let g = 255 * r / 255 in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x%02X%02X00ff" r g in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_yellow ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
@@ -420,9 +415,9 @@ let color_blue_relative = ref [||]
 let create_color_blue_relative () =
   color_blue_relative := [||];
   for i = 0 to (!!O.gtk_misc_availability_max - 1) do
-    let pixbuf = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false () in
+    let pixbuf = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true () in
     let col_step = i * 255 / (!!O.gtk_misc_availability_max - 1) in
-    let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+    let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
     for j = 0 to 15 do
       let b = highlight 255 j in
       let g = highlight col_step j in
@@ -435,12 +430,11 @@ let create_color_blue_relative () =
 
 let _ = create_color_blue_relative ()
 
-let color_grey = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:false ()
+let color_grey = GdkPixbuf.create ~width:1 ~height:16 ~has_alpha:true ()
 let _ =
-  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:false () in
+  let pixb = GdkPixbuf.create ~width:1 ~height:1 ~has_alpha:true () in
   for i = 0 to 15 do
     let r = highlight 255 i in
-(*  RGBA pixel to clear to (0xffffffff is opaque white, 0x00000000 transparent black) *)
     let s =  Printf.sprintf "0x%02X%02X%02Xff" r r r in
     GdkPixbuf.fill pixb (Int32.of_string s);
     GdkPixbuf.copy_area ~dest:color_grey ~dest_x:0 ~dest_y:i ~width:1 ~height:1 ~src_x:0 ~src_y:0 pixb
@@ -475,7 +469,7 @@ let get_availability_of availability chunks is_file =
   with _ ->
     begin
       (if !!verbose then lprintf' "Creating new availability bar\n");
-      let dest = GdkPixbuf.create ~width:nchunks ~height ~has_alpha:false () in
+      let dest = GdkPixbuf.create ~width:nchunks ~height ~has_alpha:true () in
       (try
         for i = 0 to (nchunks - 1) do
           if is_file

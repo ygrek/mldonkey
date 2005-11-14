@@ -824,18 +824,7 @@ let string_of_availability availability chunks =
 let main_availability_of net availabilities  =
   try
     List.assoc net availabilities
-  with _ ->
-    begin
-      match availabilities with
-          (_, availability)::_ ->
-             begin
-               let len = String.length availability in
-               String.make len (char_of_int 0)
-             end
-
-        | _ -> ""
-
-    end
+  with _ -> ""
 
 let availability_bar availability chunks b =
   if !!O.gtk_look_graphical_availability

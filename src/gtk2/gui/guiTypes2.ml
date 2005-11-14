@@ -218,7 +218,6 @@ type razorback_stats =
    mutable razorback_file_rating       : string;
    mutable razorback_file_avalaibility : int;
    mutable razorback_file_completed    : int;
-   mutable razorback_file_last_time    : float;
   }
 
 type g_file_info = {

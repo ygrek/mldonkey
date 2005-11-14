@@ -1227,6 +1227,16 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
            not (List.mem_assoc c !!columns)
         ) column_strings
       in
+      let rec iter p n =
+        if p = n
+          then true
+          else begin
+            let col = view#get_column p in
+            let autosized = match col#sizing with `AUTOSIZE -> true | _ -> false in
+            if autosized then iter (p + 1) n else false
+          end
+      in
+      let all_autosized = iter 0 (List.length !!columns) in
       [
         `C (!M.mAutosize, (match vc#sizing with `AUTOSIZE -> true | _ -> false),
           (fun autosize ->
@@ -1249,7 +1259,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
              with _ -> ()
           )
         );
-        `C (!M.mAutosize_all, (match vc#sizing with `AUTOSIZE -> true | _ -> false),
+        `C (!M.mAutosize_all, all_autosized,
           (fun autosize ->
              try
                let pos = ref 0 in

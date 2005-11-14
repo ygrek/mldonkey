@@ -26,6 +26,8 @@ open GuiTypes2
 open Md4
 
 module O = GuiOptions
+module M = GuiMessages
+module U = GuiUtf8
 
 let cache_dir = Filename.concat GuiMessages.gui_config_dir "cache"
 
@@ -39,12 +41,11 @@ let clean_cache_dir () =
 let _ =
   Unix2.safe_mkdir cache_dir;
   Unix2.can_write_to_directory cache_dir;
-  clean_cache_dir ();
-  ignore (GMain.Timeout.add ~ms:3600000 ~callback:
-    (fun _ ->
-      clean_cache_dir ();
-      true
-  ))
+  clean_cache_dir ()
+
+let user_agent =
+(* "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]" *)
+  Printf.sprintf "Mlgui/%s (%s) [en]" Autoconf.current_version Autoconf.build_system
 
 let make_request url =
   let module H = Http_client in
@@ -57,7 +58,7 @@ let make_request url =
       H.basic_request with
       H.req_url = Url.of_string url;
       H.req_proxy = proxy;
-      H.req_user_agent = "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]";
+      H.req_user_agent = user_agent;
       H.req_referer = None;
       H.req_request = H.GET;
     } in
@@ -76,7 +77,8 @@ let file_from_url url =
     Filename.concat cache_dir file
   with _ -> ""
 
-let get url_name f =
+let get url_name f progress =
+  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_razorback2_stats_get_main_page in
   let r = make_request url_name in
   let module H = Http_client in
   let filename = file_from_url (Url.to_string r.H.req_url) in
@@ -94,7 +96,7 @@ let get url_name f =
                ~return_comments:true lexb
     in
     f dl;
-    close_in in_chan) (fun n m -> lprintf_nl2 "progress: %d / %d" n m)
+    close_in in_chan) (fun n m -> progress progress_desc n m)
 
 
 let uids_to_md4 uids =
@@ -112,7 +114,8 @@ let uids_to_md4 uids =
     then !s
     else raise Not_found
 
-let parse_razorback_stats stats md4 referer dl =
+let parse_razorback_stats stats md4 referer progress dl =
+  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_razorback2_stats_get_image in
   let rec iter _dl =
     List.iter (fun d ->
       match d with
@@ -131,8 +134,7 @@ let parse_razorback_stats stats md4 referer dl =
                         (try Sys.remove filename with _ -> lprintf_nl2 "cannot remove file %s" filename);
                         File.from_string filename ___s;
                         stats.razorback_file_history <- filename;
-                        stats.razorback_file_last_time <- BasicSocket.current_time ();
-                      with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> lprintf_nl2 "progress: %d / %d" n m)
+                      with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> progress progress_desc n m)
                   end
               ) sl;
               iter __dl
@@ -192,8 +194,7 @@ let parse_razorback_stats stats md4 referer dl =
   in
   iter dl
 
-let get_razorback2_stats file = ()
-(*
+let get_razorback2_stats file progress1 progress2 =
   try
     let md4 = uids_to_md4 file.g_file_uids in
     let stats =
@@ -205,22 +206,16 @@ let get_razorback2_stats file = ()
                razorback_file_rating       = "";
                razorback_file_avalaibility = 0;
                razorback_file_completed    = 0;
-               razorback_file_last_time    = 0.;
              } in
              file.g_file_razorback_stats <- Some s;
              s
            end
       | Some s -> s
     in
-    let last_time = BasicSocket.current_time () -. stats.razorback_file_last_time in
-    if last_time > 3600000. (* 60 min *)
-      then begin
-        let referer = "http://stats.razorback2.com/" in
-        let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
-        get url (parse_razorback_stats stats md4 referer)
-      end
+    let referer = "http://stats.razorback2.com/" in
+    let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
+    get url (parse_razorback_stats stats md4 referer (progress1 md4)) (progress2 md4)
   with _ -> ()
-*)
 
 (*
 Element: !

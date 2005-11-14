@@ -290,7 +290,7 @@ let add_avail_info (table : GPack.table) f top =
                 ~expand:`X ~fill:`X
                 img#coerce;
               let w = GdkPixbuf.get_width pixb in
-              let pixbuf = GdkPixbuf.create ~width ~height ~has_alpha:false () in
+              let pixbuf = GdkPixbuf.create ~width ~height ~has_alpha:true () in
               let scale_x = (float_of_int width) /. (float_of_int w) in
               GdkPixbuf.scale
                 ~dest:pixbuf ~dest_x:0 ~dest_y:0

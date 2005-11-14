@@ -11,6 +11,18 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/14
+4625: GTK2 GUI - bug fix (su_blanc)
+* bug #14865 : availability display "dotty"
+  added alpha channel to availability pixbuf.
+* bug #14963 : autosize slightly broken
+  the tick mark for 'autosize all columns' appears only if all columns are set
+  to 'autosize' mode. 'autosize all columns' triggers an 'autosize' mode for
+  all columns if at least one has not this mode set. Otherwise all the columns
+  are set to 'fixed' mode.
+* bug : razorback stats
+  display stats on user request.
+
 2005/11/13
 4583: Change stats.razorback2.com usage to on-demand (su_blanc)
       to avoid overloading the server (disable_razorback_stats.diff)
