@@ -114,7 +114,7 @@ let uids_to_md4 uids =
     then !s
     else raise Not_found
 
-let parse_razorback_stats stats md4 referer progress dl =
+let parse_razorback_stats stats md4 referer on_png_completed progress dl =
   let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_razorback2_stats_get_image in
   let rec iter _dl =
     List.iter (fun d ->
@@ -134,6 +134,7 @@ let parse_razorback_stats stats md4 referer progress dl =
                         (try Sys.remove filename with _ -> lprintf_nl2 "cannot remove file %s" filename);
                         File.from_string filename ___s;
                         stats.razorback_file_history <- filename;
+                        on_png_completed ();
                       with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> progress progress_desc n m)
                   end
               ) sl;
@@ -194,7 +195,7 @@ let parse_razorback_stats stats md4 referer progress dl =
   in
   iter dl
 
-let get_razorback2_stats file progress1 progress2 =
+let get_razorback2_stats file progress_html on_png_completed progress_png =
   try
     let md4 = uids_to_md4 file.g_file_uids in
     let stats =
@@ -214,7 +215,7 @@ let get_razorback2_stats file progress1 progress2 =
     in
     let referer = "http://stats.razorback2.com/" in
     let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
-    get url (parse_razorback_stats stats md4 referer (progress1 md4)) (progress2 md4)
+    get url (parse_razorback_stats stats md4 referer on_png_completed (progress_html md4)) (progress_png md4)
   with _ -> ()
 
 (*

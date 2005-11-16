@@ -418,9 +418,11 @@ class virtual g_list (cols : GTree.column_list) =
     method private remove_item_while_idle () =
       ignore (Glib.Idle.add (fun _ ->
         try
-          let it = Queue.take queue_remove in
+          let (key, it) = Queue.take queue_remove in
           Gaux.may ~f:(fun p ->
-            ignore (store#remove p.path_tree_iter)) it.item_tree_path;
+            ignore (store#remove p.path_tree_iter);
+            Hashtbl.remove table key;
+            ) it.item_tree_path;
           true
         with Queue.Empty -> false))
 
@@ -433,10 +435,10 @@ class virtual g_list (cols : GTree.column_list) =
             let is_empty = Queue.is_empty queue_remove in
             it.item_tree_removed <- true;
             Gaux.may ~f:(fun p ->
-              store#set ~row:p.path_tree_iter ~column:filter_col (filter_func key)) it.item_tree_path;
-            Queue.add it queue_remove;
-            Hashtbl.remove table key;
-            nitems <- nitems - 1;
+              store#set ~row:p.path_tree_iter ~column:filter_col (filter_func key);
+              nitems <- nitems - 1;
+              ) it.item_tree_path;
+            Queue.add (key, it) queue_remove;
             if is_empty then self#remove_item_while_idle ()
           end
       with _ -> ()

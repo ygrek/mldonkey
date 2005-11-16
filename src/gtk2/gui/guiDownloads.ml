@@ -53,6 +53,7 @@ let lprintf' fmt =
 (*************************************************************************)
 
 let (downloaders : int list ref) = ref []
+let current_selection = ref []
 
 (*************************************************************************)
 (*                                                                       *)
@@ -62,7 +63,7 @@ let (downloaders : int list ref) = ref []
 
 let downloaders_timerID = ref (GMain.Timeout.add ~ms:2000 ~callback:(fun _ -> true))
 let (view_context : GPango.context option ref) = ref None
-let (razorback_progress_box : (GMisc.label * GRange.progress_bar) option ref) = ref None
+let (razorback_boxes : (GPack.box * GPack.box * GMisc.label * GRange.progress_bar) option ref) = ref None
 let interested_in_sources = ref false
 let expanded_rows = ref 0
 
@@ -984,10 +985,79 @@ let update_downloading_files () =
     GuiCom.send (GetFile_info f.g_file_num)
   ) files
 
+let show_razorback_stats file (hbox_stats : GPack.box) (hbox_progress : GPack.box) =
+  match file.g_file_razorback_stats with
+    None ->
+      begin
+        List.iter (fun w -> w#destroy ()) hbox_stats#children;
+        List.iter (fun w -> w#misc#hide ()) hbox_progress#children;
+      end
+  | Some stats ->
+      begin
+        try
+          List.iter (fun w -> w#destroy ()) hbox_stats#children;
+          List.iter (fun w -> w#misc#hide ()) hbox_progress#children;
+          let filename = stats.razorback_file_history in
+          let pixb = GdkPixbuf.from_file filename in
+          let razorback_history =
+            GMisc.image ~packing:(hbox_stats#pack ~expand:false ~fill:true) ()
+          in
+          let vbox_razorback_stats =
+            GPack.vbox ~homogeneous:false ~border_width:6 ~spacing:12
+            ~packing:(hbox_stats#pack ~expand:false ~fill:true) ()
+          in
+          let label_rating =
+            GMisc.label ~xalign:0. ~yalign:0.
+            ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+          in
+          let label_availability =
+            GMisc.label ~xalign:0. ~yalign:0.
+            ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+          in
+          let label_completed =
+            GMisc.label ~xalign:0. ~yalign:0.
+            ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
+          in
+          let rating = U.utf8_of (
+            Printf.sprintf "%s %s"
+            !M.dT_lb_razorback2_stats_rate stats.razorback_file_rating) in
+          let availability = U.utf8_of (
+            Printf.sprintf "%s %d"
+            !M.dT_lb_razorback2_stats_available stats.razorback_file_avalaibility) in
+          let completed = U.utf8_of (
+            Printf.sprintf "%s %d"
+            !M.dT_lb_razorback2_stats_complete stats.razorback_file_completed) in
+          razorback_history#set_pixbuf pixb;
+          label_rating#set_label rating;
+          label_availability#set_label availability;
+          label_completed#set_label completed
+        with _ -> ()
+      end
 
 let razorback2_stats k () =
   try
     let file = file_of_key k in
+    let on_completed () =
+      match !current_selection with
+        key :: _ when key = k ->
+          begin
+            match !razorback_boxes with
+              Some (hbox_stats, hbox_progress, label, pbar) ->
+                begin
+                  match file.g_file_razorback_stats with
+                    Some stats ->
+                      begin
+                        if Sys.file_exists stats.razorback_file_history
+                          then begin
+                            show_razorback_stats file hbox_stats hbox_progress 
+                          end
+                      end
+                  | None -> ()
+                end
+            | None -> ()
+          end
+      | _ -> ()
+    in
     let t1 = ref 0. in
     let t2 = ref 0. in
     let progress t md4 desc n m =
@@ -1001,20 +1071,21 @@ let razorback2_stats k () =
       in
       let v = int_of_float (p *. 100.) in
       let percent = U.simple_utf8_of (Printf.sprintf "%d%%" v) in
-      Printf2.lprintf_nl2 "%s: %s" s percent;
-      match !razorback_progress_box with
-        Some (label, pbar) ->
+      (if !!verbose then lprintf' "%s: %s\n" s percent);
+      match !razorback_boxes with
+        Some (hbox_stats, hbox_progress, label, pbar) ->
           begin
             label#set_label s;
             pbar#set_fraction p;
             pbar#set_text percent;
             label#misc#show ();
-            pbar#misc#show ()
+            pbar#misc#show ();
           end
       | _ -> ()
     in
-    GuiHtml.get_razorback2_stats file (progress t1) (progress t2)
+    GuiHtml.get_razorback2_stats file (progress t1) on_completed (progress t2)
   with _ -> ()
+
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1158,6 +1229,7 @@ let clean_avail_bars () =
 let clear () =
   downloadstore#clear ();
   downloaders := [];
+  current_selection := [];
   expanded_rows := 0;
   clean_avail_bars ()
 
@@ -1371,7 +1443,8 @@ let downloads_box gui =
   ignore (vbox#connect#destroy ~callback:
     (fun _ ->
        view_context := None;
-       razorback_progress_box := None;
+       razorback_boxes := None;
+       current_selection := [];
        expanded_rows := 0;
        Timeout.remove (!downloaders_timerID)
   ));
@@ -1410,61 +1483,16 @@ let downloads_box gui =
     GRange.progress_bar ~pulse_step:0.01 ~show:false
       ~packing:(hbox_razorback_progress#pack ~expand:false ~fill:true) ()
   in
-  razorback_progress_box := Some (label_razorback_progress, pbar_razorback_progress);
+  razorback_boxes := Some (hbox_razorback_stats, hbox_razorback_progress,
+                           label_razorback_progress, pbar_razorback_progress);
   let on_select_files keys =
+    current_selection := keys;
     match keys with
       k :: _ when (is_file k) ->
         begin
           try
             let file = file_of_key k in
-            match file.g_file_razorback_stats with
-              None ->
-                begin
-                  List.iter (fun w -> w#destroy ()) hbox_razorback_stats#children;
-                  List.iter (fun w -> w#misc#hide ()) hbox_razorback_progress#children;
-                end
-            | Some stats ->
-                begin
-                  try
-                    List.iter (fun w -> w#destroy ()) hbox_razorback_stats#children;
-                    List.iter (fun w -> w#misc#hide ()) hbox_razorback_progress#children;
-                    let razorback_history =
-                      GMisc.image ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
-                    in
-                    let vbox_razorback_stats =
-                      GPack.vbox ~homogeneous:false ~border_width:6 ~spacing:12
-                        ~packing:(hbox_razorback_stats#pack ~expand:false ~fill:true) ()
-                    in
-                    let label_rating =
-                      GMisc.label ~xalign:0. ~yalign:0.
-                        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-                    in
-                    let label_availability =
-                      GMisc.label ~xalign:0. ~yalign:0.
-                        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-                    in
-                    let label_completed =
-                      GMisc.label ~xalign:0. ~yalign:0.
-                        ~packing:(vbox_razorback_stats#pack ~expand:false ~fill:true) ()
-                    in
-                    let filename = stats.razorback_file_history in
-                    Printf2.lprintf_nl2 "image: %s" filename;
-                    let pixb = GdkPixbuf.from_file filename in
-                    razorback_history#set_pixbuf pixb;
-                    let rating = U.utf8_of (
-                      Printf.sprintf "%s %s"
-                        !M.dT_lb_razorback2_stats_rate stats.razorback_file_rating) in
-                    let availability = U.utf8_of (
-                      Printf.sprintf "%s %d"
-                        !M.dT_lb_razorback2_stats_available stats.razorback_file_avalaibility) in
-                    let completed = U.utf8_of (
-                      Printf.sprintf "%s %d"
-                        !M.dT_lb_razorback2_stats_complete stats.razorback_file_completed) in
-                    label_rating#set_label rating;
-                    label_availability#set_label availability;
-                    label_completed#set_label completed
-                  with _ -> ()
-                end
+            show_razorback_stats file hbox_razorback_stats hbox_razorback_progress
           with _ -> ()
         end
     | _ -> ()
