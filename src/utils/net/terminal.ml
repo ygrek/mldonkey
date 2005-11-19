@@ -42,7 +42,7 @@ module Vt100 = struct
       cx := x; 
       cy := y
     end;
-    Printf.printf "\027[%d;%dH" (y+1) (x+1) 
+    Printf2.lprintf "\027[%d;%dH" (y+1) (x+1) 
       
   let stdvid () = print_string "\027[m" (* "]" *);;
       

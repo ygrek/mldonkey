@@ -724,9 +724,8 @@ let config_window gui value_reader f =
       then begin
         let s = U.lang_to_string !!O.gtk_client_lang in
         let ext = String.lowercase s in
-        Printf.printf "gtk_client_lang %s\nlanguage %s\next %s\n"
+        lprintf' "gtk_client_lang %s\nlanguage %s\next %s\n"
           s (U.lang_to_string language) ext;
-        flush stdout;
         Gettext.set_strings_file M.filename ~ext ();
         M.load_messages ();
         GuiStatusBar.update_labels ();

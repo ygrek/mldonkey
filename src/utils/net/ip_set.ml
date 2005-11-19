@@ -368,7 +368,7 @@ let check_ips ips =
     with MatchedIP s -> 
       incr blocked
   done;
-    Printf.printf "Blocked: %d\n" !blocked
+    Printf2.lprintf "Blocked: %d\n" !blocked
 
 let _ =
   latency1 10 check_ips ips;

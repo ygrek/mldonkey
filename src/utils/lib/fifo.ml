@@ -243,7 +243,7 @@ let remove t e =
   if not t.empty then begin
       if t.outpos >= t.inpos then reformat t;
       let rec iter t i j =
-(*        Printf.printf "i=%d j=%d inpos=%d outpos=%d\n"
+(*        Printf2.lprintf "i=%d j=%d inpos=%d outpos=%d\n"
           i j t.inpos t.outpos; print_newline (); *)
         if i >= t.inpos then
           (if i > j then begin
@@ -256,7 +256,7 @@ let remove t e =
           iter t (i+1) j
         else begin
             if i > j then begin
-(*                Printf.printf "Move i=%d at j=%d" i j; print_newline ();  *)
+(*                Printf2.lprintf "Move i=%d at j=%d" i j; print_newline ();  *)
                 t.array.(j) <- ee;
               end;
             iter t (i+1) (j+1)
@@ -285,7 +285,7 @@ done
 ;;
 
 while true do
-  Printf.printf "%d\n" (Fifo.take t)
+  Printf2.lprintf "%d\n" (Fifo.take t)
 done;;
 
 *)

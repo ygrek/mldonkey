@@ -199,8 +199,6 @@ let get_audio_codec s =
   ) s;
   try
     let n = int_of_string !str in
-    Printf.printf "get_audio_codec: %d [%s]\n" n !str;
-    flush stdout;
     match n with
       1 -> "pcm"
     | 55 -> "mp3"
@@ -278,7 +276,7 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
   seek_in ic (pos+10);
   really_input ic serial_number 0 4;
   let stream_number = read32 serial_number in
-  Printf.printf "Stream Serial Number: %0.f\n" stream_number;
+  lprintf "Stream Serial Number: %0.f\n" stream_number;
 *)
   seek_in ic (pos+24);
   let content_type = String.create 1 in

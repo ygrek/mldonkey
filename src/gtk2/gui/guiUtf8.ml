@@ -19,6 +19,8 @@
 
 (* Internationalization functions *)
 
+open Printf2
+
 type lang =
   AR
 | HY
@@ -724,8 +726,7 @@ let set_default_codeset_list lang =
   enc_list := List.filter (fun enc -> enc <> charset) !enc_list;
   enc_list := if (charset <> "UTF-8") then charset::!enc_list else !enc_list;
   List.iter (fun enc ->
-    Printf2.lprintf "Use encoding %s\n" enc; 
-    flush stdout
+    lprintf "Use encoding %s\n" enc
   ) !enc_list;
   nenc := List.length !enc_list
 

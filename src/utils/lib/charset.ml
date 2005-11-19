@@ -1791,11 +1791,10 @@ let set_default_charset_list (lang : string) =
   (* Let's get rid of charset aliases *)
   let l = List.map (fun li -> List.hd li) (charset_list_from_language lang) in
   enc_list := List.map (fun c -> charset_to_string c ) l;
-(*  Printf.printf "List of charmap used to convert the strings:\n";
+(* Printf2.lprintf "List of charmap used to convert the strings:\n";
   List.iter (fun enc ->
-    Printf.printf "  Use encoding %s\n" enc; 
-  ) !enc_list;
-  flush stdout; *)
+    Printf2.lprintf "  Use encoding %s\n" enc; 
+  ) !enc_list; *)
   nenc := List.length !enc_list
 
 (**********************************************************************************)

@@ -605,8 +605,10 @@ for config files at the end. *)
    succeeded is the string token "Core started". *)
   if not !keep_console_output then
     begin
-      Pervasives.output_string Pervasives.stdout (Printf.sprintf "%sCore started\n" (log_time ()));
-      Pervasives.flush Pervasives.stdout;
+      try
+        Printf.fprintf Pervasives.stderr "%sCore started\n" (log_time ());
+        Pervasives.flush Pervasives.stderr;
+      with _ -> ()
     end;
 
   lprintf_nl (_b "Core started");

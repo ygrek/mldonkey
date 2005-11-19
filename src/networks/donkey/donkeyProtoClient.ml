@@ -301,7 +301,7 @@ module QueryFile  = struct
       }
 
     let parse emule len s =
-(*      Printf.printf "Query File: emule version %d len %d"
+(*      lprintf "Query File: emule version %d len %d"
       (extendedrequest emule) len;
       print_newline (); *)
       let md4 = get_md4 s 1 in
@@ -1140,7 +1140,7 @@ let rec parse_emule_packet emule opcode len s =
     | 0x92 (* 146 *) ->
         let md4 = get_md4 s 1 in
 
-(*        Printf.printf "MULTI EMULE VERSION %d"
+(*        lprintf "MULTI EMULE VERSION %d"
           (extendedrequest emule); print_newline (); *)
         let pos = 17 in
         let rec iter pos =
@@ -1177,7 +1177,7 @@ let rec parse_emule_packet emule opcode len s =
         end;
         let md4 = get_md4 s 1 in
 
-(*        Printf.printf "MULTI EMULE VERSION %d"
+(*        lprintf "MULTI EMULE VERSION %d"
           (extendedrequest emule); print_newline (); *)
         let rec iter s pos len =
           if pos < len then

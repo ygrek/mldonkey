@@ -1271,22 +1271,22 @@ let decompress s =
   let (_,used_in, used_out) = inflate z !buf !pos len s2 0 100000 f in
   pos := !pos + len;
   
-  Printf.printf "\n----------NEW PAQUET (%d/%d)----------------------------------------\n" used_in len;  
+  lprintf "\n----------NEW PAQUET (%d/%d)----------------------------------------\n" used_in len;  
   for i = 0 to used_out - 1 do
     let c = s2.[i] in
     let x = int_of_char c in
     if x > 31 && x < 127 then 
       print_char c
     else
-      Printf.printf "(%d)" x;
+      lprintf "(%d)" x;
   done;
-  Printf.printf "\n------------------------------------------------------------\n";  
+  lprintf "\n------------------------------------------------------------\n";  
   for i = 0 to used_out - 1 do
     let c = s2.[i] in
     let x = int_of_char c in
-    Printf.printf "(%d)" x;
+    lprintf "(%d)" x;
   done;
-  Printf.printf "\n------------------------------------------------------------\n";
+  lprintf "\n------------------------------------------------------------\n";
 *)
 
 (*

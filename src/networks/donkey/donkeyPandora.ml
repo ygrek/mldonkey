@@ -143,8 +143,7 @@ let client_parse c opcode s =
                   Uint64 v | Fint64 v ->
                     update_emule_proto_from_miscoptions1 emule v
                 | _ -> 
-                    Printf.printf "CANNOT INTERPRETE EMULE OPTIONS";
-                    print_newline ();
+                    lprintf "CANNOT INTERPRETE EMULE OPTIONS\n"
               
               with _ -> ()
             end;
@@ -268,7 +267,7 @@ let read_trace () =
               | D.EmuleClientInfoReq _
               | D.ConnectReq _
               | D.ConnectReplyReq _ ->
-                  Printf.printf "CLIENT CONNECTION"; print_newline ();
+                  lprintf "CLIENT CONNECTION\n"
                   
               | D.UnknownReq _ -> 
                   D.print t; print_newline ();
@@ -276,22 +275,20 @@ let read_trace () =
                   
               | _ -> 
                   D.print t; print_newline ();
-                  Printf.printf "COULD NOT RECOGNIZE CONNECTION";
-                  print_newline ()
+                  lprintf "COULD NOT RECOGNIZE CONNECTION\n"
             );
           with 
           | ServerConnection ->
-              Printf.printf "PROBABLY A SERVER CONNECTION"; print_newline ();
+              lprintf "PROBABLY A SERVER CONNECTION\n"
           | Not_found ->
-              Printf.printf "EMPTY CONNECTION (%d)" (String.length buffer); 
-              print_newline ();
+              lprintf "EMPTY CONNECTION (%d)\n" (String.length buffer)
         );
         
         lprintf "CONNECTION %s:%d --> %s:%d" 
           cnx.ip1 cnx.port1 cnx.ip2 cnx.port2; print_newline ();
-        Printf.printf "  INCOMING:"; print_newline ();
+        lprintf "  INCOMING:\n";
         cut_messages (client_parse c) buffer;
-        Printf.printf "  OUTGOING:"; print_newline ();
+        lprintf "  OUTGOING:\n";
         cut_messages (client_parse c)
         (Buffer.contents cnx.packets_out);
         

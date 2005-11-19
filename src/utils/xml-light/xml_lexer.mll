@@ -402,7 +402,7 @@ and dtd_item = parse
   | "<!"
       {
       ignore_spaces lexbuf;
-      Printf.printf "?????"; print_newline ();
+      (* Printf.printf "?????"; print_newline (); *)
       let t = dtd_item_type lexbuf in
       let name = (try ident_name lexbuf with Error EIdentExpected -> raise (DTDError EInvalidDTDDecl)) in
       ignore_spaces lexbuf;

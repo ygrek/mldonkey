@@ -118,9 +118,7 @@ let clear () =
   Hashtbl.clear file_by_uid;
   Gc.compact ()
 
-let console_message = ref (fun s -> 
-      lprintf "CONSOLE: %s" s;
-      lprint_newline () )
+let console_message = ref (fun s -> lprintf_nl "CONSOLE: %s" s)
 
 
 let gtk_handler timer =

@@ -126,7 +126,7 @@ let rec output oz buf pos len =
     invalid_arg "Bzlib2.output";
   (* If output buffer is full, flush it *)
   if oz.out_avail = 0 then begin
-    Printf.printf "Flushing out_avail\n";
+  (* Printf.printf "Flushing out_avail\n"; *)
     Pervasives.output oz.out_chan oz.out_buffer 0 oz.out_pos;
     oz.out_pos <- 0;
     oz.out_avail <- String.length oz.out_buffer

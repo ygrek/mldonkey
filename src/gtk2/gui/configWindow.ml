@@ -171,8 +171,7 @@ let add_string_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label opti
 (*
   ignore (table#misc#connect#size_allocate
       ~callback: (fun r ->
-        Printf.printf "Table width %d\n" r.Gtk.width;
-        flush stdout
+        lprintf' "Table width %d\n" r.Gtk.width;
   ));
 *)
   table#attach ~left:0 ~top 

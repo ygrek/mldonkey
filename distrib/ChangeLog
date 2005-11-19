@@ -15,6 +15,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 These patches are experimental, please test carefully and report your findings.
 
+4563: replace all Printf.printf occurences by Printf2.lprintf (su_blanc)
 4479: Callback mechanism for low ID users does not work (miriup)
       Reactivating submission of server IP and port during client
       handshake in edonkey

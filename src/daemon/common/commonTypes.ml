@@ -18,6 +18,7 @@
 *)
 
 open Options
+open Printf2
 open Md4 
 
 type activity = {
@@ -674,13 +675,12 @@ let ogg_tag_to_string ogg_tag =
 
 let print_ogg_infos ogg_infos =
   List.iter (fun stream ->
-    Printf.printf "-== %s info - stream number: %d ==-\n"
+    lprintf "-== %s info - stream number: %d ==-\n"
       (stream_type_to_string stream.stream_type) stream.stream_no;
     List.iter (fun tag ->
-      Printf.printf "  %s\n" (ogg_tag_to_string tag)
+      lprintf "  %s\n" (ogg_tag_to_string tag)
     ) stream.stream_tags
-  ) !ogg_infos;
-  flush stdout
+  ) !ogg_infos
 
 type format =
   AVI of avi_info
