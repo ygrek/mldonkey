@@ -12,6 +12,16 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/19
+
+These patches are experimental, please test carefully and report your findings.
+
+4479: Callback mechanism for low ID users does not work (miriup)
+      Reactivating submission of server IP and port during client
+      handshake in edonkey
+  "However, sometimes, especially when I have no files to download I do
+   not receive callbacks at all. It is suggested to apply this patch in
+   a testing mldonkey for a week on a non-low id connection before including
+   it in a stable release, ... I can't test high-ID at all."
 4574: Friends upload slot (pango)
 
 2005/11/19: version 2.7.0 = tag release-2-7-0

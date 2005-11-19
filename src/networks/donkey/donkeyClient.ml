@@ -2368,7 +2368,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                             C.port = !!donkey_port;
                             C.tags = !client_to_client_tags;
                             C.hash_len = 16;
-                            C.server_info = Some (get_server_ip_port ());
+                            C.server_info = Some (server_ip, server_port);
                             C.left_bytes = left_bytes;
                           }
                       )
