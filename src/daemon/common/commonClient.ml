@@ -29,6 +29,7 @@ type 'a client_impl = {
     mutable impl_client_state : host_state;
     mutable impl_client_update : int;
     mutable impl_client_has_slot : bool;
+    mutable impl_client_has_friend_slot : bool;
     mutable impl_client_upload : shared option;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
@@ -97,6 +98,7 @@ let dummy_client_impl = {
     impl_client_state = NewHost;
     impl_client_update = 1;
     impl_client_has_slot = false;
+    impl_client_has_friend_slot = false;
     impl_client_upload = None;
     impl_client_num = 0;
     impl_client_val = 0;
@@ -267,8 +269,52 @@ let set_client_state c state =
 
 let uploaders = ref Intmap.empty
 
+let client_type c =
+  let impl = as_client_impl c in
+  impl.impl_client_type
+
+let set_client_type c t =
+  let impl = as_client_impl c in
+  if impl.impl_client_type <> t then begin
+      impl.impl_client_type <- t;
+      client_must_update c
+    end
+
+let is_friend c =
+  (client_type c) land client_friend_tag <> 0
+
+let is_contact c =
+  (client_type c) land client_contact_tag <> 0
+
+let set_friend c =
+  set_client_type c (client_type c lor client_friend_tag)
+
+let set_contact c =
+  set_client_type c (client_type c lor client_contact_tag)
+
+let set_not_friend c =
+  set_client_type c (client_type c land (lnot client_friend_tag))
+
+let set_not_contact c =
+  set_client_type c (client_type c land (lnot client_contact_tag))
+
+let is_nolimit c =
+  (client_type c) land client_nolimit_tag <> 0
+
+let set_nolimit c =
+  set_client_type c (client_type c lor client_nolimit_tag)
+
+let is_initialized c =
+  client_type c land client_initialized_tag <> 0
+
+let set_initialized c =
+  set_client_type c (client_type c lor client_initialized_tag)
+
 let client_has_a_slot c =
   (as_client_impl c).impl_client_has_slot
+
+let client_has_a_friend_slot c =
+  (as_client_impl c).impl_client_has_friend_slot
 
 let client_upload c =
   (as_client_impl c).impl_client_upload
@@ -281,6 +327,7 @@ let set_client_has_a_slot c b =
   let impl = as_client_impl c in
   if not b && impl.impl_client_has_slot then begin
       impl.impl_client_has_slot <- false;
+      impl.impl_client_has_friend_slot <- false;
       uploaders := Intmap.remove (client_num c) !uploaders;
       client_must_update c;
 (*
@@ -297,7 +344,8 @@ them unaccessable on Windows.
   else
   if b && not impl.impl_client_has_slot then  begin
       uploaders := Intmap.add (client_num c) c !uploaders;
-      impl.impl_client_has_slot <- b;
+      impl.impl_client_has_slot <- true;
+      impl.impl_client_has_friend_slot <- is_friend c;
       client_must_update c
     end
 
@@ -332,17 +380,6 @@ let new_client (client : 'a client_impl) =
 let client_remove c =
   H.remove clients_by_num c;
   set_client_state c RemovedHost
-
-let client_type c =
-  let impl = as_client_impl c in
-  impl.impl_client_type
-
-let set_client_type c t =
-  let impl = as_client_impl c in
-  if impl.impl_client_type <> t then begin
-      impl.impl_client_type <- t;
-      client_must_update c
-    end
 
 let _ =
   Heap.add_memstat "CommonClient" (fun level buf ->
@@ -409,36 +446,6 @@ let client_print c o =
             Printf.sprintf "%s:%d" (Ip.to_string ip) port)
     end
 
-
-let is_friend c =
-  (client_type c) land client_friend_tag <> 0
-
-let is_contact c =
-  (client_type c) land client_contact_tag <> 0
-
-let set_friend c =
-  set_client_type c (client_type c lor client_friend_tag)
-
-let set_contact c =
-  set_client_type c (client_type c lor client_contact_tag)
-
-let set_not_friend c =
-  set_client_type c (client_type c land (lnot client_friend_tag))
-
-let set_not_contact c =
-  set_client_type c (client_type c land (lnot client_contact_tag))
-
-let is_nolimit c =
-  (client_type c) land client_nolimit_tag <> 0
-
-let set_nolimit c =
-  set_client_type c (client_type c lor client_nolimit_tag)
-
-let is_initialized c =
-  client_type c land client_initialized_tag <> 0
-
-let set_initialized c =
-  set_client_type c (client_type c lor client_initialized_tag)
 
 let client_has_bitmap (client : client) (file : file) bitmap =
   CommonEvent.add_event (File_update_availability (file, client, bitmap))

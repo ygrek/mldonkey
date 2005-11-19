@@ -3,6 +3,7 @@ type 'a client_impl = {
     mutable impl_client_state : CommonTypes.host_state;
     mutable impl_client_update : int;
     mutable impl_client_has_slot : bool;
+    mutable impl_client_has_friend_slot : bool;
     mutable impl_client_upload : CommonTypes.shared option;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
@@ -72,6 +73,7 @@ val client_enter_upload_queue : CommonTypes.client -> unit
 val client_upload : CommonTypes.client -> CommonTypes.shared option
 val set_client_upload : CommonTypes.client -> CommonTypes.shared option -> unit
 val client_has_a_slot : CommonTypes.client -> bool
+val client_has_a_friend_slot : CommonTypes.client -> bool
 val set_client_has_a_slot : CommonTypes.client -> bool -> unit
   
 val uploaders : CommonTypes.client Intmap.t ref

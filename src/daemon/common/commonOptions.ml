@@ -443,6 +443,10 @@ let max_upload_slots = define_option current_section ["max_upload_slots"]
     "How many slots can be used for upload"
     int_option 5
 
+let friends_upload_slot = define_option current_section ["friends_upload_slot"]
+    "Set aside a single reserved slot to upload to friends"
+    bool_option true
+
 let dynamic_slots = define_option current_section ["dynamic_slots"]
     "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 
