@@ -935,6 +935,32 @@ let client_public_key = ref ""
 let _ =
   option_hook client_private_key (fun _ ->
     client_public_key := Unix32.load_key (!!client_private_key);
+
+    (
+    let key_checked = ref false in
+    let key_check_again = ref false in
+    let rec check_client_private_key () =
+      key_checked := true;
+      if not (String.sub !!client_private_key 0 5 = "MIIBC") then
+        if !key_check_again then
+	  begin
+	    lprintf_nl () "can not create proper client_private_key, exiting...";
+	    exit 70
+	  end
+	else
+          begin
+            lprintf_nl () "bad client_private_key detected, creating new key";
+	    set_simple_option donkey_ini "client_private_key" (Unix32.create_key ());
+	    key_check_again := true
+	  end
+    in
+    if not !key_checked then check_client_private_key ();
+    if !key_check_again then
+      begin
+	lprintf_nl () "re-checking private key";
+	check_client_private_key ()
+      end
+    );
   )
 
 let server_accept_multiple_getsources s =

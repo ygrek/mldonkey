@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+005/11/19: version 2.7.0 = tag release-2-7-0
+4631: Validate ED2K-client_private_key
+
 2005/11/16
 4630: GTK2 GUI - some bug fixes (su_blanc)
 * display Razorback graphical stats for currently selected file
