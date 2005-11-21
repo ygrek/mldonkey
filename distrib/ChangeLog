@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/21
+4643: HTML: Fix gdstats output when html_use_gzip true
 4640: Calendar: view calendar command: vcal
 4641: Fix exception in load_web_infos
 4642: HTML: Improve preview via webbrowser (pango)
