@@ -1170,6 +1170,10 @@ let backup_options_format = define_option current_section ["backup_options_forma
     "Define the format of the archive, zip or tar.gz are valid."
     string_option "tar.gz"
 
+let shutdown_timeout = define_option current_section ["shutdown_timeout"]
+    "The maximum time in seconds to wait for networks to cleanly shutdown."
+    int_option 3
+
   (*
 let password = define_option current_section ["password"]
   "The password to access your client from the GUI (setting it disables

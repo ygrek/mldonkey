@@ -374,7 +374,7 @@ let exit_timer = ref false
 
 let rec clean_exit n =
   let can_exit = networks_for_all (fun n -> network_clean_exit n) in
-  if can_exit || (!exit_counter > 3) then 
+  if can_exit || (!exit_counter > !!shutdown_timeout) then 
     exit_properly n
   else 
     if not !exit_timer then begin
