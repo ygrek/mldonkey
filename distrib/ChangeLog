@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/21
+4640: Calendar: view calendar command: vcal
+
 2005/11/19
 
 These patches are experimental, please test carefully and report your findings.

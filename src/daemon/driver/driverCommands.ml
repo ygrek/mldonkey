@@ -204,13 +204,65 @@ let list_web_infos o list =
           Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
               \\</tr\\>" url
-      )list;
-      Printf.bprintf  buf "\\</table\\>\\</div\\>"
+      ) list;
+      Printf.bprintf buf "\\</table\\>\\</div\\>"
     end
   else begin
       Printf.bprintf buf "kind / period / url :\n";
       List.iter (fun (kind, period, url) ->
           Printf.bprintf buf "%s ; %d ; %s\n"  kind period url
+      )list
+    end
+
+let list_calendar o list =
+  let buf = o.conn_buf in
+  if o.conn_output = HTML then begin
+      html_mods_table_header buf "web_infoTable" "vo" [
+        ( "0", "srh", "Weekdays", "Weekdays" ) ;
+        ( "0", "srh", "Hours", "Hours" ) ;
+        ( "0", "srh", "Command", "Command" ) ] ;
+      let counter = ref 0 in
+      List.iter (fun (wdays, hours, command) ->
+          incr counter;
+          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+          let wdays_string = ref "" in
+	  let hours_string = ref "" in
+	  List.iter (fun day ->
+	      if !wdays_string = "" then
+	        wdays_string := string_of_int day
+	      else
+	        wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
+	  List.iter (fun hour ->
+	      if !hours_string = "" then
+	        hours_string := string_of_int hour
+	      else
+	        hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
+          Printf.bprintf buf "
+              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr\\\"\\>%s\\</td\\>" command !wdays_string !hours_string;
+          Printf.bprintf buf "
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+              \\</tr\\>" command
+      ) list;
+      Printf.bprintf buf "\\</table\\>\\</div\\>"
+    end
+  else begin
+      Printf.bprintf buf "weekdays / hours / command :\n";
+      List.iter (fun (wdays, hours, command) ->
+          let wdays_string = ref "" in
+	  let hours_string = ref "" in
+	  List.iter (fun day ->
+	      if !wdays_string = "" then
+	        wdays_string := string_of_int day
+	      else
+	        wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
+	  List.iter (fun hour ->
+	      if !hours_string = "" then
+	        hours_string := string_of_int hour
+	      else
+	        hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
+          Printf.bprintf buf "%s\n%s\n%s\n" !wdays_string !hours_string command
       )list
     end
 
@@ -704,11 +756,36 @@ formID.msgText.value=\\\"\\\";
     ), ":\t\t\t\tPrint logged-in user name";
 
     "calendar_add", Arg_two (fun hour action o ->
-        calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
+        let buf = o.conn_buf in
+        calendar =:= ([0;1;2;3;4;5;6], [int_of_string hour], action)
         :: !!calendar;
-        _s "action added"
+        if use_html_mods o then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", "action added"); ]
+        else
+          Printf.bprintf buf "action added";
+        _s ""
     ), "<hour> \"<command>\" :\tadd a command to be executed every day";
 
+    "vcal", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>
+                \\<table class=main cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
+	    if List.length !!calendar = 0 then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "no jobs defined"); ]
+	    else
+              list_calendar o !!calendar;
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+          end
+        else
+	  if List.length !!calendar = 0 then
+	    Printf.bprintf buf "no jobs defined"
+	  else
+            list_calendar o !!calendar;
+        ""
+    ), ":\t\t\t\t\tprint calendar";
 
     ]
 
@@ -1414,6 +1491,7 @@ let _ =
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
@@ -1743,6 +1821,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>

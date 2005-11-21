@@ -340,11 +340,11 @@ let check_calendar () =
   let time = last_time () in
   let tm = Unix.localtime (date_of_int time) in
   List.iter (fun (days, hours, command) ->
-      if (List.mem tm.Unix.tm_wday days || days = [])  &&
+      if (List.mem tm.Unix.tm_wday days || days = []) &&
         (List.mem tm.Unix.tm_hour hours || hours = []) then begin
-          eval (ref true) command calendar_options;
           lprintf_nl () "Calendar execute: %s" command;
-          lprintf_nl () "%s" (Buffer.contents calendar_options.conn_buf);
+          eval (ref true) command calendar_options;
+          lprintf_nl () "Calendar result: %s" (Buffer.contents calendar_options.conn_buf);
           Buffer.reset calendar_options.conn_buf;
         end
   ) !!calendar
