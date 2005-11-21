@@ -2667,7 +2667,7 @@ let _ =
 				\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"files\\\"\\>Display all files\\</a\\>\\</td\\>
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"preview_download?q=%d\\\"\\>Preview\\</a\\>\\</td\\>
 				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
 				\\<td class=downloaded width=100%%\\>\\</td\\>
 				\\</tr\\>\\</table\\>

@@ -719,7 +719,18 @@ type file_ext =
 | JPEG
 | JAVASCRIPT
 | MPEG
+| AVI
+| WMV
+| ASF
+| MOV
+| OGM
+| RM
+| MKV
 | PNG
+| GIF
+| MP3
+| WMA
+| OGG
 | TEXTS
 | UNKN
 | WML
@@ -733,12 +744,32 @@ let extension_to_file_ext extension =
   | "htm"
   | "html" -> HTMLS
   | "ico" -> ICON
+  | "jpe"
   | "jpeg"
   | "jpg" -> JPEG
   | "js" -> JAVASCRIPT
+  | "mpe"
   | "mpeg"
   | "mpg" -> MPEG
+  | "avi" -> AVI
+  | "wmv" -> WMV
+  | "asf" -> ASF
+  | "mov"
+  | "movie"
+  | "qt" -> MOV
+  | "ogm" -> OGM
+  | "ra"
+  | "ram"
+  | "rm"
+  | "rmvb"
+  | "rv9"
+  | "rt" -> RM
+  | "mkv" -> MKV
   | "png" -> PNG
+  | "gif" -> GIF
+  | "mp3" -> MP3
+  | "wma" -> WMA
+  | "ogg" -> OGG
   | "txt" -> TEXTS
   | "wml" -> WML
   | _ -> UNKN
@@ -753,7 +784,18 @@ let ext_to_file_type ext =
   | JAVASCRIPT -> TXT
   | JPEG -> BIN
   | MPEG -> BIN
+  | AVI -> BIN
+  | WMV -> BIN
+  | ASF -> BIN
+  | MOV -> BIN
+  | OGM -> BIN
+  | RM -> BIN
+  | MKV -> BIN
   | PNG -> BIN
+  | GIF -> BIN
+  | MP3 -> BIN
+  | WMA -> BIN
+  | OGG -> BIN
   | TEXTS -> TXT
   | WML -> TXT
 
@@ -767,7 +809,18 @@ let ext_to_mime_type ext =
   | JAVASCRIPT -> "text/javascript"
   | JPEG -> "image/jpg"
   | MPEG -> "video/mpeg"
+  | AVI -> "video/x-msvideo"
+  | WMV -> "video/x-ms-wmv"
+  | ASF -> "video/x-ms-asf"
+  | MOV -> "video/quicktime"
+  | OGM -> "application/ogg" (* is that correct ? *)
+  | RM -> "audio/x-pn-realaudio"
+  | MKV -> "video/x-matroska" (* is that correct ? *)
   | PNG -> "image/png"
+  | GIF -> "image/gif"
+  | MP3 -> "audio/mpeg"
+  | WMA -> "audio/x-ms-wma"
+  | OGG -> "application/ogg" (* is that correct ? *)
   | TEXTS -> "text/plain"
   | WML -> "text/vnd.wap.wml"
 
@@ -831,6 +884,15 @@ let http_add_bin_header r ext clen =
   add_reply_header r "Content-Type" (ext_to_mime_type ext);
   http_add_bin_info_header r clen;
   add_gzip_headers r
+
+let http_add_bin_stream_header r ext =
+  http_file_type := BIN;
+  http_add_gen_header r;
+  let mime_type = ext_to_mime_type ext in
+  let mime_type = if mime_type <> "" then mime_type
+  else "application/binary" in
+  add_reply_header r "Content-Type" mime_type;
+  add_reply_header r "Accept-Ranges" "bytes"
 
 let http_send_bin r buf filename =
   let file_to_send = File.to_string filename in
@@ -1351,9 +1413,13 @@ let http_handler o t r =
                           (Int64.to_string size);
                         zero, size
                   in
-
-                  add_reply_header r "Content-type" "application/binary";
-                  add_reply_header r "Accept-Ranges" "bytes";
+		    
+		  let filename = file_best_name file in
+		  let exten = Filename2.last_extension filename in
+		  let len = String.length exten in
+		  let exten = if len = 0 then exten
+		      else String.lowercase (String.sub exten 1 (len - 1)) in
+		  http_add_bin_stream_header r (extension_to_file_ext exten);
 
                   let s = String.create 200000 in
                   set_max_output_buffer r.sock (String.length s);
@@ -1441,7 +1507,10 @@ let http_handler o t r =
     | BIN -> Buffer.contents buf
     | UNK -> "Unknown type for content :" ^ (Buffer.contents buf)
   in
-  r.reply_content <- if !!html_use_gzip then Autoconf.zlib__gzip_string s else s
+  r.reply_content <- 
+    if !http_file_type <> BIN && !!html_use_gzip then 
+      Autoconf.zlib__gzip_string s 
+    else s
 
 let http_options = {
     conn_buf = Buffer.create 10000;

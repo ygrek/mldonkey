@@ -14,6 +14,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 2005/11/21
 4640: Calendar: view calendar command: vcal
 4641: Fix exception in load_web_infos
+4642: HTML: Improve preview via webbrowser (pango)
 
 2005/11/19
 
