@@ -296,7 +296,7 @@ support the charge, at least, currently. *)
     load_url true "motd.conf" (Filename.concat !!network_update_url "motd.conf");
   end;
   List.iter (fun (kind, period, url) ->
-    if (core_start && period = 0) || !hours mod period = 0 then
+    if (core_start && period = 0) || (period <> 0 && !hours mod period = 0) then
       begin
         try
           load_url false kind url
