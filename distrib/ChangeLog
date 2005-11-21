@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/21
+4406: Unicode: Fix filenames in shared_files_new.ini and file rename
+      in HTML interface (mld_unicode_patch6.patch) (CML)
 4440: New option shutdown_timeout, 3 sec, was hardcoded before (Amorphous)
 4644: Update GNU config.guess and config.sub to current versions
 4643: HTML: Fix gdstats output when html_use_gzip true

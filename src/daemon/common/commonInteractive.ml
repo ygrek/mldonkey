@@ -75,7 +75,10 @@ let canonize_basename name =
         Charset.add_uchar buf uc'
       end
   done;
-  Charset.to_locale (Buffer.contents buf)
+  if Autoconf.windows then
+    Charset.to_locale (Buffer.contents buf)
+  else
+    Buffer.contents buf
 
 let file_commited_name incoming_dir file =
   let network = file_network file in

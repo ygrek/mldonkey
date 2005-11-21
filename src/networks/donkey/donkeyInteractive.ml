@@ -755,7 +755,7 @@ function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
 var regExp = new RegExp (' ', 'gi') ;
 var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
+parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURI(renameTextOut)+'\\\"';
 }
 //--\\>
 \\</script\\>";
@@ -1251,7 +1251,7 @@ function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
 var regExp = new RegExp (' ', 'gi') ;
 var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
+parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURI(renameTextOut)+'\\\"';
 }
 //--\\>
 \\</script\\>" (file_num file)
