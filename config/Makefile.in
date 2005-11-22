@@ -139,7 +139,7 @@ ifeq ("$(OS_FILES2)", "mingw")
 endif
 
 ifeq ("$(OS_FILES2)", "cygwin")
-  LIBS_flags += -cclib "-lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o"
+  LIBS_flags += -cclib "resfile.o"
 endif
 
 ifeq ("$(BZIP2)", "yes")

@@ -252,6 +252,9 @@ fi
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"
     CPP="$CPP -mno-cygwin"
+    OS_FILES=mingw
+    OS_FILES2=mingw
+    SYSTEM=mingw
 fi
 AC_PROG_RANLIB
 
@@ -698,10 +701,6 @@ EOCP
         ;;
         *)         ;;
 esac
-
-if test "$FORCE_MINGW" = "yes"; then
-    OS_FILES=mingw
-fi
 
 AC_MSG_CHECKING(Additionnal includes)
 AC_MSG_RESULT($CONFIG_INCLUDES)
