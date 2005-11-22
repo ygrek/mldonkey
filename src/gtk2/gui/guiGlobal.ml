@@ -120,7 +120,6 @@ let clear () =
 
 let console_message = ref (fun s -> lprintf_nl "CONSOLE: %s" s)
 
-
 let gtk_handler timer =
   while Glib.Main.pending () do
     ignore (Glib.Main.iteration false)

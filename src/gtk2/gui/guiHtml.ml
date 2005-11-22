@@ -56,11 +56,12 @@ let make_request url =
   in
   let r = {
       H.basic_request with
-      H.req_url = Url.of_string url;
-      H.req_proxy = proxy;
+      H.req_url        = Url.of_string url;
+      H.req_proxy      = proxy;
       H.req_user_agent = user_agent;
-      H.req_referer = None;
-      H.req_request = H.GET;
+      H.req_referer    = None;
+      H.req_request    = H.GET;
+      H.req_max_retry  = 1;                (* max 1 redirection for filedonkey.com *)
     } in
   r
 
@@ -77,15 +78,92 @@ let file_from_url url =
     Filename.concat cache_dir file
   with _ -> ""
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         uids_to_md4                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uids_to_md4 uids =
+  let s = ref "" in
+  begin
+    try
+      List.iter (fun uid ->
+        match (Uid.to_uid uid) with
+          Ed2k md4 -> (s := Md4.to_string md4; raise Exit)
+        | _ -> ()
+      ) uids
+    with _ -> ()
+  end;
+  if !s <> ""
+    then !s
+    else raise Not_found
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         create_stat                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let create_stat file stat =
+  let rec iter l =
+    match l with
+      [] ->
+        begin
+          let s = {
+            stats_file_type         = stat;
+            stats_file_history      = "";
+            stats_file_rating       = "";
+            stats_file_availability = 0;
+            stats_file_completed    = 0;
+          } in
+          file.g_file_stats <- s :: file.g_file_stats;
+          s
+        end
+    | s :: tail ->
+        if s.stats_file_type = stat then s else iter tail
+  in
+  iter file.g_file_stats
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         get_stat                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let get_stat file stat =
+  let rec iter l =
+    match l with
+      [] -> raise Not_found
+    | s :: tail ->
+        if s.stats_file_type = stat then s else iter tail
+  in
+  iter file.g_file_stats
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         remove_stat                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let remove_stat file stat =
+  let l = List.filter (fun s -> s.stats_file_type <> stat) file.g_file_stats in
+  file.g_file_stats <- l
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         get                                           *)
+(*                                                                       *)
+(*************************************************************************)
+
 let get url_name f progress =
-  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_razorback2_stats_get_main_page in
   let r = make_request url_name in
   let module H = Http_client in
   let filename = file_from_url (Url.to_string r.H.req_url) in
   H.wget_string r (fun _s ->
     begin
       try
-        (try Sys.remove filename with _ -> lprintf_nl2 "cannot remove file %s" filename);
+        (try Sys.remove filename with _ -> ());
         File.from_string filename _s;
       with _ -> (lprintf_nl2 "failed in H.wget_string")
     end;
@@ -96,26 +174,18 @@ let get url_name f progress =
                ~return_comments:true lexb
     in
     f dl;
-    close_in in_chan) (fun n m -> progress progress_desc n m)
+    close_in in_chan) (fun n m -> progress n m)
 
 
-let uids_to_md4 uids =
-  let s = ref "" in
-  begin
-    try
-      List.iter (fun uid ->
-        match (Uid.to_uid uid) with
-            Ed2k md4 -> (s := Md4.to_string md4; raise Exit)
-          | _ -> ()
-      ) uids
-    with _ -> ()
-  end;
-  if !s <> ""
-    then !s
-    else raise Not_found
+(*************************************************************************)
+(*                                                                       *)
+(*                         parse_razorback_stats                         *)
+(*                                                                       *)
+(*************************************************************************)
 
-let parse_razorback_stats stats md4 referer on_png_completed progress dl =
-  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_razorback2_stats_get_image in
+let parse_razorback_stats stats md4 referer on_png_completed on_not_found progress dl =
+  let not_found = Printf.sprintf "Sorry, the file ed2k::%s was not found on our database" md4 in
+  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_stats_get_image in
   let rec iter _dl =
     List.iter (fun d ->
       match d with
@@ -131,9 +201,9 @@ let parse_razorback_stats stats md4 referer on_png_completed progress dl =
                     let module H = Http_client in
                     H.wget_string r (fun ___s ->
                       try
-                        (try Sys.remove filename with _ -> lprintf_nl2 "cannot remove file %s" filename);
+                        (try Sys.remove filename with _ -> ());
                         File.from_string filename ___s;
-                        stats.razorback_file_history <- filename;
+                        stats.stats_file_history <- filename;
                         on_png_completed ();
                       with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> progress progress_desc n m)
                   end
@@ -152,7 +222,7 @@ let parse_razorback_stats stats md4 referer on_png_completed progress dl =
                           List.iter (fun (__s, ___s) ->
                             if __s = "title"
                               then begin
-                                stats.razorback_file_rating <- (GuiUtf8.utf8_of ___s)
+                                stats.stats_file_rating <- (GuiUtf8.utf8_of ___s)
                               end
                           ) _sl;
                           _iter ____dl pos
@@ -171,12 +241,12 @@ let parse_razorback_stats stats md4 referer on_png_completed progress dl =
                         if !pos = 5
                           then begin
                             try
-                              stats.razorback_file_completed <- int_of_string _s
+                              stats.stats_file_completed <- int_of_string _s
                             with _ -> ()
                           end else if !pos = 6
                           then begin
                             try
-                              stats.razorback_file_avalaibility <- int_of_string _s
+                              stats.stats_file_availability <- int_of_string _s
                             with _ -> ()
                           end
 
@@ -189,36 +259,31 @@ let parse_razorback_stats stats md4 referer on_png_completed progress dl =
         | Element (s, sl, __dl) ->
             iter __dl
 
-        | _ -> ()
+        | Data s ->
+            begin
+              if String2.contains s not_found
+                then on_not_found md4
+            end
 
     ) _dl
   in
   iter dl
 
-let get_razorback2_stats file progress_html on_png_completed progress_png =
-  try
-    let md4 = uids_to_md4 file.g_file_uids in
-    let stats =
-       match file.g_file_razorback_stats with
-         None ->
-           begin
-             let s ={
-               razorback_file_history      = "";
-               razorback_file_rating       = "";
-               razorback_file_avalaibility = 0;
-               razorback_file_completed    = 0;
-             } in
-             file.g_file_razorback_stats <- Some s;
-             s
-           end
-      | Some s -> s
-    in
-    let referer = "http://stats.razorback2.com/" in
-    let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
-    get url (parse_razorback_stats stats md4 referer on_png_completed (progress_html md4)) (progress_png md4)
-  with _ -> ()
+(*************************************************************************)
+(*                                                                       *)
+(*                         get_razorback2_stats                          *)
+(*                                                                       *)
+(*************************************************************************)
 
-(*
+(* **********************************
+
+    Element: body
+        Data: 
+Sorry, the file ed2k:: was not found on our database
+
+        Element: br
+
+  ***********************************
 Element: !
   contents DOCTYPE html public "-//W3C//DTD HTML 4.01 Transitional//EN"
 Element: html
@@ -244,45 +309,9 @@ Element: html
 
         Element: title
             Data: ed2kHistory of file ed2k::8B16AC1A76E4D1D750547931E8ADD3F7
-        Data: 
+        Data:
 
-        Element: script
-          type text/javascript
-          src /sorttable3.js
-            Data: 
-        Data: 
-
-    Data: 
-
-    Element: body
-        Data: 
-
-        Element: script
-          type text/javascript
-            Data: <!-- 
-google_ad_client = "pub-4061973295205334"; 
-google_ad_width = 800; 
-google_ad_height = 90; 
-google_ad_format = "728x90_as"; 
-google_ad_channel ="5618134257"; 
-google_color_border = "A8DDA0"; 
-google_color_bg = "EBFFED"; 
-google_color_link = "0000CC"; 
-google_color_url = "008000"; 
-google_color_text = "6F6F6F"; 
-//-->
-        Data:  
-
-        Element: center
-            Element: script
-              type text/javascript
-              src http://pagead2.googlesyndication.com/pagead/show_ads.js
-                Data:  
-
-        Data: 
-
-        Element: br
-        Data: 
+..........
 
         Element: center
             Element: img
@@ -290,78 +319,8 @@ google_color_text = "6F6F6F";
               width 800
               height 288
               alt history graph for file ed2k::8B16AC1A76E4D1D750547931E8ADD3F7
-        Data: 
 
-        Element: br
-        Element: form
-          action /ed2khistory
-          method get
-            Data: 
-File Hash : 
-            Element: input
-              name ed2k
-              type text
-              maxlength 200
-              size 43
-            Data: &nbsp;
-            Element: input
-              type submit
-              value Submit
-        Data: 
-16063744 files in ed2khistory database
-        Element: br
-        Data: 
-
-        Element: br
-        Element: table
-          border 1
-          width 100%
-          bgcolor #D8D8D8
-          cellspacing 0
-          id t1
-          class sortable
-            Data: 
-
-            Element: colgroup
-              align right
-                Data: 
-
-            Element: colgroup
-              align right
-                Data: 
-
-            Element: colgroup
-              align right
-                Data: 
-
-            Element: colgroup
-              align center
-                Data: 
-
-            Element: colgroup
-              align right
-                Data: 
-
-            Element: colgroup
-              align right
-                Data: 
-
-            Element: thead
-                Element: tr
-                  bgcolor #B0B0B0
-                    Data:  
-                    Element: th
-                        Data: Server
-                    Element: th
-                        Data: File Name
-                    Element: th
-                        Data: Size
-                    Element: th
-                        Data: Rating
-                    Element: th
-                        Data: Complete
-                    Element: th
-                        Data: Avail
+..........
 
             Element: tfoot
               align right
@@ -391,656 +350,113 @@ File Hash :
                             Data: 9864
                         Data: 
 
-            Element: tbody
-              align right
-                Data: 
-
-                Element: tr
-                    Element: td
-                      title &lt;&lt;&lt; Saugcenter &gt;&gt;&gt;
-                        Data: 80.190.233.144:6565
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 653
-                    Element: td
-                        Data: 655
-
-                Element: tr
-                    Element: td
-                      title Breizh Punisher's
-                        Data: 213.251.133.129:6567
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 184
-                    Element: td
-                        Data: 186
-
-                Element: tr
-                    Element: td
-                      title !-= www.FreeSexBay.com =-!
-                        Data: 83.149.102.1:4242
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 119
-                    Element: td
-                        Data: 120
-
-                Element: tr
-                    Element: td
-                      title eD2k Infinity
-                        Data: 213.251.161.152:4661
-                    Element: td
-                        Data: emule0.46c-installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 37
-                    Element: td
-                        Data: 37
-
-                Element: tr
-                    Element: td
-                      title Breizh Digitalus
-                        Data: 213.186.47.84:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                      align center
-                        Element: img
-                          src /gifs/FileRating5.gif
-                          alt Excellent
-                          title Excellent for 0% of clients
-                    Element: td
-                        Data: 500
-                    Element: td
-                        Data: 504
-
-                Element: tr
-                    Element: td
-                      title Em Server No.1
-                        Data: 193.138.230.251:4242
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 144
-                    Element: td
-                        Data: 146
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 9
-                        Data: 80.239.200.108:3000
-                    Element: td
-                        Data: eMule0.46c_Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 400
-                    Element: td
-                        Data: 400
-
-                Element: tr
-                    Element: td
-                      title !-= www.FreeOsex.com =-!
-                        Data: 83.149.123.189:4321
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 100
-                    Element: td
-                        Data: 100
-
-                Element: tr
-                    Element: td
-                      title &lt;&lt;&lt; Trafficservice24.de  &gt;&gt;&gt;
-                        Data: 81.169.143.167:7777
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 93
-                    Element: td
-                        Data: 94
-
-                Element: tr
-                    Element: td
-                      title !!!****ifreeex.net &gt;&gt;Hardcore XXX Movies !!!***
-                        Data: 194.30.160.81:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 96
-                    Element: td
-                        Data: 96
-
-                Element: tr
-                    Element: td
-                      title Rackbox 2
-                        Data: 213.251.161.69:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 73
-                    Element: td
-                        Data: 73
-
-                Element: tr
-                    Element: td
-                      title &#65403;FPRO&#65387;
-                        Data: 213.251.161.103:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 153
-                    Element: td
-                        Data: 154
-
-                Element: tr
-                    Element: td
-                      title Asyrix 2.1
-                        Data: 80.190.251.50:4321
-                    Element: td
-                        Data: eMule0.46c-Installer.[content.emule-project.net].exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 536
-                    Element: td
-                        Data: 536
-
-                Element: tr
-                  bgcolor #D0B0B0
-                    Element: td
-                      title Razorback 2.1
-                        Data: 195.245.244.244:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 645
-                    Element: td
-                        Data: 646
-
-                Element: tr
-                    Element: td
-                      title ### DOINGDO ###
-                        Data: 212.112.238.82:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 155
-                    Element: td
-                        Data: 156
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 8
-                        Data: 80.239.200.107:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 159
-                    Element: td
-                        Data: 160
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 10
-                        Data: 80.239.200.109:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 123
-                    Element: td
-                        Data: 123
-
-                Element: tr
-                    Element: td
-                      title !-= www.FreeOsex.com =-!
-                        Data: 83.149.123.188:4321
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 85
-                    Element: td
-                        Data: 85
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 6
-                        Data: 80.239.200.105:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 30
-                    Element: td
-                        Data: 31
-
-                Element: tr
-                    Element: td
-                      title ChezToff 2 (Serveur Fr)
-                        Data: 213.251.136.83:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 92
-                    Element: td
-                        Data: 93
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 11
-                        Data: 80.239.200.110:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 197
-                    Element: td
-                        Data: 197
-
-                Element: tr
-                    Element: td
-                      title Asyrix 2.2
-                        Data: 217.20.127.165:4321
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 15
-                    Element: td
-                        Data: 16
-
-                Element: tr
-                    Element: td
-                      title Byte Devils
-                        Data: 194.213.0.20:3306
-                    Element: td
-                        Data: eMule0.46c [par Ratiatum.com].exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 63
-                    Element: td
-                        Data: 64
-
-                Element: tr
-                    Element: td
-                      title www.UseNeXT.to
-                        Data: 212.112.243.146:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 53
-                    Element: td
-                        Data: 53
-
-                Element: tr
-                    Element: td
-                      title ChezToff (Serveur Fr)
-                        Data: 213.186.60.106:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 1275
-                    Element: td
-                        Data: 1278
-
-                Element: tr
-                    Element: td
-                      title !!!****ifreeex.net &gt;&gt;Hardcore XXX Movies !!!***
-                        Data: 194.30.160.41:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 225
-                    Element: td
-                        Data: 228
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 4
-                        Data: 80.239.200.103:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 143
-                    Element: td
-                        Data: 146
-
-                Element: tr
-                    Element: td
-                      title Jibsworld (www.jd2k.com)
-                        Data: 213.186.45.91:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 51
-                    Element: td
-                        Data: 51
-
-                Element: tr
-                    Element: td
-                      title Jibsworld2 (www.jd2k.com)
-                        Data: 213.251.162.35:4661
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 86
-                    Element: td
-                        Data: 86
-
-                Element: tr
-                    Element: td
-                      title ChezToff 3 (Serveur Fr)
-                        Data: 213.251.134.191:4661
-                    Element: td
-                        Data: Emule0.46C-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 217
-                    Element: td
-                        Data: 217
-
-                Element: tr
-                    Element: td
-                      title Byte Devils
-                        Data: 194.213.0.10:3306
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 10
-                    Element: td
-                        Data: 10
-
-                Element: tr
-                    Element: td
-                      title DonkeyServer No1
-                        Data: 62.241.53.2:4242
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 2585
-                    Element: td
-                        Data: 2597
-
-                Element: tr
-                    Element: td
-                      title &lt;&lt;&lt; Saugcenter &gt;&gt;&gt;
-                        Data: 212.112.241.158:6565
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 101
-                    Element: td
-                        Data: 102
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 2
-                        Data: 80.239.200.101:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 132
-                    Element: td
-                        Data: 132
-
-                Element: tr
-                    Element: td
-                      title Byte Devils
-                        Data: 194.213.0.30:3306
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 66
-                    Element: td
-                        Data: 66
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 3
-                        Data: 80.239.200.102:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 106
-                    Element: td
-                        Data: 106
-
-                Element: tr
-                    Element: td
-                      title BiG BanG 5
-                        Data: 80.239.200.104:3000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 114
-                    Element: td
-                        Data: 114
-
-                Element: tr
-                    Element: td
-                      title maxx1462
-                        Data: 84.150.43.187:9955
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 1
-                    Element: td
-                        Data: 1
-
-                Element: tr
-                    Element: td
-                      title ADSL Group
-                        Data: 217.91.58.88:7000
-                    Element: td
-                        Data: eMule0.46c-Installer.exe
-                    Element: td
-                        Data: 4577316
-                    Element: td
-                        Data: &nbsp;
-                    Element: td
-                        Data: 5
-                    Element: td
-                        Data: 5
-
-        Data: 
-
-        Element: p
-            Data: Legend :
-        Element: ul
-        Element: p
-Element: li
-    Data: Avail : The number of clients connected to the server sharing this file
-    Element: p
-Element: li
-    Data: Complete : The number of clients connected to the server sharing this file and that have the complete file
-    Element: p
-Element: li
-    Data: asked/h : The number of requests per hour received by razorback asking for sources. That gives an indication on the number of clients that are downloading this file
-    Element: p
-Element: li
-    Data: File rating is a score given by a client to a file, between 1 (Very bad) to 5 (Excellent). Servers then give you the average of those scores.
-    Element: br
-    Element: ul
-        Element: li
-            Element: img
-              src /gifs/FileRating1.gif
-              alt Very bad
-              title Invalid / Corrupt / Fake
-            Data:  : Means majority of clients said the file was a fake, or corrupt, or invalid
-            Element: br
-        Element: li
-            Element: img
-              src /gifs/FileRating2.gif
-              alt Poor
-              title Poor
-            Data:  : Means majority of clients said the file was of poor quality
-            Element: br
-        Element: li
-            Element: img
-              src /gifs/FileRating3.gif
-              alt Fair
-              title Fair
-            Data:  : Fair quality
-            Element: br
-        Element: li
-            Element: img
-              src /gifs/FileRating4.gif
-              alt Good
-              title Good
-            Data:  : Good
-            Element: br
-        Element: li
-            Element: img
-              src /gifs/FileRating5.gif
-              alt Excellent
-              title Excellent
-            Data:  : Excellent
-            Element: br
-    Data: 
-
-    Data: 
-
 *)
+
+let get_razorback2_stats file on_png_completed on_not_found progress_html progress_png =
+  let md4 = uids_to_md4 file.g_file_uids in
+  let stat = create_stat file RazorBack in
+  let referer = "http://stats.razorback2.com/" in
+  let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
+  let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_stats_get_main_page in
+  get url (parse_razorback_stats stat md4 referer on_png_completed on_not_found (progress_html md4)) (progress_png md4 progress_desc)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         parse_filedonkey_stats                        *)
+(*                                                                       *)
+(*************************************************************************)
+
+let parse_filedonkey_stats stat md4 on_completed on_not_found dl =
+  let pos = ref 0 in
+  let search_succeeded = ref true in
+  let rec iter _dl =
+    List.iter (fun d ->
+      match d with
+        Element (s, sl, __dl) ->
+          begin
+            iter __dl
+          end
+      | Data s ->
+          if String2.contains s "your search has failed"
+          then (search_succeeded := false; on_not_found md4)
+          else if String2.contains s "Availability"
+            then pos := 1
+            else if String2.contains s "Complete Sources"
+              then pos := 2
+              else if !pos = 1
+                then begin
+                  try
+                    stat.stats_file_availability <- int_of_string s;
+                    pos := 0
+                  with _ -> pos := 0
+                end else if !pos = 2
+                  then begin
+                    try
+                      stat.stats_file_completed <- int_of_string s;
+                      pos := 0
+                    with _ -> pos := 0
+                  end
+    ) _dl
+  in
+  iter dl;
+  if !search_succeeded then on_completed ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         get_filedonkey_stats                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+(*
+http://www.filehash.com/url/F3BC3066A1C6993C32714E0AB4152CDB
+Element: html
+  xmlns http://www.w3.org/1999/xhtml
+    Data:   
+    Element: head
+        Element: title
+            Data: ed2k URL for file "mldonkey-scripts.tgz"
+
+.........
+
+                            Element: p
+                                Data: ed2k: 
+                                Element: a
+                                  href ed2k://|file|mldonkey-scripts [found via www.FileDonkey.com].tgz|1500|91DF9F63F18218CDE012714D59BC8A50|/
+                                    Data:  mldonkey-scripts.tgz
+                            Element: p
+                            Element: p
+                                Data: Availability: 
+                                Element: b
+                                    Data: 06
+                            Element: p
+                                Data: Size: 
+                                Element: b
+                                    Data: 1500
+                            Element: p
+                                Data: Complete Sources: 
+                                Element: b
+                                    Data: 2
+                            Element: p
+                                Data:  
+                            Element: p
+                            Element: p
+                            Element: p
+                                Data: Also Known As:
+                            Element: p
+                                Data:  
+                                Element: b
+                                    Data: mldonkey-scripts.tar.gz
+                            Element: p
+                                Data:  
+                            Element: p
+                            Element: p
+                                Data: 
+*)
+
+let get_filedonkey_stats file on_completed on_not_found progress_html =
+  let md4 = uids_to_md4 file.g_file_uids in
+  let stat = create_stat file FileDonkey in
+  let referer = "http://www.filedonkey.com/" in
+  let url = Printf.sprintf "%surl/%s" referer md4 in
+  let progress_desc = Printf.sprintf "http://www.filedonkey.com/ :: %s" !M.dT_lb_stats_get_main_page in
+  get url (parse_filedonkey_stats stat md4 on_completed on_not_found) (progress_html md4 progress_desc)

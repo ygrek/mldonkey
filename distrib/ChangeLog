@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/22
+4648: GTK2 GUI: improve display of razorback stats (su_blanc)
+      added the display of filedonkey.com data
 4646: BT: little change to recognise Clients (bogeyman)
 4645: Fix donkey total uptime stats order (bogeyman)
 

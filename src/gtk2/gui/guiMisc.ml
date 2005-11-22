@@ -1353,5 +1353,5 @@ let file_info_to_g_file_info f =
     g_file_priority        = f.file_priority;
     g_file_uids            = f.file_uids;
 
-    g_file_razorback_stats = None;
+    g_file_stats           = [];
   }

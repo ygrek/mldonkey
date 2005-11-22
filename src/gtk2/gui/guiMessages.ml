@@ -236,15 +236,16 @@ let dT_me_save  = ref ""
 let dT_me_browse_files  = ref ""
 let dT_me_add_to_friends  = ref ""
 let dT_me_razorback2_stats = ref ""
+let dT_me_filedonkey_stats = ref ""
 let dT_lb_link  = ref ""
 let dT_me_show_file_details  = ref ""
 let dT_me_show_source_details  = ref ""
 let dT_wt_show_source_details  = ref ""
-let dT_lb_razorback2_stats_get_main_page  = ref ""
-let dT_lb_razorback2_stats_get_image  = ref ""
-let dT_lb_razorback2_stats_rate  = ref ""
-let dT_lb_razorback2_stats_available  = ref ""
-let dT_lb_razorback2_stats_complete  = ref ""
+let dT_lb_stats_get_main_page  = ref ""
+let dT_lb_stats_get_image  = ref ""
+let dT_lb_stats_rate  = ref ""
+let dT_lb_stats_available  = ref ""
+let dT_lb_stats_complete  = ref ""
 
 (* Friends Tab *)
 
@@ -708,11 +709,12 @@ let load_messages () =
   dT_me_show_source_details  :=  _s "Show source details";
   dT_wt_show_source_details  :=  _s "Source details";
   dT_me_razorback2_stats := _s "Get/Refresh Razorback Stats";
-  dT_lb_razorback2_stats_get_main_page := _s "Getting main page for file";
-  dT_lb_razorback2_stats_get_image := _s "Getting graph image for file";
-  dT_lb_razorback2_stats_rate := _s_ "Rate";
-  dT_lb_razorback2_stats_available := _s_ "Availability";
-  dT_lb_razorback2_stats_complete := _s_ "Complete";
+  dT_me_filedonkey_stats := _s "Get/Refresh FileDonkey Stats";
+  dT_lb_stats_get_main_page := _s "Getting main page for file";
+  dT_lb_stats_get_image := _s "Getting graph image for file";
+  dT_lb_stats_rate := _s_ "Rate";
+  dT_lb_stats_available := _s_ "Availability";
+  dT_lb_stats_complete := _s_ "Complete";
 
 (* Friends Tab *)
 

@@ -212,16 +212,22 @@ type source_info =
     mutable source_files_requested : int list;             (* file_num *)
   }
 
-type razorback_stats =
+type stat_type =
+  RazorBack
+| FileDonkey
+
+type stat =
   {
-   mutable razorback_file_history      : string;
-   mutable razorback_file_rating       : string;
-   mutable razorback_file_avalaibility : int;
-   mutable razorback_file_completed    : int;
+   stats_file_type         : stat_type;
+
+   mutable stats_file_history      : string;
+   mutable stats_file_rating       : string;
+   mutable stats_file_availability : int;
+   mutable stats_file_completed    : int;
   }
 
 type g_file_info = {
-    g_file_num : int;
+    g_file_num     : int;
     g_file_network : int;
 
     mutable g_file_comment        : string;
@@ -243,7 +249,7 @@ type g_file_info = {
     mutable g_file_priority       : int;
     mutable g_file_uids           : Uid.t list;
 
-    mutable g_file_razorback_stats : razorback_stats option;
+    mutable g_file_stats          : stat list;
   }
 
 type item_info =
