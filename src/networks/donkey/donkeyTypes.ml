@@ -204,15 +204,15 @@ type brand =
 let brand_list = [
    ( Brand_unknown   , "unknown"      , "unk" ) ;
    ( Brand_edonkey   , "eDonkey"      , "eDK" ) ;
-   ( Brand_cdonkey   , "cDonkey"      , "cDK" ) ;
    ( Brand_mldonkey1 , "old mldonkey" , "oML" ) ;
    ( Brand_mldonkey2 , "new mldonkey" , "nML" ) ;
-   ( Brand_mldonkey3 , "trusted mld"  , "tML" ) ;
    ( Brand_overnet   , "Overnet"      , "OVR" ) ;
    ( Brand_newemule  , "eMule"        , "eMU" ) ;
+   ( Brand_server    , "server"       , "SER" ) ;
+   ( Brand_mldonkey3 , "trusted mld"  , "tML" ) ;
+   ( Brand_cdonkey   , "cDonkey"      , "cDK" ) ;
    ( Brand_lmule     , "xMule"        , "xMU" ) ;
    ( Brand_shareaza  , "shareaza"     , "sZA" ) ;
-   ( Brand_server    , "server"       , "SER" ) ;
    ( Brand_amule     , "aMule"        , "aMU" ) ;
    ( Brand_lphant    , "lPhant"       , "lPH" ) ;
    ( Brand_emuleplus , "ePlus"        , "eM+" ) ;

@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/22
+4645: Fix donkey total uptime stats order (bogeyman)
+
 2005/11/21
 4406: Unicode: Fix filenames in shared_files_new.ini and file rename
       in HTML interface (mld_unicode_patch6.patch) (CML)
