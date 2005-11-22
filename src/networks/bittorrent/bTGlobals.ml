@@ -435,6 +435,9 @@ let decode_simple_style s =
       (0, "btuga", Brand_btugaxp, "");
       (0, "DansClient", Brand_xantorrent, "");
       (0, "Deadman Walking-", Brand_deadmanwalking, "");
+      (0, "346-", Brand_torrenttopia, "");
+      (0, "271-", Brand_greedbt, "2.7.1");
+      (0, "BG", Brand_btgetit, "");
       (0, "a00---0", Brand_swarmy, "");
       (0, "a02---0", Brand_swarmy, "");
       (0, "T00---0", Brand_teeweety, "") ]
@@ -519,7 +522,8 @@ let decode_upnp s =
   else None
 
 let decode_old_bitcomet s =
-  if "exbc" = String.sub s 0 4 then
+  let bitcomet = String.sub s 0 4 in
+  if "exbc" = bitcomet || "FUTB" = bitcomet || "xUTB" = bitcomet then
     let brand = if "LORD" = String.sub s 6 4 then
       Brand_bitlord else Brand_bitcomet 
     in
