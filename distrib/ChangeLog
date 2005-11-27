@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/11/27
+4653: GTK2 GUI: add isohunt statistics (su_blanc)
+
 2005/11/22
 4364: Let mlnet build under the cygwin unix emulation layer (Amorphous)
 4648: GTK2 GUI: improve display of razorback stats (su_blanc)
