@@ -24,6 +24,7 @@ open CommonTypes
 open GraphTypes
 
 module O = GuiOptions
+module Mi = GuiMisc
 
 let verbose = O.gtk_verbose_graphbase
 
@@ -154,8 +155,8 @@ end
 
 
 let uid_option  = define_option_class "TypeUid"
-    (fun v -> uid_of_string (value_to_string v))
-    (fun uid -> string_to_value (string_of_uid uid))
+    (fun v -> Mi.uid_to_common_uid (uid_of_string (value_to_string v)))
+    (fun uid -> string_to_value (Mi.ustring_of_uid uid))
 
 let graph_ini = create_options_file
     (Filename.concat GuiMessages.gui_config_dir "mlgui_graph.ini")
@@ -438,7 +439,9 @@ let save_record rate (graph_type : graph_record) =
   let first_vect = List.hd (List.rev !queue) in
   let t_i = fst first_vect in
   if (t -. t_i) > quarter_step
-    then match graph_type with
+    then begin
+      try
+        match graph_type with
              GraphDownloads ->
                begin
                  let graph = fst (!!global_graph) in
@@ -458,10 +461,14 @@ let save_record rate (graph_type : graph_record) =
                      List.assoc file_uid !!files_graph
                    with _ ->
                      begin
-                       (if !!verbose then lprintf'
-                          "In save_record / Downloads : Adding file %s\n" (string_of_uid file_uid));
-                       files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
-                       snd (List.hd !!files_graph)
+                       try
+                         let suid = string_of_uid file_uid in
+                         let uid = uid_of_string suid in
+                         (if !!verbose then lprintf'
+                            "In save_record / Downloads : Adding file %s\n" suid);
+                         files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
+                         snd (List.hd !!files_graph)
+                       with _ -> assert false
                      end
                  in
                  let graph = fst records in
@@ -479,10 +486,14 @@ let save_record rate (graph_type : graph_record) =
                      List.assoc file_uid !!files_graph
                    with _ ->
                      begin
-                       (if !!verbose then lprintf'
-                          "In save_record / Downloads : Adding file %s\n" (string_of_uid file_uid));
-                       files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
-                       snd (List.hd !!files_graph)
+                       try
+                         let suid = string_of_uid file_uid in
+                         let uid = uid_of_string suid in
+                         (if !!verbose then lprintf'
+                            "In save_record / Downloads : Adding file %s\n" suid);
+                         files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
+                         snd (List.hd !!files_graph)
+                       with _ -> assert false
                      end
                  in
                  let graph = snd records in
@@ -494,6 +505,8 @@ let save_record rate (graph_type : graph_record) =
                end
 
            | _ -> ()
+      with _ -> ()
+    end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -520,11 +533,15 @@ let cancel_file file_uid =
 let add_file file_uid =
   if not (List.mem_assoc file_uid !!files_graph)
     then begin
-      (if !!verbose then lprintf' "In add_file : Adding file %s\n" (string_of_uid file_uid));
-      files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
-      let q = ref [last_time, 0.] in
-      Hashtbl.add global_queue (GraphFile (file_uid, GraphDownloads)) q;
-      Hashtbl.add global_queue (GraphFile (file_uid, GraphUploads)) q
+      try
+        let suid = string_of_uid file_uid in
+        let uid = uid_of_string suid in
+        (if !!verbose then lprintf' "In add_file : Adding file %s\n" suid);
+        files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
+        let q = ref [last_time, 0.] in
+        Hashtbl.add global_queue (GraphFile (file_uid, GraphDownloads)) q;
+        Hashtbl.add global_queue (GraphFile (file_uid, GraphUploads)) q
+      with _ -> ()
     end
 
 (*

@@ -28,6 +28,7 @@ open Md4
 module O = GuiOptions
 module M = GuiMessages
 module U = GuiUtf8
+module Mi = GuiMisc
 
 let cache_dir = Filename.concat GuiMessages.gui_config_dir "cache"
 
@@ -152,11 +153,11 @@ let remove_stat file stat =
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         get                                           *)
+(*                         get_html                                      *)
 (*                                                                       *)
 (*************************************************************************)
 
-let get url_name f progress =
+let get_html url_name f progress =
   let r = make_request url_name in
   let module H = Http_client in
   let filename = file_from_url (Url.to_string r.H.req_url) in
@@ -176,6 +177,47 @@ let get url_name f progress =
     f dl;
     close_in in_chan) (fun n m -> progress n m)
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         get_xml                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let get_xml url_name f progress =
+  let r = make_request url_name in
+  let module H = Http_client in
+  H.wget_string r (fun s ->
+    let xml = Xml.parse_string s in
+    f xml) (fun n m -> progress n m)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         print_xml                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let print_xml xml =
+  let buf = Buffer.create 1000 in
+  let rec iter _xml indent =
+    let s_indent = String.make indent ' ' in
+    match _xml with
+        Xml_types.Element (s, sl,xml_list) ->
+          begin
+            Buffer.add_string buf (Printf.sprintf "%sElement: %s\n" s_indent s);
+            List.iter (fun (_s, __s) ->
+              Buffer.add_string buf (Printf.sprintf "%s  %s=%s\n" s_indent _s __s);
+            ) sl;
+            List.iter (fun __xml -> iter __xml (indent + 4)) xml_list
+          end
+      | Xml_types.PCData s ->
+          Buffer.add_string buf (Printf.sprintf "%sData: %s\n" s_indent s)
+  in
+  iter xml 0;
+  Printf2.lprintf "%s\n" (Buffer.contents buf);
+  flush stdout;
+  Buffer.clear buf;
+  Buffer.reset buf
 
 (*************************************************************************)
 (*                                                                       *)
@@ -358,7 +400,7 @@ let get_razorback2_stats file on_png_completed on_not_found progress_html progre
   let referer = "http://stats.razorback2.com/" in
   let url = Printf.sprintf "%sed2khistory?ed2k=%s" referer md4 in
   let progress_desc = Printf.sprintf "http://stats.razorback2.com :: %s" !M.dT_lb_stats_get_main_page in
-  get url (parse_razorback_stats stat md4 referer on_png_completed on_not_found (progress_html md4)) (progress_png md4 progress_desc)
+  get_html url (parse_razorback_stats stat md4 referer on_png_completed on_not_found (progress_html md4)) (progress_png md4 progress_desc)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -459,4 +501,107 @@ let get_filedonkey_stats file on_completed on_not_found progress_html =
   let referer = "http://www.filedonkey.com/" in
   let url = Printf.sprintf "%surl/%s" referer md4 in
   let progress_desc = Printf.sprintf "http://www.filedonkey.com/ :: %s" !M.dT_lb_stats_get_main_page in
-  get url (parse_filedonkey_stats stat md4 on_completed on_not_found) (progress_html md4 progress_desc)
+  get_html url (parse_filedonkey_stats stat md4 on_completed on_not_found) (progress_html md4 progress_desc)
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         parse_isohunt_stats                           *)
+(*                                                                       *)
+(*************************************************************************)
+
+let parse_hisohunt_desc stat s file_size found_title found_desc =
+  let file_size = Mi.size_of_int64 file_size in
+  let len = String.length s in
+  if len > 0
+    then begin
+      let pos = String2.search_from s 0 "Size: " in
+      let pos = pos + 6 in
+      let s = String.sub s pos (len - pos) in
+      let pos = String2.search_from s 0 "<br>" in
+      let size = String.sub s 0 pos in
+      size.[pos - 1] <- 'o';
+      let len = String.length s in
+      let pos = String2.search_from s 0 "Seeds: " in
+      let pos = pos + 7 in
+      let s = String.sub s pos (len - pos) in
+      let pos = String2.search_from s 0 "<br>" in
+      let completed = String.sub s 0 pos in
+      let len = String.length s in
+      let pos = String2.search_from s 0 "Leechers: " in
+      let pos = pos + 10 in
+      let s = String.sub s pos (len - pos) in
+      let pos = String2.search_from s 0 "<br>" in
+      let availability = String.sub s 0 pos in
+      let len = String.length s in
+      let pos = String2.search_from s 0 "Downloads:" in
+      let pos = pos + 11 in
+      let s = String.sub s pos (len - pos) in
+      let pos = String2.search_from s 0 "<p>" in
+      let downloads = String.sub s 0 pos in
+      let size = Mi.int64_of_size size in
+      let size = Mi.size_of_int64 size in
+      if size = file_size
+        then begin
+          stat.stats_file_completed <- int_of_string completed;
+          stat.stats_file_availability <- int_of_string availability;
+          stat.stats_file_rating <- (Printf.sprintf "[Downloads: %s]" downloads);
+          raise Exit
+        end else begin
+          found_title := false;
+          found_desc := false
+        end
+   end else begin
+     found_title := false;
+     found_desc := false
+   end
+
+let parse_isohunt_stats stat file_name file_size on_completed on_not_found xml =
+  let found_title = ref false in
+  let found_desc = ref false in
+  let rec iter _xml =
+    match _xml with
+        Xml_types.Element (s, sl,xml_list) when s = "description" ->
+            (if !found_title then found_desc := true);
+            List.iter (fun __xml -> iter __xml) xml_list
+
+      | Xml_types.Element (s, sl,xml_list) ->
+            List.iter (fun __xml -> iter __xml) xml_list
+
+      | Xml_types.PCData s ->
+          if s = file_name
+           then found_title := true
+           else if !found_desc then parse_hisohunt_desc stat s file_size found_title found_desc
+  in
+  try
+    iter xml;
+    if !found_title && !found_desc
+      then on_completed ()
+      else on_not_found file_name
+  with
+    Exit ->
+      begin
+        if !found_title && !found_desc
+        then on_completed ()
+        else on_not_found file_name
+      end
+  | _ -> on_not_found file_name
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         get_isohunt_stats                             *)
+(*                                                                       *)
+(*************************************************************************)
+
+let isohunt_normalize_string str =
+  let s = String.copy str in
+  String2.replace s ' ' "+"
+
+let get_isohunt_stats file on_completed on_not_found progress_xml =
+  let file_name = file.g_file_name in
+  let req = isohunt_normalize_string file_name in
+  let stat = create_stat file IsoHunt in
+  let referer = "http://isohunt.com/" in
+  let url = Printf.sprintf "%sjs/rss.php?ihq=%s&op=and&iht=/" referer req in
+  let progress_desc = Printf.sprintf "http://isohunt.com/ :: %s" !M.dT_lb_stats_get_main_page in
+  get_xml url (parse_isohunt_stats stat file_name file.g_file_size on_completed on_not_found) (progress_xml file_name progress_desc)

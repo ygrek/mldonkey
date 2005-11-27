@@ -1160,9 +1160,9 @@ endif
 GTK2GUI_SRCS=  \
   $(SRC_GUI)/guiNetHtmlScanner.mll \
   $(SRC_GUI)/guiNetHtml.ml \
-  $(SRC_GUI)/guiHtml.ml \
   $(SRC_GUI)/guiGlobal.ml \
   $(SRC_GUI)/guiMisc.ml \
+  $(SRC_GUI)/guiHtml.ml \
   $(SRC_GUI)/guiCom.ml \
   $(SRC_GUI)/guiStatusBar.ml \
   $(SRC_GUI)/guiUsers.ml \

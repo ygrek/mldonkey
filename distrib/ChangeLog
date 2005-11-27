@@ -44,7 +44,7 @@ These patches are experimental, please test carefully and report your findings.
    a testing mldonkey for a week on a non-low id connection before including
    it in a stable release, ... I can't test high-ID at all."
 4574: Friends upload slot (pango)
-
+-------------------------------------------------------------------------------
 2005/11/19: version 2.7.0 = tag release-2-7-0
 4631: Validate ED2K-client_private_key
 

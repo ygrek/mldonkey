@@ -85,7 +85,7 @@ let size_of_int64 size =
 
 let int64_of_size size =
   let len = String.length size in
-  let u = String.sub size (len - 2) len in
+  let u = String.sub size (len - 2) 2 in
   let s = String.sub size 0 (len - 3) in
   try
     match u with
@@ -1285,6 +1285,60 @@ let client_to_source c =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                        uid_to_common_uid                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let uid_to_common_uid uid =
+  match uid with
+    Bitprint (sha1,ttr) -> Sha1 sha1
+  | BTUrl url -> Sha1 url
+  | _ -> uid
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        ustring_of_uid                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let ustring_of_uid uid =
+  let sep = ":" in
+  match uid with
+    Bitprint (sha1,ttr) ->
+      "urn" ^ sep ^ "sha1" ^ sep ^ (Sha1.to_string sha1)
+  | Sha1 sha1 ->
+      "urn" ^ sep ^ "sha1" ^ sep ^ (Sha1.to_string sha1)
+  | Ed2k ed2k ->
+      "urn" ^ sep ^ "ed2k" ^ sep ^ (Md4.to_string ed2k)
+  | Md5 md5 ->
+      "urn" ^ sep ^ "md5" ^ sep ^ (Md5.to_string md5)
+  | TigerTree ttr -> 
+      "urn" ^ sep ^ "ttr" ^ sep ^ (TigerTree.to_string ttr)
+  | Md5Ext md5 ->
+      "urn" ^ sep ^ "sig2dat" ^ sep ^ (Md5Ext.to_base32 md5)
+  | BTUrl url ->
+      "urn" ^ sep ^ "sha1" ^ sep ^ (Sha1.to_string url)
+  | FileTP file ->
+      "urn" ^ sep ^ "filetp" ^ sep ^ (Md4.to_string file)
+  | NoUid -> ""
+
+(*************************************************************************)
+(*                                                                       *)
+(*                        normalize_uids                                 *)
+(*                                                                       *)
+(*************************************************************************)
+
+let normalize_uids uid_list =
+  let l = ref [] in
+  List.iter (fun t ->
+    let uid_type = uid_to_common_uid (Uid.to_uid t) in
+    let _t = Uid.create uid_type in
+    if not (List.mem _t !l) then l := _t :: !l
+  ) uid_list;
+  !l
+
+(*************************************************************************)
+(*                                                                       *)
 (*                        uid_list_to_string                             *)
 (*                                                                       *)
 (*************************************************************************)
@@ -1292,7 +1346,7 @@ let client_to_source c =
 let uid_list_to_string l =
   match l with
       [] -> ""
-    | uid :: _ -> U.simple_utf8_of (Uid.to_string uid)
+    | uid :: _ -> U.simple_utf8_of (ustring_of_uid (Uid.to_uid uid))
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1319,7 +1373,7 @@ let shared_info_to_shared_file si =
     g_shared_size      = si.shared_size;
     g_shared_uploaded  = si.shared_uploaded;
     g_shared_requests  = si.shared_requests;
-    g_shared_uids      = si.shared_uids;
+    g_shared_uids      = normalize_uids si.shared_uids;
     g_shared_last_seen = BasicSocket.current_time ();
   }
 
@@ -1351,7 +1405,7 @@ let file_info_to_g_file_info f =
     g_file_age             = (BasicSocket.last_time () - f.file_age);
     g_file_last_seen       = (BasicSocket.last_time () - f.file_last_seen);
     g_file_priority        = f.file_priority;
-    g_file_uids            = f.file_uids;
+    g_file_uids            = normalize_uids f.file_uids;
 
     g_file_stats           = [];
   }

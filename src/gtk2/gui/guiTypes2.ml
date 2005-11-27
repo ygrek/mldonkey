@@ -215,6 +215,7 @@ type source_info =
 type stat_type =
   RazorBack
 | FileDonkey
+| IsoHunt
 
 type stat =
   {

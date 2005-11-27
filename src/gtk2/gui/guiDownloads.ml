@@ -1079,6 +1079,55 @@ let add_filedonkey_stats stat (table : GPack.table) pos =
     pos := !pos + 5
   with _ -> ()
 
+let add_isohunt_stats stat (table : GPack.table) pos =
+  try
+    let label_isohunt =
+      GMisc.label ~xalign:0. ~yalign:0.
+      ~markup:(GuiTools.create_default_bold_markup "http://www.isohunt.com/") ()
+    in
+    let label_rate =
+      GMisc.label ~xalign:0. ~yalign:0.
+      ~markup:!M.dT_lb_stats_rate ()
+    in
+    let label_available =
+      GMisc.label ~xalign:0. ~yalign:0.
+      ~markup:!M.dT_lb_stats_available ()
+    in
+    let label_complete =
+      GMisc.label ~xalign:0. ~yalign:0.
+      ~markup:!M.dT_lb_stats_complete ()
+    in
+    let label_rating =
+      GMisc.label ~xalign:1. ~yalign:0. ~line_wrap:true
+      ~markup:(U.utf8_of stat.stats_file_rating) ()
+    in
+    let label_availability =
+      GMisc.label ~xalign:1. ~yalign:0.
+      ~markup:(Printf.sprintf "%d" stat.stats_file_availability) ()
+    in
+    let label_completed =
+      GMisc.label ~xalign:1. ~yalign:0.
+      ~markup:(Printf.sprintf "%d" stat.stats_file_completed) ()
+    in
+    List.iter (fun (w, left, right, top, expand) ->
+      table#attach
+        ~left ~top
+        ~xpadding:0 ~ypadding:0
+        ~right ~bottom:(top + 1)
+        ~expand ~fill:`X
+        w;
+    ) [
+       label_isohunt#coerce     , 0, 2, !pos + 0, `NONE;
+       label_rate#coerce        , 0, 1, !pos + 1, `NONE;
+       label_rating#coerce      , 1, 2, !pos + 1, `NONE;
+       label_available#coerce   , 0, 1, !pos + 2, `NONE;
+       label_availability#coerce, 1, 2, !pos + 2, `NONE;
+       label_complete#coerce    , 0, 1, !pos + 3, `NONE;
+       label_completed#coerce   , 1, 2, !pos + 3, `NONE;
+      ];
+    pos := !pos + 6
+  with _ -> ()
+
 let show_stats file (hbox_stats : GPack.box) (hbox_progress : GPack.box) =
   List.iter (fun w -> w#destroy ()) hbox_stats#children;
   List.iter (fun w -> w#misc#hide ()) hbox_progress#children;
@@ -1101,6 +1150,12 @@ let show_stats file (hbox_stats : GPack.box) (hbox_progress : GPack.box) =
           try
             let stat = H.get_stat file FileDonkey in
             add_filedonkey_stats stat table_stats pos
+          with _ -> ()
+        end;
+        begin
+          try
+            let stat = H.get_stat file IsoHunt in
+            add_isohunt_stats stat table_stats pos
           with _ -> ()
         end;
         hbox_stats#add table_stats#coerce
@@ -1217,6 +1272,61 @@ let filedonkey_stats k () =
     H.get_filedonkey_stats file on_completed on_not_found progress
   with _ -> ()
 
+let isohunt_stats k () =
+  try
+    let file = file_of_key k in
+    let on_completed () =
+      match !current_selection with
+        key :: _ when key = k ->
+          begin
+            match !stat_boxes with
+              Some (hbox_stats, hbox_progress, label, pbar) ->
+                begin
+                  show_stats file hbox_stats hbox_progress
+                end
+            | None -> ()
+          end
+      | _ -> ()
+    in
+    let on_not_found file_name =
+      H.remove_stat file IsoHunt;
+      match !stat_boxes with
+        Some (hbox_stats, hbox_progress, label, pbar) ->
+          begin
+            show_stats file hbox_stats hbox_progress;
+            let s = Printf.sprintf "Sorry, the file %s was not found on http://www.isohunt.com/" file_name in
+            label#set_label s;
+            label#misc#show ()
+          end
+      | _ -> ()
+    in
+    let t = ref 0. in
+    let progress file_name desc n m =
+      let s = U.utf8_of (Printf.sprintf "%s %s:" desc file_name) in
+      let tt = !t in
+      t := !t +. float_of_int n;
+      let p =
+        if m > 0
+          then min 1. (!t /. float_of_int m)
+          else if !t > 0. then tt /. !t else 0.
+      in
+      let v = int_of_float (p *. 100.) in
+      let percent = U.simple_utf8_of (Printf.sprintf "%d%%" v) in
+      (if !!verbose then lprintf' "%s: %s\n" s percent);
+      match !stat_boxes with
+        Some (hbox_stats, hbox_progress, label, pbar) ->
+          begin
+            label#set_label s;
+            pbar#set_fraction p;
+            pbar#set_text percent;
+            label#misc#show ();
+            pbar#misc#show ();
+          end
+      | _ -> ()
+    in
+    H.get_isohunt_stats file on_completed on_not_found progress
+  with _ -> ()
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Download Menu                                 *)
@@ -1235,6 +1345,7 @@ let download_menu sel =
                 `S ;
                 `I ((!M.dT_me_razorback2_stats), razorback2_stats k);
                 `I ((!M.dT_me_filedonkey_stats), filedonkey_stats k);
+                `I ((!M.dT_me_isohunt_stats), isohunt_stats k);
                 `S ;
                ]
              else  [])
