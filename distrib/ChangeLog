@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/11/28
+4655: Set conn_user on gui (zet)
 4656: BT: update last seen complete field and fix bitfield reading (zet)
 
 2005/11/27

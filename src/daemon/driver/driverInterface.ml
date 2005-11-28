@@ -574,6 +574,7 @@ let gui_reader (gui: gui_record) t _ =
           | _ ->
               guis := gui :: !guis;
               gui.gui_auth <- true;
+              gui.gui_conn.conn_user <- find_ui_user user;
               
               if not gui.gui_initialized then 
                 gui_initialize gui;
