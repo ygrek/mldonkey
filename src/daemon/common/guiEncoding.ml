@@ -569,8 +569,15 @@ let buf_addr proto buf addr =
   | Ip.AddrName s ->
       buf_int8 buf 1;
       buf_string buf s);
-  if proto > 33 then
-    buf_bool buf (Ip_set.ip_blocked (Ip.ip_of_addr addr))
+  if proto > 33 then begin
+    let is_blocked = 
+      try 
+        Ip_set.ip_blocked (Ip.ip_of_addr addr)
+      with _ ->
+        false
+    in
+    buf_bool buf is_blocked 
+  end
   
 let buf_server proto buf s =
   buf_int buf s.server_num;
