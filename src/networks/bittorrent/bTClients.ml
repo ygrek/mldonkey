@@ -355,6 +355,16 @@ let check_finished swarmer file =
       download_finished file
 
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
+
+(* Check/set bits in strings (bittorrent format) *)
+
+let is_bit_set s n =
+  (Char.code s.[n lsr 3]) land bits.(n land 7) <> 0
+
+let set_bit s n =
+  let i = n lsr 3 in
+  s.[i] <- Char.unsafe_chr (Char.code s.[i] lor bits.(n land 7))
+
 (* Official client seems to use max_range_request 5 and max_range_len 2^14 *)
 (* How much requests in the 'pipeline' *)
 let max_range_requests = 5
@@ -388,19 +398,14 @@ let send_bitfield c =
 
   if !verbose then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
 
+(* In the future, only accept bitmap.[n] > '2' when verification works *)
   send_client c (BitField
       (
       let nchunks = String.length bitmap in
       let len = (nchunks+7)/8 in
       let s = String.make len '\000' in
       for i = 0 to nchunks - 1 do
-        let n = i lsr 3 in
-        let j = i land 7 in
-(* In the future, only accept bitmap.[n] > '2' when verification works *)
-        if bitmap.[i] >= '2' then begin
-            s.[n] <- char_of_int (int_of_char s.[n]
-                lor bits.(j))
-          end
+        if bitmap.[i] >= '2' then set_bit s i;
       done;
       s
     ))
@@ -505,7 +510,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     if !verbose_msg_clients then
       lprintf_nl () "[BT]: file and client found";
 (*    if not c.client_incoming then *)
-    send_bitfield c;
+     send_bitfield c; 
     c.client_blocks_sent <- file.file_blocks_downloaded;
 (*
       TODO !!! : send interested if and only if we are interested
@@ -581,8 +586,10 @@ and get_from_client sock (c: client) =
   let file = c.client_file in
   (* Check if there's not enough requests in the 'pipeline'
      and if a request can be send (not choked and file is downloading) *)
-  if List.length c.client_ranges_sent < max_range_requests &&
-    file_state file = FileDownloading && (c.client_choked == false) then
+  if List.length c.client_ranges_sent < max_range_requests 
+      && file_state file = FileDownloading 
+      && (c.client_choked == false) 
+    then
   (* num is the number of the piece, x and y are the position
      of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 
@@ -592,92 +599,128 @@ and get_from_client sock (c: client) =
     let swarmer = Int64Swarmer.uploader_swarmer up in
 
   try
+  
     let num, x,y, r =
+
       if !verbose_msg_clients then begin
-          lprintf_nl () "CLIENT %d: Finding new range to send" (client_num c);
-        end;
+        lprintf_nl () "CLIENT %d: Finding new range to send" (client_num c);
+      end;
 
       if !verbose_swarming then begin
-          lprintf_n () "Current download:\n  Current chunks: ";
-          (try
+        lprintf_n () "Current download:\n  Current chunks: ";
+
+        try
           List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks
-    with _ -> lprintf "No Chunks");
-    lprint_newline ();
-          lprintf_n () "Current ranges: ";
-          List.iter (fun (p1,p2, r) ->
-              let (x,y) = Int64Swarmer.range_range r
-              in
-              lprintf "%Ld-%Ld[%Ld-%Ld] " p1 p2 x y) c.client_ranges_sent;
-          (match c.client_range_waiting with
-              None -> ()
-            | Some (x,y,r) -> lprintf "Waiting %Ld-%Ld" x y);
-    lprint_newline ();
-          lprintf_n () "Current block: ";
-          (match c.client_block with
-              None -> lprintf "none"
-            | Some b -> Int64Swarmer.print_block b);
-    lprint_newline ();
-          lprintf_nl () "Finding Range:";
-        end;
+        with _ -> lprintf "No Chunks";
+          
+        lprint_newline ();
+          
+        lprintf_n () "Current ranges: ";
+          
+        List.iter (fun (p1,p2, r) ->
+          let (x,y) = Int64Swarmer.range_range r in
+          lprintf "%Ld-%Ld[%Ld-%Ld] " p1 p2 x y
+        ) c.client_ranges_sent;
+
+        match c.client_range_waiting with
+        | None -> ()
+        | Some (x,y,r) -> lprintf "Waiting %Ld-%Ld" x y;
+
+        lprint_newline ();
+          
+        lprintf_n () "Current block: ";
+          
+        match c.client_block with
+        | None -> lprintf "none"
+        | Some b -> Int64Swarmer.print_block b;
+
+        lprint_newline ();
+      
+        lprintf_nl () "Finding Range:";
+      end;
+
       try
+
         (*We must find a block to request first, and then
           some range inside this block
         *)
+
         let rec iter () =
+
           match c.client_block with
-            None ->
-              if !verbose_swarming then
-                lprintf_nl () "No block";
+
+            None -> 
+
+              if !verbose_swarming then lprintf_nl () "No block";
               update_client_bitmap c;
               (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
               (*Find a free block in the swarmer*)
               let b = Int64Swarmer.find_block up in
-              if !verbose_swarming then begin
-                  lprintf_n () "Block Found: "; Int64Swarmer.print_block b;
-      lprint_newline ()
-                end;
+              if !verbose_swarming then begin 
+                lprintf_n () "Block Found: "; Int64Swarmer.print_block b;
+                lprint_newline ()
+              end;
               c.client_block <- Some b;
+
              (*We put the found block in client_block to
                request range in this block. (Useful for
                not searching each time a new block)
               *)
+
               iter ()
+
           | Some b ->
+
               if !verbose_swarming then begin
-                  lprintf_n () "Current Block: "; Int64Swarmer.print_block b;
-      lprint_newline ()
-                end;
+                lprintf_n () "Current Block: "; Int64Swarmer.print_block b;
+                lprint_newline ()
+              end;
+
               try
                 (*Given a block find a range inside*)
                 let (x,y,r) =
                   match c.client_range_waiting with
                     Some (x,y,r) ->
-                      c.client_range_waiting <- None;
-                      (x,y,r)
-                  | None -> Int64Swarmer.find_range up in
+                        c.client_range_waiting <- None;
+                        (x,y,r)
+                  | None -> 
+                        Int64Swarmer.find_range up 
+                in
 
                 let (x,y,r) =
+                  
                   if y -- x > max_range_len then begin
                       c.client_range_waiting <- Some (x ++ max_range_len, y, r);
                       (x, x ++ max_range_len, r)
-                    end else (x,y,r) in
-                c.client_ranges_sent <- c.client_ranges_sent @ [x,y, r];
+                  end else 
+                      (x,y,r) 
+                in
+                
+                  c.client_ranges_sent <- c.client_ranges_sent @ [x,y, r];
 (*                Int64Swarmer.alloc_range r; *)
-                let num = Int64Swarmer.block_num swarmer b in
-                if !verbose_swarming then
-                  lprintf_nl () "Asking %d For Range %Ld-%Ld" num x y;
+                
+                  let num = Int64Swarmer.block_num swarmer b in
 
-                num, x -- file.file_piece_size ** Int64.of_int num, y -- x, r
+                  if !verbose_swarming then 
+                    lprintf_nl () "Asking %d For Range %Ld-%Ld" num x y;
+                      
+                  num, x -- file.file_piece_size ** Int64.of_int num, y -- x, r
+
               with Not_found ->
+  
                   (*If we don't find a range to request inside the block,
                     iter to choose another block*)
                   if !verbose_swarming then
                     lprintf_nl () "Could not find range in current block";
 (*                  c.client_blocks <- List2.removeq b c.client_blocks; *)
+
                   c.client_block <- None;
+
                   iter ()
         in
+
         iter ()
+
       with Not_found ->
           (*If we don't find a block to request we can check if the
             file is finished (if there's missing pieces we can't decide
@@ -690,16 +733,16 @@ and get_from_client sock (c: client) =
           check_finished swarmer file;
           raise Not_found
     in
+
     send_client c (Request (num,x,y));
+
     if !verbose_msg_clients then
       lprintf_nl () "CLIENT %d: Asking %s For Range %Ld-%Ld"
-        (client_num c)
-      (Sha1.to_string c.client_uid)
-      x y
+        (client_num c) (Sha1.to_string c.client_uid) x y
+
   with Not_found ->
         if not (Int64Swarmer.check_finished swarmer) && !verbose_hidden_errors then
-          lprintf_nl ()
-            "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
+          lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 
 (** In this function we match a message sent by a client
@@ -867,11 +910,10 @@ and client_to_client c sock msg =
                 disconnect_client c (Closed_for_error "Wrong bitfield length")
               end else begin
 
-                let is_set s n = (Char.code s.[n lsr 3]) land (1 lsl (n land 7)) <> 0 in
                 let verified = Int64Swarmer.verified_bitmap swarmer in
 
                 for i = 0 to npieces - 1 do
-                  if is_set p i then begin
+                  if is_bit_set p i then begin
                     c.client_new_chunks <- i :: c.client_new_chunks;
                     if verified.[i] < '2' then
                       c.client_interesting <- true;

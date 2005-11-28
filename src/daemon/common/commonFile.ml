@@ -572,10 +572,29 @@ let file_print file o =
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+
       let tt = ref "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
+      let tc = String.length info.G.file_chunks in
+      let c0 = ref 0 in
+      let c1 = ref 0 in
+      let c2 = ref 0 in
+      let c3 = ref 0 in   
+
+      String.iter (fun c ->
+        match c with
+        | '0' -> incr c0
+        | '1' -> incr c1
+        | '2' -> incr c2
+        | '3' -> incr c3
+        | _ -> ()
+      ) info.G.file_chunks;
+      
+      let header = Printf.sprintf "%d (%d+%d+%d+%d): " tc !c0 !c1 !c2 !c3 in
+
       html_mods_td buf [
         (!tt, "sr br", "Chunks");
-        (!tt, "sr", if !!html_vd_chunk_graph then
+        (!tt, "sr", 
+          header ^ if !!html_vd_chunk_graph then
           (colored_chunks (Array.init (String.length info.G.file_chunks)
           (fun i -> ((int_of_char info.G.file_chunks.[i])-48))))
           else

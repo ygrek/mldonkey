@@ -246,16 +246,17 @@ let op_file_print_html file buf =
            ("Tracker key", "sr br", "Tracker key");
            ("", "sr", Printf.sprintf "%s" t.tracker_key) ]
         end;
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-        html_mods_td buf [
-           ("Files:", "sr br", "Files:");
-           ("", "sr", "") ];
+
+      let cntr = ref 0 in
       List.iter (fun (filename, size) ->
           Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          let fs = Printf.sprintf "File %d" !cntr in
           html_mods_td buf [
-           ("", "sr br", "");
-           ("", "sr", (Printf.sprintf "%s (%Ld bytes)" filename size)) ])
-      file.file_files
+           (fs, "sr br", fs);
+           ("", "sr", (Printf.sprintf "%s (%Ld bytes)" filename size)) 
+          ];
+          incr cntr;
+      ) file.file_files
 
 let op_file_print_sources_html file buf =
 
@@ -403,7 +404,7 @@ let op_file_info file =
     P.file_format = FormatNotComputed 0;
     P.file_chunks_age = last_seen;
     P.file_age = file_age file;
-    P.file_last_seen = BasicSocket.last_time ();
+    P.file_last_seen = file.file_file.impl_file_last_seen;
     P.file_priority = file_priority (as_file file);
     P.file_uids = [Uid.create (BTUrl file.file_id)];
     P.file_sub_files = file.file_files;
