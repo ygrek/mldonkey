@@ -40,6 +40,7 @@
 #include "md5.h"
 #include "os_stubs.h"
 #include <string.h>
+#include <caml/config.h>
 
 #ifdef TEST
 /*
@@ -171,10 +172,7 @@ md5_process(md5_state_t *pms, const md5_byte_t *data /*[64]*/)
 	c = pms->abcd[2], d = pms->abcd[3];
     md5_word_t t;
 
-#ifndef ARCH_IS_BIG_ENDIAN
-# define ARCH_IS_BIG_ENDIAN 1	/* slower, default implementation */
-#endif
-#if ARCH_IS_BIG_ENDIAN
+#if defined(ARCH_BIG_ENDIAN)
 
     /*
      * On big-endian machines, we must arrange the bytes in the right
@@ -187,7 +185,7 @@ md5_process(md5_state_t *pms, const md5_byte_t *data /*[64]*/)
     for (i = 0; i < 16; ++i, xp += 4)
 	X[i] = xp[0] + (xp[1] << 8) + (xp[2] << 16) + (xp[3] << 24);
 
-#else  /* !ARCH_IS_BIG_ENDIAN */
+#else  /* !ARCH_BIG_ENDIAN */
 
     /*
      * On little-endian machines, we can process properly aligned data

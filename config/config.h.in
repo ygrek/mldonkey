@@ -3,9 +3,6 @@
 /* Define to 1 if you want to replace iconv and related with stubs. */
 #undef DISABLE_ICONV
 
-/* Define to 1 if you want to use the faster sha1new implementation. */
-#undef ENABLE_SHA1NEW
-
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
@@ -32,12 +29,6 @@
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
-
-/* Define to 1 if you have a locally generated endian.h header file. */
-#undef HAVE_LOCAL_ENDIAN_H
-
-/* Define to 1 if you have the <machine/endian.h> header file. */
-#undef HAVE_MACHINE_ENDIAN_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -68,9 +59,6 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
-
-/* Define to 1 if you have the <sys/endian.h> header file. */
-#undef HAVE_SYS_ENDIAN_H
 
 /* Define to 1 if you have the <sys/poll.h> header file. */
 #undef HAVE_SYS_POLL_H

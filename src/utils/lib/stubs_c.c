@@ -22,6 +22,7 @@
 
 #include <string.h> 
 #include <ctype.h>
+#include <caml/config.h>
 
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
@@ -1281,3 +1282,14 @@ ml_verifySignature_bytecode(value *argv, int argn) {
 	return ml_verifySignature(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
 
+value ml_check_endianness(void)
+{
+  CAMLparam0 ();
+  CAMLlocal1 (v);
+#ifdef ARCH_BIG_ENDIAN
+  v = copy_string ("big endian");
+#else
+  v = copy_string ("little endian");
+#endif
+  CAMLreturn (v);
+}

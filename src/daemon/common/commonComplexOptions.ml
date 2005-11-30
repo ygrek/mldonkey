@@ -1083,7 +1083,7 @@ let buildinfo () =
       ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
       ^ "\nNetworks: " ^ !networks_string
       ^ "\nOcaml version: " ^ Sys.ocaml_version
-      ^ "\nBuild on: " ^ Autoconf.build_system
+      ^ "\nBuild on: " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
       ^ (if Autoconf.glibc_version = "" then "" 
           else
             let real_glibc_version = MlUnix.glibc_version_num () in
@@ -1124,7 +1124,6 @@ let buildinfo () =
 	  ^ (if not Autoconf.has_gd then " no-gd" else "")
           ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
           ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
-          ^ " " ^ Autoconf.sha1_version
   )
   
 let runinfo () =

@@ -500,6 +500,7 @@ fi
 AC_PATH_PROG(PERL, perl, perl)
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
@@ -614,25 +615,6 @@ else
 fi
 
 AC_CHECK_HEADERS(byteswap.h,,)
-AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h,[SHA1_VERSION=sha1new; break],[SHA1_VERSION=sha1old])
-if test "$SHA1_VERSION" = "sha1old"; then
-    AC_MSG_CHECKING(trying to guess endianess)
-    $CC -o endian endian.c
-    BYTE_ORDER="`./endian | grep BYTE_ORDER | cut -c24-40`"
-    if test "$BYTE_ORDER" = "" ; then
-        echo "You don't have endian.h or sys/endian.h or machine/endian.h installed."
-        echo "This script will fallback on the old slower sha1 implementation."
-    else
-        AC_MSG_RESULT($BYTE_ORDER)
-        ./endian > ../src/utils/lib/endian.h
-        SHA1_VERSION=sha1new
-        AC_DEFINE(HAVE_LOCAL_ENDIAN_H, 1, [Define to 1 if you have a locally generated endian.h header file.])
-        AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
-    fi
-    rm -f ./endian ./endian.exe
-else
-    AC_DEFINE(ENABLE_SHA1NEW, 1, [Define to 1 if you want to use the faster sha1new implementation.])
-fi
 
 if test "$ICONV" = "yes"; then
   AM_ICONV
@@ -1134,6 +1116,7 @@ AC_SUBST(EXTRA_DIRS)
 
 AC_SUBST(TYPE_FORMAT)
 AC_SUBST(OCAMLC)
+AC_SUBST(OCAMLLIB)
 AC_SUBST(OCAMLOPT)
 AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
@@ -1144,7 +1127,6 @@ AC_SUBST(PERL)
 AC_SUBST(OCAMLMKTOP)
 AC_SUBST(SYSTEM)
 
-AC_SUBST(SHA1_VERSION)
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)

@@ -133,6 +133,8 @@ external c_ftruncate64 : Unix.file_descr -> int64 -> bool -> unit =
 external c_getdtablesize : unit -> int = "ml_getdtablesize"
 external c_sizeofoff_t : unit -> int = "ml_sizeofoff_t"
 
+external endianness : unit -> string = "ml_check_endianness"
+
 let rec remove_all_directory dirname =
   let files = list_directory dirname in
   List.iter (fun file ->

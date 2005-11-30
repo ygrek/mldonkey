@@ -18,11 +18,7 @@
 */
 
 #include "tiger.h"
-
-/* Big endian:                                         */
-#if !(defined(__alpha)||defined(__i386__)||defined(__vax__))
-#define BIG_ENDIAN
-#endif
+#include <caml/config.h>
 
 /* The following macro denotes that an optimization    */
 /* for Alpha is required. It is used only for          */
@@ -193,7 +189,7 @@ static void static_tiger(word64 *str, word64 length, word64 res[3])
 
   for(i=length; i>=64; i-=64)
     {
-#ifdef BIG_ENDIAN
+#ifdef ARCH_BIG_ENDIAN
       for(j=0; j<64; j++)
 	temp[j^7] = ((byte*)str)[j];
       tiger_compress(((word64*)temp), res);
@@ -203,7 +199,7 @@ static void static_tiger(word64 *str, word64 length, word64 res[3])
       str += 8;
     }
 
-#ifdef BIG_ENDIAN
+#ifdef ARCH_BIG_ENDIAN
   for(j=0; j<i; j++)
     temp[j^7] = ((byte*)str)[j];
 
@@ -753,7 +749,7 @@ word64 table[4*256] = {
 
 void swap_digest(unsigned char *digest)
 {
-  #ifdef BIG_ENDIAN
+  #ifdef ARCH_BIG_ENDIAN
   {
     int i,j; 
     for(i=0; i<3; i++){

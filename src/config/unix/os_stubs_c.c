@@ -113,7 +113,7 @@ void os_set_nonblock(OS_SOCKET fd)
 
 }
 
-int glibc_version(void)
+value glibc_version(void)
 {
   CAMLparam0 ();
   CAMLlocal1 (v);

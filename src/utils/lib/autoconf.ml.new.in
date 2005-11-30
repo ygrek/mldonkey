@@ -46,6 +46,4 @@ let zlib__uncompress_string2 s = Zlib.uncompress_string2 s
 let zlib__compress_string s = Zlib.compress_string s
 let zlib__gzip_string s = Zlib.gzip_string s
 
-let sha1_version = "@SHA1_VERSION@"
-
 @TYPE_FORMAT@

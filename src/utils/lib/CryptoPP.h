@@ -86,6 +86,7 @@
 #define CRYPTOPP_H
 
 #include <inttypes.h>
+#include <caml/config.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifndef CRYPTOPP_CONFIG_H5392
@@ -93,16 +94,14 @@
 
 // ***************** Important Settings ********************
 
-// define this if running on a big-endian CPU
-#if !defined(IS_LITTLE_ENDIAN) && (defined(__BIG_ENDIAN__) || defined(__sparc) || defined(__sparc__) || defined(__hppa__) || defined(__mips__) || (defined(__MWERKS__) && !defined(__INTEL__)))
-#	define IS_BIG_ENDIAN
-#endif
-
 // define this if running on a little-endian CPU
 // big endian will be assumed if IS_LITTLE_ENDIAN is not defined
-#ifndef IS_BIG_ENDIAN
+#ifndef ARCH_BIG_ENDIAN
 #	define IS_LITTLE_ENDIAN
 #endif
+
+// override #define in caml/compatability.h
+#undef flush 
 
 // define this if you want to disable all OS-dependent features,
 // such as sockets and OS-provided random number generators
