@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/01
+4661: Log: Print newline before exception message when MLDonkey can´t use a port
+      BT: exit if client_port = tracker_port
+
 2005/11/28
 4654: Fix guiprot when addr not resolvable (zet)
 4655: Set conn_user on gui (zet)

@@ -65,6 +65,13 @@ let enable () =
     Unix2.can_write_to_directory downloads_directory;
     Unix2.can_write_to_directory old_directory;
     is_enabled := true;
+    if !!BTTracker.tracker_port = !!client_port then
+      begin
+        lprint_newline();
+	lprintf_nl () "BT-client_port and BT-tracker_port can not be the same.";
+	lprintf_nl () "Change one of the settings and restart MLDonkey, exiting...\n";
+	Pervasives.exit 69
+      end;
     if !!BTTracker.tracker_port > 0 then (
         try BTTracker.start_tracker ()
         with e ->

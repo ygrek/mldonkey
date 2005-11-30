@@ -107,6 +107,7 @@ let create name addr port handler =
     t.sock <- sock;
     t
   with e ->
+    lprint_newline ();
     lprintf "Exception: %s at port %d\n" (Printexc2.to_string e) port;
     match e with
       Unix.Unix_error (Unix.EADDRINUSE, _, _) -> 
