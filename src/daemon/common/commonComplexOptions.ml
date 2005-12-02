@@ -864,7 +864,7 @@ let shared_directories =
   ]
 
 
-let incoming_files () =
+let search_incoming_files () =
   try
     List.find (fun s -> s.shdir_strategy = "incoming_files") 
     !!shared_directories
@@ -880,7 +880,13 @@ let incoming_files () =
         shared_directories =:= s :: !!shared_directories;
         s
 
-let incoming_directories () =
+let incoming_files () =
+  let dir = search_incoming_files () in
+    Unix2.safe_mkdir dir.shdir_dirname;
+    Unix2.can_write_to_directory dir.shdir_dirname;
+    dir
+
+let search_incoming_directories () =
   try
     List.find (fun s -> s.shdir_strategy = "incoming_directories") 
     !!shared_directories
@@ -895,6 +901,12 @@ let incoming_directories () =
       in
       shared_directories =:= s :: !!shared_directories;
       s
+
+let incoming_directories () =
+  let dir = search_incoming_directories () in
+    Unix2.safe_mkdir dir.shdir_dirname;
+    Unix2.can_write_to_directory dir.shdir_dirname;
+    dir
 
 let _ =
 (* Check the definition of the incoming_files and incoming_directories in

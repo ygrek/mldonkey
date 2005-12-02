@@ -641,14 +641,6 @@ let _ =
         List.iter (fun t -> t.dump_info buf) !closed_tasks;
   );
 
-  Printexc2.register_exn (fun e ->
-      match e with
-        Unix.Unix_error (e, f, arg) ->
-          Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else
-              "on " ^ arg) (Unix.error_message e)
-      | _ -> raise e
-  );
-
   add_timer 300. (fun t ->
       reactivate_timer t;
       if !debug then

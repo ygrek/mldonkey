@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/02
+4666: Always create incoming directories before commit
 4663: CryptoPP: Latest fixes ported from aMule CVS
 
 2005/12/01

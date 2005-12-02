@@ -1904,6 +1904,7 @@ let check_primitives () =
       lprintf "apply_cipher s = \"%s\"\n" (String.escaped s);
       cipher_free cipher;
     with _ ->
+	lprint_newline ();
         lprintf "The Fasttrack plugin will not work on your computer, since\n";
         lprintf "the encryption algorithm does not work correctly.\n";
         lprintf "You can try to solve this problem by hacking the C files in\n";

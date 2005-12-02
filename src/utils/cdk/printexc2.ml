@@ -105,6 +105,6 @@ let _ =
       match e with
         Unix.Unix_error (e, f, arg) ->
           Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else
-              "on " ^ arg) (Unix.error_message e)
+              " on " ^ arg) (Unix.error_message e)
           | _ -> raise e
   )

@@ -74,7 +74,11 @@ let rec safe_mkdir dir =
   else begin
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
-(*      if dir <> "." then *) Unix.mkdir dir 0o775
+      begin try
+        Unix.mkdir dir 0o775
+      with
+        e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
+      end
     end    
     
     
