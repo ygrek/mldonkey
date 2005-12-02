@@ -42,7 +42,7 @@ let exec_command cmd args handler =
       (t_in, t_out)
   *)
 
-let fork_and_exec cmd args = ()
+let fork_and_exec cmd ?vars args = ()
 
 (*
 let fork_and_exec cmd args = 

@@ -102,9 +102,7 @@ let find_proto (name : string) =
 let min_range_size = megabyte
 
 let set_file_size file size =
-  lprintf "set_file_size %s : %s\n" (Unix32.filename (file_fd file)) (Int64.to_string size);
   if file_size file = zero && size <> zero then begin
-      lprintf "Setting SWARMER\n";
       let file_chunk_size =
         max megabyte (
           size // (max 5L (size // (megabytes 5)))
@@ -116,7 +114,6 @@ let set_file_size file size =
       let swarmer = Int64Swarmer.create kernel (as_file file)
           file_chunk_size in
       file.file_swarmer <- Some swarmer;
-      lprintf "Swarmer set\n";
       Int64Swarmer.set_verified swarmer (fun _ _ ->
           file_must_update (as_file file);
       );

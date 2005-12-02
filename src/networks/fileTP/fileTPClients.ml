@@ -207,7 +207,6 @@ let get_from_client sock (c: client) =
                     in
                     iter ()
                   with Not_found ->
-                      lprintf "Unable to get a block !!";
                       check_finished swarmer file;
                       raise Not_found
             in
@@ -247,7 +246,6 @@ that the connection will not be aborted (otherwise, disconnect_client
 (*      lprintf "connect_client... pending\n"; *)
       let token =
         add_pending_connection connection_manager (fun token ->
-            lprintf "Connection accepted\n";
             if List.exists (fun d ->
                   let file = d.download_file in
                   file_state file = FileDownloading

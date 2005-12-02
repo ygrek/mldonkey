@@ -477,6 +477,7 @@ let _ =
   network.op_network_share <- (fun fullname codedname size -> ());
   (* Same with Network.search and Network.forget_search... *)
   network.op_network_search <- (fun ss buf -> ());
+  file_ops.op_file_commit <- (fun file new_name -> ());
   network.op_network_forget_search <- (fun s -> ());
   (* and Network.recover_temp *)
   network.op_network_recover_temp <- (fun s -> ())

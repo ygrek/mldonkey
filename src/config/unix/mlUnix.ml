@@ -54,14 +54,37 @@ let execvp_command cmd args handler =
       let sock = handler in_read out_write in
       sock, id
 
-let fork_and_exec cmd args = 
+let fork_and_exec cmd ?vars args = 
+  let env =
+    match vars with
+      | None -> None
+      | Some vars ->
+	  (* convert environment to an alist *)
+	  let env = List.map (fun kev -> 
+	    try
+	      let len = String.length kev in
+	      let equal_sign = String.index kev '=' in
+		(String.sub kev 0 equal_sign, 
+		 String.sub kev (equal_sign + 1) (len - 1 - equal_sign))
+	    with Not_found -> (* May that happen ? *)
+	      (kev, "")
+	  ) (Array.to_list (Unix.environment ())) in
+	  (* update parent's environment with vars alist *)
+	  let env = List.fold_left (fun acc ((k, v) as assoc) ->
+	    assoc :: List.remove_assoc k acc
+	  ) env vars in
+	  Some (Array.of_list (List.map (fun (k, v) -> k ^ "=" ^ v) env)) in
   match Unix.fork() with
     0 -> begin
         try
           match Unix.fork() with
             0 -> begin
                 try
-                  Unix.execv cmd args;
+		  match env with
+		    | None ->
+			Unix.execv cmd args;
+		    | Some env ->
+			Unix.execve cmd args env;
                   exit 0
                 with e -> 
                     lprintf "Exception %s while starting file_completed_cmd\n" (Printexc2.to_string e); 

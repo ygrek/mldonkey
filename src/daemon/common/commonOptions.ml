@@ -950,8 +950,21 @@ should be interpreted as downloaded during a recovery"
     int64_option 16L
 
 let file_completed_cmd = define_option current_section
-    ["file_completed_cmd"] "A command that is called when a file is completely
-    downloaded. Arguments are: <file_name on disk> <md4> <size>"
+    ["file_completed_cmd"] "A command that is called when a file is committed, does not work on MinGW.
+    Arguments are (kept for compatability):
+      $1 - temp file name, without path
+      $2 - file size
+      $3 - filename of the committed file
+    Also these environment variables can be used (prefered way):
+      $TEMPNAME  - temp file name, including path
+      $FILEID    - same as $1
+      $FILESIZE  - same as $2
+      $FILENAME  - same as $3
+      $FILEHASH  - internal hash
+      $DURATION  - download duration
+      $INCOMING  - directory used for commit
+      $NETWORK   - network used for downloading
+      $ED2K_HASH - ed2k hash if MD4 is known"
     string_option ""
 
 let file_started_cmd = define_option current_section

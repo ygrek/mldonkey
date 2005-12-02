@@ -531,7 +531,7 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGCHLD, doing nothing"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGCHLD, doing nothing"));
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup

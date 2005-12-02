@@ -20,6 +20,7 @@
 open AnyEndian
 open LittleEndian
 open Int64ops
+open Md4
 open Misc
 open Printf2
 open CommonOptions
@@ -99,6 +100,40 @@ let file_commited_name incoming_dir file =
     else new_name in
   new_name
 
+let script_for_file file incoming new_name =
+  let info = file_info file in
+  let temp_name = file_disk_name file in
+  let file_id = Filename.basename temp_name in
+  let size = Int64.to_string (file_size file) in
+  let duration =
+    Date.time_to_string_long ((BasicSocket.last_time ()) - info.G.file_age)
+  in
+  let network = network_find_by_num info.G.file_network in
+  let filename = Filename.basename new_name in
+  let ed2k_hash =
+    if info.G.file_md4 = Md4.null then "" else
+       Printf.sprintf "ed2k://|file|%s|%s|%s|/"
+        (Url.encode filename)
+        (Int64.to_string (file_size file))
+        (Md4.to_string info.G.file_md4)
+  in
+  MlUnix.fork_and_exec !!file_completed_cmd
+      [|  (* keep those for compatibility *)
+      "";
+      file_id; (* $1 *)
+      size; (* $2 *)
+      filename (* $3 *)
+    |]
+     ~vars:[("TEMPNAME",  temp_name);
+	    ("FILEID",    file_id);
+	    ("FILESIZE",  size);
+	    ("FILENAME",  filename);
+	    ("FILEHASH",  string_of_uids info.G.file_uids);
+	    ("DURATION",  duration);
+	    ("INCOMING",  incoming);
+	    ("NETWORK",   network.network_name);
+	    ("ED2K_HASH", ed2k_hash)]
+
 (********
 These two functions 'file_commit' and 'file_cancel' should be the two only
 functions in mldonkey able to destroy a file, the first one by moving it,
@@ -127,7 +162,12 @@ let file_commit file =
         if Unix2.is_directory file_name then
           Unix2.safe_mkdir new_name;
         (try
+(*          the next line really moves the file *)
             set_file_disk_name file new_name;
+
+            if !!file_completed_cmd <> "" then
+	      script_for_file file incoming.shdir_dirname new_name;
+
             if Unix2.is_directory new_name then
               Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in
@@ -211,17 +251,14 @@ let mail_for_completed_file file =
       (let age = (BasicSocket.last_time ()) - info.G.file_age in Date.time_to_string_long age)
     in
 
-    let line3 = if (file_comment file) <> "" then
+    let line3 = if (file_comment file) = "" then "" else
         Printf.sprintf "\r\nComment: %s\r\n" (file_comment file)
-      else
-        Printf.sprintf "";
     in
 
     let subject = if !!filename_in_subject then
-        Printf.sprintf "[mldonkey] file received - %s"
-        (file_best_name file)
+        Printf.sprintf "[mldonkey] file received - %s" (file_best_name file)
       else
-        Printf.sprintf "mldonkey, file received";
+        Printf.sprintf "mldonkey, file received"
     in
 
     let incoming =
@@ -231,23 +268,25 @@ let mail_for_completed_file file =
         incoming_files ()
     in
 
-    let line4 = if !!url_in_mail <> "" then
+    let line4 = if !!url_in_mail = "" then "" else
       Printf.sprintf "\r\n<%s/%s/%s>\r\n" !!url_in_mail incoming.shdir_dirname (Url.encode (file_best_name file))
-    else
-        Printf.sprintf "";
+    in
+
+    let line5 = if !!auto_commit then "" else
+        Printf.sprintf "\r\nauto_commit is disabled, file is not committed to incoming"
     in
 
     let mail = {
         M.mail_to = !!mail;
         M.mail_from = !!mail;
         M.mail_subject = subject;
-        M.mail_body = line1 ^ line2 ^ line3 ^ line4;
+        M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5;
       } in
     M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 
 let chat_for_completed_file file =
   CommonChat.send_warning_for_downloaded_file (file_best_name file)
-
+  
 let file_completed (file : file) =
   try
     let impl = as_file_impl file in
@@ -265,15 +304,6 @@ let file_completed (file : file) =
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
 
-        if !!file_completed_cmd <> "" then begin
-            MlUnix.fork_and_exec  !!file_completed_cmd
-              [|
-              file_name;
-              file_id;
-              Int64.to_string (file_size file);
-              file_best_name file
-            |]
-          end
       end
   with e ->
       lprintf_nl "[cInt] Exception in file_completed: %s" (Printexc2.to_string e)

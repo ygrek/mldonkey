@@ -12,7 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/02
-4649: Updates for file_completed_cmd
+4649: Updates for file_completed_cmd (pango, spiralvoice)
 * some log cleaning
 * added information to notification email if auto_commit is disabled,
   email is sent by file_completed, not file_commit
