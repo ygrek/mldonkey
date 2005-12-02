@@ -12,6 +12,34 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/02
+4649: Updates for file_completed_cmd
+* some log cleaning
+* added information to notification email if auto_commit is disabled,
+  email is sent by file_completed, not file_commit
+* moved execution of !!file_completed_cmd from file_completed
+  to file_commit, kept option name for easier upgrading
+  this was done because the filename of a downloading file can be
+  different than the filename of the committed file if a file
+  with the same name as the to be committed file is already in
+  incoming. older method did not take this into account at all..
+* added environment variables for file_completed_cmd, see description:
+
+    A command that is called when a file is committed, does not work on MinGW.
+    Arguments are (kept for compatability):
+    $1 - temp file name, without path
+    $2 - file size
+    $3 - filename of the committed file
+    Also these environment variables can be used (prefered way):
+    $TEMPNAME - temp file name, including path
+    $FILEID - same as $1
+    $FILESIZE - same as $2
+    $FILENAME - same as $3
+    $FILEHASH - internal hash
+    $DURATION - download duration
+    $INCOMING - directory used for commit
+    $NETWORK - network used for downloading
+    $ED2K_HASH - ed2k hash if MD4 is known
+
 4667: Update Ocaml download URL
 4666: Always create incoming directories before commit
 4663: CryptoPP: Latest fixes ported from aMule CVS
