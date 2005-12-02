@@ -408,8 +408,7 @@ if test "$BUILD_OCAML" = "yes"; then
       cd $PATCH_DIR
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
-
-        $WGET http://pauillac.inria.fr/caml/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$DOWNLOAD_OCAML".tar.gz
+        $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$DOWNLOAD_OCAML".tar.gz
         # $WGET http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
         # $WGET http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
