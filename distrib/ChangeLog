@@ -13,6 +13,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/03
 4671: Compile fix in CryptoPP.h for gcc-2.96 (trdw)
+4670: Increase max_buffer_size limit for high-volume connections
 
 2005/12/02
 4649: Updates for file_completed_cmd (pango, spiralvoice)

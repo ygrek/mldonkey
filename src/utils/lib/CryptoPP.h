@@ -1923,10 +1923,10 @@ inline T RoundUpToMultipleOf(T n, T m)
 template <class T>
 inline unsigned int GetAlignment(T* /* dummy */ = NULL)	// VC60 workaround
 {
-#if defined(_MSC_VER) and (_MSC_VER >= 1300)
-	return __alignof(T);
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
 	return __alignof__(T);
+#elif defined(_MSC_VER) and (_MSC_VER >= 1300)
+	return __alignof(T);
 #else
 	return sizeof(T);
 #endif
