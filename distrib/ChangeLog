@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/03
+4671: Compile fix in CryptoPP.h for gcc-2.96 (trdw)
+
 2005/12/02
 4649: Updates for file_completed_cmd (pango, spiralvoice)
 * some log cleaning
