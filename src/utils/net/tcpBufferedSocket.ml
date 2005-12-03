@@ -30,7 +30,7 @@ let max_connections_per_second = ref (fun () -> 50)
 let opened_connections = ref 0
 let opened_connections_this_second = ref 0
 
-let max_buffer_size = ref 1000000
+let max_buffer_size = ref 10000000
 
 let bind_address = ref Unix.inet_addr_any
 let ip_packet_size = ref 40
