@@ -280,7 +280,7 @@ let rec client_parse_header c gconn sock header =
           end;
 
         let b = TcpBufferedSocket.buf sock in
-        let to_read = (*min (end_pos -- !counter_pos) *)
+        let to_read = min (end_pos -- !counter_pos)
           (Int64.of_int b.len) in
 
         if !verbose then lprintf_nl () "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld"

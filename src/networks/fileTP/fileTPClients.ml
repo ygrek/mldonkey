@@ -177,7 +177,7 @@ let get_from_client sock (c: client) =
                           let b = Int64Swarmer.find_block up in
 
 (*                          lprintf "GOT BLOCK:\n"; *)
-                          Int64Swarmer.print_uploaders swarmer;
+                          if !verbose_swarming then Int64Swarmer.print_uploaders swarmer;
 
                           if !verbose_swarming then begin
                               lprintf "Block Found: "; Int64Swarmer.print_block b;
@@ -193,7 +193,7 @@ let get_from_client sock (c: client) =
                             let (x,y,r) = Int64Swarmer.find_range up in
 
 (*                            lprintf "GOT RANGE:\n"; *)
-                            Int64Swarmer.print_uploaders swarmer;
+                            if !verbose_swarming then Int64Swarmer.print_uploaders swarmer;
 
                             d.download_ranges <- d.download_ranges @ [x,y,r];
 (*                        Int64Swarmer.alloc_range r; *)
