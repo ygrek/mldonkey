@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/05
+4673: IPBlock: display original length and optimized length in block_list,
+      log file clean up
+
 2005/12/04
 4672: FileTP: Fix major bug in HTTP downloading, introduced in 2.6.0
 

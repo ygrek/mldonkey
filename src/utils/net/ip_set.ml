@@ -19,6 +19,8 @@ module H = Weak.Make(struct
       end)
 
 let descriptions = H.create 13
+let ranges_1 = ref 0 (* ranges in blocklist file *)
+let ranges_2 = ref 0 (* ranges after optimization *)
 
 let shared_description s =
   (* Currently trims strings left and right;
@@ -220,6 +222,8 @@ let load_merge bl filename remove =
     if remove then (try Sys.remove filename with _ -> ());
     let optimized_bl = bl_optimize !bl in
     lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
+    ranges_1 := !nranges;
+    ranges_2 := bl_length optimized_bl;
 (*    bl_optimizedp optimized_bl;
     for i=0 to 999999 do
       let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
@@ -344,7 +348,7 @@ let print_list buf bl =
           nleft + 1 + nright in
 
   let count = print_list_aux bl in
-  Printf.bprintf buf "%d ranges\n" count
+  Printf.bprintf buf "%d ranges loaded - optimized to %d\n" !ranges_1 !ranges_2
 
 let bl = ref BL_Empty
 

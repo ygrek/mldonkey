@@ -896,12 +896,12 @@ let received_client_bitmap c file chunks =
         Bitv.create file.file_nchunks true
     else
     if Bitv.length chunks <> file.file_nchunks then begin
-        lprintf_nl () "BAD: number of chunks is different %d/%d for %s:%Ld on peer" 
+        if !verbose then lprintf_nl () "BAD: number of chunks is different %d/%d for %s:%Ld on peer" 
           (Bitv.length chunks) 
           file.file_nchunks 
           (Md4.to_string file.file_md4) 
           (file_size file);
-        lprintf_nl () "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]"
+        if !verbose then lprintf_nl () "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]"
           c.client_name
           (Md4.to_string c.client_md4)
           (string_of_bool (DonkeySources.source_brand c.client_source))
@@ -1502,7 +1502,7 @@ other one for unlimited sockets.  *)
           end
         else
         if Array.length t.Q.chunks <> file.file_nchunks then begin
-            lprintf_nl () "BAD BAD BAD (2): number of chunks is different %d/%d for %s:%Ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+            if !verbose then lprintf_nl () "BAD BAD BAD (2): number of chunks is different %d/%d for %s:%Ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -2375,7 +2375,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                       
                 with
       Unix.Unix_error (Unix.ENETUNREACH,_,_) ->
-        lprintf_nl () "Network unreachable for IP %s:%d"
+        if !verbose then lprintf_nl () "Network unreachable for IP %s:%d"
           (Ip.to_string ip) port;
                     set_client_disconnected c (Closed_connect_failed);
                     DonkeySources.source_disconnected c.client_source

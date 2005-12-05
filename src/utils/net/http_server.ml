@@ -419,7 +419,7 @@ let complete_multipart_data request ic tail =
 
 let parse_post_args f len req b =
 (* parse post args *)
-  lprintf_http_nl () "CALL HANDLER";
+  if !verbose then lprintf_http_nl () "CALL HANDLER";
   let s = String.sub b.rbuf b.rpos len in
   Select.buf_used b len;
   let args = Url.cut_args s in
@@ -428,12 +428,12 @@ let parse_post_args f len req b =
   f b req
 
 let check_len f len b pos2 =
-  lprintf_http_nl () "check_len: len %d rlen %d" len b.rlen;
+  if !verbose then lprintf_http_nl () "check_len: len %d rlen %d" len b.rlen;
   if b.rlen >= len then f b
 
 let complete_post_request ( f : handler ) buf request =
   let len = request.options.content_length in
-  lprintf_http_nl () "check_len: len %d rlen %d" len buf.rlen;
+  if !verbose then lprintf_http_nl () "check_len: len %d rlen %d" len buf.rlen;
   if buf.rlen >= len then
     parse_post_args f len request buf
   else
@@ -789,7 +789,7 @@ let request_handler config sock nread =
   try
     iter new_pos
   with e ->
-      lprintf_http_nl () "Exception %s in request_handler"
+      if !verbose then lprintf_http_nl () "Exception %s in request_handler"
         (Printexc2.to_string e);
       close sock (Closed_for_exception e)
 
@@ -896,7 +896,7 @@ open Int64ops
 
 (*  Range: bytes=31371876- *)
 let request_range r =
-  List.iter (fun (h, v1) ->
+  if !verbose then List.iter (fun (h, v1) ->
       lprintf_http_nl () "HEADER [%s] = [%s]" h v1
   ) r.headers;
   let range = List.assoc "Range" r.headers in

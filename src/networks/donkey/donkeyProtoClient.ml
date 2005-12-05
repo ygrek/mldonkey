@@ -25,6 +25,7 @@ open Md4
 open CommonTypes
 open LittleEndian
 open CommonGlobals
+open CommonOptions
 
 open DonkeyOptions
 open DonkeyTypes
@@ -1172,7 +1173,7 @@ let rec parse_emule_packet emule opcode len s =
 
     | 0x93 (* 147 *) ->
         if String.length s < 16 then begin
-          lprintf_nl "EmuleMultiPacketAnswer: incomplete request";
+          if !verbose then lprintf_nl "EmuleMultiPacketAnswer: incomplete request";
           raise Not_found
         end;
         let md4 = get_md4 s 1 in
