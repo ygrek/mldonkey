@@ -10,7 +10,7 @@ echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 MAJOR_VERSION=2
 MINOR_VERSION=7
-SUB_VERSION=0   # range 0-7 due to eMule limitations
+SUB_VERSION=1   # range 0-7 due to eMule limitations
 
 AC_CANONICAL_HOST
 
