@@ -64,6 +64,10 @@ let lprintf_n () =
 
 let http_send_range_request c range sock d =
   let url = d.download_url in
+
+  let real_url =
+    (Str.global_replace (Str.regexp " ") "%20" url.Url.full_file) in
+
   let referer = d.download_referer in
   
   let (x,y) = range in
@@ -71,7 +75,7 @@ let http_send_range_request c range sock d =
 
   let buf = Buffer.create 100 in
 
-  Printf.bprintf buf "GET %s HTTP/1.0\r\n" url.Url.full_file;
+  Printf.bprintf buf "GET %s HTTP/1.0\r\n" real_url;
 
 (*
             (match d.download_uri with

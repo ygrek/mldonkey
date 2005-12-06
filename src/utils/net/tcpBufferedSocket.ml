@@ -1191,9 +1191,8 @@ let create token name fd handler =
         ;
     );
   set_dump_info sock (dump_socket t);
-  if !debug then begin
-      lprintf "[fd %d %s]\n" (sock_num sock) name;
-    end;
+  if !debug then
+      lprintf_nl "[tBS] fd %d %s" (sock_num sock) name;
   t.sock_in <- sock;
   t.sock_out <- sock;
   t
@@ -1246,9 +1245,8 @@ let create_pipe token name fd_in fd_out handler =
 
   let sock_in = BasicSocket.create name fd_in (fun _ event ->
         tcp_handler t event) in
-  if !debug then begin
-      lprintf "[fd %d %s]\n" (sock_num sock_in) name;
-    end;
+  if !debug then
+      lprintf_nl "[tBS] fd %d %s" (sock_num sock_in) name;
   set_printer sock_in fname;
   set_dump_info sock_in (dump_socket t);
 

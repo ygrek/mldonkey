@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/06
+4679: FileTP: Fix HTTP downloading for URLs with space chars, log cleaning
 4674: EDK: Re-enable checking old_files before starting a download
       and force_download command
 4676: BT: decode_version fix and html sort fix (bogeyman)

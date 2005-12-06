@@ -236,6 +236,7 @@ let must_write t b  =
     t.want_to_write <- b;
     change_fd_event_setting t
   end
+
 let must_read t b  =
   if b <> t.want_to_read then begin
     t.want_to_read <- b;
@@ -243,9 +244,8 @@ let must_read t b  =
   end
 
 let print_socket buf s =
-  Printf.bprintf buf "FD %s:%d: %20s"
+  Printf.bprintf buf "FD %s:%d"
      (s.name) (get_fd_num s.fd)
-  (Date.to_string s.born)
 
 let sprint_socket s =
   let buf = Buffer.create 100 in
@@ -260,9 +260,8 @@ let sprint_socket s =
 
 let close t msg =
   if t.fd <> dummy_fd then begin
-      if !debug then begin
-          lprintf "CLOSING: %s" (sprint_socket t);
-        end;
+      if !debug then
+          lprintf_nl "[bS] CLOSING: %s" (sprint_socket t);
       (try
           Unix.close t.fd;
           with _ -> ());
@@ -329,9 +328,8 @@ let create_blocking name fd handler =
       can_close = true;
     } in
 (*  lprintf "ADD ONE TASK\n"; *)
-  if !debug then begin
-      lprintf_nl "OPENING: %s" ( sprint_socket t);
-    end;
+  if !debug then
+      lprintf_nl "[bS] OPENING: %s" ( sprint_socket t);
   fd_tasks := t :: !fd_tasks;
   add_fd_to_event_set t;
   t

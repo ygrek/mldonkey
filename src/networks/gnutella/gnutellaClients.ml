@@ -600,13 +600,12 @@ end;
 
 and disconnect_client c r =
   if !verbose then
-    lprintf "DISCONNECT CLIENT\n";
+    lprintf_nl "DISCONNECT CLIENT";
   match c.client_sock with
   | Connection sock -> 
       (try
-          if !verbose_msg_clients then begin
-              lprintf "Disconnected from source for %s\n" (string_of_reason r); 
-            end;
+          if !verbose_msg_clients then
+              lprintf_nl "Disconnected from source for %s\n" (string_of_reason r); 
           c.client_requests <- [];
           connection_failed c.client_connection_control;
           set_client_disconnected c r;

@@ -383,18 +383,13 @@ let _ =
       compute_stats ();
       let len = Array.length ngood_propositions in
       buf_int buf len;
-      if !verbose_redirector then lprintf_n () "Stats:";
       for i = 0 to len - 1 do
-        if !verbose_redirector then lprintf_nl2 "   Good[%d] = %Ld\n" i ngood_propositions.(i);
-        if !verbose_redirector then lprintf_nl2 "   Bad[%d] = %Ld\n" i nbad_propositions.(i);
         buf_int64 buf ngood_propositions.(i);
         buf_int64 buf nbad_propositions.(i)
       done;
       let len = Fifo.length propositions in
-      if !verbose_redirector then lprintf_nl2 "   Waiting propositions: %d\n" len;
       buf_int buf len;
       let len = ref 0 in
       Hashtbl.iter (fun _ _ -> incr len) neighbours;
-      if !verbose_redirector then lprintf_nl2 "   Total neighbours: %d\n" !len;
       buf_int buf !len
   )

@@ -535,7 +535,7 @@ let dump_socket t buf =
   
 let create name fd handler =
   if !debug then begin
-      lprintf "[fd %d %s]\n" (Obj.magic fd) name;
+      lprintf_nl "[fd %d %s]\n" (Obj.magic fd) name;
     end;
   MlUnix.set_close_on_exec fd;
   let t = {
