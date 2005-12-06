@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/06
+4676: BT: decode_version fix and html sort fix (bogeyman)
+
 2005/12/05
 4673: IPBlock: display original length and optimized length in block_list,
       log file clean up

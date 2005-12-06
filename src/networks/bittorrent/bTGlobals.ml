@@ -468,7 +468,8 @@ let decode_opera s =
   else None
 
 let decode_bow s =
-  if "BOW" = String.sub s 0 3 then
+  if "BOW" = String.sub s 0 3 ||
+  (check_all s 45 [0;7] && "BOW" = String.sub s 1 4) then
     Some (Brand_bitsonwheels, (String.sub s 4 3))
   else None
 
@@ -527,11 +528,14 @@ let decode_old_bitcomet s =
     let brand = if "LORD" = String.sub s 6 4 then
       Brand_bitlord else Brand_bitcomet 
     in
-    let version = Printf.sprintf "%d.%d%d" 
-      (int_of_char s.[4])
-      ((int_of_char s.[5]) / 10)
-      ((int_of_char s.[5]) mod 10)
+    let versionMajorNumber = int_of_char s.[4] in
+    let versionMinorNubmer = 
+      match versionMajorNumber with
+         0 -> (int_of_char s.[5])
+      |  _ -> ((int_of_char s.[5]) mod 10)
     in
+    let version = Printf.sprintf "%d.%d" 
+      versionMajorNumber versionMinorNubmer in
     Some (brand, version)
   else None
 

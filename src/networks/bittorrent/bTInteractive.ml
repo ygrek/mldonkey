@@ -274,21 +274,21 @@ let op_file_print_sources_html file buf =
         ( "0", "srh br ar", "Port", "Port" ) ;
         ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
         ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
-        ( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ;
-        ( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ;
+        ( "0", "srh ar", "Interested [T]rue, [F]alse", "I" ) ;
+        ( "0", "srh ar", "Choked [T]rue, [F]alse", "C" ) ;
         ( "1", "srh br ar", "Allowed to write", "A" ) ;
 
-        ( "1", "srh ar", "Interesting [T]rue, [F]alse", "I" );
-        ( "1", "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
-        ( "1", "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
+        ( "0", "srh ar", "Interesting [T]rue, [F]alse", "I" );
+        ( "0", "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
+        ( "0", "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
 
-        ( "1", "srh ar", "Good [T]rue, [F]alse", "G" );
-        ( "1", "srh ar", "Incoming [T]rue, [F]alse", "I" );
-        ( "1", "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
+        ( "0", "srh ar", "Good [T]rue, [F]alse", "G" );
+        ( "0", "srh ar", "Incoming [T]rue, [F]alse", "I" );
+        ( "0", "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
 
-        ( "1", "srh ar", "Optimist Time", "O" );
-        ( "1", "srh ar", "Last optimist", "L.Opt" );
-        ( "1", "srh br ar", "Num try", "N" );
+        ( "0", "srh ar", "Optimist Time", "O" );
+        ( "0", "srh ar", "Last optimist", "L.Opt" );
+        ( "0", "srh br ar", "Num try", "N" );
 
 (*
         ( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks
