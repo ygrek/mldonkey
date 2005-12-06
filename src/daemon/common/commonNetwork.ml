@@ -267,7 +267,7 @@ let new_network shortname name flags =
       op_network_connected = (fun _ -> ni_ok name "connected"; false);
       op_network_add_server = (fun _ -> fni name "op_network_add_server");
       op_network_gui_message = (fun _ -> ni_ok name "gui_message");
-      op_network_download = (fun _ -> raise IgnoreNetwork);
+      op_network_download = (fun _ -> fni name "network_download");
       op_network_display_stats = (fun _ _ -> ni_ok name "display_stats");
       op_network_clean_exit = (fun _ -> true);
     }

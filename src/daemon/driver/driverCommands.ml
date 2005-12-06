@@ -1402,24 +1402,44 @@ let _ =
 
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
-        match !CommonGlobals.aborted_download with
-          None ->
-            if o.conn_output = HTML then
-              html_mods_table_one_row buf "downloadTable" "downloads" [
-                ("", "srh", "No download to force"); ]
-            else
-              Printf.bprintf buf "No download to force";
-        ""
-        | Some r ->
-            let r = CommonResult.find_result r in
-            let files = CommonResult.result_download r [] true in
-            List.iter CommonInteractive.start_download files;
-            if o.conn_output = HTML then
-              html_mods_table_one_row buf "downloadTable" "downloads" [
-                ("", "srh", "Download forced"); ]
-            else
-              Printf.bprintf buf "Download forced";
-        ""
+	if !forceable_download = [] then
+	  begin
+            let output = (if o.conn_output = HTML then begin
+                let buf = Buffer.create 100 in
+                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "dllinkTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [ ("", "srh", "No download to force"); ];
+                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf
+              end
+            else begin
+                Printf.sprintf "No download to force"
+            end) in
+            _s output
+	  end
+        else
+	  begin
+	    let r = List.hd !forceable_download in
+	      CommonNetwork.networks_iter (fun n ->
+	        ignore(n.op_network_download r));
+
+            let output = (if o.conn_output = HTML then begin
+                let buf = Buffer.create 100 in
+                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+                html_mods_table_header buf "dllinkTable" "results" [];
+                Printf.bprintf buf "\\<tr\\>";
+                html_mods_td buf [ ("", "srh", "Forced start of "); ];
+                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+                html_mods_td buf [ ("", "sr", (List.hd r.result_names)); ];
+                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf
+              end
+            else begin
+                Printf.sprintf "Forced start of : %s" (List.hd r.result_names)
+            end) in
+            _s output
+	  end;
     ), ":\t\t\t\tforce download of an already downloaded file";
 
     ]

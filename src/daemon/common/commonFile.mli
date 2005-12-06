@@ -127,3 +127,5 @@ val file_mtime : CommonTypes.file -> float
 val file_files : CommonTypes.file -> CommonTypes.file list
 val propose_filenames : unit -> unit
 val propose_filename : CommonTypes.file -> unit
+
+val forceable_download : CommonTypes.result_info list ref

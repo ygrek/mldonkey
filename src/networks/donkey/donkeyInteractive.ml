@@ -193,6 +193,10 @@ let download_server_met url =
 
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
 
+let no_download_to_force = Failure "No forceable download found"
+
+let already_downloading = Failure "File is already in download queue"
+
 let really_query_download filenames size md4 location old_file absents =
 
   begin
@@ -308,37 +312,51 @@ with _ -> ()
   as_file file
 
 let query_download filenames size md4 location old_file absents force =
-
-(* TODO RESULT
-  if not force then
-    List.iter (fun m ->
-        if m = md4 then begin
-            let r = try
-                DonkeyIndexer.find_result md4
-              with _ ->
-(* OK, we temporary create a result corresponding to the
-file that should have been download, but has already been downloaded *)
-
-
-                  let r = {
-                      result_num = 0;
-                      result_network = network.network_num;
-                      result_md4 = md4;
-                      result_names = filenames;
-                      result_size = size;
-                      result_tags = [];
-                      result_type = "";
-                      result_format = "";
-                      result_comment = "";
-                      result_done = false;
-                    } in
-                  DonkeyIndexer.index_result_no_filter r
-            in
-            aborted_download := Some (result_num (as_result r.result_result));
-            raise already_done
-          end)
-    !!old_files; *)
-  really_query_download filenames size md4 location old_file absents
+  if force then
+    if !forceable_download = [] then
+      raise no_download_to_force
+    else
+      begin
+        let f = List.hd !forceable_download in
+	  forceable_download := [];
+          really_query_download f.result_names f.result_size md4 None None None
+      end
+  else
+    begin
+      try
+        let file = find_file md4 in
+(* jave TODO: if a user currently not downloading this file is requesting the download add this user
+   to the list of users currently downloading this file *)
+	  forceable_download := [];
+	  raise already_downloading 
+      with Not_found ->
+        begin
+        if List.mem md4 !!old_files then begin
+          (* copy file info into result for later usage in force_download *)
+          let r = {
+              result_num = 0;
+	      result_uids = [Uid.create (Ed2k md4)];
+              result_names = filenames;
+              result_size = size;
+              result_tags = [];
+              result_type = "";
+              result_format = "";
+              result_comment = "";
+              result_done = false;
+              result_force = true; (* marker for force_download *)
+	      result_time = 0;
+	      result_modified = false;
+            } in
+            forceable_download := [r];
+	    raise already_done
+          end
+        else
+          begin
+            forceable_download := [];
+            really_query_download filenames size md4 location old_file absents
+          end
+        end
+    end
 
 let result_download r filenames force =
   let rec iter uids =
@@ -984,7 +1002,7 @@ file.---------> to be done urgently
             (Printf.sprintf "client %s unknown" iddest)
   );
   network.op_network_download <- (fun r ->
-      result_download r r.result_names false
+      result_download r r.result_names r.result_force
   )
 
 module P = GuiTypes

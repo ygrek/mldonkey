@@ -957,19 +957,15 @@ let _ =
   file_ops.op_file_check <- op_file_check;
   file_ops.op_file_cancel <- op_file_cancel;
   file_ops.op_file_info <- op_file_info;
-  (* We don't do anything here as the name to save as is defined by the
-     torrent. We could change the name if we changed the torrent, too. *)
   file_ops.op_file_save_as <- (fun file name -> ());
 
   network.op_network_gui_message <- op_gui_message;
   network.op_network_connected <- op_network_connected;
   network.op_network_parse_url <- op_network_parse_url;
-  (* Shut up "Network.share not implemented by BitTorrent" *)
   network.op_network_share <- (fun fullname codedname size -> ());
-  (* Same with Network.forget_search and Network.search... *)
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_search <- (fun ss buf -> ());
-  (* and Network.recover_temp *)
+  network.op_network_download <- (fun r -> dummy_file);
   network.op_network_recover_temp <- (fun s -> ());
   network.op_network_clean_exit <- (fun s ->
     List.iter (fun file -> BTClients.file_stop file) !current_files;

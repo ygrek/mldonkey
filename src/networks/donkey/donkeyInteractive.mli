@@ -33,10 +33,6 @@ val import_config : string -> unit
 val print_file : Buffer.t -> DonkeyTypes.file -> unit
 val display_file_list : 
   Buffer.t -> GuiProto.connection_options -> unit
-val aborted_download :
-    (string list * int32 * Md4.t * int option * string option *
-     (int32 * int32) list option)
-    option ref
 val really_query_download :
     string list ->
     int32 ->

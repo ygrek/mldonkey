@@ -957,6 +957,8 @@ let propose_filename file =
 let propose_filenames () =
   H.iter (fun file -> propose_filename file)  files_by_num
 
+let forceable_download = ref []
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         Protect globals                               *)

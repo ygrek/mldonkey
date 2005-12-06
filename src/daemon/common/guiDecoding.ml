@@ -424,6 +424,7 @@ let get_result proto s pos =
     result_comment = comment;
     result_done = already_done;
     result_modified = false;
+    result_force = false;
     result_time = time;
   }, pos+1
 

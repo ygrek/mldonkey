@@ -112,6 +112,7 @@ let dummy_result = {
     result_tags = [];
     result_comment = "";
     result_done = false;
+    result_force = false;
     result_size = zero;
     result_modified = true;
     result_time = BasicSocket.last_time ();

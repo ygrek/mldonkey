@@ -564,7 +564,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','view_custom_queries');mSub('output','custom=Album+Search')\">Album search</TD>
 <TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
+onClick=\"mSub('output','force_download')\">Force DL</TD>
 <TD class=\"bu bbig\" title=\"View RSS feeds\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','view_custom_queries');mSub('output','rss')\">RSS</TD>

@@ -397,6 +397,7 @@ type result_info = {
     mutable result_tags : tag list;
     mutable result_comment : string;
     mutable result_done : bool;
+    mutable result_force : bool;
 
     mutable result_time : int;
     mutable result_modified : bool;

@@ -447,8 +447,6 @@ let rec bprint_tags buf tags =
       (string_of_tag_value tag.tag_value);
       bprint_tags buf tags
 
-let aborted_download = ref (None : int option)
-
 (* let searches = ref ([] : search list) *)
 
 let core_included = ref false
