@@ -106,7 +106,7 @@ let script_for_file file incoming new_name =
   let file_id = Filename.basename temp_name in
   let size = Int64.to_string (file_size file) in
   let duration =
-    Date.time_to_string_long ((BasicSocket.last_time ()) - info.G.file_age)
+    string_of_int ((BasicSocket.last_time ()) - info.G.file_age)
   in
   let network = network_find_by_num info.G.file_network in
   let filename = Filename.basename new_name in

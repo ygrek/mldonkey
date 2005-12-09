@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/10
+4691: file_completed_cmd: $DURATION in seconds (debonair)
+-------------------------------------------------------------------------------
 2005/12/06: version 2.7.1 = tag release-2-7-1
 4679: FileTP: Fix HTTP downloading for URLs with space chars, log cleaning
 4674: EDK: Re-enable checking old_files before starting a download
@@ -65,7 +68,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 4657: Fix for C files for AMD64, mipsel platforms
       improve endianness checking in tiger.c, md5_c.c and CryptoPP.h,
       print endianness in buildinfo, removed sha1_old code
-4661: Log: Print newline before exception message when MLDonkey can´t use a port
+4661: Log: newline before exception message when MLDonkey can not use a port
       BT: exit if client_port = tracker_port
 
 2005/11/28
