@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/10
+4689: Catch exception in file_completed_cmd to let commit complete
 4691: file_completed_cmd: $DURATION in seconds (debonair)
 -------------------------------------------------------------------------------
 2005/12/06: version 2.7.1 = tag release-2-7-1

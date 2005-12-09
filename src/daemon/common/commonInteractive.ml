@@ -117,6 +117,7 @@ let script_for_file file incoming new_name =
         (Int64.to_string (file_size file))
         (Md4.to_string info.G.file_md4)
   in
+  begin try
   MlUnix.fork_and_exec !!file_completed_cmd
       [|  (* keep those for compatibility *)
       "";
@@ -133,6 +134,10 @@ let script_for_file file incoming new_name =
 	    ("INCOMING",  incoming);
 	    ("NETWORK",   network.network_name);
 	    ("ED2K_HASH", ed2k_hash)]
+  with e -> 
+      lprintf_nl "[cInt] Exception %s while executing %s"
+        (Printexc2.to_string e) !!file_completed_cmd
+  end
 
 (********
 These two functions 'file_commit' and 'file_cancel' should be the two only
