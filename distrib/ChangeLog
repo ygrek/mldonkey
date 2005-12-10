@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/10
+4687: Compile fix for Ocaml 3.09.0 (gildor), MLDonkey can now be compiled
+      with Ocaml 3.08.[2,3,4] and Ocaml 3.09.x (4687_min2.patch)
 4693: Compile patch in sha1.c for FreeBSD (lioux)
 4689: Catch exception in file_completed_cmd to let commit complete
 4691: file_completed_cmd: $DURATION in seconds (debonair)

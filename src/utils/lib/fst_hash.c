@@ -181,9 +181,9 @@ static unsigned int fst_hash_small (unsigned char* data, unsigned int len, unsig
 #include "caml/mlvalues.h"
 
 /* returns checksum of fzhash */
-uint16 fst_hash_checksum (unsigned char *hash)
+unsigned short fst_hash_checksum (unsigned char *hash)
 {
-        uint16 sum = 0;
+        unsigned short sum = 0;
         int i;
 
         /* calculate 2 byte checksum used in the URL from 20 byte fthash */
