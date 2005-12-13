@@ -24,6 +24,7 @@
 #include "caml/mlvalues.h"
 #include "caml/fail.h"
 #include "caml/alloc.h"
+#include "caml/signals.h"
 
 #define METHOD_MD4      Val_int(0)
 #define METHOD_MD5      Val_int(1)

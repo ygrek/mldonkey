@@ -102,7 +102,7 @@ extern "C"
 #endif
 
 #if !defined(bswap_32)
-#define bswap_32(x) (rotr32((x), 24) & 0x00ff00ff | rotr32((x), 8) & 0xff00ff00)
+#define bswap_32(x) ((rotr32((x), 24) & 0x00ff00ff) | (rotr32((x), 8) & 0xff00ff00))
 #endif
 
 #if (PLATFORM_BYTE_ORDER == BRG_LITTLE_ENDIAN)
