@@ -12,6 +12,14 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/13
+      Removed orphaned files:
+      src/networks/fasttrack/fasttrack.ml
+      src/networks/gnutella/gnutella1.ml
+      src/networks/gnutella/gnutella.ml
+      src/networks/gnutella/gnutellaScheduler.ml
+      src/networks/gnutella/gnutellaZlib.ml
+      src/networks/gnutella2/g2Scheduler.mlt
+      src/networks/gnutella2/gnutella2.ml
 4700: Log: New verbosity option "gui" to debug GUI protocol
 4696: Fix some C compiler warnings
 
