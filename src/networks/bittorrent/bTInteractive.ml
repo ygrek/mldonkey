@@ -930,8 +930,7 @@ let op_gui_message s =
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
       if !verbose_torrent then lprintf_nl () "received torrent from gui...";
-      let _ = load_torrent_string text in
-      ()
+      ignore (load_torrent_string text)
   | 1 -> (* 34+ *)
       let n = get_int s 2 in
       let a, pos = get_string s 6 in

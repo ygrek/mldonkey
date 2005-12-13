@@ -916,7 +916,7 @@ let from_gui (proto : int array) opcode s =
 
     let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in
     if !verbose_gui_decoding then
-      lprintf_nl "FROM GUI: Opcode %d" opcode; 
+      lprintf_nl "[gDe] FROM_GUI: Opcode %d %s" opcode (String.escaped s);
     match opcode with
       0 -> GuiProtocol (get_int s 2)
 
@@ -949,7 +949,7 @@ let from_gui (proto : int array) opcode s =
         Download_query (list, result_num, false)
 
     | 8 -> let string, pos = get_string s 2 in
-        lprintf_nl "Received string: [%s]" (String.escaped string);
+        lprintf_nl "[gDe] Received string: [%s]" (String.escaped string);
         Url string 
 
     | 9 -> let int = get_int s 2 in RemoveServer_query int
@@ -1229,7 +1229,7 @@ let to_gui (proto : int array)  opcode s =
     let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in
     
     if !verbose_gui_decoding then
-      lprintf_nl "TO GUI: Opcode %d" opcode;
+      lprintf_nl "[gDe] TO GUI: Opcode %d" opcode;
     match opcode with
     | 0 ->
         let version = get_int s 2 in

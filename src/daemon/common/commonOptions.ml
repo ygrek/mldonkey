@@ -1446,6 +1446,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   verb : debug other
   sm : debug source management
   net : debug net
+  gui : debug gui
   do : some download warnings
   up : some upload warnings
   unk : unknown messages
@@ -1698,6 +1699,7 @@ let _ =
           | "verb" -> verbose := true
           | "sm" -> incr verbose_sources
           | "net" -> BasicSocket.debug := true; TcpServerSocket.debug := true; UdpSocket.debug := true
+          | "gui" -> GuiProto.verbose_gui_decoding := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true
           | "unk" -> verbose_unknown_messages := true

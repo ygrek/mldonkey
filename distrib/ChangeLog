@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/13
+4700: Log: New verbosity option "gui" to debug GUI protocol
 4696: Fix some C compiler warnings
 
 2005/12/10

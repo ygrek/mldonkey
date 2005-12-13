@@ -702,7 +702,7 @@ let rec to_gui (proto : int array) buf t =
   try
     let buf_opcode buf opcode =
        if !verbose_gui_decoding then
-         lprintf "TO_GUI: %d %s\n" opcode (GuiProto.string_of_to_gui t);
+         lprintf_nl "[gEn] TO_GUI: %d %s" opcode (GuiProto.string_of_to_gui t);
        buf_int16 buf opcode
     in
     match t with
@@ -979,7 +979,7 @@ let rec from_gui (proto : int array) buf t =
   try
     let buf_opcode buf opcode =
        if !verbose_gui_decoding then
-         lprintf "FROM_GUI: %d %s\n" opcode (GuiProto.string_of_from_gui t);
+         lprintf_nl "[gEn] FROM_GUI: %d %s" opcode (GuiProto.string_of_from_gui t);
        buf_int16 buf opcode
     in
     match t with
