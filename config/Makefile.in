@@ -19,9 +19,6 @@ include config/Makefile.config
 
 ##################################################################
 
-DEVFLAGS= -warn-error Am 
-# -dtypes
-
 NO_LIBS_byte=
 NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
@@ -2007,7 +2004,7 @@ rpm: sourcedist
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
-	$(OCAMLC) $(DEVFLAGS) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
 	cpp $< > $@
