@@ -562,6 +562,12 @@ let parse_donkey_url url =
   | _ ->  false
 
 
+let op_file_check file =
+  match file.file_swarmer with
+    None -> ()
+  | Some swarmer ->
+      Int64Swarmer.verify_all_chunks swarmer true
+
 let register_commands list =
   register_commands
     (List2.tail_map (fun (n,f,h) -> (n, "Network/Edonkey", f,h)) list)
@@ -905,10 +911,6 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURI(renameTextOu
         "download started"
     ), "<size> <md4> :\t\t\tdownload from size and md4";
 
-    "dup", Arg_none (fun _ ->
-        DonkeyChunks.duplicate_chunks (); "done"),
-    ":\t\t\t\t\tfind duplicate chunks (experimental)";
-
     "remove_old_servers", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeyServers.remove_old_servers ();
@@ -1190,8 +1192,7 @@ let _ =
   );
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
-  file_ops.op_file_check <- (fun file ->
-      DonkeyChunks.verify_chunks file);
+  file_ops.op_file_check <- op_file_check;
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then
         reconnect_all file);

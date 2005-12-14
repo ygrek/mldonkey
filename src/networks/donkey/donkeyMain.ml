@@ -70,7 +70,6 @@ let quarter_timer timer =
 
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
-  DonkeyChunks.duplicate_chunks ();
   clients_root := []
 
 let second_timer timer =

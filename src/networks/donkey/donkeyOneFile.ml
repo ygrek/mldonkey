@@ -45,7 +45,6 @@ open DonkeyTypes
 open DonkeyOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
-open DonkeyChunks
 open DonkeyReliability
 open DonkeyStats
     
