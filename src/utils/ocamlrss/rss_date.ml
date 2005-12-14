@@ -618,3 +618,7 @@ let mk_mail_date ?zone t =
 let mk_usenet_date ?zone t =
   format "%A, %d-%b-%y %H:%M:%S %z" (create ?zone t)
 ;;
+
+let mk_timezone t =
+  format "%z" (create ~zone:localzone t)
+;;

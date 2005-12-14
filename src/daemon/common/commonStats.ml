@@ -58,18 +58,8 @@ let percent_of_int64s x y =
     max 0.0 (100. *. (Int64.to_float x /. Int64.to_float y))
 
 let build_title n t uptime =
-  let one_minute = 60 in
-  let one_hour = 3600 in
-  let one_day = 86400 in
 
-  let days = uptime / one_day in
-  let rem = max 1 (uptime - days * one_day) in
-
-  let hours = rem / one_hour in
-  let rem = rem - hours * one_hour in
-  let mins = rem / one_minute in
-
-  let b = Printf.sprintf "%s Uptime: %d days, %02dh:%02dm" t days hours mins in
+  let b = Printf.sprintf "%s Uptime: %s" t (Date.time_to_string uptime "verbose") in
   let c = Printf.sprintf "%d seconds" uptime in
 
   [n;b;c]

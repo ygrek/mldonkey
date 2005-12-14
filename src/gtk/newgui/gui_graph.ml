@@ -259,7 +259,7 @@ let draw_downloads_graph _ =
       grid_pixmap#line
         ~x:0 ~y:(!height - a - 1) ~x:!width ~y:(!height - a - 1);
       grid_pixmap#string
-        (Date.time_to_string_long (a * !download_timeout / 1000))
+        (Date.time_to_string (a * !download_timeout / 1000) "long")
          ~font:!font ~x:(a + 2) ~y:(!height - 2);
       if a > 0 then
         grid_pixmap#string
@@ -351,7 +351,7 @@ let draw_uploads_graph _ =
       grid_pixmap#line
         ~x:0 ~y:(!height - a - 1) ~x:!width ~y:(!height - a - 1);
       grid_pixmap#string
-        (Date.time_to_string_long (a * !upload_timeout / 1000))
+        (Date.time_to_string (a * !upload_timeout / 1000) "long")
         ~font:!font ~x:(a + 2) ~y:(!height - 2);
       if a > 0 then
         grid_pixmap#string

@@ -314,7 +314,7 @@ let max_last_seen = 100 * 24 * 3600
 let time_to_string time =
   if time = max_last_seen 
     then "--"
-    else Date.time_to_string_long time
+    else Date.time_to_string time "long"
 
 let max_eta = 1000.0 *. 60.0 *. 60.0 *. 24.0
     

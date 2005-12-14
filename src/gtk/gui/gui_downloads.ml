@@ -303,18 +303,18 @@ class box columns sel_mode () =
       | Col_file_network -> Gui_global.network_name f.file_network
       |	Col_file_age ->
           let age = (BasicSocket.last_time ()) - f.file_age in
-          Date.time_to_string_long age
+          Date.time_to_string age "long"
       |	Col_file_last_seen ->
           if f.file_last_seen > 0
           then let last = (BasicSocket.last_time ())
               - f.file_last_seen in
-            Date.time_to_string_long last
+            Date.time_to_string last "long"
           else Printf.sprintf "---"
       | Col_file_eta ->
           let eta = calc_file_eta f in
           if eta >= 1000 * 60 * 60 * 24 then
             Printf.sprintf "---"
-          else Date.time_to_string_long eta
+          else Date.time_to_string eta "long"
       |	Col_file_priority ->
           Printf.sprintf "%3d" f.file_priority
     

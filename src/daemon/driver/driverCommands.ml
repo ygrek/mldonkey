@@ -435,8 +435,8 @@ let _ =
 
     "uptime", Arg_none (fun o ->
         let buf = o.conn_buf in
-        let uptime = log_time () ^ "- up" ^
-	  Date.time_to_string_long (last_time () - start_time) in
+        let uptime = log_time () ^ "- up " ^
+	  Date.time_to_string (last_time () - start_time) "verbose" in
         if o.conn_output = HTML then
           begin
             Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";

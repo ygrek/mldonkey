@@ -171,3 +171,5 @@ val mk_usenet_date : ?zone:int -> float -> string
    * Note that this format has only two digits for the year.
    *)
 
+val mk_timezone : float -> string
+  (* Return a string with the current timezone as string, example "-0500" *)

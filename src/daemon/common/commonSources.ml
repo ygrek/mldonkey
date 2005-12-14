@@ -467,7 +467,6 @@ let rec find_max_overloaded q managers =
 
 
        let print buf output_type =
-        let timer = Unix.localtime (float_of_int(last_time ()) +. 1000000000.) in
         let pos_to_string v =
           (if v > 0 then string_of_int(v) else "-")
         in
@@ -493,7 +492,7 @@ let rec find_max_overloaded q managers =
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
               ("", "srh", "Statistics on sources ");
-              ("", "srh", "@ " ^(Date.time_to_string_short timer));
+              ("", "srh", "@ " ^ log_time ());
               ("", "srh", header); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
 

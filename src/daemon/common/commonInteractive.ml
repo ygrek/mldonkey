@@ -248,11 +248,11 @@ let mail_for_completed_file file =
     let info = file_info file in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in
 
-    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nHash: %s\r\nFile was downloaded in%s\r\n"
+    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nHash: %s\r\nFile was downloaded in %s\r\n"
       (file_best_name file)
       (file_size file)
       (string_of_uids info.G.file_uids)
-      (let age = (BasicSocket.last_time ()) - info.G.file_age in Date.time_to_string_long age)
+      (let age = (BasicSocket.last_time ()) - info.G.file_age in Date.time_to_string age "verbose")
     in
 
     let line3 = if (file_comment file) = "" then "" else

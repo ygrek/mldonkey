@@ -1152,8 +1152,10 @@ let runinfo () =
       ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
       ^ (let uname = Unix32.uname () in
           if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
+      ^ "\nUptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
       ^ "\nLanguage: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
+      ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())
       ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length
       ^ " - word_size: " ^ string_of_int Sys.word_size
       ^ " - max_array_length: " ^ string_of_int Sys.max_array_length
@@ -1161,14 +1163,7 @@ let runinfo () =
       ^ " - max useable file size: " ^ 
 	    (match Unix2.c_sizeofoff_t () with
 	     | 4 -> "2GB"
-
 	     |  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" ((Unix2.c_sizeofoff_t () *8)-1)
-
-(*
-	     | _ -> Printf.sprintf "%s"
-	       ((*size_of_int64*)(string_of_float(((2. ** (float_of_int((Unix2.c_sizeofoff_t () * 8)-1))) -. 1.)/. 8.)))
-*)
-
 	     )
   )    
   
