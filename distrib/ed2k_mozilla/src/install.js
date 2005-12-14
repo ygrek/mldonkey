@@ -36,9 +36,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.5";
+const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.6";
 const G_NAME       = "ed2k";
-const G_VER        = "1.5";
+const G_VER        = "1.7";
 
 var err = initInstall(G_MSG, G_NAME, G_VER);
 logComment("initInstall: " + err);

@@ -12,7 +12,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the MLdonkey protocol handler 1.5.
+ * The Original Code is the MLdonkey protocol handler 1.7.
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
@@ -22,6 +22,7 @@
  * Contributor(s):
  * Sven Koch
  * Len Walter <len@unsw.edu.au>
+ * Dan Fritz (eMule bindings)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -76,10 +77,15 @@ const PREF_BRANCH   = "network.mldonkey.";
 const WND_WIDTH = 320;
 const WND_HEIGHT = 200;
 
+const WND_EMULE_WIDTH = 450;
+const WND_EMULE_HEIGHT = 75;
+
 // configuration (and defaults)
 cfgServer   = "localhost";
 cfgPort     = "4080";
 myWnd       = null;
+cfgMode     = "mldonkey"
+cfgPass     = ""
 
 /***** MLdonkeyProtocolHandler *****/
 
@@ -107,20 +113,39 @@ MLdonkeyProtocolHandler.prototype.newURI = function(aSpec, aCharset, aBaseURI)
 
 MLdonkeyProtocolHandler.prototype.newChannel = function(aURI)
 {
-    // rewrite the URI into a http URL to the mldonkey server
-    var myURI = "http://";
-    //    if(cfgUser != "") myURI += cfgUser + ":" + cfgPass + "@";
-    myURI += cfgServer + ":" + cfgPort + "/submit?q=dllink+" +
-    encodeURIComponent(decodeURI(aURI.spec));
+    var myUri = "";
+    var myTitle = "";
+    var myWidth = WND_WIDTH;
+    var myHeight = WND_HEIGHT
+     
+    if (cfgMode == "mldonkey") {
+        myTitle = "MLDonkey";
 
+        // rewrite the URI into a http URL to the mldonkey client
+        myURI = "http://";
+        //    if(cfgUser != "") myURI += cfgUser + ":" + cfgPass + "@";
+        myURI += cfgServer + ":" + cfgPort + "/submit?q=dllink+" +
+                 encodeURIComponent(decodeURI(aURI.spec));	    
+    } else {
+        // eMule mode
+        myTitle = "eMule";
+        myWidth = WND_EMULE_WIDTH;
+        myHeight = WND_EMULE_HEIGHT
+        
+        // rewrite the URI into a http URL to the eMule client
+        myURI = "http://";
+        myURI += cfgServer + ":" + cfgPort + "/?w=password&p=" + cfgPass;
+        myURI += "&cat=0&c=" + encodeURIComponent(decodeURI(aURI.spec));
+    }
+   
     // open up a window with our newly generated http URL
     var wwatch = Components.classes[NS_WINDOWWATCHER_CONTRACTID].getService(nsIWindowWatcher);
     if(myWnd == null || myWnd.closed == true)
-      myWnd = wwatch.openWindow(wwatch.activeWindow, myURI, "MLDonkey",
-                                "width=" + WND_WIDTH + ", height=" + WND_HEIGHT, null);
+        myWnd = wwatch.openWindow(wwatch.activeWindow, myURI, myTitle,
+                "width=" + myWidth + ", height=" + myHeight, null);
     else
-      myWnd.location.href = myURI;
-
+        myWnd.location.href = myURI;
+            
     // return a fake empty channel so current window doesn't change
     var chan = Components.classes[INPUTSTREAMCHANNEL_CONTRACTID].createInstance(nsIChannel);
     return chan;
@@ -137,6 +162,10 @@ MLdonkeyProtocolHandler.prototype.readPreferences = function(pref_branch)
       cfgServer = myPrefs.getCharPref(pref_branch + "server");
     if(myPrefs.getPrefType(pref_branch + "port") == myPrefs.PREF_STRING)
       cfgPort = myPrefs.getCharPref(pref_branch + "port");
+    if(myPrefs.getPrefType(pref_branch + "mode") == myPrefs.PREF_STRING)
+      cfgMode = myPrefs.getCharPref(pref_branch + "mode");
+    if(myPrefs.getPrefType(pref_branch + "pass") == myPrefs.PREF_STRING)
+      cfgPass = myPrefs.getCharPref(pref_branch + "pass");
 }
 
 /***** MLdonkeyProtocolHandlerFactory *****/

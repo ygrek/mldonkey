@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/14
+      Mozilla MLdonkey Protocol Handler updated to version 1.7
+
 2005/12/13
       Removed orphaned files:
       src/networks/fasttrack/fasttrack.ml

@@ -1,77 +1,124 @@
-Mozilla MLdonkey Protocol Handler 1.5
+Mozilla MLdonkey/eMule Protocol Handler 1.7
 Copyright (C) 2003 - 2005 Simon Peter <dn.tlp@gmx.net>
 
 Description:
 ------------
-This is a protocol handler for Mozilla and Firefox (see www.mozilla.org) that
-forwards some link types to a running MLdonkey (see www.mldonkey.net) client.
+This is a protocol handler for Mozilla and Firefox (see
+www.mozilla.org) that forwards some link types to a running MLdonkey
+(see www.mldonkey.net) or eMule (see www.emule-project.net) client.
 
-Supported protocols are ed2k:, magnet: and sig2dat:.
+Supported protocols are ed2k:, magnet: and sig2dat:. For eMule, only
+ed2k: is supported, of course.
 
-The protocol handler is implemented in JavaScript and should run on any
-platform supported by Mozilla or Firefox.
+Also note that eMule support is still beta and has only been tested to
+work with eMule versions 0.45* and 0.46a as of yet. Please send eMule
+specific questions to Dan Fritz.
+
+The protocol handler is implemented in JavaScript and should run on
+any platform supported by Mozilla and Firefox.
+
+Prerequisites:
+--------------
+The Web interface of your Donkey client must be enabled and access for
+the host this extension should be running on must be enabled in order
+for this extension to work.
+
+For eMule, it is advised that you set your web interface template to
+default (eMule.tmpl). It may work with other templates but this has
+not been tested.
 
 Installation:
 -------------
-Just open the .xpi installer file in Mozilla/Firefox and follow the on-screen
-instructions. On a UNIX derivative system, you most likely need to start your
-browser as root to complete the installation.
+Just open the .xpi installer file in Mozilla/Firefox and follow the
+on-screen instructions.
 
-It is best to shutdown the browser completely by closing all open windows
-prior to restarting it as root because there may be some startup scripts used
-by your version that may just open another window instead of starting it as
-root.
+If you are on a UNIX derivative system (e.g. Linux, BSD, MacOS X and
+the like) and like to install this extension for all users on your
+system, you most likely need to start your browser as root before the
+installation.
 
-After having installed the package, you need to set it up. Refer to the next
-section on this topic.
+It is best to shutdown the browser completely by closing all open
+windows prior to restarting it as root because there may be some
+startup scripts used by your version that may just open another window
+instead of starting the whole browser as root.
 
-After setup, restart your browser and everything should be in place. Supported
-link types will automatically be forwarded to your MLdonkey when you click on
-them.
+After having installed the package, you need to set it up. Refer to
+the next section on this topic.
+
+After setup, restart your browser and everything should be in
+place. Supported link types will automatically be forwarded to your
+MLdonkey or eMule client when you click on them.
 
 Configuration:
 --------------
-The protocol handler is configurable through Mozilla's preferences scheme. The
-preferences can be set in multiple ways, depending on your browser version.
+The protocol handler is configurable through Mozilla's preferences
+scheme. The preferences can be set in multiple ways, depending on your
+browser version.
 
-For Mozilla 1.3, newer versions and Firefox, the preferences are accessible by
-visiting the URL "about:config" inside the browser. This opens a page
-containing a table of all available preference options. Right clicking on the
-table opens a menu to create, modify and reset the options. Note that the
-preference defaults of this protocol handler are internal and NOT visible
-initially in the list! To set your own preferences, you have to create them.
+For Mozilla 1.3, newer versions and Firefox, the preferences are
+accessible by visiting the URL "about:config" inside the browser. This
+opens a page containing a table of all available preference
+options. Right clicking on the table opens a menu to create, modify
+and reset the options. Note that the preference defaults of this
+protocol handler are internal and NOT visible initially in the list!
+To set your own preferences, you have to create them.
 
-For Mozilla versions below 1.3, you can set the preferences by creating a file
-'user.js' in your profile directory (this is $HOME/.mozilla/default/<profile>/
-on UNIX systems, where <profile> has to be replaced by some cryptic string --
-just look in that directory) and set the options there by adding lines of the
-form: user_pref("option", "value"); to it.
+For Mozilla versions below 1.3, you can set the preferences by
+creating a file 'user.js' in your profile directory (this is
+$HOME/.mozilla/default/<profile>/ on UNIX systems, where <profile> has
+to be replaced by some cryptic string -- just look in that directory)
+and set the options there by adding lines of the form:
+user_pref("option", "value"); to it.
 
 The following preference options are available:
 
-Option:                 Default:        Description:
--------                 --------        ------------
-network.mldonkey.server localhost       hostname on which MLdonkey is running
-network.mldonkey.port   4080            port of the MLdonkey WEB service
+Option: network.mldonkey.server
+Default: localhost
+Description: Hostname on which MLdonkey/eMule is running
 
-All these options are string options. Remember to restart your browser before
-any of them can take effect!
+Option: network.mldonkey.port
+Default: 4080
+Description: Port of the MLdonkey/eMule WEB service
+
+Option: network.mldonkey.pass
+Default: (empty)
+Description: Password for eMule clients (MLdonkey is handled
+automatically by Mozilla's password manager)
+
+Option: network.mldonkey.mode
+Default: mldonkey
+Description: Donkey client to send the data to. This can be set to
+'mldonkey' or 'emule' (without the quotes) to talk to an MLdonkey or
+an eMule client, respectively.
+
+All these options are string options. Remember to restart your browser
+before any of them can take effect!
 
 Deinstallation:
 ---------------
-Deinstallation of the plugin in Firefox is straight-forward. Just open the
-Extensions dialog by clicking on Extensions in the Tools menu. Select the
-plugin there and click on Uninstall.
+Deinstallation of the plugin in Firefox is straight-forward. Just open
+the extensions dialog by clicking on Extensions in the Tools
+menu. Select the plugin there and click on Uninstall.
 
-On Mozilla, you have to manually deinstall the plugin by removing the file
-'ed2kprotocol.js' from Mozilla's components directory. On a UNIX system, this
-normally is /usr/lib/mozilla/components.
+On Mozilla, you have to manually deinstall the plugin by removing the
+file 'ed2kprotocol.js' from Mozilla's components directory. On a UNIX
+system, this normally is /usr/lib/mozilla/components.
 
 News:
 -----
+Changes for version 1.7:
+- eMule communication is now faster (thanks to ZZ
+  http://forum.emule-project.net/index.php?showuser=9079)
+- Added support for eMule 0.46a 
+- eMule response is now displayed in the same way as MLdonkey
+  responses.
+
+Changes for version 1.6:
+- Added beta support for eMule (thanks to Dan Fritz).
+
 Changes for version 1.5:
-- Added workaround for latest security fixes in Firefox 1.0.1 and Mozilla 1.7.5,
-  which blocked my extension otherwise.
+- Added workaround for latest security fixes in Firefox 1.0.1 and
+  Mozilla 1.7.5, which blocked my extension otherwise.
 - User authorization is now fully handled by Mozilla/Firefox.
 - Added uninstallation instructions.
 
@@ -120,6 +167,7 @@ the Initial Developer. All Rights Reserved.
 Contributor(s):
 Sven Koch
 Len Walter <len@unsw.edu.au>
+Dan Fritz <templar_of_ni@yahoo.se>
 
 Alternatively, the contents of this file may be used under the terms of
 either the GNU General Public License Version 2 or later (the "GPL"), or
