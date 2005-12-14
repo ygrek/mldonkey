@@ -667,8 +667,6 @@ let parse_netname c =
   let rec iter pos =
     if pos < len then
       if s.[pos] = '\000' then begin
-          let netname = String.sub s start_pos (pos-start_pos) in
-(*          lprintf "netname: [%s]\n" (String.escaped netname);*)
           c.c_pos <- pos + 1;
           c.c_parser <- parse_packets;
           parse_packets c

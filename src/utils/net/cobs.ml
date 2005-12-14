@@ -146,15 +146,10 @@ let rec iter_block s pos len list =
   if pos = len then list
   else
   let flags = int_of_char s.[pos] in
-  let last = (flags land (1 lsl 7)) <> 0 in
   let cobs_encoded = (flags land (1 lsl 6)) <> 0 in
-(*  lprintf "cobs_encoded %b\n" cobs_encoded; *)
-  let compressed = (flags land (1 lsl 5)) <> 0 in
-(*  lprintf "compressed %b\n" compressed; *)
   let id_len = flags land 7 in
   let id = String.sub s (pos+1) id_len in
   let data_len, pos = get_len s (pos+1+id_len) 0 in
-(*  lprintf "data_len %d,pos %d, len %d\n" data_len pos len; *)
   let data = String.sub s pos data_len in
   let data = 
     if cobs_encoded then decode data else data in

@@ -285,7 +285,7 @@ let dump_basic_socket buf = ()
 
 let create_blocking name fd handler =
 
-  let (fdnum : int) = get_fd_num fd in
+  let (_ : int) = get_fd_num fd in
 (*
   if fdnum >= Unix32.fds_size then begin
       Unix.close fd;
@@ -515,7 +515,7 @@ let loop () =
   while true do
     try
       if !loop_delay > 0. then (try select [] !loop_delay;  with _ -> ());
-      let time = update_time () in
+      let _ = update_time () in
       exec_tasks !fd_tasks;
       exec_hooks !after_select_hooks;
       exec_timers !timers;

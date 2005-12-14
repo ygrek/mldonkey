@@ -139,7 +139,7 @@ let unpack_server_met filename url =
         let file = Zip.find_entry ic "server.met" in
           Zip.close_in ic;
     lprintf_nl () "server.met found in %s" url;
-    let s = Misc.archive_extract filename "zip" in
+    let _ = Misc.archive_extract filename "zip" in
       file.Zip.filename
         with e ->
     Zip.close_in ic;
@@ -170,7 +170,6 @@ let unpack_server_met filename url =
     | _ -> filename
 
 let download_server_met url =
-  let nservers = List.length (Hashtbl2.to_list servers_by_key) in
   let module H = Http_client in
     let r = {
       H.basic_request with
@@ -324,7 +323,7 @@ let query_download filenames size md4 location old_file absents force =
   else
     begin
       try
-        let file = find_file md4 in
+        let _ = find_file md4 in
 (* jave TODO: if a user currently not downloading this file is requesting the download add this user
    to the list of users currently downloading this file *)
 	  forceable_download := [];
@@ -404,7 +403,7 @@ let import_temp temp_dir =
                     size := v
                 | _ -> ()
             ) f.P.tags;
-            let file = query_download !filenames !size f.P.md4 None
+            let _ = query_download !filenames !size f.P.md4 None
               (Some filename) (Some (List.rev f.P.absents)) true;
             in
             ()
@@ -579,14 +578,13 @@ let commands = [
         let ip = Ip.from_name ip in
         let port = int_of_string port in
 
-        let s = force_add_server ip port in
+        let _ = force_add_server ip port in
         Printf.bprintf buf "New server %s:%d\n"
           (Ip.to_string ip) port;
         ""
     ), "<ip> [<port>] :\t\t\tadd a server";
 
     "afr", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
         let ip, port =
           match args with
             [ip ; port] -> ip, port
@@ -601,15 +599,14 @@ let commands = [
     ),  "<ip> [<port>] :\t\t\tadd a friend";
 
     "vu", Arg_none (fun o ->
-        let buf = o.conn_buf in
         Printf.sprintf
           "Upload credits : %d minutes\nUpload disabled for %d minutes"
           !CommonUploads.upload_credit !CommonUploads.has_upload;
 
     ), ":\t\t\t\t\tview upload credits";
 
+(*
     "comments", Arg_one (fun filename o ->
-        let buf = o.conn_buf in
 (* TODO        DonkeyIndexer.load_comments filename;
         DonkeyIndexer.save_comments (); *)
         "comments loaded and saved"
@@ -621,9 +618,9 @@ let commands = [
 (* TODO        DonkeyIndexer.add_comment md4 comment; *)
         "Comment added"
     ), "<md4> \"<comment>\" :\t\tadd comment on a md4";
+*)
 
     "import", Arg_one (fun dirname o ->
-        let buf = o.conn_buf in
         try
           import_config dirname;
           "config loaded"
@@ -633,7 +630,6 @@ let commands = [
     ), "<dirname> :\t\t\timport the config from dirname";
 
     "import_temp", Arg_one (fun dirname o ->
-        let buf = o.conn_buf in
         try
           import_temp dirname;
           "temp files loaded"
@@ -642,14 +638,14 @@ let commands = [
               Printexc2.to_string e)
     ), "<temp_dir> :\t\t\timport the old edonkey temp directory";
 
+(*
     "load_old_history", Arg_none (fun o ->
-        let buf = o.conn_buf in
 (* TODO        DonkeyIndexer.load_old_history (); *)
         "Old history loaded"
     ), ":\t\t\tload history.dat file";
+*)
 
     "servers", Arg_one (fun filename o ->
-        let buf = o.conn_buf in
   if !!update_server_list_server_met then
     begin
       let nservers = List.length (Hashtbl2.to_list servers_by_key) in
@@ -897,14 +893,12 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURI(renameTextOu
     ), ":\t\t\t\t\textend the last search";
 
     "clh", Arg_none (fun o ->
-        let buf = o.conn_buf in
 (* TODO RESULT        DonkeyIndexer.clear (); *)
         "local history cleared"
     ), ":\t\t\t\t\tclear local history";
 
 (* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
-        let buf = o.conn_buf in
         let file = query_download [] (Int64.of_string size)
           (Md4.of_string md4) None None None false in
         CommonInteractive.start_download file;
@@ -1344,8 +1338,6 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURI(renameTextOut)+
       List.iter (fun (s,c) ->
         let ac = as_client c in
         try
-          let i = client_info ac in
-
           Printf.bprintf buf "\\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" class=\\\"dl-%d\\\"\\>"
             (html_mods_cntr());
 
@@ -1476,7 +1468,7 @@ let try_recover_temp_file filename md4 =
             with _ -> *)
             []
         in
-        let file =
+        let _ =
           query_download names size md4 None (Some file_diskname) None true
         in
         recover_md4s md4
@@ -1630,7 +1622,6 @@ lprint_newline ();
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks,_) =  List.hd qfiles in
                 if (qfile == (as_file_impl file).impl_file_val) then begin
-                    let i = (client_info (as_client c)) in
 
                     Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
       class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"

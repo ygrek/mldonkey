@@ -260,8 +260,7 @@ let new_result file_name file_size tags (uids : Uid.t list) sources =
             Hashtbl.add results_by_uid (Uid.to_uid uid) rs;
             rs
       in
-      let r = IndexedResults.get_result rs in
-(*
+(*      let r = IndexedResults.get_result rs in
       let rec iter_uid uid =
         if not (List.mem uid r.result_uids) then begin
             r.result_uids <- uid :: r.result_uids;
@@ -291,8 +290,6 @@ let megabytes10 = Int64.of_int (10 * 1024 * 1024)
 let new_file file_temporary file_name file_size file_uids = 
   let file_temp = Filename.concat !!temp_directory file_temporary in
   let t = Unix32.create_rw file_temp in
-  let keywords = CommonUploads.words_of_filename file_name in
-  let words = String2.unsplit keywords ' ' in
   let rec file = {
       file_file = file_impl;
       file_temp = file_temporary;

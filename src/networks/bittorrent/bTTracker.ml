@@ -179,7 +179,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
           failwith "[BT] Too many tracked files"
   in
 
-  let peer =
+  let _ =
     try
       let peer =
         Hashtbl.find tracker.tracker_table peer_id

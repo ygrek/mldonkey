@@ -44,7 +44,6 @@ let add t v =
       t.nfree <- new_len - len;
     end;
   let pos = t.nfree - 1 in
-  let free_pos = t.free.(pos) in
   t.array.(pos) <- Some v;
   t.nfree <- pos;
   pos

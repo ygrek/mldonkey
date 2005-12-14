@@ -79,7 +79,6 @@ let decode_torrent s =
   let file_modified_by = ref "" in
   let file_encoding = ref "" in
   let file_ed2k_hash = ref "" in
-  let file_nodes = ref "" in
   let file_is_private = ref zero in
   let file_aps = ref (List []) in
   let file_dht_backup_enable = ref zero in

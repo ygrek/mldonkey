@@ -259,8 +259,6 @@ let new_file file_temporary file_name file_size file_hash =
       file_size // (max 5L (file_size // (megabytes 5)))
     )
   in
-  let keywords = CommonUploads.words_of_filename file_name in
-  let words = String2.unsplit keywords ' ' in
   let uid = Uid.create (Md5Ext file_hash) in
   let rec file = {
       file_file = file_impl;

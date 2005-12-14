@@ -170,7 +170,6 @@ let send_new_shared () =
   if !new_shared then
     begin
       new_shared := false;
-      let socks = ref [] in
       if !new_shared_files <> [] then
         begin
           List.iter (fun s ->

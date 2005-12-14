@@ -384,7 +384,6 @@ let gui_closed gui sock  msg =
 let gui_initialize gui = 
 
   gui.gui_initialized <- true;
-  let connecting = ref true in
   networks_iter_all (fun n ->
       gui_send gui (Network_info (network_info n)));
   gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
@@ -502,7 +501,7 @@ lprintf "Sending for %s\n" prefix;
           List.iter (fun file ->
               
               List.iter (fun s ->
-                  let section = section_name s in
+                  let _ = section_name s in
                   List.iter (fun o ->
                       gui_send gui (
                         P.Add_plugin_option (r.network_name, o)

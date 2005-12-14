@@ -327,7 +327,7 @@ let rec get_from_client c =
   | Some (file,up) ->
       
       try
-        let b = Int64Swarmer.current_block up in
+        let _ = Int64Swarmer.current_block up in
         let ranges = Int64Swarmer.current_ranges up in
         let before_find_range = List.length ranges in
 
@@ -366,7 +366,7 @@ let rec get_from_client c =
           try
             let swarmer = Int64Swarmer.uploader_swarmer up in       
             (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
-            let b = Int64Swarmer.find_block up in
+            let _ = Int64Swarmer.find_block up in
             get_from_client c
             
           with Not_found ->

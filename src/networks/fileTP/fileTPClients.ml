@@ -70,7 +70,6 @@ let disconnect_client c r =
           close sock r;
           c.client_sock <- NoConnection;
           List.iter (fun d ->
-              let file = d.download_file in
               match d.download_uploader with
                 None -> ()
               | Some up ->

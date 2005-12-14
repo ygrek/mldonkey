@@ -220,7 +220,6 @@ support the charge, at least, currently. *)
                   | _ -> ())
             in
             TcpBufferedSocket.set_rtimeout sock 30.;
-            let to_read = ref [] in
             set_reader sock (cut_messages (fun opcode s ->
                   if !verbose_redirector then lprintf_nl "[cWeb] redirector info received";
                   let module L = LittleEndian in

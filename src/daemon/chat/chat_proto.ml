@@ -109,7 +109,6 @@ let read_packet getline input =
       | "MESSAGE" ->
 	  let length = int_of_string (il getline) in
 	  let s = String.create length in
-	  let n = input s 0 length in
 	  Message s
       |	"ROOM_MESSAGE" ->
 	  let name = getline () in
@@ -130,7 +129,6 @@ let read_packet getline input =
 	  let people = iter [] 0 in
 	  let length = int_of_string (il getline) in
 	  let s = String.create length in
-	  let n = input s 0 length in
 	  RoomMessage (name, people, s)
 
       | "ADD_OPEN" ->

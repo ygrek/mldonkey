@@ -241,11 +241,9 @@ let shareds_by_uid = Hashtbl.create 13
 let shareds_by_id = Hashtbl.create 13
 
 let add_by_uid uid sh =
-  let urn = Uid.to_string uid in
   Hashtbl.add shareds_by_uid uid sh
 
 let find_by_uid uid =
-  let urn = Uid.to_string uid in
   Hashtbl.find shareds_by_uid uid
 
 module SharedFilesIndex = IndexedSharedFiles.MakeIndex (struct
@@ -522,7 +520,6 @@ computation ??? *)
     | ED2K ->
         let size = info.shared_size in
         let chunk_size = ed2k_block_size  in
-        let nhashes = Int64.to_int (size // chunk_size) + 1 in
         let rec iter pos hashes =
           if pos < size then
             try
@@ -543,7 +540,6 @@ computation ??? *)
           let list = List.rev hashes in
           let ed2k = md4_of_list list in
           let uid = Uid.create (Ed2k (ed2k)) in
-          let urn = Uid.to_string uid in
           info.shared_md4s <- Array.of_list list;
           info.shared_uids <- uid :: info.shared_uids;
           IndexedSharedFiles.update_result sh.shared_info info;
@@ -559,7 +555,6 @@ computation ??? *)
 
           let size = info.shared_size in
           let chunk_size = tiger_block_size in
-          let nhashes = Int64.to_int (size // chunk_size) + 1 in
           let rec iter pos hashes =
             if pos < size then
                 CommonHasher.compute_tiger info.shared_fullname

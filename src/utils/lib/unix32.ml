@@ -183,13 +183,11 @@ module FDCache = struct
         although we are reading here, but I had problems with
         it like exceptions in really_write
       *)
-      let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_read %d\n" len;
       Unix2.really_read fd string string_pos len
 
     let write file file_pos string string_pos len =
       let fd = local_force_fd file true in
-      let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
       begin
         try
@@ -747,7 +745,6 @@ module SparseFile = struct
       
       let chunk_begin = zero in
       let chunk_len = t.size in
-      let index = 0 in
       let nchunks = Array.length t.chunks in
       
       let file_out = FDCache.create f in
@@ -1431,6 +1428,7 @@ overlaps different parts, but these parts are on the same physical file. *)
     let create_rw filename = 
       create (create_rw filename)
 
+(*
 (* the new part (shared_begin, shared_len) is shared between t1 and t2.
 It will be kept inside t1, and used by t2. The problem is what happens
 when these two files have already been partially downloaded ? This 
@@ -1438,7 +1436,7 @@ when these two files have already been partially downloaded ? This
     let shared_part t1 t2 shared_begin shared_len = 
       let shared_end = shared_begin ++ shared_len in
       ()
-      
+*)      
   end
 let destroyed t = t.file_kind = Destroyed
   

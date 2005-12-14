@@ -444,8 +444,6 @@ let client_wants_file c md4 =
   
 let new_chunk up begin_pos end_pos =
   if begin_pos <> end_pos then
-    let len_requested = Int64.to_int (end_pos -- begin_pos) in
-    let len = Int64.to_int (end_pos -- begin_pos) in
     let pair = (begin_pos, end_pos) in
     (match up.up_chunks with
         [] ->
@@ -1367,8 +1365,6 @@ end; *)
         
 with _ -> *)
       
-      let cc = as_client c in
-
 (* If the client is in the nolimit_ips list, he doesn't need a slot, so put
 it immediatly in the upload queue... but what will happen in the queue
 since the client upload should not be taken into account ! 
@@ -1645,7 +1641,6 @@ is checked for the file.
   
   | M.QueryFileReq t ->
       let md4 = t.M.QueryFile.md4 in
-      let emule_extension = t.M.QueryFile.emule_extension in
       c.client_requests_received <- c.client_requests_received + 1;
       
       if  !CommonUploads.has_upload = 0 && 

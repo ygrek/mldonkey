@@ -93,7 +93,6 @@ let send_and_recv group port message =
   with 
   | Exit -> 
       close sock;
-      let msg = buffer in
       Marshal.from_string buffer 0
   | e -> close sock; raise e
       

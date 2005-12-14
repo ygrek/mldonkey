@@ -109,9 +109,6 @@ let value_to_md4 v =
 
 let value_to_client is_friend assocs = 
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv = 
-    try conv (List.assoc name assocs) with _ -> []
-  in
   let (ip,port) = 
     try
       get_value "client_addr" (fun v ->
@@ -133,7 +130,7 @@ let value_to_client is_friend assocs =
         Indirect_location(name, md4) *)
   in
   
-  let last_conn = 
+  let _ = 
     try
       let last_conn =
         (min (get_value "client_age" value_to_int) 
@@ -204,9 +201,6 @@ let client_option =
 
 let value_to_server assocs = 
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv = 
-    try conv (List.assoc name assocs) with _ -> []
-  in
   let ip, port = get_value "server_addr" (fun v ->
         match v with
           List [ip;port] | SmallList [ip;port] ->
@@ -436,11 +430,6 @@ module SharedFileOption = struct
     let value_to_shinfo v =
       match v with
         Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
           let sh_md4s = try
               value_to_array (fun v ->
                   Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
@@ -481,10 +470,6 @@ module StatsOption = struct
     let value_to_stat v =
       match v with
         Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
           { 
             brand_seen = value_to_int (List.assoc "seen" assocs);
             brand_banned = value_to_int (List.assoc "banned" assocs);
@@ -513,10 +498,6 @@ module ModStatsOption = struct
     let value_to_mod_stat v =
       match v with
         Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
           { 
             brand_seen = value_to_int (List.assoc "mseen" assocs);
             brand_banned = value_to_int (List.assoc "mbanned" assocs);
@@ -617,12 +598,12 @@ let safe_add_server ip port =
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->
-        let s = DonkeyGlobals.new_server ip port !!initial_score in
+        let _ = DonkeyGlobals.new_server ip port !!initial_score in
         DonkeyGlobals.servers_ini_changed := true
         
 let remove_server ip port =
   try
-    let s = DonkeyGlobals.find_server ip port in
+    let _ = DonkeyGlobals.find_server ip port in
     DonkeyGlobals.servers_ini_changed := true;
     DonkeyGlobals.remove_server ip port
   with _ -> ()

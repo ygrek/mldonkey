@@ -787,7 +787,6 @@ restart. *)
 
             if Fifo.length prebuckets.(bucket) = max_peers_per_prebucket then
 	    begin
-              let l = last_time () - 1800 in
               let pp = Fifo.take prebuckets.(bucket) in
               Fifo.put prebuckets.(bucket)
 (* If the head of the bucket is not dead we should keep it *)
@@ -997,7 +996,7 @@ let udp_client_handler t p =
             let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in
             new_peer_message sender
         | p :: tail ->
-            let p = new_peer p in
+            let _ = new_peer p in
             iter tail
       in
       iter ps;
@@ -1256,8 +1255,7 @@ let query_next_peers () =
 
 let recover_file file =
   if file_state file = FileDownloading then
-    let search = create_search (FileSearch file) file.file_md4 in
-    ()
+    ignore (create_search (FileSearch file) file.file_md4)
 
 let check_current_downloads () =
   List.iter recover_file !DonkeyGlobals.current_files
@@ -1448,13 +1446,13 @@ let enable () =
 (* every 15min for light operations *)
       add_session_timer enabler 900. (fun _ ->
           if !!enable_overnet then begin
-              let s = create_search FillBuckets !!overnet_md4 in
+              let _ = create_search FillBuckets !!overnet_md4 in
               check_current_downloads ();
             end
       );
 
       begin
-        let s = create_search FillBuckets !!overnet_md4 in
+        let _ = create_search FillBuckets !!overnet_md4 in
         check_current_downloads ();
       end;
       
@@ -1571,7 +1569,6 @@ let _ =
     ), ("<ip> <port> :\t\t\tadd an " ^ command_prefix_to_net ^ " peer");
 
     "link", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
         let url = String2.unsplit args ' ' in
         if parse_overnet_url url then
           "download started"
@@ -1598,7 +1595,7 @@ let _ =
     ), (":\t\t\t\t" ^ command_prefix_to_net ^ " Stats commands");
 
     "stats", Arg_none (fun o ->
-        let buf = o.conn_buf and sum = ref 0 in
+        let buf = o.conn_buf in
         if o.conn_output = HTML then
           begin
             Printf.bprintf buf "\\<div class=results\\>";
@@ -1689,7 +1686,6 @@ let _ =
     ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
 
     "load", Arg_one (fun filename o ->
-        let buf = o.conn_buf in
         try
           let n = load_contact_dat filename in
           Printf.sprintf "%d overnet peers loaded" n;

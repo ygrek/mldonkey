@@ -1061,7 +1061,6 @@ let set_verified_chunk t i =
 (*************************************************************************)
 
 let verify t chunks num begin_pos end_pos =
-  let file = t.t_file in
   file_verify t.t_file chunks.(num) begin_pos end_pos
 
 (*************************************************************************)
@@ -1179,9 +1178,6 @@ let verify_chunk t i =
                                   EmptyBlock -> set_bitmap_0 s i
                                 | PartialBlock _ ->  set_bitmap_1 s i
                                 | CompleteBlock ->
-                                    let block_begin = t.t_block_size *.. i in
-                                    let block_end = block_begin ++ t.t_block_size in
-                                    let block_end = min block_end s.s_size in
                                     let block_begin = compute_block_begin s i in
                                     let block_end = compute_block_end s i in
                                     add_file_downloaded None s (block_begin -- block_end);
@@ -1835,7 +1831,6 @@ module LinearStrategy = struct
       and iter_partial up =
         let n = up.up_npartial in
         if n = 0 then raise Not_found;
-        let t = up.up_t in
         let b, block_begin, block_end = up.up_partial_blocks.(n-1) in
         let t = up.up_t in
         let s = t.t_s in
@@ -2143,7 +2138,7 @@ let find_block up =
               up.up_block <- None;
         );
 
-        let (b,block_begin,block_end) as result = select_block up in
+        let (b,block_begin,block_end) (* as result *) = select_block up in
         let num = b.block_num in
         s.s_nuploading.(num) <- s.s_nuploading.(num) + 1;
         up.up_block <- Some b;
@@ -2747,7 +2742,7 @@ let value_to_swarmer t assocs =
   are correctly associed. *)
     with Not_found -> ());
 
-  let set_bitmap =
+  let _ =
     let mtime = try file_mtime t.t_file with _ -> 0. in
     let old_mtime =
       try
@@ -3146,8 +3141,6 @@ let _ =
 
           incr counter
       ) swarmers_by_name;
-      let block_storage = 64 * !nblocks in
-
       Printf.bprintf buf "  Swarmers: %d\n" !counter;
       Printf.bprintf buf "    nchunks: %d nblocks: %d nranges: %d\n"
         !nchunks !nblocks !nranges;

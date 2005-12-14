@@ -524,7 +524,6 @@ let rec find_max_overloaded q managers =
 
         let nsources_per_queue = Array.create nqueues 0 in
         let nready_per_queue = Array.create nqueues 0 in
-        let nready_throttled_per_queue = Array.create nqueues 0 in
         let nindirect_per_queue = Array.create nqueues 0 in
         let ninvalid_per_queue = Array.create nqueues 0 in
         let nall = ref 0 in

@@ -253,7 +253,7 @@ let load filename =
 	       let file = Zip.find_entry ic "guarding.p2p" in
 	         Zip.close_in ic;
 		 lprintf_nl () "guarding.p2p found in zip file";
-		 let s = Misc.archive_extract filename "zip" in
+		 let _ = Misc.archive_extract filename "zip" in
 		 load_merge bl_empty file.Zip.filename true
 	       with e ->
 		 begin
@@ -261,7 +261,7 @@ let load filename =
 		     let file = Zip.find_entry ic "guarding_full.p2p" in
 		       Zip.close_in ic;
 		       lprintf_nl () "guarding_full.p2p found in zip file";
-		       let s = Misc.archive_extract filename "zip" in
+		       let _ = Misc.archive_extract filename "zip" in
 		       load_merge bl_empty file.Zip.filename true
 		     with e ->
 		       Zip.close_in ic;
@@ -347,7 +347,7 @@ let print_list buf bl =
           let nright = print_list_aux right in
           nleft + 1 + nright in
 
-  let count = print_list_aux bl in
+  let _ = print_list_aux bl in
   Printf.bprintf buf "%d ranges loaded - optimized to %d\n" !ranges_1 !ranges_2
 
 let bl = ref BL_Empty

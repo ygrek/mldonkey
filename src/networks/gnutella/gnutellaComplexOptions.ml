@@ -52,9 +52,6 @@ module ClientOption = struct
       | Module assocs ->
           
           let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
           let client_ip = get_value "client_ip" (from_value Ip.option)
           in
           let client_port = get_value "client_port" value_to_int in
@@ -106,10 +103,6 @@ let value_to_int32pair v =
 
 let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv = 
-    try conv (List.assoc name assocs) with _ -> []
-  in
-  
   let file_name = get_value "file_name" value_to_string in
   let file_temp = 
     try
@@ -268,9 +261,6 @@ let _ =
       in
       ultrapeers =:= List2.tail_map fst ultrapeers_list;
       
-      let peers_list = List.sort (fun (_, a1) (_, a2) -> 
-            
-            compare a2 a1) !peers_list in
       let peers_list, _ = List2.cut !!max_known_peers ultrapeers_list
       in
       peers =:= List2.tail_map fst peers_list;

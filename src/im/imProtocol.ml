@@ -96,9 +96,9 @@ let new_protocol name v =
       impl_protocol_val = v;
       impl_protocol_num = !counter;
       op_protocol_account_from_option = (fun s -> 
-        failwith "op_protocol_account_from_option not implemented for %s" name);
+        failwith (Printf.sprintf "op_protocol_account_from_option not implemented for %s" name));
       op_protocol_new_account = (fun s -> 
-        failwith "op_protocol_new_account not implemented for %s" name);
+        failwith (Printf.sprintf "op_protocol_new_account not implemented for %s" name));
       op_protocol_available_status = (fun s -> 
           [Online_available])
     }  in

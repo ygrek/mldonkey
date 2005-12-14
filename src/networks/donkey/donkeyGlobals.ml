@@ -320,7 +320,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
   with _ ->
       if !verbose_share then
         lprintf_nl () "New file with md4: %s" (Md4.to_string md4);
-      let file_exists = Unix32.file_exists file_diskname in
+      let _ = Unix32.file_exists file_diskname in
 
       let t =
         if

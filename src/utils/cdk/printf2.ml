@@ -207,9 +207,9 @@ let lprintf_nl2 fmt =
   (fmt : ('a,unit, unit) format )
 
 let lprint_newline () = lprintf "\n"
-let lprint_char c = lprintf "%c" c
-let lprint_int c = lprintf "%d" c
-let lprint_string c = lprintf "%s" c
+let lprint_char = lprintf "%c"
+let lprint_int = lprintf "%d"
+let lprint_string = lprintf "%s"
 
 let set_lprintf_handler f =
   lprintf_handler := f

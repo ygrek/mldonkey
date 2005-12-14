@@ -82,7 +82,6 @@ let canonize_basename name =
     Buffer.contents buf
 
 let file_commited_name incoming_dir file =
-  let network = file_network file in
   let best_name = file_best_name file in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name =
@@ -300,7 +299,6 @@ let file_completed (file : file) =
         done_files =:= file :: !!done_files;
         update_file_state impl FileDownloaded;
         let file_name = file_disk_name file in
-        let file_id = Filename.basename file_name in
         ignore (CommonShared.new_shared "completed" 0 (
             file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->

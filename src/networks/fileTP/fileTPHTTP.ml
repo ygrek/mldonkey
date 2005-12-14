@@ -257,9 +257,8 @@ let rec client_parse_header c gconn sock header =
         if !verbose then lprintf_nl () "Specified length: %Ld" len;
         if len <> end_pos -- start_pos then
           begin
-            failwith "\n\nERROR: bad computed range: %Ld-%Ld/%Ld \n%s\n"
-              start_pos end_pos len
-              (String.escaped header);
+            failwith (Printf.sprintf "ERROR: bad computed range: %Ld-%Ld/%Ld \n%s\n"
+              start_pos end_pos len (String.escaped header))
           end
       with _ ->
           lprintf_nl () "[WARNING]: no Content-Length field\n%s\n"
@@ -297,8 +296,6 @@ end_pos !counter_pos b.len to_read;
         let swarmer = match file.file_swarmer with
             None -> assert false | Some sw -> sw
         in
-        let old_downloaded =
-          Int64Swarmer.downloaded swarmer in
 (*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)
         d.download_ranges; *)
 

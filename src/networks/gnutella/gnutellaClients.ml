@@ -264,7 +264,6 @@ and read_some d c counter_pos b to_read_int =
   let up = match d.download_uploader with
       None -> assert false
     | Some up -> up in
-  let swarmer = Int64Swarmer.uploader_swarmer up in
   
   let file = d.download_file in
   
@@ -273,12 +272,6 @@ and read_some d c counter_pos b to_read_int =
       raise Exit;
     end;
 
-(*
-  lprintf "CHUNK: %s\n" 
-          (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-  let old_downloaded = 
-    Int64Swarmer.downloaded swarmer in
-  
   begin
     try
       Int64Swarmer.received up
@@ -288,16 +281,7 @@ and read_some d c counter_pos b to_read_int =
           (Printexc2.to_string e);
 (* TODO: we should pause the download !!! *)
   end;
-  c.client_reconnect <- true;
-  
-  let new_downloaded = 
-    Int64Swarmer.downloaded swarmer in
-  
-(*
-lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
-lprintf "READ: buf_used %d\n" to_read_int;
-  *)
-  ()
+  c.client_reconnect <- true
 
 (*************************************************************************)
 (*                                                                       *)
@@ -325,8 +309,6 @@ and client_parse_header c gconn sock (first_line, headers) =
 
 (* The reply should be  "HTTP/1.1 200 OK" *)
     let space_pos = String.index first_line ' ' in
-    let slash_pos = String.index first_line '/' in
-    let proto = String.sub first_line (slash_pos+1) (space_pos - slash_pos) in
     let code = String.sub first_line (space_pos+1) 3 in
     let code = int_of_string code in
     
@@ -765,7 +747,6 @@ let push_handler cc gconn sock (first_line, headers) =
         lprintf "PARSING GIV HEADER\n"; 
       end;
     let colon_pos = String.index first_line ':' in
-    let slash_pos = String.index first_line '/' in
     let uid = Md4.of_string (String.sub first_line (colon_pos+1) 32) in
     let index = int_of_string (String.sub first_line 4 (colon_pos-4)) in
     if !verbose_msg_clients then begin
@@ -1110,7 +1091,7 @@ let listen () =
 (*************************************************************************)
       
 let push_connection guid index ip port =
-  let token =
+  let _ =
     add_pending_connection connection_manager (fun token ->
         let sh =Hashtbl.find shareds_by_id index in
         let sock = connect token "gnutella download" 
@@ -1143,7 +1124,7 @@ let push_connection guid index ip port =
         write_string sock 
           (Printf.sprintf "GIV %d:%s/%s\n\n" 
             index (Md4.to_string guid) sh.shared_codedname)
-    )    
+    )
 
   in
   ()

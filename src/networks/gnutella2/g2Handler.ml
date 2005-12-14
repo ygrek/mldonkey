@@ -149,8 +149,7 @@ let g2_packet_handler s sock gconn p =
   | QKA ->
       H.host_queue_add active_udp_queue h (last_time ());
       if (Queues.Queue.length active_udp_queue) > 100 then
-        let oh = H.host_queue_take active_udp_queue in
-        ();
+        ignore (H.host_queue_take active_udp_queue);
       List.iter (fun c ->
           match c.g2_payload with
             QKA_QK key -> s.server_query_key <- UdpQueryKey key
@@ -202,8 +201,7 @@ let g2_packet_handler s sock gconn p =
           
           | Q2_MD xml ->
               begin try
-                  let xml = Xml.parse_string xml in
-                  ()
+                  ignore (Xml.parse_string xml)
                 with e -> 
                     lprintf "Error %s parsing Xml \n%s\n"
                       (Printexc2.to_string e)
@@ -290,7 +288,7 @@ packet QH2_H (
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in ()
+              ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer)
           | _ -> ()
       ) p.g2_children;
       let children = ref [] in

@@ -316,7 +316,6 @@ let exec_command telnet line sock =
                     List.iter (fun file ->
                         let best_name = file_best_name file in
                         let disk_name = file_disk_name file in
-                        let ext = Filename2.last_extension best_name in
                         lprintf "Adding %s\n" best_name;
                         let file_size = Int64.to_float (file_size file) in
                         let file_downloaded = 

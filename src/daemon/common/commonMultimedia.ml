@@ -269,7 +269,6 @@ let normalize_stream_type s ct =
 let rec next_ogg_stream ic ogg_infos str stream_number =
   let pos = pos_in ic in
   page_seek ic str pos;
-  let header_start_pos = (pos_in ic - 4) in
   let pos = pos_in ic in
 (*
   let serial_number = String.create 4 in
@@ -303,12 +302,7 @@ and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
   let s = String.create sizeof_packet in
   really_input ic s 0 sizeof_packet;
   let codec = String.lowercase (String.sub s 0 4) in
-  let size = read32 (String.sub s 4 4) in
   let time_unit = read64 (String.sub s 8 8) in
-  let sample_per_unit = read64 (String.sub s 16 8) in
-  let default_len = read32 (String.sub s 24 4) in
-  let buffer_size = read32 (String.sub s 28 4) in
-  let bits_per_sample = read16 (String.sub s 32 2) in
   let video_width =
     if sizeof_packet >= sizeof_old_ogm_packet
       then read32 (String.sub s 36 4)
@@ -335,12 +329,7 @@ and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
   let s = String.create sizeof_packet in
   really_input ic s 0 sizeof_packet;
   let codec = get_audio_codec (String.sub s 0 4) in
-  let size = read32 (String.sub s 4 4) in
-  let time_unit = read64 (String.sub s 8 8) in
   let sample_per_unit = read64 (String.sub s 16 8) in
-  let default_len = read32 (String.sub s 24 4) in
-  let buffer_size = read32 (String.sub s 28 4) in
-  let bits_per_sample = read16 (String.sub s 32 2) in
   let channels =
     if sizeof_packet >= sizeof_old_ogm_packet
       then read16 (String.sub s 36 2)
@@ -407,13 +396,9 @@ and get_ogg_theora_info  ic ogg_infos str stream_number =
   let vrev = int_of_char s.[2] in
   let codec = Printf.sprintf "theora-%d.%d.%d" vmaj vmin vrev in
   (* multiply by 16 to get the actual frame width in pixels *)
-  let fmbw = read16B (String.sub s 3 2) lsl 4 in
   (* multiply by 16 to get the actual frame height in pixels *)
-  let fmbh = read16B (String.sub s 5 2) lsl 4 in
   let picw = read24B (String.sub s 7 3)  in
   let pich = read24B (String.sub s 10 3) in
-  let picx = int_of_char s.[13] in
-  let picy = int_of_char s.[14] in
   let frn = read32B (String.sub s 15 4) in
   let frd = read32B (String.sub s 19 4) in
   let sample_rate = frn /. frd in
@@ -535,34 +520,7 @@ let search_info_avi ic =
                 
                 ignore (input_string4 ic);
                 
-                
-                let dwMicroSecPerFrame = input_int32 ic in
-                let dwMaxBytesPerSec = input_int32 ic in
-                let dwPaddingGranularity = input_int32 ic in
-                let dwFlags = input_int32 ic in
-                let dwTotalFrames = input_int32 ic in
-                let dwInitialFrames = input_int32 ic in
-                let dwStreams = input_int32 ic in
-                let dwSuggestedBufferSize = input_int32 ic in              
-                let dwWidth = input_int32 ic in
-                let dwHeight = input_int32 ic in
-
-(*
-              print_int32 "dwMicroSecPerFrame" dwMicroSecPerFrame ;
-              print_int32 "dwMaxBytesPerSec" dwMaxBytesPerSec ;
-              print_int32 "dwPaddingGranularity" dwPaddingGranularity ;
-              print_int32 "dwFlags" dwFlags ;
-              print_int32 "dwTotalFrames" dwTotalFrames ;
-              print_int32 "dwInitialFrames" dwInitialFrames ;
-              print_int32 "dwStreams" dwStreams ;
-              print_int32 "dwSuggestedBufferSize" dwSuggestedBufferSize ;
-              print_int32 "dwWidth" dwWidth;
-              print_int32 "dwHeight" dwHeight;
-              *)
-                
                 seek_in ic ((Int64.to_int pos) + main_header_len + 20);
-                let s = input_string4 ic in
-(*              lprint_string4 "LIST:" s; *)
                 let pos_in = 
                   pos ++ Int64.of_int (main_header_len + 24) in
                 let last_pos = pos_in ++ size2 in

@@ -227,7 +227,6 @@ let enable () =
                 (Printexc2.to_string e) (file_disk_name file); 
       ) files_by_md4;
       
-      let list = ref [] in
 (* Normally, we should check that downloaded files are still there.  *)    
       let list = ref [] in
       List.iter (fun file ->
@@ -284,8 +283,6 @@ be useful when users want to share files that they had already previously
             assert (!!donkey_port = port);
         | _ -> failwith "Bad socket address"
       end;
-      
-      let port = !!donkey_port in
       
       reset_tags ();
       

@@ -93,8 +93,6 @@ let segment_received c num s pos =
         | Some up ->
 
             let swarmer = Int64Swarmer.uploader_swarmer up in
-            let old_downloaded =
-              Int64Swarmer.downloaded swarmer in
             Int64Swarmer.received up
               pos s 0 (String.length s);
 
@@ -233,7 +231,6 @@ type segment =
 | SegmentX of int * int64 * int * int * string
 
 let ssh_connect token c f =
-  let ip = c.client_hostname in
   let shell, args = shell_command c.client_hostname in
   let sock, pid = exec_command token  shell args (fun _ _ -> ());
   in

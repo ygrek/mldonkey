@@ -264,8 +264,7 @@ let load_config () =
       Options.load users_ini;
     with e ->
         lprintf_nl "Exception %s during options load" (Printexc2.to_string e);
-        exit 70;
-        ());
+        exit 70);
 
   (* Here, we try to update options when a new version of mldonkey is
      used. For example, we can add new web_infos... *)
@@ -316,8 +315,8 @@ let load_config () =
           exit 0), _s " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-format", Arg.String (fun file ->
-          let format = CommonMultimedia.get_info file in
-          ()), _s  " <filename> : check file format";
+          ignore (CommonMultimedia.get_info file)),
+          _s  " <filename> : check file format";
       "-test_ip", Arg.String (fun ip ->
           lprintf_nl "%s = %s" ip (Ip.to_string (Ip.of_string ip));
           exit 0), _s "<ip> : undocumented";

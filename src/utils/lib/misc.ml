@@ -118,4 +118,4 @@ let archive_extract filename archive_type =
     "zip" -> zip_extract filename; ""
   | "bz2" -> Misc2.bz2_extract filename
   | "gz" -> gz_extract filename
-  | _ -> failwith "wrong archive type %s" archive_type
+  | _ -> failwith (Printf.sprintf "wrong archive type %s" archive_type)

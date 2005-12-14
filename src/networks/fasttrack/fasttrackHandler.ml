@@ -126,8 +126,7 @@ let server_msg_handler sock s addr t =
 
         List.iter (fun (ip,port,seen,slots) ->
             try
-              let (h : host) = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
-              ()
+              ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer)
             with Not_found -> ()
         ) list;
 
@@ -157,8 +156,7 @@ the FasttrackSupernode module, and get rid of it. *)
             try
               let ip = n.M.neighbour_ip in
               let port = n.M.neighbour_port in
-              let (h : host) = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
-              ()
+                ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer)
             with Not_found -> ()
         ) list;
 
@@ -195,7 +193,6 @@ the FasttrackSupernode module, and get rid of it. *)
                       result_name
                       meta.M.meta_size
                       meta.M.meta_tags [meta.M.meta_hash] [] in
-                  let r = IndexedResults.get_result rs in
                   add_source rs user;
                   CommonInteractive.search_add_result false sss rs
 

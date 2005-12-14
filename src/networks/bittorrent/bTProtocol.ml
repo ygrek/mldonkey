@@ -534,7 +534,6 @@ let handlers info gconn =
                  peer_id is not fetched here because
                  it might be late or not present
                  *)
-              let proto = String.sub b.buf (b.pos+1) slen in
               let file_id = Sha1.direct_of_string
                 (String.sub b.buf (b.pos+9+slen) 20) in
               let proto,pos = get_string8 b.buf b.pos in

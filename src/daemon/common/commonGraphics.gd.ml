@@ -242,7 +242,6 @@ let draw_h_legend mypic g legend_text gcolor my_time =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
   let my_y = (ybb()) in
-  let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (x_fdivisions())) *. (float_of_int my_x2))) in
   (* and vtext n = (string_of_int (int_of_float((float_of_int(n))*. vx ))) in *)
   let basetime = Unix.gettimeofday () in
@@ -265,7 +264,6 @@ let draw_load mypic g my_color shadow_color =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
   let my_y = (ybb()) in
-  let my_y2 = (ybs()) in
   let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y - (int_of_float(float_of_int(datas g n) *. (vdt_m g))))
@@ -300,7 +298,6 @@ let draw_stack_download mypic g my_color shadow_color =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
   let my_y = (ybb() - (ybs() / 2)) in
-  let my_y2 = (ybs() / 2) in
   let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y - (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
@@ -335,7 +332,6 @@ let draw_stack_upload mypic g my_color shadow_color =
   let my_x = (xbr()) in
   let my_x2 = (xbs()) in
   let my_y = (ybb() - (ybs() / 2)) in
-  let my_y2 = (ybs() / 2) in
   let datas g n = List.nth (List.rev (Fifo.to_list g)) n in
   let fx x = int_of_float((float_of_int my_x) -. (((float_of_int x) /. (fxgdivisions())) *. (float_of_int my_x2)))
   and y_c1 n = (my_y + (int_of_float(float_of_int(datas g n) *. (vdt_stack g))))
@@ -368,10 +364,8 @@ let draw_stack_upload mypic g my_color shadow_color =
 
 
 let draw_mean_line mypic g my_color gcolor =
-  let my_x = (xbr())
-  and my_x2 = (xbs())
-  and my_y = (ybb())
-  and my_y2 = (ybs()) in
+  let my_x2 = (xbs())
+  and my_y = (ybb()) in
   let my_sum gl = List.fold_left (+) 0 (Fifo.to_list gl) in
   let meanx() = ((float_of_int (my_sum g)) /. (float_of_int ((Fifo.length g)))) in
   let ypos = (my_y - (int_of_float((meanx()) *. (vdt_m g)))) in
@@ -385,13 +379,10 @@ let draw_mygraph mypic ttl top_title vl hl g =
 (
   let g_y = win_y() in
   (* set colors *)
-  let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
   let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
-  let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
   (* draw graph *)
   draw_borders mypic black;
@@ -446,7 +437,6 @@ let do_chan_pic ttl vl hl gdown gup =
 let do_draw_pic ttl vl hl gdown gup =
   (* init pic *)
 (
-  let g_x = win_x() in
   let g_y = win_y() in
   let mypic = Gd.create ~x:(win_x()) ~y:g_y in
 
@@ -508,10 +498,8 @@ let do_draw_down_pic ttl top_title vl hl gdown =
   (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
-  let red = mypic#colors#red in
   let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
   if !!html_mods_vd_gfx_transparent then
@@ -547,9 +535,7 @@ let do_draw_up_pic ttl top_title vl hl gup =
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
-  let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
   if !!html_mods_vd_gfx_transparent then
@@ -577,7 +563,6 @@ let do_draw_up_pic ttl top_title vl hl gup =
 let do_draw_h_pic ttl vl hl gdown gup =
   (* init pic *)
 (
-  let g_x = win_x() in
   let g_y = win_y() in
   let mypic = Gd.create ~x:(win_x()) ~y:g_y in
 
@@ -626,10 +611,8 @@ let do_draw_down_h_pic ttl top_title vl hl gdown =
   (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
-  let red = mypic#colors#red in
   let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
   if !!html_mods_vd_gfx_transparent then
@@ -665,9 +648,7 @@ let do_draw_up_h_pic ttl top_title vl hl gup =
   let white = mypic#colors#white in
   let black = mypic#colors#black in
   let red = mypic#colors#red in
-  let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
   let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
   let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
 
   if !!html_mods_vd_gfx_transparent then
@@ -707,13 +688,7 @@ let do_draw_tag title gdown gup =
   Gd.create ~x:g_x ~y:g_y in
 
   (* set colors *)
-  let white = mypic#colors#white in
   let black = mypic#colors#black in
-  let red = mypic#colors#red in
-  let green = mypic#colors#resolve ~red:0 ~blue:0 ~green:255 in
-  let darkgrey = mypic#colors#resolve ~red:128 ~blue:128 ~green:128 in
-  let darkgreen = mypic#colors#resolve ~red:0 ~blue:0 ~green:128 in
-  let darkred = mypic#colors#resolve ~red:128 ~blue:0 ~green:0 in
   (* draw graph *)
   draw_tag mypic title gdown gup black ;
   (if !!html_mods_vd_gfx_tag_png then

@@ -933,7 +933,6 @@ let udp_send_ack ip port counter =
           (char_of_int (counter land 0xff))
           (char_of_int ((counter lsr 8) land 0xff))
         in
-        let len = String.length s in
 (*        lprintf "ack sent\n"; *)
         UdpSocket.write sock false s ip port
       with e ->
@@ -1045,7 +1044,6 @@ let parse_udp_packet ip port buf =
   let nSequence = LittleEndian.get_int16 buf 4 in
   let nCount = get_uint8 buf 7 in
   let nFlags = get_uint8 buf 3 in
-  let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
   - multi-parts message
@@ -1140,7 +1138,7 @@ let parse_udp_packet ip port buf =
             len_len name_len pkt_len
           ;
         );
-      let msg_len = 
+      let _ = 
         if len < pos + msg_len then 
           (lprintf "RECOVER: %d < %d + %d (1 + %d + %d + %d)\n" len pos msg_len
               len_len name_len pkt_len
@@ -1426,7 +1424,6 @@ let create_qrt_table words table_size =
       let pos = Int64.to_int pos in
       if !verbose then
         lprintf "ADDING WORD %d\n" pos; 
-      let index = pos / 8 in
       let bit = (1 lsl (pos land 7)) in
       array.(pos) <- array.(pos) lor bit;
   ) words;
@@ -1443,8 +1440,6 @@ let send_qrt_sequence s update_table =
   
   if update_table then cached_qrt_table := "";
   let table_size = 20 in
-  let infinity = 7 in
-  let table_length = 1 lsl table_size in
   server_send_qrt_reset s;
   
   if !cached_qrt_table = "" then 
@@ -1475,10 +1470,8 @@ let print_string s buf =
   if String.sub buf 0 3 <> "GND" then
     lprintf "Not a GNUTELLA2 packet (no GND)\n"
   else
-  let nSequence = LittleEndian.get_int16 buf 4 in
   let nCount = get_uint8 buf 7 in
   let nFlags = get_uint8 buf 3 in
-  let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
   - multi-parts message
@@ -1525,7 +1518,7 @@ let print_string s buf =
             len_len name_len pkt_len
           ;
         );
-      let msg_len = 
+      let _ = 
         if len < pos + msg_len then 
           (lprintf "RECOVER: %d < %d + %d (1 + %d + %d + %d)\n" len pos msg_len
             len_len name_len pkt_len

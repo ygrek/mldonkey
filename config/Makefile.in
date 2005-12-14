@@ -19,7 +19,7 @@ include config/Makefile.config
 
 ##################################################################
 
-DEVFLAGS= #-warn-error Am 
+DEVFLAGS= -warn-error Am 
 # -dtypes
 
 NO_LIBS_byte=

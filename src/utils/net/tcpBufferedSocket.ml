@@ -179,7 +179,6 @@ let can_open_connection manager =
 
 let schedule_connections () =
   let max_wanted = !max_opened_connections () in
-  let current_connections = !opened_connections in
   let max_connections_per_second = !max_connections_per_second () in
 
   let rec iter todo_managers done_managers =
@@ -622,8 +621,7 @@ let can_read_handler t sock max_len =
             t.event_handler t BUFFER_OVERFLOW;
             lprintf "[OVERFLOW] in %s" (info sock);
             close t Closed_for_overflow;
-            raise exn_exit;
-            0
+            raise exn_exit
           )
         else
         if b.len + min_read_size < buf_len then
@@ -1340,8 +1338,7 @@ let connect token name host port handler =
 (*Printf.bprintf buf "User-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT; Hotbar 2.0)\n";*)
         Printf.bprintf buf "User-Agent: MLdonkey/%s\n" Autoconf.current_version;
         Printf.bprintf buf "\n";
-        let nw = MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf) in
-        ()
+        ignore (MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf))
       end;
     let t = create token name s handler in
 

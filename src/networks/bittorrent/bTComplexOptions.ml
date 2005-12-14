@@ -229,7 +229,6 @@ let value_to_file file_size file_state assocs =
 
 let file_to_value file =
   try
-    let sources = Hashtbl2.to_list file.file_clients in
     let assocs =
       [
         "file_temp", string_to_value (Unix32.filename (file_fd file));

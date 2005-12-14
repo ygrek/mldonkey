@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/14
+4694: Fix lots of compile warnings in Ocaml 3.09
 4705: Update config.guess and config.sub to version 2005-11-11
       Mozilla MLdonkey Protocol Handler updated to version 1.7
 

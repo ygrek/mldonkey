@@ -261,7 +261,6 @@ let disconnect_client c reason =
         try
 (*          List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges; *)
           set_client_disconnected c reason;
-          let file = c.client_file in
           (try if c.client_good then count_seen c with _ -> ());
           (* this is not useful already done in the match
           (try close sock reason with _ -> ());   *)
@@ -572,7 +571,6 @@ and update_client_bitmap c =
   if c.client_new_chunks <> [] then begin
     let chunks = c.client_new_chunks in
     c.client_new_chunks <- [];
-    let file = c.client_file in
     List.iter (fun n -> Bitv.set bitmap n true) chunks;
     Int64Swarmer.update_uploader up (AvailableBitv bitmap);
   end
@@ -1407,7 +1405,7 @@ let get_sources_from_tracker file =
                                     (Ip.to_string !peer_ip) !port br.blocking_description;
                                 false)
                         then
-                          let c = new_client file !peer_id (!peer_ip,!port)
+                          let _ = new_client file !peer_id (!peer_ip,!port)
                           in
                           if !verbose_sources > 1 then lprintf_nl () "Received %s:%d" (Ip.to_string !peer_ip)
                           !port;

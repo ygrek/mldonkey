@@ -70,8 +70,6 @@ let udp_handler f sock event =
     UdpSocket.READ_DONE ->
       UdpSocket.read_packets sock (fun p ->
           try
-            let pbuf = p.UdpSocket.udp_content in
-            let len = String.length pbuf in
             f p
           with e ->
               lprintf "Error %s in udp_handler\n"

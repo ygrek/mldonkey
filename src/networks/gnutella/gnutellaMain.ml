@@ -72,8 +72,6 @@ let udp_handler sock event =
       UdpSocket.read_packets sock (fun p -> 
           try
 (*            lprintf "Gnutella: udp one packet...\n"; *)
-            let pbuf = p.UdpSocket.udp_content in
-            let len = String.length pbuf in
             let (ip,port) = match p.UdpSocket.udp_addr with
               | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
               | _ -> raise Not_found
@@ -81,7 +79,6 @@ let udp_handler sock event =
 (*            lprintf "Gnutella: calling udp_client_handler %s:%d\n"
               (Ip.to_string ip) port; *)
             let buf = p.UdpSocket.udp_content in
-            let len = String.length buf in
             GnutellaHandler.udp_client_handler ip port buf 
           with e ->
               lprintf "Error %s in udp_handler\n"

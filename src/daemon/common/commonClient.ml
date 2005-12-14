@@ -407,7 +407,6 @@ module G = GuiTypes
 
 let client_print_html c o =
   let impl = as_client_impl c in
-  let i = client_info c in
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in

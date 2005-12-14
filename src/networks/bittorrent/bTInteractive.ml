@@ -690,7 +690,6 @@ let op_network_parse_url url =
 let op_client_info c =
   let module P = GuiTypes in
   let (ip,port) = c.client_host in
-  let id = c.client_uid in
   {
     P.client_network = network.network_num;
     P.client_kind = Known_location (ip,port);
@@ -731,7 +730,6 @@ let op_client_dprint c o file =
   let info = file_info file in
   let buf = o.conn_buf in
   let cc = as_client c in
-  let cinfo = client_info cc in
   client_print cc o;
   Printf.bprintf buf (_b "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n") ""
     (Int64.to_string c.client_downloaded)

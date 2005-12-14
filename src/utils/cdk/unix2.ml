@@ -65,7 +65,7 @@ let rec safe_mkdir dir =
   else 
   if is_link dir then
     begin try
-      let dir = opendir dir in () 
+      ignore (opendir dir)
       with
         Unix.Unix_error (EACCES, _, _) -> lprintf_nl "access denied for directory %s" dir; exit 73
       | Unix.Unix_error (ENOENT, _, _) -> lprintf_nl "directory %s not found, orphaned link?" dir; exit 73
@@ -115,7 +115,7 @@ let copy oldname newname =
 let rename oldname newname =
   if oldname <> newname then
   try Unix.rename oldname newname with
-    Unix_error(EXDEV,_,_) as e ->
+    Unix_error(EXDEV,_,_) ->
 (* renaming is not enough, we must COPY *)
       lprintf_nl "COPY %s TO %s" oldname newname; 
       let copied = ref false in

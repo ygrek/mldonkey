@@ -1537,7 +1537,6 @@ Instead use the kill command in Telnet or HTML,
 the kill function of a GUI or CTRL+C.\n\n"
 
 let _ =
-  let in_hook = ref false in
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in
       let prefix = "mldonkey_" in

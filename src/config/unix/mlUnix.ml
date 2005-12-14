@@ -36,7 +36,6 @@ let execvp_command cmd args handler =
                   Unix.close in_read;
                   Unix.close out_write;
                   Unix.execvp cmd args;
-                  exit 127
                 with e -> 
                     Printf.eprintf "Exception %s in exec_command\n"
                       (Printexc2.to_string e) ; 
@@ -85,7 +84,6 @@ let fork_and_exec cmd ?vars args =
 			Unix.execv cmd args;
 		    | Some env ->
 			Unix.execve cmd args env;
-                  exit 0
                 with e -> 
                     lprintf "Exception %s while starting file_completed_cmd\n" (Printexc2.to_string e); 
                     exit 127

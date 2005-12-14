@@ -80,8 +80,6 @@ end_pos !counter_pos b.len to_read;
         | Some up ->
 
             let swarmer = Int64Swarmer.uploader_swarmer up in
-            let old_downloaded =
-              Int64Swarmer.downloaded swarmer in
 
             Int64Swarmer.received up
               !counter_pos b.buf b.pos to_read_int;
@@ -129,7 +127,6 @@ let download_on_port c d (x,y) ip port =
         ()
     )
   in
-  let nread = ref false in
   TcpBufferedSocket.set_reader sock (range_reader c d (ref x) y);
   set_rtimeout sock 15.;
   TcpBufferedSocket.set_closer sock (fun _ _ ->
@@ -310,7 +307,6 @@ let ftp_check_size url start_download_file =
             ()
         )
       in
-      let nread = ref false in
       TcpBufferedSocket.write_string sock request;
       TcpBufferedSocket.set_reader sock (fun sock nread ->
           let b = TcpBufferedSocket.buf sock in

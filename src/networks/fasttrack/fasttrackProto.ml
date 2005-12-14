@@ -914,7 +914,7 @@ dec: [(63)]
             let tag =
               try
                 List2.assoc_inv tag name_of_tag
-              with Not_found as e ->
+              with Not_found ->
                   lprintf "WARNING Unknown tag %d\n" tag;
                   Field_UNKNOWN (string_of_int tag)
             in
@@ -990,7 +990,6 @@ dec: [(63)]
             let my_port = get_int16 m 4 in
 
             let bandwidth = get_int8 m 6 in
-            let next_byte = get_int8 m 7 in
 
             let client_name = String.sub m 8 (String.length m - 8) in
 
@@ -1174,7 +1173,6 @@ dec: [(63)]
             AskUDPConnectionReq (LittleEndian.get_ip m 0, get_int16 m 4)
 
         | 0x1d ->
-            let netname = m in
             NetworkNameReq m
 
         | 0x1e -> Unknown_1e (get_int m 0)
@@ -1918,7 +1916,6 @@ let translate_query q =
   let add_words w =
     keywords := (String2.split_simplify w ' ') @ !keywords
   in
-  let audio = ref false in
   let tags = ref [] in
   let rec iter q =
     match q with

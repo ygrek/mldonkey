@@ -49,7 +49,7 @@ let to_fixed_string ((a4, a3, a2, a1) as t)=
   with _ ->
       Printf.sprintf "%03d.%03d.%03d.%03d" a4 a3 a2 a1
 
-let to_int64  ((a4, a3, a2, a1) as t) =
+let to_int64 (a4, a3, a2, a1) =
   let small = a1 lor (a2 lsl 8) lor (a3 lsl 16) in
   (Int64.of_int small) ++ (Int64.shift_left (Int64.of_int a4) 24)
 
@@ -101,14 +101,14 @@ let usable ip =
 let rec matches ((a4,a3,a2,a1) as a) ips =
   match ips with
     [] -> false
-  | ((b4,b3,b2,b1) as b) :: tail ->
+  | (b4,b3,b2,b1) :: tail ->
       ( (a4 = b4 || b4 = 255) &&
         (a3 = b3 || b3 = 255) &&
         (a2 = b2 || b2 = 255) &&
         (a1 = b1 || b1 = 255))
       || (matches a tail)
 
-let compare ((a4,a3,a2,a1) as a) ((b4,b3,b2,b1) as b) =
+let compare (a4,a3,a2,a1) (b4,b3,b2,b1) =
   let c4 = compare a4 b4 in
   if c4 <> 0 then c4 else
   let c3 = compare a3 b3 in

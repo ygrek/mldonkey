@@ -216,10 +216,10 @@ let write t ping s ip port =
             try
               let len = String.length s in
 
-              let code = 
+              let _ =
                 try
                   if ping then declare_ping ip;
-                  Unix.sendto (fd sock) s 0 len [] addr 
+                  ignore(Unix.sendto (fd sock) s 0 len [] addr)
                 with e ->
                     lprintf "Exception in sendto %s:%d\n" (Ip.to_string ip) port;
                     raise e
@@ -291,7 +291,7 @@ let iter_write_no_bc t sock =
   try
     iter_write_no_bc t sock 
   with
-    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
+    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
       must_write t.sock true
 
 let rec iter_write t sock bc = 
@@ -329,7 +329,7 @@ let iter_write t sock bc =
   try
     iter_write t sock bc    
   with
-    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
+    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
       must_write sock true
       
 let udp_handler t sock event = 

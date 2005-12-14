@@ -51,7 +51,6 @@ module Proto = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos+16) in
       let port = get_int16 s (pos+20) in
-      let kind = get_uint8 s (pos+22) in
       {
         peer_md4 = md4;
         peer_ip = ip;
@@ -184,7 +183,6 @@ module Proto = struct
       let peer_ip = ref ip in
       let peer_udpport = ref port in
       let peer_tcpport = ref 0 in
-      let peer_kind = ref 0 in
       List.iter (fun tag ->
           match tag.tag_name with
             Field_UNKNOWN "loc" ->
@@ -238,7 +236,6 @@ module Proto = struct
             let md4 = get_md4 s 0 in
             let ip = get_ip s 16 in
             let port = get_int16 s 20 in
-            let kind = get_uint8 s 22 in
             OvernetConnect {
               peer_md4 = md4;
               peer_ip = ip;
@@ -256,7 +253,6 @@ module Proto = struct
             let md4 = get_md4 s 0 in
             let ip = get_ip s 16 in
             let port = get_int16 s 20 in
-            let kind = get_uint8 s 22 in
             OvernetPublicize {
               peer_md4 = md4;
               peer_ip = ip;
@@ -431,7 +427,6 @@ module Proto = struct
             lprintf_nl () "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
-        let len = String.length s in
         UdpSocket.write sock ping s ip port
       with e ->
           lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)

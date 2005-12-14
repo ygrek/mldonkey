@@ -148,7 +148,6 @@ le mot apparait.
         | _ -> (doc, field) :: w.word_docs)
     
     let add idx s doc field =
-      let next_suffix = !nsuffixes in
       let suffix, filtered = add_suffix idx s in
 (*  if filtered then begin
       lprintf "SUFFIX %s IS FILTERED..." s; 

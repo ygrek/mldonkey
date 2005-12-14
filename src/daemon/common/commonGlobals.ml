@@ -475,7 +475,7 @@ let log_chat_message i num n s =
       (Printexc2.to_string e) !messages_log;
 
   while (Fifo.length chat_message_fifo) > !!html_mods_max_messages do
-    let foo = Fifo.take chat_message_fifo in ()
+    ignore(Fifo.take chat_message_fifo)
   done
 let last_message_log = ref 0
 

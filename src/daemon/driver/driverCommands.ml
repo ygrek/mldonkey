@@ -347,7 +347,6 @@ let _ =
         ), ":\t\t\t\t\t$bsave and kill the server$n";
 
     "add_url", Arg_two (fun kind url o ->
-        let buf = o.conn_buf in
         let v = (kind, 1, url) in
         if not (List.mem v !!web_infos) then
           web_infos =:=  v :: !!web_infos;
@@ -512,7 +511,7 @@ let _ =
 (* rely on GC? *)
 
         while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
-          let foo = Fifo.take chat_message_fifo in ()
+          ignore (Fifo.take chat_message_fifo)
         done;
 
         if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
@@ -862,7 +861,6 @@ let _ =
     ), "<server numbers> :\t\t\tremove server (use arg 'all' for all servers)";
 
     "server_banner", Arg_one (fun num o ->
-        let buf = o.conn_buf in
         let num = int_of_string num in
         let s = server_find num in
         (match server_state s with
@@ -1074,7 +1072,6 @@ let _ =
     [
 
     "nu", Arg_one (fun num o ->
-        let buf = o.conn_buf in
         let num = int_of_string num in
 
         if num > 0 then (* we want to disable upload for a short time *)
@@ -1217,14 +1214,12 @@ let _ =
     ) , " :\t\t\t\tprint all networks";
 
     "enable", Arg_one (fun num o ->
-        let buf = o.conn_buf in
         let n = network_find_by_num (int_of_string num) in
         network_enable n;
         _s "network enabled"
     ) , " <num> :\t\t\t\tenable a particular network";
 
     "disable", Arg_one (fun num o ->
-        let buf = o.conn_buf in
         let n = network_find_by_num (int_of_string num) in
         network_disable n;
         _s "network disabled"
@@ -1243,7 +1238,6 @@ let _ =
     [
 
     "forget", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
         let user = o.conn_user in
         begin
           match args with
@@ -1401,7 +1395,6 @@ let _ =
     ), "<num> :\t\t\t\t$bfile to download$n";
 
     "force_download", Arg_none (fun o ->
-        let buf = o.conn_buf in
 	if !forceable_download = [] then
 	  begin
             let output = (if o.conn_output = HTML then begin
@@ -1457,7 +1450,6 @@ let _ =
     "set", Arg_two (fun name value o ->
         try
           try
-            let buf = o.conn_buf in
             CommonInteractive.set_fully_qualified_options name value;
             Printf.sprintf "option %s value changed" name
 
@@ -1487,7 +1479,6 @@ let _ =
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
     "save", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
         match args with
 	  ["options"] -> DriverInteractive.save_config (); _s "options saved"
 	| ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
@@ -2819,7 +2810,6 @@ let _ =
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
 
     "dllinks", Arg_one (fun arg o ->
-        let buf = o.conn_buf in
 
         let file = File.to_string arg in
         let lines = String2.split_simplify file '\n' in
@@ -2874,7 +2864,6 @@ let _ =
     ), ":\t\t\t\t\tdump current log state to console";
 
     "ansi", Arg_one (fun arg o ->
-        let buf = o.conn_buf in
         let b = bool_of_string arg in
         if b then begin
             o.conn_output <- ANSI;
@@ -2892,7 +2881,6 @@ let _ =
     "<width> <height> :\t\t\tset terminal width and height (devel)";
 
     "stdout", Arg_one (fun arg o ->
-        let buf = o.conn_buf in
         let b = bool_of_string arg in
         set_logging b;
 	if b then
@@ -2984,8 +2972,6 @@ let _ =
      ), ":\t\t\t\tclear log_file";
 
     "html_mods", Arg_none (fun o ->
-        let buf = o.conn_buf in
-
         if !!html_mods then
           begin
             html_mods =:= false;

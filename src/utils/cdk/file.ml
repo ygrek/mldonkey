@@ -22,7 +22,6 @@ let to_string name =
   let chan = open_in_bin name in
   let buf_size = 1024 in
   let buf = String.create buf_size in
-  let cont = ref true in
   let rec iter buf nb_read =
     let buf_size = String.length buf in
     let to_read = min (buf_size - nb_read) 8192 in

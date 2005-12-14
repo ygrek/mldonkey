@@ -149,7 +149,7 @@ let piter s1 deflate h msgs =
     if len > 0 then
       if deflate then
         let z = Zlib.inflate_init true in
-        let s =  
+        let _ =  
           let s2 = String.make 100000 '\000' in
           let f = Zlib.Z_SYNC_FLUSH in
           let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2 0 100000 f in

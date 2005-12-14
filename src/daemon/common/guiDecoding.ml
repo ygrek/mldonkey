@@ -392,7 +392,6 @@ let get_tag s pos =
 
 let get_result proto s pos =
   let num  = get_int s pos in
-  let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let uids, pos = 
     if proto < 27 then

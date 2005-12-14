@@ -86,10 +86,7 @@ let from_gui gui (s : string) =
         }
     | "addsource", _ ->
         let save = find_key "save" args in
-        let url = find_key "url" args in
-        let size = find_key "size" args in
         let hash = find_key "hash" args in
-        let user = find_key "user" args in
         Download_query ([save], int_of_string hash, false)
         
     | "transfer", Some num ->

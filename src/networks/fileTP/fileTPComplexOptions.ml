@@ -38,9 +38,6 @@ module ClientOption = struct
       | Module assocs ->
 
           let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv =
-            try conv (List.assoc name assocs) with _ -> []
-          in
           let client_hostname = get_value "client_hostname" value_to_string in
           let client_port = get_value "client_port" value_to_int in
           let client_proto = try
@@ -86,9 +83,6 @@ let value_to_int32pair v =
 
 let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv =
-    try conv (List.assoc name assocs) with _ -> []
-  in
 
   let file_name = get_value "file_filename" value_to_string in
   let file_id =

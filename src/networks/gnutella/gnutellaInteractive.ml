@@ -378,7 +378,7 @@ let _ =
       | "gnut://" :: "server" :: ip :: port :: _ ->  
           let ip = Ip.addr_of_string ip in
           let port = int_of_string port in
-          let s = new_server ip port in
+          let _ = new_server ip port in
           true
       | "gnut://" :: "friend" :: uid :: ip :: port :: _ ->  
           let ip = Ip.of_string ip in

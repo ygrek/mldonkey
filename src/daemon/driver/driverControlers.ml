@@ -447,8 +447,6 @@ let iac_will_naws = "\255\253\031"
 
 let user_reader o telnet sock nread =
   let b = TcpBufferedSocket.buf sock in
-  let end_pos = b.pos + b.len in
-  let new_pos = end_pos - nread in
   let rec iter () =
     if b.len > 0 then
       let c = b.buf.[b.pos] in
@@ -839,7 +837,7 @@ let read_theme_page page =
         let file = open_in theme_page in
         let size = (Unix.stat theme_page).Unix.st_size in
         let s = String.make size ' ' in
-        let ok = really_input file s 0 size in
+        let _ = really_input file s 0 size in
         close_in file; s
 
 let add_simple_commands buf =
@@ -1530,6 +1528,6 @@ let create_http_handler () =
       default = http_handler http_options;
     } in
   option_hook allowed_ips (fun _ -> config.addrs <- !!allowed_ips);
-  let sock = find_port "http server" !!http_bind_addr http_port
+  let _ = find_port "http server" !!http_bind_addr http_port
       (Http_server.handler config) in
   config.port <- !!http_port

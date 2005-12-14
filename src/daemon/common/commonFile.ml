@@ -446,7 +446,6 @@ let file_preview (file : file) =
 module G = GuiTypes
 
 let file_downloaders file o cnt =
-  let buf = o.conn_buf in
 
       let srcs = file_active_sources file in
       let counter = ref cnt in
@@ -632,7 +631,6 @@ let file_print file o =
             file_print_sources_html file buf
           else begin
             Printf.bprintf buf "%d sources:\n" (List.length srcs);
-          let counter = ref 0 in
           let print_source c =
                   Printf.bprintf buf "  [%4d] " (client_num c);
                   client_bprint c buf;

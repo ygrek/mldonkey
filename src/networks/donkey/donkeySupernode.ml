@@ -105,7 +105,6 @@ let supernode_browse_handler node msg sock =
       begin
         try
     node.node_files <- t;
-          let list = ref [] in
           List.iter (fun f ->
               match result_of_file f.f_md4 f.f_tags with
                 None -> ()
@@ -130,7 +129,7 @@ let supernode_browse_handler node msg sock =
       ()
 
 let supernode_browse_client node =
-  let token =
+  let _ =
     add_pending_connection connection_manager (fun token ->
         try
           let sock = TcpBufferedSocket.connect token "supernode browse client"

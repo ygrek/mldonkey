@@ -154,33 +154,7 @@ let load file =
               
               ignore (input_string4 ic);
 
-              
-              let dwMicroSecPerFrame = input_int32 ic in
-              let dwMaxBytesPerSec = input_int32 ic in
-              let dwPaddingGranularity = input_int32 ic in
-              let dwFlags = input_int32 ic in
-              let dwTotalFrames = input_int32 ic in
-              let dwInitialFrames = input_int32 ic in
-              let dwStreams = input_int32 ic in
-              let dwSuggestedBufferSize = input_int32 ic in              
-              let dwWidth = input_int32 ic in
-              let dwHeight = input_int32 ic in
-              
-              (*
-              print_int32 "dwMicroSecPerFrame" dwMicroSecPerFrame ;
-              print_int32 "dwMaxBytesPerSec" dwMaxBytesPerSec ;
-              print_int32 "dwPaddingGranularity" dwPaddingGranularity ;
-              print_int32 "dwFlags" dwFlags ;
-              print_int32 "dwTotalFrames" dwTotalFrames ;
-              print_int32 "dwInitialFrames" dwInitialFrames ;
-              print_int32 "dwStreams" dwStreams ;
-              print_int32 "dwSuggestedBufferSize" dwSuggestedBufferSize ;
-              print_int32 "dwWidth" dwWidth;
-              print_int32 "dwHeight" dwHeight;
-*)
               seek_in ic ((Int64.to_int pos) + main_header_len + 20);
-              let s = input_string4 ic in
-(*              print_string4 "LIST:" s; *)
 
               let pos_in = pos ++ (Int64.of_int (main_header_len + 24)) in
               let last_pos = pos_in ++ size2 in

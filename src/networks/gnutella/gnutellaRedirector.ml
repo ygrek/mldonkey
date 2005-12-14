@@ -82,8 +82,7 @@ let parse_hostfile file =
         let ip, port = String2.cut_at line ':' in
         if !verbose then
           lprintf "gnutella1: adding ultrapeer from hostfile\n";
-        let h = H.new_host (Ip.addr_of_string ip) (int_of_string port) Ultrapeer  in
-        ()
+        ignore (H.new_host (Ip.addr_of_string ip) (int_of_string port) Ultrapeer)
       with _ -> ()
   ) lines
 
