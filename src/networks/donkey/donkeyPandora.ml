@@ -200,6 +200,7 @@ let client_parse c opcode s =
       
       
       let b = Buffer.create 100 in
+      let _ = DonkeyProtoClient.write emule b t in
       let ss = Buffer.contents b in
       if ss <> s then begin
           if opcode = 212 then begin

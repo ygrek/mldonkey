@@ -51,6 +51,7 @@ module Proto = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos+16) in
       let port = get_int16 s (pos+20) in
+(*      let kind = get_uint8 s (pos+22) in *)
       {
         peer_md4 = md4;
         peer_ip = ip;
@@ -236,6 +237,7 @@ module Proto = struct
             let md4 = get_md4 s 0 in
             let ip = get_ip s 16 in
             let port = get_int16 s 20 in
+(*	    let kind = get_uint8 s 22 in *)
             OvernetConnect {
               peer_md4 = md4;
               peer_ip = ip;
@@ -253,6 +255,7 @@ module Proto = struct
             let md4 = get_md4 s 0 in
             let ip = get_ip s 16 in
             let port = get_int16 s 20 in
+(*	    let kind = get_uint8 s 22 in *)
             OvernetPublicize {
               peer_md4 = md4;
               peer_ip = ip;

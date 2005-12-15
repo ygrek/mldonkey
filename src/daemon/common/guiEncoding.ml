@@ -960,6 +960,7 @@ let rec to_gui (proto : int array) buf t =
         buf_opcode buf 57; buf_search buf_string proto buf s
     
     | Version s ->
+(*        let proto = proto.(58) in *)
         buf_opcode buf 58; buf_string buf s
     
     | GiftServerAttach _ -> assert false

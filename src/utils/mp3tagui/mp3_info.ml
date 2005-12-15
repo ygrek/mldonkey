@@ -112,6 +112,7 @@ let for_channel ic =
   let sample_rate =
     mpg123_freqs.(sampling_frequency) in
   let bitrate_index = (header lsr 12) land 0xF in
+(*  let padding = (header lsr 9) land 1 in *)
   let mode =
     match (header lsr 6) land 3 with
       0 -> Stereo | 1 -> Joint_stereo | 2 -> Dual_channel_stereo | _ -> Mono in

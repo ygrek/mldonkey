@@ -226,6 +226,7 @@ module P = struct
       let ip = get_ip s (pos+16) in
       let udp_port = get_int16 s (pos + 20) in
       let tcp_port = get_int16 s (pos + 22) in
+(*       let kind = get_uint8 s (pos + 24) in *)
       {
         peer_md4 = md4;
         peer_ip = ip;
@@ -282,6 +283,7 @@ module P = struct
           OvernetConnect p
 
       | 0x08 ->
+(*	  let n = get_int16 s 0 in *)
           let peers, pos = get_list16 get_peer s 0 in
           OvernetConnectReply peers
 

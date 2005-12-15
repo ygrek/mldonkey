@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/15
+4710: Re-add some protocol information as comments removed by patch 4694
 4709: Fix zip file extract broken due to patch 4694 (Ocaml 3.09)
 4707: Fix recover_temp broken by patch 4674 (force_download)
 

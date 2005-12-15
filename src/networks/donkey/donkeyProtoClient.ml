@@ -655,6 +655,7 @@ module Sources = struct
       let len = get_int16 s 1 in
       let md4 = get_md4 s 3 in
       let list = ref [] in
+(*      let pos = 19 in *)
       for i = 0 to len - 1 do
         list := (get_ip s (19 + 10 * i), get_port s (23 + 10 * i),
           get_ip  s (25 + 10 * i)) :: !list;
@@ -1142,6 +1143,7 @@ let rec parse_emule_packet emule opcode len s =
 
 (*        lprintf "MULTI EMULE VERSION %d"
           (extendedrequest emule); print_newline (); *)
+(*        let pos = 17 in *)
         let rec iter pos =
           if pos < len then
             let opcode = get_uint8 s pos in

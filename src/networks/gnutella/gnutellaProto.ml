@@ -375,6 +375,7 @@ module QueryReply = struct (* QUERY_REPLY *)
       let files, pos  = iter_files nfiles s 11 [] in
       
       let vendor = String.sub s pos 4 in
+(*      let vendor_len = get_uint8 s (pos+4) in *)
       let byte5 = get_uint8 s (pos+5) in
       let byte6 = get_uint8 s (pos+6) in
       

@@ -1044,6 +1044,7 @@ let parse_udp_packet ip port buf =
   let nSequence = LittleEndian.get_int16 buf 4 in
   let nCount = get_uint8 buf 7 in
   let nFlags = get_uint8 buf 3 in
+(*  let ack_me = nFlags land 2 <> 0 in *)
 (* Contribute:
   - deflating
   - multi-parts message
@@ -1440,6 +1441,8 @@ let send_qrt_sequence s update_table =
   
   if update_table then cached_qrt_table := "";
   let table_size = 20 in
+(*  let infinity = 7 in
+  let table_length = 1 lsl table_size in *)
   server_send_qrt_reset s;
   
   if !cached_qrt_table = "" then 
@@ -1470,8 +1473,10 @@ let print_string s buf =
   if String.sub buf 0 3 <> "GND" then
     lprintf "Not a GNUTELLA2 packet (no GND)\n"
   else
+(*  let nSequence = LittleEndian.get_int16 buf 4 in *)
   let nCount = get_uint8 buf 7 in
   let nFlags = get_uint8 buf 3 in
+(*  let ack_me = nFlags land 2 <> 0 in *)
 (* Contribute:
   - deflating
   - multi-parts message

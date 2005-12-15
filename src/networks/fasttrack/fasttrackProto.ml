@@ -990,7 +990,7 @@ dec: [(63)]
             let my_port = get_int16 m 4 in
 
             let bandwidth = get_int8 m 6 in
-
+(*	    let next_byte = get_int8 m 7 in *)
             let client_name = String.sub m 8 (String.length m - 8) in
 
             NodeInfoReq (my_ip, my_port, bandwidth, client_name)
