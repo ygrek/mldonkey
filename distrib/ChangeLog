@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/15
+4707: Fix recover_temp broken by patch 4674 (force_download)
+
 2005/12/14
 4706: EDK: Remove donkeyChunks, use commonSwarming for op_file_check
 4702: Correct timezone in e-mail, nicer uptime, timezone and uptime in runinfo

@@ -1470,7 +1470,7 @@ let try_recover_temp_file filename md4 =
             []
         in
         let _ =
-          query_download names size md4 None (Some file_diskname) None true
+          really_query_download names size md4 None (Some file_diskname) None
         in
         recover_md4s md4
 
