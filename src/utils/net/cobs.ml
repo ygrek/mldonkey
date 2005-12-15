@@ -330,7 +330,7 @@ let parse s =
             GGEP_DU_uptime du
         | GGEP.GGEP (id,data) -> GGEP_block (id,data)
       with e -> 
-          lprintf "Exception %s in GGEP parse\n" (Printexc2.to_string e);
+(*          lprintf "Exception %s in GGEP parse\n" (Printexc2.to_string e); *)
           GGEP_unknown "Bad GGEP Block"
   ) (GGEP.parse s)
   
