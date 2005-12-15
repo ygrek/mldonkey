@@ -1,3 +1,5 @@
+(* $Id $ *)
+
 #!/bin/sh
 
 mkdir -p build
