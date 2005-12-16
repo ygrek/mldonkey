@@ -26,6 +26,7 @@ open CommonSearch
 open CommonTypes
 open CommonGlobals
 open CommonGraphics
+open CommonShared
 open GuiTypes
 open CommonComplexOptions
 open CommonFile
@@ -42,7 +43,7 @@ let lprintf_nl () =
 
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
-  lprintf "%s[EDK] "
+  lprintf "%s[dCon] "
     (log_time ()); lprintf
 
 let rec dollar_escape o with_frames s =
@@ -960,6 +961,55 @@ let clear_page buf =
   Buffer.reset buf;
   http_file_type := UNK
 
+let send_preview r file fd size filename exten =
+  let (begin_pos, end_pos) =
+    try
+      let (begin_pos, end_pos) = request_range r in
+      let end_pos = match end_pos with
+          None -> size
+        | Some end_pos -> end_pos in
+      let range_size = end_pos -- begin_pos in
+      add_reply_header r "Content-Length"
+        (Int64.to_string range_size);
+      add_reply_header r "Content-Range"
+        (Printf.sprintf "bytes %Ld-%Ld/%Ld"
+          begin_pos (end_pos -- one)
+        size);
+      r.reply_head <- "206 Partial Content";
+      begin_pos, end_pos
+    with _ ->
+        add_reply_header r "Content-Length"
+          (Int64.to_string size);
+        zero, size
+  in
+  let len = String.length exten in
+  let exten = if len = 0 then exten
+      else String.lowercase (String.sub exten 1 (len - 1)) in
+  http_add_bin_stream_header r (extension_to_file_ext exten);
+
+  let s = String.create 200000 in
+  set_max_output_buffer r.sock (String.length s);
+  set_rtimeout r.sock 10000.;
+  let rec stream_file file pos sock =
+    let max = (max_refill sock) - 1 in
+    if max > 0 && !pos < end_pos then
+      let max64 = min (end_pos -- !pos) (Int64.of_int max) in
+      let max = Int64.to_int max64 in
+      Unix32.read fd !pos s 0 max;
+      pos := !pos ++ max64;
+      set_lifetime sock 60.;
+(*                      lprintf "HTTPSEND: refill %d %Ld\n" max !pos;*)
+(*                    lprintf "HTTPSEND: [%s]\n" (String.escaped
+                        (String.sub s 0 max)); *)
+      write sock s 0 max;
+      if output_buffered sock = 0 then begin
+(*                          lprintf "Recursing STREAM\n"; *)
+          stream_file file pos sock
+        end
+  in
+  r.reply_stream <- Some (stream_file file (ref begin_pos))
+
+
 let http_handler o t r =
   CommonInteractive.display_vd := false;
   CommonInteractive.display_bw_stats := false;
@@ -1389,56 +1439,36 @@ let http_handler o t r =
                   let file = file_find file_num in
                   let fd = file_fd file in
                   let size = file_size file in
-
-                  let (begin_pos, end_pos) =
-                    try
-                      let (begin_pos, end_pos) = request_range r in
-                      let end_pos = match end_pos with
-                          None -> size
-                        | Some end_pos -> end_pos in
-                      let range_size = end_pos -- begin_pos in
-                      add_reply_header r "Content-Length"
-                        (Int64.to_string range_size);
-                      add_reply_header r "Content-Range"
-                        (Printf.sprintf "bytes %Ld-%Ld/%Ld"
-                          begin_pos (end_pos -- one)
-                        size);
-                      r.reply_head <- "206 Partial Content";
-                      begin_pos, end_pos
-                    with _ ->
-                        add_reply_header r "Content-Length"
-                          (Int64.to_string size);
-                        zero, size
-                  in
-		    
 		  let filename = file_best_name file in
 		  let exten = Filename2.last_extension filename in
-		  let len = String.length exten in
-		  let exten = if len = 0 then exten
-		      else String.lowercase (String.sub exten 1 (len - 1)) in
-		  http_add_bin_stream_header r (extension_to_file_ext exten);
+		    send_preview r file fd size filename exten
 
-                  let s = String.create 200000 in
-                  set_max_output_buffer r.sock (String.length s);
-                  set_rtimeout r.sock 10000.;
-                  let rec stream_file file pos sock =
-                    let max = (max_refill sock) - 1 in
-                    if max > 0 && !pos < end_pos then
-                      let max64 = min (end_pos -- !pos) (Int64.of_int max) in
-                      let max = Int64.to_int max64 in
-                      Unix32.read fd !pos s 0 max;
-                      pos := !pos ++ max64;
-                      set_lifetime sock 60.;
-(*                      lprintf "HTTPSEND: refill %d %Ld\n" max !pos;*)
-(*                    lprintf "HTTPSEND: [%s]\n" (String.escaped
-                        (String.sub s 0 max)); *)
-                      write sock s 0 max;
-                      if output_buffered sock = 0 then begin
-(*                          lprintf "Recursing STREAM\n"; *)
-                          stream_file file pos sock
-                        end
-                  in
-                  r.reply_stream <- Some (stream_file file (ref begin_pos))
+              | args ->
+                  List.iter (fun (s,v) ->
+                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
+                  args;
+                  raise Not_found
+            end
+
+        | "preview_upload" ->
+            begin
+              clear_page buf;
+              match r.get_url.Url.args with
+                ["q", file_num] ->
+                  let file_num = int_of_string file_num in
+		  let file = shared_find file_num in
+		  let impl = as_shared_impl file in
+		  let info = shared_info file in
+		  let filename = impl.impl_shared_fullname in
+		  let exten = Filename2.last_extension impl.impl_shared_codedname in
+		  if not (Sys.file_exists filename) then
+		    begin
+		      lprintf_nl () "file %s not found" filename;
+		      raise Not_found
+		    end;
+		  let fd = Unix32.create_ro filename in
+		  let size = info.shared_size in
+		    send_preview r file fd size filename exten
 
               | args ->
                   List.iter (fun (s,v) ->

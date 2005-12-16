@@ -2203,6 +2203,7 @@ let _ =
             ( "1", "srh", "Total file requests", "Reqs" ) ;
             ( "1", "srh", "Total bytes sent", "Total" ) ;
             ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
+            ( "0", "srh", "Preview", "P" ) ;
             ( "0", "srh", "Filename", "Filename" );
             ( "0", "srh", "Statistic links", "Stats" ) ]
         else
@@ -2239,6 +2240,8 @@ let _ =
                   ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
                   ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
                   ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
+                  ("", "sr", Printf.sprintf "\\<a href=\\\"preview_upload?q=%d\\\"\\>P\\</a\\>"
+			impl.impl_shared_num);
                   ("", "sr", (if impl.impl_shared_id = Md4.null then
                     (Filename.basename impl.impl_shared_codedname)
                   else
