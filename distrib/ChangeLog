@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/16
+4703: BT: Deactivate dead trackers,
+      re-enable them if no active trackers are found (pango)
 4708: HTML upstats: Enable preview for shared files
 4652: dllink: reject EDK files > 4GB, print access errors for .torrent files
 

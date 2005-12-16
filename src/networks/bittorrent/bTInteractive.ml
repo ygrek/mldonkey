@@ -142,7 +142,8 @@ let op_file_print_html file buf =
     ("", "sr",
       (let tracker_string = ref "" in
        List.iter (fun tracker ->
-        tracker_string := !tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
+         tracker_string := (if tracker.tracker_enabled then "" else "*") ^ 
+	   !tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
       ) file.file_trackers;
       Printf.sprintf "%s" !tracker_string)) ];
 
@@ -186,77 +187,82 @@ let op_file_print_html file buf =
         "" -> "-"
       | _ -> file.file_encoding) ];
 
-  match file.file_trackers with
-      [] -> ()
-    | t :: _ ->
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      html_mods_td buf [
-        ("Last Connect", "sr br", "Last Connect");
-        ("", "sr", string_of_date t.tracker_last_conn) ];
+  let rec print_first_tracker l =
+    match l with
+      | [] -> ()
+      | t :: q ->
+	  if not t.tracker_enabled then print_first_tracker q
+	  else begin
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+	    html_mods_td buf [
+              ("Last Connect", "sr br", "Last Connect");
+              ("", "sr", string_of_date t.tracker_last_conn) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      html_mods_td buf [
-        ("Connect Interval", "sr br", "Con Interval");
-        ("", "sr", Printf.sprintf "%d" t.tracker_interval) ];
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+	    html_mods_td buf [
+              ("Connect Interval", "sr br", "Con Interval");
+              ("", "sr", Printf.sprintf "%d" t.tracker_interval) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      html_mods_td buf [
-        ("Connect Min Interval", "sr br", "Con Min Interval");
-        ("", "sr", Printf.sprintf "%d" t.tracker_min_interval) ];
-      (* show only interesting answers*)
-      if t.tracker_torrent_downloaded > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-            ("Downloaded", "sr br", "Downloaded");
-            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_downloaded) ]
-        end;
-      if t.tracker_torrent_complete > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-            ("Complete (seeds)", "sr br", "Complete");
-            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_complete) ]
-        end;
-      if t.tracker_torrent_incomplete > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-            ("Incomplete (peers)", "sr br", "Incomplete");
-            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_incomplete) ]
-        end;
-      if t.tracker_torrent_total_clients_count > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-            ("Total client count", "sr br", "All clients");
-            ("", "sr", Printf.sprintf "%d" t.tracker_torrent_total_clients_count) ]
-        end;
-      if t.tracker_torrent_last_dl_req > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-            ("Latest torrent request", "sr br", "Latest request");
-            ("", "sr", Printf.sprintf "%ds" t.tracker_torrent_last_dl_req) ]
-        end;
-      if String.length t.tracker_id > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-           ("Tracker id", "sr br", "Tracker id");
-           ("", "sr", Printf.sprintf "%s" t.tracker_id) ]
-        end;
-      if String.length t.tracker_key > 0 then begin
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          html_mods_td buf [
-           ("Tracker key", "sr br", "Tracker key");
-           ("", "sr", Printf.sprintf "%s" t.tracker_key) ]
-        end;
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+	    html_mods_td buf [
+              ("Connect Min Interval", "sr br", "Con Min Interval");
+              ("", "sr", Printf.sprintf "%d" t.tracker_min_interval) ];
+	    (* show only interesting answers*)
+	    if t.tracker_torrent_downloaded > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Downloaded", "sr br", "Downloaded");
+		("", "sr", Printf.sprintf "%d" t.tracker_torrent_downloaded) ]
+            end;
+	    if t.tracker_torrent_complete > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Complete (seeds)", "sr br", "Complete");
+		("", "sr", Printf.sprintf "%d" t.tracker_torrent_complete) ]
+            end;
+	    if t.tracker_torrent_incomplete > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Incomplete (peers)", "sr br", "Incomplete");
+		("", "sr", Printf.sprintf "%d" t.tracker_torrent_incomplete) ]
+            end;
+	    if t.tracker_torrent_total_clients_count > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Total client count", "sr br", "All clients");
+		("", "sr", Printf.sprintf "%d" t.tracker_torrent_total_clients_count) ]
+            end;
+	    if t.tracker_torrent_last_dl_req > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Latest torrent request", "sr br", "Latest request");
+		("", "sr", Printf.sprintf "%ds" t.tracker_torrent_last_dl_req) ]
+            end;
+	    if String.length t.tracker_id > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Tracker id", "sr br", "Tracker id");
+		("", "sr", Printf.sprintf "%s" t.tracker_id) ]
+            end;
+	    if String.length t.tracker_key > 0 then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+		("Tracker key", "sr br", "Tracker key");
+		("", "sr", Printf.sprintf "%s" t.tracker_key) ]
+	    end 
+	  end in
+  print_first_tracker file.file_trackers;
 
-      let cntr = ref 0 in
-      List.iter (fun (filename, size) ->
-          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-          let fs = Printf.sprintf "File %d" !cntr in
-          html_mods_td buf [
-           (fs, "sr br", fs);
-           ("", "sr", (Printf.sprintf "%s (%Ld bytes)" filename size)) 
-          ];
-          incr cntr;
-      ) file.file_files
+  let cntr = ref 0 in
+  List.iter (fun (filename, size) ->
+    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+    let fs = Printf.sprintf "File %d" !cntr in
+    html_mods_td buf [
+      (fs, "sr br", fs);
+      ("", "sr", (Printf.sprintf "%s (%Ld bytes)" filename size)) 
+    ];
+    incr cntr;
+  ) file.file_files
 
 let op_file_print_sources_html file buf =
 

@@ -217,6 +217,7 @@ and tracker_info = {
     mutable tracker_torrent_last_dl_req : int;
     mutable tracker_id : string;
     mutable tracker_key : string;
+    mutable tracker_enabled : bool;
   }
 
 and file = {

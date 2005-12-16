@@ -162,9 +162,7 @@ let check_if_interesting file c =
       end
 
 let add_torrent_infos file trackers =
-  List.iter (fun tracker ->
-      file.file_trackers <- tracker :: file.file_trackers
-  ) trackers
+  file.file_trackers <- trackers @ file.file_trackers
 
 let create_temp_file file_temp file_files =
   if !CommonOptions.verbose_files then lprintf_nl () "create_temp_file %s" file_temp;
@@ -196,6 +194,7 @@ let set_trackers file file_trackers =
           tracker_torrent_last_dl_req = 0;
           tracker_id = "";
           tracker_key = "";
+	  tracker_enabled = true
         } ) file_trackers) @ file.file_trackers
 
 let new_file file_id t torrent_diskname file_temp file_state =
@@ -236,7 +235,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
           impl_file_best_name = t.torrent_name;
         }
       in
-      if List.length t.torrent_announce_list > 1 then
+      if t.torrent_announce_list <> [] then
         set_trackers file t.torrent_announce_list
       else
         set_trackers file [t.torrent_announce];

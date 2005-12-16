@@ -182,11 +182,9 @@ let value_to_file file_size file_state assocs =
             torrent_nodes = file_nodes;
 *)
             torrent_announce =
-            (
-              try
-                (List.hd file_trackers)
-              with _ -> ""
-            );
+            (match file_trackers with
+	      | h::q -> h
+	      | [] -> "");
             torrent_announce_list = file_trackers;
           } in
         let torrent_diskname = Filename.concat downloads_directory

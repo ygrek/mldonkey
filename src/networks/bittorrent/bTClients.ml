@@ -138,6 +138,17 @@ let connect_trackers file event f =
       ("ip", Ip.to_string !!set_client_ip) :: args else args
   in
 
+  let enabled_trackers =
+    let enabled_trackers = List.filter (fun t -> t.tracker_enabled) file.file_trackers in
+    if enabled_trackers <> [] then enabled_trackers
+    else begin
+      (* if there is no tracker left, do something ? *)
+      if !verbose_msg_servers then
+	lprintf_nl () "No trackers left, reenabling all of them...";
+      List.iter (fun t -> t.tracker_enabled <- true) file.file_trackers;
+      file.file_trackers
+    end in
+
   List.iter (fun t ->
 
       (* if we have too few sources we may ask the tracker before the interval *)
@@ -156,8 +167,9 @@ let connect_trackers file event f =
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 &&
             t.tracker_last_conn < 1 then begin
               if !verbose_msg_servers then
-                lprintf_nl () "Request error from tracker: removing %s" t.tracker_url;
-              remove_tracker t.tracker_url file
+                lprintf_nl () "Request error from tracker: disabling %s" t.tracker_url;
+	      t.tracker_enabled <- false;
+              (* remove_tracker t.tracker_url file *)
             end
           (* Send request to tracker *)
           else begin
@@ -199,11 +211,7 @@ let connect_trackers file event f =
         if !verbose_msg_servers then
           lprintf_nl () "Request NOT sent to tracker %s - next request in %ds for file: %s"
             t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
-  ) file.file_trackers;
-  (* if there is no tracker left, do something ? *)
-  if List.length file.file_trackers = 0 then
-    if !verbose_msg_servers then
-      lprintf_nl () "No trackers left ..."
+  ) enabled_trackers
 
 (** In this function we decide which peers will be
   uploaders. We send a choke message to current uploaders
@@ -1330,8 +1338,9 @@ let get_sources_from_tracker file =
             match (key, value) with
             | String "failure reason", String failure ->
                 (* On failure, remove the faulty tracker from file.file_trackers list *)
-    remove_tracker t.tracker_url file;
-                lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s removed for failure"
+		t.tracker_enabled <- false;
+		(* remove_tracker t.tracker_url file; *)
+                lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
                   t.tracker_url file.file_name failure t.tracker_url
             | String "warning message", String warning ->
                 lprintf_nl () "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
