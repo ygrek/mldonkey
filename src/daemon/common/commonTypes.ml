@@ -478,7 +478,7 @@ type network = {
     mutable op_network_share : (
       string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_parse_url : (string -> bool);
+    mutable op_network_parse_url : (string -> string * bool);
     mutable op_network_connect_servers : (unit -> unit);
     
     mutable op_network_search : (search -> Buffer.t -> unit);

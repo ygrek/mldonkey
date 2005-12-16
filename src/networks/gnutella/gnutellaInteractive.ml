@@ -379,7 +379,7 @@ let _ =
           let ip = Ip.addr_of_string ip in
           let port = int_of_string port in
           let _ = new_server ip port in
-          true
+          "added Gnutella server", true
       | "gnut://" :: "friend" :: uid :: ip :: port :: _ ->  
           let ip = Ip.of_string ip in
           let port = int_of_string port in
@@ -387,12 +387,12 @@ let _ =
           let c = new_client (Known_location (ip, port)) in
           c.client_user.user_uid <- md4;
           friend_add (as_client c);
-          true
+          "added Gnutella friend", true
       | "gnut://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
           let c = new_client (Indirect_location ("", md4)) in
           friend_add (as_client c);
-          true
+          "added Gnutella friend", true
       
       | _ -> 
           let (name, size, uids) =
@@ -407,9 +407,9 @@ let _ =
               let r = IndexedResults.get_result rs in
               let file = download_file r in
               CommonInteractive.start_download file;
-              true
+              "started Gnutella download", true
             end
-          else false
+          else "", false
   )
   
 let browse_client c = 

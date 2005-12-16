@@ -664,28 +664,32 @@ let op_network_parse_url url =
         ft.ft_retry <- load_torrent_from_web r ;
         load_torrent_from_web r ft;
         if !verbose_torrent then lprintf_nl () "wget started";
-        true
+        "started download", true
       )
     else
-      false
+      "", false
   with
     | Not_found ->
       if (valid_torrent_extension url) then
         try
           if !verbose_torrent then lprintf_nl () "Not_found and trying to load %s" url;
           load_torrent_file url;
-          true
+          "", true
         with e ->
           lprintf_nl () "Exception %s while 2nd loading" (Printexc2.to_string e);
-          false
+	  let s = Printf.sprintf "Can not load load torrent file: %s"
+	    (Printexc2.to_string e) in
+          s, false
       else
         begin
           if !verbose_torrent then lprintf_nl () "Not_found and url has non valid torrent extension: %s" url;
-          false
+          "Not_found and url has non valid torrent extension", false
         end
     | e ->
        lprintf_nl () "Exception %s while loading" (Printexc2.to_string e);
-       false
+       let s = Printf.sprintf "Can not load load torrent file: %s"
+	 (Printexc2.to_string e) in
+       s, false
 
 let op_client_info c =
   let module P = GuiTypes in

@@ -159,11 +159,11 @@ let _ =
             addr, port
           in
           let s = new_server addr port in
-          true
+          "", true
       | "dc://" :: "friend" :: nick :: [] ->  
           let c = new_client nick in
           friend_add (as_client c.client_client);
-          true
+          "", true
       | "dc://" :: "friend" :: nick :: addr :: _ ->  
           let addr, port = 
             let ip, port = match String2.split addr ':' with
@@ -176,8 +176,8 @@ let _ =
           let c = new_client nick in
           c.client_addr <- Some (addr, port);
           friend_add (as_client c.client_client);
-          true
-      | _ -> false
+          "", true
+      | _ -> "", false
   )
 
 let _ =

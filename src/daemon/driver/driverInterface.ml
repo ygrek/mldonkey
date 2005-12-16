@@ -731,7 +731,7 @@ search.op_search_end_reply_handlers;
                 if not (networks_iter_until_true
                     (fun n ->
                        try
-                         network_parse_url n url
+                         let s,r = network_parse_url n url in r
                        with e ->
                          lprintf "Exception %s for network %s\n"
                            (Printexc2.to_string e) (n.network_name);

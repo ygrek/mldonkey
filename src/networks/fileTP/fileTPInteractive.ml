@@ -347,34 +347,28 @@ let get_regexp_string text r =
    and false otherwise.
  *)
 let rec op_network_parse_url url =
-  if !verbose then
-    lprintf_nl "[FILETP] op_network_parse_url";
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
   if !verbose then
     lprintf "real url: %s\n" real_url;
-  if (is_http_torrent url real_url) then false
+  if (is_http_torrent url real_url) then "", false
   else
     if (String2.check_prefix real_url "http://") then (
-      if !verbose then
-        lprintf_nl "[FILETP]: http download";
       let length_regexp = "Content-Length: \\(.*\\)" in
        try let length = get_regexp_int url (Str.regexp length_regexp) in
          if (length > 0) then begin
-           download_file real_url ""; true
+           download_file real_url ""; "started FileTP download", true
          end
-         else raise Not_found
+         else "test1", false
        with Not_found -> 
-           if !verbose then
-             lprintf_nl "[FILETP]: Unknown file length. Use a web browser";
-           false
+           "Unknown file length. Use a web browser", false
     )
     else if (String2.check_prefix url "ftp://") || (String2.check_prefix url "ssh://") then (
       download_file url "";
-      true
+      "started FileTP download", true
     )
     else
-      false
+      "test2", false
 
 let _ =
   network.op_network_parse_url <- op_network_parse_url
@@ -397,15 +391,22 @@ let commands = [
           Printf.bprintf buf "download started";
         _s ""
         with Not_found ->
-            if !verbose then
-              lprintf_nl "[FILETP]: Not enough parameters";
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [
                 ("", "srh", "Not enough parameters"); ]
             else
               Printf.bprintf buf "Not enough parameters";
-            _s ""  
+            _s ""
+	| e ->
+	    let error = Printf.sprintf "%s" (Printexc2.to_string e) in
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", error); ]
+            else
+              Printf.bprintf buf "%s" error;
+            _s ""
     ), " <url> <referer> :\t\t\t\tstart downloading this URL";
 
     "mirror", "Network/FileTP", Arg_multiple (fun args o ->

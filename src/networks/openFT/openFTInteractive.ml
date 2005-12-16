@@ -184,14 +184,14 @@ let _ =
           let ip = Ip.of_string ip in
           let port = int_of_string port in
           let s = new_server ip port in
-          true
+          "", true
       | "ft://" :: "friend" :: ip :: port :: http_port :: _ ->  
           let ip = Ip.of_string ip in
           let port = int_of_string port in
           let http_port = int_of_string http_port in
           let c = new_client ip port http_port in
           friend_add (as_client c.client_client);
-          true
+          "", true
       | _ -> false
   )
 

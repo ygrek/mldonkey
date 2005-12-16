@@ -261,7 +261,7 @@ let _ =
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c  );
 
-  network.op_network_parse_url <- (fun _ -> false);
+  network.op_network_parse_url <- (fun _ -> "", false);
   network.op_network_load_complex_options <- (fun _ -> ());
 
   network.op_network_recover_temp <- (fun s -> ());

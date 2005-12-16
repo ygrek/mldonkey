@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/16
+4652: dllink: reject EDK files > 4GB, print access errors for .torrent files
+
 2005/12/15
       Removed orphaned files:
       src/networks/donkey/donkeyFiles.mli

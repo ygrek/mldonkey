@@ -2723,32 +2723,47 @@ let _ =
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
     "dllink", Arg_multiple (fun args o ->
-        if !verbose then lprintf "dllink\n";
         let buf = o.conn_buf in
         let query_networks url =
-          if not (networks_iter_until_true
-                    (fun n ->
-                       try
-                         network_parse_url n url
-                       with e ->
-                         Printf.bprintf buf "Exception %s for network %s\n"
-                           (Printexc2.to_string e) (n.network_name);
-                         false
-                    )) then
-            let output = (if o.conn_output = HTML then begin
-                let buf = Buffer.create 100 in
-                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-                html_mods_table_header buf "dllinkTable" "results" [];
-                Printf.bprintf buf "\\<tr\\>";
-                html_mods_td buf [ ("", "srh", "Unable to match URL"); ];
-                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-                html_mods_td buf [ ("", "sr", url); ];
-                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-                Buffer.contents buf
-              end
-            else begin
-                Printf.sprintf "Unable to match URL : %s" url
-            end) in
+	let result = ref [] in
+          if not (networks_iter_until_true (fun n ->
+		try
+                  let s,r = network_parse_url n url in
+		    if s = "" then r else
+		      let s1 = Printf.sprintf "%s: %s" n.network_name s in
+		        result := s1 :: !result;
+		      r
+		with e ->
+		    let s1 = Printf.sprintf "%s: Exception %s"
+		      (n.network_name) (Printexc2.to_string e)
+		    in
+		    result := s1 :: !result;
+                    false
+            )) then
+            let output =
+               (let buf = Buffer.create 100 in
+		  if o.conn_output = HTML then
+		    begin
+            	      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+            	      html_mods_table_header buf "dllinkTable" "results" [];
+            	      Printf.bprintf buf "\\<tr\\>";
+            	      html_mods_td buf [ ("", "srh", "Unable to match URL"); ];
+            	      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+            	      html_mods_td buf [ ("", "sr", url); ]
+		    end
+		  else
+                    Printf.bprintf buf "Unable to match URL : %s\n" url;
+		  List.iter (fun s ->
+		    if o.conn_output = HTML then
+		      begin
+			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+                        html_mods_td buf [ ("", "sr", s); ]
+		      end
+		    else
+                      Printf.bprintf buf "%s\n" s) (List.rev !result);
+		  if o.conn_output = HTML then
+	            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+                Buffer.contents buf) in
             _s output
           else
             let output = (if o.conn_output = HTML then begin
@@ -2815,7 +2830,7 @@ let _ =
         let lines = String2.split_simplify file '\n' in
         List.iter (fun line ->
             ignore (networks_iter_until_true (fun n ->
-                  network_parse_url n line))
+                  let s,r = network_parse_url n line in r))
         ) lines;
         let output = (if o.conn_output = HTML then begin
             let buf = Buffer.create 100 in

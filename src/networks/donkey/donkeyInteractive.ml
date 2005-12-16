@@ -533,33 +533,41 @@ let parse_donkey_url url =
 (* TODO RESULT *)
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
-      let md4 = if String.length md4 > 32 then
+      if Int64.of_string size >= 4294967295L then
+	"Files > 4GB are not allowed", false
+      else
+        let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
-      let file = query_download [name] (Int64.of_string size)
-        (Md4.of_string md4) None None None false;
-      in
-      CommonInteractive.start_download file;
-      true
+          begin try
+            let file = query_download [name] (Int64.of_string size)
+              (Md4.of_string md4) None None None false;
+            in
+            CommonInteractive.start_download file;
+            "", true
+          with e ->
+            let s = Printf.sprintf "%s" (Printexc2.to_string e) in
+	      s, false
+          end
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
       let s = force_add_server ip (int_of_string port) in
       server_connect (as_server s.server_server);
-      true
+      "", true
   | "ed2k://" :: "serverlist" :: url :: _
   | "serverlist" :: url :: _ ->
       if !!update_server_list_server_met then
         ignore (download_server_met url);
-      true
+      "", true
   | "ed2k://" :: "friend" :: ip :: port :: _
   | "friend" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
       let port = int_of_string port in
       let c = new_client (Direct_address (ip,port)) in
       friend_add c;
-      true
+      "", true
 
-  | _ ->  false
+  | _ -> "", false
 
 
 let op_file_check file =
