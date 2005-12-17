@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/17
+4715: OV: Improve searching, longer ov timeout, some more bugfixes (bogeyman)
 4718: Fix bug which prevented proper write to files introduced in patch #4694
 4717: EDK: Removed unused variable file_md4s_to_register (bogeyman)
 

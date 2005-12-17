@@ -81,7 +81,7 @@ module NewUpload = struct
 (*      let len_int = Int32.to_int len in *)
       try
         if !verbose then begin
-            lprintf "send_small_block(%s-%s) %Ld %d\n"
+            lprintf "send_small_block(%s-%s) %Ld %d "
               c.client_name (brand_to_string c.client_brand)
             (begin_pos) (len_int);
           end;
@@ -114,9 +114,9 @@ module NewUpload = struct
               impl.impl_shared_uploaded <- 
                 impl.impl_shared_uploaded ++ uploaded);
         if c.client_connected then
-          printf_string "U[OUT]"
+          printf_string "U[OUT]\n"
         else
-          printf_string "U[IN]";
+          printf_string "U[IN]\n";
         
         write_string sock upload_buffer;
         check_end_upload c sock

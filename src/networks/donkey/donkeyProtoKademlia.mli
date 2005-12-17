@@ -17,29 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(*
-module P :
-  sig
-    val write : Buffer.t -> DonkeyOvernet.t -> unit
-    val udp_buf : Buffer.t
-    val kademlia_header_code : char
-    val kademlia_packed_header_code : char
-    val kademlia_header : string
-    val kademlia_packed_header : string
-    val udp_send : UdpSocket.t -> Ip.t -> int -> DonkeyOvernet.t -> unit
-    val parse : 'a -> 'b
-    val udp_handler :
-      ('a -> UdpSocket.udp_packet -> unit) ->
-      UdpSocket.t -> UdpSocket.event -> unit
-    val redirector_section : string
-    val options_section_name : string
-    val enable_overnet : bool Options.option_record
-    val overnet_section : Options.options_section
-    val overnet_port : int Options.option_record
-    val overnet_tcpport : int Options.option_record
-    val command_prefix : string
-  end
-  *)
 module Kademlia :
   sig
     val overnet_search : CommonTypes.search -> unit

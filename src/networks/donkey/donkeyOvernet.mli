@@ -107,7 +107,9 @@ module Make(Proto: sig
       val overnet_port : int Options.option_record
       val overnet_tcpport : int Options.option_record
       val overnet_section : Options.options_section
-      
+
+      val checking_kind_timeout : int
+
       val redirector_section : string
       val options_section_name : string
       val command_prefix : string

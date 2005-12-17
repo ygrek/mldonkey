@@ -482,6 +482,8 @@ module P = struct
           );
       | _ -> ()
 
+    let checking_kind_timeout = 120
+
     let redirector_section = "DKKA"
     let options_section_name = "Kademlia"
 

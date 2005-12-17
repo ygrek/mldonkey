@@ -301,6 +301,8 @@ module Make(Proto: sig
       val overnet_tcpport : int Options.option_record
       val overnet_section : Options.options_section
 
+      val checking_kind_timeout : int
+
       val redirector_section : string
       val options_section_name : string
       val command_prefix : string
@@ -333,7 +335,7 @@ module Make(Proto: sig
 let max_peers_per_bucket = 20
 let max_peers_per_prebucket = 40
 (* how many peers a search may ask for more search peers *)
-let max_search_queries = 64 
+let max_search_queries = 50 
 (* how many peers we ask for results *)
 let max_search_requests = 20 
 let max_boot_peers = 200
@@ -428,7 +430,7 @@ let dummy_peer =
     peer_kind = 0;
     peer_expire = 0;
     peer_last_send = 0;
-    peer_created = last_time ();
+    peer_created = 0;
   }
 
 let connected_peers = ref 0
@@ -716,7 +718,7 @@ let checking_kind p =
   if (last_time () - p.peer_last_send) < 10 ||
      p.peer_kind = 4 then () else begin
     p.peer_kind <- p.peer_kind + 1;
-    p.peer_expire <- last_time () + 120;
+    p.peer_expire <- last_time () + Proto.checking_kind_timeout;
   end;
   ()
   
@@ -761,14 +763,15 @@ let new_peer p =
   let ip = p.peer_ip in
   let port = p.peer_port in
  
-  if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
-
     try
       let pp = KnownPeers.find known_peers p in
       (* TODO: check for changes in ip:port? Or Hash? *)
       pp
     with _ ->
-    
+
+   if ip <> Ip.localhost && is_overnet_ip ip 
+     && port <> 0 && p.peer_created <> 0 then
+   
         let bucket = bucket_number p.peer_md4 in
 
 (* Add the peer to the table of known peers *)
@@ -909,7 +912,7 @@ let get_any_peers  nb =
 
 let add_search_peer s p =
   if p.peer_ip <> Ip.localhost && is_overnet_ip p.peer_ip && 
-     p.peer_port <> 0 then begin
+     p.peer_port <> 0 && p.peer_created <> 0 then begin
     let nbits = common_bits p.peer_md4 s.search_md4 in
     begin
       try
@@ -925,7 +928,8 @@ let add_search_peer s p =
 
 let create_search kind md4 =
   if !verbose_overnet then lprintf_nl () "create_search";
-  let s = {
+  let starttime = last_time () + (2 * List.length !overnet_searches) in
+  let s = ref {
       search_md4 = md4;
       search_kind = kind;
       search_queries = 0;
@@ -933,17 +937,28 @@ let create_search kind md4 =
       search_waiting_peers = Array.init 129 (fun _ -> Fifo.create ());
       search_asked_peers = Array.init 129 (fun _ -> Fifo.create ());
       search_ok_peers = Array.init 129 (fun _ -> Fifo.create ());
-      search_start = last_time ();
-      search_last_query = last_time () + 
-        ((List.length !overnet_searches) mod (int_of_float !!overnet_query_peer_period));
+      search_start = (match kind with
+                       KeywordSearch s -> last_time ()
+                     | FillBuckets -> last_time ()
+                     | FileSearch s -> starttime);
+      search_last_query = (match kind with
+                       KeywordSearch s -> last_time ()
+                     | FillBuckets -> last_time ()
+                     | FileSearch s -> starttime);
       search_hits = 0;
       search_nresults = 0;
-      search_results = Hashtbl.create 13;
+      search_results = Hashtbl.create 64;
     } in
-  List.iter (add_search_peer s) (get_closest_peers md4 max_search_queries);
+  List.iter (fun ss ->
+    if ss.search_md4 = !s.search_md4 && ss.search_kind = !s.search_kind then begin
+     ss.search_start <- !s.search_start;
+     s := ss;
+    end
+  ) !overnet_searches;
+  List.iter (add_search_peer !s) (get_closest_peers md4 max_search_queries);
   if !verbose_overnet then lprintf_nl () "create_search done";
-  overnet_searches := s :: !overnet_searches;
-  s
+  overnet_searches := !s :: !overnet_searches;
+  !s
 
 let create_keyword_search w s =
   let md4 = Md4.string w in
@@ -976,7 +991,8 @@ let udp_client_handler t p =
 
   | OvernetConnect p ->
       if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
-        let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in
+        let sender = new_peer { p with peer_ip = other_ip } in
+        (* let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in *)
         new_peer_message sender;
         udp_send sender (OvernetConnectReply (get_any_peers 20))
        else
@@ -993,7 +1009,7 @@ let udp_client_handler t p =
         match list with
           [] -> ()
         | [p] ->
-            let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in
+            let sender = new_peer { p with peer_ip = other_ip } in
             new_peer_message sender
         | p :: tail ->
             let _ = new_peer p in
@@ -1002,7 +1018,7 @@ let udp_client_handler t p =
       iter ps;
 
   | OvernetPublicize p ->
-      let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in
+      let sender = new_peer { p with peer_ip = other_ip } in
       new_peer_message sender;
       if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
         udp_send sender (OvernetPublicized (Some (my_peer ())))
@@ -1168,6 +1184,7 @@ let udp_client_handler t p =
                 if p.peer_ip = peer.peer_ip && 
                     p.peer_port = peer.peer_port then begin
                   decr pre_connected_peers;
+                  KnownPeers.remove known_peers dp;
                 end else Fifo.put b p
               done;
             done;
@@ -1219,7 +1236,11 @@ let query_next_peers () =
       if s.search_last_query < timeout then begin
         s.search_last_query <- s.search_last_query + overnet_query_peer_period;
 (* Query next search peers *)
-        iter 128 2;
+        if s.search_queries < max_search_queries then
+          (if s.search_queries = 0 then
+            iter 128 3
+          else
+            iter 128 2);
 (* Request next results *)
         if s.search_requests < max_search_requests then begin
            let nrequests =
@@ -1275,6 +1296,7 @@ let update_buckets () =
       else
       begin
         decr connected_peers;
+        KnownPeers.remove known_peers p;
         if !verbose_overnet then lprintf_nl () "update_bucket1: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
       end;
     done
@@ -1301,6 +1323,7 @@ let update_buckets () =
             (* bad peers are removed *)    
             end else if p.peer_kind = 4 && p.peer_expire <= last_time () then begin
               decr pre_connected_peers;
+              KnownPeers.remove known_peers p;
               if !verbose_overnet then lprintf_nl () "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
             end else
             (* the rest returns in prebuckets *)
@@ -1435,8 +1458,8 @@ let enable () =
 
           compute_to_ping ();
 
-          let l = last_time () - 300 in
-(* remove searches that are older than 5 minutes *)
+          let l = last_time () - 180 in
+(* remove searches that are older than 3 minutes *)
           overnet_searches := List.filter (fun s ->
               s.search_requests < max_search_requests &&
               s.search_start > l

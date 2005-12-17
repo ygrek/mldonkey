@@ -411,6 +411,8 @@ module Proto = struct
           );
       | _ -> ()
 
+    let checking_kind_timeout = 180
+
     let redirector_section = "DKKO"
     let options_section_name = overnet_options_section_name
     let overnet_section = overnet_section
