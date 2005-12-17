@@ -729,6 +729,7 @@ DP500_SRCS= \
   $(MP3TAG_SRCS) \
   \
   $(COMMON)/commonTypes.ml \
+  $(COMMON)/guiProto.ml \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \
