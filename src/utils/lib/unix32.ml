@@ -183,11 +183,13 @@ module FDCache = struct
         although we are reading here, but I had problems with
         it like exceptions in really_write
       *)
+      let _ = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_read %d\n" len;
       Unix2.really_read fd string string_pos len
 
     let write file file_pos string string_pos len =
       let fd = local_force_fd file true in
+      let _ = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
       begin
         try
