@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/17
+4717: EDK: Removed unused variable file_md4s_to_register (bogeyman)
+
 2005/12/16
 4703: BT: Deactivate dead trackers,
       re-enable them if no active trackers are found (pango)

@@ -97,7 +97,6 @@ let new_file_to_share sh codedname old_impl =
         false in
     must_share_file file codedname old_impl;
     file.file_computed_md4s <- md4s;
-    file_md4s_to_register := file :: !file_md4s_to_register;
     let sh_name = Filename.basename sh.sh_name in
     if not (List.mem_assoc sh_name file.file_filenames) then begin
         file.file_filenames <- file.file_filenames @ [sh_name, GuiTypes.noips()];

@@ -381,7 +381,6 @@ let value_to_file file_size file_state assocs =
     else Array2.min file.file_chunks_age);
 *)
   
-  file_md4s_to_register := file :: !file_md4s_to_register;
   as_file file
   
 (*  

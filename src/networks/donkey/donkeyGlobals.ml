@@ -208,8 +208,6 @@ let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
 
 let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
 
-let file_md4s_to_register = ref ([] : file list)
-
 module UdpClientWHashtbl = Weak.Make(struct
       type t = udp_client
       let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
@@ -783,8 +781,6 @@ end;
   Printf.bprintf buf "  interesting_clients: %d\n" (List.length !interesting_clients);
   Printf.bprintf buf "  shared_files: %d\n" (List.length !shared_files);
   Printf.bprintf buf "  new_hsared_files: %d\n" (List.length !new_shared_files);
-  Printf.bprintf buf "  file_md4s_to_register: %d\n" (List.length !file_md4s_to_register);
-
   Printf.bprintf buf "  servers_by_key: %d\n" (Hashtbl.length servers_by_key);
   Printf.bprintf buf "  banned_ips: %d\n" (Hashtbl.length banned_ips);
   Printf.bprintf buf "  old_requests: %d\n" (Hashtbl.length old_requests);

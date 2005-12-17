@@ -1519,7 +1519,6 @@ is checked for the file.
             if md4 <> file.file_md4 then begin
                 lprintf_nl () "[ERROR]: Bad list of MD4s, discarding";
               end else begin
-                file_md4s_to_register := file :: !file_md4s_to_register;
                 file.file_computed_md4s <- md4s;
                 match file.file_swarmer with
                   None -> ()
