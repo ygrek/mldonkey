@@ -465,6 +465,7 @@ fi
 if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
   OCAML_PATH="$LOCAL_OCAML"/
   OCAMLOPT=$LOCAL_OCAML/ocamlopt.opt
+  OCAMLDOC=$LOCAL_OCAML/ocamldoc
   OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
   OCAMLDEP=$LOCAL_OCAML/ocamldep
   OCAMLLEX=$LOCAL_OCAML/ocamllex.opt
@@ -478,6 +479,7 @@ else
   else
     OCAMLOPT=no
   fi
+  OCAMLDOC=$LOCAL_OCAML/ocamldoc
   OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
   OCAMLDEP=$LOCAL_OCAML/ocamldep
   OCAMLLEX=$LOCAL_OCAML/ocamllex
@@ -490,6 +492,7 @@ else
   AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
   AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
   AC_CHECK_PROG(OCAMLYACC, ocamlyacc, ocamlyacc)
+  AC_CHECK_PROG(OCAMLDOC, ocamldoc, ocamldoc)
   AC_CHECK_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop)
   AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
 fi
@@ -1125,6 +1128,7 @@ AC_SUBST(OCAMLDEP)
 AC_SUBST(OCAMLDEP_OPTIONS)
 AC_SUBST(CAMLP4)
 AC_SUBST(PERL)
+AC_SUBST(OCAMLDOC)
 AC_SUBST(OCAMLMKTOP)
 AC_SUBST(SYSTEM)
 

@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/18
+4723: New build target: make ocamldoc (pango)
 4721: Log: Improve output for verbosity "verb", remove verbosity "hid"
 
 2005/12/17
