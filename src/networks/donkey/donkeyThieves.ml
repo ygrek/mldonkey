@@ -52,7 +52,6 @@ module Md4_hashtbl = Hashtbl.Make ( Md4HashType )
 
 let hashes_usage = Md4_hashtbl.create 1023
 
-(* *)
 ;;
 let register_client_hash ip hash =
   let find_by_ip ip =
@@ -102,7 +101,8 @@ let register_client_hash ip hash =
 	    (* it switched to a hash that's used somewhere else,
 	       that's certainly a theft. *)
 	    if !verbose then
-	      lprintf "That hash was already used somewhere else, that's certainly a theft!\n";
+	      lprintf_nl () "client_md4 %s (ip:%s) was already used somewhere else, that's certainly a theft!"
+	        (Md4.to_string hash) (Ip.to_string ip);
 	    false
 ;;
 let clean_thieves () =

@@ -124,7 +124,6 @@ let client_handler2 c ff f =
   let msgs = ref 0 in
   fun sock nread ->
 
-    if !verbose then lprintf_nl () "between clients %d" nread;
     let module M= DonkeyProtoClient in
     let b = TcpBufferedSocket.buf sock in
     try
@@ -133,7 +132,6 @@ let client_handler2 c ff f =
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
-            if !verbose then lprintf_nl () "client_to_client";
             let s = String.sub b.buf (b.pos+5) msg_len in
             buf_used b  (msg_len + 5);
             let t = M.parse emule_version opcode s in
@@ -150,7 +148,6 @@ lprint_newline (); *)
     with Not_found -> ()
 
 let cut_messages parse f sock nread =
-  if !verbose then lprintf_nl () "server to client %d" nread;
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
@@ -158,7 +155,6 @@ let cut_messages parse f sock nread =
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
-          if !verbose then lprintf_nl () "server_to_client";
           let s = String.sub b.buf (b.pos+5) msg_len in
           buf_used b (msg_len + 5);
           let t = parse opcode s in
@@ -237,7 +233,7 @@ let tag_file file =
       let name = if String2.starts_with name "hidden." then
           String.sub name 7 (String.length name - 7)
         else name in
-      if !verbose then lprintf_nl () "Sharing %s" name;
+      if !verbose_share then lprintf_nl () "tag_file: Sharing %s" name;
       name
     ))::
   (int64_tag Field_Size file.file_file.impl_file_size) ::
@@ -246,8 +242,7 @@ let tag_file file =
         FormatNotComputed next_time when
         next_time < last_time () ->
           (try
-              if !verbose then lprintf_nl () "%s: Find format %s"
-                    (string_of_date (last_time ()))
+              if !verbose_share then lprintf_nl () "Find format %s"
                   (file_disk_name file);
               file.file_format <- (
                 match
@@ -330,8 +325,6 @@ let make_tagged_server newer_server sock files =
     make_tagged sock files
 
 let server_send_share compressed sock msg =
-  if !verbose then
-      lprintf_nl () "Sending %d file(s) to server" (List.length msg);
   let max_len =
     !!client_buffer_size - 100
       - TcpBufferedSocket.remaining_to_write sock
@@ -347,8 +340,8 @@ let server_send_share compressed sock msg =
       let s = Buffer.contents buf in
       str_int s 0 nfiles;
       let s = String.sub s 0 prev_len in
-      if !verbose_share then
-         lprintf_nl () "Sending %d share(s) to server : " nfiles;
+      if !verbose_share || !verbose then
+         lprintf_nl () "Sending %d share(s) to server" nfiles;
       Buffer.reset buf;
       let s_c =
         if compressed then
@@ -360,8 +353,6 @@ let server_send_share compressed sock msg =
          is smaller in that state. *)
       if compressed && ((String.length s_c) < (String.length s))  then
         begin
-          if !verbose_share then
-            lprintf_nl () "Using zlib";
           buf_int8 buf 0xD4;
           buf_int buf 0;
           buf_int8 buf 21; (* ShareReq *)
@@ -370,8 +361,6 @@ let server_send_share compressed sock msg =
         end
       else
         begin
-          if !verbose_share then
-            lprintf_nl () "No compression";
           buf_int8 buf 227;
           buf_int buf 0;
           buf_int8 buf 21; (* ShareReq *)

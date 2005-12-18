@@ -51,8 +51,6 @@ let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
     "The number of UDP packets you send every check_client_connections_delay"
   int_option 10
 
-let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
-
 let reliable_sources = define_option donkey_section ["reliable_sources"]
     "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option true
 
@@ -228,8 +226,10 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
   over other networks, where upload is less efficient, without preventing
   upload from these networks." int_option 5
 
+let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
+
 let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
-  "How often should remove old donkey be called (in seconds, 0 to disable)"
+  "How often should remove old donkey servers (see max_server_age) be called (in seconds, 0 to disable)"
     float_option 900.
 
 let min_left_servers = define_expert_option donkey_section ["min_left_servers"]

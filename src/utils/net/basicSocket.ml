@@ -119,7 +119,8 @@ let nb_sockets = ref 0
 let allow_read = ref true
 let allow_write = ref true
 
-let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
+(*let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *) *)
+let infinite_timeout = float_of_int Date.year_in_secs
 let current_time = ref (Unix.gettimeofday ())
 let last_time = ref (int_of_float (!current_time -. 1000000000.))
 

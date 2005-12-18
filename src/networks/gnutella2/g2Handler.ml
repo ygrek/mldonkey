@@ -428,8 +428,8 @@ XML ("audios",
                   let xml = Xml.xml_of (Xml.parse_string xml) in
                   xml_info := Some xml
                 with e ->
-                    if !verbose_hidden_errors then
-                      lprintf "Exception %s while parsing: \n%s\n"
+                    if !verbose_unknown_messages then
+                      lprintf_nl "Exception %s while parsing: \n%s"
                         (Printexc2.to_string e) xml
               
               end
@@ -450,8 +450,8 @@ XML ("audios",
                       tags)
                 ) user_files files
               end else begin
-                if !verbose_hidden_errors then
-                  lprintf "ERROR: Not enough XML entries %d/%d\n"
+                if !verbose_unknown_messages then
+                  lprintf_nl "ERROR: Not enough XML entries %d/%d"
                     (List.length files) (List.length user_files);
                 user_files 
               end

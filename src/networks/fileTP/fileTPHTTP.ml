@@ -244,7 +244,7 @@ let rec client_parse_header c gconn sock header =
                 (start_pos, end_pos)
           with _ ->
 (* A bit dangerous, no ??? *)
-              if !verbose_hidden_errors then
+              if !verbose_unknown_messages then
                 lprintf_nl () "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s"
                     (Printexc2.to_string e)
                     (String.escaped header);
@@ -353,7 +353,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
           end)
 
   with e ->
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf_nl () "Exception %s in client_parse_header" (Printexc2.to_string e);
           AnyEndian.dump header

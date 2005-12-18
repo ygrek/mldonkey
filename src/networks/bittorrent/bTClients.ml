@@ -747,7 +747,7 @@ and get_from_client sock (c: client) =
         (client_num c) (Sha1.to_string c.client_uid) x y
 
   with Not_found ->
-        if not (Int64Swarmer.check_finished swarmer) && !verbose_hidden_errors then
+        if not (Int64Swarmer.check_finished swarmer) && !verbose then
           lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 

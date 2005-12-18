@@ -366,7 +366,7 @@ module Proto = struct
               end;
             OvernetUnknown (opcode, s)
       with e ->
-          if !verbose_hidden_errors then
+          if !verbose_unknown_messages then
             begin
               lprintf_nl () "Error %s while parsing opcode %d" (Printexc2.to_string e) opcode;
               dump s;

@@ -144,7 +144,7 @@ let new_file_to_share sh codedname old_impl =
 lprint_newline ());
   *)
     if !verbose_share then
-      lprintf_nl () "Sharing %s" sh.sh_name;
+      lprintf_nl () "new_file_to_share: Sharing %s" sh.sh_name;
   with e ->
       lprintf_nl () "Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name
@@ -166,6 +166,7 @@ let all_shared () =
    Should I only do it for master servers, no ?
 *)
 let send_new_shared () =
+  let tag = ref false in
   if !new_shared then
     begin
       new_shared := false;
@@ -174,14 +175,13 @@ let send_new_shared () =
           List.iter (fun s ->
             if s.server_master then
               begin
-                if !verbose_share then
+                if !verbose_share || !verbose then
                   lprintf_nl () "donkey send_new_shared: found master server";
+		tag := true;
                 do_if_connected s.server_sock (fun sock ->
                   server_send_share s.server_has_zlib sock !new_shared_files)
-              end
-                )
-          (connected_servers ());
-          if !verbose_share then
+              end) (connected_servers ());
+          if !tag && (!verbose_share || !verbose) then
               lprintf_nl () "donkey send_new_shared: Sent %d new shared files to servers"
                     (List.length !new_shared_files);
           new_shared_files := []
@@ -262,7 +262,7 @@ let check_shared_files () =
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !verbose_share then
-        lprintf_nl () "Sharing %s" fullname;
+        lprintf_nl () "op_network_share: Sharing %s" fullname;
       try
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
@@ -333,8 +333,8 @@ let remember_shared_info file new_name =
           let disk_name = file_disk_name file in
           Unix32.mtime disk_name
         with _ ->
-            if !verbose_hidden_errors then
-              lprintf_nl () "Share: Trying mtime on new name %s, disk_name %s, too much files in shared_files_new.ini"
+            if !verbose then
+              lprintf_nl () "Share: Trying mtime on new name %s, disk_name %s, too many files in shared_files_new.ini"
 	        new_name (file_disk_name file);
             Unix32.mtime new_name
       in

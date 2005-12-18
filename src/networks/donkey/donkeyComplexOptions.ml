@@ -582,7 +582,6 @@ let force_add_server ip port =
     DonkeyGlobals.find_server ip port
   with _ ->
       let s = DonkeyGlobals.new_server ip port !!initial_score in
-      DonkeyGlobals.servers_ini_changed := true;
       s        
       
 let check_add_server ip port =
@@ -597,13 +596,11 @@ let safe_add_server ip port =
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->
-        let _ = DonkeyGlobals.new_server ip port !!initial_score in
-        DonkeyGlobals.servers_ini_changed := true
+        ignore (DonkeyGlobals.new_server ip port !!initial_score)
         
 let remove_server ip port =
   try
     let _ = DonkeyGlobals.find_server ip port in
-    DonkeyGlobals.servers_ini_changed := true;
     DonkeyGlobals.remove_server ip port
   with _ -> ()
 

@@ -1466,7 +1466,6 @@ let verbosity = define_expert_option current_section ["verbosity"]
   file : debug file handling
   redir : debug redirector
   unexp : debug unexpected messages
-  hid : print hidden errors messages
 "
     string_option ""
 
@@ -1652,7 +1651,6 @@ let verbose_torrent = ref false
 let verbose_files = ref false
 let verbose_redirector = ref false
 let verbose_unexpected_messages = ref false
-let verbose_hidden_errors = ref false
 
 let set_all v =
 
@@ -1681,8 +1679,7 @@ let set_all v =
   verbose_torrent  := v;
   verbose_files := v;
   verbose_redirector := v;
-  verbose_unexpected_messages := v;
-  verbose_hidden_errors := v
+  verbose_unexpected_messages := v
 
 let _ =
   option_hook verbosity (fun _ ->
@@ -1718,7 +1715,6 @@ let _ =
           | "file" -> verbose_files := true
           | "redir" -> verbose_redirector := true
           | "unexp" -> verbose_unexpected_messages := true
-          | "hid" -> verbose_hidden_errors := true
 
           | "all" ->
 

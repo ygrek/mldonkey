@@ -415,13 +415,17 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
     
   match c.client_download with
     None -> 
-      if !verbose_hidden_errors then
-        lprintf_nl ()"block_received: block received but no file !, received: %s" (Md4.to_string md4)
+      if !verbose then
+        lprintf_nl ()"block_received for unknown file (md4 %s) for data from %s"
+	  (Md4.to_string md4) (full_client_identifier c)
   | Some (file, up) ->
       
       if file.file_md4 <> md4 then begin
-          if !verbose_hidden_errors then
-            lprintf_nl () "block_received: block for bad file, received: %s, expected: %s" (Md4.to_string md4) (Md4.to_string file.file_md4)
+          if !verbose then
+            lprintf_nl () "block_received for wrong file, received: %s, expected: %s, from %s"
+	      (Md4.to_string md4)
+	      (Md4.to_string file.file_md4)
+	      (full_client_identifier c)
         end else begin
           DonkeySources.set_request_result c.client_source file.file_sources File_upload;
           

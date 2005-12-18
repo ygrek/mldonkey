@@ -381,7 +381,7 @@ iff Content-Length = Requested Length and
                 (start_pos, end_pos)
           with _ ->  *)
 (* A bit dangerous, no ??? *)
-          if !verbose_hidden_errors then
+          if !verbose_unknown_messages then
             begin
               lprintf "[GDO] ERROR: Could not find/parse range header (exception %s), disconnect\n" 
                 (Printexc2.to_string e);
@@ -438,7 +438,7 @@ iff Content-Length = Requested Length and
           end)
   
   with e ->
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf "[GDO] Exception %s in client_parse_header\n" (Printexc2.to_string e);
           print_head first_line headers;
@@ -553,7 +553,7 @@ end;
                 in
                 iter ()
               with Not_found -> 
-		if !verbose_hidden_errors then
+		if !verbose_unknown_messages then
                   lprintf_nl "Unable to get a block !!";
                   check_finished swarmer file;
                   raise Not_found

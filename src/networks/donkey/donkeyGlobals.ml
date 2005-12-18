@@ -157,7 +157,6 @@ let master_server = ref (None: DonkeyTypes.server option)
 let udp_sock = ref (None: UdpSocket.t option)
 let listen_sock = ref (None : TcpServerSocket.t option)
 let reversed_sock = ref (None : TcpServerSocket.t option)
-let servers_ini_changed = ref true
 let new_shared = ref false
 
 (*************************************************************************)
@@ -780,7 +779,7 @@ end;
   Printf.bprintf buf "  udp_servers_list: %d\n" (List.length !udp_servers_list);
   Printf.bprintf buf "  interesting_clients: %d\n" (List.length !interesting_clients);
   Printf.bprintf buf "  shared_files: %d\n" (List.length !shared_files);
-  Printf.bprintf buf "  new_hsared_files: %d\n" (List.length !new_shared_files);
+  Printf.bprintf buf "  new_shared_files: %d\n" (List.length !new_shared_files);
   Printf.bprintf buf "  servers_by_key: %d\n" (Hashtbl.length servers_by_key);
   Printf.bprintf buf "  banned_ips: %d\n" (Hashtbl.length banned_ips);
   Printf.bprintf buf "  old_requests: %d\n" (Hashtbl.length old_requests);
@@ -968,3 +967,9 @@ let server_send_multiple_replies s =
 let server_send_getsources2 s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.getsources2) <> 0
 
+let full_client_identifier c =
+    Printf.sprintf "%s (%s%s) '%s'"
+      (Ip.to_string c.client_ip)
+      (brand_to_string_short c.client_brand)
+      (if c.client_emule_proto.emule_release = "" then "" else " " ^ c.client_emule_proto.emule_release)
+      (String.escaped c.client_name)

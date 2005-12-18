@@ -72,7 +72,6 @@ let result_name r =
 
 
 let op_file_proposed_filenames file =
-  if !verbose then lprintf_nl () "op_file_proposed_filenames";
   List2.tail_map fst file.file_filenames
 
 let reconnect_all file =
@@ -253,6 +252,9 @@ let really_query_download filenames size md4 location old_file absents =
             let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
             Int64Swarmer.set_absent swarmer absents
   end;
+
+  if !verbose then lprintf_nl () "Started new download, file %s, size %Ld, md4 %s"
+    (file_best_name file) size (Md4.to_string md4);
 
   DonkeyProtoOvernet.Overnet.recover_file file;
   DonkeyProtoKademlia.Kademlia.recover_file file;

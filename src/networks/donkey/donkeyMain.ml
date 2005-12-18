@@ -81,9 +81,14 @@ let second_timer timer =
             (Printexc2.to_string e)
   )
 
-let halfmin_timer timer =
+let min_timer timer =
   DonkeySources.clean_sources (); (* Moved here from fivemin_timer. *)
-  DonkeyServers.update_master_servers ()
+  DonkeyServers.update_master_servers ();
+ (try
+      DonkeyServers.query_locations_timer ();
+    with _ -> ());
+  (List.iter (fun file -> DonkeyShare.must_share_file file) !new_shared_files;
+  new_shared_files := [])
 (*  DonkeyIndexer.add_to_local_index_timer () *)
 
 
@@ -310,18 +315,10 @@ be useful when users want to share files that they had already previously
       add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
       
       add_session_timer enabler 3600. hourly_timer;
-      add_session_timer enabler 30. halfmin_timer;
+      add_session_timer enabler 60. min_timer;
       add_session_timer enabler 300. fivemin_timer;
       add_session_timer enabler 900. quarter_timer;
       add_session_timer enabler 1. second_timer;
-      add_session_timer enabler 60. (fun _ ->
-          (try
-              DonkeyServers.query_locations_timer ();
-            with _ -> ());
-          List.iter (fun file -> DonkeyShare.must_share_file file) 
-          !new_shared_files;  
-          new_shared_files := [];
-      );
       add_session_option_timer enabler remove_old_servers_delay 
           DonkeyServers.remove_old_servers;
 

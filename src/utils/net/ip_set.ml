@@ -348,7 +348,10 @@ let print_list buf bl =
           nleft + 1 + nright in
 
   let _ = print_list_aux bl in
-  Printf.bprintf buf "%d ranges loaded - optimized to %d\n" !ranges_1 !ranges_2
+  if !ranges_1 = 0 then
+    Printf.bprintf buf "%d ranges loaded\n" !ranges_1
+  else
+    Printf.bprintf buf "%d ranges loaded - optimized to %d\n" !ranges_1 !ranges_2
 
 let bl = ref BL_Empty
 

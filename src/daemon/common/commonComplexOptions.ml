@@ -101,9 +101,9 @@ module FileOption = struct
           set_file_state file file_state;       
           if !verbose then
           (match file_state with
-              FileDownloading -> lprintf_nl () "New downloading file";
-            | FileDownloaded -> lprintf_nl () "New downloaded file";
-            | _ -> lprintf_nl () "New file with other state"
+              FileDownloading -> lprintf_nl () "New downloading file - check complete";
+            | FileDownloaded -> lprintf_nl () "New downloaded file - check complete";
+            | _ -> lprintf_nl () "New file with other state - check complete"
           );
           
           (try
@@ -1003,7 +1003,7 @@ let backup_tar archive files =
 	if size > Sys.max_string_length then
 	  begin
 	    Tar.close_out otar;
-	    failwith (Printf.sprintf "Tar: file %s too big" arg)
+	    failwith (Printf.sprintf "Tar: file %s too big, limit %d byte" arg Sys.max_string_length)
 	  end;
 	let header = 
 	  { Tar.t_name = arg;
@@ -1034,7 +1034,7 @@ let backup_tar archive files =
 	      && Autoconf.windows && arg = "fasttrack.ini" then
               (* for whatever reason this error is raised on Windows,
                  but fasttrack.ini is stored correctly *)
-	      if !verbose_hidden_errors then
+	      if !verbose then
 	        lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
 	      else ()
 	    else

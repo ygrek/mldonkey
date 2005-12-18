@@ -611,8 +611,8 @@ lprintf "\n";
   try
     if be then 
       (
-       if !verbose_hidden_errors then
-         lprintf "Big Endian not supported yet\n";
+       if !verbose then
+         lprintf_nl "Big Endian not supported yet";
        raise Exit
       );
     let module M = G2_LittleEndian in
@@ -766,7 +766,7 @@ lprintf "\n";
         UPROD_XML xml
     | _ -> raise Not_found
   with e ->
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf "Cannot parse: %s\n   " (Printexc2.to_string e);
           List.iter (fun name -> lprintf "%s/" name) names;
@@ -1128,8 +1128,8 @@ let parse_udp_packet ip port buf =
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
-            if !verbose_hidden_errors then
-              lprintf "no correct pkt_len, pkt_pos\n";
+            if !verbose then
+              lprintf_nl "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in
@@ -1512,8 +1512,8 @@ let print_string s buf =
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
-            if !verbose_hidden_errors then
-              lprintf "no correct pkt_len, pkt_pos\n";
+            if !verbose then
+              lprintf_nl "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in

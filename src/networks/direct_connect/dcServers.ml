@@ -443,7 +443,6 @@ and connect_server s =
                   try
                     connection_try s.server_connection_control;
                     incr nservers;
-                    printf_char 's'; 
                     
                     let sock = TcpBufferedSocket.connect token
                         "directconnect to server" 

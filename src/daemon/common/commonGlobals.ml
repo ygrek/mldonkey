@@ -144,14 +144,6 @@ let find_port server_name bind_addr port_option handler =
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 
-let printf_char c =
-  if !verbose then
-    (lprint_char c)
-
-let printf_string c =
-  if !verbose then
-    (lprint_string c)
-
 let minutes25 = 25 * 60
 
 let new_connection_control () = {

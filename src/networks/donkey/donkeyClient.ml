@@ -55,9 +55,6 @@ open DonkeyThieves
 
 module Udp = DonkeyProtoUdp
 
-let full_client_identifier c =
-    Printf.sprintf "%s (%s) '%s'" (Ip.to_string c.client_ip) (brand_to_string_short c.client_brand) c.client_name
-
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
   lprintf "%s[EDK] "
@@ -128,7 +125,7 @@ let ban_client c sock msg =
     let module M = DonkeyProtoClient in
     
     if !verbose then
-        lprintf_nl () "donkeyclient has been banned: %s %s" msg (full_client_identifier c);
+        lprintf_nl () "banned: %s %s" msg (full_client_identifier c);
     
     count_banned c;
     c.client_banned <- true;
@@ -162,7 +159,7 @@ let request_for c file sock =
               raise Exit;
             end;
           if !verbose then
-              lprintf_nl () "donkeyUploader has been warned: %s"
+              lprintf_nl () "warned, connecting too fast: %s"
                 (full_client_identifier c);
           if !!send_warning_messages then
             client_send c ( M.SayReq  (
@@ -247,23 +244,24 @@ let disconnect_client c reason =
       c.client_source.DonkeySources.source_sock <- NoConnection
   | Connection sock ->
       (try
+	  let log_print cc =
+            lprintf_nl () "Client[%d] %s disconnected, connected %s%s%s"
+	      (client_num cc)
+	      (full_client_identifier cc)
+	      (Date.time_to_string (last_time () - cc.client_connect_time) "verbose")
+	      (if cc.client_uploaded > 0L then
+		Printf.sprintf ", send %s" (size_of_int64 cc.client_uploaded) else "")
+	      (if cc.client_downloaded > 0L then
+		Printf.sprintf ", rec %s" (size_of_int64 cc.client_downloaded) else "")
+	  in
+	  if c.client_debug ||
+	    (!verbose && (c.client_uploaded > 0L || c.client_downloaded > 0L)) then
+	    log_print c;
+
           c.client_comp <- None;
-          if c.client_debug then begin
-            lprintf_nl () "Client[%d]: disconnected" (client_num c);
-          end;
           (try if c.client_checked then count_seen c with _ -> ());
           (try if !!log_clients_on_console && c.client_name <> "" then 
                 log_client_info c sock with _ -> ());
-          
-          (*
-          if c.client_connect_time > 0 then begin
-              lprintf "Disconnected %s\n" (string_of_client c);
-              lprintf "Client connected for %d seconds, %d requests issued\n"
-                (last_time () - c.client_connect_time)
-              c.client_requests_sent
-            end;
-*)
-          
           c.client_connect_time <- 0;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
           (try CommonUploads.remove_pending_slot (as_client c) with _ -> ());
@@ -383,9 +381,8 @@ let find_sources_in_groups c md4 =
                       | Reliability_suspicious _ -> ()
                   ) group.group;
                   if !list <> [] then begin
-                      if !verbose_sources > 2 then begin
+                      if !verbose_sources > 2 then
                           lprintf_nl () "Send %d sources from file groups to mldonkey peer" (List.length !list); 
-                        end;
                       let msg = 
                         let module Q = DonkeyProtoClient.Sources in
                         DonkeyProtoClient.SourcesReq {
@@ -773,7 +770,6 @@ another better way, since this functionnality is still useful...
             Q.id = id;
           }) *)
     | Connection sock ->
-        printf_string "[QUERY ID]";
         server_send sock (
           let module M = DonkeyProtoServer in
           let module C = M.QueryID in
@@ -1301,9 +1297,8 @@ end; *)
       begin
         match c.client_download with
         | Some (file,up) -> 
-            if !verbose_download then begin
+            if !verbose_download then
                 lprintf_nl () "Clear download";
-              end;
             Int64Swarmer.clear_uploader_ranges up;
             c.client_download <- None
         | None ->
@@ -1379,21 +1374,19 @@ other one for unlimited sockets.  *)
           client_enter_upload_queue cc
         end else *)
       CommonUploads.add_pending_slot (as_client c);
-      if !verbose then
+      if !verbose_upload then
           lprintf_nl () "donkeyClient: uploader couldn't get a slot: %s"
             (full_client_identifier c);
 (*      end *)
   
   | M.CloseSlotReq _ ->
       set_client_state c (Connected 0);
-      printf_string "[DOWN]";
       begin
         match c.client_download with
           None -> ()
         | Some (file,up) ->
-            if !verbose_download then begin
+            if !verbose_download then
                 lprintf_nl () "Slot closed during download";
-              end;
             Int64Swarmer.clear_uploader_ranges up
       end;
 (*      DonkeyOneFile.clean_current_download c; *)
@@ -1403,9 +1396,8 @@ other one for unlimited sockets.  *)
         match c.client_file_queue with
           [] -> ()
         | _ -> 
-            if !verbose_download then begin
+            if !verbose_download then
                 lprintf_nl () "CloseSlotReq"; 
-              end;
             DonkeyOneFile.request_slot c;
             set_rtimeout sock !!queued_timeout;
       end
@@ -1421,9 +1413,6 @@ other one for unlimited sockets.  *)
       begin
         try
           let file = find_file t.Q.md4 in
-          let s = Printf.sprintf "[FOUND FILE(%s)]" (match c.client_kind with
-                Direct_address _ -> "OUT" | _ -> "IN") in
-          printf_string s;
           c.client_rating <- c.client_rating + 1;
           
           client_has_file c file;
@@ -1476,16 +1465,14 @@ other one for unlimited sockets.  *)
         let file = find_file t.Q.md4 in
         
         let module Q = M.QueryChunkMd4Reply in
-        if !verbose then begin
-            lprintf_nl () "MD4 FOR CHUNKS RECEIVED";
-          end;
+        if !verbose then
+            lprintf_nl () "Received chunks md4 for %s from %s"
+                (file_best_name file) (full_client_identifier c);
         
-        if file.file_computed_md4s <> [||] then begin
-            if !verbose_hidden_errors then
-              lprintf_nl () "[WARNING] Discarding Chunks Md4: already here";
-          end else
+        if file.file_computed_md4s = [||] then begin
         if file.file_nchunks = 1 then begin
-            lprintf_nl () "[ERROR]: one chunk file without md4";
+            lprintf_nl () "[ERROR] file %s has only one chunk, ignoring QueryChunkMd4ReplyReq"
+	      (file_best_name file);
             file.file_computed_md4s <- [|file.file_md4|];
             match file.file_swarmer with
               None -> ()
@@ -1493,12 +1480,19 @@ other one for unlimited sockets.  *)
                 Int64Swarmer.set_verifier swarmer 
                   (Verification [| Ed2k file.file_md4 |])
           end else
-        if t.Q.chunks = [||] then begin
-            lprintf_nl () "[ERROR]: empty multiple chunks message";
-          end
+        if t.Q.chunks = [||] then
+            lprintf_nl () "[ERROR] received empty chunks md4 message for %s from %s"
+	      (file_best_name file) (full_client_identifier c)
         else
         if Array.length t.Q.chunks <> file.file_nchunks then begin
-            if !verbose then lprintf_nl () "BAD BAD BAD (2): number of chunks is different %d/%d for %s:%Ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+            if !verbose then
+	      lprintf_nl () "[ERROR] number of chunks does not match, received md4s %d/should be %d, for %s(%s):%Ld bytes from %s"
+	        (Array.length t.Q.chunks)
+		file.file_nchunks
+		(file_best_name file)
+		(Md4.to_string file.file_md4)
+		(file_size file)
+		(full_client_identifier c)
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -1517,7 +1511,8 @@ is checked for the file.
             let md4s = t.Q.chunks in
             let md4 = DonkeyShare.md4_of_array md4s in
             if md4 <> file.file_md4 then begin
-                lprintf_nl () "[ERROR]: Bad list of MD4s, discarding";
+                lprintf_nl () "[ERROR] Chunks md4s do not match file_md4 for %s(%s) from %s"
+		  (file_best_name file) (Md4.to_string file.file_md4) (full_client_identifier c);
               end else begin
                 file.file_computed_md4s <- md4s;
                 match file.file_swarmer with
@@ -1527,8 +1522,7 @@ is checked for the file.
                       (Verification (Array.map (fun m -> Ed2k m) md4s))
 
               end
-          
-          
+            end
           end
 (*      if file.file_exists then verify_chunks file *)
       end
@@ -1579,7 +1573,7 @@ is checked for the file.
           let pos = iter comp.comp_blocs in
           assert (pos = comp.comp_len);
             let s = Autoconf.zlib__uncompress_string2 s in
-            if !verbose then
+            if !verbose_download then
         lprintf_nl () "Decompressed: %d/%d" (String.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
@@ -1588,7 +1582,7 @@ is checked for the file.
           c.client_comp <- None;
         end else
       if comp.comp_len > comp.comp_total then begin
-          if !verbose_hidden_errors then
+          if !verbose_unknown_messages then
             lprintf_nl () "ERROR: more data than compressed!";
           c.client_comp <- None;
         end
@@ -1690,21 +1684,14 @@ is checked for the file.
       DonkeySources.query_files c.client_source
         
         with Not_found -> 
+            client_send c (M.NoSuchFileReq md4);
             if !verbose_unexpected_messages then
-              lprintf_nl () "donkeyClient: QueryFileReq: Client %s queried unpublished file %s" (full_client_identifier c) (Md4.to_string md4);
-            client_send c (
-              M.NoSuchFileReq md4);
-            
-           if !verbose then begin
-            lprintf_nl () "DUMPING File table";
-            Hashtbl.iter (fun md4 _ ->
-                lprintf_nl () "    %s" (Md4.to_string md4)
-                ) files_by_md4;
-     end
+              lprintf_nl () "donkeyClient: QueryFileReq: Client %s queried unpublished file %s"
+	        (full_client_identifier c) (Md4.to_string md4)
         | e -> 
             lprintf_nl () "Exception %s in QueryFileReq"
               (Printexc.to_string e)
-      end;
+      end
 
   | M.EmuleSignatureReq t ->
       if !!enable_sui then 
@@ -1802,8 +1789,8 @@ is checked for the file.
               1 -> (1,"SIGNNEEDED") 
             | 2 -> (2,"KEYANDSIGNNEEDED") 
             | e -> (e,"UNKNOWN")) in
-          lprintf_nl () "%s [ESecIdentStateReq] [type: %d (%s)] [reqChall: %Ld] [sendChall: %Ld] [hasKey: %s]" 
-            (full_client_identifier c) lstate lstateString t.Q.challenge c.client_sent_challenge (if has_pubkey c then "true" else "false");
+          lprintf_nl () "%s [ESecIdentStateReq] [type: %d (%s)] [reqChall: %Ld] [sendChall: %Ld] [hasKey: %b]" 
+            (full_client_identifier c) lstate lstateString t.Q.challenge c.client_sent_challenge (has_pubkey c);
         end;
 
         c.client_req_challenge <- t.Q.challenge;
@@ -1957,7 +1944,7 @@ end else *)
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c) ->
       
-      if !verbose then
+      if !verbose_upload then
           lprintf_nl () "donkeyClient: uploader %s ask for block" (full_client_identifier c);
       
       let module Q = M.QueryBloc in
@@ -2042,7 +2029,6 @@ let client_handler c sock event =
       disconnect_client c s;
 
   | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
-      printf_string "[TO?]";
       close sock Closed_for_timeout;
 
       (*
@@ -2062,11 +2048,7 @@ let client_handler2 c sock event =
     Some c -> client_handler c sock event
   | None ->
       match event with
-        BASIC_EVENT (CLOSED s) ->
-          printf_string "-c";
-      
-      | BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
-          printf_string "[TO?]";
+        BASIC_EVENT (LTIMEOUT | RTIMEOUT) ->
           close sock Closed_for_timeout
           
       | _ -> ()
@@ -2267,7 +2249,7 @@ let read_first_message overnet m sock =
       None
   
   | _ -> 
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf_nl () "BAD MESSAGE FROM CONNECTING CLIENT with ip:%s port:%i overnet:%b"
             (Ip.to_string (peer_ip sock)) (peer_port sock) overnet;
@@ -2298,7 +2280,6 @@ let reconnect_client c =
                       set_client_state c Connecting;
 (*                  connection_try c.client_connection_control; *)
                       
-                      printf_string "?C";
                       let sock = TcpBufferedSocket.connect token "donkey to client" 
                           (Ip.to_inet_addr ip)
                         port 

@@ -1087,24 +1087,29 @@ let verify_chunk t i =
             let block_begin = t.t_block_size *.. i in
             let block_end = block_begin ++ t.t_block_size in
             let block_end = min block_end s.s_size in
-            if verify t chunks i block_begin block_end then begin
+            if verify t chunks i block_begin block_end then
+	      begin
                 set_verified_chunk t i;
                 t.t_verified t.t_nverified_blocks i;
-
-              end else begin
-
-                if !verbose_swarming then
-                    lprintf_nl () "Block %d of %s is corrupted !!"
-                        i (file_best_name t.t_file);
+                if !verbose_swarming || !verbose then
+		  lprintf_nl () "Completed block %d/%d of %s"
+                    i t.t_nchunks (file_best_name t.t_file)
+              end
+	    else
+	      begin
+                if !verbose_swarming || !verbose then
+                    lprintf_nl () "Block %d/%d of %s is corrupted !!"
+                        i t.t_nchunks (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
 
                 if List.for_all (fun i ->
                       s.s_verified_bitmap.[i] = '2'
-                  ) t.t_t2s_blocks.(i) then begin
-
-        if !verbose_hidden_errors then
-                    lprintf_nl () "Complete block %d of %s is corrupted (wrong hash), block is being resetted."
-                            i (file_best_name t.t_file);
+                  ) t.t_t2s_blocks.(i)
+		then
+		  begin
+		    if !verbose_swarming || !verbose then
+                      lprintf_nl () "Complete block %d/%d of %s failed verification, reloading..."
+                            i t.t_nchunks (file_best_name t.t_file);
 
                     t.t_converted_verified_bitmap.[i] <- '0';
 
@@ -1122,16 +1127,18 @@ let verify_chunk t i =
 
                         | VerifiedBlock -> assert false
                     ) t.t_t2s_blocks.(i)
-                  end else begin
-                    let nsub = ref 0 in
-
-                    lprintf_n () "  Swarmer was incomplete: ";
-                    List.iter (fun i ->
-                        lprintf "%c" s.s_verified_bitmap.[i];
-                        if s.s_verified_bitmap.[i] = '2' then incr nsub;
-                    ) t.t_t2s_blocks.(i);
-                    lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_t2s_blocks.(i));
-
+                  end
+		else
+		  begin
+		    if !verbose_swarming then begin
+                      let nsub = ref 0 in
+                        lprintf_n () "  Swarmer was incomplete: ";
+                        List.iter (fun i ->
+                          lprintf "%c" s.s_verified_bitmap.[i];
+                          if s.s_verified_bitmap.[i] = '2' then incr nsub;
+                        ) t.t_t2s_blocks.(i);
+                        lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_t2s_blocks.(i))
+		    end;
                     t.t_converted_verified_bitmap.[i] <- '1'
                   end;
               end
@@ -2306,7 +2313,7 @@ let received (up : uploader) (file_begin : Int64.t)
                       string_pos < 0 ||
                       string_pos < string_begin ||
                       string_len < string_length then begin
-                        if !verbose_hidden_errors then
+                        if !verbose then
                         begin
                         lprintf_nl () "BAD WRITE in %s for range %Ld-%Ld (string_pos %d)"
                           (file_best_name t.t_file) r.range_begin r.range_end string_pos;
@@ -2772,7 +2779,7 @@ it is verified as soon as possible. *)
 *)
 
   if primary then begin
-      if !verbose then lprintf_nl () "Loading present...";
+      if !verbose_swarming then lprintf_nl () "Loading present...";
       let present = try
           let present =
             (get_value "file_present_chunks"
@@ -2785,7 +2792,7 @@ it is verified as soon as possible. *)
               (Printexc2.to_string e);
             []
       in
-      if !verbose then lprintf_nl () "Downloaded after present %Ld" (downloaded t);
+      if !verbose_swarming then lprintf_nl () "Downloaded after present %Ld" (downloaded t);
 
 (*
       if !verbose then lprintf_nl () "Loading absent...";
@@ -2802,7 +2809,7 @@ it is verified as soon as possible. *)
       (try
           let d = get_value "file_downloaded" value_to_int64 in
 
-          if d <> downloaded t && !verbose_hidden_errors then begin
+          if d <> downloaded t && !verbose then begin
               lprintf_nl () "ERROR: stored downloaded value not restored  !!! (%Ld/%Ld)" (downloaded t) d;
               lprintf_nl () "ERROR: present:";
               List.iter (fun (x,y) ->

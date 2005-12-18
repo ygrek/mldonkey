@@ -93,7 +93,7 @@ let default_handler gconn sock =
   match !default_handler_hook with
     None ->
       let b = buf sock in
-      if !verbose_hidden_errors then
+      if !verbose then
         lprintf "HttpReader: Handler not found for [%s]\n"
           (String.escaped (String.sub b.buf b.pos b.len));
       close sock (Closed_for_error "not recognized");
@@ -126,7 +126,7 @@ let handlers info gconn =
                       (try 
                           default gconn sock 
                         with e ->
-                            if !verbose_hidden_errors then
+                            if !verbose then
                               lprintf "HttpReader: default handler raised %s\n"
                                 (Printexc2.to_string e);
                             close sock (Closed_for_exception e));
@@ -158,7 +158,7 @@ let handlers info gconn =
                             (try
                                 h gconn sock (first_line, headers);
                               with e ->
-                                if !verbose_hidden_errors then
+                                if !verbose then
                                   lprintf "HttpReader: handler raised %s\n"
                                     (Printexc2.to_string e);
                                   close sock (Closed_for_exception e));
@@ -190,7 +190,7 @@ let handlers info gconn =
           (try
               h gconn sock;
             with e ->
-                if !verbose_hidden_errors then
+                if !verbose then
                   lprintf "Reader: handler raised %s\n"
                     (Printexc2.to_string e);
                 close sock (Closed_for_exception e));

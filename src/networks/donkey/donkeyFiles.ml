@@ -46,8 +46,16 @@ open DonkeyClient
 open CommonGlobals
 open DonkeyStats
 
-let verbose_upload = false
-      
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[EDK] "
+    (log_time ()); lprintf
+
 let msg_block_size_int = 10240
 let msg_block_size = Int64.of_int msg_block_size_int
 let upload_buffer = String.create msg_block_size_int
@@ -80,11 +88,10 @@ module NewUpload = struct
 (*      lprintf "send_small_block %d\n" len_int; *)
 (*      let len_int = Int32.to_int len in *)
       try
-        if !verbose then begin
-            lprintf "send_small_block(%s-%s) %Ld %d "
-              c.client_name (brand_to_string c.client_brand)
+	if !verbose_upload then
+	  lprintf_nl () "send_small_block (%s) %Ld %d"
+	    (full_client_identifier c)
             (begin_pos) (len_int);
-          end;
         
         let msg =  
           (
@@ -113,15 +120,11 @@ module NewUpload = struct
               shared_must_update_downloaded (as_shared impl);
               impl.impl_shared_uploaded <- 
                 impl.impl_shared_uploaded ++ uploaded);
-        if c.client_connected then
-          printf_string "U[OUT]\n"
-        else
-          printf_string "U[IN]\n";
         
         write_string sock upload_buffer;
         check_end_upload c sock
       with e -> 
-          if !verbose_hidden_errors then lprintf "Exception %s in send_small_block\n" (Printexc2.to_string e)
+          if !verbose then lprintf_nl () "Exception %s in send_small_block" (Printexc2.to_string e)
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)
@@ -138,17 +141,15 @@ module NewUpload = struct
             if max_len <= msg_block_size_int then
 (* last block from chunk *)
               begin
-                if verbose_upload then begin
-                    lprintf "END OF CHUNK (%d) %Ld\n" max_len up.up_end_chunk; 
-                  end;
+                if !verbose_upload then
+                    lprintf_nl () "END OF CHUNK (%d) %Ld" max_len up.up_end_chunk; 
                 send_small_block c sock up.up_file up.up_pos max_len;
                 up.up_chunks <- chunks;
                 let per_client = per_client - max_len in
                 match chunks with
                   [] -> 
-                    if verbose_upload then begin
-                        lprintf "NO CHUNKS\n"; 
-                      end;
+                    if !verbose_upload then
+                        lprintf_nl () "NO CHUNKS";
                     c.client_upload <- None;
                 | (begin_pos, end_pos) :: _ ->
                     up.up_pos <- begin_pos;

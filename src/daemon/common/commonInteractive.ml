@@ -746,7 +746,7 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then lprintf_nl "[cInt]Change option %s" name;
+  if !verbose then lprintf_nl "[cInt] Change option %s" name;
   let rec iter prefix opfile =
     let args = simple_options prefix opfile in
     List.iter (fun o ->
@@ -769,7 +769,7 @@ let apply_on_fully_qualified_options name f =
               false
             with Exit -> true
         )) then begin
-        lprintf_nl "[cInt]Could not set option %s" name;
+        lprintf_nl "[cInt] Could not set option %s" name;
         raise Not_found
       end
   with Exit -> ()

@@ -122,7 +122,6 @@ let supernode_browse_handler node msg sock =
       close sock Closed_by_user
 
   | M.ConnectReplyReq t ->
-      printf_string "******* [BROWSE CCONN OK] ********";
       node.node_md4 <- t.M.Connect.md4;
 
   | _ -> (* Don't care about other messages *)
@@ -138,7 +137,6 @@ let supernode_browse_client node =
           TcpBufferedSocket.set_write_controler sock upload_control;
           set_rtimeout sock !!client_timeout;
           set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-              printf_string "[BR?]";
               close s Closed_for_timeout
           );
           let emule_proto = emule_proto () in

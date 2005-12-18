@@ -506,7 +506,7 @@ let parse pkt =
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
             (UNKNOWN i,pkt.pkt_payload) }
   with e ->
-      if !verbose_hidden_errors then
+      if !verbose_unknown_messages then
         begin
           lprintf "Exception in parse: %s\n" (Printexc2.to_string e);
           dump pkt.pkt_payload;

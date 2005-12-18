@@ -178,9 +178,7 @@ let input_result ic =
   *)
 
 let input_old_result ic = 
-  printf_char '<';
   let hresult = Pervasives.input_value ic in
-  printf_char '>';
   
   let o = Obj.repr hresult in
   lprintf "Type int: %s\n" (string_of_bool (Obj.is_int o));
@@ -198,7 +196,6 @@ let input_old_result ic =
       result_comment = "";
       result_done = false;
     } in
-  printf_char '!';
   List.iter (fun tag ->
       match tag with
         { tag_name = "format"; tag_value = String s } ->
@@ -523,7 +520,6 @@ let load_old_history () =
   let ic = open_in "history.dat" in
   try
     while true do
-      printf_char '.';
       ignore (index_result_no_filter (input_old_result ic))
     done
   with _ -> close_in ic
