@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/19
+4726: New option space_overhead to adjust garbage collection (bogeyman)
 4724: Windows: 10 seconds pause when core start fails
       to make error messages readable
 

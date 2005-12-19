@@ -1404,6 +1404,15 @@ let compaction_overhead = define_expert_option current_section
     "The percentage of free memory before a compaction is triggered"
     int_option 25
 
+let space_overhead = define_expert_option current_section
+    ["space_overhead"]
+    "The major GC speed is computed from this parameter. This is the memory
+    that will be \"wasted\" because the GC does not immediatly collect 
+    unreachable blocks. It is expressed as a percentage of the memory used
+    for live data. The GC will work more (use more CPU time and collect 
+    blocks more eagerly) if space_overhead is smaller."
+    int_option 80
+
 let max_displayed_results = define_expert_option current_section
     ["max_displayed_results"]
     "Maximal number of results displayed for a search"
@@ -1586,6 +1595,10 @@ let _ =
   option_hook compaction_overhead (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };
+  );
+  option_hook space_overhead (fun _ ->
+      let gc_control = Gc.get () in
+      Gc.set { gc_control with Gc.space_overhead = !!space_overhead };
   );
   option_hook web_infos (fun _ ->
       List.iter (fun remove ->
