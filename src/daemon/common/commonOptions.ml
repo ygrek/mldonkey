@@ -149,6 +149,11 @@ let _ =
 	  if Sys.file_exists config_space then begin
             lprintf_nl "%s exists." (Filename.concat file_basedir config_space);
 	    lprintf "%s" (exit_message config_space);
+	    if Autoconf.windows then
+	      begin
+	        lprintf_nl "waiting 10 seconds to exit...";
+		Unix.sleep 10
+	      end;
 	    exit 2
 	    end;
         let pid =
