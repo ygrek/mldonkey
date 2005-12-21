@@ -94,19 +94,29 @@ let decode_torrent s =
             let current_length = ref zero in
             let length_set = ref false in
 
-            List.iter (fun (key, value) ->
-                match key, value with
-                  String "path", List path ->
-                    current_file :=
+            let path_list_to_string l =
                     Filepath.path_to_string '/'
-                      (List.map (fun v ->
+                (
+                  List.map (fun v ->
                           match v with
                             String s -> s
                           | _ -> assert false
-                      ) path);
+                  ) l
+                )
+            in
+
+            List.iter (fun (key, value) ->
+                match key, value with
+                  String "path", List path ->
+                    if !current_file = "" then begin
+                      current_file := path_list_to_string path;
+                      if !verbose_msg_servers then
+                        lprintf_nl "[BT]: Parsed a new path: [%s]" !current_file
+                    end   
+                | String "path.utf-8", List path_utf8 -> 
+                    current_file := path_list_to_string path_utf8;
                     if !verbose_msg_servers then
-                      lprintf_nl "[BT]: New file received :%s" !current_file
-                | String "path.utf-8", String path_utf8 -> ()
+                      lprintf_nl "[BT]: Parsed path.utf-8: [%s]" !current_file
                 | String "length", Int n ->
                     length := !length ++ n;
                     current_length := n;
