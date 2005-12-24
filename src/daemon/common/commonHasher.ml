@@ -79,8 +79,6 @@ let _ =
                   | MD4 -> "MD4");
               end;
             job_start job fd;
-            if !verbose_md4 then
-              lprintf_nl "[cHa] Job started"
           with e ->
               lprintf_nl "[cHa] Exception %s in starting job"
                 (Printexc2.to_string e);

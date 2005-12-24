@@ -682,15 +682,18 @@ let save_sources _ =
 
 let guptime () = !!guptime - !diff_time
   
-let load_sources () = 
-  (try 
-(*      lprintf "load_sources: loading sources\n"; *)
+let load_sources () =
+  (lprintf "(loading sources ";
+   try 
       let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
       cleaner ();
+      lprintf ".";
       Options.load file_sources_ini;
+      lprintf ".";
       cleaner ();
+      lprintf ".";
       sources_loaded := true;
-(*      lprintf "load_sources: sources loaded\n"; *)
+      lprintf " completed) ";
       List.iter (fun list ->
           let files = ref [] in
           List.iter (fun m ->

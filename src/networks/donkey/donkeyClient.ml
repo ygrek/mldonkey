@@ -150,17 +150,18 @@ let request_for c file sock =
     try
       let record = Hashtbl.find old_requests (client_num c, file_num file) in
       if record.last_request + 540 > last_time () then begin
-          record.nwarnings <- record.nwarnings+ 1;
+          let old_time = last_time () - record.last_request in
+          record.nwarnings <- record.nwarnings + 1;
           record.last_request <- last_time ();
           if record.nwarnings > 3 then raise Exit;
           let module M = DonkeyProtoClient in
-          if record.nwarnings =3 then begin
+          if record.nwarnings = 3 then begin
               ban_client c sock "is connecting too fast";
               raise Exit;
             end;
           if !verbose then
-              lprintf_nl () "warned, connecting too fast: %s"
-                (full_client_identifier c);
+              lprintf_nl () "warning no. %d, connecting too fast (last connect %d sec. ago): %s"
+	        record.nwarnings old_time (full_client_identifier c);
           if !!send_warning_messages then
             client_send c ( M.SayReq  (
                 "[AUTOMATED WARNING] Your client is connecting too fast, it will get banned"))
@@ -1453,10 +1454,13 @@ other one for unlimited sockets.  *)
           try
             let file = find_file t.Q.md4 in
               received_client_bitmap c file t.Q.chunks
-          with e -> if !verbose then
-            lprintf_nl () "Exception %s in Query Chunks Reply file-md4: %s client was %s"
-                    (Printexc2.to_string e) (Md4.to_string t.Q.md4)
-                        (full_client_identifier c)
+          with e ->
+	    client_send c (M.NoSuchFileReq t.Q.md4);
+	    if !verbose then lprintf_nl ()
+	      "QueryChunksReply: Client (%s) asked for file_md4 %s, Exception %s"
+	      (full_client_identifier c)
+	      (Md4.to_string t.Q.md4)
+	      (Printexc2.to_string e)
       end
   
   | M.QueryChunkMd4ReplyReq t ->
@@ -1583,7 +1587,8 @@ is checked for the file.
         end else
       if comp.comp_len > comp.comp_total then begin
           if !verbose_unknown_messages then
-            lprintf_nl () "ERROR: more data than compressed!";
+            lprintf_nl () "eMule compressed data, ignoring, more data (%d) than compressed (%d) from %s for %s"
+	      comp.comp_len comp.comp_total (full_client_identifier c) (Md4.to_string comp.comp_md4);
           c.client_comp <- None;
         end
   
@@ -1649,7 +1654,7 @@ is checked for the file.
                   (full_client_identifier c) (Md4.to_string md4);
           if Random.int 100 < 3 && !!send_warning_messages then
             client_send c (
-                M.SayReq "[AUTOMATED WARNING] Please, update your MLdonkey client to at least version 2.5-16v!");
+                M.SayReq "[AUTOMATED WARNING] Please, update your MLdonkey client to at least version 2.7.0!");
         end;
       
       begin try   
@@ -2571,7 +2576,7 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
         
       with e -> 
-        if !verbose then begin
-          lprintf_nl () "remove_location: exception %s" (Printexc2.to_string e);
-        end
+        if !verbose then
+          lprintf_nl () "remove_location for file_md4 %s: exception %s"
+	    file_uid (Printexc2.to_string e)
   )

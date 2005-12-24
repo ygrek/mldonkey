@@ -1093,13 +1093,10 @@ let verify_chunk t i =
                 t.t_verified t.t_nverified_blocks i;
                 if !verbose_swarming || !verbose then
 		  lprintf_nl () "Completed block %d/%d of %s"
-                    i t.t_nchunks (file_best_name t.t_file)
+                    (i + 1) t.t_nchunks (file_best_name t.t_file)
               end
 	    else
 	      begin
-                if !verbose_swarming || !verbose then
-                    lprintf_nl () "Block %d/%d of %s is corrupted !!"
-                        i t.t_nchunks (file_best_name t.t_file);
                 t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
 
                 if List.for_all (fun i ->
@@ -1109,7 +1106,7 @@ let verify_chunk t i =
 		  begin
 		    if !verbose_swarming || !verbose then
                       lprintf_nl () "Complete block %d/%d of %s failed verification, reloading..."
-                            i t.t_nchunks (file_best_name t.t_file);
+                            (i + 1) t.t_nchunks (file_best_name t.t_file);
 
                     t.t_converted_verified_bitmap.[i] <- '0';
 

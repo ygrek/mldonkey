@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/24
+4732: Log: More infos for verbosity = " verb"
+
 2005/12/21
 4728: fix date format (zet)
 4730: BT: parse path.utf-8 (zet)

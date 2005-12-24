@@ -165,7 +165,8 @@ let propose_source file c kind =
         Fifo.put propositions (s, file, kind, last_time ())
     | _ ->
         if !verbose then
-          lprintf_nl () "ERROR, proposed client is indirect";
+          lprintf_nl () "Neighbours: error: proposed client (%s) is indirect for file %s"
+	    (full_client_identifier c) (file_best_name file);
         raise Exit
 
   with Exit ->

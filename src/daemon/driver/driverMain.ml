@@ -347,7 +347,7 @@ let load_config () =
       _s " : find another port when one is already used";
       "-pid", Arg.String (fun s -> pid := s;
       ),
-       _s ": directory for pid file (works only on non-Windows platforms)";
+       _s ": directory for pid file";
     ] @
       !more_args
       @
@@ -429,8 +429,8 @@ or getting a binary compiled with glibc %s.\n\n")
   lprintf (_b "%senabling networks: ") (log_time ());
   networks_iter (fun r ->
 (*      lprintf "(4) networks_iter enabling\n"; *)
-      network_enable r;
       lprintf (_b "%s ") r.network_name;
+      network_enable r;
 (* are there drawbacks to start recover_temp unconditionally here ? *)
       if !!recover_temp_on_startup then
         network_recover_temp r;
