@@ -21,7 +21,6 @@ open Int64ops
 open Printf2
 open Md4
 open Options
-open Options
 open BasicSocket
 open TcpBufferedSocket
 open Ip_set
@@ -450,28 +449,31 @@ let _ =
         ""
     ), ":\t\t\t\tcore uptime";
 
-    "buildinfo", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let runinfo = CommonComplexOptions.runinfo () in
-        let buildinfo = CommonComplexOptions.buildinfo () in
-        if o.conn_output = HTML then
-          begin
-            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            html_mods_table_header buf "versionTable" "results" [];
-            Printf.bprintf buf "\\<tr\\>";
-            html_mods_td buf [ ("", "srh", "Buildinfo"); ];
-            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-            html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" buildinfo); ];
-            Printf.bprintf buf "\\</tr\\>\\<tr\\>";
-            html_mods_td buf [ ("", "srh", "Runinfo"); ];            
-            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-            html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" runinfo); ];            
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-          end
-        else
-            Printf.bprintf buf "Buildinfo:\n%s\nRuninfo:\n%s" buildinfo runinfo;
+    "sysinfo", Arg_none (fun o ->
+	let buf = o.conn_buf in
+        let buildinfo = CommonComplexOptions.buildinfo o buf in
+        let runinfo = CommonComplexOptions.runinfo o buf in
+        let diskinfo = CommonComplexOptions.diskinfo o buf in
         ""
-    ), ":\t\t\t\tprint mldonkey core build and runtime information";
+    ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
+
+    "buildinfo", Arg_none (fun o ->
+	let buf = o.conn_buf in
+        let buildinfo = CommonComplexOptions.buildinfo o buf in
+        ""
+    ), ":\t\t\t\tprint mldonkey core build information";
+
+    "runinfo", Arg_none (fun o ->
+	let buf = o.conn_buf in
+        let runinfo = CommonComplexOptions.runinfo o buf in
+        ""
+    ), ":\t\t\t\tprint mldonkey runtime information";
+
+    "diskinfo", Arg_none (fun o ->
+	let buf = o.conn_buf in
+        let diskinfo = CommonComplexOptions.diskinfo o buf in
+        ""
+    ), ":\t\t\t\tprint mldonkey disk information";
 
     "activity", Arg_one (fun arg o ->
         let arg = int_of_string arg in
@@ -2013,11 +2015,6 @@ let _ =
 
             let counter = ref 0 in
 
-(* TODO update HTML for incoming directories now in shared_directories
-            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>0\\</td\\>\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
-*)
-
             List.iter (fun shared_dir ->
 		let dir = shared_dir.shdir_dirname in
 		incr counter;
@@ -2054,67 +2051,12 @@ let _ =
             )
             !!shared_directories;
   
-		incr counter;
-	      let dir = !!temp_directory in
-		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-	\\<td title=\\\"\\\"
-	class=\\\"srb\\\"\\>------\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
-		0
-		dir
-		"temp_directory"
-	      (match Unix32.diskused dir with
-	      | None -> "---"
-	      | Some du -> size_of_int64 du)
-	      (match Unix32.diskfree dir with
-	      | None -> "---"
-	      | Some df -> size_of_int64 df)
-	      (match Unix32.percentfree dir with
-	      | None -> "---"
-	      | Some p -> Printf.sprintf "%d%%" p)
-	      (Unix32.filesystem dir);
-
-	    let dir = Sys.getcwd () in
-		incr counter;
-		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-	\\<td title=\\\"\\\"
-	class=\\\"srb\\\"\\>------\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
-		0
-		dir
-		"core_directory"
-	      (match Unix32.diskused dir with
-	      | None -> "---"
-	      | Some du -> size_of_int64 du)
-	      (match Unix32.diskfree dir with
-	      | None -> "---"
-	      | Some df -> size_of_int64 df)
-	      (match Unix32.percentfree dir with
-	      | None -> "---"
-	      | Some p -> Printf.sprintf "%d%%" p)
-	      (Unix32.filesystem dir);
-
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
           end
         else
           begin
 
             Printf.bprintf buf "Shared directories:\n";
-(*            Printf.bprintf buf "  %d %s\n" !!incoming_directory_prio !!incoming_directory; *)
             List.iter (fun sd ->
                 Printf.bprintf buf "  %d %s %s\n"
                 sd.shdir_priority sd.shdir_dirname sd.shdir_strategy)

@@ -21,8 +21,9 @@ val load : unit -> unit
 val save : unit -> unit
 val save_sources : unit -> unit
 val backup_options : unit -> unit
-val buildinfo : unit -> string
-val runinfo : unit -> string
+val buildinfo : CommonTypes.ui_conn -> Buffer.t -> unit
+val runinfo : CommonTypes.ui_conn -> Buffer.t -> unit
+val diskinfo : CommonTypes.ui_conn -> Buffer.t -> unit
   
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
