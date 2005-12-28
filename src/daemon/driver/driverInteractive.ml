@@ -815,7 +815,7 @@ let simple_print_file_list finished buf files format =
                     "-", "$n"
                   else
                     Printf.sprintf "%4.1f" (
-                      file.file_download_rate /. 1024.), "$b"
+                      file.file_download_rate /. 1024.), "$c"
             in
             [|
               (Printf.sprintf "%0s[%0s]%0s"

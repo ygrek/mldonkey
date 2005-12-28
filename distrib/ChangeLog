@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2005/12/28
+4712: Change terminal color for downloading files from blue to cyan (romildo)
+
 2005/12/24
 4732: Log: More infos for verbosity = " verb"
 

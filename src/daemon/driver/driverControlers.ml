@@ -79,6 +79,11 @@ let rec dollar_escape o with_frames s =
               Buffer.add_string b Terminal.ANSI.ansi_GREEN;
             false
 
+        | 'c' ->
+            if o.conn_output = ANSI then
+              Buffer.add_string b Terminal.ANSI.ansi_CYAN;
+            false
+
         | 'n' ->
             if o.conn_output = ANSI then
               Buffer.add_string b Terminal.ANSI.ansi_NORMAL;
