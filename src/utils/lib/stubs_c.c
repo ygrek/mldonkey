@@ -23,15 +23,13 @@
 #include <string.h> 
 #include <ctype.h>
 #include <caml/config.h>
+#include <caml/signals.h>
 
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
 #define ftruncate XXXXXXXXX
 
 #define UNIX_BUFFER_SIZE 16384
-
-extern void enter_blocking_section(); 
-extern void leave_blocking_section();
 
 
 /*******************************************************************

@@ -21,10 +21,10 @@
 #include "../../../config/config.h"
 #include "../../utils/lib/os_stubs.h"
 
-#include "caml/mlvalues.h"
-#include "caml/fail.h"
-#include "caml/alloc.h"
-#include "caml/signals.h"
+#include <caml/mlvalues.h>
+#include <caml/fail.h>
+#include <caml/alloc.h>
+#include <caml/signals.h>
 
 #define METHOD_MD4      Val_int(0)
 #define METHOD_MD5      Val_int(1)
@@ -286,6 +286,8 @@ static pthread_t pthread;
 static pthread_cond_t cond;
 static pthread_mutex_t mutex;
 
+static char *p_job_result = (char *)job_result;
+
 value ml_job_done(value job_v)
 {
   if(job_done){
@@ -294,7 +296,7 @@ value ml_job_done(value job_v)
     int result_len = string_length(result_v);
 
 /*    printf("job len done: %d\n", result_len);     */
-    memcpy(result, job_result, result_len);
+    memcpy(result, p_job_result, result_len);
     return Val_true;
   }
 
@@ -331,17 +333,17 @@ static void * hasher_thread(void * arg)
 /*      fprintf(stderr,"job started\n");   */
       
       if(job_method == METHOD_MD4)
-        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
       else
         if( job_method == METHOD_MD5)
-          md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+          md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
         else
           if( job_method == METHOD_SHA1)
-            sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+            sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
           else 
             if( job_method == METHOD_TIGER){
               long bsize = tiger_block_size(job_len);
-              tiger_tree_fd(job_fd, job_len, 0, bsize, job_result);
+              tiger_tree_fd(job_fd, job_len, 0, bsize, p_job_result);
             } else {
               printf("commonHasher_c.c: method sha1 not implemented\n");
               exit(2);

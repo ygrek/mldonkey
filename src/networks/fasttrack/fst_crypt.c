@@ -98,9 +98,7 @@ void fst_cipher_crypt (FSTCipher *cipher, unsigned char *data, int len)
 
 int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type)
 {
-	int i,j;
-	unsigned int temp;
-	unsigned int sortpos;
+	unsigned int j, i, temp, sortpos;
 	unsigned char c;
 
 	cipher->enc_type = enc_type;
@@ -216,9 +214,7 @@ unsigned int fst_cipher_mangle_enc_type (unsigned int seed, unsigned int enc_typ
 
 static int pad_init (unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
 {
-	int i;
-	unsigned int temp;
-	unsigned int seed = *pseed;
+	unsigned int temp, i, seed = *pseed;
 	
 	memset (pad, 0, pad_size);
 
@@ -340,7 +336,7 @@ unsigned char fst_cipher_clock (FSTCipher *cipher)
 	 */
 	if (cipher->pos == 7 && ((xor & 0x70) == 0))
 	{
-		int i;
+		unsigned int i;
 		/* Which 5 elements should we sort?  We calculate this in a
 		 * pretty odd manner. */
 		int sortpos = xor + cipher->pad[2];

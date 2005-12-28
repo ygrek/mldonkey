@@ -1198,7 +1198,7 @@ ml_win32_get_default_language (void)
 
 size_t 
 ml_iconv (iconv_t cd,
-          char    **inbuf,
+          const char    **inbuf,
           size_t  *inbytes_left,
           char    **outbuf,
           size_t  *outbytes_left)
@@ -1234,7 +1234,7 @@ ml_convert_with_iconv (const char *str,
 
  again:
   
-  err = ml_iconv (cd, (char **)&p, &inbytes_remaining, &outp, &outbytes_remaining);
+  err = ml_iconv (cd, (const char **)&p, &inbytes_remaining, &outp, &outbytes_remaining);
 
   if (err == (size_t) -1)
     {

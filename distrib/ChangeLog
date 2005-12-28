@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/28
+4704: Fix some C compile warnings (schlumpf)
 4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatability
 * Cross-compiling is only possible with a correct Ocaml toolchain
 * MLDonkey can not build this Ocaml toolchain
