@@ -181,7 +181,11 @@ let _ =
 	      if Autoconf.system = "mingw" then lprintf_nl
 	        "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
 	      lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
-        exit 2
+	      if Autoconf.system = "mingw" then begin
+	        lprintf_nl "waiting 10 seconds to exit...";
+		Unix.sleep 10;
+	      end;
+	      exit 2
       end;
 
   let filename =
