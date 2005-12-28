@@ -241,7 +241,7 @@ AC_EXEEXT
 AC_PROG_CPP
 AC_PROG_CXX
 
-AC_CHECK_PROG(NEWCXX, [$CXX], [$CXX], [no])
+AC_CHECK_TOOL(NEWCXX, [$CXX], [$CXX], [no])
 if test x"$NEWCXX" = x"no"
 then
   AC_MSG_ERROR("No valid c++ compiler found")
@@ -291,7 +291,7 @@ LOCAL=$LOCAL_DIR
 LOCAL_OCAML=$LOCAL_DIR/bin
 
 AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$LOCAL_DIR/bin:$PATH])
-AC_CHECK_PROG(OCAMLC,ocamlc,ocamlrun ocamlc)
+AC_CHECK_TOOL(OCAMLC,ocamlc,ocamlrun ocamlc)
 
 case "$host" in
   alpha*-*-osf*)                arch=alpha; system=digital;;
@@ -326,7 +326,7 @@ esac
 
 
 BUILD_OCAML=no
-if test -z "$ac_cv_prog_OCAMLC"; then
+if test -z "$OCAMLC"; then
    BUILD_OCAML=yes
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
@@ -334,52 +334,11 @@ else
     "$REQUIRED_OCAML"*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
-    3.08.2*)
-        if test "$system" = "rhapsody"; then
-            case "$OCAMLVERSION" in
-                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
-                *)
-                    echo "Need build"
-                    BUILD_OCAML=yes
-                    ;;
-            esac
-        fi
-        ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
         ;;
   esac
-fi
-
-if test "$BUILD_OCAML" = "yes"; then
-
-  AC_CHECK_FILE("$LOCAL_OCAML"/ocamlc.opt, [
-    OCAMLVERSION=`$LOCAL_OCAML/ocamlc.opt -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-    REBUILD_OCAML=no
-  case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*) ;;
-    3.08.2*)
-        if test "$system" = "rhapsody"; then
-            case "$OCAMLVERSION" in
-                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
-                *)
-                    REBUILD_OCAML=yes
-                    ;;
-            esac
-        fi
-        ;;
-    *)
-        REBUILD_OCAML=yes
-        ;;
-  esac
-    if test "$REBUILD_OCAML" = "no"; then
-        echo "Need rebuild"
-        BUILD_OCAML=no
-        OCAMLC=$LOCAL_OCAML/ocamlc.opt
-        ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
-    fi
-  ])
 fi
 
 AC_CHECK_PROG(RPMBUILD,rpmbuild,rpmbuild)
@@ -410,8 +369,6 @@ if test "$BUILD_OCAML" = "yes"; then
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
         $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$DOWNLOAD_OCAML".tar.gz
-        # $WGET http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
-        # $WGET http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then exit 1; fi
 
@@ -426,7 +383,7 @@ if test "$BUILD_OCAML" = "yes"; then
         patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
       fi
       echo Configuring ...
-      ./configure -prefix $LOCAL_DIR
+      ./configure -prefix $LOCAL_DIR -host $host -cc $CC
       cd config
       cp -f Makefile Makefile.old
       sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
@@ -509,16 +466,6 @@ case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
-    3.08.2*)
-        if test "$system" = "rhapsody"; then
-            case "$OCAMLVERSION" in
-                3.08.2+4* | 3.08.2+5* | 3.08.2+6* | 3.08.2+7* | 3.08.2+8*) ;;
-                *)
-                    REBUILD_OCAML=yes
-                    ;;
-            esac
-        fi
-        ;;
     *)
         REBUILD_OCAML=yes
         ;;

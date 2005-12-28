@@ -12,6 +12,10 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/28
+4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatability
+* Cross-compiling is only possible with a correct Ocaml toolchain
+* MLDonkey can not build this Ocaml toolchain
+* This patch only fixes some autoconf checks
 4735: MinGW: pause before core exit because of existing Pid file
 4736: New commands: sysinfo, runinfo and diskinfo
 * removed temp_directory and core_directory from shares command output
