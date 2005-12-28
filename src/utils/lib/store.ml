@@ -129,8 +129,6 @@ let file_remove file pos =
 
 (********************** STORE FUNCTIONS *****************)
   
-let max_cache_size = 2000
-  
 let create name =
   {
     store_name = name;

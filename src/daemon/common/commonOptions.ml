@@ -106,10 +106,15 @@ If you are using a chroot environment, create it inside the chroot.\n" file
 
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
-  lprintf_nl "Language %s, locale %s"
-    Charset.default_language Charset.locstr;
+  lprintf_nl "Language %s, locale %s, ulimit for open files %d"
+    Charset.default_language Charset.locstr (Unix2.c_getdtablesize ());
   lprintf_nl "MLDonkey is working in %s" file_basedir;
 
+  let ulof = Unix2.c_getdtablesize () in
+  if ulof < 150 then begin
+    lprintf_nl "ulimit for open files is set to %d, at least 150 is required, exiting..." ulof;
+    exit 2
+  end;
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
@@ -421,7 +426,38 @@ may have spaces (put it in quotation then)."
     "exit", "q";
   ]
 
-
+let verbosity = define_expert_option current_section ["verbosity"]
+  "A space-separated list of keywords. Each keyword triggers
+  printing information on the corresponding messages:
+  verb : verbose mode (interesting not only for coders)
+  mc : debug client messages
+  mr|raw : debug raw messages
+  mct : debug emule clients tags
+  ms : debug server messages
+  sm : debug source management
+  net : debug net
+  gui : debug gui
+  do : some download warnings
+  up : some upload warnings
+  unk : unknown messages
+  ov : overnet
+  loc : debug source research
+  share: debug sharing
+  md4 : md4 computation
+  connect : debug connections
+  udp : udp messages
+  ultra|super : debug supernode
+  swarming : debug swarming
+  hc : http_client messages
+  hs : http_server messages
+  act : debug activity
+  bw : debug bandwidth
+  tor : debug .torrent loading
+  file : debug file handling
+  redir : debug redirector
+  unexp : debug unexpected messages
+"
+    string_option ""
 
 
 (*************************************************************************)
@@ -442,11 +478,14 @@ let max_hard_download_rate = define_option current_section ["max_hard_download_r
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 50
 
-
 let max_opened_connections = define_option current_section
     ["max_opened_connections"] "Maximal number of opened connections"
-  int_option (min MlUnix.max_sockets 200)
+  int_option 200
 
+let max_indirect_connections = define_option current_section
+    ["max_indirect_connections"]
+  "Amount of indirect connections in percent (max 50) of max_opened_connections, additional to max_opened_connections"
+  int_option 20
 
 let max_upload_slots = define_option current_section ["max_upload_slots"]
     "How many slots can be used for upload"
@@ -940,7 +979,7 @@ let emulate_sparsefiles = define_expert_option current_section
 let max_concurrent_downloads = define_option current_section
     ["max_concurrent_downloads"]
   "The maximal number of files in Downloading state (other ones are Queued)"
-    int_option 60
+    int_option 50
 
 let sources_per_chunk =
   define_expert_option current_section ["sources_per_chunk"]
@@ -1454,38 +1493,6 @@ let log_file = define_expert_option current_section ["log_file"]
     also enable logging in a file after startup using the 'log_file' command."
   string_option "mlnet.log"
 
-let verbosity = define_expert_option current_section ["verbosity"]
-  "A space-separated list of keywords. Each keyword triggers
-  printing information on the corresponding messages:
-  mc : debug client messages
-  mr|raw : debug raw messages
-  mct : debug emule clients tags
-  ms : debug server messages
-  verb : debug other
-  sm : debug source management
-  net : debug net
-  gui : debug gui
-  do : some download warnings
-  up : some upload warnings
-  unk : unknown messages
-  ov : overnet
-  loc : debug source research
-  share: debug sharing
-  md4 : md4 computation
-  connect : debug connections
-  udp : udp messages
-  ultra|super : debug supernode
-  swarming : debug swarming
-  hc : http_client messages
-  hs : http_server messages
-  act : debug activity
-  bw : debug bandwidth
-  tor : debug .torrent loading
-  file : debug file handling
-  redir : debug redirector
-  unexp : debug unexpected messages
-"
-    string_option ""
 
 
 
@@ -1866,5 +1873,10 @@ let rec update_options () =
             "http://www.gruk.org/server.met.gz");
         ];
       update 5
+
+  | 5 ->
+      if !!max_indirect_connections > 50 then
+          max_indirect_connections =:= 20;
+      update 6
 
   | _ -> ()

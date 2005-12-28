@@ -97,13 +97,6 @@ let setuid = Unix.setuid
 let set_close_on_exec = Unix.set_close_on_exec
 let set_signal signal f = Sys.set_signal signal f
   
-  
-external getdtablesize : unit -> int = "ml_getdtablesize"
-  
-let max_all_sockets = getdtablesize ()
-let max_sockets = max (max_all_sockets - 100) (max_all_sockets / 2)
-let max_filedescs = (max_all_sockets - max_sockets) / 2
-
 let chroot = Unix.chroot  
 
 let write = Unix.write

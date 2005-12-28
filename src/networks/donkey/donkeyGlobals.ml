@@ -61,7 +61,7 @@ let network = CommonNetwork.new_network "ED2K" "Donkey"
   ]
 
 let connection_manager = network.network_connection_manager
-let connections_controler = TcpServerSocket.create_connections_contoler
+let connections_controler = TcpServerSocket.create_connections_controler
     "Edonkey" (fun _ _ -> true)
 
 let (shared_ops : file CommonShared.shared_ops) =

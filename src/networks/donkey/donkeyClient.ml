@@ -2398,17 +2398,13 @@ let query_locations_reply s t =
     ) t.Q.locs;
   with Not_found -> ()
       
-let can_open_indirect_connection () =
-  let ns = nb_sockets () in
-  ns < MlUnix.max_sockets &&
-  !DonkeySources.indirect_connections < !!max_indirect_connections
-
 let client_connection_handler overnet t event =
 (*  lprintf "[REMOTE CONN]\n"; *)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = (Ip.of_inet_addr from_ip) in
-      if can_open_indirect_connection () &&
+      if !DonkeySources.indirect_connections <
+         !!max_opened_connections * !!max_indirect_connections / 100 &&
         (match Ip_set.match_ip !Ip_set.bl from_ip with
                    None -> true
                  | Some br ->

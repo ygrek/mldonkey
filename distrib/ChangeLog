@@ -12,6 +12,19 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2005/12/28
+4725: Check if ulimit is sufficient for MLDonkey,
+      auto-adjust max_opened_connections
+* moved ED2K-max_indirect_connections to downloads.ini
+* max_indirect_connections is now a %-value of max_opened_connections
+* minimum ulimit for open files is now 150 (most systems have 1024),
+  MLDonkey will refuse to start if ulimit is lower
+* minimum max_opened_connections is now 75
+* reduced max_concurrent_downloads from 60 to 50
+* minimum ulimit -n 150 is used like this:
+  - 75 max_opened_connections
+  - 50 downloading files
+  - 5 upload slots
+  - 20 fd as reserve for ini files
 4704: Fix some C compile warnings (schlumpf)
 4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatability
 * Cross-compiling is only possible with a correct Ocaml toolchain

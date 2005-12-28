@@ -30,5 +30,5 @@ val debug : bool ref
   
 type connections_controler    
 val set_accept_controler : t -> connections_controler -> unit
-val create_connections_contoler : string -> (int -> int -> bool) -> connections_controler
+val create_connections_controler : string -> (int -> int -> bool) -> connections_controler
   

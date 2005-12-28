@@ -116,7 +116,7 @@ let create name addr port handler =
 	Pervasives.exit 69
       | _ -> raise e
   
-let create_connections_contoler name f =
+let create_connections_controler name f =
   let cc = {
       cc_name = name;
       nconnections_last_second = 0;

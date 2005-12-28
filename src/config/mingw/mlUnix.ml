@@ -68,9 +68,6 @@ let setuid uid = ()
 let set_close_on_exec fd = ()
 let set_signal signal f = Sys.set_signal signal f
   
-external getdtablesize : unit -> int = "ml_getdtablesize"
-  
-let max_sockets = getdtablesize () - 10
 let max_filedescs = 50
   
 let chroot _ = ()

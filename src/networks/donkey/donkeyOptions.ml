@@ -130,11 +130,6 @@ through the list (should be greater than become_master_delay)" int_option 300
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
     int_option 3 *)
 
-let max_indirect_connections = define_option donkey_section
-    ["max_indirect_connections"]
-  "Maximal number of indirect connections at any moment"
-  int_option (!!max_opened_connections/2)
-
 let log_clients_on_console = define_expert_option donkey_section
   ["log_clients_on_console"]
   ""

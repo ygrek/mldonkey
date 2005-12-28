@@ -449,8 +449,6 @@ or getting a binary compiled with glibc %s.\n\n")
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
 
-  TcpBufferedSocket.set_max_opened_connections
-    (fun _ -> !!max_opened_connections);
   TcpBufferedSocket.set_max_connections_per_second
     (fun _ -> !!max_connections_per_second);
 
@@ -552,9 +550,7 @@ or getting a binary compiled with glibc %s.\n\n")
     (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping MLDonkey...";
         CommonInteractive.clean_exit 0));
 
-  if !verbose then lprintf_nl (_b "Activated system signal handling");
-
-  Unix32.max_cache_size := MlUnix.max_filedescs
+  if !verbose then lprintf_nl (_b "Activated system signal handling")
 
 let _ =
   let security_space_filename = "config_files_space.tmp" in

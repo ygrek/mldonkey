@@ -24,7 +24,7 @@ open BasicSocket
 
 let latencies = Hashtbl.create 2131
 
-let max_opened_connections = ref (fun () -> maxi 20 (MlUnix.max_sockets - 50))
+let max_opened_connections = ref (fun () -> 20)
 let max_connections_per_second = ref (fun () -> 50)
 
 let opened_connections = ref 0
@@ -1842,6 +1842,8 @@ let _ =
       Printf.bprintf buf "  read_bandwidth_controlers: %d\n" (List.length !read_bandwidth_controlers);
       Printf.bprintf buf "  write_bandwidth_controlers: %d\n" (List.length !write_bandwidth_controlers);
       Printf.bprintf buf "  to_deflate: %d\n" (List.length !to_deflate);
+      Printf.bprintf buf "  max_opened_connections: %d\n" (!max_opened_connections ());
+      Printf.bprintf buf "  max_connections_per_second: %d\n" (!max_connections_per_second ());
   );
   add_infinite_timer 1.0 proc_net_timer
 

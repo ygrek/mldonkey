@@ -1270,3 +1270,60 @@ let diskinfo o buf =
     	) !list;
   if o.conn_output = HTML then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+
+let _ =
+  option_hook max_opened_connections (fun _ ->
+  if !verbose then lprintf_nl ()
+    "checking max_opened_connections = %d for validity" !!max_opened_connections;
+(* original code from ./src/config/unix/MlUnix.ml
+let max_all_sockets = getdtablesize ()
+let max_sockets = max (max_all_sockets - 100) (max_all_sockets / 2)
+let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
+
+  (* ulimit open files. minimum 150, most systems have 1024 *)
+  let max_all_sockets = Unix2.c_getdtablesize () in
+
+  (* old max_sockets code: max (150 - 100) (150 / 2),
+     minimum number of max_opened_connections *)
+  let min_conns = 75 in
+
+  if min_conns > !!max_opened_connections then begin
+    lprintf_nl () "max_opened_connections is set too low (%d), raising to %d"
+      !!max_opened_connections min_conns;
+    max_opened_connections =:= min_conns
+  end;
+
+  let total_files = (* maximum number of files in use at the same time *)
+    (maxi (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + 20 (* ini files etc. *)
+  in
+
+  let wanted_socks = !!max_opened_connections + total_files in
+
+  if max_all_sockets < wanted_socks then
+    if max_all_sockets < total_files + min_conns then (* check if ulimit is enough to allow total_files + min_conns *)
+      begin
+        lprintf_nl () "only %d file descriptors available, raise ulimit open files to at least %d"
+          max_all_sockets wanted_socks;
+        lprintf_nl () "FD info: max_opened_connections %d, number of (possible) concurrent downloads %d, = %d fd needed"
+          !!max_opened_connections total_files wanted_socks;
+        CommonGlobals.exit_properly 71
+      end
+  else
+    begin
+      let new_max_opened_connections =
+        maxi (max_all_sockets - total_files) (max_all_sockets / 2)
+      in
+      lprintf_nl () "max_opened_connections is set too high (%d), reducing to %d"
+        !!max_opened_connections new_max_opened_connections;
+      max_opened_connections =:= new_max_opened_connections;
+    end;
+
+  if !verbose then lprintf_nl ()
+    "max_opened_connections %d, total_files %d, max_concurrent_downloads %d, !!files %d"
+      !!max_opened_connections total_files !!max_concurrent_downloads (List.length !!files);
+
+  TcpBufferedSocket.set_max_opened_connections
+    (fun _ -> !!max_opened_connections);
+
+  Unix32.max_cache_size := total_files - 20
+)

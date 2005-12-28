@@ -1621,4 +1621,6 @@ let _ =
       H.iter (fun _ -> incr counter) table;
       Printf.bprintf buf "  table: %d\n" !counter;
       Printf.bprintf buf "  modified_files: %d\n" (List.length !modified_files);
+      Printf.bprintf buf "  max cache_size: %d\n" !max_cache_size;
+      Printf.bprintf buf "  fd cache_size: %d\n" !FDCache.cache_size
   )

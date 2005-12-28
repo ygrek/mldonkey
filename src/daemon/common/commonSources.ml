@@ -2216,6 +2216,9 @@ connected if needed *)
                ((fun (_,_,_,_,_,n) -> n)(H.stats sources_by_num))
                ;
 
+            Printf.bprintf buf "Used indirect connections: %d\n"
+              !indirect_connections;
+
             let nconnected = ref 0 in
             Fifo.iter (fun (_,s) ->
                 if s.source_last_attempt = 0 then incr nconnected;
