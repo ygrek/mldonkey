@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2006/01/01
+4745: Update config.guess and config.sub to version 2005-12-23
+
 2005/12/28
 4725: Check if ulimit is sufficient for MLDonkey,
       auto-adjust max_opened_connections
