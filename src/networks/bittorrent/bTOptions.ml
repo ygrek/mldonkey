@@ -115,6 +115,9 @@ let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_
     "Minimum time in seconds to wait between asking the tracker for sources"
     int_option 300
 
+let client_timeout = define_option bittorrent_section ["client_timeout"]
+  "Timeout on client connections" float_option 90.
+
 let cookies = define_option bittorrent_section ["cookies"]
     "Cookies send with http request to get .torrent file"
     (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []

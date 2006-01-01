@@ -1272,9 +1272,6 @@ let utf8_filename_conversions = define_expert_option current_section
     "The conversions to apply on Unicode characters"
     (list_option (tuple2_option (int_option, utf8_option))) []
 
-let client_timeout = define_expert_option current_section ["client_timeout"]
-  "Timeout on client connections when not queued" float_option 40.
-
 let interface_buffer = define_expert_option current_section ["interface_buffer"]
   "The size of the buffer between the client and its GUI. Can be useful
 to increase when the connection between them has a small bandwith" int_option

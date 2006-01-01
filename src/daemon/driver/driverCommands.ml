@@ -1724,7 +1724,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option save_options_delay;
 			strings_of_option update_gui_delay;
 			strings_of_option server_connection_timeout;
-			strings_of_option client_timeout;
 			strings_of_option compaction_delay;
 			strings_of_option min_reask_delay;
 			strings_of_option buffer_writes;

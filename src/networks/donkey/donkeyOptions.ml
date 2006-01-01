@@ -43,6 +43,9 @@ let check_connections_delay =
   define_expert_option donkey_section ["check_connections_delay"]
   "The delay between server connection rounds" float_option 5.0
 
+let client_timeout = define_expert_option donkey_section ["client_timeout"]
+  "Timeout on client connections when not queued" float_option 40.
+
 let max_connected_servers = define_option donkey_section
   ["max_connected_servers"]
     "The number of servers you want to stay connected to" int_option 3
