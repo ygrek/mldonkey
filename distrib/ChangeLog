@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/01
+4712: Change terminal color for command line from blue to cyan (romildo)
 4742: Log: remove verbosity "tor" & "file", improve verbosity "verb"
 4743: EDK: Print "File is already shared" when trying to start downloading
       an already shared file

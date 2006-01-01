@@ -404,7 +404,7 @@ let user_reader o telnet sock nread  =
             before_telnet_output o sock;
             let buf = o.conn_buf in
             Buffer.reset buf;
-            if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
+            if o.conn_output = ANSI then Printf.bprintf buf "> $c%s$n\n" cmd;
             eval telnet.telnet_auth cmd o;
             Buffer.add_char buf '\n';
             if o.conn_output = ANSI then Buffer.add_string buf "$n";
@@ -524,7 +524,7 @@ let user_reader o telnet sock nread =
               before_telnet_output o sock;
               let buf = o.conn_buf in
               Buffer.reset buf; 
-              if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
+              if o.conn_output = ANSI then Printf.bprintf buf "> $c%s$n\n" cmd;
               eval telnet.telnet_auth cmd o;
               Buffer.add_char buf '\n';
               if o.conn_output = ANSI then Buffer.add_string buf "$n";
@@ -604,7 +604,7 @@ let telnet_handler t event =
 	   (Printf.sprintf "Welcome to MLDonkey %s" Autoconf.current_version);
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
-            "\n$bWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
+            "\n$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
 	end
