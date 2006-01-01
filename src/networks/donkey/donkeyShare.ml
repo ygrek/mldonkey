@@ -152,7 +152,7 @@ lprint_newline ());
 let all_shared () =
   let shared_files = ref [] in
   Hashtbl.iter (fun md4 file ->
-      match  file.file_shared with
+      match file.file_shared with
         None -> ()
       | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
@@ -271,9 +271,8 @@ lprintf "Searching %s" fullname; lprint_newline ();
         let s = Hashtbl.find shared_files_info
             (fullname, size, mtime) in
         (* if s.sh_mtime = mtime && s.sh_size = size then begin *)
-            if !verbose_share then begin
+            if !verbose_share then
                 lprintf_nl () "donkeyShare: Using old MD4s for %s" fullname;
-              end;
             new_file_to_share s codedname None
 (*          end else begin
             if !verbose_share then begin

@@ -852,9 +852,8 @@ let client_queried_file c file =
 let client_is_useful c file chunks = 
   DonkeySources.set_request_result c.client_source file.file_sources File_chunk;
   DonkeyOneFile.add_client_chunks c file chunks;
-  if file_state file = FileDownloading then begin
+  if file_state file = FileDownloading then
     DonkeyOneFile.request_slot c
-     end
 
 (* added in 2.5.25
 Check if the bitmap returned by a client contains a chunk that has not

@@ -12,6 +12,8 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/01
+4743: EDK: Print "File is already shared" when trying to start downloading
+      an already shared file
 4744: Split client_timeout into ED2K-client_timeout and BT-client_timeout,
       increase BT-client_timeout to 90 (tradie)
 4745: Update config.guess and config.sub to version 2005-12-23

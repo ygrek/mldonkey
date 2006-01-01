@@ -773,7 +773,6 @@ end;
   Printf.bprintf buf "  overnet_connect_tags: %d\n" (List.length !overnet_connect_tags);
   Printf.bprintf buf "  clients_root: %d\n" (List.length !clients_root);
   Printf.bprintf buf "  servers_list: %d\n" (List.length !servers_list);
-  Printf.bprintf buf "  current_files: %d\n" (List.length !current_files);
   Printf.bprintf buf "  xs_servers_list: %d\n" (List.length !xs_servers_list);
   Printf.bprintf buf "  connected_server_list: %d\n" (List.length !connected_server_list);
   Printf.bprintf buf "  udp_servers_list: %d\n" (List.length !udp_servers_list);

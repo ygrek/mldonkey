@@ -195,6 +195,8 @@ let no_download_to_force = Failure "No forceable download found"
 
 let already_downloading = Failure "File is already in download queue"
 
+let already_shared = Failure "File is already shared"
+
 let really_query_download filenames size md4 location old_file absents =
 
   begin
@@ -325,11 +327,16 @@ let query_download filenames size md4 location old_file absents force =
   else
     begin
       try
-        let _ = find_file md4 in
+        let file = find_file md4 in
+	  if (file_state file) = FileShared then
+	    raise already_shared
+	  else
+	    begin
 (* jave TODO: if a user currently not downloading this file is requesting the download add this user
    to the list of users currently downloading this file *)
-	  forceable_download := [];
-	  raise already_downloading 
+	      forceable_download := [];
+	      raise already_downloading 
+	    end
       with Not_found ->
         begin
         if List.mem md4 !!old_files then begin
