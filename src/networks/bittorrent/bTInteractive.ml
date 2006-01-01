@@ -97,7 +97,7 @@ let op_file_commit file new_name =
       set_file_state file FileShared;
 
       if Unix32.destroyed (file_fd file) then
-        if !verbose_files then lprintf_nl () "op_file_commit: FD is destroyed... repairing";
+        if !verbose then lprintf_nl () "op_file_commit: FD is destroyed... repairing";
 
 (* During the commit operation, for security, the file_fd is destroyed. So
   we create it again to be able to share this file again. *)
@@ -460,8 +460,8 @@ let load_torrent_string s =
     in
   File.from_string torrent_diskname s;
 
-  if !verbose_torrent then
-    lprintf_nl () "Starting torrent download with diskname:%s"
+  if !verbose then
+    lprintf_nl () "Starting torrent download with diskname: %s"
         torrent_diskname;
   let file = new_download file_id torrent torrent_diskname in
   BTClients.get_sources_from_tracker file;
@@ -470,8 +470,8 @@ let load_torrent_string s =
   file
 
 let load_torrent_file filename =
-  if !verbose_torrent then
-    lprintf_nl () "BTInteractive.load_torrent_file %s" filename;
+  if !verbose then
+    lprintf_nl () "load_torrent_file %s" filename;
   let s = File.to_string filename in
   (* Delete the torrent if it is in the downloads dir. because it gets saved
      again under the torrent name and we don't want to clutter up this dir. .*)
@@ -604,14 +604,14 @@ let retry_all_ft () =
   ) ft_by_num
 
 let load_torrent_from_web r ft =
-  if !verbose_torrent then
+  if !verbose then
       lprintf_nl () "Loading torrent from web";
   let module H = Http_client in
 
-  if !verbose_torrent then
+  if !verbose then
       lprintf_nl () "calling...";
   H.wget r (fun filename ->
-      if !verbose_torrent then
+      if !verbose then
           lprintf_nl () "done...";
       if ft_state ft = FileDownloading then begin
           load_torrent_file filename;
@@ -620,7 +620,7 @@ let load_torrent_from_web r ft =
 
 let valid_torrent_extension url =
   let ext = String.lowercase (Filename2.last_extension url) in
-  if !verbose_torrent then lprintf_nl () "Last extension: %s" ext;
+  if !verbose then lprintf_nl () "Last extension: %s" ext;
   if ext = ".torrent" || ext = ".tor" then true else false
 
 let get_regexp_string text r =
@@ -633,7 +633,7 @@ let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   try
     let real_url = get_regexp_string url (Str.regexp location_regexp) in
-    if !verbose_torrent then lprintf_nl () "Trying to load %s really %s" url real_url;
+    if !verbose then lprintf_nl () "Loading %s, really %s" url real_url;
     if (valid_torrent_extension real_url)
        || (String2.contains url "Content-Type: application/x-bittorrent")
       then (
@@ -669,7 +669,7 @@ let op_network_parse_url url =
         let ft = new_ft file_diskname in
         ft.ft_retry <- load_torrent_from_web r ;
         load_torrent_from_web r ft;
-        if !verbose_torrent then lprintf_nl () "wget started";
+        if !verbose then lprintf_nl () "wget started";
         "started download", true
       )
     else
@@ -678,7 +678,7 @@ let op_network_parse_url url =
     | Not_found ->
       if (valid_torrent_extension url) then
         try
-          if !verbose_torrent then lprintf_nl () "Not_found and trying to load %s" url;
+          if !verbose then lprintf_nl () "Not_found and trying to load %s" url;
           load_torrent_file url;
           "", true
         with e ->
@@ -688,7 +688,7 @@ let op_network_parse_url url =
           s, false
       else
         begin
-          if !verbose_torrent then lprintf_nl () "Not_found and url has non valid torrent extension: %s" url;
+          if !verbose then lprintf_nl () "Not_found and url has non valid torrent extension: %s" url;
           "Not_found and url has non valid torrent extension", false
         end
     | e ->
@@ -799,7 +799,7 @@ let get_default_tracker () =
 
 let compute_torrent filename announce comment = 
   let announce = if announce = "" then get_default_tracker () else announce in
-  if !verbose_torrent then lprintf_nl () "compute_torrent: [%s] [%s] [%s]"
+  if !verbose then lprintf_nl () "compute_torrent: [%s] [%s] [%s]"
    filename announce comment;
   let basename = Filename.basename filename in
   let torrent = Filename.concat seeded_directory
@@ -937,7 +937,7 @@ let op_gui_message s =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
-      if !verbose_torrent then lprintf_nl () "received torrent from gui...";
+      if !verbose then lprintf_nl () "received torrent from gui...";
       ignore (load_torrent_string text)
   | 1 -> (* 34+ *)
       let n = get_int s 2 in

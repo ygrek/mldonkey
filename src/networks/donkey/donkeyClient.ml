@@ -890,16 +890,14 @@ let received_client_bitmap c file chunks =
         Bitv.create file.file_nchunks true
     else
     if Bitv.length chunks <> file.file_nchunks then begin
-        if !verbose then lprintf_nl () "BAD: number of chunks is different %d/%d for %s:%Ld on peer" 
-          (Bitv.length chunks) 
-          file.file_nchunks 
-          (Md4.to_string file.file_md4) 
-          (file_size file);
-        if !verbose then lprintf_nl () "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]"
-          c.client_name
-          (Md4.to_string c.client_md4)
-          (string_of_bool (DonkeySources.source_brand c.client_source))
-          (brand_to_string c.client_brand);
+        if !verbose then
+	    lprintf_nl () "number of chunks is different %d/%d for %s(%s), size %Ld on %s"
+              (Bitv.length chunks)
+              file.file_nchunks 
+	      (file_best_name file)
+              (Md4.to_string file.file_md4) 
+              (file_size file)
+	      (full_client_identifier c);
         Bitv.create file.file_nchunks false
 (* What should we do ?
 

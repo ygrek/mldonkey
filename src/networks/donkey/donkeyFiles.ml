@@ -123,8 +123,11 @@ module NewUpload = struct
         
         write_string sock upload_buffer;
         check_end_upload c sock
-      with e -> 
-          if !verbose then lprintf_nl () "Exception %s in send_small_block" (Printexc2.to_string e)
+      with
+	End_of_file -> lprintf_nl () "Can not send file %s to %s, file removed?"
+			 (file_best_name file) (full_client_identifier c)
+      | e -> if !verbose then lprintf_nl ()
+	       "Exception %s in send_small_block" (Printexc2.to_string e)
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)

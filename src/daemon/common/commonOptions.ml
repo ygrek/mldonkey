@@ -452,8 +452,6 @@ let verbosity = define_expert_option current_section ["verbosity"]
   hs : http_server messages
   act : debug activity
   bw : debug bandwidth
-  tor : debug .torrent loading
-  file : debug file handling
   redir : debug redirector
   unexp : debug unexpected messages
 "
@@ -1673,8 +1671,6 @@ let verbose_udp = ref false
 let verbose_supernode = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
-let verbose_torrent = ref false
-let verbose_files = ref false
 let verbose_redirector = ref false
 let verbose_unexpected_messages = ref false
 
@@ -1702,8 +1698,6 @@ let set_all v =
   Http_client.verbose := v;
   Http_server.verbose := v;
   verbose_activity := v;
-  verbose_torrent  := v;
-  verbose_files := v;
   verbose_redirector := v;
   verbose_unexpected_messages := v
 
@@ -1737,8 +1731,6 @@ let _ =
           | "hs" -> Http_server.verbose := true
           | "act" -> verbose_activity := true
           | "bw" -> incr BasicSocket.verbose_bandwidth
-          | "tor" -> verbose_torrent := true
-          | "file" -> verbose_files := true
           | "redir" -> verbose_redirector := true
           | "unexp" -> verbose_unexpected_messages := true
 

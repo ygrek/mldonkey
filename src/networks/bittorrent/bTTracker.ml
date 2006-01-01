@@ -159,7 +159,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
             lprintf_nl () "Tracker rejected announce request for torrent [%s]\n" (Sha1.to_hexa info_hash);
             failwith "Unknown torrent"
           end;
-        lprintf_nl () "[BT]: Need new tracker";
+        lprintf_nl () "[BT] Need new tracker";
         if !ntracked_files < !!max_tracked_files && !tracker_ok then
           let tracker = {
               tracker_id = info_hash;
@@ -338,7 +338,7 @@ let http_handler t r =
             | "natmapped" -> natmapped := int_of_string arg
             | "localip" -> localip := (Ip.of_string arg)
             | _ -> if !verbose_msg_servers then
-                     lprintf_nl () "[BT]: Tracker: Unexpected [%s=%s]" name arg
+                     lprintf_nl () "[BT] Tracker: Unexpected [%s=%s]" name arg
         ) args;
 
         if !ip = Ip.null && !localip = Ip.null then
@@ -394,7 +394,7 @@ let http_handler t r =
                      ];
                  ]) :: !files_tracked;
             if !verbose_msg_servers then begin
-                let next_file = (Printf.sprintf "[BT]: f: %s d: %d c: %d i: %d\n"
+                let next_file = (Printf.sprintf "[BT] f: %s d: %d c: %d i: %d\n"
                   (Sha1.to_hexa info_hash) tracker.tracker_downloaded tracker.tracker_complete tracker.tracker_incomplete) in
                 log_tracked_files := !log_tracked_files ^ next_file
               end

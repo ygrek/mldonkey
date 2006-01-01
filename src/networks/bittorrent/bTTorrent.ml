@@ -59,7 +59,7 @@ torrents/: for BitTorrent
 let chunk_size = Int64.of_int (256 * 1024)
 
 let decode_torrent s =
-  if !verbose_msg_servers then lprintf_nl "[BT]: .torrent file loaded";
+  if !verbose_msg_servers then lprintf_nl "[BT] .torrent file loaded";
 (*            lprintf "Loaded: %s\n" (String.escaped s); *)
   let v = Bencode.decode s in
 (*            lprintf "Decoded file: %s\n" (Bencode.print v);  *)
@@ -111,21 +111,21 @@ let decode_torrent s =
                     if !current_file = "" then begin
                       current_file := path_list_to_string path;
                       if !verbose_msg_servers then
-                        lprintf_nl "[BT]: Parsed a new path: [%s]" !current_file
+                        lprintf_nl "[BT] Parsed a new path: [%s]" !current_file
                     end   
                 | String "path.utf-8", List path_utf8 -> 
                     current_file := path_list_to_string path_utf8;
                     if !verbose_msg_servers then
-                      lprintf_nl "[BT]: Parsed path.utf-8: [%s]" !current_file
+                      lprintf_nl "[BT] Parsed path.utf-8: [%s]" !current_file
                 | String "length", Int n ->
                     length := !length ++ n;
                     current_length := n;
                     length_set := true
 
                 | String key, _ ->
-                    if !verbose_msg_servers then lprintf_nl "[BT]: other field [%s] with value [%s] in files" key (Bencode.print value)
+                    if !verbose_msg_servers then lprintf_nl "[BT] other field [%s] with value [%s] in files" key (Bencode.print value)
                 | _ ->
-                    lprintf_nl "[BT]: other field in files"
+                    lprintf_nl "[BT] other field in files"
             ) list;
 
             assert (!length_set);
@@ -144,7 +144,7 @@ let decode_torrent s =
             match key, value with
               String "announce", String tracker_url ->
                if !verbose_msg_servers then
-                 lprintf_nl "[BT]: New tracker added :%s" tracker_url;
+                 lprintf_nl "[BT] New tracker added :%s" tracker_url;
                 announce := tracker_url
             | String "announce-list", List list ->
                 List.iter (fun url_list ->
@@ -156,10 +156,10 @@ let decode_torrent s =
                             | String next_url ->
                                 next_urls := next_url :: !next_urls;
                                 if !verbose_msg_servers then
-                                  lprintf_nl "[BT]: New tracker received :%s" next_url
+                                  lprintf_nl "[BT] New tracker received :%s" next_url
                             | _ ->
                                 if !verbose_msg_servers then
-                                  lprintf_nl "[BT]: error while decoding announce list"
+                                  lprintf_nl "[BT] error while decoding announce list"
                         ) next_url_list;
                         if List.length !next_urls > 1 then begin
                             next_urls := List2.shuffle !next_urls;
@@ -168,12 +168,12 @@ let decode_torrent s =
                         else
                           announce_list := List.hd !next_urls :: !announce_list
                     | _ ->
-                        lprintf_nl "[BT]: unknown field in announce list"
+                        lprintf_nl "[BT] unknown field in announce list"
                     ) list;
                     announce_list := List.rev !announce_list;
                     if !verbose_msg_servers then
                       List.iter (fun url ->
-                        lprintf_nl "[BT]: New tracker added :%s" url
+                        lprintf_nl "[BT] New tracker added :%s" url
                         ) !announce_list
             | String "info", ((Dictionary list) as info) ->
 
@@ -214,12 +214,12 @@ let decode_torrent s =
                         file_is_private := n;
                         if !verbose_msg_servers &&
                           Int64.to_int !file_is_private = 1 then
-                            lprintf_nl "[BT]: torrent is private"
+                            lprintf_nl "[BT] torrent is private"
                     | String key, _ ->
                         if !verbose_msg_servers then
-                          lprintf_nl "[BT]: found other field [%s] with value [%s] in info" key (Bencode.print value)
+                          lprintf_nl "[BT] found other field [%s] with value [%s] in info" key (Bencode.print value)
                     | _ ->
-                        lprintf_nl "[BT]: other field in info"
+                        lprintf_nl "[BT] other field in info"
                 ) list
 
             | String "comment", String comment
@@ -256,17 +256,17 @@ let decode_torrent s =
                         file_dht_backup_enable := n;
                         if !verbose_msg_servers &&
                           Int64.to_int !file_dht_backup_enable = 1 then
-                            lprintf_nl "[BT]: azureus properties : Torrent has dht backup"
+                            lprintf_nl "[BT] azureus properties : Torrent has dht backup"
                     | String key, _ ->
                         if !verbose_msg_servers then
-                          lprintf_nl "[BT]: found other field [%s] with value [%s] in azureus properties" key (Bencode.print value)
+                          lprintf_nl "[BT] found other field [%s] with value [%s] in azureus properties" key (Bencode.print value)
                     | _ ->
-                        lprintf_nl "[BT]: other field in azureus properties"
+                        lprintf_nl "[BT] other field in azureus properties"
                 ) list
             | String key, _ ->
-                if !verbose_msg_servers then lprintf_nl "[BT]: found other field [%s] with value [%s] after info" key (Bencode.print value)
+                if !verbose_msg_servers then lprintf_nl "[BT] found other field [%s] with value [%s] after info" key (Bencode.print value)
             | _ ->
-                lprintf_nl "[BT]: other field after info"
+                lprintf_nl "[BT] other field after info"
         ) list
     | _ -> assert false
   end;

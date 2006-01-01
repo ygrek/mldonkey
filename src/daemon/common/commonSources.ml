@@ -1559,9 +1559,8 @@ we will probably query for the other file almost immediatly. *)
           try
             functions.function_string_to_manager uid
           with e ->
-              if !verbose then begin
+              if !verbose_sources > 0 then
                   lprintf_nl "[cSrc] CommonSources: add_saved_source_request -> %s not found" uid;
-                end;
               raise e
         in
         let r = add_request s file time in

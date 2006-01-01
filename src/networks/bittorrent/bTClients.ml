@@ -66,12 +66,12 @@ open TcpMessages
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
-  lprintf "%s[BT]: "
+  lprintf "%s[BT] "
     (log_time ()); lprintf_nl2
 
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
-  lprintf "%s[BT]: "
+  lprintf "%s[BT] "
     (log_time ()); lprintf
 
 let http_ok = "HTTP 200 OK"
@@ -403,7 +403,7 @@ let send_bitfield c =
         Int64Swarmer.verified_bitmap swarmer
   in
 
-  if !verbose then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
+  if !verbose_download then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
 
 (* In the future, only accept bitmap.[n] > '2' when verification works *)
   send_client c (BitField
@@ -497,11 +497,11 @@ let rec client_parse_header counter cc init_sent gconn sock
       | ConnectionWaiting token ->
           cancel_token token;
           if !verbose_msg_clients then
-            lprintf_nl () "[BT]: Waiting for connection to client !!!";
+            lprintf_nl () "Waiting for connection to client !!!";
           c.client_sock <- Connection sock
       | Connection s when s != sock ->
           if !verbose_msg_clients then
-            lprintf_nl () "[BT]: CLIENT %d: IMMEDIATE RECONNECTION" (client_num c);
+            lprintf_nl () "CLIENT %d: IMMEDIATE RECONNECTION" (client_num c);
           disconnect_client c (Closed_for_error "Reconnected");
           c.client_sock <- Connection sock;
       | Connection _  -> ()
@@ -515,7 +515,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
-      lprintf_nl () "[BT]: file and client found";
+      lprintf_nl () "file and client found";
 (*    if not c.client_incoming then *)
      send_bitfield c; 
     c.client_blocks_sent <- file.file_blocks_downloaded;
@@ -747,7 +747,7 @@ and get_from_client sock (c: client) =
         (client_num c) (Sha1.to_string c.client_uid) x y
 
   with Not_found ->
-        if not (Int64Swarmer.check_finished swarmer) && !verbose then
+        if not (Int64Swarmer.check_finished swarmer) && !verbose_download then
           lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 
@@ -1492,6 +1492,7 @@ let rec iter_upload sock c =
           iter_upload sock c
         end else
       if c.client_allowed_to_write >= 0L then begin
+        try
           c.client_upload_requests <- tail;
 
           let file = c.client_file in
@@ -1518,6 +1519,8 @@ let rec iter_upload sock c =
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c
+	with e -> if !verbose then lprintf_nl ()
+		    "Exception %s in iter_upload" (Printexc2.to_string e)
         end else
         begin
 (*          lprintf "client is waiting for another piece\n"; *)

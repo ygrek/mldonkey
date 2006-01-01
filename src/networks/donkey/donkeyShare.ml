@@ -176,13 +176,14 @@ let send_new_shared () =
             if s.server_master then
               begin
                 if !verbose_share || !verbose then
-                  lprintf_nl () "donkey send_new_shared: found master server";
+                  lprintf_nl () "send_new_shared: found master server %s:%d"
+		    (Ip.to_string s.server_ip) s.server_port;
 		tag := true;
                 do_if_connected s.server_sock (fun sock ->
                   server_send_share s.server_has_zlib sock !new_shared_files)
               end) (connected_servers ());
           if !tag && (!verbose_share || !verbose) then
-              lprintf_nl () "donkey send_new_shared: Sent %d new shared files to servers"
+              lprintf_nl () "send_new_shared: Sent %d new shared files to servers"
                     (List.length !new_shared_files);
           new_shared_files := []
         end
