@@ -345,6 +345,7 @@ let impl_shared_info impl =
     T.shared_uploaded = impl.impl_shared_uploaded;
     T.shared_requests = impl.impl_shared_requests; 
     T.shared_uids = [];
+    T.shared_sub_files = [];
   }
   
 let shared_info s =

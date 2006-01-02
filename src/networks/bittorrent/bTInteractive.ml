@@ -1000,5 +1000,6 @@ let _ =
             T.shared_network = network.network_num;
             T.shared_filename = file_best_name (as_file file);
             T.shared_uids = [Uid.create (Sha1 file.file_id)];
+            T.shared_sub_files = file.file_files;
             }
   )

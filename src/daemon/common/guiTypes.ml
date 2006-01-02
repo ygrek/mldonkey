@@ -239,6 +239,7 @@ type shared_info = {
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
     mutable shared_uids : Uid.t list; (* net file UID *)
+    mutable shared_sub_files : (string * int64) list;
   }
   
   

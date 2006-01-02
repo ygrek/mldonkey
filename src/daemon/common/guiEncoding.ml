@@ -519,6 +519,12 @@ let buf_file_field proto buf field =
       buf_int8 buf 18;
       buf_string buf x
     
+let buf_sub_files buf l =
+  buf_list buf (fun buf (name, size) ->
+    buf_string buf name;
+    buf_int64 buf size
+  ) l
+    
 let buf_file proto buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
@@ -556,10 +562,7 @@ let buf_file proto buf f =
     if proto > 30 then
       buf_list buf buf_uid f.file_uids;
     if proto > 35 then
-      buf_list buf (fun buf (name, size) ->
-          buf_string buf name;
-          buf_int64 buf size
-      ) f.file_sub_files
+      buf_sub_files buf f.file_sub_files
       
 let buf_addr proto buf addr =
   (match addr with
@@ -690,7 +693,10 @@ let buf_shared_info proto buf s =
         ) s.shared_uids;
       buf_md4 buf !md4
     else
-      buf_list buf buf_uid s.shared_uids
+      buf_list buf buf_uid s.shared_uids;
+  if proto > 36 then
+    buf_sub_files buf s.shared_sub_files
+
 
 (***************
 

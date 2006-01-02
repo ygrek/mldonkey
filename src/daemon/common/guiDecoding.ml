@@ -478,6 +478,13 @@ let get_int_date proto s pos =
 let get_int_pos s pos =
   get_int s pos, pos + 4
   
+let get_sub_files s pos =
+  get_list (fun s pos ->
+    let name, pos = get_string s pos in
+    let size, pos = get_int64 s pos, pos+8 in
+    (name, size), pos
+  ) s pos
+  
 let get_file proto s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
@@ -523,11 +530,7 @@ let get_file proto s pos =
   in
   let sub_files, pos =
     if proto > 35 then
-      get_list (fun s pos ->
-          let name, pos = get_string s pos in
-          let size, pos = get_int64 s pos, pos+8 in
-          (name, size), pos
-      ) s pos
+      get_sub_files s pos
     else [], pos
   in
 
@@ -879,6 +882,7 @@ let get_shared_info proto s pos =
     shared_uploaded = uploaded;
     shared_requests = requests;
     shared_uids = [];
+    shared_sub_files = [];
   }
 
 let get_shared_info_version_10 proto s pos =
@@ -894,6 +898,11 @@ let get_shared_info_version_10 proto s pos =
     else
       get_list get_uid s (pos+12)
   in
+  let sub_files, pos =
+    if proto > 36 then
+      get_sub_files s pos
+    else [], pos
+  in
   {
     shared_num = num;
     shared_network = network;
@@ -902,6 +911,7 @@ let get_shared_info_version_10 proto s pos =
     shared_uploaded = uploaded;
     shared_requests = requests;
     shared_uids = uids;
+    shared_sub_files = sub_files;
   }
 
 
