@@ -46,7 +46,7 @@ my $ua = LWP::UserAgent->new;
 
 while (my $uri = shift @ARGV) {
 	$_ = URI::Escape::uri_unescape($uri);
-	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdef]+)\|/) {
+	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdefABCDEF]+)\|/) {	
 		my $size = $1;
 		my $md4 = $2;
 		my $req = HTTP::Request->new(

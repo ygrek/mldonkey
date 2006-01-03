@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/03
+4753: Allow upper case MD4 for ed2k-links in mldonkey_submit (fcrozat)
 4754: New parameter --auth for mldonkey_command (plf team)
 
 2006/01/02
