@@ -5,7 +5,15 @@
 MLDONKEY_IP=127.0.0.1
 MLDONKEY_TELNET_PORT=4000
 
+if [ $1 = "--auth" ] ; then
+        auth="auth $2"
+        shift 2
+else
+        auth=""
+fi
+
 nc $MLDONKEY_IP $MLDONKEY_TELNET_PORT <<EOF
+$auth
 $*
 q
 EOF

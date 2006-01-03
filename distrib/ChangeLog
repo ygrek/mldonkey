@@ -11,6 +11,9 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2006/01/03
+4754: New parameter --auth for mldonkey_command (plf team)
+
 2006/01/02
 4749: GUI: send shared sub_files to gui (zet)
 
