@@ -1132,7 +1132,7 @@ let allow_browse_share = define_option current_section ["allow_browse_share"]
   "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 1
 
 let messages_filter = define_option current_section ["messages_filter"]
-    "Regexp of messages to filter out, example: string1\\|string2\\|string3" string_option "Your client is connecting too fast"
+    "Regexp of messages to filter out, example: string1|string2|string3" string_option "Your client is connecting too fast"
 
 
 
@@ -1458,7 +1458,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 5
+    int_option 7
 
 
 (*************************************************************************)
@@ -1753,10 +1753,39 @@ let _ =
       BasicSocket.socket_keepalive := !!socket_keepalive
   )
 
+(* convert "|" to "\|" and "\|" to "|" *)
+let quote_unquote_bars m =
+  let len = String.length m in
+  let result = Buffer.create len in
+  let rec aux i =
+    if i = len then
+      Buffer.contents result
+    else match m.[i] with
+      | '|' -> 
+	  Buffer.add_string result "\\|";
+	  aux (i+1)
+      | '\\' -> 
+	  aux_escaped (i+1)
+      | _ -> 
+	  Buffer.add_char result m.[i];
+	  aux (i+1)
+  and aux_escaped i =
+    if i = len then begin
+      Buffer.add_char result '\\';
+      Buffer.contents result
+    end else match m.[i] with
+      | '|' -> 
+	  Buffer.add_char result '|';
+	  aux (i+1)
+      | _ ->
+	  Buffer.add_char result '\\';
+	  aux i
+  in aux 0
+	    
 let _ =
   option_hook messages_filter (fun _ ->
       is_not_spam := if !!messages_filter <> "" then
-        let r = Str.regexp_case_fold !!messages_filter in
+        let r = Str.regexp_case_fold (quote_unquote_bars !!messages_filter) in
         (fun s -> try
               ignore (Str.search_forward r s 0);
               false
@@ -1867,5 +1896,10 @@ let rec update_options () =
       if !!max_indirect_connections > 50 then
           max_indirect_connections =:= 20;
       update 6
+
+  | 6 ->
+      (* it's more natural to use | instead of \| for simple case *) 
+      messages_filter =:= quote_unquote_bars !!messages_filter;
+      update 7
 
   | _ -> ()
