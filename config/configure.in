@@ -146,9 +146,9 @@ fi
 if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
-REQUIRED_OCAML=3.09.0
+REQUIRED_OCAML=3.09.1
 DOWNLOAD_OCAML_MAJOR=3.09
-DOWNLOAD_OCAML=3.09.0
+DOWNLOAD_OCAML=3.09.1
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -331,6 +331,7 @@ else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    3.09.0*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)
@@ -463,6 +464,7 @@ OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    3.09.0*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)

@@ -12,6 +12,9 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/04
+4760: Allow use of Ocaml 3.09.1
+      MLDonkey can now be compiled with Ocaml 3.08.3/4, 3.09.0/1
+      Default for MLDonkey-compiled Ocaml is now 3.09.1
 4759: Configure: Improve gcc check
 4757: Compile patches for MorphOS (Christian Rosentreter)
 4748: HTML: Allow rename of files with '#', '&' and '%',
