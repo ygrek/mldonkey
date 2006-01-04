@@ -13,6 +13,10 @@ changequote([[, ]])
 
 include config/Makefile.config
 
+ifneq ("$(GLIBC_VERSION)" , "")
+  GLIBC_VERSION_ARCH = "_glibc-"$(GLIBC_VERSION)
+endif
+
 ##################################################################
 
 ##             Bytecode or Native ?
@@ -1797,8 +1801,8 @@ release.shared: opt
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 upload.shared: release.shared
 	scp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
@@ -1814,8 +1818,8 @@ release.static: static opt
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.static: mlnet.static
 	rm -rf mldonkey-*
@@ -1823,8 +1827,8 @@ release.mlnet.static: mlnet.static
 	cp mlnet.static $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.distri: mlnet mlnet.static
 	rm -rf mldonkey-*
@@ -1833,8 +1837,8 @@ release.mlnet.distri: mlnet mlnet.static
 	cp mlnet.static $(DISDIR)/mlnet.static && strip $(DISDIR)/mlnet.static
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.utils.shared: mld_hash make_torrent
 	rm -rf mldonkey-*
@@ -1843,8 +1847,8 @@ release.utils.shared: mld_hash make_torrent
 	cp -f make_torrent $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.utils.static: mld_hash.static make_torrent.static
 	rm -rf mldonkey-*
@@ -1853,8 +1857,8 @@ release.utils.static: mld_hash.static make_torrent.static
 	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 upload.static: release.static
 	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
