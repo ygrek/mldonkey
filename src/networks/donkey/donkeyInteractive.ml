@@ -547,6 +547,13 @@ let parse_donkey_url url =
       else
         let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
+	let name =
+	  let name2 = Filename2.filesystem_compliant name "" in
+	    if name2 = "" then
+	      Printf.sprintf "urn_ed2k_%s" md4
+	    else
+	      name2
+	in
           begin try
             let file = query_download [name] (Int64.of_string size)
               (Md4.of_string md4) None None None false;
@@ -790,9 +797,7 @@ Printf.bprintf buf
 \\<!--
 function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
-var regExp = new RegExp (' ', 'gi') ;
-var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURI(renameTextOut)+'\\\"';
+parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(formID.newName.value)+'\\\"';
 }
 //--\\>
 \\</script\\>";
@@ -1279,9 +1284,7 @@ let _ =
 \\<!--
 function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
-var regExp = new RegExp (' ', 'gi') ;
-var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURI(renameTextOut)+'\\\"';
+parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID.newName.value)+'\\\"';
 }
 //--\\>
 \\</script\\>" (file_num file)

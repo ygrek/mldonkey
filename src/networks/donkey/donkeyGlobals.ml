@@ -277,9 +277,7 @@ let update_best_name file =
       match impl.impl_file_probable_name with
         None -> ()
       | Some best_name ->
-          let best_name = String2.replace best_name '/' "::" in
-          set_file_best_name file best_name;
-          if !verbose then lprintf_nl () "BEST NAME now IS %s" best_name;
+          set_file_best_name file best_name
     with Not_found -> ()
 
 let new_file file_diskname file_state md4 file_size filenames writable =

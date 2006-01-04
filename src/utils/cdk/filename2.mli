@@ -61,7 +61,8 @@ val path_of_filename : string -> string list
   
 val basename : string -> string
   
-val escaped : string -> string
+(* remove invalid chars in a filename, depending on the filesystem *)
+val filesystem_compliant : string -> string -> string
 
 val temp_directory : unit -> string
   

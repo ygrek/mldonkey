@@ -252,8 +252,20 @@ let file_best_name (file : file) =
   
 let set_file_best_name file name =
   let file = as_file_impl file in
-  let name = String2.replace name '/' "::" in
-  file.impl_file_best_name <- name
+  let old_name = file.impl_file_best_name in
+  let real_name = Filename2.filesystem_compliant name "" in
+  if real_name = "" then
+    lprintf_nl () "can not rename file \"%s\" to \"%s\""
+      (String.escaped file.impl_file_best_name) (String.escaped real_name)
+  else begin
+    file.impl_file_best_name <- real_name;
+    if name <> real_name then
+      lprintf_nl () "wanted new name \"%s\" changed to \"%s\" due to system limitations"
+        (String.escaped name) (String.escaped file.impl_file_best_name);
+    if !verbose && old_name <> file.impl_file_best_name then
+      lprintf_nl () "best_name of \"%s\" changed to \"%s\""
+        (String.escaped old_name) (String.escaped file.impl_file_best_name)
+  end
 
 let set_file_format (file : file) format =
   let file = as_file_impl file in

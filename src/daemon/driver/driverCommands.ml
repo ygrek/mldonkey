@@ -1992,9 +1992,7 @@ let _ =
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
                    var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
-                   var reg = new RegExp (' ', 'gi') ;
-                   var outstr = getdir.replace(reg, '+');
-                   parent.fstatus.location.href='submit?q=share+' + encodeURI(outstr);
+                   parent.fstatus.location.href='submit?q=share+' + encodeURIComponent(getdir);
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add Share\\</a\\>
 \\</td\\>
@@ -2662,8 +2660,8 @@ let _ =
         try
           let file = file_find num in
           set_file_best_name file new_name;
-          Printf.sprintf (_b "Download %d renamed to %s") num new_name
-        with _ -> Printf.sprintf (_b "No file number %d") num
+          Printf.sprintf (_b "Download %d renamed to %s") num (file_best_name file)
+        with e -> Printf.sprintf (_b "No file number %d, error %s") num (Printexc2.to_string e)
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
     "dllink", Arg_multiple (fun args o ->

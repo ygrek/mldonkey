@@ -103,7 +103,3 @@ val stem : string -> string list
   
 val map : (char -> 'a) -> string -> 'a array
 val iteri: (int -> char -> unit) -> string -> unit
-  
-
-val init : int -> (int -> char) -> string
-  

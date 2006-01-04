@@ -141,14 +141,73 @@ let basename filename =
   in
   iter (path_of_filename filename) filename
 
-let escaped filename =
-  let s = String.copy filename in
-  for i = 0 to String.length filename - 1 do
-    match filename.[i] with
-    | '\\' | '/' | ':' -> s.[i] <- '_'
-    | _ -> ()
-  done;
-  s
+let filesystem_compliant name fs =
+  (* replace all illegal characters with a valid one.
+     assumes all filesystems accept '_'s in filenames *)
+  let escape_chars p filename =
+    let s = String.copy filename in
+    for i = 0 to String.length filename - 1 do
+      if p s.[i] then s.[i] <- '_'
+    done;
+    s in
+
+  (* remove all illegal characters at the beginning of filename *)
+  let trim_left p filename =
+    let len = String.length filename in
+    let left =
+      let rec aux i =
+	if i < len && p filename.[i] then aux (i+1) else i in
+      aux 0 in
+    if left = 0 then filename
+    else
+      String.sub filename left (len - left) in
+
+  (* remove all illegal characters at the end of filename *)
+  let trim_right p filename =
+    let len = String.length filename in
+    let right =
+      let rec aux i =
+	if i > 0 && p filename.[i-1] then aux (i-1) else i in
+      aux len in
+    if right = len then filename
+    else
+      String.sub filename 0 right in
+
+  let minimal_filter c =
+    match c with
+      | '/' | '\\' | '<' | '>' | '"' -> true
+      | _ -> false in
+
+  let posix_compliant name =
+    escape_chars minimal_filter name in
+
+  let windows_compliant name =
+    (* http://msdn.microsoft.com/library/default.asp?url=/library/en-us/fileio/fs/creating__deleting__and_maintaining_files.asp *)
+    let windows_filter c = 
+      minimal_filter c ||
+	match c with
+	  | '*' | '?' | '|' | ':' | '"' -> true
+	  | _ -> false in
+
+    (* Windows has additional restrictions:
+       - filenames cannot start with a '.' 
+       - filenames cannot end with '.' or space *)
+    let name = trim_left (fun c -> c = '.') name in
+    let name = trim_right (fun c -> c = '.' || c = ' ') name in
+    escape_chars windows_filter name in
+
+  let macosx_compliant name =
+  (* ':' is directory seperator on Mac OS X: http://www.comentum.com/File-Systems-HFS-FAT-UFS.html *)
+    let macosx_filter c = 
+      minimal_filter c || c = ':' in
+    escape_chars macosx_filter name in
+
+  if Autoconf.windows then 
+    windows_compliant name
+  else if Autoconf.system = "macosx" then 
+    macosx_compliant name
+  else 
+    posix_compliant name
 
 let temp_directory () =
   match Sys.os_type with
