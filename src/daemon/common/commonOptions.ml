@@ -125,7 +125,7 @@ let _ =
   Unix.chdir file_basedir;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
-    && not Autoconf.windows && not (Sys.file_exists "/dev/urandom") then begin
+    && not Autoconf.windows && not (Autoconf.system = "morphos") && not (Sys.file_exists "/dev/urandom") then begin
       lprintf "%s" (exit_message_dev "urandom");
       if Autoconf.system = "hpux" then
         lprintf_nl "For HP-UX get urandom support from http://www.josvisser.nl/hpux11-random";

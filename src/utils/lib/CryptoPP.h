@@ -87,6 +87,7 @@
 
 #include <inttypes.h>
 #include <caml/config.h>
+#include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifndef CRYPTOPP_CONFIG_H5392
@@ -286,7 +287,7 @@ NAMESPACE_END
 #define CRYPTOPP_WIN32_AVAILABLE
 #endif
 
-#if defined(__unix__) || defined(__MACH__) || defined(__NetBSD__) || defined(__BEOS__)
+#if defined(__unix__) || defined(__MACH__) || defined(__NetBSD__) || defined(__BEOS__) || defined(__MORPHOS__)
 #define CRYPTOPP_UNIX_AVAILABLE
 #endif
 

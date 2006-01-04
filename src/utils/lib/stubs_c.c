@@ -24,6 +24,9 @@
 #include <ctype.h>
 #include <caml/config.h>
 #include <caml/signals.h>
+#ifdef __MORPHOS__
+#include <inttypes.h>
+#endif
 
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
