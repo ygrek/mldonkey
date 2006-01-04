@@ -12,6 +12,19 @@ MAJOR_VERSION=2
 MINOR_VERSION=7
 SUB_VERSION=1   # range 0-7 due to eMule limitations
 
+AC_PROG_CC
+AC_EXEEXT
+AC_PROG_CPP
+AC_PROG_CXX
+
+AC_CHECK_TOOL(NEWCXX, [$CXX], [$CXX], [no])
+if test x"$NEWCXX" = x"no"
+then
+  AC_MSG_ERROR("No valid c++ compiler found")
+else
+  CXX=$NEWCXX
+fi
+
 AC_CANONICAL_HOST
 
 OS_FILES=unix
@@ -234,20 +247,6 @@ ifelse(AC_ACVERSION, [2.13], [],
 ])
 
 IM=yes
-
-AC_CHECK_PROG(CC,gcc3,"gcc3",cc)
-AC_PROG_CC
-AC_EXEEXT
-AC_PROG_CPP
-AC_PROG_CXX
-
-AC_CHECK_TOOL(NEWCXX, [$CXX], [$CXX], [no])
-if test x"$NEWCXX" = x"no"
-then
-  AC_MSG_ERROR("No valid c++ compiler found")
-else
-  CXX=$NEWCXX
-fi
 
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"

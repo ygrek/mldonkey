@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/04
+4759: Configure: Improve gcc check
 4757: Compile patches for MorphOS (Christian Rosentreter)
 4748: HTML: Allow rename of files with '#', '&' and '%',
       remove invalid chars from filenames depending on OS (thx to pango)
