@@ -1145,7 +1145,12 @@ let http_handler o t r =
 
         | "oneframe.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf !!motd_html
+            Buffer.add_string buf !!motd_html;
+	    Buffer.add_string buf "<p><pre>";
+	    ignore (CommonComplexOptions.buildinfo false buf);
+	    Buffer.add_string buf "\n";
+	    ignore (CommonComplexOptions.runinfo false buf);
+	    Buffer.add_string buf "</pre>\n"
 
         | "bw_updown.png" ->
             (match http_error_no_gd "png" with
@@ -1563,6 +1568,6 @@ let create_http_handler () =
       default = http_handler http_options;
     } in
   option_hook allowed_ips (fun _ -> config.addrs <- !!allowed_ips);
-  let _ = find_port "http server" !!http_bind_addr http_port
-      (Http_server.handler config) in
+  ignore(find_port "http server" !!http_bind_addr http_port
+      (Http_server.handler config));
   config.port <- !!http_port

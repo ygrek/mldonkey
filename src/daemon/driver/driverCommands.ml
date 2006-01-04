@@ -451,27 +451,27 @@ let _ =
 
     "sysinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        let buildinfo = CommonComplexOptions.buildinfo o buf in
-        let runinfo = CommonComplexOptions.runinfo o buf in
-        let diskinfo = CommonComplexOptions.diskinfo o buf in
+        ignore(CommonComplexOptions.buildinfo (o.conn_output = HTML) buf);
+        ignore(CommonComplexOptions.runinfo (o.conn_output = HTML) buf);
+        ignore(CommonComplexOptions.diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
 
     "buildinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        let buildinfo = CommonComplexOptions.buildinfo o buf in
+        ignore(CommonComplexOptions.buildinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build information";
 
     "runinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        let runinfo = CommonComplexOptions.runinfo o buf in
+        ignore(CommonComplexOptions.runinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey runtime information";
 
     "diskinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        let diskinfo = CommonComplexOptions.diskinfo o buf in
+        ignore(CommonComplexOptions.diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey disk information";
 
@@ -2667,7 +2667,6 @@ let _ =
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
     "dllink", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
         let query_networks url =
 	let result = ref [] in
           if not (networks_iter_until_true (fun n ->
@@ -2945,7 +2944,7 @@ let _ =
             CommonMessages.colour_changer() ;
           end;
 
-        "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
+	"\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
     ), ":\t\t\t\ttoggle html_mods";
 
 
@@ -2968,7 +2967,7 @@ let _ =
                 num else 0;
             commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).frame_height;
             CommonMessages.colour_changer ();
-            "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
+	    "\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
           end
 
     ), ":\t\t\tselect html_mods_style <#>";

@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2006/01/04
+4756: HTML: Print build- and runinfo on main page,
+      fix reload bug when changing html_mods/html_themes (Knocker)
+
 2006/01/03
 4751: Ease use of messages_filter option (pango)
 4753: Allow upper case MD4 for ed2k-links in mldonkey_submit (fcrozat)

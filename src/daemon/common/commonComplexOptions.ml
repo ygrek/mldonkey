@@ -1089,7 +1089,7 @@ let backup_options () =
   end;
   lprintf_nl () "Options backup as %s correctly saved" format
              
-let buildinfo o buf =
+let buildinfo html buf =
   let s =
   (
         "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
@@ -1139,7 +1139,7 @@ let buildinfo o buf =
           ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
   )
   in
-  if o.conn_output = HTML then
+  if html then
     begin
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
       html_mods_table_header buf "versionTable" "results" [];
@@ -1152,7 +1152,7 @@ let buildinfo o buf =
   else
     Printf.bprintf buf "Buildinfo:\n%s\n" s
   
-let runinfo o buf =
+let runinfo html buf =
   let s =
   (
         "Enabled Networks: " 
@@ -1182,7 +1182,7 @@ let runinfo o buf =
 	     )
   )    
   in
-  if o.conn_output = HTML then
+  if html then
     begin
       Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
       html_mods_table_header buf "versionTable" "results" [];
@@ -1195,7 +1195,7 @@ let runinfo o buf =
   else
     Printf.bprintf buf "Runinfo:\n%s\n" s
 
-let diskinfo o buf =
+let diskinfo html buf =
   let list = ref [] in
   ignore (search_incoming_files ());
   ignore (search_incoming_directories ());
@@ -1216,7 +1216,7 @@ let diskinfo o buf =
   let fill_strategy = String.make (!len_strategy - 4) ' ' in
   let fill_strategy_line = String.make (!len_strategy - 4) '-' in
   let counter = ref 0 in
-  if o.conn_output = HTML then
+  if html then
       html_mods_table_header buf "sharesTable" "shares" [
        ( "0", "srh", "Directory", "Directory" ) ;
        ( "0", "srh", "Directory type", "Type" ) ;
@@ -1250,7 +1250,7 @@ let diskinfo o buf =
 	  | Some p -> Printf.sprintf "%d%%" p
 	in
 	let filesystem = Unix32.filesystem dir in
-	if o.conn_output = HTML then
+	if html then
 	  begin
 	    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
 	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -1268,7 +1268,7 @@ let diskinfo o buf =
 	    (maxi !len_strategy (!len_strategy - String.length strategy)) strategy
 	    diskused diskfree percentfree filesystem
     	) !list;
-  if o.conn_output = HTML then
+  if html then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
 
 let _ =
