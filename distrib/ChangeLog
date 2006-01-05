@@ -13,6 +13,8 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/05
 4763: Compile patch for GTK1 oldgui with Ocaml 3.09.1
+Ocaml 3.09.1 has a bug which prevents compiling GTK1 oldgui.
+A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
 
 2006/01/04
 4761: Insert glibc version in archives build by release targets
