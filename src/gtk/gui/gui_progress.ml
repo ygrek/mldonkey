@@ -24,11 +24,6 @@ class progress () =
     method wpb = wpb
     method wb_cancel = wb_cancel
   end
-~
-~
-~
-~
-~
 
 class file_progress title file size f_stop =
   let s_file =
@@ -62,7 +57,7 @@ class file_progress title file size f_stop =
   end
 
 
-
+(*
 mate dans cameleon/cam_modules_view.ml
 [b8]Zoggy says:
 il faut faire :
@@ -73,3 +68,4 @@ tooltips#set_tip item#coerce ~text: (Odoc_info.string_of_info i)
 item#coerce est ici pour un widget tree mai tu peux faire un truc similaire pour une row de glist il me semble (je l'avais fait mais je l'ai vire)
 [b8]Zoggy says:
 tu peux faier un seul let tooltips = GData.tooltips () in pour tout tes tooltips (enfin un par glist)
+*)
