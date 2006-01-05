@@ -1,0 +1,27 @@
+diff -uwNr ./ocaml-3.09.1/camlp4/etc/pr_o.ml ./ocaml-3.09.1_new/camlp4/etc/pr_o.ml
+--- ./camlp4/etc/pr_o.ml	2006-01-03 19:12:30.000000000 +0100
++++ ./camlp4/etc/pr_o.ml	2005-08-13 22:59:37.000000000 +0200
+@@ -1407,9 +1407,7 @@
+         <:expr< for $_$ = $_$ $to:_$ $_$ do { $list:_$ } >> |
+         <:expr< while $_$ do { $list:_$ } >> | <:expr< ($list: _$) >> |
+         <:expr< let $opt:_$ $list:_$ in $_$ >> |
+-        <:expr< let module $_$ = $_$ in $_$ >> |
+-        <:expr< new $list:_$ >> | 
+-        <:expr< assert $_$ >> | <:expr< lazy $_$ >> as e ->
++        <:expr< let module $_$ = $_$ in $_$ >> as e ->
+           fun curr next dg k ->
+             [: `S LO "("; `expr e "" [: `HVbox [: `S RO ")"; k :] :] :]
+       | e -> fun curr next _ k -> [: `not_impl "expr" e :] ]}];
+diff -uwNr ./ocaml-3.09.1/camlp4/etc/pr_r.ml ./ocaml-3.09.1_new/camlp4/etc/pr_r.ml
+--- ./camlp4/etc/pr_r.ml	2006-01-03 19:12:30.000000000 +0100
++++ ./camlp4/etc/pr_r.ml	2005-08-13 22:59:37.000000000 +0200
+@@ -1315,8 +1315,7 @@
+         <:expr< while $_$ do { $list:_$ } >> |
+         <:expr< let $opt:_$ $list:_$ in $_$ >> |
+         <:expr< let module $_$ = $_$ in $_$ >> |
+-        <:expr< new $list:_$ >> | 
+-        <:expr< assert $_$ >> | <:expr< lazy $_$ >> as e ->
++        <:expr< new $list:_$ >> as e ->
+           fun curr next _ k ->
+             [: `S LO "("; `expr e [: `HVbox [: `S RO ")"; k :] :] :]
+       | e -> fun curr next _ k -> [: `not_impl "expr" e :] ]}];

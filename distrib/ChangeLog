@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/05
+4764: Patch for MLDonkey-compiled Ocaml-3.09.1 to fix GTK1 oldgui compile
 4763: Compile patch for GTK1 oldgui with Ocaml 3.09.1
 Ocaml 3.09.1 has a bug which prevents compiling GTK1 oldgui.
 A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
