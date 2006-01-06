@@ -505,7 +505,7 @@ let loop_delay = define_expert_option current_section
   ["loop_delay"]
 "The delay in milliseconds to wait in the event loop. Can be decreased to
 increase the bandwidth usage, or increased to lower the CPU usage."
-  int_option 5
+  int_option 20
 
 let nolimit_ips = define_option current_section ["nolimit_ips"]
     ~desc: "No-limit IPs"
@@ -1467,7 +1467,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 7
+    int_option 8
 
 
 (*************************************************************************)
@@ -1910,5 +1910,10 @@ let rec update_options () =
       (* it's more natural to use | instead of \| for simple case *) 
       messages_filter =:= quote_unquote_bars !!messages_filter;
       update 7
+
+  | 7 ->
+      (* update to 20 because of dynamic_loop_delay patch *)
+      loop_delay =:= 20;
+      update 8
 
   | _ -> ()

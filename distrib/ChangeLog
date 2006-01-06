@@ -12,6 +12,7 @@ To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
 2006/01/06
+4768: Dynamic loop delay (pango)
 4765: Add GeoIP.dat support (zet)
       GeoIP is a GPL database that maps IPs to countries.
       http://www.maxmind.com/download/geoip/database/
