@@ -476,38 +476,32 @@ else *)
   name
     *)
 
+(* 
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10Ld %32s %s"
-    (file_num file)
-  (file_best_name file)
-  (file_size file)
-  (Md4.to_string file.file_md4)
-  (if file_state file = FileDownloaded then
-      "Done" else
-      Int64.to_string (file_downloaded file));
+    (file_num file) (file_best_name file) (file_size file) (Md4.to_string file.file_md4)
+    (if file_state file = FileDownloaded then "Done" 
+      else Int64.to_string (file_downloaded file));
+
   Buffer.add_char buf '\n';
+
   Printf.bprintf buf "Connected clients:\n";
+
+  let sock_to_string c =
+    match c.client_source.DonkeySources.source_sock with
+       NoConnection -> string_of_date (c.client_source.DonkeySources.source_age)
+     | ConnectionWaiting _ -> "Connecting"
+     | Connection _ -> "Connected"
+  in
+
   let f _ c =
     match c.client_kind with
       Direct_address (ip, port) ->
         Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
-          (client_num c)
-        (Ip.to_string ip)
-        port
-          (match c.client_source.DonkeySources.source_sock with
-            NoConnection  ->
-              string_of_date (c.client_source.DonkeySources.source_age)
-          | ConnectionWaiting _ -> "Connecting"
-          | Connection _ -> "Connected")
+          (client_num c) (Ip.to_string ip) port (sock_to_string c)
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
-          (client_num c)
-        "Indirect"
-          (match c.client_source.DonkeySources.source_sock with
-            NoConnection ->
-              string_of_date (c.client_source.DonkeySources.source_age)
-          | ConnectionWaiting _ -> "Connecting"
-          | Connection _ -> "Connected")
+          (client_num c) "Indirect" (sock_to_string c)
   in
 
 (* Intmap.iter f file.file_sources; *)
@@ -516,6 +510,7 @@ let print_file buf file =
   | Some swarmer ->
       let bitmap = Int64Swarmer.verified_bitmap swarmer in
       Printf.bprintf buf "\nChunks: %s\n" bitmap
+*)
 
 let recover_md4s md4 =
   let file = find_file md4 in
@@ -1025,6 +1020,7 @@ file.---------> to be done urgently
 
 module P = GuiTypes
 
+  
 (* How often is this function called when the interface is running ?
 is it called when no interface is connected ? it should be as fast
 as possible. *)
@@ -1117,6 +1113,19 @@ let string_of_client_addr c =
       Connection sock -> (Ip.to_string (peer_ip sock))
     | _ -> ""
   with _ -> ""
+
+let get_ips_cc_cn c =
+  try
+    match c.client_kind with
+      Direct_address (ip,port) -> 
+        let cc,cn = Geoip.get_country ip in
+        Printf.sprintf "%s" (Ip.to_string ip)
+        ,cc,cn
+    | _ ->  
+        let cc,cn = !Geoip.unknown_country in
+        (string_of_client_addr c),cc,cn
+  with _ -> ("X","??","Country Error")
+
 
 let _ =
   client_ops.op_client_info <- (fun c ->
@@ -1332,6 +1341,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
           ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
           ( "0", "srh br", "IP address", "IP address" ) ;
+          ] @ (if !Geoip.active then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
           ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
           ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
           ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ;
@@ -1376,6 +1386,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                  if t = 0 then "N" else Printf.sprintf "%d" ((last_time() - t) / 60))
               with _ -> ("?","?","?") in
 
+          let ip_string,cc,cn = get_ips_cc_cn c in
+
           html_mods_td buf ([
             ("", "sr", (match c.client_download with
                   None -> ""
@@ -1403,9 +1415,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                   | None -> "N"
                   | Some b -> if b then "P" else "F"
                 ));
-            ("", "sr br", match c.client_kind with
-                Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-              | _ -> (string_of_client_addr c));
+            ("", "sr br", ip_string);
+            ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
@@ -1649,6 +1660,8 @@ lprint_newline ();
       onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
                       str (client_num c) (client_num c);
 
+                    let ip_string,cc,cn = get_ips_cc_cn c in
+
                     html_mods_td buf ([
                       (string_of_connection_state (client_state c), "sr",
                         short_string_of_connection_state (client_state c));
@@ -1669,9 +1682,8 @@ lprint_newline ();
                         | None -> "N"
                         | Some b -> if b then "P" else "F"
                       )); 
-                      ("", "sr", match c.client_kind with
-                          Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                        |  _ -> (string_of_client_addr c));
+                      ("", "sr", ip_string);
+                      ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
                       ("", "sr ar", (size_of_int64 c.client_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_downloaded));
                       ("", "sr", info.GuiTypes.file_name) ]);

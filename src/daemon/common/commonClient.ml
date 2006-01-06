@@ -419,7 +419,6 @@ let client_print_html c o =
 
 let client_print c o =
   let impl = as_client_impl c in
-  let i = client_info c in
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
@@ -438,7 +437,7 @@ let client_print c o =
         n.network_name
         (client_num c)
         (shorten info.G.client_name 20)
-        i.GuiTypes.client_rating
+        info.GuiTypes.client_rating
         (match info.G.client_kind with
             Indirect_location (name, _) -> "firewalled"
             | Known_location (ip, port) ->

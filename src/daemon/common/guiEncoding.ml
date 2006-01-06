@@ -64,6 +64,10 @@ let buf_list buf f list =
   buf_int16 buf (List.length list);
   List.iter (fun x -> f buf x) list
   
+let buf_list2 proto buf f list =
+  buf_int16 buf (List.length list);
+  List.iter (fun x -> f proto buf x) list
+  
 let buf_array buf f list =
   buf_int16 buf (Array.length list);
   Array.iter (fun x -> f buf x) list
@@ -86,6 +90,22 @@ let buf_string buf s =
 
 let buf_string_bin buf s =
   buf_string buf s 
+    
+let buf_hostname proto buf s =
+  buf_string buf s;
+  if proto > 37 then
+    let cc = 0 in (* TODO: figure out country# of this hostname *)
+    buf_int8 buf cc
+
+let buf_ip2 proto buf ip =
+  buf_ip buf ip;
+  if proto > 37 then begin
+    let cc =
+      try Geoip.get_country_code ip
+      with _ -> 0
+    in
+    buf_int8 buf cc
+  end
     
 let buf_uid buf uid =
   buf_string buf (Uid.to_string uid)
@@ -176,13 +196,13 @@ let rec buf_query buf q =
       buf_list buf buf_query list
   | Q_COMBO _ -> assert false
       
-let buf_tag buf t =
+let buf_tag proto buf t =
   buf_string buf (string_of_field t.tag_name);
   match t.tag_value with
   | Uint64 s -> buf_int8 buf 0; buf_int64_32 buf s
   | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
   | String s -> buf_int8 buf 2; buf_string buf s
-  | Addr ip -> buf_int8 buf 3; buf_ip buf ip
+  | Addr ip -> buf_int8 buf 3; buf_ip2 proto buf ip
   | Uint16 n -> buf_int8 buf 4; buf_int16 buf n
   | Uint8 n -> buf_int8 buf 5; buf_int8 buf n
   | Pair (n1,n2) -> buf_int8 buf 6; buf_int64_32 buf n1; buf_int64_32 buf n2
@@ -244,20 +264,20 @@ let buf_result proto buf r =
   buf_int64_2 proto buf r.result_size;
   buf_string buf r.result_format;
   buf_string buf r.result_type;
-  buf_list buf buf_tag r.result_tags;
+  buf_list2 proto buf buf_tag r.result_tags;
   buf_string buf r.result_comment;
   buf_bool buf r.result_done;
   if proto > 26 then
     let date = r.result_time in
     buf_int buf (last_time () - date)
 
-let buf_user buf u =
+let buf_user proto buf u =
   buf_int buf u.user_num;
   buf_md4 buf u.user_md4;
   buf_string buf u.user_name;
-  buf_ip buf u.user_ip;
+  buf_ip2 proto buf u.user_ip;
   buf_int16 buf u.user_port;
-  buf_list buf buf_tag u.user_tags;
+  buf_list2 proto buf buf_tag u.user_tags;
   buf_int buf u.user_server
 
 let buf_room_state buf s =
@@ -374,12 +394,12 @@ let buf_format proto buf f =
           buf_list buf buf_ogg ogg_infos;
         end else buf_int8 buf 0
 
-let buf_kind buf k =
+let buf_kind proto buf k =
   match k with
     Known_location (ip, port) -> 
-      buf_int8 buf 0; buf_ip buf ip; buf_int16 buf port
+      buf_int8 buf 0; buf_ip2 proto buf ip; buf_int16 buf port
   | Indirect_location (name, md4) ->
-      buf_int8 buf 1; buf_string buf name; buf_md4 buf md4
+      buf_int8 buf 1; buf_hostname proto buf name; buf_md4 buf md4
       
 let buf_partial_file proto buf f =
   buf_int buf f.file_num;
@@ -568,10 +588,11 @@ let buf_addr proto buf addr =
   (match addr with
     Ip.AddrIp ip ->
       buf_int8 buf 0;
-      buf_ip buf ip
+      buf_ip2 proto buf ip
   | Ip.AddrName s ->
       buf_int8 buf 1;
-      buf_string buf s);
+      buf_hostname proto buf s
+  );
   if proto > 33 then begin
     let is_blocked = 
       try 
@@ -591,7 +612,7 @@ let buf_server proto buf s =
     buf_addr proto buf s.server_addr;    
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
-  buf_list buf buf_tag s.server_tags;
+  buf_list2 proto buf buf_tag s.server_tags;
   buf_int64_28 proto buf s.server_nusers;
   buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
@@ -603,10 +624,10 @@ let buf_server proto buf s =
 let buf_client proto buf c =
   buf_int buf c.client_num;
   buf_int buf c.client_network;
-  buf_kind buf c.client_kind;
+  buf_kind proto buf c.client_kind;
   buf_host_state proto buf c.client_state;
   buf_client_type buf c.client_type;
-  buf_list buf buf_tag c.client_tags;
+  buf_list2 proto buf buf_tag c.client_tags;
   buf_string buf c.client_name;
   buf_int buf c.client_rating;
   if proto <= 18 then begin
@@ -800,7 +821,8 @@ let rec to_gui (proto : int array) buf t =
         buf_network proto buf network_info
     
     | User_info user_info -> buf_opcode buf 21;
-        buf_user buf user_info
+        let proto = proto.(21) in
+        buf_user proto buf user_info
     
     | Room_info room_info -> 
         let proto = proto.(31) in

@@ -844,6 +844,10 @@ let ip_blocking = define_expert_option current_section ["ip_blocking"]
   Zip files must contain either a file named guarding.p2p or guarding_full.p2p."
     string_option ""
 
+let geoip_dat = define_expert_option current_section ["geoip_dat"]
+    "Location of GeoIP.dat (Get one from http://www.maxmind.com/download/geoip/database/)"
+    string_option ""
+
 let _ =
   option_hook ip_blocking_descriptions (fun _ ->
     Ip_set.store_blocking_descriptions := !!ip_blocking_descriptions
@@ -853,6 +857,11 @@ let _ =
       Ip_set.bl := if !!ip_blocking <> "" then
       	             Ip_set.load !!ip_blocking
         	   else Ip_set.bl_empty
+    with _ -> ()
+  );
+  option_hook geoip_dat (fun _ ->
+    try
+      Geoip.init !!geoip_dat;
     with _ -> ()
   )
 
@@ -1573,7 +1582,7 @@ let _ =
 	    if (Unix32.getsize !!log_file false)
 	     > (Int64ops.megabytes !!log_file_size) then begin
 	      Sys.remove !!log_file;
-              lprintf_nl "Logfile %s resetted, bigger than %d MB" !!log_file !!log_file_size
+              lprintf_nl "Logfile %s reset: bigger than %d MB" !!log_file !!log_file_size
 	    end;
           let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
           lprintf_to_file := true;

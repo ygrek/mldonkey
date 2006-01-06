@@ -222,7 +222,7 @@ LIB_SRCS=   \
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
-  $(NET)/ip.ml $(NET)/ip_set.ml $(NET)/mailer.ml $(NET)/base64.ml  \
+  $(NET)/ip.ml $(NET)/ip_set.ml $(NET)/geoip.ml $(NET)/mailer.ml $(NET)/base64.ml  \
   $(NET)/anyEndian.ml $(NET)/bigEndian.ml $(NET)/littleEndian.ml \
   $(NET)/tcpBufferedSocket.ml \
   $(NET)/tcpServerSocket.ml \

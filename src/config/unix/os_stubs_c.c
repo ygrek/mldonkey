@@ -78,7 +78,7 @@ void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
     write(fd, &zero, 1);
   } else
     if((cursize != len) && (ftruncate(fd, len) < 0)) {
-      fprintf(stderr, "ftruncate(%d,%d)\n", fd, len);
+      fprintf(stderr, "ftruncate(%d,%Ld)\n", fd, len);
       uerror("ml_truncate32: error in ftruncate",Nothing);
     }
 }
@@ -131,7 +131,7 @@ value glibc_version(void)
 void os_uname(char buf[]) {
 	struct utsname uts;
   uname(&uts);
-	sprintf(buf, "%s %s %s %s %s\0", 
+	sprintf(buf, "%s %s %s %s %s", 
    uts.sysname, uts.nodename, uts.release, uts.version, uts.machine);
 }
 #else

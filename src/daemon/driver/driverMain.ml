@@ -625,6 +625,7 @@ for config files at the end. *)
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
       CommonComplexOptions.backup_options ();
+      Geoip.close ();
       Unix32.external_exit ();
       lprintf_nl (_b "Core stopped")
     );

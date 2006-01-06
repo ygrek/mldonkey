@@ -11,6 +11,18 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2006/01/06
+4765: Add GeoIP.dat support (zet)
+      GeoIP is a GPL database that maps IPs to countries.
+      http://www.maxmind.com/download/geoip/database/
+      This patch adds support for a "geoip_dat" option.
+      It is a simple ocaml translation of just the geoip country lookup code.
+      If active, the file is left open and consulted on demand.
+      It didn't seem to slow anything down on my slow system.
+      Sends the country # to the gui, use latest Sancho version to use it.
+      Web: displays country codes in a column (name in tooltip).
+      Maybe someone wants to add flag images (please make them optional).
+-------------------------------------------------------------------------------
 2006/01/05: version 2.7.2 = tag release-2-7-2
 4764: Patch for MLDonkey-compiled Ocaml-3.09.1 to fix GTK1 oldgui compile
 4763: Compile patch for GTK1 oldgui with Ocaml 3.09.1

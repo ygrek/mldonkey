@@ -377,6 +377,7 @@ let _ =
                 ( "1", "srh ac", "Client number", "Num" ) ;
                 ( "0", "srh", "Network", "Network" ) ;
                 ( "0", "srh", "IP address", "IP address" ) ;
+                ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
                 ( "0", "srh", "Client name", "Client name" ) ;
                 ( "0", "srh", "Client brand", "CB" ) ;
                 ( "0", "srh", "Client release", "CR" ) ;
@@ -2290,13 +2291,16 @@ let _ =
                           html_mods_td buf [
                             ("", "sr", Printf.sprintf "%d" (client_num c)); ];
 
+                          let ips,cc,cn = string_of_kind_geo i.client_kind in
+
                           client_print_html c o;
                           html_mods_td buf ([
                             ("", "sr", (match i.client_sui_verified with
                               | None -> "N"
                                | Some b -> if b then "P" else "F"
                             )); 
-                            ("", "sr", (string_of_kind i.client_kind));
+                            ("", "sr", ips);
+                            ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             ("", "sr", i.client_software);
                             ("", "sr", i.client_release);
@@ -2514,6 +2518,7 @@ let _ =
               ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
               ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
               ( "0", "srh", "IP address", "IP address" ) ;
+              ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [ 
               ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
               ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
               ( "0", "srh", "Filename", "Filename" ) ]);

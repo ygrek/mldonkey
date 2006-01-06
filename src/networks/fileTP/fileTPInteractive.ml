@@ -184,6 +184,7 @@ let _ =
           ("", "sr", "D");
           ("", "sr", "N");
           ("", "sr", (string_of_client_addr c));
+          ] @ (if !Geoip.active then [("?", "sr", "?")] else []) @ [
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
           ("", "sr", info.GuiTypes.file_name); ]);

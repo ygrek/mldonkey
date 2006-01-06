@@ -79,11 +79,37 @@ let get_string s pos =
 let get_string_bin s pos =
   get_string s pos
     
+let get_ip2 proto s pos =
+  let ip,pos = get_ip s pos,(pos+4) in 
+  if proto > 37 then
+    let _ = get_uint8 s pos in 
+    ip,(pos+1)
+  else
+   ip,pos
+
+let get_hostname proto s pos =
+  let hn,pos = get_string s pos in
+  if proto > 37 then
+    let _ = get_uint8 s pos in
+    hn,(pos+1)
+  else
+    hn,pos
+    
 let get_list f s pos =
   let len = get_int16 s pos in
   let rec iter n pos =
     if n = 0 then [],pos else
     let head, pos = f s pos in
+    let tail, pos = iter (n-1) pos in
+    head :: tail, pos
+  in
+  iter len (pos+2)
+
+let get_list2 proto f s pos =
+  let len = get_int16 s pos in
+  let rec iter n pos =
+    if n = 0 then [],pos else
+    let head, pos = f proto s pos in
     let tail, pos = iter (n-1) pos in
     head :: tail, pos
   in
@@ -372,7 +398,7 @@ let get_tag_name s pos =
   let tag_name = field_of_string name in
   tag_name, pos
   
-let get_tag s pos =
+let get_tag proto s pos =
   let tag_name, pos = get_tag_name s pos in
   let value, pos =
     match get_uint8 s pos with
@@ -382,7 +408,8 @@ let get_tag s pos =
         Fint64 (get_uint64_32 s (pos+1)), pos+5
     | 2 -> let s, pos = get_string s (pos+1) in
         String s, pos
-    | 3 -> Addr (get_ip s (pos+1)), pos+5
+    | 3 -> let ip, pos = get_ip2 proto s (pos+1) in
+        Addr ip, pos
     | 4 -> Uint16 (get_int16 s (pos+1)), pos+3
     | 5 -> Uint8 (get_uint8 s (pos+1)), pos+2
     | 6 -> Pair (get_uint64_32 s (pos+1), get_uint64_32 s (pos+5)), pos+9
@@ -403,7 +430,7 @@ let get_result proto s pos =
   let size, pos = get_uint64_2 proto s pos in
   let format, pos = get_string s pos in
   let t, pos = get_string s pos in
-  let tags, pos = get_list get_tag s pos in
+  let tags, pos = get_list2 proto get_tag s pos in
   let comment, pos = get_string s pos in
   let already_done = get_bool  s pos in
   let time, pos = 
@@ -620,10 +647,10 @@ let get_addr proto s pos =
   let addr, pos =
   match get_uint8 s pos with
     0 ->
-      let ip = get_ip s (pos+1) in
-      Ip.addr_of_ip ip, pos+5
+      let ip, pos = get_ip2 proto s (pos+1) in
+      Ip.addr_of_ip ip, pos
   | 1 ->
-      let name,pos = get_string s (pos+1) in
+      let name,pos = get_hostname proto s (pos+1) in
       Ip.addr_of_string name, pos
   | _ -> assert false
   in
@@ -643,7 +670,7 @@ let get_server proto s pos =
   in
   let port = get_int16 s pos in
   let score = get_int s (pos+2) in
-  let tags, pos = get_list get_tag s (pos+6) in
+  let tags, pos = get_list2 proto get_tag s (pos+6) in
   let nusers, pos = get_int64_28 proto s pos in
   let nfiles, pos = get_int64_28 proto s pos in
   let state, pos = get_host_state proto s pos in
@@ -675,14 +702,14 @@ let get_client_type s pos =
   | 2 -> client_contact_tag
   | _ -> assert false
 
-let get_kind s pos =
+let get_kind proto s pos =
   match get_uint8 s pos with
     0 ->
-      let ip = get_ip s (pos+1) in
-      let port = get_int16 s (pos+5) in
-      Known_location (ip, port), pos+7
+      let ip,pos = get_ip2 proto s (pos+1) in
+      let port = get_int16 s pos in
+      Known_location (ip, port), pos+2
   | 1 ->
-      let name, pos = get_string s (pos+1) in
+      let name, pos = get_hostname proto s (pos+1) in
       let md4 = get_md4 s pos in
       Indirect_location (name, md4), pos+16
   | _ -> assert false
@@ -691,10 +718,10 @@ let get_client proto s pos =
   if proto <= 18 then
     let num = get_int s pos in
     let net = get_int s (pos+4) in
-    let kind, pos = get_kind s (pos+8) in
+    let kind, pos = get_kind proto s (pos+8) in
     let state,pos = get_host_state proto s pos in
     let t = get_client_type s pos in
-    let tags, pos = get_list get_tag s (pos+1) in
+    let tags, pos = get_list2 proto get_tag s (pos+1) in
     let name, pos = get_string s pos in
     let rating = get_int s pos in
     let chat_port = get_int s (pos+4) in
@@ -722,10 +749,10 @@ let get_client proto s pos =
   else
   let num = get_int s pos in
   let net = get_int s (pos+4) in
-  let kind, pos = get_kind s (pos+8) in
+  let kind, pos = get_kind proto s (pos+8) in
   let state,pos = get_host_state proto s pos in
   let t = get_client_type s pos in
-  let tags, pos = get_list get_tag s (pos+1) in
+  let tags, pos = get_list2 proto get_tag s (pos+1) in
   let name, pos = get_string s pos in
   let rating = get_int s pos in
   let software, pos = get_string s (pos+4) in
@@ -825,13 +852,13 @@ let get_network proto s pos =
   }, pos
 
 
-let get_user s pos =
+let get_user proto s pos =
   let num = get_int s pos in
   let md4 = get_md4 s (pos+4) in
   let name, pos = get_string s (pos+20) in
-  let ip = get_ip s pos in
-  let port = get_int16 s (pos+4) in
-  let tags, pos = get_list get_tag s (pos+6) in
+  let ip, pos = get_ip2 proto s pos in
+  let port = get_int16 s pos in
+  let tags, pos = get_list2 proto get_tag s (pos+6) in
   let server = get_int s pos in
   {
     user_num = num;
@@ -1354,7 +1381,7 @@ let to_gui (proto : int array)  opcode s =
         Network_info network_info
     
     | 21 ->
-        let user_info, pos = get_user  s 2 in
+        let user_info, pos = get_user proto s 2 in
         User_info user_info
     
     | 22 ->

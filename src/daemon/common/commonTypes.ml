@@ -851,6 +851,17 @@ let  string_of_kind kind =
     | _ -> "firewalled"
   with _ -> ""
 
+let string_of_kind_geo kind =
+  try
+    match kind with
+    | Known_location (ip,port) -> 
+        let cc,cn = Geoip.get_country ip in
+        (Ip.to_string ip),cc,cn
+    | _ -> 
+        let cc,cn = !Geoip.unknown_country in
+        "firewalled",cc,cn
+  with _ -> "","X","Country error"
+
 type brand_stat = {
   mutable brand_seen : int;
   mutable brand_banned : int;

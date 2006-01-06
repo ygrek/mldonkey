@@ -272,18 +272,18 @@ let op_file_print_sources_html file buf =
             None -> "" | Some swarmer ->
               Int64Swarmer.verified_bitmap swarmer) in
 
-      html_mods_table_header buf "sourcesTable" "sources al" [
+      let header_list = [
         ( "1", "srh br ac", "Client number", "Num" ) ;
         ( "0", "srh br", "Client UID", "UID" ) ;
         ( "0", "srh br", "Client software", "Soft" ) ;
         ( "0", "srh", "IP address", "IP address" ) ;
         ( "0", "srh br ar", "Port", "Port" ) ;
+        ] @ (if !Geoip.active then [( "0", "srh br ar", "Country Code/Name", "CC" )] else []) @ [
         ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
         ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
         ( "0", "srh ar", "Interested [T]rue, [F]alse", "I" ) ;
         ( "0", "srh ar", "Choked [T]rue, [F]alse", "C" ) ;
         ( "1", "srh br ar", "Allowed to write", "A" ) ;
-
         ( "0", "srh ar", "Interesting [T]rue, [F]alse", "I" );
         ( "0", "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
         ( "0", "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
@@ -303,17 +303,22 @@ let op_file_print_sources_html file buf =
 *)
         ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
               (String.length (String2.replace
-                  (String2.replace chunks '0' "") '1' "")) )) ]      ;
+                  (String2.replace chunks '0' "") '1' "")) )) 
+      ] in
+
+      html_mods_table_header buf "sourcesTable" "sources al" header_list;
 
       Hashtbl.iter (fun _ c ->
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
 
-          html_mods_td buf [
+          let cc,cn = Geoip.get_country (fst c.client_host) in
+          let td_list = [
             ("", "sr br ar", Printf.sprintf "%d" (client_num c));
             ("", "sr br", (Sha1.to_string c.client_uid));
             ("", "sr br", Printf.sprintf "%s %s" (brand_to_string c.client_brand) c.client_release);
             ("", "sr", (Ip.to_string (fst c.client_host)));
             ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
+            ] @ (if !Geoip.active then [( cn, "sr br", cc)] else []) @ [
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr", (if c.client_interested then "T" else "F"));
@@ -340,8 +345,10 @@ let op_file_print_sources_html file buf =
                     None -> ()
                   | Some bitmap ->
                       Bitv.iter (fun s -> if s then incr fc) bitmap);
-                (Printf.sprintf "%d" !fc) ) ) ];
+                (Printf.sprintf "%d" !fc) ) ) 
+          ] in
 
+          html_mods_td buf td_list;
           Printf.bprintf buf "\\</tr\\>";
 
       ) file.file_clients;
@@ -754,8 +761,8 @@ let op_client_dprint c o file =
 let op_client_dprint_html c o file str =
   let info = file_info file in
   let buf = o.conn_buf in
-  let cc = as_client c in
-  let cinfo = client_info cc in
+  let ac = as_client c in
+  let cinfo = client_info ac in
   Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
   onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
 
@@ -765,10 +772,12 @@ let op_client_dprint_html c o file str =
         show_emulemods_column := true
     end;
 
+    let cc,cn = Geoip.get_country (fst c.client_host) in
+
     html_mods_td buf ([
         ("", "srb ar", Printf.sprintf "%d" (client_num c));
-        ((string_of_connection_state (client_state cc)), "sr",
-          (short_string_of_connection_state (client_state cc)));
+        ((string_of_connection_state (client_state ac)), "sr",
+          (short_string_of_connection_state (client_state ac)));
         ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
         ("", "sr", (brand_to_string c.client_brand)); (* cinfo.GuiTypes.client_software *)
         ("", "sr", c.client_release); 
@@ -781,6 +790,7 @@ let op_client_dprint_html c o file str =
         ("", "sr", "D");
         ("", "sr", "N");
         ("", "sr", (Ip.to_string (fst c.client_host)));
+        ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
         ("", "sr ar", (size_of_int64 c.client_uploaded));
         ("", "sr ar", (size_of_int64 c.client_downloaded));
         ("", "sr", info.GuiTypes.file_name); ]);
