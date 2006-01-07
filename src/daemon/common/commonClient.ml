@@ -422,15 +422,14 @@ let client_print c o =
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
+  let ips,cc,cn = string_of_kind_geo info.G.client_kind in
   if use_html_mods o then begin
-	html_mods_td buf [
+	html_mods_td buf ([
 	("", "sr", Printf.sprintf "%d" (client_num c));
 	("", "sr", n.network_name);
-	("", "sr", (try match info.G.client_kind with
-             Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-           | Indirect_location _ -> Printf.sprintf "None"
-           with _ -> ""));
-	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ];
+	("", "sr", ips);
+	] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
+	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]);
     end
   else begin
       Printf.bprintf buf "[%s%6d] Name  : %-27s Rating  : %-10d  IP   : %-20s"
