@@ -1023,7 +1023,7 @@ let location_kind_to_string kind =
 let hash_of_client kind =
   match kind with
       Known_location _ -> "-"
-    | Indirect_location (_, md4) -> Printf.sprintf "%s" (Md4.to_string md4)
+    | Indirect_location (_, md4, _, _) -> Printf.sprintf "%s" (Md4.to_string md4)
 
 (*************************************************************************)
 (*                                                                       *)

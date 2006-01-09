@@ -72,7 +72,7 @@ let dummy_source =
   {
      source_num = (-1);
      source_network = 0;
-     source_kind = Indirect_location ("", Md4.null);
+     source_kind = Indirect_location ("", Md4.null, Ip.null, 0);
      source_state = RemovedHost;
      source_type = client_initialized_tag;
      source_tags = [];
